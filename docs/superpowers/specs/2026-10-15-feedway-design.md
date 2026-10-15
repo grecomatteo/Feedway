@@ -1507,7 +1507,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Copertina dei reel e anteprima video | Fotogramma o immagine propria, anche trascinata; ogni video riproducibile nell'editor grazie a una copia MP4 di anteprima | Matteo (idea), Claude (forma) |
 | Calendario cliente | Mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, "Stampa o salva PDF" con le sole pubblicazioni future | Matteo |
 | Member senza spazi | Ruolo valido nell'agenzia; dalla 1.5 attività, to-do e note | Matteo |
-| Piano editoriale | Nella 1.0, tappa 9 con la parte cliente nella tappa 10 (§11.12) | Raccomandazione di Claude, **da confermare da Matteo** |
+| Piano editoriale | Nella 1.0, tappa 9 con la parte cliente nella tappa 10 (§11.12) | Matteo (confermato il 2026-10-15, su raccomandazione di Claude) |
 
 ---
 
@@ -1552,7 +1552,6 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Dati per le pagine legali (titolare, email di contatto, eventuale partita IVA) e approvazione di testi e immagini del sito | Tappa 10 |
 | Servizio email: Brevo (gratuito fino a 300 email al giorno, dati in Europa) o Scaleway TEM | Tappa 3 |
 | Chiave privata dei backup, da conservare nel tuo gestore di password | Tappa 1 |
-| Conferma del Piano editoriale nella 1.0 (§11.12, §19) | Prima della tappa 9 |
 | Bot Telegram (@BotFather) | Tappa 8 |
 | Account di sorveglianza esterna (es. healthchecks.io) | Tappa 8 |
 | Cartella di backup inclusa nel tuo rclone | Tappa 11 |
