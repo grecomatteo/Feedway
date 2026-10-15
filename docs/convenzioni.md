@@ -6,7 +6,7 @@ Regole che la CI non può controllare tutte da sola. Quelle controllate sono mar
 
 | Cosa | Lingua |
 |---|---|
-| Testi dell'interfaccia, email, messaggi Telegram | Italiano, dai file di traduzione (`apps/web/i18n/locales/it.json`, `@nuxtjs/i18n`), mai scritti nei componenti |
+| Testi dell'interfaccia, email, messaggi Telegram | Italiano, dai file di traduzione (`apps/web/i18n/locales/it.json`, `@nuxtjs/i18n`), mai scritti nei componenti; per il sito pubblico `apps/site/i18n/locales/` |
 | Documentazione, commit, PR, issue | Italiano |
 | Codice, nomi di file, identificativi, nomi dei test, commenti | Inglese |
 | Codici di errore | Inglese, `SCREAMING_SNAKE_CASE` (`POST_NOT_EDITABLE`) |

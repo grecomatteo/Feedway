@@ -392,7 +392,7 @@ infrastructure  →  implementa le interfacce di application
 - `domain` non importa nulla di esterno: testabile senza database né rete.
 - `application` dipende solo da interfacce (`PostRepository`, `MetaPublisher`, `Storage`, `Notifier`, `Clock`).
 - Rotte API e gestori dei lavori sono sottili: validano l'input, chiamano un caso d'uso, traducono l'output.
-- `apps/site` importa solo `packages/ui` (token e componenti): niente casi d'uso, contratti, configurazione o database.
+- `apps/site` importa solo `packages/ui` (token) e `PRODUCT_NAME` da `packages/config`: niente casi d'uso, contratti, infrastruttura o database.
 - I confini sono verificati in CI con dependency-cruiser.
 
 ### 7.3 Moduli e aggiunta di nuove funzioni
@@ -1063,20 +1063,20 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 | Home | Cosa fa Feedway in una frase; vantaggi principali (IG e FB da un solo posto, anteprima come su Meta, verifica dopo la pubblicazione, più clienti e più utenti, uso da telefono); come funziona in tre passi; immagini del prodotto vero; domande frequenti; "Accedi" e "Contattaci" |
 | Privacy | Informativa del sito, con te come titolare; diversa dall'informativa delle agenzie, che sta nel pannello (§15.7) |
 | Cookie | Dichiara che il sito non usa cookie di profilazione né di terze parti |
-| Note legali | Titolare, contatti e, se c'è, partita IVA (che va comunque nel piè di pagina di ogni pagina) |
+| Note legali | Titolare, sede e contatti. Se c'è la partita IVA va indicata nella home (art. 35 DPR 633/1972): la mettiamo nel piè di pagina di ogni pagina |
 | 404 | Collegamenti alla home e ad "Accedi" |
 
 Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul trattamento dei dati e stato del servizio (§18.2).
 
 **Contatti**: nella 1.0 un indirizzo email, senza modulo, così il sito non raccoglie dati personali. Un modulo o una lista d'attesa arriva con la 2.0, con consenso esplicito e conferma via email.
 
-**Privacy**: nessun cookie, quindi nessun banner. Statistiche di visita con Cloudflare Web Analytics, che non usa cookie né dati personali. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
+**Privacy**: nessun cookie del sito, quindi nessun banner: tema solo automatico (segue il telefono o il computer, senza salvare preferenze) e protezioni anti-bot di Cloudflare spente sull'host del sito (mettono cookie). Statistiche di visita con Cloudflare Web Analytics, senza cookie né impronte del browser. Cloudflare tratta comunque gli indirizzi IP come fornitore, e l'informativa lo dice. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
 
 **Motori di ricerca**: titolo e descrizione per pagina, URL canonici, anteprima per i social (Open Graph), dati strutturati (`Organization`, `SoftwareApplication`), `sitemap.xml` e `robots.txt`. Pannello e host pubblico, al contrario, non devono comparire nelle ricerche (§16.1).
 
 **Lingue**: italiano all'uscita; struttura pronta per l'inglese (`/en/` con `hreflang`) e testi nei file di traduzione del sito (`apps/site/i18n/locales/`), come nel pannello.
 
-**Qualità**: stessi componenti, brand e tema chiaro/scuro del pannello (`packages/ui`, brand della piattaforma §14.3); WCAG 2.2 AA verificato con axe; caricamento sotto 2,5 s su telefono (LCP); collegamenti verificati in CI; intestazioni di sicurezza con CSP senza script inline, HSTS e `frame-ancestors 'none'`.
+**Qualità**: stessi token di colore e tema chiaro/scuro del pannello (`packages/ui`) e stesso nome (`PRODUCT_NAME`); logo e immagini del sito sono file nel repository, non il brand caricato dal pannello; WCAG 2.2 AA verificato con axe; caricamento sotto 2,5 s su telefono (LCP); collegamenti verificati in CI; intestazioni di sicurezza nel file `_headers` di Cloudflare Pages: CSP con gli hash degli script inline che Nuxt genera e il solo `static.cloudflareinsights.com` ammesso (da verificare alla prima build), HSTS, `frame-ancestors 'none'`.
 
 **Modifiche**: i testi si cambiano con una PR come il resto del codice; ogni PR ha un'anteprima su un indirizzo provvisorio non indicizzato e la CI pubblica il sito al merge. Nessun CMS nella 1.0: per pochi testi sarebbe un servizio in più da proteggere.
 
@@ -1096,7 +1096,7 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - **Da verificare con un test all'inizio della tappa 2**: se segreto TOTP e codici di recupero sono cifrati (altrimenti li cifriamo noi con la chiave della piattaforma); se `disabledPaths` blocca anche la creazione lato server (altrimenti si usa l'adattatore interno); come leggere i tentativi falliti dai ganci; se il token di sessione è salvato in chiaro (in quel caso si accetta e si annota tra i rischi, §20).
 
 ### 15.2 Sessioni
-- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello, senza attributo `Domain` (prefisso `__Host-` se Better Auth lo consente, da verificare nella tappa 2), così il sito pubblico sul dominio principale non li riceve e non li può sovrascrivere; `cookieCache` spento, così una revoca vale subito.
+- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello, senza attributo `Domain`, così il sito pubblico sul dominio principale non li riceve; con il prefisso `__Host-` (nome del cookie personalizzato in Better Auth, da verificare nella tappa 2) il dominio principale non può nemmeno sovrascriverli; `cookieCache` spento, così una revoca vale subito.
 - Scadenza per inattività 12 ore, assoluta 30 giorni (controllo nostro su `created_at`); nuovo token a ogni login e cambio di privilegi.
 - "Sessioni attive" con revoca; disattivazione e reset chiudono tutte le sessioni.
 - **Riconferma** (password o 2FA) per azioni delicate: ruoli, nomina Admin, integrazioni, brand, impostazioni.
@@ -1136,7 +1136,7 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - Esportazione e cancellazione di un'intera organizzazione nella 2.0 (resa semplice da `organization_id` ovunque e dai file con prefisso per organizzazione).
 - Registro attività conservato 24 mesi, poi riassunto.
 - I link cliente non mostrano nomi o dati del team.
-- Il sito pubblico non usa cookie né raccoglie dati personali nella 1.0; ha la propria informativa, con te come titolare (§14.5).
+- Il sito pubblico non usa cookie e non ha moduli nella 1.0; Cloudflare, che lo ospita, tratta gli indirizzi IP come fornitore. Ha la propria informativa, con te come titolare (§14.5).
 
 ### 15.8 Dipendenze
 - Lockfile versionato, `--frozen-lockfile`, Renovate con CI obbligatoria.
@@ -1153,14 +1153,14 @@ Il pannello deve essere privato; i media devono essere pubblici perché li scari
 | Fase | Sito pubblico | Pannello | Host pubblico | Dominio |
 |---|---|---|---|---|
 | **Inizio (consigliato)** | Nessuno | Solo **Tailscale** (`*.ts.net`) | **Tailscale Funnel** su un secondo nodo dedicato (nome `*.ts.net` diverso dal pannello), solo `/m/` e `/share/` | Non serve |
-| **Con dominio** | **Cloudflare Pages** su `tuodominio.it` | `app.tuodominio.it`: Tailscale, oppure Cloudflare Tunnel + **Cloudflare Access** | **Cloudflare Tunnel** su `pub.tuodominio.it` | Su Cloudflare |
+| **Con dominio** | **Cloudflare Pages** su `tuodominio.it` | `app.tuodominio.it` con Cloudflare Tunnel + **Cloudflare Access**, oppure resta su Tailscale (`*.ts.net`) | **Cloudflare Tunnel** su `pub.tuodominio.it` | Su Cloudflare |
 
 - I quick tunnel `*.trycloudflare.com` cambiano indirizzo a ogni riavvio: non adatti.
 - Il passaggio di fase cambia solo `PUBLIC_URL`, `PUBLIC_HOST` e `PANEL_URL`; gli URL dei media si costruiscono al momento della pubblicazione.
 - Con Cloudflare: regola che escluda `/m/*` e `/share/*` da Bot Fight Mode e sfide anti-bot; `facebookexternalhit` non bloccato.
 - I collaboratori, con il pannello solo su Tailscale, vanno invitati nel tailnet; se diventano tanti conviene Cloudflare Access.
 - "Accedi" sul sito porta a `PANEL_URL`: con il pannello su Tailscale o dietro Cloudflare Access si apre solo per chi ha accesso, ed è voluto. Nella 2.0, con la registrazione libera, il pannello diventa raggiungibile da internet e il suo accesso resta protetto da Better Auth e limitazione dei tentativi.
-- Pannello e host pubblico non si fanno indicizzare: `robots.txt` che blocca tutto e intestazione `X-Robots-Tag: noindex`.
+- Pannello e host pubblico non si fanno indicizzare: `robots.txt` che blocca tutto e intestazione `X-Robots-Tag: noindex`. L'indirizzo tecnico del sito (`<progetto>.pages.dev`) rimanda a `tuodominio.it`.
 
 ### 16.2 Configurazione dell'infrastruttura
 
@@ -1279,7 +1279,7 @@ Conversioni video: una alla volta, `nice`, ffmpeg su un thread; prima la strada 
 | Accessibilità | axe-core sulle schermate principali |
 | Sicurezza | CodeQL, gitleaks, `pnpm audit` |
 | Immagine | Build, Trivy, pubblicazione su GHCR (solo `main`) |
-| Sito | Solo se cambiano `apps/site` o `packages/ui`: build statica, axe, collegamenti, anteprima per la PR, pubblicazione su Cloudflare Pages da `main` (dalla tappa 10) |
+| Sito | Dalla tappa 10: build statica, axe e collegamenti a ogni PR (controllo obbligatorio `site`); anteprima per la PR e pubblicazione su Cloudflare Pages da `main` in un workflow a parte, solo quando cambiano `apps/site` o `packages/ui` |
 
 ### 17.3 Piano di test
 
@@ -1329,7 +1329,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | 1.3 | Statistiche e report per cliente, orario migliore per pubblicare | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
-| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento Meta con login Facebook, dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20) |
+| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento Meta con login Facebook, dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
 
 ### 18.3 Predisposizione per MCP
 

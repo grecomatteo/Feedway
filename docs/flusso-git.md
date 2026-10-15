@@ -93,7 +93,7 @@ Configurata come **ruleset** versionato in `.github/rulesets/main.json` e applic
 | Push diretti | Vietati, per tutti, amministratori compresi |
 | Force push e cancellazione | Vietati |
 | PR obbligatoria | Sì, con conversazioni risolte |
-| Controlli obbligatori | `lint-types`, `architecture`, `unit`, `integration`, `e2e`, `security`, `image`, `install-smoke`, `commitlint` |
+| Controlli obbligatori | `lint-types`, `architecture`, `unit`, `integration`, `e2e`, `security`, `image`, `install-smoke`, `commitlint`; dalla tappa 10 anche `site` |
 | Ramo aggiornato prima del merge | Sì |
 | Storia lineare | Sì (solo squash) |
 | Approvazioni | Quella di Matteo è obbligatoria sulla PR di rilascio e su ogni PR che tocca `.github/`, `scripts/`, `docker/`, migrazioni o sicurezza (`CODEOWNERS`) |
