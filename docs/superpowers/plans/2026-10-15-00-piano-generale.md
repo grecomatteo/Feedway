@@ -53,7 +53,7 @@ Ogni piano di tappa le include implicitamente.
 - **Flusso di lavoro** (`docs/flusso-git.md`, scelto da Matteo il 2026-10-15): un ramo corto e una **PR piccola per task** (`<tipo>/<tappa>-<argomento>`), titolo in Conventional Commits, CI verde e revisione automatica, squash merge su `main`; a fine tappa Matteo prova e fonde la PR di rilascio di release-please (tappa N → `0.N.0`, tappa 12 → `1.0.0`); sulla VPS `./scripts/update.sh vX.Y.Z`. Ogni tappa è una milestone GitHub.
 - **TDD:** per dominio e casi d'uso il test si scrive prima del codice e si vede fallire.
 - **Livelli:** `domain` non importa nulla di esterno; `application` dipende solo da interfacce (porte); rotte API e gestori dei lavori sono sottili (validano, chiamano un caso d'uso, traducono). dependency-cruiser blocca la CI se un confine è violato.
-- **Moduli (§7.3):** ogni area funzionale è un modulo con la stessa forma in `domain`, `application`, `infrastructure/db`, `contracts`, rotte e pagine; un modulo usa solo le proprie tabelle e parla con gli altri tramite le loro funzioni pubbliche (`application/<modulo>/index.ts`) o gli eventi; permessi, tipi di notifica, voci di menu e strumenti MCP si registrano dal modulo stesso. La ricetta sta in `docs/moduli.md` (scritta nella tappa 2).
+- **Moduli (§7.3):** ogni area funzionale è un modulo con la stessa forma in `domain`, `application`, `infrastructure/db`, `contracts`, rotte e pagine; un modulo usa solo le proprie tabelle e parla con gli altri tramite le loro funzioni pubbliche (`application/<modulo>/index.ts`) o gli eventi; permessi, tipi di notifica, voci di menu, voci del calendario, sezioni del riepilogo e strumenti MCP si registrano dal modulo stesso. La tappa 2 fissa i permessi del nucleo come unione chiusa (`Permission`) e la sua tabella di prova copia solo le righe del nucleo di §10.2; un modulo successivo aggiunge i propri permessi estendendo l'interfaccia `ModulePermissions` (declaration merging di TypeScript) e le proprie righe della matrice, con i propri test. La ricetta sta in `docs/moduli.md` (scritta nella tappa 2).
 - **Autorizzazione:** ogni caso d'uso chiama `can()` prima di agire; ogni elenco è filtrato sugli spazi visibili nel repository; una risorsa non visibile restituisce 404, non 403.
 - **Errori:** errori di dominio tipizzati (`DomainError` con `code`), tradotti in HTTP in un solo punto.
 - **Tempo:** date salvate in UTC (`timestamptz`); fuso di riferimento `Europe/Rome`; nessun `new Date()` nei casi d'uso: si usa la porta `Clock`.
@@ -89,9 +89,9 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 4 · Media
 - **Scalabilità:** la batteria di test di `Storage` gira anche contro Garage (S3 compatibile; MinIO Community non è più distribuito), così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
-- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
+- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, **copia di anteprima** dei video in MP4 H.264 720p creata per prima (specifica §11.1 punto 7: l'HEVC dell'iPhone non si vede in Chrome e Firefox), host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
 - **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
-- **Matteo prova:** carica da telefono un HEIC e un video lungo su rete instabile; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
+- **Matteo prova:** carica da telefono un HEIC, un `.mov` HEVC e un video lungo su rete instabile, e li rivede nel pannello da Chrome; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
 - **Serve da Matteo:** Tailscale Funnel attivo sulla VPS.
 
 ### Tappa 5 · Regole
@@ -100,8 +100,8 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Matteo prova:** legge la tabella dei casi di test (generata dai test) e conferma che i messaggi sono chiari.
 
 ### Tappa 6 · Post
-- **Costruisce:** pagina Nuovo post che parte dal contesto attivo, scelta "Dove pubblicare" per profili con ogni account deselezionabile (specifica §11.2), anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34, RF-35, RF-36, RF-44.
-- **Introduce:** `PostRepository`, tabelle `posts`, `post_media`, `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
+- **Costruisce:** pagina Nuovo post che parte dal contesto attivo, scelta "Dove pubblicare" per profili con ogni account deselezionabile (specifica §11.2), anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), video riproducibili nell'editor, **copertina del reel** da fotogramma o da immagine caricata o trascinata (§11.2), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34–RF-38, RF-44.
+- **Introduce:** `PostRepository`; funzioni pubbliche del modulo `posts` in `application/posts/index.ts` che il modulo `plan` userà nella tappa 9 (la firma si fissa qui): `createDraft(tx, actor, input)` dentro la transazione del chiamante e `getStatuses(tx, postIds[])` in blocco, per non fare una query per scheda; colonna `workspaces.default_post_time` (orario predefinito del cliente, specifica §11.2); tabelle `posts`, `post_media` (con la copertina), `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
 - **Prerequisito:** prototipo approvato.
 
 ### Tappa 7 · Pubblicazione
@@ -111,16 +111,26 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 8 · Notifiche
 - **Scalabilità:** bot Telegram, battito e riconciliatore girano con lock consultivo: con più worker uno solo è attivo.
-- **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00, battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
+- **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00 con **sezioni registrabili dai moduli** (la prima esterna sarà quella del piano editoriale), battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
 - **Introduce:** `NotificationChannel`, tabelle `notifications`, `notification_deliveries`, `notification_prefs`, `telegram_links`, `system_heartbeats`.
 - **Serve da Matteo:** bot Telegram, SMTP, account healthchecks.io.
 
 ### Tappa 9 · Pianificazione
-- **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione. RF-40, RF-41, RF-42, RF-43.
-- **Introduce:** tabelle `time_slots`, `bulk_imports`, lavoro `bulk.import`.
+- **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
+- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
+- **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
+  1. dominio `plan` con le sei regole di §11.12, la funzione dell'istante di riferimento e lo stato calcolato con `Clock` (test prima del codice, compresi 2026-10-25 02:30, ora doppia, e 2027-03-28 02:30, ora inesistente);
+  2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
+  3. casi d'uso e API `/api/v1/orgs/[org]/plan` con `plan.view`, `plan.edit` e `plan.prepare` (registrati dal modulo) e OpenAPI;
+  4. "Prepara": caso d'uso del piano che crea la bozza con `createDraft(tx, …)` e salva il collegamento nella stessa transazione (chiave esterna `ON DELETE SET NULL (post_id)`); stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
+  5. nel calendario il "+" su ogni giorno che apre Nuovo post su quel giorno (specifica §11.4); sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
+  6. editor: precompilazione e avviso sul tipo;
+  7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
+  La stampa del Piano editoriale (schede piene) arriva nella tappa 10 con il foglio di stile di stampa del calendario cliente.
+- **Matteo prova:** pianifica un mese per un cliente, prepara due contenuti dall'editor, ne annulla uno e lo vede tornare "Da preparare".
 
 ### Tappa 10 · Condivisione e brand
-- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
+- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio) con mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, contenuti in preparazione (campi esposti dichiarati uno per uno, con un test che la nota interna non esca mai) e **"Stampa o salva PDF"** con il foglio di stile di stampa (A4 orizzontale, un mese per pagina, solo da oggi in poi; prova automatica con il PDF generato da Playwright) (specifica §11.10), stesso foglio di stampa per il Piano editoriale con schede piene (§11.12), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
 - **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
 - **Prerequisito:** branding e progetto in Pencil del sito approvati.
 
@@ -157,6 +167,9 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
 | `MetaPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
+| Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
+| Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |
+| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, postIds[])` |
 
 Le tabelle seguono la tappa che le introduce (§5); nessuna tappa crea tabelle "per dopo", tranne `api_tokens` (tappa 2), predisposta dalla specifica per MCP.
 
