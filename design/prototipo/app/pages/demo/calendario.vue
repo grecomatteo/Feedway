@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
 import { DateTime } from 'luxon'
-import { MEDIA, WORKSPACES, ZONE, type Post } from '~/fixtures/scenario'
+import { MEDIA, ZONE, type PlanItem, type Post } from '~/fixtures/scenario'
 import { TYPE_LABEL, capitalize, dt, hhmm, now, postStatus, profile, workspace } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })
@@ -82,6 +82,20 @@ const clientLabel = computed(() => {
   return p ? `${workspace(state.value.client).short} · profilo ${p.name}` : workspace(state.value.client).name
 })
 const unfilteredInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + state.value.posts.filter(p => dt(p.scheduledAt).hasSame(d, 'day')).length, 0))
+// Editorial plan items not yet prepared show as translucent cards next to the real posts.
+const visiblePlan = computed(() => (state.value.showPlan
+  ? state.value.plan.filter(p => !p.postId && (state.value.client === 'all' || p.workspaceId === state.value.client) && (typeFilter.value === 'all' || p.type === typeFilter.value))
+  : []))
+const planByDay = (d: DateTime) => visiblePlan.value.filter(p => p.date === d.toISODate()).sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'))
+const planInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + planByDay(d).length, 0))
+const planOpen = ref(false)
+const planItem = ref<PlanItem | null>(null)
+const planDate = ref(now().toISODate()!)
+function openPlan(item: PlanItem | null, d?: DateTime) {
+  planItem.value = item
+  planDate.value = (d ?? now()).toISODate()!
+  planOpen.value = true
+}
 const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + byDay(d).length, 0))
 </script>
 
@@ -94,8 +108,16 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
         <p class="text-xs text-[var(--text-muted)] max-lg:hidden">Mese per la panoramica, Settimana per il dettaglio con miniature grandi.</p>
       </div>
       <button type="button" class="fw-btn max-lg:hidden" :aria-expanded="libraryOpen" aria-controls="libreria" @click="libraryOpen = !libraryOpen"><UIcon name="i-lucide-images" class="size-[18px]" aria-hidden="true" />Libreria</button>
+      <button v-if="can.plan" type="button" class="fw-btn" @click="openPlan(null)"><UIcon name="i-lucide-calendar-range" class="size-[18px]" aria-hidden="true" />Pianifica</button>
       <NuxtLink v-if="can.create" to="/demo/post/nuovo" class="fw-btn fw-btn--primary max-lg:hidden"><UIcon name="i-lucide-plus" class="size-[18px]" aria-hidden="true" />Nuovo post</NuxtLink>
     </header>
+
+    <div v-if="!can.seeClients" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
+      <UIcon name="i-lucide-user-round" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
+      <p class="fw-title text-lg">Non lavori ancora su nessun cliente</p>
+      <p class="max-w-md text-sm text-[var(--text-muted)]">Come Member vedi i clienti solo quando un Manager o un Admin ti assegna un ruolo. Con la versione 1.5 qui trovi le tue attività, il to-do e le note personali.</p>
+    </div>
+    <template v-else>
 
     <div class="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-3 lg:gap-3">
       <div class="flex items-center gap-1">
@@ -114,6 +136,9 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
           @click="view = v; focusDay = null"
         >{{ l }}</button>
       </div>
+      <label class="flex min-h-9 items-center gap-2 rounded-lg border border-dashed border-[var(--border-strong)] px-3 text-[13px] font-semibold">
+        <input v-model="state.showPlan" type="checkbox" class="size-4 accent-[#FF762E]">Mostra i contenuti da preparare
+      </label>
       <button type="button" class="fw-btn !min-h-9 !px-3 !text-[13px]" :aria-expanded="filtersOpen" aria-controls="filtri" @click="filtersOpen = !filtersOpen">
         <UIcon name="i-lucide-sliders-horizontal" class="size-4" aria-hidden="true" />Filtri<span v-if="activeFilters"> · {{ activeFilters }} attivi</span>
       </button>
@@ -136,14 +161,14 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
 
     <div class="flex min-h-0 flex-1 gap-4">
     <div class="flex min-w-0 flex-1 flex-col">
-    <div v-if="totalInRange === 0 && unfilteredInRange > 0" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
+    <div v-if="totalInRange === 0 && planInRange === 0 && unfilteredInRange > 0" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
       <UIcon name="i-lucide-filter-x" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
       <p class="fw-title text-lg">Nessun post corrisponde ai filtri</p>
       <p class="max-w-md text-sm text-[var(--text-muted)]">Nel periodo ci sono contenuti, ma nessuno con questi filtri. Il calendario non è vuoto.</p>
       <button type="button" class="fw-btn mt-2" @click="resetFilters">Azzera filtri</button>
     </div>
 
-    <div v-else-if="totalInRange === 0 && !focusDay" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
+    <div v-else-if="totalInRange === 0 && planInRange === 0 && !focusDay" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
       <UIcon name="i-lucide-calendar-plus" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
       <p class="fw-title text-lg">Nessun post in questo periodo</p>
       <NuxtLink v-if="can.create" to="/demo/post/nuovo" class="fw-btn fw-btn--primary mt-2"><UIcon name="i-lucide-plus" class="size-[18px]" aria-hidden="true" />Nuovo post</NuxtLink>
@@ -159,9 +184,15 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
         </div>
         <PostCard v-for="p in byDay(d).slice(0, 3)" :key="p.id" :post="p" :show-client="state.client === 'all'" />
         <button v-if="byDay(d).length > 3" type="button" class="fw-card px-2.5 py-2 text-left text-xs font-semibold underline underline-offset-2" @click="openDay(d)">Altri {{ byDay(d).length - 3 }} · apri il giorno</button>
-        <NuxtLink v-if="can.create && d >= now().startOf('day')" :to="newPostLink(d)" class="grid min-h-16 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]">
-          <span class="inline-flex items-center gap-1.5"><UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />Nuovo post</span>
-        </NuxtLink>
+        <PlanCard v-for="it in planByDay(d)" :key="it.id" :item="it" :show-client="state.client === 'all'" @open="openPlan($event)" />
+        <div v-if="d >= now().startOf('day') && (can.create || can.plan)" class="flex gap-1.5">
+          <NuxtLink v-if="can.create" :to="newPostLink(d)" class="grid min-h-12 flex-1 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]" :aria-label="`Nuovo post ${d.setLocale('it').toFormat('cccc d')}`">
+            <span class="inline-flex items-center gap-1"><UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />Post</span>
+          </NuxtLink>
+          <button v-if="can.plan" type="button" class="grid min-h-12 flex-1 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]" :aria-label="`Pianifica ${d.setLocale('it').toFormat('cccc d')}`" @click="openPlan(null, d)">
+            <span class="inline-flex items-center gap-1"><UIcon name="i-lucide-calendar-range" class="size-4" aria-hidden="true" />Piano</span>
+          </button>
+        </div>
       </section>
     </div>
 
@@ -180,6 +211,7 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
             <StatusBadge :status="{ ...postStatus(p), label: '' }" plain class="ml-auto" />
           </NuxtLink>
           <button v-if="byDay(d).length > 3" type="button" class="px-1 text-left text-[11px] font-bold underline" @click="openDay(d)">Altri {{ byDay(d).length - 3 }} · apri il giorno</button>
+          <PlanCard v-for="it in planByDay(d).slice(0, 2)" :key="it.id" :item="it" compact :show-client="state.client === 'all'" @open="openPlan($event)" />
         </div>
       </div>
     </div>
@@ -189,7 +221,8 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       <button v-if="focusDay" type="button" class="fw-link self-start text-[13px]" @click="focusDay = null; view = 'week'">← Torna alla settimana</button>
       <template v-for="d in listDays" :key="d.toISODate()!">
         <h3 class="pt-2 text-[13px] font-bold uppercase text-[var(--text-muted)]">{{ isToday(d) ? 'Oggi · ' : '' }}{{ d.setLocale('it').toFormat('cccc d LLLL') }}</h3>
-        <p v-if="!byDay(d).length" class="text-sm text-[var(--text-muted)]">Nessun post.</p>
+        <p v-if="!byDay(d).length && !planByDay(d).length" class="text-sm text-[var(--text-muted)]">Nessun post.</p>
+        <PlanCard v-for="it in planByDay(d)" :key="it.id" :item="it" :show-client="state.client === 'all'" @open="openPlan($event)" />
         <NuxtLink v-for="p in byDay(d)" :key="p.id" :to="`/demo/post/${p.id}`" class="fw-card flex items-center gap-3 p-2.5">
           <img :src="MEDIA[p.media]" alt="" class="h-[90px] w-[72px] rounded-lg object-cover" loading="lazy">
           <span class="min-w-0 flex-1">
@@ -213,5 +246,7 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       </div>
     </aside>
     </div>
+    </template>
+    <PlanDialog v-model:open="planOpen" :item="planItem" :default-date="planDate" />
   </div>
 </template>

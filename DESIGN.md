@@ -56,3 +56,6 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Anteprima video: il video si rivede nell'editor; i .mov HEVC non riproducibili dal browser mostrano un messaggio, e nel prodotto l'anteprima usa l'MP4 convertito dal server.
 - Calendario cliente: mese completo «da lontano», mesi che continuano scorrendo, logo Feedway a sinistra, logo del cliente e «gestito da» con il logo dell'agenzia a destra, anteprima al clic; data dell'ultimo aggiornamento.
 - Note sui post con visibilità «solo per me» o «per il team» (proposta, vedi design/ruoli-e-permessi.md).
+- Copertina e video si caricano anche trascinando il file sull'area tratteggiata (16 ottobre).
+- Calendario cliente: «Stampa o salva PDF», A4 orizzontale, un mese per pagina, solo pubblicazioni da oggi in poi; i contenuti pianificati compaiono come «In preparazione».
+- Piano editoriale (proposta): schede tratteggiate e trasparenti «Da preparare», interruttore nel calendario, «Prepara questo contenuto» precompila l'editor. Dettagli in design/proposta-piano-editoriale.md.

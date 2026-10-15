@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DateTime } from 'luxon'
-import { AGENCY, INITIAL_POSTS, MEDIA, SHARE_LINKS, ZONE, type Post } from '~/fixtures/scenario'
-import { TYPE_LABEL, capitalize, dt, hhmm, now, workspace } from '~/utils/format'
+import { AGENCY, INITIAL_PLAN, INITIAL_POSTS, MEDIA, SHARE_LINKS, ZONE, type Post } from '~/fixtures/scenario'
+import { TYPE_ICON, TYPE_LABEL, capitalize, dt, hhmm, now, workspace } from '~/utils/format'
 
 // Public read-only view: it uses the fixture directly, never the demo's private state.
 const route = useRoute()
@@ -39,6 +39,12 @@ const cells = (m: DateTime) => {
   return out
 }
 const onDay = (d: DateTime) => posts.value.filter(p => dt(p.scheduledAt).hasSame(d, 'day'))
+// Planned contents not prepared yet are shared too, as "in preparazione" (no internal notes).
+const plan = computed(() => (link.value && link.value.state !== 'empty' ? INITIAL_PLAN.filter(p => p.workspaceId === link.value!.workspaceId && !p.postId) : []))
+const planOn = (d: DateTime) => plan.value.filter(p => p.date === d.toISODate())
+const isPast = (d: DateTime) => d < now().startOf('day')
+// Print and PDF contain only what comes from today onwards.
+function printCalendar() { window.print() }
 const opened = ref<Post | null>(null)
 const published = (p: Post) => p.status === 'done' && p.targets.some(t => t.state === 'confirmed')
 </script>
@@ -84,22 +90,25 @@ const published = (p: Post) => p.status === 'done' && p.targets.some(t => t.stat
         <button type="submit" class="fw-btn fw-btn--primary">Apri il calendario</button>
       </form>
       <template v-else>
-        <div class="flex flex-wrap items-end gap-x-6 gap-y-1">
+        <div class="flex flex-wrap items-end gap-x-6 gap-y-2">
           <h1 class="fw-title text-[28px] leading-tight">Piano dei contenuti · {{ ws?.short }}</h1>
+          <button type="button" class="fw-btn print:hidden sm:order-last sm:ml-auto" @click="printCalendar"><UIcon name="i-lucide-printer" class="size-[18px]" aria-hidden="true" />Stampa o salva PDF</button>
+          <p class="hidden basis-full text-sm font-semibold print:block">Pubblicazioni dal {{ now().setLocale('it').toFormat('d LLLL yyyy') }} in poi</p>
           <p class="text-[13px] text-[var(--text-muted)]">Aggiornato il {{ now().setLocale('it').toFormat("d LLLL yyyy 'alle' HH:mm") }} · orari in {{ ZONE }} · sola lettura</p>
         </div>
         <p v-if="!posts.length" class="mt-8 rounded-xl bg-white p-6 text-center text-sm">Non ci sono ancora contenuti programmati. Il piano apparirà qui.</p>
 
-        <section v-for="m in months" :key="m.toISODate()!" class="mt-8" :aria-labelledby="`m-${m.month}`">
+        <section v-for="m in months" :key="m.toISODate()!" class="month mt-8" :aria-labelledby="`m-${m.month}`">
           <h2 :id="`m-${m.month}`" class="fw-title mb-3 text-xl">{{ capitalize(m.setLocale('it').toFormat('LLLL yyyy')) }}</h2>
           <div class="overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
             <div class="grid grid-cols-7 border-b border-[var(--border)] text-[11px] font-semibold text-[var(--text-muted)] sm:text-xs">
               <div v-for="d in ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']" :key="d" class="px-1.5 py-2 sm:px-2.5">{{ d }}</div>
             </div>
             <div class="grid grid-cols-7">
-              <div v-for="d in cells(m)" :key="d.toISODate()!" class="min-h-20 border-b border-r border-[var(--border)] p-1 sm:min-h-32 sm:p-1.5" :class="d.month !== m.month ? 'bg-[var(--fw-carta)]' : ''">
+              <div v-for="d in cells(m)" :key="d.toISODate()!" class="day min-h-20 border-b border-r border-[var(--border)] p-1 sm:min-h-32 sm:p-1.5" :class="d.month !== m.month ? 'bg-[var(--fw-carta)]' : ''">
                 <template v-if="d.month === m.month">
                   <span class="tabular grid size-6 place-items-center rounded-full text-xs font-semibold" :class="d.hasSame(now(), 'day') ? 'bg-[var(--fw-carbone)] text-white' : d < now().startOf('day') ? 'text-[var(--text-muted)]' : ''">{{ d.day }}</span>
+                  <div :class="isPast(d) ? 'print:hidden' : ''">
                   <div class="mt-1 grid gap-1 sm:grid-cols-2">
                     <button v-for="p in onDay(d).slice(0, 4)" :key="p.id" type="button" class="group relative block overflow-hidden rounded-md" :class="onDay(d).indexOf(p) > 0 ? 'max-sm:hidden' : ''" :aria-label="`${hhmm(p.scheduledAt)}, ${TYPE_LABEL[p.type]}: apri l'anteprima`" @click="opened = p">
                       <img :src="MEDIA[p.media]" alt="" class="aspect-square w-full object-cover" loading="lazy">
@@ -108,13 +117,18 @@ const published = (p: Post) => p.status === 'done' && p.targets.some(t => t.stat
                   </div>
                   <span v-if="onDay(d).length > 1" class="mt-0.5 block text-[10px] font-bold sm:hidden">+{{ onDay(d).length - 1 }}</span>
                   <span v-if="onDay(d).length > 4" class="mt-0.5 block text-[11px] font-bold max-sm:hidden">+{{ onDay(d).length - 4 }} altri</span>
+                  <div v-for="it in planOn(d)" :key="it.id" class="mt-1 rounded-md border border-dashed border-[var(--border-strong)] p-1 text-[10px] leading-tight sm:text-[11px]" :title="`In preparazione: ${TYPE_LABEL[it.type]} ${it.title}`">
+                    <span class="flex items-center gap-1 font-semibold"><UIcon :name="TYPE_ICON[it.type]" class="size-3 shrink-0" aria-hidden="true" /><span class="truncate max-sm:sr-only">{{ it.title }}</span></span>
+                    <span class="text-[var(--text-muted)] max-sm:hidden">In preparazione{{ it.time ? ` · ${it.time}` : '' }}</span>
+                  </div>
+                  </div>
                 </template>
               </div>
             </div>
           </div>
         </section>
       </template>
-      <p class="mt-12 text-center text-xs text-[var(--text-muted)]">Prototipo Feedway con dati fittizi. Loghi di cliente e agenzia sono segnaposto.</p>
+      <p class="mt-12 text-center text-xs text-[var(--text-muted)] print:mt-4">Prototipo Feedway con dati fittizi. Loghi di cliente e agenzia sono segnaposto.</p>
     </main>
 
     <UModal :open="!!opened" :title="opened ? `${capitalize(dt(opened.scheduledAt).toFormat('cccc d LLLL, HH:mm'))}` : ''" :description="opened ? TYPE_LABEL[opened.type] : ''" @update:open="v => { if (!v) opened = null }">
@@ -131,3 +145,21 @@ const published = (p: Post) => p.status === 'done' && p.targets.some(t => t.stat
     </UModal>
   </div>
 </template>
+
+<style>
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: #fff !important; }
+  header.sticky { position: static !important; }
+  .month { break-inside: avoid; page-break-inside: avoid; margin-top: 4mm !important; }
+  .month + .month { break-before: page; }
+  .day { min-height: 16mm !important; padding: 1mm !important; }
+  .day .grid { display: flex !important; flex-wrap: wrap; gap: 1mm; }
+  .day .grid img { width: 11mm !important; height: 11mm !important; }
+  .day .grid button span { display: block !important; position: static !important; background: none !important; color: #242321 !important; font-size: 8px !important; padding: 0 !important; }
+  .day .grid button { display: block !important; }
+  header.sticky > div { padding-top: 2mm !important; padding-bottom: 2mm !important; }
+  main { padding-top: 4mm !important; }
+  img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>

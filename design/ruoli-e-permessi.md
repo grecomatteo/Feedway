@@ -10,7 +10,7 @@ Riassunto in parole semplici della specifica approvata (`docs/superpowers/specs/
 |---|---|
 | Owner | Il titolare. Vede e gestisce tutto, nomina gli Admin. Uno per agenzia, nessuno può declassarlo. |
 | Admin | Gestisce persone, clienti, account social e integrazioni. Le impostazioni dell'agenzia le vede in sola lettura. |
-| Member | Tutti gli altri: vedono solo i clienti in cui hanno un ruolo. |
+| Member | Tutti gli altri: vedono solo i clienti in cui hanno un ruolo. Un **Member semplice**, senza ruoli sui clienti, non vede clienti né post; con la 1.5 usa attività, to-do e note personali. |
 
 **In ogni cliente**: cosa può fare una persona su quel cliente. La stessa persona può essere Manager di un cliente ed Editor di un altro.
 
@@ -33,6 +33,7 @@ Riassunto in parole semplici della specifica approvata (`docs/superpowers/specs/
 | Riprovare pubblicazioni fallite | ✓ | ✓ | ✓ | solo propri | | |
 | Etichette, modelli, fasce orarie, gruppi di account | ✓ | ✓ | ✓ | | | |
 | Gestire il team del cliente e invitare | ✓ | ✓ | ruoli inferiori | | | |
+| Pianificare il piano editoriale (proposta) | ✓ | ✓ | ✓ | ✓ | | |
 | Creare e revocare link cliente | ✓ | ✓ | ✓ | | | |
 | Registro attività del cliente | ✓ | ✓ | ✓ | | | |
 | Creare clienti, aggiungere account Meta | ✓ | ✓ | | | | |

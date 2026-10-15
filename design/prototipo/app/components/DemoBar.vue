@@ -13,7 +13,7 @@ function doReset() {
     <span class="flex-1" />
     <label class="inline-flex items-center gap-2">Ruolo
       <select v-model="state.role" class="rounded-md bg-white/10 px-2 py-1 text-white">
-        <option class="text-black">Manager</option><option class="text-black">Editor</option><option class="text-black">Viewer</option>
+        <option class="text-black">Manager</option><option class="text-black">Editor</option><option class="text-black">Viewer</option><option class="text-black" value="Member">Member senza clienti</option>
       </select>
     </label>
     <button type="button" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/10" @click="state.dark = !state.dark">

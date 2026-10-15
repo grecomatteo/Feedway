@@ -108,3 +108,17 @@ Mese di base con Settimana come zoom; selettore cliente/profilo stile Meta; dest
 | Calendario cliente | Ottobre e Novembre in sequenza, loghi in testata, anteprima al clic; 390 px senza scorrimento orizzontale |
 
 Non verificato: un .mov HEVC reale dell'iPhone (il file di prova è H.264), il comportamento di Meta con la copertina personalizzata dei reel Facebook.
+
+## Richieste del 16 ottobre, seconda parte: Member, trascinamento, stampa, Piano editoriale
+
+| Prova (Playwright) | Esito |
+|---|---|
+| Ruolo «Member senza clienti» | Calendario sostituito da «Non lavori ancora su nessun cliente»; Member in Team e ruoli con la sua colonna |
+| Piano editoriale nel mese | 5 schede tratteggiate; «VIDEO 2» del 16 in giallo (in scadenza) |
+| Pianifica: Forno Luce, 17/10 10:00, carosello «Carosello XYZ» | Scheda creata nel calendario |
+| Interruttore «Mostra i contenuti da preparare» spento | Nessuna scheda tratteggiata |
+| «Prepara questo contenuto» su VIDEO 2 | Editor con cliente, 16/10 e 09:00 compilati e nota del piano; dopo la programmazione la scheda tratteggiata sparisce |
+| Calendario cliente | 4 contenuti «In preparazione»; in stampa il pulsante sparisce e restano solo i giorni da oggi |
+| PDF | `design/tavole/calendario-cliente-forno-luce.pdf`, 2 pagine A4 orizzontali (ottobre, novembre) |
+
+Non verificato: trascinamento reale di file dal desktop (provata la stessa funzione con la scelta del file); nel PDF generato da Chromium il titolo può uscire nel carattere di sistema invece di Sora.

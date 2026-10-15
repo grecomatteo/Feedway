@@ -31,9 +31,14 @@ function capture() {
   try { cover.value = c.toDataURL('image/jpeg', 0.75) }
   catch { cover.value = null }
 }
-function onImage(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (!f) return
+const dragging = ref(false)
+function onImage(e: Event) { readImage((e.target as HTMLInputElement).files?.[0]) }
+function onDrop(e: DragEvent) {
+  dragging.value = false
+  readImage(e.dataTransfer?.files?.[0])
+}
+function readImage(f?: File) {
+  if (!f || !f.type.startsWith('image/')) return
   customName.value = f.name
   source.value = 'image'
   const r = new FileReader()
@@ -69,10 +74,18 @@ watch(() => props.src, () => { playable.value = true })
         </div>
         <label class="mt-3 flex items-center gap-2 text-[13px]"><input type="radio" class="accent-[#242321]" :checked="source === 'image'" @change="source = 'image'">Un'immagine tua</label>
         <div v-if="source === 'image'" class="ml-6 mt-2 flex flex-wrap items-center gap-2">
-          <label class="fw-btn !min-h-9 cursor-pointer !text-[13px]">
-            <UIcon name="i-lucide-image-up" class="size-4" aria-hidden="true" />{{ customName ? 'Cambia immagine' : 'Scegli un\'immagine' }}
-            <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="onImage">
-          </label>
+          <div
+            class="flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 text-center text-xs"
+            :class="dragging ? 'border-[var(--fw-carbone)] bg-[var(--brand-soft)]' : 'border-[var(--border-strong)]'"
+            @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="onDrop"
+          >
+            <UIcon name="i-lucide-image-up" class="size-5 text-[var(--text-muted)]" aria-hidden="true" />
+            <span>Trascina qui l'immagine della copertina, oppure</span>
+            <label class="fw-btn !min-h-9 cursor-pointer !text-[13px]">
+              {{ customName ? 'Cambia immagine' : 'Scegli un\'immagine' }}
+              <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="onImage">
+            </label>
+          </div>
           <span v-if="customName" class="text-xs text-[var(--text-muted)]">{{ customName }}</span>
           <p class="basis-full text-xs text-[var(--text-muted)]">JPG o PNG, ideale 1080×1920. Su Facebook la copertina personalizzata dei reel va ancora verificata con un account di prova.</p>
         </div>

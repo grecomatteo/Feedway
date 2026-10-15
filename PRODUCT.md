@@ -34,3 +34,4 @@ Brand kit approvato in `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`: ara
 - *Aperta*: finalità commerciale della landing. Assunzione di lavoro: presentazione + demo interattiva + accesso; niente prezzi, trial, testimonianze o raccolta contatti.
 - *Aperta*: documenti legali del sito, da redigere prima del lancio.
 - *Aperta*: attività assegnabili, to-do e note personali nella 1.5 (come da specifica, consigliato) o anticipate nella 1.0. Dettagli in .
+- *Aperta*: Piano editoriale nella 1.0 (consigliato) o nella 1.1. Proposta in `design/proposta-piano-editoriale.md`.

@@ -200,3 +200,26 @@ export const SHARE_LINKS: Record<string, { state: ShareLinkState, workspaceId: s
   'forno-vecchio': { state: 'revoked', workspaceId: 'forno-luce' },
   'orto-novembre': { state: 'empty', workspaceId: 'orto-vivo', expires: '2026-11-30' },
 }
+
+/** Editorial plan: what must be prepared, before the post exists. */
+export interface PlanItem {
+  id: string
+  workspaceId: string
+  date: string
+  time?: string
+  type: PostType
+  title: string
+  note?: string
+  /** Set when someone prepares the content: the plan item then shows as the real post. */
+  postId?: string
+  createdBy: string
+}
+
+export const INITIAL_PLAN: PlanItem[] = [
+  { id: 'plan-1', workspaceId: 'forno-luce', date: '2026-10-16', time: '09:00', type: 'reel', title: 'VIDEO 2 · impasto a mano', note: 'Girare in laboratorio, luce del mattino.', createdBy: 'Marco T.' },
+  { id: 'plan-2', workspaceId: 'forno-luce', date: '2026-10-20', time: '18:00', type: 'reel', title: 'VIDEO 1 · porte aperte', note: 'Montaggio verticale, 30 secondi.', createdBy: 'Marco T.' },
+  { id: 'plan-3', workspaceId: 'forno-luce', date: '2026-10-21', time: '12:30', type: 'carousel', title: 'Carosello · menu d’autunno', createdBy: 'Marco T.' },
+  { id: 'plan-4', workspaceId: 'orto-vivo', date: '2026-10-19', type: 'carousel', title: 'Ricette con la zucca', note: '5 foto, ultima con la ricetta scritta.', createdBy: 'Giulia R.' },
+  { id: 'plan-5', workspaceId: 'studio-forma', date: '2026-10-23', time: '07:30', type: 'reel', title: 'Lezione di prova', createdBy: 'Giulia R.' },
+  { id: 'plan-6', workspaceId: 'forno-luce', date: '2026-11-04', type: 'photo', title: 'Foto · pane di San Martino', createdBy: 'Marco T.' },
+]

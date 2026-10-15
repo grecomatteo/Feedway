@@ -10,31 +10,34 @@ const roles = [
   { name: 'Publisher', level: 'Cliente', text: 'Crea e programma i propri post; riprova solo i propri.' },
   { name: 'Editor', level: 'Cliente', text: 'Prepara bozze e carica media; un Manager o Publisher le programma.' },
   { name: 'Viewer', level: 'Cliente', text: 'Consulta calendario e storico, senza modificare.' },
+  { name: 'Member', level: 'Agenzia', text: 'Fa parte dell’agenzia ma non lavora su un cliente: non vede clienti né post. Con la 1.5 usa attività, to-do e note personali.' },
 ]
 type Cell = boolean | string
-const R = ['Owner', 'Admin', 'Manager', 'Publisher', 'Editor', 'Viewer']
+const R = ['Owner', 'Admin', 'Manager', 'Publisher', 'Editor', 'Viewer', 'Member']
 const rows: { label: string, cells: Cell[], v15?: boolean }[] = [
-  { label: 'Vedere calendario e post del cliente', cells: [true, true, true, true, true, true] },
-  { label: 'Caricare media e usare la libreria', cells: [true, true, true, true, true, false] },
-  { label: 'Creare bozze e note sui post', cells: [true, true, true, true, true, false] },
-  { label: 'Programmare e pubblicare, anche in blocco', cells: [true, true, true, true, false, false] },
-  { label: 'Modificare o annullare post di altri', cells: [true, true, true, false, false, false] },
-  { label: 'Riprovare pubblicazioni fallite', cells: [true, true, true, 'solo propri', false, false] },
-  { label: 'Etichette, modelli, fasce orarie, gruppi di account', cells: [true, true, true, false, false, false] },
-  { label: 'Gestire il team del cliente e invitare', cells: [true, true, 'ruoli inferiori', false, false, false] },
-  { label: 'Creare e revocare link cliente', cells: [true, true, true, false, false, false] },
-  { label: 'Creare clienti, aggiungere account Meta', cells: [true, true, false, false, false, false] },
-  { label: 'Impostazioni, brand e integrazioni dell’agenzia', cells: [true, 'sola lettura', false, false, false, false] },
-  { label: 'To-do e note personali', cells: [true, true, true, true, true, false], v15: true },
-  { label: 'Creare attività del cliente', cells: [true, true, true, true, true, false], v15: true },
-  { label: 'Assegnare attività ad altri', cells: [true, true, true, 'impostazione agenzia', 'impostazione agenzia', false], v15: true },
-  { label: 'Modificare attività di altri', cells: [true, true, true, false, false, false], v15: true },
+  { label: 'Vedere calendario e post del cliente', cells: [true, true, true, true, true, true, false] },
+  { label: 'Caricare media e usare la libreria', cells: [true, true, true, true, true, false, false] },
+  { label: 'Creare bozze e note sui post', cells: [true, true, true, true, true, false, false] },
+  { label: 'Programmare e pubblicare, anche in blocco', cells: [true, true, true, true, false, false, false] },
+  { label: 'Modificare o annullare post di altri', cells: [true, true, true, false, false, false, false] },
+  { label: 'Riprovare pubblicazioni fallite', cells: [true, true, true, 'solo propri', false, false, false] },
+  { label: 'Etichette, modelli, fasce orarie, gruppi di account', cells: [true, true, true, false, false, false, false] },
+  { label: 'Gestire il team del cliente e invitare', cells: [true, true, 'ruoli inferiori', false, false, false, false] },
+  { label: 'Pianificare il piano editoriale (proposta)', cells: [true, true, true, true, false, false, false] },
+  { label: 'Creare e revocare link cliente', cells: [true, true, true, false, false, false, false] },
+  { label: 'Creare clienti, aggiungere account Meta', cells: [true, true, false, false, false, false, false] },
+  { label: 'Impostazioni, brand e integrazioni dell’agenzia', cells: [true, 'sola lettura', false, false, false, false, false] },
+  { label: 'To-do e note personali', cells: [true, true, true, true, true, false, true], v15: true },
+  { label: 'Creare attività del cliente', cells: [true, true, true, true, true, false, false], v15: true },
+  { label: 'Assegnare attività ad altri', cells: [true, true, true, 'impostazione agenzia', 'impostazione agenzia', false, 'impostazione agenzia'], v15: true },
+  { label: 'Modificare attività di altri', cells: [true, true, true, false, false, false, false], v15: true },
 ]
 const team = [
   { name: 'Giulia R.', org: 'Owner', spaces: 'Tutti i clienti' },
   { name: 'Marco T.', org: 'Member', spaces: 'Manager di Forno Luce · Publisher di Studio Forma e Orto Vivo' },
   { name: 'Sara L.', org: 'Member', spaces: 'Editor di Forno Luce e Orto Vivo' },
   { name: 'Luca B.', org: 'Member', spaces: 'Viewer di Studio Forma' },
+  { name: 'Paolo D.', org: 'Member', spaces: 'Nessun cliente: solo attività e note personali (1.5)' },
 ]
 const show15 = ref(true)
 </script>

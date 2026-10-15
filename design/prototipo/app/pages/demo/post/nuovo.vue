@@ -6,12 +6,15 @@ import { TYPE_LABEL, capitalize, now, profile, profilesOf, relative, resolveLoca
 definePageMeta({ layout: 'demo' })
 useHead({ title: 'Nuovo post · Feedway demo' })
 
-const { state, can, upsert } = useDemo()
+const { state, can, upsert, upsertPlan } = useDemo()
 const route = useRoute()
 const toast = useToast()
 
+// Opened from the editorial plan: client, day, time and type come from the planned item.
+const planItem = computed(() => state.value.plan.find(p => p.id === route.query.piano) ?? null)
+
 // --- Client and destinations -------------------------------------------------
-const clientId = ref<string | null>(state.value.client !== 'all' ? state.value.client : null)
+const clientId = ref<string | null>(planItem.value?.workspaceId ?? (state.value.client !== 'all' ? state.value.client : null))
 const ws = computed(() => WORKSPACES.find(w => w.id === clientId.value) ?? null)
 const selected = ref<string[]>([])
 const accountQuery = ref('')
@@ -77,9 +80,18 @@ function beginUpload(src: string, name: string) {
 }
 function startUpload() { beginUpload('/media/reel-demo.mp4', 'laboratorio-porte-aperte.mp4') }
 // A video picked from this computer is previewed through an object URL: it never leaves the browser.
+const draggingVideo = ref(false)
+function dropVideo(e: DragEvent) {
+  draggingVideo.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) takeVideoFile(file)
+}
 function pickVideo(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
+  if (file) takeVideoFile(file)
+}
+function takeVideoFile(file: File) {
+  if (!/\.(mp4|mov)$/i.test(file.name) && !file.type.startsWith('video/')) return
   if (localUrl) URL.revokeObjectURL(localUrl)
   localUrl = URL.createObjectURL(file)
   beginUpload(localUrl, file.name)
@@ -113,8 +125,8 @@ function autosave() {
 
 // --- When ---------------------------------------------------------------------
 const mode = ref<'now' | 'date' | 'slot'>('date')
-const date = ref((route.query.data as string) || '2026-10-16')
-const time = ref('18:00')
+const date = ref(planItem.value?.date ?? ((route.query.data as string) || '2026-10-16'))
+const time = ref(planItem.value?.time ?? '18:00')
 const candidates = computed(() => resolveLocal(date.value, time.value))
 const ambiguousPick = ref<number | null>(null)
 watch([date, time], () => { ambiguousPick.value = null })
@@ -169,7 +181,11 @@ function buildPost(status: Post['status']): Post {
     media: mediaKey.value, cover: cover.value ?? undefined, status, targets: selected.value.map(accountId => ({ accountId, state: 'pending' as const })), createdBy: 'Giulia R.',
   }
 }
+function linkPlan() {
+  if (planItem.value) upsertPlan({ ...planItem.value, postId: draftId })
+}
 async function schedule() {
+  linkPlan()
   clearTimeout(saveT)
   const p = buildPost('scheduled')
   upsert(p)
@@ -178,6 +194,7 @@ async function schedule() {
   await navigateTo(`/demo/post/${p.id}`)
 }
 async function saveDraft() {
+  if (ws.value && draftAt.value) linkPlan()
   clearTimeout(saveT)
   if (!ws.value) { toast.add({ title: 'Scegli prima il cliente', color: 'warning' }); return }
   if (!draftAt.value) { toast.add({ title: 'Inserisci data e ora valide', description: 'La bozza non è stata salvata.', color: 'warning' }); return }
@@ -213,6 +230,16 @@ async function saveDraft() {
 
     <div class="flex flex-1 flex-col gap-8 px-4 pb-32 pt-5 lg:flex-row lg:px-7">
       <div class="flex min-w-0 flex-1 flex-col gap-7">
+        <div v-if="planItem" class="flex gap-3 rounded-xl border-[1.5px] border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-3.5" role="note">
+          <UIcon name="i-lucide-calendar-range" class="size-5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+          <div class="text-[13px]">
+            <p class="font-bold">Dal piano editoriale: {{ TYPE_LABEL[planItem.type] }} «{{ planItem.title }}»</p>
+            <p class="mt-0.5 text-[var(--text-muted)]">Cliente, giorno{{ planItem.time ? ' e ora' : '' }} sono già compilati. Pianificato da {{ planItem.createdBy }}</p>
+            <p v-if="planItem.note" class="mt-1.5">{{ planItem.note }}</p>
+            <p v-if="phase === 'ready' && type !== planItem.type" class="mt-1.5 font-semibold text-[var(--warning)]">Il piano prevede un {{ TYPE_LABEL[planItem.type].toLowerCase() }}, il file scelto è un {{ TYPE_LABEL[type].toLowerCase() }}.</p>
+          </div>
+        </div>
+
         <!-- Client -->
         <section aria-labelledby="h-cliente">
           <h2 id="h-cliente" class="fw-title text-base">Cliente</h2>
@@ -287,7 +314,12 @@ async function saveDraft() {
               <UIcon v-if="phase === 'ready' && isVideo" name="i-lucide-clapperboard" class="absolute bottom-1.5 left-1.5 size-4 text-white drop-shadow" aria-hidden="true" />
             </div>
             <div class="min-w-60 flex-1 space-y-2">
-              <div v-if="phase === 'none'" class="flex flex-wrap gap-2">
+              <div
+                v-if="phase === 'none'" class="flex flex-wrap items-center gap-2 rounded-xl border-2 border-dashed p-4"
+                :class="draggingVideo ? 'border-[var(--fw-carbone)] bg-[var(--brand-soft)]' : 'border-[var(--border-strong)]'"
+                @dragover.prevent="draggingVideo = true" @dragleave="draggingVideo = false" @drop.prevent="dropVideo"
+              >
+                <p class="basis-full text-[13px] font-semibold">Trascina qui il video, oppure:</p>
                 <label class="fw-btn fw-btn--primary cursor-pointer">
                   <UIcon name="i-lucide-upload" class="size-4" aria-hidden="true" />Scegli un video dal computer
                   <input type="file" accept="video/mp4,video/quicktime,.mp4,.mov" class="sr-only" @change="pickVideo">
