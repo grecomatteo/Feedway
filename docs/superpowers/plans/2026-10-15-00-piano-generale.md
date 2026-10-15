@@ -89,9 +89,9 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 4 · Media
 - **Scalabilità:** la batteria di test di `Storage` gira anche contro Garage (S3 compatibile; MinIO Community non è più distribuito), così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
-- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
+- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, **copia di anteprima** dei video in MP4 H.264 720p creata per prima (specifica §11.1 punto 7: l'HEVC dell'iPhone non si vede in Chrome e Firefox), host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
 - **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
-- **Matteo prova:** carica da telefono un HEIC e un video lungo su rete instabile; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
+- **Matteo prova:** carica da telefono un HEIC, un `.mov` HEVC e un video lungo su rete instabile, e li rivede nel pannello da Chrome; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
 - **Serve da Matteo:** Tailscale Funnel attivo sulla VPS.
 
 ### Tappa 5 · Regole
@@ -100,8 +100,8 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Matteo prova:** legge la tabella dei casi di test (generata dai test) e conferma che i messaggi sono chiari.
 
 ### Tappa 6 · Post
-- **Costruisce:** pagina Nuovo post che parte dal contesto attivo, scelta "Dove pubblicare" per profili con ogni account deselezionabile (specifica §11.2), anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34, RF-35, RF-36, RF-44.
-- **Introduce:** `PostRepository`, tabelle `posts`, `post_media`, `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
+- **Costruisce:** pagina Nuovo post che parte dal contesto attivo, scelta "Dove pubblicare" per profili con ogni account deselezionabile (specifica §11.2), anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), video riproducibili nell'editor, **copertina del reel** da fotogramma o da immagine caricata o trascinata (§11.2), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34–RF-38, RF-44.
+- **Introduce:** `PostRepository` con funzioni pubbliche di creazione della bozza e di lettura dello stato che il modulo `plan` userà nella tappa 9 (la firma si fissa qui), tabelle `posts`, `post_media` (con la copertina), `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
 - **Prerequisito:** prototipo approvato.
 
 ### Tappa 7 · Pubblicazione
@@ -111,16 +111,25 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 8 · Notifiche
 - **Scalabilità:** bot Telegram, battito e riconciliatore girano con lock consultivo: con più worker uno solo è attivo.
-- **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00, battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
+- **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00 con **sezioni registrabili dai moduli** (la prima esterna sarà quella del piano editoriale), battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
 - **Introduce:** `NotificationChannel`, tabelle `notifications`, `notification_deliveries`, `notification_prefs`, `telegram_links`, `system_heartbeats`.
 - **Serve da Matteo:** bot Telegram, SMTP, account healthchecks.io.
 
 ### Tappa 9 · Pianificazione
-- **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione. RF-40, RF-41, RF-42, RF-43.
-- **Introduce:** tabelle `time_slots`, `bulk_imports`, lavoro `bulk.import`.
+- **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
+- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
+- **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
+  1. dominio `plan` con le sei regole di §11.12 e stato calcolato con `Clock` (test prima del codice, compreso il 25 ottobre alle 02:30);
+  2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
+  3. casi d'uso e API `/api/v1/orgs/[org]/plan` con `plan.view` e `plan.edit` e OpenAPI;
+  4. "Prepara": caso d'uso del piano che crea la bozza tramite la funzione pubblica dei post e salva il collegamento nella stessa transazione; stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
+  5. calendario: schede tratteggiate, "Pianifica", interruttore e filtro rapido nell'indirizzo, telefono, tastiera, axe;
+  6. editor: precompilazione e avviso sul tipo;
+  7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
+- **Matteo prova:** pianifica un mese per un cliente, prepara due contenuti dall'editor, ne annulla uno e lo vede tornare "Da preparare".
 
 ### Tappa 10 · Condivisione e brand
-- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
+- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio) con mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, contenuti in preparazione (campi esposti dichiarati uno per uno, con un test che la nota interna non esca mai) e **"Stampa o salva PDF"** con il foglio di stile di stampa (A4 orizzontale, un mese per pagina, solo da oggi in poi; prova automatica con il PDF generato da Playwright) (specifica §11.10), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
 - **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
 - **Prerequisito:** branding e progetto in Pencil del sito approvati.
 
