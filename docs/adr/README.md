@@ -4,16 +4,16 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 
 | ADR | Decisione | Stato |
 |---|---|---|
-| [001](001-monolite-modulare.md) | Monolite modulare: web + worker | Proposta, da approvare con la specifica v9 |
-| [002](002-coda-su-postgres.md) | Coda di lavori su Postgres (pg-boss) | Proposta, da approvare con la specifica v9 |
-| [003](003-programmazione-gestita-dalla-piattaforma.md) | Programmazione gestita dalla piattaforma anche per Facebook | Proposta, da approvare con la specifica v9 |
-| [004](004-autorizzazione-e-rls.md) | Autorizzazione nell'applicazione più Row Level Security | Proposta, da approvare con la specifica v9 |
-| [005](005-host-pubblico-separato.md) | Host pubblico separato dal pannello | Proposta, da approvare con la specifica v9 |
-| [006](006-api-first.md) | API-first: ogni funzione è un caso d'uso esposto da /api/v1 | Proposta, da approvare con la specifica v9 |
-| [007](007-segreti-cifrati-nel-database.md) | Segreti delle integrazioni cifrati nel database | Proposta, da approvare con la specifica v9 |
-| [008](008-upload-a-pezzi.md) | Upload a pezzi da 20 MB | Proposta, da approvare con la specifica v9 |
-| [009](009-organizzazioni-in-un-solo-database.md) | Più organizzazioni in un solo database | Proposta, da approvare con la specifica v9 |
-| [010](010-versioni-runtime.md) | Versioni di base: Node 24, Nuxt 4, TypeScript 6.0 | Proposta, da approvare con la specifica v9 |
-| [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Proposta, da approvare con la specifica v9 |
+| [001](001-monolite-modulare.md) | Monolite modulare: web + worker | Accettata (Matteo, 2026-10-15) |
+| [002](002-coda-su-postgres.md) | Coda di lavori su Postgres (pg-boss) | Accettata (Matteo, 2026-10-15) |
+| [003](003-programmazione-gestita-dalla-piattaforma.md) | Programmazione gestita dalla piattaforma anche per Facebook | Accettata (Matteo, 2026-10-15) |
+| [004](004-autorizzazione-e-rls.md) | Autorizzazione nell'applicazione più Row Level Security | Accettata (Matteo, 2026-10-15) |
+| [005](005-host-pubblico-separato.md) | Host pubblico separato dal pannello | Accettata (Matteo, 2026-10-15) |
+| [006](006-api-first.md) | API-first: ogni funzione è un caso d'uso esposto da /api/v1 | Accettata (Matteo, 2026-10-15) |
+| [007](007-segreti-cifrati-nel-database.md) | Segreti delle integrazioni cifrati nel database | Accettata (Matteo, 2026-10-15) |
+| [008](008-upload-a-pezzi.md) | Upload a pezzi da 20 MB | Accettata (Matteo, 2026-10-15) |
+| [009](009-organizzazioni-in-un-solo-database.md) | Più organizzazioni in un solo database | Accettata (Matteo, 2026-10-15) |
+| [010](010-versioni-runtime.md) | Versioni di base: Node 24, Nuxt 4, TypeScript 6.0 | Accettata (Matteo, 2026-10-15) |
+| [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Accettata (Matteo, 2026-10-15) |
 | [012](012-better-auth.md) | Accesso e account con Better Auth | Accettata (Matteo, 2026-10-15) |
-| [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Proposta, da approvare con la specifica v9 |
+| [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15) |

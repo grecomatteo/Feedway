@@ -75,11 +75,12 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 **Bozza o pronta**: si apre in **bozza** appena c'è qualcosa da mostrare, così la CI gira subito; si segna **pronta** quando la CI è verde e la descrizione è completa.
 
 **Revisione**
-- Ogni PR ha una revisione di codice prima del merge: automatica (agente revisore) per le PR dei task, umana per la PR di rilascio e per qualsiasi PR che Matteo vuole guardare.
+- Ogni PR ha una revisione di codice prima del merge, fatta da un agente revisore separato da chi ha scritto il codice. Matteo guarda le PR che vuole, quando vuole: non è un passaggio obbligatorio.
 - I commenti si risolvono con un commit o con una risposta che spiega perché no. Nessuna conversazione resta aperta al merge **(GitHub)**.
 - Chi rivede controlla: corrispondenza con specifica e piano, test scritti prima e significativi, confini tra livelli e moduli, isolamento tra agenzie, sicurezza, accessibilità, chiarezza.
 
 **Merge**
+- **Chi fonde**: l'agente che ha aperto la PR la fonde da solo, appena la CI è verde, la revisione è fatta e le conversazioni sono risolte (decisione di Matteo, 2026-10-15). Matteo non deve fare nessun passaggio; se vuole fermare una PR lo scrive nella chat o nella PR.
 - Solo **squash merge** **(GitHub)**: un commit per PR su `main`, con titolo e corpo presi dalla PR.
 - Richiesti: tutti i controlli della CI verdi, ramo aggiornato con `main`, conversazioni risolte **(GitHub)**.
 - Dopo il merge il ramo viene cancellato **(GitHub)**.
@@ -96,14 +97,12 @@ Configurata come **ruleset** versionato in `.github/rulesets/main.json` e applic
 | Controlli obbligatori | `lint-types`, `architecture`, `unit`, `integration`, `e2e`, `security`, `image`, `install-smoke`, `commitlint`; dalla tappa 10 anche `site` |
 | Ramo aggiornato prima del merge | Sì |
 | Storia lineare | Sì (solo squash) |
-| Approvazioni | Quella di Matteo è obbligatoria sulla PR di rilascio e su ogni PR che tocca `.github/`, `scripts/`, `docker/`, migrazioni o sicurezza (`CODEOWNERS`) |
-
-Da verificare con la prima PR della tappa 1: GitHub non permette di approvare una PR aperta a proprio nome. Se le PR degli agenti risultano aperte a nome di Matteo, il ruleset gli concede il bypass solo per l'approvazione dei percorsi in `CODEOWNERS`, e la revisione resta obbligatoria nella checklist della PR.
+| Approvazioni | Nessuna approvazione obbligatoria su GitHub: le PR degli agenti risultano aperte a nome di Matteo, che non può approvare le proprie (verificato con la PR #1). La revisione dell'agente revisore è obbligatoria nella checklist della PR; `CODEOWNERS` segnala a Matteo le PR che toccano `.github/`, `scripts/`, `docker/`, migrazioni o sicurezza, senza bloccarle |
 
 ## 6. Versioni e rilasci
 
 - **Versionamento semantico** (`MAJOR.MINOR.PATCH`). Fino alla 1.0 ogni tappa produce una minor: tappa 1 → `0.1.0`, tappa 2 → `0.2.0` … La tappa 12 produce `1.0.0`.
-- **release-please** legge i commit su `main` e tiene aperta una **PR di rilascio** con il `CHANGELOG.md` e la versione successiva. Matteo la fonde a fine tappa, dopo averla provata.
+- **release-please** legge i commit su `main` e tiene aperta una **PR di rilascio** con il `CHANGELOG.md` e la versione successiva. L'agente la fonde a fine tappa, quando tutti i criteri di fine tappa sono verificati; Matteo installa la nuova versione con `update.sh` e la prova.
 - Il merge della PR di rilascio crea il **tag** `vX.Y.Z` e la **GitHub Release** con le note "Cosa provare", poi la CI pubblica l'immagine su GHCR con tag di versione e digest.
 - Sulla VPS si installa sempre una versione con tag, mai `main`: `./scripts/update.sh vX.Y.Z`.
 - **Milestone GitHub** = tappa. Ogni issue e PR della tappa appartiene alla sua milestone.

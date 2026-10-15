@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, sito pubblico, strumenti di agenzia in 1.5 · da approvare |
+| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, sito pubblico, strumenti di agenzia in 1.5 · **approvata da Matteo il 2026-10-15** |
 | **Data** | 2026-10-15 |
 | **Autore** | Claude, per Matteo |
-| **Prossimo passo** | Approvazione → sviluppo a tappe (piani in `docs/superpowers/plans/`) |
+| **Prossimo passo** | Progetto grafico in Pencil e sviluppo a tappe (piani in `docs/superpowers/plans/`) |
 
 ---
 
@@ -1001,6 +1001,13 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 ### 14.1 Metodo
 
 1. **Ispirazioni** e **branding** tuoi → **progetto grafico in Pencil** del pannello e del sito pubblico, prima del codice → **prototipo cliccabile** delle schermate principali (Nuovo post, Calendario, Griglia, Programmazione in blocco, Anteprima, Link cliente) da provare su telefono e computer → correzioni → sviluppo. I file di Pencil si salvano nel repository (`design/`), così chi sviluppa parte dallo stesso progetto; formato e collegamento con gli agenti si verificano con i primi file.
+
+   **Come arriva il materiale**: Matteo allega file o uno ZIP nella chat del progetto (oppure collega una cartella del suo computer); l'agente li sistema e li porta nel repository con una PR, che fonde da solo:
+   - `design/` — file di Pencil e guida al progetto grafico;
+   - `design/brand/` — logo in SVG (più varianti chiara, scura e icona), colori, caratteri con la loro licenza, regole d'uso;
+   - `design/ispirazioni/` — riferimenti e schermate, solo se servono a chi sviluppa.
+
+   Dal branding nascono i token di `packages/ui` (§14.3), così colori e caratteri non si scrivono mai a mano nelle schermate.
 2. **Design system** in `packages/ui`: colori, tipografia, spaziature, raggi, ombre come token; nessun valore scritto a mano nelle schermate.
 3. Per ogni schermata tutti gli stati: vuoto (con il primo passo da fare), caricamento (scheletri), errore (cosa è successo e cosa fare), successo.
 
@@ -1400,14 +1407,14 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Modifica caption dopo la pubblicazione | Esclusa (Instagram via API non lo consente) | Claude |
 | Programmazione FB | Gestita da Feedway, non nativa (ADR 003) | Claude |
 | Nome | **Feedway** (scelto il 2026-10-15; repository `grecomatteo/Feedway`). Il nome visibile sta in una sola costante e nessun identificativo tecnico lo contiene (database `app`, pacchetti `@app/*`) | Matteo |
-| Versioni | Nuxt 4, Node 24 LTS (poi 26), TypeScript 6.0, PostgreSQL 18; alternative valutate in `docs/stack.md` | Claude, da approvare |
+| Versioni | Nuxt 4, Node 24 LTS (poi 26), TypeScript 6.0, PostgreSQL 18; alternative valutate in `docs/stack.md` | Claude, approvata da Matteo |
 | Accesso e account | Better Auth, con organizzazioni e ruoli nostri (ADR 012) | Matteo |
 | Registrazione | Solo da invito nella 1.0; libera nella 2.0 | Claude, modificabile |
 | Account personale | Soprannome, foto profilo, passkey, email di sicurezza, esportazione e cancellazione self-service | Matteo + Claude |
 | Cifratura dei backup | Sempre, con `age` | Claude |
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
-| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma), da approvare |
+| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
 
 ---
 
