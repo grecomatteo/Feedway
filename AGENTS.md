@@ -34,6 +34,7 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 - Conventional Commits in italiano (`feat(identity): accesso con passkey`), con il piè di pagina `Co-Authored-By` del tuo strumento.
 - Nessun identificativo di modello nei commit, nelle PR o nel codice.
 - Descrizione della PR secondo `.github/pull_request_template.md`.
+- **Fondi da solo la tua PR** (squash) appena la CI è verde, la revisione dell'agente revisore è fatta e le conversazioni sono risolte. Non aspettare Matteo: lo ha chiesto lui ([flusso Git](docs/flusso-git.md) §4).
 
 ## Lingua
 

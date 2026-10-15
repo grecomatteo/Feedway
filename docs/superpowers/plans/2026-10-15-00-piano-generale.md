@@ -25,7 +25,7 @@
 
 ## 2. Aggiornamenti rispetto alla specifica
 
-Scelte prese preparando il piano, già riportate nella specifica v9 (§6.3 ADR 010–011, §7.4, §13, §15.6, §16.2, §16.7, §19) e da approvare con essa.
+Scelte prese preparando il piano, già riportate nella specifica v9 (§6.3 ADR 010–011, §7.4, §13, §15.6, §16.2, §16.7, §19) e approvate con essa il 2026-10-15.
 
 | # | Specifica v7 | Piano | Motivo |
 |---|---|---|---|

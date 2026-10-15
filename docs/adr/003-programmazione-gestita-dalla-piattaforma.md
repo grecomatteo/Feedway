@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta, da approvare con la specifica v9 |
+| **Stato** | Accettata (Matteo, 2026-10-15) |
 | **Data** | 2026-10-15 |
 | **Specifica** | v9 |
 
