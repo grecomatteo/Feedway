@@ -1,0 +1,120 @@
+{
+  "version": "1.0",
+  "master_svg_count": 17,
+  "svg_text_and_raster_free": true,
+  "transforms_flattened": true,
+  "transparent_logo_pngs": true,
+  "silhouette_iou_vs_approved": 0.999832,
+  "maskable_pixels_outside_safe_zone": 0,
+  "manifest_assets_validated": true,
+  "local_index_links_validated": true,
+  "guide_pdf_pages": 3,
+  "master_pdf_pages": 4,
+  "master_pdf_is_vector": true,
+  "contrast_carbon_on_orange": 5.89,
+  "contrast_white_on_orange": 2.66,
+  "master_bounds": {
+    "feedway-horizontal-arancio.svg": [
+      40.0,
+      40.0,
+      840.99,
+      216.0
+    ],
+    "feedway-horizontal-bianco.svg": [
+      40.52,
+      40.52,
+      840.99,
+      215.48
+    ],
+    "feedway-horizontal-carbone.svg": [
+      40.0,
+      40.0,
+      840.99,
+      216.0
+    ],
+    "feedway-horizontal-nero.svg": [
+      40.0,
+      40.0,
+      840.99,
+      216.0
+    ],
+    "feedway-stacked-arancio.svg": [
+      28.0,
+      28.0,
+      264.99,
+      228.0
+    ],
+    "feedway-stacked-bianco.svg": [
+      28.0,
+      28.32,
+      264.99,
+      228.0
+    ],
+    "feedway-stacked-carbone.svg": [
+      28.0,
+      28.0,
+      264.99,
+      228.0
+    ],
+    "feedway-stacked-nero.svg": [
+      28.0,
+      28.0,
+      264.99,
+      228.0
+    ],
+    "feedway-symbol-arancio.svg": [
+      20.0,
+      24.0,
+      244.0,
+      228.0
+    ],
+    "feedway-symbol-bianco.svg": [
+      20.6,
+      24.6,
+      243.4,
+      227.4
+    ],
+    "feedway-symbol-carbone.svg": [
+      20.0,
+      24.0,
+      244.0,
+      228.0
+    ],
+    "feedway-symbol-nero.svg": [
+      20.0,
+      24.0,
+      244.0,
+      228.0
+    ],
+    "feedway-symbol-small.svg": [
+      20.0,
+      24.0,
+      244.0,
+      228.0
+    ],
+    "feedway-wordmark-arancio.svg": [
+      18.0,
+      18.0,
+      425.71,
+      110.0
+    ],
+    "feedway-wordmark-bianco.svg": [
+      18.0,
+      18.0,
+      425.71,
+      110.0
+    ],
+    "feedway-wordmark-carbone.svg": [
+      18.0,
+      18.0,
+      425.71,
+      110.0
+    ],
+    "feedway-wordmark-nero.svg": [
+      18.0,
+      18.0,
+      425.71,
+      110.0
+    ]
+  }
+}

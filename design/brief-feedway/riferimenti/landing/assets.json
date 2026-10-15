@@ -1,0 +1,50 @@
+[
+  {
+    "id": "L01",
+    "brand": "Later",
+    "title": "Illustrazione hero dello scheduler",
+    "file": "immagini/L01-hero.png",
+    "page": "https://later.com/social-media-scheduler/",
+    "url": "https://images.ctfassets.net/nfpsrlop6sws/1TqJhug77J1cfy9NcZdvtA/580588651f11d46d3d60f11dd220ba9a/later-social-scheduler-hero.png",
+    "kind": "Asset promozionale ufficiale; non screenshot dell’intera pagina",
+    "width": 1000,
+    "height": 860,
+    "note": "Usare composizione e gerarchia come riferimento; creare immagini Feedway dal proprio design. Piattaforme, integrazioni e claim del concorrente non sono requisiti Feedway."
+  },
+  {
+    "id": "L02",
+    "brand": "Later",
+    "title": "Illustrazione della griglia visuale",
+    "file": "immagini/L02-griglia.webp",
+    "page": "https://later.com/social-media-scheduler/",
+    "url": "https://images.ctfassets.net/nfpsrlop6sws/4AaSsXIBDXpc81CUdWHEKb/c87ea755268cd2130919340053ccd4e8/later-social-scheduler-visual-planner.png?w=794&h=452&q=80&fm=webp",
+    "kind": "Asset promozionale ufficiale; non screenshot dell’intera pagina",
+    "width": 794,
+    "height": 452,
+    "note": "Usare composizione e gerarchia come riferimento; creare immagini Feedway dal proprio design. Piattaforme, integrazioni e claim del concorrente non sono requisiti Feedway."
+  },
+  {
+    "id": "L03",
+    "brand": "Later",
+    "title": "Illustrazione della libreria media",
+    "file": "immagini/L03-libreria.webp",
+    "page": "https://later.com/social-media-scheduler/",
+    "url": "https://images.ctfassets.net/nfpsrlop6sws/7LKWbsjucsaA7qepfoFDtR/7abfa9097a7e7989d390928696248a89/later-social-scheduler-media-folder.png?w=794&h=452&q=80&fm=webp",
+    "kind": "Asset promozionale ufficiale; non screenshot dell’intera pagina",
+    "width": 794,
+    "height": 452,
+    "note": "Usare composizione e gerarchia come riferimento; creare immagini Feedway dal proprio design. Piattaforme, integrazioni e claim del concorrente non sono requisiti Feedway."
+  },
+  {
+    "id": "L04",
+    "brand": "Later",
+    "title": "Illustrazione della pubblicazione su più piattaforme",
+    "file": "immagini/L04-destinazioni.webp",
+    "page": "https://later.com/social-media-scheduler/",
+    "url": "https://images.ctfassets.net/nfpsrlop6sws/3mhh1jD3utqcWCIe8r3rs6/7b3bcfd5f16711a8998426ee7f9d44d8/later-social-scheduler-multi-platform.png?w=794&h=452&q=80&fm=webp",
+    "kind": "Asset promozionale ufficiale; non screenshot dell’intera pagina",
+    "width": 794,
+    "height": 452,
+    "note": "Usare composizione e gerarchia come riferimento; creare immagini Feedway dal proprio design. Piattaforme, integrazioni e claim del concorrente non sono requisiti Feedway."
+  }
+]

@@ -1,0 +1,1080 @@
+{
+  "kind": "scenario_fixture_not_api_contract",
+  "all_data_fictional": true,
+  "scenario_clock": "2026-10-15T12:00:00+02:00",
+  "timezone": "Europe/Rome",
+  "agency": {
+    "id": "studio-aurora",
+    "name": "Studio Aurora",
+    "brand_color": "#FF762E",
+    "brand_color_source": "tema Feedway applicato allo scenario fittizio; white-label da verificare separatamente"
+  },
+  "workspaces": [
+    {
+      "id": "forno-luce",
+      "name": "Forno Luce",
+      "accounts": [
+        {
+          "id": "fl-instagram-centro",
+          "platform": "instagram",
+          "name": "Forno Luce Centro",
+          "health": "healthy"
+        },
+        {
+          "id": "fl-facebook-centro",
+          "platform": "facebook",
+          "name": "Forno Luce Centro",
+          "health": "healthy"
+        },
+        {
+          "id": "fl-instagram-nord",
+          "platform": "instagram",
+          "name": "Forno Luce Nord",
+          "health": "healthy"
+        },
+        {
+          "id": "fl-facebook-nord",
+          "platform": "facebook",
+          "name": "Forno Luce Nord",
+          "health": "healthy"
+        },
+        {
+          "id": "fl-instagram-lab",
+          "platform": "instagram",
+          "name": "Forno Luce Lab",
+          "health": "healthy"
+        },
+        {
+          "id": "fl-facebook-lab",
+          "platform": "facebook",
+          "name": "Forno Luce Lab",
+          "health": "healthy"
+        }
+      ]
+    },
+    {
+      "id": "studio-forma",
+      "name": "Studio Forma — Pilates e movimento",
+      "accounts": [
+        {
+          "id": "sf-ig",
+          "platform": "instagram",
+          "name": "Studio Forma",
+          "health": "healthy"
+        },
+        {
+          "id": "sf-fb",
+          "platform": "facebook",
+          "name": "Studio Forma",
+          "health": "healthy"
+        }
+      ]
+    },
+    {
+      "id": "orto-vivo",
+      "name": "Orto Vivo / Mercato e cucina di stagione",
+      "accounts": [
+        {
+          "id": "ov-ig",
+          "platform": "instagram",
+          "name": "Orto Vivo",
+          "health": "healthy"
+        },
+        {
+          "id": "ov-fb",
+          "platform": "facebook",
+          "name": "Orto Vivo",
+          "health": "healthy"
+        }
+      ]
+    }
+  ],
+  "account_group": {
+    "name": "Campagna cinque destinazioni",
+    "workspace_id": "forno-luce",
+    "target_ids": [
+      "fl-instagram-centro",
+      "fl-facebook-centro",
+      "fl-instagram-nord",
+      "fl-facebook-nord",
+      "fl-instagram-lab"
+    ]
+  },
+  "posts": [
+    {
+      "id": "post-01",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-15T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "draft",
+      "media": {
+        "id": "media-01",
+        "filename": "campagna-forno-luce-1.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-02",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-15T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-02",
+        "filename": "campagna-studio-forma-2.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-03",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-15T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-03",
+        "filename": "campagna-orto-vivo-3.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-04",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-16T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-04",
+        "filename": "campagna-forno-luce-4.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-05",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-16T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-05",
+        "filename": "campagna-studio-forma-5.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-06",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-16T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-06",
+        "filename": "campagna-orto-vivo-6.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-07",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-17T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-07",
+        "filename": "campagna-forno-luce-7.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-08",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-17T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "draft",
+      "media": {
+        "id": "media-08",
+        "filename": "campagna-studio-forma-8.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-09",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-17T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-09",
+        "filename": "campagna-orto-vivo-9.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-10",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-18T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-10",
+        "filename": "campagna-forno-luce-10.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-11",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-18T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-11",
+        "filename": "campagna-studio-forma-11.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-12",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-18T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-12",
+        "filename": "campagna-orto-vivo-12.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-13",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-19T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-13",
+        "filename": "campagna-forno-luce-13.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-14",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-19T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-14",
+        "filename": "campagna-studio-forma-14.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-15",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-19T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "draft",
+      "media": {
+        "id": "media-15",
+        "filename": "campagna-orto-vivo-15.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-16",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-20T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-16",
+        "filename": "campagna-forno-luce-16.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-17",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-20T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-17",
+        "filename": "campagna-studio-forma-17.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-18",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-20T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-18",
+        "filename": "campagna-orto-vivo-18.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-19",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-21T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-19",
+        "filename": "campagna-forno-luce-19.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-20",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-21T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-20",
+        "filename": "campagna-studio-forma-20.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-21",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-21T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-21",
+        "filename": "campagna-orto-vivo-21.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-22",
+      "workspace_id": "forno-luce",
+      "type": "reel",
+      "caption": "Il laboratorio apre le porte: prepariamo insieme il pane di domani.",
+      "scheduled_at": "2026-10-22T12:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro"
+      ],
+      "status": "draft",
+      "media": {
+        "id": "media-22",
+        "filename": "campagna-forno-luce-22.jpg",
+        "placeholder": true,
+        "aspect_ratio": "9:16"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-23",
+      "workspace_id": "studio-forma",
+      "type": "photo",
+      "caption": "Venti minuti per ritrovare il movimento, un passo alla volta.",
+      "scheduled_at": "2026-10-22T15:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "sf-ig",
+        "sf-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-23",
+        "filename": "campagna-studio-forma-23.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    },
+    {
+      "id": "post-24",
+      "workspace_id": "orto-vivo",
+      "type": "carousel",
+      "caption": "I colori di ottobre, dal mercato alla nostra cucina.",
+      "scheduled_at": "2026-10-22T18:00+02:00",
+      "timezone": "Europe/Rome",
+      "target_ids": [
+        "ov-ig",
+        "ov-fb"
+      ],
+      "status": "scheduled",
+      "media": {
+        "id": "media-24",
+        "filename": "campagna-orto-vivo-24.jpg",
+        "placeholder": true,
+        "aspect_ratio": "4:5"
+      },
+      "labels": [
+        "Campagna ottobre"
+      ]
+    }
+  ],
+  "bulk_rows": [
+    {
+      "row": 1,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 1.",
+      "filename": "forno-01.jpg",
+      "scheduled_at": "2026-10-16T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 2,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 2.",
+      "filename": "forno-02.jpg",
+      "scheduled_at": "2026-10-17T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 3,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 3.",
+      "filename": "forno-03.jpg",
+      "scheduled_at": "2026-10-18T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 4,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 4.",
+      "filename": "forno-04.jpg",
+      "scheduled_at": "2026-10-19T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 5,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 5.",
+      "filename": "forno-05.jpg",
+      "scheduled_at": "2026-10-20T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 6,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 6.",
+      "filename": "forno-06.jpg",
+      "scheduled_at": "2026-10-21T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 7,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 7.",
+      "filename": "forno-07.jpg",
+      "scheduled_at": "2026-10-22T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 8,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 8.",
+      "filename": "forno-08.jpg",
+      "scheduled_at": "2026-10-23T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 9,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 9.",
+      "filename": "forno-09.jpg",
+      "scheduled_at": "2026-10-24T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 10,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 10.",
+      "filename": "forno-10.jpg",
+      "scheduled_at": "2026-10-25T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 11,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 11.",
+      "filename": "forno-11.jpg",
+      "scheduled_at": "2026-10-26T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 12,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 12.",
+      "filename": "forno-12.jpg",
+      "scheduled_at": "2026-10-27T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 13,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 13.",
+      "filename": "forno-13.jpg",
+      "scheduled_at": "2026-10-28T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 14,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 14.",
+      "filename": "forno-14.jpg",
+      "scheduled_at": "2026-10-29T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 15,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 15.",
+      "filename": "forno-15.jpg",
+      "scheduled_at": "2026-10-30T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 16,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 16.",
+      "filename": "forno-16.jpg",
+      "scheduled_at": "2026-10-31T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 17,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 17.",
+      "filename": "forno-17.jpg",
+      "scheduled_at": "2026-11-01T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 18,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 18.",
+      "filename": "forno-18.jpg",
+      "scheduled_at": "2026-11-02T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "ready",
+      "error": null
+    },
+    {
+      "row": 19,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 19.",
+      "filename": "forno-19.jpg",
+      "scheduled_at": "2026-11-03T18:00+01:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "blocked",
+      "error": "File non abbinato"
+    },
+    {
+      "row": 20,
+      "workspace_id": "forno-luce",
+      "caption": "Dal forno, una storia per il giorno 20.",
+      "filename": "forno-20.jpg",
+      "scheduled_at": "2026-10-14T18:00+02:00",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "validation": "blocked",
+      "error": "Data nel passato"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "publish-reel",
+      "goal": "Programmare un reel di Forno Luce su cinque destinazioni del gruppo salvato.",
+      "target_ids": [
+        "fl-instagram-centro",
+        "fl-facebook-centro",
+        "fl-instagram-nord",
+        "fl-facebook-nord",
+        "fl-instagram-lab"
+      ],
+      "scheduled_at": "2026-10-16T18:00:00+02:00",
+      "caption_shared": true
+    },
+    {
+      "id": "partial-failure",
+      "target_states": {
+        "fl-instagram-centro": "confirmed",
+        "fl-facebook-centro": "confirmed",
+        "fl-instagram-nord": "confirmed",
+        "fl-facebook-nord": "confirmed",
+        "fl-instagram-lab": "failed"
+      },
+      "error": "Permesso di pubblicazione revocato dopo la programmazione.",
+      "expected": "4 confermate · 1 con problema"
+    },
+    {
+      "id": "uncertain-result",
+      "target_states": {
+        "fl-instagram-centro": "confirmed",
+        "fl-facebook-centro": "confirmed",
+        "fl-instagram-nord": "confirmed",
+        "fl-facebook-nord": "confirmed",
+        "fl-instagram-lab": "unknown"
+      },
+      "expected": "4 confermate · 1 da accertare",
+      "allow_immediate_retry": false
+    },
+    {
+      "id": "editor-role",
+      "workspace_role": "Editor",
+      "allowed": [
+        "view",
+        "upload",
+        "save_own_draft"
+      ],
+      "denied": [
+        "schedule",
+        "publish",
+        "retry"
+      ]
+    },
+    {
+      "id": "viewer-role",
+      "workspace_role": "Viewer",
+      "allowed": [
+        "view_calendar",
+        "view_history"
+      ],
+      "denied": [
+        "upload",
+        "create",
+        "schedule"
+      ]
+    },
+    {
+      "id": "upload-interrupted",
+      "steps": [
+        "uploading",
+        "offline",
+        "resuming",
+        "analyzing",
+        "converting",
+        "ready"
+      ],
+      "preserve_caption": true
+    },
+    {
+      "id": "save-conflict",
+      "expected": "Modificato da un altro utente. Confronta le modifiche e ricarica senza perdere il testo."
+    },
+    {
+      "id": "bulk-20",
+      "ready": 18,
+      "blocked": 2,
+      "expected_cta": "Programma 18 post"
+    },
+    {
+      "id": "dst-ambiguous",
+      "local_time": "2026-10-25T02:30",
+      "timezone": "Europe/Rome",
+      "choices": [
+        "2026-10-25T02:30:00+02:00",
+        "2026-10-25T02:30:00+01:00"
+      ],
+      "implicit_choice_allowed": false
+    },
+    {
+      "id": "shared-calendar",
+      "workspace_id": "forno-luce",
+      "access": "read_only",
+      "excluded": [
+        "internal_notes",
+        "team",
+        "other_workspaces",
+        "edit",
+        "approve",
+        "comment"
+      ]
+    },
+    {
+      "id": "link-expired",
+      "expected": "Questo link non è più disponibile. Chiedi un nuovo link alla tua agenzia."
+    },
+    {
+      "id": "dense-day",
+      "posts_in_one_day": 12,
+      "expected": "Tutti i post raggiungibili, nessun overlap; passaggio a elenco o dettaglio del giorno."
+    },
+    {
+      "id": "preparation-locked",
+      "target_state": "preparing",
+      "expected": "Modifica non più disponibile per le destinazioni già in preparazione; non mostrare un salvataggio riuscito."
+    }
+  ]
+}
