@@ -1408,7 +1408,7 @@ Tutte le funzioni concordate sono nella 1.0. La si costruisce in tappe, ognuna i
 | 7. Pubblicazione | Coda, macchina a stati, IG, FB, errori, esito incerto, riconciliatore, verifica | RF-50–52 |
 | 8. Notifiche | Centro notifiche, Telegram, email, riepilogo, sorveglianza esterna | RF-60–62 |
 | 9. Pianificazione | Calendario completo (mese predefinito, settimana dettagliata, libreria a richiesta), **piano editoriale** (§11.12), griglia IG, fasce orarie, programmazione in blocco | RF-40–43, RF-46 |
-| 10. Condivisione e brand | Link cliente con mesi completi e "Stampa o salva PDF", contenuti in preparazione, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-63, RF-71–73 |
+| 10. Condivisione e brand | Link cliente con mesi completi e "Stampa o salva PDF", contenuti in preparazione, stampa del Piano editoriale, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-63, RF-71–73 |
 | 11. Operazioni | Pulizia, backup, runbook, dashboard, prova di carico (§6.4), revisione sicurezza e accessibilità | RNF-01–13 |
 | 12. Messa in produzione | Test reale insieme, poi uso quotidiano | Tutti i criteri §2.3 |
 
