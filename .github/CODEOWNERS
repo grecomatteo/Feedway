@@ -1,0 +1,10 @@
+# La sua approvazione è richiesta sui percorsi sensibili (docs/flusso-git.md §5).
+/.github/                         @grecomatteo
+/scripts/                         @grecomatteo
+/docker/                          @grecomatteo
+/packages/infrastructure/src/db/migrations/  @grecomatteo
+/packages/infrastructure/src/crypto/         @grecomatteo
+/packages/domain/src/authz/       @grecomatteo
+/SECURITY.md                      @grecomatteo
+/CHANGELOG.md                     @grecomatteo
+/.release-please-manifest.json    @grecomatteo
