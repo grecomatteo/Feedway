@@ -36,3 +36,53 @@ Permesso nuovo proposto: `plan.edit`.
 ## Decisione aperta
 
 Inserirlo nella **1.0** (consigliato: piccolo, dà valore subito e distingue il prodotto) oppure nella **1.1**.
+
+## Collocazione nel piano di sviluppo (raccomandazione)
+
+**Nella 1.0, dentro la tappa 9 (Pianificazione), con la parte cliente nella tappa 10.** Prima non si può fare bene: un contenuto pianificato vive nel calendario (tappa 9) e diventa un post (tappa 6). Rimandarlo alla 1.1 non riduce i rischi, perché non tocca Meta né la pubblicazione: rimanda solo il valore.
+
+| Tappa | Cosa si aggiunge | Perché lì |
+|---|---|---|
+| 2 (già prevista) | Nessun lavoro: i permessi nuovi li registra il modulo stesso (§7.3) | Il meccanismo dei permessi esiste già |
+| 6 | Nessun lavoro sul modulo dei post | I post non devono conoscere il piano: è il piano a dipendere dai post, non il contrario |
+| 8 | Nessun lavoro: si usa l'infrastruttura delle notifiche | La notifica «in scadenza e non preparato» si registra nella tappa 9 |
+| **9** | Modulo `plan` completo, calendario, collegamento all'editor, notifica | Il calendario e i filtri nell'indirizzo nascono qui |
+| **10** | Contenuti pianificati nel link cliente, stampa e PDF | Il link cliente nasce qui |
+
+### Task proposti (una PR piccola ciascuno)
+
+Tappa 9:
+1. **Dominio** `plan`: entità, regole (titolo 1–80 caratteri, tipo, giorno, ora facoltativa), stato calcolato (da preparare, in scadenza, preparato) con la porta `Clock`; test prima del codice, compreso il 25 ottobre alle 02:30.
+2. **Dati**: tabella `plan_items` con `organization_id`, `workspace_id`, RLS, indici `(organization_id, workspace_id, date)`, repository; voce nella batteria di isolamento.
+3. **Casi d'uso e API**: crea, modifica, togli, elenca per periodo; permessi `plan.view` e `plan.edit`; rotte `/api/v1/orgs/[org]/plan` con OpenAPI.
+4. **Collegamento ai post tramite eventi**: post creato dal piano → collegato; post annullato → il contenuto torna «da preparare». Gestori idempotenti.
+5. **Calendario**: schede tratteggiate, «Pianifica», interruttore salvato nei filtri dell'indirizzo, telefono, tastiera, axe.
+6. **Editor**: «Prepara questo contenuto» precompila cliente, giorno, ora e tipo; avviso se il file non corrisponde al tipo.
+7. **Notifica** «contenuto in scadenza e non ancora preparato» (24 ore prima), lavoro con `organizationId` nei dati.
+
+Tappa 10:
+8. **Link cliente**: contenuti pianificati come «In preparazione». L'elenco dei campi esposti è esplicito (tipo, titolo, giorno, ora) e un test verifica che la nota interna non esca mai.
+9. **Stampa e PDF** del calendario cliente con le sole pubblicazioni future; prova automatica sul PDF generato.
+
+### Decisioni di dominio da fissare nella specifica prima della tappa 6
+
+Così nessuna tappa successiva deve rifare il lavoro.
+
+- Un contenuto pianificato appartiene a **un solo cliente** e porta al massimo **un post**.
+- Giorno e ora si salvano come **data locale più ora facoltativa** nel fuso del cliente, non come istante: «il 20» senza orario è un'informazione valida. Diventano un istante solo quando nasce il post, con la stessa regola dell'ora ambigua.
+- Il post può uscire in un giorno diverso da quello pianificato: il piano mostra «spostato al …», senza bloccare.
+- Se si toglie un contenuto pianificato, il post già creato resta com'è.
+- Se il post viene annullato, il contenuto torna «da preparare».
+- Il cliente vede tipo, titolo, giorno e ora; mai la nota.
+
+### Rischi principali e come si evitano
+
+| Rischio | Contromisura |
+|---|---|
+| Il piano viene scambiato per un post vero | Aspetto tratteggiato e testo «Da preparare» sempre visibile; test di accessibilità sull'etichetta |
+| Dati di un'altra agenzia visibili | RLS, `organization_id` in ogni query, batteria di isolamento |
+| Nota interna nel link cliente | Campi esposti dichiarati uno per uno e test dedicato |
+| Errori di giorno e ora | Data locale con fuso del cliente, test sul cambio d'ora |
+| Moduli che si intrecciano | Il piano dipende dai post solo tramite eventi; regola di dependency-cruiser |
+
+Stima: 7 PR nella tappa 9 e 2 nella tappa 10, senza nuove dipendenze e senza nuove richieste a Meta.
