@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { SCENARIO_NOW, ZONE, WORKSPACES, type Post, type Target, type TargetState } from '~/data/scenario'
+import { SCENARIO_NOW, ZONE, WORKSPACES, type Account, type Post, type Target, type TargetState } from '~/data/scenario'
 
 export const now = () => DateTime.fromISO(SCENARIO_NOW, { zone: ZONE })
 export const dt = (iso: string) => DateTime.fromISO(iso, { zone: ZONE }).setLocale('it')
@@ -75,3 +75,19 @@ export function resolveLocal(date: string, time: string): DateTime[] {
   const unique = candidates.filter((c, i, a) => a.findIndex(o => o.toMillis() === c.toMillis()) === i)
   return unique.sort((a, b) => a.toMillis() - b.toMillis())
 }
+
+export interface Profile { id: string, name: string, workspaceId: string, ig?: Account, fb?: Account }
+
+/** Groups a client's accounts into profiles: an IG account and its linked Facebook Page. */
+export function profilesOf(workspaceId: string): Profile[] {
+  const ws = workspace(workspaceId)
+  const out: Profile[] = []
+  for (const a of ws.accounts) {
+    let p = out.find(x => x.id === a.profileId)
+    if (!p) out.push(p = { id: a.profileId, name: a.name, workspaceId })
+    if (a.platform === 'instagram') p.ig = a
+    else p.fb = a
+  }
+  return out
+}
+export const profile = (id: string) => WORKSPACES.flatMap(w => profilesOf(w.id)).find(p => p.id === id)

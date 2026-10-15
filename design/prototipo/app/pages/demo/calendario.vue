@@ -2,7 +2,7 @@
 import { useMediaQuery } from '@vueuse/core'
 import { DateTime } from 'luxon'
 import { MEDIA, WORKSPACES, ZONE, type Post } from '~/data/scenario'
-import { TYPE_LABEL, capitalize, dt, hhmm, now, postStatus, workspace } from '~/utils/format'
+import { TYPE_LABEL, capitalize, dt, hhmm, now, postStatus, profile, workspace } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })
 useHead({ title: 'Calendario · Feedway demo' })
@@ -11,8 +11,19 @@ const { state, can } = useDemo()
 const narrow = useMediaQuery('(max-width: 1023px)')
 
 type View = 'week' | 'month' | 'list'
-const view = ref<View>('week')
-const effectiveView = computed<View>(() => (narrow.value && view.value === 'week' ? 'list' : view.value))
+// Month is the default "from afar" view; week is the detailed zoom on the same data.
+const view = ref<View>('month')
+const effectiveView = computed<View>(() => (narrow.value && view.value !== 'list' ? 'list' : view.value))
+const libraryOpen = ref(false)
+const libraryMedia = computed(() => {
+  const prefix: Record<string, string> = { 'forno-luce': 'forno', 'studio-forma': 'forma', 'orto-vivo': 'orto' }
+  const p = prefix[state.value.client]
+  return Object.keys(MEDIA).filter(k => !p || k.startsWith(p))
+})
+const profileAccounts = computed(() => {
+  const p = state.value.profile ? profile(state.value.profile) : null
+  return p ? [p.ig?.id, p.fb?.id].filter(Boolean) as string[] : null
+})
 const weekStart = ref(now().startOf('week'))
 const monthStart = ref(now().startOf('month'))
 const focusDay = ref<string | null>(null)
@@ -27,6 +38,7 @@ const STATUS_OPTS = [
 
 function matches(p: Post) {
   if (state.value.client !== 'all' && p.workspaceId !== state.value.client) return false
+  if (profileAccounts.value && !p.targets.some(t => profileAccounts.value!.includes(t.accountId))) return false
   if (typeFilter.value !== 'all' && p.type !== typeFilter.value) return false
   const s = statusFilter.value
   if (s === 'all') return true
@@ -64,7 +76,11 @@ function openDay(d: DateTime) { focusDay.value = d.toISODate(); view.value = 'li
 function resetFilters() { statusFilter.value = 'all'; typeFilter.value = 'all'; state.value.client = 'all' }
 const isToday = (d: DateTime) => d.hasSame(now(), 'day')
 const newPostLink = (d: DateTime) => `/demo/post/nuovo?data=${d.toISODate()}`
-const clientLabel = computed(() => (state.value.client === 'all' ? 'Tutti i clienti · 3 spazi' : workspace(state.value.client).name))
+const clientLabel = computed(() => {
+  if (state.value.client === 'all') return 'Tutti i clienti · visione d’insieme'
+  const p = state.value.profile ? profile(state.value.profile) : null
+  return p ? `${workspace(state.value.client).short} · profilo ${p.name}` : workspace(state.value.client).name
+})
 const unfilteredInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + state.value.posts.filter(p => dt(p.scheduledAt).hasSame(d, 'day')).length, 0))
 const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + byDay(d).length, 0))
 </script>
@@ -75,7 +91,9 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       <div class="min-w-0 flex-1">
         <h1 class="fw-title text-[26px] leading-tight">Calendario</h1>
         <p class="text-[13px] text-[var(--text-muted)]">{{ clientLabel }} · {{ ZONE }}</p>
+        <p class="text-xs text-[var(--text-muted)] max-lg:hidden">Mese per la panoramica, Settimana per il dettaglio con miniature grandi.</p>
       </div>
+      <button type="button" class="fw-btn max-lg:hidden" :aria-expanded="libraryOpen" aria-controls="libreria" @click="libraryOpen = !libraryOpen"><UIcon name="i-lucide-images" class="size-[18px]" aria-hidden="true" />Libreria</button>
       <NuxtLink v-if="can.create" to="/demo/post/nuovo" class="fw-btn fw-btn--primary max-lg:hidden"><UIcon name="i-lucide-plus" class="size-[18px]" aria-hidden="true" />Nuovo post</NuxtLink>
     </header>
 
@@ -89,7 +107,7 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       <span class="flex-1" />
       <div role="radiogroup" aria-label="Vista" class="flex gap-0.5 rounded-[9px] bg-[var(--surface-sunken)] p-[3px]">
         <button
-          v-for="[v, l] in ([['week', 'Settimana'], ['month', 'Mese'], ['list', 'Elenco']] as const)" :key="v" type="button" role="radio"
+          v-for="[v, l] in ([['month', 'Mese'], ['week', 'Settimana'], ['list', 'Elenco']] as const)" :key="v" type="button" role="radio"
           :aria-checked="effectiveView === v"
           class="rounded-[7px] border px-3 py-1.5 text-[13px]"
           :class="effectiveView === v ? 'border-[var(--border)] bg-[var(--surface)] font-bold' : 'border-transparent text-[var(--text-muted)]'"
@@ -116,6 +134,8 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       <button type="button" class="fw-link text-[13px]" @click="resetFilters">Azzera filtri e cliente</button>
     </section>
 
+    <div class="flex min-h-0 flex-1 gap-4">
+    <div class="flex min-w-0 flex-1 flex-col">
     <div v-if="totalInRange === 0 && unfilteredInRange > 0" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
       <UIcon name="i-lucide-filter-x" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
       <p class="fw-title text-lg">Nessun post corrisponde ai filtri</p>
@@ -180,6 +200,18 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
           </span>
         </NuxtLink>
       </template>
+    </div>
+    </div>
+    <aside v-if="libraryOpen" id="libreria" aria-label="Libreria" class="fw-card mb-6 flex w-[300px] shrink-0 flex-col gap-3 self-start p-4 max-lg:hidden">
+      <div class="flex items-center"><h2 class="fw-title flex-1 text-[17px]">Libreria</h2><button type="button" class="fw-btn fw-btn--ghost !min-h-9 !p-2" aria-label="Chiudi la libreria" @click="libraryOpen = false"><UIcon name="i-lucide-x" class="size-[18px]" /></button></div>
+      <p class="text-xs text-[var(--text-muted)]">{{ state.client === 'all' ? 'File di tutti i clienti' : workspace(state.client).short }} · scegli un file e crea il post da qui</p>
+      <div class="grid grid-cols-2 gap-2.5">
+        <NuxtLink v-for="k in libraryMedia" :key="k" :to="can.create ? '/demo/post/nuovo' : undefined" class="block" :aria-label="`Nuovo post con ${k}`">
+          <img :src="MEDIA[k]" alt="" class="aspect-[4/5] w-full rounded-lg object-cover" loading="lazy">
+          <span class="mt-1 block truncate text-xs font-semibold">{{ k }}.jpg</span>
+        </NuxtLink>
+      </div>
+    </aside>
     </div>
   </div>
 </template>

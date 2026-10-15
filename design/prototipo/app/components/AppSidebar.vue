@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AGENCY, WORKSPACES } from '~/data/scenario'
+import { AGENCY } from '~/data/scenario'
 
 const { state } = useDemo()
 const route = useRoute()
@@ -16,7 +16,6 @@ const manage = [
   { to: '/demo/condivisione', icon: 'i-lucide-link', label: 'Link cliente' },
 ]
 const active = (to: string) => route.path.startsWith(to) || (to === '/demo/calendario' && route.path.startsWith('/demo/post/'))
-const current = computed(() => WORKSPACES.find(w => w.id === state.value.client))
 </script>
 
 <template>
@@ -26,19 +25,7 @@ const current = computed(() => WORKSPACES.find(w => w.id === state.value.client)
       <div class="text-[11px] font-semibold tracking-wider text-[var(--text-muted)]">AGENZIA</div>
       <div class="text-sm font-semibold">{{ AGENCY.name }}</div>
     </div>
-    <label class="block">
-      <span class="sr-only">Cliente</span>
-      <span class="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5">
-        <span class="grid size-7 place-items-center rounded-md text-[11px] font-bold text-white" :style="{ background: current ? current.color : '#242321' }">{{ current ? current.initials : 'TC' }}</span>
-        <span class="min-w-0 flex-1">
-          <span class="block text-[11px] text-[var(--text-muted)]">Cliente</span>
-          <select v-model="state.client" class="w-full truncate bg-transparent text-sm font-semibold outline-none">
-            <option value="all">Tutti i clienti</option>
-            <option v-for="w in WORKSPACES" :key="w.id" :value="w.id">{{ w.short }}</option>
-          </select>
-        </span>
-      </span>
-    </label>
+    <ContextSwitcher />
     <div class="h-3" />
     <template v-for="group in [nav, manage]" :key="group[0]!.to">
       <div v-if="group === manage" class="px-2 pt-3 pb-1 text-[11px] font-semibold tracking-wider text-[var(--text-muted)]">GESTIONE</div>

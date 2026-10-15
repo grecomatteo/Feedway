@@ -32,5 +32,4 @@ Brand kit approvato in `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`: ara
 ## Decisioni aperte
 
 - *Aperta*: finalità commerciale della landing. Assunzione di lavoro: presentazione + demo interattiva + accesso; niente prezzi, trial, testimonianze o raccolta contatti.
-- *Aperta*: struttura del calendario (A settimana visuale / B mese con libreria), in attesa della scelta sulle tavole.
 - *Aperta*: documenti legali del sito, da redigere prima del lancio.

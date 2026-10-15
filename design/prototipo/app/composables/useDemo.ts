@@ -7,11 +7,13 @@ interface DemoState {
   role: Role
   dark: boolean
   client: string
+  /** Active profile (IG + linked FB Page) inside the client, or null for the whole client. */
+  profile: string | null
 }
 
 const STORAGE_KEY = 'feedway-demo-v1'
 
-const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), role: 'Manager', dark: false, client: 'all' })
+const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), role: 'Manager', dark: false, client: 'all', profile: null })
 
 // Demo state lives in memory and is mirrored to this browser's localStorage only.
 // Nothing is sent to a server and nothing is published.
@@ -70,7 +72,7 @@ export function useDemo() {
     if (import.meta.client) document.documentElement.classList.toggle('dark', d)
     persist()
   }, { immediate: true })
-  watch(() => [state.value.role, state.value.client], persist)
+  watch(() => [state.value.role, state.value.client, state.value.profile], persist)
 
   return { state, can, upsert, update, setTargets, reset }
 }

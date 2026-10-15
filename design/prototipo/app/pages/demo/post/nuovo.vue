@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DateTime } from 'luxon'
 import { ACCOUNT_GROUP, MEDIA, WORKSPACES, ZONE, type Post, type PostType } from '~/data/scenario'
-import { TYPE_LABEL, capitalize, now, relative, resolveLocal } from '~/utils/format'
+import { TYPE_LABEL, capitalize, now, profile, profilesOf, relative, resolveLocal, type Profile } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })
 useHead({ title: 'Nuovo post · Feedway demo' })
@@ -14,7 +14,29 @@ const toast = useToast()
 const clientId = ref<string | null>(state.value.client !== 'all' ? state.value.client : null)
 const ws = computed(() => WORKSPACES.find(w => w.id === clientId.value) ?? null)
 const selected = ref<string[]>([])
-watch(clientId, () => { selected.value = [] })
+const accountQuery = ref('')
+// Default destinations follow the active context: a chosen profile is preselected (IG + linked FB Page).
+function preselect() {
+  const p = state.value.profile && state.value.client === clientId.value ? profile(state.value.profile) : null
+  selected.value = p ? [p.ig, p.fb].filter(a => a && a.health === 'healthy').map(a => a!.id) : []
+}
+preselect()
+watch(clientId, preselect)
+const profiles = computed(() => (ws.value ? profilesOf(ws.value.id) : []))
+const visibleProfiles = computed(() => {
+  const q = accountQuery.value.trim().toLowerCase()
+  return profiles.value.filter(p => !q || p.name.toLowerCase().includes(q) || [p.ig?.handle, p.fb?.handle].some(h => h?.toLowerCase().includes(q)))
+})
+const usable = (p: Profile) => [p.ig, p.fb].filter((a): a is NonNullable<typeof a> => !!a && a.health === 'healthy')
+function rowState(p: Profile) {
+  const n = usable(p).filter(a => selected.value.includes(a.id)).length
+  return n === 0 ? 'none' : n === usable(p).length ? 'all' : 'some'
+}
+// Ticking a profile selects its IG account and its linked FB Page together; each can still be removed alone.
+function toggleProfile(p: Profile) {
+  const ids = usable(p).map(a => a.id)
+  selected.value = rowState(p) === 'all' ? selected.value.filter(id => !ids.includes(id)) : [...new Set([...selected.value, ...ids])]
+}
 const healthy = computed(() => ws.value?.accounts.filter(a => a.health === 'healthy') ?? [])
 function toggle(id: string) {
   selected.value = selected.value.includes(id) ? selected.value.filter(x => x !== id) : [...selected.value, id]
@@ -110,6 +132,12 @@ const blocks = computed(() => {
   return b
 })
 const warnings = computed(() => (type.value === 'reel' && platforms.value.includes('instagram') && !cropAck.value ? 1 : 0))
+const ctaLabel = computed(() => {
+  if (!selected.value.length) return 'Scegli almeno un account'
+  if (blocks.value.length) return `Risolvi ${blocks.value.length} ${blocks.value.length === 1 ? 'controllo' : 'controlli'}`
+  if (warnings.value) return 'Conferma l’avviso'
+  return `${mode.value === 'now' ? 'Pubblica ora' : 'Programma'} su ${selected.value.length} account`
+})
 const canSchedule = computed(() => can.value.schedule && blocks.value.length === 0 && warnings.value === 0)
 
 // --- Preview -----------------------------------------------------------------
@@ -186,26 +214,48 @@ async function saveDraft() {
         <!-- Destinations -->
         <section v-if="ws" aria-labelledby="h-dest">
           <div class="flex flex-wrap items-center gap-2">
-            <h2 id="h-dest" class="fw-title flex-1 text-base">Destinazioni</h2>
-            <span class="text-xs text-[var(--text-muted)]">{{ selected.length }} di {{ ws.accounts.length }} account di {{ ws.short }}</span>
+            <h2 id="h-dest" class="fw-title flex-1 text-base">Dove pubblicare</h2>
+            <span class="text-xs text-[var(--text-muted)]" aria-live="polite">{{ selected.length }} account selezionati</span>
           </div>
-          <div class="mt-2 flex flex-wrap items-center gap-3">
-            <button v-if="ws.id === ACCOUNT_GROUP.workspaceId" type="button" class="inline-flex items-center gap-1.5 rounded-full border border-[var(--fw-carbone)] bg-[var(--brand-soft)] px-3 py-1.5 text-xs font-semibold" @click="useGroup"><UIcon name="i-lucide-layers" class="size-3.5" aria-hidden="true" />{{ ACCOUNT_GROUP.name }}</button>
-            <button type="button" class="fw-link text-xs" @click="selected = healthy.map(a => a.id)">Seleziona tutti gli account attivi di {{ ws.short }}</button>
+          <p class="mt-1 text-xs text-[var(--text-muted)]">Spunta un profilo per pubblicare su Instagram e sulla sua Pagina Facebook collegata. Togli IG o FB se ne vuoi uno solo.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <label class="flex min-w-56 flex-1 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5">
+              <UIcon name="i-lucide-search" class="size-4 text-[var(--text-muted)]" aria-hidden="true" />
+              <span class="sr-only">Cerca un profilo</span>
+              <input v-model="accountQuery" type="search" placeholder="Cerca profilo o @account" class="min-h-10 w-full bg-transparent text-sm outline-none">
+            </label>
+            <button v-if="ws.id === ACCOUNT_GROUP.workspaceId" type="button" class="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--fw-carbone)] bg-[var(--brand-soft)] px-3 text-xs font-semibold" @click="useGroup"><UIcon name="i-lucide-layers" class="size-3.5" aria-hidden="true" />{{ ACCOUNT_GROUP.name }}</button>
+            <button type="button" class="fw-link min-h-10 text-xs" @click="selected = healthy.map(a => a.id)">Tutti</button>
+            <button v-if="selected.length" type="button" class="fw-link min-h-10 text-xs" @click="selected = []">Nessuno</button>
           </div>
-          <ul class="mt-3 grid gap-2 md:grid-cols-2">
-            <li v-for="a in ws.accounts" :key="a.id">
-              <label class="flex items-center gap-3 rounded-lg border px-3 py-2.5" :class="a.health === 'healthy' ? 'cursor-pointer border-[var(--border)] bg-[var(--surface)]' : 'border-[var(--border)] bg-[var(--surface-sunken)]'">
-                <input type="checkbox" class="size-5 accent-[#FF762E]" :checked="selected.includes(a.id)" :disabled="a.health !== 'healthy'" @change="toggle(a.id)">
-                <UIcon :name="`i-lucide-${a.platform}`" class="size-5" aria-hidden="true" />
-                <span class="min-w-0 flex-1">
-                  <span class="block text-sm font-semibold" :class="a.health !== 'healthy' ? 'text-[var(--text-muted)]' : ''">{{ a.name }}</span>
-                  <span class="block text-xs text-[var(--text-muted)]">{{ a.platform === 'instagram' ? 'Instagram' : 'Facebook' }} · {{ a.health === 'healthy' ? a.handle : 'permesso scaduto, non selezionabile' }}</span>
+          <ul class="mt-3 divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+            <li v-for="p in visibleProfiles" :key="p.id" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5" :class="rowState(p) !== 'none' ? 'bg-[var(--brand-soft)]' : ''">
+              <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                <input type="checkbox" class="size-5 accent-[#FF762E]" :checked="rowState(p) === 'all'" :indeterminate.prop="rowState(p) === 'some'" :disabled="!usable(p).length" @change="toggleProfile(p)">
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold">{{ p.name }}</span>
+                  <span class="block truncate text-xs text-[var(--text-muted)]">{{ p.ig?.handle }}{{ p.ig && p.fb ? ' · ' : '' }}{{ p.fb ? 'Pagina Facebook collegata' : '' }}</span>
                 </span>
-                <span v-if="a.health === 'healthy'" class="inline-flex items-center gap-1 text-xs font-semibold text-[var(--success)]"><UIcon name="i-lucide-circle-check" class="size-4" aria-hidden="true" />Attivo</span>
-                <span v-else class="inline-flex items-center gap-1 text-right text-xs font-semibold text-[var(--danger)]"><UIcon name="i-lucide-circle-alert" class="size-4" aria-hidden="true" />Da ricollegare</span>
               </label>
+              <div class="flex gap-1.5" role="group" :aria-label="`Piattaforme di ${p.name}`">
+                <template v-for="a in [p.ig, p.fb]" :key="a?.id">
+                  <button
+                    v-if="a && a.health === 'healthy'" type="button" :aria-pressed="selected.includes(a.id)"
+                    class="inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold"
+                    :class="selected.includes(a.id) ? 'border-[var(--fw-carbone)] bg-[var(--surface)]' : 'border-[var(--border)] text-[var(--text-muted)]'"
+                    @click="toggle(a.id)"
+                  >
+                    <UIcon :name="`i-lucide-${a.platform}`" class="size-3.5" aria-hidden="true" />{{ a.platform === 'instagram' ? 'IG' : 'FB' }}
+                    <UIcon v-if="selected.includes(a.id)" name="i-lucide-check" class="size-3.5" aria-hidden="true" />
+                    <span class="sr-only">{{ a.platform === 'instagram' ? 'Instagram' : 'Pagina Facebook' }} di {{ p.name }}</span>
+                  </button>
+                  <span v-else-if="a" class="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-dashed border-[var(--danger)] px-2.5 text-xs font-semibold text-[var(--danger)]">
+                    <UIcon :name="`i-lucide-${a.platform}`" class="size-3.5" aria-hidden="true" />Da ricollegare
+                  </span>
+                </template>
+              </div>
             </li>
+            <li v-if="!visibleProfiles.length" class="px-3 py-4 text-sm text-[var(--text-muted)]">Nessun profilo di {{ ws.short }} corrisponde alla ricerca.</li>
           </ul>
         </section>
 
@@ -332,17 +382,17 @@ async function saveDraft() {
       </aside>
     </div>
 
-    <div class="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:px-7">
-      <p class="min-w-0 flex-1 text-[13px] font-semibold">
+    <div class="sticky bottom-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 lg:px-7">
+      <p class="min-w-0 flex-1 text-[13px] font-semibold max-sm:hidden">
         <template v-if="ws">{{ ws.short }} · {{ TYPE_LABEL[type] }} · {{ selected.length }} account<template v-if="instant"> · {{ instant.setLocale('it').toFormat('ccc d LLL, HH:mm') }} {{ ZONE }}</template></template>
         <template v-else>Scegli il cliente per continuare</template>
       </p>
-      <template v-if="can.schedule">
-        <button type="button" class="fw-btn" @click="saveDraft">Salva bozza</button>
-        <button type="button" class="fw-btn fw-btn--primary" :disabled="!canSchedule" :aria-describedby="!canSchedule ? 'h-checks' : undefined" @click="confirmOpen = true">
-          <UIcon name="i-lucide-calendar-check" class="size-[18px]" aria-hidden="true" />{{ mode === 'now' ? 'Pubblica ora' : 'Programma' }} su {{ selected.length }} account
+      <div v-if="can.schedule" class="flex w-full gap-2 sm:w-auto">
+        <button type="button" class="fw-btn max-sm:px-3" @click="saveDraft">Salva bozza</button>
+        <button type="button" class="fw-btn fw-btn--primary min-w-0 max-sm:flex-1" :disabled="!canSchedule" :aria-describedby="!canSchedule ? 'h-checks' : undefined" @click="confirmOpen = true">
+          <UIcon :name="canSchedule ? 'i-lucide-calendar-check' : 'i-lucide-list-checks'" class="size-[18px] shrink-0" aria-hidden="true" /><span class="truncate">{{ ctaLabel }}</span>
         </button>
-      </template>
+      </div>
       <template v-else>
         <span class="text-xs text-[var(--text-muted)]">Con il ruolo Editor salvi la bozza: la programma un Manager.</span>
         <button type="button" class="fw-btn fw-btn--primary" @click="saveDraft"><UIcon name="i-lucide-save" class="size-[18px]" aria-hidden="true" />Salva bozza</button>

@@ -45,7 +45,10 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Esiti multi-destinazione scritti per esteso: «4 confermate · 1 con problema», «4 confermate · 1 da accertare».
 - Ombre solo sulle superfici sovrapposte (finestra prodotto nella landing).
 
-## Da decidere
+## Scelte adottate (15 ottobre 2026, Matteo)
 
-- Calendario: A settimana visuale (raccomandata) o B mese con libreria richiamabile.
-- Hero landing: affiancato (raccomandato) o centrato.
+- Hero della landing: testo e calendario affiancati.
+- Calendario: Mese è la vista predefinita (panoramica); Settimana è lo zoom di dettaglio con miniature grandi; Elenco per giornate dense e telefono. La libreria si apre con un pulsante.
+- Navigazione stile Meta: selettore con «Tutti i clienti» (visione d'insieme), un cliente o un singolo profilo, con ricerca. Il contesto restringe l'app e preseleziona le destinazioni di Nuovo post.
+- Destinazioni: elenco a spunta con ricerca, un profilo per riga. Spuntare il profilo seleziona l'account Instagram e la Pagina Facebook collegata; IG e FB si possono togliere singolarmente.
+- Telefono: barra a cinque voci con il pulsante + al centro; barra azioni dell'editor su una riga, con l'etichetta che dice cosa manca.

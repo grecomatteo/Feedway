@@ -81,3 +81,17 @@ Lettore di schermo reale, zoom 200%, prestazioni misurate, prove con persone. Le
 | R11 | P2 | Barra demo, anteprima | Ruoli ARIA incoerenti (pulsante tema, finte schede) | Pulsanti semplici o con `aria-pressed` |
 
 Riverificati nel browser: R6, R7, R8, R9. `nuxt typecheck` senza errori.
+
+## Modifiche richieste da Matteo (18:39) e prove
+
+Mese di base con Settimana come zoom; selettore cliente/profilo stile Meta; destinazioni a spunta con IG e Pagina FB collegate; + al centro sul telefono. Tavole riallineate: A2 (destinazioni), N1 (selettore), nomi di A1 e B1.
+
+| Prova (Playwright) | Esito |
+|---|---|
+| Vista iniziale del calendario | Mese |
+| Scelta del profilo Forno Luce Centro nel selettore | Calendario ristretto al profilo; Nuovo post parte con IG e FB di Centro spuntati |
+| Spunta del profilo Lab (Pagina FB da ricollegare) | Aggiunge solo l'IG; la Pagina mostra «Da ricollegare» |
+| Togliere FB di Centro | Riga in stato parziale, 2 account selezionati |
+| Ricerca «nord» | Una sola riga |
+| Pulsante dell'editor | «Scegli almeno un account» → «Risolvi 1 controllo» → «Conferma l'avviso» → «Programma su 5 account» |
+| Telefono 390×844 | + centrato (x = 195), barra azioni su una riga, menu «Altro», nessuno scorrimento orizzontale |
