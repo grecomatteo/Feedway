@@ -721,6 +721,7 @@ Un post appartiene a **uno** spazio e ha come destinazioni solo account di quell
 - **Attivazione** (è la registrazione: nella 1.0 non esiste una pagina "registrati" aperta a tutti): nome, soprannome e foto facoltativi, passkey o password (minimo 12 caratteri, controllo di robustezza), 2FA se richiesta, collegamento Telegram facoltativo.
 - **Reset password**: link monouso via email (Better Auth), oppure generato da Owner/Admin e copiato dal pannello, solo per utenti che appartengono unicamente alla loro organizzazione (l'identità è unica tra le agenzie); chiude tutte le sessioni.
 - **Disattivazione** (dall'organizzazione: l'utente perde l'accesso solo a quella; dalla piattaforma: a tutte): immediata, chiude le sessioni; i post programmati restano e passano in pausa al momento della pubblicazione se l'autore non ha più permessi (§9.2).
+- **Passaggio di proprietà**: l'Owner può cedere il ruolo a un Admin attivo della stessa agenzia con il secondo fattore configurato, con riconferma; diventa Admin. Così può anche lasciare l'agenzia o eliminare il proprio account.
 - **Nessuna cancellazione fisica**: lo storico resta attribuibile; "Elimina il mio account" o una richiesta all'amministratore anonimizzano i dati personali (§15.7).
 
 ### 10.5 Account personale
@@ -906,9 +907,9 @@ users               id, name, email (citext, unica), email_verified, image,
                     two_factor_enabled, created_at, updated_at
                     + campi nostri: nickname (max 30), avatar_key, platform_role (admin|null),
                     status (active|disabled), theme (light|dark|system), locale, timezone,
-                    last_organization_id, last_login_at, anonymized_at
+                    last_organization_id, last_login_at, disabled_at, anonymized_at
 sessions            id, user_id, token, expires_at, ip_address, user_agent,
-                    created_at, updated_at + reauthenticated_at (nostro)
+                    created_at, updated_at + reauthenticated_at, auth_method (nostri)
 accounts            id, user_id, provider_id (credential|google), account_id,
                     password (hash argon2id), …
 verifications       id, identifier, value, expires_at   (reset password, cambio email)
@@ -920,8 +921,9 @@ rate_limits         tabella di Better Auth (limiti di frequenza condivisi tra i 
 known_devices       user_id, device_hash, first_seen_at, last_seen_at
 data_exports        id, user_id, status, storage_key, expires_at   (file cancellato dopo 24 ore)
 invites             id, organization_id, purpose (bootstrap|invite|organization_owner), email,
-                    user_id, token_hash, invited_by, org_role, memberships (jsonb),
-                    expires_at, used_at
+                    existing_user_id (utente già esistente: accetta dopo l'accesso),
+                    reserved_user_id (ID riservato alla persona nuova), token_hash,
+                    invited_by, org_role, memberships (jsonb), expires_at, used_at
 api_tokens          id, organization_id, user_id, name, token_hash, scopes, expires_at,
                     revoked_at   (predisposto, §18.3)
 
@@ -1141,9 +1143,9 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - Solo i dati necessari: niente dati dei follower né statistiche personali.
 - EXIF e GPS rimossi; media cancellati dopo la pubblicazione salvo libreria.
 - Nella 1.0 l'agenzia è titolare dei dati del team; nella 2.0 la piattaforma sarà responsabile del trattamento per le altre agenzie (con contratto).
-- Solo cookie tecnici (sessione, CSRF, tema): nessun banner; informativa compilabile per agenzia nella pagina Privacy e nella pagina di accesso.
+- Solo cookie tecnici (sessione, cookie temporanei di Better Auth per 2FA e passkey, tema, identificativo casuale del dispositivo `__Host-device` per riconoscere un accesso da un dispositivo nuovo, senza dati personali; la protezione CSRF usa un'intestazione, non un cookie): nessun banner; informativa compilabile per agenzia nella pagina Privacy e nella pagina di accesso.
 - **Accesso e portabilità**: "Scarica i miei dati" nel profilo, ZIP con JSON leggibile e foto, link valido 24 ore.
-- **Cancellazione**: "Elimina il mio account" con riconferma, oppure su richiesta all'amministratore della piattaforma (l'identità è unica tra le agenzie). Foto, passkey, 2FA, sessioni, dispositivi e collegamenti Telegram si cancellano subito; nome, email e soprannome diventano "Utente rimosso". Non possibile per l'unico Owner di un'agenzia.
+- **Cancellazione**: "Elimina il mio account" con riconferma, oppure su richiesta all'amministratore della piattaforma (l'identità è unica tra le agenzie). Foto, passkey, 2FA, sessioni, dispositivi e collegamenti Telegram si cancellano subito; nome, email e soprannome diventano "Utente rimosso". Un Owner deve prima passare la proprietà a un Admin (§10.4).
 - **Conservazione automatica**: sessioni scadute 30 giorni; dispositivi noti 12 mesi dall'ultimo uso; IP nel registro abbreviati dopo 90 giorni; account disattivati da più di 24 mesi anonimizzati, con avviso all'Owner 30 giorni prima.
 - Registro dei trattamenti (`docs/privacy/registro-trattamenti.md`) e procedura per le violazioni entro 72 ore (`docs/runbooks/violazione-dati.md`).
 - Esportazione e cancellazione di un'intera organizzazione nella 2.0 (resa semplice da `organization_id` ovunque e dai file con prefisso per organizzazione).

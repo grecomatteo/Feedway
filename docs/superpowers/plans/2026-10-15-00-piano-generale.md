@@ -62,7 +62,7 @@ Ogni piano di tappa le include implicitamente.
 - **Meta:** nessun test automatico contro account reali; si usa il finto Graph API (`tools/meta-mock`). Il primo contatto reale è manuale, con Matteo, sugli account di prova.
 - **Interfaccia:** testi in italiano nei file di traduzione (`@nuxtjs/i18n`), mai scritti nei componenti; ogni schermata ha stato vuoto, caricamento, errore e successo; WCAG 2.2 AA verificato con axe in Playwright; viste telefono e computer, tema chiaro e scuro.
 - **Versioni:** dipendenze fissate nel lockfile, `--frozen-lockfile` in CI, immagini Docker fissate per digest, Renovate per gli aggiornamenti.
-- **Isolamento tra agenzie (§6.5):** ogni tabella con dati di un'organizzazione ha `organization_id` e RLS; ogni caso d'uso lavora dentro `uow.run({ organizationId, userId })`; ogni lavoro su dati di un'organizzazione porta `organizationId` nei dati e il gestore apre la transazione con quell'ambito; i lavori di sistema (riconciliatore, pulizia, battito, bot Telegram, avvio dei riepiloghi e delle sincronizzazioni) sono dichiarati tali nel registro delle code e usano `runAsSystem`; `runAsSystem` solo nei moduli autorizzati dalla regola ESLint; ogni nuova rotta di organizzazione entra automaticamente nella batteria di test di isolamento; chiavi di archiviazione dei file con prefisso `org/<id>/`.
+- **Isolamento tra agenzie (§6.5):** ogni tabella con dati di un'organizzazione ha `organization_id` e RLS; ogni caso d'uso lavora dentro `uow.run({ organizationId, userId })`; ogni lavoro su dati di un'organizzazione porta `organizationId` nei dati e il gestore apre la transazione con quell'ambito; i lavori di un singolo utente (email di sicurezza, esportazione dei dati) portano `userId` e usano `uow.run({ userId })`; i lavori di sistema (riconciliatore, pulizia, battito, bot Telegram, avvio dei riepiloghi e delle sincronizzazioni) sono dichiarati tali nel registro delle code e usano `runAsSystem`; `runAsSystem` solo nei moduli autorizzati dalla regola ESLint; ogni nuova rotta di organizzazione entra automaticamente nella batteria di test di isolamento; chiavi di archiviazione dei file con prefisso `org/<id>/`.
 - **Scalabilità (§6.4):** nessuno stato condiviso nella memoria dei processi (sessioni, limiti, cache vanno nel database); ogni query su dati di un'organizzazione filtra per `organization_id` e, dove serve, `workspace_id`, con un indice che inizia con uno dei due; i processi che devono girare una volta sola usano un lock consultivo di Postgres; i file passano solo da `Storage`.
 
 ## 5. Le tappe
@@ -78,12 +78,12 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 2 · Identità, organizzazioni e permessi (piano `02-identita.md`)
 - **Costruisce:** organizzazioni con isolamento a doppia barriera (RLS), amministratore della piattaforma con comandi `cli`, primo account con la prima agenzia, Better Auth (accesso con passkey o password, sessioni, 2FA con codici di recupero, reset, cambio email), account personale (soprannome, foto profilo, dispositivi collegati), privacy ("Scarica i miei dati", "Elimina il mio account", conservazione automatica, informativa), inviti, disattivazione, ruoli nell'agenzia e negli spazi, limiti per agenzia, spazi di lavoro e membri, riconferma per azioni delicate, registro attività, selettore dell'agenzia, schermate relative. RF-04, RF-10–RF-15, RNF-14, CS5, CS11.
-- **Introduce:** `can()`/`canPlatform()` e i permessi, `OrgActor`, `UnitOfWork` con ambito e `runAsSystem`, `KeyRing` (chiavi per organizzazione), `Auth` (adattatore di Better Auth), `PasswordHasher` (argon2id, usato da Better Auth), `Storage` su disco (per le foto profilo; la tappa 4 aggiunge i media e la prova su MinIO), `AuditLog`, repository, middleware di sessione, CSRF e contesto dell'agenzia, mappatura errori → HTTP, OpenAPI `/api/v1`, batteria di test di isolamento tra agenzie.
+- **Introduce:** `can()`/`canPlatform()` e i permessi, `OrgActor`, `UnitOfWork` con ambito e `runAsSystem`, `KeyRing` (chiavi per organizzazione), `Auth` (adattatore di Better Auth), `PasswordHasher` (argon2id, usato da Better Auth), `Storage` su disco (per le foto profilo; la tappa 4 aggiunge i media e la prova su Garage), `Mailer` (email accodate; partono quando la tappa 3 configura l'SMTP), `AuditLog`, repository, middleware di sessione, CSRF e contesto dell'agenzia, mappatura errori → HTTP, OpenAPI `/api/v1`, batteria di test di isolamento tra agenzie.
 - **Matteo prova:** crea il suo account con la sua agenzia, attiva la 2FA, invita un collaboratore come Publisher in uno spazio e verifica che non veda gli altri spazi; crea da comando una seconda agenzia di prova e verifica che i dati non si mescolino.
 
 ### Tappa 3 · Meta
 - **Costruisce:** prima configurazione guidata in 5 passi, integrazioni cifrate dell'agenzia (Meta; Telegram ed email come schede pronte) e sezione **Piattaforma → Integrazioni** visibile solo all'amministratore della piattaforma (valori predefiniti di email e Telegram, sorveglianza esterna), "Aggiungi account", sincronizzazione, salute e quota, promemoria, assegnazione account agli spazi. RF-02, RF-03, RF-05, RF-20, RF-21.
-- **Introduce:** `IntegrationStore` (per organizzazione, con valori predefiniti della piattaforma per email e Telegram, segreti cifrati con `KeyRing.forOrganization`), `MetaGraphClient` (live/mock/dry-run, `appsecret_proof`, classificazione errori, lettura dei limiti d'uso e rallentamento per account e per organizzazione), `tools/meta-mock`, tabelle `integrations`, `social_accounts` (unico per organizzazione), `workspace_accounts`; limite `social_accounts`.
+- **Introduce:** `IntegrationStore` (per organizzazione, con valori predefiniti della piattaforma per email e Telegram, segreti cifrati con `KeyRing.forOrganization`), adattatore SMTP del `Mailer` (da qui partono le email accodate nella tappa 2, comprese quelle di sicurezza), `MetaGraphClient` (live/mock/dry-run, `appsecret_proof`, classificazione errori, lettura dei limiti d'uso e rallentamento per account e per organizzazione), `tools/meta-mock`, tabelle `integrations`, `social_accounts` (unico per organizzazione), `workspace_accounts`; limite `social_accounts`.
 - **Matteo prova:** con la procedura guidata crea app e utente di sistema, incolla il token **nel pannello**, importa l'account IG e la Pagina di prova. Le risposte reali di Meta vengono registrate (senza token) e diventano le risposte del finto Graph API.
 - **Serve da Matteo:** app Meta, utente di sistema, un account IG e una Pagina FB di prova.
 
@@ -126,7 +126,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 11 · Operazioni
 - **Prova di carico** di §6.4 con i suoi obiettivi, nella CI settimanale.
-- **Costruisce:** pulizia notturna dei media, backup notturno con rotazione e copia della libreria, `restore-check.sh` e runbook, dashboard completa (spazio disco compreso), esportazione e anonimizzazione dati utente, conservazione dei file per organizzazione, revisione di sicurezza e accessibilità su tutto. RNF-01…RNF-13, CS9.
+- **Costruisce:** pulizia notturna dei media, backup notturno con rotazione e copia della libreria, `restore-check.sh` e runbook, dashboard completa (spazio disco compreso), conservazione dei file per organizzazione, revisione di sicurezza e accessibilità su tutto. RNF-01…RNF-13, CS9.
 - **Serve da Matteo:** cartella di backup inclusa nel suo rclone.
 
 ### Tappa 12 · Messa in produzione
@@ -147,11 +147,13 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `AuditLog` | 2 | dentro la transazione: `tx.audit.record(entry: AuditEntry): Promise<void>` |
 | `PasswordHasher` | 2 | `hash(plain)`, `verify(hash, plain)` |
 | `KeyRing` / `SecretBox` | 2 | `platform()`, `forOrganization(tx, orgId)`; `seal(plain, aad)`, `open(sealed, aad)` |
-| `RateLimiter` | 2 | `hit(key, limit, windowMs)` |
+| `RateLimiter` | 2 | `hit(key, limit, windowMs)`, più registrazione e azzeramento dei tentativi falliti (piano 02, Task 7) |
 | `Auth` | 2 | adattatore di Better Auth: sessione della richiesta, account da invito, revoca delle sessioni, link di reset, verifica della riconferma; nessun altro modulo importa Better Auth |
 | `IntegrationStore` | 3 | `get(organizationId, kind)` (con ricaduta sulla piattaforma), `replace(organizationId, kind, config, secret)` |
 | `MetaGraphClient` | 3 | funzioni tipizzate per chiamata, errori classificati `transient`/`permanent`/`uncertain` |
-| `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete`, `publicUrl(variant)`; chiavi `org/<id>/…` e `users/<id>/…` |
+| `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete` dalla tappa 2; `publicUrl(variant)` dalla tappa 4; chiavi `org/<id>/…` e `users/<id>/…` |
+| `Mailer` | 2 (in memoria, file, "non configurato"), 3 (SMTP) | `isConfigured()`, `send(message)` |
+| `AvatarProcessor` / `ZipWriter` | 2 | foto profilo (sharp, libheif-js) ed esportazione dei dati (fflate) |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
 | `MetaPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |

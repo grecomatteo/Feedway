@@ -18,6 +18,9 @@ Criteri usati, in quest'ordine: **sicurezza e supporto lungo** (la 1.0 vivrà al
 | Validazione | Zod 4 | Valibot, ArkType | Stessi schemi per pannello, API, configurazione e OpenAPI; il più diffuso | 4.6 stabile |
 | API e documentazione | OpenAPI generata dagli schemi Zod | tRPC, GraphQL | API REST standard, utilizzabile da MCP e da client esterni (ADR 006) | |
 | Accesso e account | Better Auth + passkey + 2FA, argon2id | Codice nostro, Lucia (dismessa), Auth.js, Clerk, WorkOS, Keycloak, Authentik, Zitadel | Pronta, sul nostro database, senza costi né dati negli Stati Uniti (ADR 012, decisa da Matteo) | 1.7 stabile; versione fissata e aggiornamenti di sicurezza immediati |
+| Robustezza delle password | @zxcvbn-ts/core con dizionari comuni e italiani | Solo lunghezza minima, servizi esterni (Have I Been Pwned) | Funziona senza rete, rifiuta le password più comuni anche in italiano | |
+| QR della 2FA | uqr | qrcode, servizi esterni | Leggero, senza dipendenze, disegnato nel browser: il segreto non esce mai | |
+| Esportazione dei dati (ZIP) | fflate | archiver, yazl, jszip | Piccolo, veloce, senza dipendenze, funziona a flusso | |
 | Sicurezza HTTP | nuxt-security | Header scritti a mano, Helmet | CSP con nonce, header e limiti già integrati in Nuxt | |
 | Elaborazione immagini | sharp (libvips) | Jimp, ImageMagick | Il più veloce in Node, usa poca memoria | 0.35 stabile |
 | Foto HEIC dell'iPhone | **libheif-js** | heic-convert, libvips di sistema con libheif, ffmpeg | sharp da solo non legge le HEIC dell'iPhone | **Cambiato:** heic-convert non è aggiornato dal 2023; libheif-js è mantenuto (ottobre 2026). Verifica con foto vere nella tappa 4 |
