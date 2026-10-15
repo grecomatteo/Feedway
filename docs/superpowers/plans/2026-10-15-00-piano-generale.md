@@ -74,7 +74,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Introduce:** porte `Clock`, `IdGenerator`, `Logger`, `JobQueue`; `loadConfig()`; `createDb()`; `runMigrations()`; helper di test `startTestDatabase()`; token del design system.
 - **Matteo prova:** installa sulla VPS con un comando, apre il pannello via Tailscale, cambia tema, lancia `update.sh` e `update.sh --rollback`.
 - **Serve da Matteo:** link del repository, chiave di autenticazione Tailscale, ispirazioni grafiche per il prototipo.
-- **In parallelo:** prototipo cliccabile delle schermate principali (§14.1) appena arrivano le ispirazioni. Non blocca le tappe 1–5; va approvato prima della tappa 6.
+- **In parallelo:** progetto grafico in Pencil e prototipo cliccabile delle schermate principali (§14.1) appena arrivano ispirazioni e branding. Non blocca le tappe 1–5; va approvato prima della tappa 6.
 
 ### Tappa 2 · Identità, organizzazioni e permessi (piano `02-identita.md`)
 - **Costruisce:** organizzazioni con isolamento a doppia barriera (RLS), amministratore della piattaforma con comandi `cli`, primo account con la prima agenzia, Better Auth (accesso con passkey o password, sessioni, 2FA con codici di recupero, reset, cambio email), account personale (soprannome, foto profilo, dispositivi collegati), privacy ("Scarica i miei dati", "Elimina il mio account", conservazione automatica, informativa), inviti, disattivazione, ruoli nell'agenzia e negli spazi, limiti per agenzia, spazi di lavoro e membri, riconferma per azioni delicate, registro attività, selettore dell'agenzia, schermate relative. RF-04, RF-10–RF-15, RNF-14, CS5, CS11.
@@ -122,6 +122,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 ### Tappa 10 · Condivisione e brand
 - **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
 - **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
+- **Prerequisito:** branding e progetto in Pencil del sito approvati.
 
 ### Tappa 11 · Operazioni
 - **Prova di carico** di §6.4 con i suoi obiettivi, nella CI settimanale.

@@ -998,7 +998,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 ### 14.1 Metodo
 
-1. **Ispirazioni** tue → **prototipo cliccabile** delle schermate principali (Nuovo post, Calendario, Griglia, Programmazione in blocco, Anteprima, Link cliente) da provare su telefono e computer → correzioni → sviluppo.
+1. **Ispirazioni** e **branding** tuoi → **progetto grafico in Pencil** del pannello e del sito pubblico, prima del codice → **prototipo cliccabile** delle schermate principali (Nuovo post, Calendario, Griglia, Programmazione in blocco, Anteprima, Link cliente) da provare su telefono e computer → correzioni → sviluppo. I file di Pencil si salvano nel repository (`design/`), così chi sviluppa parte dallo stesso progetto; formato e collegamento con gli agenti si verificano con i primi file.
 2. **Design system** in `packages/ui`: colori, tipografia, spaziature, raggi, ombre come token; nessun valore scritto a mano nelle schermate.
 3. Per ogni schermata tutti gli stati: vuoto (con il primo passo da fare), caricamento (scheletri), errore (cosa è successo e cosa fare), successo.
 
@@ -1077,6 +1077,8 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 **Lingue**: italiano all'uscita; struttura pronta per l'inglese (`/en/` con `hreflang`) e testi nei file di traduzione del sito (`apps/site/i18n/locales/`), come nel pannello.
 
 **Qualità**: stessi token di colore e tema chiaro/scuro del pannello (`packages/ui`) e stesso nome (`PRODUCT_NAME`); logo e immagini del sito sono file nel repository, non il brand caricato dal pannello; WCAG 2.2 AA verificato con axe; caricamento sotto 2,5 s su telefono (LCP); collegamenti verificati in CI; intestazioni di sicurezza nel file `_headers` di Cloudflare Pages: CSP con gli hash degli script inline che Nuxt genera e il solo `static.cloudflareinsights.com` ammesso (da verificare alla prima build), HSTS, `frame-ancestors 'none'`.
+
+**Grafica**: il branding del sito arriva da te e si progetta in Pencil prima del codice, come il pannello (§14.1).
 
 **Modifiche**: i testi si cambiano con una PR come il resto del codice; ogni PR ha un'anteprima su un indirizzo provvisorio non indicizzato e la CI pubblica il sito al merge. Nessun CMS nella 1.0: per pochi testi sarebbe un servizio in più da proteggere.
 
@@ -1432,6 +1434,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 |---|---|
 | Link del repository GitHub | Ora |
 | Ispirazioni grafiche e funzionalità desiderate | Prima del prototipo (tappa 1) |
+| Branding (logo, colori, caratteri) e progetti in Pencil del pannello e del sito | Pannello prima della tappa 6, sito prima della tappa 10 |
 | Approvazione del prototipo | Fine tappa 1 |
 | Chiave di autenticazione Tailscale | Tappa 1 |
 | Tailscale con Funnel sulla VPS; più avanti eventuale dominio su Cloudflare | Tappa 4 |
