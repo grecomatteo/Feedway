@@ -84,7 +84,7 @@ function verifyUnknown(accountId: string) {
             <tbody>
               <template v-for="t in post.targets" :key="t.accountId">
                 <tr class="border-t border-[var(--border)]" :class="t.state === 'failed' ? 'bg-[var(--danger-soft)]' : t.state === 'unknown' ? 'bg-[var(--warning-soft)]' : ''">
-                  <td class="px-4 py-3"><span class="flex items-center gap-2 font-semibold"><UIcon :name="`i-lucide-${account(t.accountId).platform}`" class="size-[18px]" aria-hidden="true" />{{ account(t.accountId).name }}<span class="sr-only"> ({{ account(t.accountId).platform }})</span></span></td>
+                  <td class="px-4 py-3"><span class="flex items-center gap-2 font-semibold"><UIcon :name="`i-lucide-${account(t.accountId).platform}`" class="size-[18px]" aria-hidden="true" />{{ account(t.accountId).name }}<span class="sr-only"> ({{ account(t.accountId).platform === 'instagram' ? 'Instagram' : 'Facebook' }})</span></span></td>
                   <td class="px-4 py-3"><StatusBadge :status="post.status === 'done' || t.state !== 'pending' ? TARGET_VIEW[t.state] : (post.status === 'draft' ? { label: 'Bozza', icon: 'i-lucide-pencil-line', tone: 'neutral' } : TARGET_VIEW.pending)" /></td>
                   <td class="tabular px-4 py-3 text-[13px] text-[var(--text-muted)] max-md:hidden">{{ time(t.updatedAt) }}</td>
                   <td class="px-4 py-3 text-[13px] max-md:hidden">
@@ -120,7 +120,7 @@ function verifyUnknown(accountId: string) {
         <details class="fw-card px-3 py-2.5 text-[13px]">
           <summary class="cursor-pointer font-semibold">Cronologia tecnica</summary>
           <ul class="mt-2 space-y-1 text-xs text-[var(--text-muted)]">
-            <li v-for="t in post.targets" :key="t.accountId" class="tabular">{{ time(t.updatedAt) }} · {{ account(t.accountId).name }} ({{ account(t.accountId).platform }}) · stato «{{ t.state }}»</li>
+            <li v-for="t in post.targets" :key="t.accountId" class="tabular">{{ time(t.updatedAt) }} · {{ account(t.accountId).name }} ({{ account(t.accountId).platform === 'instagram' ? 'Instagram' : 'Facebook' }}) · {{ TARGET_VIEW[t.state].label }}</li>
           </ul>
         </details>
       </div>

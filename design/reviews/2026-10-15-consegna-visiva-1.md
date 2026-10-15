@@ -68,3 +68,16 @@ Eseguite con Playwright (Chromium) sul server locale, 15 ottobre 2026. Direzione
 ### Non verificato
 
 Lettore di schermo reale, zoom 200%, prestazioni misurate, prove con persone. Le voci di menu Post, Libreria, Clienti, Account social e Team non hanno schermate nel prototipo. La demo non dimostra isolamento server, worker o pubblicazione reale.
+
+### Revisione del codice (agente revisore separato) e correzioni
+
+| ID | Priorità | Dove | Effetto | Correzione |
+|---|---|---|---|---|
+| R6 | P0 | Editor, stato del salvataggio | Diceva «Bozza salvata» senza salvare | Il salvataggio automatico scrive davvero la bozza; senza cliente, data e ora dice «Non ancora salvata» |
+| R7 | P1 | Editor, data vuota | La bozza con data vuota rompeva il calendario | Bozza rifiutata con avviso; blocco «Data o ora mancante» |
+| R8 | P2 | Ora ambigua | Testo fisso «02:30» per qualsiasi ora tra 02:00 e 02:59 | Data, ora e scostamento presi dai due istanti calcolati |
+| R9 | P2 | Calendario | «Il calendario non è vuoto» anche in un periodo vuoto | Stato vuoto distinto da filtro senza risultati |
+| R10 | P2 | Cronologia tecnica | Nomi di stato in inglese | Etichette italiane |
+| R11 | P2 | Barra demo, anteprima | Ruoli ARIA incoerenti (pulsante tema, finte schede) | Pulsanti semplici o con `aria-pressed` |
+
+Riverificati nel browser: R6, R7, R8, R9. `nuxt typecheck` senza errori.

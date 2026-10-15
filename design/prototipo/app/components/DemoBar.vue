@@ -16,7 +16,7 @@ function doReset() {
         <option class="text-black">Manager</option><option class="text-black">Editor</option><option class="text-black">Viewer</option>
       </select>
     </label>
-    <button type="button" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/10" :aria-pressed="state.dark" @click="state.dark = !state.dark">
+    <button type="button" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/10" @click="state.dark = !state.dark">
       <UIcon :name="state.dark ? 'i-lucide-sun' : 'i-lucide-moon'" class="size-4" aria-hidden="true" /><span class="max-md:sr-only">{{ state.dark ? 'Tema chiaro' : 'Tema scuro' }}</span>
     </button>
     <button type="button" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-white/10" @click="doReset"><UIcon name="i-lucide-rotate-ccw" class="size-4" aria-hidden="true" />Ripristina<span class="max-md:hidden"> demo</span></button>

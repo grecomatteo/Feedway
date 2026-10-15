@@ -50,21 +50,29 @@ function startUpload() {
 function dropConnection() { clearInterval(timer); phase.value = 'offline' }
 function resume() { phase.value = 'uploading'; timer = setInterval(tick, 120) }
 function pickFromLibrary(key: string) { clearInterval(timer); mediaKey.value = key; isVideo.value = false; phase.value = 'ready'; progress.value = 100 }
-onBeforeUnmount(() => clearInterval(timer))
+onBeforeUnmount(() => { clearInterval(timer); clearTimeout(saveT) })
 const type = computed<PostType>(() => (isVideo.value ? 'reel' : 'photo'))
 const MEDIA_PREFIX: Record<string, string> = { 'forno-luce': 'forno', 'studio-forma': 'forma', 'orto-vivo': 'orto' }
 const libraryForClient = computed(() => Object.keys(MEDIA).filter(k => k.startsWith(MEDIA_PREFIX[clientId.value ?? 'forno-luce']!)))
 
 // --- Caption and truthful draft saving ---------------------------------------
 const caption = ref('Il laboratorio apre le porte: prepariamo insieme il pane di domani. Sabato dalle 9 alle 12, via Roma 14. #fornoluce #panefresco')
-const saveState = ref<'idle' | 'saving' | 'saved'>('idle')
+const saveState = ref<'idle' | 'saving' | 'saved' | 'blocked'>('idle')
 const savedAt = ref('')
 let saveT: ReturnType<typeof setTimeout> | undefined
-watch([caption, selected, clientId], () => {
-  saveState.value = 'saving'
+const draftId = `post-n${Date.now()}`
+// Autosave writes the draft to the demo store for real; the label never claims a save that did not happen.
+function autosave() {
   clearTimeout(saveT)
-  saveT = setTimeout(() => { saveState.value = 'saved'; savedAt.value = DateTime.now().setZone(ZONE).toFormat('HH:mm') }, 800)
-}, { deep: true })
+  if (!can.value.create || !ws.value || !draftAt.value) { saveState.value = 'blocked'; return }
+  saveState.value = 'saving'
+  saveT = setTimeout(() => {
+    if (!ws.value || !draftAt.value) { saveState.value = 'blocked'; return }
+    upsert(buildPost('draft'))
+    saveState.value = 'saved'
+    savedAt.value = DateTime.now().setZone(ZONE).toFormat('HH:mm')
+  }, 800)
+}
 
 // --- When ---------------------------------------------------------------------
 const mode = ref<'now' | 'date' | 'slot'>('date')
@@ -81,6 +89,10 @@ const instant = computed<DateTime | null>(() => {
   if (candidates.value.length === 2 && ambiguousPick.value !== null) return candidates.value[ambiguousPick.value]!
   return null
 })
+const draftAt = computed<DateTime | null>(() => instant.value ?? candidates.value[0] ?? null)
+const dstDay = computed(() => candidates.value[0]?.setLocale('it').toFormat('d LLLL') ?? '')
+const dstTime = computed(() => candidates.value[0]?.toFormat('HH:mm') ?? '')
+watch([caption, selected, clientId, date, time, mode], autosave, { deep: true })
 const whenLabel = computed(() => (instant.value ? `${capitalize(instant.value.setLocale('it').toFormat("cccc d LLLL yyyy, HH:mm"))} (${instant.value.toFormat('ZZ')}) · ${ZONE}` : ''))
 
 // --- Checks -------------------------------------------------------------------
@@ -91,8 +103,9 @@ const blocks = computed(() => {
   else if (!selected.value.length) b.push({ id: 'acc', text: 'Nessuna destinazione selezionata.', fix: 'Seleziona almeno un account di questo cliente.' })
   if (phase.value !== 'ready') b.push({ id: 'media', text: phase.value === 'none' ? 'Manca il media.' : 'Il media non è ancora pronto.', fix: phase.value === 'offline' ? 'Riprendi il caricamento.' : 'Attendi la fine della conversione o scegli un file della libreria.' })
   if (!caption.value.trim()) b.push({ id: 'cap', text: 'Caption vuota.', fix: 'Scrivi la caption: è la stessa su tutte le destinazioni.' })
-  if (mode.value === 'date' && candidates.value.length === 2 && ambiguousPick.value === null) b.push({ id: 'dst', text: 'Ora ambigua per il cambio dell’ora.', fix: 'Scegli quale delle due 02:30 intendi.' })
-  if (mode.value === 'date' && candidates.value.length === 0) b.push({ id: 'gap', text: 'Questa ora non esiste in Europe/Rome.', fix: 'Scegli un altro orario.' })
+  if (mode.value === 'date' && candidates.value.length === 2 && ambiguousPick.value === null) b.push({ id: 'dst', text: 'Ora ambigua per il cambio dell’ora.', fix: `Scegli quale delle due ${dstTime.value} intendi.` })
+  if (mode.value === 'date' && (!date.value || !time.value)) b.push({ id: 'empty', text: 'Data o ora mancante.', fix: 'Inserisci data e ora.' })
+  else if (mode.value === 'date' && candidates.value.length === 0) b.push({ id: 'gap', text: 'Questa ora non esiste in Europe/Rome.', fix: 'Al passaggio all’ora legale l’orologio salta un’ora: scegli un altro orario.' })
   if (instant.value && mode.value === 'date' && instant.value < now()) b.push({ id: 'past', text: 'La data è nel passato.', fix: 'Scegli una data futura o «Pubblica ora».' })
   return b
 })
@@ -108,12 +121,13 @@ const firstOf = (pf: string) => ws.value?.accounts.find(a => a.platform === pf &
 const confirmOpen = ref(false)
 function buildPost(status: Post['status']): Post {
   return {
-    id: `post-n${Date.now()}`, workspaceId: ws.value!.id, type: type.value, caption: caption.value,
-    scheduledAt: (instant.value ?? DateTime.fromISO(`${date.value}T${time.value}`, { zone: ZONE })).toISO()!,
+    id: draftId, workspaceId: ws.value!.id, type: type.value, caption: caption.value,
+    scheduledAt: draftAt.value!.toISO()!,
     media: mediaKey.value, status, targets: selected.value.map(accountId => ({ accountId, state: 'pending' as const })), createdBy: 'Giulia R.',
   }
 }
 async function schedule() {
+  clearTimeout(saveT)
   const p = buildPost('scheduled')
   upsert(p)
   confirmOpen.value = false
@@ -121,7 +135,9 @@ async function schedule() {
   await navigateTo(`/demo/post/${p.id}`)
 }
 async function saveDraft() {
+  clearTimeout(saveT)
   if (!ws.value) { toast.add({ title: 'Scegli prima il cliente', color: 'warning' }); return }
+  if (!draftAt.value) { toast.add({ title: 'Inserisci data e ora valide', description: 'La bozza non è stata salvata.', color: 'warning' }); return }
   const p = buildPost('draft')
   upsert(p)
   toast.add({ title: 'Bozza salvata in questo browser', description: 'Non pubblicherà da sola.', color: 'neutral' })
@@ -147,6 +163,7 @@ async function saveDraft() {
       </div>
       <p class="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-muted)]" role="status" aria-live="polite">
         <template v-if="saveState === 'saving'"><UIcon name="i-lucide-loader" class="size-4 animate-spin" aria-hidden="true" />Salvataggio in questo browser…</template>
+        <template v-else-if="saveState === 'blocked'"><UIcon name="i-lucide-circle-dashed" class="size-4" aria-hidden="true" />Non ancora salvata: servono cliente, data e ora</template>
         <template v-else-if="saveState === 'saved'"><UIcon name="i-lucide-hard-drive" class="size-4 text-[var(--success)]" aria-hidden="true" />Bozza locale salvata alle {{ savedAt }} (solo in questo browser)</template>
       </p>
     </header>
@@ -261,11 +278,11 @@ async function saveDraft() {
             <button type="button" class="fw-link text-xs" @click="date = '2026-10-25'; time = '02:30'">Prova l'ora ambigua del 25 ottobre</button>
           </div>
           <fieldset v-if="mode === 'date' && candidates.length === 2" class="mt-3 rounded-lg border border-[var(--warning)] bg-[var(--warning-soft)] p-3">
-            <legend class="px-1 text-[13px] font-bold text-[var(--warning)]">Il 25 ottobre le 02:30 esistono due volte</legend>
+            <legend class="px-1 text-[13px] font-bold text-[var(--warning)]">Il {{ dstDay }} le {{ dstTime }} esistono due volte</legend>
             <p class="text-[13px]">Alle 03:00 l'orologio torna alle 02:00. Scegli quale istante intendi: non lo decidiamo noi.</p>
             <label v-for="(c, i) in candidates" :key="c.toMillis()" class="mt-2 flex items-center gap-2 text-[13px]">
               <input v-model="ambiguousPick" type="radio" name="dst" :value="i" class="accent-[#242321]">
-              {{ i === 0 ? 'Prima del cambio: 02:30 ora legale (UTC+2)' : 'Dopo il cambio: 02:30 ora solare (UTC+1), un\'ora più tardi' }}
+              {{ i === 0 ? `Prima del cambio: ${c.toFormat('HH:mm')} ora legale (UTC${c.toFormat('ZZ')})` : `Dopo il cambio: ${c.toFormat('HH:mm')} ora solare (UTC${c.toFormat('ZZ')}), un’ora più tardi` }}
             </label>
           </fieldset>
           <p v-if="mode === 'now'" class="mt-3 rounded-lg bg-[var(--info-soft)] p-3 text-[13px]">«Pubblica ora» avvia una pubblicazione reale nel prodotto. In questo prototipo è simulata.</p>
@@ -275,12 +292,12 @@ async function saveDraft() {
 
       <!-- Preview and checks -->
       <aside class="flex w-full flex-col gap-3.5 lg:w-[380px]" aria-label="Anteprima e controlli">
-        <div v-if="platforms.length" role="tablist" aria-label="Anteprima per piattaforma" class="flex gap-0.5 rounded-[9px] bg-[var(--surface-sunken)] p-[3px]">
-          <button v-for="pf in platforms" :key="pf" type="button" role="tab" :aria-selected="previewTab === pf" class="flex flex-1 items-center justify-center gap-1.5 rounded-[7px] border px-2.5 py-1.5 text-xs" :class="previewTab === pf ? 'border-[var(--border)] bg-[var(--surface)] font-bold' : 'border-transparent text-[var(--text-muted)]'" @click="previewTab = pf">
+        <div v-if="platforms.length" role="group" aria-label="Anteprima per piattaforma" class="flex gap-0.5 rounded-[9px] bg-[var(--surface-sunken)] p-[3px]">
+          <button v-for="pf in platforms" :key="pf" type="button" :aria-pressed="previewTab === pf" class="flex flex-1 items-center justify-center gap-1.5 rounded-[7px] border px-2.5 py-1.5 text-xs" :class="previewTab === pf ? 'border-[var(--border)] bg-[var(--surface)] font-bold' : 'border-transparent text-[var(--text-muted)]'" @click="previewTab = pf">
             <UIcon :name="`i-lucide-${pf}`" class="size-3.5" aria-hidden="true" />{{ pf === 'instagram' ? 'Instagram' : 'Facebook' }}
           </button>
         </div>
-        <div role="tabpanel" class="relative overflow-hidden rounded-2xl bg-[var(--surface-sunken)]" :class="isVideo ? 'aspect-[9/16] max-h-[420px]' : 'aspect-[4/5]'">
+        <div class="relative overflow-hidden rounded-2xl bg-[var(--surface-sunken)]" :class="isVideo ? 'aspect-[9/16] max-h-[420px]' : 'aspect-[4/5]'">
           <img v-if="phase !== 'none'" :src="MEDIA[mediaKey]" alt="Anteprima del media" class="absolute inset-0 size-full object-cover">
           <div v-else class="absolute inset-0 grid place-items-center text-sm text-[var(--text-muted)]">Nessun media</div>
           <div v-if="firstOf(previewTab)" class="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-[#242321b3] px-2 py-1 text-xs font-semibold text-white">

@@ -65,6 +65,7 @@ function resetFilters() { statusFilter.value = 'all'; typeFilter.value = 'all'; 
 const isToday = (d: DateTime) => d.hasSame(now(), 'day')
 const newPostLink = (d: DateTime) => `/demo/post/nuovo?data=${d.toISODate()}`
 const clientLabel = computed(() => (state.value.client === 'all' ? 'Tutti i clienti · 3 spazi' : workspace(state.value.client).name))
+const unfilteredInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + state.value.posts.filter(p => dt(p.scheduledAt).hasSame(d, 'day')).length, 0))
 const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + byDay(d).length, 0))
 </script>
 
@@ -115,11 +116,17 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       <button type="button" class="fw-link text-[13px]" @click="resetFilters">Azzera filtri e cliente</button>
     </section>
 
-    <div v-if="totalInRange === 0 && (activeFilters || state.client !== 'all')" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
+    <div v-if="totalInRange === 0 && unfilteredInRange > 0" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
       <UIcon name="i-lucide-filter-x" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
       <p class="fw-title text-lg">Nessun post corrisponde ai filtri</p>
       <p class="max-w-md text-sm text-[var(--text-muted)]">Nel periodo ci sono contenuti, ma nessuno con questi filtri. Il calendario non è vuoto.</p>
       <button type="button" class="fw-btn mt-2" @click="resetFilters">Azzera filtri</button>
+    </div>
+
+    <div v-else-if="totalInRange === 0 && !focusDay" class="fw-card grid place-items-center gap-2 px-6 py-14 text-center" role="status">
+      <UIcon name="i-lucide-calendar-plus" class="size-8 text-[var(--text-muted)]" aria-hidden="true" />
+      <p class="fw-title text-lg">Nessun post in questo periodo</p>
+      <NuxtLink v-if="can.create" to="/demo/post/nuovo" class="fw-btn fw-btn--primary mt-2"><UIcon name="i-lucide-plus" class="size-[18px]" aria-hidden="true" />Nuovo post</NuxtLink>
     </div>
 
     <!-- Week -->
