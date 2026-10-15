@@ -106,8 +106,8 @@ Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modific
 | **Organizzazione** (nel pannello: **Agenzia**) | Il livello più alto: un'agenzia con i propri utenti, clienti, account Meta, integrazioni e brand. Nessun dato è condiviso tra organizzazioni. |
 | **Amministratore della piattaforma** | Chi gestisce l'installazione (tu): crea e sospende organizzazioni e ne vede l'uso, ma non i contenuti, se non è membro. |
 | **Spazio di lavoro** | Gruppo di account social di un'organizzazione, di norma un cliente. Un account può stare in più spazi della stessa organizzazione. |
-| **Profilo** | Nel pannello, un account Instagram insieme alla Pagina Facebook che Meta stessa gli collega (`page_id` dell'account IG, §8.4), mai abbinati per nome. È solo un raggruppamento dell'interfaccia: nei dati restano due account e due destinazioni. Un account IG senza Pagina, o una Pagina senza IG, è un profilo con un solo account. |
-| **Contesto attivo** | Ciò che stai guardando nell'agenzia corrente: "Tutti i clienti", un cliente (spazio) o un singolo profilo. Restringe pannello e calendario a quella scelta (§14.3). |
+| **Profilo** | Nel pannello, un account Instagram insieme alla Pagina Facebook che Meta stessa gli collega (stesso `page_id`, §8.4 e §13), mai abbinati per nome. È solo un raggruppamento dell'interfaccia: nei dati restano due account e due destinazioni. Si forma **sempre dentro uno spazio** e solo con gli account assegnati a quello spazio: se l'altro account del collegamento non è nello spazio, o è inattivo, il profilo ha un solo account e dell'altro non si mostra né il nome né l'esistenza. |
+| **Contesto attivo** | Ciò che stai guardando nell'agenzia corrente: "Tutti i clienti", un cliente (spazio) o un singolo profilo. Restringe pannello e calendario a quella scelta (§14.6). |
 | **Destinazione** | Un post su un singolo account. Un post con 5 account ha 5 destinazioni, ognuna con il proprio stato. |
 | **Utente di sistema** | Utente tecnico creato in Business Manager; il suo token permette a Feedway di pubblicare senza login ripetuti. |
 | **Container** | Su Instagram, il contenuto preparato da Meta prima della pubblicazione. Scade dopo 24 ore. |
@@ -760,11 +760,11 @@ Una passkey è legata all'indirizzo del pannello: passando da `*.ts.net` a un do
 ### 11.2 Creazione del post
 
 Una sola pagina, su una colonna da telefono e su due da computer:
-1. **Spazio**: quello del contesto attivo; se il contesto è "Tutti i clienti", va scelto prima di tutto il resto (si pubblica solo dentro un cliente).
+1. **Spazio**: quello del contesto attivo; se il contesto è "Tutti i clienti", va scelto prima di tutto il resto (si pubblica solo dentro un cliente), tra gli spazi in cui l'utente è almeno Editor.
 2. **Tipo**, proposto in base ai file.
 3. **Media**: "Scegli file", trascinamento o "dalla libreria" (§11.1); un file trascinato sull'anteprima entra nel post e l'anteprima si aggiorna subito, con la barra di caricamento sulla miniatura. Ordine dei caroselli **trascinando le miniature**, anche nell'anteprima, con l'alternativa dei pulsanti "sposta prima/dopo" per tastiera e tocco; copertina per i reel.
 4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**.
-5. **Dove pubblicare**: elenco dei **profili** dello spazio (§3), ognuno con una casella e, sotto, i suoi account IG e FB, ognuno con la propria casella. Spuntare il profilo spunta entrambi gli account; si può poi togliere uno dei due (es. solo Instagram). Ricerca per nome o @username, "seleziona tutti" e **gruppi salvati**. Un account da ricollegare o non pubblicabile (§8.4) compare disattivato con il motivo e non si può spuntare. Se il contesto attivo è un profilo, l'elenco parte con quel profilo già spuntato; se è un cliente, nulla è spuntato.
+5. **Dove pubblicare**: elenco dei **profili** dello spazio (§3), formati solo con gli account di quello spazio, ognuno con una casella e, sotto, i suoi account IG e FB, ognuno con la propria casella. Spuntare il profilo spunta entrambi gli account; si può poi togliere uno dei due (es. solo Instagram). Ricerca per nome o @username, "seleziona tutti" e **gruppi salvati**. Un account da ricollegare o non pubblicabile (§8.4) compare disattivato con il motivo e non si può spuntare. Se il contesto attivo è un profilo, l'elenco parte con quel profilo già spuntato; se è un cliente, nulla è spuntato.
 6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera".
 7. **Etichette** e **note interne**.
 8. **Riepilogo destinazioni**: cosa verrà pubblicato su ogni account e come. "Programma" si attiva solo senza blocchi e con una scelta per ogni avviso.
@@ -786,13 +786,13 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 ### 11.4 Calendario
 
 - **Viste**: **mese** (predefinita da computer: colpo d'occhio sulla distribuzione), **settimana** (la vista dettagliata, con miniature grandi per rivedere i contenuti) ed elenco per giorno (predefinita da telefono). Si passa da una all'altra con la barra delle viste; l'ultima scelta resta nell'indirizzo della pagina.
-- **Libreria a richiesta**: un pulsante "Libreria" apre la libreria media in un pannello laterale, da cui si trascina un file su un giorno per iniziare un post (con l'alternativa del pulsante "Usa in un post"). Chiusa per impostazione predefinita, così il calendario resta largo.
-- **Filtri**: uno, alcuni o tutti i clienti; account; piattaforma; tipo; stato; autore; etichetta.
+- **Libreria a richiesta**: un pulsante "Libreria" apre la libreria media in un pannello laterale, da cui si trascina un file su un giorno per iniziare un post (con l'alternativa del pulsante "Usa in un post"). Chiusa per impostazione predefinita, così il calendario resta largo. Il pulsante compare solo dentro un cliente o un profilo (la libreria è dello spazio, §11.8) e solo a chi può usare la libreria (da Editor, §10.2); il post parte in quello spazio.
+- **Filtri**: account; piattaforma; tipo; stato; autore; etichetta. Il filtro per cliente (uno, alcuni o tutti) c'è solo nel contesto "Tutti i clienti": dentro un cliente o un profilo la scelta del cliente è il contesto stesso.
 - **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Oggi, Questa settimana.
 - Ogni voce: miniatura, orario, icone degli account, colore dello stato ed etichette; clic per il dettaglio con anteprima.
 - **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla".
 - Filtri salvati nell'indirizzo della pagina.
-- Il calendario segue il contesto attivo (§14.3): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.
+- Il calendario segue il contesto attivo (§14.6): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.
 - Ognuno vede solo gli spazi a cui ha accesso nell'organizzazione corrente; Owner e Admin li vedono tutti.
 
 ### 11.5 Griglia Instagram
@@ -843,7 +843,7 @@ Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token
 
 ### 11.11 Uso da telefono
 
-- **Barra di navigazione in basso** con cinque voci: Dashboard, Calendario, **+ Nuovo post al centro** (più grande, sempre raggiungibile col pollice), Notifiche, Menu (le altre sezioni e il contesto attivo). Sostituisce la navigazione laterale sotto i 768 px; quando si apre la tastiera la barra si nasconde.
+- **Barra di navigazione in basso** con cinque voci: Dashboard, Calendario, **+ Nuovo post al centro** (più grande, sempre raggiungibile col pollice), Notifiche, Menu (le altre sezioni e il contesto attivo). Chi non può creare post (Viewer, §10.2) non vede il +: la barra ha quattro voci. Sostituisce la navigazione laterale sotto i 768 px; quando si apre la tastiera la barra si nasconde. Le voci sono una proposta da confermare nel progetto in Pencil (§14.1).
 - **PWA**: "Aggiungi alla schermata Home" su iPhone e Android, apertura a schermo intero.
 - Upload da galleria e fotocamera; HEIC convertite in automatico.
 - Upload a pezzi con ripresa: se il telefono perde rete o blocca lo schermo, riprende al ritorno sul pannello (iPhone sospende le schede in background).
@@ -883,7 +883,7 @@ Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token
 ### 12.3 Canali e preferenze
 
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
-- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram dal profilo con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
+- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Il mio account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
 - **Email**: SMTP configurato dal pannello, modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
 - **Preferenze per utente**: canali e livello minimo per ogni tipo di evento; "tutto ovunque" per i test.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
@@ -939,6 +939,8 @@ workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
                     avatar_url, page_id, active, health (ok|warning|error),
                     health_message, last_synced_at
+                    -- page_id: per Facebook l'id della Pagina stessa (= external_id),
+                    -- per Instagram l'id della Pagina a cui Meta lo collega; serve al profilo (§3)
 workspace_accounts  workspace_id, account_id
 account_groups      id, workspace_id, name, account_ids
 time_slots          id, workspace_id, weekday, local_time
@@ -1040,9 +1042,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 - Tema **chiaro, scuro e automatico**, scelto per utente; entrambi con contrasti AA.
 - **Logo e colore principale** per organizzazione, caricati da Impostazioni: pannello, email, bot, link cliente (white label). Logo del singolo cliente facoltativo nel suo link. La pagina di login, che viene prima della scelta dell'agenzia, usa il brand della piattaforma.
-- **Selettore dell'agenzia** in alto, visibile solo a chi appartiene a più organizzazioni.
-- **Selettore del contesto**, come su Meta Business Suite: "Tutti i clienti" per la visione d'insieme, poi un cliente (spazio) e, dentro il cliente, un singolo profilo. Mostra solo gli spazi a cui hai accesso. Dashboard, calendario, post, griglia e libreria si restringono alla scelta, che resta nell'indirizzo della pagina (così un link porta nello stesso contesto). Il contesto non è un permesso: i controlli restano quelli di §10.
-- **Nuovo post** parte dal contesto: dentro un profilo, con quel profilo già spuntato; dentro un cliente, con il cliente scelto; da "Tutti i clienti", chiede prima il cliente, perché si pubblica solo dentro uno spazio.
+- **Selettore dell'agenzia** in alto, visibile solo a chi appartiene a più organizzazioni; accanto, il selettore del contesto (§14.6).
 
 ### 14.4 Schermate
 
@@ -1064,7 +1064,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Registro attività | Admin; Manager per il proprio spazio | Filtri per utente, azione, data, origine |
 | Impostazioni | Owner; Admin in sola lettura | Integrazioni, brand, 2FA obbligatoria, conservazione file dell'organizzazione |
 | Piattaforma | Amministratore della piattaforma | Nella 1.0: sezione **Integrazioni** nel pannello (valori predefiniti di email e Telegram, sorveglianza esterna), visibile solo a lui; organizzazioni e limiti da comando. Nella 2.0: anche organizzazioni, limiti, uso e sospensione dal pannello |
-| Profilo | tutti | Nome, soprannome, foto, email, passkey, password, 2FA, dispositivi collegati, Telegram, notifiche, tema, "Scarica i miei dati", "Elimina il mio account" (§10.5) |
+| Il mio account | tutti | Nome, soprannome, foto, email, passkey, password, 2FA, dispositivi collegati, Telegram, notifiche, tema, "Scarica i miei dati", "Elimina il mio account" (§10.5) |
 | Privacy | tutti, anche senza accesso | Informativa dell'agenzia (§15.7) |
 | Calendario condiviso | clienti, senza login | §11.10 |
 
@@ -1101,6 +1101,13 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 **Grafica**: il branding del sito arriva da te e si progetta in Pencil prima del codice, come il pannello (§14.1).
 
 **Modifiche**: i testi si cambiano con una PR come il resto del codice; ogni PR ha un'anteprima su un indirizzo provvisorio non indicizzato e la CI pubblica il sito al merge. Nessun CMS nella 1.0: per pochi testi sarebbe un servizio in più da proteggere.
+
+
+### 14.6 Navigazione e contesto
+
+- **Selettore del contesto**, come su Meta Business Suite: "Tutti i clienti" per la visione d'insieme, poi un cliente (spazio) e, dentro il cliente, un singolo profilo. Mostra solo gli spazi a cui hai accesso. Dashboard, calendario, post, griglia e libreria si restringono alla scelta, che resta nell'indirizzo della pagina (così un link porta nello stesso contesto). Il contesto non è un permesso: i controlli restano quelli di §10.
+- **Nuovo post** parte dal contesto: dentro un profilo, con quel profilo già spuntato; dentro un cliente, con il cliente scelto; da "Tutti i clienti", chiede prima il cliente, perché si pubblica solo dentro uno spazio.
+- **Nell'indirizzo**: `?spazio=<slug>` per un cliente, `?spazio=<slug>&profilo=<id dell'account IG, o della Pagina se il profilo non ha IG>` per un profilo. Uno slug o un id sconosciuto, di uno spazio che non vedi o di un account fuori da quello spazio portano tutti allo stesso modo a "Tutti i clienti", con la stessa risposta e lo stesso tempo, senza rivelare se esiste.
 
 ---
 
@@ -1329,14 +1336,14 @@ Tutte le funzioni concordate sono nella 1.0. La si costruisce in tappe, ognuna i
 | Tappa | Contenuto | Requisiti |
 |---|---|---|
 | 1. Fondamenta | Monorepo, CI, Docker, Postgres, migrazioni, configurazione, log, design system con tema chiaro/scuro, `install.sh`/`update.sh`. In parallelo: **prototipo cliccabile** da approvare | RNF-08, RNF-09, RF-01, RF-70 |
-| 2. Identità e organizzazioni | Organizzazioni con isolamento (RLS), amministratore della piattaforma, Owner, Better Auth (accesso con passkey o password, sessioni, 2FA), inviti, account personale (soprannome, foto, cambio email, dispositivi), privacy (esportazione, cancellazione, conservazione), ruoli, spazi, permessi, selettore dell'agenzia, registro attività | RF-04, RF-10–15, RNF-14 |
-| 3. Meta | Prima configurazione guidata, integrazioni cifrate, aggiungi account, sincronizzazione, salute, promemoria (primo contatto reale con Meta) | RF-02, RF-03, RF-05, RF-20, RF-21 |
+| 2. Identità e organizzazioni | Organizzazioni con isolamento (RLS), amministratore della piattaforma, Owner, Better Auth (accesso con passkey o password, sessioni, 2FA), inviti, account personale (soprannome, foto, cambio email, dispositivi), privacy (esportazione, cancellazione, conservazione), ruoli, spazi, permessi, selettore dell'agenzia e del contesto, barra in basso del telefono, registro attività | RF-04, RF-10–15, RNF-14 |
+| 3. Meta | Prima configurazione guidata, integrazioni cifrate, aggiungi account, sincronizzazione, salute, promemoria, profili (IG + Pagina FB) (primo contatto reale con Meta) | RF-02, RF-03, RF-05, RF-20, RF-21 |
 | 4. Media | Upload a pezzi, analisi, conversioni, host pubblico, libreria | RF-30, RF-31, RF-45 |
 | 5. Regole | Controlli e corrispondenza IG↔FB con i test | RF-32, RF-33 |
 | 6. Post | Creazione, anteprima Meta, bozze, modelli, etichette, note, gruppi di account | RF-34–36, RF-44 |
 | 7. Pubblicazione | Coda, macchina a stati, IG, FB, errori, esito incerto, riconciliatore, verifica | RF-50–52 |
 | 8. Notifiche | Centro notifiche, Telegram, email, riepilogo, sorveglianza esterna | RF-60–62 |
-| 9. Pianificazione | Calendario completo, griglia IG, fasce orarie, programmazione in blocco | RF-40–43 |
+| 9. Pianificazione | Calendario completo (mese predefinito, settimana dettagliata, libreria a richiesta), griglia IG, fasce orarie, programmazione in blocco | RF-40–43 |
 | 10. Condivisione e brand | Link cliente, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-63, RF-71–73 |
 | 11. Operazioni | Pulizia, backup, runbook, dashboard, prova di carico (§6.4), revisione sicurezza e accessibilità | RNF-01–13 |
 | 12. Messa in produzione | Test reale insieme, poi uso quotidiano | Tutti i criteri §2.3 |
