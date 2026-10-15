@@ -921,8 +921,9 @@ rate_limits         tabella di Better Auth (limiti di frequenza condivisi tra i 
 known_devices       user_id, device_hash, first_seen_at, last_seen_at
 data_exports        id, user_id, status, storage_key, expires_at   (file cancellato dopo 24 ore)
 invites             id, organization_id, purpose (bootstrap|invite|organization_owner), email,
-                    user_id, token_hash, invited_by, org_role, memberships (jsonb),
-                    expires_at, used_at
+                    existing_user_id (utente già esistente: accetta dopo l'accesso),
+                    reserved_user_id (ID riservato alla persona nuova), token_hash,
+                    invited_by, org_role, memberships (jsonb), expires_at, used_at
 api_tokens          id, organization_id, user_id, name, token_hash, scopes, expires_at,
                     revoked_at   (predisposto, §18.3)
 
@@ -1142,7 +1143,7 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - Solo i dati necessari: niente dati dei follower né statistiche personali.
 - EXIF e GPS rimossi; media cancellati dopo la pubblicazione salvo libreria.
 - Nella 1.0 l'agenzia è titolare dei dati del team; nella 2.0 la piattaforma sarà responsabile del trattamento per le altre agenzie (con contratto).
-- Solo cookie tecnici (sessione, cookie temporanei di Better Auth per 2FA e passkey, tema; la protezione CSRF usa un'intestazione, non un cookie): nessun banner; informativa compilabile per agenzia nella pagina Privacy e nella pagina di accesso.
+- Solo cookie tecnici (sessione, cookie temporanei di Better Auth per 2FA e passkey, tema, identificativo casuale del dispositivo `__Host-device` per riconoscere un accesso da un dispositivo nuovo, senza dati personali; la protezione CSRF usa un'intestazione, non un cookie): nessun banner; informativa compilabile per agenzia nella pagina Privacy e nella pagina di accesso.
 - **Accesso e portabilità**: "Scarica i miei dati" nel profilo, ZIP con JSON leggibile e foto, link valido 24 ore.
 - **Cancellazione**: "Elimina il mio account" con riconferma, oppure su richiesta all'amministratore della piattaforma (l'identità è unica tra le agenzie). Foto, passkey, 2FA, sessioni, dispositivi e collegamenti Telegram si cancellano subito; nome, email e soprannome diventano "Utente rimosso". Un Owner deve prima passare la proprietà a un Admin (§10.4).
 - **Conservazione automatica**: sessioni scadute 30 giorni; dispositivi noti 12 mesi dall'ultimo uso; IP nel registro abbreviati dopo 90 giorni; account disattivati da più di 24 mesi anonimizzati, con avviso all'Owner 30 giorni prima.

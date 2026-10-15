@@ -126,7 +126,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 11 · Operazioni
 - **Prova di carico** di §6.4 con i suoi obiettivi, nella CI settimanale.
-- **Costruisce:** pulizia notturna dei media, backup notturno con rotazione e copia della libreria, `restore-check.sh` e runbook, dashboard completa (spazio disco compreso), esportazione e anonimizzazione dati utente, conservazione dei file per organizzazione, revisione di sicurezza e accessibilità su tutto. RNF-01…RNF-13, CS9.
+- **Costruisce:** pulizia notturna dei media, backup notturno con rotazione e copia della libreria, `restore-check.sh` e runbook, dashboard completa (spazio disco compreso), conservazione dei file per organizzazione, revisione di sicurezza e accessibilità su tutto. RNF-01…RNF-13, CS9.
 - **Serve da Matteo:** cartella di backup inclusa nel suo rclone.
 
 ### Tappa 12 · Messa in produzione
