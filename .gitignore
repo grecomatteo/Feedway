@@ -1,0 +1,36 @@
+# Dipendenze e build
+node_modules/
+.pnpm-store/
+dist/
+.output/
+.nuxt/
+.nitro/
+.cache/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+
+# Ambiente e segreti: mai nel repository
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.age
+
+# Dati locali
+*.dump
+*.sql.gz
+backups/
+data/
+
+# Editor e sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.log

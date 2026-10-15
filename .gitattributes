@@ -1,0 +1,23 @@
+# Fine riga LF ovunque, anche su Windows
+* text=auto eol=lf
+
+# Script di shell sempre LF
+*.sh text eol=lf
+
+# Binari
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.heic binary
+*.mp4 binary
+*.mov binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# File generati: diff compatti nelle PR
+pnpm-lock.yaml linguist-generated=true -diff
+packages/infrastructure/src/db/migrations/meta/** linguist-generated=true
