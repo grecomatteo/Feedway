@@ -89,7 +89,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 4 · Media
 - **Scalabilità:** la batteria di test di `Storage` gira anche contro MinIO, così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
-- **Costruisce:** upload a pezzi da 20 MB con ripresa, analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
+- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
 - **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
 - **Matteo prova:** carica da telefono un HEIC e un video lungo su rete instabile; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
 - **Serve da Matteo:** Tailscale Funnel attivo sulla VPS.
@@ -100,7 +100,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Matteo prova:** legge la tabella dei casi di test (generata dai test) e conferma che i messaggi sono chiari.
 
 ### Tappa 6 · Post
-- **Costruisce:** pagina Nuovo post, anteprima stile Meta con zone sicure, bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34, RF-35, RF-36, RF-44.
+- **Costruisce:** pagina Nuovo post, anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34, RF-35, RF-36, RF-44.
 - **Introduce:** `PostRepository`, tabelle `posts`, `post_media`, `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
 - **Prerequisito:** prototipo approvato.
 

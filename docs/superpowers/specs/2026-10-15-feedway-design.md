@@ -722,7 +722,7 @@ Ogni persona ha un solo account per tutte le agenzie in cui lavora.
 |---|---|
 | **Nome e cognome** | Obbligatorio; visibile al team delle stesse agenzie |
 | **Soprannome** | Facoltativo, fino a 30 caratteri; se c'è, il pannello lo mostra al posto del nome (assegnazioni, commenti, registro), con il nome completo al passaggio del mouse |
-| **Foto profilo** | JPEG, PNG, HEIC o WebP fino a 5 MB; ritaglio quadrato nel pannello; il server rimuove EXIF e GPS e salva due formati WebP (256 e 64 px) in `Storage` con chiave `users/<id>/avatar/<hash>.webp`; senza foto, iniziali su un colore. Servita solo dal pannello con controllo di sessione, **mai** dall'host pubblico né nei link cliente |
+| **Foto profilo** | JPEG, PNG, HEIC o WebP fino a 5 MB, scelta o trascinata; ritaglio quadrato nel pannello; il server rimuove EXIF e GPS e salva due formati WebP (256 e 64 px) in `Storage` con chiave `users/<id>/avatar/<hash>.webp`; senza foto, iniziali su un colore. Servita solo dal pannello con controllo di sessione, **mai** dall'host pubblico né nei link cliente |
 | **Email** | Cambio con conferma sul nuovo indirizzo, avviso al vecchio e riconferma |
 | **Accesso** | Passkey (proposta dopo il primo accesso), password, 2FA con app e codici di recupero; elenco "dispositivi collegati" con revoca ed "esci da tutti i dispositivi" |
 | **Preferenze** | Lingua, tema, fuso, Telegram, notifiche (§12.3) |
@@ -736,18 +736,21 @@ Una passkey è legata all'indirizzo del pannello: passando da `*.ts.net` a un do
 
 ### 11.1 Upload e media
 
-1. Trascini o scegli file (anche da galleria o fotocamera del telefono).
-2. Upload a pezzi da 20 MB con ripresa automatica se la connessione cade.
-3. Verifica di dimensione e hash, analisi (ffprobe/sharp), risultati dei controlli.
-4. Correzioni e conversioni nel worker subito dopo l'upload, con avanzamento visibile e anteprima del file finale.
-5. Limiti configurabili: dimensione massima per file, spazio totale per spazio di lavoro.
+1. **Due modi equivalenti per aggiungere file**, ovunque il pannello accetta media:
+   - il pulsante **"Scegli file"**, che apre l'esplora risorse del computer (o galleria e fotocamera sul telefono), con selezione multipla;
+   - il **trascinamento** (drag and drop) di uno o più file, anche presi direttamente dalla cartella o dal desktop; da computer si può anche **incollare** un'immagine copiata (Ctrl/Cmd+V).
+2. **Dove si possono trascinare i file**: area di caricamento, sezione Media dell'editor del post e **direttamente sull'anteprima come su Meta** (§11.2, §11.3), libreria media (§11.8), programmazione in blocco (§11.6), foto profilo (§10.5). Mentre trascini, la zona che accetta il file si evidenzia con la scritta "Rilascia qui"; un file di tipo o dimensione non ammessi viene rifiutato subito, con il motivo e i limiti accettati, senza fermare gli altri.
+3. Upload a pezzi da 20 MB con ripresa automatica se la connessione cade, con **barra di avanzamento** per ogni file e complessiva (§14.2 "Avanzamento visibile"); i file restano utilizzabili nella bozza mentre gli altri finiscono di caricarsi.
+4. Verifica di dimensione e hash, analisi (ffprobe/sharp), risultati dei controlli.
+5. Correzioni e conversioni nel worker subito dopo l'upload, con barra di avanzamento e anteprima del file finale.
+6. Limiti configurabili: dimensione massima per file, spazio totale per spazio di lavoro.
 
 ### 11.2 Creazione del post
 
 Una sola pagina, su una colonna da telefono e su due da computer:
 1. **Spazio** (se ne vedi più di uno).
 2. **Tipo**, proposto in base ai file.
-3. **Media**: ordinamento per i caroselli, copertina per i reel, "dalla libreria".
+3. **Media**: "Scegli file", trascinamento o "dalla libreria" (§11.1); un file trascinato sull'anteprima entra nel post e l'anteprima si aggiorna subito, con la barra di caricamento sulla miniatura. Ordine dei caroselli **trascinando le miniature**, anche nell'anteprima, con l'alternativa dei pulsanti "sposta prima/dopo" per tastiera e tocco; copertina per i reel.
 4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**.
 5. **Account**, raggruppati per Pagina (FB e IG collegato insieme), con "seleziona tutti" e **gruppi salvati**.
 6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera".
@@ -787,7 +790,7 @@ Per ogni account IG, la griglia del profilo con i post già pubblicati (letti da
 **Fasce orarie** per spazio (es. lun–ven 12:30 e 18:00). Usate da "Prossima fascia libera" e dalla programmazione in blocco.
 
 **In blocco**, in tre modi:
-1. **Da file**: trascini molti file; nasce una bozza per file (o un carosello per gruppo) in una **tabella modificabile** (miniatura, tipo, caption, account, data). "Distribuisci sulle fasce libere" riempie le date.
+1. **Da file**: trascini molti file (o li scegli con "Scegli file"), con avanzamento per file e complessivo; nasce una bozza per file (o un carosello per gruppo) in una **tabella modificabile** (miniatura, tipo, caption, account, data). "Distribuisci sulle fasce libere" riempie le date.
 2. **Da CSV/Excel**: colonne data, ora, caption, account, nome file; abbinamento automatico ai file caricati, errori per riga.
 3. **Duplica**: copia un post su altre date o altri spazi.
 
@@ -802,7 +805,7 @@ I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre ve
 
 ### 11.8 Libreria media
 
-Per spazio, con cartelle e tag. I file **salvati in libreria** restano disponibili per il riuso; tutti gli altri vengono cancellati dopo la pubblicazione (§11.9). Lo spazio occupato è visibile per spazio.
+Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinandoli su una cartella. I file **salvati in libreria** restano disponibili per il riuso; tutti gli altri vengono cancellati dopo la pubblicazione (§11.9). Lo spazio occupato è visibile per spazio.
 
 ### 11.9 Modifica, annullamento e pulizia
 
@@ -1002,6 +1005,12 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 - **Ricerca e scorciatoie**: Cmd/Ctrl+K per cercare post, clienti e azioni; N per nuovo post.
 - **Feedback immediato**: le azioni si vedono subito e si allineano col server in background.
 - **Accessibilità WCAG 2.2 AA**: contrasto, tastiera, etichette, aree di tocco di almeno 44 px, "riduci movimento".
+- **Avanzamento visibile**: ogni operazione che dura più di un attimo mostra a che punto è, mai una schermata ferma.
+  - Upload: barra per ogni file con percentuale, MB caricati sul totale e tempo stimato; barra complessiva quando i file sono più di uno; pausa, ripresa e annulla; stato chiaro a fine caricamento (completato, errore con "Riprova").
+  - Lavori sul server (analisi, conversioni, programmazione in blocco, esportazione dei dati, verifica dopo la pubblicazione): barra o passi ("Analisi → Conversione → Pronto") aggiornati in tempo reale; si può lasciare la pagina e ritrovare l'avanzamento al ritorno.
+  - Indicatore indeterminato solo quando la durata non si può stimare; scheletri di caricamento per le pagine.
+  - Accessibile: `role="progressbar"` con valore corrente, annunci ai lettori di schermo all'inizio e alla fine, nessuna animazione con "riduci movimento".
+- **Trascinamento mai obbligatorio**: ogni azione che si fa trascinando (file, ordine del carosello, post nel calendario, griglia Instagram) ha un'alternativa con pulsanti, da tastiera e da tocco (WCAG 2.2, criterio 2.5.7).
 - **Prestazioni**: meno di 2,5 s su telefono di fascia media, miniature ottimizzate.
 
 ### 14.3 Tema e brand
