@@ -1,0 +1,32 @@
+{
+  "name": "feedway-prototipo",
+  "private": true,
+  "type": "module",
+  "description": "Prototipo navigabile di Feedway con dati fittizi. Materiale da buttare: non è il codice dell'app.",
+  "scripts": {
+    "dev": "nuxt dev --port 3100",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.0.0",
+    "@iconify-json/lucide": "^1.2.0",
+    "luxon": "^3.5.0",
+    "nuxt": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.4.0",
+    "typescript": "^5.6.0",
+    "vue-tsc": "^3.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true,
+    "vue-demi@0.14.10": true
+  }
+}

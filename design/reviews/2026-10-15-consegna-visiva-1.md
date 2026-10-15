@@ -38,3 +38,33 @@
 
 - Decisioni richieste a Matteo: struttura calendario (A o B) e hero landing (affiancato o centrato).
 - Prossima azione: dopo la scelta, prototipo Nuxt in `design/prototipo/` con il percorso Calendario → Nuovo post → Controlli → Programmazione → Esito, poi landing e demo.
+
+## Prototipo Nuxt (`design/prototipo/`) — prove nel browser
+
+Eseguite con Playwright (Chromium) sul server locale, 15 ottobre 2026. Direzione usata in attesa della scelta: calendario A e hero affiancato.
+
+| Prova | Esito |
+|---|---|
+| Percorso completo: Calendario → Nuovo post (Forno Luce, gruppo da 5) → upload con connessione persa e ripresa → avviso ritaglio confermato → ora ambigua 25/10 02:30 risolta → riepilogo → programmato → uscita simulata | Riuscito; dettaglio «4 confermate · 1 con problema», riprova solo sulla destinazione fallita dopo il ricollegamento |
+| Pulsante Programma bloccato finché media non pronto, avviso non confermato o ora ambigua non scelta | Verificato |
+| 4 confermate + 1 da accertare | Etichetta corretta, nessun pulsante Riprova, nuovo invio dichiarato bloccato |
+| Editor / Viewer | Editor vede solo «Salva bozza»; Viewer riceve «Non puoi creare post» |
+| Filtro senza risultati | Stato dedicato, distinto dal calendario vuoto, con «Azzera filtri» |
+| Import in blocco | «Programma 18 post», 2 righe bloccate con motivo per riga |
+| Link cliente | Scaduto, revocato, protetto (password errata con messaggio), attivo, vuoto |
+| Landing | Tab con frecce della tastiera, FAQ, menu mobile chiuso con Esc e focus restituito al pulsante |
+| Dimensioni | 1440×900, 1280×800, 390×844 senza scorrimento orizzontale; tema scuro leggibile |
+
+### Difetti trovati e corretti
+
+| ID | Priorità | Dove | Effetto | Correzione |
+|---|---|---|---|---|
+| R1 | P2 | Icone di navigazione | Icone con nome dinamico non disegnate | Nuxt Icon in modalità SVG |
+| R2 | P2 | Landing e calendario | Le classi `.fw-btn` battevano `lg:hidden`: menu mobile visibile su desktop | Classi dei componenti spostate in `@layer components` |
+| R3 | P2 | Riga account non sano | Testo spezzato su più righe | Motivo spostato nella seconda riga |
+| R4 | P2 | Barra demo su telefono | Occupava un quarto dello schermo | Testi brevi sotto 768 px |
+| R5 | P2 | Navigazione | «Post» risultava attivo nell'editor | Regola dell'elemento attivo corretta |
+
+### Non verificato
+
+Lettore di schermo reale, zoom 200%, prestazioni misurate, prove con persone. Le voci di menu Post, Libreria, Clienti, Account social e Team non hanno schermate nel prototipo. La demo non dimostra isolamento server, worker o pubblicazione reale.
