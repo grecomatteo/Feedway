@@ -1,4 +1,4 @@
-import { INITIAL_PLAN, INITIAL_POSTS, type PlanItem, type Post, type TargetState } from '~/fixtures/scenario'
+import { INITIAL_PLAN, INITIAL_POSTS, WORKSPACES, type PlanItem, type Post, type TargetState } from '~/fixtures/scenario'
 
 export type Role = 'Manager' | 'Editor' | 'Viewer' | 'Member'
 
@@ -7,6 +7,7 @@ interface DemoState {
   plan: PlanItem[]
   /** Main calendar content: posts, editorial plan or both. */
   calendarShow: 'all' | 'posts' | 'plan'
+  defaultTimes: Record<string, string>
   role: Role
   dark: boolean
   client: string
@@ -14,9 +15,9 @@ interface DemoState {
   profile: string | null
 }
 
-const STORAGE_KEY = 'feedway-demo-v4'
+const STORAGE_KEY = 'feedway-demo-v5'
 
-const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), plan: structuredClone(INITIAL_PLAN), calendarShow: 'all', role: 'Manager', dark: false, client: 'all', profile: null })
+const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), plan: structuredClone(INITIAL_PLAN), calendarShow: 'all', defaultTimes: Object.fromEntries(WORKSPACES.map(w => [w.id, w.defaultTime])), role: 'Manager', dark: false, client: 'all', profile: null })
 
 // Demo state lives in memory and is mirrored to this browser's localStorage only.
 // Nothing is sent to a server and nothing is published.
@@ -91,6 +92,7 @@ export function useDemo() {
     persist()
   }, { immediate: true })
   watch(() => [state.value.role, state.value.client, state.value.profile, state.value.calendarShow], persist)
+  watch(() => state.value.defaultTimes, persist, { deep: true })
 
   return { state, can, upsert, update, setTargets, upsertPlan, removePlan, reset }
 }

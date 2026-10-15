@@ -1,5 +1,7 @@
 # Proposta: Piano editoriale
 
+> **Stato:** accolta nella specifica e nel piano generale (PR #7). Dove questo documento e `docs/` differiscono, fa fede la specifica. In particolare, piano e post sono collegati **direttamente** (non tramite eventi): «Prepara» crea il post e lo collega in un solo passaggio, così la scheda tratteggiata non resta visibile dopo la creazione.
+
 Richiesta di Matteo del 16 ottobre 2026 («Programmare il calendario»). Non è ancora nella specifica approvata: questo documento descrive la proposta e come è stata provata nel prototipo.
 
 ## Il problema
@@ -45,7 +47,7 @@ Raccomandato nella **1.0**, tappe 9 e 10 (vedi sotto). Da confermare da Matteo e
 | Tappa | Cosa si aggiunge | Perché lì |
 |---|---|---|
 | 2 (già prevista) | Nessun lavoro: i permessi nuovi li registra il modulo stesso (§7.3) | Il meccanismo dei permessi esiste già |
-| 6 | Nessun lavoro sul modulo dei post | I post non devono conoscere il piano: è il piano a dipendere dai post, non il contrario |
+| 6 | Nessun lavoro sul modulo dei post | Il collegamento sta dalla parte del piano |
 | 8 | Nessun lavoro: si usa l'infrastruttura delle notifiche | La notifica «in scadenza e non preparato» si registra nella tappa 9 |
 | **9** | Modulo `plan` completo, calendario, collegamento all'editor, notifica | Il calendario e i filtri nell'indirizzo nascono qui |
 | **10** | Contenuti pianificati nel link cliente, stampa e PDF | Il link cliente nasce qui |
@@ -56,7 +58,7 @@ Tappa 9:
 1. **Dominio** `plan`: entità, regole (titolo 1–80 caratteri, tipo, giorno, ora facoltativa), stato calcolato (da preparare, in scadenza, preparato) con la porta `Clock`; test prima del codice, compreso il 25 ottobre alle 02:30.
 2. **Dati**: tabella `plan_items` con `organization_id`, `workspace_id`, RLS, indici `(organization_id, workspace_id, date)`, repository; voce nella batteria di isolamento.
 3. **Casi d'uso e API**: crea, modifica, togli, elenca per periodo; permessi `plan.view` e `plan.edit`; rotte `/api/v1/orgs/[org]/plan` con OpenAPI.
-4. **Collegamento ai post tramite eventi**: post creato dal piano → collegato; post annullato → il contenuto torna «da preparare». Gestori idempotenti.
+4. **Collegamento diretto ai post** (come da specifica): «Prepara» crea il post e lo collega nella stessa transazione; post annullato → il contenuto torna «da preparare».
 5. **Sezione Piano editoriale e calendario**: pagina del piano con mese da riempire e scelta del cliente; nel calendario schede tratteggiate e selettore Tutto/Solo post/Solo piano salvato nei filtri dell'indirizzo; telefono, tastiera, axe.
 6. **Editor**: «Prepara questo contenuto» precompila cliente, giorno, ora e tipo; avviso se il file non corrisponde al tipo.
 7. **Notifica** «contenuto in scadenza e non ancora preparato» (24 ore prima), lavoro con `organizationId` nei dati.
@@ -84,6 +86,6 @@ Così nessuna tappa successiva deve rifare il lavoro.
 | Dati di un'altra agenzia visibili | RLS, `organization_id` in ogni query, batteria di isolamento |
 | Nota interna nel link cliente | Campi esposti dichiarati uno per uno e test dedicato |
 | Errori di giorno e ora | Data locale con fuso del cliente, test sul cambio d'ora |
-| Moduli che si intrecciano | Il piano dipende dai post solo tramite eventi; regola di dependency-cruiser |
+| Moduli che si intrecciano | Il piano usa solo le funzioni pubbliche del modulo dei post; regola di dependency-cruiser |
 
 Stima: 7 PR nella tappa 9 e 2 nella tappa 10, senza nuove dipendenze e senza nuove richieste a Meta.

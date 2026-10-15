@@ -134,3 +134,11 @@ Non verificato: trascinamento reale di file dal desktop (provata la stessa funzi
 | Cambio del contesto in alto su Studio Forma | Il piano passa a Studio Forma |
 | Stampa | `design/tavole/piano-editoriale-forno-luce.pdf`: una pagina A4 orizzontale, schede piene, loghi; finestre e menu esclusi dalla stampa |
 | Telefono 390 | Nessuno scorrimento orizzontale |
+
+## Pulsante per giorno e orario predefinito per cliente (23:39)
+
+| Prova (Playwright) | Esito |
+|---|---|
+| Vista Mese | Piccolo «+» sui 17 giorni futuri di ottobre; apre Nuovo post con la data del giorno |
+| Nuovo post per Studio Forma | Ora proposta 07:30 con la nota «Orario predefinito di Studio Forma» |
+| Clienti: orario di Orto Vivo portato a 13:15 | Il nuovo post di Orto Vivo parte alle 13:15 |

@@ -203,7 +203,10 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
       </div>
       <div class="grid grid-cols-7">
         <div v-for="d in monthCells" :key="d.toISODate()!" class="flex min-h-28 flex-col gap-1 border-b border-r border-[var(--border)] p-1.5" :class="d.month !== monthStart.month ? 'bg-[var(--surface-sunken)] text-[var(--text-muted)]' : ''">
-          <span class="tabular grid size-6 place-items-center rounded-full text-xs font-semibold" :class="isToday(d) ? 'bg-[var(--fw-carbone)] text-white' : ''">{{ d.day }}</span>
+          <div class="flex items-center justify-between">
+            <span class="tabular grid size-6 place-items-center rounded-full text-xs font-semibold" :class="isToday(d) ? 'bg-[var(--fw-carbone)] text-white' : ''">{{ d.day }}</span>
+            <NuxtLink v-if="can.create && d >= now().startOf('day') && d.month === monthStart.month" :to="newPostLink(d)" class="grid size-7 place-items-center rounded-md text-[var(--text-muted)] hover:bg-[var(--brand-soft)] hover:text-[var(--text)]" :aria-label="`Nuovo post ${d.setLocale('it').toFormat('cccc d LLLL')}`" :title="`Nuovo post il ${d.day}`"><UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" /></NuxtLink>
+          </div>
           <NuxtLink v-for="p in byDay(d).slice(0, 3)" :key="p.id" :to="`/demo/post/${p.id}`" class="flex items-center gap-1.5 rounded-md bg-[var(--surface-sunken)] p-1" :aria-label="`${hhmm(p.scheduledAt)} ${workspace(p.workspaceId).short}: ${postStatus(p).label}`">
             <img :src="MEDIA[p.media]" alt="" class="size-6 rounded object-cover" loading="lazy">
             <span class="tabular text-[11px] font-bold">{{ hhmm(p.scheduledAt) }}</span>

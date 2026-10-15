@@ -9,7 +9,7 @@ const nav = [
   { to: '/demo/post-elenco', icon: 'i-lucide-file-text', label: 'Post', soon: true },
   { to: '/demo/libreria', icon: 'i-lucide-images', label: 'Libreria', soon: true },
   { to: '/demo/import', icon: 'i-lucide-table-properties', label: 'In blocco' },
-  { to: '/demo/clienti', icon: 'i-lucide-briefcase', label: 'Clienti', soon: true },
+  { to: '/demo/clienti', icon: 'i-lucide-briefcase', label: 'Clienti' },
 ]
 const manage = [
   { to: '/demo/account', icon: 'i-lucide-at-sign', label: 'Account social', soon: true },

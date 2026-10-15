@@ -38,6 +38,8 @@ export interface Workspace {
   short: string
   color: string
   initials: string
+  /** Time proposed when scheduling a new post for this client (editable in Clienti). */
+  defaultTime: string
   accounts: Account[]
 }
 
@@ -45,7 +47,7 @@ export const AGENCY = { id: 'studio-aurora', name: 'Studio Aurora' }
 
 export const WORKSPACES: Workspace[] = [
   {
-    id: 'forno-luce', name: 'Forno Luce', short: 'Forno Luce', color: '#E9B44C', initials: 'FL',
+    id: 'forno-luce', name: 'Forno Luce', short: 'Forno Luce', color: '#E9B44C', initials: 'FL', defaultTime: '18:00',
     accounts: [
       { id: 'fl-instagram-centro', platform: 'instagram', name: 'Forno Luce Centro', handle: '@fornoluce.centro', health: 'healthy', profileId: 'fl-centro' },
       { id: 'fl-facebook-centro', platform: 'facebook', name: 'Forno Luce Centro', handle: 'Pagina Facebook', health: 'healthy', profileId: 'fl-centro' },
@@ -56,14 +58,14 @@ export const WORKSPACES: Workspace[] = [
     ],
   },
   {
-    id: 'studio-forma', name: 'Studio Forma — Pilates e movimento', short: 'Studio Forma', color: '#7BA7D9', initials: 'SF',
+    id: 'studio-forma', name: 'Studio Forma — Pilates e movimento', short: 'Studio Forma', color: '#7BA7D9', initials: 'SF', defaultTime: '07:30',
     accounts: [
       { id: 'sf-ig', platform: 'instagram', name: 'Studio Forma', handle: '@studioforma', health: 'healthy', profileId: 'sf' },
       { id: 'sf-fb', platform: 'facebook', name: 'Studio Forma', handle: 'Pagina Facebook', health: 'healthy', profileId: 'sf' },
     ],
   },
   {
-    id: 'orto-vivo', name: 'Orto Vivo / Mercato e cucina di stagione', short: 'Orto Vivo', color: '#6DBE7B', initials: 'OV',
+    id: 'orto-vivo', name: 'Orto Vivo / Mercato e cucina di stagione', short: 'Orto Vivo', color: '#6DBE7B', initials: 'OV', defaultTime: '12:30',
     accounts: [
       { id: 'ov-ig', platform: 'instagram', name: 'Orto Vivo', handle: '@ortovivo', health: 'healthy', profileId: 'ov' },
       { id: 'ov-fb', platform: 'facebook', name: 'Orto Vivo', handle: 'Pagina Facebook', health: 'healthy', profileId: 'ov' },

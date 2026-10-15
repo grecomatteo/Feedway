@@ -126,7 +126,11 @@ function autosave() {
 // --- When ---------------------------------------------------------------------
 const mode = ref<'now' | 'date' | 'slot'>('date')
 const date = ref(planItem.value?.date ?? ((route.query.data as string) || '2026-10-16'))
-const time = ref(planItem.value?.time ?? '18:00')
+// The client's default time is proposed until the user picks a time by hand.
+const clientTime = (id: string | null) => (id ? state.value.defaultTimes[id] : undefined) ?? '18:00'
+const time = ref(planItem.value?.time ?? clientTime(clientId.value))
+const timeTouched = ref(!!planItem.value?.time)
+watch(clientId, (id) => { if (!timeTouched.value) time.value = clientTime(id) })
 const candidates = computed(() => resolveLocal(date.value, time.value))
 const ambiguousPick = ref<number | null>(null)
 watch([date, time], () => { ambiguousPick.value = null })
@@ -380,7 +384,8 @@ async function saveDraft() {
           </div>
           <div v-if="mode === 'date'" class="mt-3 flex flex-wrap items-end gap-3">
             <label class="text-[13px] font-semibold">Data<input v-model="date" type="date" class="fw-input mt-1 w-44"></label>
-            <label class="text-[13px] font-semibold">Ora<input v-model="time" type="time" class="fw-input mt-1 w-32"></label>
+            <label class="text-[13px] font-semibold">Ora<input v-model="time" type="time" class="fw-input mt-1 w-32" @input="timeTouched = true"></label>
+            <p v-if="ws && !timeTouched" class="basis-full text-xs text-[var(--text-muted)]">Orario predefinito di {{ ws.short }}: {{ clientTime(ws.id) }}. Si cambia in Clienti.</p>
             <button type="button" class="fw-link text-xs" @click="date = '2026-10-25'; time = '02:30'">Prova l'ora ambigua del 25 ottobre</button>
           </div>
           <fieldset v-if="mode === 'date' && candidates.length === 2" class="mt-3 rounded-lg border border-[var(--warning)] bg-[var(--warning-soft)] p-3">
