@@ -29,7 +29,7 @@ Requisiti: Node 24, pnpm (versione in `package.json`), Docker.
 ```bash
 pnpm install
 docker compose -f docker/compose.dev.yml up -d   # Postgres (poi finto Graph API e Mailpit)
-pnpm dev                                         # pannello e worker
+pnpm dev                                         # pannello su app.feedway.localhost, worker
 pnpm verify                                      # formato, lint, tipi, confini, test unitari
 ```
 

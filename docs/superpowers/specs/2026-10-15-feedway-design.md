@@ -1078,6 +1078,8 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 
 **Qualità**: stessi token di colore e tema chiaro/scuro del pannello (`packages/ui`) e stesso nome (`PRODUCT_NAME`); logo e immagini del sito sono file nel repository, non il brand caricato dal pannello; WCAG 2.2 AA verificato con axe; caricamento sotto 2,5 s su telefono (LCP); collegamenti verificati in CI; intestazioni di sicurezza nel file `_headers` di Cloudflare Pages: CSP con gli hash degli script inline che Nuxt genera e il solo `static.cloudflareinsights.com` ammesso (da verificare alla prima build), HSTS, `frame-ancestors 'none'`.
 
+**Alternativa sulla VPS**: la stessa build statica si può servire da un piccolo container (Caddy) sulla VPS, dietro Cloudflare Tunnel sul dominio principale, senza cambiare codice e senza toccare il pannello. Costa poche risorse, ma il sito va offline insieme alla VPS: per questo la scelta predefinita resta Cloudflare Pages.
+
 **Grafica**: il branding del sito arriva da te e si progetta in Pencil prima del codice, come il pannello (§14.1).
 
 **Modifiche**: i testi si cambiano con una PR come il resto del codice; ogni PR ha un'anteprima su un indirizzo provvisorio non indicizzato e la CI pubblica il sito al merge. Nessun CMS nella 1.0: per pochi testi sarebbe un servizio in più da proteggere.
@@ -1267,6 +1269,7 @@ Conversioni video: una alla volta, `nice`, ffmpeg su un thread; prima la strada 
 - Errori di dominio tipizzati (`POST_NOT_EDITABLE`, `FORBIDDEN`…), tradotti in risposte HTTP in un solo punto.
 - ADR per ogni decisione importante; runbook per ripristino, rotazione token e incidenti.
 - Sviluppo locale con `compose.dev.yml`: Postgres, finto Graph API, Mailpit, dati di esempio. Mai contro account reali.
+- In locale gli indirizzi sono separati come in produzione: `app.feedway.localhost` (pannello), `pub.feedway.localhost` (host pubblico), `feedway.localhost` (sito). I nomi `*.localhost` puntano al proprio computer senza configurare nulla e i browser li trattano come sicuri, così separazione degli host e cookie si provano come in produzione. Le passkey su `*.localhost` si verificano all'inizio della tappa 2.
 - Per ogni funzione: test prima del codice (TDD) per dominio e casi d'uso.
 - Testi dell'interfaccia nei file di traduzione (`@nuxtjs/i18n`, solo italiano nella 1.0).
 
