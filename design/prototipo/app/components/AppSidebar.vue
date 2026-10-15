@@ -5,6 +5,7 @@ const { state } = useDemo()
 const route = useRoute()
 const nav = [
   { to: '/demo/calendario', icon: 'i-lucide-calendar-days', label: 'Calendario' },
+  { to: '/demo/piano', icon: 'i-lucide-calendar-range', label: 'Piano editoriale' },
   { to: '/demo/post-elenco', icon: 'i-lucide-file-text', label: 'Post', soon: true },
   { to: '/demo/libreria', icon: 'i-lucide-images', label: 'Libreria', soon: true },
   { to: '/demo/import', icon: 'i-lucide-table-properties', label: 'In blocco' },

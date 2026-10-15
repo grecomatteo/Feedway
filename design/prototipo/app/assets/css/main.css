@@ -130,3 +130,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+@media print {
+  [data-reka-popper-content-wrapper], [role="dialog"], [data-sonner-toaster], [aria-live] [role="status"] { display: none !important; }
+}

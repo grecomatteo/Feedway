@@ -4,7 +4,7 @@ import { TYPE_LABEL, capitalize, dt, workspace } from '~/utils/format'
 
 // "Pianifica": three required fields (day, type, title). Everything else is optional.
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{ item: PlanItem | null, defaultDate: string }>()
+const props = defineProps<{ item: PlanItem | null, defaultDate: string, workspace?: string }>()
 const { state, can, upsertPlan, removePlan } = useDemo()
 const toast = useToast()
 
@@ -15,7 +15,7 @@ watch(open, (o) => {
   editing.value = !props.item
   const it = props.item
   Object.assign(form, {
-    workspaceId: it?.workspaceId ?? (state.value.client !== 'all' ? state.value.client : ''),
+    workspaceId: it?.workspaceId ?? props.workspace ?? (state.value.client !== 'all' ? state.value.client : ''),
     date: it?.date ?? props.defaultDate, time: it?.time ?? '', type: it?.type ?? 'reel', title: it?.title ?? '', note: it?.note ?? '',
   })
 })
@@ -51,7 +51,7 @@ const title = computed(() => (editing.value ? (props.item ? 'Modifica il contenu
         <p v-if="item.note" class="rounded-lg bg-[var(--surface-sunken)] p-3">{{ item.note }}</p>
       </div>
       <form v-else id="plan-form" class="flex flex-col gap-3" @submit.prevent="valid && save()">
-        <label v-if="state.client === 'all' || item" class="text-[13px] font-semibold">Cliente
+        <label v-if="!workspace && (state.client === 'all' || item)" class="text-[13px] font-semibold">Cliente
           <select v-model="form.workspaceId" class="fw-input mt-1" required>
             <option value="" disabled>Scegli il cliente</option>
             <option v-for="w in WORKSPACES" :key="w.id" :value="w.id">{{ w.short }}</option>

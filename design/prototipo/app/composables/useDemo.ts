@@ -5,7 +5,8 @@ export type Role = 'Manager' | 'Editor' | 'Viewer' | 'Member'
 interface DemoState {
   posts: Post[]
   plan: PlanItem[]
-  showPlan: boolean
+  /** Main calendar content: posts, editorial plan or both. */
+  calendarShow: 'all' | 'posts' | 'plan'
   role: Role
   dark: boolean
   client: string
@@ -13,9 +14,9 @@ interface DemoState {
   profile: string | null
 }
 
-const STORAGE_KEY = 'feedway-demo-v3'
+const STORAGE_KEY = 'feedway-demo-v4'
 
-const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), plan: structuredClone(INITIAL_PLAN), showPlan: true, role: 'Manager', dark: false, client: 'all', profile: null })
+const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), plan: structuredClone(INITIAL_PLAN), calendarShow: 'all', role: 'Manager', dark: false, client: 'all', profile: null })
 
 // Demo state lives in memory and is mirrored to this browser's localStorage only.
 // Nothing is sent to a server and nothing is published.
@@ -89,7 +90,7 @@ export function useDemo() {
     if (import.meta.client) document.documentElement.classList.toggle('dark', d)
     persist()
   }, { immediate: true })
-  watch(() => [state.value.role, state.value.client, state.value.profile, state.value.showPlan], persist)
+  watch(() => [state.value.role, state.value.client, state.value.profile, state.value.calendarShow], persist)
 
   return { state, can, upsert, update, setTargets, upsertPlan, removePlan, reset }
 }

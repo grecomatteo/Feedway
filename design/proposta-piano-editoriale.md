@@ -11,10 +11,11 @@ Oggi il calendario mostra solo i post che esistono già. Chi decide il piano del
 Un **contenuto pianificato** è un segnaposto sul calendario, creato prima che il contenuto esista.
 
 - **Tre campi obbligatori**: giorno, tipo (reel, carosello, foto), titolo (per esempio «VIDEO 1 · porte aperte»). Facoltativi: ora e nota per chi prepara.
-- **Dove si crea**: pulsante «Pianifica» nel calendario, oppure «Piano» sotto un giorno nella vista Settimana.
-- **Come si vede**: scheda tratteggiata e trasparente, «Da preparare», mai confondibile con un post vero. In giallo quando mancano meno di 36 ore.
-- **Interruttore** «Mostra i contenuti da preparare» nel calendario.
+- **Dove si crea**: in una sezione separata, **Piano editoriale**, nel menu sotto Calendario (scelta di Matteo, 16 ottobre). Mostra un mese vuoto da riempire: si clicca un giorno futuro e si compilano i campi. Pianificare e programmare restano due lavori distinti in due posti distinti.
+- **Cliente**: il piano prende il cliente selezionato in alto; se il contesto è «Tutti i clienti», una finestra chiede per chi è il piano prima di mostrare il calendario. Si cambia con un clic.
+- **Nel calendario principale**: le voci del piano sono schede tratteggiate e trasparenti, «Da preparare», mai confondibili con un post. Un selettore **Tutto · Solo post · Solo piano** decide cosa vedere. In giallo quando mancano meno di 36 ore.
 - **Da segnaposto a post**: «Prepara questo contenuto» apre l'editor con cliente, giorno, ora e tipo già compilati e la nota visibile. Quando il post esiste (bozza o programmato), la scheda tratteggiata sparisce e resta il post. Se il file scelto non corrisponde al tipo pianificato, l'editor lo segnala.
+- **Stampa del piano**: dalla sezione Piano editoriale, «Stampa o salva PDF» produce il mese in A4 orizzontale con schede **piene** (colore del cliente, tipo, titolo, ora) e i loghi di Feedway, cliente e agenzia, da girare al cliente.
 - **Calendario cliente e stampa**: i contenuti pianificati compaiono come «In preparazione» con tipo, titolo e ora, senza note interne. Il PDF li include.
 
 ## Permessi proposti
@@ -56,13 +57,13 @@ Tappa 9:
 2. **Dati**: tabella `plan_items` con `organization_id`, `workspace_id`, RLS, indici `(organization_id, workspace_id, date)`, repository; voce nella batteria di isolamento.
 3. **Casi d'uso e API**: crea, modifica, togli, elenca per periodo; permessi `plan.view` e `plan.edit`; rotte `/api/v1/orgs/[org]/plan` con OpenAPI.
 4. **Collegamento ai post tramite eventi**: post creato dal piano → collegato; post annullato → il contenuto torna «da preparare». Gestori idempotenti.
-5. **Calendario**: schede tratteggiate, «Pianifica», interruttore salvato nei filtri dell'indirizzo, telefono, tastiera, axe.
+5. **Sezione Piano editoriale e calendario**: pagina del piano con mese da riempire e scelta del cliente; nel calendario schede tratteggiate e selettore Tutto/Solo post/Solo piano salvato nei filtri dell'indirizzo; telefono, tastiera, axe.
 6. **Editor**: «Prepara questo contenuto» precompila cliente, giorno, ora e tipo; avviso se il file non corrisponde al tipo.
 7. **Notifica** «contenuto in scadenza e non ancora preparato» (24 ore prima), lavoro con `organizationId` nei dati.
 
 Tappa 10:
 8. **Link cliente**: contenuti pianificati come «In preparazione». L'elenco dei campi esposti è esplicito (tipo, titolo, giorno, ora) e un test verifica che la nota interna non esca mai.
-9. **Stampa e PDF** del calendario cliente con le sole pubblicazioni future; prova automatica sul PDF generato.
+9. **Stampa e PDF** del calendario cliente (solo pubblicazioni future) e del piano editoriale (schede piene); prova automatica sui PDF generati.
 
 ### Decisioni di dominio da fissare nella specifica prima della tappa 6
 

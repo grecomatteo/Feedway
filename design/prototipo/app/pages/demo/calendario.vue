@@ -48,7 +48,7 @@ function matches(p: Post) {
   if (s === 'unknown') return p.targets.some(t => t.state === 'unknown')
   return p.status === 'done' && p.targets.every(t => t.state === 'confirmed')
 }
-const visible = computed(() => state.value.posts.filter(matches).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)))
+const visible = computed(() => (state.value.calendarShow === 'plan' ? [] : state.value.posts).filter(matches).sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)))
 const byDay = (d: DateTime) => visible.value.filter(p => dt(p.scheduledAt).hasSame(d, 'day'))
 
 const days = computed(() => Array.from({ length: 7 }, (_, i) => weekStart.value.plus({ days: i })))
@@ -83,7 +83,7 @@ const clientLabel = computed(() => {
 })
 const unfilteredInRange = computed(() => (effectiveView.value === 'month' ? monthCells.value : days.value).reduce((n, d) => n + state.value.posts.filter(p => dt(p.scheduledAt).hasSame(d, 'day')).length, 0))
 // Editorial plan items not yet prepared show as translucent cards next to the real posts.
-const visiblePlan = computed(() => (state.value.showPlan
+const visiblePlan = computed(() => (state.value.calendarShow !== 'posts'
   ? state.value.plan.filter(p => !p.postId && (state.value.client === 'all' || p.workspaceId === state.value.client) && (typeFilter.value === 'all' || p.type === typeFilter.value))
   : []))
 const planByDay = (d: DateTime) => visiblePlan.value.filter(p => p.date === d.toISODate()).sort((a, b) => (a.time ?? '99').localeCompare(b.time ?? '99'))
@@ -108,7 +108,6 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
         <p class="text-xs text-[var(--text-muted)] max-lg:hidden">Mese per la panoramica, Settimana per il dettaglio con miniature grandi.</p>
       </div>
       <button type="button" class="fw-btn max-lg:hidden" :aria-expanded="libraryOpen" aria-controls="libreria" @click="libraryOpen = !libraryOpen"><UIcon name="i-lucide-images" class="size-[18px]" aria-hidden="true" />Libreria</button>
-      <button v-if="can.plan" type="button" class="fw-btn" @click="openPlan(null)"><UIcon name="i-lucide-calendar-range" class="size-[18px]" aria-hidden="true" />Pianifica</button>
       <NuxtLink v-if="can.create" to="/demo/post/nuovo" class="fw-btn fw-btn--primary max-lg:hidden"><UIcon name="i-lucide-plus" class="size-[18px]" aria-hidden="true" />Nuovo post</NuxtLink>
     </header>
 
@@ -136,9 +135,15 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
           @click="view = v; focusDay = null"
         >{{ l }}</button>
       </div>
-      <label class="flex min-h-9 items-center gap-2 rounded-lg border border-dashed border-[var(--border-strong)] px-3 text-[13px] font-semibold">
-        <input v-model="state.showPlan" type="checkbox" class="size-4 accent-[#FF762E]">Mostra i contenuti da preparare
-      </label>
+      <div role="radiogroup" aria-label="Contenuti da mostrare" class="flex gap-0.5 rounded-[9px] bg-[var(--surface-sunken)] p-[3px]">
+        <button
+          v-for="[v, l] in ([['all', 'Tutto'], ['posts', 'Solo post'], ['plan', 'Solo piano']] as const)" :key="v" type="button" role="radio"
+          :aria-checked="state.calendarShow === v"
+          class="rounded-[7px] border px-3 py-1.5 text-[13px]"
+          :class="state.calendarShow === v ? 'border-[var(--border)] bg-[var(--surface)] font-bold' : 'border-transparent text-[var(--text-muted)]'"
+          @click="state.calendarShow = v"
+        >{{ l }}</button>
+      </div>
       <button type="button" class="fw-btn !min-h-9 !px-3 !text-[13px]" :aria-expanded="filtersOpen" aria-controls="filtri" @click="filtersOpen = !filtersOpen">
         <UIcon name="i-lucide-sliders-horizontal" class="size-4" aria-hidden="true" />Filtri<span v-if="activeFilters"> · {{ activeFilters }} attivi</span>
       </button>
@@ -185,14 +190,9 @@ const totalInRange = computed(() => (effectiveView.value === 'month' ? monthCell
         <PostCard v-for="p in byDay(d).slice(0, 3)" :key="p.id" :post="p" :show-client="state.client === 'all'" />
         <button v-if="byDay(d).length > 3" type="button" class="fw-card px-2.5 py-2 text-left text-xs font-semibold underline underline-offset-2" @click="openDay(d)">Altri {{ byDay(d).length - 3 }} · apri il giorno</button>
         <PlanCard v-for="it in planByDay(d)" :key="it.id" :item="it" :show-client="state.client === 'all'" @open="openPlan($event)" />
-        <div v-if="d >= now().startOf('day') && (can.create || can.plan)" class="flex gap-1.5">
-          <NuxtLink v-if="can.create" :to="newPostLink(d)" class="grid min-h-12 flex-1 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]" :aria-label="`Nuovo post ${d.setLocale('it').toFormat('cccc d')}`">
-            <span class="inline-flex items-center gap-1"><UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />Post</span>
-          </NuxtLink>
-          <button v-if="can.plan" type="button" class="grid min-h-12 flex-1 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]" :aria-label="`Pianifica ${d.setLocale('it').toFormat('cccc d')}`" @click="openPlan(null, d)">
-            <span class="inline-flex items-center gap-1"><UIcon name="i-lucide-calendar-range" class="size-4" aria-hidden="true" />Piano</span>
-          </button>
-        </div>
+        <NuxtLink v-if="d >= now().startOf('day') && can.create" :to="newPostLink(d)" class="grid min-h-12 place-items-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface)]" :aria-label="`Nuovo post ${d.setLocale('it').toFormat('cccc d')}`">
+          <span class="inline-flex items-center gap-1"><UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />Nuovo post</span>
+        </NuxtLink>
       </section>
     </div>
 

@@ -122,3 +122,15 @@ Non verificato: un .mov HEVC reale dell'iPhone (il file di prova è H.264), il c
 | PDF | `design/tavole/calendario-cliente-forno-luce.pdf`, 2 pagine A4 orizzontali (ottobre, novembre) |
 
 Non verificato: trascinamento reale di file dal desktop (provata la stessa funzione con la scelta del file); nel PDF generato da Chromium il titolo può uscire nel carattere di sistema invece di Sora.
+
+## Piano editoriale come sezione separata (richiesta delle 23:38)
+
+| Prova (Playwright) | Esito |
+|---|---|
+| Calendario principale | Nessun «Pianifica»; selettore Tutto (5 voci del piano, 19 post) · Solo post (0, 19) · Solo piano (5, 0) |
+| Piano editoriale con contesto «Tutti i clienti» | Si apre la finestra «Per quale cliente fai il piano?» |
+| Clic sul 24 ottobre, Reel «VIDEO 3 · promo weekend» alle 11:00 | Aggiunto, senza dover scegliere di nuovo il cliente |
+| Giorni passati | Nessun pulsante per aggiungere |
+| Cambio del contesto in alto su Studio Forma | Il piano passa a Studio Forma |
+| Stampa | `design/tavole/piano-editoriale-forno-luce.pdf`: una pagina A4 orizzontale, schede piene, loghi; finestre e menu esclusi dalla stampa |
+| Telefono 390 | Nessuno scorrimento orizzontale |
