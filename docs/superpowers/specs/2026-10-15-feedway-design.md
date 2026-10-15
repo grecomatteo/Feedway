@@ -106,6 +106,8 @@ Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modific
 | **Organizzazione** (nel pannello: **Agenzia**) | Il livello più alto: un'agenzia con i propri utenti, clienti, account Meta, integrazioni e brand. Nessun dato è condiviso tra organizzazioni. |
 | **Amministratore della piattaforma** | Chi gestisce l'installazione (tu): crea e sospende organizzazioni e ne vede l'uso, ma non i contenuti, se non è membro. |
 | **Spazio di lavoro** | Gruppo di account social di un'organizzazione, di norma un cliente. Un account può stare in più spazi della stessa organizzazione. |
+| **Profilo** | Nel pannello, un account Instagram insieme alla Pagina Facebook che Meta stessa gli collega (`page_id` dell'account IG, §8.4), mai abbinati per nome. È solo un raggruppamento dell'interfaccia: nei dati restano due account e due destinazioni. Un account IG senza Pagina, o una Pagina senza IG, è un profilo con un solo account. |
+| **Contesto attivo** | Ciò che stai guardando nell'agenzia corrente: "Tutti i clienti", un cliente (spazio) o un singolo profilo. Restringe pannello e calendario a quella scelta (§14.3). |
 | **Destinazione** | Un post su un singolo account. Un post con 5 account ha 5 destinazioni, ognuna con il proprio stato. |
 | **Utente di sistema** | Utente tecnico creato in Business Manager; il suo token permette a Feedway di pubblicare senza login ripetuti. |
 | **Container** | Su Instagram, il contenuto preparato da Meta prima della pubblicazione. Scade dopo 24 ore. |
@@ -160,7 +162,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 ### Pianificazione
 | Codice | Requisito |
 |---|---|
-| RF-40 | Calendario mese/settimana/elenco con filtri per cliente, account, piattaforma, tipo, stato, autore, etichetta; spostamento trascinando. |
+| RF-40 | Calendario mese (predefinita da computer)/settimana (dettagliata)/elenco (predefinita da telefono), con libreria apribile da un pulsante e filtri per cliente, account, piattaforma, tipo, stato, autore, etichetta; spostamento trascinando. |
 | RF-41 | Anteprima della griglia Instagram con post programmati e pubblicati, riordinabile. |
 | RF-42 | Fasce orarie per cliente e "prossima fascia libera". |
 | RF-43 | Programmazione in blocco: da più file, da CSV/Excel, duplicando post. |
@@ -758,11 +760,11 @@ Una passkey è legata all'indirizzo del pannello: passando da `*.ts.net` a un do
 ### 11.2 Creazione del post
 
 Una sola pagina, su una colonna da telefono e su due da computer:
-1. **Spazio** (se ne vedi più di uno).
+1. **Spazio**: quello del contesto attivo; se il contesto è "Tutti i clienti", va scelto prima di tutto il resto (si pubblica solo dentro un cliente).
 2. **Tipo**, proposto in base ai file.
 3. **Media**: "Scegli file", trascinamento o "dalla libreria" (§11.1); un file trascinato sull'anteprima entra nel post e l'anteprima si aggiorna subito, con la barra di caricamento sulla miniatura. Ordine dei caroselli **trascinando le miniature**, anche nell'anteprima, con l'alternativa dei pulsanti "sposta prima/dopo" per tastiera e tocco; copertina per i reel.
 4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**.
-5. **Account**, raggruppati per Pagina (FB e IG collegato insieme), con "seleziona tutti" e **gruppi salvati**.
+5. **Dove pubblicare**: elenco dei **profili** dello spazio (§3), ognuno con una casella e, sotto, i suoi account IG e FB, ognuno con la propria casella. Spuntare il profilo spunta entrambi gli account; si può poi togliere uno dei due (es. solo Instagram). Ricerca per nome o @username, "seleziona tutti" e **gruppi salvati**. Un account da ricollegare o non pubblicabile (§8.4) compare disattivato con il motivo e non si può spuntare. Se il contesto attivo è un profilo, l'elenco parte con quel profilo già spuntato; se è un cliente, nulla è spuntato.
 6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera".
 7. **Etichette** e **note interne**.
 8. **Riepilogo destinazioni**: cosa verrà pubblicato su ogni account e come. "Programma" si attiva solo senza blocchi e con una scelta per ogni avviso.
@@ -783,12 +785,14 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 
 ### 11.4 Calendario
 
-- **Viste**: mese, settimana, elenco per giorno (predefinita da telefono).
+- **Viste**: **mese** (predefinita da computer: colpo d'occhio sulla distribuzione), **settimana** (la vista dettagliata, con miniature grandi per rivedere i contenuti) ed elenco per giorno (predefinita da telefono). Si passa da una all'altra con la barra delle viste; l'ultima scelta resta nell'indirizzo della pagina.
+- **Libreria a richiesta**: un pulsante "Libreria" apre la libreria media in un pannello laterale, da cui si trascina un file su un giorno per iniziare un post (con l'alternativa del pulsante "Usa in un post"). Chiusa per impostazione predefinita, così il calendario resta largo.
 - **Filtri**: uno, alcuni o tutti i clienti; account; piattaforma; tipo; stato; autore; etichetta.
 - **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Oggi, Questa settimana.
 - Ogni voce: miniatura, orario, icone degli account, colore dello stato ed etichette; clic per il dettaglio con anteprima.
 - **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla".
 - Filtri salvati nell'indirizzo della pagina.
+- Il calendario segue il contesto attivo (§14.3): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.
 - Ognuno vede solo gli spazi a cui ha accesso nell'organizzazione corrente; Owner e Admin li vedono tutti.
 
 ### 11.5 Griglia Instagram
@@ -839,6 +843,7 @@ Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token
 
 ### 11.11 Uso da telefono
 
+- **Barra di navigazione in basso** con cinque voci: Dashboard, Calendario, **+ Nuovo post al centro** (più grande, sempre raggiungibile col pollice), Notifiche, Menu (le altre sezioni e il contesto attivo). Sostituisce la navigazione laterale sotto i 768 px; quando si apre la tastiera la barra si nasconde.
 - **PWA**: "Aggiungi alla schermata Home" su iPhone e Android, apertura a schermo intero.
 - Upload da galleria e fotocamera; HEIC convertite in automatico.
 - Upload a pezzi con ripresa: se il telefono perde rete o blocca lo schermo, riprende al ritorno sul pannello (iPhone sospende le schede in background).
@@ -1036,6 +1041,8 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 - Tema **chiaro, scuro e automatico**, scelto per utente; entrambi con contrasti AA.
 - **Logo e colore principale** per organizzazione, caricati da Impostazioni: pannello, email, bot, link cliente (white label). Logo del singolo cliente facoltativo nel suo link. La pagina di login, che viene prima della scelta dell'agenzia, usa il brand della piattaforma.
 - **Selettore dell'agenzia** in alto, visibile solo a chi appartiene a più organizzazioni.
+- **Selettore del contesto**, come su Meta Business Suite: "Tutti i clienti" per la visione d'insieme, poi un cliente (spazio) e, dentro il cliente, un singolo profilo. Mostra solo gli spazi a cui hai accesso. Dashboard, calendario, post, griglia e libreria si restringono alla scelta, che resta nell'indirizzo della pagina (così un link porta nello stesso contesto). Il contesto non è un permesso: i controlli restano quelli di §10.
+- **Nuovo post** parte dal contesto: dentro un profilo, con quel profilo già spuntato; dentro un cliente, con il cliente scelto; da "Tutti i clienti", chiede prima il cliente, perché si pubblica solo dentro uno spazio.
 
 ### 14.4 Schermate
 
@@ -1417,6 +1424,9 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
 | Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
+| Navigazione | Contesto attivo come su Meta ("Tutti i clienti", un cliente, un profilo); si pubblica solo dentro un cliente | Matteo |
+| Scelta degli account | Elenco di profili (IG + Pagina FB collegata da Meta) con caselle, ogni account deselezionabile; solo interfaccia, il dominio non cambia | Matteo (idea), Claude (forma) |
+| Calendario e telefono | Mese come vista predefinita, settimana come vista dettagliata, libreria a richiesta; sul telefono barra in basso a cinque voci con il + al centro | Matteo |
 
 ---
 
