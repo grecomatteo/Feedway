@@ -123,9 +123,10 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
   2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
   3. casi d'uso e API `/api/v1/orgs/[org]/plan` con `plan.view` e `plan.edit` e OpenAPI;
   4. "Prepara": caso d'uso del piano che crea la bozza tramite la funzione pubblica dei post e salva il collegamento nella stessa transazione; stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
-  5. calendario: schede tratteggiate, "Pianifica", interruttore e filtro rapido nell'indirizzo, telefono, tastiera, axe;
+  5. sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
   6. editor: precompilazione e avviso sul tipo;
   7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
+  La stampa del Piano editoriale (schede piene) arriva nella tappa 10 con il foglio di stile di stampa del calendario cliente.
 - **Matteo prova:** pianifica un mese per un cliente, prepara due contenuti dall'editor, ne annulla uno e lo vede tornare "Da preparare".
 
 ### Tappa 10 · Condivisione e brand

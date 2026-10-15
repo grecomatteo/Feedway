@@ -801,7 +801,7 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 - **Viste**: **mese** (predefinita da computer: colpo d'occhio sulla distribuzione), **settimana** (la vista dettagliata, con miniature grandi per rivedere i contenuti) ed elenco per giorno (predefinita da telefono). Si passa da una all'altra con la barra delle viste; l'ultima scelta resta nell'indirizzo della pagina.
 - **Libreria a richiesta**: un pulsante "Libreria" apre la libreria media in un pannello laterale, da cui si trascina un file su un giorno per iniziare un post (con l'alternativa del pulsante "Usa in un post"). Chiusa per impostazione predefinita, così il calendario resta largo. Il pulsante compare solo dentro un cliente o un profilo (la libreria è dello spazio, §11.8) e solo a chi può usare la libreria (da Editor, §10.2); il post parte in quello spazio.
 - **Filtri**: account; piattaforma; tipo; stato; autore; etichetta. Il filtro per cliente (uno, alcuni o tutti) c'è solo nel contesto "Tutti i clienti": dentro un cliente o un profilo la scelta del cliente è il contesto stesso.
-- **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Da preparare (§11.12), Oggi, Questa settimana; interruttore "Mostra i contenuti da preparare".
+- **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Da preparare (§11.12), Oggi, Questa settimana; selettore "Mostra: Post · Piano · Entrambi".
 - Ogni voce: miniatura, orario, icone degli account, colore dello stato ed etichette; clic per il dettaglio con anteprima.
 - **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla".
 - Filtri salvati nell'indirizzo della pagina.
@@ -874,17 +874,21 @@ Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token
 
 ### 11.12 Piano editoriale
 
-Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu") lo scrive direttamente sul calendario, e chi carica vede già cosa preparare e per quando. Deve essere semplice come scrivere su un'agenda.
+Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu") lo scrive in Feedway, e chi carica vede già nel calendario cosa preparare e per quando. Deve essere semplice come scrivere su un'agenda. Pianificare (decidere cosa uscirà) e programmare (fissare un post vero) restano due azioni distinte, in due posti distinti.
 
-**Pianificare**
-- Pulsante **"Pianifica"** nel calendario e "+ Piano" sotto ogni giorno (mese e settimana). Un modulo breve: **giorno, tipo** (reel, carosello, foto, storia) e **titolo** obbligatori; **ora** e **nota per chi prepara** facoltative. Invio = salvato, il modulo resta aperto per il successivo, così un mese si pianifica di seguito.
+**Una sezione a sé**
+- Voce **"Piano editoriale"** nel menu a sinistra, separata dal Calendario.
+- Il cliente è quello del contesto attivo (§14.6). Se il contesto è "Tutti i clienti", prima di mostrare il calendario una finestra chiede **"Per quale cliente fai il piano?"** (solo i clienti in cui l'utente può pianificare); la scelta diventa il contesto.
+- La pagina è un **calendario del mese da riempire**, vuoto all'inizio, con frecce per i mesi successivi. Si clicca un giorno (o Invio sul giorno, da tastiera) e si apre un modulo breve: **giorno, tipo** (reel, carosello, foto, storia) e **titolo** obbligatori; **ora** e **nota per chi prepara** facoltative. Invio = salvato, il modulo resta aperto per il successivo, così un mese si pianifica di seguito.
 - Avviso sotto il titolo: "Il titolo può comparire nel calendario del cliente; la nota no."
 - Si sposta trascinando su un altro giorno (con "Annulla" e l'alternativa "Sposta" nel menu), si modifica e si toglie dal suo menu.
-- Si pianifica solo dentro un cliente (contesto attivo, §14.6), come i post.
+- I contenuti già preparati restano visibili qui con "Preparato" e il collegamento al post, così il piano del mese si legge per intero.
+- **"Stampa o salva PDF"** anche da qui, con lo stesso foglio di stile del calendario cliente (§11.10): A4 orizzontale, un mese per pagina, loghi, schede **piene** (non tratteggiate) con tipo, titolo e ora, per mostrarlo bene al cliente; mai le note.
+- Sul telefono il mese diventa un elenco di giorni, ognuno con "+".
 
-**Come si vede**
+**Come si vede nel calendario principale**
 - Scheda **tratteggiata e semitrasparente** con tipo, titolo, ora se c'è ed etichetta **"Da preparare"**: non si può confondere con un post vero. Diventa gialla con "Mancano meno di 36 ore" quando l'ora prevista (o l'inizio del giorno, se l'ora manca) è vicina, rossa con "In ritardo" quando è passata senza post.
-- Interruttore **"Mostra i contenuti da preparare"** nel calendario, acceso per impostazione predefinita, salvato nell'indirizzo come gli altri filtri; c'è anche il filtro rapido "Da preparare".
+- Selettore **"Mostra: Post · Piano · Entrambi"** (predefinito: Entrambi), salvato nell'indirizzo come gli altri filtri. Nel calendario principale non si pianifica: dalla scheda si apre il contenuto nel Piano editoriale o si prepara il post.
 - Notifica **"Contenuto da preparare entro domani"** 24 ore prima a chi può prepararlo in quello spazio (§12.2), e una riga nel riepilogo delle 8:00 (§12.4).
 
 **Da segnaposto a post**
@@ -1112,7 +1116,8 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Dashboard | tutti | Prossime pubblicazioni, in verifica, problemi aperti, stato account e worker, spazio disco |
 | Centro notifiche | tutti | §12.3 |
 | Nuovo post | da Editor | §11.2–11.3 |
-| Calendario | tutti | §11.4, con il piano editoriale (§11.12) |
+| Calendario | tutti | §11.4, con i contenuti pianificati (§11.12) |
+| Piano editoriale | tutti in sola lettura; da Publisher per pianificare | §11.12 |
 | Griglia Instagram | tutti | §11.5 |
 | Programmazione in blocco | da Publisher | §11.6 |
 | Post | tutti | Elenco filtrabile, dettaglio per destinazione con tentativi, verifica e link |
