@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
 import { DateTime } from 'luxon'
-import { MEDIA, WORKSPACES, ZONE, type Post } from '~/data/scenario'
+import { MEDIA, WORKSPACES, ZONE, type Post } from '~/fixtures/scenario'
 import { TYPE_LABEL, capitalize, dt, hhmm, now, postStatus, profile, workspace } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })

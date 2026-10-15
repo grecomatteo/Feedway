@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BULK_ROWS, MEDIA } from '~/data/scenario'
+import { BULK_ROWS, MEDIA } from '~/fixtures/scenario'
 import { dt } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })

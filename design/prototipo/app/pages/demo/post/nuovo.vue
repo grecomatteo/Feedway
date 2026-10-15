@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DateTime } from 'luxon'
-import { ACCOUNT_GROUP, MEDIA, WORKSPACES, ZONE, type Post, type PostType } from '~/data/scenario'
+import { ACCOUNT_GROUP, MEDIA, WORKSPACES, ZONE, type Post, type PostType } from '~/fixtures/scenario'
 import { TYPE_LABEL, capitalize, now, profile, profilesOf, relative, resolveLocal, type Profile } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })
@@ -64,15 +64,30 @@ function tick() {
   }
   else if (phase.value === 'converting') phase.value = 'ready'
 }
-function startUpload() {
+const videoSrc = ref('')
+const fileName = ref('')
+const cover = ref<string | null>(null)
+const coverSource = ref<'frame' | 'image'>('frame')
+let localUrl = ''
+function beginUpload(src: string, name: string) {
   mediaKey.value = clientId.value === 'studio-forma' ? 'forma-pilates' : clientId.value === 'orto-vivo' ? 'orto-cucina' : 'forno-lab'
+  videoSrc.value = src; fileName.value = name; cover.value = null; coverSource.value = 'frame'
   isVideo.value = true; phase.value = 'uploading'; progress.value = 0
   clearInterval(timer); timer = setInterval(tick, 120)
 }
+function startUpload() { beginUpload('/media/reel-demo.mp4', 'laboratorio-porte-aperte.mp4') }
+// A video picked from this computer is previewed through an object URL: it never leaves the browser.
+function pickVideo(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (localUrl) URL.revokeObjectURL(localUrl)
+  localUrl = URL.createObjectURL(file)
+  beginUpload(localUrl, file.name)
+}
 function dropConnection() { clearInterval(timer); phase.value = 'offline' }
 function resume() { phase.value = 'uploading'; timer = setInterval(tick, 120) }
-function pickFromLibrary(key: string) { clearInterval(timer); mediaKey.value = key; isVideo.value = false; phase.value = 'ready'; progress.value = 100 }
-onBeforeUnmount(() => { clearInterval(timer); clearTimeout(saveT) })
+function pickFromLibrary(key: string) { clearInterval(timer); mediaKey.value = key; isVideo.value = false; videoSrc.value = ''; cover.value = null; phase.value = 'ready'; progress.value = 100 }
+onBeforeUnmount(() => { clearInterval(timer); clearTimeout(saveT); if (localUrl) URL.revokeObjectURL(localUrl) })
 const type = computed<PostType>(() => (isVideo.value ? 'reel' : 'photo'))
 const MEDIA_PREFIX: Record<string, string> = { 'forno-luce': 'forno', 'studio-forma': 'forma', 'orto-vivo': 'orto' }
 const libraryForClient = computed(() => Object.keys(MEDIA).filter(k => k.startsWith(MEDIA_PREFIX[clientId.value ?? 'forno-luce']!)))
@@ -151,7 +166,7 @@ function buildPost(status: Post['status']): Post {
   return {
     id: draftId, workspaceId: ws.value!.id, type: type.value, caption: caption.value,
     scheduledAt: draftAt.value!.toISO()!,
-    media: mediaKey.value, status, targets: selected.value.map(accountId => ({ accountId, state: 'pending' as const })), createdBy: 'Giulia R.',
+    media: mediaKey.value, cover: cover.value ?? undefined, status, targets: selected.value.map(accountId => ({ accountId, state: 'pending' as const })), createdBy: 'Giulia R.',
   }
 }
 async function schedule() {
@@ -268,15 +283,20 @@ async function saveDraft() {
           <div v-if="!can.upload" class="mt-2 text-sm text-[var(--text-muted)]">Il tuo ruolo non può caricare file.</div>
           <div v-else class="mt-2 flex flex-wrap items-start gap-4">
             <div class="relative h-[128px] w-[72px] overflow-hidden rounded-lg bg-[var(--surface-sunken)]">
-              <img v-if="phase !== 'none'" :src="MEDIA[mediaKey]" alt="" class="size-full object-cover" :class="phase === 'ready' ? '' : 'opacity-50'">
-              <span v-if="phase === 'ready' && isVideo" class="absolute bottom-1.5 left-1.5 rounded bg-[#242321d9] px-1.5 text-[11px] font-semibold text-white">0:24</span>
+              <img v-if="phase !== 'none'" :src="cover ?? MEDIA[mediaKey]" alt="" class="size-full object-cover" :class="phase === 'ready' ? '' : 'opacity-50'">
+              <UIcon v-if="phase === 'ready' && isVideo" name="i-lucide-clapperboard" class="absolute bottom-1.5 left-1.5 size-4 text-white drop-shadow" aria-hidden="true" />
             </div>
             <div class="min-w-60 flex-1 space-y-2">
               <div v-if="phase === 'none'" class="flex flex-wrap gap-2">
-                <button type="button" class="fw-btn" @click="startUpload"><UIcon name="i-lucide-upload" class="size-4" aria-hidden="true" />Carica video di esempio</button>
+                <label class="fw-btn fw-btn--primary cursor-pointer">
+                  <UIcon name="i-lucide-upload" class="size-4" aria-hidden="true" />Scegli un video dal computer
+                  <input type="file" accept="video/mp4,video/quicktime,.mp4,.mov" class="sr-only" @change="pickVideo">
+                </label>
+                <button type="button" class="fw-btn" @click="startUpload"><UIcon name="i-lucide-film" class="size-4" aria-hidden="true" />Usa il video di esempio</button>
+                <p class="basis-full text-xs text-[var(--text-muted)]">.mp4 o .mov. Il file resta sul tuo computer: la demo non carica nulla.</p>
               </div>
               <template v-else>
-                <p class="text-[13px] font-semibold">laboratorio-porte-aperte.mp4 · 24 s · 1080×1920</p>
+                <p class="text-[13px] font-semibold">{{ isVideo ? fileName : mediaKey + '.jpg' }}</p>
                 <div class="rounded-lg p-2.5" :class="phase === 'ready' ? 'bg-[var(--success-soft)]' : phase === 'offline' ? 'bg-[var(--warning-soft)]' : 'bg-[var(--info-soft)]'" role="status" aria-live="polite">
                   <p class="text-xs font-bold" :style="{ color: phase === 'ready' ? 'var(--success)' : phase === 'offline' ? 'var(--warning)' : 'var(--info)' }">
                     {{ PHASE_LABEL[phase] }}<template v-if="['uploading', 'converting'].includes(phase)"> · {{ progress }}%</template>
@@ -302,6 +322,10 @@ async function saveDraft() {
               </details>
             </div>
           </div>
+          <div v-if="isVideo && videoSrc && phase === 'ready'" class="fw-card mt-4 p-4">
+            <VideoCoverPicker v-model:cover="cover" v-model:source="coverSource" :src="videoSrc" :file-name="fileName" />
+          </div>
+          <p v-else-if="isVideo && videoSrc && phase !== 'none'" class="mt-3 text-xs text-[var(--text-muted)]">Anteprima riproducibile e scelta della copertina appena la conversione è finita.</p>
         </section>
 
         <!-- Caption -->
@@ -348,12 +372,13 @@ async function saveDraft() {
           </button>
         </div>
         <div class="relative overflow-hidden rounded-2xl bg-[var(--surface-sunken)]" :class="isVideo ? 'aspect-[9/16] max-h-[420px]' : 'aspect-[4/5]'">
-          <img v-if="phase !== 'none'" :src="MEDIA[mediaKey]" alt="Anteprima del media" class="absolute inset-0 size-full object-cover">
+          <video v-if="isVideo && videoSrc && phase === 'ready'" :src="videoSrc" :poster="cover ?? undefined" controls playsinline muted preload="metadata" class="absolute inset-0 size-full bg-black object-cover" aria-label="Anteprima del reel" />
+          <img v-else-if="phase !== 'none'" :src="MEDIA[mediaKey]" alt="Anteprima del media" class="absolute inset-0 size-full object-cover">
           <div v-else class="absolute inset-0 grid place-items-center text-sm text-[var(--text-muted)]">Nessun media</div>
           <div v-if="firstOf(previewTab)" class="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-[#242321b3] px-2 py-1 text-xs font-semibold text-white">
             <span class="size-5 rounded-full" :style="{ background: ws?.color }" />{{ firstOf(previewTab)?.handle }}
           </div>
-          <div v-if="caption" class="absolute inset-x-3 bottom-3 rounded-lg border border-white/40 bg-[#242321b3] p-2.5 text-xs text-white">
+          <div v-if="caption" class="pointer-events-none absolute inset-x-3 bottom-14 rounded-lg border border-white/40 bg-[#242321b3] p-2.5 text-xs text-white">
             <p class="line-clamp-2">{{ caption }}</p>
             <p v-if="isVideo" class="mt-1 text-[11px] text-white/80">Area coperta dall'interfaccia (indicativa)</p>
           </div>

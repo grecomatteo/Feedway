@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SHARE_LINKS } from '~/data/scenario'
+import { SHARE_LINKS } from '~/fixtures/scenario'
 import { workspace } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })

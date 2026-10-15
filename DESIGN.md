@@ -52,3 +52,7 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Navigazione stile Meta: selettore con «Tutti i clienti» (visione d'insieme), un cliente o un singolo profilo, con ricerca. Il contesto restringe l'app e preseleziona le destinazioni di Nuovo post.
 - Destinazioni: elenco a spunta con ricerca, un profilo per riga. Spuntare il profilo seleziona l'account Instagram e la Pagina Facebook collegata; IG e FB si possono togliere singolarmente.
 - Telefono: barra a cinque voci con il pulsante + al centro; barra azioni dell'editor su una riga, con l'etichetta che dice cosa manca.
+- Copertina del reel (16 ottobre): fotogramma scelto con un cursore oppure immagine propria, con anteprima 9:16, griglia e quadrato. La copertina personalizzata dei reel Facebook va verificata con un account di prova.
+- Anteprima video: il video si rivede nell'editor; i .mov HEVC non riproducibili dal browser mostrano un messaggio, e nel prodotto l'anteprima usa l'MP4 convertito dal server.
+- Calendario cliente: mese completo «da lontano», mesi che continuano scorrendo, logo Feedway a sinistra, logo del cliente e «gestito da» con il logo dell'agenzia a destra, anteprima al clic; data dell'ultimo aggiornamento.
+- Note sui post con visibilità «solo per me» o «per il team» (proposta, vedi design/ruoli-e-permessi.md).

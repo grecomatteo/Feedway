@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { WORKSPACES } from '~/data/scenario'
+import { WORKSPACES } from '~/fixtures/scenario'
 import { profile, profilesOf } from '~/utils/format'
 
 // Meta-style context: the whole agency, one client, or one profile (IG + linked FB Page).

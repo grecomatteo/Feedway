@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MEDIA } from '~/data/scenario'
+import { MEDIA } from '~/fixtures/scenario'
 import { TARGET_VIEW, TYPE_LABEL, account, capitalize, dt, fullWhen, now, postStatus, workspace } from '~/utils/format'
 
 definePageMeta({ layout: 'demo' })
@@ -35,6 +35,17 @@ function retry(accountId: string) {
   }, 1600)
 }
 
+// The demo user is Giulia R.: personal notes of other people are never listed.
+const ME = 'Giulia R.'
+const visibleNotes = computed(() => (post.value?.notes ?? []).filter(n => n.visibility === 'team' || n.author === ME))
+const noteBody = ref('')
+const noteVisibility = ref<'team' | 'personal'>('team')
+function addNote() {
+  const p = post.value!
+  update(p.id, { notes: [...(p.notes ?? []), { id: `n${Date.now()}`, author: ME, body: noteBody.value.trim(), visibility: noteVisibility.value, at: now().toISO()! }] })
+  noteBody.value = ''
+}
+
 function verifyUnknown(accountId: string) {
   const p = post.value!
   setTargets(p.id, (id, s) => (id === accountId ? { state: 'confirmed', nextCheck: undefined, updatedAt: now().toISO()! } : { state: s }))
@@ -60,7 +71,7 @@ function verifyUnknown(accountId: string) {
 
     <div class="flex flex-col gap-7 lg:flex-row">
       <div class="flex w-full flex-col gap-3 lg:w-[300px]">
-        <img :src="MEDIA[post.media]" alt="Media del post" class="aspect-[4/5] w-full rounded-xl object-cover">
+        <img :src="post.cover ?? MEDIA[post.media]" alt="Media del post" class="aspect-[4/5] w-full rounded-xl object-cover">
         <p class="text-[13px] leading-relaxed">{{ post.caption }}</p>
         <p class="text-xs text-[var(--text-muted)]">{{ fullWhen(post.scheduledAt) }} · creato da {{ post.createdBy }}</p>
       </div>
@@ -123,6 +134,37 @@ function verifyUnknown(accountId: string) {
             <li v-for="t in post.targets" :key="t.accountId" class="tabular">{{ time(t.updatedAt) }} · {{ account(t.accountId).name }} ({{ account(t.accountId).platform === 'instagram' ? 'Instagram' : 'Facebook' }}) · {{ TARGET_VIEW[t.state].label }}</li>
           </ul>
         </details>
+
+        <section aria-labelledby="h-note" class="flex flex-col gap-2.5">
+          <h2 id="h-note" class="fw-title text-[17px]">Note interne</h2>
+          <p class="text-xs text-[var(--text-muted)]">Il cliente non le vede mai, nemmeno nel link condiviso.</p>
+          <p v-if="!visibleNotes.length" class="text-sm text-[var(--text-muted)]">Nessuna nota.</p>
+          <ul class="flex flex-col gap-2">
+            <li v-for="n in visibleNotes" :key="n.id" class="fw-card p-3">
+              <p class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="font-semibold">{{ n.author }}</span>
+                <span class="text-[var(--text-muted)]">{{ dt(n.at).toFormat('d LLL, HH:mm') }}</span>
+                <span class="fw-badge !py-0.5 !text-[11px]" :class="n.visibility === 'personal' ? 'bg-[var(--surface-sunken)] text-[var(--text-muted)]' : 'bg-[var(--info-soft)] text-[var(--info)]'">
+                  <UIcon :name="n.visibility === 'personal' ? 'i-lucide-lock' : 'i-lucide-users'" class="size-3" aria-hidden="true" />{{ n.visibility === 'personal' ? 'Solo per me' : `Team di ${ws.short}` }}
+                </span>
+              </p>
+              <p class="mt-1.5 text-sm">{{ n.body }}</p>
+            </li>
+          </ul>
+          <form v-if="can.create" class="fw-card flex flex-col gap-2.5 p-3" @submit.prevent="addNote">
+            <label for="nota" class="text-[13px] font-semibold">Aggiungi una nota</label>
+            <textarea id="nota" v-model="noteBody" rows="2" class="fw-input resize-y" />
+            <div class="flex flex-wrap items-center gap-3">
+              <fieldset class="flex flex-wrap gap-3 text-[13px]">
+                <legend class="sr-only">Chi può vedere la nota</legend>
+                <label class="flex items-center gap-1.5"><input v-model="noteVisibility" type="radio" value="team" class="accent-[#242321]">Per il team di {{ ws.short }}</label>
+                <label class="flex items-center gap-1.5"><input v-model="noteVisibility" type="radio" value="personal" class="accent-[#242321]">Solo per me</label>
+              </fieldset>
+              <span class="flex-1" />
+              <button type="submit" class="fw-btn !min-h-9 !text-[13px]" :disabled="!noteBody.trim()">Aggiungi nota</button>
+            </div>
+          </form>
+        </section>
       </div>
     </div>
   </div>

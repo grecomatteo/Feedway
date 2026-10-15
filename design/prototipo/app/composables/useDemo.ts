@@ -1,4 +1,4 @@
-import { INITIAL_POSTS, type Post, type TargetState } from '~/data/scenario'
+import { INITIAL_POSTS, type Post, type TargetState } from '~/fixtures/scenario'
 
 export type Role = 'Manager' | 'Editor' | 'Viewer'
 
@@ -11,7 +11,7 @@ interface DemoState {
   profile: string | null
 }
 
-const STORAGE_KEY = 'feedway-demo-v1'
+const STORAGE_KEY = 'feedway-demo-v2'
 
 const fresh = (): DemoState => ({ posts: structuredClone(INITIAL_POSTS), role: 'Manager', dark: false, client: 'all', profile: null })
 

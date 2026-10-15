@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { INITIAL_POSTS, MEDIA, WORKSPACES } from '~/data/scenario'
+import { INITIAL_POSTS, MEDIA, WORKSPACES } from '~/fixtures/scenario'
 import { TYPE_LABEL, hhmm, postStatus, workspace } from '~/utils/format'
 
 useHead({ title: 'Feedway · il tuo piano social, una direzione chiara' })

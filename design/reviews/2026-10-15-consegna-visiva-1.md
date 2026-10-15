@@ -95,3 +95,16 @@ Mese di base con Settimana come zoom; selettore cliente/profilo stile Meta; dest
 | Ricerca «nord» | Una sola riga |
 | Pulsante dell'editor | «Scegli almeno un account» → «Risolvi 1 controllo» → «Conferma l'avviso» → «Programma su 5 account» |
 | Telefono 390×844 | + centrato (x = 195), barra azioni su una riga, menu «Altro», nessuno scorrimento orizzontale |
+
+## Richieste del 16 ottobre: copertina, video, calendario cliente, ruoli
+
+| Prova (Playwright) | Esito |
+|---|---|
+| Video .mov scelto dal computer | Nome del file mostrato, video riproducibile (durata 4 s), nessun caricamento reale |
+| Copertina da fotogramma (cursore a 0:03) | Copertina generata, anteprima 9:16, griglia e quadrato |
+| Copertina da immagine propria | Sostituisce il fotogramma; resta nel post programmato |
+| Note: nota personale di un'altra persona | Non mostrata; nota «solo per me» aggiunta |
+| Team e ruoli | Matrice con 15 righe, di cui 4 della 1.5 |
+| Calendario cliente | Ottobre e Novembre in sequenza, loghi in testata, anteprima al clic; 390 px senza scorrimento orizzontale |
+
+Non verificato: un .mov HEVC reale dell'iPhone (il file di prova è H.264), il comportamento di Meta con la copertina personalizzata dei reel Facebook.

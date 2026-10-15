@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { SCENARIO_NOW, ZONE, WORKSPACES, type Account, type Post, type Target, type TargetState } from '~/data/scenario'
+import { SCENARIO_NOW, ZONE, WORKSPACES, type Account, type Post, type Target, type TargetState } from '~/fixtures/scenario'
 
 export const now = () => DateTime.fromISO(SCENARIO_NOW, { zone: ZONE })
 export const dt = (iso: string) => DateTime.fromISO(iso, { zone: ZONE }).setLocale('it')

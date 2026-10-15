@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MEDIA, type Post } from '~/data/scenario'
+import { MEDIA, type Post } from '~/fixtures/scenario'
 import { TYPE_ICON, TYPE_LABEL, account, hhmm, postStatus, workspace } from '~/utils/format'
 
 const props = defineProps<{ post: Post, showClient?: boolean, thumb?: number }>()
@@ -18,7 +18,7 @@ const a11y = computed(() => `${hhmm(props.post.scheduledAt)}, ${TYPE_LABEL[props
       <span class="text-[13px] text-[var(--text-muted)]">{{ TYPE_LABEL[post.type] }}</span>
     </div>
     <div class="relative rounded-lg overflow-hidden bg-[var(--surface-sunken)]" :style="{ height: `${thumb ?? 132}px` }">
-      <img :src="MEDIA[post.media]" alt="" loading="lazy" class="size-full object-cover">
+      <img :src="post.cover ?? MEDIA[post.media]" alt="" loading="lazy" class="size-full object-cover">
       <span v-if="showClient !== false" class="absolute left-1.5 bottom-1.5 inline-flex items-center gap-1.5 rounded-md bg-[#242321d9] px-1.5 py-0.5 text-xs font-semibold text-white">
         <span class="size-2 rounded-full" :style="{ background: ws.color }" />{{ ws.short }}
       </span>

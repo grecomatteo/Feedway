@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AGENCY } from '~/data/scenario'
+import { AGENCY } from '~/fixtures/scenario'
 
 const { state } = useDemo()
 const route = useRoute()
@@ -12,7 +12,7 @@ const nav = [
 ]
 const manage = [
   { to: '/demo/account', icon: 'i-lucide-at-sign', label: 'Account social', soon: true },
-  { to: '/demo/team', icon: 'i-lucide-users', label: 'Team', soon: true },
+  { to: '/demo/team', icon: 'i-lucide-users', label: 'Team e ruoli' },
   { to: '/demo/condivisione', icon: 'i-lucide-link', label: 'Link cliente' },
 ]
 const active = (to: string) => route.path.startsWith(to) || (to === '/demo/calendario' && route.path.startsWith('/demo/post/'))
