@@ -48,7 +48,7 @@ Lo script chiede email, nome dell'agenzia e indirizzi, genera chiavi e password,
 ## Struttura
 
 ```
-apps/        web (Nuxt), worker, mcp (futuro)
+apps/        web (Nuxt), worker, site (sito pubblico), mcp (futuro)
 packages/    domain, application, infrastructure, config, contracts, ui
 tools/       meta-mock, fixture per i confini
 docker/      immagine, compose, init del database

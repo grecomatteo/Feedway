@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, strumenti di agenzia in 1.5 · da approvare |
+| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, sito pubblico, strumenti di agenzia in 1.5 · da approvare |
 | **Data** | 2026-10-15 |
 | **Autore** | Claude, per Matteo |
 | **Prossimo passo** | Approvazione → sviluppo a tappe (piani in `docs/superpowers/plans/`) |
@@ -45,6 +45,7 @@
 - È **multi-cliente e multi-utente**: ogni cliente è uno spazio di lavoro, ogni utente ha ruoli e permessi per spazio.
 - È **predisposto per più agenzie**: ogni agenzia è un'organizzazione con dati, account Meta, integrazioni e brand propri, isolata dalle altre anche a livello di database (§6.5). Nella 1.0 c'è la tua; aprire la piattaforma ad altre agenzie è la versione 2.0.
 - I clienti ricevono un **link di sola visione** del proprio calendario.
+- Un **sito pubblico** presenta Feedway e porta all'accesso; è separato dal pannello, che resta privato (§14.5).
 - Tutto si configura **dal pannello** con procedure guidate: nessuno tocca codice o file.
 - Gira in **Docker** sulla tua VPS (2 core, 12 GB) accanto agli altri servizi, esposto con **Tailscale** e/o **Cloudflare Tunnel**.
 
@@ -110,6 +111,7 @@ Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modific
 | **Container** | Su Instagram, il contenuto preparato da Meta prima della pubblicazione. Scade dopo 24 ore. |
 | **Host pubblico** | Indirizzo raggiungibile da internet che serve solo i file per Meta (`/m/*`) e i link cliente (`/share/*`). |
 | **Pannello** | L'interfaccia per il team, privata (Tailscale o Cloudflare Access). |
+| **Sito pubblico** | Le pagine di presentazione di Feedway (landing e pagine legali), statiche e separate dal pannello, con il pulsante "Accedi" che porta al pannello (§14.5). |
 | **Worker** | Processo in background che esegue i lavori: conversioni, pubblicazione, verifica, notifiche. |
 | **Fascia oraria** | Orario abituale di pubblicazione di un cliente, usato per la coda e la programmazione in blocco. |
 
@@ -186,6 +188,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 | RF-70 | Tema chiaro, scuro e automatico. |
 | RF-71 | Logo e colore del brand nel pannello, nelle email, nel bot e nel link cliente. |
 | RF-72 | Pannello installabile come app sul telefono (PWA). |
+| RF-73 | Sito pubblico di presentazione con pulsante "Accedi" verso il pannello, pagine legali, indicizzato dai motori di ricerca, senza cookie (§14.5). |
 
 ---
 
@@ -248,6 +251,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 | **migrate** | Applica le migrazioni e termina; web e worker partono solo dopo. |
 | **backup** | Dump notturno del database nella cartella inclusa in rclone. |
 | **cloudflared / tailscale** | Esposizione verso internet (§16.1). |
+| **sito** | Sito pubblico statico su Cloudflare Pages: **non gira sulla VPS** e non ha accesso a dati, API o database (§14.5, ADR 013). |
 
 ### 6.2 Coda di lavori su Postgres
 
@@ -273,6 +277,7 @@ Ogni decisione ha una scheda in `docs/adr/` con contesto, decisione e alternativ
 | 010 | Versioni di base: Node 24 LTS, Nuxt 4 + Nuxt UI 4, TypeScript 6.0 fissato (§7.4) | Node 22 e Nuxt 3: escono dal supporto durante la vita della 1.0; TypeScript 7: non ancora garantito con `vue-tsc` |
 | 011 | Identificativi tecnici neutri (`@app/*`, ruoli `app_migrator`/`app_runtime`, database `app`), nome visibile in una sola costante `PRODUCT_NAME` | Nome del prodotto negli identificativi: cambiarlo richiederebbe migrazioni e rinomine ovunque |
 | 012 | Accesso e account con **Better Auth** (libreria open source, sul nostro Postgres); organizzazioni, ruoli, spazi, inviti e RLS restano nostri (§15.1) | Login scritto nel progetto: più codice da mantenere. Clerk/WorkOS: dati del team negli Stati Uniti e login dipendente da un servizio esterno |
+| 013 | **Sito pubblico statico separato** dal pannello (`apps/site`, Nuxt in generazione statica, Cloudflare Pages) | Landing dentro il pannello: renderebbe pubblico l'host del pannello e legherebbe il sito ai rilasci e ai guasti della VPS |
 
 ---
 
@@ -341,6 +346,7 @@ feedway/
 ├─ apps/
 │  ├─ web/                Nuxt: pagine, componenti, server/api (adattatori sottili)
 │  ├─ worker/             gestori dei lavori pg-boss (adattatori sottili)
+│  ├─ site/               sito pubblico statico: landing e pagine legali (§14.5)
 │  └─ mcp/                (futuro) server MCP, §18.3
 ├─ packages/
 │  ├─ domain/             logica pura, senza dipendenze esterne, una cartella per modulo
@@ -386,6 +392,7 @@ infrastructure  →  implementa le interfacce di application
 - `domain` non importa nulla di esterno: testabile senza database né rete.
 - `application` dipende solo da interfacce (`PostRepository`, `MetaPublisher`, `Storage`, `Notifier`, `Clock`).
 - Rotte API e gestori dei lavori sono sottili: validano l'input, chiamano un caso d'uso, traducono l'output.
+- `apps/site` importa solo `packages/ui` (token e componenti): niente casi d'uso, contratti, configurazione o database.
 - I confini sono verificati in CI con dependency-cruiser.
 
 ### 7.3 Moduli e aggiunta di nuove funzioni
@@ -1043,6 +1050,36 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Privacy | tutti, anche senza accesso | Informativa dell'agenzia (§15.7) |
 | Calendario condiviso | clienti, senza login | §11.10 |
 
+### 14.5 Sito pubblico
+
+Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza server, database, login né dati delle agenzie. Se la VPS è ferma o in aggiornamento il sito resta online.
+
+**Indirizzi**: sito su `tuodominio.it` (`www` rimanda lì), pannello su `app.tuodominio.it`, file per Meta e link cliente su `pub.tuodominio.it` (§16.1). Il pulsante **"Accedi"** porta alla pagina di accesso del pannello. Il modulo di accesso non sta mai dentro il sito: passkey e cookie restano legati all'indirizzo del pannello (§15.1, §15.2) e un sito compromesso non può leggere password.
+
+**Pagine nella 1.0**
+
+| Pagina | Contenuto |
+|---|---|
+| Home | Cosa fa Feedway in una frase; vantaggi principali (IG e FB da un solo posto, anteprima come su Meta, verifica dopo la pubblicazione, più clienti e più utenti, uso da telefono); come funziona in tre passi; immagini del prodotto vero; domande frequenti; "Accedi" e "Contattaci" |
+| Privacy | Informativa del sito, con te come titolare; diversa dall'informativa delle agenzie, che sta nel pannello (§15.7) |
+| Cookie | Dichiara che il sito non usa cookie di profilazione né di terze parti |
+| Note legali | Titolare, contatti e, se c'è, partita IVA (che va comunque nel piè di pagina di ogni pagina) |
+| 404 | Collegamenti alla home e ad "Accedi" |
+
+Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul trattamento dei dati e stato del servizio (§18.2).
+
+**Contatti**: nella 1.0 un indirizzo email, senza modulo, così il sito non raccoglie dati personali. Un modulo o una lista d'attesa arriva con la 2.0, con consenso esplicito e conferma via email.
+
+**Privacy**: nessun cookie, quindi nessun banner. Statistiche di visita con Cloudflare Web Analytics, che non usa cookie né dati personali. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
+
+**Motori di ricerca**: titolo e descrizione per pagina, URL canonici, anteprima per i social (Open Graph), dati strutturati (`Organization`, `SoftwareApplication`), `sitemap.xml` e `robots.txt`. Pannello e host pubblico, al contrario, non devono comparire nelle ricerche (§16.1).
+
+**Lingue**: italiano all'uscita; struttura pronta per l'inglese (`/en/` con `hreflang`) e testi nei file di traduzione del sito (`apps/site/i18n/locales/`), come nel pannello.
+
+**Qualità**: stessi componenti, brand e tema chiaro/scuro del pannello (`packages/ui`, brand della piattaforma §14.3); WCAG 2.2 AA verificato con axe; caricamento sotto 2,5 s su telefono (LCP); collegamenti verificati in CI; intestazioni di sicurezza con CSP senza script inline, HSTS e `frame-ancestors 'none'`.
+
+**Modifiche**: i testi si cambiano con una PR come il resto del codice; ogni PR ha un'anteprima su un indirizzo provvisorio non indicizzato e la CI pubblica il sito al merge. Nessun CMS nella 1.0: per pochi testi sarebbe un servizio in più da proteggere.
+
 ---
 
 ## 15. Sicurezza e privacy
@@ -1059,7 +1096,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 - **Da verificare con un test all'inizio della tappa 2**: se segreto TOTP e codici di recupero sono cifrati (altrimenti li cifriamo noi con la chiave della piattaforma); se `disabledPaths` blocca anche la creazione lato server (altrimenti si usa l'adattatore interno); come leggere i tentativi falliti dai ganci; se il token di sessione è salvato in chiaro (in quel caso si accetta e si annota tra i rischi, §20).
 
 ### 15.2 Sessioni
-- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello; `cookieCache` spento, così una revoca vale subito.
+- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello, senza attributo `Domain` (prefisso `__Host-` se Better Auth lo consente, da verificare nella tappa 2), così il sito pubblico sul dominio principale non li riceve e non li può sovrascrivere; `cookieCache` spento, così una revoca vale subito.
 - Scadenza per inattività 12 ore, assoluta 30 giorni (controllo nostro su `created_at`); nuovo token a ogni login e cambio di privilegi.
 - "Sessioni attive" con revoca; disattivazione e reset chiudono tutte le sessioni.
 - **Riconferma** (password o 2FA) per azioni delicate: ruoli, nomina Admin, integrazioni, brand, impostazioni.
@@ -1099,6 +1136,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 - Esportazione e cancellazione di un'intera organizzazione nella 2.0 (resa semplice da `organization_id` ovunque e dai file con prefisso per organizzazione).
 - Registro attività conservato 24 mesi, poi riassunto.
 - I link cliente non mostrano nomi o dati del team.
+- Il sito pubblico non usa cookie né raccoglie dati personali nella 1.0; ha la propria informativa, con te come titolare (§14.5).
 
 ### 15.8 Dipendenze
 - Lockfile versionato, `--frozen-lockfile`, Renovate con CI obbligatoria.
@@ -1110,17 +1148,19 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 ### 16.1 Esposizione su internet
 
-Il pannello deve essere privato; i media devono essere pubblici perché li scarica Meta. Il server distingue gli host: su `PUBLIC_HOST` risponde solo a `/m/*` e `/share/*`; sull'host del pannello a tutto il resto, e a quei percorsi no.
+Il pannello deve essere privato; i media devono essere pubblici perché li scarica Meta; il sito pubblico deve essere trovato dai motori di ricerca. Il server distingue gli host: su `PUBLIC_HOST` risponde solo a `/m/*` e `/share/*`; sull'host del pannello a tutto il resto, e a quei percorsi no. Il sito non passa dalla VPS.
 
-| Fase | Pannello | Host pubblico | Dominio |
-|---|---|---|---|
-| **Inizio (consigliato)** | Solo **Tailscale** (`*.ts.net`) | **Tailscale Funnel** su un secondo nodo dedicato (nome `*.ts.net` diverso dal pannello), solo `/m/` e `/share/` | Non serve |
-| **Con dominio** | Tailscale, oppure Cloudflare Tunnel + **Cloudflare Access** | **Cloudflare Tunnel** su `pub.tuodominio.it` | Su Cloudflare |
+| Fase | Sito pubblico | Pannello | Host pubblico | Dominio |
+|---|---|---|---|---|
+| **Inizio (consigliato)** | Nessuno | Solo **Tailscale** (`*.ts.net`) | **Tailscale Funnel** su un secondo nodo dedicato (nome `*.ts.net` diverso dal pannello), solo `/m/` e `/share/` | Non serve |
+| **Con dominio** | **Cloudflare Pages** su `tuodominio.it` | `app.tuodominio.it`: Tailscale, oppure Cloudflare Tunnel + **Cloudflare Access** | **Cloudflare Tunnel** su `pub.tuodominio.it` | Su Cloudflare |
 
 - I quick tunnel `*.trycloudflare.com` cambiano indirizzo a ogni riavvio: non adatti.
 - Il passaggio di fase cambia solo `PUBLIC_URL`, `PUBLIC_HOST` e `PANEL_URL`; gli URL dei media si costruiscono al momento della pubblicazione.
 - Con Cloudflare: regola che escluda `/m/*` e `/share/*` da Bot Fight Mode e sfide anti-bot; `facebookexternalhit` non bloccato.
 - I collaboratori, con il pannello solo su Tailscale, vanno invitati nel tailnet; se diventano tanti conviene Cloudflare Access.
+- "Accedi" sul sito porta a `PANEL_URL`: con il pannello su Tailscale o dietro Cloudflare Access si apre solo per chi ha accesso, ed è voluto. Nella 2.0, con la registrazione libera, il pannello diventa raggiungibile da internet e il suo accesso resta protetto da Better Auth e limitazione dei tentativi.
+- Pannello e host pubblico non si fanno indicizzare: `robots.txt` che blocca tutto e intestazione `X-Robots-Tag: noindex`.
 
 ### 16.2 Configurazione dell'infrastruttura
 
@@ -1136,6 +1176,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `BACKUP_AGE_RECIPIENT` | `age1…` | | Chiave pubblica con cui si cifrano i backup; la privata resta fuori dalla VPS |
 | `PANEL_URL` | `https://feedway.tuo-tailnet.ts.net` | | |
 | `PUBLIC_URL` / `PUBLIC_HOST` | `https://pub.tuodominio.it` | | Host pubblico |
+| `SITE_URL` | `https://tuodominio.it` | | Facoltativa: collegamento al sito dalla pagina di accesso |
 | `META_GRAPH_VERSION` | es. `v24.0` | | Aggiornata con PR e test |
 | `META_MODE` | `live` | | `live`, `mock`, `dry-run` |
 | `TZ_DEFAULT` | `Europe/Rome` | | |
@@ -1238,6 +1279,7 @@ Conversioni video: una alla volta, `nice`, ffmpeg su un thread; prima la strada 
 | Accessibilità | axe-core sulle schermate principali |
 | Sicurezza | CodeQL, gitleaks, `pnpm audit` |
 | Immagine | Build, Trivy, pubblicazione su GHCR (solo `main`) |
+| Sito | Solo se cambiano `apps/site` o `packages/ui`: build statica, axe, collegamenti, anteprima per la PR, pubblicazione su Cloudflare Pages da `main` (dalla tappa 10) |
 
 ### 17.3 Piano di test
 
@@ -1272,7 +1314,7 @@ Tutte le funzioni concordate sono nella 1.0. La si costruisce in tappe, ognuna i
 | 7. Pubblicazione | Coda, macchina a stati, IG, FB, errori, esito incerto, riconciliatore, verifica | RF-50–52 |
 | 8. Notifiche | Centro notifiche, Telegram, email, riepilogo, sorveglianza esterna | RF-60–62 |
 | 9. Pianificazione | Calendario completo, griglia IG, fasce orarie, programmazione in blocco | RF-40–43 |
-| 10. Condivisione e brand | Link cliente, logo e colori, PWA | RF-63, RF-71, RF-72 |
+| 10. Condivisione e brand | Link cliente, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-63, RF-71–73 |
 | 11. Operazioni | Pulizia, backup, runbook, dashboard, prova di carico (§6.4), revisione sicurezza e accessibilità | RNF-01–13 |
 | 12. Messa in produzione | Test reale insieme, poi uso quotidiano | Tutti i criteri §2.3 |
 
@@ -1287,7 +1329,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | 1.3 | Statistiche e report per cliente, orario migliore per pubblicare | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
-| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento Meta con login Facebook, dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20) |
+| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento Meta con login Facebook, dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20) |
 
 ### 18.3 Predisposizione per MCP
 
@@ -1358,6 +1400,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Cifratura dei backup | Sempre, con `age` | Claude |
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
+| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma), da approvare |
 
 ---
 
@@ -1394,7 +1437,9 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Tailscale con Funnel sulla VPS; più avanti eventuale dominio su Cloudflare | Tappa 4 |
 | App Meta, utente di sistema e token (con la procedura guidata; il token lo incolli tu nel pannello, mai in chat) | Tappa 3 |
 | Un account IG e una Pagina FB di prova | Tappa 3 e test reale |
-| Dominio (consigliato su Cloudflare, ~10–15 €/anno), quando scegli il nome | Prima di invitare il team: pannello, host pubblico, mittente email e passkey usano lo stesso nome |
+| Dominio (consigliato su Cloudflare, ~10–15 €/anno), quando scegli il nome | Prima di invitare il team: sito, pannello, host pubblico, mittente email e passkey usano lo stesso nome |
+| Token API di Cloudflare per pubblicare il sito, inserito da te nei segreti del repository GitHub (mai in chat) | Tappa 10 |
+| Dati per le pagine legali (titolare, email di contatto, eventuale partita IVA) e approvazione di testi e immagini del sito | Tappa 10 |
 | Servizio email: Brevo (gratuito fino a 300 email al giorno, dati in Europa) o Scaleway TEM | Tappa 3 |
 | Chiave privata dei backup, da conservare nel tuo gestore di password | Tappa 1 |
 | Bot Telegram (@BotFather) | Tappa 8 |

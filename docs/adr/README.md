@@ -16,3 +16,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [010](010-versioni-runtime.md) | Versioni di base: Node 24, Nuxt 4, TypeScript 6.0 | Proposta, da approvare con la specifica v9 |
 | [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Proposta, da approvare con la specifica v9 |
 | [012](012-better-auth.md) | Accesso e account con Better Auth | Accettata (Matteo, 2026-10-15) |
+| [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Proposta, da approvare con la specifica v9 |

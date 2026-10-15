@@ -120,8 +120,8 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Introduce:** tabelle `time_slots`, `bulk_imports`, lavoro `bulk.import`.
 
 ### Tappa 10 · Condivisione e brand
-- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android. RF-63, RF-71, RF-72, CS6.
-- **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login).
+- **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
+- **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui`) e workflow `site.yml`.
 
 ### Tappa 11 · Operazioni
 - **Prova di carico** di §6.4 con i suoi obiettivi, nella CI settimanale.
