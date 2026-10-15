@@ -21,3 +21,7 @@
 # File generati: diff compatti nelle PR
 pnpm-lock.yaml linguist-generated=true -diff
 packages/infrastructure/src/db/migrations/meta/** linguist-generated=true
+
+# Impeccable (skill di design per gli agenti, copiata da pbakaus/impeccable)
+.claude/skills/impeccable/** linguist-vendored=true
+.claude/skills/impeccable/scripts/data/*.json -diff

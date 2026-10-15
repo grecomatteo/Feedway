@@ -34,3 +34,6 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 *.log
+
+# Impeccable: i dati della skill non sono dati locali
+!.claude/skills/impeccable/scripts/data/
