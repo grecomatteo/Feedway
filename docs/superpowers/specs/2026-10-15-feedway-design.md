@@ -625,6 +625,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `target.verify` | 3 minuti dopo, poi 10 e 30 se serve | §9.6 |
 | `scheduler.reconcile` | Ogni minuto | Ricrea i lavori mancanti |
 | `bulk.import` | Su richiesta | §11.6 |
+| `plan.due_soon` | Al momento della notifica di §11.12 | Uno per contenuto pianificato (chiave: id del contenuto), con `organizationId`; creato o sostituito nella stessa transazione di ogni modifica del contenuto o del fuso dell'organizzazione, tolto quando il contenuto è tolto o preparato; il gestore rilegge contenuto e post e non fa nulla se non serve più |
 | `notify.dispatch` / `notify.deliver` | Per ogni evento / destinatario e canale | §12 |
 | `telegram.poll` | Continuo | Comandi del bot |
 | `report.daily` | Ogni mattina | §12.4 |
@@ -698,7 +699,7 @@ Un utente può avere ruoli diversi in spazi diversi e in organizzazioni diverse.
 | Creare e modificare le proprie bozze, note | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Programmare e pubblicare, anche in blocco | ✓ | ✓ | ✓ | ✓ | | |
 | Pianificare contenuti nel piano editoriale: creare, spostare, togliere (`plan.edit`, §11.12) | ✓ | ✓ | ✓ | ✓ | | |
-| Preparare un post da un contenuto pianificato | ✓ | ✓ | ✓ | ✓ | ✓ | |
+| Preparare un post da un contenuto pianificato (`plan.prepare`) | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | Modificare/annullare post di altri | ✓ | ✓ | ✓ | | | |
 | Riprovare pubblicazioni fallite | ✓ | ✓ | ✓ | solo propri | | |
 | Gestire etichette, modelli, fasce orarie, gruppi di account | ✓ | ✓ | ✓ | | | |
@@ -712,7 +713,7 @@ Un utente può avere ruoli diversi in spazi diversi e in organizzazioni diverse.
 | Registro attività completo | ✓ | ✓ | | | | |
 | Integrazioni, brand, impostazioni dell'organizzazione | ✓ | sola lettura | | | | |
 
-Tutti i ruoli che vedono il calendario vedono anche i contenuti pianificati. Un Member senza ruolo nello spazio non ha nessuna colonna: non vede lo spazio.
+Le due righe del piano editoriale (`plan.edit`, `plan.prepare`) e `plan.view`, che hanno tutti i ruoli che vedono il calendario, sono registrate dal modulo `plan` nella tappa 9 (§7.3), non dal nucleo della tappa 2. Un Member senza spazi si crea solo da Owner e Admin: un Manager che invita deve indicare almeno uno spazio. Un Member senza ruolo nello spazio non ha nessuna colonna: non vede lo spazio.
 
 ¹ Solo ruoli inferiori al proprio (Publisher, Editor, Viewer). ² Un Admin non può modificare l'Owner né altri Admin; solo l'Owner nomina gli Admin.
 
@@ -767,7 +768,7 @@ Una passkey è legata all'indirizzo del pannello: passando da `*.ts.net` a un do
 4. Verifica di dimensione e hash, analisi (ffprobe/sharp), risultati dei controlli.
 5. Correzioni e conversioni nel worker subito dopo l'upload, con barra di avanzamento e anteprima del file finale.
 6. Limiti configurabili: dimensione massima per file, spazio totale per spazio di lavoro.
-7. **Anteprima dei video**: ogni video caricato (MP4 o MOV, i formati di telefoni e fotocamere) si può riprodurre nell'editor, nell'anteprima come su Meta e nel dettaglio del post, con play, pausa, avanzamento e audio. Appena scelto, se il browser sa riprodurre il file lo mostra subito dal computer, senza aspettare l'upload; altrimenti (tipicamente l'HEVC dell'iPhone, che Chrome e Firefox non riproducono) mostra la prima immagine e "Anteprima in preparazione". Il worker crea sempre una **copia di anteprima** in MP4 H.264 a 720p, leggera e con `faststart`, che si vede in ogni browser; il file pubblicato resta l'originale (o la sua correzione, §9.2), non la copia. La copia è servita solo dal pannello, mai dall'host pubblico, e si cancella con il media.
+7. **Anteprima dei video**: ogni video caricato (MP4 o MOV, i formati di telefoni e fotocamere) si può riprodurre nell'editor, nell'anteprima come su Meta e nel dettaglio del post, con play, pausa, avanzamento e audio. Appena scelto, se il browser sa riprodurre il file lo mostra subito dal computer, senza aspettare l'upload; altrimenti (tipicamente l'HEVC dell'iPhone, che Chrome e Firefox non riproducono) mostra la prima immagine e "Anteprima in preparazione". Il worker crea sempre una **copia di anteprima** in MP4 H.264 a 720p, leggera e con `faststart`, che si vede in ogni browser; il file pubblicato resta l'originale (o la sua correzione, §9.2), non la copia. La copia è servita solo dal pannello, mai dall'host pubblico (non ha `public_token`), conta nello spazio occupato e si cancella insieme al file originale (§11.9). Nel link cliente i video si mostrano con la variante `share` (copertina e una propria copia H.264). La riproduzione dal computer usa un indirizzo `blob:`, ammesso nella CSP solo per `media-src` (§15.3).
 
 ### 11.2 Creazione del post
 
@@ -778,7 +779,7 @@ Una sola pagina, su una colonna da telefono e su due da computer:
    - **Copertina del reel**, in due modi: **"Scegli un fotogramma"** con un cursore sul video (con le frecce della tastiera per spostarsi di un fotogramma), oppure **"Carica copertina"**, con "Scegli file" o trascinando un'immagine sull'area della copertina. L'anteprima mostra subito la copertina in 9:16 e nel ritaglio della griglia del profilo IG (§11.5); "Ripristina" torna al fotogramma predefinito. L'immagine caricata passa dai controlli di §9.2 (convertita in JPEG sRGB, proporzioni consigliate 9:16, 1080×1920). Su Instagram si usa `thumb_offset` per il fotogramma o `cover_url` per l'immagine (§8.5); per i reel Facebook il supporto della copertina tramite API è **da verificare** al primo contatto reale: finché non è verificato il riepilogo avvisa che su Facebook la copertina potrebbe non essere applicata.
 4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**.
 5. **Dove pubblicare**: elenco dei **profili** dello spazio (§3), formati solo con gli account di quello spazio, ognuno con una casella e, sotto, i suoi account IG e FB, ognuno con la propria casella. Spuntare il profilo spunta entrambi gli account; si può poi togliere uno dei due (es. solo Instagram). Ricerca per nome o @username, "seleziona tutti" e **gruppi salvati**. Un account da ricollegare o non pubblicabile (§8.4) compare disattivato con il motivo e non si può spuntare. Se il contesto attivo è un profilo, l'elenco parte con quel profilo già spuntato; se è un cliente, nulla è spuntato.
-6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera".
+6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera". L'ora parte già compilata con l'**orario predefinito del cliente** (impostato nello spazio, per esempio 18:00), se c'è; si cambia liberamente.
 7. **Etichette** e **note interne**.
 8. **Riepilogo destinazioni**: cosa verrà pubblicato su ogni account e come. "Programma" si attiva solo senza blocchi e con una scelta per ogni avviso.
 
@@ -804,13 +805,14 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 - **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Da preparare (§11.12), Oggi, Questa settimana; selettore "Mostra: Post · Piano · Entrambi".
 - Ogni voce: miniatura, orario, icone degli account, colore dello stato ed etichette; clic per il dettaglio con anteprima.
 - **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla".
+- **"+" su ogni giorno** (visibile al passaggio del mouse e al focus da tastiera, sempre visibile sul telefono), per chi può creare bozze: apre Nuovo post con quel giorno e l'orario predefinito del cliente già compilati. Da "Tutti i clienti" chiede prima il cliente. Non compare sui giorni passati.
 - Filtri salvati nell'indirizzo della pagina.
 - Il calendario segue il contesto attivo (§14.6): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.
 - Ognuno vede solo gli spazi a cui ha accesso nell'organizzazione corrente; Owner e Admin li vedono tutti.
 
 ### 11.5 Griglia Instagram
 
-Per ogni account IG, la griglia del profilo (con le proporzioni attuali delle miniature: rettangolari 3:4 da inizio 2025, **da verificare** prima della tappa 9) con i post già pubblicati (letti dall'API con i permessi esistenti) e quelli programmati inseriti al loro posto. Puoi **riordinare trascinando**: gli orari si scambiano di conseguenza, con conferma e "Annulla".
+Per ogni account IG, la griglia del profilo (con le proporzioni attuali delle miniature: rettangolari 3:4 da inizio 2025, **da verificare** prima della tappa 6, perché la usa già l'anteprima della copertina) con i post già pubblicati (letti dall'API con i permessi esistenti) e quelli programmati inseriti al loro posto. Puoi **riordinare trascinando**: gli orari si scambiano di conseguenza, con conferma e "Annulla".
 
 ### 11.6 Programmazione in blocco e fasce orarie
 
@@ -853,11 +855,12 @@ Un Manager o Admin crea dallo spazio un **link di condivisione**:
 Il cliente **vede soltanto**: il calendario del solo suo spazio, anteprime, orari e link ai post pubblicati. Nessun commento, nessuna approvazione, nessun dato di altri clienti o del team, nessuna nota interna. Sola lettura.
 
 **Come si presenta**:
-- **Intestazione**: da un lato il logo di Feedway, dall'altro il logo del cliente e "gestito da" con il logo dell'agenzia (§14.3); senza logo, il nome. Il colore è quello dell'agenzia.
+- **Intestazione**: da un lato il logo della piattaforma (il brand della piattaforma, oggi Feedway, nome da `PRODUCT_NAME`), dall'altro il logo del cliente e "gestito da" con il logo dell'agenzia (§14.3); senza logo, il nome. Il colore è quello dell'agenzia. I loghi arrivano sull'host pubblico con gli stessi token dedicati delle miniature del link, mai con indirizzi del pannello.
 - **Calendario a mesi completi** in scorrimento verticale: il mese corrente come griglia intera (lunedì–domenica), poi i mesi successivi sotto, finché ci sono contenuti o fino al limite "solo i prossimi N giorni". È la vista "da lontano": in ogni giorno miniature piccole con ora e tipo; un clic apre l'anteprima del post. Sul telefono ogni mese diventa un elenco per giorno, perché sette colonne a 390 px non si leggono.
-- **Contenuti in preparazione** (§11.12): compaiono come "In preparazione" con tipo, titolo e ora, se l'opzione del link "Mostra i contenuti in preparazione" è attiva (predefinita: sì).
+- **Post mostrati**: solo da "programmato" in poi (programmati, in pubblicazione, pubblicati); mai bozze, annullati o in pausa.
+- **Contenuti in preparazione** (§11.12): compaiono come "In preparazione" con tipo, titolo e ora, se l'opzione del link "Mostra i contenuti in preparazione" è attiva (predefinita: sì) e il modulo del piano è attivo. Un contenuto resta "In preparazione" finché il suo post non è programmato (anche se esiste già la bozza o se il post è stato annullato), così non sparisce dalla vista del cliente. Mai la scritta "In ritardo": per il cliente è sempre "In preparazione".
 
-**"Stampa o salva PDF"**: un pulsante prepara la stampa della pagina con il foglio di stile di stampa del browser, da cui si stampa o si salva in PDF (nessun generatore di PDF sul server, nessuna dipendenza in più). Formato **A4 orizzontale, un mese per pagina**, con la stessa intestazione; contiene **solo le pubblicazioni da oggi in poi** (data del fuso dell'agenzia al momento della richiesta) e i contenuti in preparazione se mostrati; mai note interne. Stesso pulsante anche nel calendario del pannello, nel contesto di un cliente, per chi può creare link cliente.
+**"Stampa o salva PDF"**: un pulsante prepara la stampa della pagina con il foglio di stile di stampa del browser, da cui si stampa o si salva in PDF (nessun generatore di PDF sul server, nessuna dipendenza in più). Formato **A4 orizzontale, un mese per pagina**, con la stessa intestazione; contiene **solo le pubblicazioni da oggi in poi** (data del fuso dell'agenzia al momento della richiesta) e i contenuti in preparazione se mostrati; mai note interne. Stesso pulsante anche nel calendario del pannello, nel contesto di un cliente, per chi può creare link cliente: stampa **la vista del cliente** con gli stessi campi dichiarati del link, mai la vista del pannello (autori, etichette, bozze, stati interni).
 
 Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token propri, limitazione delle richieste, `noindex`, ogni creazione e revoca nel registro attività.
 
@@ -879,7 +882,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 **Una sezione a sé**
 - Voce **"Piano editoriale"** nel menu a sinistra, separata dal Calendario.
 - Il cliente è quello del contesto attivo (§14.6). Se il contesto è "Tutti i clienti", prima di mostrare il calendario una finestra chiede **"Per quale cliente fai il piano?"** (solo i clienti in cui l'utente può pianificare); la scelta diventa il contesto.
-- La pagina è un **calendario del mese da riempire**, vuoto all'inizio, con frecce per i mesi successivi. Si clicca un giorno (o Invio sul giorno, da tastiera) e si apre un modulo breve: **giorno, tipo** (reel, carosello, foto, storia) e **titolo** obbligatori; **ora** e **nota per chi prepara** facoltative. Invio = salvato, il modulo resta aperto per il successivo, così un mese si pianifica di seguito.
+- La pagina è un **calendario del mese da riempire**, vuoto all'inizio, con frecce per i mesi successivi. Si clicca un giorno (o Invio sul giorno, da tastiera) e si apre un modulo breve: **giorno, tipo** (reel, carosello, foto, storia) e **titolo** obbligatori; **ora** (già compilata con l'orario predefinito del cliente, se c'è; si può svuotare) e **nota per chi prepara** facoltative. Invio = salvato, il modulo resta aperto per il successivo, così un mese si pianifica di seguito.
 - Avviso sotto il titolo: "Il titolo può comparire nel calendario del cliente; la nota no."
 - Si sposta trascinando su un altro giorno (con "Annulla" e l'alternativa "Sposta" nel menu), si modifica e si toglie dal suo menu.
 - I contenuti già preparati restano visibili qui con "Preparato" e il collegamento al post, così il piano del mese si legge per intero.
@@ -887,26 +890,27 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 - Sul telefono il mese diventa un elenco di giorni, ognuno con "+".
 
 **Come si vede nel calendario principale**
-- Scheda **tratteggiata e semitrasparente** con tipo, titolo, ora se c'è ed etichetta **"Da preparare"**: non si può confondere con un post vero. Diventa gialla con "Mancano meno di 36 ore" quando l'ora prevista (o l'inizio del giorno, se l'ora manca) è vicina, rossa con "In ritardo" quando è passata senza post.
+- Scheda **tratteggiata e semitrasparente** con tipo, titolo, ora se c'è ed etichetta **"Da preparare"**: non si può confondere con un post vero. Diventa gialla con "Mancano meno di 36 ore" e rossa con "In ritardo" secondo l'istante di riferimento della regola 2.
 - Selettore **"Mostra: Post · Piano · Entrambi"** (predefinito: Entrambi), salvato nell'indirizzo come gli altri filtri. Nel calendario principale non si pianifica: dalla scheda si apre il contenuto nel Piano editoriale o si prepara il post.
-- Notifica **"Contenuto da preparare entro domani"** 24 ore prima a chi può prepararlo in quello spazio (§12.2), e una riga nel riepilogo delle 8:00 (§12.4).
+- Notifica **"Contenuto da preparare entro domani"** a chi può prepararlo in quello spazio (§12.2): 24 ore prima dell'istante di riferimento se il contenuto ha un'ora, alle 9:00 del giorno prima se non ce l'ha (mai di notte; valgono comunque le ore di silenzio). Una riga anche nel riepilogo delle 8:00 (§12.4).
 
 **Da segnaposto a post**
-- **"Prepara questo contenuto"** apre Nuovo post con cliente, giorno, ora (o la prossima fascia libera di quel giorno, §11.6) e tipo già compilati e la nota in evidenza. Se il file scelto non corrisponde al tipo pianificato, l'editor lo dice senza bloccare.
+- **"Prepara questo contenuto"** apre Nuovo post con cliente, giorno, ora (quella pianificata; se manca, l'orario predefinito del cliente; altrimenti la prossima fascia libera di quel giorno, §11.6) e tipo già compilati e la nota in evidenza. Se il file scelto non corrisponde al tipo pianificato, l'editor lo dice senza bloccare.
 - Appena il post esiste (anche solo come bozza) la scheda tratteggiata **sparisce** e resta il post, con un piccolo segno "dal piano".
 
 **Regole di dominio** (fissate qui perché nessuna tappa debba rifarle)
 1. Un contenuto pianificato appartiene a **un solo spazio** e porta al massimo **un post**; un post viene al massimo da un contenuto pianificato.
-2. Giorno e ora sono una **data locale più ora facoltativa** nel fuso predefinito dell'organizzazione (§6.5), non un istante: "il 20" senza orario è valido e il cambio dell'ora legale non lo sposta. Diventano un istante solo quando nasce il post, con la regola dell'ora inesistente o doppia di §9.2. Le soglie "meno di 36 ore" e "in ritardo" si calcolano con `Clock`.
+2. Giorno e ora sono una **data locale più ora facoltativa** nel fuso predefinito dell'organizzazione (§6.5), non un istante: "il 20" senza orario è valido e il cambio dell'ora legale non lo sposta. Per avvisi e notifiche si usa un **istante di riferimento** calcolato da una sola funzione del dominio: data e ora, oppure la fine della giornata (23:59) se l'ora manca, convertiti con la regola dell'ora inesistente o doppia di §9.2. "In ritardo" scatta dopo l'istante di riferimento, "meno di 36 ore" 36 ore prima; si calcolano con `Clock`. Il post nato dal piano diventa un istante con la stessa regola.
 3. Il post può uscire in un giorno diverso da quello pianificato: nel dettaglio del post compare "Previsto dal piano il 20", senza bloccare.
 4. Se si toglie un contenuto pianificato, il post già creato resta com'è.
 5. Se il post viene annullato o cancellato, il contenuto torna "Da preparare".
 6. Il cliente vede tipo, titolo, giorno e ora; **mai la nota**. I campi esposti al link cliente sono dichiarati uno per uno.
 
 **Regole tecniche**
-- Modulo `plan` (§7.3), attivabile per organizzazione, con i permessi `plan.view` e `plan.edit`. È il primo modulo che aggiunge voci al calendario tramite il registro dei moduli, lo stesso che useranno le attività della 1.5.
+- Modulo `plan` (§7.3), attivabile per organizzazione, con i permessi `plan.view`, `plan.edit` e `plan.prepare` (§10.2). Con il modulo spento i contenuti pianificati non compaiono da nessuna parte, link cliente compreso. È il primo modulo che aggiunge voci al calendario tramite il registro dei moduli, lo stesso che useranno le attività della 1.5.
 - Il piano dipende dai post, mai il contrario. "Prepara" è un caso d'uso del modulo `plan` che chiama la funzione pubblica di creazione della bozza del modulo dei post e salva il collegamento **nella stessa transazione**: la scheda sparisce subito, senza aspettare un evento. Lo stato "preparato / annullato" si legge dal post tramite la funzione pubblica di lettura dei post, quindi non può andare fuori sincrono. Gli eventi servono solo alle notifiche.
-- Nessun contatto con Meta; un solo lavoro leggero in coda, per la notifica di scadenza, con `organizationId` nei dati.
+- Nessun contatto con Meta; un solo lavoro leggero in coda, `plan.due_soon` (§9.4), uno per contenuto, con `organizationId` nei dati.
+- Il collegamento al post è l'unico riferimento tra moduli ammesso nel database: `plan_items.post_id` con chiave esterna composta e `ON DELETE SET NULL (post_id)` (Postgres 15+), così una bozza abbandonata cancellata dopo 30 giorni (§11.9) libera il contenuto pianificato senza toccare `organization_id`. Preparare di nuovo un contenuto il cui post è stato annullato sostituisce il collegamento; il post annullato perde il segno "dal piano".
 
 ---
 
@@ -948,7 +952,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 
 ### 12.4 Riepilogo giornaliero
 
-Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3).
+Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3); il lavoro di sistema avvia solo i riepiloghi, e ogni sezione si calcola dentro `uow.run({ organizationId, userId })` del destinatario.
 
 ---
 
@@ -991,7 +995,7 @@ api_tokens          id, organization_id, user_id, name, token_hash, scopes, expi
 
 -- Spazi e account
 workspaces          id, organization_id, name, slug (unico nell'organizzazione), logo_key,
-                    archived_at
+                    default_post_time (facoltativa, ora locale), archived_at
 workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer)
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
                     avatar_url, page_id, active, health (ok|warning|error),
@@ -1009,7 +1013,8 @@ media               id, workspace_id, uploaded_by, kind (image|video),
                     duration_ms, fps, video_codec, audio_codec, analysis (jsonb),
                     storage_key, deleted_at
 media_variants      id, media_id, purpose (ig_feed|fb_photo|reel|story|thumbnail|share|preview|cover),
-                    storage_key, public_token (unico), mime, size_bytes, width, height
+                    storage_key, public_token (unico, null per preview: mai servita da /m/*),
+                    mime, size_bytes, width, height
 library_folders     id, workspace_id, name, parent_id
 library_items       media_id, folder_id, tags
 
@@ -1104,7 +1109,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 ### 14.3 Tema e brand
 
 - Tema **chiaro, scuro e automatico**, scelto per utente; entrambi con contrasti AA.
-- **Logo e colore principale** per organizzazione, caricati da Impostazioni: pannello, email, bot, link cliente. Logo del singolo cliente facoltativo, caricato dallo spazio. Nel link cliente compaiono il logo di Feedway, quello del cliente e "gestito da" con quello dell'agenzia (§11.10). La pagina di login, che viene prima della scelta dell'agenzia, usa il brand della piattaforma.
+- **Logo e colore principale** per organizzazione, caricati da Impostazioni: pannello, email, bot, link cliente. Logo del singolo cliente facoltativo, caricato dallo spazio. Nel link cliente compaiono il logo della piattaforma, quello del cliente e "gestito da" con quello dell'agenzia (§11.10). La pagina di login, che viene prima della scelta dell'agenzia, usa il brand della piattaforma.
 - **Selettore dell'agenzia** in alto, visibile solo a chi appartiene a più organizzazioni; accanto, il selettore del contesto (§14.6).
 
 ### 14.4 Schermate
@@ -1122,7 +1127,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Programmazione in blocco | da Publisher | §11.6 |
 | Post | tutti | Elenco filtrabile, dettaglio per destinazione con tentativi, verifica e link |
 | Libreria | da Editor | §11.8 |
-| Spazi di lavoro | Admin; Manager per il proprio | Account, membri, fasce, etichette, modelli, gruppi, link cliente |
+| Spazi di lavoro | Admin; Manager per il proprio | Account, membri, orario predefinito, fasce, etichette, modelli, gruppi, link cliente |
 | Account social | Admin | Stato, quota, "Aggiungi account", assegnazione agli spazi |
 | Utenti | Admin; Manager per inviti nei propri spazi | Inviti, ruoli, disattivazione nell'agenzia, reset (solo utenti della sola agenzia) |
 | Registro attività | Admin; Manager per il proprio spazio | Filtri per utente, azione, data, origine |
@@ -1197,7 +1202,7 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 ### 15.3 Richieste
 - Input validato con Zod sul server; risposte con DTO espliciti.
 - CSRF: `SameSite`, controllo di `Origin`/`Sec-Fetch-Site`, header personalizzato obbligatorio sulle API.
-- nuxt-security: CSP con nonce, HSTS, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`.
+- nuxt-security: CSP con nonce (`media-src 'self' blob:` per l'anteprima locale dei video), HSTS, `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`.
 - Limiti di dimensione e frequenza; errori generici verso il browser con ID richiesta, dettaglio solo nei log.
 
 ### 15.4 File
@@ -1408,7 +1413,7 @@ Tutte le funzioni concordate sono nella 1.0. La si costruisce in tappe, ognuna i
 | 7. Pubblicazione | Coda, macchina a stati, IG, FB, errori, esito incerto, riconciliatore, verifica | RF-50–52 |
 | 8. Notifiche | Centro notifiche, Telegram, email, riepilogo, sorveglianza esterna | RF-60–62 |
 | 9. Pianificazione | Calendario completo (mese predefinito, settimana dettagliata, libreria a richiesta), **piano editoriale** (§11.12), griglia IG, fasce orarie, programmazione in blocco | RF-40–43, RF-46 |
-| 10. Condivisione e brand | Link cliente con mesi completi e "Stampa o salva PDF", contenuti in preparazione, stampa del Piano editoriale, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-63, RF-71–73 |
+| 10. Condivisione e brand | Link cliente con mesi completi e "Stampa o salva PDF", contenuti in preparazione, stampa del Piano editoriale, logo e colori, PWA, sito pubblico con "Accedi" e pagine legali | RF-46 (parte cliente), RF-63, RF-71–73 |
 | 11. Operazioni | Pulizia, backup, runbook, dashboard, prova di carico (§6.4), revisione sicurezza e accessibilità | RNF-01–13 |
 | 12. Messa in produzione | Test reale insieme, poi uso quotidiano | Tutti i criteri §2.3 |
 
@@ -1521,7 +1526,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | VPS unica (punto singolo di guasto) | Alto se si spegne | Sorveglianza esterna, backup, ripristino provato |
 | CPU limitata per video lunghi | Basso | Conversioni subito dopo l'upload, una alla volta; un core in più se serve. La copia di anteprima a 720p si crea per prima, così si vede presto |
 | Copertina dei reel Facebook via API | Basso | Da verificare al primo contatto reale; finché non è verificata, avviso nel riepilogo |
-| Proporzioni della griglia del profilo IG (3:4 dal 2025) | Basso | Da verificare prima della tappa 9; l'anteprima usa una costante sola |
+| Proporzioni della griglia del profilo IG (3:4 dal 2025) | Basso | Da verificare prima della tappa 6; l'anteprima usa una costante sola |
 | Ampiezza della 1.0 | Medio | Sviluppo a tappe installabili; priorità chiara (§18.1) |
 | Vulnerabilità in Better Auth (diversi avvisi nel 2026, uno critico ad agosto in plugin che non usiamo) | Medio | Versione fissata, aggiornamenti di sicurezza immediati, solo i plugin necessari, test dei flussi di accesso a ogni aggiornamento; token di sessione nel database da proteggere come le password (database in rete interna, backup cifrati) |
 | Dati di un'agenzia visibili a un'altra | Alto | Doppia barriera applicazione + RLS, test di isolamento su ogni rotta e lavoro (§6.5) |
@@ -1547,6 +1552,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Dati per le pagine legali (titolare, email di contatto, eventuale partita IVA) e approvazione di testi e immagini del sito | Tappa 10 |
 | Servizio email: Brevo (gratuito fino a 300 email al giorno, dati in Europa) o Scaleway TEM | Tappa 3 |
 | Chiave privata dei backup, da conservare nel tuo gestore di password | Tappa 1 |
+| Conferma del Piano editoriale nella 1.0 (§11.12, §19) | Prima della tappa 9 |
 | Bot Telegram (@BotFather) | Tappa 8 |
 | Account di sorveglianza esterna (es. healthchecks.io) | Tappa 8 |
 | Cartella di backup inclusa nel tuo rclone | Tappa 11 |

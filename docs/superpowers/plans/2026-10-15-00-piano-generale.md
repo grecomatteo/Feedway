@@ -53,7 +53,7 @@ Ogni piano di tappa le include implicitamente.
 - **Flusso di lavoro** (`docs/flusso-git.md`, scelto da Matteo il 2026-10-15): un ramo corto e una **PR piccola per task** (`<tipo>/<tappa>-<argomento>`), titolo in Conventional Commits, CI verde e revisione automatica, squash merge su `main`; a fine tappa Matteo prova e fonde la PR di rilascio di release-please (tappa N → `0.N.0`, tappa 12 → `1.0.0`); sulla VPS `./scripts/update.sh vX.Y.Z`. Ogni tappa è una milestone GitHub.
 - **TDD:** per dominio e casi d'uso il test si scrive prima del codice e si vede fallire.
 - **Livelli:** `domain` non importa nulla di esterno; `application` dipende solo da interfacce (porte); rotte API e gestori dei lavori sono sottili (validano, chiamano un caso d'uso, traducono). dependency-cruiser blocca la CI se un confine è violato.
-- **Moduli (§7.3):** ogni area funzionale è un modulo con la stessa forma in `domain`, `application`, `infrastructure/db`, `contracts`, rotte e pagine; un modulo usa solo le proprie tabelle e parla con gli altri tramite le loro funzioni pubbliche (`application/<modulo>/index.ts`) o gli eventi; permessi, tipi di notifica, voci di menu e strumenti MCP si registrano dal modulo stesso. La ricetta sta in `docs/moduli.md` (scritta nella tappa 2).
+- **Moduli (§7.3):** ogni area funzionale è un modulo con la stessa forma in `domain`, `application`, `infrastructure/db`, `contracts`, rotte e pagine; un modulo usa solo le proprie tabelle e parla con gli altri tramite le loro funzioni pubbliche (`application/<modulo>/index.ts`) o gli eventi; permessi, tipi di notifica, voci di menu, voci del calendario, sezioni del riepilogo e strumenti MCP si registrano dal modulo stesso. La tappa 2 fissa i permessi del nucleo come unione chiusa (`Permission`) e la sua tabella di prova copia solo le righe del nucleo di §10.2; un modulo successivo aggiunge i propri permessi estendendo l'interfaccia `ModulePermissions` (declaration merging di TypeScript) e le proprie righe della matrice, con i propri test. La ricetta sta in `docs/moduli.md` (scritta nella tappa 2).
 - **Autorizzazione:** ogni caso d'uso chiama `can()` prima di agire; ogni elenco è filtrato sugli spazi visibili nel repository; una risorsa non visibile restituisce 404, non 403.
 - **Errori:** errori di dominio tipizzati (`DomainError` con `code`), tradotti in HTTP in un solo punto.
 - **Tempo:** date salvate in UTC (`timestamptz`); fuso di riferimento `Europe/Rome`; nessun `new Date()` nei casi d'uso: si usa la porta `Clock`.
@@ -101,7 +101,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 6 · Post
 - **Costruisce:** pagina Nuovo post che parte dal contesto attivo, scelta "Dove pubblicare" per profili con ogni account deselezionabile (specifica §11.2), anteprima stile Meta con zone sicure su cui si possono trascinare i file, ordine del carosello trascinando (con alternativa a pulsanti), video riproducibili nell'editor, **copertina del reel** da fotogramma o da immagine caricata o trascinata (§11.2), bozze con salvataggio automatico, modifica e annullamento con blocco ottimistico, modelli, etichette, note, gruppi di account, reel nel feed. RF-34–RF-38, RF-44.
-- **Introduce:** `PostRepository` con funzioni pubbliche di creazione della bozza e di lettura dello stato che il modulo `plan` userà nella tappa 9 (la firma si fissa qui), tabelle `posts`, `post_media` (con la copertina), `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
+- **Introduce:** `PostRepository`; funzioni pubbliche del modulo `posts` in `application/posts/index.ts` che il modulo `plan` userà nella tappa 9 (la firma si fissa qui): `createDraft(tx, actor, input)` dentro la transazione del chiamante e `getStatuses(tx, postIds[])` in blocco, per non fare una query per scheda; colonna `workspaces.default_post_time` (orario predefinito del cliente, specifica §11.2); tabelle `posts`, `post_media` (con la copertina), `post_targets` (solo stati `draft`/`scheduled`/`cancelled`), `labels`, `post_notes`, `caption_templates`, `account_groups`; limite `posts_per_day`; fuso predefinito dell'organizzazione per i nuovi post.
 - **Prerequisito:** prototipo approvato.
 
 ### Tappa 7 · Pubblicazione
@@ -119,11 +119,11 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
 - **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
 - **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
-  1. dominio `plan` con le sei regole di §11.12 e stato calcolato con `Clock` (test prima del codice, compreso il 25 ottobre alle 02:30);
+  1. dominio `plan` con le sei regole di §11.12, la funzione dell'istante di riferimento e lo stato calcolato con `Clock` (test prima del codice, compresi 2026-10-25 02:30, ora doppia, e 2027-03-28 02:30, ora inesistente);
   2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
-  3. casi d'uso e API `/api/v1/orgs/[org]/plan` con `plan.view` e `plan.edit` e OpenAPI;
-  4. "Prepara": caso d'uso del piano che crea la bozza tramite la funzione pubblica dei post e salva il collegamento nella stessa transazione; stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
-  5. sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
+  3. casi d'uso e API `/api/v1/orgs/[org]/plan` con `plan.view`, `plan.edit` e `plan.prepare` (registrati dal modulo) e OpenAPI;
+  4. "Prepara": caso d'uso del piano che crea la bozza con `createDraft(tx, …)` e salva il collegamento nella stessa transazione (chiave esterna `ON DELETE SET NULL (post_id)`); stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
+  5. nel calendario il "+" su ogni giorno che apre Nuovo post su quel giorno (specifica §11.4); sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
   6. editor: precompilazione e avviso sul tipo;
   7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
   La stampa del Piano editoriale (schede piene) arriva nella tappa 10 con il foglio di stile di stampa del calendario cliente.
@@ -167,6 +167,9 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
 | `MetaPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
+| Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
+| Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |
+| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, postIds[])` |
 
 Le tabelle seguono la tappa che le introduce (§5); nessuna tappa crea tabelle "per dopo", tranne `api_tokens` (tappa 2), predisposta dalla specifica per MCP.
 
