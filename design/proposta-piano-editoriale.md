@@ -30,12 +30,12 @@ Permesso nuovo proposto: `plan.edit`.
 ## Impatto tecnico (stima)
 
 - Una tabella `plan_items` (`organization_id`, `workspace_id`, `date`, `time` facoltativa, `type`, `title`, `note`, `post_id` facoltativo, `created_by`) con RLS come le altre.
-- Nessun contatto con Meta e nessun lavoro in coda: è un modulo leggero accanto a `posts`.
+- Nessun contatto con Meta; un solo lavoro leggero in coda, per la notifica di scadenza. È un modulo accanto a `posts`.
 - Un evento facoltativo «contenuto pianificato non preparato» può alimentare notifiche e, nella 1.5, le attività.
 
-## Decisione aperta
+## Decisione
 
-Inserirlo nella **1.0** (consigliato: piccolo, dà valore subito e distingue il prodotto) oppure nella **1.1**.
+Raccomandato nella **1.0**, tappe 9 e 10 (vedi sotto). Da confermare da Matteo e riportare nella specifica e nel piano generale.
 
 ## Collocazione nel piano di sviluppo (raccomandazione)
 
