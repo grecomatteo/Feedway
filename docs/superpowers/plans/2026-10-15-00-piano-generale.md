@@ -6,7 +6,7 @@
 
 **Architettura:** monolite modulare TypeScript (pannello Nuxt + worker Node) su PostgreSQL con coda pg-boss, a livelli `domain → application → infrastructure/apps` verificati in CI. Ogni tappa aggiunge casi d'uso, tabelle e schermate sopra le interfacce delle tappe precedenti.
 
-**Stack:** Node 24 LTS, TypeScript 6.0, Nuxt 4 + Nuxt UI 4, PostgreSQL 17, Drizzle, pg-boss 12, Zod 4, Vitest, Testcontainers, Playwright, pnpm + Turborepo, Docker Compose.
+**Stack:** Node 24 LTS, TypeScript 6.0, Nuxt 4 + Nuxt UI 4, PostgreSQL 18, Drizzle, pg-boss 12, Zod 4, Vitest, Testcontainers, Playwright, pnpm + Turborepo, Docker Compose.
 
 **Spec:** `docs/superpowers/specs/2026-10-15-feedway-design.md` (v9, con la predisposizione multi-agenzia di §6.5 e l'account personale con Better Auth di §10.5 e §15.1). Il piano argomenta dalla specifica: chi esegue legge entrambe.
 
@@ -88,7 +88,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Serve da Matteo:** app Meta, utente di sistema, un account IG e una Pagina FB di prova.
 
 ### Tappa 4 · Media
-- **Scalabilità:** la batteria di test di `Storage` gira anche contro MinIO, così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
+- **Scalabilità:** la batteria di test di `Storage` gira anche contro Garage (S3 compatibile; MinIO Community non è più distribuito), così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
 - **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
 - **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
 - **Matteo prova:** carica da telefono un HEIC e un video lungo su rete instabile; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
@@ -151,7 +151,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `Auth` | 2 | adattatore di Better Auth: sessione della richiesta, account da invito, revoca delle sessioni, link di reset, verifica della riconferma; nessun altro modulo importa Better Auth |
 | `IntegrationStore` | 3 | `get(organizationId, kind)` (con ricaduta sulla piattaforma), `replace(organizationId, kind, config, secret)` |
 | `MetaGraphClient` | 3 | funzioni tipizzate per chiamata, errori classificati `transient`/`permanent`/`uncertain` |
-| `Storage` | 2 (disco), 4 (media, MinIO) | `put`, `get`, `delete`, `publicUrl(variant)`; chiavi `org/<id>/…` e `users/<id>/…` |
+| `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete`, `publicUrl(variant)`; chiavi `org/<id>/…` e `users/<id>/…` |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
 | `MetaPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |

@@ -20,7 +20,7 @@ In progettazione. La versione 1.0 si sviluppa in 12 tappe, ognuna installabile e
 
 ## Stack
 
-Node 24 LTS · TypeScript 6.0 · Nuxt 4 + Nuxt UI 4 · PostgreSQL 17 · Drizzle · pg-boss · Zod · Vitest · Playwright · pnpm + Turborepo · Docker Compose.
+Node 24 LTS · TypeScript 6.0 · Nuxt 4 + Nuxt UI 4 · PostgreSQL 18 · Drizzle · pg-boss · Zod · Vitest · Playwright · pnpm + Turborepo · Docker Compose. Alternative valutate e motivi: [docs/stack.md](docs/stack.md).
 
 ## Sviluppo locale
 

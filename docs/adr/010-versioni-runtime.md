@@ -15,7 +15,8 @@ La 1.0 vivrà almeno fino al 2028. Le versioni di base devono essere supportate 
 ## Alternative scartate
 - **Node 22**: esce dal supporto ad aprile 2027.
 - **Nuxt 3**: non riceve più aggiornamenti di sicurezza.
-- **TypeScript 7** (nuovo compilatore): non ancora garantito con `vue-tsc`.
+- **TypeScript 7** (nuovo compilatore, uscito a luglio 2026): non ancora supportato da `vue-tsc`.
+- **Node 26**: diventa LTS solo a fine ottobre 2026; ci si passa con una PR dedicata appena lo è (supporto fino ad aprile 2029), prima della tappa 2.
 
 ## Conseguenze
 - Renovate proporrà il passaggio a TypeScript 7 quando sarà compatibile.

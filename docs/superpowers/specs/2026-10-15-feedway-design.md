@@ -235,7 +235,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
                  rete "internal" (nessun accesso a internet)
          ┌──────────────────┼────────────────────┐
  ┌───────▼───────┐  ┌───────▼────────┐  ┌────────▼──────┐
- │ worker (Node) │  │ postgres 17    │  │ backup        │
+ │ worker (Node) │  │ postgres 18    │  │ backup        │
  │ pg-boss,      │  │ dati + coda    │  │ pg_dump       │
  │ ffmpeg        │  └────────────────┘  └───────────────┘
  └───────┬───────┘
@@ -291,7 +291,7 @@ La 1.0 gira su una VPS, ma il codice è scritto per crescere senza riscritture: 
 | web | Un container | Più copie dietro un bilanciatore | Sessioni, limiti di frequenza e cache dei permessi nel database, mai in memoria del processo |
 | worker | Un container, tutte le code | Più copie; worker dedicati per tipo (conversioni video su una macchina, pubblicazione su un'altra) | `SKIP LOCKED` e chiavi di unicità; variabile `WORKER_QUEUES` per scegliere le code di ogni worker |
 | Processi unici (bot Telegram, battito, riconciliatore) | Un worker | Un solo esecutore attivo anche con molti worker | Lock consultivo di Postgres: se l'esecutore cade, un altro subentra |
-| File | Disco della VPS dietro l'interfaccia `Storage` | Storage a oggetti S3-compatibile (Cloudflare R2, MinIO), servito dal CDN | Nessun codice accede al disco direttamente; la stessa batteria di test vale per entrambe le implementazioni |
+| File | Disco della VPS dietro l'interfaccia `Storage` | Storage a oggetti S3-compatibile (Cloudflare R2, Garage), servito dal CDN | Nessun codice accede al disco direttamente; la stessa batteria di test vale per entrambe le implementazioni |
 | Database | Un Postgres, indici e conservazione dei dati | PgBouncer, partizionamento mensile delle tabelle che crescono sempre (`audit_log`, `target_attempts`, `notifications`, `outbox_events`), repliche di lettura | Migrazioni solo in avanti; tabelle a sola aggiunta già separate |
 | Meta | Una app e un utente di sistema per organizzazione, limiti letti per account | I limiti di Meta sono per account e per app: crescono con gli account | Concorrenza e rallentamento per account (§8.6) |
 | Installazione | Docker Compose | Stessa immagine su più server o Kubernetes | Un'immagine, configurazione solo da ambiente e database, nessun file locale oltre a `Storage` |
@@ -410,22 +410,24 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 | Parte | Scelta | Motivo |
 |---|---|---|
 | Linguaggio | TypeScript 6.0 `strict` + `noUncheckedIndexedAccess` (passaggio a TypeScript 7 quando gli strumenti di Nuxt lo supportano) | Errori trovati in compilazione |
-| Runtime | Node 24 LTS (supportato fino ad aprile 2028) | Versione con supporto più lungo |
+| Runtime | Node 24 LTS (supportato fino ad aprile 2028); Node 26 appena diventa LTS (fine ottobre 2026, supporto fino ad aprile 2029) | Versione con supporto più lungo |
 | Pannello + API | Nuxt 4 (Vue 3) | Un solo progetto per UI e API; Nuxt 3 non riceve più aggiornamenti |
 | UI | Nuxt UI 4 (Tailwind) + `packages/ui` | Componenti accessibili, temi con token |
-| Database | PostgreSQL 17 | Affidabile, transazioni, JSONB |
-| ORM | Drizzle + drizzle-kit | Query tipizzate, migrazioni SQL leggibili |
+| Database | PostgreSQL 18 | Affidabile, transazioni, JSONB, RLS, `uuidv7()` nativo; supportato fino al 2030 |
+| ORM | Drizzle + drizzle-kit (1.0 se stabile all'inizio della tappa 1, altrimenti 0.45 con passaggio pianificato) | Query tipizzate, migrazioni SQL leggibili |
 | Coda | pg-boss | §6.2 |
 | Validazione | Zod | Stessi schemi per pannello, API e configurazione |
 | API | OpenAPI generata dagli schemi | Documentazione sempre allineata |
 | Accesso | Better Auth (versione fissata) con plugin `twoFactor` e `@better-auth/passkey`; password argon2id (`@node-rs/argon2`) | Login, sessioni, 2FA e passkey già pronti e sul nostro database (ADR 012) |
 | Sicurezza HTTP | nuxt-security | CSP, header, limiti |
-| Media | ffmpeg/ffprobe, sharp, heic-convert | Analisi e conversione |
+| Media | ffmpeg/ffprobe, sharp, libheif-js (HEIC) | Analisi e conversione |
 | Log | pino (JSON) | Strutturati, segreti oscurati |
 | Date | Luxon | Fusi orari e ora legale |
 | PWA | @vite-pwa/nuxt | App installabile |
 | Test | Vitest, Testcontainers, Playwright | §17 |
 | Monorepo | pnpm workspaces + Turborepo | Build e test incrementali |
+
+Le alternative valutate per ogni componente, con lo stato delle versioni al 2026-10-15, sono in [`docs/stack.md`](../../stack.md).
 
 ---
 
@@ -1198,7 +1200,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 ```yaml
 # schema indicativo
 services:
-  postgres: { image: postgres:17-alpine, networks: [internal], volumes: [pgdata:/var/lib/postgresql/data] }
+  postgres: { image: postgres:18-alpine, networks: [internal], volumes: [pgdata:/var/lib/postgresql] }  # dalla 18 i dati stanno in /var/lib/postgresql/18/docker
   migrate:  { image: ghcr.io/grecomatteo/feedway:<versione>, command: migrate, networks: [internal],
               depends_on: { postgres: { condition: service_healthy } } }
   web:      { image: ghcr.io/grecomatteo/feedway:<versione>, command: web, networks: [internal, edge],
@@ -1398,7 +1400,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Modifica caption dopo la pubblicazione | Esclusa (Instagram via API non lo consente) | Claude |
 | Programmazione FB | Gestita da Feedway, non nativa (ADR 003) | Claude |
 | Nome | **Feedway** (scelto il 2026-10-15; repository `grecomatteo/Feedway`). Il nome visibile sta in una sola costante e nessun identificativo tecnico lo contiene (database `app`, pacchetti `@app/*`) | Matteo |
-| Versioni | Nuxt 4, Node 24 LTS, TypeScript 6.0 | Claude, da approvare |
+| Versioni | Nuxt 4, Node 24 LTS (poi 26), TypeScript 6.0, PostgreSQL 18; alternative valutate in `docs/stack.md` | Claude, da approvare |
 | Accesso e account | Better Auth, con organizzazioni e ruoli nostri (ADR 012) | Matteo |
 | Registrazione | Solo da invito nella 1.0; libera nella 2.0 | Claude, modificabile |
 | Account personale | Soprannome, foto profilo, passkey, email di sicurezza, esportazione e cancellazione self-service | Matteo + Claude |
