@@ -1,0 +1,28 @@
+# Documentazione
+
+| Documento | A cosa serve | Quando si aggiorna |
+|---|---|---|
+| [Specifica](superpowers/specs/2026-10-15-feedway-design.md) | Cosa fa la piattaforma e come è fatta: la fonte di verità | A ogni decisione che cambia comportamento o architettura |
+| [Motivazioni account personale](superpowers/specs/2026-10-15-account-personale-proposta.md) | Perché Better Auth, confronto opzioni e costi, scelte GDPR | Non si aggiorna: integrata nella specifica v9 |
+| [Piano generale](superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, interfacce tra tappe, regole comuni | A ogni tappa |
+| Piani delle tappe (`superpowers/plans/2026-10-15-NN-*.md`) | Task eseguibili, file, firme, test | Scritti all'inizio di ogni tappa, sul codice reale |
+| [ADR](adr/README.md) | Decisioni architetturali con le alternative scartate | Una nuova scheda per ogni decisione importante |
+| [Flusso Git](flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci | Quando cambia il modo di lavorare |
+| [Convenzioni](convenzioni.md) | Lingua, TypeScript, nomi, errori, tempo, database, interfaccia | Quando nasce una regola nuova |
+| [Moduli](moduli.md) | Ricetta per aggiungere un modulo | Quando cambia la forma di un modulo |
+| [CONTRIBUTING](../CONTRIBUTING.md) · [AGENTS](../AGENTS.md) · [SECURITY](../SECURITY.md) | Come si contribuisce, istruzioni per gli agenti, segnalazioni di sicurezza | Raramente |
+
+## Documenti che nascono durante lo sviluppo
+
+Si scrivono insieme al codice che descrivono, così non restano mai indietro:
+
+| Documento | Tappa |
+|---|---|
+| `runbooks/installazione.md` | 1 |
+| `runbooks/aggiornamento-e-rollback.md` | 1 |
+| `runbooks/primo-accesso-e-nuova-agenzia.md` | 2 |
+| `privacy/informativa.md`, `privacy/registro-trattamenti.md` | 2 |
+| `runbooks/rotazione-token-meta.md` | 3 |
+| `runbooks/meta-collegamento-account.md` | 3 |
+| `runbooks/ripristino-backup.md`, `runbooks/violazione-dati.md`, `runbooks/incidenti.md` | 11 |
+| `CHANGELOG.md` (alla radice) | Generato da release-please a ogni rilascio |
