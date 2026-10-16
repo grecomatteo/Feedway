@@ -4,9 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@app/application": "workspace:*",
+    "@app/domain": "workspace:*",
+    "pino": "10.4.0",
+    "uuid": "14.0.3"
   }
 }
