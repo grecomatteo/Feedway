@@ -124,6 +124,20 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+      # The VPS may be arm64: prove the same Dockerfile builds there before a release does.
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Immagine arm64
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/arm64
+          build-args: APP_VERSION=0.0.0-ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   install-smoke:
     runs-on: ubuntu-latest

@@ -16,6 +16,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
@@ -36,11 +37,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
-      - name: Immagine
-        run: |
-          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/feedway"
-          echo "IMAGE=$image" >> "$GITHUB_ENV"
-          docker build -f docker/Dockerfile --build-arg "APP_VERSION=${TAG#v}" -t "$image:$TAG" .
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Nome immagine
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/feedway" >> "$GITHUB_ENV"
+      # The scan runs on the amd64 build; the published image is the same Dockerfile for amd64 and arm64.
+      - name: Immagine per la scansione
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          build-args: APP_VERSION=${{ needs.release-please.outputs.version }}
+          tags: ${{ env.IMAGE }}:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}
@@ -48,11 +62,24 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
-      - name: Pubblicazione su GHCR
+      - name: Accesso a GHCR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Pubblicazione su GHCR (amd64 e arm64)
+        id: push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: APP_VERSION=${{ needs.release-please.outputs.version }}
+          tags: ${{ env.IMAGE }}:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Riepilogo
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          docker push "$IMAGE:$TAG"
-          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:$TAG")"
-          echo "Immagine pubblicata: $digest" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Immagine pubblicata (amd64 e arm64): $IMAGE@$DIGEST" | tee -a "$GITHUB_STEP_SUMMARY"
