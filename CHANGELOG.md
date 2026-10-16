@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/grecomatteo/Feedway/compare/v0.1.0...v0.1.1) (2026-10-16)
+
+
+### Correzioni
+
+* **docker:** immagine pubblicata per amd64 e arm64 ([#28](https://github.com/grecomatteo/Feedway/issues/28)) ([aed2c85](https://github.com/grecomatteo/Feedway/commit/aed2c85ff652b2ad38281dc39ca76d20caecf443))
+
 ## 0.1.0 (2026-10-16)
 
 
