@@ -3,6 +3,11 @@ name: Titolo della PR
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      title:
+        description: Titolo da controllare (PR di rilascio, dove la PR non avvia i workflow)
+        required: true
 
 permissions:
   contents: read
@@ -20,5 +25,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Titolo della PR
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_TITLE: ${{ github.event.pull_request.title || inputs.title }}
         run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint

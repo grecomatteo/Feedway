@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Release PRs are opened with the default token and do not start workflows: run CI by hand on their branch.
+  workflow_dispatch:
 
 permissions:
   contents: read
