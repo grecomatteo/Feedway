@@ -13,6 +13,7 @@ export default tseslint.config(
       'docs/**',
       'coverage/**',
       '**/migrations/**',
+      'tools/arch-fixtures/*/**',
     ],
   },
   ...tseslint.configs.strictTypeChecked,
