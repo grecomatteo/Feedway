@@ -5,5 +5,14 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@app/application": "workspace:*",
+    "@app/config": "workspace:*",
+    "@app/infrastructure": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "pg": "8.23.1"
   }
 }
