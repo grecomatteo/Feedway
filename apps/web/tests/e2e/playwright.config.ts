@@ -18,7 +18,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['github'], ['list']] : 'list',
+  reporter: process.env.CI
+    ? [['github'], ['list'], ['html', { open: 'never', outputFolder: '../../playwright-report' }]]
+    : 'list',
   projects: [
     project('desktop-light', devices['Desktop Chrome'], 'light'),
     project('desktop-dark', devices['Desktop Chrome'], 'dark'),

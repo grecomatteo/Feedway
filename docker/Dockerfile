@@ -26,8 +26,12 @@ FROM ${NODE_IMAGE} AS runtime
 ARG APP_VERSION=0.0.0-dev
 ENV NODE_ENV=production APP_VERSION=${APP_VERSION} HOST=0.0.0.0 PORT=3000
 RUN apt-get update \
+    && apt-get upgrade --yes \
     && apt-get install --no-install-recommends --yes ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+       /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-* \
     && groupadd --gid 10001 app \
     && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app

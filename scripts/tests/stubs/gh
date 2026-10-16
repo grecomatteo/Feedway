@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Records the calls and plays a repository that may already have a ruleset named "main".
+echo "gh $*" >>"${STUB_LOG:?}"
+case "$*" in
+  "api repos/"*"/rulesets" | "api repos/"*"/rulesets --paginate")
+    if [ -n "${STUB_RULESET_ID:-}" ]; then
+      printf '[{"id": %s, "name": "main"}]\n' "$STUB_RULESET_ID"
+    else
+      echo '[]'
+    fi
+    ;;
+esac
+exit 0
