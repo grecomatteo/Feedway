@@ -3,7 +3,22 @@ import { fileURLToPath } from 'node:url'
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
   devtools: { enabled: false },
-  modules: ['nuxt-security'],
+  modules: ['@nuxt/ui', '@nuxtjs/i18n', 'nuxt-security'],
+  css: ['~/assets/main.css'],
+  colorMode: {
+    preference: 'system',
+    fallback: 'light',
+    // 'dark' class on <html>, theme kept in a cookie so the server renders the right theme
+    classSuffix: '',
+    storage: 'cookie',
+    storageKey: 'theme',
+  },
+  i18n: {
+    defaultLocale: 'it',
+    strategy: 'no_prefix',
+    locales: [{ code: 'it', language: 'it-IT', file: 'it.json', name: 'Italiano' }],
+  },
+  icon: { provider: 'none', clientBundle: { scan: true } },
   telemetry: false,
   nitro: {
     errorHandler: fileURLToPath(new URL('./server/error.ts', import.meta.url)),

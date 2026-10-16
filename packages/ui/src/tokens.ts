@@ -1,0 +1,101 @@
+// Values come from DESIGN.md (Pencil variables). Status colours carry their meaning
+// independently of the brand and are always paired with an icon and text in the UI.
+
+export const statusTokens = [
+  'status-draft',
+  'status-scheduled',
+  'status-publishing',
+  'status-verifying',
+  'status-confirmed',
+  'status-problem',
+  'status-paused',
+] as const
+
+export const tokenNames = [
+  'bg',
+  'surface',
+  'surface-sunken',
+  'nav-bg',
+  'text',
+  'text-muted',
+  'border',
+  'border-strong',
+  'brand',
+  'on-brand',
+  'brand-soft',
+  'focus',
+  'success',
+  'success-soft',
+  'warning',
+  'warning-soft',
+  'danger',
+  'danger-soft',
+  'info',
+  'info-soft',
+  ...statusTokens,
+] as const
+
+export type TokenName = (typeof tokenNames)[number]
+export type Theme = Record<TokenName, string>
+
+const light: Theme = {
+  bg: '#FAF9F6',
+  surface: '#FFFFFF',
+  'surface-sunken': '#F3F1EC',
+  'nav-bg': '#F3F1EC',
+  text: '#242321',
+  'text-muted': '#5F5B55',
+  border: '#E3DFD7',
+  'border-strong': '#CFCAC0',
+  brand: '#FF762E',
+  'on-brand': '#242321',
+  'brand-soft': '#FFE8DA',
+  focus: '#242321',
+  success: '#17693F',
+  'success-soft': '#E3F3EA',
+  warning: '#8A5200',
+  'warning-soft': '#FFF1D2',
+  danger: '#B3261E',
+  'danger-soft': '#FCE9E7',
+  info: '#1F5AA6',
+  'info-soft': '#E7EFFA',
+  'status-draft': '#7A756D',
+  'status-scheduled': '#1F5AA6',
+  'status-publishing': '#2F57C2',
+  'status-verifying': '#1B7A9E',
+  'status-confirmed': '#17693F',
+  'status-problem': '#B3261E',
+  'status-paused': '#8A5200',
+}
+
+const dark: Theme = {
+  bg: '#191817',
+  surface: '#242321',
+  'surface-sunken': '#1F1E1C',
+  'nav-bg': '#141312',
+  text: '#F4F2EE',
+  'text-muted': '#B9B4AC',
+  border: '#3A3835',
+  'border-strong': '#55524D',
+  brand: '#FF762E',
+  'on-brand': '#242321',
+  'brand-soft': '#3D2A1F',
+  focus: '#FF762E',
+  success: '#6FD39C',
+  'success-soft': '#173326',
+  warning: '#F2B860',
+  'warning-soft': '#3A2C12',
+  danger: '#FF8A80',
+  'danger-soft': '#3D1C1A',
+  info: '#8CB8F2',
+  'info-soft': '#18273B',
+  'status-draft': '#9B958B',
+  'status-scheduled': '#8CB8F2',
+  'status-publishing': '#7FA5F5',
+  'status-verifying': '#6CC4E0',
+  'status-confirmed': '#6FD39C',
+  'status-problem': '#FF8A80',
+  'status-paused': '#F2B860',
+}
+
+export const themes: Record<'light' | 'dark', Theme> = { light, dark }

@@ -12,3 +12,4 @@ packages/infrastructure/src/db/migrations
 *.md
 .github
 docs
+packages/ui/tokens.css
