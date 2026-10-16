@@ -1,0 +1,14 @@
+node_modules
+pnpm-lock.yaml
+dist
+.output
+.nuxt
+.turbo
+coverage
+design
+.claude
+docs/superpowers
+packages/infrastructure/src/db/migrations
+*.md
+.github
+docs

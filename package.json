@@ -1,0 +1,40 @@
+{
+  "name": "feedway",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=24.11 <25"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "arch:check": "echo \"arch:check: definito al Task 2\"",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project integration",
+    "test:e2e": "turbo run test:e2e",
+    "db:generate": "pnpm --filter @app/infrastructure db:generate",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm arch:check && pnpm test:unit",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,mts,cjs,mjs,json,yml,yaml}": "prettier --write"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.12.0",
+    "eslint-plugin-security": "4.2.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "prettier": "3.9.10",
+    "turbo": "2.11.8",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.4"
+  }
+}
