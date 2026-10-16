@@ -81,7 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: shellcheck docker/entrypoint.sh scripts/ci/*.sh
+      - run: sudo apt-get update && sudo apt-get install --yes bats age
+      - run: shellcheck docker/entrypoint.sh scripts/install.sh scripts/update.sh scripts/lib/*.sh scripts/ci/*.sh scripts/tests/stubs/*
+      - run: bats scripts/tests
       - run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
       - run: scripts/ci/compose-smoke.sh
 

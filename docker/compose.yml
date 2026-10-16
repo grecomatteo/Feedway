@@ -70,6 +70,7 @@ services:
       TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
       MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
       REQUIRE_2FA: ${REQUIRE_2FA:-admins}
+      BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     secrets: [database_url, app_encryption_key]
     volumes:
@@ -125,8 +126,6 @@ services:
     volumes:
       - tailscale-state:/var/lib/tailscale
       - ./docker/tailscale:/config:ro
-    depends_on:
-      web: { condition: service_healthy }
     networks: [edge]
     security_opt:
       - no-new-privileges:true

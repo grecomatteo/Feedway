@@ -37,3 +37,6 @@ Thumbs.db
 
 # Impeccable: i dati della skill non sono dati locali
 !.claude/skills/impeccable/scripts/data/
+
+# Stato locale degli script
+.state/

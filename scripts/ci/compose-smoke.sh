@@ -99,4 +99,23 @@ failed_migration_keeps_web() {
 }
 check "failed migration keeps previous web running" failed_migration_keeps_web
 
+install_from_scratch() {
+  local dir="$work/install" status=0
+  dc down --volumes --remove-orphans >/dev/null 2>&1
+  mkdir "$dir"
+  cp -r "$repo/scripts" "$repo/docker" "$dir/"
+  (
+    cd "$dir" || exit 1
+    git init -q . && git add -A && git -c user.email=ci@example.invalid -c user.name=ci commit -qm smoke
+    INSTALL_NONINTERACTIVE=1 INSTALL_SKIP_TAILSCALE=1 INSTALL_OWNER_EMAIL=owner@example.invalid \
+      INSTALL_IMAGE="$IMAGE" INSTALL_IMAGE_TAG="$IMAGE_TAG" INSTALL_AGE_KEY_OUT="$work/age.key" \
+      ./scripts/install.sh >&2
+  ) || status=1
+  [ "$status" -eq 0 ] && ready
+  local result=$?
+  (cd "$dir" && COMPOSE_FILE=docker/compose.yml:docker/compose.ci.yml docker compose --project-directory . down --volumes --remove-orphans >/dev/null 2>&1)
+  return "$result"
+}
+check "install from scratch" install_from_scratch
+
 exit "$failed"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# No real privilege escalation in tests: drop the sudo flags and run the command as is.
+while [ "${1:-}" = "-n" ]; do shift; done
+exec "$@"
