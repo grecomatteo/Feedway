@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node build.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
@@ -13,6 +14,7 @@
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
+    "esbuild": "0.27.7",
     "pg": "8.23.1"
   }
 }

@@ -77,6 +77,14 @@ jobs:
       - run: pnpm --filter @app/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: shellcheck docker/entrypoint.sh scripts/ci/*.sh
+      - run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
+      - run: scripts/ci/compose-smoke.sh
+
   commitlint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
