@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "approved_direction": "arancio-carbone",
+  "colors": {
+    "arancio": {
+      "hex": "#FF762E",
+      "rgb": [
+        255,
+        118,
+        46
+      ]
+    },
+    "carbone": {
+      "hex": "#242321",
+      "rgb": [
+        36,
+        35,
+        33
+      ]
+    },
+    "bianco": {
+      "hex": "#FFFFFF",
+      "rgb": [
+        255,
+        255,
+        255
+      ]
+    },
+    "carta": {
+      "hex": "#FAF9F6",
+      "rgb": [
+        250,
+        249,
+        246
+      ]
+    }
+  },
+  "typography": {
+    "logo": "Sora 650, lettering personalizzato in tracciati",
+    "titles": "Sora 650",
+    "body": "system-ui"
+  },
+  "usage": "arancio e carbone sono la firma; bianco e carta sono fondi di servizio"
+}

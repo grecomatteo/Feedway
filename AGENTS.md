@@ -41,3 +41,13 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 - Documentazione, testi dell'interfaccia, messaggi di commit e PR: **italiano**.
 - Codice, nomi di file, identificativi, nomi dei test: **inglese**.
 - Commenti nel codice: in inglese, solo dove il perché non è evidente.
+
+## Design Feedway
+
+- Per nuovo lavoro UI o cambiamenti ai flussi, leggi `design/brief-feedway/03-BRIEF-APP.md` oppure `04-BRIEF-LANDING.md` secondo la superficie. Controlla il v9 originale quando cambiano dominio o permessi.
+- Per logo, colori e tipografia usa `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md`. Gli asset approvati e il brief prevalgono sulle preferenze generiche delle skill.
+- Usa Pencil tramite MCP e le istruzioni ottenute da `read_skill()`. Gestisci il file `design/feedway-ui.pen` con gli strumenti Pencil. Mantieni modificabili componenti e variabili.
+- Per revisioni UI, errori, responsive e prestazioni usa `design/brief-feedway/06-PROMPT-REVISIONE.md` e i criteri del documento 05. Separa osservazioni sulla tela, prove nel browser e controlli del codice.
+- Conserva contesto durevole in `PRODUCT.md`, scelte adottate in `DESIGN.md` e prove/prossime azioni in `design/reviews/`. Leggi la decisione corrente prima di proporre nuove varianti.
+- Il prototipo in `design/prototipo/` è materiale da buttare: non è il codice dell'app, che nasce dalla tappa 1 del piano.
+- Feedway è il nome pubblico; il nome storico OpenMeta resta nel documento originale. Mantieni i nomi tecnici esistenti salvo un'attività esplicita di migrazione.

@@ -1,0 +1,7 @@
+{
+  "calcolo": "luminanza relativa sRGB",
+  "carbone_su_arancio": 5.894,
+  "bianco_su_arancio": 2.664,
+  "arancio_su_bianco": 2.664,
+  "note": "Stesso rapporto invertendo sfondo e testo; questo controllo della palette non certifica tutta la UI."
+}

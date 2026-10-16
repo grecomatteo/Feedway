@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-15",
+  "kind": "package_verification_not_product_audit",
+  "brand_files_hash_equal": 86,
+  "original_project_unchanged": true,
+  "app_references": 60,
+  "primary_app_references": 12,
+  "metricool_references": 8,
+  "landing_competitor_pages_compared": 5,
+  "landing_official_assets": 4,
+  "landing_full_page_screenshots_included": 0,
+  "broken_local_links_in_three_indexes": 0,
+  "browser_checks": [
+    "package_index_rendered_and_navigation_verified",
+    "landing_reference_index_loaded",
+    "app_gallery_metricool_filter_showed_8_of_60"
+  ],
+  "bulk_fixture": {
+    "rows": 20,
+    "ready": 18,
+    "blocked": 2
+  },
+  "not_executed": [
+    "installation_in_development_repository",
+    "new_pen_canvas_creation",
+    "nuxt_prototype_build",
+    "live_product_usability_test",
+    "conversion_measurement"
+  ],
+  "download_limits": "New Buffer and Metricool downloads denied by browser; not bypassed."
+}

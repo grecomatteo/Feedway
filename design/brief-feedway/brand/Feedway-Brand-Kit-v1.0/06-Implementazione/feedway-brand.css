@@ -1,0 +1,14 @@
+@font-face { font-family: 'Sora'; src: url('../07-Font/Sora-Variable.ttf') format('truetype'); font-weight: 100 800; font-style: normal; font-display: swap; }
+:root {
+  --feedway-orange: #FF762E;
+  --feedway-carbon: #242321;
+  --feedway-white: #FFFFFF;
+  --feedway-paper: #FAF9F6;
+  --feedway-border: #DAD8D3;
+  --feedway-font-brand: 'Sora', system-ui, sans-serif;
+  --feedway-font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.feedway-brand-title { font-family: var(--feedway-font-brand); font-weight: 650; letter-spacing: -.025em; }
+.feedway-button { background: var(--feedway-orange); color: var(--feedway-carbon); border: 1px solid var(--feedway-carbon); font: 600 1rem var(--feedway-font-body); border-radius: .5rem; padding: .75rem 1rem; }
+.feedway-button:focus-visible { outline: 2px solid var(--feedway-carbon); outline-offset: 3px; }
+/* Il logo va inserito dal file SVG: non ricostruirlo digitando il nome. */
