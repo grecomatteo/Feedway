@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
-    "esbuild": "0.27.7",
+    "esbuild": "0.28.1",
     "pg": "8.23.1"
   }
 }
