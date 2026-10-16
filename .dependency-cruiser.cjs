@@ -63,13 +63,15 @@ module.exports = {
           'vitest\\.config',
           '\\.config\\.(ts|mjs|cjs)$',
           '(^|/)main\\.ts$',
+          // Nuxt loads these by convention, nothing imports them
+          '(^|/)apps/web/(app|server)/',
         ],
       },
       to: {},
     },
   ],
   options: {
-    exclude: { path: 'node_modules' },
+    exclude: { path: ['node_modules', '(^|/)\\.(nuxt|output)/'] },
     doNotFollow: { path: 'node_modules' },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {
