@@ -100,7 +100,9 @@ if [ -z "$(env_get BACKUP_AGE_RECIPIENT)" ]; then
   age_output="$(age-keygen 2>/dev/null)"
   recipient="$(printf '%s\n' "$age_output" | sed -n 's/^# public key: //p')"
   private_key="$(printf '%s\n' "$age_output" | grep '^AGE-SECRET-KEY-')"
-  [ -n "$recipient" ] && [ -n "$private_key" ] || die "age-keygen non ha prodotto una chiave valida."
+  if [ -z "$recipient" ] || [ -z "$private_key" ]; then
+    die "age-keygen non ha prodotto una chiave valida."
+  fi
   if [ "$noninteractive" = "1" ]; then
     [ -n "${INSTALL_AGE_KEY_OUT:-}" ] || die "Indica INSTALL_AGE_KEY_OUT."
     printf '%s\n' "$private_key" >"$INSTALL_AGE_KEY_OUT"
