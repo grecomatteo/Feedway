@@ -31,8 +31,8 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 
 ## Commit e PR
 
-- Conventional Commits in italiano (`feat(identity): accesso con passkey`), con il piè di pagina `Co-Authored-By` del tuo strumento.
-- Nessun identificativo di modello nei commit, nelle PR o nel codice.
+- Conventional Commits in italiano (`feat(identity): accesso con passkey`), senza piè di pagina `Co-Authored-By` o simili.
+- **Il nome dello strumento o del modello non compare mai** (regola di Matteo): né nei commit (autore, messaggio, piè di pagina), né nelle PR (titolo, descrizione, commenti, link a sessioni), né nel codice, nei file o nei rami. Se uno strumento aggiunge da solo attribuzioni o link, toglile prima del commit o della PR.
 - Descrizione della PR secondo `.github/pull_request_template.md`.
 - **Fondi da solo la tua PR** (squash) appena la CI è verde, la revisione dell'agente revisore è fatta e le conversazioni sono risolte. Non aspettare Matteo: lo ha chiesto lui ([flusso Git](docs/flusso-git.md) §4).
 
