@@ -20,6 +20,6 @@ Solo l'ultima versione rilasciata riceve correzioni di sicurezza.
 ## Cosa facciamo per prevenire
 
 - Dipendenze aggiornate con Renovate, `pnpm audit` e analisi dell'immagine con Trivy in CI.
-- Analisi del codice con CodeQL; gitleaks e protezione dai push con segreti.
+- Ricerca di segreti con gitleaks in CI; CodeQL e la protezione dai push si attivano se il repository diventa pubblico o ha GitHub Advanced Security.
 - Segreti cifrati nel database, mai nei log, mai al browser.
 - Isolamento tra agenzie con doppia barriera (applicazione + Row Level Security), con test dedicati.

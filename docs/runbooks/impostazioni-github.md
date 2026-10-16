@@ -23,8 +23,8 @@ Settings → General → Pull Requests: lasciare **solo "Allow squash merging"**
 Settings → Code security:
 
 - attivare **Private vulnerability reporting**;
-- attivare **Secret scanning** e **Push protection**;
-- CodeQL gira già dal workflow `codeql.yml`.
+- Secret scanning, Push protection e Code scanning richiedono un repository pubblico o GitHub Advanced Security: finché il repository è privato li copre gitleaks in CI;
+- se il repository diventa pubblico, reintrodurre il workflow CodeQL.
 
 ## 4. Pubblicazione dell'immagine (GHCR)
 
@@ -37,3 +37,7 @@ Settings → Actions → General → **Allow GitHub Actions to create and approv
 ## 6. Aggiornamento delle dipendenze
 
 Installare l'app **Renovate** (github.com/apps/renovate) sul repository. La configurazione è in `renovate.json`: una PR a settimana per patch e minor, una PR per ogni major, mai merge automatico.
+
+## Versione iniziale
+
+La prima release è forzata a `0.1.0` con `release-as` in `release-please-config.json`. Dopo aver unito la prima PR di rilascio, togliere quella riga: le versioni successive seguono i commit.

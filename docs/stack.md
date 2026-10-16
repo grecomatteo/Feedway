@@ -42,7 +42,7 @@ Criteri usati, in quest'ordine: **sicurezza e supporto lungo** (la 1.0 vivrà al
 | Monorepo | pnpm workspaces + Turborepo | Nx, Bun workspaces | Semplice, cache dei comandi, pnpm protegge dalle dipendenze fantasma | |
 | Git e qualità | Husky, lint-staged, commitlint, release-please, Renovate | Lefthook, semantic-release, changesets, Dependabot | Versioni e changelog dai commit; Renovate raggruppa e programma gli aggiornamenti meglio di Dependabot | |
 | CI | GitHub Actions | GitLab CI, CircleCI | Il repository è su GitHub; ruleset e controlli obbligatori integrati | **Aggiunto:** azioni fissate per SHA del commit, dopo la compromissione di `trivy-action` nel marzo 2026 |
-| Sicurezza del codice | CodeQL, gitleaks, Trivy, `pnpm audit` | Snyk, SonarQube | Gratuiti per repository su GitHub | |
+| Sicurezza del codice | gitleaks, Trivy, `pnpm audit` (CodeQL solo se il repository diventa pubblico) | Snyk, SonarQube | Gratuiti per repository su GitHub | |
 | Esecuzione | Docker Compose + `install.sh` / `update.sh` | Coolify, Dokploy, Kamal, Kubernetes | Nessun servizio in più sulla VPS, installazione e ritorno indietro con un comando | |
 | Esposizione | Tailscale, poi Cloudflare Tunnel + Access | Porte aperte con Caddy, ngrok | Nessuna porta aperta sulla VPS | |
 | Backup | pg_dump cifrato con age, copiato con rclone | pgBackRest, WAL-G | Semplice e sufficiente con un dump al giorno; per ripristinare a un minuto preciso si passerà a pgBackRest | |
