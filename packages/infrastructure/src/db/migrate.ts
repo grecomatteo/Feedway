@@ -4,7 +4,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import pg from 'pg'
 import { PgBoss } from 'pg-boss'
 import type { Logger } from '@app/application'
-import { QUEUE_NAMES } from '../queue/queues.js'
+import { QUEUE_DEFAULTS, QUEUES } from '../queue/queues.js'
 
 export const MIGRATIONS_FOLDER = fileURLToPath(new URL('./migrations', import.meta.url))
 
@@ -42,7 +42,9 @@ export async function runMigrations(opts: RunMigrationsOptions): Promise<void> {
   })
   try {
     await boss.start()
-    for (const name of QUEUE_NAMES) await boss.createQueue(name)
+    for (const { name, policy } of QUEUES) {
+      await boss.createQueue(name, { policy, ...QUEUE_DEFAULTS })
+    }
   } finally {
     await boss.stop({ graceful: false })
   }
