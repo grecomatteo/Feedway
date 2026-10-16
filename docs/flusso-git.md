@@ -32,7 +32,7 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 
 <corpo facoltativo: il perché, non il come; righe da 72 caratteri>
 
-<piè di pagina facoltativo: Closes #12, BREAKING CHANGE: …, Co-Authored-By: …>
+<piè di pagina facoltativo: Closes #12, BREAKING CHANGE: …>
 ```
 
 | Tipo | Quando | Effetto sulla versione |
@@ -138,7 +138,7 @@ I ganci aiutano, ma la verità è la CI: un gancio saltato con `--no-verify` vie
 
 ## 11. Firma dei commit
 
-Matteo firma i propri commit con una chiave SSH registrata su GitHub (badge "Verified"). I commit degli agenti portano il piè di pagina `Co-Authored-By` del proprio strumento. La firma non è obbligatoria nel ruleset finché gli agenti non possono firmare; quando potranno, diventa obbligatoria.
+Matteo firma i propri commit con una chiave SSH registrata su GitHub (badge "Verified"). Il nome dello strumento o del modello non compare mai nei commit, nelle PR e nei rami: nessun `Co-Authored-By`, nessun link a sessioni. La firma non è obbligatoria nel ruleset finché gli agenti non possono firmare; quando potranno, diventa obbligatoria.
 
 ## 12. Riepilogo per una giornata tipo
 
