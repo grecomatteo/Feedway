@@ -23,8 +23,8 @@ Settings → General → Pull Requests: lasciare **solo "Allow squash merging"**
 Settings → Code security:
 
 - attivare **Private vulnerability reporting**;
-- attivare **Secret scanning** e **Push protection**;
-- CodeQL gira già dal workflow `codeql.yml`.
+- Secret scanning, Push protection e Code scanning richiedono un repository pubblico o GitHub Advanced Security: finché il repository è privato li copre gitleaks in CI;
+- se il repository diventa pubblico, reintrodurre il workflow CodeQL.
 
 ## 4. Pubblicazione dell'immagine (GHCR)
 
