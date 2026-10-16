@@ -1,0 +1,11 @@
+title = "Feedway"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valori finti usati come esempio o nei test"
+paths = [
+  '''\.env\.example$''',
+  '''pnpm-lock\.yaml$''',
+]

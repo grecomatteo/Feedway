@@ -14,3 +14,11 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@nuxt/ui@4.12.0'
   - '@axe-core/playwright@4.14.0'
+
+# Advisories without a patched version, both in build-time tools that nitropack pulls in:
+# node-forge (listhen, HTTPS dev server) and braces (globby, file globbing while building).
+# Neither is part of the production image. Remove when nitropack ships a fixed version.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-86w9-cpqp-85rv
+    - GHSA-vfj7-8cjw-p6xm
