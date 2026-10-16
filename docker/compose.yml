@@ -1,0 +1,161 @@
+# Run from the repository root: docker compose --project-directory . -f docker/compose.yml ...
+name: feedway
+
+x-image: &image ${IMAGE:-ghcr.io/grecomatteo/feedway}:${IMAGE_TAG:-latest}
+
+x-hardened: &hardened
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    command: postgres -c shared_buffers=256MB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password, db_migrator_password, db_runtime_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/postgres/roles.sql:/opt/feedway/roles.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d app']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    mem_limit: 1g
+    pids_limit: 200
+
+  migrate:
+    image: *image
+    command: [migrate]
+    environment:
+      DATABASE_MIGRATOR_URL_FILE: /run/secrets/database_migrator_url
+      DATABASE_RUNTIME_ROLE: app_runtime
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    secrets: [database_migrator_url]
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: 'no'
+    mem_limit: 256m
+
+  web:
+    <<: *hardened
+    image: *image
+    command: [web]
+    environment: &app-env
+      DATABASE_URL_FILE: /run/secrets/database_url
+      APP_ENCRYPTION_KEY_FILE: /run/secrets/app_encryption_key
+      PANEL_URL: ${PANEL_URL:?PANEL_URL manca (vedi .env.example)}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      META_MODE: ${META_MODE:-live}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v24.0}
+      TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
+      MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
+      REQUIRE_2FA: ${REQUIRE_2FA:-admins}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    secrets: [database_url, app_encryption_key]
+    volumes:
+      - media:/media
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/ready').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks: [internal, edge]
+    mem_limit: 512m
+    pids_limit: 200
+
+  worker:
+    <<: *hardened
+    image: *image
+    command: [worker]
+    environment:
+      <<: *app-env
+      WORKER_QUEUES: ${WORKER_QUEUES:-all}
+    secrets: [database_url, app_encryption_key]
+    volumes:
+      - media:/media
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD, node, apps/worker/dist/healthcheck.js]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    networks: [internal, egress]
+    mem_limit: 1g
+    pids_limit: 200
+
+  tailscale:
+    image: tailscale/tailscale@sha256:87c55d6be56ad85b3d8bceca5f87f73de288c609131460dd1be1874c250cc41d
+    hostname: ${TS_HOSTNAME:-feedway}
+    environment:
+      TS_HOSTNAME: ${TS_HOSTNAME:-feedway}
+      TS_AUTHKEY: file:/run/secrets/ts_authkey
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_USERSPACE: 'true'
+    secrets: [ts_authkey]
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./docker/tailscale:/config:ro
+    depends_on:
+      web: { condition: service_healthy }
+    networks: [edge]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    mem_limit: 256m
+
+networks:
+  internal:
+    internal: true
+  edge: {}
+  egress: {}
+
+volumes:
+  pgdata: {}
+  media: {}
+  tailscale-state: {}
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  db_migrator_password:
+    file: ./secrets/db_migrator_password
+  db_runtime_password:
+    file: ./secrets/db_runtime_password
+  database_url:
+    file: ./secrets/database_url
+  database_migrator_url:
+    file: ./secrets/database_migrator_url
+  app_encryption_key:
+    file: ./secrets/app_encryption_key
+  ts_authkey:
+    file: ./secrets/ts_authkey

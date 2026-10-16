@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.nuxt
+**/.output
+**/dist
+**/.turbo
+.pnpm-store
+.env
+.env.*
+secrets
+design
+docs
+playwright-report
+test-results
+coverage
