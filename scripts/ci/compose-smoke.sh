@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2329  # functions are called through check and trap
+# shellcheck disable=SC2317,SC2329  # functions are called through check and trap
 # Smoke test of the production compose stack. Needs the image: docker build -f docker/Dockerfile -t app:ci .
 # Runs in a temporary project directory, so a real ./secrets is never touched.
 set -uo pipefail
