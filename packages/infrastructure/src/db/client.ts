@@ -15,6 +15,7 @@ export function createDb(url: string, opts: { max: number; applicationName: stri
   const pool = new pg.Pool({
     connectionString: url,
     max: opts.max,
+    connectionTimeoutMillis: 3000,
     application_name: opts.applicationName,
   })
   // an idle client dropped by the server (e.g. a restart) must not crash the process

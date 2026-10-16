@@ -1,0 +1,26 @@
+{
+  "name": "@app/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "typecheck": "nuxt prepare && vue-tsc --noEmit && tsc -p tests/tsconfig.json"
+  },
+  "dependencies": {
+    "@app/application": "workspace:*",
+    "@app/config": "workspace:*",
+    "@app/contracts": "workspace:*",
+    "@app/domain": "workspace:*",
+    "@app/infrastructure": "workspace:*",
+    "nuxt": "4.6.1",
+    "nuxt-security": "2.6.0",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "vue-tsc": "3.3.13"
+  }
+}

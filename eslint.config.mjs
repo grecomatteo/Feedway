@@ -27,6 +27,17 @@ export default tseslint.config(
     },
   },
   {
+    // Nuxt auto-imports are only typed through the generated .nuxt projects (run `nuxt prepare` first)
+    files: ['apps/web/server/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['./apps/web/.nuxt/tsconfig.server.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
     files: ['**/*.mjs', '**/*.cjs', '**/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },

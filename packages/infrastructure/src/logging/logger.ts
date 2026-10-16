@@ -32,11 +32,13 @@ export interface LoggerOptions {
 
 function serializeError(err: unknown): unknown {
   if (!(err instanceof Error)) return err
-  const base = pino.stdSerializers.err(err)
+  // only known-safe fields: driver errors carry the whole client (connection parameters included)
+  const code = (err as { code?: unknown }).code
   return {
-    ...base,
-    message: scrubSecrets(base.message),
-    stack: base.stack ? scrubSecrets(base.stack) : base.stack,
+    type: err.name,
+    message: scrubSecrets(err.message),
+    ...(err.stack !== undefined && { stack: scrubSecrets(err.stack) }),
+    ...(typeof code === 'string' && { code }),
   }
 }
 
