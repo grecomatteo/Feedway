@@ -2,3 +2,10 @@ packages:
   - apps/*
   - packages/*
   - tools/*
+
+# Nessuno script di installazione delle dipendenze viene eseguito (esbuild usa il binario precompilato).
+allowBuilds:
+  cpu-features: false
+  esbuild: false
+  protobufjs: false
+  ssh2: false
