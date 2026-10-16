@@ -26,6 +26,7 @@ FROM ${NODE_IMAGE} AS runtime
 ARG APP_VERSION=0.0.0-dev
 ENV NODE_ENV=production APP_VERSION=${APP_VERSION} HOST=0.0.0.0 PORT=3000
 RUN apt-get update \
+    && apt-get upgrade --yes \
     && apt-get install --no-install-recommends --yes ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
