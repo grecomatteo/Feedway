@@ -1,3 +1,11 @@
+<script setup lang="ts">
+useHead({ htmlAttrs: { lang: 'it' } })
+</script>
+
 <template>
-  <NuxtPage />
+  <UApp>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </UApp>
 </template>

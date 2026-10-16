@@ -1,0 +1,18 @@
+{
+  "theme": {
+    "label": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Automatico"
+  },
+  "home": {
+    "title": "Stato del sistema",
+    "loading": "Controllo in corso…",
+    "ok": "Tutto funziona.",
+    "error": "Qualche parte del sistema non risponde.",
+    "retry": "Riprova"
+  },
+  "a11y": {
+    "skipToContent": "Vai al contenuto"
+  }
+}
