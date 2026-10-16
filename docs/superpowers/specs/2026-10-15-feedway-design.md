@@ -68,7 +68,7 @@ Scelte tecniche chiave: TypeScript, Nuxt (pannello + API), worker Node separato,
 | Vincolo | Conseguenza |
 |---|---|
 | Solo API ufficiali Meta | Niente funzioni non offerte dalle API (musica della libreria IG, filtri, profili personali FB) |
-| Account già in Meta Business Suite | Accesso tramite **utente di sistema** e token che non scade |
+| Account Meta (con o senza Pagina) | Accesso tramite **collegamento** per account: login Facebook, login Instagram oppure **utente di sistema** con token che non scade (§8.0, ADR 015) |
 | Meta scarica i file da un URL pubblico | Serve un **host pubblico** separato dal pannello privato |
 | Instagram non ha programmazione nativa via API | La programmazione la gestisce Feedway |
 | VPS condivisa, 2 core e 12 GB | Limiti di CPU e memoria per ogni container; conversioni video una alla volta |
@@ -110,7 +110,8 @@ Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modific
 | **Contesto attivo** | Ciò che stai guardando nell'agenzia corrente: "Tutti i clienti", un cliente (spazio) o un singolo profilo. Restringe pannello e calendario a quella scelta (§14.6). |
 | **Contenuto pianificato** | Segnaposto sul calendario per un contenuto che non esiste ancora (giorno, tipo, titolo), creato nel **Piano editoriale** (§11.12). Diventa un post quando qualcuno lo prepara. |
 | **Destinazione** | Un post su un singolo account. Un post con 5 account ha 5 destinazioni, ognuna con il proprio stato. |
-| **Utente di sistema** | Utente tecnico creato in Business Manager; il suo token permette a Feedway di pubblicare senza login ripetuti. |
+| **Utente di sistema** | Utente tecnico creato in Business Manager; il suo token permette a Feedway di pubblicare senza login ripetuti. È uno dei tre tipi di collegamento (§8.0). |
+| **Collegamento** | Il modo in cui Feedway ottiene l'accesso a un account social: login Facebook, login Instagram o utente di sistema (§8.0). Ogni account ne ha uno. |
 | **Container** | Su Instagram, il contenuto preparato da Meta prima della pubblicazione. Scade dopo 24 ore. |
 | **Host pubblico** | Indirizzo raggiungibile da internet che serve solo i file per Meta (`/m/*`) e i link cliente (`/share/*`). |
 | **Pannello** | L'interfaccia per il team, privata (Tailscale o Cloudflare Access). |
@@ -128,7 +129,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 | Codice | Requisito |
 |---|---|
 | RF-01 | Installazione con un solo script che genera chiavi e password interne. |
-| RF-02 | Prima configurazione guidata in 5 passi: app Meta, utente di sistema, assegnazione asset, token, importazione account. Ogni passo ha un controllo automatico. |
+| RF-02 | Collegamento degli account Meta con login Facebook, login Instagram o utente di sistema (5 passi: app Meta, utente di sistema, assegnazione asset, token, importazione account). Ogni passo ha un controllo automatico. |
 | RF-03 | Procedura guidata "Aggiungi account" per account già nel Business o di clienti con Business proprio. |
 | RF-04 | Procedura guidata "Invita utente". |
 | RF-05 | Integrazioni Meta, Telegram ed email configurabili dal pannello, con pulsante "Prova". |
@@ -328,7 +329,7 @@ Piattaforma (installazione, amministratore della piattaforma)
 **Cosa ha ogni organizzazione**
 | Cosa | Comportamento |
 |---|---|
-| Meta | App, utente di sistema e token propri, del Business dell'agenzia. Nella 2.0 si aggiunge il collegamento con login Facebook (§18.2) |
+| Meta | App Meta propria dell'agenzia; collegamento per account con login Facebook, login Instagram o utente di sistema (§8.0). Nella 2.0 l'app comune passa la revisione Meta (§18.2) |
 | Email e Telegram | Valori predefiniti della piattaforma, sostituibili per organizzazione (mittente e bot propri) |
 | Brand | Logo, colore e piè di pagina email propri: pannello, email, link cliente |
 | Impostazioni | 2FA obbligatoria (mai meno restrittiva della piattaforma), conservazione file, fuso predefinito |
@@ -341,7 +342,7 @@ Piattaforma (installazione, amministratore della piattaforma)
 
 **Nella 1.0**: livello organizzazione completo, isolamento, selettore, integrazioni, brand, impostazioni, limiti e cifratura per organizzazione; creazione di una nuova agenzia da comando (`cli create-organization`), che stampa il link di attivazione per il suo Owner.
 
-**Nella 2.0** (piattaforma aperta ad altre agenzie): pannello dell'amministratore della piattaforma, registrazione autonoma, abbonamenti e pagamenti, collegamento Meta con login Facebook e revisione dell'app, dominio personalizzato per agenzia, esportazione e cancellazione completa di un'organizzazione, accesso di supporto con consenso e registro.
+**Nella 2.0** (piattaforma aperta ad altre agenzie): pannello dell'amministratore della piattaforma, registrazione autonoma, abbonamenti e pagamenti, revisione dell'app Meta comune, dominio personalizzato per agenzia, esportazione e cancellazione completa di un'organizzazione, accesso di supporto con consenso e registro.
 
 ## 7. Struttura del codice e stack
 
@@ -439,7 +440,21 @@ Le alternative valutate per ogni componente, con lo stato delle versioni al 2026
 
 ## 8. Integrazione con Meta
 
-### 8.1 Installazione e prima configurazione
+### 8.0 Modi di collegamento
+
+Ogni account ha un collegamento di un tipo (ADR 015). L'elenco «Account collegati» è unico; il tipo cambia solo come si accede e come si rinnova il token.
+
+| Tipo | Per chi | Come si collega | Note |
+|---|---|---|---|
+| **Login Facebook** | Pagine Facebook e Instagram collegato alla Pagina | «Collega con Facebook», poi scegli Pagine e profili | Il token della persona scade (circa 60 giorni): rinnovo e avviso in «Salute» |
+| **Login Instagram** | Profili Instagram professionali senza Pagina | «Collega solo Instagram» | Il profilo deve essere Business o Creator; con l'app in modalità sviluppo va aggiunto come tester Instagram (da verificare) |
+| **Utente di sistema** | Account nel Business Manager dell'agenzia | Procedura in 5 passi (§8.1) | Token che non scade; opzione per chi preferisce la stabilità |
+
+- Con l'app Meta in modalità sviluppo possono collegare solo le persone con un ruolo nell'app; chi collega vede solo gli account a cui ha già accesso. Nessuna revisione necessaria per l'uso interno; serve per aprire ad altre agenzie (§18.2).
+- Altre piattaforme (per esempio TikTok) si aggiungono come nuovo tipo di collegamento, con login, rinnovo e salute propri. Nella 1.0 si costruiscono solo i tipi Meta.
+- Non verificato su Meta vera: login in modalità sviluppo, rinnovo dei token e inviti dei tester Instagram (verifica in tappa 3 con gli account di prova).
+
+### 8.1 Installazione e prima configurazione (collegamento con utente di sistema)
 
 **Installazione** (unico momento con il terminale, insieme ai comandi con cui l'amministratore della piattaforma crea, sospende e limita altre agenzie fino alla 2.0, §6.5): `install.sh` genera chiavi e password interne, chiede la tua email, il nome della tua agenzia e gli indirizzi del pannello e dell'host pubblico, avvia i container e stampa il link monouso con cui crei il tuo account: amministratore della piattaforma e Owner della prima organizzazione. Gli aggiornamenti si fanno con `update.sh`.
 
@@ -460,9 +475,10 @@ Le alternative valutate per ogni componente, con lo stato delle versioni al 2026
 Procedura "Aggiungi account", che parte da *l'account è già nel tuo Business Manager?*
 - **Sì**: assegna Pagina e Instagram all'utente di sistema, poi "Cerca nuovi account"; lo attivi e scegli lo spazio.
 - **No, è di un cliente con Business proprio**: guida per la richiesta di accesso come partner; il pannello prepara il messaggio con le istruzioni per il cliente.
-- **Instagram non collegato a una Pagina o personale**: guida per convertirlo in professionale e collegarlo.
+- **Instagram senza Pagina**: «Collega solo Instagram» (login Instagram, §8.0); l'account deve essere professionale.
+- **Instagram personale**: guida per convertirlo in professionale (gratuito, dall'app) e poi collegarlo.
 
-Alla fine il pannello verifica che l'account sia pubblicabile (permessi, collegamento IG↔Pagina, quota) e indica il passo da rifare se qualcosa manca.
+Alla fine il pannello verifica che l'account sia pubblicabile (permessi, collegamento IG↔Pagina, quota) e indica il passo da rifare se qualcosa manca. Per un profilo solo Instagram il controllo del collegamento IG↔Pagina non si applica.
 
 ### 8.3 Integrazioni e segreti
 
@@ -479,7 +495,7 @@ I segreti sono cifrati nel database (AES-256-GCM) con la chiave dati dell'organi
 - **Sincronizzazione** (a richiesta e ogni giorno): `GET /me/accounts`, poi per ogni Pagina `GET /{page-id}?fields=name,picture,instagram_business_account{id,username,profile_picture_url}`. Gli account spariti diventano inattivi (mai cancellati); i nuovi restano fuori dagli spazi finché un Admin non li assegna.
 - **Salute** (ogni giorno e prima di ogni pubblicazione): token valido (`/debug_token`), permessi, asset ancora assegnati, quota IG (`GET /{ig-id}/content_publishing_limit`). Gli account con problemi sono rossi e non selezionabili.
 - **Promemoria Meta**: versione della Graph API vicina al ritiro (avviso 90 giorni prima), Data Use Checkup annuale in scadenza, permessi revocati.
-- I token delle Pagine non si salvano: il worker li ricava dal token di sistema e li tiene in memoria al massimo un'ora.
+- I token delle Pagine non si salvano con l'utente di sistema: il worker li ricava dal token di sistema e li tiene in memoria al massimo un'ora. Per i login Facebook e Instagram si salva il token di lunga durata della persona (cifrato, ADR 007), con rinnovo automatico e avviso prima della scadenza; se non si può rinnovare l'account diventa rosso.
 
 ### 8.5 Flussi di pubblicazione
 
@@ -998,10 +1014,13 @@ workspaces          id, organization_id, name, slug (unico nell'organizzazione),
                     default_post_time (facoltativa, ora locale), archived_at
 workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer)
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
-                    avatar_url, page_id, active, health (ok|warning|error),
+                    avatar_url, page_id (vuoto per Instagram solo), connection_id, active,
+                    health (ok|warning|error),
                     health_message, last_synced_at
                     -- page_id: per Facebook l'id della Pagina stessa (= external_id),
                     -- per Instagram l'id della Pagina a cui Meta lo collega; serve al profilo (§3)
+account_connections id, organization_id, kind (facebook_login|instagram_login|meta_system_user),
+                    connected_by (user_id), token_secret_id, expires_at, status, last_refreshed_at
 workspace_accounts  workspace_id, account_id
 account_groups      id, workspace_id, name, account_ids
 time_slots          id, workspace_id, weekday, local_time
@@ -1428,7 +1447,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | 1.3 | Statistiche e report per cliente, orario migliore per pubblicare | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
-| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento Meta con login Facebook, dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
+| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento di tutti i clienti con i login (richiede la revisione dell'app), dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
 
 ### 18.3 Predisposizione per MCP
 
@@ -1545,8 +1564,8 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Approvazione del prototipo | Fine tappa 1 |
 | Chiave di autenticazione Tailscale | Tappa 1 |
 | Tailscale con Funnel sulla VPS; più avanti eventuale dominio su Cloudflare | Tappa 4 |
-| App Meta, utente di sistema e token (con la procedura guidata; il token lo incolli tu nel pannello, mai in chat) | Tappa 3 |
-| Un account IG e una Pagina FB di prova | Tappa 3 e test reale |
+| App Meta e login Facebook/Instagram dal pannello; utente di sistema e token solo se scegli quel collegamento (il token lo incolli tu nel pannello, mai in chat) | Tappa 3 |
+| Un account IG professionale con Pagina FB e uno solo IG, di prova | Tappa 3 e test reale |
 | Dominio (consigliato su Cloudflare, ~10–15 €/anno), quando scegli il nome | Prima di invitare il team: sito, pannello, host pubblico, mittente email e passkey usano lo stesso nome |
 | Token API di Cloudflare per pubblicare il sito, inserito da te nei segreti del repository GitHub (mai in chat) | Tappa 10 |
 | Dati per le pagine legali (titolare, email di contatto, eventuale partita IVA) e approvazione di testi e immagini del sito | Tappa 10 |
