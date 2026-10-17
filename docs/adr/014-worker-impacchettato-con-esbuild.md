@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta (da confermare da Matteo) |
+| **Stato** | Accettata (Matteo, 2026-10-17) |
 | **Data** | 2026-10-16 |
 | **Specifica** | v9 |
 

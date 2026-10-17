@@ -17,5 +17,5 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Accettata (Matteo, 2026-10-15) |
 | [012](012-better-auth.md) | Accesso e account con Better Auth | Accettata (Matteo, 2026-10-15) |
 | [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15) |
-| [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Proposta |
+| [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Accettata (Matteo, 2026-10-17) |
 | [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16) |
