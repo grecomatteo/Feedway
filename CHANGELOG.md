@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.2](https://github.com/grecomatteo/Feedway/compare/v0.1.1...v0.1.2) (2026-10-17)
+
+
+### Documentazione
+
+* **accounts:** collegamenti account multipli per Meta e altre piattaforme ([#31](https://github.com/grecomatteo/Feedway/issues/31)) ([f2e32fb](https://github.com/grecomatteo/Feedway/commit/f2e32fb5fe5e2fcbd5e79179eb79a3244543d076))
+* ADR 014 accettata e eccezioni note ai container ([#34](https://github.com/grecomatteo/Feedway/issues/34)) ([c9ea5be](https://github.com/grecomatteo/Feedway/commit/c9ea5be4e0e64f39f6bebddd43a922022b3b1646))
+* **ops:** runbook di installazione allineato alla prova su VPS ARM ([#33](https://github.com/grecomatteo/Feedway/issues/33)) ([525e9d1](https://github.com/grecomatteo/Feedway/commit/525e9d102133addde1d140a7a06f570ec90c7c94))
+
 ## [0.1.1](https://github.com/grecomatteo/Feedway/compare/v0.1.0...v0.1.1) (2026-10-16)
 
 
