@@ -12,6 +12,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     APP_VERSION: '0.0.0-e2e',
   })
   process.env.E2E_BASE_URL = web.url('/')
+  process.env.E2E_ADMIN_URL = tdb.adminUrl
   return async () => {
     await web.stop()
     await tdb.stop()

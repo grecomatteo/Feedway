@@ -136,8 +136,16 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/arm64
           build-args: APP_VERSION=0.0.0-ci
+          load: true
+          tags: app:ci-arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Native modules must arrive as platform packages: the image installs with --ignore-scripts.
+      - name: Moduli nativi nelle immagini
+        run: |
+          check="import('@node-rs/argon2').then(async (m) => { if (!(await m.verify(await m.hash('x'), 'x'))) process.exit(1); console.log('argon2 ok', process.arch) })"
+          docker run --rm --entrypoint node -w /app/apps/worker app:ci -e "$check"
+          docker run --rm --platform linux/arm64 --entrypoint node -w /app/apps/worker app:ci-arm64 -e "$check"
 
   install-smoke:
     runs-on: ubuntu-latest
