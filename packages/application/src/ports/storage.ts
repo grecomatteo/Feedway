@@ -1,4 +1,7 @@
-/** A stored file; the body is a plain async iterable, so application code needs no node:stream. */
+/**
+ * A stored file; the body is a plain async iterable, so application code needs no node:stream.
+ * The caller must read `body` to the end or stop iterating it: that releases the file.
+ */
 export interface StoredObject {
   body: AsyncIterable<Uint8Array>
   size: number

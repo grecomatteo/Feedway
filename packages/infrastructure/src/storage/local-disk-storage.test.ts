@@ -22,7 +22,26 @@ test('leaves no temporary files after a successful put', async () => {
       contentType: 'application/octet-stream',
     })
     const names = await readdir(join(root, 'users', owner))
-    expect(names.sort()).toEqual(['a.bin', 'a.bin.meta.json'])
+    expect(names).toEqual(['a.bin'])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('a failed put leaves no temporary file behind', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'feedway-storage-'))
+  try {
+    const s = createLocalDiskStorage({ root })
+    const owner = '0197c5a0-0000-7000-8000-000000000001'
+    async function* failing() {
+      yield Buffer.from('x')
+      await Promise.resolve()
+      throw new Error('boom')
+    }
+    await expect(
+      s.put(`users/${owner}/a.bin`, failing(), { contentType: 'application/octet-stream' }),
+    ).rejects.toThrow('boom')
+    expect(await readdir(join(root, 'users', owner))).toEqual([])
   } finally {
     await rm(root, { recursive: true, force: true })
   }
