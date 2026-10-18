@@ -8,6 +8,8 @@ export type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 export interface WorkerDeps {
   queue: JobQueue
   logger: Logger
+  /** Handed to every handler together with the logger. */
+  services: Omit<JobHandlerDeps, 'logger'>
   heartbeatPath: string
   heartbeatEveryMs: number
   /** Only these queues are consumed (WORKER_QUEUES, spec §6.4). */
@@ -21,7 +23,7 @@ const STOP_TIMEOUT_MS = 30_000
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
   const handlers: JobHandlers = { 'system.selftest': systemSelftest, ...deps.handlers }
-  const handlerDeps: JobHandlerDeps = { logger }
+  const handlerDeps: JobHandlerDeps = { ...deps.services, logger }
 
   const consume = async <N extends QueueName>(name: N, handler: JobHandler<N>) => {
     await queue.work(name, (job) => handler(job, handlerDeps))

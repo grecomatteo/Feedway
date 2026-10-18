@@ -1,8 +1,19 @@
-import type { JobPayloads, Logger, QueueName } from '@app/application'
+import type {
+  Clock,
+  IdGenerator,
+  JobPayloads,
+  Logger,
+  QueueName,
+  UnitOfWork,
+} from '@app/application'
 
-/** What a handler may use; the composition root adds the unit of work and the rest. */
+/** What a handler may use; built by the composition root (createRuntime). */
 export interface JobHandlerDeps {
   logger: Logger
+  /** organization and user jobs open uow.run with the ids in their data */
+  uow: UnitOfWork
+  clock: Clock
+  ids: IdGenerator
 }
 
 export type JobHandler<N extends QueueName> = (

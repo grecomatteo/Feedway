@@ -4,6 +4,17 @@ import { join } from 'node:path'
 import { expect, test } from 'vitest'
 import type { JobQueue, Logger, QueueName } from '@app/application'
 import { startWorker } from './start-worker.js'
+import type { WorkerDeps } from './start-worker.js'
+
+// Handlers under test here never open a transaction.
+const services: WorkerDeps['services'] = {
+  uow: {
+    run: () => Promise.reject(new Error('not used in this test')),
+    runAsSystem: () => Promise.reject(new Error('not used in this test')),
+  },
+  clock: { now: () => new Date('2026-10-18T10:00:00Z') },
+  ids: { newId: () => '00000000-0000-7000-8000-000000000000' },
+}
 
 const silentLogger: Logger = {
   debug() {},
@@ -38,6 +49,7 @@ test('worker only consumes the configured queues', async () => {
   const w = await startWorker({
     queue: q.queue,
     logger: silentLogger,
+    services,
     heartbeatPath: heartbeatPath(),
     heartbeatEveryMs: 1000,
     queues: [],
@@ -51,6 +63,7 @@ test('worker registers a handler for each configured queue', async () => {
   const w = await startWorker({
     queue: q.queue,
     logger: silentLogger,
+    services,
     heartbeatPath: heartbeatPath(),
     heartbeatEveryMs: 1000,
     queues: ['system.selftest'],
@@ -64,6 +77,7 @@ test('stop asks the queue for a graceful stop with a 30 s timeout', async () => 
   const w = await startWorker({
     queue: q.queue,
     logger: silentLogger,
+    services,
     heartbeatPath: heartbeatPath(),
     heartbeatEveryMs: 1000,
     queues: [],
@@ -86,17 +100,18 @@ test('a handler receives the job data and its dependencies', async () => {
   const w = await startWorker({
     queue,
     logger: silentLogger,
+    services,
     heartbeatPath: heartbeatPath(),
     heartbeatEveryMs: 1000,
     queues: ['system.selftest'],
     handlers: {
       'system.selftest': (job, deps) => {
-        seen.push(job.data, deps.logger)
+        seen.push(job.data, deps.logger, deps.clock)
         return Promise.resolve()
       },
     },
   })
   await registered?.({ id: 'j1', data: { requestedAt: '2026-10-18T10:00:00Z' } })
-  expect(seen).toEqual([{ requestedAt: '2026-10-18T10:00:00Z' }, silentLogger])
+  expect(seen).toEqual([{ requestedAt: '2026-10-18T10:00:00Z' }, silentLogger, services.clock])
   await w.stop()
 })
