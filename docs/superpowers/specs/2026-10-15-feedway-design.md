@@ -999,7 +999,8 @@ two_factors         id, user_id, secret, backup_codes, verified,
                     failed_verification_count, locked_until
 passkeys            id, user_id, name, public_key, credential_id, counter, device_type,
                     backed_up, transports, aaguid, created_at
-rate_limits         tabella di Better Auth (limiti di frequenza condivisi tra i processi)
+rate_limits         tabella di Better Auth (i suoi limiti per IP)
+rate_limit_counters limiti e fallimenti nostri, condivisi tra i processi (Better Auth ripulisce la sua tabella)
 known_devices       user_id, device_hash, first_seen_at, last_seen_at
 data_exports        id, user_id, status, storage_key, expires_at   (file cancellato dopo 24 ore)
 invites             id, organization_id, purpose (bootstrap|invite|organization_owner), email,

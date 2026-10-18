@@ -1,8 +1,6 @@
-import type { Logger } from '@app/application'
+import type { JobHandler } from '../job-handler.js'
 
-export function systemSelftest(logger: Logger) {
-  return (job: { id: string }): Promise<void> => {
-    logger.info({ jobId: job.id }, 'system.selftest handled')
-    return Promise.resolve()
-  }
+export const systemSelftest: JobHandler<'system.selftest'> = (job, { logger }) => {
+  logger.info({ jobId: job.id }, 'system.selftest handled')
+  return Promise.resolve()
 }

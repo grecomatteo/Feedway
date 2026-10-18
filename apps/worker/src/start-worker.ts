@@ -1,8 +1,9 @@
 import type { JobQueue, Logger, QueueName } from '@app/application'
 import { systemSelftest } from './handlers/system-selftest.js'
+import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
 
-export type JobHandlers = { [N in QueueName]: (job: { id: string }) => Promise<void> }
+export type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 
 export interface WorkerDeps {
   queue: JobQueue
@@ -19,12 +20,17 @@ const STOP_TIMEOUT_MS = 30_000
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
-  const handlers: JobHandlers = { 'system.selftest': systemSelftest(logger), ...deps.handlers }
+  const handlers: JobHandlers = { 'system.selftest': systemSelftest, ...deps.handlers }
+  const handlerDeps: JobHandlerDeps = { logger }
 
-  for (const name of queues) {
-    await queue.work(name, (job) => handlers[name](job))
+  const consume = async <N extends QueueName>(name: N, handler: JobHandler<N>) => {
+    await queue.work(name, (job) => handler(job, handlerDeps))
     logger.info({ queue: name }, 'consuming queue')
   }
+  // binds each name to its own handler type; a plain loop over the union does not type-check
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- see above
+  const consumeOne = <N extends QueueName>(name: N) => consume(name, handlers[name])
+  for (const name of queues) await consumeOne(name)
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {

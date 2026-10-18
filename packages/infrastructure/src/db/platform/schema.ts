@@ -1,4 +1,4 @@
-import { foreignKey, index, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { foreignKey, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { bytea, createdAt, tz, updatedAt } from '../columns.js'
 import { organizationMembers, organizations } from '../organizations/schema.js'
 
@@ -28,3 +28,14 @@ export const apiTokens = pgTable(
     }).onDelete('cascade'),
   ],
 )
+
+// Our request limits and failure counters (RateLimiter). Not Better Auth's rate_limits: the
+// library prunes that table by age on its own, which would reset our account lockout.
+// No agency data, so no RLS.
+export const rateLimitCounters = pgTable('rate_limit_counters', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull(),
+  // hits: start of the current fixed window; failures: time of the first one
+  startedAt: tz('started_at').notNull(),
+  updatedAt: tz('updated_at').notNull(),
+})
