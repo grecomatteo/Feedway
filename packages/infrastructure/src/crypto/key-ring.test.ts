@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { expect, test } from 'vitest'
-import type { OrganizationKeyRecord, Tx } from '@app/application'
+import type { KeyTx, OrganizationKeyRecord } from '@app/application'
 import { fixedClock } from '../testing/index.js'
 import { createKeyRing } from './key-ring.js'
 import { createSecretBox } from './secret-box.js'
@@ -8,7 +8,7 @@ import { createSecretBox } from './secret-box.js'
 // In-memory repository: the database version is covered by key-ring.int.test.ts.
 function memoryTx() {
   const rows = new Map<string, OrganizationKeyRecord[]>()
-  const tx: Tx = {
+  const tx: KeyTx = {
     organizationKeys: {
       list: (org) =>
         Promise.resolve([...(rows.get(org) ?? [])].sort((a, b) => a.version - b.version)),

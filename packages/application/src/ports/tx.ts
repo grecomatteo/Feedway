@@ -1,3 +1,14 @@
+import type { AuditLog } from './audit-log.js'
+import type {
+  InvitesRepository,
+  OrganizationsRepository,
+  OrgMembersRepository,
+  SessionsRepository,
+  UsersRepository,
+  WorkspaceMembersRepository,
+  WorkspacesRepository,
+} from './repositories.js'
+
 export interface OrganizationKeyRecord {
   version: number
   /** Data key sealed with the platform key, `v1.<platformKeyVersion>.…` */
@@ -13,8 +24,18 @@ export interface OrganizationKeysRepository {
 
 /**
  * One database transaction with its scope already set (organization, user or system).
- * Repositories are added here as the modules that own them arrive.
+ * Repositories that read agency data take the `OrgActor` and filter in SQL too: row level
+ * security is the second barrier, not the only one. Repositories are added here as the
+ * modules that own them arrive.
  */
 export interface Tx {
+  users: UsersRepository
+  sessions: SessionsRepository
+  organizations: OrganizationsRepository
+  orgMembers: OrgMembersRepository
   organizationKeys: OrganizationKeysRepository
+  invites: InvitesRepository
+  workspaces: WorkspacesRepository
+  workspaceMembers: WorkspaceMembersRepository
+  audit: AuditLog
 }

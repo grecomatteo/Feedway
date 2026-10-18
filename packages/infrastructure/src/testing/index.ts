@@ -16,3 +16,6 @@ export function fixedClock(at: Date): Clock & { advance(ms: number): void } {
 }
 export { withScope } from './scoped-db.js'
 export type { Scope } from './scoped-db.js'
+export { seed } from './seed.js'
+export type { Seeder } from './seed.js'
+export { waitForLockWaiter } from './locks.js'
