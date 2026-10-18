@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "db:generate": "drizzle-kit generate --name foundation"
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@app/application": "workspace:*",
