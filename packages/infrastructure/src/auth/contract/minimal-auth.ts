@@ -8,7 +8,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { pushSchema } from 'drizzle-kit/api'
 import pg from 'pg'
 import { uuidV7Generator } from '../../system/id-generator.js'
-import * as schema from './schema.generated.js'
+import * as schema from '../../db/identity/schema.js'
 
 export const CONTRACT_SECRET = 'contract-secret-'.padEnd(48, 'k')
 export const CONTRACT_ORIGIN = 'https://app.feedway.test'
@@ -18,7 +18,7 @@ export interface ContractDatabase {
   stop(): Promise<void>
 }
 
-/** A scratch database in the given Postgres, with the generated schema applied. */
+/** A scratch database in the given Postgres, with the real identity schema applied. */
 export async function createContractDatabase(adminUrl: string): Promise<ContractDatabase> {
   const name = `contract_${randomBytes(6).toString('hex')}`
   const admin = new pg.Client({ connectionString: adminUrl })
@@ -28,6 +28,8 @@ export async function createContractDatabase(adminUrl: string): Promise<Contract
   const url = new URL(adminUrl)
   url.pathname = `/${name}`
   const pool = new pg.Pool({ connectionString: url.toString() })
+  // Migration 0000 creates citext in production; pushSchema does not.
+  await pool.query('create extension if not exists citext')
   const { apply } = await pushSchema(schema, drizzle(pool) as never)
   await apply()
   return {
@@ -70,12 +72,16 @@ export function buildAuth(
     ...authOptions({ baseURL: site.origin, trustedOrigins: [site.origin] }),
     database: drizzleAdapter(db, { provider: 'pg', usePlural: true, schema }),
     emailAndPassword: { enabled: true, disableSignUp: true, autoSignIn: false },
-    advanced: { database: { generateId: () => uuidV7Generator.newId() } },
     session: {
       additionalFields: { authMethod: { type: 'string', defaultValue: 'password', input: false } },
     },
     plugins: [twoFactor(), passkey({ rpID: site.rpID, rpName: 'Feedway', origin: site.origin })],
     ...overrides,
+    // Merged, not replaced: ids must stay UUID v7 whatever cookie options a test passes.
+    advanced: {
+      ...overrides.advanced,
+      database: { generateId: () => uuidV7Generator.newId(), ...overrides.advanced?.database },
+    },
   })
 }
 

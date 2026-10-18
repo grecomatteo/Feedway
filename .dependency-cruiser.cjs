@@ -44,10 +44,44 @@ module.exports = {
       name: 'db-modules-not-across-tables',
       comment: 'infrastructure/db/<a> never touches the tables of infrastructure/db/<b>',
       severity: 'error',
-      from: { path: '(^|/)packages/infrastructure/src/db/([^/]+)/' },
+      from: {
+        path: '(^|/)packages/infrastructure/src/db/([^/]+)/',
+        // schema files and the db/schema aggregator have their own rules below
+        pathNot: [
+          '(^|/)packages/infrastructure/src/db/[^/]+/schema\\.ts$',
+          '(^|/)packages/infrastructure/src/db/schema/',
+        ],
+      },
       to: {
         path: '(^|/)packages/infrastructure/src/db/([^/]+)/',
         pathNot: ['(^|/)packages/infrastructure/src/db/$2/', '/index\\.ts$', '/schema/'],
+      },
+    },
+    {
+      name: 'db-schemas-only-reference-schemas',
+      comment: 'a db/<a>/schema.ts may import db/<b>/schema.ts, only to declare foreign keys',
+      severity: 'error',
+      from: { path: '(^|/)packages/infrastructure/src/db/([^/]+)/schema\\.ts$' },
+      to: {
+        path: '(^|/)packages/infrastructure/src/db/([^/]+)/',
+        pathNot: [
+          '(^|/)packages/infrastructure/src/db/$2/',
+          '(^|/)packages/infrastructure/src/db/schema/',
+          '(^|/)packages/infrastructure/src/db/[^/]+/schema\\.ts$',
+        ],
+      },
+    },
+    {
+      name: 'db-aggregator-only-schemas',
+      comment: "db/schema gathers the modules' schema.ts files for drizzle-kit, nothing else",
+      severity: 'error',
+      from: { path: '(^|/)packages/infrastructure/src/db/schema/' },
+      to: {
+        path: '(^|/)packages/infrastructure/src/db/[^/]+/',
+        pathNot: [
+          '(^|/)packages/infrastructure/src/db/schema/',
+          '(^|/)packages/infrastructure/src/db/[^/]+/schema\\.ts$',
+        ],
       },
     },
     { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
