@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { hkdfSync, randomBytes } from 'node:crypto'
 import type { Clock, KeyRing, OrganizationKeyRecord, Tx } from '@app/application'
 import { createSecretBox } from './secret-box.js'
 
@@ -21,8 +21,12 @@ const aadFor = (organizationId: string, version: number) =>
  * sealed with the platform key. Secrets of the organization are sealed with its data key.
  */
 export function createKeyRing(opts: KeyRingOptions): KeyRing {
+  // Derived rather than used directly: APP_ENCRYPTION_KEY also feeds the signed-token keys.
+  const platformKey = Buffer.from(
+    hkdfSync('sha256', opts.platformKey, Buffer.alloc(0), 'feedway:platform-secret-box', 32),
+  )
   const platform = createSecretBox(
-    new Map([[PLATFORM_KEY_VERSION, opts.platformKey]]),
+    new Map([[PLATFORM_KEY_VERSION, platformKey]]),
     PLATFORM_KEY_VERSION,
   )
   const ttl = Math.min(opts.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_TTL_MS)
