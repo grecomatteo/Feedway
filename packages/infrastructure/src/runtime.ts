@@ -47,6 +47,10 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
   const ids = uuidV7Generator
   const handle = createDb(config.databaseUrl, { max: POOL_SIZE[role], applicationName: role })
   try {
+    // Synchronous services first: the queue is started last so a failure above never leaves it running.
+    const uow = createUnitOfWork({ db: handle.db, ids, logger })
+    const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock })
+    const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,
@@ -59,13 +63,14 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       queue,
       clock,
       ids,
-      uow: createUnitOfWork({ db: handle.db, ids, logger }),
-      keyRing: createKeyRing({ platformKey: config.encryptionKey, clock }),
-      rateLimiter: createPgRateLimiter({ db: handle.db, clock }),
+      uow,
+      keyRing,
+      rateLimiter,
       close: () => handle.close(),
     }
   } catch (error) {
-    await handle.close()
+    // Keep the original start-up error even if closing the pool fails too.
+    await handle.close().catch(() => undefined)
     throw error
   }
 }
