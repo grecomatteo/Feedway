@@ -16,6 +16,14 @@
       "description": "Patch e minor insieme, una sola PR a settimana",
       "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
       "groupName": "aggiornamenti minor e patch"
+    },
+    {
+      "description": "Better Auth: un aggiornamento passa solo se i test di contratto restano verdi (ADR 012)",
+      "matchPackageNames": ["better-auth", "@better-auth/**"],
+      "groupName": "better-auth",
+      "prBodyNotes": [
+        "Prima di unire: `pnpm test:auth-contract` verde e sezione \"Verifiche della tappa 2\" di ADR 012 ancora vera."
+      ]
     }
   ]
 }

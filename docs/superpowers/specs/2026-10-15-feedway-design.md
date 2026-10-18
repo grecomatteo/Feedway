@@ -1210,10 +1210,10 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - **2FA** con app di autenticazione e 10 codici di recupero (nessun codice via email), obbligatoria per l'amministratore della piattaforma, Owner e Admin (per tutti con `REQUIRE_2FA=all` o se l'organizzazione lo richiede); la regola è nostra e vale anche per i metodi senza password futuri (Google).
 - Limitazione dei tentativi salvata nel database, con regole più strette su accesso, 2FA e reset; IP letto dall'intestazione del nostro proxy; messaggi che non rivelano se l'email esiste.
 - Ganci di Better Auth scrivono nel registro attività accessi, fallimenti e ogni cambio di password, email, 2FA o passkey, e fanno partire le email di sicurezza (§12.2).
-- **Da verificare con un test all'inizio della tappa 2**: se segreto TOTP e codici di recupero sono cifrati (altrimenti li cifriamo noi con la chiave della piattaforma); se `disabledPaths` blocca anche la creazione lato server (altrimenti si usa l'adattatore interno); come leggere i tentativi falliti dai ganci; se il token di sessione è salvato in chiaro (in quel caso si accetta e si annota tra i rischi, §20).
+- **Verificato nella tappa 2 (Better Auth 1.7.10, ADR 012)**: segreto TOTP e codici di recupero sono cifrati dalla libreria; `disableSignUp` blocca anche la creazione lato server, quindi l'attivazione usa l'adattatore interno; i tentativi falliti si leggono dal gancio `after`; il token di sessione è salvato in chiaro (accettato, rischio in §20).
 
 ### 15.2 Sessioni
-- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello, senza attributo `Domain`, così il sito pubblico sul dominio principale non li riceve; con il prefisso `__Host-` (nome del cookie personalizzato in Better Auth, da verificare nella tappa 2) il dominio principale non può nemmeno sovrascriverli; `cookieCache` spento, così una revoca vale subito.
+- Sessioni di Better Auth nel database, cookie `HttpOnly`, `Secure`, `SameSite=Lax` solo sull'host del pannello, senza attributo `Domain`, così il sito pubblico sul dominio principale non li riceve; con il prefisso `__Host-` (nome personalizzato in Better Auth con `useSecureCookies: false` e attributo `Secure` esplicito, verificato nella tappa 2; vale per sessione, 2FA e passkey) il dominio principale non può nemmeno sovrascriverli; `cookieCache` spento, così una revoca vale subito.
 - Scadenza per inattività 12 ore, assoluta 30 giorni (controllo nostro su `created_at`); nuovo token a ogni login e cambio di privilegi.
 - "Sessioni attive" con revoca; disattivazione e reset chiudono tutte le sessioni.
 - **Riconferma** (password o 2FA) per azioni delicate: ruoli, nomina Admin, integrazioni, brand, impostazioni.
@@ -1548,6 +1548,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Proporzioni della griglia del profilo IG (3:4 dal 2025) | Basso | Da verificare prima della tappa 6; l'anteprima usa una costante sola |
 | Ampiezza della 1.0 | Medio | Sviluppo a tappe installabili; priorità chiara (§18.1) |
 | Vulnerabilità in Better Auth (diversi avvisi nel 2026, uno critico ad agosto in plugin che non usiamo) | Medio | Versione fissata, aggiornamenti di sicurezza immediati, solo i plugin necessari, test dei flussi di accesso a ogni aggiornamento; token di sessione nel database da proteggere come le password (database in rete interna, backup cifrati) |
+| Token di sessione di Better Auth salvato in chiaro nel database (verificato, ADR 012) | Basso | Rete interna, backup cifrati, tabella `sessions` letta solo dal modulo identity, revoca immediata (`cookieCache` spento) |
 | Dati di un'agenzia visibili a un'altra | Alto | Doppia barriera applicazione + RLS, test di isolamento su ogni rotta e lavoro (§6.5) |
 | Piattaforma aperta (2.0): revisione dell'app Meta e verifica dell'azienda | Alto per la 2.0 | Nella 1.x ogni agenzia usa la propria app e il proprio utente di sistema, che non richiedono revisione |
 | Limiti Meta condivisi da un'unica app (2.0) | Medio | Rallentamento per account e per organizzazione già nel client Meta (§8.6) |

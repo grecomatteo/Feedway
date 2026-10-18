@@ -9,7 +9,7 @@ WORKDIR /repo
 
 # 1) download every dependency from the lockfile only: cached until the lockfile changes
 FROM base AS fetch
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 
 # 2) offline install, build, and production-only copy of the worker

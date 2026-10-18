@@ -38,6 +38,22 @@ export default tseslint.config(
     },
   },
   {
+    // Contract tests drive a third-party library through loosely typed calls and raw SQL rows.
+    files: [
+      'packages/infrastructure/src/auth/contract/**/*.ts',
+      'apps/web/tests/e2e/passkey-localhost.spec.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
     files: ['**/*.mjs', '**/*.cjs', '**/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },

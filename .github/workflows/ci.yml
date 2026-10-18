@@ -138,6 +138,11 @@ jobs:
           build-args: APP_VERSION=0.0.0-ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Native modules must arrive as platform packages, with no install scripts.
+      - name: Moduli nativi su arm64
+        run: |
+          base="$(sed -n 's/^ARG NODE_IMAGE=//p' docker/Dockerfile)"
+          docker run --rm --platform linux/arm64 -v "$PWD/scripts/ci:/ci:ro" "$base" sh /ci/native-modules.sh
 
   install-smoke:
     runs-on: ubuntu-latest
