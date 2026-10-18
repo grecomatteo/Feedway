@@ -11,6 +11,7 @@ test.each([
   ['db-schema-imports-other-repository', 'db-schemas-only-reference-schemas'],
   ['db-aggregator-imports-repository', 'db-aggregator-only-schemas'],
   ['module-imports-better-auth', 'better-auth-only-in-adapter'],
+  ['infrastructure-imports-resolved-better-auth', 'better-auth-only-in-adapter'],
   ['db-module-imports-identity', 'identity-tables-only-from-identity'],
 ])('fixture %s violates rule %s', (fixture, rule) => {
   const result = runDepcruise(`tools/arch-fixtures/${fixture}`)

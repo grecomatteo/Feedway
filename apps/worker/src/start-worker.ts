@@ -27,7 +27,10 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     await queue.work(name, (job) => handler(job, handlerDeps))
     logger.info({ queue: name }, 'consuming queue')
   }
-  for (const name of queues) await consume(name, handlers[name])
+  // binds each name to its own handler type; a plain loop over the union does not type-check
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- see above
+  const consumeOne = <N extends QueueName>(name: N) => consume(name, handlers[name])
+  for (const name of queues) await consumeOne(name)
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {

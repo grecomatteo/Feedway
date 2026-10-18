@@ -1,63 +1,56 @@
 import { eq, inArray, sql } from 'drizzle-orm'
-import type { Clock, IdGenerator, RateLimiter } from '@app/application'
+import type { Clock, RateLimiter } from '@app/application'
 import type { DbExecutor } from './client.js'
-import { rateLimits } from './identity/schema.js'
+import { rateLimitCounters } from './platform/schema.js'
 
-// Better Auth's own table: our keys start with `app:` so they never meet the library's.
-const hitKey = (key: string) => `app:${key}`
-const failureKey = (key: string) => `app:failures:${key}`
+const hitKey = (key: string) => `hits:${key}`
+const failureKey = (key: string) => `failures:${key}`
 
 /**
- * Counters on the `rate_limits` table, so every web and worker process shares them. For hits
- * `last_request` holds the start of the current fixed window (epoch ms); for failures, the
- * time of the last one.
+ * Counters on our own table, so every web and worker process shares them. For hits
+ * `started_at` is the start of the current fixed window; for failures `updated_at` is the time
+ * of the last one. Times come from the injected clock: all processes run on one host.
  */
-export function createPgRateLimiter(deps: {
-  db: DbExecutor
-  clock: Clock
-  ids: IdGenerator
-}): RateLimiter {
-  const { db, clock, ids } = deps
+export function createPgRateLimiter(deps: { db: DbExecutor; clock: Clock }): RateLimiter {
+  const { db, clock } = deps
+  const t = rateLimitCounters
   return {
     async hit(key, limit, windowMs) {
-      const now = clock.now().getTime()
-      const expired = sql`${rateLimits.lastRequest} <= ${now - windowMs}`
+      const now = clock.now()
+      const expired = sql`${t.startedAt} <= ${new Date(now.getTime() - windowMs)}`
       const [row] = await db
-        .insert(rateLimits)
-        .values({ id: ids.newId(), key: hitKey(key), count: 1, lastRequest: now })
+        .insert(t)
+        .values({ key: hitKey(key), count: 1, startedAt: now, updatedAt: now })
         .onConflictDoUpdate({
-          target: rateLimits.key,
+          target: t.key,
           set: {
-            count: sql`case when ${expired} then 1 else ${rateLimits.count} + 1 end`,
-            lastRequest: sql`case when ${expired} then ${now} else ${rateLimits.lastRequest} end`,
+            count: sql`case when ${expired} then 1 else ${t.count} + 1 end`,
+            startedAt: sql`case when ${expired} then ${now} else ${t.startedAt} end`,
+            updatedAt: now,
           },
         })
-        .returning({ count: rateLimits.count, windowStart: rateLimits.lastRequest })
+        .returning({ count: t.count, startedAt: t.startedAt })
       if (!row) throw new Error('rate limit upsert returned no row')
       if (row.count <= limit) return { allowed: true, retryAfterMs: 0 }
-      return { allowed: false, retryAfterMs: Math.max(0, row.windowStart + windowMs - now) }
+      const left = row.startedAt.getTime() + windowMs - now.getTime()
+      return { allowed: false, retryAfterMs: Math.min(windowMs, Math.max(0, left)) }
     },
     async failures(key) {
       const [row] = await db
-        .select({ count: rateLimits.count, lastRequest: rateLimits.lastRequest })
-        .from(rateLimits)
-        .where(eq(rateLimits.key, failureKey(key)))
-      return row
-        ? { count: row.count, lastAt: new Date(row.lastRequest) }
-        : { count: 0, lastAt: null }
+        .select({ count: t.count, lastAt: t.updatedAt })
+        .from(t)
+        .where(eq(t.key, failureKey(key)))
+      return row ?? { count: 0, lastAt: null }
     },
     async recordFailure(key) {
-      const now = clock.now().getTime()
+      const now = clock.now()
       await db
-        .insert(rateLimits)
-        .values({ id: ids.newId(), key: failureKey(key), count: 1, lastRequest: now })
-        .onConflictDoUpdate({
-          target: rateLimits.key,
-          set: { count: sql`${rateLimits.count} + 1`, lastRequest: now },
-        })
+        .insert(t)
+        .values({ key: failureKey(key), count: 1, startedAt: now, updatedAt: now })
+        .onConflictDoUpdate({ target: t.key, set: { count: sql`${t.count} + 1`, updatedAt: now } })
     },
     async reset(key) {
-      await db.delete(rateLimits).where(inArray(rateLimits.key, [hitKey(key), failureKey(key)]))
+      await db.delete(t).where(inArray(t.key, [hitKey(key), failureKey(key)]))
     },
   }
 }

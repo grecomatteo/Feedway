@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { uuidV7Generator } from '../system/id-generator.js'
 import { fixedClock, startTestDatabase, withScope } from '../testing/index.js'
 import type { TestDatabase } from '../testing/index.js'
 import { createDb } from './client.js'
@@ -10,7 +9,7 @@ let tdb: TestDatabase
 let a: DbHandle
 let b: DbHandle
 const clock = fixedClock(new Date('2026-10-18T10:00:00Z'))
-const limiterOn = (h: DbHandle) => createPgRateLimiter({ db: h.db, clock, ids: uuidV7Generator })
+const limiterOn = (h: DbHandle) => createPgRateLimiter({ db: h.db, clock })
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
@@ -27,13 +26,13 @@ afterAll(async () => {
 const rawKeys = (prefix: string) =>
   withScope(tdb.runtimeUrl, { kind: 'none' }, async (c) => {
     const { rows } = await c.query<{ key: string }>(
-      `select key from rate_limits where key like $1 order by key`,
+      `select key from rate_limit_counters where key like $1 order by key`,
       [`%${prefix}%`],
     )
     return rows.map((r) => r.key)
   })
 
-test('rate limit is shared across connections and keeps its own key space', async () => {
+test('rate limit is shared across connections and stays out of Better Auth table', async () => {
   const la = limiterOn(a)
   const lb = limiterOn(b)
   for (let i = 0; i < 5; i++) {
@@ -41,7 +40,11 @@ test('rate limit is shared across connections and keeps its own key space', asyn
     expect((await lb.hit('ip:1', 10, 60_000)).allowed).toBe(true)
   }
   expect(await la.hit('ip:1', 10, 60_000)).toEqual({ allowed: false, retryAfterMs: 60_000 })
-  expect(await rawKeys('ip:1')).toEqual(['app:ip:1'])
+  expect(await rawKeys('ip:1')).toEqual(['hits:ip:1'])
+  const { rows } = await withScope(tdb.runtimeUrl, { kind: 'none' }, (c) =>
+    c.query('select 1 from rate_limits'),
+  )
+  expect(rows).toEqual([])
 })
 
 test('the window is fixed: it restarts after windowMs from its first hit', async () => {
@@ -75,4 +78,26 @@ test('failures are counted and reset', async () => {
   await limiter.reset('login:x')
   expect((await limiter.failures('login:x')).count).toBe(0)
   expect(await rawKeys('login:x')).toEqual([])
+})
+
+test('a hit key never meets a failure key', async () => {
+  const limiter = limiterOn(a)
+  await limiter.recordFailure('login:y')
+  await limiter.hit('failures:login:y', 5, 60_000)
+  expect((await limiter.failures('login:y')).count).toBe(1)
+})
+
+test('a limit of zero blocks the first hit for the whole window', async () => {
+  expect(await limiterOn(a).hit('ip:4', 0, 60_000)).toEqual({
+    allowed: false,
+    retryAfterMs: 60_000,
+  })
+})
+
+test('reset starts a fresh window', async () => {
+  const limiter = limiterOn(a)
+  await limiter.hit('ip:5', 1, 60_000)
+  expect((await limiter.hit('ip:5', 1, 60_000)).allowed).toBe(false)
+  await limiter.reset('ip:5')
+  expect(await limiter.hit('ip:5', 1, 60_000)).toEqual({ allowed: true, retryAfterMs: 0 })
 })

@@ -100,7 +100,7 @@ module.exports = {
     {
       name: 'identity-tables-only-from-identity',
       comment:
-        'personal data (users, sessions, …) has no RLS: only its repositories, the auth adapter, the unit of work and the limiter reach it',
+        'personal data (users, sessions, …) has no RLS: only its repositories, the auth adapter and the unit of work reach it',
       severity: 'error',
       from: {
         path: '(^|/)packages/',
@@ -110,7 +110,6 @@ module.exports = {
           '(^|/)packages/infrastructure/src/db/schema/',
           '(^|/)packages/infrastructure/src/db/[^/]+/schema\\.ts$',
           '(^|/)packages/infrastructure/src/db/unit-of-work\\.ts$',
-          '(^|/)packages/infrastructure/src/db/rate-limiter\\.ts$',
           '(^|/)packages/infrastructure/src/auth/',
         ],
       },
@@ -137,7 +136,8 @@ module.exports = {
     },
   ],
   options: {
-    exclude: { path: ['node_modules', '(^|/)\\.(nuxt|output)/'] },
+    // node_modules stays in the graph (not followed) so rules on packages see resolved imports
+    exclude: { path: ['(^|/)\\.(nuxt|output)/'] },
     doNotFollow: { path: 'node_modules' },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {

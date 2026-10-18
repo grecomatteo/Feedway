@@ -22,6 +22,13 @@
       "when": 1792314440288,
       "tag": "0002_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792319201742,
+      "tag": "0003_rate_limit_counters",
+      "breakpoints": true
     }
   ]
 }
