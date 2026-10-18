@@ -1,2 +1,6 @@
 export * from './settings.js'
 export * from '../identity/schema.js'
+export * from '../organizations/schema.js'
+export * from '../workspaces/schema.js'
+export * from '../audit/schema.js'
+export * from '../platform/schema.js'

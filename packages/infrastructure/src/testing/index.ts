@@ -14,3 +14,5 @@ export function fixedClock(at: Date): Clock & { advance(ms: number): void } {
     },
   }
 }
+export { withScope } from './scoped-db.js'
+export type { Scope } from './scoped-db.js'

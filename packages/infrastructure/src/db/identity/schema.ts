@@ -7,26 +7,15 @@ import {
   bigint,
   boolean,
   check,
-  customType,
   index,
   integer,
   pgTable,
   primaryKey,
   text,
-  timestamp,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { bytea, citext, createdAt, inList, tz, updatedAt } from '../columns.js'
 
-const citext = customType<{ data: string }>({ dataType: () => 'citext' })
-const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' })
-
-const tz = (name: string) => timestamp(name, { withTimezone: true })
-const createdAt = () => tz('created_at').defaultNow().notNull()
-const updatedAt = () =>
-  tz('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull()
 const userRef = () =>
   uuid('user_id')
     .notNull()
@@ -41,9 +30,6 @@ export const AUTH_METHODS = [
 ] as const
 
 export const DATA_EXPORT_STATUSES = ['pending', 'running', 'ready', 'failed', 'expired'] as const
-
-const inList = (column: string, values: readonly string[]) =>
-  sql.raw(`${column} in (${values.map((v) => `'${v}'`).join(', ')})`)
 
 export const users = pgTable(
   'users',

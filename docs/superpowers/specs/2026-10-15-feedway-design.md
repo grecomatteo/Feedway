@@ -1550,6 +1550,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Vulnerabilità in Better Auth (diversi avvisi nel 2026, uno critico ad agosto in plugin che non usiamo) | Medio | Versione fissata, aggiornamenti di sicurezza immediati, solo i plugin necessari, test dei flussi di accesso a ogni aggiornamento; token di sessione nel database da proteggere come le password (database in rete interna, backup cifrati) |
 | Token di sessione di Better Auth salvato in chiaro nel database (verificato, ADR 012) | Basso | Rete interna, backup cifrati, tabella `sessions` letta solo dal modulo identity, revoca immediata (`cookieCache` spento) |
 | Dati di un'agenzia visibili a un'altra | Alto | Doppia barriera applicazione + RLS, test di isolamento su ogni rotta e lavoro (§6.5) |
+| Un'iniezione SQL può impostare da sola `app.scope = 'system'` o un altro `app.organization_id` (il ruolo dell'app può scrivere queste variabili) | Alto | Solo query con parametri (Drizzle, mai SQL composto con testo dell'utente), `runAsSystem` limitato ai moduli ammessi dalla regola ESLint; rischio accettato nella tappa 2 |
 | Piattaforma aperta (2.0): revisione dell'app Meta e verifica dell'azienda | Alto per la 2.0 | Nella 1.x ogni agenzia usa la propria app e il proprio utente di sistema, che non richiedono revisione |
 | Limiti Meta condivisi da un'unica app (2.0) | Medio | Rallentamento per account e per organizzazione già nel client Meta (§8.6) |
 
