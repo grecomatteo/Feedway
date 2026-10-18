@@ -1,5 +1,5 @@
 import { ConfigError, loadConfig } from '@app/config'
-import { createLogger, createPgBossQueue, QUEUE_NAMES } from '@app/infrastructure'
+import { createRuntime, QUEUE_NAMES } from '@app/infrastructure'
 import { startWorker } from './start-worker.js'
 
 const EXIT_CONFIG = 78
@@ -17,11 +17,12 @@ async function main(): Promise<void> {
     throw error
   }
 
-  const logger = createLogger({ service: 'worker', level: config.logLevel })
-  const queue = await createPgBossQueue({ url: config.databaseUrl, logger, role: 'consumer' })
+  const runtime = await createRuntime(config, 'worker')
+  const { logger, queue, uow, clock, ids } = runtime
   const worker = await startWorker({
     queue,
     logger,
+    services: { uow, clock, ids },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,
     queues:
@@ -33,13 +34,16 @@ async function main(): Promise<void> {
 
   const shutdown = (signal: string) => {
     logger.info({ signal }, 'stopping worker')
-    worker.stop().then(
-      () => process.exit(0),
-      (error: unknown) => {
-        logger.error({ err: error }, 'worker did not stop cleanly')
-        process.exit(1)
-      },
-    )
+    worker
+      .stop()
+      .then(() => runtime.close())
+      .then(
+        () => process.exit(0),
+        (error: unknown) => {
+          logger.error({ err: error }, 'worker did not stop cleanly')
+          process.exit(1)
+        },
+      )
   }
   process.once('SIGTERM', () => {
     shutdown('SIGTERM')

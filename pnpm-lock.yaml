@@ -323,6 +323,9 @@ importers:
       '@app/application':
         specifier: workspace:*
         version: link:../application
+      '@app/config':
+        specifier: workspace:*
+        version: link:../config
       '@app/domain':
         specifier: workspace:*
         version: link:../domain
@@ -379,6 +382,8 @@ importers:
   packages/ui: {}
 
   tools/arch-fixtures: {}
+
+  tools/lint-rules: {}
 
 packages:
 

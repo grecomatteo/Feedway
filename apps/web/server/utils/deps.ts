@@ -1,15 +1,8 @@
-import type { Clock, IdGenerator, JobQueue, Logger } from '@app/application'
 import type { WebConfig } from '@app/config'
-import type { Db, DbHandle } from '@app/infrastructure'
+import type { Runtime } from '@app/infrastructure'
 
-export interface Deps {
+export interface Deps extends Runtime {
   config: WebConfig
-  logger: Logger
-  db: Db
-  pool: DbHandle['pool']
-  queue: JobQueue
-  clock: Clock
-  ids: IdGenerator
 }
 
 let deps: Deps | undefined

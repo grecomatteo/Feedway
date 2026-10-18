@@ -1,11 +1,5 @@
 import { ConfigError, loadConfig } from '@app/config'
-import {
-  createDb,
-  createLogger,
-  createPgBossQueue,
-  systemClock,
-  uuidV7Generator,
-} from '@app/infrastructure'
+import { createRuntime } from '@app/infrastructure'
 
 const EXIT_CONFIG = 78
 
@@ -23,11 +17,9 @@ export default defineNitroPlugin((nitroApp) => {
       throw error
     }
 
-    const logger = createLogger({ service: 'web', level: config.logLevel })
-    const { db, pool } = createDb(config.databaseUrl, { max: 10, applicationName: 'web' })
-    const queue = await createPgBossQueue({ url: config.databaseUrl, logger, role: 'producer' })
-    logger.info({}, 'web started')
-    return { config, logger, db, pool, queue, clock: systemClock, ids: uuidV7Generator }
+    const runtime = await createRuntime(config, 'web')
+    runtime.logger.info({}, 'web started')
+    return { ...runtime, config }
   }).catch((error: unknown) => {
     // the container restarts; the cause is in the log
     console.error('web failed to start', error instanceof Error ? error.message : error)

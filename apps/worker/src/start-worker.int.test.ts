@@ -8,6 +8,17 @@ import { createLogger, createPgBossQueue } from '@app/infrastructure'
 import { startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { startWorker } from './start-worker.js'
+import type { WorkerDeps } from './start-worker.js'
+
+// Handlers under test here never open a transaction.
+const services: WorkerDeps['services'] = {
+  uow: {
+    run: () => Promise.reject(new Error('not used in this test')),
+    runAsSystem: () => Promise.reject(new Error('not used in this test')),
+  },
+  clock: { now: () => new Date('2026-10-18T10:00:00Z') },
+  ids: { newId: () => '00000000-0000-7000-8000-000000000000' },
+}
 
 const logger = createLogger({ service: 'worker', level: 'error' })
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -43,6 +54,7 @@ async function worker(onSelftest: (job: { id: string }) => Promise<void>) {
   const started = await startWorker({
     queue,
     logger,
+    services,
     heartbeatPath: join(mkdtempSync(join(tmpdir(), 'w-')), 'heartbeat'),
     heartbeatEveryMs: 1000,
     queues: ['system.selftest' satisfies QueueName],
