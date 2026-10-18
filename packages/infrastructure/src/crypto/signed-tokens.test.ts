@@ -1,0 +1,46 @@
+import { randomBytes } from 'node:crypto'
+import { expect, test } from 'vitest'
+import { createSignedTokens } from './signed-tokens.js'
+
+const key = randomBytes(32)
+const signed = createSignedTokens(key)
+const now = new Date('2026-10-18T10:00:00Z')
+const inDays = (d: number) => new Date(now.getTime() + d * 86_400_000)
+const tamper = (t: string) => {
+  const [payload = '', mac = ''] = t.split('.')
+  const body = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Record<string, unknown>
+  return `${Buffer.from(JSON.stringify({ ...body, u: 'u2' })).toString('base64url')}.${mac}`
+}
+const deviceIdA = randomBytes(32).toString('base64url')
+const deviceIdB = randomBytes(32).toString('base64url')
+
+test('signed security lock token expires and is bound to its purpose', () => {
+  const t = signed.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
+  expect(signed.verify('security_lock', t, now)).toEqual({ userId: 'u1' })
+  expect(signed.verify('security_lock', t, inDays(8))).toBeNull()
+  expect(signed.verify('security_lock', tamper(t), now)).toBeNull()
+})
+
+test('a token signed with another key or malformed is rejected', () => {
+  const other = createSignedTokens(randomBytes(32))
+  const t = other.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
+  expect(signed.verify('security_lock', t, now)).toBeNull()
+  const own = signed.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
+  const nonCanonical = own.slice(0, -1) + (own.endsWith('A') ? 'B' : 'A')
+  for (const bad of ['', 'abc', 'a.b.c', `${t}x`, '.', 'e30.', nonCanonical, `${own}=`]) {
+    expect(signed.verify('security_lock', bad, now)).toBeNull()
+  }
+})
+
+test('device hash separates user and device ids unambiguously', () => {
+  expect(signed.deviceHash('ab', 'c')).not.toEqual(signed.deviceHash('a', 'bc'))
+})
+
+test('device hash is stable per user and device id, different across users and devices', () => {
+  expect(signed.deviceHash('u1', deviceIdA)).toEqual(signed.deviceHash('u1', deviceIdA))
+  expect(signed.deviceHash('u2', deviceIdA)).not.toEqual(signed.deviceHash('u1', deviceIdA))
+  expect(signed.deviceHash('u1', deviceIdB)).not.toEqual(signed.deviceHash('u1', deviceIdA))
+  expect(createSignedTokens(randomBytes(32)).deviceHash('u1', deviceIdA)).not.toEqual(
+    signed.deviceHash('u1', deviceIdA),
+  )
+})
