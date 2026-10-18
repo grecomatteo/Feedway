@@ -12,7 +12,7 @@ import {
   type ContractDatabase,
   type MinimalAuth,
 } from './minimal-auth.js'
-import { cookieHeader, parseSetCookie, secretOf, totpCode } from './helpers.js'
+import { base32Decode, cookieHeader, parseSetCookie, secretOf, totpCode } from './helpers.js'
 
 const PASSWORD = 'una-password-molto-lunga-1'
 interface OpenSessionApi {
@@ -84,7 +84,9 @@ describe('V1 two factor secrets at rest', () => {
     const body = (await enable.json()) as { totpURI: string; backupCodes: string[] }
     const secret = secretOf(body.totpURI)
     const row = await m.rawRow('two_factors', { user_id: id })
+    // the URI carries the base32 form: check the raw secret too, or a clear-text column would pass
     expect(row['secret']).not.toContain(secret)
+    expect(row['secret']).not.toContain(base32Decode(secret).toString('utf8'))
     for (const code of body.backupCodes) expect(row['backup_codes']).not.toContain(code)
   })
 })

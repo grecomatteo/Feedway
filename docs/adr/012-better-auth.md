@@ -49,4 +49,4 @@ Fissate da `packages/infrastructure/src/auth/contract/better-auth-contract.int.t
 | V9 `verify-totp` in attivazione | Crea una **nuova** sessione e cancella la precedente; la nuova ha `auth_method` predefinito (`password`) | `databaseHooks.session.create.before` assegna il metodo dal percorso (`/two-factor/verify-totp` → `password_totp`, `/two-factor/verify-backup-code` → `password_backup_code`, passkey → `passkey`, `/sign-in/email` → `password`) |
 | V10 gancio `before` | Gira anche sulle chiamate `auth.api.*`, con `ctx.request` assente; sulla chiamata HTTP è presente | L'elenco dei percorsi consentiti vale solo con `ctx.request` presente; le chiamate lato server partono dai nostri casi d'uso |
 
-Moduli nativi: `@node-rs/argon2` arriva con il pacchetto di piattaforma, senza script di installazione (il Dockerfile usa `--ignore-scripts`); il job `image` della CI lo prova su arm64 sotto QEMU.
+Moduli nativi: `@node-rs/argon2` arriva con il pacchetto di piattaforma, senza script di installazione (il Dockerfile usa `--ignore-scripts`); il job `image` della CI carica `@node-rs/argon2` dentro le immagini amd64 e arm64 (sotto QEMU) e calcola un hash.

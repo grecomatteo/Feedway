@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto'
 
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-function base32Decode(input: string): Buffer {
+export function base32Decode(input: string): Buffer {
   let bits = ''
   for (const c of input.replace(/=+$/, '').toUpperCase())
     bits += B32.indexOf(c).toString(2).padStart(5, '0')
