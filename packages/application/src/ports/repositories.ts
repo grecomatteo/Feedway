@@ -1,0 +1,136 @@
+import type { AuthMethod, OrgActor, OrgRole, WorkspaceRole } from '@app/domain'
+
+// Records carry only what the use cases read. Secrets (password hashes, session tokens,
+// 2FA secrets) never leave the auth adapter.
+
+export interface UserRecord {
+  id: string
+  email: string
+  name: string
+  nickname: string | null
+  image: string | null
+  avatarKey: string | null
+  platformRole: 'admin' | null
+  status: 'active' | 'disabled'
+  twoFactorEnabled: boolean
+  theme: 'light' | 'dark' | 'system'
+  locale: string
+  timezone: string | null
+  lastOrganizationId: string | null
+  lastLoginAt: Date | null
+  disabledAt: Date | null
+  anonymizedAt: Date | null
+  createdAt: Date
+}
+
+export interface UsersRepository {
+  findByEmail(email: string): Promise<UserRecord | null>
+  /** Locks the row until the transaction ends. */
+  findByIdForUpdate(id: string): Promise<UserRecord | null>
+  /** Whether the two users share an active membership in an active agency. */
+  sharesOrganization(a: string, b: string): Promise<boolean>
+}
+
+export interface SessionRecord {
+  id: string
+  userId: string
+  createdAt: Date
+  updatedAt: Date
+  expiresAt: Date
+  ipAddress: string | null
+  userAgent: string | null
+  authMethod: AuthMethod
+  reauthenticatedAt: Date | null
+}
+
+/** Only the columns we own; Better Auth creates and deletes sessions. */
+export interface SessionsRepository {
+  findForUser(userId: string): Promise<SessionRecord[]>
+  setReauthenticated(userId: string, sessionId: string, at: Date): Promise<void>
+  setAuthMethod(userId: string, sessionId: string, method: AuthMethod): Promise<void>
+}
+
+export interface OrganizationRecord {
+  id: string
+  name: string
+  slug: string
+  status: 'active' | 'suspended'
+  limits: Record<string, unknown>
+  settings: Record<string, unknown>
+  suspendedAt: Date | null
+  createdAt: Date
+}
+
+export interface OrganizationsRepository {
+  findById(id: string): Promise<OrganizationRecord | null>
+}
+
+export interface OrgMemberRecord {
+  organizationId: string
+  userId: string
+  role: OrgRole
+  status: 'active' | 'disabled'
+}
+
+export interface UserOrganizationRecord extends OrgMemberRecord {
+  name: string
+  slug: string
+  organizationStatus: 'active' | 'suspended'
+}
+
+export interface OrgMembersRepository {
+  /** Every membership of the user, disabled ones included: the caller filters. */
+  listForUser(userId: string): Promise<UserOrganizationRecord[]>
+  find(organizationId: string, userId: string): Promise<OrgMemberRecord | null>
+  /** Memberships in any agency, disabled ones and suspended agencies included. */
+  organizationCount(userId: string): Promise<number>
+}
+
+export type InvitePurpose = 'bootstrap' | 'invite' | 'organization_owner'
+
+export interface InviteRecord {
+  id: string
+  organizationId: string | null
+  purpose: InvitePurpose
+  email: string
+  existingUserId: string | null
+  reservedUserId: string | null
+  invitedBy: string | null
+  orgRole: OrgRole | null
+  memberships: { workspaceId: string; role: WorkspaceRole }[]
+  expiresAt: Date
+  usedAt: Date | null
+  createdAt: Date
+}
+
+export interface InvitesRepository {
+  /** Locks an unused, unexpired invite until the transaction ends; null otherwise. */
+  lockForActivation(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
+  markUsed(id: string, at: Date): Promise<void>
+  /** The id the activated account will get, so a retried activation reuses it. */
+  reserveUserId(id: string, userId: string): Promise<void>
+}
+
+export interface WorkspaceRecord {
+  id: string
+  organizationId: string
+  name: string
+  slug: string
+  logoKey: string | null
+  /** Local time `HH:MM:SS`; null means no default. */
+  defaultPostTime: string | null
+  archivedAt: Date | null
+  createdAt: Date
+}
+
+export interface WorkspacesRepository {
+  /** Archived ones included (they stay readable); a Member sees only their own. */
+  listVisible(actor: OrgActor): Promise<WorkspaceRecord[]>
+  findVisibleById(actor: OrgActor, id: string): Promise<WorkspaceRecord | null>
+  countActive(organizationId: string): Promise<number>
+}
+
+export interface WorkspaceMembersRepository {
+  /** workspaceId → role of the user in that agency, to build the `OrgActor`. */
+  rolesOf(organizationId: string, userId: string): Promise<ReadonlyMap<string, WorkspaceRole>>
+}

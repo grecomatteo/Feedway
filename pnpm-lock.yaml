@@ -291,7 +291,11 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
-  packages/application: {}
+  packages/application:
+    dependencies:
+      '@app/domain':
+        specifier: workspace:*
+        version: link:../domain
 
   packages/config:
     dependencies:

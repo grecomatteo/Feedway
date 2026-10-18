@@ -2,8 +2,8 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import type pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import type { Tx } from '@app/application'
-import { drizzleOrganizationKeys } from '../db/organizations/organization-keys-repository.js'
+import type { KeyTx } from '@app/application'
+import { drizzleOrganizationKeys } from '../db/organizations/repositories.js'
 import * as schema from '../db/schema/index.js'
 import { fixedClock, startTestDatabase, withScope } from '../testing/index.js'
 import type { TestDatabase } from '../testing/index.js'
@@ -14,10 +14,10 @@ const ring = createKeyRing({
   platformKey: randomBytes(32),
   clock: fixedClock(new Date('2026-10-18T10:00:00Z')),
 })
-const txOf = (c: pg.Client): Tx => ({
+const txOf = (c: pg.Client): KeyTx => ({
   organizationKeys: drizzleOrganizationKeys(drizzle(c, { schema })),
 })
-const inOrg = <T>(organizationId: string, fn: (tx: Tx, c: pg.Client) => Promise<T>) =>
+const inOrg = <T>(organizationId: string, fn: (tx: KeyTx, c: pg.Client) => Promise<T>) =>
   withScope(tdb.runtimeUrl, { kind: 'organization', organizationId }, (c) => fn(txOf(c), c))
 const boxFor = (org: string) => inOrg(org, (tx) => ring.forOrganization(tx, org))
 const rotate = (org: string) => inOrg(org, (tx) => ring.rotateOrganizationKey(tx, org))

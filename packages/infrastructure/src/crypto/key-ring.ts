@@ -1,5 +1,5 @@
 import { hkdfSync, randomBytes } from 'node:crypto'
-import type { Clock, KeyRing, OrganizationKeyRecord, Tx } from '@app/application'
+import type { Clock, KeyRing, KeyTx, OrganizationKeyRecord } from '@app/application'
 import { createSecretBox } from './secret-box.js'
 
 const PLATFORM_KEY_VERSION = 1
@@ -55,7 +55,7 @@ export function createKeyRing(opts: KeyRingOptions): KeyRing {
     return Buffer.from(key)
   }
 
-  async function seal(tx: Tx, organizationId: string, version: number) {
+  async function seal(tx: KeyTx, organizationId: string, version: number) {
     const key = randomBytes(32)
     await tx.organizationKeys.insert(
       organizationId,

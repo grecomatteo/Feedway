@@ -1,6 +1,17 @@
 import tseslint from 'typescript-eslint'
 import security from 'eslint-plugin-security'
 
+// The only modules that may open the system scope (every agency visible). A new system job
+// adds its module here explicitly (plan of stage 2, Task 7; spec §6.5).
+const RUN_AS_SYSTEM_ALLOWED = [
+  'packages/application/src/platform/**',
+  'packages/application/src/identity/auth-events.ts',
+  'packages/application/src/identity/activation.ts',
+  'packages/application/src/identity/bootstrap.ts',
+  'packages/application/src/identity/sessions.ts',
+  'packages/application/src/identity/retention.ts',
+]
+
 export default tseslint.config(
   {
     ignores: [
@@ -70,6 +81,20 @@ export default tseslint.config(
         {
           selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
           message: 'Usa la porta Clock, non Date.now().',
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/application/src/**/*.ts', 'apps/**/*.ts'],
+    ignores: ['**/*.test.ts', ...RUN_AS_SYSTEM_ALLOWED],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          property: 'runAsSystem',
+          message:
+            "runAsSystem vede tutte le agenzie: usa uow.run con l'ambito. Solo i moduli elencati in RUN_AS_SYSTEM_ALLOWED possono aprirlo.",
         },
       ],
     },

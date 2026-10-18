@@ -29,7 +29,7 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 3. **Tabelle** con `organization_id`, chiavi esterne composte con `organization_id`, indici che iniziano con `organization_id` o `workspace_id`, **RLS** con la policy `org_isolation`, permessi per `app_runtime`. Migrazione generata e riletta.
 4. **Casi d'uso** in TDD: `can()` per primo, `uow.run` con ambito, `tx.audit.record` per ogni azione rilevante, eventi nell'outbox per gli effetti verso altri moduli.
 5. **Contratti** Zod e **rotte** registrate nel registro OpenAPI: entrano da sole nella batteria di **isolamento tra agenzie**.
-6. **Lavori in coda**: i dati portano `organizationId`; un lavoro di sistema va dichiarato tale nel registro delle code e usa `runAsSystem` (consentito solo se il modulo è nella lista della regola ESLint).
+6. **Lavori in coda**: i dati portano `organizationId`; un lavoro di sistema va dichiarato tale nel registro delle code e usa `runAsSystem` (consentito solo se il modulo è in `RUN_AS_SYSTEM_ALLOWED` di `eslint.config.mjs`).
 7. **Notifiche**: tipi di evento con livello e destinatari, testi in `apps/web/i18n/locales/it.json`.
 8. **Schermate** con tutti gli stati, da telefono e computer, axe verde; voci di menu e del calendario registrate in `module.ts`.
 9. **Strumenti MCP** (dalla 1.4), registrati in `module.ts` con gli stessi casi d'uso e permessi.
