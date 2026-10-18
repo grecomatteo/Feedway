@@ -106,8 +106,12 @@ export interface InviteRecord {
 export interface InvitesRepository {
   /** Locks an unused, unexpired invite until the transaction ends; null otherwise. */
   lockForActivation(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
-  markUsed(id: string, at: Date): Promise<void>
-  /** The id the activated account will get, so a retried activation reuses it. */
+  /** false: someone else used it first. */
+  markUsed(id: string, at: Date): Promise<boolean>
+  /**
+   * The id the activated account will get, so a retried activation reuses it. Sets it only once:
+   * read `reservedUserId` from `lockForActivation` before reserving.
+   */
   reserveUserId(id: string, userId: string): Promise<void>
 }
 

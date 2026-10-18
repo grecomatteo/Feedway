@@ -85,11 +85,18 @@ test('runAsSystem opens the system scope, logs the reason and does not leak it',
   expect(after.rows[0]?.scope ?? '').toBe('')
 })
 
-test('an empty scope is refused before touching the database', () => {
-  expect(() => uow().run({ userId: '' }, () => Promise.resolve())).toThrow(/userId/)
-  expect(() => uow().run({ organizationId: '', userId: ownerA }, () => Promise.resolve())).toThrow(
-    /organizationId/,
+test('an empty scope is refused before touching the database', async () => {
+  await expect(uow().run({ userId: '' }, () => Promise.resolve())).rejects.toThrow(/userId/)
+  await expect(
+    uow().run({ organizationId: '', userId: ownerA }, () => Promise.resolve()),
+  ).rejects.toThrow(/organizationId/)
+})
+
+test('a user-only scope sees no agency rows', async () => {
+  const { rows } = await uow().run({ userId: ownerA }, (tx) =>
+    executorOf(tx).execute(sql`select id from workspaces`),
   )
+  expect(rows).toEqual([])
 })
 
 test('repository never returns another organization rows even if asked by id', async () => {

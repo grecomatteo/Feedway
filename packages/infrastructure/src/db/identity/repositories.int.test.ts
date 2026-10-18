@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { Logger, UnitOfWork } from '@app/application'
 import { uuidV7Generator } from '../../system/id-generator.js'
-import { seed, startTestDatabase, withScope } from '../../testing/index.js'
+import { seed, startTestDatabase, waitForLockWaiter, withScope } from '../../testing/index.js'
 import type { TestDatabase } from '../../testing/index.js'
 import { createDb } from '../client.js'
 import type { DbHandle } from '../client.js'
@@ -18,7 +18,7 @@ const silent: Logger = {
   error: () => undefined,
   child: () => silent,
 }
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const APP = 'identity-repos-test'
 
 let anna: string, bruno: string, sessionOfAnna: string, sessionOfBruno: string
 
@@ -36,7 +36,7 @@ async function seedSession(userId: string) {
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
-  handle = createDb(tdb.runtimeUrl, { max: 3, applicationName: 'identity-repos-test' })
+  handle = createDb(tdb.runtimeUrl, { max: 3, applicationName: APP })
   uow = createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger: silent })
   await seed(tdb.runtimeUrl, async (s) => {
     anna = await s.user({ email: 'Anna.Rossi@example.test', name: 'Anna' })
@@ -70,19 +70,21 @@ test('findByEmail ignores case and never returns secrets', async () => {
 })
 
 test('findByIdForUpdate locks the user row until the transaction ends', async () => {
-  const order: string[] = []
+  let release!: () => void
+  const released = new Promise<void>((r) => (release = r))
+  let locked!: () => void
+  const lockTaken = new Promise<void>((r) => (locked = r))
   const first = uow.run({ userId: anna }, async (tx) => {
-    await tx.users.findByIdForUpdate(anna)
-    await sleep(300)
-    order.push('first')
+    expect((await tx.users.findByIdForUpdate(anna))?.id).toBe(anna)
+    locked()
+    await released
   })
-  await sleep(50)
-  const second = uow.run({ userId: anna }, async (tx) => {
-    await tx.users.findByIdForUpdate(anna)
-    order.push('second')
-  })
-  await Promise.all([first, second])
-  expect(order).toEqual(['first', 'second'])
+  await lockTaken
+  const second = uow.run({ userId: anna }, (tx) => tx.users.findByIdForUpdate(anna))
+  await waitForLockWaiter(tdb.adminUrl, APP)
+  release()
+  await first
+  expect((await second)?.id).toBe(anna)
 })
 
 test('sessions are listed for their user only, without the token', async () => {
@@ -104,4 +106,19 @@ test('session updates never reach another user session', async () => {
   const [ofBruno] = await uow.run({ userId: bruno }, (tx) => tx.sessions.findForUser(bruno))
   expect(ofAnna).toMatchObject({ reauthenticatedAt: at, authMethod: 'password_totp' })
   expect(ofBruno).toMatchObject({ reauthenticatedAt: null, authMethod: 'password' })
+})
+
+test('outside the system scope a user cannot reach sessions of someone else', async () => {
+  const at = new Date('2026-10-18T11:00:00Z')
+  await expect(
+    uow.run({ userId: anna }, (tx) => tx.sessions.setAuthMethod(bruno, sessionOfBruno, 'passkey')),
+  ).rejects.toThrow(/another user/)
+  await expect(
+    uow.run({ userId: anna }, (tx) => tx.sessions.setReauthenticated(bruno, sessionOfBruno, at)),
+  ).rejects.toThrow(/another user/)
+  await expect(uow.run({ userId: anna }, (tx) => tx.sessions.findForUser(bruno))).rejects.toThrow(
+    /another user/,
+  )
+  const viaSystem = await uow.runAsSystem('test', (tx) => tx.sessions.findForUser(bruno))
+  expect(viaSystem.map((s) => s.id)).toEqual([sessionOfBruno])
 })

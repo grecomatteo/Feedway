@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { Logger, UnitOfWork } from '@app/application'
 import { uuidV7Generator } from '../../system/id-generator.js'
-import { seed, startTestDatabase, withScope } from '../../testing/index.js'
+import { seed, startTestDatabase, waitForLockWaiter, withScope } from '../../testing/index.js'
 import type { TestDatabase } from '../../testing/index.js'
 import { createDb } from '../client.js'
 import type { DbHandle } from '../client.js'
@@ -19,14 +19,14 @@ const silent: Logger = {
   child: () => silent,
 }
 const now = new Date('2026-10-18T10:00:00Z')
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const APP = 'org-repos-test'
 
 let orgA: string, orgB: string, suspended: string
 let ownerA: string, memberA: string, userInAandB: string, onlyInB: string, disabledInB: string
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
-  handle = createDb(tdb.runtimeUrl, { max: 4, applicationName: 'org-repos-test' })
+  handle = createDb(tdb.runtimeUrl, { max: 4, applicationName: APP })
   uow = createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger: silent })
   await seed(tdb.runtimeUrl, async (s) => {
     orgA = await s.organization()
@@ -123,6 +123,16 @@ test('organizations.findById reads the current agency and nothing else', async (
   expect(await uow.run(scope, (tx) => tx.organizations.findById(orgB))).toBeNull()
 })
 
+test('inside one agency, another agency of the same user stays hidden', async () => {
+  // RLS lists every agency of the user (switcher); the repository narrows to the current one
+  const scope = { organizationId: orgA, userId: userInAandB }
+  expect(await uow.run(scope, (tx) => tx.organizations.findById(orgB))).toBeNull()
+  const fromUserScope = await uow.run({ userId: userInAandB }, (tx) =>
+    tx.organizations.findById(orgB),
+  )
+  expect(fromUserScope?.id).toBe(orgB)
+})
+
 test('lockForActivation ignores used, expired and unknown invites', async () => {
   await seedInvite({ token: 'used', usedAt: now })
   await seedInvite({ token: 'expired', expiresAt: now })
@@ -135,16 +145,27 @@ test('lockForActivation ignores used, expired and unknown invites', async () => 
 
 test('invite row is locked: concurrent activation waits and then finds it used', async () => {
   const id = await seedInvite({ token: 'race' })
+  let release!: () => void
+  const released = new Promise<void>((r) => (release = r))
+  let locked!: () => void
+  const lockTaken = new Promise<void>((r) => (locked = r))
   const first = uow.runAsSystem('test', async (tx) => {
     const invite = await tx.invites.lockForActivation(hashOf('race'), now)
-    await sleep(300)
-    if (invite) await tx.invites.markUsed(invite.id, now)
-    return invite
+    locked()
+    await released
+    return { invite, used: invite ? await tx.invites.markUsed(invite.id, now) : false }
   })
-  await sleep(50)
+  await lockTaken
   const second = uow.runAsSystem('test', (tx) => tx.invites.lockForActivation(hashOf('race'), now))
-  expect(await first).toMatchObject({ id, purpose: 'invite', orgRole: 'member', memberships: [] })
+  // the second activation is blocked on the row before the first one commits
+  await waitForLockWaiter(tdb.adminUrl, APP)
+  release()
+  expect(await first).toMatchObject({
+    invite: { id, purpose: 'invite', orgRole: 'member', memberships: [] },
+    used: true,
+  })
   expect(await second).toBeNull()
+  expect(await uow.runAsSystem('test', (tx) => tx.invites.markUsed(id, now))).toBe(false)
 })
 
 test('reserveUserId keeps the id for a retried activation and never touches a used invite', async () => {
@@ -159,6 +180,12 @@ test('reserveUserId keeps the id for a retried activation and never touches a us
     tx.invites.lockForActivation(hashOf('reserve'), now),
   )
   expect(again?.reservedUserId).toBe(reserved)
+  // a second reservation never replaces the first
+  await uow.runAsSystem('test', (tx) => tx.invites.reserveUserId(open, randomUUID()))
+  const still = await uow.runAsSystem('test', (tx) =>
+    tx.invites.lockForActivation(hashOf('reserve'), now),
+  )
+  expect(still?.reservedUserId).toBe(reserved)
   const { rows } = await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
     c.query<{ reserved_user_id: string | null }>(
       'select reserved_user_id from invites where id = $1',

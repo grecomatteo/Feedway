@@ -9,6 +9,7 @@ import type {
   OrgMembersRepository,
 } from '@app/application'
 import type { DbExecutor } from '../client.js'
+import type { TxContext } from '../tx-context.js'
 import { invites, organizationKeys, organizationMembers, organizations } from './schema.js'
 
 // Every query names the organization even though RLS already limits the rows: two barriers.
@@ -45,9 +46,12 @@ export function drizzleOrganizationKeys(db: DbExecutor): OrganizationKeysReposit
 
 // The check constraints keep the text columns inside the record unions.
 
-export function drizzleOrganizations(db: DbExecutor): OrganizationsRepository {
+export function drizzleOrganizations(db: DbExecutor, ctx: TxContext): OrganizationsRepository {
   return {
     async findById(id) {
+      // RLS also lists every agency the user belongs to (switcher); inside an agency only that
+      // agency is readable here.
+      if (ctx.kind === 'organization' && ctx.organizationId !== id) return null
       const [row] = await db
         .select({
           id: organizations.id,
@@ -65,6 +69,7 @@ export function drizzleOrganizations(db: DbExecutor): OrganizationsRepository {
       return {
         ...row,
         status: row.status as OrganizationRecord['status'],
+        // objects by default; the domain parses them (organizations/limits, settings)
         limits: row.limits as Record<string, unknown>,
         settings: row.settings as Record<string, unknown>,
       }
@@ -158,20 +163,22 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         ...row,
         purpose: row.purpose as InviteRecord['purpose'],
         orgRole: row.orgRole as InviteRecord['orgRole'],
+        // written only by our use cases (Tasks 12 and 15), which validate the shape
         memberships: row.memberships as InviteRecord['memberships'],
       }
     },
     async markUsed(id, at) {
-      await db
+      const result = await db
         .update(invites)
         .set({ usedAt: at })
         .where(and(eq(invites.id, id), isNull(invites.usedAt)))
+      return (result.rowCount ?? 0) > 0
     },
     async reserveUserId(id, userId) {
       await db
         .update(invites)
         .set({ reservedUserId: userId })
-        .where(and(eq(invites.id, id), isNull(invites.usedAt)))
+        .where(and(eq(invites.id, id), isNull(invites.usedAt), isNull(invites.reservedUserId)))
     },
   }
 }

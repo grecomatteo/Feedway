@@ -37,6 +37,8 @@ afterAll(async () => {
   await tdb.stop()
 })
 
+const rlsViolation: unknown = expect.stringMatching(/row-level security/)
+
 const entry = (over: Partial<AuditEntry>): AuditEntry => ({
   organizationId: orgA,
   actorId: ownerA,
@@ -94,7 +96,7 @@ test('an agency cannot write entries for another agency', async () => {
   const e = entry({ organizationId: orgB })
   await expect(
     uow.run({ organizationId: orgA, userId: ownerA }, (tx) => tx.audit.record(e)),
-  ).rejects.toThrow()
+  ).rejects.toMatchObject({ cause: { message: rlsViolation } })
   expect(await rowsFor(e.entityId)).toEqual([])
 })
 
@@ -105,5 +107,23 @@ test('a user cannot write a personal entry as someone else', async () => {
     actorId: randomUUID(),
     entityId: randomUUID(),
   })
-  await expect(uow.run({ userId: ownerA }, (tx) => tx.audit.record(e))).rejects.toThrow()
+  await expect(uow.run({ userId: ownerA }, (tx) => tx.audit.record(e))).rejects.toMatchObject({
+    cause: { message: rlsViolation },
+  })
+})
+
+test('an agency action without its agency is refused outside the system scope', async () => {
+  const e = entry({ organizationId: null, actorId: ownerA })
+  await expect(uow.run({ userId: ownerA }, (tx) => tx.audit.record(e))).rejects.toThrow(
+    /needs an organizationId/,
+  )
+  expect(await rowsFor(e.entityId)).toEqual([])
+})
+
+test('a platform entry has no agency and is written in the system scope', async () => {
+  const e = entry({ organizationId: null, action: 'organization.created', entity: 'organization' })
+  await uow.runAsSystem('test', (tx) => tx.audit.record(e))
+  expect(await rowsFor(e.entityId)).toEqual([
+    expect.objectContaining({ organization_id: null, action: 'organization.created' }),
+  ])
 })

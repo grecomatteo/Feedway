@@ -2,10 +2,12 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { SessionsRepository, UserRecord, UsersRepository } from '@app/application'
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
+import type { TxContext } from '../tx-context.js'
 import { sessions, users } from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
-// query names the user it is about, and only the identity module may import this file.
+// query names the user it is about. Only the identity module may import this file (enforced by
+// dependency-cruiser from Task 7b).
 
 const userColumns = {
   id: users.id,
@@ -69,11 +71,21 @@ export function drizzleUsers(db: DbExecutor): UsersRepository {
   }
 }
 
-export function drizzleSessions(db: DbExecutor): SessionsRepository {
+// Sessions have no row level security: outside the system scope a user reaches only their own,
+// whatever id the caller passes.
+function ownUser(ctx: TxContext, userId: string): string {
+  if (ctx.kind !== 'system' && ctx.userId !== userId) {
+    throw new Error('sessions of another user are reachable only in the system scope')
+  }
+  return userId
+}
+
+export function drizzleSessions(db: DbExecutor, ctx: TxContext): SessionsRepository {
   const ofUser = (userId: string, sessionId: string) =>
-    and(eq(sessions.id, sessionId), eq(sessions.userId, userId))
+    and(eq(sessions.id, sessionId), eq(sessions.userId, ownUser(ctx, userId)))
   return {
     async findForUser(userId) {
+      ownUser(ctx, userId)
       const rows = await db
         .select({
           id: sessions.id,

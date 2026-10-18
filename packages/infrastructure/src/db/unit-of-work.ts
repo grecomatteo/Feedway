@@ -9,6 +9,7 @@ import {
   drizzleOrganizations,
   drizzleOrgMembers,
 } from './organizations/repositories.js'
+import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
 
 export interface UnitOfWorkDeps {
@@ -19,17 +20,17 @@ export interface UnitOfWorkDeps {
 
 const EXECUTOR = Symbol('executor')
 
-function buildTx(db: DbExecutor, ids: IdGenerator): Tx {
+function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
   const tx: Tx = {
     users: drizzleUsers(db),
-    sessions: drizzleSessions(db),
-    organizations: drizzleOrganizations(db),
+    sessions: drizzleSessions(db, ctx),
+    organizations: drizzleOrganizations(db, ctx),
     orgMembers: drizzleOrgMembers(db),
     organizationKeys: drizzleOrganizationKeys(db),
     invites: drizzleInvites(db),
     workspaces: drizzleWorkspaces(db),
     workspaceMembers: drizzleWorkspaceMembers(db),
-    audit: drizzleAuditLog(db, ids),
+    audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })
   return tx
@@ -49,24 +50,28 @@ export function executorOf(tx: Tx): DbExecutor {
 // carries a scope into the next one.
 export function createUnitOfWork({ db, ids, logger }: UnitOfWorkDeps): UnitOfWork {
   return {
-    run(scope, fn) {
+    async run(scope, fn) {
       if (!scope.userId) throw new Error('a transaction scope needs a userId')
-      const organizationId = 'organizationId' in scope ? scope.organizationId : ''
-      if ('organizationId' in scope && !organizationId) {
+      const ctx: TxContext =
+        'organizationId' in scope
+          ? { kind: 'organization', organizationId: scope.organizationId, userId: scope.userId }
+          : { kind: 'user', userId: scope.userId }
+      if (ctx.kind === 'organization' && !ctx.organizationId) {
         throw new Error('an organization scope needs an organizationId')
       }
+      const organizationId = ctx.kind === 'organization' ? ctx.organizationId : ''
       return db.transaction(async (t) => {
         await t.execute(
           sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId}, true)`,
         )
-        return fn(buildTx(t, ids))
+        return fn(buildTx(t, ids, ctx))
       })
     },
-    runAsSystem(reason, fn) {
+    async runAsSystem(reason, fn) {
       logger.info({ reason }, 'system scope transaction')
       return db.transaction(async (t) => {
         await t.execute(sql`select set_config('app.scope', 'system', true)`)
-        return fn(buildTx(t, ids))
+        return fn(buildTx(t, ids, { kind: 'system' }))
       })
     },
   }
