@@ -1,4 +1,7 @@
 import { randomBytes } from 'node:crypto'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { createRuntime } from './runtime.js'
 import type { RuntimeRole } from './runtime.js'
@@ -21,8 +24,14 @@ afterAll(async () => {
 })
 
 test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', async (role) => {
+  const mediaRoot = await mkdtemp(join(tmpdir(), 'feedway-runtime-'))
   const runtime = await createRuntime(
-    { databaseUrl: tdb.runtimeUrl, encryptionKey: randomBytes(32), logLevel: 'error' },
+    {
+      databaseUrl: tdb.runtimeUrl,
+      encryptionKey: randomBytes(32),
+      logLevel: 'error',
+      mediaRoot,
+    },
     role,
   )
   try {
@@ -35,7 +44,11 @@ test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', 
     expect(box.open(box.seal('segreto', 'aad'), 'aad')).toBe('segreto')
     await expect(runtime.queue.ping()).resolves.toBeUndefined()
     expect(runtime.ids.newId()).toMatch(/^[0-9a-f-]{36}$/)
+    const key = `users/${ownerA}/note.txt`
+    await runtime.storage.put(key, Buffer.from('ciao'), { contentType: 'text/plain' })
+    expect((await runtime.storage.get(key))?.size).toBe(4)
   } finally {
+    await rm(mediaRoot, { recursive: true, force: true })
     await runtime.queue.stop({ graceful: false, timeoutMs: 1000 })
     await runtime.close()
   }

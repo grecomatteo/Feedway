@@ -14,6 +14,13 @@ const services: WorkerDeps['services'] = {
   },
   clock: { now: () => new Date('2026-10-18T10:00:00Z') },
   ids: { newId: () => '00000000-0000-7000-8000-000000000000' },
+  storage: {
+    put: () => Promise.reject(new Error('not used in this test')),
+    get: () => Promise.reject(new Error('not used in this test')),
+    delete: () => Promise.reject(new Error('not used in this test')),
+    deletePrefix: () => Promise.reject(new Error('not used in this test')),
+    list: () => Promise.reject(new Error('not used in this test')),
+  },
 }
 
 const silentLogger: Logger = {

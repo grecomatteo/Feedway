@@ -10,6 +10,7 @@ export type {
   ScopedPayload,
 } from './ports/job-queue.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
+export type { Storage, StoredObject } from './ports/storage.js'
 export type { KeyRing, KeyTx, SecretBox } from './ports/key-ring.js'
 export type { PasswordHasher } from './ports/password-hasher.js'
 export type { SignedTokenPurpose, SignedTokens, TokenService } from './ports/token-service.js'
