@@ -84,6 +84,38 @@ module.exports = {
         ],
       },
     },
+    {
+      name: 'better-auth-only-in-adapter',
+      comment:
+        'Better Auth stays behind the Auth port: only the adapter and the browser client use it',
+      severity: 'error',
+      from: {
+        pathNot: [
+          '(^|/)packages/infrastructure/src/auth/',
+          '(^|/)apps/web/app/lib/auth-client\\.ts$',
+        ],
+      },
+      to: { path: '(^|/)(better-auth|@better-auth/[^/]+)(/|$)' },
+    },
+    {
+      name: 'identity-tables-only-from-identity',
+      comment:
+        'personal data (users, sessions, …) has no RLS: only its repositories, the auth adapter, the unit of work and the limiter reach it',
+      severity: 'error',
+      from: {
+        path: '(^|/)packages/',
+        pathNot: [
+          TEST,
+          '(^|/)packages/infrastructure/src/db/identity/',
+          '(^|/)packages/infrastructure/src/db/schema/',
+          '(^|/)packages/infrastructure/src/db/[^/]+/schema\\.ts$',
+          '(^|/)packages/infrastructure/src/db/unit-of-work\\.ts$',
+          '(^|/)packages/infrastructure/src/db/rate-limiter\\.ts$',
+          '(^|/)packages/infrastructure/src/auth/',
+        ],
+      },
+      to: { path: '(^|/)packages/infrastructure/src/db/identity/' },
+    },
     { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
     {
       name: 'no-orphans',

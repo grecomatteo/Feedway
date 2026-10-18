@@ -71,3 +71,32 @@ test('stop asks the queue for a graceful stop with a 30 s timeout', async () => 
   await w.stop()
   expect(q.stops).toEqual([{ graceful: true, timeoutMs: 30_000 }])
 })
+
+test('a handler receives the job data and its dependencies', async () => {
+  let registered:
+    ((job: { id: string; data: { requestedAt: string } }) => Promise<void>) | undefined
+  const queue: JobQueue = {
+    ...fakeQueue().queue,
+    work(_name, handler) {
+      registered = handler
+      return Promise.resolve()
+    },
+  }
+  const seen: unknown[] = []
+  const w = await startWorker({
+    queue,
+    logger: silentLogger,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['system.selftest'],
+    handlers: {
+      'system.selftest': (job, deps) => {
+        seen.push(job.data, deps.logger)
+        return Promise.resolve()
+      },
+    },
+  })
+  await registered?.({ id: 'j1', data: { requestedAt: '2026-10-18T10:00:00Z' } })
+  expect(seen).toEqual([{ requestedAt: '2026-10-18T10:00:00Z' }, silentLogger])
+  await w.stop()
+})
