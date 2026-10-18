@@ -63,6 +63,11 @@ export async function runMigrations(opts: RunMigrationsOptions): Promise<void> {
     await grants.query(
       `ALTER DEFAULT PRIVILEGES IN SCHEMA pgboss GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${role}`,
     )
+    // the audit log is append-only for the runtime role (migration 0002)
+    await grants.query(`REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM ${role}`)
+    await grants.query(
+      `GRANT EXECUTE ON FUNCTION audit_shorten_ips(timestamptz), shares_active_organization(uuid, uuid), organization_count(uuid) TO ${role}`,
+    )
   } finally {
     await grants.end()
   }

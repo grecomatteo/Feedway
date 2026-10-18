@@ -15,6 +15,13 @@
       "when": 1792313151687,
       "tag": "0001_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792314440288,
+      "tag": "0002_organizations",
+      "breakpoints": true
     }
   ]
 }
