@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { twoFactor } from 'better-auth/plugins'
 import { passkey } from '@better-auth/passkey'
+import { SESSION_IDLE_MS, type AuthMethod } from '@app/domain'
 import type { Clock, IdGenerator, Logger, PasswordHasher, RateLimiter } from '@app/application'
 import type { Db } from '../db/client.js'
 import * as schema from '../db/identity/schema.js'
@@ -31,7 +32,7 @@ export interface BetterAuthDeps {
 }
 
 /** Sessions last 12 hours without use; the 30-day limit is ours (see auth-adapter.ts). */
-const SESSION_IDLE_SECONDS = 43_200
+const SESSION_IDLE_SECONDS = SESSION_IDLE_MS / 1000
 
 export function createBetterAuth(deps: BetterAuthDeps) {
   const panel = new URL(deps.config.panelUrl)
@@ -45,6 +46,8 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     secrets: deps.config.secrets,
     trustedOrigins: [origin],
     telemetry: { enabled: false },
+    disabledPaths: ['/sign-up/email', '/update-user', '/delete-user'],
+    user: { deleteUser: { enabled: false } },
     database: drizzleAdapter(deps.db, { provider: 'pg', usePlural: true, schema }),
     advanced: {
       // With `true` the name would become `__Secure-__Host-session` (ADR 012, V5).
@@ -68,10 +71,6 @@ export function createBetterAuth(deps: BetterAuthDeps) {
       },
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 3600,
-      // Mail is wired in Task 15; until then a reset request fails loudly instead of vanishing.
-      sendResetPassword: () => {
-        throw new Error('Invio del link di reset non ancora collegato (Task 15)')
-      },
     },
     session: {
       expiresIn: SESSION_IDLE_SECONDS,
@@ -109,8 +108,19 @@ export function createBetterAuth(deps: BetterAuthDeps) {
               deps.logger.info({ path: ctx?.path }, 'session refused for a disabled account')
               return false
             }
+            // A session replaced by an endpoint (2FA changes, password change) keeps its
+            // method and its 30-day start; only a sign-in path makes a new session.
+            // The session an endpoint replaced, if it had one; typed here because the hook context is loose.
+            const previous = ctx?.context.session as
+              { session: { authMethod: AuthMethod; createdAt: Date } } | null | undefined
+            const method = authMethodForPath(ctx?.path) ?? previous?.session.authMethod
+            if (method === undefined) return false
             return {
-              data: { ...session, authMethod: authMethodForPath(ctx?.path) ?? 'password' },
+              data: {
+                ...session,
+                authMethod: method,
+                ...(previous ? { createdAt: previous.session.createdAt } : {}),
+              },
             }
           },
         },

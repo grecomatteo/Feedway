@@ -1,12 +1,9 @@
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq, gt, ne } from 'drizzle-orm'
 import type { Auth, AuthSessionInfo, Clock } from '@app/application'
+import { isBeyondAbsoluteLifetime, type AuthMethod } from '@app/domain'
 import { AUTH_METHODS, sessions } from '../db/identity/schema.js'
 import type { Db } from '../db/client.js'
 import type { BetterAuthInstance } from './better-auth.js'
-import type { AuthMethod } from '@app/domain'
-
-/** Absolute lifetime of a session, counted from `created_at` (spec §15.2). */
-export const SESSION_ABSOLUTE_MS = 30 * 24 * 60 * 60 * 1000
 
 export interface AuthAdapterDeps {
   db: Db
@@ -52,7 +49,8 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
       if (!result) return null
       const [row] = await db.select().from(sessions).where(eq(sessions.id, result.session.id))
       if (!row) return null
-      if (clock.now().getTime() - row.createdAt.getTime() > SESSION_ABSOLUTE_MS) {
+      const now = clock.now()
+      if (row.expiresAt <= now || isBeyondAbsoluteLifetime(row.createdAt, now)) {
         await remove(row.id)
         return null
       }
@@ -64,12 +62,13 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
     },
 
     async listSessions(userId) {
+      const now = clock.now()
       const rows = await db
         .select()
         .from(sessions)
-        .where(eq(sessions.userId, userId))
+        .where(and(eq(sessions.userId, userId), gt(sessions.expiresAt, now)))
         .orderBy(desc(sessions.createdAt))
-      return rows.map(toInfo)
+      return rows.filter((row) => !isBeyondAbsoluteLifetime(row.createdAt, now)).map(toInfo)
     },
 
     async revokeSession(userId, sessionId) {

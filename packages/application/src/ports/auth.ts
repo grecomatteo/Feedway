@@ -18,7 +18,7 @@ export interface AuthSessionInfo {
  * tasks (account creation, password checks, second factor, reset links) are added with their tasks.
  */
 export interface Auth {
-  /** Null for a missing, revoked, expired (12 h idle or 30 days absolute) or disabled session. */
+  /** Null for a missing, revoked or expired session (12 h idle, or 30 days from creation). */
   getSession(headers: Headers): Promise<{ session: AuthSessionInfo; userId: string } | null>
   /** Only for the catch-all route `/api/auth/[...all]`. */
   handler(request: Request): Promise<Response>

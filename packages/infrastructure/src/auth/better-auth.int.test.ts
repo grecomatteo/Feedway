@@ -9,7 +9,8 @@ import { createLogger } from '../logging/logger.js'
 import { systemClock } from '../system/clock.js'
 import { uuidV7Generator } from '../system/id-generator.js'
 import { startTestDatabase, type TestDatabase } from '../testing/index.js'
-import { createAuthAdapter, SESSION_ABSOLUTE_MS } from './auth-adapter.js'
+import { SESSION_ABSOLUTE_MS } from '@app/domain'
+import { createAuthAdapter } from './auth-adapter.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
 
 const PANEL = 'https://app.feedway.test'
@@ -56,6 +57,7 @@ function must<T>(value: T | undefined | null, what: string): T {
 }
 
 let counter = 0
+let ipSeq = 0
 /** A person with a password account, created as the activation will create them (V2). */
 async function newUser(password = PASSWORD, status: 'active' | 'disabled' = 'active') {
   counter += 1
@@ -92,7 +94,9 @@ function post(
       headers: {
         'content-type': 'application/json',
         origin: PANEL,
-        'x-app-client-ip': init.ip ?? '203.0.113.7',
+        'x-app-client-ip':
+          init.ip ??
+          `10.${String(counter % 250)}.${String(Math.floor(counter / 250))}.${String(++ipSeq % 250)}`,
         ...(init.cookie ? { cookie: init.cookie } : {}),
       },
       body: JSON.stringify(body),
@@ -191,8 +195,8 @@ describe('sessions', () => {
     const { id, email } = await newUser(PASSWORD, 'disabled')
     const refused = await signIn(email, PASSWORD)
     const wrong = await signIn(email, 'sbagliata-123456')
-    expect(refused.res.status).not.toBe(200)
     expect(refused.res.status).toBe(wrong.res.status)
+    expect(await refused.res.json()).toEqual(await wrong.res.json())
     const left = await db.select().from(sessions).where(eq(sessions.userId, id))
     expect(left).toEqual([])
   })
@@ -232,6 +236,24 @@ describe('limits', () => {
       { cookie },
     )
     expect(res.status).toBe(400)
+  })
+
+  test('rememberMe false is refused: it would skip the 12-hour idle limit', async () => {
+    const { email } = await newUser()
+    const res = await post('/sign-in/email', { email, password: PASSWORD, rememberMe: false })
+    expect(res.status).toBe(400)
+  })
+
+  test('a new password built on the account email is refused', async () => {
+    const { email } = await newUser()
+    const { cookie } = await signIn(email, PASSWORD)
+    const local = email.split('@')[0] ?? ''
+    const res = await post(
+      '/change-password',
+      { currentPassword: PASSWORD, newPassword: local },
+      { cookie },
+    )
+    expect(res.status).toBe(422)
   })
 
   test('a weak new password is refused with the reason', async () => {
