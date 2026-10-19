@@ -18,4 +18,7 @@ export {
 export type { ActivationInput, ActivationResult, LinkDescription } from './activation.js'
 export { createBootstrapLink, DEFAULT_ORGANIZATION_NAME } from './bootstrap.js'
 export { ACTIVATION_PAGE_PATH, activationUrl } from './identity-deps.js'
+export { allowedWhileSecondFactorRequired } from './second-factor-gate.js'
+export { resolveSession } from './sessions.js'
+export type { ResolvedSession, SessionUser } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'

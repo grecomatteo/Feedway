@@ -25,6 +25,7 @@ export function identityDeps(deps: Deps): IdentityDeps {
     config: {
       bootstrapOwnerEmail: deps.config.bootstrapOwnerEmail,
       bootstrapOrganizationName: deps.config.bootstrapOrganizationName,
+      require2fa: deps.config.require2fa,
       panelUrl: deps.config.panelUrl.toString(),
     },
   }

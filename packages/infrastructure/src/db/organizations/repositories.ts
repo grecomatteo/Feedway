@@ -113,6 +113,7 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
           name: organizations.name,
           slug: organizations.slug,
           organizationStatus: organizations.status,
+          require2fa: sql<string | null>`${organizations.settings}->>'require2fa'`,
         })
         .from(organizationMembers)
         .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
@@ -121,6 +122,7 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
       return rows.map((row) => ({
         ...toMember(row),
         organizationStatus: row.organizationStatus as 'active' | 'suspended',
+        require2fa: row.require2fa === 'all' || row.require2fa === 'admins' ? row.require2fa : null,
       }))
     },
     async find(organizationId, userId) {

@@ -60,6 +60,7 @@ export async function runCli(
       config: {
         bootstrapOwnerEmail: config.bootstrapOwnerEmail,
         bootstrapOrganizationName: config.bootstrapOrganizationName,
+        require2fa: config.require2fa,
         panelUrl: config.panelUrl.toString(),
       },
     })

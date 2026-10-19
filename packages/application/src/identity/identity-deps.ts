@@ -1,3 +1,4 @@
+import type { TwoFactorPolicy } from '@app/domain'
 import type { Auth } from '../ports/auth.js'
 import type { Clock } from '../ports/clock.js'
 import type { IdGenerator } from '../ports/id-generator.js'
@@ -10,7 +11,7 @@ export type PasswordStrength = (password: string, userInputs: string[]) => numbe
 
 /**
  * What the identity use cases need. Fields arrive with the tasks that use them (the plan lists
- * `hasher`, `rateLimiter` and `require2fa` too: the routes and Task 13 add them).
+ * `hasher` and `rateLimiter` too: the tasks that check passwords add them).
  */
 export interface IdentityDeps {
   uow: UnitOfWork
@@ -21,6 +22,8 @@ export interface IdentityDeps {
   keyRing: KeyRing
   passwordStrength: PasswordStrength
   config: {
+    /** REQUIRE_2FA: who needs a second factor on this platform. */
+    require2fa: TwoFactorPolicy
     bootstrapOwnerEmail: string | null
     bootstrapOrganizationName: string
     /** Origin of the panel, `https://…` */

@@ -94,6 +94,7 @@ beforeAll(async () => {
     config: {
       bootstrapOwnerEmail: OWNER_EMAIL,
       bootstrapOrganizationName: '',
+      require2fa: 'admins',
       panelUrl: PANEL,
     },
   }
