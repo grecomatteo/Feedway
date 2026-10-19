@@ -99,6 +99,8 @@ Configurata come **ruleset** versionato in `.github/rulesets/main.json` e applic
 | Storia lineare | Sì (solo squash) |
 | Approvazioni | Nessuna approvazione obbligatoria su GitHub: le PR degli agenti risultano aperte a nome di Matteo, che non può approvare le proprie (verificato con la PR #1). La revisione dell'agente revisore è obbligatoria nella checklist della PR; `CODEOWNERS` segnala a Matteo le PR che toccano `.github/`, `scripts/`, `docker/`, migrazioni o sicurezza, senza bloccarle |
 
+I controlli obbligatori partono sempre, così il merge non resta mai in attesa di un controllo mancante. Su una PR, `scripts/ci/changes.sh` guarda i file cambiati e salta solo i passaggi lenti che non possono esserne toccati: la build arm64 gira se cambiano `docker/`, dipendenze, versione di Node o la CI; `integration`, `e2e`, `image` e `install-smoke` non eseguono nulla se cambiano solo documentazione, design o istruzioni degli agenti. Su `main` gira sempre tutto, e se l'elenco dei file non si legge gira tutto anche sulla PR.
+
 ## 6. Versioni e rilasci
 
 - **Versionamento semantico** (`MAJOR.MINOR.PATCH`). Fino alla 1.0 ogni tappa produce una minor: tappa 1 → `0.1.0`, tappa 2 → `0.2.0` … La tappa 12 produce `1.0.0`.
