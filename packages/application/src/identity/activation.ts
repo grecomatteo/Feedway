@@ -121,35 +121,62 @@ async function claim(
       await tx.invites.reserveUserId(invite.id, userId)
       return { kind: 'new', userId, email: invite.email }
     }
-    // A previous attempt stopped after creating the account: resume only if nobody has used it
-    // in the meantime (no passkey, no other agency).
-    const userId = invite.reservedUserId
-    if (await tx.users.findById(userId)) {
-      const passkeys = await tx.users.countPasskeys(userId)
-      const elsewhere = (await tx.orgMembers.listForUser(userId)).some(
-        (m) => m.organizationId !== invite.organizationId,
-      )
-      if (passkeys > 0 || elsewhere)
-        throw new DomainError('CONFLICT', 'Questo account è già attivo: accedi')
-    }
-    return { kind: 'new', userId, email: invite.email }
+    return { kind: 'new', userId: invite.reservedUserId, email: invite.email }
   })
 }
 
-/** Step 3: role, agency and memberships, under the invite lock again. */
+/**
+ * A previous attempt already created the reserved account: carry on only if nobody has used it
+ * since. Once the activation opened a session (passkey path, link still open), only that session
+ * may continue: the link alone must not hand over a live account.
+ */
+async function checkResume(tx: Tx, invite: InviteRecord, userId: string, input: ActivationInput) {
+  const user = await tx.users.findById(userId)
+  if (!user) return
+  if (user.status !== 'active' || user.anonymizedAt !== null)
+    throw new DomainError('CONFLICT', 'Questo account non è attivo')
+  const passkeys = await tx.users.countPasskeys(userId)
+  const elsewhere = (await tx.orgMembers.listForUser(userId)).some(
+    (m) => m.organizationId !== invite.organizationId,
+  )
+  if (passkeys > 0 || elsewhere)
+    throw new DomainError('CONFLICT', 'Questo account è già attivo: accedi')
+  if (user.lastLoginAt !== null && input.sessionUserId !== userId) throw signInFirst()
+}
+
+/**
+ * Steps 2 and 3 under the invite lock: a concurrent attempt waits here and, once the link is
+ * used, stops before it can touch the credentials. Better Auth writes users and accounts with its
+ * own connection, which never waits on the invite row.
+ */
 async function grant(
   deps: IdentityDeps,
   input: ActivationInput,
   tokenHash: Buffer,
   who: Claim,
-): Promise<string> {
+): Promise<{ slug: string; linkUsed: boolean }> {
   return deps.uow.runAsSystem('activation: memberships', async (tx) => {
     const now = deps.clock.now()
     const invite = await tx.invites.lockForActivation(tokenHash, now)
     if (!invite) throw linkInvalid()
+    const role = roleOf(invite)
+
+    if (who.kind === 'new') {
+      if (invite.reservedUserId !== who.userId) throw linkInvalid()
+      await checkResume(tx, invite, who.userId, input)
+      // Step 2: the account with the reserved id; a retry only replaces the password.
+      await deps.auth.createUser({
+        id: who.userId,
+        email: who.email,
+        name: input.name.trim(),
+        password: input.password,
+      })
+    }
 
     let organizationId = invite.organizationId
     if (invite.purpose === 'bootstrap') {
+      if ((await tx.users.platformAdminExists()) && !(await isPlatformAdmin(tx, who.userId)))
+        throw new DomainError('CONFLICT', 'Account principale già creato')
       await tx.users.setPlatformAdmin(who.userId)
       if (organizationId === null) {
         organizationId = deps.ids.newId()
@@ -161,13 +188,12 @@ async function grant(
         await tx.platformSettings.set(FIRST_ORGANIZATION_SETTING, organizationId, who.userId)
       }
     }
-    if (organizationId === null) throw new Error('an invite other than bootstrap has an agency')
+    if (organizationId === null) throw new Error('an invite other than bootstrap has no agency')
 
-    await tx.orgMembers.addIfMissing({
-      organizationId,
-      userId: who.userId,
-      role: roleOf(invite),
-    })
+    const current = await tx.orgMembers.find(organizationId, who.userId)
+    if (current && who.kind === 'existing')
+      throw new DomainError('CONFLICT', 'Fai già parte di questa agenzia')
+    if (!current) await tx.orgMembers.addIfMissing({ organizationId, userId: who.userId, role })
     for (const m of invite.memberships)
       await tx.workspaceMembers.addIfMissing({
         organizationId,
@@ -181,24 +207,40 @@ async function grant(
       if (nickname.ok) await tx.users.setNickname(who.userId, nickname.value)
     }
     // with a passkey the link stays open until one is registered (completeActivation)
-    if (who.kind === 'existing' || input.password !== null)
+    const linkUsed = who.kind === 'existing' || input.password !== null
+    if (linkUsed) {
       await tx.invites.markUsed(invite.id, now)
-
-    await tx.audit.record({
-      organizationId,
-      actorId: who.userId,
-      source: 'panel',
-      action: 'user.activated',
-      entity: 'user',
-      entityId: who.userId,
-      workspaceId: null,
-      ip: input.ip,
-      data: { purpose: invite.purpose, role: roleOf(invite) },
-    })
+      await recordActivated(tx, invite, organizationId, who.userId, input.ip)
+    }
 
     const organization = await tx.organizations.findById(organizationId)
     if (!organization) throw new Error('the agency of the invite is gone')
-    return organization.slug
+    return { slug: organization.slug, linkUsed }
+  })
+}
+
+async function isPlatformAdmin(tx: Tx, userId: string): Promise<boolean> {
+  return (await tx.users.findById(userId))?.platformRole === 'admin'
+}
+
+/** Once per activation: when the link becomes used. */
+function recordActivated(
+  tx: Tx,
+  invite: InviteRecord,
+  organizationId: string,
+  userId: string,
+  ip: string | null,
+) {
+  return tx.audit.record({
+    organizationId,
+    actorId: userId,
+    source: 'panel',
+    action: 'user.activated',
+    entity: 'user',
+    entityId: userId,
+    workspaceId: null,
+    ip,
+    data: { purpose: invite.purpose, role: roleOf(invite) },
   })
 }
 
@@ -214,38 +256,26 @@ export async function activateAccount(
 ): Promise<ActivationResult> {
   const tokenHash = deps.tokens.hash(input.token)
   const who = await claim(deps, input, tokenHash)
-
-  // Step 2: the account, with the reserved id; a retry only replaces the password.
-  if (who.kind === 'new')
-    await deps.auth.createUser({
-      id: who.userId,
-      email: who.email,
-      name: input.name.trim(),
-      password: input.password,
-    })
-
-  const organizationSlug = await grant(deps, input, tokenHash, who)
+  const { slug, linkUsed } = await grant(deps, input, tokenHash, who)
 
   // Step 4: an existing account keeps the session it signed in with.
-  const { setCookie } =
-    who.kind === 'new'
-      ? await deps.auth.openSession(who.userId, {
-          ip: input.ip,
-          userAgent: input.userAgent,
-          authMethod: 'activation',
-        })
-      : { setCookie: [] }
-  return {
-    setCookie,
-    organizationSlug,
-    next: who.kind === 'new' && input.password === null ? 'register_passkey' : 'done',
-  }
+  if (who.kind === 'existing') return { setCookie: [], organizationSlug: slug, next: 'done' }
+  const { setCookie } = await deps.auth.openSession(who.userId, {
+    ip: input.ip,
+    userAgent: input.userAgent,
+    authMethod: 'activation',
+  })
+  // From now on a retry with the open link needs this session (checkResume).
+  await deps.uow.run({ userId: who.userId }, (tx) =>
+    tx.users.setLastLoginAt(who.userId, deps.clock.now()),
+  )
+  return { setCookie, organizationSlug: slug, next: linkUsed ? 'done' : 'register_passkey' }
 }
 
 /** After the passkey of a new account is registered: the link is used from now on. */
 export async function completeActivation(
   deps: Pick<IdentityDeps, 'uow' | 'clock' | 'tokens'>,
-  input: { token: string; userId: string },
+  input: { token: string; userId: string; ip: string | null },
 ): Promise<void> {
   await deps.uow.runAsSystem('activation: complete with a passkey', async (tx) => {
     const now = deps.clock.now()
@@ -254,6 +284,8 @@ export async function completeActivation(
     if (invite.reservedUserId !== input.userId) throw signInFirst()
     if ((await tx.users.countPasskeys(input.userId)) === 0)
       throw new DomainError('CONFLICT', 'Registra prima una passkey')
+    if (invite.organizationId === null) throw new Error('an activated invite has no agency')
     await tx.invites.markUsed(invite.id, now)
+    await recordActivated(tx, invite, invite.organizationId, input.userId, input.ip)
   })
 }

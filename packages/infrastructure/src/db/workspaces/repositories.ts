@@ -75,7 +75,10 @@ export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersReposit
       return new Map(rows.map((r) => [r.workspaceId, r.role as WorkspaceRole]))
     },
     async addIfMissing(member) {
-      await db.insert(workspaceMembers).values(member).onConflictDoNothing()
+      await db
+        .insert(workspaceMembers)
+        .values(member)
+        .onConflictDoNothing({ target: [workspaceMembers.workspaceId, workspaceMembers.userId] })
     },
   }
 }

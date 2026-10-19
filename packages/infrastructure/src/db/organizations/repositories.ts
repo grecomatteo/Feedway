@@ -141,7 +141,13 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
       return rows[0]?.n ?? 0
     },
     async addIfMissing(member) {
-      await db.insert(organizationMembers).values(member).onConflictDoNothing()
+      // only the primary key: another conflict (a second owner) must fail, not vanish
+      await db
+        .insert(organizationMembers)
+        .values(member)
+        .onConflictDoNothing({
+          target: [organizationMembers.organizationId, organizationMembers.userId],
+        })
     },
   }
 }
@@ -217,6 +223,8 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         .where(and(eq(invites.id, id), isNull(invites.organizationId)))
     },
     async expireOpen(purpose, at) {
+      // two concurrent calls would each miss the other's new link: one at a time per purpose
+      await db.execute(sql`select pg_advisory_xact_lock(hashtext(${`invites:${purpose}`}))`)
       await db
         .update(invites)
         .set({ expiresAt: at })

@@ -198,9 +198,18 @@ function signIn(email: string, password: string) {
 function failing(step: 'createUser' | 'memberships' | 'openSession'): IdentityDeps {
   const brokenUow: UnitOfWork = {
     run: (scope, fn) => uow.run(scope, fn),
+    // the account is already created (Better Auth commits on its own), then the process dies
     runAsSystem: (reason, fn) =>
       step === 'memberships' && reason === 'activation: memberships'
-        ? Promise.reject(new Error('processo interrotto'))
+        ? uow.runAsSystem(reason, (tx) =>
+            fn({
+              ...tx,
+              orgMembers: {
+                ...tx.orgMembers,
+                addIfMissing: () => Promise.reject(new Error('processo interrotto')),
+              },
+            }),
+          )
         : uow.runAsSystem(reason, fn),
   }
   const brokenAuth: Auth = {
@@ -347,11 +356,101 @@ describe('invites', () => {
     const { token } = await inviteFixture(email)
     const results = await Promise.allSettled([
       activateAccount(deps, form(token)),
-      activateAccount(deps, form(token)),
+      activateAccount(deps, form(token, { password: OTHER_STRONG })),
     ])
-    expect(results.some((r) => r.status === 'fulfilled')).toBe(true)
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
     expect(await userByEmail(email)).toHaveLength(1)
     expect(await membershipsOf(email)).toHaveLength(1)
+    // the loser stopped before the credentials: only the winner's password works
+    const winner = results[0].status === 'fulfilled' ? STRONG : OTHER_STRONG
+    const loser = winner === STRONG ? OTHER_STRONG : STRONG
+    expect((await signIn(email, winner)).status).toBe(200)
+    expect((await signIn(email, loser)).status).not.toBe(200)
+    const credentials = await admin.query(
+      "select 1 from accounts a join users u on u.id = a.user_id where u.email = $1 and a.provider_id = 'credential'",
+      [email],
+    )
+    expect(credentials.rowCount).toBe(1)
+  })
+
+  test('after the passkey path opened a session, the open link alone cannot take the account', async () => {
+    const email = uniqueEmail('presa')
+    const { token } = await inviteFixture(email)
+    await activateAccount(deps, form(token, { password: null }))
+    const [u] = await userByEmail(email)
+    await expect(
+      activateAccount(deps, form(token, { password: OTHER_STRONG })),
+    ).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    })
+    expect((await signIn(email, OTHER_STRONG)).status).not.toBe(200)
+    // the person with the activation session may still choose a password instead
+    const r = await activateAccount(deps, form(token, { sessionUserId: u?.id ?? null }))
+    expect(r.next).toBe('done')
+    expect((await signIn(email, STRONG)).status).toBe(200)
+  })
+
+  test('an agency owner invite makes the person Owner, and the activation is recorded once', async () => {
+    const email = uniqueEmail('titolare')
+    const agency = await seed(tdb.runtimeUrl, (s) => s.organization())
+    const { token } = await inviteFixture(email, {
+      purpose: 'organization_owner',
+      organizationId: agency,
+      memberships: [],
+    })
+    await activateAccount(deps, form(token, { password: null }))
+    const [u] = await userByEmail(email)
+    await addPasskeyDirectly(u?.id ?? '')
+    await completeActivation(deps, { token, userId: u?.id ?? '', ip: '93.41.12.7' })
+    expect(await membershipsOf(email)).toEqual([{ organization_id: agency, role: 'owner' }])
+    const audit = await admin.query<{ action: string; ip: string }>(
+      "select action, host(ip) as ip from audit_log where actor_id = $1 and action = 'user.activated'",
+      [u?.id],
+    )
+    expect(audit.rows).toEqual([{ action: 'user.activated', ip: '93.41.12.7' }])
+  })
+
+  test('an owner invite for an agency that has an owner fails and leaves the link open', async () => {
+    const email = uniqueEmail('secondo')
+    const agency = await seed(tdb.runtimeUrl, async (s) => {
+      const id = await s.organization()
+      await s.member(id, await s.user(), 'owner')
+      return id
+    })
+    const { token } = await inviteFixture(email, {
+      purpose: 'organization_owner',
+      organizationId: agency,
+      memberships: [],
+    })
+    await expect(activateAccount(deps, form(token))).rejects.toThrow()
+    expect(await membershipsOf(email)).toEqual([])
+    await expect(describeLink(deps, { token })).resolves.toMatchObject({
+      purpose: 'organization_owner',
+    })
+  })
+
+  test('an existing member, even a disabled one, does not consume an invite to the same agency', async () => {
+    const email = uniqueEmail('giamembro')
+    const userId = uuidV7Generator.newId()
+    await auth.createUser({ id: userId, email, name: 'Già Membro', password: STRONG })
+    const agency = await newAgency()
+    await seed(tdb.runtimeUrl, (s) => s.member(agency.organizationId, userId, 'member', 'disabled'))
+    const { token } = await inviteFixture(email, {
+      organizationId: agency.organizationId,
+      existingUserId: userId,
+    })
+    await expect(
+      activateAccount(deps, form(token, { sessionUserId: userId })),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    await expect(describeLink(deps, { token })).resolves.toMatchObject({ existingUser: true })
+  })
+
+  test('resume refuses a reserved user who was disabled meanwhile', async () => {
+    const email = uniqueEmail('disattivato')
+    const { token } = await inviteFixture(email)
+    await expect(activateAccount(failing('memberships'), form(token))).rejects.toThrow()
+    await admin.query("update users set status = 'disabled' where email = $1", [email])
+    await expect(activateAccount(deps, form(token))).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
   test('used link cannot be used again', async () => {
@@ -369,14 +468,16 @@ describe('invites', () => {
     expect(r.setCookie.some((c) => c.startsWith('__Host-session='))).toBe(true)
     const [u] = await userByEmail(email)
     const userId = u?.id ?? ''
-    await expect(completeActivation(deps, { token, userId })).rejects.toMatchObject({
+    await expect(completeActivation(deps, { token, userId, ip: null })).rejects.toMatchObject({
       code: 'CONFLICT',
     })
-    await expect(completeActivation(deps, { token, userId: randomUUID() })).rejects.toMatchObject({
+    await expect(
+      completeActivation(deps, { token, userId: randomUUID(), ip: null }),
+    ).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     })
     await addPasskeyDirectly(userId)
-    await completeActivation(deps, { token, userId })
+    await completeActivation(deps, { token, userId, ip: null })
     await expect(activateAccount(deps, form(token))).rejects.toMatchObject({ code: 'LINK_INVALID' })
   })
 
@@ -477,5 +578,11 @@ describe('invites', () => {
       }),
     )
     expect(res.status).toBe(404)
+    // left out of the router, not only refused by our list of allowed paths
+    const plugin = instance.options.plugins.find((p) => p.id === 'activation-session')
+    const endpoint = (plugin?.endpoints as Record<string, { options: { metadata?: unknown } }>)[
+      'openActivationSession'
+    ]
+    expect(endpoint?.options.metadata).toMatchObject({ SERVER_ONLY: true })
   })
 })

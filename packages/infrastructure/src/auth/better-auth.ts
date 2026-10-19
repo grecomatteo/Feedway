@@ -85,7 +85,11 @@ const activationSession = {
           } as never,
           true,
         )
-        await setSessionCookie(ctx, { session, user })
+        // null when the session hook refused it (a disabled or anonymized account), whatever
+        // the declared type says
+        const opened = session as typeof session | null
+        if (!opened) throw new Error('activation session refused')
+        await setSessionCookie(ctx, { session: opened, user })
         return ctx.json({ ok: true })
       },
     ),
