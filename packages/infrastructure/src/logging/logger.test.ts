@@ -40,6 +40,16 @@ test('scrubs access tokens and url credentials inside strings and errors', () =>
   expect(out).not.toContain('s3cret')
 })
 
+test('the token of an activation link never reaches the log', () => {
+  const out = captureLog((l) => {
+    l.info({ path: '/api/v1/links/tok3n-abc_9/activate' }, 'request')
+    l.info({ path: '/attiva/tok3n-def' }, 'request')
+    l.warn({}, 'opened https://pannello.example/attiva/tok3n-ghi')
+  })
+  for (const v of ['tok3n-abc_9', 'tok3n-def', 'tok3n-ghi']) expect(out).not.toContain(v)
+  expect(out).toContain('/api/v1/links/[REDACTED]/activate')
+})
+
 test('scrubs secrets from the message', () => {
   const out = captureLog((l) => {
     l.info({}, 'calling with Bearer abc.def.ghi')

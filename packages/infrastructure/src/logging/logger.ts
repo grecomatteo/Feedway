@@ -51,6 +51,7 @@ export function createLogger(opts: LoggerOptions): Logger {
       serializers: {
         err: serializeError,
         url: (v: unknown) => (typeof v === 'string' ? scrubSecrets(v) : v),
+        path: (v: unknown) => (typeof v === 'string' ? scrubSecrets(v) : v),
       },
       hooks: {
         logMethod(args, method) {

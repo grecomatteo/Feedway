@@ -54,3 +54,50 @@ require_docker() {
   esac
   docker info >/dev/null 2>&1 || die "Docker non risponde: avvia il servizio o aggiungi l'utente al gruppo docker."
 }
+
+# trim TEXT: without leading and trailing spaces, as the configuration reads it.
+trim() {
+  local text="$1"
+  text="${text#"${text%%[![:space:]]*}"}"
+  printf '%s' "${text%"${text##*[![:space:]]}"}"
+}
+
+# check_organization_name NAME: what the configuration accepts (2 to 80 characters), without what
+# .env would read as a variable, a comment or a quoted value. The panel can rename it later.
+check_organization_name() {
+  # characters, not bytes, whatever the server's locale
+  local LC_ALL=C.UTF-8
+  case "$1" in
+    *'$'* | *'#'* | *\\* | *'`'* | \'* | \"*)
+      die "Il nome dell'agenzia non può contenere \$ # \\ o \` né iniziare con le virgolette: potrai cambiarlo dal pannello."
+      ;;
+  esac
+  if [ "${#1}" -lt 2 ] || [ "${#1}" -gt 80 ]; then
+    die "Il nome dell'agenzia deve avere da 2 a 80 caratteri."
+  fi
+}
+
+BOOTSTRAP_LINK_COMMAND="docker compose run --rm --no-deps worker cli bootstrap-link"
+
+# print_bootstrap_link: while no platform administrator exists, prints the link that creates the
+# first account (valid one hour). Never fails: the stack is already running at this point.
+print_bootstrap_link() {
+  local link errors status=0
+  errors="$(mktemp)"
+  link="$(dc run --rm --no-deps -T worker cli bootstrap-link 2>"$errors")" || status=$?
+  case "$status" in
+    0)
+      log ""
+      log "Per creare il tuo account apri questo link entro un'ora:"
+      log "  $link"
+      log "Se scade, chiedine uno nuovo con: $BOOTSTRAP_LINK_COMMAND"
+      ;;
+    # 1 with this message: the account exists already, nothing to do
+    1) grep -q "già creato" "$errors" || warn "link per il primo account non creato: $(cat "$errors")" ;;
+    # 64: a release without the command (before tappa 2)
+    64) ;;
+    *) warn "link per il primo account non creato: $(cat "$errors"). Riprova con: $BOOTSTRAP_LINK_COMMAND" ;;
+  esac
+  rm -f "$errors"
+  return 0
+}

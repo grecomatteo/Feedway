@@ -1,4 +1,4 @@
-// Bundles the worker, the healthcheck and the migrate command into dist/ with esbuild.
+// Bundles the worker, the healthcheck, the migrate command and the cli into dist/ with esbuild.
 // Workspace packages (@app/*) are inlined because they are TypeScript sources; every other
 // dependency stays external and is resolved from node_modules at runtime.
 import { cpSync, rmSync } from 'node:fs'
@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 rmSync('dist', { recursive: true, force: true })
 
 await build({
-  entryPoints: ['src/main.ts', 'src/healthcheck.ts', 'src/migrate.ts'],
+  entryPoints: ['src/main.ts', 'src/healthcheck.ts', 'src/migrate.ts', 'src/cli.ts'],
   outdir: 'dist',
   bundle: true,
   platform: 'node',

@@ -72,6 +72,7 @@ services:
         MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
         REQUIRE_2FA: ${REQUIRE_2FA:-admins}
         BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
+        BOOTSTRAP_ORGANIZATION_NAME: ${BOOTSTRAP_ORGANIZATION_NAME:-}
         LOG_LEVEL: ${LOG_LEVEL:-info}
       # only the web signs sessions; the worker never sees this secret
       BETTER_AUTH_SECRET_FILE: /run/secrets/better_auth_secret

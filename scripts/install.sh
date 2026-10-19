@@ -3,7 +3,8 @@
 # Safe to run again: existing secrets and keys are never rewritten.
 #
 # Non-interactive mode (CI): INSTALL_NONINTERACTIVE=1 with INSTALL_TS_HOSTNAME,
-# INSTALL_TS_AUTHKEY_FILE, INSTALL_OWNER_EMAIL and INSTALL_AGE_KEY_OUT. Also
+# INSTALL_TS_AUTHKEY_FILE, INSTALL_OWNER_EMAIL and INSTALL_AGE_KEY_OUT (INSTALL_ORGANIZATION_NAME
+# is optional). Also
 # INSTALL_SKIP_TAILSCALE=1, INSTALL_IMAGE, INSTALL_IMAGE_TAG and INSTALL_SKIP_CHOWN=1 (tests only).
 set -euo pipefail
 umask 077
@@ -33,11 +34,16 @@ ask() { # ask VAR "question" default
 
 ts_hostname=""
 owner_email=""
+organization_name=""
 ts_hostname_default="${INSTALL_TS_HOSTNAME:-$(env_get TS_HOSTNAME)}"
 owner_default="${INSTALL_OWNER_EMAIL:-$(env_get BOOTSTRAP_OWNER_EMAIL)}"
 ask ts_hostname "Nome host Tailscale" "${ts_hostname_default:-pannello}"
 ask owner_email "Email dell'Owner" "$owner_default"
 [ -n "$owner_email" ] || die "L'email dell'Owner è obbligatoria."
+organization_default="${INSTALL_ORGANIZATION_NAME:-$(env_get BOOTSTRAP_ORGANIZATION_NAME)}"
+ask organization_name "Nome della tua agenzia" "${organization_default:-La mia agenzia}"
+organization_name="$(trim "$organization_name")"
+check_organization_name "$organization_name"
 
 # 3) secrets
 mkdir -p secrets
@@ -126,6 +132,7 @@ env_default IMAGE "${INSTALL_IMAGE:-ghcr.io/grecomatteo/feedway}"
 env_default IMAGE_TAG "${INSTALL_IMAGE_TAG:-$default_tag}"
 env_set TS_HOSTNAME "$ts_hostname"
 env_set BOOTSTRAP_OWNER_EMAIL "$owner_email"
+env_set BOOTSTRAP_ORGANIZATION_NAME "$organization_name"
 if [ "$skip_tailscale" = "1" ]; then
   env_set COMPOSE_FILE "docker/compose.yml:docker/compose.ci.yml"
   env_set PANEL_URL "http://localhost:3000"
@@ -158,4 +165,4 @@ dc up -d --wait web worker
 
 log ""
 log "Fatto. Il pannello è raggiungibile su: $(env_get PANEL_URL)"
-log "La creazione dell'Owner arriva con la prossima versione."
+print_bootstrap_link

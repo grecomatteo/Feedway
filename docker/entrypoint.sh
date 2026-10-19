@@ -9,11 +9,11 @@ case "${1:-}" in
   worker) exec node apps/worker/dist/main.js ;;
   migrate) exec node apps/worker/dist/migrate.js ;;
   cli)
-    echo "Il comando cli arriva con la tappa 2." >&2
-    exit 64
+    shift
+    exec node apps/worker/dist/cli.js "$@"
     ;;
   *)
-    echo "Comando sconosciuto: '${1:-}'. Usa: web, worker, migrate." >&2
+    echo "Comando sconosciuto: '${1:-}'. Usa: web, worker, migrate, cli." >&2
     exit 64
     ;;
 esac

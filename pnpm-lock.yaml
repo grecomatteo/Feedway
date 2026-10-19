@@ -277,6 +277,9 @@ importers:
       '@app/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@app/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@app/infrastructure':
         specifier: workspace:*
         version: link:../../packages/infrastructure

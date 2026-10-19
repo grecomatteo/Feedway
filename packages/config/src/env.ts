@@ -43,6 +43,7 @@ const RESOLVABLE = [
   'MEDIA_RETENTION_DAYS',
   'REQUIRE_2FA',
   'BOOTSTRAP_OWNER_EMAIL',
+  'BOOTSTRAP_ORGANIZATION_NAME',
   'SENTRY_DSN',
   'LOG_LEVEL',
   'DATABASE_RUNTIME_ROLE',
@@ -124,6 +125,14 @@ const appSchema = z
     ),
     REQUIRE_2FA: withDefault(z.enum(['admins', 'all']), 'admins'),
     BOOTSTRAP_OWNER_EMAIL: optional(z.email({ error: 'deve essere un indirizzo email' })),
+    BOOTSTRAP_ORGANIZATION_NAME: withDefault(
+      z
+        .string()
+        .trim()
+        .min(2, { error: 'da 2 a 80 caratteri' })
+        .max(80, { error: 'da 2 a 80 caratteri' }),
+      'La mia agenzia',
+    ),
     SENTRY_DSN: optional(url),
     LOG_LEVEL: withDefault(z.enum(LOG_LEVELS), 'info'),
     WORKER_QUEUES: withDefault(z.string(), 'all'),
@@ -161,6 +170,8 @@ export interface AppConfig {
   mediaRetentionDays: number
   require2fa: 'admins' | 'all'
   bootstrapOwnerEmail: string | null
+  /** Name of the agency created with the first account. */
+  bootstrapOrganizationName: string
   sentryDsn: string | null
   logLevel: (typeof LOG_LEVELS)[number]
   workerQueues: 'all' | readonly string[]
@@ -281,6 +292,7 @@ export function loadConfig(
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     require2fa: v.REQUIRE_2FA,
     bootstrapOwnerEmail: v.BOOTSTRAP_OWNER_EMAIL ?? null,
+    bootstrapOrganizationName: v.BOOTSTRAP_ORGANIZATION_NAME,
     sentryDsn: v.SENTRY_DSN ?? null,
     logLevel: v.LOG_LEVEL,
     workerQueues,
