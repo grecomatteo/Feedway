@@ -1,4 +1,4 @@
-import type { AuthMethod, OrgActor, OrgRole, WorkspaceRole } from '@app/domain'
+import type { AuthMethod, OrgActor, OrgRole, TwoFactorPolicy, WorkspaceRole } from '@app/domain'
 
 // Records carry only what the use cases read. Secrets (password hashes, session tokens,
 // 2FA secrets) never leave the auth adapter.
@@ -96,6 +96,8 @@ export interface UserOrganizationRecord extends OrgMemberRecord {
   name: string
   slug: string
   organizationStatus: 'active' | 'suspended'
+  /** `settings.require2fa` of the agency; null when it keeps the platform rule. */
+  require2fa: TwoFactorPolicy | null
 }
 
 export interface OrgMembersRepository {

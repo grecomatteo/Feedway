@@ -17,6 +17,13 @@ export function validateNickname(
   return { ok: true, value }
 }
 
+/** The 256 px photo, with its content hash so a new photo is never served from a cache. */
+export function avatarUrl(userId: string, avatarKey: string | null): string | null {
+  if (avatarKey === null) return null
+  const hash = avatarKey.split('/').at(-1) ?? ''
+  return `/api/v1/users/${encodeURIComponent(userId)}/avatar/256?v=${encodeURIComponent(hash)}`
+}
+
 export function displayName(user: { name: string; nickname: string | null }): string {
   return user.nickname ?? user.name
 }

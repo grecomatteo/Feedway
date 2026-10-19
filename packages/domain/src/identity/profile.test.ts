@@ -3,6 +3,7 @@ import {
   AVATAR_MAX_BYTES,
   AVATAR_MAX_PIXELS,
   AVATAR_SIZES,
+  avatarUrl,
   displayName,
   initials,
   validateCrop,
@@ -41,4 +42,9 @@ test('crop must be a square inside the image', () => {
   expect(validateCrop({ x: -1, y: 0, size: 100 }, { width: 800, height: 500 })).toBe(false)
   expect(validateCrop({ x: 0, y: 0, size: 32 }, { width: 800, height: 500 })).toBe(false)
   expect(validateCrop({ x: 0.5, y: 0, size: 100 }, { width: 800, height: 500 })).toBe(false)
+})
+
+test('the photo url carries the content hash of the current photo', () => {
+  expect(avatarUrl('u1', null)).toBeNull()
+  expect(avatarUrl('u1', 'users/u1/avatar/ab12')).toBe('/api/v1/users/u1/avatar/256?v=ab12')
 })
