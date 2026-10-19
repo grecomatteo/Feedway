@@ -122,7 +122,8 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
       return rows.map((row) => ({
         ...toMember(row),
         organizationStatus: row.organizationStatus as 'active' | 'suspended',
-        require2fa: row.require2fa === 'all' || row.require2fa === 'admins' ? row.require2fa : null,
+        // an agency can only raise the bar: a value we do not know counts as the strictest
+        require2fa: row.require2fa === null || row.require2fa === 'admins' ? row.require2fa : 'all',
       }))
     },
     async find(organizationId, userId) {

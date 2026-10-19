@@ -44,6 +44,31 @@ test('first-time setup reaches the profile, the activation completion and the TO
     expect(allowedWhileSecondFactorRequired(method, path, firstSetup)).toBe(false)
 })
 
+test('the passkey of an activation closes its link, and a passkey sign-in stays reachable', () => {
+  const withPasskey = { totpEnabled: false, passkeys: 1 }
+  expect(
+    allowedWhileSecondFactorRequired('POST', '/api/v1/links/Ab3_-x/complete', withPasskey),
+  ).toBe(true)
+  expect(
+    allowedWhileSecondFactorRequired(
+      'GET',
+      '/api/auth/passkey/generate-authenticate-options',
+      withPasskey,
+    ),
+  ).toBe(true)
+  expect(
+    allowedWhileSecondFactorRequired(
+      'POST',
+      '/api/auth/passkey/verify-authentication',
+      withPasskey,
+    ),
+  ).toBe(true)
+  for (const token of ['..', '.', 'a%2Fb', 'a.b'])
+    expect(
+      allowedWhileSecondFactorRequired('POST', `/api/v1/links/${token}/complete`, withPasskey),
+    ).toBe(false)
+})
+
 test('the query string and a trailing slash do not change the answer', () => {
   expect(allowedWhileSecondFactorRequired('GET', '/api/auth/get-session?x=1', firstSetup)).toBe(
     true,

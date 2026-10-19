@@ -250,3 +250,36 @@ test('a session older than 30 days stops resolving', async () => {
   )
   expect(await resolveSession(deps, { headers: p.headers })).toBeNull()
 })
+
+test('a platform admin with no agency still needs a second factor', async () => {
+  const p = await person()
+  await admin.query("update users set platform_role = 'admin' where id = $1", [p.id])
+  const r = await resolveSession(deps, { headers: p.headers })
+  expect(r?.user.organizations).toEqual([])
+  expect(r?.state).toBe('second_factor_required')
+})
+
+test('an activation session is not a second factor', async () => {
+  const org = await agency()
+  const p = await person([{ organizationId: org, role: 'admin' }])
+  await withMethod(p.id, 'activation')
+  expect((await resolveSession(deps, { headers: p.headers }))?.state).toBe('second_factor_required')
+})
+
+test('an unreadable agency policy asks everyone for a second factor', async () => {
+  const org = await agency()
+  await admin.query('update organizations set settings = $2 where id = $1', [
+    org,
+    { require2fa: 'ALL' },
+  ])
+  const p = await person([{ organizationId: org, role: 'member' }])
+  expect((await resolveSession(deps, { headers: p.headers }))?.state).toBe('second_factor_required')
+})
+
+test('a suspended last agency is not offered as the one to open', async () => {
+  const org = await agency({ status: 'suspended' })
+  const p = await person([{ organizationId: org, role: 'member' }])
+  await admin.query('update users set last_organization_id = $2 where id = $1', [p.id, org])
+  const r = await resolveSession(deps, { headers: p.headers })
+  expect(r?.user.lastOrganizationSlug).toBeNull()
+})

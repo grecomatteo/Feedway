@@ -69,7 +69,10 @@ export async function resolveSession(
     platformPolicy: deps.config.require2fa,
     orgRoles: memberships.map((m) => ({ role: m.role, policy: m.require2fa ?? 'admins' })),
   })
-  const last = memberships.find((m) => m.organizationId === user.lastOrganizationId)
+  // a suspended agency would only answer 403: the panel picks another one
+  const last = memberships.find(
+    (m) => m.organizationId === user.lastOrganizationId && m.organizationStatus === 'active',
+  )
   return {
     session,
     state:

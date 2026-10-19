@@ -3,13 +3,22 @@
 
 type Route = `${'GET' | 'POST'} ${string}`
 
-/** Always open: leaving, and reading the session state itself. */
-const ALWAYS: ReadonlySet<Route> = new Set(['POST /api/auth/sign-out', 'GET /api/auth/get-session'])
+/**
+ * Always open: leaving, reading the session state, signing in again with a passkey (it opens a
+ * new session that satisfies the rule, it adds no factor) and closing an activation link once
+ * its passkey exists (it only marks the person's own link as used).
+ */
+const ALWAYS: readonly (Route | RegExp)[] = [
+  'POST /api/auth/sign-out',
+  'GET /api/auth/get-session',
+  'GET /api/auth/passkey/generate-authenticate-options',
+  'POST /api/auth/passkey/verify-authentication',
+  /^POST \/api\/v1\/links\/[A-Za-z0-9_-]+\/complete$/,
+]
 
 /** Only before any factor exists: the first TOTP or the first passkey. */
 const FIRST_SETUP: readonly (Route | RegExp)[] = [
   'GET /api/v1/me',
-  /^POST \/api\/v1\/links\/[^/]+\/complete$/,
   'POST /api/auth/two-factor/enable',
   'POST /api/auth/two-factor/get-totp-uri',
   'POST /api/auth/two-factor/verify-totp',
@@ -28,7 +37,8 @@ export function allowedWhileSecondFactorRequired(
 ): boolean {
   const bare = (path.split('?')[0] ?? '').replace(/\/+$/, '')
   const route = `${method.toUpperCase()} ${bare}`
-  if (ALWAYS.has(route as Route)) return true
+  const matches = (r: Route | RegExp) => (typeof r === 'string' ? r === route : r.test(route))
+  if (ALWAYS.some(matches)) return true
   if (factors.totpEnabled || factors.passkeys > 0) return false
-  return FIRST_SETUP.some((r) => (typeof r === 'string' ? r === route : r.test(route)))
+  return FIRST_SETUP.some(matches)
 }
