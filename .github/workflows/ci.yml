@@ -27,7 +27,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      # type-aware ESLint over the whole repo needs about 2 GB, the default heap limit
       - run: pnpm lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
       - run: pnpm typecheck
       - run: shellcheck docker/entrypoint.sh scripts/install.sh scripts/update.sh scripts/lib/*.sh scripts/ci/*.sh scripts/github/*.sh scripts/tests/stubs/*
       - name: actionlint
