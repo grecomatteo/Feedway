@@ -1,9 +1,10 @@
 name: CI
 
 on:
+  # No run on push to main: the ruleset only merges a branch up to date with main and green on its
+  # merge commit, so the squashed commit has the tree CI already tested. Running again costs ~30
+  # billed minutes per merge for nothing.
   pull_request:
-  push:
-    branches: [main]
   # Release PRs are opened with the default token and do not start workflows: run CI by hand on their branch.
   workflow_dispatch:
 
@@ -63,7 +64,7 @@ jobs:
 
   # integration, e2e, image and install-smoke always run, so the required checks always report, but
   # their slow steps are skipped on a pull request that cannot affect them (scripts/ci/changes.sh).
-  # Pushes to main and manual runs do everything. Steps skip only on an explicit 'false', so a
+  # Manual runs do everything. Steps skip only on an explicit 'false', so a
   # missing output runs them.
   integration:
     runs-on: ubuntu-latest
