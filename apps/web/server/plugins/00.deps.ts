@@ -62,7 +62,7 @@ export default defineNitroPlugin((nitroApp) => {
       {
         requestId,
         method: event.method,
-        path: loggablePath(event.path),
+        path: event.path.split('?')[0],
         status: event.node.res.statusCode,
         durationMs: started === undefined ? undefined : Date.now() - started,
       },
