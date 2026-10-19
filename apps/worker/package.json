@@ -10,6 +10,7 @@
   "dependencies": {
     "@app/application": "workspace:*",
     "@app/config": "workspace:*",
+    "@app/domain": "workspace:*",
     "@app/infrastructure": "workspace:*"
   },
   "devDependencies": {

@@ -10,6 +10,28 @@ case "$1" in
     case "$1" in
       version) echo "v${STUB_COMPOSE_VERSION:-2.29.1}" ;;
       up) [ -z "${STUB_COMPOSE_UP_FAILS:-}" ] || exit 1 ;;
+      run)
+        case "$*" in
+          *"cli bootstrap-link"*)
+            # STUB_BOOTSTRAP: link (default), exists (an administrator exists), missing (old release)
+            case "${STUB_BOOTSTRAP:-link}" in
+              link) echo "https://pannello.tail1234.ts.net/attiva/link-di-prova" ;;
+              exists)
+                echo "Account principale già creato" >&2
+                exit 1
+                ;;
+              missing)
+                echo "Comando sconosciuto: 'cli'." >&2
+                exit 64
+                ;;
+              *)
+                echo "errore di prova" >&2
+                exit 2
+                ;;
+            esac
+            ;;
+        esac
+        ;;
       exec)
         case "$*" in
           *"tailscale status"*) echo '{ "Self": { "DNSName": "pannello.tail1234.ts.net." } }' ;;

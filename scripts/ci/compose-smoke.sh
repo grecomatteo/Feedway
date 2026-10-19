@@ -100,8 +100,12 @@ failed_migration_keeps_web() {
 }
 check "failed migration keeps previous web running" failed_migration_keeps_web
 
+in_install() { # docker compose in the directory install_from_scratch installs into
+  (cd "$work/install" && COMPOSE_FILE=docker/compose.yml:docker/compose.ci.yml docker compose --project-directory . "$@")
+}
+
 install_from_scratch() {
-  local dir="$work/install" status=0
+  local dir="$work/install" status=0 output="$work/install.log" name="L'Agenzia d'Prova"
   dc down --volumes --remove-orphans >/dev/null 2>&1
   mkdir "$dir"
   cp -r "$repo/scripts" "$repo/docker" "$dir/"
@@ -109,12 +113,17 @@ install_from_scratch() {
     cd "$dir" || exit 1
     git init -q . && git add -A && git -c user.email=ci@example.invalid -c user.name=ci commit -qm smoke
     INSTALL_NONINTERACTIVE=1 INSTALL_SKIP_TAILSCALE=1 INSTALL_OWNER_EMAIL=owner@example.invalid \
+      INSTALL_ORGANIZATION_NAME="$name" \
       INSTALL_IMAGE="$IMAGE" INSTALL_IMAGE_TAG="$IMAGE_TAG" INSTALL_AGE_KEY_OUT="$work/age.key" \
-      ./scripts/install.sh >&2
+      ./scripts/install.sh >"$output" 2>&1
   ) || status=1
-  [ "$status" -eq 0 ] && ready
+  cat "$output" >&2
+  # the link of the first account, and the agency name as the containers read it from .env
+  [ "$status" -eq 0 ] && ready &&
+    grep -q 'http://localhost:3000/attiva/' "$output" &&
+    [ "$(in_install run --rm --no-deps -T --entrypoint printenv worker BOOTSTRAP_ORGANIZATION_NAME)" = "$name" ]
   local result=$?
-  (cd "$dir" && COMPOSE_FILE=docker/compose.yml:docker/compose.ci.yml docker compose --project-directory . down --volumes --remove-orphans >/dev/null 2>&1)
+  in_install down --volumes --remove-orphans >/dev/null 2>&1
   return "$result"
 }
 check "install from scratch" install_from_scratch

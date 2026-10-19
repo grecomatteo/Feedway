@@ -7,6 +7,7 @@ import type {
   Mailer,
   RateLimiter,
   SignedTokens,
+  TokenService,
   Storage,
   UnitOfWork,
 } from '@app/application'
@@ -15,6 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createKeyRing } from './crypto/key-ring.js'
 import { createSignedTokens } from './crypto/signed-tokens.js'
+import { createTokenService } from './crypto/tokens.js'
 import { createFileMailer } from './mail/file-mailer.js'
 import { notConfiguredMailer } from './mail/not-configured-mailer.js'
 import { createDb } from './db/client.js'
@@ -58,6 +60,8 @@ export interface Runtime {
   storage: Storage
   /** Security-lock links and device hashes, keyed from APP_ENCRYPTION_KEY. */
   signedTokens: SignedTokens
+  /** Random single-use tokens of our links (invites, activation). */
+  tokens: TokenService
   /** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
   mailer: Mailer
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
@@ -99,6 +103,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       rateLimiter,
       storage,
       signedTokens,
+      tokens: createTokenService(),
       mailer,
       close: () => handle.close(),
     }

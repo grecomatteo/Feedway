@@ -173,3 +173,15 @@ test('the worker does not need the better auth secret', () => {
     loadConfig('worker', { ...validWebEnv, BETTER_AUTH_SECRET: undefined }).betterAuth,
   ).toBeNull()
 })
+
+test('the first agency is called "La mia agenzia" unless named', () => {
+  expect(loadConfig('web', validWebEnv).bootstrapOrganizationName).toBe('La mia agenzia')
+  expect(
+    loadConfig('web', { ...validWebEnv, BOOTSTRAP_ORGANIZATION_NAME: ' Agenzia Rossi ' })
+      .bootstrapOrganizationName,
+  ).toBe('Agenzia Rossi')
+  expect(issuesOf({ ...validWebEnv, BOOTSTRAP_ORGANIZATION_NAME: 'x'.repeat(81) })).toContainEqual({
+    variable: 'BOOTSTRAP_ORGANIZATION_NAME',
+    problem: 'da 2 a 80 caratteri',
+  })
+})

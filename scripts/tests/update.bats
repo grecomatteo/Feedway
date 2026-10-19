@@ -95,3 +95,53 @@ teardown() {
   [[ "$output" == *"compose.yml"* ]]
   grep -q '^IMAGE_TAG=v0.1.0$' .env
 }
+
+@test "update prints the bootstrap link when no platform admin exists" {
+  run ./scripts/update.sh v0.2.0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"/attiva/link-di-prova"* ]]
+  up="$(grep -n 'up -d --wait' "$STUB_LOG" | head -1 | cut -d: -f1)"
+  link="$(grep -n 'cli bootstrap-link' "$STUB_LOG" | head -1 | cut -d: -f1)"
+  [ "$up" -lt "$link" ]
+}
+
+@test "update stays quiet when the first account exists or the release has no command" {
+  for case in exists missing; do
+    STUB_BOOTSTRAP="$case" run ./scripts/update.sh v0.2.0
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"/attiva/"* ]]
+    [[ "$output" != *"Attenzione"* ]]
+  done
+}
+
+@test "a failed bootstrap link warns but the update still succeeds" {
+  STUB_BOOTSTRAP=broken run ./scripts/update.sh v0.2.0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"cli bootstrap-link"* ]]
+  grep -q '^IMAGE_TAG=v0.2.0$' .env
+}
+
+@test "update asks the agency name once when it is missing" {
+  # script(1) gives the update a terminal, as on the server
+  printf 'Agenzia Bianchi\n' | script -qec "./scripts/update.sh v0.2.0" /dev/null >/dev/null
+  grep -q '^BOOTSTRAP_ORGANIZATION_NAME=Agenzia Bianchi$' .env
+  ./scripts/update.sh --rollback </dev/null >/dev/null
+  [ "$(grep -c '^BOOTSTRAP_ORGANIZATION_NAME=' .env)" -eq 1 ]
+}
+
+@test "update without a terminal does not ask the agency name" {
+  ./scripts/update.sh v0.2.0 </dev/null >/dev/null
+  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env
+}
+
+@test "update survives the checkout replacing the script while it runs" {
+  # v0.3.0 ships a different update.sh: git writes it as a new file, bash keeps reading the old one
+  git checkout -q main
+  printf '#!/usr/bin/env bash\necho "script sostituito"; exit 0\n%s\n' "$(head -c 4000 /dev/zero | tr '\0' '#')" >scripts/update.sh
+  git commit -qam "release 0.3.0" && git tag v0.3.0 && git push -q origin v0.3.0
+  git checkout -q v0.1.0
+  run ./scripts/update.sh v0.3.0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Aggiornato a v0.3.0."* ]]
+  [[ "$output" != *"script sostituito"* ]]
+}
