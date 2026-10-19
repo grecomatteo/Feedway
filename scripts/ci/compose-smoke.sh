@@ -40,6 +40,7 @@ printf '%s' "$runtime_pw" >"$work/secrets/db_runtime_password"
 printf 'postgres://app_runtime:%s@postgres:5432/app' "$runtime_pw" >"$work/secrets/database_url"
 printf 'postgres://app_migrator:%s@postgres:5432/app' "$migrator_pw" >"$work/secrets/database_migrator_url"
 openssl rand -base64 32 | tr -d '\n' >"$work/secrets/app_encryption_key"
+openssl rand -base64 32 | tr -d '\n' >"$work/secrets/better_auth_secret"
 printf 'tskey-not-used-in-ci' >"$work/secrets/ts_authkey"
 chmod 644 "$work"/secrets/*
 

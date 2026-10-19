@@ -8,6 +8,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const web = await startWeb({
     DATABASE_URL: tdb.runtimeUrl,
     APP_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
+    BETTER_AUTH_SECRET: randomBytes(32).toString('base64'),
     PANEL_URL: 'http://localhost:3000',
     APP_VERSION: '0.0.0-e2e',
   })

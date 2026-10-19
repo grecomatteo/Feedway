@@ -5,6 +5,7 @@ const validWebEnv: Record<string, string | undefined> = {
   DATABASE_URL: 'postgres://app_runtime:p@postgres:5432/app',
   APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   PANEL_URL: 'http://localhost:3000',
+  BETTER_AUTH_SECRET: Buffer.alloc(32, 9).toString('base64'),
 }
 
 function catchConfigError(fn: () => unknown): ConfigError {
@@ -117,4 +118,58 @@ test('worker accepts a list of known queues and rejects unknown ones', () => {
 test('migrate role needs only migrator url', () => {
   const c = loadConfig('migrate', { DATABASE_MIGRATOR_URL: 'postgres://m:p@h/app' })
   expect(c.runtimeRole).toBe('app_runtime')
+})
+
+test('web needs a 32 byte better auth secret and never echoes it', () => {
+  expect(issuesOf({ ...validWebEnv, BETTER_AUTH_SECRET: undefined })).toContainEqual(
+    expect.objectContaining({ variable: 'BETTER_AUTH_SECRET' }),
+  )
+  const err = catchConfigError(() =>
+    loadConfig('web', { ...validWebEnv, BETTER_AUTH_SECRET: 'c2hvcnQ=' }),
+  )
+  expect(err.issues).toContainEqual({
+    variable: 'BETTER_AUTH_SECRET',
+    problem: 'deve essere di 32 byte in base64',
+  })
+  expect(err.message).not.toContain('c2hvcnQ=')
+})
+
+test('without BETTER_AUTH_SECRETS the secret is the only version', () => {
+  const c = loadConfig('web', validWebEnv)
+  expect(c.betterAuth.secret).toBe(validWebEnv['BETTER_AUTH_SECRET'])
+  expect(c.betterAuth.secrets).toEqual([{ version: 1, value: validWebEnv['BETTER_AUTH_SECRET'] }])
+})
+
+test('BETTER_AUTH_SECRETS lists versions, newest first, for rotation', () => {
+  const newer = Buffer.alloc(32, 1).toString('base64')
+  const older = Buffer.alloc(32, 2).toString('base64')
+  const c = loadConfig(
+    'web',
+    {
+      ...validWebEnv,
+      BETTER_AUTH_SECRETS_FILE: '/run/secrets/better_auth_secrets',
+    },
+    () => `2:${newer},1:${older}\n`,
+  )
+  expect(c.betterAuth.secrets).toEqual([
+    { version: 2, value: newer },
+    { version: 1, value: older },
+  ])
+})
+
+test.each(['senza-versione', '2:c2hvcnQ=', '1:x,1:y', '0:' + Buffer.alloc(32).toString('base64')])(
+  'rejects BETTER_AUTH_SECRETS %s without echoing it',
+  (value) => {
+    const err = catchConfigError(() =>
+      loadConfig('web', { ...validWebEnv, BETTER_AUTH_SECRETS: value }),
+    )
+    expect(err.issues).toContainEqual(expect.objectContaining({ variable: 'BETTER_AUTH_SECRETS' }))
+    expect(err.message).not.toContain(value)
+  },
+)
+
+test('the worker does not need the better auth secret', () => {
+  expect(
+    loadConfig('worker', { ...validWebEnv, BETTER_AUTH_SECRET: undefined }).betterAuth,
+  ).toBeNull()
 })

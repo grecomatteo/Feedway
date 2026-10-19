@@ -48,7 +48,8 @@ export default defineNuxtConfig({
       referrerPolicy: 'same-origin',
       permissionsPolicy: { camera: [], microphone: [], geolocation: [] },
     },
-    // wide limits for now; the strict ones for login arrive in stage 2
-    rateLimiter: { tokensPerInterval: 600, interval: 60_000 },
+    // Off: it counts in memory per process and trusts the first X-Forwarded-For entry, which the
+    // client writes. Our database-backed limits (PgRateLimiter) guard login and public routes.
+    rateLimiter: false,
   },
 })

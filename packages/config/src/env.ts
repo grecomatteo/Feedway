@@ -33,6 +33,8 @@ const RESOLVABLE = [
   'DATABASE_URL',
   'DATABASE_MIGRATOR_URL',
   'APP_ENCRYPTION_KEY',
+  'BETTER_AUTH_SECRET',
+  'BETTER_AUTH_SECRETS',
   'PANEL_URL',
   'PUBLIC_URL',
   'META_GRAPH_VERSION',
@@ -60,18 +62,49 @@ const optional = <T extends z.ZodType>(schema: T) =>
 const withDefault = <V extends string | number>(schema: z.ZodType<V>, value: V) =>
   z.preprocess(emptyToUndefined, schema.default(value))
 
+const isKey32 = (v: string) =>
+  /^[A-Za-z0-9+/]+={0,2}$/.test(v) && Buffer.from(v, 'base64').length === 32
+
 const encryptionKey = z
   .string({ error: 'obbligatoria' })
-  .refine((v) => /^[A-Za-z0-9+/]+={0,2}$/.test(v) && Buffer.from(v, 'base64').length === 32, {
-    error: 'deve essere di 32 byte in base64',
-  })
+  .refine(isKey32, { error: 'deve essere di 32 byte in base64' })
   .transform((v) => Buffer.from(v, 'base64'))
+
+export interface BetterAuthSecrets {
+  /** The current secret. */
+  secret: string
+  /** Every secret still accepted, newest version first (rotation). */
+  secrets: { version: number; value: string }[]
+}
+
+const BETTER_AUTH_SECRETS_FORM =
+  'deve avere la forma 2:nuovo,1:vecchio, chiavi di 32 byte in base64'
+
+/** Parses `2:new,1:old`; null when the value does not have that form. */
+function parseSecretVersions(value: string): { version: number; value: string }[] | null {
+  const entries = value.split(',').map((part) => {
+    const at = part.indexOf(':')
+    const version = Number(part.slice(0, at))
+    const secret = part.slice(at + 1).trim()
+    return at > 0 && Number.isInteger(version) && version > 0 && isKey32(secret)
+      ? { version, value: secret }
+      : null
+  })
+  if (entries.some((e) => e === null)) return null
+  const valid = entries.filter((e) => e !== null)
+  if (new Set(valid.map((e) => e.version)).size !== valid.length) return null
+  return valid.sort((a, b) => b.version - a.version)
+}
 
 const appSchema = z
   .object({
     NODE_ENV: withDefault(z.enum(['development', 'test', 'production']), 'development'),
     DATABASE_URL: z.string({ error: 'obbligatoria' }).min(1, 'obbligatoria'),
     APP_ENCRYPTION_KEY: encryptionKey,
+    BETTER_AUTH_SECRET: optional(
+      z.string().refine(isKey32, { error: 'deve essere di 32 byte in base64' }),
+    ),
+    BETTER_AUTH_SECRETS: optional(z.string()),
     PANEL_URL: z.string({ error: 'obbligatoria' }).pipe(url),
     PUBLIC_URL: optional(url),
     META_GRAPH_VERSION: withDefault(
@@ -131,9 +164,11 @@ export interface AppConfig {
   sentryDsn: string | null
   logLevel: (typeof LOG_LEVELS)[number]
   workerQueues: 'all' | readonly string[]
+  /** Required for the web role, null for the worker. */
+  betterAuth: BetterAuthSecrets | null
 }
 
-export type WebConfig = AppConfig
+export type WebConfig = AppConfig & { betterAuth: BetterAuthSecrets }
 export type WorkerConfig = AppConfig
 
 export interface MigrateConfig {
@@ -216,6 +251,21 @@ export function loadConfig(
       issues.push({ variable: 'WORKER_QUEUES', problem: 'contiene code sconosciute' })
     }
   }
+  let betterAuth: BetterAuthSecrets | null = null
+  if (parsed.success) {
+    const { BETTER_AUTH_SECRET: secret, BETTER_AUTH_SECRETS: versions } = parsed.data
+    if (role === 'web' && secret === undefined)
+      issues.push({ variable: 'BETTER_AUTH_SECRET', problem: 'obbligatoria' })
+    const secrets =
+      versions === undefined
+        ? secret === undefined
+          ? []
+          : [{ version: 1, value: secret }]
+        : parseSecretVersions(versions)
+    if (secrets === null)
+      issues.push({ variable: 'BETTER_AUTH_SECRETS', problem: BETTER_AUTH_SECRETS_FORM })
+    else if (secret !== undefined) betterAuth = { secret, secrets }
+  }
   if (issues.length > 0 || !parsed.success) throw new ConfigError(issues)
 
   const v = parsed.data
@@ -234,5 +284,6 @@ export function loadConfig(
     sentryDsn: v.SENTRY_DSN ?? null,
     logLevel: v.LOG_LEVEL,
     workerQueues,
+    betterAuth,
   }
 }

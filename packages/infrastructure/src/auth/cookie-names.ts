@@ -8,3 +8,6 @@ export const COOKIE_NAMES = {
   two_factor: { name: '__Host-two-factor' },
   'better-auth-passkey': { name: '__Host-passkey-challenge' },
 } as const
+
+/** Our own cookie, set by the panel, not by Better Auth. */
+export const DEVICE_COOKIE = '__Host-device'

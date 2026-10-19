@@ -5,6 +5,10 @@ load helpers
 setup() {
   setup_workdir
   printf 'IMAGE=ghcr.io/example/app\nIMAGE_TAG=v0.1.0\nPANEL_URL=http://localhost:3000\n' >.env
+  mkdir -m 700 secrets
+  for f in $(grep -oE '\./secrets/[A-Za-z0-9_.-]+' docker/compose.yml | sort -u); do
+    printf 'not-a-real-secret' >"$f"
+  done
 }
 
 teardown() {
@@ -63,4 +67,31 @@ teardown() {
 @test "update rejects an unknown tag" {
   run ./scripts/update.sh v9.9.9
   [ "$status" -ne 0 ]
+}
+
+@test "update refuses a release whose secrets are missing and changes nothing" {
+  # v0.3.0 needs a secret that v0.1.0 (checked out) does not: the target's compose must count
+  git checkout -q -b next v0.2.0
+  printf '  extra_secret:\n    file: ./secrets/extra_secret\n' >>docker/compose.yml
+  git commit -q -am "release 0.3.0" && git tag v0.3.0
+  git checkout -q v0.1.0
+  run ./scripts/update.sh v0.3.0
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"extra_secret"* ]]
+  grep -q '^IMAGE_TAG=v0.1.0$' .env
+  [ "$(git describe --tags --exact-match)" = "v0.1.0" ]
+  [ ! -e .state/previous_tag ]
+  run grep -q ' pull' "$STUB_LOG"
+  [ "$status" -ne 0 ]
+  ./scripts/update.sh v0.2.0 >/dev/null
+}
+
+@test "update refuses a release whose compose file cannot be read" {
+  git checkout -q -b broken v0.2.0
+  git rm -q docker/compose.yml && git commit -q -m "release 0.4.0" && git tag v0.4.0
+  git checkout -q v0.1.0
+  run ./scripts/update.sh v0.4.0
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"compose.yml"* ]]
+  grep -q '^IMAGE_TAG=v0.1.0$' .env
 }

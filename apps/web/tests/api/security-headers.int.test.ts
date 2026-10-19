@@ -13,6 +13,7 @@ beforeAll(async () => {
   web = await startWeb({
     DATABASE_URL: tdb.runtimeUrl,
     APP_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
+    BETTER_AUTH_SECRET: randomBytes(32).toString('base64'),
     PANEL_URL: 'https://pannello.example.ts.net',
   })
 }, 300_000)
