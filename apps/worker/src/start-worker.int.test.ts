@@ -25,6 +25,29 @@ const services: WorkerDeps['services'] = {
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),
   },
+  mailer: {
+    isConfigured: () => Promise.reject(new Error('not used in this test')),
+    send: () => Promise.reject(new Error('not used in this test')),
+  },
+  signedTokens: {
+    sign: () => {
+      throw new Error('not used in this test')
+    },
+    verify: () => {
+      throw new Error('not used in this test')
+    },
+    deviceHash: () => {
+      throw new Error('not used in this test')
+    },
+  },
+  translate: () => {
+    throw new Error('not used in this test')
+  },
+  panel: {
+    url: new URL('https://pannello.example.test'),
+    productName: 'Feedway',
+    defaultTimezone: 'Europe/Rome',
+  },
 }
 
 const logger = createLogger({ service: 'worker', level: 'error' })

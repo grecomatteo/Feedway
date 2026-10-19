@@ -27,6 +27,7 @@ test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', 
   const mediaRoot = await mkdtemp(join(tmpdir(), 'feedway-runtime-'))
   const runtime = await createRuntime(
     {
+      nodeEnv: 'production',
       databaseUrl: tdb.runtimeUrl,
       encryptionKey: randomBytes(32),
       logLevel: 'error',
@@ -47,6 +48,15 @@ test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', 
     const key = `users/${ownerA}/note.txt`
     await runtime.storage.put(key, Buffer.from('ciao'), { contentType: 'text/plain' })
     expect((await runtime.storage.get(key))?.size).toBe(4)
+    const token = runtime.signedTokens.sign('security_lock', {
+      userId: ownerA,
+      expiresAt: new Date(Date.now() + 60_000),
+    })
+    expect(runtime.signedTokens.verify('security_lock', token, new Date())).toEqual({
+      userId: ownerA,
+    })
+    // outside tests no email leaves until stage 3 configures SMTP
+    expect(await runtime.mailer.isConfigured()).toBe(false)
   } finally {
     await rm(mediaRoot, { recursive: true, force: true })
     await runtime.queue.stop({ graceful: false, timeoutMs: 1000 })
@@ -58,6 +68,7 @@ test('a runtime that cannot reach the database fails at start-up', async () => {
   await expect(
     createRuntime(
       {
+        nodeEnv: 'production',
         databaseUrl: 'postgres://nobody:wrong@127.0.0.1:1/none',
         encryptionKey: randomBytes(32),
         logLevel: 'error',

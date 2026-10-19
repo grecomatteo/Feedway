@@ -24,11 +24,15 @@ export interface UserRecord {
 }
 
 export interface UsersRepository {
+  findById(id: string): Promise<UserRecord | null>
   findByEmail(email: string): Promise<UserRecord | null>
   /** Locks the row until the transaction ends. */
   findByIdForUpdate(id: string): Promise<UserRecord | null>
   /** Whether the two users share an active membership in an active agency. */
   sharesOrganization(a: string, b: string): Promise<boolean>
+  setLastLoginAt(id: string, at: Date): Promise<void>
+  /** false: the account was already disabled. */
+  disable(id: string, at: Date): Promise<boolean>
 }
 
 export interface SessionRecord {
@@ -48,6 +52,15 @@ export interface SessionsRepository {
   findForUser(userId: string): Promise<SessionRecord[]>
   setReauthenticated(userId: string, sessionId: string, at: Date): Promise<void>
   setAuthMethod(userId: string, sessionId: string, method: AuthMethod): Promise<void>
+  /** Signs the person out everywhere; returns how many sessions were closed. */
+  deleteAllForUser(userId: string): Promise<number>
+}
+
+/** Devices a person signed in from, by keyed hash of the `__Host-device` cookie id. */
+export interface KnownDevicesRepository {
+  count(userId: string): Promise<number>
+  /** Records the device or refreshes `last_seen_at`; true when it was not known. */
+  touch(userId: string, deviceHash: Buffer, at: Date): Promise<boolean>
 }
 
 export interface OrganizationRecord {

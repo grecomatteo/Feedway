@@ -10,6 +10,7 @@ export interface QueueDefinition<N extends QueueName = QueueName> {
 
 const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
   'system.selftest': { policy: 'short', scope: 'system' },
+  'identity.security_email': { policy: 'standard', scope: 'user' },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

@@ -30,3 +30,5 @@ await build({
 
 // runMigrations reads the SQL files next to the bundle
 cpSync('../../packages/infrastructure/src/db/migrations', 'dist/migrations', { recursive: true })
+// the email texts live with the panel's: src/i18n.ts reads this copy in the image
+cpSync('../web/i18n/locales/it.json', 'dist/locales/it.json')

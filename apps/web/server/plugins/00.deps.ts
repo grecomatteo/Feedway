@@ -1,3 +1,4 @@
+import { createAuthEventSink } from '@app/application'
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
 import {
   createAuthAdapter,
@@ -36,6 +37,13 @@ export default defineNitroPlugin((nitroApp) => {
       hasher: createPasswordHasher(),
       rateLimiter: runtime.rateLimiter,
       logger: runtime.logger,
+      events: createAuthEventSink({
+        uow: runtime.uow,
+        queue: runtime.queue,
+        tokens: runtime.signedTokens,
+        clock: runtime.clock,
+        logger: runtime.logger,
+      }),
     })
     const auth = createAuthAdapter(betterAuth, { db: runtime.db, clock: runtime.clock })
     runtime.logger.info({}, 'web started')

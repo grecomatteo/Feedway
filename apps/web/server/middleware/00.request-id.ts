@@ -5,4 +5,6 @@ export default defineEventHandler(async (event) => {
   event.context['requestId'] = requestId
   event.context['startedAt'] = Date.now()
   setResponseHeader(event, 'x-request-id', requestId)
+  // read by the Better Auth hooks, which see only the web request, to tie their logs to it
+  overrideRequestHeader(event, 'x-app-request-id', requestId)
 })

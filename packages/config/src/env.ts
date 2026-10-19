@@ -25,7 +25,7 @@ export class ConfigError extends Error {
 }
 
 // Mirrors QUEUE_NAMES in @app/infrastructure; kept here so config has no dependencies on it.
-export const KNOWN_QUEUES = ['system.selftest'] as const
+export const KNOWN_QUEUES = ['system.selftest', 'identity.security_email'] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
 

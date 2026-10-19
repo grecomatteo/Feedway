@@ -38,6 +38,8 @@ function build(): BetterAuthInstance {
     hasher: createPasswordHasher(),
     rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
     logger,
+    // the events are tested in packages/application/src/identity/auth-events.int.test.ts
+    events: { record: () => Promise.resolve() },
   })
 }
 

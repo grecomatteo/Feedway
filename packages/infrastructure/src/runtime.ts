@@ -4,12 +4,19 @@ import type {
   JobQueue,
   KeyRing,
   Logger,
+  Mailer,
   RateLimiter,
+  SignedTokens,
   Storage,
   UnitOfWork,
 } from '@app/application'
 import type { WebConfig } from '@app/config'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createKeyRing } from './crypto/key-ring.js'
+import { createSignedTokens } from './crypto/signed-tokens.js'
+import { createFileMailer } from './mail/file-mailer.js'
+import { notConfiguredMailer } from './mail/not-configured-mailer.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
@@ -23,12 +30,18 @@ import { uuidV7Generator } from './system/id-generator.js'
 export type RuntimeRole = 'web' | 'worker'
 
 /** The settings the runtime reads; web and worker configs both carry them. */
-export type RuntimeConfig = Pick<WebConfig, 'databaseUrl' | 'encryptionKey' | 'logLevel'> & {
+export type RuntimeConfig = Pick<
+  WebConfig,
+  'nodeEnv' | 'databaseUrl' | 'encryptionKey' | 'logLevel'
+> & {
   /** Folder for stored files; the `media` volume is mounted at the default. */
   mediaRoot?: string
 }
 
 export const DEFAULT_MEDIA_ROOT = '/media'
+
+/** Shared by the web and the worker in tests, so end-to-end tests can read the emails. */
+export const TEST_MAIL_DIR = join(tmpdir(), 'app-test-mail')
 
 /** Everything a process needs, built once at start-up (composition root). */
 export interface Runtime {
@@ -43,6 +56,10 @@ export interface Runtime {
   keyRing: KeyRing
   rateLimiter: RateLimiter
   storage: Storage
+  /** Security-lock links and device hashes, keyed from APP_ENCRYPTION_KEY. */
+  signedTokens: SignedTokens
+  /** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
+  mailer: Mailer
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
@@ -60,6 +77,11 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock })
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
+    const signedTokens = createSignedTokens(config.encryptionKey)
+    const mailer =
+      config.nodeEnv === 'test'
+        ? createFileMailer({ dir: TEST_MAIL_DIR, ids })
+        : notConfiguredMailer
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,
@@ -76,6 +98,8 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       keyRing,
       rateLimiter,
       storage,
+      signedTokens,
+      mailer,
       close: () => handle.close(),
     }
   } catch (error) {

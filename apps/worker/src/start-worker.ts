@@ -1,4 +1,5 @@
 import type { JobQueue, Logger, QueueName } from '@app/application'
+import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
@@ -22,7 +23,11 @@ const STOP_TIMEOUT_MS = 30_000
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
-  const handlers: JobHandlers = { 'system.selftest': systemSelftest, ...deps.handlers }
+  const handlers: JobHandlers = {
+    'system.selftest': systemSelftest,
+    'identity.security_email': identitySecurityEmail,
+    ...deps.handlers,
+  }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger }
 
   const consume = async <N extends QueueName>(name: N, handler: JobHandler<N>) => {

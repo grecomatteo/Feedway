@@ -1,5 +1,6 @@
-import { ConfigError, loadConfig } from '@app/config'
+import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
 import { createRuntime, QUEUE_NAMES } from '@app/infrastructure'
+import { createTranslate, loadItalianMessages } from './i18n.js'
 import { startWorker } from './start-worker.js'
 
 const EXIT_CONFIG = 78
@@ -18,11 +19,24 @@ async function main(): Promise<void> {
   }
 
   const runtime = await createRuntime(config, 'worker')
-  const { logger, queue, uow, clock, ids, storage } = runtime
+  const { logger, queue, uow, clock, ids, storage, mailer, signedTokens } = runtime
   const worker = await startWorker({
     queue,
     logger,
-    services: { uow, clock, ids, storage },
+    services: {
+      uow,
+      clock,
+      ids,
+      storage,
+      mailer,
+      signedTokens,
+      translate: createTranslate(loadItalianMessages()),
+      panel: {
+        url: config.panelUrl,
+        productName: PRODUCT_NAME,
+        defaultTimezone: config.defaultTimezone,
+      },
+    },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,
     queues:

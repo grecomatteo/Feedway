@@ -1,6 +1,7 @@
 export type { Clock } from './ports/clock.js'
 export type { IdGenerator } from './ports/id-generator.js'
 export type { Logger, LogLevel } from './ports/logger.js'
+export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
   JobPayloads,
   JobQueue,
@@ -8,7 +9,11 @@ export type {
   QueueScope,
   QueueScopes,
   ScopedPayload,
+  SecurityEmailData,
+  SecurityEmailKind,
 } from './ports/job-queue.js'
+export type { Mailer, MailMessage } from './ports/mailer.js'
+export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject } from './ports/storage.js'
 export type { Auth, AuthSessionInfo } from './ports/auth.js'
@@ -20,6 +25,7 @@ export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, isPersonalAuditAction } from './ports/audit-log.js'
 export type { AuditAction, AuditEntry, AuditLog, AuditSource } from './ports/audit-log.js'
 export type {
+  KnownDevicesRepository,
   InvitePurpose,
   InviteRecord,
   InvitesRepository,
@@ -36,3 +42,4 @@ export type {
   WorkspaceRecord,
   WorkspacesRepository,
 } from './ports/repositories.js'
+export * from './identity/index.js'

@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import type { IdGenerator, Logger, Tx, UnitOfWork } from '@app/application'
 import { drizzleAuditLog } from './audit/repositories.js'
 import type { Db, DbExecutor } from './client.js'
-import { drizzleSessions, drizzleUsers } from './identity/repositories.js'
+import { drizzleKnownDevices, drizzleSessions, drizzleUsers } from './identity/repositories.js'
 import {
   drizzleInvites,
   drizzleOrganizationKeys,
@@ -24,6 +24,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
   const tx: Tx = {
     users: drizzleUsers(db),
     sessions: drizzleSessions(db, ctx),
+    knownDevices: drizzleKnownDevices(db, ctx),
     organizations: drizzleOrganizations(db, ctx),
     orgMembers: drizzleOrgMembers(db),
     organizationKeys: drizzleOrganizationKeys(db),

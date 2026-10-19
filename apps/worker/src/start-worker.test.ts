@@ -21,6 +21,29 @@ const services: WorkerDeps['services'] = {
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),
   },
+  mailer: {
+    isConfigured: () => Promise.reject(new Error('not used in this test')),
+    send: () => Promise.reject(new Error('not used in this test')),
+  },
+  signedTokens: {
+    sign: () => {
+      throw new Error('not used in this test')
+    },
+    verify: () => {
+      throw new Error('not used in this test')
+    },
+    deviceHash: () => {
+      throw new Error('not used in this test')
+    },
+  },
+  translate: () => {
+    throw new Error('not used in this test')
+  },
+  panel: {
+    url: new URL('https://pannello.example.test'),
+    productName: 'Feedway',
+    defaultTimezone: 'Europe/Rome',
+  },
 }
 
 const silentLogger: Logger = {
@@ -99,7 +122,8 @@ test('a handler receives the job data and its dependencies', async () => {
   const queue: JobQueue = {
     ...fakeQueue().queue,
     work(_name, handler) {
-      registered = handler
+      // only system.selftest is consumed in this test
+      registered = handler as typeof registered
       return Promise.resolve()
     },
   }

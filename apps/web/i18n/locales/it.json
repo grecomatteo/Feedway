@@ -14,5 +14,46 @@
   },
   "a11y": {
     "skipToContent": "Vai al contenuto"
+  },
+  "email": {
+    "security": {
+      "unknownIp": "non disponibile",
+      "new_device": {
+        "subject": "{product}: nuovo accesso da un dispositivo sconosciuto",
+        "text": "Qualcuno è entrato nel tuo account {product} da un dispositivo che non avevamo mai visto.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "password_changed": {
+        "subject": "{product}: la tua password è stata cambiata",
+        "text": "La password del tuo account {product} è stata cambiata.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "password_reset": {
+        "subject": "{product}: la tua password è stata reimpostata",
+        "text": "La password del tuo account {product} è stata reimpostata con un link di recupero.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "email_changed": {
+        "subject": "{product}: l'email del tuo account è cambiata",
+        "text": "L'indirizzo email del tuo account {product} è stato cambiato. Ti scriviamo al vecchio indirizzo per avvisarti.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "totp_enabled": {
+        "subject": "{product}: verifica in due passaggi attivata",
+        "text": "Sul tuo account {product} è stata attivata la verifica in due passaggi con un'app di autenticazione.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "totp_disabled": {
+        "subject": "{product}: verifica in due passaggi disattivata",
+        "text": "Sul tuo account {product} è stata disattivata la verifica in due passaggi con l'app di autenticazione.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "backup_codes_regenerated": {
+        "subject": "{product}: nuovi codici di recupero",
+        "text": "Sul tuo account {product} sono stati creati nuovi codici di recupero. Quelli vecchi non funzionano più.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "passkey_added": {
+        "subject": "{product}: nuova passkey aggiunta",
+        "text": "Al tuo account {product} è stata aggiunta una nuova passkey.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      },
+      "passkey_removed": {
+        "subject": "{product}: passkey eliminata",
+        "text": "Dal tuo account {product} è stata eliminata una passkey.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
+      }
+    }
   }
 }

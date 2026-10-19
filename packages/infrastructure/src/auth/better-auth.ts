@@ -3,7 +3,14 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { twoFactor } from 'better-auth/plugins'
 import { passkey } from '@better-auth/passkey'
 import { SESSION_IDLE_MS, type AuthMethod } from '@app/domain'
-import type { Clock, IdGenerator, Logger, PasswordHasher, RateLimiter } from '@app/application'
+import type {
+  AuthEventSink,
+  Clock,
+  IdGenerator,
+  Logger,
+  PasswordHasher,
+  RateLimiter,
+} from '@app/application'
 import type { Db } from '../db/client.js'
 import * as schema from '../db/identity/schema.js'
 import { COOKIE_NAMES } from './cookie-names.js'
@@ -29,7 +36,15 @@ export interface BetterAuthDeps {
   hasher: PasswordHasher
   rateLimiter: RateLimiter
   logger: Logger
+  /** Sign-ins, failures and credential changes go to the activity log and security emails. */
+  events: AuthEventSink
 }
+
+/** Paths where a person signs in from scratch: the session never inherits an older one. */
+const STARTS_NEW_SESSION: ReadonlySet<string> = new Set([
+  '/sign-in/email',
+  '/passkey/verify-authentication',
+])
 
 /** Sessions last 12 hours without use; the 30-day limit is ours (see auth-adapter.ts). */
 const SESSION_IDLE_SECONDS = SESSION_IDLE_MS / 1000
@@ -37,7 +52,13 @@ const SESSION_IDLE_SECONDS = SESSION_IDLE_MS / 1000
 export function createBetterAuth(deps: BetterAuthDeps) {
   const panel = new URL(deps.config.panelUrl)
   const origin = panel.origin
-  const hooks = { db: deps.db, clock: deps.clock, rateLimiter: deps.rateLimiter }
+  const hooks = {
+    db: deps.db,
+    clock: deps.clock,
+    rateLimiter: deps.rateLimiter,
+    events: deps.events,
+    logger: deps.logger,
+  }
 
   return betterAuth({
     baseURL: origin,
@@ -109,10 +130,17 @@ export function createBetterAuth(deps: BetterAuthDeps) {
               return false
             }
             // A session replaced by an endpoint (2FA changes, password change) keeps its
-            // method and its 30-day start; only a sign-in path makes a new session.
-            // The session an endpoint replaced, if it had one; typed here because the hook context is loose.
-            const previous = ctx?.context.session as
-              { session: { authMethod: AuthMethod; createdAt: Date } } | null | undefined
+            // method and its 30-day start. Typed here because the hook context is loose.
+            const current = ctx?.context.session as
+              | { user: { id: string }; session: { authMethod: AuthMethod; createdAt: Date } }
+              | null
+              | undefined
+            // Never inherit on a first-factor sign-in, nor from another person's session (a
+            // shared browser): the new session starts its own 30 days.
+            const previous =
+              current?.user.id === session.userId && !STARTS_NEW_SESSION.has(ctx?.path ?? '')
+                ? current
+                : null
             const method = authMethodForPath(ctx?.path) ?? previous?.session.authMethod
             if (method === undefined) return false
             return {

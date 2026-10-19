@@ -1,0 +1,252 @@
+import { deviceLabel, DomainError, shortenIp, type AuthMethod } from '@app/domain'
+import type { AuditAction } from '../ports/audit-log.js'
+import type { Clock } from '../ports/clock.js'
+import type { JobQueue, SecurityEmailKind } from '../ports/job-queue.js'
+import type { Logger } from '../ports/logger.js'
+import type { SignedTokens } from '../ports/token-service.js'
+import type { UnitOfWork } from '../ports/unit-of-work.js'
+
+export type AuthEvent =
+  | {
+      kind: 'login'
+      userId: string
+      sessionId: string
+      method: AuthMethod
+      ip: string | null
+      userAgent: string | null
+      /** The `__Host-device` cookie id; null counts as a new device. */
+      deviceId: string | null
+      previousSessionId: string | null
+    }
+  | {
+      kind: 'login_failed'
+      stage: 'password' | 'second_factor'
+      /** Never stored: it only tells the caller who tried. */
+      email: string | null
+      /** null when the email belongs to nobody. */
+      userId: string | null
+      ip: string | null
+    }
+  | { kind: 'logout'; userId: string; sessionId: string; ip: string | null }
+  | {
+      kind: Exclude<SecurityEmailKind, 'new_device'>
+      userId: string
+      ip: string | null
+      userAgent: string | null
+    }
+
+export interface AuthEventContext {
+  requestId: string | null
+}
+
+/** Called by the Better Auth hooks after the library has done its work. */
+export interface AuthEventSink {
+  /** Never throws: a failure is logged, the sign-in or change has already happened. */
+  record(event: AuthEvent, context: AuthEventContext): Promise<void>
+}
+
+export interface AuthEventDeps {
+  uow: UnitOfWork
+  queue: JobQueue
+  tokens: SignedTokens
+  clock: Clock
+  logger: Logger
+}
+
+/** Job data outlives the audit IP shortening (§15.7): it carries only the short form. */
+const jobIp = (ip: string | null) => (ip === null ? null : shortenIp(ip) || null)
+
+/** "Safari su iOS": what the person reads in the email and in the activity log. */
+export function readableDevice(userAgent: string | null): string {
+  const { browser, os } = deviceLabel(userAgent)
+  return `${browser} su ${os}`
+}
+
+async function recordLogin(deps: AuthEventDeps, event: Extract<AuthEvent, { kind: 'login' }>) {
+  const { userId, sessionId, ip } = event
+  const now = deps.clock.now()
+  const device = readableDevice(event.userAgent)
+  const alert = await deps.uow.run({ userId }, async (tx) => {
+    await tx.users.setLastLoginAt(userId, now)
+    await tx.sessions.setAuthMethod(userId, sessionId, event.method)
+    const knownBefore = await tx.knownDevices.count(userId)
+    // Without the cookie id we cannot tell the device apart: it counts as new.
+    const isNew =
+      event.deviceId === null ||
+      (await tx.knownDevices.touch(userId, deps.tokens.deviceHash(userId, event.deviceId), now))
+    await tx.audit.record({
+      organizationId: null,
+      actorId: userId,
+      source: 'panel',
+      action: 'auth.login',
+      entity: 'session',
+      entityId: sessionId,
+      workspaceId: null,
+      ip,
+      data: {
+        method: event.method,
+        device,
+        ...(event.previousSessionId === null ? {} : { previousSessionId: event.previousSessionId }),
+      },
+    })
+    // The very first device is not news: the person has just set up the account.
+    const newDevice = isNew && knownBefore > 0
+    if (newDevice) {
+      await tx.audit.record({
+        organizationId: null,
+        actorId: userId,
+        source: 'panel',
+        action: 'auth.new_device',
+        entity: 'session',
+        entityId: sessionId,
+        workspaceId: null,
+        ip,
+        data: { device },
+      })
+    }
+    return newDevice
+  })
+  if (alert) {
+    await deps.queue.send('identity.security_email', {
+      userId,
+      kind: 'new_device',
+      occurredAt: now.toISOString(),
+      deviceLabel: device,
+      ip: jobIp(ip),
+    })
+  }
+}
+
+async function recordLoginFailed(
+  deps: AuthEventDeps,
+  event: Extract<AuthEvent, { kind: 'login_failed' }>,
+) {
+  const action: AuditAction =
+    event.stage === 'password' ? 'auth.login_failed' : 'auth.second_factor_failed'
+  // The attempted email and password are never written: only who it was, if anyone.
+  const entry = {
+    organizationId: null,
+    actorId: event.userId,
+    source: 'panel' as const,
+    action,
+    entity: 'user',
+    entityId: event.userId,
+    workspaceId: null,
+    ip: event.ip,
+  }
+  if (event.userId === null) {
+    // Nobody to scope it to: a personal entry of no one, readable only by the platform.
+    await deps.uow.runAsSystem('failed sign-in for an unknown email', (tx) =>
+      tx.audit.record(entry),
+    )
+    return
+  }
+  await deps.uow.run({ userId: event.userId }, (tx) => tx.audit.record(entry))
+}
+
+async function recordChange(
+  deps: AuthEventDeps,
+  event: Extract<AuthEvent, { kind: Exclude<SecurityEmailKind, 'new_device'> }>,
+) {
+  const { userId, ip } = event
+  const now = deps.clock.now()
+  await deps.uow.run({ userId }, (tx) =>
+    tx.audit.record({
+      organizationId: null,
+      actorId: userId,
+      source: 'panel',
+      action: `auth.${event.kind}`,
+      entity: 'user',
+      entityId: userId,
+      workspaceId: null,
+      ip,
+    }),
+  )
+  await deps.queue.send('identity.security_email', {
+    userId,
+    kind: event.kind,
+    occurredAt: now.toISOString(),
+    deviceLabel: readableDevice(event.userAgent),
+    ip: jobIp(ip),
+  })
+}
+
+async function handle(deps: AuthEventDeps, event: AuthEvent): Promise<void> {
+  switch (event.kind) {
+    case 'login':
+      return recordLogin(deps, event)
+    case 'login_failed':
+      return recordLoginFailed(deps, event)
+    case 'logout':
+      return deps.uow.run({ userId: event.userId }, (tx) =>
+        tx.audit.record({
+          organizationId: null,
+          actorId: event.userId,
+          source: 'panel',
+          action: 'auth.logout',
+          entity: 'session',
+          entityId: event.sessionId,
+          workspaceId: null,
+          ip: event.ip,
+        }),
+      )
+    default:
+      return recordChange(deps, event)
+  }
+}
+
+export function createAuthEventSink(deps: AuthEventDeps): AuthEventSink {
+  return {
+    async record(event, context) {
+      try {
+        await handle(deps, event)
+      } catch (error) {
+        deps.logger.error(
+          { requestId: context.requestId, event: event.kind, err: error },
+          'auth event not recorded',
+        )
+      }
+    },
+  }
+}
+
+export interface LockDeps {
+  uow: UnitOfWork
+  tokens: SignedTokens
+  clock: Clock
+}
+
+const LINK_INVALID_MESSAGE = 'Il link non è valido o è scaduto.'
+
+/**
+ * "Non sono stato io" from a security email: disables the account and closes every session.
+ * Safe to repeat; re-enabling is an administrator's job (`cli enable-user`).
+ */
+export async function lockAccountFromSecurityEmail(
+  deps: LockDeps,
+  input: { token: string; ip: string | null },
+): Promise<void> {
+  const now = deps.clock.now()
+  const claim = deps.tokens.verify('security_lock', input.token, now)
+  if (claim === null) throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
+  const { userId } = claim
+  await deps.uow.run({ userId }, async (tx) => {
+    const user = await tx.users.findByIdForUpdate(userId)
+    if (user === null) throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
+    if (user.anonymizedAt !== null) return
+    const disabled = await tx.users.disable(userId, now)
+    const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
+    if (!disabled && sessionsClosed === 0) return
+    await tx.audit.record({
+      organizationId: null,
+      actorId: userId,
+      source: 'panel',
+      action: 'auth.security_lock',
+      entity: 'user',
+      entityId: userId,
+      workspaceId: null,
+      ip: input.ip,
+      data: { sessionsClosed },
+    })
+  })
+}

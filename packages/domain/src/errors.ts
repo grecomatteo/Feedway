@@ -1,5 +1,12 @@
 export type DomainErrorCode =
-  'NOT_FOUND' | 'FORBIDDEN' | 'CONFLICT' | 'VALIDATION' | 'UNAUTHENTICATED' | 'RATE_LIMITED'
+  | 'NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'CONFLICT'
+  | 'VALIDATION'
+  | 'UNAUTHENTICATED'
+  | 'RATE_LIMITED'
+  /** A link from an email or an invite that is unknown, used or expired (410). */
+  | 'LINK_INVALID'
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode
