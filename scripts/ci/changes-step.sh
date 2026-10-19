@@ -7,7 +7,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 files=""
 if [ "${GITHUB_EVENT_NAME:-}" = pull_request ]; then
   # HEAD is the merge commit of the pull request: its first parent is the base branch.
-  files="$(git diff --name-only HEAD^1 HEAD)" || files=""
+  # --no-renames lists both sides of a move, so code moved into docs/ still counts as code.
+  files="$(git diff --no-renames --name-only HEAD^1 HEAD)" || files=""
 fi
 
 result="$(printf '%s\n' "$files" | "$here/changes.sh")"
