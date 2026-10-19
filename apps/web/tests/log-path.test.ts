@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { loggablePath } from './log-path'
+import { loggablePath } from '../server/utils/log-path.js'
 
 test('the token of an activation link never reaches the request log', () => {
   expect(loggablePath('/api/v1/links/abc-123_x/activate?x=1')).toBe('/api/v1/links/:token/activate')
