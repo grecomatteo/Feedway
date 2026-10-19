@@ -113,8 +113,12 @@ async function signIn(email: string, password: string, ip?: string, app = instan
 }
 
 describe('Better Auth configuration', () => {
-  test('only the two plugins we chose are active', () => {
-    expect(instance.options.plugins.map((p) => p.id).sort()).toEqual(['passkey', 'two-factor'])
+  test('only the plugins we chose are active, plus our server-only activation session', () => {
+    expect(instance.options.plugins.map((p) => p.id).sort()).toEqual([
+      'activation-session',
+      'passkey',
+      'two-factor',
+    ])
   })
 
   test.each(['/sign-up/email', '/update-user', '/delete-user', '/list-accounts', '/link-social'])(

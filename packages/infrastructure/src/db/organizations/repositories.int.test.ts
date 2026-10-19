@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { Logger, UnitOfWork } from '@app/application'
 import { uuidV7Generator } from '../../system/id-generator.js'
-import { seed, startTestDatabase, waitForLockWaiter, withScope } from '../../testing/index.js'
+import { seed, startTestDatabase, withScope } from '../../testing/index.js'
 import type { TestDatabase } from '../../testing/index.js'
 import { createDb } from '../client.js'
 import type { DbHandle } from '../client.js'
@@ -143,7 +143,7 @@ test('lockForActivation ignores used, expired and unknown invites', async () => 
   expect(await lock('unknown')).toBeNull()
 })
 
-test('invite row is locked: concurrent activation waits and then finds it used', async () => {
+test('invite row is locked: a concurrent activation gives up at once', async () => {
   const id = await seedInvite({ token: 'race' })
   let release!: () => void
   const released = new Promise<void>((r) => (release = r))
@@ -156,15 +156,18 @@ test('invite row is locked: concurrent activation waits and then finds it used',
     return { invite, used: invite ? await tx.invites.markUsed(invite.id, now) : false }
   })
   await lockTaken
-  const second = uow.runAsSystem('test', (tx) => tx.invites.lockForActivation(hashOf('race'), now))
-  // the second activation is blocked on the row before the first one commits
-  await waitForLockWaiter(tdb.adminUrl, APP)
+  // a waiting activation would hold a pool connection: the second one fails instead (NOWAIT)
+  await expect(
+    uow.runAsSystem('test', (tx) => tx.invites.lockForActivation(hashOf('race'), now)),
+  ).rejects.toMatchObject({ code: 'CONFLICT' })
   release()
   expect(await first).toMatchObject({
     invite: { id, purpose: 'invite', orgRole: 'member', memberships: [] },
     used: true,
   })
-  expect(await second).toBeNull()
+  expect(
+    await uow.runAsSystem('test', (tx) => tx.invites.lockForActivation(hashOf('race'), now)),
+  ).toBeNull()
   expect(await uow.runAsSystem('test', (tx) => tx.invites.markUsed(id, now))).toBe(false)
 })
 

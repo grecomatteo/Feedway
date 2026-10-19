@@ -33,6 +33,10 @@ export interface UsersRepository {
   setLastLoginAt(id: string, at: Date): Promise<void>
   /** false: the account was already disabled. */
   disable(id: string, at: Date): Promise<boolean>
+  platformAdminExists(): Promise<boolean>
+  setPlatformAdmin(id: string): Promise<void>
+  setNickname(id: string, nickname: string | null): Promise<void>
+  countPasskeys(id: string): Promise<number>
 }
 
 export interface SessionRecord {
@@ -76,6 +80,9 @@ export interface OrganizationRecord {
 
 export interface OrganizationsRepository {
   findById(id: string): Promise<OrganizationRecord | null>
+  /** System scope only (row level security). */
+  create(input: { id: string; name: string; slug: string }): Promise<void>
+  slugExists(slug: string): Promise<boolean>
 }
 
 export interface OrgMemberRecord {
@@ -97,6 +104,8 @@ export interface OrgMembersRepository {
   find(organizationId: string, userId: string): Promise<OrgMemberRecord | null>
   /** Memberships in any agency, disabled ones and suspended agencies included. */
   organizationCount(userId: string): Promise<number>
+  /** Leaves an existing membership as it is (a retried activation). */
+  addIfMissing(member: { organizationId: string; userId: string; role: OrgRole }): Promise<void>
 }
 
 export type InvitePurpose = 'bootstrap' | 'invite' | 'organization_owner'
@@ -116,8 +125,27 @@ export interface InviteRecord {
   createdAt: Date
 }
 
+export interface NewInvite {
+  id: string
+  organizationId: string | null
+  purpose: InvitePurpose
+  email: string
+  existingUserId: string | null
+  tokenHash: Buffer
+  invitedBy: string | null
+  orgRole: OrgRole | null
+  memberships: { workspaceId: string; role: WorkspaceRole }[]
+  expiresAt: Date
+}
+
 export interface InvitesRepository {
-  /** Locks an unused, unexpired invite until the transaction ends; null otherwise. */
+  create(invite: NewInvite): Promise<void>
+  /** An unused, unexpired invite, without locking it (to describe the link). */
+  findValid(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
+  /**
+   * Locks an unused, unexpired invite until the transaction ends; null otherwise. Never waits:
+   * `CONFLICT` while another activation of the same link holds it.
+   */
   lockForActivation(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
   /** false: someone else used it first. */
   markUsed(id: string, at: Date): Promise<boolean>
@@ -126,6 +154,10 @@ export interface InvitesRepository {
    * read `reservedUserId` from `lockForActivation` before reserving.
    */
   reserveUserId(id: string, userId: string): Promise<void>
+  /** The agency a bootstrap activation created, so a retry finds it again. */
+  setOrganization(id: string, organizationId: string): Promise<void>
+  /** Ends every open link of this purpose (a new bootstrap link replaces the old ones). */
+  expireOpen(purpose: InvitePurpose, at: Date): Promise<void>
 }
 
 export interface WorkspaceRecord {
@@ -150,4 +182,16 @@ export interface WorkspacesRepository {
 export interface WorkspaceMembersRepository {
   /** workspaceId → role of the user in that agency, to build the `OrgActor`. */
   rolesOf(organizationId: string, userId: string): Promise<ReadonlyMap<string, WorkspaceRole>>
+  /** Leaves an existing membership as it is (a retried activation). */
+  addIfMissing(member: {
+    organizationId: string
+    workspaceId: string
+    userId: string
+    role: WorkspaceRole
+  }): Promise<void>
+}
+
+/** Platform-wide settings (`settings` table), outside any agency. */
+export interface PlatformSettingsRepository {
+  set(key: string, value: unknown, updatedBy: string | null): Promise<void>
 }

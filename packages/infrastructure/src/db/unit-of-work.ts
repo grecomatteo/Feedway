@@ -9,6 +9,7 @@ import {
   drizzleOrganizations,
   drizzleOrgMembers,
 } from './organizations/repositories.js'
+import { drizzlePlatformSettings } from './platform/repositories.js'
 import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
 
@@ -22,7 +23,7 @@ const EXECUTOR = Symbol('executor')
 
 function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
   const tx: Tx = {
-    users: drizzleUsers(db),
+    users: drizzleUsers(db, ctx),
     sessions: drizzleSessions(db, ctx),
     knownDevices: drizzleKnownDevices(db, ctx),
     organizations: drizzleOrganizations(db, ctx),
@@ -31,6 +32,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     invites: drizzleInvites(db),
     workspaces: drizzleWorkspaces(db),
     workspaceMembers: drizzleWorkspaceMembers(db),
+    platformSettings: drizzlePlatformSettings(db),
     audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })

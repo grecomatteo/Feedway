@@ -84,5 +84,36 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         .returning({ id: sessions.id })
       return removed.length
     },
+
+    async createUser({ id, email, name, password }) {
+      const ctx = await instance.$context
+      const hash = password === null ? null : await ctx.password.hash(password)
+      const existing = await ctx.internalAdapter.findUserById(id)
+      if (!existing) {
+        // ADR 012, V2: sign-up is closed, so the account is created here with our id
+        await ctx.internalAdapter.createUser(
+          { id, email, name, emailVerified: true },
+          { method: 'admin' },
+        )
+      }
+      if (hash === null) return
+      const credential = await ctx.internalAdapter.findCredentialAccount(id)
+      if (credential) await ctx.internalAdapter.updatePassword(id, hash)
+      else
+        await ctx.internalAdapter.linkAccount({
+          userId: id,
+          providerId: 'credential',
+          accountId: id,
+          password: hash,
+        })
+    },
+
+    async openSession(userId, meta) {
+      const opened = await instance.api.openActivationSession({
+        body: { userId, ipAddress: meta.ip, userAgent: meta.userAgent },
+        returnHeaders: true,
+      })
+      return { setCookie: opened.headers.getSetCookie() }
+    },
   }
 }

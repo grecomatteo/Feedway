@@ -74,5 +74,11 @@ export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersReposit
       // the check constraint keeps role inside WORKSPACE_ROLES
       return new Map(rows.map((r) => [r.workspaceId, r.role as WorkspaceRole]))
     },
+    async addIfMissing(member) {
+      await db
+        .insert(workspaceMembers)
+        .values(member)
+        .onConflictDoNothing({ target: [workspaceMembers.workspaceId, workspaceMembers.userId] })
+    },
   }
 }
