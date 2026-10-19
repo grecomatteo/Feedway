@@ -74,6 +74,19 @@ export function drizzleOrganizations(db: DbExecutor, ctx: TxContext): Organizati
         settings: row.settings as Record<string, unknown>,
       }
     },
+    async create(input) {
+      await db.insert(organizations).values(input)
+    },
+    async slugExists(slug) {
+      // only the system scope sees every agency: elsewhere a slug of another agency looks free
+      if (ctx.kind !== 'system') throw new Error('slugs are checked only in the system scope')
+      const [row] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.slug, slug))
+        .limit(1)
+      return row !== undefined
+    },
   }
 }
 
@@ -127,6 +140,9 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
       )
       return rows[0]?.n ?? 0
     },
+    async addIfMissing(member) {
+      await db.insert(organizationMembers).values(member).onConflictDoNothing()
+    },
   }
 }
 
@@ -146,26 +162,40 @@ const inviteColumns = {
   createdAt: invites.createdAt,
 }
 
+type InviteRow = Omit<InviteRecord, 'purpose' | 'orgRole' | 'memberships'> & {
+  purpose: string
+  orgRole: string | null
+  memberships: unknown
+}
+
+const toInvite = (row: InviteRow): InviteRecord => ({
+  ...row,
+  purpose: row.purpose as InviteRecord['purpose'],
+  orgRole: row.orgRole as InviteRecord['orgRole'],
+  // written only by our use cases (Tasks 12 and 15), which validate the shape
+  memberships: row.memberships as InviteRecord['memberships'],
+})
+
 export function drizzleInvites(db: DbExecutor): InvitesRepository {
+  const valid = (tokenHash: Buffer, now: Date) =>
+    and(eq(invites.tokenHash, tokenHash), isNull(invites.usedAt), gt(invites.expiresAt, now))
   return {
+    async create(invite) {
+      await db.insert(invites).values(invite)
+    },
+    async findValid(tokenHash, now) {
+      const [row] = await db.select(inviteColumns).from(invites).where(valid(tokenHash, now))
+      return row ? toInvite(row) : null
+    },
     async lockForActivation(tokenHash, now) {
       const [row] = await db
         .select(inviteColumns)
         .from(invites)
-        .where(
-          and(eq(invites.tokenHash, tokenHash), isNull(invites.usedAt), gt(invites.expiresAt, now)),
-        )
+        .where(valid(tokenHash, now))
         .for('update')
-      if (!row) return null
       // A concurrent activation that committed first has set used_at: the lock waits for it and
       // Postgres re-checks the row, so the loser gets nothing here.
-      return {
-        ...row,
-        purpose: row.purpose as InviteRecord['purpose'],
-        orgRole: row.orgRole as InviteRecord['orgRole'],
-        // written only by our use cases (Tasks 12 and 15), which validate the shape
-        memberships: row.memberships as InviteRecord['memberships'],
-      }
+      return row ? toInvite(row) : null
     },
     async markUsed(id, at) {
       const result = await db
@@ -179,6 +209,18 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         .update(invites)
         .set({ reservedUserId: userId })
         .where(and(eq(invites.id, id), isNull(invites.usedAt), isNull(invites.reservedUserId)))
+    },
+    async setOrganization(id, organizationId) {
+      await db
+        .update(invites)
+        .set({ organizationId })
+        .where(and(eq(invites.id, id), isNull(invites.organizationId)))
+    },
+    async expireOpen(purpose, at) {
+      await db
+        .update(invites)
+        .set({ expiresAt: at })
+        .where(and(eq(invites.purpose, purpose), isNull(invites.usedAt), gt(invites.expiresAt, at)))
     },
   }
 }

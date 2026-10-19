@@ -1,7 +1,10 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { createAuthEndpoint } from 'better-auth/api'
+import { setSessionCookie } from 'better-auth/cookies'
 import { twoFactor } from 'better-auth/plugins'
 import { passkey } from '@better-auth/passkey'
+import { z } from 'zod'
 import { SESSION_IDLE_MS, type AuthMethod } from '@app/domain'
 import type {
   AuthEventSink,
@@ -45,6 +48,49 @@ const STARTS_NEW_SESSION: ReadonlySet<string> = new Set([
   '/sign-in/email',
   '/passkey/verify-authentication',
 ])
+
+/** Our own endpoint, never served over HTTP: only `Auth.openSession` calls it. */
+export const OPEN_SESSION_PATH = '/internal/open-session'
+
+/**
+ * The session an activation opens (ADR 012, V8): created and signed by Better Auth inside an
+ * endpoint, so name, attributes and signature are those of a real sign-in.
+ */
+const activationSession = {
+  id: 'activation-session',
+  endpoints: {
+    openActivationSession: createAuthEndpoint(
+      OPEN_SESSION_PATH,
+      {
+        method: 'POST',
+        // left out of the HTTP router; the before hook answers 404 for it too (ALLOWED_PATHS)
+        metadata: { SERVER_ONLY: true },
+        body: z.object({
+          userId: z.string(),
+          ipAddress: z.string().nullable(),
+          userAgent: z.string().nullable(),
+        }),
+      },
+      async (ctx) => {
+        const user = await ctx.context.internalAdapter.findUserById(ctx.body.userId)
+        if (!user) throw new Error('activation session for an unknown user')
+        // overrideAll: without it the default value of authMethod wins over ours (V8)
+        const session = await ctx.context.internalAdapter.createSession(
+          user.id,
+          false,
+          {
+            authMethod: 'activation',
+            ...(ctx.body.ipAddress === null ? {} : { ipAddress: ctx.body.ipAddress }),
+            ...(ctx.body.userAgent === null ? {} : { userAgent: ctx.body.userAgent }),
+          } as never,
+          true,
+        )
+        await setSessionCookie(ctx, { session, user })
+        return ctx.json({ ok: true })
+      },
+    ),
+  },
+}
 
 /** Sessions last 12 hours without use; the 30-day limit is ours (see auth-adapter.ts). */
 const SESSION_IDLE_SECONDS = SESSION_IDLE_MS / 1000
@@ -116,6 +162,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
         origin,
         authenticatorSelection: { userVerification: 'required', residentKey: 'preferred' },
       }),
+      activationSession,
     ],
     hooks: {
       before: createBeforeHook(hooks),
@@ -141,7 +188,10 @@ export function createBetterAuth(deps: BetterAuthDeps) {
               current?.user.id === session.userId && !STARTS_NEW_SESSION.has(ctx?.path ?? '')
                 ? current
                 : null
-            const method = authMethodForPath(ctx?.path) ?? previous?.session.authMethod
+            const method =
+              ctx?.path === OPEN_SESSION_PATH
+                ? 'activation'
+                : (authMethodForPath(ctx?.path) ?? previous?.session.authMethod)
             if (method === undefined) return false
             return {
               data: {

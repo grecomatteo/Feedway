@@ -15,7 +15,7 @@ export interface AuthSessionInfo {
 
 /**
  * Accounts, sessions and the HTTP entry point of the sign-in system. Methods that belong to later
- * tasks (account creation, password checks, second factor, reset links) are added with their tasks.
+ * tasks (password checks, second factor, reset links) are added with their tasks.
  */
 export interface Auth {
   /** Null for a missing, revoked or expired session (12 h idle, or 30 days from creation). */
@@ -25,4 +25,20 @@ export interface Auth {
   listSessions(userId: string): Promise<AuthSessionInfo[]>
   revokeSession(userId: string, sessionId: string): Promise<boolean>
   revokeAllSessions(userId: string, opts?: { exceptSessionId?: string }): Promise<number>
+  /**
+   * The account an activation creates, with our id (ADR 012, V2). If a user with this id already
+   * exists (an interrupted activation), only its password is replaced, and only when given.
+   * `password: null` creates no password: the person registers a passkey next.
+   */
+  createUser(input: {
+    id: string
+    email: string
+    name: string
+    password: string | null
+  }): Promise<void>
+  /** A session opened by us, with the same cookie as a real sign-in (ADR 012, V8). */
+  openSession(
+    userId: string,
+    meta: { ip: string | null; userAgent: string | null; authMethod: 'activation' },
+  ): Promise<{ setCookie: string[] }>
 }

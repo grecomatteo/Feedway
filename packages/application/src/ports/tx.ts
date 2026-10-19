@@ -4,6 +4,7 @@ import type {
   KnownDevicesRepository,
   OrganizationsRepository,
   OrgMembersRepository,
+  PlatformSettingsRepository,
   SessionsRepository,
   UsersRepository,
   WorkspaceMembersRepository,
@@ -39,5 +40,6 @@ export interface Tx {
   invites: InvitesRepository
   workspaces: WorkspacesRepository
   workspaceMembers: WorkspaceMembersRepository
+  platformSettings: PlatformSettingsRepository
   audit: AuditLog
 }

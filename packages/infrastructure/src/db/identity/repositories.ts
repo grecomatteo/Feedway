@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, count, eq, sql } from 'drizzle-orm'
 import type {
   KnownDevicesRepository,
   SessionsRepository,
@@ -8,7 +8,7 @@ import type {
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { knownDevices, sessions, users } from './schema.js'
+import { knownDevices, passkeys, sessions, users } from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
 // query names the user it is about. Only the identity module may import this file (enforced by
@@ -57,7 +57,16 @@ const toUser = (row: UserRow): UserRecord => ({
   createdAt: row.createdAt,
 })
 
-export function drizzleUsers(db: DbExecutor): UsersRepository {
+// Personal tables have no row level security: outside the system scope a user reaches only their
+// own rows, whatever id the caller passes.
+function ownUser(ctx: TxContext, userId: string): string {
+  if (ctx.kind !== 'system' && ctx.userId !== userId) {
+    throw new Error('personal data of another user is reachable only in the system scope')
+  }
+  return userId
+}
+
+export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
   return {
     async findById(id) {
       const [row] = await db.select(userColumns).from(users).where(eq(users.id, id))
@@ -88,16 +97,32 @@ export function drizzleUsers(db: DbExecutor): UsersRepository {
         .returning({ id: users.id })
       return changed.length > 0
     },
+    async platformAdminExists() {
+      const [row] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.platformRole, 'admin'))
+        .limit(1)
+      return row !== undefined
+    },
+    async setPlatformAdmin(id) {
+      if (ctx.kind !== 'system') throw new Error('platform roles change only in the system scope')
+      await db.update(users).set({ platformRole: 'admin' }).where(eq(users.id, id))
+    },
+    async setNickname(id, nickname) {
+      await db
+        .update(users)
+        .set({ nickname })
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
+    async countPasskeys(id) {
+      const [row] = await db
+        .select({ n: count() })
+        .from(passkeys)
+        .where(eq(passkeys.userId, ownUser(ctx, id)))
+      return row?.n ?? 0
+    },
   }
-}
-
-// Sessions have no row level security: outside the system scope a user reaches only their own,
-// whatever id the caller passes.
-function ownUser(ctx: TxContext, userId: string): string {
-  if (ctx.kind !== 'system' && ctx.userId !== userId) {
-    throw new Error('sessions of another user are reachable only in the system scope')
-  }
-  return userId
 }
 
 export function drizzleSessions(db: DbExecutor, ctx: TxContext): SessionsRepository {
