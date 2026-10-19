@@ -3,6 +3,7 @@ import type { Auth } from '../ports/auth.js'
 import type { Clock } from '../ports/clock.js'
 import type { IdGenerator } from '../ports/id-generator.js'
 import type { KeyRing } from '../ports/key-ring.js'
+import type { RateLimiter } from '../ports/rate-limiter.js'
 import type { TokenService } from '../ports/token-service.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 
@@ -11,7 +12,7 @@ export type PasswordStrength = (password: string, userInputs: string[]) => numbe
 
 /**
  * What the identity use cases need. Fields arrive with the tasks that use them (the plan lists
- * `hasher` and `rateLimiter` too: the tasks that check passwords add them).
+ * `hasher` too: the task that needs it adds it).
  */
 export interface IdentityDeps {
   uow: UnitOfWork
@@ -21,6 +22,7 @@ export interface IdentityDeps {
   tokens: TokenService
   keyRing: KeyRing
   passwordStrength: PasswordStrength
+  rateLimiter: RateLimiter
   config: {
     /** REQUIRE_2FA: who needs a second factor on this platform. */
     require2fa: TwoFactorPolicy

@@ -22,6 +22,7 @@ export function identityDeps(deps: Deps): IdentityDeps {
     tokens: deps.tokens,
     keyRing: deps.keyRing,
     passwordStrength,
+    rateLimiter: deps.rateLimiter,
     config: {
       bootstrapOwnerEmail: deps.config.bootstrapOwnerEmail,
       bootstrapOrganizationName: deps.config.bootstrapOrganizationName,

@@ -56,8 +56,11 @@ export interface SessionRecord {
 /** Only the columns we own; Better Auth creates and deletes sessions. */
 export interface SessionsRepository {
   findForUser(userId: string): Promise<SessionRecord[]>
-  setReauthenticated(userId: string, sessionId: string, at: Date): Promise<void>
+  /** False when the session is gone. */
+  setReauthenticated(userId: string, sessionId: string, at: Date): Promise<boolean>
   setAuthMethod(userId: string, sessionId: string, method: AuthMethod): Promise<void>
+  /** False when the session is gone or belongs to someone else. */
+  delete(userId: string, sessionId: string): Promise<boolean>
   /** Signs the person out everywhere; returns how many sessions were closed. */
   deleteAllForUser(userId: string): Promise<number>
 }

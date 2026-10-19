@@ -13,6 +13,8 @@ export interface AuthAdapterDeps {
 
 type SessionRow = typeof sessions.$inferSelect
 
+const MAX_PASSWORD_LENGTH = 128
+
 function toInfo(row: SessionRow): AuthSessionInfo {
   return {
     id: row.id,
@@ -83,6 +85,14 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         )
         .returning({ id: sessions.id })
       return removed.length
+    },
+
+    async verifyPassword(userId, password) {
+      const ctx = await instance.$context
+      const credential = await ctx.internalAdapter.findCredentialAccount(userId)
+      // the same bound as sign-in: an endless input never reaches the hasher
+      if (!credential?.password || password.length > MAX_PASSWORD_LENGTH) return false
+      return ctx.password.verify({ hash: credential.password, password })
     },
 
     async createUser({ id, email, name, password }) {

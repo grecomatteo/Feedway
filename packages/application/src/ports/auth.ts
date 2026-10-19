@@ -25,6 +25,8 @@ export interface Auth {
   listSessions(userId: string): Promise<AuthSessionInfo[]>
   revokeSession(userId: string, sessionId: string): Promise<boolean>
   revokeAllSessions(userId: string, opts?: { exceptSessionId?: string }): Promise<number>
+  /** False for a wrong password and for an account without one: the caller cannot tell. */
+  verifyPassword(userId: string, password: string): Promise<boolean>
   /**
    * The account an activation creates, with our id (ADR 012, V2). If a user with this id already
    * exists (an interrupted activation), only its password is replaced, and only when given.
