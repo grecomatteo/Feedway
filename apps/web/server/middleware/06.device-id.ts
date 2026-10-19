@@ -10,7 +10,11 @@ import {
  * It holds no personal data and is never logged.
  */
 export default defineEventHandler((event) => {
-  if (!event.path.startsWith('/api/auth/')) return
+  // never let a client-sent value through, on any route
+  if (!event.path.startsWith('/api/auth/')) {
+    overrideRequestHeader(event, 'x-app-device-id', null)
+    return
+  }
   let deviceId = getCookie(event, DEVICE_COOKIE)
   if (!isDeviceId(deviceId)) {
     deviceId = newDeviceId()

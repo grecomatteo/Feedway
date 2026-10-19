@@ -35,8 +35,12 @@ git rev-parse --verify --quiet "refs/tags/$target" >/dev/null || die "La version
 
 # Checked before anything changes: a missing secret would only show up as a container that
 # never starts, after the old version is already gone.
+compose="$(git show "$target:docker/compose.yml")" ||
+  die "Non riesco a leggere docker/compose.yml della versione '$target'. Non ho cambiato nulla."
+required="$(printf '%s\n' "$compose" | grep -oE '\./secrets/[A-Za-z0-9_.-]+' | sort -u)" ||
+  die "Il docker/compose.yml di '$target' non nomina nessun segreto: non è normale. Non ho cambiato nulla."
 missing=""
-for secret in $(git show "$target:docker/compose.yml" | grep -oE '\./secrets/[A-Za-z0-9_.-]+' | sort -u); do
+for secret in $required; do
   [ -s "$secret" ] || missing="$missing ${secret#./secrets/}"
 done
 if [ -n "$missing" ]; then

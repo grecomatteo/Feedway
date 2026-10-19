@@ -80,7 +80,7 @@ test('better auth answers under /api/auth', async () => {
   expect(r.status).toBe(200)
 })
 
-test('a device cookie is set once, host-only, and a forged device header is ignored', async () => {
+test('a device cookie is set once, host-only, and replaced when invalid', async () => {
   const first = await post('/api/auth/sign-in/email', unknownAccount(), {
     headers: { 'x-app-device-id': 'forged' },
     xff: '10.0.0.1',

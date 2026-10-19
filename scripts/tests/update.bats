@@ -70,13 +70,28 @@ teardown() {
 }
 
 @test "update refuses a release whose secrets are missing and changes nothing" {
-  rm secrets/better_auth_secret
-  run ./scripts/update.sh v0.2.0
+  # v0.3.0 needs a secret that v0.1.0 (checked out) does not: the target's compose must count
+  git checkout -q -b next v0.2.0
+  printf '  extra_secret:\n    file: ./secrets/extra_secret\n' >>docker/compose.yml
+  git commit -q -am "release 0.3.0" && git tag v0.3.0
+  git checkout -q v0.1.0
+  run ./scripts/update.sh v0.3.0
   [ "$status" -ne 0 ]
-  [[ "$output" == *"better_auth_secret"* ]]
+  [[ "$output" == *"extra_secret"* ]]
   grep -q '^IMAGE_TAG=v0.1.0$' .env
   [ "$(git describe --tags --exact-match)" = "v0.1.0" ]
   [ ! -e .state/previous_tag ]
   run grep -q ' pull' "$STUB_LOG"
   [ "$status" -ne 0 ]
+  ./scripts/update.sh v0.2.0 >/dev/null
+}
+
+@test "update refuses a release whose compose file cannot be read" {
+  git checkout -q -b broken v0.2.0
+  git rm -q docker/compose.yml && git commit -q -m "release 0.4.0" && git tag v0.4.0
+  git checkout -q v0.1.0
+  run ./scripts/update.sh v0.4.0
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"compose.yml"* ]]
+  grep -q '^IMAGE_TAG=v0.1.0$' .env
 }
