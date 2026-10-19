@@ -28,3 +28,7 @@ test('no address at all gives null', () => {
 test('the header we set ourselves is never trusted on the way in', () => {
   expect(clientIp(new Headers({ 'x-app-client-ip': '6.6.6.6' }), '203.0.113.5')).toBe('203.0.113.5')
 })
+
+test('a forwarded value that is not an address gives null', () => {
+  expect(clientIp(new Headers({ 'x-forwarded-for': 'not-an-ip' }), '203.0.113.5')).toBeNull()
+})

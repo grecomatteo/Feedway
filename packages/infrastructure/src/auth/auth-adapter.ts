@@ -1,19 +1,14 @@
 import { and, desc, eq, gt, ne } from 'drizzle-orm'
 import type { Auth, AuthSessionInfo, Clock } from '@app/application'
-import { isBeyondAbsoluteLifetime, type AuthMethod } from '@app/domain'
-import { AUTH_METHODS, sessions } from '../db/identity/schema.js'
+import { isBeyondAbsoluteLifetime } from '@app/domain'
+import { sessions } from '../db/identity/schema.js'
 import type { Db } from '../db/client.js'
+import { toAuthMethod } from './auth-method.js'
 import type { BetterAuthInstance } from './better-auth.js'
 
 export interface AuthAdapterDeps {
   db: Db
   clock: Clock
-}
-
-function toAuthMethod(value: string): AuthMethod {
-  const found = AUTH_METHODS.find((method) => method === value)
-  if (!found) throw new Error(`Metodo di accesso sconosciuto: ${value}`)
-  return found
 }
 
 type SessionRow = typeof sessions.$inferSelect

@@ -1,9 +1,14 @@
 import { and, eq, sql } from 'drizzle-orm'
-import type { SessionsRepository, UserRecord, UsersRepository } from '@app/application'
+import type {
+  KnownDevicesRepository,
+  SessionsRepository,
+  UserRecord,
+  UsersRepository,
+} from '@app/application'
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { sessions, users } from './schema.js'
+import { knownDevices, sessions, users } from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
 // query names the user it is about. Only the identity module may import this file (enforced by
@@ -54,6 +59,10 @@ const toUser = (row: UserRow): UserRecord => ({
 
 export function drizzleUsers(db: DbExecutor): UsersRepository {
   return {
+    async findById(id) {
+      const [row] = await db.select(userColumns).from(users).where(eq(users.id, id))
+      return row ? toUser(row) : null
+    },
     async findByEmail(email) {
       const [row] = await db.select(userColumns).from(users).where(eq(users.email, email))
       return row ? toUser(row) : null
@@ -67,6 +76,17 @@ export function drizzleUsers(db: DbExecutor): UsersRepository {
         sql`select shares_active_organization(${a}, ${b}) as shares`,
       )
       return rows[0]?.shares === true
+    },
+    async setLastLoginAt(id, at) {
+      await db.update(users).set({ lastLoginAt: at }).where(eq(users.id, id))
+    },
+    async disable(id, at) {
+      const changed = await db
+        .update(users)
+        .set({ status: 'disabled', disabledAt: at })
+        .where(and(eq(users.id, id), eq(users.status, 'active')))
+        .returning({ id: users.id })
+      return changed.length > 0
     },
   }
 }
@@ -108,6 +128,38 @@ export function drizzleSessions(db: DbExecutor, ctx: TxContext): SessionsReposit
     },
     async setAuthMethod(userId, sessionId, method) {
       await db.update(sessions).set({ authMethod: method }).where(ofUser(userId, sessionId))
+    },
+    async deleteAllForUser(userId) {
+      const deleted = await db
+        .delete(sessions)
+        .where(eq(sessions.userId, ownUser(ctx, userId)))
+        .returning({ id: sessions.id })
+      return deleted.length
+    },
+  }
+}
+
+// Same rule as sessions: known devices are personal and reachable only for the scope's user.
+export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevicesRepository {
+  return {
+    async count(userId) {
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(knownDevices)
+        .where(eq(knownDevices.userId, ownUser(ctx, userId)))
+      return row?.n ?? 0
+    },
+    async touch(userId, deviceHash, at) {
+      // xmax = 0 only on a freshly inserted row: tells an insert from an update in one statement
+      const [row] = await db
+        .insert(knownDevices)
+        .values({ userId: ownUser(ctx, userId), deviceHash, firstSeenAt: at, lastSeenAt: at })
+        .onConflictDoUpdate({
+          target: [knownDevices.userId, knownDevices.deviceHash],
+          set: { lastSeenAt: at },
+        })
+        .returning({ inserted: sql<boolean>`(xmax = 0)` })
+      return row?.inserted === true
     },
   }
 }
