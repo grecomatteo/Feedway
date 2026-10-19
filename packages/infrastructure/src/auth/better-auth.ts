@@ -14,6 +14,7 @@ import type {
   PasswordHasher,
   RateLimiter,
 } from '@app/application'
+import type { SessionUserResolver } from './auth-hooks.js'
 import type { Db } from '../db/client.js'
 import * as schema from '../db/identity/schema.js'
 import { COOKIE_NAMES } from './cookie-names.js'
@@ -41,6 +42,11 @@ export interface BetterAuthDeps {
   logger: Logger
   /** Sign-ins, failures and credential changes go to the activity log and security emails. */
   events: AuthEventSink
+  /**
+   * `resolveSessionUser` from the application, bound to its unit of work: the hooks apply our
+   * second-factor rules with it, since they cannot go through `Auth` (it wraps this instance).
+   */
+  resolveSessionUser: SessionUserResolver
 }
 
 /** Paths where a person signs in from scratch: the session never inherits an older one. */
@@ -108,6 +114,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     rateLimiter: deps.rateLimiter,
     events: deps.events,
     logger: deps.logger,
+    resolveSessionUser: deps.resolveSessionUser,
   }
 
   return betterAuth({

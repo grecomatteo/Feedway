@@ -5,6 +5,7 @@ import {
   activateAccount,
   completeActivation,
   createAuthEventSink,
+  resolveSessionUser,
   createBootstrapLink,
   describeLink,
   FIRST_ORGANIZATION_SETTING,
@@ -81,6 +82,8 @@ beforeAll(async () => {
       clock: systemClock,
       logger,
     }),
+    resolveSessionUser: (session) =>
+      resolveSessionUser({ uow, config: { require2fa: 'admins' } }, session),
   })
   auth = createAuthAdapter(instance, { db, clock: systemClock })
   deps = {

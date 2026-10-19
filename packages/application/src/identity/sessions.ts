@@ -31,10 +31,17 @@ export interface SessionUser {
   secondFactor: { required: boolean; totpEnabled: boolean; passkeys: number }
 }
 
+export type SessionState = 'active' | 'second_factor_required'
+
 export interface ResolvedSession {
   user: SessionUser
   session: AuthSessionInfo
-  state: 'active' | 'second_factor_required'
+  state: SessionState
+}
+
+/** What `resolveSessionUser` needs: also built for the Better Auth hooks, which have no `Auth`. */
+export type SessionUserDeps = Pick<IdentityDeps, 'uow'> & {
+  config: Pick<IdentityDeps['config'], 'require2fa'>
 }
 
 /**
@@ -48,8 +55,23 @@ export async function resolveSession(
   // the adapter drops sessions past 12 h idle or 30 days from creation
   const found = await deps.auth.getSession(input.headers)
   if (!found) return null
-  const { session, userId } = found
+  const resolved = await resolveSessionUser(deps, found.session)
+  if (!resolved) {
+    await deps.auth.revokeAllSessions(found.userId)
+    return null
+  }
+  return { session: found.session, ...resolved }
+}
 
+/**
+ * The person of a session already known to be valid, and whether that session still owes the
+ * second factor. Null for a disabled or anonymized person: the caller closes the sessions.
+ */
+export async function resolveSessionUser(
+  deps: SessionUserDeps,
+  session: AuthSessionInfo,
+): Promise<{ user: SessionUser; state: SessionState } | null> {
+  const { userId } = session
   const loaded = await deps.uow.run({ userId }, async (tx) => {
     const user = await tx.users.findById(userId)
     if (!user || user.status !== 'active' || user.anonymizedAt !== null) return null
@@ -58,10 +80,7 @@ export async function resolveSession(
     )
     return { user, memberships, passkeys: await tx.users.countPasskeys(userId) }
   })
-  if (!loaded) {
-    await deps.auth.revokeAllSessions(userId)
-    return null
-  }
+  if (!loaded) return null
   const { user, memberships, passkeys } = loaded
 
   const required = requiresSecondFactor({
@@ -74,7 +93,6 @@ export async function resolveSession(
     (m) => m.organizationId === user.lastOrganizationId && m.organizationStatus === 'active',
   )
   return {
-    session,
     state:
       required && !sessionSatisfiesSecondFactor(session.authMethod)
         ? 'second_factor_required'

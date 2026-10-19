@@ -10,6 +10,8 @@ import { systemClock } from '../system/clock.js'
 import { uuidV7Generator } from '../system/id-generator.js'
 import { startTestDatabase, type TestDatabase } from '../testing/index.js'
 import { SESSION_ABSOLUTE_MS } from '@app/domain'
+import { resolveSessionUser } from '@app/application'
+import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createAuthAdapter } from './auth-adapter.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
 
@@ -40,6 +42,14 @@ function build(): BetterAuthInstance {
     logger,
     // the events are tested in packages/application/src/identity/auth-events.int.test.ts
     events: { record: () => Promise.resolve() },
+    resolveSessionUser: (session) =>
+      resolveSessionUser(
+        {
+          uow: createUnitOfWork({ db, ids: uuidV7Generator, logger }),
+          config: { require2fa: 'admins' },
+        },
+        session,
+      ),
   })
 }
 
