@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
-import { eq } from 'drizzle-orm'
+import { and, eq, gt } from 'drizzle-orm'
 import type { AuthEvent, AuthEventSink, Clock, Logger, RateLimiter } from '@app/application'
-import { checkPassword, loginDelayMs, type AuthMethod } from '@app/domain'
+import { checkPassword, isBeyondAbsoluteLifetime, loginDelayMs, type AuthMethod } from '@app/domain'
 import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import type { Db } from '../db/client.js'
-import { users } from '../db/identity/schema.js'
+import { sessions, users } from '../db/identity/schema.js'
 import { passwordStrength } from '../crypto/password-strength.js'
 import { toAuthMethod } from './auth-method.js'
 import { enforceIpLimit, tooManyRequests } from './rate-limits.js'
@@ -80,6 +80,8 @@ const header = (request: Request, name: string): string | null => {
 interface Pending {
   userId?: string
   sessionId?: string
+  /** The valid session a passkey sign-in arrives with: the sign-in is then a reauth. */
+  previousSession?: { id: string; userId: string }
 }
 const pending = new WeakMap<Request, Pending>()
 
@@ -101,8 +103,37 @@ const READS_SESSION = new Set([
   '/two-factor/verify-backup-code',
 ])
 
-async function rememberBefore(ctx: HookContext, request: Request): Promise<void> {
+/**
+ * The valid session behind the request's cookie, read straight from the table and never
+ * through getSessionFromCtx, which would also refresh the old session and could set its
+ * cookie again in the answer that carries the new one.
+ */
+async function sessionOfCookie(
+  deps: Pick<HookDeps, 'db' | 'clock'>,
+  ctx: HookContext,
+): Promise<{ id: string; userId: string } | undefined> {
+  const signed = await ctx.getSignedCookie(
+    ctx.context.authCookies.sessionToken.name,
+    ctx.context.secret,
+  )
+  if (typeof signed !== 'string' || signed === '') return undefined
+  const now = deps.clock.now()
+  const [row] = await deps.db
+    .select({ id: sessions.id, userId: sessions.userId, createdAt: sessions.createdAt })
+    .from(sessions)
+    .where(and(eq(sessions.token, signed), gt(sessions.expiresAt, now)))
+    .limit(1)
+  if (!row || isBeyondAbsoluteLifetime(row.createdAt, now)) return undefined
+  return { id: row.id, userId: row.userId }
+}
+
+async function rememberBefore(deps: HookDeps, ctx: HookContext, request: Request): Promise<void> {
   const path = ctx.path
+  if (path === '/passkey/verify-authentication') {
+    const previousSession = await sessionOfCookie(deps, ctx)
+    if (previousSession) pending.set(request, { previousSession })
+    return
+  }
   if (READS_SESSION.has(path)) {
     const current = await getSessionFromCtx(ctx)
     if (current) {
@@ -142,7 +173,7 @@ export function createBeforeHook(deps: HookDeps) {
     if (!ALLOWED_PATHS.has(path)) throw new APIError('NOT_FOUND', { message: 'Non trovato' })
     await enforceIpLimit(deps.rateLimiter, path, clientIp(ctx.request))
     try {
-      await rememberBefore(ctx, ctx.request)
+      await rememberBefore(deps, ctx, ctx.request)
     } catch (error) {
       // only the event is lost; the request itself goes on
       deps.logger.error(
@@ -239,8 +270,11 @@ async function eventFor(
       ip,
       userAgent,
       deviceId: header(request, 'x-app-device-id'),
-      // sign-in paths no longer read the session they replace (see READS_SESSION)
-      previousSessionId: null,
+      // only a passkey sign-in reads the session it arrives with, and only the same person's
+      previousSessionId:
+        remembered.previousSession?.userId === created.session.userId
+          ? remembered.previousSession.id
+          : null,
     }
   }
   if (failed || remembered.userId === undefined) return null

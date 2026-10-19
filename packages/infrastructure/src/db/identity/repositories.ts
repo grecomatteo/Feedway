@@ -155,10 +155,22 @@ export function drizzleSessions(db: DbExecutor, ctx: TxContext): SessionsReposit
       return rows.map((row) => ({ ...row, authMethod: row.authMethod as AuthMethod }))
     },
     async setReauthenticated(userId, sessionId, at) {
-      await db.update(sessions).set({ reauthenticatedAt: at }).where(ofUser(userId, sessionId))
+      const updated = await db
+        .update(sessions)
+        .set({ reauthenticatedAt: at })
+        .where(ofUser(userId, sessionId))
+        .returning({ id: sessions.id })
+      return updated.length > 0
     },
     async setAuthMethod(userId, sessionId, method) {
       await db.update(sessions).set({ authMethod: method }).where(ofUser(userId, sessionId))
+    },
+    async delete(userId, sessionId) {
+      const deleted = await db
+        .delete(sessions)
+        .where(ofUser(userId, sessionId))
+        .returning({ id: sessions.id })
+      return deleted.length > 0
     },
     async deleteAllForUser(userId) {
       const deleted = await db
