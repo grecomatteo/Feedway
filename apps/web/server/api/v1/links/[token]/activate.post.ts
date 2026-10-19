@@ -1,10 +1,11 @@
 import { activateAccount } from '@app/application'
 import { z } from 'zod'
 
+// an existing account sends nothing: the invite never changes its name or credentials
 const Body = z.object({
-  name: z.string().max(400),
+  name: z.string().max(400).default(''),
   nickname: z.string().max(400).nullable().default(null),
-  password: z.string().max(1024).nullable(),
+  password: z.string().max(1024).nullable().default(null),
 })
 
 export default defineEventHandler(async (event) => {

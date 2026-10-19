@@ -55,9 +55,18 @@ require_docker() {
   docker info >/dev/null 2>&1 || die "Docker non risponde: avvia il servizio o aggiungi l'utente al gruppo docker."
 }
 
+# trim TEXT: without leading and trailing spaces, as the configuration reads it.
+trim() {
+  local text="$1"
+  text="${text#"${text%%[![:space:]]*}"}"
+  printf '%s' "${text%"${text##*[![:space:]]}"}"
+}
+
 # check_organization_name NAME: what the configuration accepts (2 to 80 characters), without what
 # .env would read as a variable, a comment or a quoted value. The panel can rename it later.
 check_organization_name() {
+  # characters, not bytes, whatever the server's locale
+  local LC_ALL=C.UTF-8
   case "$1" in
     *'$'* | *'#'* | *\\* | *'`'* | \'* | \"*)
       die "Il nome dell'agenzia non può contenere \$ # \\ o \` né iniziare con le virgolette: potrai cambiarlo dal pannello."

@@ -131,15 +131,27 @@ teardown() {
 @test "install uses the default agency name and keeps it on rerun" {
   run_install_noninteractive
   grep -q '^BOOTSTRAP_ORGANIZATION_NAME=La mia agenzia$' .env
+  env_set_name() { sed -i 's/^BOOTSTRAP_ORGANIZATION_NAME=.*/BOOTSTRAP_ORGANIZATION_NAME=Agenzia Rossi/' .env; }
+  env_set_name
   INSTALL_ORGANIZATION_NAME="" run_install_noninteractive
   [ "$(grep -c '^BOOTSTRAP_ORGANIZATION_NAME=' .env)" -eq 1 ]
+  grep -q '^BOOTSTRAP_ORGANIZATION_NAME=Agenzia Rossi$' .env
 }
 
 @test "install refuses an agency name that .env cannot hold" {
   INSTALL_ORGANIZATION_NAME='Agenzia $HOME' run run_install_noninteractive
   [ "$status" -ne 0 ]
-  INSTALL_ORGANIZATION_NAME='A' run run_install_noninteractive
+  [[ "$output" == *"Il nome dell'agenzia non può contenere"* ]]
+  INSTALL_ORGANIZATION_NAME='  A  ' run run_install_noninteractive
   [ "$status" -ne 0 ]
+  [[ "$output" == *"da 2 a 80 caratteri"* ]]
+  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env 2>/dev/null
+}
+
+@test "install trims the agency name and counts accented letters once" {
+  INSTALL_ORGANIZATION_NAME="  Agenzia Città  " run_install_noninteractive
+  grep -q '^BOOTSTRAP_ORGANIZATION_NAME=Agenzia Città$' .env
+  INSTALL_ORGANIZATION_NAME="$(printf 'è%.0s' $(seq 1 80))" LC_ALL=C run_install_noninteractive
 }
 
 @test "install rerun after the first account says nothing about a link" {

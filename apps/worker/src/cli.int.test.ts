@@ -66,3 +66,11 @@ test('cli rejects an unknown command and a broken configuration', async () => {
   expect(c.err.join('\n')).toContain('bootstrap-link')
   expect(await runCli(['bootstrap-link'], { ...env, APP_ENCRYPTION_KEY: 'corta' }, c.io)).toBe(78)
 })
+
+test('cli reports an unexpected failure with its own exit code and no link', async () => {
+  const c = capture()
+  const unreachable = { ...env, DATABASE_URL: 'postgres://nessuno:nessuna@127.0.0.1:1/app' }
+  expect(await runCli(['bootstrap-link'], unreachable, c.io)).toBe(70)
+  expect(c.out).toEqual([])
+  expect(c.err.join('\n')).toMatch(/non riuscit/i)
+})

@@ -49,7 +49,9 @@ fi
 
 # The web reads the name when the first account is created: it must be in .env before it starts.
 if [ "${1:-}" != "--rollback" ] && [ -z "$(env_get BOOTSTRAP_ORGANIZATION_NAME)" ] && [ -t 0 ]; then
-  read -r -p "Nome della tua agenzia [La mia agenzia]: " organization_name
+  read -r -p "Nome della tua agenzia [La mia agenzia]: " organization_name ||
+    die "Aggiornamento annullato: non ho cambiato nulla."
+  organization_name="$(trim "$organization_name")"
   organization_name="${organization_name:-La mia agenzia}"
   check_organization_name "$organization_name"
   env_set BOOTSTRAP_ORGANIZATION_NAME "$organization_name"

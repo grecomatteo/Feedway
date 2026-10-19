@@ -125,8 +125,19 @@ teardown() {
   # script(1) gives the update a terminal, as on the server
   printf 'Agenzia Bianchi\n' | script -qec "./scripts/update.sh v0.2.0" /dev/null >/dev/null
   grep -q '^BOOTSTRAP_ORGANIZATION_NAME=Agenzia Bianchi$' .env
-  ./scripts/update.sh --rollback </dev/null >/dev/null
+  # a second update from a terminal with nothing to type: it would stop at the question
+  script -qec "./scripts/update.sh v0.2.0" /dev/null </dev/null >/dev/null
   [ "$(grep -c '^BOOTSTRAP_ORGANIZATION_NAME=' .env)" -eq 1 ]
+  grep -q '^BOOTSTRAP_ORGANIZATION_NAME=Agenzia Bianchi$' .env
+}
+
+@test "the first update from an old release works when the new release is checked out first" {
+  # the old update.sh has no link step: the instructions check out the release, then update
+  git checkout -q v0.2.0
+  run ./scripts/update.sh v0.2.0
+  [ "$status" -eq 0 ]
+  [ "$(cat .state/previous_tag)" = "v0.1.0" ]
+  [[ "$output" == *"/attiva/link-di-prova"* ]]
 }
 
 @test "update without a terminal does not ask the agency name" {

@@ -13,6 +13,7 @@ import {
 
 const EXIT_FAILED = 1
 const EXIT_USAGE = 64
+const EXIT_SOFTWARE = 70
 const EXIT_CONFIG = 78
 
 const USAGE = 'Comandi: bootstrap-link'
@@ -47,8 +48,8 @@ export async function runCli(
     throw error
   }
 
-  // warnings only: stdout carries the link and nothing else
-  const logger = createLogger({ service: 'cli', level: 'warn' })
+  // warnings only, on stderr: stdout carries the link and nothing else
+  const logger = createLogger({ service: 'cli', level: 'warn', destination: process.stderr })
   const handle = createDb(config.databaseUrl, { max: 1, applicationName: 'cli' })
   try {
     const { url } = await createBootstrapLink({
@@ -69,7 +70,9 @@ export async function runCli(
       io.err(error.message)
       return EXIT_FAILED
     }
-    throw error
+    // not the person's mistake (database down, migrations missing): its own code for scripts
+    io.err(`Operazione non riuscita: ${error instanceof Error ? error.message : String(error)}`)
+    return EXIT_SOFTWARE
   } finally {
     await handle.close()
   }

@@ -42,6 +42,7 @@ ask owner_email "Email dell'Owner" "$owner_default"
 [ -n "$owner_email" ] || die "L'email dell'Owner è obbligatoria."
 organization_default="${INSTALL_ORGANIZATION_NAME:-$(env_get BOOTSTRAP_ORGANIZATION_NAME)}"
 ask organization_name "Nome della tua agenzia" "${organization_default:-La mia agenzia}"
+organization_name="$(trim "$organization_name")"
 check_organization_name "$organization_name"
 
 # 3) secrets
