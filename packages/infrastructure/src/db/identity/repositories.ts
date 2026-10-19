@@ -115,6 +115,12 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .set({ nickname })
         .where(eq(users.id, ownUser(ctx, id)))
     },
+    async setLastOrganization(id, organizationId) {
+      await db
+        .update(users)
+        .set({ lastOrganizationId: organizationId })
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
     async countPasskeys(id) {
       const [row] = await db
         .select({ n: count() })
