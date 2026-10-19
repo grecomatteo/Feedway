@@ -60,19 +60,22 @@ services:
     <<: *hardened
     image: *image
     command: [web]
-    environment: &app-env
-      DATABASE_URL_FILE: /run/secrets/database_url
-      APP_ENCRYPTION_KEY_FILE: /run/secrets/app_encryption_key
-      PANEL_URL: ${PANEL_URL:?PANEL_URL manca (vedi .env.example)}
-      PUBLIC_URL: ${PUBLIC_URL:-}
-      META_MODE: ${META_MODE:-live}
-      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v24.0}
-      TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
-      MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
-      REQUIRE_2FA: ${REQUIRE_2FA:-admins}
-      BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    secrets: [database_url, app_encryption_key]
+    environment:
+      <<: &app-env
+        DATABASE_URL_FILE: /run/secrets/database_url
+        APP_ENCRYPTION_KEY_FILE: /run/secrets/app_encryption_key
+        PANEL_URL: ${PANEL_URL:?PANEL_URL manca (vedi .env.example)}
+        PUBLIC_URL: ${PUBLIC_URL:-}
+        META_MODE: ${META_MODE:-live}
+        META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v24.0}
+        TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
+        MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
+        REQUIRE_2FA: ${REQUIRE_2FA:-admins}
+        BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
+        LOG_LEVEL: ${LOG_LEVEL:-info}
+      # only the web signs sessions; the worker never sees this secret
+      BETTER_AUTH_SECRET_FILE: /run/secrets/better_auth_secret
+    secrets: [database_url, app_encryption_key, better_auth_secret]
     volumes:
       - media:/media
     depends_on:
@@ -156,5 +159,7 @@ secrets:
     file: ./secrets/database_migrator_url
   app_encryption_key:
     file: ./secrets/app_encryption_key
+  better_auth_secret:
+    file: ./secrets/better_auth_secret
   ts_authkey:
     file: ./secrets/ts_authkey

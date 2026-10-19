@@ -1,5 +1,10 @@
-import { ConfigError, loadConfig } from '@app/config'
-import { createRuntime } from '@app/infrastructure'
+import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
+import {
+  createAuthAdapter,
+  createBetterAuth,
+  createPasswordHasher,
+  createRuntime,
+} from '@app/infrastructure'
 
 const EXIT_CONFIG = 78
 
@@ -18,8 +23,23 @@ export default defineNitroPlugin((nitroApp) => {
     }
 
     const runtime = await createRuntime(config, 'web')
+    const betterAuth = createBetterAuth({
+      db: runtime.db,
+      config: {
+        panelUrl: config.panelUrl.toString(),
+        productName: PRODUCT_NAME,
+        secret: config.betterAuth.secret,
+        secrets: config.betterAuth.secrets,
+      },
+      ids: runtime.ids,
+      clock: runtime.clock,
+      hasher: createPasswordHasher(),
+      rateLimiter: runtime.rateLimiter,
+      logger: runtime.logger,
+    })
+    const auth = createAuthAdapter(betterAuth, { db: runtime.db, clock: runtime.clock })
     runtime.logger.info({}, 'web started')
-    return { ...runtime, config }
+    return { ...runtime, config, auth }
   }).catch((error: unknown) => {
     // the container restarts; the cause is in the log
     console.error('web failed to start', error instanceof Error ? error.message : error)

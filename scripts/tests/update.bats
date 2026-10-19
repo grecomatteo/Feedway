@@ -5,6 +5,10 @@ load helpers
 setup() {
   setup_workdir
   printf 'IMAGE=ghcr.io/example/app\nIMAGE_TAG=v0.1.0\nPANEL_URL=http://localhost:3000\n' >.env
+  mkdir -m 700 secrets
+  for f in $(grep -oE '\./secrets/[A-Za-z0-9_.-]+' docker/compose.yml | sort -u); do
+    printf 'not-a-real-secret' >"$f"
+  done
 }
 
 teardown() {
@@ -62,5 +66,17 @@ teardown() {
 
 @test "update rejects an unknown tag" {
   run ./scripts/update.sh v9.9.9
+  [ "$status" -ne 0 ]
+}
+
+@test "update refuses a release whose secrets are missing and changes nothing" {
+  rm secrets/better_auth_secret
+  run ./scripts/update.sh v0.2.0
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"better_auth_secret"* ]]
+  grep -q '^IMAGE_TAG=v0.1.0$' .env
+  [ "$(git describe --tags --exact-match)" = "v0.1.0" ]
+  [ ! -e .state/previous_tag ]
+  run grep -q ' pull' "$STUB_LOG"
   [ "$status" -ne 0 ]
 }

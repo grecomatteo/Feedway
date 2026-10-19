@@ -33,6 +33,16 @@ fi
 git fetch --tags --quiet
 git rev-parse --verify --quiet "refs/tags/$target" >/dev/null || die "La versione '$target' non esiste."
 
+# Checked before anything changes: a missing secret would only show up as a container that
+# never starts, after the old version is already gone.
+missing=""
+for secret in $(git show "$target:docker/compose.yml" | grep -oE '\./secrets/[A-Za-z0-9_.-]+' | sort -u); do
+  [ -s "$secret" ] || missing="$missing ${secret#./secrets/}"
+done
+if [ -n "$missing" ]; then
+  die "La versione '$target' richiede questi segreti, che mancano in secrets/:$missing. Non ho cambiato nulla."
+fi
+
 mkdir -p .state
 if [ "$target" != "$current" ]; then
   printf '%s\n' "$current" >"$state_file"

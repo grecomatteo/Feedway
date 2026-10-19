@@ -21,6 +21,13 @@ teardown() {
   [ "$(base64 -d secrets/app_encryption_key | wc -c)" -eq 32 ]
 }
 
+@test "install creates every secret the compose file needs" {
+  run_install_noninteractive
+  for f in $(grep -oE '\./secrets/[A-Za-z0-9_.-]+' docker/compose.yml | sort -u); do
+    [ -s "$f" ]
+  done
+}
+
 @test "install keeps existing secrets on rerun" {
   run_install_noninteractive
   cp -r secrets before
