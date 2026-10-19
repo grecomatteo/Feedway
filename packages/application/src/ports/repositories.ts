@@ -142,7 +142,10 @@ export interface InvitesRepository {
   create(invite: NewInvite): Promise<void>
   /** An unused, unexpired invite, without locking it (to describe the link). */
   findValid(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
-  /** Locks an unused, unexpired invite until the transaction ends; null otherwise. */
+  /**
+   * Locks an unused, unexpired invite until the transaction ends; null otherwise. Never waits:
+   * `CONFLICT` while another activation of the same link holds it.
+   */
   lockForActivation(tokenHash: Buffer, now: Date): Promise<InviteRecord | null>
   /** false: someone else used it first. */
   markUsed(id: string, at: Date): Promise<boolean>

@@ -298,6 +298,17 @@ describe('bootstrap', () => {
     })
   })
 
+  test('a bootstrap link opened after another admin appeared creates no account', async () => {
+    const config = { ...deps.config, bootstrapOwnerEmail: uniqueEmail('tardi') }
+    const { url } = await createBootstrapLink({ ...deps, config })
+    const other = await seed(tdb.runtimeUrl, (s) => s.user())
+    await admin.query("update users set platform_role = 'admin' where id = $1", [other])
+    await expect(activateAccount({ ...deps, config }, form(tokenOf(url)))).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    expect(await userByEmail(config.bootstrapOwnerEmail)).toEqual([])
+  })
+
   test('interrupted bootstrap does not create a second organization', async () => {
     const config = {
       ...deps.config,
@@ -401,13 +412,13 @@ describe('invites', () => {
     await activateAccount(deps, form(token, { password: null }))
     const [u] = await userByEmail(email)
     await addPasskeyDirectly(u?.id ?? '')
-    await completeActivation(deps, { token, userId: u?.id ?? '', ip: '93.41.12.7' })
+    await completeActivation(deps, { token, userId: u?.id ?? '' })
     expect(await membershipsOf(email)).toEqual([{ organization_id: agency, role: 'owner' }])
     const audit = await admin.query<{ action: string; ip: string }>(
       "select action, host(ip) as ip from audit_log where actor_id = $1 and action = 'user.activated'",
       [u?.id],
     )
-    expect(audit.rows).toEqual([{ action: 'user.activated', ip: '93.41.12.7' }])
+    expect(audit.rows).toEqual([{ action: 'user.activated', ip: '93.41.12.200' }])
   })
 
   test('an owner invite for an agency that has an owner fails and leaves the link open', async () => {
@@ -468,16 +479,14 @@ describe('invites', () => {
     expect(r.setCookie.some((c) => c.startsWith('__Host-session='))).toBe(true)
     const [u] = await userByEmail(email)
     const userId = u?.id ?? ''
-    await expect(completeActivation(deps, { token, userId, ip: null })).rejects.toMatchObject({
+    await expect(completeActivation(deps, { token, userId })).rejects.toMatchObject({
       code: 'CONFLICT',
     })
-    await expect(
-      completeActivation(deps, { token, userId: randomUUID(), ip: null }),
-    ).rejects.toMatchObject({
+    await expect(completeActivation(deps, { token, userId: randomUUID() })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     })
     await addPasskeyDirectly(userId)
-    await completeActivation(deps, { token, userId, ip: null })
+    await completeActivation(deps, { token, userId })
     await expect(activateAccount(deps, form(token))).rejects.toMatchObject({ code: 'LINK_INVALID' })
   })
 

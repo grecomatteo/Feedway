@@ -1,4 +1,5 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm'
+import { DomainError } from '@app/domain'
 import type {
   InviteRecord,
   InvitesRepository,
@@ -182,6 +183,17 @@ const toInvite = (row: InviteRow): InviteRecord => ({
   memberships: row.memberships as InviteRecord['memberships'],
 })
 
+const LOCK_NOT_AVAILABLE = '55P03'
+
+/** The Postgres error code, also when Drizzle wraps the driver error. */
+function pgCode(error: unknown): string | undefined {
+  for (let e: unknown = error; e instanceof Error; e = e.cause) {
+    const code = (e as { code?: unknown }).code
+    if (typeof code === 'string') return code
+  }
+  return undefined
+}
+
 export function drizzleInvites(db: DbExecutor): InvitesRepository {
   const valid = (tokenHash: Buffer, now: Date) =>
     and(eq(invites.tokenHash, tokenHash), isNull(invites.usedAt), gt(invites.expiresAt, now))
@@ -194,14 +206,20 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
       return row ? toInvite(row) : null
     },
     async lockForActivation(tokenHash, now) {
-      const [row] = await db
-        .select(inviteColumns)
-        .from(invites)
-        .where(valid(tokenHash, now))
-        .for('update')
-      // A concurrent activation that committed first has set used_at: the lock waits for it and
-      // Postgres re-checks the row, so the loser gets nothing here.
-      return row ? toInvite(row) : null
+      try {
+        // NOWAIT: a request waiting on the lock would hold a pooled connection while the holder
+        // needs a second one for Better Auth; a burst on one link would starve the pool.
+        const [row] = await db
+          .select(inviteColumns)
+          .from(invites)
+          .where(valid(tokenHash, now))
+          .for('update', { noWait: true })
+        return row ? toInvite(row) : null
+      } catch (error) {
+        if (pgCode(error) === LOCK_NOT_AVAILABLE)
+          throw new DomainError('CONFLICT', 'Attivazione già in corso: riprova tra poco')
+        throw error
+      }
     },
     async markUsed(id, at) {
       const result = await db

@@ -145,9 +145,9 @@ async function checkResume(tx: Tx, invite: InviteRecord, userId: string, input: 
 }
 
 /**
- * Steps 2 and 3 under the invite lock: a concurrent attempt waits here and, once the link is
- * used, stops before it can touch the credentials. Better Auth writes users and accounts with its
- * own connection, which never waits on the invite row.
+ * Steps 2 and 3 under the invite lock: a concurrent attempt fails at once (CONFLICT) and never
+ * reaches the credentials. Better Auth writes users and accounts with its own connection, which
+ * never waits on the invite row.
  */
 async function grant(
   deps: IdentityDeps,
@@ -160,6 +160,14 @@ async function grant(
     const invite = await tx.invites.lockForActivation(tokenHash, now)
     if (!invite) throw linkInvalid()
     const role = roleOf(invite)
+
+    // checked before the account exists: a refused bootstrap leaves nothing behind
+    if (
+      invite.purpose === 'bootstrap' &&
+      (await tx.users.platformAdminExists()) &&
+      !(await isPlatformAdmin(tx, who.userId))
+    )
+      throw new DomainError('CONFLICT', 'Account principale già creato')
 
     if (who.kind === 'new') {
       if (invite.reservedUserId !== who.userId) throw linkInvalid()
@@ -175,8 +183,6 @@ async function grant(
 
     let organizationId = invite.organizationId
     if (invite.purpose === 'bootstrap') {
-      if ((await tx.users.platformAdminExists()) && !(await isPlatformAdmin(tx, who.userId)))
-        throw new DomainError('CONFLICT', 'Account principale già creato')
       await tx.users.setPlatformAdmin(who.userId)
       if (organizationId === null) {
         organizationId = deps.ids.newId()
@@ -193,7 +199,11 @@ async function grant(
     const current = await tx.orgMembers.find(organizationId, who.userId)
     if (current && who.kind === 'existing')
       throw new DomainError('CONFLICT', 'Fai già parte di questa agenzia')
-    if (!current) await tx.orgMembers.addIfMissing({ organizationId, userId: who.userId, role })
+    if (!current) {
+      await tx.orgMembers.addIfMissing({ organizationId, userId: who.userId, role })
+      // recorded with the membership: a retry finds it and does not record again
+      await recordActivated(tx, invite, organizationId, who.userId, input.ip)
+    }
     for (const m of invite.memberships)
       await tx.workspaceMembers.addIfMissing({
         organizationId,
@@ -208,10 +218,7 @@ async function grant(
     }
     // with a passkey the link stays open until one is registered (completeActivation)
     const linkUsed = who.kind === 'existing' || input.password !== null
-    if (linkUsed) {
-      await tx.invites.markUsed(invite.id, now)
-      await recordActivated(tx, invite, organizationId, who.userId, input.ip)
-    }
+    if (linkUsed) await tx.invites.markUsed(invite.id, now)
 
     const organization = await tx.organizations.findById(organizationId)
     if (!organization) throw new Error('the agency of the invite is gone')
@@ -223,7 +230,7 @@ async function isPlatformAdmin(tx: Tx, userId: string): Promise<boolean> {
   return (await tx.users.findById(userId))?.platformRole === 'admin'
 }
 
-/** Once per activation: when the link becomes used. */
+/** Once per activation: when the person joins the agency. */
 function recordActivated(
   tx: Tx,
   invite: InviteRecord,
@@ -275,7 +282,7 @@ export async function activateAccount(
 /** After the passkey of a new account is registered: the link is used from now on. */
 export async function completeActivation(
   deps: Pick<IdentityDeps, 'uow' | 'clock' | 'tokens'>,
-  input: { token: string; userId: string; ip: string | null },
+  input: { token: string; userId: string },
 ): Promise<void> {
   await deps.uow.runAsSystem('activation: complete with a passkey', async (tx) => {
     const now = deps.clock.now()
@@ -284,8 +291,6 @@ export async function completeActivation(
     if (invite.reservedUserId !== input.userId) throw signInFirst()
     if ((await tx.users.countPasskeys(input.userId)) === 0)
       throw new DomainError('CONFLICT', 'Registra prima una passkey')
-    if (invite.organizationId === null) throw new Error('an activated invite has no agency')
     await tx.invites.markUsed(invite.id, now)
-    await recordActivated(tx, invite, invite.organizationId, input.userId, input.ip)
   })
 }
