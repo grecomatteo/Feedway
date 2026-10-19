@@ -2,6 +2,7 @@ import { DomainError, type OrgActor } from '@app/domain'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 
 const notFound = () => new DomainError('NOT_FOUND', 'Agenzia non trovata')
+const suspended = () => new DomainError('ORGANIZATION_SUSPENDED', 'Questa agenzia è sospesa')
 
 /**
  * Who acts inside an agency. Only an active membership counts: a platform administrator who
@@ -22,20 +23,29 @@ export async function resolveOrgActor(
   })
   if (!found) throw notFound()
   const { user, membership } = found
-  if (membership.organizationStatus === 'suspended')
-    throw new DomainError('ORGANIZATION_SUSPENDED', 'Questa agenzia è sospesa')
+  if (membership.organizationStatus !== 'active') throw suspended()
 
-  const organizationId = membership.organizationId
-  const memberships = await deps.uow.run({ organizationId, userId }, async (tx) => {
+  const { organizationId } = membership
+  const { orgRole, memberships } = await deps.uow.run({ organizationId, userId }, async (tx) => {
+    // read again inside the agency: a membership disabled, a role changed or an agency
+    // suspended since the first read must not leak into the actor
+    const current = await tx.orgMembers.find(organizationId, userId)
+    if (current?.status !== 'active') throw notFound()
+    const organization = await tx.organizations.findById(organizationId)
+    if (!organization) throw notFound()
+    if (organization.status !== 'active') throw suspended()
     if (user.lastOrganizationId !== organizationId)
       await tx.users.setLastOrganization(userId, organizationId)
-    return tx.workspaceMembers.rolesOf(organizationId, userId)
+    return {
+      orgRole: current.role,
+      memberships: await tx.workspaceMembers.rolesOf(organizationId, userId),
+    }
   })
   return {
     userId,
     platformRole: user.platformRole,
     organizationId,
-    orgRole: membership.role,
+    orgRole,
     memberships,
   }
 }

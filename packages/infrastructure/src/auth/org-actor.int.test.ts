@@ -118,3 +118,28 @@ test('an unknown user gets nothing', async () => {
     resolveOrgActor(deps, { userId: randomUUID(), organizationSlug: orgA }),
   ).rejects.toMatchObject({ code: 'NOT_FOUND' })
 })
+
+test('a disabled person gets nothing, even with an active membership', async () => {
+  const disabled = await seed(tdb.runtimeUrl, async (s) => {
+    const id = await s.user()
+    await s.member(orgA, id, 'member')
+    return id
+  })
+  await admin.query("update users set status = 'disabled', disabled_at = now() where id = $1", [
+    disabled,
+  ])
+  await expect(
+    resolveOrgActor(deps, { userId: disabled, organizationSlug: orgA }),
+  ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  expect(await lastOrganizationOf(disabled)).toBeNull()
+})
+
+test('the last agency is written only when it changes', async () => {
+  await resolveOrgActor(deps, { userId: memberA, organizationSlug: orgA })
+  const rowVersion = async () =>
+    (await admin.query<{ v: string }>('select xmin::text as v from users where id = $1', [memberA]))
+      .rows[0]?.v
+  const before = await rowVersion()
+  await resolveOrgActor(deps, { userId: memberA, organizationSlug: orgA })
+  expect(await rowVersion()).toBe(before)
+})
