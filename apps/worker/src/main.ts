@@ -18,11 +18,11 @@ async function main(): Promise<void> {
   }
 
   const runtime = await createRuntime(config, 'worker')
-  const { logger, queue, uow, clock, ids } = runtime
+  const { logger, queue, uow, clock, ids, storage } = runtime
   const worker = await startWorker({
     queue,
     logger,
-    services: { uow, clock, ids },
+    services: { uow, clock, ids, storage },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,
     queues:

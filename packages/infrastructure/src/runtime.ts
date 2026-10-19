@@ -5,6 +5,7 @@ import type {
   KeyRing,
   Logger,
   RateLimiter,
+  Storage,
   UnitOfWork,
 } from '@app/application'
 import type { WebConfig } from '@app/config'
@@ -13,6 +14,7 @@ import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
 import { createUnitOfWork } from './db/unit-of-work.js'
+import { createLocalDiskStorage } from './storage/local-disk-storage.js'
 import { createLogger } from './logging/logger.js'
 import { createPgBossQueue } from './queue/pg-boss-queue.js'
 import { systemClock } from './system/clock.js'
@@ -21,7 +23,12 @@ import { uuidV7Generator } from './system/id-generator.js'
 export type RuntimeRole = 'web' | 'worker'
 
 /** The settings the runtime reads; web and worker configs both carry them. */
-export type RuntimeConfig = Pick<WebConfig, 'databaseUrl' | 'encryptionKey' | 'logLevel'>
+export type RuntimeConfig = Pick<WebConfig, 'databaseUrl' | 'encryptionKey' | 'logLevel'> & {
+  /** Folder for stored files; the `media` volume is mounted at the default. */
+  mediaRoot?: string
+}
+
+export const DEFAULT_MEDIA_ROOT = '/media'
 
 /** Everything a process needs, built once at start-up (composition root). */
 export interface Runtime {
@@ -35,6 +42,7 @@ export interface Runtime {
   uow: UnitOfWork
   keyRing: KeyRing
   rateLimiter: RateLimiter
+  storage: Storage
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
@@ -51,6 +59,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const uow = createUnitOfWork({ db: handle.db, ids, logger })
     const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock })
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
+    const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,
@@ -66,6 +75,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       uow,
       keyRing,
       rateLimiter,
+      storage,
       close: () => handle.close(),
     }
   } catch (error) {

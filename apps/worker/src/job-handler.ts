@@ -4,6 +4,7 @@ import type {
   JobPayloads,
   Logger,
   QueueName,
+  Storage,
   UnitOfWork,
 } from '@app/application'
 
@@ -14,6 +15,7 @@ export interface JobHandlerDeps {
   uow: UnitOfWork
   clock: Clock
   ids: IdGenerator
+  storage: Storage
 }
 
 export type JobHandler<N extends QueueName> = (
