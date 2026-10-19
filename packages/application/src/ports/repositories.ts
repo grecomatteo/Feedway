@@ -36,6 +36,8 @@ export interface UsersRepository {
   platformAdminExists(): Promise<boolean>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
+  /** The agency the panel opens next time. */
+  setLastOrganization(id: string, organizationId: string): Promise<void>
   countPasskeys(id: string): Promise<number>
 }
 

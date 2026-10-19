@@ -45,3 +45,4 @@ export type {
   WorkspacesRepository,
 } from './ports/repositories.js'
 export * from './identity/index.js'
+export * from './organizations/index.js'
