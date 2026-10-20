@@ -23,8 +23,27 @@ export interface UserRecord {
   createdAt: Date
 }
 
+/** What an agency's user list shows of a member; never credentials, only whether they exist. */
+export interface UserSummary {
+  id: string
+  email: string
+  name: string
+  nickname: string | null
+  avatarKey: string | null
+  status: 'active' | 'disabled'
+  anonymizedAt: Date | null
+  lastLoginAt: Date | null
+  twoFactorEnabled: boolean
+  passkeys: number
+}
+
 export interface UsersRepository {
   findById(id: string): Promise<UserRecord | null>
+  /**
+   * The given users, in no particular order. The caller passes only ids it is allowed to see
+   * (the members of its agency, read under row level security).
+   */
+  summaries(ids: readonly string[]): Promise<UserSummary[]>
   findByEmail(email: string): Promise<UserRecord | null>
   /** Locks the row until the transaction ends. */
   findByIdForUpdate(id: string): Promise<UserRecord | null>
@@ -109,10 +128,32 @@ export interface OrgMembersRepository {
   /** Every membership of the user, disabled ones included: the caller filters. */
   listForUser(userId: string): Promise<UserOrganizationRecord[]>
   find(organizationId: string, userId: string): Promise<OrgMemberRecord | null>
+  /** Same, and locks the row until the transaction ends: checks on it hold until the commit. */
+  findForUpdate(organizationId: string, userId: string): Promise<OrgMemberRecord | null>
   /** Memberships in any agency, disabled ones and suspended agencies included. */
   organizationCount(userId: string): Promise<number>
   /** Leaves an existing membership as it is (a retried activation). */
   addIfMissing(member: { organizationId: string; userId: string; role: OrgRole }): Promise<void>
+  /** Every member of the agency, disabled ones included. */
+  listForOrganization(organizationId: string): Promise<OrgMemberRecord[]>
+  /** Members of the agency, disabled ones included: each holds a seat. */
+  count(organizationId: string): Promise<number>
+  /**
+   * Seat counts and new invites of one agency go one at a time until the transaction ends, so
+   * two invites cannot both take the last seat.
+   */
+  lockSeats(organizationId: string): Promise<void>
+  /** false: the membership is gone or already had this status. */
+  setStatus(
+    organizationId: string,
+    userId: string,
+    status: OrgMemberRecord['status'],
+  ): Promise<boolean>
+  /**
+   * Changes the role only if it is still `from` and the membership is active; false otherwise
+   * (a concurrent change).
+   */
+  setRole(organizationId: string, userId: string, from: OrgRole, to: OrgRole): Promise<boolean>
 }
 
 export type InvitePurpose = 'bootstrap' | 'invite' | 'organization_owner'
@@ -165,6 +206,8 @@ export interface InvitesRepository {
   setOrganization(id: string, organizationId: string): Promise<void>
   /** Ends every open link of this purpose (a new bootstrap link replaces the old ones). */
   expireOpen(purpose: InvitePurpose, at: Date): Promise<void>
+  /** Unused, unexpired invites of the agency: each will take a seat. */
+  countOpen(organizationId: string, now: Date): Promise<number>
 }
 
 export interface WorkspaceRecord {
@@ -186,7 +229,16 @@ export interface WorkspacesRepository {
   countActive(organizationId: string): Promise<number>
 }
 
+export interface WorkspaceMembershipRecord {
+  userId: string
+  workspaceId: string
+  workspaceName: string
+  role: WorkspaceRole
+}
+
 export interface WorkspaceMembersRepository {
+  /** Every workspace role in the agency, with the workspace name, for the user list. */
+  listForOrganization(organizationId: string): Promise<WorkspaceMembershipRecord[]>
   /** workspaceId → role of the user in that agency, to build the `OrgActor`. */
   rolesOf(organizationId: string, userId: string): Promise<ReadonlyMap<string, WorkspaceRole>>
   /** Leaves an existing membership as it is (a retried activation). */

@@ -37,6 +37,7 @@ export default defineNitroPlugin((nitroApp) => {
       hasher: createPasswordHasher(),
       rateLimiter: runtime.rateLimiter,
       logger: runtime.logger,
+      queue: runtime.queue,
       events: createAuthEventSink({
         uow: runtime.uow,
         queue: runtime.queue,

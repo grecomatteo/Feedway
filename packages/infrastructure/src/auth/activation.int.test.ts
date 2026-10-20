@@ -75,6 +75,7 @@ beforeAll(async () => {
     hasher: createPasswordHasher(),
     rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
     logger,
+    queue: noQueue,
     events: createAuthEventSink({
       uow,
       queue: noQueue,

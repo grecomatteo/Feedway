@@ -85,6 +85,7 @@ beforeAll(async () => {
     hasher: createPasswordHasher(),
     rateLimiter,
     logger,
+    queue,
     events: createAuthEventSink({
       uow,
       queue,

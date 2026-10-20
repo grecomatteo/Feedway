@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import {
   allowedWhileSecondFactorRequired,
   type AuthEvent,
@@ -68,6 +68,12 @@ const METHOD_BY_PATH: Readonly<Record<string, AuthMethod>> = {
 export function authMethodForPath(path: string | undefined): AuthMethod | undefined {
   return path === undefined ? undefined : METHOD_BY_PATH[path]
 }
+
+/** The panel page a reset link lands on, with `?token=…` (Task 22). */
+export const PASSWORD_RESET_PAGE = '/reimposta'
+
+/** Reset tokens of links copied from the panel (auth-adapter.ts); never letters and digits only. */
+export const PANEL_RESET_TOKEN_PREFIX = 'panel.'
 
 /** The message a wrong password and a refused session both get, so neither reveals the other. */
 export const INVALID_CREDENTIALS = 'Email o password non corretti'
@@ -402,13 +408,19 @@ export function createBeforeHook(deps: HookDeps) {
     const email = body['email']
     if (path === '/sign-in/email' && typeof email === 'string') await enforceLoginDelay(deps, email)
 
+    if (path === '/reset-password') await enforcePanelResetScope(deps.db, ctx)
+
     if (path === '/reset-password' || path === '/change-password') {
       const newPassword = typeof body['newPassword'] === 'string' ? body['newPassword'] : ''
-      // The session is not in the context yet on a hook: read it ourselves for the name and email.
-      const current = path === '/change-password' ? await getSessionFromCtx(ctx) : null
+      // The session is not in the context yet on a hook: read it ourselves for the name and email;
+      // on a reset, the person behind the token.
+      const person =
+        path === '/change-password'
+          ? (await getSessionFromCtx(ctx))?.user
+          : await resetTokenPerson(deps.db, ctx)
       const check = checkPassword(
         newPassword,
-        { email: current?.user.email ?? '', name: current?.user.name ?? '' },
+        { email: person?.email ?? '', name: person?.name ?? '' },
         passwordStrength,
       )
       if (!check.ok)
@@ -416,7 +428,67 @@ export function createBeforeHook(deps: HookDeps) {
     }
 
     await enforceAccountRules(deps, ctx, ctx.request)
+
+    // A new password signs out every other device, whatever the browser asked (spec §15.2):
+    // whoever knew the old one must not stay in.
+    if (path === '/change-password')
+      return { context: { body: { ...body, revokeOtherSessions: true } } }
   })
+}
+
+function resetToken(ctx: HookContext): string | null {
+  const body = (ctx.body ?? {}) as Record<string, unknown>
+  const token = body['token'] ?? (ctx.query as Record<string, unknown> | undefined)?.['token']
+  return typeof token === 'string' && token !== '' ? token : null
+}
+
+/** The account a reset token belongs to; null for an unknown token. */
+async function resetTokenUserId(ctx: HookContext, token: string): Promise<string | null> {
+  const verification = await ctx.context.internalAdapter.findVerificationValue(
+    `reset-password:${token}`,
+  )
+  return verification && UUID.test(verification.value) ? verification.value : null
+}
+
+/**
+ * A link copied from the panel is checked again when it is used: the agency that made it may
+ * still reset this identity only while the person works for that agency alone and is not the
+ * platform administrator (spec §10.4). "Password dimenticata" links are the person's own.
+ */
+async function enforcePanelResetScope(db: Db, ctx: HookContext): Promise<void> {
+  const token = resetToken(ctx)
+  if (token === null || !token.startsWith(PANEL_RESET_TOKEN_PREFIX)) return
+  const userId = await resetTokenUserId(ctx, token)
+  // unknown or expired: the endpoint answers INVALID_TOKEN
+  if (userId === null) return
+  const { rows } = await db.execute<{ n: number; platform_role: string | null }>(
+    sql`select organization_count(${userId}::uuid) as n,
+               (select platform_role from users where id = ${userId}::uuid) as platform_role`,
+  )
+  const row = rows[0]
+  if (row?.n !== 1 || row.platform_role !== null)
+    throw new APIError('FORBIDDEN', {
+      message:
+        'Questo link non vale più: chiedine uno nuovo a chi gestisce l’agenzia o usa “Password dimenticata”',
+      code: 'FORBIDDEN',
+    })
+}
+
+/** Email and name of the account a reset token belongs to; null for an unknown token. */
+async function resetTokenPerson(
+  db: Db,
+  ctx: HookContext,
+): Promise<{ email: string; name: string } | null> {
+  const given = resetToken(ctx)
+  if (given === null) return null
+  const userId = await resetTokenUserId(ctx, given)
+  if (userId === null) return null
+  const [row] = await db
+    .select({ email: users.email, name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  return row ?? null
 }
 
 async function userIdByEmail(db: Db, email: string): Promise<string | null> {

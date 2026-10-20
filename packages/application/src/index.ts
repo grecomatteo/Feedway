@@ -5,6 +5,7 @@ export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
   JobPayloads,
   JobQueue,
+  PasswordResetEmailData,
   QueueName,
   QueueScope,
   QueueScopes,
@@ -40,6 +41,8 @@ export type {
   UserOrganizationRecord,
   UserRecord,
   UsersRepository,
+  UserSummary,
+  WorkspaceMembershipRecord,
   WorkspaceMembersRepository,
   WorkspaceRecord,
   WorkspacesRepository,

@@ -78,6 +78,7 @@ function build(events: AuthEventSink): BetterAuthInstance {
     hasher: createPasswordHasher(),
     rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
     logger,
+    queue,
     events,
     resolveSessionUser: (session) =>
       resolveSessionUser({ uow, config: { require2fa: 'admins' } }, session),

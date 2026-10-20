@@ -36,14 +36,20 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => HTML_ESCA
 
 /**
  * The HTML version is built from the plain text (the panel's message compiler rejects HTML in
- * it.json): every value is escaped, paragraphs become `<p>` and the lock link an `<a>`.
+ * it.json): every value is escaped, paragraphs become `<p>` and the value named `linkName`
+ * an `<a>`.
  */
-function toHtml(translate: Translate, key: string, values: Record<string, string>): string {
+export function emailHtml(
+  translate: Translate,
+  key: string,
+  values: Record<string, string>,
+  linkName: string,
+): string {
   const marks = Object.fromEntries(Object.keys(values).map((name) => [name, `\uE000${name}\uE000`]))
   const template = escapeHtml(translate(key, marks))
   const filled = template.replace(/\uE000(\w+)\uE000/g, (_, name: string) => {
     const value = escapeHtml(values[name] ?? '')
-    return name === 'lockUrl' ? `<a href="${value}">${value}</a>` : value
+    return name === linkName ? `<a href="${value}">${value}</a>` : value
   })
   return filled
     .split(/\n{2,}/)
@@ -92,7 +98,7 @@ export async function sendSecurityEmail(
     to: job.notifyEmail ?? user.email,
     subject: deps.translate(`${base}.subject`, values),
     text: deps.translate(`${base}.text`, values),
-    html: toHtml(deps.translate, `${base}.text`, values),
+    html: emailHtml(deps.translate, `${base}.text`, values, 'lockUrl'),
   }
   const result = await deps.mailer.send(message)
   if (result === 'not_configured') {

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { and, asc, desc, eq, gt, ne } from 'drizzle-orm'
 import type { Auth, Clock } from '@app/application'
 import { isBeyondAbsoluteLifetime } from '@app/domain'
@@ -5,6 +6,7 @@ import { passkeys, sessions, users } from '../db/identity/schema.js'
 import type { Db } from '../db/client.js'
 import { toSessionInfo } from './auth-method.js'
 import type { BetterAuthInstance } from './better-auth.js'
+import { PANEL_RESET_TOKEN_PREFIX, PASSWORD_RESET_PAGE } from './auth-hooks.js'
 
 export interface AuthAdapterDeps {
   db: Db
@@ -12,6 +14,8 @@ export interface AuthAdapterDeps {
 }
 
 const MAX_PASSWORD_LENGTH = 128
+/** As `resetPasswordTokenExpiresIn` (better-auth.ts). */
+const RESET_LINK_TTL_MS = 3600_000
 
 /**
  * The `Auth` port over Better Auth. Session lists and revocations work on our `sessions` table
@@ -108,6 +112,27 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         returnHeaders: true,
       })
       return { setCookie: opened.headers.getSetCookie() }
+    },
+
+    async passwordResetUrl(email) {
+      const [user] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1)
+      if (!user) return null
+      // The token is ours, in the format `/reset-password` reads (ADR 012, V6), with a prefix the
+      // library never produces (its tokens are letters and digits): the hook recognizes a link
+      // copied from the panel and checks again, when it is used, that the person still works
+      // for one agency only.
+      const token = `${PANEL_RESET_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
+      const ctx = await instance.$context
+      await ctx.internalAdapter.createVerificationValue({
+        identifier: `reset-password:${token}`,
+        value: user.id,
+        expiresAt: new Date(clock.now().getTime() + RESET_LINK_TTL_MS),
+      })
+      return `${ctx.baseURL}/reset-password/${token}?callbackURL=${encodeURIComponent(PASSWORD_RESET_PAGE)}`
     },
 
     async secondFactorStatus(userId) {

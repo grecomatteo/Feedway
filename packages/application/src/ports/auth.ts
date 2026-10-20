@@ -54,6 +54,11 @@ export interface Auth {
     userId: string,
     meta: { ip: string | null; userAgent: string | null; authMethod: 'activation' },
   ): Promise<{ setCookie: string[] }>
+  /**
+   * A password reset link to copy from the panel (Better Auth token, one hour), sent nowhere.
+   * Null when no account has this email.
+   */
+  passwordResetUrl(email: string): Promise<string | null>
   /** The factors a person holds: TOTP on or off, and their passkeys, oldest first. */
   secondFactorStatus(userId: string): Promise<{ totpEnabled: boolean; passkeys: PasskeySummary[] }>
 }

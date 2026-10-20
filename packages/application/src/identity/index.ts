@@ -27,3 +27,15 @@ export { listMySessions, revokeAllMySessions, revokeMySession } from './my-sessi
 export type { MySession } from './my-sessions.js'
 export type { ResolvedSession, SessionState, SessionUser, SessionUserDeps } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'
+export { inviteUser } from './invites.js'
+export type { InviteInput } from './invites.js'
+export {
+  changeOrgRole,
+  disableMember,
+  enableMember,
+  listMembers,
+  transferOwnership,
+} from './members.js'
+export type { MemberDto } from './members.js'
+export { createPasswordResetLink, sendPasswordResetEmail } from './password-reset.js'
+export type { PasswordResetEmailDeps } from './password-reset.js'

@@ -81,6 +81,7 @@ beforeAll(async () => {
     hasher: createPasswordHasher(),
     rateLimiter,
     logger,
+    queue: noQueue,
     events: sink,
     resolveSessionUser: (session) =>
       resolveSessionUser({ uow, config: { require2fa: 'admins' } }, session),

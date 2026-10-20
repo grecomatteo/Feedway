@@ -6,11 +6,22 @@ export interface QueueDefinition<N extends QueueName = QueueName> {
   policy: 'standard' | 'short' | 'singleton' | 'stately' | 'exclusive'
   /** Must match the scope in JobPayloads: the type below rejects a mismatch. */
   scope: QueueScopes[N]
+  /**
+   * How long pg-boss keeps a job, in seconds: waiting (`retentionSeconds`) and after it ends
+   * (`deleteAfterSeconds`). Unset: the pg-boss defaults (14 and 7 days).
+   */
+  retention?: { retentionSeconds: number; deleteAfterSeconds: number }
 }
 
 const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
   'system.selftest': { policy: 'short', scope: 'system' },
   'identity.security_email': { policy: 'standard', scope: 'user' },
+  // the data holds a reset link: gone after an hour, when the link has expired anyway
+  'identity.password_reset_email': {
+    policy: 'standard',
+    scope: 'user',
+    retention: { retentionSeconds: 3600, deleteAfterSeconds: 3600 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(
