@@ -1,10 +1,23 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import {
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+  sign,
+  type KeyObject,
+} from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
+  assertRecentReauth,
   createAuthEventSink,
+  listMySessions,
+  reauthenticate,
   resolveSession,
+  revokeAllMySessions,
+  revokeMySession,
   type Auth,
+  type AuthEventSink,
   type IdentityDeps,
   type JobQueue,
 } from '@app/application'
@@ -29,7 +42,8 @@ let tdb: TestDatabase
 let admin: pg.Client
 let instance: BetterAuthInstance
 let auth: Auth
-let deps: Pick<IdentityDeps, 'uow' | 'auth' | 'config'>
+let deps: Pick<IdentityDeps, 'uow' | 'auth' | 'config' | 'clock' | 'rateLimiter'>
+let sink: AuthEventSink
 const logger = createLogger({ service: 'web', level: 'error' })
 
 const noQueue: JobQueue = {
@@ -46,6 +60,14 @@ beforeAll(async () => {
   await admin.connect()
   const uow = createUnitOfWork({ db, ids: uuidV7Generator, logger })
   const secret = randomBytes(32).toString('hex')
+  const rateLimiter = createPgRateLimiter({ db, clock: systemClock })
+  sink = createAuthEventSink({
+    uow,
+    queue: noQueue,
+    tokens: createSignedTokens(randomBytes(32)),
+    clock: systemClock,
+    logger,
+  })
   instance = createBetterAuth({
     db,
     config: {
@@ -57,20 +79,16 @@ beforeAll(async () => {
     ids: uuidV7Generator,
     clock: systemClock,
     hasher: createPasswordHasher(),
-    rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
+    rateLimiter,
     logger,
-    events: createAuthEventSink({
-      uow,
-      queue: noQueue,
-      tokens: createSignedTokens(randomBytes(32)),
-      clock: systemClock,
-      logger,
-    }),
+    events: sink,
   })
   auth = createAuthAdapter(instance, { db, clock: systemClock })
   deps = {
     uow,
     auth,
+    clock: systemClock,
+    rateLimiter,
     config: {
       require2fa: 'admins',
       bootstrapOwnerEmail: null,
@@ -282,4 +300,434 @@ test('a suspended last agency is not offered as the one to open', async () => {
   await admin.query('update users set last_organization_id = $2 where id = $1', [p.id, org])
   const r = await resolveSession(deps, { headers: p.headers })
   expect(r?.user.lastOrganizationSlug).toBeNull()
+})
+
+/** The ids of a person's sessions, oldest first. */
+async function sessionIds(userId: string): Promise<string[]> {
+  const { rows } = await admin.query<{ id: string }>(
+    'select id from sessions where user_id = $1 order by created_at, id',
+    [userId],
+  )
+  return rows.map((r) => r.id)
+}
+
+async function auditOf(userId: string, action: string) {
+  const { rows } = await admin.query<{ entity_id: string | null; data: Record<string, unknown> }>(
+    'select entity_id, data from audit_log where actor_id = $1 and action = $2',
+    [userId, action],
+  )
+  return rows
+}
+
+const minutes = (n: number) => n * 60_000
+
+async function reauthenticatedAt(sessionId: string): Promise<Date | null | undefined> {
+  const { rows } = await admin.query<{ reauthenticated_at: Date | null }>(
+    'select reauthenticated_at from sessions where id = $1',
+    [sessionId],
+  )
+  return rows[0]?.reauthenticated_at
+}
+
+function at(ids: string[], index: number): string {
+  const id = ids[index]
+  if (id === undefined) throw new Error(`no session at ${String(index)}`)
+  return id
+}
+
+async function resolved(headers: Headers) {
+  const r = await resolveSession(deps, { headers })
+  if (!r) throw new Error('no session')
+  return r
+}
+const request = { ip: '93.41.12.200' }
+
+test('password reauth opens a ten-minute window', async () => {
+  const p = await person()
+  const before = await resolved(p.headers)
+  expect(() => {
+    assertRecentReauth(before.session, new Date())
+  }).toThrow(expect.objectContaining({ code: 'REAUTH_REQUIRED' }))
+  await reauthenticate(deps, before.session, { password: PASSWORD }, request)
+  const after = (await resolved(p.headers)).session
+  const now = new Date()
+  expect(() => {
+    assertRecentReauth(after, now)
+  }).not.toThrow()
+  expect(() => {
+    assertRecentReauth(after, new Date(now.getTime() + minutes(11)))
+  }).toThrow(expect.objectContaining({ code: 'REAUTH_REQUIRED' }))
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([
+    { entity_id: after.id, data: { method: 'password' } },
+  ])
+})
+
+test('wrong password on reauth is refused, and the sixth try is limited', async () => {
+  const p = await person()
+  const { session } = await resolved(p.headers)
+  for (let i = 0; i < 5; i++)
+    await expect(
+      reauthenticate(deps, session, { password: 'sbagliata-di-sicuro' }, request),
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED', message: 'Password non corretta' })
+  // the right password does not help once the window is used up
+  await expect(
+    reauthenticate(deps, session, { password: PASSWORD }, request),
+  ).rejects.toMatchObject({ code: 'RATE_LIMITED' })
+  const { session: still } = await resolved(p.headers)
+  expect(still.reauthenticatedAt).toBeNull()
+})
+
+test('a person without a password gets the same refusal', async () => {
+  const id = randomUUID()
+  await auth.createUser({
+    id,
+    email: `senza-${id.slice(0, 8)}@esempio.it`,
+    name: 'Bea',
+    password: null,
+  })
+  const { setCookie } = await auth.openSession(id, {
+    ip: null,
+    userAgent: null,
+    authMethod: 'activation',
+  })
+  const headers = new Headers({ cookie: setCookie.map((c) => c.split(';')[0]).join('; ') })
+  const { session } = await resolved(headers)
+  await expect(
+    reauthenticate(deps, session, { password: PASSWORD }, request),
+  ).rejects.toMatchObject({ code: 'UNAUTHENTICATED', message: 'Password non corretta' })
+})
+
+test('a passkey login over a valid session of the same user replaces it with a reauthenticated one', async () => {
+  const p = await person()
+  await signIn(p.email) // the session the passkey sign-in creates
+  const ids = await sessionIds(p.id)
+  const before = at(ids, 0)
+  const after = at(ids, 1)
+  await sink.record(
+    {
+      kind: 'login',
+      userId: p.id,
+      sessionId: after,
+      method: 'passkey',
+      ip: request.ip,
+      userAgent: null,
+      deviceId: null,
+      previousSessionId: before,
+    },
+    { requestId: null },
+  )
+  expect(await sessionIds(p.id)).toEqual([after])
+  expect(await reauthenticatedAt(after)).not.toBeNull()
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([
+    { entity_id: after, data: { method: 'passkey' } },
+  ])
+})
+
+test('a previous session of someone else is never touched by a login event', async () => {
+  const p = await person()
+  const other = await person()
+  const own = at(await sessionIds(p.id), 0)
+  const theirs = at(await sessionIds(other.id), 0)
+  await sink.record(
+    {
+      kind: 'login',
+      userId: p.id,
+      sessionId: own,
+      method: 'passkey',
+      ip: null,
+      userAgent: null,
+      deviceId: null,
+      previousSessionId: theirs,
+    },
+    { requestId: null },
+  )
+  expect(await sessionIds(other.id)).toEqual([theirs])
+  expect(await reauthenticatedAt(own)).toBeNull()
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
+})
+
+test('only a passkey sign-in turns into a reauth', async () => {
+  const p = await person()
+  await signIn(p.email)
+  const ids = await sessionIds(p.id)
+  await sink.record(
+    {
+      kind: 'login',
+      userId: p.id,
+      sessionId: at(ids, 1),
+      method: 'password',
+      ip: null,
+      userAgent: null,
+      deviceId: null,
+      previousSessionId: at(ids, 0),
+    },
+    { requestId: null },
+  )
+  expect(await sessionIds(p.id)).toEqual(ids)
+  expect(await reauthenticatedAt(at(ids, 1))).toBeNull()
+})
+
+test('sessions list marks the current one and never exposes tokens or full ips', async () => {
+  const p = await person()
+  await signIn(p.email)
+  await admin.query(
+    "update sessions set ip_address = '93.41.12.200', user_agent = $2 where user_id = $1",
+    [
+      p.id,
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+    ],
+  )
+  const { session } = await resolved(p.headers)
+  const list = await listMySessions(deps, { id: p.id }, session.id)
+  expect(list).toHaveLength(2)
+  expect(list.filter((s) => s.current).map((s) => s.id)).toEqual([session.id])
+  const [shown] = list
+  expect(shown).toMatchObject({
+    ipApprox: '93.41.12.0',
+    device: { browser: 'Safari', os: 'macOS' },
+  })
+  expect(Object.keys(shown ?? {}).sort()).toEqual(
+    ['createdAt', 'current', 'device', 'id', 'ipApprox', 'lastActiveAt'].sort(),
+  )
+  expect(JSON.stringify(list)).not.toMatch(/token|93\.41\.12\.200/)
+})
+
+test('cannot revoke a session of another user', async () => {
+  const p = await person()
+  const other = await person()
+  const theirs = at(await sessionIds(other.id), 0)
+  await expect(revokeMySession(deps, { id: p.id }, theirs, request)).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+  })
+  expect(await sessionIds(other.id)).toEqual([theirs])
+  expect(await auditOf(p.id, 'session.revoked')).toEqual([])
+})
+
+test('a person revokes one of their sessions, or all of them', async () => {
+  const p = await person()
+  await signIn(p.email)
+  await signIn(p.email)
+  const [first, ...rest] = await sessionIds(p.id)
+  if (first === undefined) throw new Error('no session')
+  await revokeMySession(deps, { id: p.id }, first, request)
+  expect(await sessionIds(p.id)).toEqual(rest)
+  expect(await auditOf(p.id, 'session.revoked')).toEqual([{ entity_id: first, data: {} }])
+  expect(await revokeAllMySessions(deps, { id: p.id }, request)).toBe(2)
+  expect(await sessionIds(p.id)).toEqual([])
+  expect(await auditOf(p.id, 'session.revoked')).toContainEqual({
+    entity_id: p.id,
+    data: { count: 2 },
+  })
+})
+
+test('a successful reauth clears the failed attempts', async () => {
+  const p = await person()
+  const { session } = await resolved(p.headers)
+  const wrong = () => reauthenticate(deps, session, { password: 'sbagliata-di-sicuro' }, request)
+  for (let i = 0; i < 4; i++)
+    await expect(wrong()).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  await reauthenticate(deps, session, { password: PASSWORD }, request)
+  for (let i = 0; i < 5; i++)
+    await expect(wrong()).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  await expect(wrong()).rejects.toMatchObject({ code: 'RATE_LIMITED' })
+})
+
+test('a malformed session id is a missing session', async () => {
+  const p = await person()
+  await expect(revokeMySession(deps, { id: p.id }, 'abc', request)).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+  })
+})
+
+test('a reauth on a session revoked meanwhile is refused and not recorded', async () => {
+  const p = await person()
+  const { session } = await resolved(p.headers)
+  await admin.query('delete from sessions where id = $1', [session.id])
+  await expect(
+    reauthenticate(deps, session, { password: PASSWORD }, request),
+  ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
+})
+
+// A passkey kept by the test: an ES256 key whose COSE public key is stored as the library
+// stores it. It signs the WebAuthn assertion the browser would send, so the real endpoint,
+// our hooks and the login event all run.
+const RP_ID = new URL(PANEL).hostname
+
+interface SoftPasskey {
+  userId: string
+  credentialId: Buffer
+  privateKey: KeyObject
+  counter: number
+}
+
+async function softPasskey(userId: string): Promise<SoftPasskey> {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+  const jwk = publicKey.export({ format: 'jwk' })
+  const x = Buffer.from(jwk.x ?? '', 'base64url')
+  const y = Buffer.from(jwk.y ?? '', 'base64url')
+  // CBOR map {1: 2 (EC2), 3: -7 (ES256), -1: 1 (P-256), -2: x, -3: y}
+  const cose = Buffer.concat([
+    Buffer.from([0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20]),
+    x,
+    Buffer.from([0x22, 0x58, 0x20]),
+    y,
+  ])
+  const credentialId = randomBytes(16)
+  await admin.query(
+    `insert into passkeys (id, public_key, user_id, credential_id, counter, device_type, backed_up)
+     values ($1, $2, $3, $4, 0, 'singleDevice', false)`,
+    [randomUUID(), cose.toString('base64'), userId, credentialId.toString('base64url')],
+  )
+  return { userId, credentialId, privateKey, counter: 0 }
+}
+
+const cookiesOf = (res: Response) =>
+  res.headers
+    .getSetCookie()
+    .map((c) => c.split(';')[0])
+    .join('; ')
+
+async function passkeySignIn(
+  key: SoftPasskey,
+  opts: { userVerified: boolean; cookie?: string },
+): Promise<Response> {
+  const base = { origin: PANEL, 'x-app-client-ip': '10.9.0.1' }
+  const withCookie = (extra: string) =>
+    [opts.cookie, extra].filter((c) => c !== undefined && c !== '').join('; ')
+  const challengeRes = await instance.handler(
+    new Request(`${PANEL}/api/auth/passkey/generate-authenticate-options`, {
+      headers: { ...base, cookie: withCookie('') },
+    }),
+  )
+  expect(challengeRes.status).toBe(200)
+  const { challenge } = (await challengeRes.json()) as { challenge: string }
+  key.counter += 1
+  const clientDataJSON = Buffer.from(
+    JSON.stringify({ type: 'webauthn.get', challenge, origin: PANEL, crossOrigin: false }),
+  )
+  const counter = Buffer.alloc(4)
+  counter.writeUInt32BE(key.counter)
+  const authenticatorData = Buffer.concat([
+    createHash('sha256').update(RP_ID).digest(),
+    Buffer.from([opts.userVerified ? 0x05 : 0x01]), // user present, and verified
+    counter,
+  ])
+  const signature = sign(
+    'sha256',
+    Buffer.concat([authenticatorData, createHash('sha256').update(clientDataJSON).digest()]),
+    key.privateKey,
+  )
+  const id = key.credentialId.toString('base64url')
+  return instance.handler(
+    new Request(`${PANEL}/api/auth/passkey/verify-authentication`, {
+      method: 'POST',
+      headers: {
+        ...base,
+        'content-type': 'application/json',
+        cookie: withCookie(cookiesOf(challengeRes)),
+      },
+      body: JSON.stringify({
+        response: {
+          id,
+          rawId: id,
+          type: 'public-key',
+          clientExtensionResults: {},
+          response: {
+            clientDataJSON: clientDataJSON.toString('base64url'),
+            authenticatorData: authenticatorData.toString('base64url'),
+            signature: signature.toString('base64url'),
+            userHandle: Buffer.from(key.userId).toString('base64url'),
+          },
+        },
+      }),
+    }),
+  )
+}
+
+async function newestSession(userId: string) {
+  const { rows } = await admin.query<{
+    id: string
+    auth_method: string
+    reauthenticated_at: Date | null
+  }>(
+    `select id, auth_method, reauthenticated_at from sessions where user_id = $1
+     order by created_at desc, id desc limit 1`,
+    [userId],
+  )
+  return rows[0]
+}
+
+test('a passkey sign-in over the same person session replaces it with a confirmed one', async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const [old] = await sessionIds(p.id)
+  const res = await passkeySignIn(key, {
+    userVerified: true,
+    cookie: p.headers.get('cookie') ?? '',
+  })
+  expect(res.status).toBe(200)
+  const ids = await sessionIds(p.id)
+  expect(ids).toHaveLength(1)
+  expect(ids).not.toContain(old)
+  expect(await newestSession(p.id)).toMatchObject({ auth_method: 'passkey' })
+  expect((await newestSession(p.id))?.reauthenticated_at).not.toBeNull()
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([
+    { entity_id: at(ids, 0), data: { method: 'passkey' } },
+  ])
+})
+
+test('a passkey sign-in without the PIN or the screen lock is refused', async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const before = await sessionIds(p.id)
+  const res = await passkeySignIn(key, {
+    userVerified: false,
+    cookie: p.headers.get('cookie') ?? '',
+  })
+  expect(res.status).toBe(401)
+  expect(await sessionIds(p.id)).toEqual(before)
+})
+
+test('without a session, or with someone else, a passkey sign-in is not a reauth', async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const [first] = await sessionIds(p.id)
+  expect((await passkeySignIn(key, { userVerified: true })).status).toBe(200)
+  expect(await sessionIds(p.id)).toContain(first)
+  expect((await newestSession(p.id))?.reauthenticated_at).toBeNull()
+
+  const other = await person()
+  const [theirs] = await sessionIds(other.id)
+  const res = await passkeySignIn(key, {
+    userVerified: true,
+    cookie: other.headers.get('cookie') ?? '',
+  })
+  expect(res.status).toBe(200)
+  expect(await sessionIds(other.id)).toEqual([theirs])
+  expect((await newestSession(p.id))?.reauthenticated_at).toBeNull()
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
+})
+
+test('a tampered cookie or a session past 30 days does not count', async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const cookie = p.headers.get('cookie') ?? ''
+  const tampered = cookie.replace(/.(;|$)/, (m) => (m.startsWith('A') ? 'B' : 'A') + m.slice(1))
+  expect((await passkeySignIn(key, { userVerified: true, cookie: tampered })).status).toBe(200)
+  expect((await newestSession(p.id))?.reauthenticated_at).toBeNull()
+
+  const q = await person()
+  const qKey = await softPasskey(q.id)
+  await admin.query(
+    "update sessions set created_at = now() - interval '31 days' where user_id = $1",
+    [q.id],
+  )
+  const res = await passkeySignIn(qKey, {
+    userVerified: true,
+    cookie: q.headers.get('cookie') ?? '',
+  })
+  expect(res.status).toBe(200)
+  expect((await newestSession(q.id))?.reauthenticated_at).toBeNull()
+  expect(await auditOf(q.id, 'auth.reauthenticated')).toEqual([])
 })

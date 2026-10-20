@@ -91,6 +91,7 @@ beforeAll(async () => {
     tokens,
     keyRing: createKeyRing({ platformKey: randomBytes(32), clock: systemClock }),
     passwordStrength,
+    rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
     config: {
       bootstrapOwnerEmail: OWNER_EMAIL,
       bootstrapOrganizationName: '',

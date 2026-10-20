@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { createAuthEndpoint } from 'better-auth/api'
+import { APIError, createAuthEndpoint } from 'better-auth/api'
 import { setSessionCookie } from 'better-auth/cookies'
 import { twoFactor } from 'better-auth/plugins'
 import { passkey } from '@better-auth/passkey'
@@ -165,6 +165,18 @@ export function createBetterAuth(deps: BetterAuthDeps) {
         rpName: deps.config.productName,
         origin,
         authenticatorSelection: { userVerification: 'required', residentKey: 'preferred' },
+        // The library asks for verification only as "preferred" when signing in. A passkey
+        // without the PIN or the screen lock is one factor: it must not satisfy 2FA or a reauth.
+        authentication: {
+          afterVerification: ({ verification }) => {
+            if (!verification.authenticationInfo.userVerified)
+              throw new APIError('UNAUTHORIZED', {
+                message: 'Conferma la passkey con il PIN, il volto o l’impronta',
+                code: 'USER_VERIFICATION_REQUIRED',
+              })
+            return Promise.resolve()
+          },
+        },
       }),
       activationSession,
     ],

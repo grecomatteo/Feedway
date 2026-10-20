@@ -69,6 +69,26 @@ async function recordLogin(deps: AuthEventDeps, event: Extract<AuthEvent, { kind
   const alert = await deps.uow.run({ userId }, async (tx) => {
     await tx.users.setLastLoginAt(userId, now)
     await tx.sessions.setAuthMethod(userId, sessionId, event.method)
+    // A passkey sign-in over a valid session of the same person is a reauth: the new session
+    // starts confirmed and replaces the old one. `delete` only reaches this person's sessions.
+    const reauth =
+      event.method === 'passkey' &&
+      event.previousSessionId !== null &&
+      (await tx.sessions.delete(userId, event.previousSessionId))
+    if (reauth) {
+      await tx.sessions.setReauthenticated(userId, sessionId, now)
+      await tx.audit.record({
+        organizationId: null,
+        actorId: userId,
+        source: 'panel',
+        action: 'auth.reauthenticated',
+        entity: 'session',
+        entityId: sessionId,
+        workspaceId: null,
+        ip,
+        data: { method: event.method },
+      })
+    }
     const knownBefore = await tx.knownDevices.count(userId)
     // Without the cookie id we cannot tell the device apart: it counts as new.
     const isNew =
