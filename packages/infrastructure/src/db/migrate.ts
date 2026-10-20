@@ -42,8 +42,8 @@ export async function runMigrations(opts: RunMigrationsOptions): Promise<void> {
   })
   try {
     await boss.start()
-    for (const { name, policy } of QUEUES) {
-      await boss.createQueue(name, { policy, ...QUEUE_DEFAULTS })
+    for (const { name, policy, retention } of QUEUES) {
+      await boss.createQueue(name, { policy, ...QUEUE_DEFAULTS, ...retention })
     }
   } finally {
     await boss.stop({ graceful: false })

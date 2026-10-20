@@ -61,6 +61,26 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
 
 export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersRepository {
   return {
+    async listForOrganization(organizationId) {
+      const rows = await db
+        .select({
+          userId: workspaceMembers.userId,
+          workspaceId: workspaceMembers.workspaceId,
+          workspaceName: workspaces.name,
+          role: workspaceMembers.role,
+        })
+        .from(workspaceMembers)
+        .innerJoin(
+          workspaces,
+          and(
+            eq(workspaces.organizationId, workspaceMembers.organizationId),
+            eq(workspaces.id, workspaceMembers.workspaceId),
+          ),
+        )
+        .where(eq(workspaceMembers.organizationId, organizationId))
+        .orderBy(workspaces.name, workspaces.id)
+      return rows.map((r) => ({ ...r, role: r.role as WorkspaceRole }))
+    },
     async rolesOf(organizationId, userId) {
       const rows = await db
         .select({ workspaceId: workspaceMembers.workspaceId, role: workspaceMembers.role })

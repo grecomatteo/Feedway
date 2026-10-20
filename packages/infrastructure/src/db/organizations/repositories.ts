@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, gt, isNull, sql } from 'drizzle-orm'
 import { DomainError } from '@app/domain'
 import type {
   InviteRecord,
@@ -138,6 +138,19 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
         )
       return row ? toMember(row) : null
     },
+    async findForUpdate(organizationId, userId) {
+      const [row] = await db
+        .select(memberColumns)
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.userId, userId),
+          ),
+        )
+        .for('update')
+      return row ? toMember(row) : null
+    },
     async organizationCount(userId) {
       const { rows } = await db.execute<{ n: number }>(
         sql`select organization_count(${userId}) as n`,
@@ -152,6 +165,53 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
         .onConflictDoNothing({
           target: [organizationMembers.organizationId, organizationMembers.userId],
         })
+    },
+    async listForOrganization(organizationId) {
+      const rows = await db
+        .select(memberColumns)
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, organizationId))
+        .orderBy(organizationMembers.createdAt, organizationMembers.userId)
+      return rows.map(toMember)
+    },
+    async count(organizationId) {
+      const [row] = await db
+        .select({ n: count() })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, organizationId))
+      return row?.n ?? 0
+    },
+    async lockSeats(organizationId) {
+      await db.execute(sql`select pg_advisory_xact_lock(hashtext(${`seats:${organizationId}`}))`)
+    },
+    async setStatus(organizationId, userId, status) {
+      const changed = await db
+        .update(organizationMembers)
+        .set({ status })
+        .where(
+          and(
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.userId, userId),
+            sql`${organizationMembers.status} <> ${status}`,
+          ),
+        )
+        .returning({ userId: organizationMembers.userId })
+      return changed.length > 0
+    },
+    async setRole(organizationId, userId, from, to) {
+      const changed = await db
+        .update(organizationMembers)
+        .set({ role: to })
+        .where(
+          and(
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.userId, userId),
+            eq(organizationMembers.role, from),
+            eq(organizationMembers.status, 'active'),
+          ),
+        )
+        .returning({ userId: organizationMembers.userId })
+      return changed.length > 0
     },
   }
 }
@@ -250,6 +310,19 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         .update(invites)
         .set({ expiresAt: at })
         .where(and(eq(invites.purpose, purpose), isNull(invites.usedAt), gt(invites.expiresAt, at)))
+    },
+    async countOpen(organizationId, now) {
+      const [row] = await db
+        .select({ n: count() })
+        .from(invites)
+        .where(
+          and(
+            eq(invites.organizationId, organizationId),
+            isNull(invites.usedAt),
+            gt(invites.expiresAt, now),
+          ),
+        )
+      return row?.n ?? 0
     },
   }
 }

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { checkLimit } from './limits.js'
+import { checkLimit, parseLimits } from './limits.js'
 
 test('missing key is unlimited', () => {
   expect(checkLimit({}, 'workspaces', 999)).toEqual({ ok: true })
@@ -19,4 +19,15 @@ test('adding more than one counts the whole amount', () => {
 
 test('a zero limit blocks everything', () => {
   expect(checkLimit({ social_accounts: 0 }, 'social_accounts', 0)).toEqual({ ok: false, limit: 0 })
+})
+
+test('stored limits keep whole non-negative numbers of known keys', () => {
+  expect(parseLimits({ users: 5, workspaces: 0, other: 3 })).toEqual({ users: 5, workspaces: 0 })
+  expect(parseLimits({})).toEqual({})
+})
+
+test('an unreadable stored limit counts as zero: it closes, never opens', () => {
+  expect(
+    parseLimits({ users: '5', workspaces: -1, posts_per_day: 1.5, storage_bytes: null }),
+  ).toEqual({ users: 0, workspaces: 0, posts_per_day: 0, storage_bytes: 0 })
 })

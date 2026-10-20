@@ -333,7 +333,7 @@ Piattaforma (installazione, amministratore della piattaforma)
 | Email e Telegram | Valori predefiniti della piattaforma, sostituibili per organizzazione (mittente e bot propri) |
 | Brand | Logo, colore e piè di pagina email propri: pannello, email, link cliente |
 | Impostazioni | 2FA obbligatoria (mai meno restrittiva della piattaforma), conservazione file, fuso predefinito |
-| Limiti | Numero di spazi, account, utenti, spazio su disco, post al giorno; vuoti = illimitati. Controllati nei casi d'uso |
+| Limiti | Numero di spazi, account, utenti, spazio su disco, post al giorno; vuoti = illimitati. Controllati nei casi d'uso. Il limite di utenti conta tutti i membri dell'agenzia, anche disattivati, più gli inviti ancora aperti; un valore illeggibile vale 0 |
 | Cifratura | Una chiave dati propria, cifrata con la chiave della piattaforma: si può ruotare per agenzia, e cancellarla rende illeggibili i segreti di un'organizzazione eliminata |
 | File | Chiavi di archiviazione con prefisso `org/<id>/`: spazio occupato, esportazione e cancellazione per agenzia |
 | Registro attività | Per organizzazione; le azioni dell'amministratore della piattaforma con `organization_id` nullo, mai visibili alle organizzazioni |

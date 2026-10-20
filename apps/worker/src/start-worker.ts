@@ -1,4 +1,5 @@
 import type { JobQueue, Logger, QueueName } from '@app/application'
+import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
@@ -26,6 +27,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
   const handlers: JobHandlers = {
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
+    'identity.password_reset_email': identityPasswordResetEmail,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger }

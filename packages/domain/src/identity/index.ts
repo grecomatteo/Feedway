@@ -1,4 +1,5 @@
 export * from './device.js'
+export * from './email.js'
 export * from './links.js'
 export * from './login-throttle.js'
 export * from './password-policy.js'

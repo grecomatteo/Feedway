@@ -18,6 +18,12 @@ export type ScopedPayload<S extends QueueScope, D extends object> = D & ScopeFie
 interface JobDefinitions {
   'system.selftest': { scope: 'system'; data: { requestedAt: string } }
   'identity.security_email': { scope: 'user'; data: SecurityEmailData }
+  'identity.password_reset_email': { scope: 'user'; data: PasswordResetEmailData }
+}
+
+/** "Password dimenticata": the link holds the reset token, so the job is kept one hour only. */
+export interface PasswordResetEmailData {
+  url: string
 }
 
 /** The kinds of security email; the texts are `email.security.<kind>.*` in it.json. */
