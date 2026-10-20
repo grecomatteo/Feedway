@@ -22,6 +22,9 @@ optional() { # optional <tool> <description> <command...>
   fi
 }
 
+step "install"
+pnpm install --frozen-lockfile
+
 step "lint-types"
 pnpm format:check
 NODE_OPTIONS=--max-old-space-size=4096 pnpm lint
