@@ -54,7 +54,8 @@ Regole sui test:
 | Comando | Cosa fa |
 |---|---|
 | `pnpm dev` | Pannello e worker in sviluppo |
-| `pnpm verify` | Formato, lint, tipi, confini, test unitari: da lanciare prima di ogni PR |
+| `pnpm verify` | Formato, lint, tipi, confini, test unitari: il controllo veloce durante il lavoro |
+| `pnpm verify:ci` | Tutti i controlli obbligatori della CI in locale (serve Docker): da lanciare prima di ogni push su una PR |
 | `pnpm test:int` / `pnpm test:e2e` | Test di integrazione / end-to-end |
 | `pnpm db:generate` | Genera la migrazione dallo schema Drizzle (da rileggere sempre) |
 | `pnpm arch:check` | Verifica i confini tra livelli e moduli |
