@@ -19,6 +19,7 @@
     "test:e2e": "turbo run test:e2e",
     "db:generate": "pnpm --filter @app/infrastructure db:generate",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm arch:check && pnpm test:unit",
+    "verify:ci": "scripts/ci/local.sh",
     "prepare": "husky"
   },
   "lint-staged": {

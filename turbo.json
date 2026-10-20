@@ -4,6 +4,6 @@
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".output/**"] },
     "typecheck": { "dependsOn": ["^build"] },
     "test:int": { "cache": false },
-    "test:e2e": { "cache": false }
+    "test:e2e": { "cache": false, "passThroughEnv": ["PLAYWRIGHT_CHROMIUM_PATH"] }
   }
 }

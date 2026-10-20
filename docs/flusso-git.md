@@ -66,13 +66,15 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 **Una PR = un task del piano**, o un gruppo di task piccoli e legati. Il titolo è un Conventional Commit, perché diventa il messaggio del commit su `main` **(CI: commitlint sul titolo)**.
 
 **Prima di aprirla**
-1. `pnpm verify` in locale (formato, lint, tipi, confini, unit) è verde.
+1. `pnpm verify:ci` in locale è verde: ripete i controlli obbligatori della CI (formato, lint, tipi, confini, unit, integrazione, e2e, sicurezza, immagine, smoke) e alla fine elenca ciò che non ha potuto verificare. Serve Docker attivo. Nelle sessioni cloud degli agenti, dove il browser di Playwright non si scarica e le build Docker non raggiungono i mirror dei pacchetti: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium VERIFY_CI_SKIP_IMAGE=1 pnpm verify:ci`. Il comando avvia Docker con `dockerd &` se non risponde. Immagine e smoke restano allora alla CI. Durante il lavoro basta `pnpm verify`.
 2. Ramo riallineato a `main` con rebase.
 3. Il diff contiene solo ciò che serve al task: niente modifiche di passaggio ad altro codice.
 
+**Minuti di Actions**: il piano gratuito ne dà 3.000 al mese e ogni esecuzione della CI su una PR di codice ne costa circa 20. Perciò si fa push solo di lavoro già verde con `pnpm verify:ci`, idealmente una volta per PR, e i task piccoli e legati si raggruppano in una PR.
+
 **Descrizione** (modello in `.github/pull_request_template.md`): Prima / Dopo / Come / Come provarlo / Note per chi rivede, con il collegamento al task del piano e all'issue (`Closes #n`).
 
-**Bozza o pronta**: si apre in **bozza** appena c'è qualcosa da mostrare, così la CI gira subito; si segna **pronta** quando la CI è verde e la descrizione è completa.
+**Bozza o pronta**: si apre quando `pnpm verify:ci` è verde, non prima: anche una bozza fa girare la CI a ogni push. Si segna **pronta** quando la CI è verde e la descrizione è completa.
 
 **Revisione**
 - Ogni PR ha una revisione di codice prima del merge, fatta da un agente revisore separato da chi ha scritto il codice. Matteo guarda le PR che vuole, quando vuole: non è un passaggio obbligatorio.
@@ -98,6 +100,10 @@ Configurata come **ruleset** versionato in `.github/rulesets/main.json` e applic
 | Ramo aggiornato prima del merge | Sì |
 | Storia lineare | Sì (solo squash) |
 | Approvazioni | Nessuna approvazione obbligatoria su GitHub: le PR degli agenti risultano aperte a nome di Matteo, che non può approvare le proprie (verificato con la PR #1). La revisione dell'agente revisore è obbligatoria nella checklist della PR; `CODEOWNERS` segnala a Matteo le PR che toccano `.github/`, `scripts/`, `docker/`, migrazioni o sicurezza, senza bloccarle |
+
+I controlli obbligatori partono sempre, così il merge non resta mai in attesa di un controllo mancante. Su una PR, `scripts/ci/changes.sh` guarda i file cambiati e salta solo i passaggi lenti che non possono esserne toccati: la build arm64 gira se cambiano `docker/`, dipendenze, versione di Node o la CI; `integration`, `e2e`, `image` e `install-smoke` non eseguono nulla se cambiano solo documentazione, design o istruzioni degli agenti. Se l'elenco dei file non si legge gira tutto, come in un'esecuzione manuale. La CI non riparte dopo il merge su `main`: il ruleset fonde solo un ramo aggiornato e verde sul suo commit di merge, quindi il commit su `main` ha lo stesso contenuto già provato. La build arm64 gira comunque nel rilascio, prima della pubblicazione.
+
+**Se i minuti del mese finiscono**: la CI si ferma fino al rinnovo e le PR non si possono fondere. Il piano B gratuito è un runner self-hosted sul PC di Matteo (Ubuntu in WSL2, con Docker, utente dedicato con `sudo` per `apt-get`), mai sulla VPS di produzione. Si registra da Settings → Actions → Runners, e Matteo incolla il token solo lì. Poi si imposta la variabile del repository `CI_RUNNER` a `self-hosted`. Gli stessi job, con gli stessi nomi, girano sul runner, e la protezione di `main` non cambia. Per tornare ai runner di GitHub si cancella la variabile. Finché si usa il runner, le PR di Renovate restano in pausa perché eseguono codice delle dipendenze.
 
 ## 6. Versioni e rilasci
 

@@ -1,9 +1,10 @@
 name: CI
 
 on:
+  # No run on push to main: the ruleset only merges a branch up to date with main and green on its
+  # merge commit, so the squashed commit has the tree CI already tested. Running again costs ~30
+  # billed minutes per merge for nothing.
   pull_request:
-  push:
-    branches: [main]
   # Release PRs are opened with the default token and do not start workflows: run CI by hand on their branch.
   workflow_dispatch:
 
@@ -14,10 +15,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Jobs run on GitHub's runners unless the repository variable CI_RUNNER names another runner label
+# (for example a self-hosted runner once the monthly Actions minutes are spent: docs/flusso-git.md §5).
 # The job names below are the required checks of the main ruleset (.github/rulesets/main.json).
 jobs:
   lint-types:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -37,7 +40,7 @@ jobs:
         run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 && ./actionlint -color
 
   architecture:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -50,7 +53,7 @@ jobs:
       - run: pnpm vitest run tools/arch-fixtures
 
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -61,30 +64,51 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:unit
 
+  # integration, e2e, image and install-smoke always run, so the required checks always report, but
+  # their slow steps are skipped on a pull request that cannot affect them (scripts/ci/changes.sh).
+  # Manual runs do everything. Steps skip only on an explicit 'false', so a
+  # missing output runs them.
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:int
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm test:int
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @app/web exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm --filter @app/web exec playwright install --with-deps chromium
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm test:e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
@@ -94,7 +118,7 @@ jobs:
           retention-days: 7
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: read
       pull-requests: read
@@ -116,11 +140,17 @@ jobs:
       - run: bats scripts/tests
 
   image:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
-      - uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
+      - if: steps.changes.outputs.code != 'false'
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: app:ci
           severity: HIGH,CRITICAL
@@ -128,11 +158,16 @@ jobs:
           exit-code: '1'
           format: table
       # The VPS may be arm64: prove the same Dockerfile builds there before a release does.
-      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+      # Emulating it takes about 9 minutes, so a pull request runs it only when the Dockerfile,
+      # the dependencies or the Node version change; the release builds arm64 again anyway.
+      - if: steps.changes.outputs.arm64 != 'false'
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
         with:
           platforms: arm64
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - if: steps.changes.outputs.arm64 != 'false'
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - name: Immagine arm64
+        if: steps.changes.outputs.arm64 != 'false'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
@@ -145,15 +180,27 @@ jobs:
           cache-to: type=gha,mode=max
       # Native modules must arrive as platform packages: the image installs with --ignore-scripts.
       - name: Moduli nativi nelle immagini
+        if: steps.changes.outputs.code != 'false'
+        env:
+          ARM64: ${{ steps.changes.outputs.arm64 }}
         run: |
           check="import('@node-rs/argon2').then(async (m) => { if (!(await m.verify(await m.hash('x'), 'x'))) process.exit(1); console.log('argon2 ok', process.arch) })"
           docker run --rm --entrypoint node -w /app/apps/worker app:ci -e "$check"
-          docker run --rm --platform linux/arm64 --entrypoint node -w /app/apps/worker app:ci-arm64 -e "$check"
+          if [ "$ARM64" != false ]; then
+            docker run --rm --platform linux/arm64 --entrypoint node -w /app/apps/worker app:ci-arm64 -e "$check"
+          fi
 
   install-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update && sudo apt-get install --yes age
-      - run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
-      - run: scripts/ci/compose-smoke.sh
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        run: sudo apt-get update && sudo apt-get install --yes age
+      - if: steps.changes.outputs.code != 'false'
+        run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
+      - if: steps.changes.outputs.code != 'false'
+        run: scripts/ci/compose-smoke.sh
