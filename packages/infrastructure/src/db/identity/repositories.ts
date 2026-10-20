@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, sql } from 'drizzle-orm'
 import type {
   KnownDevicesRepository,
   SessionsRepository,
@@ -71,6 +71,37 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
     async findById(id) {
       const [row] = await db.select(userColumns).from(users).where(eq(users.id, id))
       return row ? toUser(row) : null
+    },
+    async summaries(ids) {
+      if (ids.length === 0) return []
+      const list = [...ids]
+      const rows = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          name: users.name,
+          nickname: users.nickname,
+          avatarKey: users.avatarKey,
+          status: users.status,
+          anonymizedAt: users.anonymizedAt,
+          lastLoginAt: users.lastLoginAt,
+          twoFactorEnabled: users.twoFactorEnabled,
+        })
+        .from(users)
+        .where(inArray(users.id, list))
+      // only how many: never a key or a credential id
+      const counts = await db
+        .select({ userId: passkeys.userId, n: count() })
+        .from(passkeys)
+        .where(inArray(passkeys.userId, list))
+        .groupBy(passkeys.userId)
+      const passkeysOf = new Map(counts.map((c) => [c.userId, c.n]))
+      return rows.map((row) => ({
+        ...row,
+        status: row.status as UserRecord['status'],
+        twoFactorEnabled: row.twoFactorEnabled === true,
+        passkeys: passkeysOf.get(row.id) ?? 0,
+      }))
     },
     async findByEmail(email) {
       const [row] = await db.select(userColumns).from(users).where(eq(users.email, email))

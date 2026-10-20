@@ -6,8 +6,20 @@ test('every registered queue declares a scope', () => {
   expect(QUEUES.map((q) => [q.name, q.scope])).toEqual([
     ['system.selftest', 'system'],
     ['identity.security_email', 'user'],
+    ['identity.password_reset_email', 'user'],
   ])
-  expect(QUEUE_NAMES).toEqual(['system.selftest', 'identity.security_email'])
+  expect(QUEUE_NAMES).toEqual([
+    'system.selftest',
+    'identity.security_email',
+    'identity.password_reset_email',
+  ])
+})
+
+test('a reset link does not stay in the queue tables past its hour', () => {
+  expect(QUEUES.find((q) => q.name === 'identity.password_reset_email')?.retention).toEqual({
+    retentionSeconds: 3600,
+    deleteAfterSeconds: 3600,
+  })
 })
 
 test('a queue definition cannot declare a scope other than its payload scope', () => {

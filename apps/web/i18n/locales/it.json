@@ -54,6 +54,10 @@
         "subject": "{product}: passkey eliminata",
         "text": "Dal tuo account {product} è stata eliminata una passkey.\n\nQuando: {when}\nDispositivo: {device}\nIndirizzo IP (approssimativo): {ip}\n\nSe non sei stato tu, blocca subito l'account: chiuderemo tutte le sessioni e nessuno potrà più entrare finché un amministratore non lo riattiva.\n{lockUrl}\n\nIl link funziona per 7 giorni. Se sei stato tu, non devi fare nulla."
       }
+    },
+    "passwordReset": {
+      "subject": "{product}: reimposta la password",
+      "text": "Abbiamo ricevuto una richiesta per reimpostare la password del tuo account {product}.\n\nPer scegliere una nuova password apri questo link:\n{url}\n\nIl link funziona per un'ora e una sola volta. Quando reimposti la password, usciamo da tutti i dispositivi collegati.\n\nSe non l'hai chiesto tu, ignora questa email: la password resta quella di prima."
     }
   }
 }

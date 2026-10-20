@@ -19,9 +19,23 @@ export type { ActivationInput, ActivationResult, LinkDescription } from './activ
 export { createBootstrapLink, DEFAULT_ORGANIZATION_NAME } from './bootstrap.js'
 export { ACTIVATION_PAGE_PATH, activationUrl } from './identity-deps.js'
 export { allowedWhileSecondFactorRequired } from './second-factor-gate.js'
-export { resolveSession } from './sessions.js'
+export { resolveSession, resolveSessionUser } from './sessions.js'
+export { secondFactorOverview } from './second-factor.js'
+export type { SecondFactorOverview } from './second-factor.js'
 export { assertRecentReauth, reauthenticate } from './reauth.js'
 export { listMySessions, revokeAllMySessions, revokeMySession } from './my-sessions.js'
 export type { MySession } from './my-sessions.js'
-export type { ResolvedSession, SessionUser } from './sessions.js'
+export type { ResolvedSession, SessionState, SessionUser, SessionUserDeps } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'
+export { inviteUser } from './invites.js'
+export type { InviteInput } from './invites.js'
+export {
+  changeOrgRole,
+  disableMember,
+  enableMember,
+  listMembers,
+  transferOwnership,
+} from './members.js'
+export type { MemberDto } from './members.js'
+export { createPasswordResetLink, sendPasswordResetEmail } from './password-reset.js'
+export type { PasswordResetEmailDeps } from './password-reset.js'

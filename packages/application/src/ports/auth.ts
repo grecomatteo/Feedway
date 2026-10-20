@@ -13,6 +13,17 @@ export interface AuthSessionInfo {
   reauthenticatedAt: Date | null
 }
 
+/** A passkey as the Security page shows it; never the key or the credential id. */
+export interface PasskeySummary {
+  id: string
+  /** null when the browser gave no name */
+  name: string | null
+  createdAt: Date | null
+  /** `multiDevice`: synced across the person's devices (a password manager, iCloud…). */
+  deviceType: 'singleDevice' | 'multiDevice'
+  backedUp: boolean
+}
+
 /**
  * Accounts, sessions and the HTTP entry point of the sign-in system. Methods that belong to later
  * tasks (password checks, second factor, reset links) are added with their tasks.
@@ -43,4 +54,11 @@ export interface Auth {
     userId: string,
     meta: { ip: string | null; userAgent: string | null; authMethod: 'activation' },
   ): Promise<{ setCookie: string[] }>
+  /**
+   * A password reset link to copy from the panel (Better Auth token, one hour), sent nowhere.
+   * Null when no account has this email.
+   */
+  passwordResetUrl(email: string): Promise<string | null>
+  /** The factors a person holds: TOTP on or off, and their passkeys, oldest first. */
+  secondFactorStatus(userId: string): Promise<{ totpEnabled: boolean; passkeys: PasskeySummary[] }>
 }

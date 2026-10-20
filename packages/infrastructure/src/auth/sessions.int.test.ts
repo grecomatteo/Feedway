@@ -1,16 +1,10 @@
-import {
-  createHash,
-  generateKeyPairSync,
-  randomBytes,
-  randomUUID,
-  sign,
-  type KeyObject,
-} from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
   assertRecentReauth,
   createAuthEventSink,
+  resolveSessionUser,
   listMySessions,
   reauthenticate,
   resolveSession,
@@ -31,6 +25,12 @@ import { createLogger } from '../logging/logger.js'
 import { systemClock } from '../system/clock.js'
 import { uuidV7Generator } from '../system/id-generator.js'
 import { seed, startTestDatabase, type TestDatabase } from '../testing/index.js'
+import {
+  newSoftPasskey,
+  passkeySignIn as signInWithPasskey,
+  storedColumns,
+  type SoftPasskey,
+} from '../testing/soft-passkey.js'
 import { createAuthAdapter } from './auth-adapter.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
 
@@ -81,7 +81,10 @@ beforeAll(async () => {
     hasher: createPasswordHasher(),
     rateLimiter,
     logger,
+    queue: noQueue,
     events: sink,
+    resolveSessionUser: (session) =>
+      resolveSessionUser({ uow, config: { require2fa: 'admins' } }, session),
   })
   auth = createAuthAdapter(instance, { db, clock: systemClock })
   deps = {
@@ -549,100 +552,27 @@ test('a reauth on a session revoked meanwhile is refused and not recorded', asyn
   expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
 })
 
-// A passkey kept by the test: an ES256 key whose COSE public key is stored as the library
-// stores it. It signs the WebAuthn assertion the browser would send, so the real endpoint,
-// our hooks and the login event all run.
-const RP_ID = new URL(PANEL).hostname
-
-interface SoftPasskey {
-  userId: string
-  credentialId: Buffer
-  privateKey: KeyObject
-  counter: number
-}
-
+// The test's passkeys sign real WebAuthn assertions (testing/soft-passkey.ts), so the real
+// endpoint, our hooks and the login event all run.
 async function softPasskey(userId: string): Promise<SoftPasskey> {
-  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
-  const jwk = publicKey.export({ format: 'jwk' })
-  const x = Buffer.from(jwk.x ?? '', 'base64url')
-  const y = Buffer.from(jwk.y ?? '', 'base64url')
-  // CBOR map {1: 2 (EC2), 3: -7 (ES256), -1: 1 (P-256), -2: x, -3: y}
-  const cose = Buffer.concat([
-    Buffer.from([0xa5, 0x01, 0x02, 0x03, 0x26, 0x20, 0x01, 0x21, 0x58, 0x20]),
-    x,
-    Buffer.from([0x22, 0x58, 0x20]),
-    y,
-  ])
-  const credentialId = randomBytes(16)
+  const key = newSoftPasskey(userId)
+  const { publicKey, credentialId } = storedColumns(key)
   await admin.query(
     `insert into passkeys (id, public_key, user_id, credential_id, counter, device_type, backed_up)
      values ($1, $2, $3, $4, 0, 'singleDevice', false)`,
-    [randomUUID(), cose.toString('base64'), userId, credentialId.toString('base64url')],
+    [randomUUID(), publicKey, userId, credentialId],
   )
-  return { userId, credentialId, privateKey, counter: 0 }
+  return key
 }
 
-const cookiesOf = (res: Response) =>
-  res.headers
-    .getSetCookie()
-    .map((c) => c.split(';')[0])
-    .join('; ')
-
-async function passkeySignIn(
-  key: SoftPasskey,
-  opts: { userVerified: boolean; cookie?: string },
-): Promise<Response> {
-  const base = { origin: PANEL, 'x-app-client-ip': '10.9.0.1' }
-  const withCookie = (extra: string) =>
-    [opts.cookie, extra].filter((c) => c !== undefined && c !== '').join('; ')
-  const challengeRes = await instance.handler(
-    new Request(`${PANEL}/api/auth/passkey/generate-authenticate-options`, {
-      headers: { ...base, cookie: withCookie('') },
-    }),
-  )
-  expect(challengeRes.status).toBe(200)
-  const { challenge } = (await challengeRes.json()) as { challenge: string }
-  key.counter += 1
-  const clientDataJSON = Buffer.from(
-    JSON.stringify({ type: 'webauthn.get', challenge, origin: PANEL, crossOrigin: false }),
-  )
-  const counter = Buffer.alloc(4)
-  counter.writeUInt32BE(key.counter)
-  const authenticatorData = Buffer.concat([
-    createHash('sha256').update(RP_ID).digest(),
-    Buffer.from([opts.userVerified ? 0x05 : 0x01]), // user present, and verified
-    counter,
-  ])
-  const signature = sign(
-    'sha256',
-    Buffer.concat([authenticatorData, createHash('sha256').update(clientDataJSON).digest()]),
-    key.privateKey,
-  )
-  const id = key.credentialId.toString('base64url')
-  return instance.handler(
-    new Request(`${PANEL}/api/auth/passkey/verify-authentication`, {
-      method: 'POST',
-      headers: {
-        ...base,
-        'content-type': 'application/json',
-        cookie: withCookie(cookiesOf(challengeRes)),
-      },
-      body: JSON.stringify({
-        response: {
-          id,
-          rawId: id,
-          type: 'public-key',
-          clientExtensionResults: {},
-          response: {
-            clientDataJSON: clientDataJSON.toString('base64url'),
-            authenticatorData: authenticatorData.toString('base64url'),
-            signature: signature.toString('base64url'),
-            userHandle: Buffer.from(key.userId).toString('base64url'),
-          },
-        },
-      }),
-    }),
-  )
+function passkeySignIn(key: SoftPasskey, opts: { userVerified: boolean; cookie?: string }) {
+  return signInWithPasskey(key, {
+    handler: (r) => instance.handler(r),
+    panel: PANEL,
+    ip: '10.9.0.1',
+    userVerified: opts.userVerified,
+    ...(opts.cookie === undefined ? {} : { cookie: opts.cookie }),
+  })
 }
 
 async function newestSession(userId: string) {

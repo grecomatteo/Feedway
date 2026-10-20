@@ -3,11 +3,13 @@ import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import {
   createAuthEventSink,
+  resolveSessionUser,
   lockAccountFromSecurityEmail,
   type AuthEventSink,
   type JobPayloads,
   type JobQueue,
   type Logger,
+  type UnitOfWork,
 } from '@app/application'
 import { createDb, type Db } from '../db/client.js'
 import { auditLog } from '../db/audit/schema.js'
@@ -38,6 +40,7 @@ let db: Db
 let admin: Db
 let instance: BetterAuthInstance
 let broken: BetterAuthInstance
+let uow: UnitOfWork
 const tokens = createSignedTokens(randomBytes(32))
 const queued: { name: string; data: JobPayloads['identity.security_email'] }[] = []
 const errors: unknown[] = []
@@ -75,7 +78,10 @@ function build(events: AuthEventSink): BetterAuthInstance {
     hasher: createPasswordHasher(),
     rateLimiter: createPgRateLimiter({ db, clock: systemClock }),
     logger,
+    queue,
     events,
+    resolveSessionUser: (session) =>
+      resolveSessionUser({ uow, config: { require2fa: 'admins' } }, session),
   })
 }
 
@@ -83,7 +89,7 @@ beforeAll(async () => {
   tdb = await startTestDatabase()
   db = createDb(tdb.runtimeUrl, { max: 5, applicationName: 'auth-events-test' }).db
   admin = createDb(tdb.adminUrl, { max: 2, applicationName: 'auth-events-admin' }).db
-  const uow = createUnitOfWork({ db, ids: uuidV7Generator, logger })
+  uow = createUnitOfWork({ db, ids: uuidV7Generator, logger })
   instance = build(createAuthEventSink({ uow, queue, tokens, clock: systemClock, logger }))
   broken = build({ record: () => Promise.reject(new Error('registro non disponibile')) })
 })
@@ -333,7 +339,6 @@ test('the lock link disables the account, closes every session and can be repeat
   const { id, email } = await newUser()
   await signIn(email, PASSWORD)
   await signIn(email, PASSWORD)
-  const uow = createUnitOfWork({ db, ids: uuidV7Generator, logger })
   const clock = fixedClock(new Date())
   const token = tokens.sign('security_lock', {
     userId: id,
@@ -356,7 +361,6 @@ test('the lock link disables the account, closes every session and can be repeat
 
 test('an expired or forged lock link is invalid', async () => {
   const { id } = await newUser()
-  const uow = createUnitOfWork({ db, ids: uuidV7Generator, logger })
   const clock = fixedClock(new Date())
   const token = tokens.sign('security_lock', {
     userId: id,
