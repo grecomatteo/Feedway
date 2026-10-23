@@ -1,5 +1,8 @@
-import { and, count, eq, inArray, sql } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
+import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type {
+  CredentialsRepository,
+  IdGenerator,
   KnownDevicesRepository,
   SessionsRepository,
   UserRecord,
@@ -8,7 +11,7 @@ import type {
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { knownDevices, passkeys, sessions, users } from './schema.js'
+import { accounts, knownDevices, passkeys, sessions, users, verifications } from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
 // query names the user it is about. Only the identity module may import this file (enforced by
@@ -30,6 +33,8 @@ const userColumns = {
   lastOrganizationId: users.lastOrganizationId,
   lastLoginAt: users.lastLoginAt,
   disabledAt: users.disabledAt,
+  reactivatedAt: users.reactivatedAt,
+  securityLockedAt: users.securityLockedAt,
   anonymizedAt: users.anonymizedAt,
   createdAt: users.createdAt,
 }
@@ -53,6 +58,8 @@ const toUser = (row: UserRow): UserRecord => ({
   lastOrganizationId: row.lastOrganizationId,
   lastLoginAt: row.lastLoginAt,
   disabledAt: row.disabledAt,
+  reactivatedAt: row.reactivatedAt,
+  securityLockedAt: row.securityLockedAt,
   anonymizedAt: row.anonymizedAt,
   createdAt: row.createdAt,
 })
@@ -127,6 +134,23 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .where(and(eq(users.id, id), eq(users.status, 'active')))
         .returning({ id: users.id })
       return changed.length > 0
+    },
+    async enable(id, at) {
+      if (ctx.kind !== 'system') throw new Error('accounts are enabled only in the system scope')
+      const changed = await db
+        .update(users)
+        .set({ status: 'active', disabledAt: null, reactivatedAt: at, securityLockedAt: null })
+        .where(and(eq(users.id, id), eq(users.status, 'disabled'), isNull(users.anonymizedAt)))
+        .returning({ id: users.id })
+      return changed.length > 0
+    },
+    async markSecurityLocked(id, at) {
+      const marked = await db
+        .update(users)
+        .set({ securityLockedAt: at })
+        .where(and(eq(users.id, ownUser(ctx, id)), isNull(users.securityLockedAt)))
+        .returning({ id: users.id })
+      return marked.length > 0
     },
     async platformAdminExists() {
       const [row] = await db
@@ -234,6 +258,46 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
         })
         .returning({ inserted: sql<boolean>`(xmax = 0)` })
       return row?.inserted === true
+    },
+  }
+}
+
+/**
+ * Prefix of reset tokens issued by the platform. Like every token of ours it is never letters
+ * and digits only; unlike the agencies' `panel.` links it is not limited to people of one
+ * agency (auth-hooks.ts checks only `panel.`).
+ */
+export const PLATFORM_RESET_TOKEN_PREFIX = 'platform.'
+
+export function drizzleCredentials(
+  db: DbExecutor,
+  ids: IdGenerator,
+  ctx: TxContext,
+): CredentialsRepository {
+  const onlySystem = () => {
+    if (ctx.kind !== 'system') throw new Error('credentials change only in the system scope')
+  }
+  return {
+    async removePassword(userId) {
+      onlySystem()
+      const removed = await db
+        .delete(accounts)
+        .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
+        .returning({ id: accounts.id })
+      return removed.length > 0
+    },
+    async issuePasswordResetToken(userId, expiresAt) {
+      onlySystem()
+      const token = `${PLATFORM_RESET_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
+      // the row Better Auth's internalAdapter.createVerificationValue would write (no hashing
+      // of the identifier is configured): the contract is proved by the platform tests
+      await db.insert(verifications).values({
+        id: ids.newId(),
+        identifier: `reset-password:${token}`,
+        value: userId,
+        expiresAt,
+      })
+      return token
     },
   }
 }

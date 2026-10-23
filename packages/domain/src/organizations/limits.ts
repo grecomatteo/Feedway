@@ -40,3 +40,16 @@ export function checkLimit(
   if (limit === undefined) return { ok: true }
   return currentUsage + adding <= limit ? { ok: true } : { ok: false, limit }
 }
+
+/**
+ * Limits as the platform sets them: every key known, every value a whole non-negative number.
+ * Null otherwise: a wrong value is refused, never stored to be read as 0 later.
+ */
+export function validLimits(raw: Record<string, unknown>): OrganizationLimits | null {
+  const known: readonly string[] = LIMIT_KEYS
+  for (const [key, value] of Object.entries(raw)) {
+    if (!known.includes(key)) return null
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) return null
+  }
+  return parseLimits(raw)
+}

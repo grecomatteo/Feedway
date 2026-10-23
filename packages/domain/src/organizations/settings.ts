@@ -18,3 +18,17 @@ export function mergeSettings(
 ): OrganizationSettings {
   return { ...current, ...patch }
 }
+
+export const ORGANIZATION_NAME_MAX_LENGTH = 80
+
+/**
+ * An agency name as stored: trimmed, 2 to 80 characters (the same bounds as
+ * BOOTSTRAP_ORGANIZATION_NAME), no control characters. Null when it is not acceptable.
+ */
+export function organizationName(raw: string): string | null {
+  const name = raw.trim()
+  const length = Array.from(name).length
+  if (length < 2 || length > ORGANIZATION_NAME_MAX_LENGTH) return null
+  if (/\p{Cc}/u.test(name)) return null
+  return name
+}

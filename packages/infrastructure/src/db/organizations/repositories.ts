@@ -1,4 +1,4 @@
-import { and, count, eq, gt, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, gt, isNull, sql, type SQL } from 'drizzle-orm'
 import { DomainError } from '@app/domain'
 import type {
   InviteRecord,
@@ -47,46 +47,108 @@ export function drizzleOrganizationKeys(db: DbExecutor): OrganizationKeysReposit
 
 // The check constraints keep the text columns inside the record unions.
 
+const organizationColumns = {
+  id: organizations.id,
+  name: organizations.name,
+  slug: organizations.slug,
+  status: organizations.status,
+  limits: organizations.limits,
+  settings: organizations.settings,
+  suspendedAt: organizations.suspendedAt,
+  createdAt: organizations.createdAt,
+}
+
+type OrganizationRow = Omit<OrganizationRecord, 'status' | 'limits' | 'settings'> & {
+  status: string
+  limits: unknown
+  settings: unknown
+}
+
+const toOrganization = (row: OrganizationRow): OrganizationRecord => ({
+  ...row,
+  status: row.status as OrganizationRecord['status'],
+  // objects by default; the domain parses them (organizations/limits, settings)
+  limits: row.limits as Record<string, unknown>,
+  settings: row.settings as Record<string, unknown>,
+})
+
 export function drizzleOrganizations(db: DbExecutor, ctx: TxContext): OrganizationsRepository {
+  const onlySystem = (what: string) => {
+    if (ctx.kind !== 'system') throw new Error(`${what} only in the system scope`)
+  }
+  // RLS also lists every agency the user belongs to (switcher); inside an agency only that
+  // agency is readable here.
+  const outOfScope = (id: string) => ctx.kind === 'organization' && ctx.organizationId !== id
   return {
     async findById(id) {
-      // RLS also lists every agency the user belongs to (switcher); inside an agency only that
-      // agency is readable here.
-      if (ctx.kind === 'organization' && ctx.organizationId !== id) return null
+      if (outOfScope(id)) return null
       const [row] = await db
-        .select({
-          id: organizations.id,
-          name: organizations.name,
-          slug: organizations.slug,
-          status: organizations.status,
-          limits: organizations.limits,
-          settings: organizations.settings,
-          suspendedAt: organizations.suspendedAt,
-          createdAt: organizations.createdAt,
-        })
+        .select(organizationColumns)
         .from(organizations)
         .where(eq(organizations.id, id))
-      if (!row) return null
-      return {
-        ...row,
-        status: row.status as OrganizationRecord['status'],
-        // objects by default; the domain parses them (organizations/limits, settings)
-        limits: row.limits as Record<string, unknown>,
-        settings: row.settings as Record<string, unknown>,
-      }
+      return row ? toOrganization(row) : null
+    },
+    async findByIdForUpdate(id) {
+      if (outOfScope(id)) return null
+      const [row] = await db
+        .select(organizationColumns)
+        .from(organizations)
+        .where(eq(organizations.id, id))
+        .for('update')
+      return row ? toOrganization(row) : null
     },
     async create(input) {
       await db.insert(organizations).values(input)
     },
     async slugExists(slug) {
       // only the system scope sees every agency: elsewhere a slug of another agency looks free
-      if (ctx.kind !== 'system') throw new Error('slugs are checked only in the system scope')
+      onlySystem('slugs are checked')
       const [row] = await db
         .select({ id: organizations.id })
         .from(organizations)
         .where(eq(organizations.slug, slug))
         .limit(1)
       return row !== undefined
+    },
+    async findBySlug(slug) {
+      onlySystem('agencies are found by slug')
+      const [row] = await db
+        .select(organizationColumns)
+        .from(organizations)
+        .where(eq(organizations.slug, slug))
+      return row ? toOrganization(row) : null
+    },
+    async listAll() {
+      onlySystem('every agency is listed')
+      const rows = await db
+        .select(organizationColumns)
+        .from(organizations)
+        .orderBy(organizations.name, organizations.id)
+      return rows.map(toOrganization)
+    },
+    async setStatus(id, status, at) {
+      onlySystem('agencies are suspended')
+      const changed = await db
+        .update(organizations)
+        .set({ status, suspendedAt: status === 'suspended' ? at : null })
+        .where(and(eq(organizations.id, id), sql`${organizations.status} <> ${status}`))
+        .returning({ id: organizations.id })
+      return changed.length > 0
+    },
+    async setLimits(id, limits) {
+      onlySystem('limits are set')
+      await db.update(organizations).set({ limits }).where(eq(organizations.id, id))
+    },
+    async update(id, change) {
+      if (ctx.kind !== 'organization' || ctx.organizationId !== id)
+        throw new Error('an agency changes only its own settings, inside its own scope')
+      const set: { name?: string; settings?: SQL } = {}
+      if (change.name !== undefined) set.name = change.name
+      // merged in SQL: keys other than the patch's stay as they are
+      if (change.settings !== undefined)
+        set.settings = sql`${organizations.settings} || ${JSON.stringify(change.settings)}::jsonb`
+      if (Object.keys(set).length === 0) return
+      await db.update(organizations).set(set).where(eq(organizations.id, id))
     },
   }
 }

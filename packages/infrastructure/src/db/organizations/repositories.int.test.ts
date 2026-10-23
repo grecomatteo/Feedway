@@ -205,3 +205,70 @@ test('an agency cannot lock another agency invite', async () => {
   )
   expect(fromB).toBeNull()
 })
+
+test('agencies are listed, found by slug, suspended and limited only in the system scope', async () => {
+  await expect(
+    uow.run({ organizationId: orgA, userId: ownerA }, (tx) => tx.organizations.findBySlug(orgA)),
+  ).rejects.toThrow(/system scope/)
+  await expect(uow.run({ userId: ownerA }, (tx) => tx.organizations.listAll())).rejects.toThrow(
+    /system scope/,
+  )
+  await expect(
+    uow.run({ organizationId: orgA, userId: ownerA }, (tx) =>
+      tx.organizations.setStatus(orgA, 'suspended', now),
+    ),
+  ).rejects.toThrow(/system scope/)
+  await expect(
+    uow.run({ organizationId: orgA, userId: ownerA }, (tx) =>
+      tx.organizations.setLimits(orgA, { users: 99 }),
+    ),
+  ).rejects.toThrow(/system scope/)
+  const found = await uow.runAsSystem('test', (tx) => tx.organizations.findBySlug(orgB))
+  expect(found?.id).toBe(orgB)
+  const all = await uow.runAsSystem('test', (tx) => tx.organizations.listAll())
+  expect(all.map((o) => o.id)).toEqual(expect.arrayContaining([orgA, orgB, suspended]))
+})
+
+test('an agency updates only its own name and settings, merging the settings', async () => {
+  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query(`update organizations set settings = '{"privacy": {"x": 1}}' where id = $1`, [orgA]),
+  )
+  await uow.run({ organizationId: orgA, userId: ownerA }, (tx) =>
+    tx.organizations.update(orgA, { name: 'Nuovo nome A', settings: { require2fa: 'all' } }),
+  )
+  const a = await uow.runAsSystem('test', (tx) => tx.organizations.findById(orgA))
+  expect(a).toMatchObject({
+    name: 'Nuovo nome A',
+    settings: { privacy: { x: 1 }, require2fa: 'all' },
+  })
+  await expect(
+    uow.run({ organizationId: orgA, userId: ownerA }, (tx) =>
+      tx.organizations.update(orgB, { name: 'Presa' }),
+    ),
+  ).rejects.toThrow(/own settings/)
+  await expect(
+    uow.runAsSystem('test', (tx) => tx.organizations.update(orgB, { name: 'Presa' })),
+  ).rejects.toThrow(/own settings/)
+  expect((await uow.runAsSystem('test', (tx) => tx.organizations.findById(orgB)))?.name).not.toBe(
+    'Presa',
+  )
+})
+
+test('suspension changes status and date once', async () => {
+  const id = await seed(tdb.runtimeUrl, (s) => s.organization())
+  expect(
+    await uow.runAsSystem('test', (tx) => tx.organizations.setStatus(id, 'suspended', now)),
+  ).toBe(true)
+  expect(
+    await uow.runAsSystem('test', (tx) => tx.organizations.setStatus(id, 'suspended', now)),
+  ).toBe(false)
+  expect(await uow.runAsSystem('test', (tx) => tx.organizations.findById(id))).toMatchObject({
+    status: 'suspended',
+    suspendedAt: now,
+  })
+  await uow.runAsSystem('test', (tx) => tx.organizations.setStatus(id, 'active', now))
+  expect(await uow.runAsSystem('test', (tx) => tx.organizations.findById(id))).toMatchObject({
+    status: 'active',
+    suspendedAt: null,
+  })
+})

@@ -122,3 +122,30 @@ test('outside the system scope a user cannot reach sessions of someone else', as
   const viaSystem = await uow.runAsSystem('test', (tx) => tx.sessions.findForUser(bruno))
   expect(viaSystem.map((s) => s.id)).toEqual([sessionOfBruno])
 })
+
+test('only the system scope enables an account, and never an anonymized one', async () => {
+  const { carla, dario } = await seed(tdb.runtimeUrl, async (s) => ({
+    carla: await s.user(),
+    dario: await s.user(),
+  }))
+  const at = new Date('2026-10-20T08:00:00Z')
+  await uow.run({ userId: carla }, (tx) => tx.users.disable(carla, at))
+  await expect(uow.run({ userId: carla }, (tx) => tx.users.enable(carla, at))).rejects.toThrow(
+    /system scope/,
+  )
+  expect(await uow.runAsSystem('test', (tx) => tx.users.enable(carla, at))).toBe(true)
+  // already active: nothing changes
+  expect(await uow.runAsSystem('test', (tx) => tx.users.enable(carla, at))).toBe(false)
+  expect(await uow.runAsSystem('test', (tx) => tx.users.findById(carla))).toMatchObject({
+    status: 'active',
+    disabledAt: null,
+    reactivatedAt: at,
+  })
+  await withScope(tdb.runtimeUrl, { kind: 'none' }, (c) =>
+    c.query(
+      "update users set status = 'disabled', disabled_at = now(), anonymized_at = now() where id = $1",
+      [dario],
+    ),
+  )
+  expect(await uow.runAsSystem('test', (tx) => tx.users.enable(dario, at))).toBe(false)
+})

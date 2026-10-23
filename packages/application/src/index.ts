@@ -26,6 +26,7 @@ export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, isPersonalAuditAction } from './ports/audit-log.js'
 export type { AuditAction, AuditEntry, AuditLog, AuditSource } from './ports/audit-log.js'
 export type {
+  CredentialsRepository,
   KnownDevicesRepository,
   InvitePurpose,
   InviteRecord,
@@ -49,3 +50,4 @@ export type {
 } from './ports/repositories.js'
 export * from './identity/index.js'
 export * from './organizations/index.js'
+export * from './platform/index.js'

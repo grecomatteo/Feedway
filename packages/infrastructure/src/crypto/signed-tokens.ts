@@ -7,13 +7,17 @@ const derive = (masterKey: Buffer, info: string) =>
 interface Payload {
   u: string
   e: number
+  /** Issue time; absent on tokens signed before it was added. */
+  i?: number
 }
 
 const isPayload = (v: unknown): v is Payload =>
   typeof v === 'object' &&
   v !== null &&
   typeof (v as Payload).u === 'string' &&
-  typeof (v as Payload).e === 'number'
+  typeof (v as Payload).e === 'number' &&
+  ((v as Payload).i === undefined ||
+    (Number.isSafeInteger((v as Payload).i) && ((v as Payload).i ?? -1) >= 0))
 
 /**
  * HMAC-SHA-256 tokens: `<payload>.<mac>` in base64url. Each purpose and the device hash use
@@ -28,10 +32,9 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
     createHmac('sha256', keys[purpose]).update(payload).digest()
 
   return {
-    sign(purpose, { userId, expiresAt }) {
-      const payload = Buffer.from(JSON.stringify({ u: userId, e: expiresAt.getTime() })).toString(
-        'base64url',
-      )
+    sign(purpose, { userId, issuedAt, expiresAt }) {
+      const body: Payload = { u: userId, e: expiresAt.getTime(), i: issuedAt.getTime() }
+      const payload = Buffer.from(JSON.stringify(body)).toString('base64url')
       return `${payload}.${mac(purpose, payload).toString('base64url')}`
     },
     verify(purpose, token, now) {
@@ -49,7 +52,7 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
         return null
       }
       if (!isPayload(body) || body.e <= now.getTime()) return null
-      return { userId: body.u }
+      return { userId: body.u, issuedAt: body.i === undefined ? null : new Date(body.i) }
     },
     deviceHash(userId, deviceId) {
       // length prefix: different (userId, deviceId) pairs can never produce the same input

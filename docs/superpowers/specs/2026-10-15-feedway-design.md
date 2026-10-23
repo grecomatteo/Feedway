@@ -989,7 +989,8 @@ users               id, name, email (citext, unica), email_verified, image,
                     two_factor_enabled, created_at, updated_at
                     + campi nostri: nickname (max 30), avatar_key, platform_role (admin|null),
                     status (active|disabled), theme (light|dark|system), locale, timezone,
-                    last_organization_id, last_login_at, disabled_at, anonymized_at
+                    last_organization_id, last_login_at, disabled_at, reactivated_at,
+                    anonymized_at
 sessions            id, user_id, token, expires_at, ip_address, user_agent,
                     created_at, updated_at + reauthenticated_at, auth_method (nostri)
 accounts            id, user_id, provider_id (credential|google), account_id,

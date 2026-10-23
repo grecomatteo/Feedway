@@ -28,6 +28,7 @@ export type { MySession } from './my-sessions.js'
 export type { ResolvedSession, SessionState, SessionUser, SessionUserDeps } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'
 export { inviteUser } from './invites.js'
+export { isUuid } from './member-rules.js'
 export type { InviteInput } from './invites.js'
 export {
   changeOrgRole,
