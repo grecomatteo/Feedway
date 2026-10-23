@@ -11,6 +11,17 @@
   "commitMessageLowerCase": "auto",
   "labels": ["dipendenze"],
   "prConcurrentLimit": 5,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "design/**"
+  ],
   "packageRules": [
     {
       "description": "Patch e minor insieme, una sola PR a settimana",
