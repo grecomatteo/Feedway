@@ -93,7 +93,7 @@ Scelte tecniche chiave: TypeScript, Nuxt (pannello + API), worker Node separato,
 
 ### 2.4 Fuori dalla prima versione
 
-Previsti nelle versioni successive (§18.2): primo commento automatico, post ricorrenti, webhook in uscita, pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
+Previsti nelle versioni successive (§18.2): primo commento automatico, post ricorrenti, webhook in uscita, commenti del team sui post, editor immagini di base, preset di pubblicazione, pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
 
 Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modifica della caption dopo la pubblicazione (Instagram via API non lo consente), caption diverse per piattaforma, tag di persone/luoghi/prodotti, altri social, ruoli personalizzati dall'interfaccia. Registrazione libera di nuove agenzie, abbonamenti e login con Facebook sono nella versione 2.0 (§18.2).
 
@@ -1444,7 +1444,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 
 | Versione | Contenuto | Note |
 |---|---|---|
-| 1.1 | Post ricorrenti, webhook in uscita, pagina link in bio, "Accedi con Google" (un'impostazione di Better Auth, con procedura guidata) | Nessun permesso Meta in più |
+| 1.1 | Post ricorrenti, webhook in uscita, pagina link in bio, "Accedi con Google" (un'impostazione di Better Auth, con procedura guidata), commenti del team sui post, editor immagini di base, preset di pubblicazione (§18.5) | Nessun permesso Meta in più |
 | 1.2 | Primo commento automatico | Permessi Meta per i commenti |
 | 1.3 | Statistiche e report per cliente, orario migliore per pubblicare | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
@@ -1483,6 +1483,27 @@ Obiettivo: usare la piattaforma come strumento di lavoro quotidiano dell'agenzia
 
 Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), che registra da sé permessi, notifiche, voci di menu e del calendario e strumenti MCP.
 
+### 18.5 Commenti del team, editor immagini e preset (versione 1.1)
+
+Aggiunti il 2026-10-23 dopo il confronto con le funzioni della concorrenza. Nessuno richiede permessi Meta in più né cambiamenti alla 1.0: si aggiungono ai moduli esistenti (§7.3).
+
+**Commenti del team sui post**
+- Una discussione dentro ogni post, per chi lavora nell'agenzia: scrivere, rispondere, **@menzionare** una persona. Chi è menzionato riceve una notifica con i canali esistenti (pannello, Telegram, email); chi ha scritto il post riceve le risposte.
+- Commenta chi può vedere il post nello spazio. Ognuno modifica ed elimina i propri commenti; il Manager può eliminare quelli degli altri. Una discussione si può segnare come **risolta**.
+- I commenti **non compaiono mai** nel link cliente (§11.10) e non sono i commenti di Instagram o Facebook. Le note interne (§11.7) restano: la nota è un testo fisso sul post, il commento è una conversazione.
+- Dati: `post_comments` (organization_id, post_id, author_id, parent_id facoltativo, body, mentions, resolved_at, edited_at, deleted_at), con RLS. Permessi nuovi: `post.comment`, `post.comment.moderate`. Eventi nuovi in §12.2: "Sei stato menzionato", "Risposta a un tuo commento".
+
+**Editor immagini di base**
+- Dall'editor del post e dalla libreria (§11.8): **ritaglio** con i formati delle piattaforme (1:1, 4:5, 1,91:1, 9:16) o libero, con la guida del ritaglio della griglia del profilo (§11.5); **rotazione** di 90°, **raddrizzamento** e **capovolgimento**.
+- Nei caroselli, "Applica a tutte" porta tutte le foto allo stesso formato.
+- Non distruttivo: l'originale resta e "Ripristina originale" lo riporta. La versione modificata la crea il worker con sharp (già nello stack) e passa dai controlli di §9.2 come ogni altro file.
+- Fuori di proposito: testi, filtri, adesivi, ritocchi e modifica dei video.
+
+**Preset di pubblicazione**
+- Allargano i gruppi di account salvati (§11.7): oltre agli account, un preset può contenere un modello di caption o una firma, delle etichette e un orario predefinito o una fascia oraria (§11.6). Un gruppo di oggi diventa un preset con i soli account.
+- In Nuovo post (§11.2) scegliere un preset compila questi campi; si possono poi cambiare liberamente. Gli account non più pubblicabili (§8.4) si saltano con un avviso.
+- Per spazio, gestiti da chi gestisce i modelli. Dati: la tabella `account_groups` diventa `post_presets` (organization_id, workspace_id, name, account_ids, template_id, label_ids, default_time, time_slot_id), con migrazione dei gruppi esistenti.
+
 ## 19. Decisioni prese
 
 | Tema | Decisione | Da chi |
@@ -1506,6 +1527,7 @@ Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), 
 | Più agenzie | Struttura multi-organizzazione con isolamento da subito; piattaforma aperta nella 2.0 | Matteo |
 | Nome dell'organizzazione nel pannello | "Agenzia" | Claude, modificabile |
 | Attività, to-do e schede cliente | Versione 1.5, come modulo; ordine delle versioni modificabile | Matteo + Claude |
+| Commenti del team, editor immagini di base, preset di pubblicazione | Versione 1.1 (§18.5); esclusi RSS, ritardi tra post e azioni automatiche su like e commenti | Matteo + Claude |
 | Struttura del codice | Moduli con confini verificati e attivabili per agenzia (§7.3) | Claude |
 | Caption nel link cliente | Visibile di default | Claude, modificabile |
 | Riepilogo giornaliero | 8:00 tutti i giorni | Claude, modificabile |
