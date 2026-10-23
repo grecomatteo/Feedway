@@ -197,7 +197,7 @@ jobs:
       - if: steps.changes.outputs.code != 'false'
         run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
       - if: steps.changes.outputs.code != 'false'
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: app:ci
           severity: HIGH,CRITICAL
@@ -208,14 +208,14 @@ jobs:
       # Emulating it takes about 9 minutes, so a pull request runs it only when the Dockerfile,
       # the dependencies or the Node version change; the release builds arm64 again anyway.
       - if: steps.changes.outputs.arm64 != 'false'
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
       - if: steps.changes.outputs.arm64 != 'false'
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Immagine arm64
         if: steps.changes.outputs.arm64 != 'false'
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: docker/Dockerfile

@@ -2,7 +2,7 @@
   "name": "feedway",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@12.15.0",
   "engines": {
     "node": ">=24.11 <25"
   },
@@ -26,18 +26,18 @@
     "*.{ts,mts,cjs,mjs,json,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.2.3",
-    "@commitlint/config-conventional": "21.2.3",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
     "@types/node": "^24.19.2",
-    "dependency-cruiser": "18.6.0",
+    "dependency-cruiser": "18.7.0",
     "eslint": "^10.12.0",
     "eslint-plugin-security": "4.2.0",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "prettier": "3.9.10",
-    "turbo": "2.11.8",
+    "turbo": "2.11.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "8.71.2",
-    "vitest": "5.0.4"
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
   }
 }
