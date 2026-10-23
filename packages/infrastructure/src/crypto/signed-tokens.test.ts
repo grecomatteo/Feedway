@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { createHmac, hkdfSync, randomBytes } from 'node:crypto'
 import { expect, test } from 'vitest'
 import { createSignedTokens } from './signed-tokens.js'
 
@@ -15,17 +15,42 @@ const deviceIdA = randomBytes(32).toString('base64url')
 const deviceIdB = randomBytes(32).toString('base64url')
 
 test('signed security lock token expires and is bound to its purpose', () => {
-  const t = signed.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
-  expect(signed.verify('security_lock', t, now)).toEqual({ userId: 'u1' })
+  const t = signed.sign('security_lock', { userId: 'u1', issuedAt: now, expiresAt: inDays(7) })
+  expect(signed.verify('security_lock', t, now)).toEqual({ userId: 'u1', issuedAt: now })
   expect(signed.verify('security_lock', t, inDays(8))).toBeNull()
   expect(signed.verify('security_lock', tamper(t), now)).toBeNull()
 })
 
+test('a token signed before issue dates were added has no issue date', () => {
+  const legacy = (payload: object) => {
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    const mac = createHmac(
+      'sha256',
+      Buffer.from(hkdfSync('sha256', key, Buffer.alloc(0), 'feedway:signed:security_lock', 32)),
+    )
+      .update(body)
+      .digest('base64url')
+    return `${body}.${mac}`
+  }
+  expect(signed.verify('security_lock', legacy({ u: 'u1', e: inDays(7).getTime() }), now)).toEqual({
+    userId: 'u1',
+    issuedAt: null,
+  })
+  // an issue date that is not a number makes the token invalid, not undated
+  expect(
+    signed.verify('security_lock', legacy({ u: 'u1', e: inDays(7).getTime(), i: 'x' }), now),
+  ).toBeNull()
+  for (const i of [-1, 1.5, Number.MAX_SAFE_INTEGER + 2])
+    expect(
+      signed.verify('security_lock', legacy({ u: 'u1', e: inDays(7).getTime(), i }), now),
+    ).toBeNull()
+})
+
 test('a token signed with another key or malformed is rejected', () => {
   const other = createSignedTokens(randomBytes(32))
-  const t = other.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
+  const t = other.sign('security_lock', { userId: 'u1', issuedAt: now, expiresAt: inDays(7) })
   expect(signed.verify('security_lock', t, now)).toBeNull()
-  const own = signed.sign('security_lock', { userId: 'u1', expiresAt: inDays(7) })
+  const own = signed.sign('security_lock', { userId: 'u1', issuedAt: now, expiresAt: inDays(7) })
   const nonCanonical = own.slice(0, -1) + (own.endsWith('A') ? 'B' : 'A')
   for (const bad of ['', 'abc', 'a.b.c', `${t}x`, '.', 'e30.', nonCanonical, `${own}=`]) {
     expect(signed.verify('security_lock', bad, now)).toBeNull()

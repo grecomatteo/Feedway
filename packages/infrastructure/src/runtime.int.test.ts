@@ -48,12 +48,15 @@ test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', 
     const key = `users/${ownerA}/note.txt`
     await runtime.storage.put(key, Buffer.from('ciao'), { contentType: 'text/plain' })
     expect((await runtime.storage.get(key))?.size).toBe(4)
+    const issued = new Date()
     const token = runtime.signedTokens.sign('security_lock', {
       userId: ownerA,
+      issuedAt: issued,
       expiresAt: new Date(Date.now() + 60_000),
     })
     expect(runtime.signedTokens.verify('security_lock', token, new Date())).toEqual({
       userId: ownerA,
+      issuedAt: issued,
     })
     // outside tests no email leaves until stage 3 configures SMTP
     expect(await runtime.mailer.isConfigured()).toBe(false)

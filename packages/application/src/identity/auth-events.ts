@@ -240,7 +240,8 @@ const LINK_INVALID_MESSAGE = 'Il link non è valido o è scaduto.'
 
 /**
  * "Non sono stato io" from a security email: disables the account and closes every session.
- * Safe to repeat; re-enabling is an administrator's job (`cli enable-user`).
+ * Safe to repeat; re-enabling is an administrator's job (`cli enable-user`), and links issued
+ * before that reactivation are refused.
  */
 export async function lockAccountFromSecurityEmail(
   deps: LockDeps,
@@ -253,10 +254,18 @@ export async function lockAccountFromSecurityEmail(
   await deps.uow.run({ userId }, async (tx) => {
     const user = await tx.users.findByIdForUpdate(userId)
     if (user === null) throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
+    // a link from before the last reactivation (an old email) must not lock the account again
+    if (
+      user.reactivatedAt !== null &&
+      (claim.issuedAt === null || claim.issuedAt.getTime() <= user.reactivatedAt.getTime())
+    )
+      throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
     if (user.anonymizedAt !== null) return
     const disabled = await tx.users.disable(userId, now)
+    // also when the platform had disabled it already: the reactivation must void the password
+    const marked = await tx.users.markSecurityLocked(userId, now)
     const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
-    if (!disabled && sessionsClosed === 0) return
+    if (!disabled && !marked && sessionsClosed === 0) return
     await tx.audit.record({
       organizationId: null,
       actorId: userId,

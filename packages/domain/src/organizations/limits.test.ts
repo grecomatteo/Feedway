@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { checkLimit, parseLimits } from './limits.js'
+import { checkLimit, parseLimits, validLimits } from './limits.js'
 
 test('missing key is unlimited', () => {
   expect(checkLimit({}, 'workspaces', 999)).toEqual({ ok: true })
@@ -30,4 +30,14 @@ test('an unreadable stored limit counts as zero: it closes, never opens', () => 
   expect(
     parseLimits({ users: '5', workspaces: -1, posts_per_day: 1.5, storage_bytes: null }),
   ).toEqual({ users: 0, workspaces: 0, posts_per_day: 0, storage_bytes: 0 })
+})
+
+test('limits set by the platform are whole non-negative numbers of known keys', () => {
+  expect(validLimits({ users: 5, workspaces: 0 })).toEqual({ users: 5, workspaces: 0 })
+  expect(validLimits({})).toEqual({})
+  expect(validLimits({ users: -1 })).toBeNull()
+  expect(validLimits({ users: 1.5 })).toBeNull()
+  expect(validLimits({ users: '5' })).toBeNull()
+  expect(validLimits({ users: Number.MAX_SAFE_INTEGER + 1 })).toBeNull()
+  expect(validLimits({ seats: 3 })).toBeNull()
 })

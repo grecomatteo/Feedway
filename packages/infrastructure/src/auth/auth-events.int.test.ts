@@ -342,6 +342,7 @@ test('the lock link disables the account, closes every session and can be repeat
   const clock = fixedClock(new Date())
   const token = tokens.sign('security_lock', {
     userId: id,
+    issuedAt: clock.now(),
     expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
   })
   await lockAccountFromSecurityEmail({ uow, tokens, clock }, { token, ip: '93.41.12.200' })
@@ -364,6 +365,7 @@ test('an expired or forged lock link is invalid', async () => {
   const clock = fixedClock(new Date())
   const token = tokens.sign('security_lock', {
     userId: id,
+    issuedAt: clock.now(),
     expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
   })
   clock.advance(8 * 86_400_000)

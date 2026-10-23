@@ -48,6 +48,10 @@ export const users = pgTable(
     platformRole: text('platform_role'),
     status: text('status').default('active').notNull(),
     disabledAt: tz('disabled_at'),
+    // Last platform reactivation: older "Non sono stato io" links stop working (Task 16).
+    reactivatedAt: tz('reactivated_at'),
+    // Set by "Non sono stato io": the platform reactivation then voids the password (Task 16).
+    securityLockedAt: tz('security_locked_at'),
     theme: text('theme').default('system').notNull(),
     locale: text('locale').default('it').notNull(),
     // null: the organization's time zone, or TZ_DEFAULT

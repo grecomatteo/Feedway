@@ -1,4 +1,11 @@
-import type { AuthMethod, OrgActor, OrgRole, TwoFactorPolicy, WorkspaceRole } from '@app/domain'
+import type {
+  AuthMethod,
+  OrganizationLimits,
+  OrgActor,
+  OrgRole,
+  TwoFactorPolicy,
+  WorkspaceRole,
+} from '@app/domain'
 
 // Records carry only what the use cases read. Secrets (password hashes, session tokens,
 // 2FA secrets) never leave the auth adapter.
@@ -19,6 +26,10 @@ export interface UserRecord {
   lastOrganizationId: string | null
   lastLoginAt: Date | null
   disabledAt: Date | null
+  /** Last reactivation by the platform: lock links issued before it no longer work. */
+  reactivatedAt: Date | null
+  /** "Non sono stato io" since the last reactivation: the password is no longer trusted. */
+  securityLockedAt: Date | null
   anonymizedAt: Date | null
   createdAt: Date
 }
@@ -52,12 +63,33 @@ export interface UsersRepository {
   setLastLoginAt(id: string, at: Date): Promise<void>
   /** false: the account was already disabled. */
   disable(id: string, at: Date): Promise<boolean>
+  /**
+   * Platform reactivation, system scope only: active again, `reactivatedAt` set. false: the
+   * account was not disabled, or is anonymized.
+   */
+  enable(id: string, at: Date): Promise<boolean>
+  /** Records a "Non sono stato io" lock; false when one is already recorded. */
+  markSecurityLocked(id: string, at: Date): Promise<boolean>
   platformAdminExists(): Promise<boolean>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
   /** The agency the panel opens next time. */
   setLastOrganization(id: string, organizationId: string): Promise<void>
   countPasskeys(id: string): Promise<number>
+}
+
+/**
+ * Credentials written outside Better Auth, system scope only: the platform voids a password
+ * that may be in someone else's hands and hands out a reset link (Task 16).
+ */
+export interface CredentialsRepository {
+  /** Removes the password credential; false when the account had none. Passkeys stay. */
+  removePassword(userId: string): Promise<boolean>
+  /**
+   * A reset token in the format `/reset-password` reads (ADR 012, V6), valid until
+   * `expiresAt`. Not limited to people of one agency: only the platform issues it.
+   */
+  issuePasswordResetToken(userId: string, expiresAt: Date): Promise<string>
 }
 
 export interface SessionRecord {
@@ -104,9 +136,21 @@ export interface OrganizationRecord {
 
 export interface OrganizationsRepository {
   findById(id: string): Promise<OrganizationRecord | null>
+  /** Same, and locks the row until the transaction ends. */
+  findByIdForUpdate(id: string): Promise<OrganizationRecord | null>
   /** System scope only (row level security). */
   create(input: { id: string; name: string; slug: string }): Promise<void>
   slugExists(slug: string): Promise<boolean>
+  /** System scope only: every agency would look missing elsewhere. */
+  findBySlug(slug: string): Promise<OrganizationRecord | null>
+  /** System scope only. Every agency, by name. */
+  listAll(): Promise<OrganizationRecord[]>
+  /** System scope only (a trigger refuses it elsewhere). false: already in that status. */
+  setStatus(id: string, status: OrganizationRecord['status'], at: Date): Promise<boolean>
+  /** System scope only (a trigger refuses it elsewhere). Replaces the limits as a whole. */
+  setLimits(id: string, limits: OrganizationLimits): Promise<void>
+  /** Name and settings keys of the agency the transaction is scoped to; other keys stay. */
+  update(id: string, change: { name?: string; settings?: Record<string, unknown> }): Promise<void>
 }
 
 export interface OrgMemberRecord {

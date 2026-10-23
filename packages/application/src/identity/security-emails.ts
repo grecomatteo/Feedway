@@ -81,6 +81,7 @@ export async function sendSecurityEmail(
   const now = deps.clock.now()
   const token = deps.tokens.sign('security_lock', {
     userId: user.id,
+    issuedAt: now,
     expiresAt: new Date(now.getTime() + LOCK_LINK_TTL_MS),
   })
   const lockUrl = new URL(LOCK_PAGE_PATH, deps.panelUrl)

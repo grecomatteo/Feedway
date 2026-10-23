@@ -169,6 +169,16 @@ async function grant(
     )
       throw new DomainError('CONFLICT', 'Account principale già creato')
 
+    // checked before the account exists: one Owner per agency, and a refused link leaves no
+    // account without an agency behind
+    if (invite.purpose === 'organization_owner' && invite.organizationId !== null) {
+      const owner = (await tx.orgMembers.listForOrganization(invite.organizationId)).find(
+        (m) => m.role === 'owner',
+      )
+      if (owner && owner.userId !== who.userId)
+        throw new DomainError('CONFLICT', 'Questa agenzia ha già un Owner')
+    }
+
     if (who.kind === 'new') {
       if (invite.reservedUserId !== who.userId) throw linkInvalid()
       await checkResume(tx, invite, who.userId, input)

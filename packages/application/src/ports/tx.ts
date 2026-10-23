@@ -1,5 +1,6 @@
 import type { AuditLog } from './audit-log.js'
 import type {
+  CredentialsRepository,
   InvitesRepository,
   KnownDevicesRepository,
   OrganizationsRepository,
@@ -33,6 +34,7 @@ export interface OrganizationKeysRepository {
 export interface Tx {
   users: UsersRepository
   sessions: SessionsRepository
+  credentials: CredentialsRepository
   knownDevices: KnownDevicesRepository
   organizations: OrganizationsRepository
   orgMembers: OrgMembersRepository
