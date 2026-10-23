@@ -16,60 +16,96 @@ concurrency:
   cancel-in-progress: true
 
 # Jobs run on GitHub's runners unless the repository variable CI_RUNNER names another runner label
-# (for example a self-hosted runner once the monthly Actions minutes are spent: docs/flusso-git.md §5).
+# (a self-hosted runner once the monthly Actions minutes are spent, never while the repository is
+# public: docs/flusso-git.md §5).
+# timeout-minutes stops a hung job instead of letting it run for the 6 hour default.
 # The job names below are the required checks of the main ruleset (.github/rulesets/main.json).
 jobs:
   lint-types:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm format:check
       # type-aware ESLint over the whole repo needs about 2 GB, the default heap limit
-      - run: pnpm lint
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm lint
         env:
           NODE_OPTIONS: --max-old-space-size=4096
-      - run: pnpm typecheck
-      - run: shellcheck docker/entrypoint.sh scripts/install.sh scripts/update.sh scripts/lib/*.sh scripts/ci/*.sh scripts/github/*.sh scripts/tests/stubs/*
-      - name: actionlint
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm typecheck
+      - if: steps.changes.outputs.code != 'false'
+        run: shellcheck docker/entrypoint.sh scripts/install.sh scripts/update.sh scripts/lib/*.sh scripts/ci/*.sh scripts/github/*.sh scripts/tests/stubs/*
+      - if: steps.changes.outputs.code != 'false'
+        name: actionlint
         run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 && ./actionlint -color
 
   architecture:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm arch:check
-      - run: pnpm vitest run tools/arch-fixtures
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm arch:check
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm vitest run tools/arch-fixtures
 
   unit:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          fetch-depth: 2
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:unit
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm test:unit
 
-  # integration, e2e, image and install-smoke always run, so the required checks always report, but
-  # their slow steps are skipped on a pull request that cannot affect them (scripts/ci/changes.sh).
+  # Every job always runs, so the required checks always report, but on a pull request that changes
+  # only documentation, design or agent instructions everything except checkout and gitleaks is
+  # skipped (scripts/ci/changes.sh); Prettier ignores those files anyway (.prettierignore).
   # Manual runs do everything. Steps skip only on an explicit 'false', so a
   # missing output runs them.
   integration:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,6 +126,7 @@ jobs:
 
   e2e:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,6 +156,7 @@ jobs:
 
   security:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -129,18 +167,27 @@ jobs:
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: changes
+        run: scripts/ci/changes-step.sh
+      - if: steps.changes.outputs.code != 'false'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changes.outputs.code != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level high
-      - run: sudo apt-get update && sudo apt-get install --yes bats age
-      - run: bats scripts/tests
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changes.outputs.code != 'false'
+        run: pnpm audit --audit-level high
+      - if: steps.changes.outputs.code != 'false'
+        run: sudo apt-get update && sudo apt-get install --yes bats age
+      - if: steps.changes.outputs.code != 'false'
+        run: bats scripts/tests
 
   image:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -192,6 +239,7 @@ jobs:
 
   install-smoke:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
