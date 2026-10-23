@@ -9,7 +9,7 @@
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "lint": "pnpm --filter @app/web exec nuxt prepare && eslint .",
+    "lint": "pnpm --filter @app/web exec nuxt prepare && node --max-old-space-size=4096 node_modules/eslint/bin/eslint.js .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "arch:check": "depcruise --config .dependency-cruiser.cjs apps packages",
