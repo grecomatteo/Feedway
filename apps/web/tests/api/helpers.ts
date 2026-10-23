@@ -36,11 +36,16 @@ export interface RunningWeb {
   stop(): Promise<void>
 }
 
-/** Builds the app once and starts the production server against the given database. */
-export async function startWeb(env: Record<string, string>): Promise<RunningWeb> {
+/** Builds the production server unless a build is already there. */
+export function buildWebOnce(): void {
   if (!existsSync(`${webDir}.output/server/index.mjs`)) {
     execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: webDir, stdio: 'inherit' })
   }
+}
+
+/** Builds the app once and starts the production server against the given database. */
+export async function startWeb(env: Record<string, string>): Promise<RunningWeb> {
+  buildWebOnce()
   const port = await freePort()
   const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
     cwd: webDir,
