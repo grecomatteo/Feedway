@@ -27,7 +27,7 @@ pnpm install --frozen-lockfile
 
 step "lint-types"
 pnpm format:check
-NODE_OPTIONS=--max-old-space-size=4096 pnpm lint
+pnpm lint
 pnpm typecheck
 shellcheck docker/entrypoint.sh scripts/install.sh scripts/update.sh scripts/lib/*.sh scripts/ci/*.sh scripts/github/*.sh scripts/tests/stubs/*
 optional actionlint "actionlint" actionlint

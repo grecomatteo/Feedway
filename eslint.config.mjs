@@ -1,3 +1,5 @@
+// Type-aware linting keeps every TypeScript project of the monorepo in memory (about 2.4 GB in
+// October 2026), above Node's default heap on many machines: the `lint` script raises the limit.
 import tseslint from 'typescript-eslint'
 import security from 'eslint-plugin-security'
 
