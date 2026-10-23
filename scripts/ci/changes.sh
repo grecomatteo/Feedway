@@ -7,7 +7,7 @@
 set -euo pipefail
 
 not_code='^(docs/|design/|\.claude/|\.github/ISSUE_TEMPLATE/|\.github/pull_request_template\.md$|\.github/CODEOWNERS$|[^/]+\.md$|LICENSE$)'
-arm64='^(docker/|\.dockerignore$|\.nvmrc$|\.npmrc$|\.pnpmfile\.cjs$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|(.*/)?package\.json$|\.github/workflows/ci\.yml$|scripts/ci/changes(-step)?\.sh$)'
+arm64='^(docker/|\.dockerignore$|\.nvmrc$|\.npmrc$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|(.*/)?package\.json$|\.github/workflows/ci\.yml$|scripts/ci/changes(-step)?\.sh$)'
 
 files="$(grep -v '^$' || true)"
 

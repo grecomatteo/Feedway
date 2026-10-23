@@ -31,12 +31,12 @@ test('redacts secret-looking keys at any depth', () => {
 test('scrubs access tokens and url credentials inside strings and errors', () => {
   const out = captureLog((l) => {
     l.error({
-      err: new Error('GET /me?access_token=EAAB123&appsecret_proof=f00 failed'),
+      err: new Error('GET /me?access_token=EAAB123&appsecret_proof=PROOF-Zz9 failed'),
       url: 'postgres://app_runtime:s3cret@postgres/app',
     })
   })
   expect(out).not.toContain('EAAB123')
-  expect(out).not.toContain('f00')
+  expect(out).not.toContain('PROOF-Zz9')
   expect(out).not.toContain('s3cret')
 })
 
