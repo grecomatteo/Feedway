@@ -41,11 +41,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - if: steps.changes.outputs.code != 'false'
         run: pnpm format:check
-      # type-aware ESLint over the whole repo needs about 2 GB, the default heap limit
       - if: steps.changes.outputs.code != 'false'
         run: pnpm lint
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
       - if: steps.changes.outputs.code != 'false'
         run: pnpm typecheck
       - if: steps.changes.outputs.code != 'false'
