@@ -22,3 +22,11 @@ auditConfig:
   ignoreGhsas:
     - GHSA-86w9-cpqp-85rv
     - GHSA-vfj7-8cjw-p6xm
+
+# Better Auth lists vitest, vue and drizzle-kit as optional peers. pnpm would link the workspace's own dev tools
+# as those peers, and `pnpm deploy --prod` would then ship them (and esbuild's Go binary) in the image.
+# Kept here rather than in a pnpmfile because Renovate ignores pnpmfiles when it updates the lockfile.
+overrides:
+  better-auth>vitest: '-'
+  better-auth>vue: '-'
+  better-auth>drizzle-kit: '-'

@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1
-ARG NODE_IMAGE=node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+ARG NODE_IMAGE=node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 
 FROM ${NODE_IMAGE} AS base
 ENV PNPM_HOME=/pnpm CI=true
 ENV PATH=$PNPM_HOME:$PATH
-RUN npm install --global pnpm@12.11.2
+RUN npm install --global pnpm@12.15.0
 WORKDIR /repo
 
 # 1) download every dependency from the lockfile only: cached until the lockfile changes
 FROM base AS fetch
-COPY pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 
 # 2) offline install, build, and production-only copy of the worker
