@@ -93,9 +93,9 @@ Scelte tecniche chiave: TypeScript, Nuxt (pannello + API), worker Node separato,
 
 ### 2.4 Fuori dalla prima versione
 
-Previsti nelle versioni successive (§18.2): primo commento automatico, post ricorrenti, webhook in uscita, commenti del team sui post, editor immagini di base, preset di pubblicazione, pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
+Previsti nelle versioni successive (§18.2): primo commento automatico, post ricorrenti, webhook in uscita, commenti del team sui post, editor immagini di base, preset di pubblicazione, importazione da Google Drive e Canva, analisi dei concorrenti, modelli di report, altri social come moduli (§18.6), pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
 
-Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modifica della caption dopo la pubblicazione (Instagram via API non lo consente), caption diverse per piattaforma, tag di persone/luoghi/prodotti, altri social, ruoli personalizzati dall'interfaccia. Registrazione libera di nuove agenzie, abbonamenti e login con Facebook sono nella versione 2.0 (§18.2).
+Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modifica della caption dopo la pubblicazione (Instagram via API non lo consente), caption diverse per piattaforma, tag di persone/luoghi/prodotti, ruoli personalizzati dall'interfaccia. Registrazione libera di nuove agenzie, abbonamenti e login con Facebook sono nella versione 2.0 (§18.2).
 
 ---
 
@@ -1445,10 +1445,11 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | Versione | Contenuto | Note |
 |---|---|---|
 | 1.1 | Post ricorrenti, webhook in uscita, pagina link in bio, "Accedi con Google" (un'impostazione di Better Auth, con procedura guidata), commenti del team sui post, editor immagini di base, preset di pubblicazione (§18.5) | Nessun permesso Meta in più |
-| 1.2 | Primo commento automatico | Permessi Meta per i commenti |
-| 1.3 | Statistiche e report per cliente, orario migliore per pubblicare | Permessi Meta per gli insight |
+| 1.2 | Primo commento automatico, importazione da Google Drive e Canva (§18.5) | Permessi Meta per i commenti; Canva richiede l'approvazione della nostra integrazione |
+| 1.3 | Statistiche e report per cliente con modelli personalizzabili, orario migliore per pubblicare, analisi dei concorrenti (§18.5) | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
+| Dopo la 1.5 | Altri social come moduli: LinkedIn, TikTok, YouTube, Pinterest, X e altri, uno alla volta | §18.6; ordine da decidere, ogni piattaforma ha la sua revisione dell'app |
 | 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento di tutti i clienti con i login (richiede la revisione dell'app), dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
 
 ### 18.3 Predisposizione per MCP
@@ -1483,9 +1484,9 @@ Obiettivo: usare la piattaforma come strumento di lavoro quotidiano dell'agenzia
 
 Nulla di questo richiede cambiamenti alla 1.0: si aggiunge come modulo (§7.3), che registra da sé permessi, notifiche, voci di menu e del calendario e strumenti MCP.
 
-### 18.5 Commenti del team, editor immagini e preset (versione 1.1)
+### 18.5 Funzioni dal confronto con la concorrenza (versioni 1.1–1.3)
 
-Aggiunti il 2026-10-23 dopo il confronto con le funzioni della concorrenza. Nessuno richiede permessi Meta in più né cambiamenti alla 1.0: si aggiungono ai moduli esistenti (§7.3).
+Aggiunte il 2026-10-23 dopo il confronto con le funzioni di Postiz e Metricool, AI esclusa. Nessuna richiede cambiamenti alla 1.0: si aggiungono ai moduli esistenti (§7.3). Commenti del team, editor immagini e preset sono nella 1.1; Drive e Canva nella 1.2; analisi dei concorrenti e modelli di report nella 1.3. Drive, Canva e analisi dei concorrenti si fanno solo se la prova sulle API reali va a buon fine.
 
 **Commenti del team sui post**
 - Una discussione dentro ogni post, per chi lavora nell'agenzia: scrivere, rispondere, **@menzionare** una persona. Chi è menzionato riceve una notifica con i canali esistenti (pannello, Telegram, email); chi ha scritto il post riceve le risposte.
@@ -1503,6 +1504,31 @@ Aggiunti il 2026-10-23 dopo il confronto con le funzioni della concorrenza. Ness
 - Allargano i gruppi di account salvati (§11.7): oltre agli account, un preset può contenere un modello di caption o una firma, delle etichette e un orario predefinito o una fascia oraria (§11.6). Un gruppo di oggi diventa un preset con i soli account.
 - In Nuovo post (§11.2) scegliere un preset compila questi campi; si possono poi cambiare liberamente. Gli account non più pubblicabili (§8.4) si saltano con un avviso.
 - Per spazio, gestiti da chi gestisce i modelli. Dati: la tabella `account_groups` diventa `post_presets` (organization_id, workspace_id, name, account_ids, template_id, label_ids, default_time, time_slot_id), con migrazione dei gruppi esistenti.
+
+**Importazione da Google Drive e Canva**
+- Ovunque si aggiungono file (§11.1) compaiono anche "Da Google Drive" e "Da Canva". Si sceglie il file nella finestra del servizio e il worker lo scarica nello spazio, come un upload normale, con gli stessi controlli (§9.2).
+- Il collegamento è personale: ogni persona collega il proprio Google o Canva dal suo account (§10.5), con un token cifrato come gli altri segreti (ADR 007). Si legge solo il file scelto, mai la cartella intera.
+- Da Canva si importa il design esportato come immagine o video; se il design ha più pagine, diventa un carosello.
+- **Da verificare**: Canva chiede di approvare l'integrazione prima di aprirla ad altri utenti; Google chiede la verifica dell'app per alcuni ambiti di Drive. Finché non è provato, resta "non verificato".
+
+**Analisi dei concorrenti**
+- Per ogni cliente, un elenco di profili Instagram di concorrenti (account business o creator pubblici). Per ognuno: follower, numero di post, frequenza di pubblicazione, like e commenti medi e i post migliori del periodo, a confronto con il cliente.
+- I dati si leggono dall'API Instagram (Business Discovery) e si salvano una volta al giorno, così lo storico cresce anche dove Meta mostra solo gli ultimi dati.
+- **Da verificare**: Business Discovery funziona con i collegamenti Facebook (login o utente di sistema), forse non con il solo login Instagram (ADR 015); i profili personali non si possono analizzare. Limite di concorrenti per cliente configurabile, per stare dentro i limiti d'uso di Meta (§8.7).
+
+**Modelli di report**
+- I report per cliente della 1.3 si costruiscono da un **modello**: blocchi da scegliere e ordinare (numeri principali, andamento dei follower, post migliori, confronto con i concorrenti, prossimi post, testo libero), con logo e colori dell'agenzia e del cliente (§14.3).
+- Modelli per agenzia, riusabili su tutti i clienti. Report in **PDF** e come pagina condivisibile con lo stesso link di sola visione (§11.10).
+- Invio automatico facoltativo per email al cliente, ogni mese o settimana.
+
+### 18.6 Altri social come moduli
+
+Obiettivo: aggiungere in futuro LinkedIn, TikTok, YouTube, Pinterest, X e altri social, uno alla volta, senza riscrivere il resto. Nella 1.0 si costruisce solo Meta, ma il codice si prepara così:
+- **Una piattaforma è un modulo** (§7.3) con quattro parti: il **collegamento** (login, rinnovo del token, salute dell'account, già così in ADR 015), i **tipi di contenuto e le regole** (formati, durate, lunghezze della caption, i controlli di §9.2), la **pubblicazione** (creazione, attesa dell'elaborazione, verifica, classificazione degli errori, §9.3–9.6) e l'**anteprima** (§11.3).
+- Il resto non sa quale piattaforma c'è dietro: spazi, profili, post, destinazioni, calendario, coda, notifiche, link cliente e permessi lavorano solo con un account e la sua piattaforma.
+- Nel database `social_accounts.platform` e i tipi di destinazione si allargano con una migrazione per ogni nuova piattaforma.
+- Con piattaforme così diverse servirà poter **adattare la caption per piattaforma** (oggi esclusa, §2.4): la 1.0 tiene il contenuto identico, ma la destinazione può già avere un testo proprio, vuoto di default.
+- Prima di costruire ogni piattaforma serve una ADR con API, permessi, revisione dell'app richiesta e limiti. Prima della tappa 3 una ADR fissa i confini del modulo piattaforma e i piani delle tappe 3–5 si adeguano.
 
 ## 19. Decisioni prese
 
@@ -1528,6 +1554,8 @@ Aggiunti il 2026-10-23 dopo il confronto con le funzioni della concorrenza. Ness
 | Nome dell'organizzazione nel pannello | "Agenzia" | Claude, modificabile |
 | Attività, to-do e schede cliente | Versione 1.5, come modulo; ordine delle versioni modificabile | Matteo + Claude |
 | Commenti del team, editor immagini di base, preset di pubblicazione | Versione 1.1 (§18.5); esclusi RSS, ritardi tra post e azioni automatiche su like e commenti | Matteo + Claude |
+| Google Drive e Canva, analisi dei concorrenti, modelli di report | Versioni 1.2–1.3 (§18.5), se la prova sulle API reali va bene; esclusi dashboard delle campagne a pagamento e connettore per Data Studio | Matteo + Claude |
+| Altri social | Nella 1.0 solo Meta, ma il codice è diviso per piattaforma; le altre si aggiungono come moduli dopo la 1.5 (§18.6) | Matteo |
 | Struttura del codice | Moduli con confini verificati e attivabili per agenzia (§7.3) | Claude |
 | Caption nel link cliente | Visibile di default | Claude, modificabile |
 | Riepilogo giornaliero | 8:00 tutti i giorni | Claude, modificabile |
