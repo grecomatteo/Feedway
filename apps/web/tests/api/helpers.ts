@@ -1,5 +1,5 @@
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
@@ -36,43 +36,18 @@ export interface RunningWeb {
   stop(): Promise<void>
 }
 
-const serverEntry = `${webDir}.output/server/index.mjs`
-const buildLock = `${webDir}.test-build.lock`
-
-/**
- * Builds the app once for all test files. Test files run in parallel processes: without the
- * lock two of them build at the same time and break each other's `.output`.
- */
-async function ensureBuilt(): Promise<void> {
-  const deadline = Date.now() + 10 * 60_000
-  // a half-written .output can already hold the entry file: wait for the lock too
-  while (!existsSync(serverEntry) || existsSync(buildLock)) {
-    let owner = false
-    try {
-      mkdirSync(buildLock)
-      owner = true
-    } catch {
-      // another test file is building: wait for it
-    }
-    if (owner) {
-      try {
-        if (!existsSync(serverEntry))
-          execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: webDir, stdio: 'inherit' })
-      } finally {
-        rmSync(buildLock, { recursive: true, force: true })
-      }
-      return
-    }
-    if (Date.now() > deadline) throw new Error('timed out waiting for the web build')
-    await sleep(500)
+/** Builds the production server unless a build is already there. */
+export function buildWebOnce(): void {
+  if (!existsSync(`${webDir}.output/server/index.mjs`)) {
+    execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: webDir, stdio: 'inherit' })
   }
 }
 
 /** Builds the app once and starts the production server against the given database. */
 export async function startWeb(env: Record<string, string>): Promise<RunningWeb> {
-  await ensureBuilt()
+  buildWebOnce()
   const port = await freePort()
-  const child: ChildProcess = spawn('node', [serverEntry], {
+  const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
     cwd: webDir,
     env: { ...process.env, NODE_ENV: 'test', PORT: String(port), HOST: '127.0.0.1', ...env },
     stdio: 'inherit',
