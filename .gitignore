@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 dist/
 .output/
+.test-build.lock
 .nuxt/
 .nitro/
 .cache/
