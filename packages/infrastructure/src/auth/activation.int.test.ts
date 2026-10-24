@@ -357,6 +357,29 @@ describe('invites', () => {
     expect((await signIn(email, STRONG)).status).toBe(200)
   })
 
+  test('a workspace archived after the invite is skipped at activation', async () => {
+    const email = uniqueEmail('archiviato')
+    const agency = await newAgency()
+    const { token } = await inviteFixture(email, {
+      organizationId: agency.organizationId,
+      orgRole: 'member',
+      memberships: [{ workspaceId: agency.workspaceId, role: 'editor' }],
+    })
+    await admin.query('update workspaces set archived_at = now() where id = $1', [
+      agency.workspaceId,
+    ])
+    expect((await activateAccount(deps, form(token))).next).toBe('done')
+    const [u] = await userByEmail(email)
+    const ws = await admin.query('select 1 from workspace_members where user_id = $1', [u?.id])
+    expect(ws.rowCount).toBe(0)
+    // the agency membership still comes with the invite
+    const org = await admin.query(
+      'select 1 from organization_members where user_id = $1 and organization_id = $2',
+      [u?.id, agency.organizationId],
+    )
+    expect(org.rowCount).toBe(1)
+  })
+
   test('activation interrupted after the user was created completes with the same link', async () => {
     const email = uniqueEmail('nuovo')
     const { token } = await inviteFixture(email)

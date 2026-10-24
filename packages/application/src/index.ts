@@ -51,3 +51,4 @@ export type {
 export * from './identity/index.js'
 export * from './organizations/index.js'
 export * from './platform/index.js'
+export * from './workspaces/index.js'
