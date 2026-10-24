@@ -214,13 +214,17 @@ async function grant(
       // recorded with the membership: a retry finds it and does not record again
       await recordActivated(tx, invite, organizationId, who.userId, input.ip)
     }
-    for (const m of invite.memberships)
+    for (const m of invite.memberships) {
+      // archived since the invite: readable, closed to new members (Task 17)
+      const workspace = await tx.workspaces.findForShare(organizationId, m.workspaceId)
+      if (!workspace || workspace.archivedAt !== null) continue
       await tx.workspaceMembers.addIfMissing({
         organizationId,
         workspaceId: m.workspaceId,
         userId: who.userId,
         role: m.role,
       })
+    }
 
     if (who.kind === 'new') {
       const nickname = validateNickname(input.nickname)

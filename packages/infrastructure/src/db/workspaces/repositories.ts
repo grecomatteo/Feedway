@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, isNull } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import type { WorkspaceMembersRepository, WorkspacesRepository } from '@app/application'
 import type { OrgActor, WorkspaceRole } from '@app/domain'
@@ -49,6 +49,24 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
         .where(and(where, eq(workspaces.id, id)))
       return row ?? null
     },
+    async findVisibleByIdForUpdate(actor, id) {
+      const where = visibleTo(actor)
+      if (!where) return null
+      const [row] = await db
+        .select(workspaceColumns)
+        .from(workspaces)
+        .where(and(where, eq(workspaces.id, id)))
+        .for('update')
+      return row ?? null
+    },
+    async findForShare(organizationId, id) {
+      const [row] = await db
+        .select(workspaceColumns)
+        .from(workspaces)
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
+        .for('share')
+      return row ?? null
+    },
     async countActive(organizationId) {
       const [row] = await db
         .select({ n: count() })
@@ -56,8 +74,52 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
         .where(and(eq(workspaces.organizationId, organizationId), isNull(workspaces.archivedAt)))
       return row?.n ?? 0
     },
+    async slugExists(organizationId, slug) {
+      const [row] = await db
+        .select({ id: workspaces.id })
+        .from(workspaces)
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.slug, slug)))
+      return row !== undefined
+    },
+    async lockCreation(organizationId) {
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`workspaces:${organizationId}`}))`,
+      )
+    },
+    async create(workspace) {
+      const [row] = await db.insert(workspaces).values(workspace).returning(workspaceColumns)
+      if (!row) throw new Error('workspace insert returned no row')
+      return row
+    },
+    async rename(organizationId, id, name) {
+      await db
+        .update(workspaces)
+        .set({ name })
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
+    },
+    async archive(organizationId, id, at) {
+      const changed = await db
+        .update(workspaces)
+        .set({ archivedAt: at })
+        .where(
+          and(
+            eq(workspaces.organizationId, organizationId),
+            eq(workspaces.id, id),
+            isNull(workspaces.archivedAt),
+          ),
+        )
+        .returning({ id: workspaces.id })
+      return changed.length > 0
+    },
   }
 }
+
+const memberOf = (organizationId: string, workspaceId: string, userId: string) =>
+  and(
+    eq(workspaceMembers.organizationId, organizationId),
+    eq(workspaceMembers.workspaceId, workspaceId),
+    eq(workspaceMembers.userId, userId),
+  )
 
 export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersRepository {
   return {
@@ -99,6 +161,71 @@ export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersReposit
         .insert(workspaceMembers)
         .values(member)
         .onConflictDoNothing({ target: [workspaceMembers.workspaceId, workspaceMembers.userId] })
+    },
+    async listForWorkspace(organizationId, workspaceId) {
+      const rows = await db
+        .select({ userId: workspaceMembers.userId, role: workspaceMembers.role })
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.organizationId, organizationId),
+            eq(workspaceMembers.workspaceId, workspaceId),
+          ),
+        )
+        .orderBy(workspaceMembers.createdAt, workspaceMembers.userId)
+      return rows.map((r) => ({ userId: r.userId, role: r.role as WorkspaceRole }))
+    },
+    async findForUpdate(organizationId, workspaceId, userId) {
+      const [row] = await db
+        .select({ role: workspaceMembers.role })
+        .from(workspaceMembers)
+        .where(memberOf(organizationId, workspaceId, userId))
+        .for('update')
+      return row ? (row.role as WorkspaceRole) : null
+    },
+    async add(member) {
+      const inserted = await db
+        .insert(workspaceMembers)
+        .values(member)
+        .onConflictDoNothing({ target: [workspaceMembers.workspaceId, workspaceMembers.userId] })
+        .returning({ userId: workspaceMembers.userId })
+      return inserted.length > 0
+    },
+    async setRole(organizationId, workspaceId, userId, from, to) {
+      const changed = await db
+        .update(workspaceMembers)
+        .set({ role: to })
+        .where(and(memberOf(organizationId, workspaceId, userId), eq(workspaceMembers.role, from)))
+        .returning({ userId: workspaceMembers.userId })
+      return changed.length > 0
+    },
+    async countInActiveWorkspaces(organizationId, userId, exceptWorkspaceId) {
+      const [row] = await db
+        .select({ n: count() })
+        .from(workspaceMembers)
+        .innerJoin(
+          workspaces,
+          and(
+            eq(workspaces.organizationId, workspaceMembers.organizationId),
+            eq(workspaces.id, workspaceMembers.workspaceId),
+          ),
+        )
+        .where(
+          and(
+            eq(workspaceMembers.organizationId, organizationId),
+            eq(workspaceMembers.userId, userId),
+            ne(workspaceMembers.workspaceId, exceptWorkspaceId),
+            isNull(workspaces.archivedAt),
+          ),
+        )
+      return row?.n ?? 0
+    },
+    async remove(organizationId, workspaceId, userId) {
+      const removed = await db
+        .delete(workspaceMembers)
+        .where(memberOf(organizationId, workspaceId, userId))
+        .returning({ userId: workspaceMembers.userId })
+      return removed.length > 0
     },
   }
 }

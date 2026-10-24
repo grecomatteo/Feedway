@@ -270,7 +270,33 @@ export interface WorkspacesRepository {
   /** Archived ones included (they stay readable); a Member sees only their own. */
   listVisible(actor: OrgActor): Promise<WorkspaceRecord[]>
   findVisibleById(actor: OrgActor, id: string): Promise<WorkspaceRecord | null>
+  /**
+   * Same, and locks the row until the transaction ends: changes to one workspace and to its
+   * members go one at a time, so the checks on it hold until the commit.
+   */
+  findVisibleByIdForUpdate(actor: OrgActor, id: string): Promise<WorkspaceRecord | null>
+  /**
+   * One workspace of the agency, for an activation that adds its invited roles: shares the row
+   * lock with the changes above, so an archiving that commits first is seen.
+   */
+  findForShare(organizationId: string, id: string): Promise<WorkspaceRecord | null>
   countActive(organizationId: string): Promise<number>
+  /** Archived workspaces keep their slug. */
+  slugExists(organizationId: string, slug: string): Promise<boolean>
+  /**
+   * New workspaces of one agency go one at a time until the transaction ends, so two of them
+   * cannot both take the last slot or the same slug.
+   */
+  lockCreation(organizationId: string): Promise<void>
+  create(workspace: {
+    id: string
+    organizationId: string
+    name: string
+    slug: string
+  }): Promise<WorkspaceRecord>
+  rename(organizationId: string, id: string, name: string): Promise<void>
+  /** false: already archived. */
+  archive(organizationId: string, id: string, at: Date): Promise<boolean>
 }
 
 export interface WorkspaceMembershipRecord {
@@ -292,6 +318,40 @@ export interface WorkspaceMembersRepository {
     userId: string
     role: WorkspaceRole
   }): Promise<void>
+  /** The members of one workspace with their role. */
+  listForWorkspace(
+    organizationId: string,
+    workspaceId: string,
+  ): Promise<{ userId: string; role: WorkspaceRole }[]>
+  /** The user's role in the workspace, locking the row until the transaction ends. */
+  findForUpdate(
+    organizationId: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<WorkspaceRole | null>
+  /** false: the user already has a role there. */
+  add(member: {
+    organizationId: string
+    workspaceId: string
+    userId: string
+    role: WorkspaceRole
+  }): Promise<boolean>
+  /** Changes the role only if it is still `from`; false otherwise (a concurrent change). */
+  setRole(
+    organizationId: string,
+    workspaceId: string,
+    userId: string,
+    from: WorkspaceRole,
+    to: WorkspaceRole,
+  ): Promise<boolean>
+  /** The user's roles in workspaces of the agency that are not archived, except `exceptWorkspaceId`. */
+  countInActiveWorkspaces(
+    organizationId: string,
+    userId: string,
+    exceptWorkspaceId: string,
+  ): Promise<number>
+  /** false: the user had no role there. */
+  remove(organizationId: string, workspaceId: string, userId: string): Promise<boolean>
 }
 
 /** Platform-wide settings (`settings` table), outside any agency. */
