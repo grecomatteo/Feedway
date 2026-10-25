@@ -148,15 +148,19 @@ function rawRequest(
   })
 }
 
+/** One piece over the 1 MiB body limit of the server. */
+const OVER_BODY_LIMIT = 1024 * 1024 + 64 * 1024
+
 /**
- * A chunked upload of `totalBytes`, written piece by piece until the server answers. The server
- * answers 413 and closes the connection before the body ends, so a write error after that point
- * is expected and must not fail the test.
+ * A chunked upload of `sendBytes` that stops writing without ending the body, then waits for the
+ * answer. The server reads every byte sent before it refuses, so it closes without unread data
+ * (which would reset the connection and could lose the 413). If no answer comes, the body is ended
+ * and whatever the server then answers is returned: a limit that was not enforced shows up there.
  */
 function chunkedUpload(
   path: string,
   contentType: string,
-  totalBytes: number,
+  sendBytes: number,
 ): Promise<{ status: number }> {
   const { hostname, port } = new URL(web.url('/'))
   const piece = Buffer.alloc(64 * 1024, 97)
@@ -186,14 +190,16 @@ function chunkedUpload(
     })
     let sent = 0
     const writeMore = (): void => {
-      while (!answered && !req.destroyed && sent < totalBytes) {
+      while (sent < sendBytes) {
         sent += piece.length
         if (!req.write(piece)) {
           req.once('drain', writeMore)
           return
         }
       }
-      if (!answered && !req.destroyed) req.end()
+      setTimeout(() => {
+        if (!answered && !req.destroyed) req.end()
+      }, 3000)
     }
     writeMore()
   })
@@ -516,7 +522,7 @@ describe('request validation', () => {
 
   test('a chunked body over the server limit is refused before it is all read', async () => {
     for (const path of ['/api/v1/security/lock', '/']) {
-      const r = await chunkedUpload(path, 'application/json', 2 * 1024 * 1024)
+      const r = await chunkedUpload(path, 'application/json', OVER_BODY_LIMIT)
       expect(r.status, path).toBe(413)
     }
   })
@@ -526,7 +532,7 @@ describe('request validation', () => {
       const r = await chunkedUpload(
         path,
         'application/json; x=multipart/form-data',
-        5 * 1024 * 1024,
+        OVER_BODY_LIMIT,
       )
       expect(r.status, path).toBe(413)
     }
