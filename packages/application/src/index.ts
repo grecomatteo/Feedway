@@ -23,8 +23,15 @@ export type { PasswordHasher } from './ports/password-hasher.js'
 export type { SignedTokenPurpose, SignedTokens, TokenService } from './ports/token-service.js'
 export type { OrganizationKeyRecord, OrganizationKeysRepository, Tx } from './ports/tx.js'
 export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
-export { AUDIT_ACTIONS, isPersonalAuditAction } from './ports/audit-log.js'
-export type { AuditAction, AuditEntry, AuditLog, AuditSource } from './ports/audit-log.js'
+export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'
+export type {
+  AuditAction,
+  AuditEntry,
+  AuditLog,
+  AuditQuery,
+  AuditRecord,
+  AuditSource,
+} from './ports/audit-log.js'
 export type {
   CredentialsRepository,
   KnownDevicesRepository,
@@ -48,6 +55,7 @@ export type {
   WorkspaceRecord,
   WorkspacesRepository,
 } from './ports/repositories.js'
+export * from './audit/index.js'
 export * from './identity/index.js'
 export * from './organizations/index.js'
 export * from './platform/index.js'

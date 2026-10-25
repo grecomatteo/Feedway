@@ -31,7 +31,10 @@ export interface WorkspaceMemberDto {
   displayName: string
   avatarUrl: string | null
   role: WorkspaceRole
-  /** Disabled in this agency, or on the whole platform, or anonymized (as in `listMembers`). */
+  /**
+   * Disabled in this agency, or on the whole platform, or anonymized (as in `listMembers`).
+   * Only those who manage the workspace's members get disabled rows.
+   */
   status: 'active' | 'disabled'
 }
 
@@ -53,8 +56,9 @@ const archivedConflict = () =>
   new DomainError('CONFLICT', 'Lo spazio è archiviato: non si può modificare')
 
 /**
- * Owner and Admin, and the workspace's Managers with roles below their own (spec §10.2, the
- * matrix of Task 2). A workspace the actor does not see is not found.
+ * Everyone in the workspace sees who works in it (decision of Matteo, 2026-10-25): Owner and
+ * Admin, and every role of that workspace. A workspace the actor does not see is not found.
+ * Only those who manage its members also see the disabled ones, with their status.
  */
 export async function listWorkspaceMembers(
   deps: Pick<WorkspacesDeps, 'uow'>,
@@ -64,10 +68,13 @@ export async function listWorkspaceMembers(
   if (!isUuid(workspaceId)) throw workspaceNotFound()
   const { organizationId } = actor
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const workspace = await tx.workspaces.findVisibleById(actor, workspaceId)
-    if (!workspace) throw workspaceNotFound()
-    if (!can(actor, 'workspace.members.manage', { organizationId, workspaceId }))
-      throw cannotManageMembers()
+    // visibility depends on the actor's workspace roles: read them as the database has them now
+    const current = await currentActor(tx, actor)
+    await assertActiveOrganization(tx, organizationId)
+    const workspace = await tx.workspaces.findVisibleById(current, workspaceId)
+    if (!workspace || (!seesAllWorkspaces(current) && !current.memberships.has(workspaceId)))
+      throw workspaceNotFound()
+    const manages = can(current, 'workspace.members.manage', { organizationId, workspaceId })
     const members = await tx.workspaceMembers.listForWorkspace(organizationId, workspaceId)
     const agency = new Map(
       (await tx.orgMembers.listForOrganization(organizationId)).map((m) => [m.userId, m.status]),
@@ -79,18 +86,18 @@ export async function listWorkspaceMembers(
     return members.flatMap((m) => {
       const user = people.get(m.userId)
       if (!user) return []
+      const status =
+        agency.get(m.userId) === 'active' && user.status === 'active' && user.anonymizedAt === null
+          ? ('active' as const)
+          : ('disabled' as const)
+      if (status === 'disabled' && !manages) return []
       return [
         {
           userId: m.userId,
           displayName: displayName(user),
           avatarUrl: avatarUrl(user.id, user.avatarKey),
           role: m.role,
-          status:
-            agency.get(m.userId) === 'active' &&
-            user.status === 'active' &&
-            user.anonymizedAt === null
-              ? ('active' as const)
-              : ('disabled' as const),
+          status,
         },
       ]
     })

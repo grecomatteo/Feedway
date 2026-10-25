@@ -44,7 +44,9 @@ export const AUDIT_ACTIONS = [
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
-export type AuditSource = 'panel' | 'api' | 'mcp' | 'system'
+export const AUDIT_SOURCES = ['panel', 'api', 'mcp', 'system'] as const
+
+export type AuditSource = (typeof AUDIT_SOURCES)[number]
 
 export interface AuditEntry {
   /** null: a personal entry of the actor, or a platform entry. */
@@ -69,7 +71,40 @@ export function isPersonalAuditAction(action: AuditAction): boolean {
   )
 }
 
+/** An agency's entry as stored; `position` is `createdAt` to the microsecond, in UTC. */
+export interface AuditRecord {
+  id: string
+  organizationId: string
+  actorId: string | null
+  source: AuditSource
+  action: AuditAction
+  entity: string | null
+  entityId: string | null
+  workspaceId: string | null
+  data: Record<string, unknown>
+  createdAt: Date
+  /** `YYYY-MM-DDTHH:MM:SS.ffffffZ`: a JavaScript date would round the microseconds away. */
+  position: string
+}
+
+export interface AuditQuery {
+  organizationId: string
+  workspaceId?: string
+  actorId?: string
+  action?: AuditAction
+  source?: AuditSource
+  /** Inclusive. */
+  from?: Date
+  /** Exclusive. */
+  to?: Date
+  /** Entries strictly older than this one, in (created_at, id) order. */
+  after?: { position: string; id: string }
+  limit: number
+}
+
 /** Append-only; an entry is written in the same transaction as the change it describes. */
 export interface AuditLog {
   record(entry: AuditEntry): Promise<void>
+  /** Entries of one agency only (never those without one), newest first, ties broken by id. */
+  listForOrganization(query: AuditQuery): Promise<AuditRecord[]>
 }
