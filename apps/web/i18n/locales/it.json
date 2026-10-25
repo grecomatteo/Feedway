@@ -15,6 +15,69 @@
   "a11y": {
     "skipToContent": "Vai al contenuto"
   },
+  "errors": {
+    "UNAUTHENTICATED": "Sessione scaduta: accedi di nuovo.",
+    "FORBIDDEN": "Non hai i permessi per questa operazione.",
+    "REAUTH_REQUIRED": "Conferma la tua identità per continuare.",
+    "SECOND_FACTOR_REQUIRED": "Configura prima una passkey o l'app di autenticazione.",
+    "ORGANIZATION_SUSPENDED": "Questa agenzia è sospesa.",
+    "NOT_FOUND": "Non trovato.",
+    "CONFLICT": "Qualcosa è cambiato nel frattempo: ricarica e riprova.",
+    "LIMIT_REACHED": "L'agenzia ha raggiunto uno dei suoi limiti.",
+    "SOLE_OWNER": "L'Owner è l'unico proprietario dell'agenzia: passa prima la proprietà.",
+    "MAIL_NOT_CONFIGURED": "L'invio delle email non è ancora configurato.",
+    "LINK_INVALID": "Il link non è valido o è scaduto: chiedine uno nuovo.",
+    "FILE_TOO_LARGE": "Il file è troppo grande.",
+    "UNSUPPORTED_FILE_TYPE": "Questo tipo di file non è supportato.",
+    "VALIDATION": "Controlla i dati inseriti.",
+    "RATE_LIMITED": "Troppi tentativi. Riprova tra poco.",
+    "BAD_REQUEST": "Richiesta non valida.",
+    "REQUEST_TOO_LARGE": "La richiesta è troppo grande.",
+    "UNSUPPORTED_MEDIA_TYPE": "Formato della richiesta non supportato.",
+    "INTERNAL": "Si è verificato un errore. Riprova; se continua, comunica questo codice."
+  },
+  "errorReasons": {
+    "use_existing_factor": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella."
+  },
+  "errorDetails": {
+    "csrf": "Richiesta non consentita.",
+    "issues": {
+      "required": "Campo obbligatorio.",
+      "invalid": "Valore non valido.",
+      "tooShort": "Valore troppo corto.",
+      "tooLong": "Valore troppo lungo.",
+      "tooSmall": "Valore troppo piccolo.",
+      "tooBig": "Valore troppo grande.",
+      "unknownKey": "Campo non previsto.",
+      "missingBody": "Manca il corpo della richiesta."
+    }
+  },
+  "errorPage": {
+    "statusLabel": "Errore {status}",
+    "notFound": {
+      "title": "Pagina non trovata",
+      "description": "L'indirizzo potrebbe essere sbagliato, oppure la pagina è stata spostata o non esiste più."
+    },
+    "forbidden": {
+      "title": "Non hai accesso",
+      "description": "Questa pagina non è disponibile con il tuo account. Se pensi che sia un errore, chiedi a un Owner o a un Admin della tua agenzia."
+    },
+    "unauthenticated": {
+      "title": "Sessione scaduta",
+      "description": "Per sicurezza ti abbiamo fatto uscire. Accedi di nuovo per continuare."
+    },
+    "rateLimited": {
+      "title": "Troppe richieste",
+      "description": "Hai fatto molte richieste in poco tempo. Aspetta qualche istante e riprova."
+    },
+    "generic": {
+      "title": "Qualcosa è andato storto",
+      "description": "Non è colpa tua: abbiamo registrato il problema. Riprova tra poco; se continua, comunica all'assistenza il codice qui sotto."
+    },
+    "requestId": "Codice per l'assistenza",
+    "home": "Torna alla home",
+    "signIn": "Accedi"
+  },
   "email": {
     "security": {
       "unknownIp": "non disponibile",

@@ -5,6 +5,8 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   modules: ['@nuxt/ui', '@nuxtjs/i18n', 'nuxt-security'],
   css: ['~/assets/main.css'],
+  // on every page, the error page included (it replaces app.vue)
+  app: { head: { htmlAttrs: { lang: 'it' } } },
   colorMode: {
     preference: 'system',
     fallback: 'light',
@@ -27,10 +29,13 @@ export default defineNuxtConfig({
   },
   security: {
     nonce: true,
-    // HSTS depends on PANEL_URL, which is only known at runtime: see server/middleware/01.hsts.ts
-    strictTransportSecurity: false,
-    xFrameOptions: false,
+    // same origin only: no cross-origin reader is ever allowed (the default allowed the build
+    // machine's dev URL)
+    corsHandler: false,
     headers: {
+      // HSTS depends on PANEL_URL, which is only known at runtime: see server/middleware/01.hsts.ts
+      strictTransportSecurity: false,
+      xFrameOptions: 'DENY',
       contentSecurityPolicy: {
         'default-src': ["'self'"],
         'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],

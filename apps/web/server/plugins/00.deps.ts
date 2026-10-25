@@ -60,19 +60,26 @@ export default defineNitroPlugin((nitroApp) => {
     process.exit(1)
   })
 
-  nitroApp.hooks.hook('afterResponse', (event) => {
-    const { logger } = useDeps()
-    const requestId = event.context['requestId'] as string | undefined
-    const started = event.context['startedAt'] as number | undefined
-    logger.info(
-      {
-        requestId,
-        method: event.method,
-        path: event.path.split('?')[0],
-        status: event.node.res.statusCode,
-        durationMs: started === undefined ? undefined : Date.now() - started,
-      },
-      'request',
-    )
+  // one line per request when its answer is done, errors and abandoned requests included
+  // (h3's afterResponse skips answers written by the error handler)
+  nitroApp.hooks.hook('request', (event) => {
+    // the inner render of the error page (server/error.ts) belongs to the request already logged
+    const internal = (event.node.req as { __unenv__?: unknown }).__unenv__ !== undefined
+    if (internal && event.path.startsWith('/__nuxt_error')) return
+    event.node.res.once('close', () => {
+      const started = event.context['startedAt'] as number | undefined
+      // a request answered before startup finished has no logger yet
+      if (event.context.requestId === undefined) return
+      useDeps().logger.info(
+        {
+          requestId: event.context.requestId,
+          method: event.method,
+          path: event.path.split('?')[0],
+          status: event.node.res.statusCode,
+          durationMs: started === undefined ? undefined : Date.now() - started,
+        },
+        'request',
+      )
+    })
   })
 })

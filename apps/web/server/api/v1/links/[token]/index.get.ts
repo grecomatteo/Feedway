@@ -1,14 +1,9 @@
 import { describeLink } from '@app/application'
+import { describeLinkRoute } from '@app/contracts'
 
-// Public: what the activation page shows before the form (Task 12). Task 19 moves these routes
-// to defineApiRoute and the shared error mapping.
-export default defineEventHandler(async (event) => {
-  const limited = await limitLinkRoutes(event)
-  if (limited) return limited
-  const token = getRouterParam(event, 'token') ?? ''
-  try {
-    return await describeLink(identityDeps(useDeps()), { token })
-  } catch (error) {
-    return linkDomainError(event, error)
-  }
-})
+// Public: what the activation page shows before the form (Task 12).
+export default defineApiRoute(
+  describeLinkRoute,
+  ({ params }) => describeLink(identityDeps(useDeps()), { token: params.token }),
+  { rateLimit: LINKS_RATE_LIMIT },
+)

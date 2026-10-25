@@ -29,8 +29,14 @@ export interface PasskeySummary {
  * tasks (password checks, second factor, reset links) are added with their tasks.
  */
 export interface Auth {
-  /** Null for a missing, revoked or expired session (12 h idle, or 30 days from creation). */
-  getSession(headers: Headers): Promise<{ session: AuthSessionInfo; userId: string } | null>
+  /**
+   * Null for a missing, revoked or expired session (12 h idle, or 30 days from creation).
+   * `setCookie`: the renewed session cookie when the read extended the session; the caller
+   * forwards it, or the browser would drop the cookie 12 hours after the sign-in.
+   */
+  getSession(
+    headers: Headers,
+  ): Promise<{ session: AuthSessionInfo; userId: string; setCookie: string[] } | null>
   /** Only for the catch-all route `/api/auth/[...all]`. */
   handler(request: Request): Promise<Response>
   listSessions(userId: string): Promise<AuthSessionInfo[]>

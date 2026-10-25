@@ -1,29 +1,18 @@
 import { activateAccount } from '@app/application'
-import { z } from 'zod'
+import { activateLinkRoute } from '@app/contracts'
 
-// an existing account sends nothing: the invite never changes its name or credentials
-const Body = z.object({
-  name: z.string().max(400).default(''),
-  nickname: z.string().max(400).nullable().default(null),
-  password: z.string().max(1024).nullable().default(null),
-})
-
-export default defineEventHandler(async (event) => {
-  const limited = await limitLinkRoutes(event)
-  if (limited) return limited
-  const body = Body.safeParse(await readBody(event).catch(() => null))
-  if (!body.success) return linkError(event, 422, 'VALIDATION', 'Richiesta non valida.')
-  try {
+export default defineApiRoute(
+  activateLinkRoute,
+  async ({ event, params, body, session, ip, userAgent }) => {
     const result = await activateAccount(identityDeps(useDeps()), {
-      token: getRouterParam(event, 'token') ?? '',
-      ...body.data,
-      ip: getRequestHeader(event, 'x-app-client-ip') ?? null,
-      userAgent: getRequestHeader(event, 'user-agent') ?? null,
-      sessionUserId: await sessionUserId(event),
+      token: params.token,
+      ...body,
+      ip,
+      userAgent,
+      sessionUserId: session?.user.id ?? null,
     })
     for (const cookie of result.setCookie) appendResponseHeader(event, 'set-cookie', cookie)
     return { organizationSlug: result.organizationSlug, next: result.next }
-  } catch (error) {
-    return linkDomainError(event, error)
-  }
-})
+  },
+  { rateLimit: LINKS_RATE_LIMIT },
+)

@@ -33,6 +33,8 @@ function freePort(): Promise<number> {
 
 export interface RunningWeb {
   url(path: string): string
+  /** Everything the server wrote so far (its log lines), also echoed to this process. */
+  output(): string
   stop(): Promise<void>
 }
 
@@ -49,8 +51,24 @@ export async function startWeb(env: Record<string, string>): Promise<RunningWeb>
   const port = await freePort()
   const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
     cwd: webDir,
-    env: { ...process.env, NODE_ENV: 'test', PORT: String(port), HOST: '127.0.0.1', ...env },
-    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      APP_TEST_ROUTES: '1',
+      PORT: String(port),
+      HOST: '127.0.0.1',
+      ...env,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = ''
+  child.stdout?.on('data', (chunk: Buffer) => {
+    output += chunk.toString('utf8')
+    process.stdout.write(chunk)
+  })
+  child.stderr?.on('data', (chunk: Buffer) => {
+    output += chunk.toString('utf8')
+    process.stderr.write(chunk)
   })
   const base = `http://127.0.0.1:${String(port)}`
   await waitFor(
@@ -63,6 +81,7 @@ export async function startWeb(env: Record<string, string>): Promise<RunningWeb>
   )
   return {
     url: (path) => `${base}${path}`,
+    output: () => output,
     stop() {
       return new Promise((resolve) => {
         child.once('exit', () => {
@@ -73,3 +92,38 @@ export async function startWeb(env: Record<string, string>): Promise<RunningWeb>
     },
   }
 }
+
+export interface CallOptions {
+  cookie?: string | undefined
+  origin?: string
+  omitAppHeader?: boolean
+  headers?: Record<string, string>
+}
+
+/** Requests as the panel sends them: its origin and the `X-App-Request` header, unless told otherwise. */
+export function panelClient(web: RunningWeb, panel: string) {
+  return function call(
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown,
+    opts: CallOptions = {},
+  ): Promise<Response> {
+    const headers: Record<string, string> = { origin: opts.origin ?? panel, ...opts.headers }
+    if (!opts.omitAppHeader) headers['x-app-request'] = '1'
+    if (body !== undefined) headers['content-type'] ??= 'application/json'
+    if (opts.cookie !== undefined) headers['cookie'] = opts.cookie
+    return fetch(web.url(path), {
+      method,
+      headers,
+      body: body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body),
+      redirect: 'manual',
+    })
+  }
+}
+
+/** `name=value` of the session cookie a response sets, if any. */
+export const sessionCookieOf = (r: Response) =>
+  r.headers
+    .getSetCookie()
+    .find((c) => c.startsWith('__Host-session='))
+    ?.split(';')[0]

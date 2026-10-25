@@ -115,7 +115,7 @@ test('a weak password answers 422 with the field, an unknown link 410', async ()
   })
   expect(weak.status).toBe(422)
   expect(await weak.json()).toMatchObject({
-    error: { code: 'VALIDATION', details: { field: 'password' } },
+    error: { code: 'VALIDATION', issues: [{ path: ['password'] }] },
   })
   expect((await call('GET', '/api/v1/links/sconosciuto')).status).toBe(410)
 })

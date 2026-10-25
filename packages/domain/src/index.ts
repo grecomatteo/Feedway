@@ -1,4 +1,4 @@
-export { DomainError } from './errors.js'
+export { DOMAIN_ERROR_CODES, DomainError } from './errors.js'
 export type { DomainErrorCode } from './errors.js'
 export * from './authz/index.js'
 export * from './identity/index.js'

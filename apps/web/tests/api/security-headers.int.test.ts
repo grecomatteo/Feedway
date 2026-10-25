@@ -34,7 +34,23 @@ test('security headers are present', async () => {
   expect(r.headers.get('permissions-policy')).toContain('camera=()')
 })
 
-test('hsts is sent when the panel url is https', async () => {
-  const r = await fetch(web.url('/api/health'))
-  expect(r.headers.get('strict-transport-security')).toContain('max-age=31536000')
+test('hsts is sent when the panel url is https, once and with our value', async () => {
+  for (const path of ['/api/health', '/']) {
+    const r = await fetch(web.url(path))
+    expect(r.headers.get('strict-transport-security'), path).toBe(
+      'max-age=31536000; includeSubDomains',
+    )
+  }
+})
+
+test('pages cannot be framed and no origin may read them', async () => {
+  const r = await fetch(web.url('/'), { headers: { origin: 'http://localhost:3000' } })
+  expect(r.headers.get('x-frame-options')).toBe('DENY')
+  expect(r.headers.get('access-control-allow-origin')).toBeNull()
+  const preflight = await fetch(web.url('/api/v1/security/lock'), {
+    method: 'OPTIONS',
+    headers: { origin: 'http://localhost:3000', 'access-control-request-method': 'POST' },
+  })
+  expect(preflight.headers.get('access-control-allow-origin')).toBeNull()
+  expect(preflight.headers.get('access-control-allow-methods')).toBeNull()
 })

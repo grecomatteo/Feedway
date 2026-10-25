@@ -185,3 +185,23 @@ test('the first agency is called "La mia agenzia" unless named', () => {
     problem: 'da 2 a 80 caratteri',
   })
 })
+
+test('test-only routes are off by default and allowed only with NODE_ENV=test', () => {
+  expect(loadConfig('web', validWebEnv).testRoutes).toBe(false)
+  expect(
+    loadConfig('web', { ...validWebEnv, NODE_ENV: 'test', APP_TEST_ROUTES: '1' }).testRoutes,
+  ).toBe(true)
+  for (const NODE_ENV of ['production', 'development', undefined])
+    expect(
+      issuesOf({
+        ...validWebEnv,
+        NODE_ENV,
+        PANEL_URL: 'https://pannello.example',
+        APP_TEST_ROUTES: '1',
+      }),
+      String(NODE_ENV),
+    ).toEqual([expect.objectContaining({ variable: 'APP_TEST_ROUTES' })])
+  expect(issuesOf({ ...validWebEnv, NODE_ENV: 'test', APP_TEST_ROUTES: 'yes' })).toEqual([
+    expect.objectContaining({ variable: 'APP_TEST_ROUTES' }),
+  ])
+})
