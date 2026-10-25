@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // apps/web/tsconfig.json only references files that `nuxt prepare` generates, and the
+        // unit job does not run it: every package tsconfig extends the base without changing
+        // what the transform reads, so the base is used for all unit files
+        tsconfig: './tsconfig.base.json',
         test: {
           name: 'unit',
           include: ['{apps,packages,tools}/**/*.test.ts'],
