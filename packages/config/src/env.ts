@@ -53,6 +53,7 @@ const RESOLVABLE = [
   'DATABASE_RUNTIME_ROLE',
   'WORKER_QUEUES',
   'NODE_ENV',
+  'APP_TEST_ROUTES',
 ] as const
 
 type Raw = Partial<Record<(typeof RESOLVABLE)[number], string>>
@@ -140,9 +141,18 @@ const appSchema = z
     SENTRY_DSN: optional(url),
     LOG_LEVEL: withDefault(z.enum(LOG_LEVELS), 'info'),
     WORKER_QUEUES: withDefault(z.string(), 'all'),
+    APP_TEST_ROUTES: withDefault(z.enum(['0', '1'], { error: 'deve essere 0 o 1' }), '0'),
   })
   .check((ctx) => {
-    const { NODE_ENV, PANEL_URL } = ctx.value
+    const { NODE_ENV, PANEL_URL, APP_TEST_ROUTES } = ctx.value
+    // routes that fail on purpose or expose internals: never outside the automated tests
+    if (APP_TEST_ROUTES === '1' && NODE_ENV !== 'test')
+      ctx.issues.push({
+        code: 'custom',
+        input: APP_TEST_ROUTES,
+        path: ['APP_TEST_ROUTES'],
+        message: 'ammessa solo con NODE_ENV=test',
+      })
     if (NODE_ENV !== 'production') return
     const parsed = URL.canParse(PANEL_URL) ? new URL(PANEL_URL) : null
     if (parsed && parsed.protocol !== 'https:' && !isLocalHost(parsed)) {
@@ -179,6 +189,8 @@ export interface AppConfig {
   sentryDsn: string | null
   logLevel: (typeof LOG_LEVELS)[number]
   workerQueues: 'all' | readonly string[]
+  /** The `__test` routes of the web role (APP_TEST_ROUTES=1, only with NODE_ENV=test). */
+  testRoutes: boolean
   /** Required for the web role, null for the worker. */
   betterAuth: BetterAuthSecrets | null
 }
@@ -298,6 +310,7 @@ export function loadConfig(
     bootstrapOwnerEmail: v.BOOTSTRAP_OWNER_EMAIL ?? null,
     bootstrapOrganizationName: v.BOOTSTRAP_ORGANIZATION_NAME,
     sentryDsn: v.SENTRY_DSN ?? null,
+    testRoutes: v.APP_TEST_ROUTES === '1',
     logLevel: v.LOG_LEVEL,
     workerQueues,
     betterAuth,

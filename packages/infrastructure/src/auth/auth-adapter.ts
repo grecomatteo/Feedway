@@ -30,7 +30,10 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
 
   return {
     async getSession(headers) {
-      const result = await instance.api.getSession({ headers })
+      const { response: result, headers: answer } = await instance.api.getSession({
+        headers,
+        returnHeaders: true,
+      })
       if (!result) return null
       const [row] = await db.select().from(sessions).where(eq(sessions.id, result.session.id))
       if (!row) return null
@@ -39,7 +42,7 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         await remove(row.id)
         return null
       }
-      return { session: toSessionInfo(row), userId: row.userId }
+      return { session: toSessionInfo(row), userId: row.userId, setCookie: answer.getSetCookie() }
     },
 
     handler(request) {

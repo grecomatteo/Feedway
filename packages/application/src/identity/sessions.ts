@@ -37,6 +37,8 @@ export interface ResolvedSession {
   user: SessionUser
   session: AuthSessionInfo
   state: SessionState
+  /** The renewed session cookie, to forward with the answer (see `Auth.getSession`). */
+  setCookie: string[]
 }
 
 /** What `resolveSessionUser` needs: also built for the Better Auth hooks, which have no `Auth`. */
@@ -60,7 +62,7 @@ export async function resolveSession(
     await deps.auth.revokeAllSessions(found.userId)
     return null
   }
-  return { session: found.session, ...resolved }
+  return { session: found.session, setCookie: found.setCookie, ...resolved }
 }
 
 /**

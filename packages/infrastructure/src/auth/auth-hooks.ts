@@ -58,15 +58,15 @@ export const ALLOWED_PATHS: ReadonlySet<string> = new Set([
 ])
 
 /** Which sign-in path gives a new session its method (V9). */
-const METHOD_BY_PATH: Readonly<Record<string, AuthMethod>> = {
-  '/sign-in/email': 'password',
-  '/two-factor/verify-totp': 'password_totp',
-  '/two-factor/verify-backup-code': 'password_backup_code',
-  '/passkey/verify-authentication': 'passkey',
-}
+const METHOD_BY_PATH: ReadonlyMap<string, AuthMethod> = new Map<string, AuthMethod>([
+  ['/sign-in/email', 'password'],
+  ['/two-factor/verify-totp', 'password_totp'],
+  ['/two-factor/verify-backup-code', 'password_backup_code'],
+  ['/passkey/verify-authentication', 'passkey'],
+])
 
 export function authMethodForPath(path: string | undefined): AuthMethod | undefined {
-  return path === undefined ? undefined : METHOD_BY_PATH[path]
+  return path === undefined ? undefined : METHOD_BY_PATH.get(path)
 }
 
 /** The panel page a reset link lands on, with `?token=…` (Task 22). */
@@ -274,6 +274,17 @@ const ACCOUNT_PATHS: ReadonlySet<string> = new Set([
   '/passkey/update-passkey',
   '/passkey/delete-passkey',
 ])
+
+/**
+ * Account paths the request middleware also gates for a session that owes the second factor
+ * (Task 19), with the panel's error body. The code checks are left to this hook alone: with
+ * the 2FA cookie of a sign-in they are not account paths, and only the hook can tell.
+ * `path` is relative to `/api/auth`; a query or a trailing slash does not change it.
+ */
+export function isSecondFactorGatedAuthPath(path: string): boolean {
+  const bare = (path.split('?')[0] ?? '').replace(/\/+$/, '')
+  return ACCOUNT_PATHS.has(bare) && !SECOND_FACTOR_PROOFS.has(bare)
+}
 
 /** Paths that check a code: a sign-in with the 2FA cookie, or an enrolment over a session. */
 const SECOND_FACTOR_PROOFS: ReadonlySet<string> = new Set([
@@ -512,7 +523,7 @@ async function eventFor(
   const ip = header(request, 'x-app-client-ip')
   const userAgent = header(request, 'user-agent')
 
-  if (METHOD_BY_PATH[path] !== undefined) {
+  if (METHOD_BY_PATH.has(path)) {
     if (failed) {
       if (path === '/sign-in/email') {
         const email = (ctx.body as Record<string, unknown> | undefined)?.['email']
