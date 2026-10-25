@@ -1,4 +1,12 @@
-export { archiveWorkspace, createWorkspace, listWorkspaces, renameWorkspace } from './workspaces.js'
+export {
+  archiveWorkspace,
+  assertActiveOrganization,
+  createWorkspace,
+  currentActor,
+  listWorkspaces,
+  renameWorkspace,
+  workspaceNotFound,
+} from './workspaces.js'
 export type { WorkspaceDto, WorkspacesDeps } from './workspaces.js'
 export {
   addWorkspaceMember,

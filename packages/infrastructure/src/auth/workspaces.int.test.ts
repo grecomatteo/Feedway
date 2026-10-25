@@ -421,6 +421,9 @@ describe('workspaces', () => {
     await expect(
       addWorkspaceMember(deps, owner, fresh(owner), member(w.w1, w.loose.id, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'ORGANIZATION_SUSPENDED' })
+    await expect(listWorkspaceMembers(deps, owner, w.w1)).rejects.toMatchObject({
+      code: 'ORGANIZATION_SUSPENDED',
+    })
   })
 
   test('an admin demoted since the actor was built creates nothing', async () => {
@@ -538,10 +541,11 @@ describe('workspace members', () => {
         ),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     }
-    // a workspace they see but cannot manage: an editor does not list or change members
+    // a workspace they see but cannot manage: an editor lists the members but changes nothing
     const editor = await actorOf(w.editor.id, w.orgA)
-    await expect(listWorkspaceMembers(deps, editor, w.w1)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
+    await expect(listWorkspaceMembers(deps, editor, w.w1)).resolves.toHaveLength(2)
+    await expect(listWorkspaceMembers(deps, editor, w.w2)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
     })
     await expect(
       addWorkspaceMember(deps, editor, fresh(editor), member(w.w1, w.loose.id, 'viewer'), REQ),
@@ -967,6 +971,75 @@ describe('workspace members', () => {
     expect(inAgency).toMatchObject({ code: 'NOT_FOUND' })
     expect(stranger).toMatchObject({ code: 'NOT_FOUND' })
     expect(inAgency?.message).toBe(stranger?.message)
+  })
+
+  test('everyone in the workspace sees who works in it; only managers see disabled members', async () => {
+    const w = await world()
+    const publisher = await person('pubblicatore')
+    const viewer = await person('lettore')
+    await seed(tdb.runtimeUrl, async (s) => {
+      await s.member(w.orgA, publisher.id, 'member')
+      await s.workspaceMember(w.orgA, w.w1, publisher.id, 'publisher')
+      await s.member(w.orgA, viewer.id, 'member')
+      await s.workspaceMember(w.orgA, w.w1, viewer.id, 'viewer')
+    })
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await disableMember({ uow, clock: systemClock, auth }, owner, fresh(owner), viewer.id, REQ)
+    const active = [w.manager.id, w.editor.id, publisher.id].sort()
+    for (const id of [w.editor.id, publisher.id]) {
+      const list = await listWorkspaceMembers(deps, await actorOf(id, w.orgA), w.w1)
+      expect(list.map((m) => m.userId).sort()).toEqual(active)
+      expect(list.every((m) => m.status === 'active')).toBe(true)
+    }
+    for (const id of [w.manager.id, w.adminA.id, w.owner.id]) {
+      const list = await listWorkspaceMembers(deps, await actorOf(id, w.orgA), w.w1)
+      expect(list.find((m) => m.userId === viewer.id)).toMatchObject({ status: 'disabled' })
+      expect(list).toHaveLength(4)
+    }
+    // someone of the agency outside the workspace, and an owner of another agency
+    await expect(
+      listWorkspaceMembers(deps, await actorOf(w.loose.id, w.orgA), w.w1),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(
+      listWorkspaceMembers(deps, await actorOf(w.onlyB.id, w.orgB), w.w1),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  test('an actor taken out of the workspace or the agency since it was built lists nothing', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const editor = await actorOf(w.editor.id, w.orgA)
+    const manager = await actorOf(w.manager.id, w.orgA)
+    await removeWorkspaceMember(
+      deps,
+      owner,
+      fresh(owner),
+      { workspaceId: w.w1, userId: w.editor.id },
+      REQ,
+    )
+    await expect(listWorkspaceMembers(deps, editor, w.w1)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+    await disableMember({ uow, clock: systemClock, auth }, owner, fresh(owner), w.manager.id, REQ)
+    await expect(listWorkspaceMembers(deps, manager, w.w1)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+  })
+
+  test('an archived workspace stays readable: its manager and viewer still list its members', async () => {
+    const w = await world()
+    const viewer = await person('lettore')
+    await seed(tdb.runtimeUrl, async (s) => {
+      await s.member(w.orgA, viewer.id, 'member')
+      await s.workspaceMember(w.orgA, w.w1, viewer.id, 'viewer')
+    })
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await archiveWorkspace(deps, owner, w.w1, REQ)
+    const expected = [w.manager.id, w.editor.id, viewer.id].sort()
+    for (const id of [w.manager.id, viewer.id]) {
+      const list = await listWorkspaceMembers(deps, await actorOf(id, w.orgA), w.w1)
+      expect(list.map((m) => m.userId).sort()).toEqual(expected)
+    }
   })
 
   test('the member list shows no secrets and only this workspace', async () => {
