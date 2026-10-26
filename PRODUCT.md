@@ -16,8 +16,8 @@ Fonte: `design/brief-feedway/` (brief app 03, landing 04, decisioni 08) e il doc
 ## Vincoli durevoli
 
 - Tre livelli distinti: agenzia → cliente/spazio di lavoro → account social. Un post appartiene a un solo spazio e usa solo i suoi account.
-- Stessa caption e stesso contenuto su IG e FB; ruoli e permessi del v9 (Editor salva bozze, Viewer consulta).
-- Fuori dalla v1: analytics, inbox, approvazioni cliente, AI copy.
+- Stessi media su IG e FB, con caption comune e testo diverso facoltativo per piattaforma (deciso il 26 ottobre 2026); ruoli e permessi del v9 (Editor salva bozze, Viewer consulta).
+- Fuori dalla v1: analytics, inbox, AI copy. Approvazione dei post da parte del cliente nella 1.1, attivabile per cliente (deciso il 26 ottobre 2026).
 - Stack: Nuxt/Vue/TypeScript (vedi `docs/stack.md`).
 - Nome pubblico Feedway; OpenMeta resta il nome storico del documento originale. Nessuna rinomina tecnica di massa.
 

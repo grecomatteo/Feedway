@@ -79,7 +79,7 @@ Clic su post: dettaglio; azione Modifica: editor completo. Clic sul giorno o Nuo
 
 Pagina dedicata, non una finestra stretta per un flusso lungo. A sinistra il lavoro; a destra l'anteprima e il riepilogo controlli. Su un desktop 1440 px, partire indicativamente da editor 600–720 px e anteprima 320–380 px, poi verificare il bilancio con sidebar e margini reali. Sono ipotesi da misurare, non larghezze da imporre se non entrano.
 
-Ordine consigliato: cliente → account selezionati → tipo suggerito dai media → media e copertina → caption unica → quando → dettagli facoltativi. L'anteprima accompagna il lavoro. Etichette e note interne restano raggiungibili senza dominare la pagina. Gruppi di account, modelli e hashtag seguono il v9.
+Ordine consigliato: cliente → account selezionati → tipo suggerito dai media → media e copertina → caption comune, con testo diverso facoltativo per Instagram e Facebook (specifica §11.2) → quando → dettagli facoltativi. L'anteprima accompagna il lavoro. Etichette e note interne restano raggiungibili senza dominare la pagina. Gruppi di account, modelli e hashtag seguono il v9.
 
 Gli account si selezionano tramite righe con nome, handle, icona piattaforma e stato, raggruppate per Pagina collegata. La riga di avatar è solo un riepilogo; nomi e stato non possono esistere soltanto al passaggio del mouse. Nessun account di un altro cliente. «Seleziona tutti» è limitato al cliente corrente e agli account selezionabili.
 
@@ -95,7 +95,7 @@ Distinguere file salvati nella libreria da media temporanei del post, con conser
 
 ### F04 — Anteprima e controlli
 
-Schede di anteprima soltanto per le destinazioni pertinenti. Un selettore mostra account e piattaforma, non crea caption separate. Media, caption e formato sono quelli finali dopo le correzioni. Le miniature del calendario possono essere ritagliate per orientare; l'anteprima di pubblicazione deve rappresentare il ritaglio effettivo e dichiarare l'approssimazione.
+Schede di anteprima soltanto per le destinazioni pertinenti. Un selettore mostra account e piattaforma; l'anteprima usa il testo di quella piattaforma, se c'è, altrimenti quello comune. Media, caption e formato sono quelli finali dopo le correzioni. Le miniature del calendario possono essere ritagliate per orientare; l'anteprima di pubblicazione deve rappresentare il ritaglio effettivo e dichiarare l'approssimazione.
 
 Blocco: spiega perché non puoi programmare e come risolvere. Avviso: descrive la conseguenza e richiede una scelta secondo il v9. Correzione automatica: indica cosa cambia, con anteprima del risultato. Mai una schermata tutta verde se esiste una destinazione bloccata.
 

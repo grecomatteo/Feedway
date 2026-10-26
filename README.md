@@ -2,7 +2,7 @@
 
 Pannello self-hosted per programmare e pubblicare su **Instagram** e **Pagine Facebook** tramite le API ufficiali di Meta, pensato per agenzie che gestiscono molti clienti.
 
-- Foto, caroselli, reel e storie, con lo stesso contenuto su più account e controlli prima della pubblicazione.
+- Foto, caroselli, reel e storie, con gli stessi media su più account, caption adattabile per piattaforma e controlli prima della pubblicazione.
 - Calendario per cliente, programmazione in blocco, anteprima come su Meta, uso comodo da telefono (PWA).
 - Verifica dopo la pubblicazione e avvisi nel pannello, su Telegram e via email.
 - Più utenti con ruoli, più clienti, predisposto per più agenzie isolate tra loro.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, sito pubblico, strumenti di agenzia in 1.5 · **approvata da Matteo il 2026-10-15** |
+| **Stato** | v9 · multi-agenzia, moduli, account personale con Better Auth, sito pubblico, strumenti di agenzia in 1.5 · **approvata da Matteo il 2026-10-15** · aggiornata il 2026-10-26: caption per piattaforma nella 1.0, approvazione del cliente nella 1.1 |
 | **Data** | 2026-10-15 |
 | **Autore** | Claude, per Matteo |
 | **Prossimo passo** | Progetto grafico in Pencil e sviluppo a tappe (piani in `docs/superpowers/plans/`) |
@@ -57,7 +57,7 @@ Scelte tecniche chiave: TypeScript, Nuxt (pannello + API), worker Node separato,
 
 ### 2.1 Obiettivi
 
-1. Pubblicare e programmare su IG e FB tutti i formati (foto, carosello, reel, storia) da un'unica schermata, con lo **stesso contenuto identico** su tutte le destinazioni scelte.
+1. Pubblicare e programmare su IG e FB tutti i formati (foto, carosello, reel, storia) da un'unica schermata, con gli **stessi media** su tutte le destinazioni scelte e una caption comune che si può **adattare per piattaforma** (§11.2).
 2. Scoprire **prima** di programmare ogni problema prevedibile e proporre una soluzione.
 3. Sapere **sempre** se un post è uscito davvero, con notifiche ovunque.
 4. Lavorare in team con permessi chiari, e condividere il calendario con i clienti.
@@ -93,9 +93,9 @@ Scelte tecniche chiave: TypeScript, Nuxt (pannello + API), worker Node separato,
 
 ### 2.4 Fuori dalla prima versione
 
-Previsti nelle versioni successive (§18.2): primo commento automatico, post ricorrenti, webhook in uscita, commenti del team sui post, editor immagini di base, preset di pubblicazione, importazione da Google Drive e Canva, analisi dei concorrenti, modelli di report, altri social come moduli (§18.6), pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
+Previsti nelle versioni successive (§18.2): approvazione dei post da parte del cliente (1.1, §18.7), primo commento automatico, post ricorrenti, webhook in uscita, commenti del team sui post, editor immagini di base, preset di pubblicazione, importazione da Google Drive e Canva, analisi dei concorrenti, modelli di report, altri social come moduli (§18.6), pagina link in bio, statistiche e report, orario migliore per pubblicare, assistente AI per caption, server MCP, strumenti di agenzia (attività, to-do, schede cliente, §18.4).
 
-Esclusi: approvazione o commenti dei clienti (scelta tua: solo visione), modifica della caption dopo la pubblicazione (Instagram via API non lo consente), caption diverse per piattaforma, tag di persone/luoghi/prodotti, ruoli personalizzati dall'interfaccia, RSS che pubblica da solo, ritardi automatici tra post, azioni automatiche su like e commenti, dashboard delle campagne a pagamento, connettore per Data Studio. Registrazione libera di nuove agenzie, abbonamenti e login con Facebook sono nella versione 2.0 (§18.2).
+Esclusi: commenti liberi dei clienti fuori dall'approvazione, modifica della caption dopo la pubblicazione (Instagram via API non lo consente), tag di persone/luoghi/prodotti, ruoli personalizzati dall'interfaccia, RSS che pubblica da solo, ritardi automatici tra post, azioni automatiche su like e commenti, dashboard delle campagne a pagamento, connettore per Data Studio. Registrazione libera di nuove agenzie, abbonamenti e login con Facebook sono nella versione 2.0 (§18.2).
 
 ---
 
@@ -155,7 +155,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 |---|---|
 | RF-30 | Upload a pezzi con ripresa, anche da telefono. |
 | RF-31 | Analisi automatica dei file e correzioni (conversione HEIC/PNG, sRGB, EXIF, ricompressione, faststart). |
-| RF-32 | Tipi: foto, carosello (2–10), reel, storia, su IG e FB. Contenuto identico su tutte le destinazioni. |
+| RF-32 | Tipi: foto, carosello (2–10), reel, storia, su IG e FB. Stessi media su tutte le destinazioni; caption comune, con un testo diverso facoltativo per Instagram e per Facebook (§11.2). |
 | RF-33 | Controlli a tre livelli (blocco, avviso con scelta, correzione) con riepilogo per destinazione. |
 | RF-34 | Anteprima per piattaforma in stile Meta, con ritaglio reale e zone coperte dall'interfaccia. |
 | RF-35 | Bozze con salvataggio automatico; modifica e annullamento dei post programmati. |
@@ -554,7 +554,7 @@ Ogni passo salva gli ID ricevuti prima del successivo, così si riprende dal pun
 | **Storia foto** | `STORIES` | Storia foto |
 | **Storia video 3–60 s** | `STORIES` | Storia video |
 
-- Caption identica ovunque. Le storie non hanno caption: se ne scrivi una, un avviso dice che verrà ignorata.
+- Caption comune a tutte le destinazioni, con un testo diverso facoltativo per piattaforma (§11.2): ogni destinazione usa il testo della sua piattaforma, altrimenti quello comune. I controlli di §9.2 sulla caption valgono per il testo che ogni destinazione pubblicherà. Le storie non hanno caption: se ne scrivi una, un avviso dice che verrà ignorata.
 - **Reel nel feed**: di default il reel compare nella scheda Reels, nella griglia del profilo e nel feed dei follower (`share_to_feed=true`, come dall'app); disattivabile per post.
 
 ### 9.2 Controlli
@@ -596,7 +596,8 @@ Le regole stanno in `packages/domain/rules` e valgono ovunque: il pannello le us
 **Post**
 | Controllo | Livello |
 |---|---|
-| Caption oltre 2.200 caratteri, più di 30 hashtag o più di 20 menzioni | Blocco |
+| Caption Instagram oltre 2.200 caratteri, più di 30 hashtag o più di 20 menzioni | Blocco |
+| Caption Facebook oltre il limite della piattaforma (valore **da verificare** al primo contatto reale) | Blocco |
 | Carosello con meno di 2 o più di 10 elementi | Blocco |
 | Carosello misto con FB scelto | Avviso (§9.1) |
 | Post multi-foto FB oltre il limite di foto (da verificare) | Avviso |
@@ -606,7 +607,7 @@ Le regole stanno in `packages/domain/rules` e valgono ovunque: il pannello le us
 | Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante |
 | Quota IG: meno di 5 post rimasti nelle 24 h a quell'ora | Avviso |
 | Quota IG esaurita / più di 30 reel FB nelle 24 h | Blocco |
-| Stessi media e caption pubblicati sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati) |
+| Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati) |
 
 **Nel worker, prima di pubblicare**
 - Il file è raggiungibile dall'URL pubblico; altrimenti "Meta non riesce a scaricare il file: controlla tunnel e dominio".
@@ -655,7 +656,7 @@ Ogni lavoro ha una chiave di unicità (destinazione + passo). Modificare o annul
 
 - **Temporanei** (rete, 5xx, limiti di frequenza, video in elaborazione): nuovi tentativi dopo 1, 5 e 15 minuti dal passo fallito.
 - **Definitivi** (permessi, file rifiutato, duplicato, token non valido): `failed` con messaggio tradotto, nessun tentativo automatico.
-- **Incerti** (timeout sulla chiamata che pubblica): `unknown`; il worker cerca il post tra gli ultimi dell'account per caption e orario e lo segna `published` o `failed`. Così "Riprova" non crea doppioni.
+- **Incerti** (timeout sulla chiamata che pubblica): `unknown`; il worker cerca il post tra gli ultimi dell'account per caption (il testo di quella destinazione) e orario e lo segna `published` o `failed`. Così "Riprova" non crea doppioni.
 - **Container IG scaduti**: ricreati da capo.
 - Ogni tentativo è registrato in `target_attempts` (passo, esito, codice Meta, durata), senza dati sensibili.
 
@@ -793,7 +794,7 @@ Una sola pagina, su una colonna da telefono e su due da computer:
 2. **Tipo**, proposto in base ai file.
 3. **Media**: "Scegli file", trascinamento o "dalla libreria" (§11.1); un file trascinato sull'anteprima entra nel post e l'anteprima si aggiorna subito, con la barra di caricamento sulla miniatura. Ordine dei caroselli **trascinando le miniature**, anche nell'anteprima, con l'alternativa dei pulsanti "sposta prima/dopo" per tastiera e tocco. Anche il video del reel si può trascinare sull'area Media o sull'anteprima.
    - **Copertina del reel**, in due modi: **"Scegli un fotogramma"** con un cursore sul video (con le frecce della tastiera per spostarsi di un fotogramma), oppure **"Carica copertina"**, con "Scegli file" o trascinando un'immagine sull'area della copertina. L'anteprima mostra subito la copertina in 9:16 e nel ritaglio della griglia del profilo IG (§11.5); "Ripristina" torna al fotogramma predefinito. L'immagine caricata passa dai controlli di §9.2 (convertita in JPEG sRGB, proporzioni consigliate 9:16, 1080×1920). Su Instagram si usa `thumb_offset` per il fotogramma o `cover_url` per l'immagine (§8.5); per i reel Facebook il supporto della copertina tramite API è **da verificare** al primo contatto reale: finché non è verificato il riepilogo avvisa che su Facebook la copertina potrebbe non essere applicata.
-4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**.
+4. **Caption** con contatori, inserimento rapido di **modelli, firme e set di hashtag**. Si scrive un **testo comune**; "Testo diverso per piattaforma" apre una scheda **Instagram** e una **Facebook**, che partono da una copia del testo comune e poi restano indipendenti. Ogni scheda ha i contatori e i limiti della sua piattaforma; l'anteprima (§11.3) e il riepilogo destinazioni mostrano il testo che uscirà davvero. "Torna al testo comune" cancella la versione di quella piattaforma, con "Annulla". Una scheda compare solo se tra le destinazioni c'è un account di quella piattaforma; per le storie le schede non compaiono (§9.1).
 5. **Dove pubblicare**: elenco dei **profili** dello spazio (§3), formati solo con gli account di quello spazio, ognuno con una casella e, sotto, i suoi account IG e FB, ognuno con la propria casella. Spuntare il profilo spunta entrambi gli account; si può poi togliere uno dei due (es. solo Instagram). Ricerca per nome o @username, "seleziona tutti" e **gruppi salvati**. Un account da ricollegare o non pubblicabile (§8.4) compare disattivato con il motivo e non si può spuntare. Se il contesto attivo è un profilo, l'elenco parte con quel profilo già spuntato; se è un cliente, nulla è spuntato.
 6. **Quando**: "Pubblica ora", data e ora, oppure "Prossima fascia libera". L'ora parte già compilata con l'**orario predefinito del cliente** (impostato nello spazio, per esempio 18:00), se c'è; si cambia liberamente.
 7. **Etichette** e **note interne**.
@@ -807,7 +808,7 @@ Accanto al modulo, aggiornata mentre scrivi:
 - schede per destinazione: IG feed, IG reel, IG storia, FB post, FB reel, FB storia (solo quelle pertinenti);
 - cornice da telefono con avatar e nome dell'account, caption, pulsanti finti, interfaccia sovrapposta per reel e storie;
 - ritaglio reale, compresi caroselli e scelte sugli avvisi;
-- caption troncata come sulle piattaforme ("…altro"), hashtag e menzioni evidenziati;
+- caption della piattaforma della scheda (§11.2), troncata come sulle piattaforme ("…altro"), hashtag e menzioni evidenziati;
 - caroselli scorrevoli, video riproducibili con la copertina;
 - **zone sicure** per reel e storie, per vedere se una scritta finisce sotto l'interfaccia.
 
@@ -836,8 +837,8 @@ Per ogni account IG, la griglia del profilo (con le proporzioni attuali delle mi
 
 **In blocco**, in tre modi:
 1. **Da file**: trascini molti file (o li scegli con "Scegli file"), con avanzamento per file e complessivo; nasce una bozza per file (o un carosello per gruppo) in una **tabella modificabile** (miniatura, tipo, caption, account, data). "Distribuisci sulle fasce libere" riempie le date.
-2. **Da CSV/Excel**: colonne data, ora, caption, account, nome file; abbinamento automatico ai file caricati, errori per riga.
-3. **Duplica**: copia un post su altre date o altri spazi.
+2. **Da CSV/Excel**: colonne data, ora, caption, account, nome file, più le facoltative `caption_instagram` e `caption_facebook`; abbinamento automatico ai file caricati, errori per riga.
+3. **Duplica**: copia un post su altre date o altri spazi, compresi i testi per piattaforma.
 
 I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre vengono programmate. Riepilogo unico ("18 programmati, 2 da sistemare") e "Annulla" per qualche secondo.
 
@@ -868,7 +869,7 @@ Un Manager o Admin crea dallo spazio un **link di condivisione**:
 - password facoltativa, scadenza, revoca immediata;
 - ultima apertura e numero di visualizzazioni.
 
-Il cliente **vede soltanto**: il calendario del solo suo spazio, anteprime, orari e link ai post pubblicati. Nessun commento, nessuna approvazione, nessun dato di altri clienti o del team, nessuna nota interna. Sola lettura.
+Il cliente **vede soltanto**: il calendario del solo suo spazio, anteprime, orari e link ai post pubblicati. Nella 1.0: nessun commento, nessuna approvazione, nessun dato di altri clienti o del team, nessuna nota interna. Sola lettura. Dalla 1.1 l'agenzia può attivare l'**approvazione** per un singolo cliente (§18.7); il resto non cambia.
 
 **Come si presenta**:
 - **Intestazione**: da un lato il logo della piattaforma (il brand della piattaforma, oggi Feedway, nome da `PRODUCT_NAME`), dall'altro il logo del cliente e "gestito da" con il logo dell'agenzia (§14.3); senza logo, il nome. Il colore è quello dell'agenzia. I loghi arrivano sull'host pubblico con gli stessi token dedicati delle miniature del link, mai con indirizzi del pannello.
@@ -1041,6 +1042,7 @@ library_items       media_id, folder_id, tags
 
 -- Post e pubblicazione
 posts               id, workspace_id, type (photo|carousel|reel|story), caption,
+                    caption_by_platform (jsonb: testo per piattaforma, es. instagram, facebook; vuoto = testo comune),
                     scheduled_at, timezone, status (derivato), options (jsonb),
                     created_by, scheduled_by, updated_by, version
 post_media          post_id, media_id, position,
@@ -1430,7 +1432,7 @@ Tutte le funzioni concordate sono nella 1.0. La si costruisce in tappe, ognuna i
 | 3. Meta | Prima configurazione guidata, integrazioni cifrate, aggiungi account, sincronizzazione, salute, promemoria, profili (IG + Pagina FB) (primo contatto reale con Meta) | RF-02, RF-03, RF-05, RF-20, RF-21 |
 | 4. Media | Upload a pezzi, analisi, conversioni, copia di anteprima dei video, host pubblico, libreria | RF-30, RF-31, RF-45 |
 | 5. Regole | Controlli e corrispondenza IG↔FB con i test | RF-32, RF-33 |
-| 6. Post | Creazione, anteprima Meta con video riproducibili, copertina dei reel, bozze, modelli, etichette, note, gruppi di account | RF-34–38, RF-44 |
+| 6. Post | Creazione, caption per piattaforma (RF-32, §11.2), anteprima Meta con video riproducibili, copertina dei reel, bozze, modelli, etichette, note, gruppi di account | RF-34–38, RF-44 |
 | 7. Pubblicazione | Coda, macchina a stati, IG, FB, errori, esito incerto, riconciliatore, verifica | RF-50–52 |
 | 8. Notifiche | Centro notifiche, Telegram, email, riepilogo, sorveglianza esterna | RF-60–62 |
 | 9. Pianificazione | Calendario completo (mese predefinito, settimana dettagliata, libreria a richiesta), **piano editoriale** (§11.12), griglia IG, fasce orarie, programmazione in blocco | RF-40–43, RF-46 |
@@ -1444,7 +1446,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 
 | Versione | Contenuto | Note |
 |---|---|---|
-| 1.1 | Post ricorrenti, webhook in uscita, pagina link in bio, "Accedi con Google" (un'impostazione di Better Auth, con procedura guidata), commenti del team sui post, editor immagini di base, preset di pubblicazione (§18.5) | Nessun permesso Meta in più |
+| 1.1 | Approvazione del cliente attivabile per cliente (§18.7), post ricorrenti, webhook in uscita, pagina link in bio, "Accedi con Google" (un'impostazione di Better Auth, con procedura guidata), commenti del team sui post, editor immagini di base, preset di pubblicazione (§18.5) | Nessun permesso Meta in più |
 | 1.2 | Primo commento automatico, importazione da Google Drive e Canva (§18.5) | Permessi Meta per i commenti; Canva richiede l'approvazione della nostra integrazione |
 | 1.3 | Statistiche e report per cliente con modelli personalizzabili, orario migliore per pubblicare, analisi dei concorrenti (§18.5) | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
@@ -1529,8 +1531,20 @@ Obiettivo: aggiungere in futuro LinkedIn, TikTok, YouTube, Pinterest, X e altri 
 - **Una piattaforma è un modulo** (§7.3) con quattro parti: il **collegamento** (login, rinnovo del token, salute dell'account, già così in ADR 015), i **tipi di contenuto e le regole** (formati, durate, lunghezze della caption, i controlli di §9.2), la **pubblicazione** (creazione, attesa dell'elaborazione, verifica, classificazione degli errori, §9.3–9.6) e l'**anteprima** (§11.3).
 - Il resto non sa quale piattaforma c'è dietro: spazi, profili, post, destinazioni, calendario, coda, notifiche, link cliente e permessi lavorano solo con un account e la sua piattaforma.
 - Nel database `social_accounts.platform` e i tipi di destinazione si allargano con una migrazione per ogni nuova piattaforma.
-- Con piattaforme così diverse servirà poter **adattare la caption per piattaforma** (oggi esclusa, §2.4). La 1.0 tiene il contenuto identico; il testo per destinazione si aggiungerà con una migrazione insieme alla prima piattaforma che lo richiede.
+- La **caption per piattaforma** c'è già dalla 1.0 (§11.2, `posts.caption_by_platform`): ogni nuova piattaforma aggiunge la sua scheda nell'editor e i suoi limiti, senza migrazioni sul testo.
 - Prima di costruire ogni piattaforma serve una ADR con API, permessi, revisione dell'app richiesta e limiti. Prima della tappa 3 una ADR fissa i confini del modulo piattaforma, costruito dalla tappa 3 con Meta come prima piattaforma, e i piani delle tappe 3–5 si adeguano (piano generale §8).
+
+### 18.7 Approvazione del cliente (versione 1.1)
+
+Deciso il 2026-10-26. Obiettivo: togliere all'agenzia il lavoro di rincorrere il cliente su WhatsApp ed email per sapere se un post va bene.
+
+- **Attivabile per cliente**: un'impostazione dello spazio, spenta di default; la attiva chi può creare link cliente (Owner, Admin, Manager, §10.2). Spenta, il link cliente resta in sola visione come nella 1.0 (§11.10).
+- Accesa, nel link cliente ogni post da approvare mostra **"Approva"** e **"Chiedi una modifica"**, quest'ultima con un commento obbligatorio. Il cliente non modifica nulla e non vede note interne né commenti del team (§18.5).
+- Nel pannello il post ha uno stato di approvazione (**da approvare**, **approvato**, **modifica richiesta**) visibile nel calendario, nei filtri e nel dettaglio, con la cronologia delle risposte. Una modifica al post dopo l'approvazione lo riporta a "da approvare".
+- Da fissare nel piano della 1.1: se l'approvazione blocca la programmazione o resta solo informativa (impostazione dello spazio). Nessuna pubblicazione parte mai da un clic del cliente.
+- Notifiche con i canali esistenti (§12) all'autore e ai Manager dello spazio: "Post approvato", "Modifica richiesta"; promemoria facoltativo al cliente per email.
+- Sicurezza: l'azione passa dal link con il suo token, con limitazione delle richieste e voce nel registro attività; se il link ha la password, la richiede anche per approvare. Da decidere nel piano: identificare chi approva (nome dichiarato o email verificata).
+- Dati (indicativi): `post_approvals` (organization_id, post_id, share_link_id, decision approved|changes_requested, comment, post_version, created_at), con RLS. Nessun permesso Meta in più.
 
 ## 19. Decisioni prese
 
@@ -1539,12 +1553,12 @@ Obiettivo: aggiungere in futuro LinkedIn, TikTok, YouTube, Pinterest, X e altri 
 | Linguaggio e stack | TypeScript, Nuxt + worker Node | Matteo |
 | Database | PostgreSQL da subito | Matteo |
 | Utenti | Multi-utente con ruoli e permessi per spazio da subito | Matteo |
-| Pubblicazione dei collaboratori | Diretta, senza approvazione (ruolo Publisher) | Matteo |
-| Contenuto | Identico su tutte le destinazioni, con controlli e avvisi | Matteo |
+| Pubblicazione dei collaboratori | Diretta, senza approvazione interna (ruolo Publisher); l'approvazione del cliente della 1.1 è un'altra cosa (§18.7) | Matteo |
+| Contenuto | Stessi media su tutte le destinazioni, con controlli e avvisi; caption comune con testo diverso facoltativo per Instagram e Facebook, nella 1.0 (deciso il 2026-10-26) | Matteo |
 | Storie | Nella 1.0 | Matteo |
 | Reel nel feed | Attivo di default, disattivabile | Matteo |
 | Notifiche | Pannello, Telegram (solo team), email; verifica dopo la pubblicazione | Matteo |
-| Link cliente | Solo visione | Matteo |
+| Link cliente | Solo visione nella 1.0; dalla 1.1 approvazione dei post attivabile per cliente (§18.7, deciso il 2026-10-26) | Matteo |
 | Telefono | Responsive e installabile | Matteo |
 | Esposizione | Tailscale all'inizio, Cloudflare Tunnel con dominio | Matteo |
 | Backup | pg_dump nella cartella inclusa nel rclone su Google Drive | Matteo |

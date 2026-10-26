@@ -10,7 +10,7 @@ Le istruzioni dirette di Matteo prevalgono sulle proposte del pacchetto. Il bran
 - Titoli Sora 650, corpo system-ui come base del kit; logo in tracciati.
 - Esperienza visiva con miniature grandi, prevalenza d'uso da computer, mobile occasionale.
 - App operativa e landing incluse; sviluppo con Claude Code, Pen già collegato secondo Matteo, interesse per Impeccable.
-- Preservare v9, ruoli, caption unica, destinazioni del cliente e calendario condiviso in sola lettura.
+- Preservare v9, ruoli, caption comune con testo per piattaforma facoltativo (deciso il 26 ottobre 2026), destinazioni del cliente e calendario condiviso in sola lettura nella 1.0 (approvazione del cliente dalla 1.1).
 
 ## Proposto, ancora modificabile
 
