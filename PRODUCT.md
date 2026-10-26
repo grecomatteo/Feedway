@@ -21,11 +21,6 @@ Fonte: `design/brief-feedway/` (brief app 03, landing 04, decisioni 08) e il doc
 - Stack: Nuxt/Vue/TypeScript (vedi `docs/stack.md`).
 - Nome pubblico Feedway; OpenMeta resta il nome storico del documento originale. Nessuna rinomina tecnica di massa.
 
-## Posizionamento e motto
-
-- Motto per sito, annunci e video: **"Tutta la tua agenzia, in un solo posto."** (deciso da Matteo il 26 ottobre 2026).
-- Feedway si presenta come l'hub dove un'agenzia social gestisce il lavoro interno ed esterno: clienti, team, contenuti, pubblicazioni e numeri. La pubblicazione è uno dei pezzi, non tutto il prodotto. Le funzioni non ancora disponibili si mostrano come "In arrivo".
-
 ## Marchio (vincolante)
 
 Brand kit approvato in `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`: arancio `#FF762E`, carbone `#242321`, bianco e carta come fondi di servizio; titoli Sora 650, corpo `system-ui`; logo solo dai file originali.
