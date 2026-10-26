@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { ApiErrorBody, defineContract, type ApiContract } from './define.js'
+import { auditRoutes } from './audit.js'
+import { authRoutes } from './auth.js'
 import { linkRoutes } from './links.js'
+import { meRoutes } from './me.js'
+import { organizationRoutes } from './organizations.js'
+import { userRoutes } from './users.js'
+import { workspaceRoutes } from './workspaces.js'
 
 /**
  * Who may read it: any signed-in person. The contract holds no secrets, but the code is
@@ -17,7 +23,16 @@ export const openApiRoute = defineContract({
 })
 
 /** Every route of `/api/v1`. A route file without a contract here fails the OpenAPI test. */
-export const apiRoutes: readonly ApiContract[] = [...linkRoutes, openApiRoute]
+export const apiRoutes: readonly ApiContract[] = [
+  ...linkRoutes,
+  ...authRoutes,
+  ...meRoutes,
+  ...organizationRoutes,
+  ...userRoutes,
+  ...workspaceRoutes,
+  ...auditRoutes,
+  openApiRoute,
+]
 
 type JsonSchema = Record<string, unknown>
 

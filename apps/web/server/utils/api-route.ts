@@ -134,3 +134,12 @@ export function defineApiRoute<C extends ApiContract>(
 
 /** The link routes together: 20 requests a minute per address (Task 12). */
 export const LINKS_RATE_LIMIT = { name: 'links', limit: 20, windowMs: 60_000 }
+
+/** Password guesses on a stolen session; the use case also limits each person (Task 13). */
+export const REAUTH_RATE_LIMIT = { name: 'reauth', limit: 10, windowMs: 60_000 }
+
+/** Each invite is a live link: a stolen session must not mint them in bulk. */
+export const INVITES_RATE_LIMIT = { name: 'invites', limit: 30, windowMs: 60_000 }
+
+/** Each reset link takes over an account if it leaks. */
+export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs: 60_000 }

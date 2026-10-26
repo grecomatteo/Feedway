@@ -18,7 +18,8 @@ const isStrict = (schema: z.ZodType) =>
 
 describe.each(apiRoutes.map((r) => [`${r.method} ${r.path}`, r] as const))('%s', (_, route) => {
   test('lives under /api/v1 and has a summary', () => {
-    expect(route.path).toMatch(/^\/api\/v1\/[a-z0-9{}/._-]+$/)
+    // lower case, except the names of path parameters (`{userId}`)
+    expect(route.path).toMatch(/^\/api\/v1\/([a-z0-9/._-]|\{[a-zA-Z]+\})+$/)
     expect(route.summary.length).toBeGreaterThan(3)
   })
 

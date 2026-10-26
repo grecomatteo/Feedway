@@ -11,5 +11,12 @@ export {
   linkRoutes,
   securityLockRoute,
 } from './api/links.js'
+export * from './api/audit.js'
+export * from './api/auth.js'
+export * from './api/common.js'
+export * from './api/me.js'
+export * from './api/organizations.js'
+export * from './api/users.js'
+export * from './api/workspaces.js'
 export { apiRoutes, openApiDocument, openApiRoute } from './api/registry.js'
 export type { OpenApiDocument, OpenApiOperation, OpenApiParameter } from './api/registry.js'
