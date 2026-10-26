@@ -11498,7 +11498,8 @@
                                   "width": "fill_container",
                                   "content": "Apri su Instagram",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -11595,7 +11596,8 @@
                                   "width": "fill_container",
                                   "content": "Apri su Facebook",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -11692,7 +11694,8 @@
                                   "width": "fill_container",
                                   "content": "Apri su Instagram",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -11789,7 +11792,8 @@
                                   "width": "fill_container",
                                   "content": "Apri su Facebook",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -17974,7 +17978,8 @@
                               "width": "fill_container",
                               "content": "Apri su Instagram",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -18071,7 +18076,8 @@
                               "width": "fill_container",
                               "content": "Apri su Facebook",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -18168,7 +18174,8 @@
                               "width": "fill_container",
                               "content": "Apri su Instagram",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -18265,7 +18272,8 @@
                               "width": "fill_container",
                               "content": "Apri su Facebook",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -21304,7 +21312,8 @@
                       "fill": "$text",
                       "content": "Forno Luce Centro",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -21371,7 +21380,8 @@
                       "fill": "$text",
                       "content": "Forno Luce Nord",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -21428,7 +21438,8 @@
                       "fill": "$text",
                       "content": "Forno Luce Lab",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -26398,6 +26409,3605 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "Weaba",
+      "x": 0,
+      "y": 8655,
+      "name": "E0 · Email transazionali · componenti",
+      "fill": "$bg",
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "G0SG4S",
+          "name": "Titolo",
+          "fill": "$text",
+          "content": "E0 · Email transazionali · componenti",
+          "fontFamily": "$font-title",
+          "fontSize": 28,
+          "fontWeight": "$w-title"
+        },
+        {
+          "type": "text",
+          "id": "DcvvG",
+          "name": "Nota",
+          "fill": "$text-muted",
+          "textGrowth": "fixed-width",
+          "width": 900,
+          "content": "Una colonna, larghezza massima 600 px, leggibile a 320 px. Solo font di sistema nel codice (Inter qui sostituisce system-ui). Logo PNG su fondo bianco pieno con testo alternativo «Feedway». Sotto ogni pulsante il link in chiaro. Nessun link di tracciamento.",
+          "lineHeight": 1.5,
+          "fontFamily": "$font-body",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "s4EE3",
+          "name": "Riga componenti",
+          "gap": 40,
+          "children": [
+            {
+              "type": "frame",
+              "id": "XvJkB",
+              "name": "Email · Intestazione",
+              "reusable": true,
+              "width": 600,
+              "fill": "#FFFFFF",
+              "layout": "vertical",
+              "padding": [
+                32,
+                "$email-pad",
+                8,
+                "$email-pad"
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FmGbH",
+                  "name": "Logo PNG (alt: Feedway)",
+                  "width": 176,
+                  "height": 51,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "feedway-ui-assets/feedway-logo-email@2x.png",
+                    "mode": "contain"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ja1ev",
+              "name": "Colonna",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 40,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qOwCR",
+                  "name": "Email · Pulsante",
+                  "reusable": true,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OeFW6",
+                      "name": "Pulsante",
+                      "height": 48,
+                      "fill": "$brand",
+                      "cornerRadius": "$r-control",
+                      "stroke": "$fw-carbone",
+                      "strokeWidth": 2,
+                      "padding": [
+                        0,
+                        28
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qOWX6",
+                          "name": "Etichetta",
+                          "fill": "$on-brand",
+                          "content": "Crea il tuo account",
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZGem3",
+                      "name": "Link in chiaro",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "HWyEG",
+                          "name": "Spiegazione",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Se il pulsante non funziona, copia questo indirizzo nel browser:",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "dENOo",
+                          "name": "Indirizzo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "https://feedway.studioriva.it/invito/7Hq2kP9xLm4R",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-body",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NkwME",
+                  "name": "Email · Riquadro",
+                  "reusable": true,
+                  "width": "fill_container",
+                  "fill": "$surface-sunken",
+                  "cornerRadius": "$r-control",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": [
+                    16,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "t0p5an",
+                      "name": "Titolo riquadro",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il link scade tra 72 ore",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-body",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aELvQ",
+                      "name": "Testo riquadro",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Puoi usarlo fino a giovedì 29 ottobre alle 19:20. Dopo, chiedi a Giulia di invitarti di nuovo.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "k6uNT7",
+                  "type": "ref",
+                  "ref": "qOwCR",
+                  "name": "Email · Pulsante (variante sicurezza)",
+                  "width": "fill_container",
+                  "descendants": {
+                    "OeFW6": {
+                      "fill": "$danger",
+                      "stroke": "$danger"
+                    },
+                    "qOWX6": {
+                      "content": "Non sono stato io",
+                      "fill": "#FFFFFF"
+                    },
+                    "dENOo": {
+                      "content": "https://feedway.studioriva.it/sicurezza/blocca/Q8m3Tz1VbR6c"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "p1KAbE",
+              "name": "Email · Piè di pagina",
+              "reusable": true,
+              "width": 600,
+              "layout": "vertical",
+              "gap": 6,
+              "padding": [
+                24,
+                "$email-pad",
+                0,
+                "$email-pad"
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LrITK",
+                  "name": "Nome",
+                  "fill": "$text-muted",
+                  "content": "Feedway",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "rJutQ",
+                  "name": "Motivo",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Ricevi questa email perché Giulia Ferri ti ha invitato a unirti a Studio Riva su Feedway.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "jPjXJ",
+                  "name": "Nota servizio",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "È un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "NuGqI",
+              "name": "Email · Modello",
+              "reusable": true,
+              "width": 680,
+              "fill": "$bg",
+              "layout": "vertical",
+              "padding": [
+                32,
+                40,
+                40,
+                40
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QD8nz",
+                  "name": "Scheda",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": "$r-card",
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "id": "V9q5J",
+                      "type": "ref",
+                      "ref": "XvJkB",
+                      "name": "Intestazione",
+                      "width": "fill_container"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NGUTu",
+                      "name": "Contenuto",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 20,
+                      "padding": [
+                        24,
+                        "$email-pad",
+                        40,
+                        "$email-pad"
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n2U1g",
+                          "name": "Titolo email",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Titolo dell'email",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$font-title",
+                          "fontSize": 24,
+                          "fontWeight": "$w-title"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ufID4",
+                          "name": "Paragrafo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Corpo dell'email, frasi brevi.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "id": "tI8Z5",
+                          "type": "ref",
+                          "ref": "qOwCR",
+                          "name": "Pulsante",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "NHLIv",
+                  "type": "ref",
+                  "ref": "p1KAbE",
+                  "name": "Piè di pagina",
+                  "width": "fill_container",
+                  "padding": [
+                    24,
+                    "$email-pad",
+                    0,
+                    "$email-pad"
+                  ],
+                  "descendants": {
+                    "rJutQ": {
+                      "content": "Ricevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "N1u5Kp",
+      "x": 0,
+      "y": 9597,
+      "name": "E1–E5 · Email transazionali",
+      "fill": "$surface-sunken",
+      "layout": "vertical",
+      "gap": 56,
+      "padding": 48,
+      "children": [
+        {
+          "type": "text",
+          "id": "Vqr5R",
+          "name": "Titolo",
+          "fill": "$text",
+          "content": "E1–E5 · Email transazionali (600 px, 320 px, solo testo)",
+          "fontFamily": "$font-title",
+          "fontSize": 28,
+          "fontWeight": "$w-title"
+        },
+        {
+          "type": "frame",
+          "id": "t8Clv",
+          "name": "E1 · Invito, persona nuova",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "h5nxMF",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "oC9QI",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E1 · Invito, persona nuova",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "f3nD2o",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "naQlq",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "a2fkKN",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva su Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MoR0h",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fXgVl",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "n9zhU",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Crea il tuo account per entrare. L'invito vale 72 ore.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tS9rN",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "olNeU",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AdWIS",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Un Owner o un Admin invita un indirizzo che non ha ancora un account.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WGbea",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p48JT",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LvghY",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "inviterName, organizationName, inviteUrl, expiresAt (fuso dell'organizzazione)",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "PFtzf",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "Trc6Z",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "E1fgxn",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "IGrtz",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Studio Riva usa Feedway per preparare e pubblicare i contenuti social dei suoi clienti. Giulia ti ha aggiunto al team.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "uqIOb",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Crea il tuo account per entrare: bastano pochi minuti.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "pZp4R",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "qOWX6": {
+                          "content": "Crea il tuo account"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/invito/7Hq2kP9xLm4R"
+                        }
+                      }
+                    },
+                    {
+                      "id": "k78TsM",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "L'invito scade tra 72 ore"
+                        },
+                        "aELvQ": {
+                          "content": "Puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "h9Xs7g",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway."
+                }
+              }
+            },
+            {
+              "id": "oNKjJ",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "WT6eN",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Y6qYmq",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "osT0o",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Studio Riva usa Feedway per preparare e pubblicare i contenuti social dei suoi clienti. Giulia ti ha aggiunto al team.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "rXpzD",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Crea il tuo account per entrare: bastano pochi minuti.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "zkUEO",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container"
+                        },
+                        "qOWX6": {
+                          "content": "Crea il tuo account"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/invito/7Hq2kP9xLm4R"
+                        }
+                      }
+                    },
+                    {
+                      "id": "NK3Ky",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "L'invito scade tra 72 ore"
+                        },
+                        "aELvQ": {
+                          "content": "Puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "RoSzF",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "yBvJU",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Yi6An",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "ZSzrB",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Giulia Ferri ti ha invitato in Studio Riva\n\nStudio Riva usa Feedway per preparare e pubblicare i contenuti social dei suoi clienti. Giulia ti ha aggiunto al team.\n\nCrea il tuo account per entrare: bastano pochi minuti.\n\nCrea il tuo account:\nhttps://feedway.studioriva.it/invito/7Hq2kP9xLm4R\n\nL'invito scade tra 72 ore: puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo.\n\nNon conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.\n\n--\nFeedway\nRicevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oKHCB",
+          "name": "E2 · Invito, account già esistente",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "pJnnG",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZFYPB",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E2 · Invito, account già esistente",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "GMgaW",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hiEw1",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "M1V5U",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva su Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XWuoF",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "M7BYi",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D2mcNK",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Accedi con il tuo account per accettare. L'invito vale 72 ore.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ygtZI",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "w4fgjE",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "VdKAP",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "L'indirizzo invitato ha già un account Feedway (anche in un'altra agenzia). Le credenziali non cambiano: si accetta dopo l'accesso.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QQvLA",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "anCii",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "N5nlE",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "inviterName, organizationName, inviteUrl, expiresAt",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "FBzmE",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "pV16T",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "a1wUYh",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "P7a5Oj",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Hai già un account Feedway con questo indirizzo. Accedi come sempre e accetta l'invito: Studio Riva comparirà tra le tue agenzie.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "alrw0",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "qOWX6": {
+                          "content": "Accedi per accettare"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/invito/7Hq2kP9xLm4R"
+                        }
+                      }
+                    },
+                    {
+                      "id": "oi0ms",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "L'invito scade tra 72 ore"
+                        },
+                        "aELvQ": {
+                          "content": "Puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "U3TCRY",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway."
+                }
+              }
+            },
+            {
+              "id": "k8EWJG",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "x4uMi",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yceNw",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Giulia Ferri ti ha invitato in Studio Riva",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "v767jz",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Hai già un account Feedway con questo indirizzo. Accedi come sempre e accetta l'invito: Studio Riva comparirà tra le tue agenzie.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "n0RkTH",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container"
+                        },
+                        "qOWX6": {
+                          "content": "Accedi per accettare"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/invito/7Hq2kP9xLm4R"
+                        }
+                      }
+                    },
+                    {
+                      "id": "PCmCP",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "L'invito scade tra 72 ore"
+                        },
+                        "aELvQ": {
+                          "content": "Puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "UC14H",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "a130wh",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UkyJg",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "cg5hU",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Giulia Ferri ti ha invitato in Studio Riva\n\nHai già un account Feedway con questo indirizzo. Accedi come sempre e accetta l'invito: Studio Riva comparirà tra le tue agenzie.\n\nAccedi per accettare:\nhttps://feedway.studioriva.it/invito/7Hq2kP9xLm4R\n\nL'invito scade tra 72 ore: puoi usarlo fino a giovedì 29 ottobre alle 19:20. Se scade, chiedi a Giulia di inviartene uno nuovo.\n\nNon conosci Studio Riva o non aspettavi questo invito? Ignora questa email: senza il tuo clic non succede nulla.\n\n--\nFeedway\nRicevi questa email perché Giulia Ferri ha invitato questo indirizzo in Studio Riva su Feedway.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "LOBmi",
+          "name": "E3 · Nuovo accesso o nuovo dispositivo",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "O3dtc",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "k9FNb8",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E3 · Nuovo accesso o nuovo dispositivo",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "pj4C5",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZPDV6",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SCW6G",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Nuovo accesso al tuo account Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "q8BLVt",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RzsoD",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "M7lIsT",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Lunedì 26 ottobre alle 19:20, Chrome su Windows, vicino a Milano.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k8cZJ",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uQkBk",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DEmSy",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Accesso riuscito da un dispositivo o browser mai visto per questo account.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p40zF",
+                  "name": "Pulsante",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IA2FS",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Pulsante",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RX74j",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "«Non sono stato io» blocca l'account: chiude tutte le sessioni e chiede una nuova password. Link monouso.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "e28Sc",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BqGdH",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "zT0kI",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "signedInAt, device (browser e sistema), approxCity (da IP, può mancare), blockUrl",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "zdEaD",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "QkRZJ",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "C7eLn5",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Nuovo accesso al tuo account",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Z8S6x",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Abbiamo visto un accesso al tuo account Feedway da un dispositivo che non avevi mai usato.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Msakh",
+                      "name": "Dettagli accesso",
+                      "width": "fill_container",
+                      "fill": "$surface-sunken",
+                      "cornerRadius": "$r-control",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": [
+                        16,
+                        20
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "O3R5QU",
+                          "name": "Quando",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UWl3q",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Quando",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "fz3sx",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Lunedì 26 ottobre 2026, 19:20 (ora italiana)",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SQ0Jv",
+                          "name": "Dispositivo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "AWHqL",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Dispositivo",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "b0bOoG",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Chrome su Windows",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SQTwk",
+                          "name": "Luogo approssimativo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Zc5am",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Luogo approssimativo",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "FLu4C",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Milano, Italia (stimato dalla rete: può essere impreciso)",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EQxzY",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "WqY3t",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "P2LlZ",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non devi fare nulla.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b8ucSA",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "u6BWT",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "yo4Uc",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Blocca subito l'account: chiudiamo tutte le sessioni aperte e, per rientrare, ti chiederemo di scegliere una nuova password.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "W22pFK",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "fill": "$danger",
+                          "stroke": "$danger"
+                        },
+                        "qOWX6": {
+                          "content": "Non sono stato io",
+                          "fill": "#FFFFFF"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/sicurezza/blocca/Q8m3Tz1VbR6c"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché c'è stato un accesso al tuo account Feedway da un nuovo dispositivo. Gli avvisi di sicurezza non si possono disattivare."
+                }
+              }
+            },
+            {
+              "id": "SKOnH",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "Ahojk",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "arypg",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Nuovo accesso al tuo account",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "onCMc",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Abbiamo visto un accesso al tuo account Feedway da un dispositivo che non avevi mai usato.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hp01A",
+                      "name": "Dettagli accesso",
+                      "width": "fill_container",
+                      "fill": "$surface-sunken",
+                      "cornerRadius": "$r-control",
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": [
+                        16,
+                        20
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "IL7mR",
+                          "name": "Quando",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Cqedo",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Quando",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "LmIsx",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Lunedì 26 ottobre 2026, 19:20 (ora italiana)",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "sFQps",
+                          "name": "Dispositivo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "BnFpO",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Dispositivo",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "U9NLlN",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Chrome su Windows",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BDEYW",
+                          "name": "Luogo approssimativo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "RmIUt",
+                              "name": "Etichetta",
+                              "fill": "$text-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Luogo approssimativo",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "d60fc",
+                              "name": "Valore",
+                              "fill": "$text",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Milano, Italia (stimato dalla rete: può essere impreciso)",
+                              "lineHeight": 1.45,
+                              "fontFamily": "$font-body",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m0Rsj6",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hnied",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QpjsV",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non devi fare nulla.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EhTmI",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UrIfB",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "HEx09",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Blocca subito l'account: chiudiamo tutte le sessioni aperte e, per rientrare, ti chiederemo di scegliere una nuova password.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "t0DsIx",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container",
+                          "fill": "$danger",
+                          "stroke": "$danger"
+                        },
+                        "qOWX6": {
+                          "content": "Non sono stato io",
+                          "fill": "#FFFFFF"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/sicurezza/blocca/Q8m3Tz1VbR6c"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché c'è stato un accesso al tuo account Feedway da un nuovo dispositivo. Gli avvisi di sicurezza non si possono disattivare."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "NG6lb",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "A4BZm",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "ESrk6",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Nuovo accesso al tuo account\n\nAbbiamo visto un accesso al tuo account Feedway da un dispositivo che non avevi mai usato.\n\nQuando: lunedì 26 ottobre 2026, 19:20 (ora italiana)\nDispositivo: Chrome su Windows\nLuogo approssimativo: Milano, Italia (stimato dalla rete: può essere impreciso)\n\nSei stato tu? Non devi fare nulla.\n\nNon sei stato tu? Blocca subito l'account: chiudiamo tutte le sessioni aperte e, per rientrare, ti chiederemo di scegliere una nuova password.\n\nNon sono stato io, blocca l'account:\nhttps://feedway.studioriva.it/sicurezza/blocca/Q8m3Tz1VbR6c\n\n--\nFeedway\nRicevi questa email perché c'è stato un accesso al tuo account Feedway da un nuovo dispositivo. Gli avvisi di sicurezza non si possono disattivare.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "E7TPw",
+          "name": "E4 · Reset della password",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "DGznu",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WKOp6",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E4 · Reset della password",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "XyCpH",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xFW6f",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ev6eX",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Scegli una nuova password per Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "z6lHBt",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pRkdW",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hWkGc",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il link vale 60 minuti. Se non l'hai chiesto tu, ignora questa email.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "snwDv",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "chnLC",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "J8bfa",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "«Password dimenticata» oppure link di reset chiesto da un Owner o un Admin. La richiesta risponde allo stesso modo che l'email esista o no.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "A4VnBd",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GdBvX",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Oxxsj",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "resetUrl, expiresAt (60 min, resetPasswordTokenExpiresIn: 3600)",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ZNbe8",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "wkcvD",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h7HA9",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Scegli una nuova password",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "W7lCh1",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Abbiamo ricevuto una richiesta per reimpostare la password del tuo account Feedway.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "UyQcK",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "qOWX6": {
+                          "content": "Scegli una nuova password"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/reimposta?token=Xr4pN7cW2kHd"
+                        }
+                      }
+                    },
+                    {
+                      "id": "OdmKy",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "Il link scade tra 60 minuti"
+                        },
+                        "aELvQ": {
+                          "content": "Funziona una sola volta, fino alle 20:20 di oggi. Dopo il cambio chiudiamo le sessioni aperte su tutti i dispositivi."
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NQZki",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "V9Jz2F",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non l'hai chiesto tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zxCGu",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Ignora questa email. La tua password resta quella di prima e nessuno può cambiarla senza questo link.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è stato chiesto di reimpostare la password del tuo account Feedway."
+                }
+              }
+            },
+            {
+              "id": "L9j0jn",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "sZ4KS",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "N7RsSC",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Scegli una nuova password",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MfMOF",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Abbiamo ricevuto una richiesta per reimpostare la password del tuo account Feedway.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "YOTXs",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container"
+                        },
+                        "qOWX6": {
+                          "content": "Scegli una nuova password"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/reimposta?token=Xr4pN7cW2kHd"
+                        }
+                      }
+                    },
+                    {
+                      "id": "PMT1U",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "Il link scade tra 60 minuti"
+                        },
+                        "aELvQ": {
+                          "content": "Funziona una sola volta, fino alle 20:20 di oggi. Dopo il cambio chiudiamo le sessioni aperte su tutti i dispositivi."
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "p1LFFo",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "htgxe",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non l'hai chiesto tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "I0CY3",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Ignora questa email. La tua password resta quella di prima e nessuno può cambiarla senza questo link.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è stato chiesto di reimpostare la password del tuo account Feedway."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "Kt0LH",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "vNHDw",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "vGJfA",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Scegli una nuova password\n\nAbbiamo ricevuto una richiesta per reimpostare la password del tuo account Feedway.\n\nScegli una nuova password:\nhttps://feedway.studioriva.it/reimposta?token=Xr4pN7cW2kHd\n\nIl link scade tra 60 minuti: funziona una sola volta, fino alle 20:20 di oggi. Dopo il cambio chiudiamo le sessioni aperte su tutti i dispositivi.\n\nNon l'hai chiesto tu? Ignora questa email. La tua password resta quella di prima e nessuno può cambiarla senza questo link.\n\n--\nFeedway\nRicevi questa email perché è stato chiesto di reimpostare la password del tuo account Feedway.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "vQIy6",
+          "name": "E5 · Conferma del cambio email (al nuovo indirizzo)",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "jCr1L",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "C5zw39",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E5 · Conferma del cambio email (al nuovo indirizzo)",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "h4iX1",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "g2TULN",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "T2Xnze",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Conferma il nuovo indirizzo del tuo account Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pgO0p",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tq9qE",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fK64G",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il cambio vale solo dopo la conferma. Abbiamo avvisato anche il vecchio indirizzo.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "nqBoU",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "c4BNDP",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZSDmg",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Cambio email dall'account personale, dopo la riconferma. Parte insieme a E5b.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AqEBM",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "s6r8J4",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "y9DhlA",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "oldEmail, newEmail, confirmUrl, expiresAt (durata da fissare nel Task 1; qui 24 ore)",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "dHWD9",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "OKb3A",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GGpcw",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Conferma il tuo nuovo indirizzo",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DsI4S",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Hai chiesto di usare luca.bianchi@gmail.com come indirizzo del tuo account Feedway, al posto di luca@studioriva.it.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "e6Q2DK",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il cambio vale solo dopo la conferma. Fino ad allora accedi con l'indirizzo di prima.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "nVrTg",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "qOWX6": {
+                          "content": "Conferma il nuovo indirizzo"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/conferma-email/Lk2vP8sQw4Yn"
+                        }
+                      }
+                    },
+                    {
+                      "id": "Slceq",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "fill": "$info-soft",
+                      "stroke": "$info",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "Abbiamo avvisato anche il vecchio indirizzo"
+                        },
+                        "aELvQ": {
+                          "content": "Per sicurezza abbiamo scritto anche a luca@studioriva.it. Il link di conferma scade tra 24 ore."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "robo6",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è stato chiesto di usare questo indirizzo per un account Feedway."
+                }
+              }
+            },
+            {
+              "id": "b6Xb5",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "XIooC",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "poaTQ",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Conferma il tuo nuovo indirizzo",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "puBA5",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Hai chiesto di usare luca.bianchi@gmail.com come indirizzo del tuo account Feedway, al posto di luca@studioriva.it.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "Njs8c",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il cambio vale solo dopo la conferma. Fino ad allora accedi con l'indirizzo di prima.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "id": "u0ei8H",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container"
+                        },
+                        "qOWX6": {
+                          "content": "Conferma il nuovo indirizzo"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/conferma-email/Lk2vP8sQw4Yn"
+                        }
+                      }
+                    },
+                    {
+                      "id": "LGcyb",
+                      "type": "ref",
+                      "ref": "NkwME",
+                      "name": "Riquadro",
+                      "width": "fill_container",
+                      "fill": "$info-soft",
+                      "stroke": "$info",
+                      "descendants": {
+                        "t0p5an": {
+                          "content": "Abbiamo avvisato anche il vecchio indirizzo"
+                        },
+                        "aELvQ": {
+                          "content": "Per sicurezza abbiamo scritto anche a luca@studioriva.it. Il link di conferma scade tra 24 ore."
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "DQuSS",
+                      "name": "Nota",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Non hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è stato chiesto di usare questo indirizzo per un account Feedway."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "a3Y4XK",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cLVN6",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "f9ypos",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Conferma il tuo nuovo indirizzo\n\nHai chiesto di usare luca.bianchi@gmail.com come indirizzo del tuo account Feedway, al posto di luca@studioriva.it.\n\nIl cambio vale solo dopo la conferma. Fino ad allora accedi con l'indirizzo di prima.\n\nConferma il nuovo indirizzo:\nhttps://feedway.studioriva.it/conferma-email/Lk2vP8sQw4Yn\n\nAbbiamo avvisato anche il vecchio indirizzo: per sicurezza abbiamo scritto anche a luca@studioriva.it. Il link di conferma scade tra 24 ore.\n\nNon hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.\n\n--\nFeedway\nRicevi questa email perché è stato chiesto di usare questo indirizzo per un account Feedway.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oaeCW",
+          "name": "E5b · Avviso del cambio email (al vecchio indirizzo)",
+          "fill": "$surface-sunken",
+          "gap": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "TQWl1",
+              "name": "Scheda tecnica",
+              "width": 300,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "djLG3",
+                  "name": "Codice",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "E5b · Avviso del cambio email (al vecchio indirizzo)",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$font-title",
+                  "fontSize": 18,
+                  "fontWeight": "$w-title"
+                },
+                {
+                  "type": "frame",
+                  "id": "XxUkG",
+                  "name": "Oggetto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ldNkb",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Oggetto",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D4MkNN",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "È stato chiesto di cambiare l'email del tuo account Feedway",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x0HfX",
+                  "name": "Anteprima (preheader)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "F0Ubli",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Anteprima (preheader)",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "J1SAX",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Se sei stato tu, non devi fare nulla. Se no, blocca l'account.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bllhG",
+                  "name": "Quando parte",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Zp7qS",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quando parte",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bIDiq",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Insieme a E5, al vecchio indirizzo. Nessun link per confermare: solo il blocco.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "C3dsJd",
+                  "name": "Variabili",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "w1ZFCq",
+                      "name": "Etichetta",
+                      "fill": "$text-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Variabili",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TULgt",
+                      "name": "Valore",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "oldEmail, newEmail (mostrato per intero: è l'utente a sceglierlo), requestedAt, blockUrl",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "yjPrF",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Desktop 600",
+              "descendants": {
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "tlnAm",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    40,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "TxwZB",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "È stato chiesto di cambiare la tua email",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 24,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nPmq6",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Lunedì 26 ottobre alle 19:20 è stato chiesto di sostituire luca@studioriva.it con luca.bianchi@gmail.com come indirizzo del tuo account Feedway.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "qpbaB",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il cambio avverrà solo quando il nuovo indirizzo sarà confermato.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gXzuG",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NaV4e",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Boy63",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non devi fare nulla.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jRZuW",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "IwTYl",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "caJ0n",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Blocca l'account: annulliamo il cambio, chiudiamo tutte le sessioni e ti chiediamo una nuova password.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "l3kiY",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "fill": "$danger",
+                          "stroke": "$danger"
+                        },
+                        "qOWX6": {
+                          "content": "Non sono stato io",
+                          "fill": "#FFFFFF"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/sicurezza/blocca/Fz9cR2mKt5Hs"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è l'indirizzo attuale del tuo account Feedway e qualcuno ha chiesto di cambiarlo."
+                }
+              }
+            },
+            {
+              "id": "tT98z",
+              "type": "ref",
+              "ref": "NuGqI",
+              "name": "Telefono 320",
+              "width": 320,
+              "padding": [
+                16,
+                12,
+                24,
+                12
+              ],
+              "descendants": {
+                "V9q5J": {
+                  "padding": [
+                    24,
+                    20,
+                    8,
+                    20
+                  ]
+                },
+                "NGUTu": {
+                  "type": "frame",
+                  "id": "mGspG",
+                  "name": "Contenuto",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    24,
+                    20,
+                    32,
+                    20
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YEi09",
+                      "name": "Titolo email",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "È stato chiesto di cambiare la tua email",
+                      "lineHeight": 1.3,
+                      "fontFamily": "$font-title",
+                      "fontSize": 22,
+                      "fontWeight": "$w-title"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qPVa6",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Lunedì 26 ottobre alle 19:20 è stato chiesto di sostituire luca@studioriva.it con luca.bianchi@gmail.com come indirizzo del tuo account Feedway.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "text",
+                      "id": "T9IC0c",
+                      "name": "Paragrafo",
+                      "fill": "$text",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Il cambio avverrà solo quando il nuovo indirizzo sarà confermato.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-body",
+                      "fontSize": 16
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZFf2N",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J3UeE",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "GJK4j",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non devi fare nulla.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "q3KL04",
+                      "name": "Paragrafo con attacco",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "V3HsH",
+                          "name": "Attacco",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Non sei stato tu?",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "b6bCPh",
+                          "name": "Testo",
+                          "fill": "$text",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Blocca l'account: annulliamo il cambio, chiudiamo tutte le sessioni e ti chiediamo una nuova password.",
+                          "lineHeight": 1.5,
+                          "fontFamily": "$font-body",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "JDfVc",
+                      "type": "ref",
+                      "ref": "qOwCR",
+                      "name": "Pulsante",
+                      "width": "fill_container",
+                      "descendants": {
+                        "OeFW6": {
+                          "width": "fill_container",
+                          "fill": "$danger",
+                          "stroke": "$danger"
+                        },
+                        "qOWX6": {
+                          "content": "Non sono stato io",
+                          "fill": "#FFFFFF"
+                        },
+                        "dENOo": {
+                          "content": "https://feedway.studioriva.it/sicurezza/blocca/Fz9cR2mKt5Hs"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "NHLIv": {
+                  "padding": [
+                    20,
+                    8,
+                    0,
+                    8
+                  ]
+                },
+                "NHLIv/rJutQ": {
+                  "content": "Ricevi questa email perché è l'indirizzo attuale del tuo account Feedway e qualcuno ha chiesto di cambiarlo."
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "c9CRM",
+              "name": "Versione solo testo",
+              "width": 380,
+              "fill": "$surface",
+              "cornerRadius": "$r-card",
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "N9sSi",
+                  "name": "Etichetta",
+                  "fill": "$text-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Versione solo testo (text/plain)",
+                  "fontFamily": "$font-body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "X4Mwx",
+                  "name": "Testo",
+                  "fill": "$text",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "È stato chiesto di cambiare la tua email\n\nLunedì 26 ottobre alle 19:20 è stato chiesto di sostituire luca@studioriva.it con luca.bianchi@gmail.com come indirizzo del tuo account Feedway.\n\nIl cambio avverrà solo quando il nuovo indirizzo sarà confermato.\n\nSei stato tu? Non devi fare nulla.\n\nNon sei stato tu? Blocca l'account: annulliamo il cambio, chiudiamo tutte le sessioni e ti chiediamo una nuova password.\n\nNon sono stato io, blocca l'account:\nhttps://feedway.studioriva.it/sicurezza/blocca/Fz9cR2mKt5Hs\n\n--\nFeedway\nRicevi questa email perché è l'indirizzo attuale del tuo account Feedway e qualcuno ha chiesto di cambiarlo.\nÈ un messaggio di servizio: lo inviamo solo quando serve al tuo account.",
+                  "lineHeight": 1.55,
+                  "fontFamily": "IBM Plex Mono",
+                  "fontSize": 12.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
@@ -26756,6 +30366,14 @@
     "w-title": {
       "type": "string",
       "value": "600"
+    },
+    "email-pad": {
+      "type": "number",
+      "value": 40
+    },
+    "email-width": {
+      "type": "number",
+      "value": 600
     }
   },
   "fileToken": "6aace0b6-de9b-4f93-8983-4b3b94fb19c2"

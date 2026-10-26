@@ -9,3 +9,8 @@ paths = [
   '''\.env\.example$''',
   '''pnpm-lock\.yaml$''',
 ]
+# Fake links on the design canvas (fictitious domain of the sample agency)
+regexTarget = "line"
+regexes = [
+  '''https://feedway\.studioriva\.it/''',
+]
