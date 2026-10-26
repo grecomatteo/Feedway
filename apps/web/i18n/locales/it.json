@@ -104,7 +104,7 @@
       "notMe": {
         "lead": "Non sei stato tu?"
       },
-      "lockExplain": "Blocca subito l'account: chiudiamo tutte le sessioni e annulliamo i link in sospeso. Avvisiamo un amministratore, che verificherà la tua identità e ti manderà un link per scegliere una nuova password.",
+      "lockExplain": "Blocca subito l'account: chiudiamo tutte le sessioni aperte e nessuno potrà entrare finché un amministratore non avrà verificato la tua identità e riattivato l'account.",
       "lockButton": "Non sono stato io, blocca l'account",
       "lockLinkValidity": "Il link funziona per 7 giorni.",
       "cannotDisable": "Gli avvisi di sicurezza non si possono disattivare.",

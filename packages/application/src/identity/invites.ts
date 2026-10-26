@@ -133,7 +133,7 @@ async function nameOf(tx: Tx, userId: string): Promise<string> {
   return user ? displayName(user) : ''
 }
 
-export interface InviteMail {
+interface InviteMail {
   inviteId: string
   to: string
   token: string
@@ -145,7 +145,7 @@ export interface InviteMail {
 }
 
 /** The invite email (E1 or E2 in DESIGN.md). */
-export function inviteMessage(
+function inviteMessage(
   deps: Pick<InviteDeps, 'translate' | 'productName' | 'defaultTimezone' | 'config'>,
   mail: InviteMail,
 ): MailMessage {

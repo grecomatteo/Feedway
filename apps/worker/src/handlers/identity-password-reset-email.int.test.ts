@@ -50,11 +50,15 @@ afterAll(async () => {
   await tdb.stop()
 })
 
+// 19:20 and 20:20 in Rome
+const REQUESTED = new Date('2026-10-26T18:20:00Z')
+
 function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDeps {
   return {
     logger,
     uow: runtime.uow,
-    clock: runtime.clock,
+    // the jobs below are made at REQUESTED: the email leaves at that moment unless a test moves it
+    clock: fixedClock(REQUESTED),
     ids: runtime.ids,
     storage: runtime.storage,
     mailer,
@@ -70,8 +74,6 @@ async function newUser() {
   return { userId, email }
 }
 
-// 19:20 and 20:20 in Rome
-const REQUESTED = new Date('2026-10-26T18:20:00Z')
 const job = (userId: string, requestedAt = REQUESTED) => ({
   id: randomUUID(),
   data: {
@@ -110,6 +112,51 @@ test('a link that ends after midnight says so, in the person’s time zone', asy
     clock: fixedClock(late),
   })
   expect(mailer.sent.at(-1)?.text).toContain('fino alle 00:30 di domani')
+})
+
+test('the minutes are those left when the email leaves', async () => {
+  const { userId } = await newUser()
+  const mailer = createMemoryMailer()
+  const later = new Date(REQUESTED.getTime() + 20 * 60_000)
+  await identityPasswordResetEmail(job(userId), { ...depsWith(mailer), clock: fixedClock(later) })
+  expect(mailer.sent.at(-1)?.text).toContain(
+    'Il link scade tra 40 minuti: funziona una sola volta, fino alle 20:20 di oggi.',
+  )
+})
+
+test('an expired link is not sent, and the log holds nothing personal', async () => {
+  const { userId, email } = await newUser()
+  const lines: string[] = []
+  const quiet = createLogger({ service: 'worker', level: 'error' })
+  const keep = (fields: unknown, message?: string) => {
+    lines.push(`${message ?? ''} ${JSON.stringify(fields)}`)
+  }
+  const logger: Logger = { ...quiet, info: keep, warn: keep, error: keep }
+  const mailer = createMemoryMailer()
+  const after = new Date(REQUESTED.getTime() + 61 * 60_000)
+  await identityPasswordResetEmail(job(userId), {
+    ...depsWith(mailer, logger),
+    clock: fixedClock(after),
+  })
+  expect(mailer.sent).toEqual([])
+  expect(lines.some((l) => l.includes('password reset email skipped: link expired'))).toBe(true)
+  const log = lines.join('\n')
+  for (const secret of ['abc123', email, userId]) expect(log).not.toContain(secret)
+})
+
+test('a job queued before the dates were added still leaves, with an hour', async () => {
+  const { userId } = await newUser()
+  const mailer = createMemoryMailer()
+  await identityPasswordResetEmail(
+    {
+      id: randomUUID(),
+      data: { userId, url: RESET_URL },
+    },
+    { ...depsWith(mailer), clock: fixedClock(REQUESTED) },
+  )
+  expect(mailer.sent.at(-1)?.text).toContain(
+    'Il link scade tra 60 minuti: funziona una sola volta, fino alle 20:20 di oggi.',
+  )
 })
 
 test('without email configured the job completes, and the link is never logged', async () => {

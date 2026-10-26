@@ -24,9 +24,12 @@ interface JobDefinitions {
 /** "Password dimenticata": the link holds the reset token, so the job is kept one hour only. */
 export interface PasswordResetEmailData {
   url: string
-  /** ISO 8601: when the link was made and when it stops working, for the email's wording. */
-  requestedAt: string
-  expiresAt: string
+  /**
+   * ISO 8601: when the link was made and when it stops working, for the email's wording. Missing
+   * in jobs queued before they were added: the handler then assumes an hour from now.
+   */
+  requestedAt?: string
+  expiresAt?: string
 }
 
 /** The kinds of security email; the texts are `email.security.<kind>.*` in it.json. */

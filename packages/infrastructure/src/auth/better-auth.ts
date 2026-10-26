@@ -158,6 +158,8 @@ export function createBetterAuth(deps: BetterAuthDeps) {
       sendResetPassword: async ({ user, url }) => {
         try {
           // the handler checks the account again and sends nothing for a disabled one
+          // Only for the email's wording: Better Auth computes the real expiry of the token with
+          // its own clock, from resetPasswordTokenExpiresIn.
           const requestedAt = deps.clock.now()
           await deps.queue.send('identity.password_reset_email', {
             userId: user.id,

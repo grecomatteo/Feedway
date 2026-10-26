@@ -68,6 +68,9 @@ export async function createPasswordResetLink(
   })
 }
 
+/** For jobs without dates: the reset link Better Auth makes lasts an hour (better-auth.ts). */
+const PASSWORD_RESET_FALLBACK_TTL_MS = 3600_000
+
 export interface PasswordResetEmailDeps {
   uow: UnitOfWork
   mailer: Mailer
@@ -94,14 +97,22 @@ export async function sendPasswordResetEmail(
     deps.logger.info({}, 'password reset email skipped: account not active')
     return
   }
+  const now = deps.clock.now()
+  // jobs queued before the dates were part of them: Better Auth's link lasts an hour
+  const expiresAt =
+    job.requestedAt && job.expiresAt
+      ? new Date(job.expiresAt)
+      : new Date(now.getTime() + PASSWORD_RESET_FALLBACK_TTL_MS)
+  const minutesLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / 60_000)
+  if (!(minutesLeft > 0)) {
+    deps.logger.info({}, 'password reset email skipped: link expired')
+    return
+  }
+  const minutes = String(minutesLeft)
   const t = deps.translate
   const timeZone = usableTimeZone(user.timezone ?? deps.defaultTimezone, 'Europe/Rome')
-  const expiresAt = new Date(job.expiresAt)
-  const minutes = String(
-    Math.max(1, Math.round((expiresAt.getTime() - Date.parse(job.requestedAt)) / 60_000)),
-  )
   const { time } = dayAndTime(expiresAt, timeZone)
-  const today = isSameDay(deps.clock.now(), expiresAt, timeZone)
+  const today = isSameDay(now, expiresAt, timeZone)
   const values = { product: deps.productName, minutes, time }
   const { html, text } = renderEmail({
     ...emailFrame(t, deps.panelUrl, deps.productName),

@@ -166,18 +166,44 @@ test('the time is written in the person’s time zone, named when it is not Rome
   expect(mailer.sent.at(-1)?.text).toMatch(/alle \d\d:30 \(fuso orario: America\/New_York\)/)
 })
 
+const SUBJECTS: Record<(typeof SECURITY_EMAIL_KINDS)[number], string> = {
+  new_device: 'Nuovo accesso al tuo account Feedway',
+  password_changed: 'La tua password è cambiata · Feedway',
+  password_reset: 'La tua password è stata reimpostata · Feedway',
+  email_changed: "L'email del tuo account è cambiata · Feedway",
+  totp_enabled: 'Verifica in due passaggi attivata · Feedway',
+  totp_disabled: 'Verifica in due passaggi disattivata · Feedway',
+  backup_codes_regenerated: 'Nuovi codici di recupero · Feedway',
+  passkey_added: 'Nuova passkey aggiunta · Feedway',
+  passkey_removed: 'Passkey eliminata · Feedway',
+}
+
 test.each(SECURITY_EMAIL_KINDS)(
-  'the %s email has its own title and the lock button',
+  'the %s email has its own subject and title, and the lock button',
   async (kind) => {
     const { userId } = await newUserWithSessions(0)
     const mailer = createMemoryMailer()
     await identitySecurityEmail(job(userId, { kind }), depsWith(mailer))
     const mail = mailer.sent.at(-1)
-    expect(mail?.subject).toContain('Feedway')
+    expect(mail?.subject).toBe(SUBJECTS[kind])
+    const title =
+      kind === 'new_device'
+        ? 'Nuovo accesso al tuo account'
+        : SUBJECTS[kind].replace(' · Feedway', '')
+    expect(mail?.text.split('\n')[0]).toBe(title)
     expect(mail?.text).toContain("Non sono stato io, blocca l'account:")
     expect(mail?.html).toContain('Rete (approssimativa)')
   },
 )
+
+test('the lock text says only what the lock does today', async () => {
+  const { userId } = await newUserWithSessions(0)
+  const mailer = createMemoryMailer()
+  await identitySecurityEmail(job(userId), depsWith(mailer))
+  expect(mailer.sent.at(-1)?.text).toContain(
+    "Non sei stato tu? Blocca subito l'account: chiudiamo tutte le sessioni aperte e nessuno potrà entrare finché un amministratore non avrà verificato la tua identità e riattivato l'account.",
+  )
+})
 
 test('not configured mailer completes the job and logs it', async () => {
   const { userId } = await newUserWithSessions(0)
