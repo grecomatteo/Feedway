@@ -337,6 +337,19 @@ describe('organizations', () => {
     expect(again.slug).toBe('agenzia-bianchi-2')
   })
 
+  test('a new agency’s name is plain text: no links', async () => {
+    await expect(
+      createOrganization(deps, platformAdmin, {
+        name: 'Agenzia http://truffa.example',
+        ownerEmail: 'titolare@esempio.it',
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: 'Il nome dell’agenzia non può contenere link o caratteri speciali',
+      details: { field: 'name' },
+    })
+  })
+
   test('name and owner email are checked', async () => {
     await expect(
       createOrganization(deps, platformAdmin, { name: ' A ', ownerEmail: 'a@b.it' }),

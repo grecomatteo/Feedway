@@ -28,6 +28,7 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
     security_lock: derive(masterKey, 'signed:security_lock'),
   }
   const deviceKey = derive(masterKey, 'device-hash')
+  const addressKey = derive(masterKey, 'address-hash')
   const mac = (purpose: SignedTokenPurpose, payload: string) =>
     createHmac('sha256', keys[purpose]).update(payload).digest()
 
@@ -59,6 +60,9 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
       return createHmac('sha256', deviceKey)
         .update(`${String(userId.length)}:${userId}${deviceId}`)
         .digest()
+    },
+    addressHash(email) {
+      return createHmac('sha256', addressKey).update(email).digest()
     },
   }
 }

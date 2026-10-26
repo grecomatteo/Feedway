@@ -39,6 +39,9 @@ const services: WorkerDeps['services'] = {
     deviceHash: () => {
       throw new Error('not used in this test')
     },
+    addressHash: () => {
+      throw new Error('not used in this test')
+    },
   },
   translate: () => {
     throw new Error('not used in this test')

@@ -3,7 +3,7 @@ import {
   DomainError,
   LINK_TTL_MS,
   normalizeEmail,
-  organizationName,
+  checkOrganizationName,
 } from '@app/domain'
 import { activationUrl } from '../identity/index.js'
 import {
@@ -34,11 +34,16 @@ export async function createOrganization(
   request: PlatformRequest = NO_REQUEST,
 ): Promise<CreateOrganizationResult> {
   assertPlatform(caller, 'platform.organizations.manage')
-  const name = organizationName(input.name)
-  if (name === null)
-    throw new DomainError('VALIDATION', 'Il nome dell’agenzia va da 2 a 80 caratteri', {
-      field: 'name',
-    })
+  const checked = checkOrganizationName(input.name)
+  if (!checked.ok)
+    throw new DomainError(
+      'VALIDATION',
+      checked.reason === 'LENGTH'
+        ? 'Il nome dell’agenzia va da 2 a 80 caratteri'
+        : 'Il nome dell’agenzia non può contenere link o caratteri speciali',
+      { field: 'name' },
+    )
+  const name = checked.value
   const email = normalizeEmail(input.ownerEmail)
   if (email === null)
     throw new DomainError('VALIDATION', 'Scrivi un indirizzo email valido', {

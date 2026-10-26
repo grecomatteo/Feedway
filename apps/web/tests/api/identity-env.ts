@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
-import { createDb, createPasswordHasher } from '@app/infrastructure'
+import { TEST_MAIL_DIR, createDb, createPasswordHasher, readFileMailbox } from '@app/infrastructure'
 import type { DbHandle } from '@app/infrastructure'
-import { seed, startTestDatabase } from '@app/infrastructure/testing'
+import { activationLinkIn, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { panelClient, sessionCookieOf, startWeb } from './helpers.js'
 import type { CallOptions, RunningWeb } from './helpers.js'
@@ -40,6 +40,8 @@ export interface ApiEnv {
   /** A passkey row, so the person counts as having a second factor. */
   addPasskey(userId: string): Promise<void>
   reauth(cookie: string): Promise<void>
+  /** The activation link last emailed to `email` (the server writes to the test mailbox). */
+  linkSentTo(email: string): Promise<{ url: string; token: string }>
   stop(): Promise<void>
 }
 
@@ -118,6 +120,9 @@ export async function startApiEnv(name: string): Promise<ApiEnv> {
     async reauth(cookie) {
       const r = await call('POST', '/api/v1/auth/reauth', { password: PASSWORD }, { cookie })
       expect(r.status).toBe(200)
+    },
+    async linkSentTo(email) {
+      return activationLinkIn(await readFileMailbox(TEST_MAIL_DIR), email)
     },
     async stop() {
       await web.stop()

@@ -9,6 +9,15 @@ export interface RateLimiter {
     limit: number,
     windowMs: number,
   ): Promise<{ allowed: boolean; retryAfterMs: number }>
+  /**
+   * Whether a `hit` would pass now, without counting it: for allowances counted only once the
+   * action really happened (an email that left). Two concurrent callers may both pass.
+   */
+  peek(
+    key: string,
+    limit: number,
+    windowMs: number,
+  ): Promise<{ allowed: boolean; retryAfterMs: number }>
   /** For the growing wait on an account (`loginDelayMs`). */
   failures(key: string): Promise<{ count: number; lastAt: Date | null }>
   recordFailure(key: string): Promise<void>

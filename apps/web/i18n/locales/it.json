@@ -27,6 +27,7 @@
     "LIMIT_REACHED": "L'agenzia ha raggiunto uno dei suoi limiti.",
     "SOLE_OWNER": "L'Owner è l'unico proprietario dell'agenzia: passa prima la proprietà.",
     "MAIL_NOT_CONFIGURED": "L'invio delle email non è ancora configurato.",
+    "MAIL_SEND_FAILED": "Non siamo riusciti a inviare l'email: riprova tra poco.",
     "LINK_INVALID": "Il link non è valido o è scaduto: chiedine uno nuovo.",
     "FILE_TOO_LARGE": "Il file è troppo grande.",
     "UNSUPPORTED_FILE_TYPE": "Questo tipo di file non è supportato.",
@@ -122,6 +123,16 @@
     "passwordReset": {
       "subject": "{product}: reimposta la password",
       "text": "Abbiamo ricevuto una richiesta per reimpostare la password del tuo account {product}.\n\nPer scegliere una nuova password apri questo link:\n{url}\n\nIl link funziona per un'ora e una sola volta. Quando reimposti la password, usciamo da tutti i dispositivi collegati.\n\nSe non l'hai chiesto tu, ignora questa email: la password resta quella di prima."
+    },
+    "invite": {
+      "newAccount": {
+        "subject": "{inviter} ti ha invitato in {organization} su {product}",
+        "text": "{inviter} ti ha invitato a lavorare con {organization} su {product}.\n\nPer accettare apri questo link e crea il tuo account:\n{url}\n\nIl link è personale: funziona una sola volta, fino al {expires}. Non inoltrarlo.\n\nSe non ti aspettavi questo invito, ignora questa email: senza il link non succede nulla."
+      },
+      "existingAccount": {
+        "subject": "{inviter} ti ha invitato in {organization} su {product}",
+        "text": "{inviter} ti ha invitato a lavorare con {organization} su {product}.\n\nHai già un account {product}: per accettare apri questo link e accedi con il tuo account. Password, passkey e verifica in due passaggi restano quelle di sempre.\n{url}\n\nIl link è personale: funziona una sola volta, fino al {expires}. Non inoltrarlo.\n\nSe non ti aspettavi questo invito, ignora questa email: senza il link non succede nulla."
+      }
     }
   }
 }

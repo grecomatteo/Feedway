@@ -286,6 +286,19 @@ describe('organization settings', () => {
     expect((await settingsOf(a.org))?.settings).toEqual({})
   })
 
+  test('an agency name is plain text: no links', async () => {
+    const a = await agency()
+    const owner = await actorOf(a.owner, a.org)
+    for (const name of ['https://truffa.example', 'Agenzia www.truffa.example', 'Agenzia\u2066x'])
+      await expect(
+        updateOrganizationSettings(deps, owner, fresh(owner), { name }, REQ),
+      ).rejects.toMatchObject({
+        code: 'VALIDATION',
+        message: 'Il nome dell’agenzia non può contenere link o caratteri speciali',
+        details: { field: 'name' },
+      })
+  })
+
   test('values from the routes are checked again', async () => {
     const a = await agency()
     const owner = await actorOf(a.owner, a.org)

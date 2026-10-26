@@ -1,10 +1,12 @@
-import type { Auth } from '@app/application'
+import type { Auth, Translate } from '@app/application'
 import type { WebConfig } from '@app/config'
 import type { Runtime } from '@app/infrastructure'
 
 export interface Deps extends Runtime {
   config: WebConfig
   auth: Auth
+  /** The panel's texts, for the emails the web writes itself (invites). */
+  translate: Translate
 }
 
 let deps: Deps | undefined

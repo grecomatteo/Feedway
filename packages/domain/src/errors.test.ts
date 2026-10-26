@@ -13,5 +13,8 @@ test('DomainError carries structured details and is an Error', () => {
 
 test('the error codes are listed at run time, once each', () => {
   expect(DOMAIN_ERROR_CODES).toContain('LINK_INVALID')
+  expect(DOMAIN_ERROR_CODES).toEqual(
+    expect.arrayContaining(['MAIL_NOT_CONFIGURED', 'MAIL_SEND_FAILED']),
+  )
   expect(new Set(DOMAIN_ERROR_CODES).size).toBe(DOMAIN_ERROR_CODES.length)
 })

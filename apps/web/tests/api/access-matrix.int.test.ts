@@ -71,6 +71,11 @@ interface Rule {
   signsOutActor?: true
   /** the case adds the route's sample query */
   query?: true
+  /**
+   * The case's invite was sent by the Manager: to any other person without `users.manage` it
+   * does not exist (404), whatever their role in the workspace.
+   */
+  sentByManager?: true
 }
 
 const RULES: Record<string, readonly Rule[]> = {
@@ -84,6 +89,17 @@ const RULES: Record<string, readonly Rule[]> = {
   // users.manage (Owner, Admin) or, inside a workspace, workspace.members.manage
   'POST /api/v1/orgs/{org}/invites': [
     { permission: 'workspace.members.manage', level: 'workspace' },
+  ],
+  // Owner and Admin: every open invite; a Manager: the ones they sent, in workspaces they manage
+  'GET /api/v1/orgs/{org}/invites': [
+    { permission: 'workspace.members.manage', level: 'organization' },
+  ],
+  // the case's invite was sent by the Manager into the case's workspace
+  'POST /api/v1/orgs/{org}/invites/{inviteId}/resend': [
+    { permission: 'workspace.members.manage', level: 'workspace', sentByManager: true },
+  ],
+  'DELETE /api/v1/orgs/{org}/invites/{inviteId}': [
+    { permission: 'workspace.members.manage', level: 'workspace', sentByManager: true },
   ],
   'POST /api/v1/orgs/{org}/members/{userId}/password-reset-link': [
     { permission: 'users.manage', level: 'organization' },
@@ -137,6 +153,7 @@ function expectedStatus(rule: Rule, role: ActorRole, where: Where): number {
   if (cell === 'own') throw new Error(`${rule.permission}: "own" needs a resource of the actor`)
   const seesEveryWorkspace = role === 'owner' || role === 'admin'
   if (rule.level === 'workspace' && where === 'w2' && !seesEveryWorkspace) return 404
+  if (rule.sentByManager && !seesEveryWorkspace && role !== 'manager') return 404
   return cell && (!rule.ownerOnly || role === 'owner') ? 200 : 403
 }
 
@@ -195,6 +212,26 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   expect(secretsIn(text)).toEqual([])
 })
 
+test('an Admin invite: only the Owner sends it again (with a reauth) or cancels it', async () => {
+  const route = (key: string) => routeByKey(key)
+  const resend = route('POST /api/v1/orgs/{org}/invites/{inviteId}/resend')
+  const revoke = route('DELETE /api/v1/orgs/{org}/invites/{inviteId}')
+  const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
+  const invite = await fx.adminInvite(ids.workspace)
+  const at = (r: ApiContract) => fill(r.path, { ...pathValues(ids), inviteId: invite })
+  for (const role of ['admin', 'manager'] as const)
+    for (const r of [resend, revoke]) {
+      const answer = await fx.env.call(r.method, at(r), undefined, { cookie: fx.cookies[role] })
+      expect(answer.status, `${role} ${r.method}`).toBe(role === 'admin' ? 403 : 404)
+    }
+  const ok = await fx.env.call(resend.method, at(resend), undefined, { cookie: fx.cookies.owner })
+  expect(ok.status, await ok.text()).toBe(200)
+  // cancelling takes access away: no reauth needed
+  await fx.env.admin.pool.query('update sessions set reauthenticated_at = null')
+  const gone = await fx.env.call(revoke.method, at(revoke), undefined, { cookie: fx.cookies.owner })
+  expect(gone.status, await gone.text()).toBe(200)
+})
+
 test.each(apiRoutes.filter((r) => r.auth !== 'public'))(
   'without a session $method $path → 401',
   async (route) => {
@@ -231,6 +268,8 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.security_lock': ['sessionsClosed'],
   'session.revoked': ['count'],
   'user.invited': ['orgRole', 'memberships[].workspaceId', 'memberships[].role'],
+  'user.invite_resent': [],
+  'user.invite_revoked': ['reason'],
   'user.activated': ['purpose', 'role'],
   'user.disabled': ['scope', 'sessionsClosed'],
   'user.enabled': ['scope', 'sessionsClosed', 'passwordCleared', 'resetLinkIssued'],
@@ -345,6 +384,8 @@ async function produceEveryAction() {
     orgRole: 'member',
     memberships: [{ workspaceId: ids.workspace, role: 'viewer' }],
   })
+  await ok('POST', `${org}/invites/${ids.invite}/resend`)
+  await ok('DELETE', `${org}/invites/${ids.invite}`)
   await ok('POST', `${org}/members/${ids.target}/password-reset-link`)
   await ok('POST', `${org}/members/${ids.target}/disable`)
   await ok('POST', `${org}/members/${ids.target}/enable`)
