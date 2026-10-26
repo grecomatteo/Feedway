@@ -107,8 +107,12 @@ export function defineApiRoute<C extends ApiContract>(
       // a route file wired to the wrong contract would document one route and serve another
       if (matched !== undefined && matched !== pattern)
         throw new Error('route file and contract disagree')
-      if (options.rateLimit) await limit(event, options.rateLimit)
+      // a public route counts every caller; any other only callers with a session, so an
+      // anonymous flood cannot use up the allowance of people behind the same address
+      const isPublic = contract.auth === 'public'
+      if (options.rateLimit && isPublic) await limit(event, options.rateLimit)
       const session = await authorize(event, contract.auth)
+      if (options.rateLimit && !isPublic) await limit(event, options.rateLimit)
       const actor = contract.scope === 'organization' ? await requireOrgActor(event) : null
       const { params, query, body } = contract.request
       const ctx = {
@@ -134,3 +138,12 @@ export function defineApiRoute<C extends ApiContract>(
 
 /** The link routes together: 20 requests a minute per address (Task 12). */
 export const LINKS_RATE_LIMIT = { name: 'links', limit: 20, windowMs: 60_000 }
+
+/** Password guesses on a stolen session; the use case also limits each person (Task 13). */
+export const REAUTH_RATE_LIMIT = { name: 'reauth', limit: 10, windowMs: 60_000 }
+
+/** Each invite is a live link: a stolen session must not mint them in bulk. */
+export const INVITES_RATE_LIMIT = { name: 'invites', limit: 30, windowMs: 60_000 }
+
+/** Each reset link takes over an account if it leaks. */
+export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs: 60_000 }

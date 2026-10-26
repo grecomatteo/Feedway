@@ -9,6 +9,8 @@ export const DOMAIN_ERROR_CODES = [
   'LINK_INVALID',
   /** A sensitive action needs the password or a passkey again (403). */
   'REAUTH_REQUIRED',
+  /** The password given to confirm the identity is wrong or missing; the session stays (403). */
+  'REAUTH_FAILED',
   /** The session must add or use a second factor first (403). */
   'SECOND_FACTOR_REQUIRED',
   /** The agency is suspended: its members cannot work in it (403). */
