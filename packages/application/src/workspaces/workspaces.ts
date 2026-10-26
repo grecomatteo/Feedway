@@ -3,7 +3,7 @@ import {
   can,
   checkLimit,
   DomainError,
-  organizationName,
+  checkOrganizationName,
   parseLimits,
   seesAllWorkspaces,
   type OrgActor,
@@ -100,12 +100,16 @@ export async function lockVisibleWorkspace(
 
 function validName(raw: string): string {
   // the same bounds as an agency name (spec §13)
-  const name = organizationName(raw)
-  if (name === null)
-    throw new DomainError('VALIDATION', 'Il nome dello spazio va da 2 a 80 caratteri', {
-      field: 'name',
-    })
-  return name
+  const checked = checkOrganizationName(raw)
+  if (!checked.ok)
+    throw new DomainError(
+      'VALIDATION',
+      checked.reason === 'LENGTH'
+        ? 'Il nome dello spazio va da 2 a 80 caratteri'
+        : 'Il nome dello spazio non può contenere link o caratteri speciali',
+      { field: 'name' },
+    )
+  return checked.value
 }
 
 const managesWorkspaces = (actor: OrgActor) =>

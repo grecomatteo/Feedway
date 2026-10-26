@@ -1,3 +1,4 @@
+import { isPlainDisplayName } from './display-name.js'
 export const NICKNAME_MAX_GRAPHEMES = 30
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024
 export const AVATAR_MAX_PIXELS = 40_000_000
@@ -8,19 +9,13 @@ export type AvatarSourceType = 'jpeg' | 'png' | 'heic' | 'webp'
 const graphemes = (text: string): string[] =>
   Array.from(new Intl.Segmenter('it', { granularity: 'grapheme' }).segment(text), (s) => s.segment)
 
-/** A link (scheme, `://`, `www.`): a nickname shows up in emails to other people. */
-const LOOKS_LIKE_LINK = /:\/\/|\bwww\.|\b(?:https?|ftp|mailto|javascript|data|file|tel|sms):/i
-/** Control characters and the bidirectional overrides that would reorder the text around them. */
-const HIDDEN_CHARACTERS = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/u
-
 export function validateNickname(
   raw: string | null,
 ): { ok: true; value: string | null } | { ok: false; reason: 'TOO_LONG' | 'INVALID' } {
   const value = raw?.trim() ?? ''
   if (value === '') return { ok: true, value: null }
   if (graphemes(value).length > NICKNAME_MAX_GRAPHEMES) return { ok: false, reason: 'TOO_LONG' }
-  if (LOOKS_LIKE_LINK.test(value) || HIDDEN_CHARACTERS.test(value))
-    return { ok: false, reason: 'INVALID' }
+  if (!isPlainDisplayName(value)) return { ok: false, reason: 'INVALID' }
   return { ok: true, value }
 }
 

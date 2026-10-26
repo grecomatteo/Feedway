@@ -281,6 +281,29 @@ describe('workspaces', () => {
     })
   })
 
+  test('a workspace name is plain text: no links, on creation or rename', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    for (const name of [
+      'https://truffa.example',
+      'Spazio www.truffa.example',
+      'Spazio\u202Eoizaps',
+    ]) {
+      await expect(createWorkspace(deps, owner, { name }, REQ)).rejects.toMatchObject({
+        code: 'VALIDATION',
+        message: 'Il nome dello spazio non può contenere link o caratteri speciali',
+        details: { field: 'name' },
+      })
+      await expect(renameWorkspace(deps, owner, w.w1, { name }, REQ)).rejects.toMatchObject({
+        code: 'VALIDATION',
+        details: { field: 'name' },
+      })
+    }
+    await expect(
+      renameWorkspace(deps, owner, w.w1, { name: 'Spazio 2.0' }, REQ),
+    ).resolves.toBeDefined()
+  })
+
   test('workspace limit counts only active workspaces', async () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
