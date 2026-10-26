@@ -101,4 +101,29 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Test helpers (seeders, the permission table, soft passkeys) never reach the product code.
+    files: ['apps/**/*.ts', 'packages/*/src/**/*.ts'],
+    ignores: [
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      'apps/*/tests/**',
+      'packages/*/src/testing/**',
+      'packages/*/src/testing.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@app/*/testing', '@app/*/testing/*'],
+              message:
+                'I moduli testing servono solo ai test: non importarli nel codice del prodotto.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )
