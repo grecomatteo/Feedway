@@ -114,8 +114,9 @@ Tutte le coppie superano AA: testo 15,7:1 su bianco, testo secondario 6,74:1 su 
 ### Contenuto e dati
 
 - Tempi: invito 72 h, reset 60 minuti (dal piano della tappa 2). Cambio email: 24 h sulla tela, **da fissare nel Task 1** con il valore reale di Better Auth.
-- Date nel fuso dell'organizzazione, scritte per esteso («giovedì 29 ottobre alle 19:20»).
-- E3: luogo approssimativo dall'IP con la dicitura «stimato dalla rete: può essere impreciso»; se manca, la riga si omette.
+- Date scritte per esteso («giovedì 29 ottobre alle 19:20»). Inviti (E1, E2) nel fuso dell'organizzazione; email di sicurezza (E3, E4, E5, E5b) nel fuso dell'utente, con ripiego su `Europe/Rome` come nel piano della tappa 2.
+- E3: luogo approssimativo con la dicitura «stimato dalla rete: può essere impreciso»; se manca, la riga si omette. **Non è nel piano**: oggi ci sono solo IP abbreviato e `deviceLabel`. Una fonte GeoIP richiede una ADR; finché non c'è, la riga non compare.
 - Ogni email è `multipart/alternative` con la versione solo testo della tela (titolo, paragrafi, «Etichetta del pulsante:» + URL, «--», piè di pagina).
 - Anteprima (preheader) nascosta in testa al corpo HTML, testi nella scheda tecnica di ogni email.
-- Domini e nomi sulla tela (feedway.studioriva.it, Studio Riva, Giulia Ferri) sono dati fittizi: l'URL vero è quello dell'installazione.
+- Domini, percorsi e nomi sulla tela (feedway.studioriva.it, `/sicurezza/blocca/…`, Studio Riva, Giulia Ferri) sono fittizi: valgono l'URL dell'installazione e i percorsi del piano (per esempio `PANEL_URL/sicurezza/non-sono-stato-io?t=<token>`).
+- **Da decidere (differenza col piano):** la richiesta di design vuole l'avviso al vecchio indirizzo insieme alla conferma (E5b, «È stato chiesto di cambiare…»). Il piano della tappa 2 (Task 25, `email_changed`) lo invia invece al vecchio indirizzo *a cambio avvenuto*. Prima di scrivere il codice va scelto uno dei due momenti; se vale il piano, E5b diventa «L'email del tuo account è stata cambiata» con lo stesso pulsante «Non sono stato io».
