@@ -107,8 +107,12 @@ export function defineApiRoute<C extends ApiContract>(
       // a route file wired to the wrong contract would document one route and serve another
       if (matched !== undefined && matched !== pattern)
         throw new Error('route file and contract disagree')
-      if (options.rateLimit) await limit(event, options.rateLimit)
+      // a public route counts every caller; any other only callers with a session, so an
+      // anonymous flood cannot use up the allowance of people behind the same address
+      const isPublic = contract.auth === 'public'
+      if (options.rateLimit && isPublic) await limit(event, options.rateLimit)
       const session = await authorize(event, contract.auth)
+      if (options.rateLimit && !isPublic) await limit(event, options.rateLimit)
       const actor = contract.scope === 'organization' ? await requireOrgActor(event) : null
       const { params, query, body } = contract.request
       const ctx = {

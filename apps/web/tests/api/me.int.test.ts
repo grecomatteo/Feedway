@@ -172,8 +172,10 @@ test('reauth checks the password and marks the session', async () => {
   const reauth = (body: unknown) => env.call('POST', '/api/v1/auth/reauth', body, { cookie })
 
   const wrong = await reauth({ password: 'password-sbagliata-davvero' })
-  expect(wrong.status).toBe(401)
-  expect(await errorCodeOf(wrong)).toBe('UNAUTHENTICATED')
+  expect(wrong.status).toBe(403)
+  expect(await errorCodeOf(wrong)).toBe('REAUTH_FAILED')
+  // the session is still there: only the confirmation failed
+  expect((await get('/api/v1/me', cookie)).status).toBe(200)
   expect((await reauth({ password: PASSWORD, userId: randomUUID() })).status).toBe(422)
   expect((await reauth({})).status).toBe(422)
   expect((await env.call('POST', '/api/v1/auth/reauth', { password: PASSWORD })).status).toBe(401)
@@ -188,12 +190,34 @@ test('reauth checks the password and marks the session', async () => {
   expect(rows[0]?.reauthenticated_at).toBeInstanceOf(Date)
 })
 
-test('reauth allows few attempts per address', async () => {
+test('reauth allows few attempts per address, counted only for signed-in callers', async () => {
   const headers = { 'x-forwarded-for': '10.99.0.1' }
-  for (let n = 0; n < 10; n++)
-    expect(
-      (await env.call('POST', '/api/v1/auth/reauth', { password: 'x' }, { headers })).status,
-    ).toBe(401)
-  const blocked = await env.call('POST', '/api/v1/auth/reauth', { password: 'x' }, { headers })
+  const reauth = (cookie?: string) =>
+    env.call(
+      'POST',
+      '/api/v1/auth/reauth',
+      { password: 'sbagliata-di-sicuro' },
+      { cookie, headers },
+    )
+  // anonymous requests from the same address (a shared office connection) use up nothing
+  for (let n = 0; n < 15; n++) expect((await reauth()).status).toBe(401)
+
+  // the use case allows 5 tries per person: three people behind one address reach the 10
+  const agency = await env.agency()
+  const cookies = await Promise.all(
+    [0, 1, 2].map(async () => env.signIn(await env.person(agency.id, 'member'))),
+  )
+  for (const [cookie, tries] of [
+    [cookies[0], 4],
+    [cookies[1], 4],
+    [cookies[2], 2],
+  ] as const)
+    for (let n = 0; n < tries; n++) {
+      const r = await reauth(cookie)
+      expect(r.status).toBe(403)
+      expect(await errorCodeOf(r)).toBe('REAUTH_FAILED')
+    }
+  const blocked = await reauth(cookies[2])
   expect(blocked.status).toBe(429)
+  expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/)
 })

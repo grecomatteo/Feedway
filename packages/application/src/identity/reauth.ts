@@ -28,7 +28,8 @@ export async function reauthenticate(
     })
   // one message for every reason: a missing password says nothing more than a wrong one
   if (!(await deps.auth.verifyPassword(userId, input.password)))
-    throw new DomainError('UNAUTHENTICATED', 'Password non corretta')
+    // 403, not 401: the session is still valid, only the confirmation failed
+    throw new DomainError('REAUTH_FAILED', 'Password non corretta')
   await deps.uow.run({ userId }, async (tx) => {
     // revoked meanwhile: nothing to confirm
     if (!(await tx.sessions.setReauthenticated(userId, session.id, deps.clock.now())))

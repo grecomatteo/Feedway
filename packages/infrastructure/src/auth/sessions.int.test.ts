@@ -371,7 +371,7 @@ test('wrong password on reauth is refused, and the sixth try is limited', async 
   for (let i = 0; i < 5; i++)
     await expect(
       reauthenticate(deps, session, { password: 'sbagliata-di-sicuro' }, request),
-    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED', message: 'Password non corretta' })
+    ).rejects.toMatchObject({ code: 'REAUTH_FAILED', message: 'Password non corretta' })
   // the right password does not help once the window is used up
   await expect(
     reauthenticate(deps, session, { password: PASSWORD }, request),
@@ -397,7 +397,7 @@ test('a person without a password gets the same refusal', async () => {
   const { session } = await resolved(headers)
   await expect(
     reauthenticate(deps, session, { password: PASSWORD }, request),
-  ).rejects.toMatchObject({ code: 'UNAUTHENTICATED', message: 'Password non corretta' })
+  ).rejects.toMatchObject({ code: 'REAUTH_FAILED', message: 'Password non corretta' })
 })
 
 test('a passkey login over a valid session of the same user replaces it with a reauthenticated one', async () => {
@@ -527,11 +527,9 @@ test('a successful reauth clears the failed attempts', async () => {
   const p = await person()
   const { session } = await resolved(p.headers)
   const wrong = () => reauthenticate(deps, session, { password: 'sbagliata-di-sicuro' }, request)
-  for (let i = 0; i < 4; i++)
-    await expect(wrong()).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  for (let i = 0; i < 4; i++) await expect(wrong()).rejects.toMatchObject({ code: 'REAUTH_FAILED' })
   await reauthenticate(deps, session, { password: PASSWORD }, request)
-  for (let i = 0; i < 5; i++)
-    await expect(wrong()).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  for (let i = 0; i < 5; i++) await expect(wrong()).rejects.toMatchObject({ code: 'REAUTH_FAILED' })
   await expect(wrong()).rejects.toMatchObject({ code: 'RATE_LIMITED' })
 })
 

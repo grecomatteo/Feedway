@@ -106,17 +106,32 @@ test('an invite answers the link to copy; naming an Admin needs the Owner and a 
   ).toBe(422)
 })
 
-test('invites and reset links are limited per address', async () => {
+test('invites and reset links are limited per address, for signed-in callers only', async () => {
+  const a = await agencyA()
   const headers = { 'x-forwarded-for': '10.98.0.1' }
-  for (let n = 0; n < 30; n++) {
-    const r = await env.call('POST', '/api/v1/orgs/x/invites', {}, { headers })
-    expect(r.status).toBe(401)
-  }
-  expect((await env.call('POST', '/api/v1/orgs/x/invites', {}, { headers })).status).toBe(429)
-  const reset = `/api/v1/orgs/x/members/${randomUUID()}/password-reset-link`
-  for (let n = 0; n < 10; n++)
+  const invites = `/api/v1/orgs/${a.agency.slug}/invites`
+  const reset = memberPath(a.agency.slug, a.member, 'password-reset-link')
+  // anonymous requests from the same address use up nothing
+  for (let n = 0; n < 40; n++) {
+    expect((await env.call('POST', invites, {}, { headers })).status).toBe(401)
     expect((await env.call('POST', reset, undefined, { headers })).status).toBe(401)
-  expect((await env.call('POST', reset, undefined, { headers })).status).toBe(429)
+  }
+  const invite = (n: number) =>
+    env.call(
+      'POST',
+      invites,
+      { email: `limite-${String(n)}@example.test`, orgRole: 'member' },
+      { cookie: a.adminCookie, headers },
+    )
+  for (let n = 0; n < 30; n++) expect([200, 409]).toContain((await invite(n)).status)
+  const blocked = await invite(30)
+  expect(blocked.status).toBe(429)
+  expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/)
+
+  await env.reauth(a.adminCookie)
+  const resetLink = () => env.call('POST', reset, undefined, { cookie: a.adminCookie, headers })
+  for (let n = 0; n < 10; n++) expect((await resetLink()).status).toBe(200)
+  expect((await resetLink()).status).toBe(429)
 })
 
 test('a reset link needs a recent reauth and a person of this agency', async () => {
@@ -221,17 +236,24 @@ test('ownership transfer route needs the owner and a recent reauth', async () =>
   const a = await agencyA()
   const adminAId = a.adminA.userId
   const path = `/api/v1/orgs/${a.agency.slug}/ownership-transfer`
-  const staleOwnerACookie = a.ownerCookie
-  expect((await post(path, { userId: adminAId }, staleOwnerACookie)).status).toBe(403)
+  // whether a session is freshly confirmed is kept on the server: the cookies stay the same
+  const ownerACookie = a.ownerCookie
+  const adminACookie = a.adminCookie
 
-  const freshAdminACookie = a.adminCookie
-  await env.reauth(freshAdminACookie)
-  expect((await post(path, { userId: adminAId }, freshAdminACookie)).status).toBe(403)
+  const stale = await post(path, { userId: adminAId }, ownerACookie)
+  expect(stale.status).toBe(403)
+  expect(await errorCodeOf(stale)).toBe('REAUTH_REQUIRED')
 
-  await env.reauth(a.ownerCookie)
-  const freshOwnerACookie = a.ownerCookie
-  expect((await post(path, { userId: a.member.userId }, freshOwnerACookie)).status).toBe(403)
-  const transferred = await post(path, { userId: adminAId }, freshOwnerACookie)
+  await env.reauth(adminACookie)
+  const notOwner = await post(path, { userId: adminAId }, adminACookie)
+  expect(notOwner.status).toBe(403)
+  expect(await errorCodeOf(notOwner)).toBe('FORBIDDEN')
+
+  await env.reauth(ownerACookie)
+  const toMember = await post(path, { userId: a.member.userId }, ownerACookie)
+  expect(toMember.status).toBe(403)
+  expect(await errorCodeOf(toMember)).toBe('FORBIDDEN')
+  const transferred = await post(path, { userId: adminAId }, ownerACookie)
   expect(transferred.status).toBe(200)
   expect(await transferred.json()).toEqual({ transferred: true })
 
@@ -242,6 +264,6 @@ test('ownership transfer route needs the owner and a recent reauth', async () =>
   expect(rows.find((r) => r.user_id === adminAId)?.role).toBe('owner')
   expect(rows.find((r) => r.user_id === a.owner.userId)?.role).toBe('admin')
   // both sign in again with their new role
-  expect((await get('/api/v1/me', freshOwnerACookie)).status).toBe(401)
-  expect((await get('/api/v1/me', freshAdminACookie)).status).toBe(401)
+  expect((await get('/api/v1/me', ownerACookie)).status).toBe(401)
+  expect((await get('/api/v1/me', adminACookie)).status).toBe(401)
 })

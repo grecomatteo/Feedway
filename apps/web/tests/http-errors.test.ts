@@ -51,6 +51,16 @@ test('every code of the table has a message, and the statuses are those of the p
     expect(it.errors[code], code).toEqual(expect.any(String))
 })
 
+test('a failed reauth is 403, not the 401 of a session that is gone (Task 20)', () => {
+  const r = toErrorResponse(new DomainError('REAUTH_FAILED', 'Password non corretta'), REQUEST_ID)
+  expect(r.status).toBe(403)
+  expect(r.body.error).toEqual({
+    code: 'REAUTH_FAILED',
+    message: 'Password non corretta',
+    requestId: REQUEST_ID,
+  })
+})
+
 test('every reason has a message', () => {
   expect(it.errorReasons['use_existing_factor']).toEqual(expect.any(String))
 })

@@ -19,6 +19,7 @@
     "UNAUTHENTICATED": "Sessione scaduta: accedi di nuovo.",
     "FORBIDDEN": "Non hai i permessi per questa operazione.",
     "REAUTH_REQUIRED": "Conferma la tua identità per continuare.",
+    "REAUTH_FAILED": "Password non corretta.",
     "SECOND_FACTOR_REQUIRED": "Configura prima una passkey o l'app di autenticazione.",
     "ORGANIZATION_SUSPENDED": "Questa agenzia è sospesa.",
     "NOT_FOUND": "Non trovato.",
