@@ -1,8 +1,29 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
-import { AUDIT_ACTIONS } from '@app/application'
+import { randomBytes, randomUUID } from 'node:crypto'
+import {
+  AUDIT_ACTIONS,
+  SYSTEM_PLATFORM_ACTOR,
+  createOrganization,
+  disableUserEverywhere,
+  enableUserEverywhere,
+  lockAccountFromSecurityEmail,
+  reactivateOrganization,
+  setOrganizationLimits,
+  suspendOrganization,
+} from '@app/application'
 import type { AuditAction } from '@app/application'
+import {
+  createDb,
+  createKeyRing,
+  createLogger,
+  createSignedTokens,
+  createTokenService,
+  createUnitOfWork,
+  systemClock,
+  uuidV7Generator,
+} from '@app/infrastructure'
 import type { Permission } from '@app/domain'
 import { MATRIX } from '@app/domain/testing'
 import {
@@ -14,8 +35,11 @@ import {
   routeKey,
   sampleBody,
   sampleQuery,
+  secretsIn,
   startIsolationFixture,
 } from './support/isolation-fixture.js'
+import { PASSWORD } from './identity-env.js'
+import type { ErrorJson } from './identity-env.js'
 import type { ActorRole, IsolationFixture } from './support/isolation-fixture.js'
 
 let fx: IsolationFixture
@@ -149,6 +173,9 @@ test('every agency route has an access rule, and every rule a route', () => {
   )
 })
 
+/** The code that goes with a refusal: a permission (403) or something not there (404). */
+const CODE_OF: Record<number, string> = { 403: 'FORBIDDEN', 404: 'NOT_FOUND' }
+
 test.each(accessCases)('$role $method $path ($where) → $status', async (c) => {
   const route = routeByKey(c.key)
   let cookie = fx.cookies[c.role]
@@ -161,7 +188,11 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   if (c.rule.query && query === undefined) throw new Error(`no sample query for ${c.key}`)
   const path = fill(route.path, pathValues(ids)) + (query === undefined ? '' : `?${query}`)
   const r = await fx.env.call(route.method, path, sampleBody(route, ids), { cookie })
-  expect(r.status, await r.text()).toBe(c.status)
+  const text = await r.text()
+  expect(r.status, text).toBe(c.status)
+  const code = CODE_OF[c.status]
+  if (code !== undefined) expect((JSON.parse(text) as ErrorJson).error.code, text).toBe(code)
+  expect(secretsIn(text)).toEqual([])
 })
 
 test.each(apiRoutes.filter((r) => r.auth !== 'public'))(
@@ -174,10 +205,12 @@ test.each(apiRoutes.filter((r) => r.auth !== 'public'))(
 )
 
 // ---------------------------------------------------------------------------------------------
-// Activity log: what `AuditItem.data` may hold, action by action. A key not listed here, or a
-// value that looks like an email, an address or a token, fails; so does an action without a
-// list. The rows are read straight from the table (agency, personal and platform entries), after
-// the battery above has run every agency action.
+// Activity log: what `AuditItem.data` may hold, action by action, down to the nested keys
+// (`a.b`, `list[].key`). A key not listed, or a value that looks like an email, an address or a
+// token, fails; so does an action without a list. The test runs the actions itself, then reads
+// every row of the table (agency, personal and platform entries).
+
+const LIMITS = ['workspaces', 'social_accounts', 'users', 'storage_bytes', 'posts_per_day']
 
 const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.login': ['method', 'device', 'previousSessionId'],
@@ -197,7 +230,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.new_device': ['device'],
   'auth.security_lock': ['sessionsClosed'],
   'session.revoked': ['count'],
-  'user.invited': ['orgRole', 'memberships'],
+  'user.invited': ['orgRole', 'memberships[].workspaceId', 'memberships[].role'],
   'user.activated': ['purpose', 'role'],
   'user.disabled': ['scope', 'sessionsClosed'],
   'user.enabled': ['scope', 'sessionsClosed', 'passwordCleared', 'resetLinkIssued'],
@@ -212,8 +245,8 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'organization.created': ['ownerId', 'inviteId'],
   'organization.suspended': [],
   'organization.reactivated': [],
-  'organization.limits_changed': ['limits'],
-  'organization.settings_changed': ['fields', 'require2fa'],
+  'organization.limits_changed': LIMITS.map((k) => `limits.${k}`),
+  'organization.settings_changed': ['fields[]', 'require2fa.from', 'require2fa.to'],
   'organization.ownership_transferred': ['from', 'to'],
   'workspace.created': [],
   'workspace.renamed': [],
@@ -221,6 +254,53 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'member.added': ['role'],
   'member.role_changed': ['from', 'to'],
   'member.removed': ['role'],
+}
+
+/**
+ * Not produced in this stage: account pages (Task 23+), second factor setup in the browser,
+ * profile, export and anonymization. Their entries are written without data, or with the keys
+ * listed above.
+ */
+const NOT_EXERCISED: readonly AuditAction[] = [
+  'auth.second_factor_failed',
+  'auth.password_changed',
+  'auth.password_reset',
+  'auth.email_change_requested',
+  'auth.email_changed',
+  'auth.totp_enabled',
+  'auth.totp_disabled',
+  'auth.backup_codes_regenerated',
+  'auth.passkey_added',
+  'auth.passkey_removed',
+  'user.profile_updated',
+  'user.avatar_changed',
+  'user.data_exported',
+  'user.anonymized',
+  'user.anonymization_scheduled',
+  'user.anonymization_skipped',
+]
+
+/** `a`, `a.b`, `a[].b`; an empty list stands as `a[]`. */
+function keyPaths(value: unknown, prefix: string): string[] {
+  if (Array.isArray(value))
+    return value.length === 0 ? [`${prefix}[]`] : value.flatMap((v) => keyPaths(v, `${prefix}[]`))
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value)
+    if (entries.length === 0) return [prefix]
+    return entries.flatMap(([k, v]) => keyPaths(v, `${prefix}.${k}`))
+  }
+  return [prefix]
+}
+
+const dataPaths = (data: Record<string, unknown>) =>
+  Object.entries(data).flatMap(([k, v]) => keyPaths(v, k))
+
+function pathAllowed(path: string, allowed: readonly string[]): boolean {
+  return (
+    allowed.includes(path) ||
+    // an empty list or object under a listed path
+    allowed.some((a) => a.startsWith(`${path}.`) || a.startsWith(`${path}[`))
+  )
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -245,31 +325,143 @@ function stringsIn(value: unknown): string[] {
   return []
 }
 
+/** Runs every action the panel, the sign-in and the platform can produce in this stage. */
+async function produceEveryAction() {
+  const { env } = fx
+  const { cookie, ids } = await fx.throwawayAgency()
+  const org = `/api/v1/orgs/${ids.org}`
+  const ok = async (method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) => {
+    await fx.refreshReauth()
+    const r = await env.call(method, path, body, { cookie })
+    const text = await r.text()
+    expect(r.status, `${method} ${path}: ${text}`).toBe(200)
+    expect(secretsIn(text)).toEqual([])
+    return text
+  }
+  // agency actions, through the routes
+  await ok('PATCH', `${org}/settings`, { name: 'Agenzia del registro', require2fa: 'all' })
+  await ok('POST', `${org}/invites`, {
+    email: `registro-${randomUUID().slice(0, 8)}@example.test`,
+    orgRole: 'member',
+    memberships: [{ workspaceId: ids.workspace, role: 'viewer' }],
+  })
+  await ok('POST', `${org}/members/${ids.target}/password-reset-link`)
+  await ok('POST', `${org}/members/${ids.target}/disable`)
+  await ok('POST', `${org}/members/${ids.target}/enable`)
+  await ok('PUT', `${org}/members/${ids.newcomer}/role`, { role: 'admin' })
+  const created = JSON.parse(
+    await ok('POST', `${org}/workspaces`, { name: 'Spazio del registro' }),
+  ) as { id: string }
+  await ok('PATCH', `${org}/workspaces/${created.id}`, { name: 'Spazio rinominato' })
+  const members = `${org}/workspaces/${created.id}/members`
+  await ok('POST', members, { userId: ids.target, role: 'viewer' })
+  await ok('PUT', `${members}/${ids.target}`, { role: 'editor' })
+  await ok('DELETE', `${members}/${ids.target}`)
+  await ok('POST', `${org}/workspaces/${created.id}/archive`)
+  // a real reauth, then the hand-over (it signs the Owner out)
+  await env.reauth(cookie)
+  await ok('POST', `${org}/ownership-transfer`, { userId: ids.admin })
+
+  // activation, sign-in events and the person's own sessions
+  const token = await fx.openLink()
+  const activated = await env.call('POST', `/api/v1/links/${encodeURIComponent(token)}/activate`, {
+    name: 'Persona Registro',
+    password: PASSWORD,
+  })
+  expect(activated.status).toBe(200)
+  const person = await env.person(fx.a.id, 'member')
+  const failed = await env.call('POST', '/api/auth/sign-in/email', {
+    email: person.email,
+    password: 'parola-sbagliata-del-tutto',
+  })
+  expect(failed.status).toBe(401)
+  const first = await env.signIn(person)
+  // a second sign-in without the device cookie is a new device
+  const second = await env.signIn(person)
+  expect((await env.call('POST', '/api/auth/sign-out', {}, { cookie: second })).status).toBe(200)
+  const { rows } = await env.admin.pool.query<{ id: string }>(
+    'select id from sessions where user_id = $1',
+    [person.userId],
+  )
+  const third = await env.signIn(person)
+  expect(
+    (
+      await env.call('DELETE', `/api/v1/me/sessions/${rows[0]?.id ?? ''}`, undefined, {
+        cookie: first,
+      })
+    ).status,
+  ).toBe(200)
+  expect(
+    (await env.call('DELETE', '/api/v1/me/sessions', undefined, { cookie: third })).status,
+  ).toBe(200)
+
+  // the platform's actions, through its use cases (its routes come with a later stage)
+  const handle = createDb(env.tdb.runtimeUrl, { max: 2, applicationName: 'matrix-platform' })
+  try {
+    const uow = createUnitOfWork({
+      db: handle.db,
+      ids: uuidV7Generator,
+      logger: createLogger({ service: 'web', level: 'error' }),
+    })
+    const platform = {
+      uow,
+      clock: systemClock,
+      ids: uuidV7Generator,
+      tokens: createTokenService(),
+      keyRing: createKeyRing({ platformKey: randomBytes(32), clock: systemClock }),
+      config: { panelUrl: 'https://pannello.example.ts.net' },
+    }
+    const actor = SYSTEM_PLATFORM_ACTOR
+    const newOrg = await createOrganization(platform, actor, {
+      name: 'Agenzia della piattaforma',
+      ownerEmail: `titolare-${randomUUID().slice(0, 8)}@example.test`,
+    })
+    await createOrganization(platform, actor, {
+      name: 'Agenzia di chi c’è già',
+      ownerEmail: person.email,
+    })
+    await setOrganizationLimits(platform, actor, newOrg.organizationId, { workspaces: 3, users: 9 })
+    await suspendOrganization(platform, actor, newOrg.organizationId)
+    await reactivateOrganization(platform, actor, newOrg.organizationId)
+    await disableUserEverywhere(platform, actor, person.userId)
+    await enableUserEverywhere(platform, actor, person.userId)
+    const locked = await env.person(fx.a.id, 'member')
+    await env.signIn(locked)
+    const signed = createSignedTokens(randomBytes(32))
+    await lockAccountFromSecurityEmail(
+      { uow, tokens: signed, clock: systemClock },
+      {
+        token: signed.sign('security_lock', {
+          userId: locked.userId,
+          issuedAt: new Date(Date.now() - 1000),
+          expiresAt: new Date(Date.now() + 60_000),
+        }),
+        ip: null,
+      },
+    )
+    const enabled = await enableUserEverywhere(platform, actor, locked.userId)
+    expect(enabled.passwordResetUrl).not.toBeNull()
+  } finally {
+    await handle.close()
+  }
+}
+
 test('every audit action has the list of keys its data may hold', () => {
   expect(Object.keys(AUDIT_DATA_KEYS).sort()).toEqual([...AUDIT_ACTIONS].sort())
 })
 
-test('after the battery, audit data holds only the listed keys and nothing personal', async () => {
+test('audit data holds only the listed keys and nothing personal', async () => {
+  await produceEveryAction()
   const { rows } = await fx.env.admin.pool.query<{ action: string; data: Record<string, unknown> }>(
     'select action, data from audit_log',
   )
   const recorded = new Set(rows.map((r) => r.action))
-  // the battery ran every agency action of the panel
-  for (const action of [
-    'user.invited',
-    'user.disabled',
-    'user.role_changed',
-    'user.password_reset_link',
-    'organization.settings_changed',
-    'organization.ownership_transferred',
-    'workspace.created',
-    'workspace.renamed',
-    'workspace.archived',
-    'member.added',
-    'member.role_changed',
-    'member.removed',
-  ])
-    expect(recorded, action).toContain(action)
+  expect(AUDIT_ACTIONS.filter((a) => !NOT_EXERCISED.includes(a) && !recorded.has(a))).toEqual([])
+  // with their richest data too
+  const enabledKeys = rows
+    .filter((r) => r.action === 'user.enabled')
+    .flatMap((r) => Object.keys(r.data))
+  expect(enabledKeys).toEqual(expect.arrayContaining(['passwordCleared', 'resetLinkIssued']))
 
   const problems: string[] = []
   for (const { action, data } of rows) {
@@ -280,8 +472,8 @@ test('after the battery, audit data holds only the listed keys and nothing perso
       problems.push(`${action}: no list of keys`)
       continue
     }
-    for (const key of Object.keys(data))
-      if (!allowed.includes(key)) problems.push(`${action}: key ${key} not listed`)
+    for (const path of dataPaths(data))
+      if (!pathAllowed(path, allowed)) problems.push(`${action}: key ${path} not listed`)
     for (const text of stringsIn(data))
       if (LOOKS_SECRET.some((re) => re.test(text)) || looksLikeToken(text))
         problems.push(`${action}: value ${JSON.stringify(text)} looks personal or secret`)
@@ -293,31 +485,34 @@ test('after the battery, audit data holds only the listed keys and nothing perso
     cookie: fx.cookies.owner,
   })
   expect(r.status).toBe(200)
-  const { items } = (await r.json()) as { items: { action: string; data: object }[] }
+  const { items } = (await r.json()) as {
+    items: { action: string; data: Record<string, unknown> }[]
+  }
   expect(items.length).toBeGreaterThan(0)
   for (const item of items)
-    for (const key of Object.keys(item.data))
-      expect(AUDIT_DATA_KEYS[item.action as AuditAction], `${item.action}.${key}`).toContain(key)
+    for (const path of dataPaths(item.data))
+      expect(
+        pathAllowed(path, AUDIT_DATA_KEYS[item.action as AuditAction]),
+        `${item.action}: ${path}`,
+      ).toBe(true)
 })
 
 // ---------------------------------------------------------------------------------------------
 
-const SECRET_IN_BODY = /"password"|backup_codes|"secret"|token_hash|key_enc|\$argon2|"token"/
-// the OpenAPI document names the fields `password` and `token` of the requests it describes
-const SECRET_VALUE = /backup_codes|token_hash|key_enc|\$argon2/
+/** The OpenAPI document names the `password` and `token` fields of the requests it describes. */
+const OPENAPI_KEYS = ['password', 'token']
 
-test('responses never contain secrets', async () => {
+test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const token = await fx.openLink()
   const gets = apiRoutes.filter((r) => r.method === 'GET')
   expect(gets.length).toBeGreaterThan(0)
   for (const route of gets) {
     const path = fill(route.path, { ...pathValues(ids), token })
-    const r = await fx.env.call('GET', path, undefined, { cookie: fx.cookies.owner })
+    const r = await fx.env.call('GET', path, undefined, { cookie: fx.cookies[role] })
     const body = await r.text()
-    expect(r.status, `${path}: ${body}`).toBe(200)
-    expect(body, path).not.toMatch(
-      route === routeByKey('GET /api/v1/openapi.json') ? SECRET_VALUE : SECRET_IN_BODY,
-    )
+    if (role === 'owner') expect(r.status, `${path}: ${body}`).toBe(200)
+    const allowed = routeKey(route) === 'GET /api/v1/openapi.json' ? OPENAPI_KEYS : []
+    expect(secretsIn(body, allowed), path).toEqual([])
   }
 })

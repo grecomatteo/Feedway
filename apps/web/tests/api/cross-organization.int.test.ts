@@ -2,13 +2,15 @@ import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import { seed } from '@app/infrastructure/testing'
 import { errorCodeOf } from './identity-env.js'
+import type { ErrorJson } from './identity-env.js'
 import {
   PLACEHOLDER_IDS,
-  carriesIds,
   fill,
+  idKindsIn,
   pathValues,
   sampleBody,
   sampleQuery,
+  secretsIn,
   startIsolationFixture,
 } from './support/isolation-fixture.js'
 import type { IsolationFixture, SampleIds } from './support/isolation-fixture.js'
@@ -38,7 +40,9 @@ const orgRequests = orgRoutes.flatMap((route) => [
     : [{ route, method: route.method, path: `${route.path}?query`, withQuery: true }]),
 ])
 
-function request(r: (typeof orgRequests)[number], ids: SampleIds) {
+type OrgRequest = (typeof orgRequests)[number]
+
+function request(r: OrgRequest, ids: SampleIds) {
   const query = r.withQuery ? sampleQuery(r.route, ids) : undefined
   return {
     path: fill(r.route.path, pathValues(ids)) + (query === undefined ? '' : `?${query}`),
@@ -46,37 +50,44 @@ function request(r: (typeof orgRequests)[number], ids: SampleIds) {
   }
 }
 
+/** Not found, with nothing changed and nothing secret in the answer. */
+async function expectNotFound(r: OrgRequest, ids: SampleIds, cookie: string) {
+  const before = await fx.snapshot()
+  const { path, body } = request(r, ids)
+  const answer = await fx.env.call(r.method, path, body, { cookie })
+  const text = await answer.text()
+  expect(answer.status, `${path}: ${text}`).toBe(404)
+  expect((JSON.parse(text) as ErrorJson).error.code).toBe('NOT_FOUND')
+  expect(secretsIn(text)).toEqual([])
+  expect(await fx.snapshot(), `${r.method} ${path} changed rows`).toEqual(before)
+}
+
 test.each(orgRequests)('member of B cannot reach A via $method $path', async (r) => {
-  const { path, body } = request(r, await fx.caseIds({ agency: 'a', actorsInWorkspace: true }))
-  for (const cookie of [fx.cookies.memberOfB, fx.cookies.ownerOfB]) {
-    const answer = await fx.env.call(r.method, path, body, { cookie })
-    expect(answer.status, path).toBe(404)
-  }
+  const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
+  for (const cookie of [fx.cookies.memberOfB, fx.cookies.ownerOfB])
+    await expectNotFound(r, ids, cookie)
 })
 
-/** Ids of the other agency in the path, the body or the query: never found. */
-const orgRequestsWithIds = orgRequests.filter((r) => r.withQuery || carriesIds(r.route))
+/**
+ * One id of the other agency at a time, the others of the agency in the path: a workspace of A
+ * with a person of B, a workspace of B with a person of A, and so on, in both directions.
+ */
+const foreignIdCases = orgRequests.flatMap((r) =>
+  idKindsIn(r.route, r.withQuery).map((kind) => ({ ...r, kind })),
+)
 
-test('the requests that carry ids are the ones expected', () => {
-  // a new route that carries ids joins the next battery by itself; this only guards the filter
-  expect(orgRequestsWithIds.length).toBeGreaterThanOrEqual(12)
+test('every id a request carries gets its own case', () => {
+  // a request that names a workspace or a person and has no case would be skipped in silence
+  for (const r of orgRequests)
+    if (/\{(id|userId)\}/.test(r.route.path) || r.withQuery)
+      expect(idKindsIn(r.route, r.withQuery), r.path).not.toEqual([])
 })
 
-test.each(orgRequestsWithIds)('ids of B inside the A path give 404 on $method $path', async (r) => {
+test.each(foreignIdCases)('$kind of B inside the A path gives 404 on $method $path', async (c) => {
   const idsOfA = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const idsOfB = await fx.caseIds({ agency: 'b', actorsInWorkspace: true })
-  // A's path, every id from B
-  const intoA = request(r, { ...idsOfB, org: idsOfA.org })
-  const asOwnerOfA = await fx.env.call(r.method, intoA.path, intoA.body, {
-    cookie: fx.cookies.owner,
-  })
-  expect(asOwnerOfA.status, await asOwnerOfA.text()).toBe(404)
-  // and the other way round
-  const intoB = request(r, { ...idsOfA, org: idsOfB.org })
-  const asOwnerOfB = await fx.env.call(r.method, intoB.path, intoB.body, {
-    cookie: fx.cookies.ownerOfB,
-  })
-  expect(asOwnerOfB.status, await asOwnerOfB.text()).toBe(404)
+  await expectNotFound(c, { ...idsOfA, [c.kind]: idsOfB[c.kind] }, fx.cookies.owner)
+  await expectNotFound(c, { ...idsOfB, [c.kind]: idsOfA[c.kind] }, fx.cookies.ownerOfB)
 })
 
 test('suspended organization routes answer 403 while the other agency works', async () => {

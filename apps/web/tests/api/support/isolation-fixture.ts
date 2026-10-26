@@ -100,18 +100,33 @@ export function namesWorkspace(route: ApiContract): boolean {
   )
 }
 
-/** Whether a request to the route names a workspace or a person, in the path or the body. */
-export function carriesIds(route: ApiContract): boolean {
-  const body = JSON.stringify(sampleBody(route, PLACEHOLDER_IDS) ?? null)
-  return (
-    /\{(id|userId)\}/.test(route.path) ||
-    [
-      PLACEHOLDER_IDS.workspace,
-      PLACEHOLDER_IDS.target,
-      PLACEHOLDER_IDS.newcomer,
-      PLACEHOLDER_IDS.admin,
-    ].some((id) => body.includes(id))
-  )
+export const ID_KINDS = ['workspace', 'target', 'newcomer', 'admin'] as const
+export type IdKind = (typeof ID_KINDS)[number]
+
+/** The ids a request to the route carries, in the path, the body or (if asked) the query. */
+export function idKindsIn(route: ApiContract, withQuery: boolean): IdKind[] {
+  const query = withQuery ? (sampleQuery(route, PLACEHOLDER_IDS) ?? '') : ''
+  const request =
+    fill(route.path, pathValues(PLACEHOLDER_IDS)) +
+    query +
+    JSON.stringify(sampleBody(route, PLACEHOLDER_IDS) ?? null)
+  return ID_KINDS.filter((kind) => request.includes(PLACEHOLDER_IDS[kind]))
+}
+
+// Keys a secret would sit under, in any case; values only a secret would hold.
+const SECRET_KEY = /"(\w*(?:password|secret|token|backup_?codes)\w*)"\s*:/gi
+const SECRET_VALUE = /\$argon2|token_hash|key_enc|backup_?codes/i
+
+/**
+ * What in a response body looks like a secret. `allowedKeys`: exact key names that are known
+ * not to hold one (the OpenAPI document names the `password` and `token` request fields).
+ */
+export function secretsIn(body: string, allowedKeys: readonly string[] = []): string[] {
+  const keys = [...body.matchAll(SECRET_KEY)]
+    .map((m) => m[1] ?? '')
+    .filter((key) => !allowedKeys.includes(key))
+  const value = SECRET_VALUE.exec(body)
+  return [...keys.map((k) => `key ${k}`), ...(value ? [`value ${value[0]}`] : [])]
 }
 
 /** `{param}` → value; a parameter without a value fails the battery. */
@@ -150,6 +165,19 @@ export interface IsolationFixture {
   reservedLink(): Promise<{ token: string; userId: string }>
   /** An invite link of A nobody has used. */
   openLink(email?: string): Promise<string>
+  /** A fingerprint of the rows a request could change: equal before and after = untouched. */
+  snapshot(): Promise<Record<string, string>>
+}
+
+const SNAPSHOT_QUERIES: Record<string, string> = {
+  organizations: 'select id, name, slug, status, limits from organizations',
+  organization_members: 'select * from organization_members',
+  workspaces: 'select * from workspaces',
+  workspace_members: 'select * from workspace_members',
+  invites: 'select id, organization_id, email, reserved_user_id, used_at from invites',
+  users: 'select id, email, name, status, platform_role from users',
+  sessions: 'select id, user_id from sessions',
+  audit_log: 'select id from audit_log',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -268,6 +296,16 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
       expect(r.status).toBe(200)
       const { url } = (await r.json()) as { url: string }
       return decodeURIComponent(new URL(url).pathname.split('/').at(-1) ?? '')
+    },
+    async snapshot() {
+      const out: Record<string, string> = {}
+      for (const [table, query] of Object.entries(SNAPSHOT_QUERIES)) {
+        const { rows } = await env.admin.pool.query<{ digest: string | null }>(
+          `select md5(string_agg(t::text, '|' order by t::text)) as digest from (${query}) t`,
+        )
+        out[table] = rows[0]?.digest ?? ''
+      }
+      return out
     },
     async reservedLink() {
       const email = `attesa-${randomUUID().slice(0, 8)}@example.test`

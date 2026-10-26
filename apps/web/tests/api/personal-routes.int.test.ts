@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
+import type { ErrorJson } from './identity-env.js'
 import { fill, routeKey, sampleBody, startIsolationFixture } from './support/isolation-fixture.js'
 import type { IsolationFixture, SampleIds } from './support/isolation-fixture.js'
 
@@ -82,8 +83,19 @@ const OWNED_BY_ANOTHER: Record<
  * Not found, as if it did not exist. Exception: completing a link reserved for someone else
  * answers 401 "sign in with your account" (activation, Task 12): the link stays theirs.
  */
-const FOREIGN_STATUS: Record<string, number> = {
-  'POST /api/v1/links/{token}/complete': 401,
+interface ForeignAnswer {
+  status: number
+  code: string
+  /** tells this refusal apart from a missing session, which has the same code */
+  message?: RegExp
+}
+const NOT_FOUND: ForeignAnswer = { status: 404, code: 'NOT_FOUND' }
+const FOREIGN_ANSWER: Record<string, ForeignAnswer> = {
+  'POST /api/v1/links/{token}/complete': {
+    status: 401,
+    code: 'UNAUTHENTICATED',
+    message: /^Accedi con il tuo account/,
+  },
 }
 
 const noIds: SampleIds = { org: '', workspace: '', target: '', newcomer: '', admin: '', email: '' }
@@ -106,7 +118,12 @@ test.each(personalRoutesWithIds)(
         cookie: fx.cookies.memberOfB,
       },
     )
-    expect(r.status, await r.text()).toBe(FOREIGN_STATUS[routeKey(route)] ?? 404)
+    const expected = FOREIGN_ANSWER[routeKey(route)] ?? NOT_FOUND
+    const text = await r.text()
+    expect(r.status, text).toBe(expected.status)
+    const { error } = JSON.parse(text) as ErrorJson
+    expect(error.code).toBe(expected.code)
+    if (expected.message) expect(error.message).toMatch(expected.message)
     await target.untouched()
   },
 )
