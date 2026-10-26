@@ -24,6 +24,12 @@ interface JobDefinitions {
 /** "Password dimenticata": the link holds the reset token, so the job is kept one hour only. */
 export interface PasswordResetEmailData {
   url: string
+  /**
+   * ISO 8601: when the link was made and when it stops working, for the email's wording. Missing
+   * in jobs queued before they were added: the handler then assumes an hour from now.
+   */
+  requestedAt?: string
+  expiresAt?: string
 }
 
 /** The kinds of security email; the texts are `email.security.<kind>.*` in it.json. */
@@ -50,8 +56,9 @@ export interface SecurityEmailData {
   /** Already shortened (last IPv4 octet zero, IPv6 /48). */
   ip: string | null
   /**
-   * Where to write instead of the account's address: for `email_changed` the old address,
-   * since the account already holds the new one (Task 25).
+   * Where to write instead of the account's address: for `email_changed` (E5b, sent when the
+   * change is asked, Task 25) the address the account had then, so the warning reaches it even
+   * if the new one is confirmed before the job runs.
    */
   notifyEmail?: string
 }

@@ -11,7 +11,10 @@ export const identityPasswordResetEmail: JobHandler<'identity.password_reset_ema
       mailer: deps.mailer,
       translate: deps.translate,
       logger: deps.logger,
+      clock: deps.clock,
+      panelUrl: deps.panel.url,
       productName: deps.panel.productName,
+      defaultTimezone: deps.panel.defaultTimezone,
     },
     job.data,
   )

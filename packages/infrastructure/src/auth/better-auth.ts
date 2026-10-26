@@ -108,6 +108,9 @@ const activationSession = {
 /** Sessions last 12 hours without use; the 30-day limit is ours (see auth-adapter.ts). */
 const SESSION_IDLE_SECONDS = SESSION_IDLE_MS / 1000
 
+/** How long a reset link works; the email states it. */
+const PASSWORD_RESET_TTL_SECONDS = 3600
+
 export function createBetterAuth(deps: BetterAuthDeps) {
   const panel = new URL(deps.config.panelUrl)
   const origin = panel.origin
@@ -151,11 +154,21 @@ export function createBetterAuth(deps: BetterAuthDeps) {
         verify: ({ hash, password }) => deps.hasher.verify(hash, password),
       },
       revokeSessionsOnPasswordReset: true,
-      resetPasswordTokenExpiresIn: 3600,
+      resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
       sendResetPassword: async ({ user, url }) => {
         try {
           // the handler checks the account again and sends nothing for a disabled one
-          await deps.queue.send('identity.password_reset_email', { userId: user.id, url })
+          // Only for the email's wording: Better Auth computes the real expiry of the token with
+          // its own clock, from resetPasswordTokenExpiresIn.
+          const requestedAt = deps.clock.now()
+          await deps.queue.send('identity.password_reset_email', {
+            userId: user.id,
+            url,
+            requestedAt: requestedAt.toISOString(),
+            expiresAt: new Date(
+              requestedAt.getTime() + PASSWORD_RESET_TTL_SECONDS * 1000,
+            ).toISOString(),
+          })
         } catch (error) {
           // A failure must not answer differently from an unknown email (account enumeration);
           // the link is a secret: never in the log.

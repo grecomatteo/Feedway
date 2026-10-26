@@ -6,6 +6,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
   lockAccountFromSecurityEmail,
+  SECURITY_EMAIL_KINDS,
   type Logger,
   type Mailer,
   type SecurityEmailData,
@@ -106,16 +107,22 @@ test('security email goes to the user with a working lock link', async () => {
   await identitySecurityEmail(job(userId), depsWith(mailer))
   const mail = mailer.sent.at(-1)
   expect(mail?.to).toBe(email)
-  expect(mail?.subject).toContain('Feedway')
+  expect(mail?.subject).toBe('Nuovo accesso al tuo account Feedway')
   // shortened address, Rome time, the readable device, never the full IP
-  expect(mail?.text).toContain('93.41.12.0')
+  expect(mail?.text).toContain('Rete (approssimativa): 93.41.12.0')
   expect(mail?.text).not.toContain('93.41.12.200')
-  expect(mail?.text).toContain('10:30')
-  expect(mail?.text).toContain('Safari su iOS')
-  expect(mail?.text).toContain(`${PANEL.origin}/sicurezza/non-sono-stato-io?t=`)
+  expect(mail?.text).toMatch(/Quando: \S+ \d+ \S+ \d{4} alle 10:30 \(ora italiana\)/)
+  expect(mail?.text).toContain('Dispositivo: Safari su iOS')
+  expect(mail?.text).not.toContain('Luogo')
+  expect(mail?.text).toContain(
+    `Non sono stato io, blocca l'account:\n${PANEL.origin}/sicurezza/non-sono-stato-io?t=`,
+  )
+  expect(mail?.text).toContain('Il link funziona per 7 giorni.')
+  expect(mail?.text).toContain('Gli avvisi di sicurezza non si possono disattivare.')
   expect(mail?.html).toMatch(
     /<a href="https:\/\/pannello\.example\.test\/sicurezza\/non-sono-stato-io\?t=/,
   )
+  expect(mail?.html).toContain('bgcolor="#B3261E"')
 
   const token = tokenFrom(mail?.text ?? '')
   const deps = { uow: runtime.uow, tokens: runtime.signedTokens, clock: runtime.clock }
@@ -149,6 +156,53 @@ test('values are escaped in the html version', async () => {
   const mail = mailer.sent.at(-1)
   expect(mail?.html).not.toContain('<script>')
   expect(mail?.html).toContain('&lt;script&gt;')
+})
+
+test('the time is written in the person’s time zone, named when it is not Rome', async () => {
+  const { userId } = await newUserWithSessions(0)
+  await admin.query("update users set timezone = 'America/New_York' where id = $1", [userId])
+  const mailer = createMemoryMailer()
+  await identitySecurityEmail(job(userId), depsWith(mailer))
+  expect(mailer.sent.at(-1)?.text).toMatch(/alle \d\d:30 \(fuso orario: America\/New_York\)/)
+})
+
+const SUBJECTS: Record<(typeof SECURITY_EMAIL_KINDS)[number], string> = {
+  new_device: 'Nuovo accesso al tuo account Feedway',
+  password_changed: 'La tua password è cambiata · Feedway',
+  password_reset: 'La tua password è stata reimpostata · Feedway',
+  email_changed: "L'email del tuo account è cambiata · Feedway",
+  totp_enabled: 'Verifica in due passaggi attivata · Feedway',
+  totp_disabled: 'Verifica in due passaggi disattivata · Feedway',
+  backup_codes_regenerated: 'Nuovi codici di recupero · Feedway',
+  passkey_added: 'Nuova passkey aggiunta · Feedway',
+  passkey_removed: 'Passkey eliminata · Feedway',
+}
+
+test.each(SECURITY_EMAIL_KINDS)(
+  'the %s email has its own subject and title, and the lock button',
+  async (kind) => {
+    const { userId } = await newUserWithSessions(0)
+    const mailer = createMemoryMailer()
+    await identitySecurityEmail(job(userId, { kind }), depsWith(mailer))
+    const mail = mailer.sent.at(-1)
+    expect(mail?.subject).toBe(SUBJECTS[kind])
+    const title =
+      kind === 'new_device'
+        ? 'Nuovo accesso al tuo account'
+        : SUBJECTS[kind].replace(' · Feedway', '')
+    expect(mail?.text.split('\n')[0]).toBe(title)
+    expect(mail?.text).toContain("Non sono stato io, blocca l'account:")
+    expect(mail?.html).toContain('Rete (approssimativa)')
+  },
+)
+
+test('the lock text says only what the lock does today', async () => {
+  const { userId } = await newUserWithSessions(0)
+  const mailer = createMemoryMailer()
+  await identitySecurityEmail(job(userId), depsWith(mailer))
+  expect(mailer.sent.at(-1)?.text).toContain(
+    "Non sei stato tu? Blocca subito l'account: chiudiamo tutte le sessioni aperte e nessuno potrà entrare finché un amministratore non avrà verificato la tua identità e riattivato l'account.",
+  )
 })
 
 test('not configured mailer completes the job and logs it', async () => {
