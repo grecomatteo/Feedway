@@ -12,7 +12,7 @@ Agisci come product designer e design engineer: collega ogni scelta a un'attivit
 
 Verifica gli strumenti realmente esposti dal collegamento MCP di Pen.dev e lo stato dell'editor. Chiama `read_skill()` e leggi i riferimenti necessari prima di operare; gestisci i documenti `.pen` soltanto tramite Pen e i suoi strumenti. Usa quegli strumenti per creare elementi nativi modificabili, variabili semantiche e componenti riusabili. Salva il progetto in `design/feedway-ui.pen`, con gli asset necessari accanto. Se esiste già un file importante, aprilo e conserva il lavoro prima di modificarlo; non sovrascrivere una tela estranea.
 
-Vincoli: italiano; Nuxt/Vue/TypeScript; più agenzie e clienti; un post appartiene a un solo cliente/spazio; solo destinazioni di quel cliente; medesimo contenuto su IG/FB; ruoli del documento; cliente in sola visione. Le API reali, l'AI copy, le approvazioni cliente, le statistiche e le attività future non vanno inventate. Il brand è approvato nel kit Feedway: arancio/carbone, titoli Sora 650, corpo system-ui. Usa i file originali del logo e variabili coerenti, con etichette carbone sui pulsanti arancioni.
+Vincoli: italiano; Nuxt/Vue/TypeScript; più agenzie e clienti; un post appartiene a un solo cliente/spazio; solo destinazioni di quel cliente; medesimi media su IG/FB, caption comune con testo diverso facoltativo per piattaforma; ruoli del documento; cliente in sola visione. Le API reali, l'AI copy, le approvazioni cliente, le statistiche e le attività future non vanno inventate. Il brand è approvato nel kit Feedway: arancio/carbone, titoli Sora 650, corpo system-ui. Usa i file originali del logo e variabili coerenti, con etichette carbone sui pulsanti arancioni.
 
 Procedi con questo primo risultato concreto:
 
