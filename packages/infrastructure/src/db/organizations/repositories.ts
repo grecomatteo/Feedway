@@ -1,4 +1,4 @@
-import { and, count, eq, gt, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNull, sql, type SQL } from 'drizzle-orm'
 import { DomainError } from '@app/domain'
 import type {
   InviteRecord,
@@ -386,5 +386,44 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         )
       return row?.n ?? 0
     },
+    async listOpen(organizationId, now) {
+      const rows = await db
+        .select(inviteColumns)
+        .from(invites)
+        .where(and(agencyInvite(organizationId), openAt(now)))
+        .orderBy(asc(invites.createdAt), asc(invites.id))
+      return rows.map(toInvite)
+    },
+    async findOpenForUpdate(organizationId, id, now) {
+      try {
+        const [row] = await db
+          .select(inviteColumns)
+          .from(invites)
+          .where(and(agencyInvite(organizationId), eq(invites.id, id), openAt(now)))
+          .for('update', { noWait: true })
+        return row ? toInvite(row) : null
+      } catch (error) {
+        if (pgCode(error) === LOCK_NOT_AVAILABLE)
+          throw new DomainError('CONFLICT', 'Attivazione già in corso: riprova tra poco')
+        throw error
+      }
+    },
+    async replaceToken(id, tokenHash, expiresAt) {
+      await db
+        .update(invites)
+        .set({ tokenHash, expiresAt })
+        .where(and(eq(invites.id, id), isNull(invites.usedAt)))
+    },
+    async expire(id, at) {
+      await db
+        .update(invites)
+        .set({ expiresAt: at })
+        .where(and(eq(invites.id, id), isNull(invites.usedAt), gt(invites.expiresAt, at)))
+    },
   }
 }
+
+/** Invites an agency created itself: not the platform's links for a new agency's Owner. */
+const agencyInvite = (organizationId: string) =>
+  and(eq(invites.organizationId, organizationId), eq(invites.purpose, 'invite'))
+const openAt = (now: Date) => and(isNull(invites.usedAt), gt(invites.expiresAt, now))

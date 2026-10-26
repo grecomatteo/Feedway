@@ -27,9 +27,15 @@ export { listMySessions, revokeAllMySessions, revokeMySession } from './my-sessi
 export type { MySession } from './my-sessions.js'
 export type { ResolvedSession, SessionState, SessionUser, SessionUserDeps } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'
-export { inviteUser } from './invites.js'
+export {
+  INVITES_PER_ADDRESS,
+  inviteUser,
+  listInvites,
+  resendInvite,
+  revokeInvite,
+} from './invites.js'
 export { assertActorSession, assertOneOf, isUuid } from './member-rules.js'
-export type { InviteInput } from './invites.js'
+export type { InviteDeps, InviteDto, InviteInput } from './invites.js'
 export {
   changeOrgRole,
   disableMember,

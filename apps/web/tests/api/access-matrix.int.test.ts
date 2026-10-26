@@ -85,6 +85,17 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/invites': [
     { permission: 'workspace.members.manage', level: 'workspace' },
   ],
+  // Owner and Admin: every open invite; a Manager: the ones they sent, in workspaces they manage
+  'GET /api/v1/orgs/{org}/invites': [
+    { permission: 'workspace.members.manage', level: 'organization' },
+  ],
+  // the case's invite was sent by the Manager into the case's workspace
+  'POST /api/v1/orgs/{org}/invites/{inviteId}/resend': [
+    { permission: 'workspace.members.manage', level: 'workspace' },
+  ],
+  'DELETE /api/v1/orgs/{org}/invites/{inviteId}': [
+    { permission: 'workspace.members.manage', level: 'workspace' },
+  ],
   'POST /api/v1/orgs/{org}/members/{userId}/password-reset-link': [
     { permission: 'users.manage', level: 'organization' },
   ],
@@ -231,6 +242,8 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.security_lock': ['sessionsClosed'],
   'session.revoked': ['count'],
   'user.invited': ['orgRole', 'memberships[].workspaceId', 'memberships[].role'],
+  'user.invite_resent': [],
+  'user.invite_revoked': ['reason'],
   'user.activated': ['purpose', 'role'],
   'user.disabled': ['scope', 'sessionsClosed'],
   'user.enabled': ['scope', 'sessionsClosed', 'passwordCleared', 'resetLinkIssued'],
@@ -345,6 +358,8 @@ async function produceEveryAction() {
     orgRole: 'member',
     memberships: [{ workspaceId: ids.workspace, role: 'viewer' }],
   })
+  await ok('POST', `${org}/invites/${ids.invite}/resend`)
+  await ok('DELETE', `${org}/invites/${ids.invite}`)
   await ok('POST', `${org}/members/${ids.target}/password-reset-link`)
   await ok('POST', `${org}/members/${ids.target}/disable`)
   await ok('POST', `${org}/members/${ids.target}/enable`)

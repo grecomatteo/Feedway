@@ -57,7 +57,8 @@ export function emailHtml(
     .join('\n')
 }
 
-function formatWhen(at: Date, timeZone: string): string {
+/** A date and time as the emails write it, in Italian. */
+export function formatWhen(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('it-IT', {
     dateStyle: 'long',
     timeStyle: 'short',

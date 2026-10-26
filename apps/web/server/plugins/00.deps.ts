@@ -5,7 +5,9 @@ import {
   createBetterAuth,
   createPasswordHasher,
   createRuntime,
+  createTranslate,
 } from '@app/infrastructure'
+import it from '../../i18n/locales/it.json' with { type: 'json' }
 
 const EXIT_CONFIG = 78
 
@@ -53,7 +55,7 @@ export default defineNitroPlugin((nitroApp) => {
     })
     const auth = createAuthAdapter(betterAuth, { db: runtime.db, clock: runtime.clock })
     runtime.logger.info({}, 'web started')
-    return { ...runtime, config, auth }
+    return { ...runtime, config, auth, translate: createTranslate(it) }
   }).catch((error: unknown) => {
     // the container restarts; the cause is in the log
     console.error('web failed to start', error instanceof Error ? error.message : error)

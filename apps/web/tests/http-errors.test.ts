@@ -37,6 +37,14 @@ const PLAN_TABLE: Record<string, number> = {
   RATE_LIMITED: 429,
 }
 
+test('email errors: not configured is a state of the platform, a failed send an upstream error', () => {
+  expect(ERROR_STATUS.MAIL_NOT_CONFIGURED).toBe(409)
+  expect(ERROR_STATUS.MAIL_SEND_FAILED).toBe(502)
+  const r = toErrorResponse(new DomainError('MAIL_SEND_FAILED', ''), REQUEST_ID)
+  expect(r).toMatchObject({ status: 502, unexpected: false })
+  expect(r.body.error.message).toBe(it.errors['MAIL_SEND_FAILED'])
+})
+
 test('every domain error code has a status and an italian message', () => {
   for (const code of DOMAIN_ERROR_CODES) {
     expect(ERROR_STATUS[code], code).toEqual(expect.any(Number))

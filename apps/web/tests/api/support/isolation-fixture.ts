@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
@@ -36,6 +36,8 @@ export interface SampleIds {
   admin: string
   /** an email nobody uses */
   email: string
+  /** an open invite of the agency into `workspace`, sent by A's Manager (B's Owner in B) */
+  invite: string
 }
 
 /** A valid body for every route that takes one; checked against the route's own schema. */
@@ -90,17 +92,22 @@ export const PLACEHOLDER_IDS: SampleIds = {
   newcomer: randomUUID(),
   admin: randomUUID(),
   email: 'segnaposto@example.test',
+  invite: randomUUID(),
 }
 
-/** Whether a request to the route names a workspace (path, body or a sample query). */
+/**
+ * Whether a request to the route names a workspace (path, body or a sample query). An invite
+ * names the workspaces it gives roles in: the case's invite is into the case's workspace.
+ */
 export function namesWorkspace(route: ApiContract): boolean {
   return (
     route.path.includes('{id}') ||
+    route.path.includes('{inviteId}') ||
     JSON.stringify(sampleBody(route, PLACEHOLDER_IDS) ?? null).includes(PLACEHOLDER_IDS.workspace)
   )
 }
 
-export const ID_KINDS = ['workspace', 'target', 'newcomer', 'admin'] as const
+export const ID_KINDS = ['workspace', 'target', 'newcomer', 'admin', 'invite'] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
 /** The ids a request to the route carries, in the path, the body or (if asked) the query. */
@@ -143,6 +150,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   org: ids.org,
   id: ids.workspace,
   userId: ids.target,
+  inviteId: ids.invite,
 })
 
 export interface IsolationFixture {
@@ -225,6 +233,25 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
 
   const workspaceOf = { a: [a.id, w1, w2], b: [b.id, wb, wb] } as const
 
+  /** An open invite written directly: its link is never needed, only its id. */
+  async function openInvite(organizationId: string, workspaceId: string, invitedBy: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into invites (id, organization_id, purpose, email, token_hash, invited_by, org_role,
+                            memberships, expires_at)
+       values ($1, $2, 'invite', $3, $4, $5, 'member', $6, now() + interval '72 hours')`,
+      [
+        id,
+        organizationId,
+        `invitato-${randomUUID().slice(0, 8)}@example.test`,
+        randomBytes(32),
+        invitedBy,
+        JSON.stringify([{ workspaceId, role: 'viewer' }]),
+      ],
+    )
+    return id
+  }
+
   const fixture: IsolationFixture = {
     env,
     a: { ...a, w1, w2, people },
@@ -250,10 +277,12 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         return { workspace, target, newcomer, admin }
       })
       await env.addPasskey(ids.admin)
+      const sender = agency === 'a' ? people.manager.userId : ownerOfB.userId
       return {
         org: agency === 'a' ? a.slug : b.slug,
         ...ids,
         email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
+        invite: await openInvite(organizationId, ids.workspace, sender),
       }
     },
     async refreshReauth() {
@@ -279,7 +308,12 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
       await fixture.refreshReauth()
       return {
         cookie,
-        ids: { org: agency.slug, ...ids, email: `nuova-${randomUUID().slice(0, 8)}@example.test` },
+        ids: {
+          org: agency.slug,
+          ...ids,
+          email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
+          invite: await openInvite(agency.id, ids.workspace, owner.userId),
+        },
       }
     },
     async openLink(email = `link-${randomUUID().slice(0, 8)}@example.test`) {
@@ -294,8 +328,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         { cookie: cookies.owner },
       )
       expect(r.status).toBe(200)
-      const { url } = (await r.json()) as { url: string }
-      return decodeURIComponent(new URL(url).pathname.split('/').at(-1) ?? '')
+      return (await env.linkSentTo(email)).token
     },
     async snapshot() {
       const out: Record<string, string> = {}

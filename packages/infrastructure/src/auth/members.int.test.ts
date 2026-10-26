@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import pg from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import {
@@ -10,16 +11,21 @@ import {
   disableMember,
   enableMember,
   inviteUser,
+  listInvites,
   listMembers,
+  resendInvite,
   resolveOrgActor,
   resolveSessionUser,
+  revokeInvite,
   transferOwnership,
   type Auth,
   type AuthSessionInfo,
   type IdentityDeps,
+  type InviteDeps,
   type JobPayloads,
   type JobQueue,
   type Logger,
+  type Mailer,
   type UnitOfWork,
 } from '@app/application'
 import type { OrgActor, WorkspaceRole } from '@app/domain'
@@ -34,7 +40,11 @@ import { createPgRateLimiter } from '../db/rate-limiter.js'
 import { createLogger } from '../logging/logger.js'
 import { systemClock } from '../system/clock.js'
 import { uuidV7Generator } from '../system/id-generator.js'
+import { createTranslate } from '../i18n/translate.js'
+import { createMemoryMailer } from '../mail/memory-mailer.js'
+import { notConfiguredMailer } from '../mail/not-configured-mailer.js'
 import {
+  activationLinkIn,
   fixedClock,
   seed,
   startTestDatabase,
@@ -58,6 +68,14 @@ let instance: BetterAuthInstance
 let auth: Auth
 let uow: UnitOfWork
 let deps: IdentityDeps
+/** What inviting needs on top: the link goes only to the invited mailbox. */
+let inviteDeps: InviteDeps
+const mailer = createMemoryMailer()
+const translate = createTranslate(
+  JSON.parse(
+    readFileSync(new URL('../../../../apps/web/i18n/locales/it.json', import.meta.url), 'utf8'),
+  ),
+)
 const tokens = createTokenService()
 const logger = createLogger({ service: 'web', level: 'error' })
 const queued: { name: string; data: unknown }[] = []
@@ -126,6 +144,14 @@ beforeAll(async () => {
       require2fa: 'admins',
       panelUrl: PANEL,
     },
+  }
+  inviteDeps = {
+    ...deps,
+    mailer,
+    translate,
+    logger,
+    productName: 'Feedway',
+    defaultTimezone: 'Europe/Rome',
   }
 })
 afterAll(async () => {
@@ -303,8 +329,13 @@ describe('invites', () => {
     const w = await world()
     const manager = await actorOf(w.manager.id, w.orgA)
     const before = Date.now()
-    const r = await inviteUser(deps, manager, fresh(manager), invite(w.w1, 'publisher'), REQ)
-    expect(r.url).toMatch(/^https:\/\/app\.feedway\.test\/attiva\//)
+    const sample = invite(w.w1, 'publisher')
+    const r = await inviteUser(inviteDeps, manager, fresh(manager), sample, REQ)
+    // the link never comes back to whoever invites: only the invited mailbox gets it
+    expect(Object.keys(r).sort()).toEqual(['expiresAt', 'inviteId'])
+    expect(activationLinkIn(mailer.sent, sample.email).url).toMatch(
+      /^https:\/\/app\.feedway\.test\/attiva\//,
+    )
     expect(r.expiresAt.getTime() - before).toBeGreaterThanOrEqual(72 * 3600_000 - 1000)
     expect(r.expiresAt.getTime() - before).toBeLessThanOrEqual(72 * 3600_000 + 60_000)
     const entry = await lastAudit(w.orgA)
@@ -318,10 +349,10 @@ describe('invites', () => {
     const w = await world()
     const manager = await actorOf(w.manager.id, w.orgA)
     await expect(
-      inviteUser(deps, manager, fresh(manager), invite(w.w1, 'manager'), REQ),
+      inviteUser(inviteDeps, manager, fresh(manager), invite(w.w1, 'manager'), REQ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
     await expect(
-      inviteUser(deps, manager, fresh(manager), invite(w.w2, 'viewer'), REQ),
+      inviteUser(inviteDeps, manager, fresh(manager), invite(w.w2, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -329,7 +360,7 @@ describe('invites', () => {
     const w = await world()
     const viewer = await actorOf(w.member.id, w.orgA)
     await expect(
-      inviteUser(deps, viewer, fresh(viewer), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, viewer, fresh(viewer), invite(w.w1, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
@@ -341,12 +372,16 @@ describe('invites', () => {
       memberships: [],
     }
     const manager = await actorOf(w.manager.id, w.orgA)
-    await expect(inviteUser(deps, manager, fresh(manager), noSpaces, REQ)).rejects.toMatchObject({
+    await expect(
+      inviteUser(inviteDeps, manager, fresh(manager), noSpaces, REQ),
+    ).rejects.toMatchObject({
       code: 'FORBIDDEN',
     })
     const adminA = await actorOf(w.adminA.id, w.orgA)
-    await expect(inviteUser(deps, adminA, fresh(adminA), noSpaces, REQ)).resolves.toMatchObject({
-      url: expect.any(String) as string,
+    await expect(
+      inviteUser(inviteDeps, adminA, fresh(adminA), noSpaces, REQ),
+    ).resolves.toMatchObject({
+      inviteId: expect.any(String) as string,
     })
   })
 
@@ -354,7 +389,7 @@ describe('invites', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.wB, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.wB, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -362,15 +397,17 @@ describe('invites', () => {
     const w = await world()
     const adminA = await actorOf(w.adminA.id, w.orgA)
     const asAdmin = { ...invite(w.w1, 'viewer'), orgRole: 'admin' as const }
-    await expect(inviteUser(deps, adminA, fresh(adminA), asAdmin, REQ)).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-    })
+    await expect(inviteUser(inviteDeps, adminA, fresh(adminA), asAdmin, REQ)).rejects.toMatchObject(
+      {
+        code: 'FORBIDDEN',
+      },
+    )
     const owner = await actorOf(w.owner.id, w.orgA)
-    await expect(inviteUser(deps, owner, stale(owner), asAdmin, REQ)).rejects.toMatchObject({
+    await expect(inviteUser(inviteDeps, owner, stale(owner), asAdmin, REQ)).rejects.toMatchObject({
       code: 'REAUTH_REQUIRED',
     })
-    await expect(inviteUser(deps, owner, fresh(owner), asAdmin, REQ)).resolves.toMatchObject({
-      url: expect.any(String) as string,
+    await expect(inviteUser(inviteDeps, owner, fresh(owner), asAdmin, REQ)).resolves.toMatchObject({
+      inviteId: expect.any(String) as string,
     })
   })
 
@@ -379,7 +416,7 @@ describe('invites', () => {
     const owner = await actorOf(w.owner.id, w.orgA)
     await expect(
       inviteUser(
-        deps,
+        inviteDeps,
         owner,
         fresh(owner),
         invite(w.w1, 'viewer', ` ${w.member.email.toUpperCase()} `),
@@ -395,11 +432,11 @@ describe('invites', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer', 'non-una-email'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer', 'non-una-email'), REQ),
     ).rejects.toMatchObject({ code: 'VALIDATION' })
     await expect(
       inviteUser(
-        deps,
+        inviteDeps,
         owner,
         fresh(owner),
         {
@@ -420,13 +457,14 @@ describe('invites', () => {
     const owner = await actorOf(w.owner.id, w.orgA)
     const userOfB = await person('utenteb')
     await seed(tdb.runtimeUrl, (s) => s.member(w.orgB, userOfB.id, 'member'))
-    const { url } = await inviteUser(
-      deps,
+    await inviteUser(
+      inviteDeps,
       owner,
       fresh(owner),
       invite(w.w1, 'viewer', `  ${userOfB.email.toUpperCase()} `),
       REQ,
     )
+    const { url } = activationLinkIn(mailer.sent, userOfB.email)
     expect(await describeLink(deps, { token: tokenOf(url) })).toMatchObject({
       existingUser: true,
       email: userOfB.email,
@@ -467,13 +505,9 @@ describe('invites', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     const clock = fixedClock(new Date())
-    const { url } = await inviteUser(
-      { ...deps, clock },
-      owner,
-      fresh(owner),
-      invite(w.w1, 'viewer'),
-      REQ,
-    )
+    const sample = invite(w.w1, 'viewer')
+    await inviteUser({ ...inviteDeps, clock }, owner, fresh(owner), sample, REQ)
+    const { url } = activationLinkIn(mailer.sent, sample.email)
     clock.advance(72 * 3600_000 - 60_000)
     await expect(describeLink({ ...deps, clock }, { token: tokenOf(url) })).resolves.toBeDefined()
     clock.advance(2 * 60_000)
@@ -488,17 +522,17 @@ describe('invites', () => {
     // owner, admin, manager, member, both
     await setLimits(w.orgA, { users: 5 })
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
     await setLimits(w.orgA, { users: 6 })
-    await inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+    await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
     // an unreadable limit closes
     await setLimits(w.orgA, { users: 'tanti' })
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
   })
 
@@ -512,8 +546,8 @@ describe('invites', () => {
     await holder.query('begin')
     await holder.query('select pg_advisory_xact_lock(hashtext($1))', [`seats:${w.orgA}`])
     const pending = Promise.allSettled([
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
     ])
     await waitForWaiters(2)
     await holder.query('commit')
@@ -534,7 +568,7 @@ describe('invites', () => {
     )
     await setLimits(w.orgA, { users: 5 })
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
   })
 
@@ -546,7 +580,7 @@ describe('invites', () => {
       [w.orgA, w.member.id],
     )
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(w.w1, 'viewer', w.member.email), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer', w.member.email), REQ),
     ).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'È nell’agenzia ma disattivato: riattivalo',
@@ -558,7 +592,7 @@ describe('invites', () => {
     const archived = await seed(tdb.runtimeUrl, (s) => s.workspace(w.orgA, { archived: true }))
     const owner = await actorOf(w.owner.id, w.orgA)
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite(archived, 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite(archived, 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
@@ -566,14 +600,14 @@ describe('invites', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     const asOwner = { ...invite(w.w1, 'viewer'), orgRole: 'owner' as unknown as 'admin' }
-    await expect(inviteUser(deps, owner, fresh(owner), asOwner, REQ)).rejects.toMatchObject({
+    await expect(inviteUser(inviteDeps, owner, fresh(owner), asOwner, REQ)).rejects.toMatchObject({
       code: 'VALIDATION',
     })
     await expect(
-      inviteUser(deps, owner, fresh(owner), invite('non-un-uuid', 'viewer'), REQ),
+      inviteUser(inviteDeps, owner, fresh(owner), invite('non-un-uuid', 'viewer'), REQ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     const badRole = invite(w.w1, 'capo' as WorkspaceRole)
-    await expect(inviteUser(deps, owner, fresh(owner), badRole, REQ)).rejects.toMatchObject({
+    await expect(inviteUser(inviteDeps, owner, fresh(owner), badRole, REQ)).rejects.toMatchObject({
       code: 'VALIDATION',
     })
   })
@@ -582,8 +616,341 @@ describe('invites', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     await expect(
-      inviteUser(deps, owner, sessionOf(w.adminA.id, new Date()), invite(w.w1, 'viewer'), REQ),
+      inviteUser(
+        inviteDeps,
+        owner,
+        sessionOf(w.adminA.id, new Date()),
+        invite(w.w1, 'viewer'),
+        REQ,
+      ),
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  })
+})
+
+/** Keeps every log line, to prove no link or token ever reaches one. */
+function capturingLogger(): Logger & { readonly lines: string[] } {
+  const lines: string[] = []
+  const write = (obj: object, msg?: string) => {
+    lines.push(JSON.stringify({ obj, msg }))
+  }
+  const log: Logger & { lines: string[] } = {
+    lines,
+    debug: write,
+    info: write,
+    warn: write,
+    error: write,
+    child: () => log,
+  }
+  return log
+}
+
+async function inviteRow(id: string) {
+  const { rows } = await admin.query<{ expires_at: Date; used_at: Date | null }>(
+    'select expires_at, used_at from invites where id = $1',
+    [id],
+  )
+  return rows[0]
+}
+
+async function openInviteIds(organizationId: string) {
+  const { rows } = await admin.query<{ id: string }>(
+    'select id from invites where organization_id = $1 and used_at is null and expires_at > now()',
+    [organizationId],
+  )
+  return rows.map((r) => r.id)
+}
+
+describe('invites by email only', () => {
+  test('a new person gets the link by email, with the agency, who invited and the expiry', async () => {
+    const w = await world()
+    await admin.query('update users set nickname = $2 where id = $1', [w.owner.id, 'Teo'])
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const sample = invite(w.w1, 'viewer')
+    const r = await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    const message = mailer.sent.filter((m) => m.to === sample.email).at(-1)
+    const { rows } = await admin.query<{ name: string }>(
+      'select name from organizations where id = $1',
+      [w.orgA],
+    )
+    expect(message?.subject).toBe(`Teo ti ha invitato in ${rows[0]?.name ?? ''} su Feedway`)
+    expect(message?.text).toContain('crea il tuo account')
+    expect(message?.text).toContain(
+      new Intl.DateTimeFormat('it-IT', {
+        dateStyle: 'long',
+        timeStyle: 'short',
+        timeZone: 'Europe/Rome',
+      }).format(r.expiresAt),
+    )
+    const { url, token } = activationLinkIn(mailer.sent, sample.email)
+    expect(message?.html).toContain(`<a href="${url}">`)
+    expect(await describeLink(deps, { token })).toMatchObject({ email: sample.email })
+  })
+
+  test('someone with an account gets the sign-in text, and whoever invites sees no difference', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const userOfB = await person('conaccount')
+    const fresher = invite(w.w1, 'viewer')
+    const a = await inviteUser(
+      inviteDeps,
+      owner,
+      fresh(owner),
+      invite(w.w1, 'viewer', userOfB.email),
+      REQ,
+    )
+    const b = await inviteUser(inviteDeps, owner, fresh(owner), fresher, REQ)
+    expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort())
+    const toExisting = mailer.sent.filter((m) => m.to === userOfB.email).at(-1)
+    expect(toExisting?.text).toContain('accedi con il tuo account')
+    expect(toExisting?.text).not.toContain('crea il tuo account')
+  })
+
+  test('without email configured nobody is invited', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const before = await openInviteIds(w.orgA)
+    await expect(
+      inviteUser(
+        { ...inviteDeps, mailer: notConfiguredMailer },
+        owner,
+        fresh(owner),
+        invite(w.w1, 'viewer'),
+        REQ,
+      ),
+    ).rejects.toMatchObject({
+      code: 'MAIL_NOT_CONFIGURED',
+      message: 'Configura l’invio delle email per poter invitare',
+    })
+    expect(await openInviteIds(w.orgA)).toEqual(before)
+  })
+
+  test('a failed send cancels the invite and frees its seat, and logs no link', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await setLimits(w.orgA, { users: 6 })
+    const log = capturingLogger()
+    const failing: Mailer = {
+      isConfigured: () => Promise.resolve(true),
+      send: (m) => Promise.reject(new Error(`smtp refused ${m.text}`)),
+    }
+    const dropped: Mailer = {
+      isConfigured: () => Promise.resolve(true),
+      send: () => Promise.resolve('not_configured'),
+    }
+    await expect(
+      inviteUser(
+        { ...inviteDeps, mailer: failing, logger: log },
+        owner,
+        fresh(owner),
+        invite(w.w1, 'viewer'),
+        REQ,
+      ),
+    ).rejects.toMatchObject({ code: 'MAIL_SEND_FAILED' })
+    await expect(
+      inviteUser(
+        { ...inviteDeps, mailer: dropped, logger: log },
+        owner,
+        fresh(owner),
+        invite(w.w1, 'viewer'),
+        REQ,
+      ),
+    ).rejects.toMatchObject({ code: 'MAIL_NOT_CONFIGURED' })
+    expect(await openInviteIds(w.orgA)).toEqual([])
+    expect(log.lines.join('\n')).not.toMatch(/attiva|smtp refused|@/)
+    const { rows } = await admin.query<{ action: string; data: unknown }>(
+      `select action, data from audit_log where organization_id = $1 and action like 'user.invite%'
+        order by created_at, id`,
+      [w.orgA],
+    )
+    expect(rows.map((r) => r.action)).toEqual([
+      'user.invited',
+      'user.invite_revoked',
+      'user.invited',
+      'user.invite_revoked',
+    ])
+    expect(rows[1]?.data).toEqual({ reason: 'send_failed' })
+    // the seat is free again
+    await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+  })
+
+  test('at most three invites to one address a day, across agencies', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const ownerB = await actorOf(w.ownerB.id, w.orgB)
+    const email = uniqueEmail('molestata')
+    const toA = { email, orgRole: 'member' as const, memberships: [] }
+    await inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
+    await inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
+    await inviteUser(inviteDeps, ownerB, fresh(ownerB), { ...toA, email: email.toUpperCase() }, REQ)
+    const refused = inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
+    // the full window, whoever sent the earlier ones and when
+    await expect(refused).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+      details: { retryAfterSeconds: 86_400 },
+    })
+    const keys = await admin.query<{ key: string }>(
+      "select key from rate_limit_counters where key like '%invite-email%'",
+    )
+    expect(keys.rows.length).toBeGreaterThan(0)
+    expect(keys.rows.map((r) => r.key).join(' ')).not.toContain(email.split('@')[0] ?? email)
+    expect(mailer.sent.filter((m) => m.to === email)).toHaveLength(3)
+  })
+
+  test('owner and admin list every open invite; a manager only their own, in workspaces they manage', async () => {
+    const w = await world()
+    await admin.query('update users set nickname = $2 where id = $1', [w.manager.id, 'Capo'])
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const adminA = await actorOf(w.adminA.id, w.orgA)
+    const manager = await actorOf(w.manager.id, w.orgA)
+    const viewer = await actorOf(w.member.id, w.orgA)
+    const ownerB = await actorOf(w.ownerB.id, w.orgB)
+    const byOwner = invite(w.w1, 'viewer')
+    const byOwnerElsewhere = invite(w.w2, 'viewer')
+    const byManager = invite(w.w1, 'editor')
+    const a = await inviteUser(inviteDeps, owner, fresh(owner), byOwner, REQ)
+    const b = await inviteUser(inviteDeps, owner, fresh(owner), byOwnerElsewhere, REQ)
+    const c = await inviteUser(inviteDeps, manager, fresh(manager), byManager, REQ)
+    await inviteUser(inviteDeps, ownerB, fresh(ownerB), invite(w.wB, 'viewer'), REQ)
+    const revoked = await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+    await revokeInvite(inviteDeps, owner, fresh(owner), revoked.inviteId, REQ)
+
+    const all = await listInvites(inviteDeps, adminA)
+    expect(all.map((i) => i.id)).toEqual([a.inviteId, b.inviteId, c.inviteId])
+    expect(all[2]).toEqual({
+      id: c.inviteId,
+      email: byManager.email,
+      orgRole: 'member',
+      memberships: [{ workspaceId: w.w1, role: 'editor' }],
+      invitedBy: 'Capo',
+      expiresAt: c.expiresAt,
+    })
+    expect((await listInvites(inviteDeps, owner)).map((i) => i.id)).toEqual(all.map((i) => i.id))
+    expect((await listInvites(inviteDeps, manager)).map((i) => i.id)).toEqual([c.inviteId])
+    await expect(listInvites(inviteDeps, viewer)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    const json = JSON.stringify(all)
+    for (const k of ['token', 'hash', 'existing', 'reserved']) expect(json).not.toContain(k)
+  })
+
+  test('resend: a new link and a new expiry, the old link stops working', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const clock = fixedClock(new Date())
+    const sample = invite(w.w1, 'viewer')
+    const first = await inviteUser({ ...inviteDeps, clock }, owner, fresh(owner), sample, REQ)
+    const old = activationLinkIn(mailer.sent, sample.email)
+    clock.advance(48 * 3600_000)
+    const again = await resendInvite(
+      { ...inviteDeps, clock },
+      owner,
+      fresh(owner),
+      first.inviteId,
+      REQ,
+    )
+    expect(again).toEqual({
+      inviteId: first.inviteId,
+      expiresAt: new Date(clock.now().getTime() + 72 * 3600_000),
+    })
+    const renewed = activationLinkIn(mailer.sent, sample.email)
+    expect(renewed.token).not.toBe(old.token)
+    await expect(describeLink({ ...deps, clock }, { token: old.token })).rejects.toMatchObject({
+      code: 'LINK_INVALID',
+    })
+    await expect(describeLink({ ...deps, clock }, { token: renewed.token })).resolves.toMatchObject(
+      { email: sample.email },
+    )
+    expect(await lastAudit(w.orgA)).toMatchObject({
+      action: 'user.invite_resent',
+      entity_id: first.inviteId,
+      actor_id: w.owner.id,
+    })
+    // the same allowance per address: two sent, one more, then no more
+    await resendInvite({ ...inviteDeps, clock }, owner, fresh(owner), first.inviteId, REQ)
+    await expect(
+      resendInvite({ ...inviteDeps, clock }, owner, fresh(owner), first.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'RATE_LIMITED' })
+  })
+
+  test('revoke: the link stops working and the seat is free', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await setLimits(w.orgA, { users: 6 })
+    const sample = invite(w.w1, 'viewer')
+    const r = await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    await expect(
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+    ).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
+    expect(await revokeInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ)).toEqual({
+      revoked: true,
+    })
+    const { token } = activationLinkIn(mailer.sent, sample.email)
+    await expect(describeLink(deps, { token })).rejects.toMatchObject({ code: 'LINK_INVALID' })
+    expect(await lastAudit(w.orgA)).toMatchObject({
+      action: 'user.invite_revoked',
+      entity_id: r.inviteId,
+      data: {},
+    })
+    await expect(
+      revokeInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+  })
+
+  test('an invite of another agency, or of someone else, is not found', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const manager = await actorOf(w.manager.id, w.orgA)
+    const viewer = await actorOf(w.member.id, w.orgA)
+    const ownerB = await actorOf(w.ownerB.id, w.orgB)
+    const ofB = await inviteUser(inviteDeps, ownerB, fresh(ownerB), invite(w.wB, 'viewer'), REQ)
+    const ofOwner = await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+    const ofManager = await inviteUser(
+      inviteDeps,
+      manager,
+      fresh(manager),
+      invite(w.w1, 'viewer'),
+      REQ,
+    )
+    for (const act of [resendInvite, revokeInvite]) {
+      await expect(act(inviteDeps, owner, fresh(owner), ofB.inviteId, REQ)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      })
+      await expect(act(inviteDeps, owner, fresh(owner), 'non-un-uuid', REQ)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      })
+      await expect(
+        act(inviteDeps, manager, fresh(manager), ofOwner.inviteId, REQ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      // a viewer of the workspace may see it exists, not act on it
+      await expect(
+        act(inviteDeps, viewer, fresh(viewer), ofManager.inviteId, REQ),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    }
+    expect(await inviteRow(ofB.inviteId)).toMatchObject({ used_at: null })
+    expect((await inviteRow(ofB.inviteId))?.expires_at.getTime()).toBeGreaterThan(Date.now())
+    // the manager acts on their own
+    await expect(
+      revokeInvite(inviteDeps, manager, fresh(manager), ofManager.inviteId, REQ),
+    ).resolves.toEqual({ revoked: true })
+  })
+
+  test('resending an Admin invite needs the Owner and a reauth, like creating it', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const adminA = await actorOf(w.adminA.id, w.orgA)
+    const r = await inviteUser(
+      inviteDeps,
+      owner,
+      fresh(owner),
+      { ...invite(w.w1, 'viewer'), orgRole: 'admin' },
+      REQ,
+    )
+    await expect(
+      resendInvite(inviteDeps, adminA, fresh(adminA), r.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      resendInvite(inviteDeps, owner, stale(owner), r.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'REAUTH_REQUIRED' })
+    await resendInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ)
   })
 })
 
@@ -872,7 +1239,8 @@ describe('password reset', () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     const email = uniqueEmail('a-meta')
-    const { url } = await inviteUser(deps, owner, fresh(owner), invite(w.w1, 'editor', email), REQ)
+    await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'editor', email), REQ)
+    const { url } = activationLinkIn(mailer.sent, email)
     // passkey path: the account exists without a password, no passkey was ever registered
     await activateAccount(deps, {
       token: tokenOf(url),
