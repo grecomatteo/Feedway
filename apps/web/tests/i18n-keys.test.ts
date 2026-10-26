@@ -19,18 +19,31 @@ function get(messages: unknown, key: string): unknown {
 }
 
 // What sendSecurityEmail passes: any other placeholder would make the job fail.
-const SECURITY_EMAIL_VALUES = new Set(['product', 'device', 'ip', 'when', 'lockUrl'])
+const SECURITY_EMAIL_VALUES = new Set(['product', 'device', 'when', 'whenShort'])
 
-test.each(SECURITY_EMAIL_KINDS)('security email %s has a subject and a text', (kind) => {
-  for (const part of ['subject', 'text']) {
+test.each(SECURITY_EMAIL_KINDS)('security email %s has all its texts', (kind) => {
+  for (const part of ['subject', 'preheader', 'title', 'intro', 'footer']) {
     const text = get(it, `email.security.${kind}.${part}`)
     expect(text).toEqual(expect.any(String))
     const placeholders = [...String(text).matchAll(/\{(\w+)\}/g)].map((m) => m[1])
     for (const name of placeholders) expect(SECURITY_EMAIL_VALUES).toContain(name)
   }
-  expect(get(it, `email.security.${kind}.text`)).toContain('{lockUrl}')
 })
 
-test('the unknown address has a text', () => {
-  expect(get(it, 'email.security.unknownIp')).toEqual(expect.any(String))
+test('the shared texts of the emails are there', () => {
+  for (const key of [
+    'email.layout.buttonFallback',
+    'email.layout.serviceNotice',
+    'email.security.unknownIp',
+    'email.security.lockExplain',
+    'email.security.lockLinkValidity',
+    'email.security.lockButton',
+    'email.security.cannotDisable',
+  ])
+    expect(get(it, key), key).toEqual(expect.any(String))
+})
+
+test('the lock text and the validity of its link are separate texts', () => {
+  expect(get(it, 'email.security.lockExplain')).not.toContain('7 giorni')
+  expect(get(it, 'email.security.lockLinkValidity')).toContain('7 giorni')
 })

@@ -12,7 +12,7 @@ import {
   notConfiguredMailer,
 } from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
-import { seed, startTestDatabase } from '@app/infrastructure/testing'
+import { fixedClock, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { createTranslate, loadItalianMessages } from '../i18n.js'
 import type { JobHandlerDeps } from '../job-handler.js'
@@ -70,17 +70,46 @@ async function newUser() {
   return { userId, email }
 }
 
-const job = (userId: string) => ({ id: randomUUID(), data: { userId, url: RESET_URL } })
+// 19:20 and 20:20 in Rome
+const REQUESTED = new Date('2026-10-26T18:20:00Z')
+const job = (userId: string, requestedAt = REQUESTED) => ({
+  id: randomUUID(),
+  data: {
+    userId,
+    url: RESET_URL,
+    requestedAt: requestedAt.toISOString(),
+    expiresAt: new Date(requestedAt.getTime() + 3600_000).toISOString(),
+  },
+})
 
-test('the reset email goes to the account with the link', async () => {
+test('the reset email goes to the account with the link and when it stops working', async () => {
   const { userId, email } = await newUser()
   const mailer = createMemoryMailer()
-  await identityPasswordResetEmail(job(userId), depsWith(mailer))
+  await identityPasswordResetEmail(job(userId), {
+    ...depsWith(mailer),
+    clock: fixedClock(REQUESTED),
+  })
   const mail = mailer.sent.at(-1)
   expect(mail?.to).toBe(email)
-  expect(mail?.subject).toContain('Feedway')
-  expect(mail?.text).toContain(RESET_URL)
-  expect(mail?.html).toContain(`<a href="${RESET_URL.replace('&', '&amp;')}">`)
+  expect(mail?.subject).toBe('Scegli una nuova password per Feedway')
+  expect(mail?.text).toContain(`Scegli una nuova password:\n${RESET_URL}`)
+  expect(mail?.text).toContain(
+    'Il link scade tra 60 minuti: funziona una sola volta, fino alle 20:20 di oggi.',
+  )
+  expect(mail?.html).toContain(`href="${RESET_URL.replace('&', '&amp;')}"`)
+  expect(mail?.html).toContain(`src="${PANEL.origin}/email/feedway-logo@2x.png"`)
+})
+
+test('a link that ends after midnight says so, in the person’s time zone', async () => {
+  const { userId } = await newUser()
+  await admin.query("update users set timezone = 'America/New_York' where id = $1", [userId])
+  const late = new Date('2026-10-27T03:30:00Z') // 23:30 in New York
+  const mailer = createMemoryMailer()
+  await identityPasswordResetEmail(job(userId, late), {
+    ...depsWith(mailer),
+    clock: fixedClock(late),
+  })
+  expect(mailer.sent.at(-1)?.text).toContain('fino alle 00:30 di domani')
 })
 
 test('without email configured the job completes, and the link is never logged', async () => {

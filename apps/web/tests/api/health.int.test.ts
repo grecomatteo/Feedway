@@ -33,6 +33,15 @@ test('health is ok and carries request id', async () => {
   expect(r.headers.get('x-request-id')).toMatch(uuidRe)
 })
 
+test('the email logo is served to anyone, without a session', async () => {
+  const r = await fetch(url('/email/feedway-logo@2x.png'), { redirect: 'manual' })
+  expect(r.status).toBe(200)
+  expect(r.headers.get('content-type')).toBe('image/png')
+  expect(r.headers.get('set-cookie')).toBeNull()
+  const png = Buffer.from(await r.arrayBuffer())
+  expect(png.subarray(1, 4).toString()).toBe('PNG')
+})
+
 test('client supplied request id is ignored', async () => {
   const r = await fetch(url('/api/health'), { headers: { 'x-request-id': 'evil' } })
   expect(r.headers.get('x-request-id')).not.toBe('evil')

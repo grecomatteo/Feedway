@@ -8,7 +8,15 @@ import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { IdentityDeps } from './identity-deps.js'
 import { assertActorSession, assertManagesUsers, targetMember } from './member-rules.js'
 import { assertRecentReauth } from './reauth.js'
-import { emailHtml } from './security-emails.js'
+import {
+  dayAndTime,
+  emailFrame,
+  isSameDay,
+  oneLine,
+  renderEmail,
+  usableTimeZone,
+} from '../mail/index.js'
+import type { Clock } from '../ports/clock.js'
 
 /**
  * A reset link for a person of this agency, to copy from the panel (spec §10.4). Only for
@@ -65,7 +73,11 @@ export interface PasswordResetEmailDeps {
   mailer: Mailer
   translate: Translate
   logger: Logger
+  clock: Clock
+  panelUrl: URL
   productName: string
+  /** Used when the person has not chosen a time zone. */
+  defaultTimezone: string
 }
 
 /**
@@ -82,12 +94,40 @@ export async function sendPasswordResetEmail(
     deps.logger.info({}, 'password reset email skipped: account not active')
     return
   }
-  const values = { product: deps.productName, url: job.url }
+  const t = deps.translate
+  const timeZone = usableTimeZone(user.timezone ?? deps.defaultTimezone, 'Europe/Rome')
+  const expiresAt = new Date(job.expiresAt)
+  const minutes = String(
+    Math.max(1, Math.round((expiresAt.getTime() - Date.parse(job.requestedAt)) / 60_000)),
+  )
+  const { time } = dayAndTime(expiresAt, timeZone)
+  const today = isSameDay(deps.clock.now(), expiresAt, timeZone)
+  const values = { product: deps.productName, minutes, time }
+  const { html, text } = renderEmail({
+    ...emailFrame(t, deps.panelUrl, deps.productName),
+    preheader: t('email.passwordReset.preheader', values),
+    title: t('email.passwordReset.title', values),
+    blocks: [
+      { kind: 'paragraph', text: t('email.passwordReset.intro', values) },
+      { kind: 'button', label: t('email.passwordReset.button'), url: job.url, tone: 'primary' },
+      {
+        kind: 'box',
+        title: t('email.passwordReset.expiryTitle', values),
+        text: t(`email.passwordReset.${today ? 'expiryToday' : 'expiryTomorrow'}`, values),
+      },
+      {
+        kind: 'lead',
+        lead: t('email.passwordReset.notMe.lead'),
+        text: t('email.passwordReset.notMe.text'),
+      },
+    ],
+    footerReason: t('email.passwordReset.footer', values),
+  })
   const result = await deps.mailer.send({
     to: user.email,
-    subject: deps.translate('email.passwordReset.subject', values),
-    text: deps.translate('email.passwordReset.text', values),
-    html: emailHtml(deps.translate, 'email.passwordReset.text', values, 'url'),
+    subject: oneLine(t('email.passwordReset.subject', values)),
+    text,
+    html,
   })
   if (result === 'not_configured')
     deps.logger.info({}, 'password reset email not sent: not_configured')

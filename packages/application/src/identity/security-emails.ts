@@ -6,6 +6,14 @@ import type { Mailer, MailMessage } from '../ports/mailer.js'
 import type { SignedTokens } from '../ports/token-service.js'
 import type { Translate } from '../ports/translator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import {
+  capitalize,
+  dayAndTime,
+  emailFrame,
+  oneLine,
+  renderEmail,
+  usableTimeZone,
+} from '../mail/index.js'
 
 /** How long the "Non sono stato io" link in a security email works. */
 export const LOCK_LINK_TTL_MS = 7 * 86_400_000
@@ -25,45 +33,28 @@ export interface SecurityEmailDeps {
   defaultTimezone: string
 }
 
-const HTML_ESCAPES: Readonly<Record<string, string>> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-}
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c] ?? c)
+/** The fall-back time zone the emails name as "ora italiana". */
+const ROME = 'Europe/Rome'
 
 /**
- * The HTML version is built from the plain text (the panel's message compiler rejects HTML in
- * it.json): every value is escaped, paragraphs become `<p>` and the value named `linkName`
- * an `<a>`.
+ * "lunedì 26 ottobre 2026 alle 19:20 (ora italiana)" and, for the preheader,
+ * "Lunedì 26 ottobre alle 19:20", in the person's time zone.
  */
-export function emailHtml(
+function securityWhen(
   translate: Translate,
-  key: string,
-  values: Record<string, string>,
-  linkName: string,
-): string {
-  const marks = Object.fromEntries(Object.keys(values).map((name) => [name, `\uE000${name}\uE000`]))
-  const template = escapeHtml(translate(key, marks))
-  const filled = template.replace(/\uE000(\w+)\uE000/g, (_, name: string) => {
-    const value = escapeHtml(values[name] ?? '')
-    return name === linkName ? `<a href="${value}">${value}</a>` : value
-  })
-  return filled
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
-    .join('\n')
-}
-
-/** A date and time as the emails write it, in Italian. */
-export function formatWhen(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('it-IT', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-    timeZone,
-  }).format(at)
+  at: Date,
+  timeZone: string,
+): { when: string; whenShort: string } {
+  const full = dayAndTime(at, timeZone, { year: true })
+  const short = dayAndTime(at, timeZone)
+  const atText = translate('email.date.dayAt', full)
+  return {
+    when:
+      timeZone === ROME
+        ? translate('email.security.whenRome', { at: atText })
+        : translate('email.security.whenZone', { at: atText, zone: timeZone }),
+    whenShort: capitalize(translate('email.date.dayAt', short)),
+  }
 }
 
 /**
@@ -88,19 +79,56 @@ export async function sendSecurityEmail(
   const lockUrl = new URL(LOCK_PAGE_PATH, deps.panelUrl)
   lockUrl.searchParams.set('t', token)
   const shortIp = job.ip === null ? '' : shortenIp(job.ip)
+  const t = deps.translate
+  const timeZone = usableTimeZone(user.timezone ?? deps.defaultTimezone, ROME)
   const values = {
     product: deps.productName,
     device: job.deviceLabel,
-    ip: shortIp === '' ? deps.translate('email.security.unknownIp') : shortIp,
-    when: formatWhen(new Date(job.occurredAt), user.timezone ?? deps.defaultTimezone),
-    lockUrl: lockUrl.toString(),
+    ...securityWhen(t, new Date(job.occurredAt), timeZone),
   }
   const base = `email.security.${job.kind}`
+  const { html, text } = renderEmail({
+    ...emailFrame(t, deps.panelUrl, deps.productName),
+    preheader: t(`${base}.preheader`, values),
+    title: t(`${base}.title`, values),
+    blocks: [
+      { kind: 'paragraph', text: t(`${base}.intro`, values) },
+      {
+        kind: 'details',
+        rows: [
+          { label: t('email.security.labels.when'), value: values.when },
+          { label: t('email.security.labels.device'), value: job.deviceLabel },
+          {
+            label: t('email.security.labels.network'),
+            value: shortIp === '' ? t('email.security.unknownIp') : shortIp,
+          },
+        ],
+      },
+      {
+        kind: 'lead',
+        lead: t('email.security.itWasMe.lead'),
+        text: t('email.security.itWasMe.text'),
+      },
+      {
+        kind: 'lead',
+        lead: t('email.security.notMe.lead'),
+        text: t('email.security.lockExplain'),
+      },
+      {
+        kind: 'button',
+        label: t('email.security.lockButton'),
+        url: lockUrl.toString(),
+        tone: 'danger',
+      },
+      { kind: 'paragraph', text: t('email.security.lockLinkValidity'), tone: 'muted' },
+    ],
+    footerReason: `${t(`${base}.footer`, values)} ${t('email.security.cannotDisable')}`,
+  })
   const message: MailMessage = {
     to: job.notifyEmail ?? user.email,
-    subject: deps.translate(`${base}.subject`, values),
-    text: deps.translate(`${base}.text`, values),
-    html: emailHtml(deps.translate, `${base}.text`, values, 'lockUrl'),
+    subject: oneLine(t(`${base}.subject`, values)),
+    text,
+    html,
   }
   const result = await deps.mailer.send(message)
   if (result === 'not_configured') {

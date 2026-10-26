@@ -674,16 +674,26 @@ describe('invites by email only', () => {
       [w.orgA],
     )
     expect(message?.subject).toBe(`Teo ti ha invitato in ${rows[0]?.name ?? ''} su Feedway`)
-    expect(message?.text).toContain('crea il tuo account')
+    expect(message?.text).toMatch(/^Teo ti ha invitato in /)
+    expect(message?.text).toContain('Crea il tuo account per entrare')
+    const expiry = new Intl.DateTimeFormat('it-IT', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'Europe/Rome',
+    }).format(r.expiresAt)
+    const time = new Intl.DateTimeFormat('it-IT', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'Europe/Rome',
+    }).format(r.expiresAt)
     expect(message?.text).toContain(
-      new Intl.DateTimeFormat('it-IT', {
-        dateStyle: 'long',
-        timeStyle: 'short',
-        timeZone: 'Europe/Rome',
-      }).format(r.expiresAt),
+      `L'invito scade tra 72 ore: puoi usarlo fino a ${expiry} alle ${time}. Se scade, chiedi a Teo di inviartene uno nuovo.`,
     )
     const { url, token } = activationLinkIn(mailer.sent, sample.email)
-    expect(message?.html).toContain(`<a href="${url}">`)
+    expect(message?.text).toContain(`Crea il tuo account:\n${url}`)
+    expect(message?.html).toContain(`<a href="${url.replaceAll('&', '&amp;')}"`)
     expect(await describeLink(deps, { token })).toMatchObject({ email: sample.email })
   })
 
@@ -716,8 +726,8 @@ describe('invites by email only', () => {
     expect(shape(a.inviteId)).toBeDefined()
     expect(shape(a.inviteId)).toEqual(shape(b.inviteId))
     const toExisting = mailer.sent.filter((m) => m.to === userOfB.email).at(-1)
-    expect(toExisting?.text).toContain('accedi con il tuo account')
-    expect(toExisting?.text).not.toContain('crea il tuo account')
+    expect(toExisting?.text).toContain('Accedi per accettare:')
+    expect(toExisting?.text).not.toContain('Crea il tuo account')
   })
 
   test('the subject stays one line whatever an older nickname holds', async () => {

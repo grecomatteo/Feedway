@@ -14,7 +14,7 @@ import {
 import type { AuthSessionInfo } from '../ports/auth.js'
 import type { SignedTokens } from '../ports/token-service.js'
 import type { Logger } from '../ports/logger.js'
-import type { Mailer } from '../ports/mailer.js'
+import type { Mailer, MailMessage } from '../ports/mailer.js'
 import type { InviteRecord } from '../ports/repositories.js'
 import type { Translate } from '../ports/translator.js'
 import type { Tx } from '../ports/tx.js'
@@ -22,7 +22,7 @@ import { existingAccountFor } from './activation.js'
 import { activationUrl, type IdentityDeps } from './identity-deps.js'
 import { assertActorSession, assertOneOf, isUuid } from './member-rules.js'
 import { assertRecentReauth } from './reauth.js'
-import { emailHtml, formatWhen } from './security-emails.js'
+import { dayAndTime, emailFrame, oneLine, renderEmail, usableTimeZone } from '../mail/index.js'
 
 /**
  * Inviting sends the link to the invited mailbox and nowhere else (decision of 26/10): the link
@@ -37,7 +37,10 @@ export interface InviteDeps extends Pick<
   translate: Translate
   logger: Logger
   productName: string
-  /** The expiry is written in this time zone: the invited person may have no account yet. */
+  /**
+   * The expiry is written in this time zone: the invited person may have no account yet, and
+   * agencies have no time zone of their own (yet).
+   */
   defaultTimezone: string
   /** Keyed hash of the address for the counters (APP_ENCRYPTION_KEY, never the address). */
   signedTokens: Pick<SignedTokens, 'addressHash'>
@@ -124,16 +127,13 @@ async function countSent(
   }
 }
 
-/** One line: no header can be slipped into the subject through a name. */
-const oneLine = (text: string) => text.replace(/\p{Cc}+/gu, ' ')
-
 /** How the email names whoever invites: their nickname, else their name. */
 async function nameOf(tx: Tx, userId: string): Promise<string> {
   const [user] = await tx.users.summaries([userId])
   return user ? displayName(user) : ''
 }
 
-interface InviteMail {
+export interface InviteMail {
   inviteId: string
   to: string
   token: string
@@ -144,25 +144,48 @@ interface InviteMail {
   existingAccount: boolean
 }
 
-/** After the commit: the token lives only in this message, never in a queue or a table. */
-async function sendInviteMail(
-  deps: InviteDeps,
+/** The invite email (E1 or E2 in DESIGN.md). */
+export function inviteMessage(
+  deps: Pick<InviteDeps, 'translate' | 'productName' | 'defaultTimezone' | 'config'>,
   mail: InviteMail,
-): Promise<'sent' | 'not_configured'> {
+): MailMessage {
+  const t = deps.translate
+  const timeZone = usableTimeZone(deps.defaultTimezone, 'Europe/Rome')
   const values = {
     product: deps.productName,
     organization: mail.organizationName,
+    // no reliable first name: the name the panel shows (nickname, else name) everywhere
     inviter: mail.inviter,
-    url: activationUrl(deps.config.panelUrl, mail.token),
-    expires: formatWhen(mail.expiresAt, deps.defaultTimezone),
+    hours: String(Math.round(LINK_TTL_MS.invite / 3600_000)),
+    expires: t('email.date.dayAt', dayAndTime(mail.expiresAt, timeZone)),
   }
-  const key = `email.invite.${mail.existingAccount ? 'existingAccount' : 'newAccount'}`
-  return deps.mailer.send({
-    to: mail.to,
-    subject: oneLine(deps.translate(`${key}.subject`, values)),
-    text: deps.translate(`${key}.text`, values),
-    html: emailHtml(deps.translate, `${key}.text`, values, 'url'),
+  const kind = mail.existingAccount ? 'existingAccount' : 'newAccount'
+  const url = activationUrl(deps.config.panelUrl, mail.token)
+  const { html, text } = renderEmail({
+    ...emailFrame(t, deps.config.panelUrl, deps.productName),
+    preheader: t(`email.invite.${kind}.preheader`, values),
+    title: t('email.invite.title', values),
+    blocks: [
+      { kind: 'paragraph', text: t(`email.invite.${kind}.intro`, values) },
+      ...(mail.existingAccount
+        ? []
+        : [{ kind: 'paragraph' as const, text: t('email.invite.newAccount.action', values) }]),
+      { kind: 'button', label: t(`email.invite.${kind}.button`), url, tone: 'primary' },
+      {
+        kind: 'box',
+        title: t('email.invite.expiryTitle', values),
+        text: t('email.invite.expiryText', values),
+      },
+      { kind: 'paragraph', text: t('email.invite.ignore', values), tone: 'muted' },
+    ],
+    footerReason: t('email.invite.footer', values),
   })
+  return { to: mail.to, subject: oneLine(t('email.invite.subject', values)), text, html }
+}
+
+/** After the commit: the token lives only in this message, never in a queue or a table. */
+function sendInviteMail(deps: InviteDeps, mail: InviteMail): Promise<'sent' | 'not_configured'> {
+  return deps.mailer.send(inviteMessage(deps, mail))
 }
 
 /** Never the message of the error: a mail server may echo the address or the link. */
