@@ -73,7 +73,7 @@ Tela: pagine «E0 · Email transazionali · componenti» e «E1–E5 · Email tr
 | E5 Conferma cambio email (nuovo indirizzo) | «Conferma il nuovo indirizzo del tuo account Feedway» | Conferma il nuovo indirizzo (arancio) |
 | E5b Avviso cambio email (vecchio indirizzo) | «È stato chiesto di cambiare l'email del tuo account Feedway» | Non sono stato io (rosso) |
 
-E5b è l'«avviso inviato anche al vecchio indirizzo»: parte insieme a E5 e non ha un link di conferma, solo il blocco.
+E5b è l'«avviso inviato anche al vecchio indirizzo»: parte insieme a E5, al momento della richiesta, e non ha un link di conferma, solo il blocco («Non sono stato io» annulla il cambio e blocca l'account).
 
 ### Struttura
 
@@ -119,4 +119,4 @@ Tutte le coppie superano AA: testo 15,7:1 su bianco, testo secondario 6,74:1 su 
 - Ogni email è `multipart/alternative` con la versione solo testo della tela (titolo, paragrafi, «Etichetta del pulsante:» + URL, «--», piè di pagina).
 - Anteprima (preheader) nascosta in testa al corpo HTML, testi nella scheda tecnica di ogni email.
 - Domini, percorsi e nomi sulla tela (feedway.studioriva.it, `/sicurezza/blocca/…`, Studio Riva, Giulia Ferri) sono fittizi: valgono l'URL dell'installazione e i percorsi del piano (per esempio `PANEL_URL/sicurezza/non-sono-stato-io?t=<token>`).
-- **Da decidere (differenza col piano):** la richiesta di design vuole l'avviso al vecchio indirizzo insieme alla conferma (E5b, «È stato chiesto di cambiare…»). Il piano della tappa 2 (Task 25, `email_changed`) lo invia invece al vecchio indirizzo *a cambio avvenuto*. Prima di scrivere il codice va scelto uno dei due momenti; se vale il piano, E5b diventa «L'email del tuo account è stata cambiata» con lo stesso pulsante «Non sono stato io».
+- **Avviso al vecchio indirizzo (scelta di Matteo, 26 ottobre 2026):** E5b parte subito, insieme a E5, quando il cambio viene chiesto, così si può bloccarlo prima che avvenga. Il piano della tappa 2 (Task 25, `email_changed` inviato a cambio avvenuto) va aggiornato di conseguenza.
