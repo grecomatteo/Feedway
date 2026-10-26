@@ -31,5 +31,6 @@ export function inviteDeps(deps: Deps): InviteDeps {
     logger: deps.logger,
     productName: PRODUCT_NAME,
     defaultTimezone: deps.config.defaultTimezone,
+    signedTokens: deps.signedTokens,
   }
 }

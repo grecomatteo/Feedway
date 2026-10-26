@@ -394,6 +394,13 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
         .orderBy(asc(invites.createdAt), asc(invites.id))
       return rows.map(toInvite)
     },
+    async findOpen(organizationId, id, now) {
+      const [row] = await db
+        .select(inviteColumns)
+        .from(invites)
+        .where(and(agencyInvite(organizationId), eq(invites.id, id), openAt(now)))
+      return row ? toInvite(row) : null
+    },
     async findOpenForUpdate(organizationId, id, now) {
       try {
         const [row] = await db

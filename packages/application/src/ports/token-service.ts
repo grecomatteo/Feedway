@@ -20,4 +20,6 @@ export interface SignedTokens {
   ): { userId: string; issuedAt: Date | null } | null
   /** Keyed hash of the random `__Host-device` cookie id, never of the user agent. */
   deviceHash(userId: string, deviceId: string): Buffer
+  /** Keyed hash of an email address, for counters that must not hold the address itself. */
+  addressHash(email: string): Buffer
 }

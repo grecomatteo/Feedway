@@ -252,6 +252,8 @@ export interface InvitesRepository {
   expireOpen(purpose: InvitePurpose, at: Date): Promise<void>
   /** Unused, unexpired invites of the agency: each will take a seat. */
   countOpen(organizationId: string, now: Date): Promise<number>
+  /** One open invite of the agency (purpose `invite`), without locking it. */
+  findOpen(organizationId: string, id: string, now: Date): Promise<InviteRecord | null>
   /** The agency's own open invites (purpose `invite`), oldest first. */
   listOpen(organizationId: string, now: Date): Promise<InviteRecord[]>
   /**

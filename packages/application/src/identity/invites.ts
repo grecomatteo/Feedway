@@ -12,11 +12,13 @@ import {
   type WorkspaceRole,
 } from '@app/domain'
 import type { AuthSessionInfo } from '../ports/auth.js'
+import type { SignedTokens } from '../ports/token-service.js'
 import type { Logger } from '../ports/logger.js'
 import type { Mailer } from '../ports/mailer.js'
 import type { InviteRecord } from '../ports/repositories.js'
 import type { Translate } from '../ports/translator.js'
 import type { Tx } from '../ports/tx.js'
+import { existingAccountFor } from './activation.js'
 import { activationUrl, type IdentityDeps } from './identity-deps.js'
 import { assertActorSession, assertOneOf, isUuid } from './member-rules.js'
 import { assertRecentReauth } from './reauth.js'
@@ -37,10 +39,21 @@ export interface InviteDeps extends Pick<
   productName: string
   /** The expiry is written in this time zone: the invited person may have no account yet. */
   defaultTimezone: string
+  /** Keyed hash of the address for the counters (APP_ENCRYPTION_KEY, never the address). */
+  signedTokens: Pick<SignedTokens, 'addressHash'>
 }
 
-/** Invites to one address, whatever the agency: nobody gets flooded with them. */
-export const INVITES_PER_ADDRESS = { limit: 3, windowMs: 24 * 3600_000 }
+/**
+ * Emails that left, in 24 hours: per agency and address (nobody gets flooded by one agency),
+ * per address on the whole platform (nor by several), per agency (nor can an agency spam
+ * through create → cancel → create).
+ */
+export const INVITE_ALLOWANCES = {
+  perAgencyAndAddress: 3,
+  perAddress: 10,
+  perAgency: 50,
+  windowMs: 24 * 3600_000,
+}
 
 export interface InviteInput {
   email: string
@@ -61,22 +74,58 @@ async function assertMailConfigured(deps: Pick<InviteDeps, 'mailer'>): Promise<v
   if (!(await deps.mailer.isConfigured())) throw mailNotConfigured()
 }
 
-/**
- * Counted on a hash of the address, never the address itself. A refusal says only that the
- * address got enough invites today, from this agency or another one: the wait is always the
- * whole window, so it tells nothing of when the others were sent.
- */
-async function takeAllowance(deps: Pick<InviteDeps, 'rateLimiter' | 'tokens'>, email: string) {
-  const key = `invite-email:${deps.tokens.hash(email).toString('hex')}`
-  const { limit, windowMs } = INVITES_PER_ADDRESS
-  const { allowed } = await deps.rateLimiter.hit(key, limit, windowMs)
-  if (!allowed)
-    throw new DomainError(
-      'RATE_LIMITED',
-      'Questo indirizzo ha ricevuto troppi inviti nelle ultime 24 ore: riprova domani',
-      { retryAfterSeconds: windowMs / 1000 },
-    )
+function allowanceKeys(
+  deps: Pick<InviteDeps, 'signedTokens'>,
+  organizationId: string,
+  email: string,
+) {
+  const address = deps.signedTokens.addressHash(email).toString('hex')
+  const a = INVITE_ALLOWANCES
+  return [
+    { key: `invite-sent:${organizationId}:${address}`, limit: a.perAgencyAndAddress },
+    { key: `invite-sent:${address}`, limit: a.perAddress },
+    { key: `invite-sent:${organizationId}`, limit: a.perAgency },
+  ]
 }
+
+/**
+ * Before the email: whether one more may leave. Every refusal has the same message and the same
+ * wait (the whole window), so it tells nothing of which allowance ran out, nor when or by whom
+ * the earlier invites were sent. Nothing is counted here: refused attempts cost nothing.
+ */
+async function assertAllowance(
+  deps: Pick<InviteDeps, 'rateLimiter' | 'signedTokens'>,
+  organizationId: string,
+  email: string,
+): Promise<void> {
+  const { windowMs } = INVITE_ALLOWANCES
+  for (const { key, limit } of allowanceKeys(deps, organizationId, email)) {
+    if (!(await deps.rateLimiter.peek(key, limit, windowMs)).allowed)
+      throw new DomainError('RATE_LIMITED', 'Troppi inviti nelle ultime 24 ore: riprova domani', {
+        retryAfterSeconds: windowMs / 1000,
+      })
+  }
+}
+
+/** After the email left, and only then. Two requests at once may both pass the check above. */
+async function countSent(
+  deps: Pick<InviteDeps, 'rateLimiter' | 'signedTokens' | 'logger'>,
+  organizationId: string,
+  inviteId: string,
+  email: string,
+): Promise<void> {
+  const { windowMs } = INVITE_ALLOWANCES
+  try {
+    for (const { key, limit } of allowanceKeys(deps, organizationId, email))
+      await deps.rateLimiter.hit(key, limit, windowMs)
+  } catch (error) {
+    // the email is gone already: the request succeeded, only the count is missing
+    deps.logger.error({ inviteId, failure: failureOf(error) }, 'invite allowance not counted')
+  }
+}
+
+/** One line: no header can be slipped into the subject through a name. */
+const oneLine = (text: string) => text.replace(/\p{Cc}+/gu, ' ')
 
 /** How the email names whoever invites: their nickname, else their name. */
 async function nameOf(tx: Tx, userId: string): Promise<string> {
@@ -110,7 +159,7 @@ async function sendInviteMail(
   const key = `email.invite.${mail.existingAccount ? 'existingAccount' : 'newAccount'}`
   return deps.mailer.send({
     to: mail.to,
-    subject: deps.translate(`${key}.subject`, values),
+    subject: oneLine(deps.translate(`${key}.subject`, values)),
     text: deps.translate(`${key}.text`, values),
     html: emailHtml(deps.translate, `${key}.text`, values, 'url'),
   })
@@ -158,7 +207,7 @@ export async function inviteUser(
       field: 'memberships',
     })
   await assertMailConfigured(deps)
-  await takeAllowance(deps, email)
+  await assertAllowance(deps, organizationId, email)
 
   const { token, hash } = deps.tokens.generate()
   const mail = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
@@ -254,6 +303,7 @@ export async function inviteUser(
     await cancelUnsent(deps, actor, mail.inviteId, request)
     throw mailNotConfigured()
   }
+  await countSent(deps, organizationId, mail.inviteId, email)
   return { inviteId: mail.inviteId, expiresAt: mail.expiresAt }
 }
 
@@ -301,13 +351,15 @@ function recordInvite(
 
 /**
  * Who handles an open invite. Owner and Admin: every one of the agency. A Member: only the
- * invites they sent themselves, and only while they may still give every workspace role in them
- * (the strictest reading of `can()`). Like creating one: a workspace the Member has no role in is
- * not found, one they may not manage is forbidden; someone else's invite is not found.
+ * invites they sent themselves (anyone else's is not found, whatever the workspaces), and only
+ * while they may still give every workspace role in them (the strictest reading of `can()`):
+ * like creating one, a workspace they have no role in is not found, one they may not manage is
+ * forbidden.
  */
 function accessTo(actor: OrgActor, invite: InviteRecord): 'ok' | 'not_found' | 'forbidden' {
   const { organizationId } = actor
   if (can(actor, 'users.manage', { organizationId })) return 'ok'
+  if (invite.invitedBy !== actor.userId) return 'not_found'
   if (invite.memberships.length === 0) return 'not_found'
   if (invite.memberships.some((m) => !actor.memberships.has(m.workspaceId))) return 'not_found'
   const manages = invite.memberships.every((m) =>
@@ -317,25 +369,42 @@ function accessTo(actor: OrgActor, invite: InviteRecord): 'ok' | 'not_found' | '
       assignRole: m.role,
     }),
   )
-  if (!manages) return 'forbidden'
-  return invite.invitedBy === actor.userId ? 'ok' : 'not_found'
+  return manages ? 'ok' : 'forbidden'
 }
 
-async function lockedInvite(
+/**
+ * An open invite the actor may send again or cancel. Locked (never waiting) when it is about to
+ * change: an activation holding it answers `CONFLICT`. An activation already started (an account
+ * reserved for it) cannot be undone from here: `CONFLICT`. An Admin invite: only the Owner,
+ * who also needs a reauth to send it again (as to create it), not to cancel it (taking access
+ * away is the emergency action, like disabling someone).
+ */
+async function invitePermitted(
   tx: Tx,
   deps: Pick<InviteDeps, 'clock'>,
   actor: OrgActor,
+  session: AuthSessionInfo,
   inviteId: string,
+  opts: { action: 'resend' | 'revoke'; lock: boolean },
 ): Promise<InviteRecord> {
-  const invite = await tx.invites.findOpenForUpdate(
-    actor.organizationId,
-    inviteId,
-    deps.clock.now(),
-  )
+  const { organizationId } = actor
+  const now = deps.clock.now()
+  const invite = opts.lock
+    ? await tx.invites.findOpenForUpdate(organizationId, inviteId, now)
+    : await tx.invites.findOpen(organizationId, inviteId, now)
   if (!invite) throw inviteNotFound()
   const access = accessTo(actor, invite)
   if (access === 'not_found') throw inviteNotFound()
   if (access === 'forbidden') throw forbidden()
+  const orgRole = invite.orgRole ?? 'member'
+  if (orgRole !== 'member' && !can(actor, 'users.manage', { organizationId, assignRole: orgRole }))
+    throw forbidden('Solo l’Owner gestisce l’invito di un Admin')
+  if (opts.action === 'resend' && orgRole === 'admin') assertRecentReauth(session, now)
+  if (invite.reservedUserId !== null)
+    throw new DomainError(
+      'CONFLICT',
+      'La persona ha già iniziato ad attivare l’account con questo invito: non si può più cambiare',
+    )
   return invite
 }
 
@@ -381,9 +450,10 @@ export async function listInvites(
 
 /**
  * A new link for an open invite, by email again: the old link stops working and the 72 hours
- * start over. It counts towards the same allowance per address. Whoever could not create the
- * invite (an Admin invite: the Owner, after a reauth) cannot send it again. If the email then
- * fails, the invite stays open with a link nobody has: it can be sent again or cancelled.
+ * start over. It counts towards the same allowances as a new invite, once the email left.
+ * Whoever could not create the invite (an Admin invite: the Owner, after a reauth) cannot send
+ * it again. If the email then fails, the old link is dead already and the invite stays open with
+ * a link nobody has: it can be sent again or cancelled.
  */
 export async function resendInvite(
   deps: InviteDeps,
@@ -396,20 +466,19 @@ export async function resendInvite(
   if (!isUuid(inviteId)) throw inviteNotFound()
   await assertMailConfigured(deps)
   const { organizationId } = actor
+  const scope = { organizationId, userId: actor.userId }
+  // read and check first, count outside any transaction, then change it under the lock
+  const seen = await deps.uow.run(scope, (tx) =>
+    invitePermitted(tx, deps, actor, session, inviteId, { action: 'resend', lock: false }),
+  )
+  await assertAllowance(deps, organizationId, seen.email)
   const { token, hash } = deps.tokens.generate()
-  const mail = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const invite = await lockedInvite(tx, deps, actor, inviteId)
-    const orgRole = invite.orgRole ?? 'member'
-    if (
-      orgRole !== 'member' &&
-      !can(actor, 'users.manage', { organizationId, assignRole: orgRole })
-    )
-      throw forbidden('Solo l’Owner può nominare un Admin')
-    if (orgRole === 'admin') assertRecentReauth(session, deps.clock.now())
-    await takeAllowance(deps, invite.email)
-
-    const now = deps.clock.now()
-    const expires = new Date(now.getTime() + LINK_TTL_MS.invite)
+  const mail = await deps.uow.run(scope, async (tx) => {
+    const invite = await invitePermitted(tx, deps, actor, session, inviteId, {
+      action: 'resend',
+      lock: true,
+    })
+    const expires = new Date(deps.clock.now().getTime() + LINK_TTL_MS.invite)
     await tx.invites.replaceToken(invite.id, hash, expires)
     await recordInvite(tx, actor, 'user.invite_resent', invite.id, request)
     const organization = await tx.organizations.findById(organizationId)
@@ -421,8 +490,8 @@ export async function resendInvite(
       expiresAt: expires,
       organizationName: organization.name,
       inviter: await nameOf(tx, actor.userId),
-      existingAccount:
-        invite.existingUserId !== null || (await tx.users.findByEmail(invite.email)) !== null,
+      // the same reading as the activation page
+      existingAccount: (await existingAccountFor(tx, invite)) !== null,
     }
   })
 
@@ -437,10 +506,14 @@ export async function resendInvite(
     deps.logger.warn({ inviteId: mail.inviteId }, 'invite email not sent: not_configured')
     throw mailNotConfigured()
   }
+  await countSent(deps, organizationId, mail.inviteId, mail.to)
   return { inviteId: mail.inviteId, expiresAt: mail.expiresAt }
 }
 
-/** Cancels an open invite: the link stops working at once and the seat is free again. */
+/**
+ * Cancels an open invite: the link stops working at once and the seat is free again. An Admin
+ * invite only by the Owner, without a reauth (see `invitePermitted`).
+ */
 export async function revokeInvite(
   deps: Pick<InviteDeps, 'uow' | 'clock'>,
   actor: OrgActor,
@@ -452,7 +525,10 @@ export async function revokeInvite(
   if (!isUuid(inviteId)) throw inviteNotFound()
   const { organizationId } = actor
   await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const invite = await lockedInvite(tx, deps, actor, inviteId)
+    const invite = await invitePermitted(tx, deps, actor, session, inviteId, {
+      action: 'revoke',
+      lock: true,
+    })
     await tx.invites.expire(invite.id, deps.clock.now())
     await recordInvite(tx, actor, 'user.invite_revoked', invite.id, request)
   })

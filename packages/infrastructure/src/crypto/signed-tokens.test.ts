@@ -69,3 +69,14 @@ test('device hash is stable per user and device id, different across users and d
     signed.deviceHash('u1', deviceIdA),
   )
 })
+
+test('address hash is keyed: equal for one address, different under another key', () => {
+  const signed = createSignedTokens(randomBytes(32))
+  expect(signed.addressHash('anna@example.test')).toEqual(signed.addressHash('anna@example.test'))
+  expect(signed.addressHash('anna@example.test')).not.toEqual(
+    signed.addressHash('bea@example.test'),
+  )
+  expect(createSignedTokens(randomBytes(32)).addressHash('anna@example.test')).not.toEqual(
+    signed.addressHash('anna@example.test'),
+  )
+})

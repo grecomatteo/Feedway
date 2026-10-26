@@ -50,7 +50,7 @@ export interface ActivationResult {
 }
 
 /** Whoever already has the invited email, when the invite is not for a new person. */
-async function existingAccountFor(tx: Tx, invite: InviteRecord): Promise<string | null> {
+export async function existingAccountFor(tx: Tx, invite: InviteRecord): Promise<string | null> {
   if (invite.existingUserId !== null) return invite.existingUserId
   // someone who registered after the invite was sent has an id other than the reserved one
   const owner = await tx.users.findByEmail(invite.email)
@@ -101,8 +101,15 @@ async function claim(
       throw new DomainError('VALIDATION', 'Scrivi nome e cognome (al massimo 100 caratteri)', {
         field: 'name',
       })
-    if (!validateNickname(input.nickname).ok)
-      throw new DomainError('VALIDATION', 'Il soprannome è troppo lungo', { field: 'nickname' })
+    const nickname = validateNickname(input.nickname)
+    if (!nickname.ok)
+      throw new DomainError(
+        'VALIDATION',
+        nickname.reason === 'TOO_LONG'
+          ? 'Il soprannome è troppo lungo'
+          : 'Il soprannome non può contenere link o caratteri speciali',
+        { field: 'nickname' },
+      )
     if (input.password !== null) {
       const check = checkPassword(
         input.password,

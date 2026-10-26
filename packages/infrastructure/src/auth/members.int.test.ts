@@ -152,6 +152,7 @@ beforeAll(async () => {
     logger,
     productName: 'Feedway',
     defaultTimezone: 'Europe/Rome',
+    signedTokens: createSignedTokens(randomBytes(32)),
   }
 })
 afterAll(async () => {
@@ -700,9 +701,37 @@ describe('invites by email only', () => {
     )
     const b = await inviteUser(inviteDeps, owner, fresh(owner), fresher, REQ)
     expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort())
+    // nor in the activity log, nor in the list of open invites
+    const { rows } = await admin.query<{ entity_id: string; data: unknown }>(
+      "select entity_id, data from audit_log where organization_id = $1 and action = 'user.invited'",
+      [w.orgA],
+    )
+    const dataOf = (id: string) => rows.find((r) => r.entity_id === id)?.data
+    expect(dataOf(a.inviteId)).toEqual(dataOf(b.inviteId))
+    const listed = await listInvites(inviteDeps, owner)
+    const shape = (id: string) => {
+      const item = listed.find((i) => i.id === id)
+      return item && { ...item, id: '', email: '', expiresAt: null }
+    }
+    expect(shape(a.inviteId)).toBeDefined()
+    expect(shape(a.inviteId)).toEqual(shape(b.inviteId))
     const toExisting = mailer.sent.filter((m) => m.to === userOfB.email).at(-1)
     expect(toExisting?.text).toContain('accedi con il tuo account')
     expect(toExisting?.text).not.toContain('crea il tuo account')
+  })
+
+  test('the subject stays one line whatever an older nickname holds', async () => {
+    const w = await world()
+    await admin.query('update users set nickname = $2 where id = $1', [
+      w.owner.id,
+      'Teo\r\nBcc: altri@example.test',
+    ])
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const sample = invite(w.w1, 'viewer')
+    await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    const subject = mailer.sent.filter((m) => m.to === sample.email).at(-1)?.subject ?? ''
+    expect(subject).toMatch(/^Teo Bcc: /)
+    expect(subject).not.toMatch(/[\r\n]/)
   })
 
   test('without email configured nobody is invited', async () => {
@@ -773,27 +802,100 @@ describe('invites by email only', () => {
     await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
   })
 
-  test('at most three invites to one address a day, across agencies', async () => {
+  test('three emails a day from one agency to one address; another agency is not blocked', async () => {
     const w = await world()
     const owner = await actorOf(w.owner.id, w.orgA)
     const ownerB = await actorOf(w.ownerB.id, w.orgB)
     const email = uniqueEmail('molestata')
     const toA = { email, orgRole: 'member' as const, memberships: [] }
-    await inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
-    await inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
-    await inviteUser(inviteDeps, ownerB, fresh(ownerB), { ...toA, email: email.toUpperCase() }, REQ)
+    for (let n = 0; n < 3; n++) await inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
     const refused = inviteUser(inviteDeps, owner, fresh(owner), toA, REQ)
-    // the full window, whoever sent the earlier ones and when
+    // the full window, whichever allowance ran out
     await expect(refused).rejects.toMatchObject({
       code: 'RATE_LIMITED',
+      message: 'Troppi inviti nelle ultime 24 ore: riprova domani',
       details: { retryAfterSeconds: 86_400 },
     })
+    await inviteUser(inviteDeps, ownerB, fresh(ownerB), { ...toA, email: email.toUpperCase() }, REQ)
+    expect(mailer.sent.filter((m) => m.to === email)).toHaveLength(4)
+    // keyed hash only: neither the address nor its plain SHA-256
     const keys = await admin.query<{ key: string }>(
-      "select key from rate_limit_counters where key like '%invite-email%'",
+      "select key from rate_limit_counters where key like '%invite-sent%'",
     )
-    expect(keys.rows.length).toBeGreaterThan(0)
-    expect(keys.rows.map((r) => r.key).join(' ')).not.toContain(email.split('@')[0] ?? email)
-    expect(mailer.sent.filter((m) => m.to === email)).toHaveLength(3)
+    const all = keys.rows.map((r) => r.key).join(' ')
+    expect(all).not.toContain(email.split('@')[0] ?? email)
+    expect(all).not.toContain(tokens.hash(email).toString('hex'))
+  })
+
+  test('ten emails a day to one address on the whole platform, same refusal', async () => {
+    const w = await world()
+    const email = uniqueEmail('piattaforma')
+    const owners = []
+    for (let n = 0; n < 5; n++) {
+      const org = await seed(tdb.runtimeUrl, (s) => s.organization())
+      const p = await person('titolare-extra')
+      await seed(tdb.runtimeUrl, (s) => s.member(org, p.id, 'owner'))
+      owners.push(await actorOf(p.id, org))
+    }
+    const toAll = { email, orgRole: 'member' as const, memberships: [] }
+    for (const o of owners.slice(0, 3))
+      for (let n = 0; n < 3; n++) await inviteUser(inviteDeps, o, fresh(o), toAll, REQ)
+    const fourth = owners[3]
+    if (!fourth) throw new Error('no fourth agency')
+    await inviteUser(inviteDeps, fourth, fresh(fourth), toAll, REQ)
+    const fifth = owners[4]
+    if (!fifth) throw new Error('no fifth agency')
+    await expect(inviteUser(inviteDeps, fifth, fresh(fifth), toAll, REQ)).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+      message: 'Troppi inviti nelle ultime 24 ore: riprova domani',
+      details: { retryAfterSeconds: 86_400 },
+    })
+    // another address is still fine for the same agency
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+  })
+
+  test('fifty emails a day per agency: create, cancel, create does not get around it', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await setLimits(w.orgA, { users: 6 })
+    for (let n = 0; n < 50; n++) {
+      const r = await inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ)
+      await revokeInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ)
+    }
+    await expect(
+      inviteUser(inviteDeps, owner, fresh(owner), invite(w.w1, 'viewer'), REQ),
+    ).rejects.toMatchObject({ code: 'RATE_LIMITED', details: { retryAfterSeconds: 86_400 } })
+  })
+
+  test('refused attempts and failed sends use up nothing', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const viewer = await actorOf(w.member.id, w.orgA)
+    const email = uniqueEmail('rifiutata')
+    const sample = invite(w.w1, 'viewer', email)
+    const failing: Mailer = {
+      isConfigured: () => Promise.resolve(true),
+      send: () => Promise.reject(new Error('down')),
+    }
+    await setLimits(w.orgA, { users: 5 })
+    for (let n = 0; n < 3; n++) {
+      await expect(inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)).rejects.toMatchObject({
+        code: 'LIMIT_REACHED',
+      })
+      await expect(
+        inviteUser(inviteDeps, viewer, fresh(viewer), sample, REQ),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    }
+    await setLimits(w.orgA, { users: 10 })
+    for (let n = 0; n < 3; n++)
+      await expect(
+        inviteUser({ ...inviteDeps, mailer: failing }, owner, fresh(owner), sample, REQ),
+      ).rejects.toMatchObject({ code: 'MAIL_SEND_FAILED' })
+    for (let n = 0; n < 3; n++) await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    await expect(inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+    })
   })
 
   test('owner and admin list every open invite; a manager only their own, in workspaces they manage', async () => {
@@ -920,11 +1022,24 @@ describe('invites by email only', () => {
       await expect(
         act(inviteDeps, manager, fresh(manager), ofOwner.inviteId, REQ),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' })
-      // a viewer of the workspace may see it exists, not act on it
+      // someone else's invite does not exist for a Member, whatever their workspace role
       await expect(
         act(inviteDeps, viewer, fresh(viewer), ofManager.inviteId, REQ),
-      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     }
+    // the sender who no longer manages the workspace may not act on it
+    await admin.query(
+      "update workspace_members set role = 'viewer' where workspace_id = $1 and user_id = $2",
+      [w.w1, w.manager.id],
+    )
+    const demoted = await actorOf(w.manager.id, w.orgA)
+    await expect(
+      revokeInvite(inviteDeps, demoted, fresh(demoted), ofManager.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await admin.query(
+      "update workspace_members set role = 'manager' where workspace_id = $1 and user_id = $2",
+      [w.w1, w.manager.id],
+    )
     expect(await inviteRow(ofB.inviteId)).toMatchObject({ used_at: null })
     expect((await inviteRow(ofB.inviteId))?.expires_at.getTime()).toBeGreaterThan(Date.now())
     // the manager acts on their own
@@ -951,6 +1066,101 @@ describe('invites by email only', () => {
       resendInvite(inviteDeps, owner, stale(owner), r.inviteId, REQ),
     ).rejects.toMatchObject({ code: 'REAUTH_REQUIRED' })
     await resendInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ)
+  })
+
+  test('cancelling an Admin invite: only the Owner, without a reauth', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const adminA = await actorOf(w.adminA.id, w.orgA)
+    const r = await inviteUser(
+      inviteDeps,
+      owner,
+      fresh(owner),
+      { ...invite(w.w1, 'viewer'), orgRole: 'admin' },
+      REQ,
+    )
+    await expect(
+      revokeInvite(inviteDeps, adminA, fresh(adminA), r.inviteId, REQ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(revokeInvite(inviteDeps, owner, stale(owner), r.inviteId, REQ)).resolves.toEqual({
+      revoked: true,
+    })
+  })
+
+  test('a failed resend: the old link is dead, the invite stays open, no link in the logs', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const sample = invite(w.w1, 'viewer')
+    const r = await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    const old = activationLinkIn(mailer.sent, sample.email)
+    const log = capturingLogger()
+    const failing: Mailer = {
+      isConfigured: () => Promise.resolve(true),
+      send: (m) => Promise.reject(new Error(`smtp refused ${m.text}`)),
+    }
+    await expect(
+      resendInvite(
+        { ...inviteDeps, mailer: failing, logger: log },
+        owner,
+        fresh(owner),
+        r.inviteId,
+        REQ,
+      ),
+    ).rejects.toMatchObject({ code: 'MAIL_SEND_FAILED' })
+    await expect(describeLink(deps, { token: old.token })).rejects.toMatchObject({
+      code: 'LINK_INVALID',
+    })
+    expect(await openInviteIds(w.orgA)).toContain(r.inviteId)
+    const logged = log.lines.join('\n')
+    expect(logged).not.toMatch(/attiva|smtp refused|@/)
+    expect(logged).not.toContain(old.token)
+    await resendInvite(inviteDeps, owner, fresh(owner), r.inviteId, REQ)
+  })
+
+  test('cancel or resend while an activation holds the invite: CONFLICT, the invite unchanged', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const sample = invite(w.w1, 'viewer')
+    const r = await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    const { token } = activationLinkIn(mailer.sent, sample.email)
+    // the lock an activation takes (lockForActivation)
+    const holder = new pg.Client({ connectionString: tdb.adminUrl })
+    await holder.connect()
+    try {
+      await holder.query('begin')
+      await holder.query('select id from invites where id = $1 for update', [r.inviteId])
+      for (const act of [revokeInvite, resendInvite])
+        await expect(act(inviteDeps, owner, fresh(owner), r.inviteId, REQ)).rejects.toMatchObject({
+          code: 'CONFLICT',
+        })
+      await holder.query('commit')
+    } finally {
+      await holder.end()
+    }
+    await expect(describeLink(deps, { token })).resolves.toMatchObject({ email: sample.email })
+  })
+
+  test('an activation already started cannot be cancelled nor sent again', async () => {
+    const w = await world()
+    const owner = await actorOf(w.owner.id, w.orgA)
+    const sample = invite(w.w1, 'viewer')
+    const r = await inviteUser(inviteDeps, owner, fresh(owner), sample, REQ)
+    const { token } = activationLinkIn(mailer.sent, sample.email)
+    // passkey path: the account is reserved, the link stays open until the passkey
+    await activateAccount(deps, {
+      token,
+      name: 'Persona A Metà',
+      nickname: null,
+      password: null,
+      ip: null,
+      userAgent: null,
+      sessionUserId: null,
+    })
+    for (const act of [revokeInvite, resendInvite])
+      await expect(act(inviteDeps, owner, fresh(owner), r.inviteId, REQ)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+    expect(await openInviteIds(w.orgA)).toContain(r.inviteId)
   })
 })
 

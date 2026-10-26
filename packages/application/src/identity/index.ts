@@ -28,7 +28,7 @@ export type { MySession } from './my-sessions.js'
 export type { ResolvedSession, SessionState, SessionUser, SessionUserDeps } from './sessions.js'
 export type { IdentityDeps, PasswordStrength } from './identity-deps.js'
 export {
-  INVITES_PER_ADDRESS,
+  INVITE_ALLOWANCES,
   inviteUser,
   listInvites,
   resendInvite,

@@ -171,6 +171,8 @@ export interface IsolationFixture {
   throwawayAgency(): Promise<{ cookie: string; ids: SampleIds }>
   /** An invite link of A, activated by its new account, waiting for the passkey. */
   reservedLink(): Promise<{ token: string; userId: string }>
+  /** An open Admin invite of A into `workspaceId`, sent by A's Owner. */
+  adminInvite(workspaceId: string): Promise<string>
   /** An invite link of A nobody has used. */
   openLink(email?: string): Promise<string>
   /** A fingerprint of the rows a request could change: equal before and after = untouched. */
@@ -234,12 +236,17 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
   const workspaceOf = { a: [a.id, w1, w2], b: [b.id, wb, wb] } as const
 
   /** An open invite written directly: its link is never needed, only its id. */
-  async function openInvite(organizationId: string, workspaceId: string, invitedBy: string) {
+  async function openInvite(
+    organizationId: string,
+    workspaceId: string,
+    invitedBy: string,
+    orgRole: 'member' | 'admin' = 'member',
+  ) {
     const id = randomUUID()
     await env.admin.pool.query(
       `insert into invites (id, organization_id, purpose, email, token_hash, invited_by, org_role,
                             memberships, expires_at)
-       values ($1, $2, 'invite', $3, $4, $5, 'member', $6, now() + interval '72 hours')`,
+       values ($1, $2, 'invite', $3, $4, $5, $7, $6, now() + interval '72 hours')`,
       [
         id,
         organizationId,
@@ -247,6 +254,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         randomBytes(32),
         invitedBy,
         JSON.stringify([{ workspaceId, role: 'viewer' }]),
+        orgRole,
       ],
     )
     return id
@@ -315,6 +323,9 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           invite: await openInvite(agency.id, ids.workspace, owner.userId),
         },
       }
+    },
+    adminInvite(workspaceId) {
+      return openInvite(a.id, workspaceId, people.owner.userId, 'admin')
     },
     async openLink(email = `link-${randomUUID().slice(0, 8)}@example.test`) {
       const r = await env.call(
