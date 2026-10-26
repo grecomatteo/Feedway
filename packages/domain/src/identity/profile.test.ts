@@ -18,6 +18,22 @@ test('nickname is trimmed, empty becomes null, max 30 graphemes', () => {
   expect(validateNickname('a'.repeat(30)).ok).toBe(true)
   expect(validateNickname('a'.repeat(31))).toEqual({ ok: false, reason: 'TOO_LONG' })
 })
+test('a nickname is a name: no links, no control or direction characters', () => {
+  for (const bad of [
+    'https://truffa.example',
+    'vai su www.truffa.example',
+    'truffa.example://x',
+    'HTTP:truffa',
+    'javascript:alert(1)',
+    'Teo\r\nBcc: x@example.test',
+    'Teo\u0000',
+    'Teo\u202Eoet',
+  ])
+    expect(validateNickname(bad), bad).toEqual({ ok: false, reason: 'INVALID' })
+  // emoji joined with a zero-width joiner are fine
+  expect(validateNickname('Teo 👩‍💻').ok).toBe(true)
+  expect(validateNickname('Dott. Rossi').ok).toBe(true)
+})
 test('display name prefers nickname', () => {
   expect(displayName({ name: 'Matteo Greco', nickname: 'Teo' })).toBe('Teo')
   expect(displayName({ name: 'Matteo Greco', nickname: null })).toBe('Matteo Greco')

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { mergeSettings, organizationName } from './settings.js'
+import { checkOrganizationName, mergeSettings, organizationName } from './settings.js'
 
 const privacy = { controllerName: 'Agenzia A', contactEmail: 'privacy@a.it' }
 
@@ -35,4 +35,17 @@ test('an agency name is trimmed and has 2 to 80 characters', () => {
 test('an agency name has no control characters', () => {
   expect(organizationName('Agenzia\nBianchi')).toBeNull()
   expect(organizationName('Agenzia\u0000')).toBeNull()
+})
+
+test('an agency or workspace name is a name: no links, no control or direction characters', () => {
+  for (const bad of [
+    'https://truffa.example',
+    'Agenzia www.truffa.example',
+    'Agenzia http:truffa',
+    'Agenzia\u202Eaizenga',
+  ])
+    expect(checkOrganizationName(bad), bad).toEqual({ ok: false, reason: 'INVALID' })
+  expect(checkOrganizationName('A')).toEqual({ ok: false, reason: 'LENGTH' })
+  expect(checkOrganizationName(' Agenzia 2.0 ')).toEqual({ ok: true, value: 'Agenzia 2.0' })
+  expect(organizationName('https://truffa.example')).toBeNull()
 })

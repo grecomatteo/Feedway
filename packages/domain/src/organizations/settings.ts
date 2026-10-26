@@ -1,3 +1,4 @@
+import { isPlainDisplayName } from '../identity/display-name.js'
 import type { TwoFactorPolicy } from '../identity/second-factor-policy.js'
 
 export interface OrganizationPrivacySettings {
@@ -22,13 +23,22 @@ export function mergeSettings(
 export const ORGANIZATION_NAME_MAX_LENGTH = 80
 
 /**
- * An agency name as stored: trimmed, 2 to 80 characters (the same bounds as
- * BOOTSTRAP_ORGANIZATION_NAME), no control characters. Null when it is not acceptable.
+ * An agency or workspace name as stored: trimmed, 2 to 80 characters (the same bounds as
+ * BOOTSTRAP_ORGANIZATION_NAME), plain text (`isPlainDisplayName`: no link, no control or
+ * direction characters).
  */
-export function organizationName(raw: string): string | null {
+export function checkOrganizationName(
+  raw: string,
+): { ok: true; value: string } | { ok: false; reason: 'LENGTH' | 'INVALID' } {
   const name = raw.trim()
   const length = Array.from(name).length
-  if (length < 2 || length > ORGANIZATION_NAME_MAX_LENGTH) return null
-  if (/\p{Cc}/u.test(name)) return null
-  return name
+  if (length < 2 || length > ORGANIZATION_NAME_MAX_LENGTH) return { ok: false, reason: 'LENGTH' }
+  if (!isPlainDisplayName(name)) return { ok: false, reason: 'INVALID' }
+  return { ok: true, value: name }
+}
+
+/** The same check; null when the name is not acceptable. */
+export function organizationName(raw: string): string | null {
+  const check = checkOrganizationName(raw)
+  return check.ok ? check.value : null
 }

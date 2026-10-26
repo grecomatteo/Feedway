@@ -17,6 +17,10 @@ export const DOMAIN_ERROR_CODES = [
   'ORGANIZATION_SUSPENDED',
   /** A limit of the agency is reached (409). */
   'LIMIT_REACHED',
+  /** The action sends an email and the platform has no email configured (409). */
+  'MAIL_NOT_CONFIGURED',
+  /** The mail server did not take a message the action depends on; nothing was kept (502). */
+  'MAIL_SEND_FAILED',
 ] as const
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number]

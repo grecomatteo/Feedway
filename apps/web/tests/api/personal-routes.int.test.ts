@@ -98,7 +98,15 @@ const FOREIGN_ANSWER: Record<string, ForeignAnswer> = {
   },
 }
 
-const noIds: SampleIds = { org: '', workspace: '', target: '', newcomer: '', admin: '', email: '' }
+const noIds: SampleIds = {
+  org: '',
+  workspace: '',
+  target: '',
+  newcomer: '',
+  admin: '',
+  email: '',
+  invite: '',
+}
 
 test('every personal route with a parameter has a case', () => {
   expect(personalRoutesWithIds.map(routeKey).filter((k) => !(k in OWNED_BY_ANOTHER))).toEqual([])

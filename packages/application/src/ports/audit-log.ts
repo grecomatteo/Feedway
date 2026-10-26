@@ -17,6 +17,8 @@ export const AUDIT_ACTIONS = [
   'auth.security_lock',
   'session.revoked',
   'user.invited',
+  'user.invite_resent',
+  'user.invite_revoked',
   'user.activated',
   'user.disabled',
   'user.enabled',

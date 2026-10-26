@@ -252,6 +252,19 @@ export interface InvitesRepository {
   expireOpen(purpose: InvitePurpose, at: Date): Promise<void>
   /** Unused, unexpired invites of the agency: each will take a seat. */
   countOpen(organizationId: string, now: Date): Promise<number>
+  /** One open invite of the agency (purpose `invite`), without locking it. */
+  findOpen(organizationId: string, id: string, now: Date): Promise<InviteRecord | null>
+  /** The agency's own open invites (purpose `invite`), oldest first. */
+  listOpen(organizationId: string, now: Date): Promise<InviteRecord[]>
+  /**
+   * One open invite of the agency (purpose `invite`), locked until the transaction ends; null
+   * otherwise. Never waits: `CONFLICT` while an activation of it holds the row.
+   */
+  findOpenForUpdate(organizationId: string, id: string, now: Date): Promise<InviteRecord | null>
+  /** A new link for the same invite: the old token stops working. */
+  replaceToken(id: string, tokenHash: Buffer, expiresAt: Date): Promise<void>
+  /** Ends the link now: it stops working and frees its seat. */
+  expire(id: string, at: Date): Promise<void>
 }
 
 export interface WorkspaceRecord {

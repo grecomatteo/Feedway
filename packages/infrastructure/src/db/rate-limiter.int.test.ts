@@ -101,3 +101,15 @@ test('reset starts a fresh window', async () => {
   await limiter.reset('ip:5')
   expect(await limiter.hit('ip:5', 1, 60_000)).toEqual({ allowed: true, retryAfterMs: 0 })
 })
+
+test('peek tells whether a hit would pass, without counting', async () => {
+  const limiter = limiterOn(a)
+  expect(await limiter.peek('peek:1', 2, 60_000)).toEqual({ allowed: true, retryAfterMs: 0 })
+  await limiter.hit('peek:1', 2, 60_000)
+  expect((await limiter.peek('peek:1', 2, 60_000)).allowed).toBe(true)
+  expect((await limiter.peek('peek:1', 2, 60_000)).allowed).toBe(true)
+  await limiter.hit('peek:1', 2, 60_000)
+  expect(await limiter.peek('peek:1', 2, 60_000)).toEqual({ allowed: false, retryAfterMs: 60_000 })
+  clock.advance(60_000)
+  expect((await limiter.peek('peek:1', 2, 60_000)).allowed).toBe(true)
+})

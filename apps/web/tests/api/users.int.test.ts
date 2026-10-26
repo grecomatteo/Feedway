@@ -75,14 +75,20 @@ test('the member list answers the DTO to Owner and Admin, 403 to a Member', asyn
   expect((await get(`/api/v1/orgs/agenzia-inesistente/members`, a.adminCookie)).status).toBe(404)
 })
 
-test('an invite answers the link to copy; naming an Admin needs the Owner and a reauth', async () => {
+test('an invite emails the link and never answers it; naming an Admin needs the Owner and a reauth', async () => {
   const a = await agencyA()
   const path = `/api/v1/orgs/${a.agency.slug}/invites`
-  const ok = await post(path, { email: 'nuova@example.test', orgRole: 'member' }, a.adminCookie)
+  const email = `nuova-${randomUUID().slice(0, 8)}@example.test`
+  const ok = await post(path, { email, orgRole: 'member' }, a.adminCookie)
   expect(ok.status).toBe(200)
-  const body = (await ok.json()) as { url: string; expiresAt: string }
-  expect(Object.keys(body).sort()).toEqual(['expiresAt', 'url'])
-  expect(body.url.startsWith(`${PANEL}/`)).toBe(true)
+  const text = await ok.text()
+  const body = JSON.parse(text) as { id: string; expiresAt: string }
+  expect(Object.keys(body).sort()).toEqual(['expiresAt', 'id'])
+  const { url, token } = await env.linkSentTo(email)
+  expect(url.startsWith(`${PANEL}/attiva/`)).toBe(true)
+  expect(text).not.toContain(token)
+  const described = await get(`/api/v1/links/${encodeURIComponent(token)}`)
+  expect(described.status).toBe(200)
 
   const asAdmin = await post(path, { email: 'capo@example.test', orgRole: 'admin' }, a.adminCookie)
   expect(asAdmin.status).toBe(403)
@@ -104,6 +110,54 @@ test('an invite answers the link to copy; naming an Admin needs the Owner and a 
   expect(
     (await post(path, { email: 'x@example.test', orgRole: 'owner' }, a.ownerCookie)).status,
   ).toBe(422)
+})
+
+test('open invites: list, send again with a new link, cancel', async () => {
+  const a = await agencyA()
+  const base = `/api/v1/orgs/${a.agency.slug}/invites`
+  const email = `aperto-${randomUUID().slice(0, 8)}@example.test`
+  const created = (await (
+    await post(base, { email, orgRole: 'member' }, a.adminCookie)
+  ).json()) as {
+    id: string
+  }
+  const first = await env.linkSentTo(email)
+
+  const listed = await get(base, a.ownerCookie)
+  expect(listed.status).toBe(200)
+  const { items } = (await listed.json()) as { items: Record<string, unknown>[] }
+  expect(items.map((i) => i.id)).toEqual([created.id])
+  expect(Object.keys(items[0] ?? {}).sort()).toEqual(
+    ['email', 'expiresAt', 'id', 'invitedBy', 'memberships', 'orgRole'].sort(),
+  )
+  expect((await get(base, a.memberCookie)).status).toBe(403)
+
+  const resent = await post(`${base}/${created.id}/resend`, undefined, a.adminCookie)
+  expect(resent.status).toBe(200)
+  const second = await env.linkSentTo(email)
+  expect(second.token).not.toBe(first.token)
+  expect((await get(`/api/v1/links/${encodeURIComponent(first.token)}`)).status).toBe(410)
+  expect((await get(`/api/v1/links/${encodeURIComponent(second.token)}`)).status).toBe(200)
+
+  // a third email is the last one for this address today
+  expect((await post(`${base}/${created.id}/resend`, undefined, a.adminCookie)).status).toBe(200)
+  const limited = await post(`${base}/${created.id}/resend`, undefined, a.adminCookie)
+  expect(limited.status).toBe(429)
+  expect(limited.headers.get('retry-after')).toBe('86400')
+
+  const revoked = await env.call('DELETE', `${base}/${created.id}`, undefined, {
+    cookie: a.adminCookie,
+  })
+  expect(revoked.status).toBe(200)
+  expect(await revoked.json()).toEqual({ revoked: true })
+  expect((await get(`/api/v1/links/${encodeURIComponent(second.token)}`)).status).toBe(410)
+  expect(((await (await get(base, a.ownerCookie)).json()) as { items: unknown[] }).items).toEqual(
+    [],
+  )
+  const again = await env.call('DELETE', `${base}/${created.id}`, undefined, {
+    cookie: a.adminCookie,
+  })
+  expect(again.status).toBe(404)
 })
 
 test('invites and reset links are limited per address, for signed-in callers only', async () => {

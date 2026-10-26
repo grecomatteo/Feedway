@@ -35,6 +35,16 @@ export function createPgRateLimiter(deps: { db: DbExecutor; clock: Clock }): Rat
       const left = row.startedAt.getTime() + windowMs - now.getTime()
       return { allowed: false, retryAfterMs: Math.min(windowMs, Math.max(0, left)) }
     },
+    async peek(key, limit, windowMs) {
+      const now = clock.now()
+      const [row] = await db
+        .select({ count: t.count, startedAt: t.startedAt })
+        .from(t)
+        .where(eq(t.key, hitKey(key)))
+      const left = row ? row.startedAt.getTime() + windowMs - now.getTime() : 0
+      if (!row || left <= 0 || row.count < limit) return { allowed: true, retryAfterMs: 0 }
+      return { allowed: false, retryAfterMs: Math.min(windowMs, left) }
+    },
     async failures(key) {
       const [row] = await db
         .select({ count: t.count, lastAt: t.updatedAt })

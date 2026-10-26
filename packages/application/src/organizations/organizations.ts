@@ -1,7 +1,7 @@
 import {
   can,
   DomainError,
-  organizationName,
+  checkOrganizationName,
   type OrgActor,
   type OrgRole,
   type TwoFactorPolicy,
@@ -119,12 +119,16 @@ export async function updateOrganizationSettings(
 
   let name: string | undefined
   if (input.name !== undefined) {
-    const valid = organizationName(input.name)
-    if (valid === null)
-      throw new DomainError('VALIDATION', 'Il nome dell’agenzia va da 2 a 80 caratteri', {
-        field: 'name',
-      })
-    name = valid
+    const valid = checkOrganizationName(input.name)
+    if (!valid.ok)
+      throw new DomainError(
+        'VALIDATION',
+        valid.reason === 'LENGTH'
+          ? 'Il nome dell’agenzia va da 2 a 80 caratteri'
+          : 'Il nome dell’agenzia non può contenere link o caratteri speciali',
+        { field: 'name' },
+      )
+    name = valid.value
   }
   const { require2fa } = input
   if (require2fa !== undefined) {

@@ -9,7 +9,6 @@ import it from '../../i18n/locales/it.json' with { type: 'json' }
 /** Codes the HTTP layer adds to the domain ones: framework and request errors. */
 type HttpCode =
   | 'SOLE_OWNER'
-  | 'MAIL_NOT_CONFIGURED'
   | 'FILE_TOO_LARGE'
   | 'UNSUPPORTED_FILE_TYPE'
   | 'BAD_REQUEST'
@@ -30,6 +29,7 @@ export const ERROR_STATUS: Readonly<Record<ErrorCode, number>> = {
   CONFLICT: 409,
   LIMIT_REACHED: 409,
   SOLE_OWNER: 409,
+  // a state of the platform, not a fault: nothing to retry until someone configures it
   MAIL_NOT_CONFIGURED: 409,
   LINK_INVALID: 410,
   FILE_TOO_LARGE: 413,
@@ -40,6 +40,8 @@ export const ERROR_STATUS: Readonly<Record<ErrorCode, number>> = {
   REQUEST_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
   INTERNAL: 500,
+  // the mail server failed us: an upstream error, worth a retry
+  MAIL_SEND_FAILED: 502,
 }
 
 export type ErrorReason = keyof typeof it.errorReasons

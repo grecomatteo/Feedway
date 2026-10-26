@@ -36,12 +36,57 @@ export const InviteBody = z.strictObject({
     .default([]),
 })
 
+/** The link goes only to the invited mailbox: no answer ever carries it. */
+const InviteSent = z.object({ id: z.string(), expiresAt: Timestamp })
+
 export const inviteRoute = defineContract({
   method: 'POST',
   path: '/api/v1/orgs/{org}/invites',
-  summary: 'Crea il link d’invito da copiare (valido 72 ore)',
+  summary: 'Invita una persona: il link (valido 72 ore) arriva solo alla sua email',
   request: { params: OrgParams, body: InviteBody },
-  response: z.object({ url: z.string(), expiresAt: Timestamp }),
+  response: InviteSent,
+  auth: 'session',
+  scope: 'organization',
+})
+
+/** An open invite: no token, nor whether the address has an account. */
+export const Invite = z.object({
+  id: z.string(),
+  email: z.string(),
+  orgRole: OrgRole,
+  memberships: z.array(z.object({ workspaceId: z.string(), role: WorkspaceRole })),
+  invitedBy: z.string().nullable(),
+  expiresAt: Timestamp,
+})
+
+export const listInvitesRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/invites',
+  summary: 'Gli inviti aperti che puoi gestire',
+  request: { params: OrgParams },
+  response: z.object({ items: z.array(Invite) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+const InviteParams = z.strictObject({ org: OrgSlug, inviteId: Id })
+
+export const resendInviteRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/invites/{inviteId}/resend',
+  summary: 'Invia di nuovo l’invito: nuovo link e nuove 72 ore, il vecchio link non vale più',
+  request: { params: InviteParams },
+  response: InviteSent,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const revokeInviteRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/orgs/{org}/invites/{inviteId}',
+  summary: 'Annulla l’invito: il link smette di funzionare e il posto si libera',
+  request: { params: InviteParams },
+  response: z.object({ revoked: z.literal(true) }),
   auth: 'session',
   scope: 'organization',
 })
@@ -101,6 +146,9 @@ export const ownershipTransferRoute = defineContract({
 export const userRoutes = [
   listMembersRoute,
   inviteRoute,
+  listInvitesRoute,
+  resendInviteRoute,
+  revokeInviteRoute,
   passwordResetLinkRoute,
   disableMemberRoute,
   enableMemberRoute,
