@@ -14,6 +14,7 @@ import type {
   Logger,
   PasswordHasher,
   RateLimiter,
+  SignedTokens,
 } from '@app/application'
 import type { SessionUserResolver } from './auth-hooks.js'
 import type { Db } from '../db/client.js'
@@ -24,6 +25,7 @@ import {
   createAfterHook,
   createBeforeHook,
   mayOpenSession,
+  recoveryPending,
 } from './auth-hooks.js'
 
 export interface BetterAuthConfig {
@@ -45,6 +47,8 @@ export interface BetterAuthDeps {
   events: AuthEventSink
   /** "Password dimenticata" queues `identity.password_reset_email`. */
   queue: Pick<JobQueue, 'send'>
+  /** Checks the code that goes with a platform recovery link (auth-hooks.ts). */
+  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
   /**
    * `resolveSessionUser` from the application, bound to its unit of work: the hooks apply our
    * second-factor rules with it, since they cannot go through `Auth` (it wraps this instance).
@@ -121,6 +125,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     events: deps.events,
     logger: deps.logger,
     resolveSessionUser: deps.resolveSessionUser,
+    signedTokens: deps.signedTokens,
   }
 
   return betterAuth({
@@ -157,6 +162,12 @@ export function createBetterAuth(deps: BetterAuthDeps) {
       resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
       sendResetPassword: async ({ user, url }) => {
         try {
+          // A recovery after "Non sono stato io" is pending: only its own link may set the
+          // password. Nothing leaves; the browser gets the answer of an unknown email.
+          if (await recoveryPending(deps.db, user.id)) {
+            deps.logger.info({}, 'password reset email skipped: recovery pending')
+            return
+          }
           // the handler checks the account again and sends nothing for a disabled one
           // Only for the email's wording: Better Auth computes the real expiry of the token with
           // its own clock, from resetPasswordTokenExpiresIn.

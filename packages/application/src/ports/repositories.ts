@@ -28,7 +28,11 @@ export interface UserRecord {
   disabledAt: Date | null
   /** Last reactivation by the platform: lock links issued before it no longer work. */
   reactivatedAt: Date | null
-  /** "Non sono stato io" since the last reactivation: the password is no longer trusted. */
+  /**
+   * "Non sono stato io": set by the lock, kept through the reactivation and cleared only when the
+   * person chooses a password with the recovery link and code. While set, no ordinary reset is
+   * issued or accepted (the account may be active, with no password and no second factor).
+   */
   securityLockedAt: Date | null
   anonymizedAt: Date | null
   createdAt: Date
@@ -64,13 +68,21 @@ export interface UsersRepository {
   /** false: the account was already disabled. */
   disable(id: string, at: Date): Promise<boolean>
   /**
-   * Platform reactivation, system scope only: active again, `reactivatedAt` set. false: the
-   * account was not disabled, or is anonymized.
+   * Platform reactivation, system scope only: active again, `reactivatedAt` set;
+   * `securityLockedAt` stays until the recovery is complete. false: the account was not
+   * disabled, or is anonymized.
    */
   enable(id: string, at: Date): Promise<boolean>
-  /** Records a "Non sono stato io" lock; false when one is already recorded. */
+  /**
+   * Records a "Non sono stato io" lock; false when one is already recorded and the account has
+   * not been reactivated since.
+   */
   markSecurityLocked(id: string, at: Date): Promise<boolean>
   platformAdminExists(): Promise<boolean>
+  /** Clears a "Non sono stato io" mark the recovery already closed. System scope only. */
+  clearSecurityLock(id: string): Promise<void>
+  /** Platform administrators who can act: active, not anonymized. System scope only. */
+  listActivePlatformAdmins(): Promise<UserRecord[]>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
   /** The agency the panel opens next time. */
@@ -79,17 +91,37 @@ export interface UsersRepository {
 }
 
 /**
- * Credentials written outside Better Auth, system scope only: the platform voids a password
- * that may be in someone else's hands and hands out a reset link (Task 16).
+ * Credentials written outside Better Auth, system scope only (except `revokePendingTokens`):
+ * the platform voids a password that may be in someone else's hands and hands out a reset link
+ * (Task 16).
  */
 export interface CredentialsRepository {
   /** Removes the password credential; false when the account had none. Passkeys stay. */
   removePassword(userId: string): Promise<boolean>
+  /** Whether the account has a password; never the hash. Any scope. */
+  hasPassword(userId: string): Promise<boolean>
   /**
-   * A reset token in the format `/reset-password` reads (ADR 012, V6), valid until
-   * `expiresAt`. Not limited to people of one agency: only the platform issues it.
+   * The recovery link after a verified reactivation: a reset token in the format
+   * `/reset-password` reads (ADR 012, V6) and, beside it, the keyed hash of the code the
+   * operator dictates (`codeHash` of the new token), both valid until `expiresAt`. Not limited
+   * to people of one agency: only the platform issues it. Returns the token.
    */
-  issuePasswordResetToken(userId: string, expiresAt: Date): Promise<string>
+  issueAccountRecovery(
+    userId: string,
+    expiresAt: Date,
+    codeHash: (token: string) => Buffer,
+  ): Promise<string>
+  /**
+   * After a "Non sono stato io" lock: removes every passkey, the authenticator app and its
+   * recovery codes, which the intruder may have added. Returns how many of each.
+   */
+  removeSecondFactors(userId: string): Promise<{ passkeys: number; totp: number }>
+  /**
+   * "Non sono stato io": deletes every pending link or challenge of the person that Better Auth
+   * keeps in `verifications` (password reset, second factor waiting after the password, passkey
+   * challenges). Also in the person's own scope. Returns how many were deleted.
+   */
+  revokePendingTokens(userId: string): Promise<number>
 }
 
 export interface SessionRecord {
@@ -121,6 +153,8 @@ export interface KnownDevicesRepository {
   count(userId: string): Promise<number>
   /** Records the device or refreshes `last_seen_at`; true when it was not known. */
   touch(userId: string, deviceHash: Buffer, at: Date): Promise<boolean>
+  /** Forgets every device of the person; returns how many. */
+  deleteAllForUser(userId: string): Promise<number>
 }
 
 export interface OrganizationRecord {
@@ -254,6 +288,8 @@ export interface InvitesRepository {
   countOpen(organizationId: string, now: Date): Promise<number>
   /** One open invite of the agency (purpose `invite`), without locking it. */
   findOpen(organizationId: string, id: string, now: Date): Promise<InviteRecord | null>
+  /** Open invites this person sent, in every agency. System scope only. */
+  listOpenSentBy(userId: string, now: Date): Promise<InviteRecord[]>
   /** The agency's own open invites (purpose `invite`), oldest first. */
   listOpen(organizationId: string, now: Date): Promise<InviteRecord[]>
   /**

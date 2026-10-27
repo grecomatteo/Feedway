@@ -65,6 +65,7 @@ beforeAll(async () => {
   const secret = randomBytes(32).toString('hex')
   instance = createBetterAuth({
     db,
+    signedTokens: createSignedTokens(randomBytes(32)),
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',

@@ -96,6 +96,7 @@ function buildAuth(withQueue: Pick<JobQueue, 'send'>, withLogger: Logger): Bette
   const secret = randomBytes(32).toString('hex')
   return createBetterAuth({
     db,
+    signedTokens: createSignedTokens(randomBytes(32)),
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',

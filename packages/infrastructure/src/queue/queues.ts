@@ -22,6 +22,23 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 3600, deleteAfterSeconds: 3600 },
   },
+  // ids only; a notice still waiting after three days is no longer news
+  'identity.account_locked_notice': {
+    policy: 'standard',
+    scope: 'system',
+    retention: { retentionSeconds: 3 * 86_400, deleteAfterSeconds: 86_400 },
+  },
+  'identity.account_locked_notice_email': {
+    policy: 'standard',
+    scope: 'system',
+    retention: { retentionSeconds: 3 * 86_400, deleteAfterSeconds: 86_400 },
+  },
+  // the data holds the recovery link: gone after its 30 minutes
+  'identity.account_recovery_email': {
+    policy: 'standard',
+    scope: 'user',
+    retention: { retentionSeconds: 1800, deleteAfterSeconds: 1800 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

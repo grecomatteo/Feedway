@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { and, eq, gt, sql } from 'drizzle-orm'
 import {
   allowedWhileSecondFactorRequired,
@@ -10,6 +10,7 @@ import {
   type RateLimiter,
   type SessionState,
   type SessionUser,
+  type SignedTokens,
 } from '@app/application'
 import {
   canRemoveSecondFactor,
@@ -22,7 +23,11 @@ import {
 } from '@app/domain'
 import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import type { Db } from '../db/client.js'
-import { passkeys, sessions, users } from '../db/identity/schema.js'
+import { passkeys, sessions, users, verifications } from '../db/identity/schema.js'
+import {
+  ACCOUNT_RECOVERY_IDENTIFIER,
+  PLATFORM_RESET_TOKEN_PREFIX,
+} from '../db/identity/repositories.js'
 import { passwordStrength } from '../crypto/password-strength.js'
 import { toAuthMethod, toSessionInfo } from './auth-method.js'
 import { enforceIpLimit, tooManyRequests } from './rate-limits.js'
@@ -93,6 +98,8 @@ export interface HookDeps {
   events: AuthEventSink
   logger: Logger
   resolveSessionUser: SessionUserResolver
+  /** The code that goes with a platform recovery link is checked against its keyed hash. */
+  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
 }
 
 const clientIp = (request: Request): string => request.headers.get('x-app-client-ip') ?? 'unknown'
@@ -233,9 +240,8 @@ async function rememberBefore(deps: HookDeps, ctx: HookContext, request: Request
     const userId = await pendingSecondFactorUser(deps, ctx, request)
     if (userId !== undefined) pending.set(request, { userId })
   } else if (path === '/reset-password') {
-    const body = (ctx.body ?? {}) as Record<string, unknown>
-    const token = body['token'] ?? (ctx.query as Record<string, unknown> | undefined)?.['token']
-    if (typeof token !== 'string' || token === '') return
+    const token = resetToken(ctx)
+    if (!token) return
     const verification = await ctx.context.internalAdapter.findVerificationValue(
       `reset-password:${token}`,
     )
@@ -394,6 +400,9 @@ export function createBeforeHook(deps: HookDeps) {
     await enforceIpLimit(deps.rateLimiter, path, clientIp(ctx.request))
 
     const body = (ctx.body ?? {}) as Record<string, unknown>
+    // Better Auth reads `body.token || query.token`: one token, in the body, or nothing. Before any
+    // other check, so none of them can look at a different token than the library will use.
+    if (path === '/reset-password') assertBodyResetToken(ctx)
     // Trusting a device would skip the second factor for it; the 12-hour idle limit needs a
     // session that is renewed on use, which `rememberMe: false` turns off; a passkey
     // registration would clone the session with no sign-in recorded.
@@ -419,7 +428,10 @@ export function createBeforeHook(deps: HookDeps) {
     const email = body['email']
     if (path === '/sign-in/email' && typeof email === 'string') await enforceLoginDelay(deps, email)
 
-    if (path === '/reset-password') await enforcePanelResetScope(deps.db, ctx)
+    if (path === '/reset-password') {
+      await refuseOrdinaryResetWhileRecovering(deps.db, ctx)
+      await enforcePanelResetScope(deps.db, ctx)
+    }
 
     if (path === '/reset-password' || path === '/change-password') {
       const newPassword = typeof body['newPassword'] === 'string' ? body['newPassword'] : ''
@@ -438,6 +450,9 @@ export function createBeforeHook(deps: HookDeps) {
         throw new APIError('UNPROCESSABLE_ENTITY', { message: check.reason, code: check.reason })
     }
 
+    // after the password checks: a refused password does not spend the code
+    if (path === '/reset-password') await enforceRecoveryCode(deps, ctx)
+
     await enforceAccountRules(deps, ctx, ctx.request)
 
     // A new password signs out every other device, whatever the browser asked (spec §15.2):
@@ -447,10 +462,16 @@ export function createBeforeHook(deps: HookDeps) {
   })
 }
 
+/** The reset token, only from the body (`assertBodyResetToken` refused any other form). */
 function resetToken(ctx: HookContext): string | null {
-  const body = (ctx.body ?? {}) as Record<string, unknown>
-  const token = body['token'] ?? (ctx.query as Record<string, unknown> | undefined)?.['token']
+  const token = ((ctx.body ?? {}) as Record<string, unknown>)['token']
   return typeof token === 'string' && token !== '' ? token : null
+}
+
+function assertBodyResetToken(ctx: HookContext): void {
+  const query = (ctx.query ?? {}) as Record<string, unknown>
+  const token = ((ctx.body ?? {}) as Record<string, unknown>)['token']
+  if ('token' in query || typeof token !== 'string' || token === '') throw linkInvalid()
 }
 
 /** The account a reset token belongs to; null for an unknown token. */
@@ -483,6 +504,153 @@ async function enforcePanelResetScope(db: Db, ctx: HookContext): Promise<void> {
         'Questo link non vale più: chiedine uno nuovo a chi gestisce l’agenzia o usa “Password dimenticata”',
       code: 'FORBIDDEN',
     })
+}
+
+/** Wrong codes a recovery link survives; the next one voids it. */
+export const RECOVERY_CODE_MAX_FAILURES = 5
+
+const RECOVERY_CODE = /^\d{6}$/
+
+interface RecoveryCodeRow {
+  userId: string
+  codeHash: string
+  failures: number
+}
+
+const isRecoveryCodeRow = (v: unknown): v is RecoveryCodeRow =>
+  typeof v === 'object' &&
+  v !== null &&
+  typeof (v as RecoveryCodeRow).userId === 'string' &&
+  typeof (v as RecoveryCodeRow).codeHash === 'string' &&
+  Number.isSafeInteger((v as RecoveryCodeRow).failures)
+
+const linkInvalid = () =>
+  new APIError('BAD_REQUEST', {
+    message: 'Il link non è valido o è scaduto: chiedi un nuovo link all’amministratore',
+    code: 'LINK_INVALID',
+  })
+
+/**
+ * A platform recovery link (after "Non sono stato io") works only with the six-digit code the
+ * administrator dictated on the channel used to check the identity: the email alone is not
+ * enough. Compared in constant time against its keyed hash; the fifth wrong code voids link and
+ * code. A right code is spent at once (link and code are used together, once). No code row
+ * beside the link means no reset: it fails closed.
+ */
+async function enforceRecoveryCode(
+  deps: Pick<HookDeps, 'db' | 'clock' | 'signedTokens'>,
+  ctx: HookContext,
+): Promise<void> {
+  const token = resetToken(ctx)
+  if (token === null || !token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  const given = ((ctx.body ?? {}) as Record<string, unknown>)['code']
+  const code = typeof given === 'string' ? given.trim() : ''
+  const now = deps.clock.now()
+  const outcome = await deps.db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({
+        id: verifications.id,
+        value: verifications.value,
+        expiresAt: verifications.expiresAt,
+      })
+      .from(verifications)
+      .where(eq(verifications.identifier, `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`))
+      .for('update')
+    let stored: unknown = null
+    try {
+      stored = row ? JSON.parse(row.value) : null
+    } catch {
+      stored = null
+    }
+    if (!row || row.expiresAt <= now || !isRecoveryCodeRow(stored)) return 'invalid' as const
+    if (!RECOVERY_CODE.test(code)) return 'missing' as const
+    const expected = Buffer.from(stored.codeHash, 'base64url')
+    const actual = deps.signedTokens.recoveryCodeHash(token, code)
+    // Kept until Better Auth has set the password (the after hook spends it with the link): a
+    // reset that fails after this check can be tried again with the same code.
+    if (expected.length === actual.length && timingSafeEqual(expected, actual)) return 'ok' as const
+    const failures = stored.failures + 1
+    if (failures >= RECOVERY_CODE_MAX_FAILURES) {
+      await tx
+        .delete(verifications)
+        .where(
+          sql`${verifications.identifier} in (${`reset-password:${token}`}, ${`${ACCOUNT_RECOVERY_IDENTIFIER}${token}`})`,
+        )
+      return 'voided' as const
+    }
+    await tx
+      .update(verifications)
+      .set({ value: JSON.stringify({ ...stored, failures }) })
+      .where(eq(verifications.id, row.id))
+    return 'wrong' as const
+  })
+  switch (outcome) {
+    case 'ok':
+      return
+    case 'missing':
+      throw new APIError('BAD_REQUEST', {
+        message: 'Inserisci il codice di 6 cifre che ti ha comunicato l’amministratore',
+        code: 'RECOVERY_CODE_REQUIRED',
+      })
+    case 'wrong':
+      throw new APIError('BAD_REQUEST', {
+        message: 'Il codice non è corretto',
+        code: 'RECOVERY_CODE_INVALID',
+      })
+    default:
+      throw linkInvalid()
+  }
+}
+
+/**
+ * While a recovery is pending (active, no password, no second factor) only the recovery link
+ * sets the password: not "Password dimenticata", not a link copied from a panel.
+ */
+async function refuseOrdinaryResetWhileRecovering(db: Db, ctx: HookContext): Promise<void> {
+  const token = resetToken(ctx)
+  if (token === null || token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  const userId = await resetTokenUserId(ctx, token)
+  if (userId !== null && (await recoveryPending(db, userId))) throw linkInvalid()
+}
+
+/**
+ * "Non sono stato io" not yet closed by the person's own recovery: the mark is set and the
+ * account is still disabled or has no password. Once the recovery link has set a password the
+ * recovery is over even if clearing the mark failed (the after hook is not in Better Auth's
+ * transaction): only that link can create a password while the mark is set.
+ */
+export async function recoveryPending(db: Db, userId: string): Promise<boolean> {
+  const { rows } = await db.execute<{ pending: boolean }>(
+    sql`select (u.security_locked_at is not null and (u.status <> 'active' or not exists (
+          select 1 from accounts a where a.user_id = u.id and a.provider_id = 'credential'
+            and a.password is not null))) as pending
+        from users u where u.id = ${userId}::uuid`,
+  )
+  return rows[0]?.pending === true
+}
+
+/**
+ * After a successful reset with a recovery link: the code goes with the link Better Auth has
+ * just spent, and the lock is over, so ordinary resets work again.
+ */
+async function completeRecovery(deps: Pick<HookDeps, 'db'>, ctx: HookContext): Promise<void> {
+  if (ctx.path !== '/reset-password' || ctx.context.returned instanceof APIError) return
+  const token = resetToken(ctx)
+  if (token === null || !token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  await deps.db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(verifications)
+      .where(eq(verifications.identifier, `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`))
+      .returning({ value: verifications.value })
+    let stored: unknown = null
+    try {
+      stored = row ? JSON.parse(row.value) : null
+    } catch {
+      stored = null
+    }
+    if (!isRecoveryCodeRow(stored)) return
+    await tx.update(users).set({ securityLockedAt: null }).where(eq(users.id, stored.userId))
+  })
 }
 
 /** Email and name of the account a reset token belongs to; null for an unknown token. */
@@ -621,6 +789,21 @@ async function recordEvent(deps: HookDeps, ctx: HookContext, request: Request): 
 export function createAfterHook(deps: HookDeps) {
   return createAuthMiddleware(async (ctx) => {
     if (!ctx.request) return
+    try {
+      await completeRecovery(deps, ctx)
+    } catch (error) {
+      // The password is already changed: the answer stays a success. The stale mark is harmless
+      // (`recoveryPending` sees the password) and the next `enable-user` clears it. Only the
+      // error code: a failed query's message carries its parameters.
+      const code = (error as { cause?: { code?: unknown } }).cause?.code
+      deps.logger.error(
+        {
+          requestId: header(ctx.request, 'x-app-request-id'),
+          code: typeof code === 'string' ? code : null,
+        },
+        'recovery not closed after the new password',
+      )
+    }
     await recordEvent(deps, ctx, ctx.request)
     if (ctx.path !== '/sign-in/email') return
     const email = (ctx.body as Record<string, unknown> | undefined)?.['email']

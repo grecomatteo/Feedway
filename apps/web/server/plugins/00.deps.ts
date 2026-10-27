@@ -40,6 +40,7 @@ export default defineNitroPlugin((nitroApp) => {
       rateLimiter: runtime.rateLimiter,
       logger: runtime.logger,
       queue: runtime.queue,
+      signedTokens: runtime.signedTokens,
       events: createAuthEventSink({
         uow: runtime.uow,
         queue: runtime.queue,

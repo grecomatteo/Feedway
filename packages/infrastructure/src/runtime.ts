@@ -70,6 +70,11 @@ export interface Runtime {
 
 const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
 
+/** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
+export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], ids: IdGenerator): Mailer {
+  return nodeEnv === 'test' ? createFileMailer({ dir: TEST_MAIL_DIR, ids }) : notConfiguredMailer
+}
+
 export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): Promise<Runtime> {
   const logger = createLogger({ service: role, level: config.logLevel })
   const clock = systemClock
@@ -82,10 +87,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
     const signedTokens = createSignedTokens(config.encryptionKey)
-    const mailer =
-      config.nodeEnv === 'test'
-        ? createFileMailer({ dir: TEST_MAIL_DIR, ids })
-        : notConfiguredMailer
+    const mailer = createMailer(config.nodeEnv, ids)
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,

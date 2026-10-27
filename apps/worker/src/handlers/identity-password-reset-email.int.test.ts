@@ -55,6 +55,7 @@ const REQUESTED = new Date('2026-10-26T18:20:00Z')
 
 function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDeps {
   return {
+    queue: runtime.queue,
     logger,
     uow: runtime.uow,
     // the jobs below are made at REQUESTED: the email leaves at that moment unless a test moves it

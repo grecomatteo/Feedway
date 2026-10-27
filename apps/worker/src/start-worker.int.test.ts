@@ -42,6 +42,9 @@ const services: WorkerDeps['services'] = {
     addressHash: () => {
       throw new Error('not used in this test')
     },
+    recoveryCodeHash: () => {
+      throw new Error('not used in this test')
+    },
   },
   translate: () => {
     throw new Error('not used in this test')

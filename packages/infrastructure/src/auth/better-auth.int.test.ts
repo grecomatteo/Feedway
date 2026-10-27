@@ -13,6 +13,7 @@ import { SESSION_ABSOLUTE_MS } from '@app/domain'
 import { resolveSessionUser } from '@app/application'
 import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createAuthAdapter } from './auth-adapter.js'
+import { createSignedTokens } from '../crypto/signed-tokens.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
 
 const PANEL = 'https://app.feedway.test'
@@ -29,6 +30,7 @@ function build(): BetterAuthInstance {
   const secret = randomBytes(32).toString('hex')
   return createBetterAuth({
     db,
+    signedTokens: createSignedTokens(randomBytes(32)),
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',

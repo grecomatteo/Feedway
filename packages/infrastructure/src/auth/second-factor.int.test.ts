@@ -74,6 +74,7 @@ beforeAll(async () => {
   }
   instance = createBetterAuth({
     db,
+    signedTokens: createSignedTokens(randomBytes(32)),
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',

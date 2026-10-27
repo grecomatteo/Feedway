@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type {
   CredentialsRepository,
   IdGenerator,
@@ -11,7 +11,15 @@ import type {
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { accounts, knownDevices, passkeys, sessions, users, verifications } from './schema.js'
+import {
+  accounts,
+  knownDevices,
+  passkeys,
+  sessions,
+  twoFactors,
+  users,
+  verifications,
+} from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
 // query names the user it is about. Only the identity module may import this file (enforced by
@@ -139,7 +147,7 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
       if (ctx.kind !== 'system') throw new Error('accounts are enabled only in the system scope')
       const changed = await db
         .update(users)
-        .set({ status: 'active', disabledAt: null, reactivatedAt: at, securityLockedAt: null })
+        .set({ status: 'active', disabledAt: null, reactivatedAt: at })
         .where(and(eq(users.id, id), eq(users.status, 'disabled'), isNull(users.anonymizedAt)))
         .returning({ id: users.id })
       return changed.length > 0
@@ -148,7 +156,16 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
       const marked = await db
         .update(users)
         .set({ securityLockedAt: at })
-        .where(and(eq(users.id, ownUser(ctx, id)), isNull(users.securityLockedAt)))
+        // a new lock while a recovery is pending (reactivated after the last lock) counts again
+        .where(
+          and(
+            eq(users.id, ownUser(ctx, id)),
+            or(
+              isNull(users.securityLockedAt),
+              sql`${users.reactivatedAt} >= ${users.securityLockedAt}`,
+            ),
+          ),
+        )
         .returning({ id: users.id })
       return marked.length > 0
     },
@@ -159,6 +176,26 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .where(eq(users.platformRole, 'admin'))
         .limit(1)
       return row !== undefined
+    },
+    async clearSecurityLock(id) {
+      if (ctx.kind !== 'system')
+        throw new Error('a security lock is cleared only in the system scope')
+      await db.update(users).set({ securityLockedAt: null }).where(eq(users.id, id))
+    },
+    async listActivePlatformAdmins() {
+      if (ctx.kind !== 'system')
+        throw new Error('platform administrators are listed only in the system scope')
+      const rows = await db
+        .select(userColumns)
+        .from(users)
+        .where(
+          and(
+            eq(users.platformRole, 'admin'),
+            eq(users.status, 'active'),
+            isNull(users.anonymizedAt),
+          ),
+        )
+      return rows.map(toUser)
     },
     async setPlatformAdmin(id) {
       if (ctx.kind !== 'system') throw new Error('platform roles change only in the system scope')
@@ -259,6 +296,13 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
         .returning({ inserted: sql<boolean>`(xmax = 0)` })
       return row?.inserted === true
     },
+    async deleteAllForUser(userId) {
+      const deleted = await db
+        .delete(knownDevices)
+        .where(eq(knownDevices.userId, ownUser(ctx, userId)))
+        .returning({ userId: knownDevices.userId })
+      return deleted.length
+    },
   }
 }
 
@@ -268,6 +312,9 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
  * agency (auth-hooks.ts checks only `panel.`).
  */
 export const PLATFORM_RESET_TOKEN_PREFIX = 'platform.'
+
+/** `verifications` identifier of the code that goes with a platform recovery link. */
+export const ACCOUNT_RECOVERY_IDENTIFIER = 'account-recovery:'
 
 export function drizzleCredentials(
   db: DbExecutor,
@@ -286,7 +333,21 @@ export function drizzleCredentials(
         .returning({ id: accounts.id })
       return removed.length > 0
     },
-    async issuePasswordResetToken(userId, expiresAt) {
+    async hasPassword(userId) {
+      const [row] = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.userId, userId),
+            eq(accounts.providerId, 'credential'),
+            isNotNull(accounts.password),
+          ),
+        )
+        .limit(1)
+      return row !== undefined
+    },
+    async issueAccountRecovery(userId, expiresAt, codeHash) {
       onlySystem()
       const token = `${PLATFORM_RESET_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
       // the row Better Auth's internalAdapter.createVerificationValue would write (no hashing
@@ -297,7 +358,41 @@ export function drizzleCredentials(
         value: userId,
         expiresAt,
       })
+      // beside it, the code: only its keyed hash, and the wrong attempts (auth-hooks.ts)
+      await db.insert(verifications).values({
+        id: ids.newId(),
+        identifier: `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`,
+        value: JSON.stringify({
+          userId,
+          codeHash: codeHash(token).toString('base64url'),
+          failures: 0,
+        }),
+        expiresAt,
+      })
       return token
+    },
+    async removeSecondFactors(userId) {
+      onlySystem()
+      const removedPasskeys = await db
+        .delete(passkeys)
+        .where(eq(passkeys.userId, userId))
+        .returning({ id: passkeys.id })
+      // the row holds the authenticator secret and the recovery codes
+      const removedTotp = await db
+        .delete(twoFactors)
+        .where(eq(twoFactors.userId, userId))
+        .returning({ id: twoFactors.id })
+      await db.update(users).set({ twoFactorEnabled: false }).where(eq(users.id, userId))
+      return { passkeys: removedPasskeys.length, totp: removedTotp.length }
+    },
+    async revokePendingTokens(userId) {
+      // Better Auth names the person in `value`: the id alone (reset links, the second factor
+      // after the password) or inside JSON (passkey challenges). A uuid never appears by chance.
+      const deleted = await db
+        .delete(verifications)
+        .where(sql`strpos(${verifications.value}, ${ownUser(ctx, userId)}) > 0`)
+        .returning({ id: verifications.id })
+      return deleted.length
     },
   }
 }

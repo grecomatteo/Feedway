@@ -47,3 +47,56 @@ test('the lock text and the validity of its link are separate texts', () => {
   expect(get(it, 'email.security.lockExplain')).not.toContain('7 giorni')
   expect(get(it, 'email.security.lockLinkValidity')).toContain('7 giorni')
 })
+
+// What sendAccountLockedNotice and sendAccountRecoveryEmail pass to their texts.
+const NOTICE_VALUES = new Set(['product', 'name'])
+const RECOVERY_VALUES = new Set(['product', 'minutes', 'time'])
+
+test.each([
+  [
+    'email.lockNotice',
+    NOTICE_VALUES,
+    [
+      'subject',
+      'preheader',
+      'title',
+      'intro',
+      'doneTitle',
+      'doneText',
+      'caution',
+      'labels.person',
+      'labels.email',
+      'labels.organizations',
+      'admin.lead',
+      'admin.text',
+      'admin.footer',
+      'owner.lead',
+      'owner.text',
+      'owner.footer',
+    ],
+  ],
+  [
+    'email.accountRecovery',
+    RECOVERY_VALUES,
+    [
+      'subject',
+      'preheader',
+      'title',
+      'intro',
+      'button',
+      'expiryTitle',
+      'expiryToday',
+      'expiryTomorrow',
+      'code',
+      'secondFactor',
+      'notMe',
+      'footer',
+    ],
+  ],
+] as const)('%s has all its texts, with known placeholders only', (base, values, parts) => {
+  for (const part of parts) {
+    const text = get(it, `${base}.${part}`)
+    expect(text, `${base}.${part}`).toEqual(expect.any(String))
+    for (const m of String(text).matchAll(/\{(\w+)\}/g)) expect(values).toContain(m[1])
+  }
+})

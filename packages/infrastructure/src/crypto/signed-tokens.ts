@@ -29,6 +29,7 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
   }
   const deviceKey = derive(masterKey, 'device-hash')
   const addressKey = derive(masterKey, 'address-hash')
+  const recoveryKey = derive(masterKey, 'recovery-code')
   const mac = (purpose: SignedTokenPurpose, payload: string) =>
     createHmac('sha256', keys[purpose]).update(payload).digest()
 
@@ -63,6 +64,11 @@ export function createSignedTokens(masterKey: Buffer): SignedTokens {
     },
     addressHash(email) {
       return createHmac('sha256', addressKey).update(email).digest()
+    },
+    recoveryCodeHash(token, code) {
+      return createHmac('sha256', recoveryKey)
+        .update(`${String(token.length)}:${token}${code}`)
+        .digest()
     },
   }
 }
