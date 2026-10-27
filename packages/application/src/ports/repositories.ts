@@ -71,6 +71,8 @@ export interface UsersRepository {
   /** Records a "Non sono stato io" lock; false when one is already recorded. */
   markSecurityLocked(id: string, at: Date): Promise<boolean>
   platformAdminExists(): Promise<boolean>
+  /** Platform administrators who can act: active, not anonymized. System scope only. */
+  listActivePlatformAdmins(): Promise<UserRecord[]>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
   /** The agency the panel opens next time. */
@@ -79,8 +81,9 @@ export interface UsersRepository {
 }
 
 /**
- * Credentials written outside Better Auth, system scope only: the platform voids a password
- * that may be in someone else's hands and hands out a reset link (Task 16).
+ * Credentials written outside Better Auth, system scope only (except `revokePendingTokens`):
+ * the platform voids a password that may be in someone else's hands and hands out a reset link
+ * (Task 16).
  */
 export interface CredentialsRepository {
   /** Removes the password credential; false when the account had none. Passkeys stay. */
@@ -90,6 +93,12 @@ export interface CredentialsRepository {
    * `expiresAt`. Not limited to people of one agency: only the platform issues it.
    */
   issuePasswordResetToken(userId: string, expiresAt: Date): Promise<string>
+  /**
+   * "Non sono stato io": deletes every pending link or challenge of the person that Better Auth
+   * keeps in `verifications` (password reset, second factor waiting after the password, passkey
+   * challenges). Also in the person's own scope. Returns how many were deleted.
+   */
+  revokePendingTokens(userId: string): Promise<number>
 }
 
 export interface SessionRecord {
@@ -121,6 +130,8 @@ export interface KnownDevicesRepository {
   count(userId: string): Promise<number>
   /** Records the device or refreshes `last_seen_at`; true when it was not known. */
   touch(userId: string, deviceHash: Buffer, at: Date): Promise<boolean>
+  /** Forgets every device of the person; returns how many. */
+  deleteAllForUser(userId: string): Promise<number>
 }
 
 export interface OrganizationRecord {

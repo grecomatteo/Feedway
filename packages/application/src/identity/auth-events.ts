@@ -234,14 +234,18 @@ export interface LockDeps {
   uow: UnitOfWork
   tokens: SignedTokens
   clock: Clock
+  /** Queues the notice to the administrators (`identity.account_locked_notice`). */
+  queue: Pick<JobQueue, 'send'>
 }
 
 const LINK_INVALID_MESSAGE = 'Il link non è valido o è scaduto.'
 
 /**
- * "Non sono stato io" from a security email: disables the account and closes every session.
- * Safe to repeat; re-enabling is an administrator's job (`cli enable-user`), and links issued
- * before that reactivation are refused.
+ * "Non sono stato io" from a security email: disables the account, closes every session,
+ * revokes every pending link and forgets the known devices, all in one transaction, and tells
+ * the administrators. Safe to repeat; re-enabling is a platform administrator's job after
+ * checking the person's identity (`cli enable-user --verified-by`), and links issued before that
+ * reactivation are refused.
  */
 export async function lockAccountFromSecurityEmail(
   deps: LockDeps,
@@ -265,7 +269,10 @@ export async function lockAccountFromSecurityEmail(
     // also when the platform had disabled it already: the reactivation must void the password
     const marked = await tx.users.markSecurityLocked(userId, now)
     const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
-    if (!disabled && !marked && sessionsClosed === 0) return
+    const tokensRevoked =
+      (await tx.credentials.revokePendingTokens(userId)) +
+      (await tx.knownDevices.deleteAllForUser(userId))
+    if (!disabled && !marked && sessionsClosed === 0 && tokensRevoked === 0) return
     await tx.audit.record({
       organizationId: null,
       actorId: userId,
@@ -275,7 +282,14 @@ export async function lockAccountFromSecurityEmail(
       entityId: userId,
       workspaceId: null,
       ip: input.ip,
-      data: { sessionsClosed },
+      data: { sessionsClosed, tokensRevoked },
     })
+    // Once per lock. Queued before the commit: if it fails, nothing is locked and the person can
+    // retry; the handler waits for the commit (it retries until it sees this lock).
+    if (marked)
+      await deps.queue.send('identity.account_locked_notice', {
+        lockedUserId: userId,
+        lockedAt: now.toISOString(),
+      })
   })
 }

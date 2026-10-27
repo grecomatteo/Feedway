@@ -1,4 +1,6 @@
 import type { JobQueue, Logger, QueueName } from '@app/application'
+import { identityAccountLockedNotice } from './handlers/identity-account-locked-notice.js'
+import { identityAccountRecoveryEmail } from './handlers/identity-account-recovery-email.js'
 import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { systemSelftest } from './handlers/system-selftest.js'
@@ -28,6 +30,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
     'identity.password_reset_email': identityPasswordResetEmail,
+    'identity.account_locked_notice': identityAccountLockedNotice,
+    'identity.account_recovery_email': identityAccountRecoveryEmail,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger }

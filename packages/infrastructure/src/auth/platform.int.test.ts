@@ -20,7 +20,9 @@ import {
   SYSTEM_PLATFORM_ACTOR,
   type Auth,
   type IdentityDeps,
+  type JobPayloads,
   type JobQueue,
+  type Mailer,
   type PlatformCaller,
   type PlatformDeps,
   type UnitOfWork,
@@ -29,6 +31,8 @@ import type { PlatformActor } from '@app/domain'
 import { createDb, type Db } from '../db/client.js'
 import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createKeyRing } from '../crypto/key-ring.js'
+import { createMemoryMailer } from '../mail/memory-mailer.js'
+import { notConfiguredMailer } from '../mail/not-configured-mailer.js'
 import { createPasswordHasher } from '../crypto/password-hasher.js'
 import { passwordStrength } from '../crypto/password-strength.js'
 import { createSignedTokens } from '../crypto/signed-tokens.js'
@@ -52,7 +56,7 @@ let db: Db
 let instance: BetterAuthInstance
 let auth: Auth
 let uow: UnitOfWork
-let deps: PlatformDeps
+let deps: PlatformDeps & { queue: JobQueue; mailer: Mailer }
 let identityDeps: IdentityDeps
 let platformAdmin: PlatformActor
 const tokens = createTokenService()
@@ -60,8 +64,12 @@ const lockKey = randomBytes(32)
 const signedTokens = createSignedTokens(lockKey)
 const logger = createLogger({ service: 'web', level: 'error' })
 
+const queued: { name: string; data: unknown }[] = []
 const queue: JobQueue = {
-  send: () => Promise.resolve(null),
+  send(name, data) {
+    queued.push({ name, data })
+    return Promise.resolve(null)
+  },
   work: () => Promise.reject(new Error('not used')),
   ping: () => Promise.resolve(),
   stop: () => Promise.resolve(),
@@ -101,6 +109,8 @@ beforeAll(async () => {
     tokens,
     keyRing,
     config: { panelUrl: PANEL },
+    queue,
+    mailer: createMemoryMailer(),
   }
   identityDeps = {
     uow,
@@ -544,12 +554,12 @@ describe('platform users', () => {
     // disabled by the platform, not locked by the person: the password stays
     expect(await enableUserEverywhere(deps, platformAdmin, user.id)).toEqual({
       status: 'enabled',
-      passwordResetUrl: null,
+      recovery: null,
     })
     const enabled = (await platformAudit('user.enabled')).length
     expect(await enableUserEverywhere(deps, platformAdmin, user.id)).toEqual({
       status: 'already_active',
-      passwordResetUrl: null,
+      recovery: null,
     })
     expect((await platformAudit('user.enabled')).length).toBe(enabled)
     expect((await signIn(user.email)).status).toBe(200)
@@ -568,7 +578,14 @@ describe('platform users', () => {
     })
   })
 
-  test('enable-user after a security lock voids the old password and gives a reset link', async () => {
+  const recoveryJobs = (userId: string) =>
+    queued
+      .filter((q) => q.name === 'identity.account_recovery_email')
+      .map((q) => q.data as JobPayloads['identity.account_recovery_email'])
+      .filter((d) => d.userId === userId)
+  const phone = { identityVerification: { method: 'phone_known_number' as const } }
+
+  test('enable-user after a security lock needs the identity checked, then emails a 30-minute link', async () => {
     const user = await person('bloccato')
     // two agencies: a link from the platform is not limited to people of one agency
     await seed(tdb.runtimeUrl, async (s) => {
@@ -582,7 +599,7 @@ describe('platform users', () => {
       [passkeyId, user.id, randomUUID()],
     )
     const clock = fixedClock(new Date())
-    const lockDeps = { uow, tokens: signedTokens, clock }
+    const lockDeps = { uow, tokens: signedTokens, clock, queue }
     const sign = () =>
       signedTokens.sign('security_lock', {
         userId: user.id,
@@ -596,11 +613,38 @@ describe('platform users', () => {
     await lockAccountFromSecurityEmail(lockDeps, { token: first, ip: null })
     expect((await signIn(user.email)).status).toBe(401)
 
+    // without saying how the identity was checked nothing changes; free text is refused too
     clock.advance(1000)
-    const enabled = await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id)
-    expect(enabled.status).toBe('enabled')
-    const url = enabled.passwordResetUrl ?? ''
+    const at = { ...deps, clock }
+    await expect(enableUserEverywhere(at, SYSTEM_PLATFORM_ACTOR, user.id)).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringMatching(/verificato l’identità/) as unknown,
+    })
+    await expect(
+      enableUserEverywhere(at, SYSTEM_PLATFORM_ACTOR, user.id, {
+        identityVerification: { method: 'mi ha scritto su chat' as 'in_person' },
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    const { rows: still } = await admin.query<{ status: string }>(
+      'select status from users where id = $1',
+      [user.id],
+    )
+    expect(still[0]?.status).toBe('disabled')
+    expect(recoveryJobs(user.id)).toEqual([])
+
+    const enabled = await enableUserEverywhere(at, SYSTEM_PLATFORM_ACTOR, user.id, phone)
+    // the link goes to the account's address, never to the operator
+    expect(enabled).toEqual({ status: 'enabled', recovery: { channel: 'email' } })
+    const [sent, ...others] = recoveryJobs(user.id)
+    expect(others).toEqual([])
+    const url = sent?.url ?? ''
     expect(url).toMatch(/^https:\/\/app\.feedway\.test\/api\/auth\/reset-password\/platform\./)
+    expect(sent?.expiresAt).toBe(new Date(clock.now().getTime() + 30 * 60_000).toISOString())
+    const { rows: link } = await admin.query<{ expires_at: Date }>(
+      'select expires_at from verifications where identifier = $1',
+      [`reset-password:${tokenOf(url)}`],
+    )
+    expect(link[0]?.expires_at.getTime()).toBe(clock.now().getTime() + 30 * 60_000)
     // the old password is gone, with the same answer as a wrong one; the passkey stays
     const refused = await signIn(user.email)
     expect(refused.status).toBe(401)
@@ -609,10 +653,26 @@ describe('platform users', () => {
     )
     const passkeys = await admin.query('select 1 from passkeys where id = $1', [passkeyId])
     expect(passkeys.rowCount).toBe(1)
-    expect((await platformAudit('user.enabled'))[0]).toMatchObject({
-      entity_id: user.id,
-      data: { passwordCleared: true, resetLinkIssued: true },
-    })
+    // how the identity was checked, then the reactivation, then where the link went
+    const { rows: entries } = await admin.query<{ action: string; data: unknown }>(
+      `select action, data from audit_log where entity_id = $1 and action in
+        ('user.identity_verified', 'user.enabled', 'auth.recovery_link_sent')
+        order by created_at, id`,
+      [user.id],
+    )
+    expect(entries).toEqual([
+      { action: 'user.identity_verified', data: { method: 'phone_known_number' } },
+      {
+        action: 'user.enabled',
+        data: {
+          scope: 'platform',
+          sessionsClosed: 0,
+          passwordCleared: true,
+          resetLinkIssued: true,
+        },
+      },
+      { action: 'auth.recovery_link_sent', data: { channel: 'email' } },
+    ])
 
     // links issued before the reactivation cannot lock the account again
     for (const token of [first, second])
@@ -620,19 +680,20 @@ describe('platform users', () => {
         lockAccountFromSecurityEmail(lockDeps, { token, ip: null }),
       ).rejects.toMatchObject({ code: 'LINK_INVALID' })
 
-    // the link opens the reset page and sets a new password
+    // the link opens the reset page and sets a new password, once
     const opened = await instance.handler(
       new Request(url, { headers: { 'x-app-client-ip': randomIp() } }),
     )
     expect(opened.status).toBe(302)
     const page = new URL(opened.headers.get('location') ?? '')
     expect(page.pathname).toBe('/reimposta')
-    const reset = await post('/reset-password', {
-      token: page.searchParams.get('token') ?? '',
-      newPassword: NEW_PASSWORD,
-    })
+    const resetToken = page.searchParams.get('token') ?? ''
+    const reset = await post('/reset-password', { token: resetToken, newPassword: NEW_PASSWORD })
     expect(reset.status).toBe(200)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
+    expect((await signIn(user.email)).status).toBe(401)
+    const again = await post('/reset-password', { token: resetToken, newPassword: PASSWORD })
+    expect(again.status).toBe(400)
     expect((await signIn(user.email)).status).toBe(401)
 
     // a link from a later email still works
@@ -641,12 +702,12 @@ describe('platform users', () => {
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
   })
 
-  test('a lock on an account the platform had already disabled still voids the password', async () => {
-    const user = await person('doppio')
-    await disableUserEverywhere(deps, platformAdmin, user.id)
-    const clock = fixedClock(new Date())
+  test('the recovery link stops working after 30 minutes, whatever the email says', async () => {
+    const user = await person('scaduto')
+    // the reactivation happened 31 minutes ago
+    const clock = fixedClock(new Date(Date.now() - 31 * 60_000))
     await lockAccountFromSecurityEmail(
-      { uow, tokens: signedTokens, clock },
+      { uow, tokens: signedTokens, clock, queue },
       {
         token: signedTokens.sign('security_lock', {
           userId: user.id,
@@ -657,8 +718,76 @@ describe('platform users', () => {
       },
     )
     clock.advance(1000)
-    const enabled = await enableUserEverywhere({ ...deps, clock }, platformAdmin, user.id)
-    expect(enabled.passwordResetUrl).not.toBeNull()
+    await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id, phone)
+    const url = recoveryJobs(user.id)[0]?.url ?? ''
+    const opened = await instance.handler(
+      new Request(url, { headers: { 'x-app-client-ip': randomIp() } }),
+    )
+    expect(new URL(opened.headers.get('location') ?? '', PANEL).searchParams.get('error')).toBe(
+      'INVALID_TOKEN',
+    )
+    const reset = await post('/reset-password', { token: tokenOf(url), newPassword: NEW_PASSWORD })
+    expect(reset.status).toBe(400)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
+  test('without email the operator gets the link, and the log says so', async () => {
+    const user = await person('senza-posta')
+    const clock = fixedClock(new Date())
+    await lockAccountFromSecurityEmail(
+      { uow, tokens: signedTokens, clock, queue },
+      {
+        token: signedTokens.sign('security_lock', {
+          userId: user.id,
+          issuedAt: clock.now(),
+          expiresAt: new Date(clock.now().getTime() + 86_400_000),
+        }),
+        ip: null,
+      },
+    )
+    clock.advance(1000)
+    const enabled = await enableUserEverywhere(
+      { ...deps, clock, mailer: notConfiguredMailer },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      { identityVerification: { method: 'video_call' } },
+    )
+    expect(enabled.recovery).toEqual({
+      channel: 'operator',
+      url: expect.stringMatching(/\/api\/auth\/reset-password\/platform\./) as unknown,
+    })
+    expect(recoveryJobs(user.id)).toEqual([])
+    const entry = (await platformAudit('auth.recovery_link_sent')).find(
+      (e) => e.entity_id === user.id,
+    )
+    expect(entry?.data).toEqual({ channel: 'operator' })
+    expect(
+      (await platformAudit('user.identity_verified')).find((e) => e.entity_id === user.id)?.data,
+    ).toEqual({
+      method: 'video_call',
+    })
+  })
+
+  test('a lock on an account the platform had already disabled still voids the password', async () => {
+    const user = await person('doppio')
+    await disableUserEverywhere(deps, platformAdmin, user.id)
+    const clock = fixedClock(new Date())
+    await lockAccountFromSecurityEmail(
+      { uow, tokens: signedTokens, clock, queue },
+      {
+        token: signedTokens.sign('security_lock', {
+          userId: user.id,
+          issuedAt: clock.now(),
+          expiresAt: new Date(clock.now().getTime() + 86_400_000),
+        }),
+        ip: null,
+      },
+    )
+    clock.advance(1000)
+    const enabled = await enableUserEverywhere({ ...deps, clock }, platformAdmin, user.id, {
+      identityVerification: { method: 'in_person' },
+    })
+    expect(enabled.recovery).toEqual({ channel: 'email' })
     expect((await signIn(user.email)).status).toBe(401)
   })
 
@@ -725,7 +854,7 @@ describe('platform users', () => {
     await enableUserEverywhere(deps, SYSTEM_PLATFORM_ACTOR, user.id)
     await expect(
       lockAccountFromSecurityEmail(
-        { uow, tokens: signedTokens, clock: systemClock },
+        { uow, tokens: signedTokens, clock: systemClock, queue },
         { token: undated, ip: null },
       ),
     ).rejects.toMatchObject({ code: 'LINK_INVALID' })

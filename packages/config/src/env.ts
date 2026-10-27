@@ -29,6 +29,8 @@ export const KNOWN_QUEUES = [
   'system.selftest',
   'identity.security_email',
   'identity.password_reset_email',
+  'identity.account_locked_notice',
+  'identity.account_recovery_email',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

@@ -160,6 +160,21 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .limit(1)
       return row !== undefined
     },
+    async listActivePlatformAdmins() {
+      if (ctx.kind !== 'system')
+        throw new Error('platform administrators are listed only in the system scope')
+      const rows = await db
+        .select(userColumns)
+        .from(users)
+        .where(
+          and(
+            eq(users.platformRole, 'admin'),
+            eq(users.status, 'active'),
+            isNull(users.anonymizedAt),
+          ),
+        )
+      return rows.map(toUser)
+    },
     async setPlatformAdmin(id) {
       if (ctx.kind !== 'system') throw new Error('platform roles change only in the system scope')
       await db.update(users).set({ platformRole: 'admin' }).where(eq(users.id, id))
@@ -259,6 +274,13 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
         .returning({ inserted: sql<boolean>`(xmax = 0)` })
       return row?.inserted === true
     },
+    async deleteAllForUser(userId) {
+      const deleted = await db
+        .delete(knownDevices)
+        .where(eq(knownDevices.userId, ownUser(ctx, userId)))
+        .returning({ userId: knownDevices.userId })
+      return deleted.length
+    },
   }
 }
 
@@ -298,6 +320,15 @@ export function drizzleCredentials(
         expiresAt,
       })
       return token
+    },
+    async revokePendingTokens(userId) {
+      // Better Auth names the person in `value`: the id alone (reset links, the second factor
+      // after the password) or inside JSON (passkey challenges). A uuid never appears by chance.
+      const deleted = await db
+        .delete(verifications)
+        .where(sql`strpos(${verifications.value}, ${ownUser(ctx, userId)}) > 0`)
+        .returning({ id: verifications.id })
+      return deleted.length
     },
   }
 }

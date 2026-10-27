@@ -13,7 +13,7 @@ import {
 } from '@app/application'
 import { createDb, type Db } from '../db/client.js'
 import { auditLog } from '../db/audit/schema.js'
-import { knownDevices, sessions, users } from '../db/identity/schema.js'
+import { knownDevices, sessions, users, verifications } from '../db/identity/schema.js'
 import { createPasswordHasher } from '../crypto/password-hasher.js'
 import { createSignedTokens } from '../crypto/signed-tokens.js'
 import { createPgRateLimiter } from '../db/rate-limiter.js'
@@ -335,9 +335,101 @@ test('a failure inside the sink is logged with the request id and changes nothin
   )
 })
 
+/** Pending links and challenges as Better Auth writes them: the value names the person. */
+async function pendingTokens(userId: string) {
+  const rows = [
+    { identifier: `reset-password:prova-${uuidV7Generator.newId()}`, value: userId },
+    // the second factor waiting after the password
+    { identifier: `prova-2fa-${uuidV7Generator.newId()}`, value: userId },
+    // a passkey registration challenge
+    {
+      identifier: `prova-passkey-${uuidV7Generator.newId()}`,
+      value: JSON.stringify({ expectedChallenge: 'sfida', userData: { id: userId } }),
+    },
+  ]
+  for (const row of rows)
+    await admin.insert(verifications).values({
+      id: uuidV7Generator.newId(),
+      ...row,
+      expiresAt: new Date(Date.now() + 3600_000),
+    })
+  return rows.length
+}
+
+const lockNotices = () => queued.filter((q) => q.name === 'identity.account_locked_notice')
+
 test('the lock link disables the account, closes every session and can be repeated', async () => {
   const { id, email } = await newUser()
   await signIn(email, PASSWORD)
+  await signIn(email, PASSWORD)
+  const pending = await pendingTokens(id)
+  const someoneElse = await newUser()
+  await pendingTokens(someoneElse.id)
+  const clock = fixedClock(new Date())
+  const token = tokens.sign('security_lock', {
+    userId: id,
+    issuedAt: clock.now(),
+    expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
+  })
+  queued.length = 0
+  await lockAccountFromSecurityEmail({ uow, tokens, clock, queue }, { token, ip: '93.41.12.200' })
+  const [user] = await admin.select().from(users).where(eq(users.id, id))
+  expect(user?.status).toBe('disabled')
+  expect(user?.disabledAt).not.toBeNull()
+  expect(await admin.select().from(sessions).where(eq(sessions.userId, id))).toEqual([])
+  // every pending link or challenge of the person, and the devices they were known on
+  const left = await admin.select().from(verifications)
+  expect(left.filter((v) => v.value.includes(id))).toEqual([])
+  expect(left.filter((v) => v.value.includes(someoneElse.id))).toHaveLength(pending)
+  expect(await admin.select().from(knownDevices).where(eq(knownDevices.userId, id))).toEqual([])
+  // one notice for the administrators, with ids only
+  expect(lockNotices()).toEqual([
+    {
+      name: 'identity.account_locked_notice',
+      data: { lockedUserId: id, lockedAt: clock.now().toISOString() },
+    },
+  ])
+
+  clock.advance(1000)
+  await expect(
+    lockAccountFromSecurityEmail({ uow, tokens, clock, queue }, { token, ip: null }),
+  ).resolves.toBeUndefined()
+  expect(lockNotices()).toHaveLength(1)
+  expect((await auditOf(id)).filter((r) => r.action === 'auth.security_lock')).toEqual([
+    expect.objectContaining({
+      ip: '93.41.12.200',
+      data: { sessionsClosed: 2, tokensRevoked: pending + 2 },
+    }),
+  ])
+  // a disabled account cannot sign in again
+  expect((await signIn(email, PASSWORD)).res.status).toBe(401)
+})
+
+test('a lock is repeatable: a later pending link is revoked too, without a second notice', async () => {
+  const { id } = await newUser()
+  const clock = fixedClock(new Date())
+  const token = tokens.sign('security_lock', {
+    userId: id,
+    issuedAt: clock.now(),
+    expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
+  })
+  const lockDeps = { uow, tokens, clock, queue }
+  await lockAccountFromSecurityEmail(lockDeps, { token, ip: null })
+  const pending = await pendingTokens(id)
+  await lockAccountFromSecurityEmail(lockDeps, { token, ip: null })
+  const left = await admin.select().from(verifications)
+  expect(left.filter((v) => v.value.includes(id))).toEqual([])
+  expect(lockNotices()).toHaveLength(1)
+  expect(
+    (await auditOf(id)).filter((r) => r.action === 'auth.security_lock').map((r) => r.data),
+  ).toEqual([
+    { sessionsClosed: 0, tokensRevoked: 0 },
+    { sessionsClosed: 0, tokensRevoked: pending },
+  ])
+})
+
+test('a lock whose notice cannot be queued changes nothing', async () => {
+  const { id, email } = await newUser()
   await signIn(email, PASSWORD)
   const clock = fixedClock(new Date())
   const token = tokens.sign('security_lock', {
@@ -345,19 +437,13 @@ test('the lock link disables the account, closes every session and can be repeat
     issuedAt: clock.now(),
     expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
   })
-  await lockAccountFromSecurityEmail({ uow, tokens, clock }, { token, ip: '93.41.12.200' })
-  const [user] = await admin.select().from(users).where(eq(users.id, id))
-  expect(user?.status).toBe('disabled')
-  expect(user?.disabledAt).not.toBeNull()
-  expect(await admin.select().from(sessions).where(eq(sessions.userId, id))).toEqual([])
+  const down: JobQueue = { ...queue, send: () => Promise.reject(new Error('coda giù')) }
   await expect(
-    lockAccountFromSecurityEmail({ uow, tokens, clock }, { token, ip: null }),
-  ).resolves.toBeUndefined()
-  expect((await auditOf(id)).filter((r) => r.action === 'auth.security_lock')).toEqual([
-    expect.objectContaining({ ip: '93.41.12.200', data: { sessionsClosed: 2 } }),
-  ])
-  // a disabled account cannot sign in again
-  expect((await signIn(email, PASSWORD)).res.status).toBe(401)
+    lockAccountFromSecurityEmail({ uow, tokens, clock, queue: down }, { token, ip: null }),
+  ).rejects.toThrow('coda giù')
+  const [user] = await admin.select().from(users).where(eq(users.id, id))
+  expect(user).toMatchObject({ status: 'active', securityLockedAt: null })
+  expect(await admin.select().from(sessions).where(eq(sessions.userId, id))).toHaveLength(1)
 })
 
 test('an expired or forged lock link is invalid', async () => {
@@ -370,10 +456,13 @@ test('an expired or forged lock link is invalid', async () => {
   })
   clock.advance(8 * 86_400_000)
   await expect(
-    lockAccountFromSecurityEmail({ uow, tokens, clock }, { token, ip: null }),
+    lockAccountFromSecurityEmail({ uow, tokens, clock, queue }, { token, ip: null }),
   ).rejects.toMatchObject({ code: 'LINK_INVALID' })
   await expect(
-    lockAccountFromSecurityEmail({ uow, tokens, clock }, { token: 'non-un-token', ip: null }),
+    lockAccountFromSecurityEmail(
+      { uow, tokens, clock, queue },
+      { token: 'non-un-token', ip: null },
+    ),
   ).rejects.toMatchObject({ code: 'LINK_INVALID' })
   const [user] = await admin.select().from(users).where(eq(users.id, id))
   expect(user?.status).toBe('active')

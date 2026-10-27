@@ -125,7 +125,12 @@ test('security email goes to the user with a working lock link', async () => {
   expect(mail?.html).toContain('bgcolor="#B3261E"')
 
   const token = tokenFrom(mail?.text ?? '')
-  const deps = { uow: runtime.uow, tokens: runtime.signedTokens, clock: runtime.clock }
+  const deps = {
+    uow: runtime.uow,
+    tokens: runtime.signedTokens,
+    clock: runtime.clock,
+    queue: runtime.queue,
+  }
   await lockAccountFromSecurityEmail(deps, { token, ip: '93.41.12.200' })
   const { rows } = await admin.query<{ status: string; sessions: string }>(
     'select status, (select count(*) from sessions where user_id = $1) as sessions from users where id = $1',
@@ -143,7 +148,7 @@ test('the lock link expires after seven days', async () => {
   const clock = fixedClock(new Date(Date.now() + 8 * 86_400_000))
   await expect(
     lockAccountFromSecurityEmail(
-      { uow: runtime.uow, tokens: runtime.signedTokens, clock },
+      { uow: runtime.uow, tokens: runtime.signedTokens, clock, queue: runtime.queue },
       { token, ip: null },
     ),
   ).rejects.toMatchObject({ code: 'LINK_INVALID' })
@@ -201,7 +206,7 @@ test('the lock text says only what the lock does today', async () => {
   const mailer = createMemoryMailer()
   await identitySecurityEmail(job(userId), depsWith(mailer))
   expect(mailer.sent.at(-1)?.text).toContain(
-    "Non sei stato tu? Blocca subito l'account: chiudiamo tutte le sessioni aperte e nessuno potrà entrare finché un amministratore non avrà verificato la tua identità e riattivato l'account.",
+    "Non sei stato tu? Blocca subito l'account: chiudiamo tutte le sessioni e annulliamo i link in sospeso. Avvisiamo gli amministratori: uno di loro verificherà la tua identità e ti manderà un link per scegliere una nuova password.",
   )
 })
 

@@ -104,7 +104,7 @@
       "notMe": {
         "lead": "Non sei stato tu?"
       },
-      "lockExplain": "Blocca subito l'account: chiudiamo tutte le sessioni aperte e nessuno potrà entrare finché un amministratore non avrà verificato la tua identità e riattivato l'account.",
+      "lockExplain": "Blocca subito l'account: chiudiamo tutte le sessioni e annulliamo i link in sospeso. Avvisiamo gli amministratori: uno di loro verificherà la tua identità e ti manderà un link per scegliere una nuova password.",
       "lockButton": "Non sono stato io, blocca l'account",
       "lockLinkValidity": "Il link funziona per 7 giorni.",
       "cannotDisable": "Gli avvisi di sicurezza non si possono disattivare.",
@@ -205,6 +205,43 @@
         "intro": "Hai già un account {product} con questo indirizzo. Accedi come sempre e accetta l'invito: {organization} comparirà tra le tue agenzie.",
         "button": "Accedi per accettare"
       }
+    },
+    "lockNotice": {
+      "subject": "Account bloccato: {name} · {product}",
+      "preheader": "Sessioni chiuse e link annullati. Si riattiva solo dopo aver verificato l'identità.",
+      "title": "{name} ha bloccato il suo account",
+      "intro": "{name} ha usato il pulsante «Non sono stato io» di un avviso di sicurezza: qualcuno potrebbe essere entrato nel suo account {product} o aver cambiato le sue credenziali.",
+      "labels": {
+        "person": "Persona",
+        "email": "Email",
+        "organizations": "Agenzie"
+      },
+      "doneTitle": "Cosa abbiamo già fatto",
+      "doneText": "Abbiamo chiuso tutte le sessioni e annullato i link in sospeso. Finché l'account resta bloccato nessuno può entrare.",
+      "admin": {
+        "lead": "Come si riattiva",
+        "text": "Prima verifica l'identità della persona su un canale indipendente da questa email e dall'account: una telefonata a un numero che conosci già, di persona o in videochiamata. Solo dopo riattivala con cli enable-user e l'opzione --verified-by: le arriverà all'indirizzo dell'account un link per scegliere una nuova password, valido 30 minuti.",
+        "footer": "Ricevi questa email perché sei amministratore della piattaforma {product}."
+      },
+      "owner": {
+        "lead": "Cosa succede ora",
+        "text": "La riattivazione la fa un amministratore della piattaforma, solo dopo aver verificato l'identità della persona su un canale indipendente: una telefonata a un numero che conosci già, di persona o in videochiamata. Non devi fare nulla nel pannello.",
+        "footer": "Ricevi questa email perché sei Owner di un'agenzia in cui lavora {name} su {product}."
+      },
+      "caution": "Diffida delle richieste di sblocco che arrivano per email o in chat: potrebbero venire da chi ha preso l'account."
+    },
+    "accountRecovery": {
+      "subject": "Scegli una nuova password per rientrare in {product}",
+      "preheader": "Il link vale {minutes} minuti e funziona una sola volta.",
+      "title": "Scegli una nuova password per rientrare",
+      "intro": "Un amministratore ha verificato la tua identità e ha riattivato il tuo account {product}. La vecchia password non vale più: scegline una nuova con questo link.",
+      "button": "Scegli una nuova password",
+      "expiryTitle": "Il link scade tra {minutes} minuti",
+      "expiryToday": "Funziona una sola volta, fino alle {time} di oggi. Se scade, chiedi all'amministratore un nuovo link.",
+      "expiryTomorrow": "Funziona una sola volta, fino alle {time} di domani. Se scade, chiedi all'amministratore un nuovo link.",
+      "secondFactor": "Se avevi attivato la verifica in due passaggi, all'accesso ti chiederemo anche il codice o la passkey, come sempre.",
+      "notMe": "Se non hai chiesto tu di riattivare l'account, non aprire il link e avvisa l'amministratore.",
+      "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}."
     }
   }
 }

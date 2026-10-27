@@ -3,6 +3,8 @@ export type { IdGenerator } from './ports/id-generator.js'
 export type { Logger, LogLevel } from './ports/logger.js'
 export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
+  AccountLockedNoticeData,
+  AccountRecoveryEmailData,
   JobPayloads,
   JobQueue,
   PasswordResetEmailData,

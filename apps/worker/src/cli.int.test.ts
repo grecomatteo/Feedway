@@ -345,10 +345,12 @@ test('cli set-limits needs an option, and --unlimited clears every limit', async
   expect((await organization('agenzia-libera'))?.limits).toEqual({})
 })
 
-test('cli enable-user after "Non sono stato io" prints a reset link and nothing else secret', async () => {
+async function lockedUser(name: string) {
+  const email = `${name.toLowerCase()}@esempio.it`
   const { rows } = await admin.query<{ id: string }>(
     `insert into users (id, name, email, status, disabled_at, security_locked_at)
-     values (gen_random_uuid(), 'Teo', 'teo@esempio.it', 'disabled', now(), now()) returning id`,
+     values (gen_random_uuid(), $1, $2, 'disabled', now(), now()) returning id`,
+    [name, email],
   )
   const id = rows[0]?.id ?? ''
   await admin.query(
@@ -356,7 +358,57 @@ test('cli enable-user after "Non sono stato io" prints a reset link and nothing 
      values (gen_random_uuid(), $1::text, 'credential', $1::uuid, 'hash-finto', now())`,
     [id],
   )
-  const out = await runCliCaptured(['enable-user', 'teo@esempio.it'])
+  return { id, email }
+}
+
+test('cli enable-user after "Non sono stato io" needs --verified-by, without free text', async () => {
+  const { id, email } = await lockedUser('Ada')
+  const missing = await runCliCaptured(['enable-user', email])
+  expect(missing.exitCode).toBe(1)
+  expect(missing.stderr).toMatch(/verificato l’identità/)
+  expect(missing.stderr).toMatch(/--verified-by telefono\|di-persona\|videochiamata/)
+  expect(missing.stdout).toBe('')
+  const free = await runCliCaptured(['enable-user', email, '--verified-by', 'mi ha scritto'])
+  expect(free.exitCode).toBe(64)
+  const { rows } = await admin.query<{ status: string }>('select status from users where id = $1', [
+    id,
+  ])
+  expect(rows[0]?.status).toBe('disabled')
+})
+
+test('cli enable-user after "Non sono stato io" sends the link to the account, not to stdout', async () => {
+  const { id, email } = await lockedUser('Teo')
+  const c = capture()
+  const exitCode = await runCli(
+    ['enable-user', email, '--verified-by', 'telefono'],
+    { ...env, NODE_ENV: 'test' },
+    c.io,
+  )
+  expect(exitCode).toBe(0)
+  expect(c.out).toEqual([
+    'Account riattivato: i link "Non sono stato io" precedenti non valgono più',
+    "Link per la nuova password inviato all'indirizzo dell'account, valido 30 minuti",
+  ])
+  expect([...c.out, ...c.err].join('\n')).not.toMatch(/platform\.|reset-password|hash-finto/)
+  const accounts = await admin.query(
+    "select 1 from accounts where user_id = $1 and provider_id = 'credential'",
+    [id],
+  )
+  expect(accounts.rowCount).toBe(0)
+  const jobs = await admin.query<{ data: { userId: string; url: string } }>(
+    "select data from pgboss.job where name = 'identity.account_recovery_email'",
+  )
+  expect(jobs.rows.filter((j) => j.data.userId === id)).toHaveLength(1)
+  const { rows: verified } = await admin.query<{ data: unknown }>(
+    "select data from audit_log where action = 'user.identity_verified' and entity_id = $1",
+    [id],
+  )
+  expect(verified.map((r) => r.data)).toEqual([{ method: 'phone_known_number' }])
+})
+
+test('cli enable-user without email prints the 30-minute link with a warning', async () => {
+  const { id, email } = await lockedUser('Rita')
+  const out = await runCliCaptured(['enable-user', email, '--verified-by', 'videochiamata'])
   expect(out.exitCode).toBe(0)
   const [status, link, ...rest] = out.stdout.split('\n')
   expect(status).toMatch(/riattivato/)
@@ -365,14 +417,11 @@ test('cli enable-user after "Non sono stato io" prints a reset link and nothing 
   )
   expect(rest).toEqual([])
   expect(out.stderr).toMatch(/vecchia password non vale più/)
-  expect(out.stderr).toMatch(/un’ora/)
+  expect(out.stderr).toMatch(
+    /consegnalo solo sul canale con cui hai verificato l'identità, vale 30 minuti/,
+  )
   // the token appears only in the link, never on stderr
   expect(out.stderr).not.toMatch(/platform\.|hash-finto/)
-  const accounts = await admin.query(
-    "select 1 from accounts where user_id = $1 and provider_id = 'credential'",
-    [id],
-  )
-  expect(accounts.rowCount).toBe(0)
   const token = new URL(link ?? '').pathname.split('/').at(-1) ?? ''
   const verification = await admin.query<{ value: string; expires_at: Date }>(
     'select value, expires_at from verifications where identifier = $1',
@@ -380,6 +429,11 @@ test('cli enable-user after "Non sono stato io" prints a reset link and nothing 
   )
   expect(verification.rows[0]?.value).toBe(id)
   const ttl = (verification.rows[0]?.expires_at.getTime() ?? 0) - Date.now()
-  expect(ttl).toBeGreaterThan(3500_000)
-  expect(ttl).toBeLessThanOrEqual(3600_000)
+  expect(ttl).toBeGreaterThan(29 * 60_000)
+  expect(ttl).toBeLessThanOrEqual(30 * 60_000)
+  const { rows: sent } = await admin.query<{ data: unknown }>(
+    "select data from audit_log where action = 'auth.recovery_link_sent' and entity_id = $1",
+    [id],
+  )
+  expect(sent.map((r) => r.data)).toEqual([{ channel: 'operator' }])
 })

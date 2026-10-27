@@ -12,6 +12,9 @@ import {
   setOrganizationLimits,
   suspendOrganization,
   SYSTEM_PLATFORM_ACTOR,
+  type EnableDeps,
+  type Logger,
+  type IdentityVerificationMethod,
   type PlatformDeps,
   type PlatformOrganization,
 } from '@app/application'
@@ -21,6 +24,8 @@ import {
   createDb,
   createKeyRing,
   createLogger,
+  createMailer,
+  createPgBossQueue,
   createTokenService,
   createUnitOfWork,
   systemClock,
@@ -42,7 +47,7 @@ const USAGE = [
   '  set-limits <slug> --unlimited',
   '  list-organizations',
   '  disable-user <email>',
-  '  enable-user <email>',
+  '  enable-user <email> [--verified-by telefono|di-persona|videochiamata]',
 ].join('\n')
 
 export interface CliIo {
@@ -73,7 +78,16 @@ type Command =
   | { name: 'suspend-organization' | 'reactivate-organization'; slug: string }
   | { name: 'set-limits'; slug: string; limits: OrganizationLimits }
   | { name: 'list-organizations' }
-  | { name: 'disable-user' | 'enable-user'; email: string }
+  | { name: 'disable-user'; email: string }
+  | { name: 'enable-user'; email: string; verifiedBy: IdentityVerificationMethod | null }
+
+/** `--verified-by`: how the identity was checked, from a fixed list (never free text). */
+const VERIFIED_BY: ReadonlyMap<string, IdentityVerificationMethod> = new Map([
+  ['telefono', 'phone_known_number'],
+  ['di-persona', 'in_person'],
+  ['videochiamata', 'video_call'],
+])
+const VERIFIED_BY_USAGE = '--verified-by telefono|di-persona|videochiamata'
 
 function wholeNumber(option: string, raw: string): number {
   if (!/^\d+$/.test(raw)) throw new UsageError(`--${option} vuole un numero intero da 0 in su`)
@@ -147,8 +161,14 @@ function parseCommand(args: readonly string[]): Command {
       return { name, slug: slugOf(positionals[0] ?? ''), limits }
     }
     case 'disable-user':
-    case 'enable-user':
       return { name, email: one() }
+    case 'enable-user': {
+      const { values, positionals } = parse({ 'verified-by': { type: 'string' } }, 1)
+      const raw = values['verified-by']
+      const verifiedBy = typeof raw === 'string' ? VERIFIED_BY.get(raw) : null
+      if (verifiedBy === undefined) throw new UsageError(`Valori ammessi: ${VERIFIED_BY_USAGE}`)
+      return { name, email: positionals[0] ?? '', verifiedBy }
+    }
     default:
       throw new UsageError(`Comando sconosciuto: '${name ?? ''}'.`)
   }
@@ -192,11 +212,65 @@ function describeOrganization(o: PlatformOrganization): string {
   ].join('\t')
 }
 
+const RECOVERY_SENT =
+  "Link per la nuova password inviato all'indirizzo dell'account, valido 30 minuti"
+
+/** Only `enable-user` sends jobs: the queue connects for it alone. */
+async function enableUser(
+  command: Extract<Command, { name: 'enable-user' }>,
+  config: WorkerConfig,
+  deps: PlatformDeps,
+  io: CliIo,
+  logger: Logger,
+): Promise<void> {
+  const system = SYSTEM_PLATFORM_ACTOR
+  const userId = await platformUserIdByEmail(deps, system, command.email)
+  const queue = await createPgBossQueue({ url: config.databaseUrl, logger, role: 'producer' })
+  try {
+    const enableDeps: EnableDeps = {
+      ...deps,
+      queue,
+      mailer: createMailer(config.nodeEnv, deps.ids),
+    }
+    let result
+    try {
+      result = await enableUserEverywhere(
+        enableDeps,
+        system,
+        userId,
+        command.verifiedBy === null ? {} : { identityVerification: { method: command.verifiedBy } },
+      )
+    } catch (error) {
+      if (
+        error instanceof DomainError &&
+        error.code === 'VALIDATION' &&
+        command.verifiedBy === null
+      )
+        io.err(`Rilancia il comando con ${VERIFIED_BY_USAGE}.`)
+      throw error
+    }
+    io.out(ENABLE_MESSAGE.get(result.status) ?? result.status)
+    if (result.recovery?.channel === 'email') io.out(RECOVERY_SENT)
+    if (result.recovery?.channel === 'operator') {
+      // email is not configured: whoever runs the CLI controls the server anyway
+      io.out(result.recovery.url)
+      io.err(
+        'L’account era stato bloccato con "Non sono stato io": la vecchia password non vale ' +
+          'più. L’email non è configurata, quindi il link per sceglierne una nuova è qui sopra: ' +
+          "consegnalo solo sul canale con cui hai verificato l'identità, vale 30 minuti.",
+      )
+    }
+  } finally {
+    await queue.stop({ graceful: true, timeoutMs: 5000 })
+  }
+}
+
 async function execute(
   command: Command,
   config: WorkerConfig,
   deps: PlatformDeps,
   io: CliIo,
+  logger: Logger,
 ): Promise<void> {
   const system = SYSTEM_PLATFORM_ACTOR
   switch (command.name) {
@@ -244,26 +318,14 @@ async function execute(
     case 'list-organizations':
       for (const o of await listOrganizations(deps, system)) io.out(describeOrganization(o))
       return
-    case 'disable-user':
-    case 'enable-user': {
+    case 'disable-user': {
       const userId = await platformUserIdByEmail(deps, system, command.email)
-      const disable = command.name === 'disable-user'
-      if (disable) {
-        const result = await disableUserEverywhere(deps, system, userId)
-        io.out(DISABLE_MESSAGE.get(result) ?? result)
-        return
-      }
-      const { status, passwordResetUrl } = await enableUserEverywhere(deps, system, userId)
-      io.out(ENABLE_MESSAGE.get(status) ?? status)
-      if (passwordResetUrl !== null) {
-        io.out(passwordResetUrl)
-        io.err(
-          'L’account era stato bloccato con "Non sono stato io": la vecchia password non vale ' +
-            'più. Manda alla persona questo link per sceglierne una nuova: vale un’ora.',
-        )
-      }
+      const result = await disableUserEverywhere(deps, system, userId)
+      io.out(DISABLE_MESSAGE.get(result) ?? result)
       return
     }
+    case 'enable-user':
+      return enableUser(command, config, deps, io, logger)
   }
 }
 
@@ -309,6 +371,7 @@ export async function runCli(
         config: { panelUrl: config.panelUrl.toString() },
       },
       io,
+      logger,
     )
     return 0
   } catch (error) {

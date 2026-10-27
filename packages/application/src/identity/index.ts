@@ -46,3 +46,5 @@ export {
 export type { MemberDto } from './members.js'
 export { createPasswordResetLink, sendPasswordResetEmail } from './password-reset.js'
 export type { PasswordResetEmailDeps } from './password-reset.js'
+export { sendAccountRecoveryEmail } from './account-recovery-email.js'
+export type { AccountRecoveryEmailDeps } from './account-recovery-email.js'

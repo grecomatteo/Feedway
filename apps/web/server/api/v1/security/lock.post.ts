@@ -7,7 +7,7 @@ export default defineApiRoute(
   async ({ body, ip }) => {
     const deps = useDeps()
     await lockAccountFromSecurityEmail(
-      { uow: deps.uow, tokens: deps.signedTokens, clock: deps.clock },
+      { uow: deps.uow, tokens: deps.signedTokens, clock: deps.clock, queue: deps.queue },
       { token: body.token, ip },
     )
     return { locked: true as const }

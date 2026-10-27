@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
 import { randomBytes, randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import {
   AUDIT_ACTIONS,
   SYSTEM_PLATFORM_ACTOR,
@@ -10,15 +11,18 @@ import {
   enableUserEverywhere,
   lockAccountFromSecurityEmail,
   reactivateOrganization,
+  sendAccountLockedNotice,
   setOrganizationLimits,
   suspendOrganization,
 } from '@app/application'
-import type { AuditAction } from '@app/application'
+import type { AuditAction, JobPayloads, JobQueue } from '@app/application'
 import {
   createDb,
   createKeyRing,
   createLogger,
+  createMemoryMailer,
   createSignedTokens,
+  createTranslate,
   createTokenService,
   createUnitOfWork,
   systemClock,
@@ -265,13 +269,16 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.passkey_removed': [],
   'auth.reauthenticated': ['method'],
   'auth.new_device': ['device'],
-  'auth.security_lock': ['sessionsClosed'],
+  'auth.security_lock': ['sessionsClosed', 'tokensRevoked'],
+  'auth.security_lock_notified': ['recipients'],
+  'auth.recovery_link_sent': ['channel'],
   'session.revoked': ['count'],
   'user.invited': ['orgRole', 'memberships[].workspaceId', 'memberships[].role'],
   'user.invite_resent': [],
   'user.invite_revoked': ['reason'],
   'user.activated': ['purpose', 'role'],
   'user.disabled': ['scope', 'sessionsClosed'],
+  'user.identity_verified': ['method'],
   'user.enabled': ['scope', 'sessionsClosed', 'passwordCleared', 'resetLinkIssued'],
   'user.role_changed': ['from', 'to'],
   'user.password_reset_link': [],
@@ -444,6 +451,17 @@ async function produceEveryAction() {
       ids: uuidV7Generator,
       logger: createLogger({ service: 'web', level: 'error' }),
     })
+    const queued: { name: string; data: unknown }[] = []
+    const queue: JobQueue = {
+      send(name, data) {
+        queued.push({ name, data })
+        return Promise.resolve(null)
+      },
+      work: () => Promise.reject(new Error('not used')),
+      ping: () => Promise.resolve(),
+      stop: () => Promise.resolve(),
+    }
+    const mailer = createMemoryMailer()
     const platform = {
       uow,
       clock: systemClock,
@@ -451,6 +469,8 @@ async function produceEveryAction() {
       tokens: createTokenService(),
       keyRing: createKeyRing({ platformKey: randomBytes(32), clock: systemClock }),
       config: { panelUrl: 'https://pannello.example.ts.net' },
+      queue,
+      mailer,
     }
     const actor = SYSTEM_PLATFORM_ACTOR
     const newOrg = await createOrganization(platform, actor, {
@@ -470,7 +490,7 @@ async function produceEveryAction() {
     await env.signIn(locked)
     const signed = createSignedTokens(randomBytes(32))
     await lockAccountFromSecurityEmail(
-      { uow, tokens: signed, clock: systemClock },
+      { uow, tokens: signed, clock: systemClock, queue },
       {
         token: signed.sign('security_lock', {
           userId: locked.userId,
@@ -480,8 +500,27 @@ async function produceEveryAction() {
         ip: null,
       },
     )
-    const enabled = await enableUserEverywhere(platform, actor, locked.userId)
-    expect(enabled.passwordResetUrl).not.toBeNull()
+    const notice = queued.find((q) => q.name === 'identity.account_locked_notice')
+    await sendAccountLockedNotice(
+      {
+        uow,
+        mailer,
+        translate: createTranslate(
+          JSON.parse(
+            readFileSync(new URL('../../i18n/locales/it.json', import.meta.url), 'utf8'),
+          ) as unknown,
+        ),
+        logger: createLogger({ service: 'web', level: 'error' }),
+        panelUrl: new URL('https://pannello.example.ts.net'),
+        productName: 'Feedway',
+        defaultTimezone: 'Europe/Rome',
+      },
+      notice?.data as JobPayloads['identity.account_locked_notice'],
+    )
+    const enabled = await enableUserEverywhere(platform, actor, locked.userId, {
+      identityVerification: { method: 'in_person' },
+    })
+    expect(enabled.recovery).toEqual({ channel: 'email' })
   } finally {
     await handle.close()
   }

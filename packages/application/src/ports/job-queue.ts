@@ -19,6 +19,28 @@ interface JobDefinitions {
   'system.selftest': { scope: 'system'; data: { requestedAt: string } }
   'identity.security_email': { scope: 'user'; data: SecurityEmailData }
   'identity.password_reset_email': { scope: 'user'; data: PasswordResetEmailData }
+  'identity.account_locked_notice': { scope: 'system'; data: AccountLockedNoticeData }
+  'identity.account_recovery_email': { scope: 'user'; data: AccountRecoveryEmailData }
+}
+
+/**
+ * "Non sono stato io": tells the platform administrators and the Owners of the person's agencies.
+ * A system job (it reads every agency the person works for); ids and the time only.
+ */
+export interface AccountLockedNoticeData {
+  lockedUserId: string
+  /** ISO 8601: the lock it is about; a later reactivation makes the notice pointless. */
+  lockedAt: string
+}
+
+/**
+ * After a verified reactivation: the one-use link to choose a new password. It holds the token,
+ * so the job is kept only as long as the link works (30 minutes).
+ */
+export interface AccountRecoveryEmailData {
+  url: string
+  /** ISO 8601 */
+  expiresAt: string
 }
 
 /** "Password dimenticata": the link holds the reset token, so the job is kept one hour only. */
