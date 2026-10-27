@@ -65,7 +65,6 @@ export async function sendAccountRecoveryEmail(
         title: t('email.accountRecovery.expiryTitle', values),
         text: t(`email.accountRecovery.${today ? 'expiryToday' : 'expiryTomorrow'}`, values),
       },
-      { kind: 'paragraph', text: t('email.accountRecovery.code') },
       { kind: 'paragraph', text: t('email.accountRecovery.secondFactor') },
       { kind: 'paragraph', text: t('email.accountRecovery.notMe') },
     ],

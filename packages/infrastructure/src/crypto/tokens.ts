@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import type { TokenService } from '@app/application'
 
 export function createTokenService(): TokenService {
@@ -9,6 +9,5 @@ export function createTokenService(): TokenService {
       return { token, hash: hash(token) }
     },
     hash,
-    recoveryCode: () => String(randomInt(0, 1_000_000)).padStart(6, '0'),
   }
 }

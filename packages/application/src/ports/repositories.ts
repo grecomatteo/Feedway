@@ -102,15 +102,10 @@ export interface CredentialsRepository {
   hasPassword(userId: string): Promise<boolean>
   /**
    * The recovery link after a verified reactivation: a reset token in the format
-   * `/reset-password` reads (ADR 012, V6) and, beside it, the keyed hash of the code the
-   * operator dictates (`codeHash` of the new token), both valid until `expiresAt`. Not limited
-   * to people of one agency: only the platform issues it. Returns the token.
+   * `/reset-password` reads (ADR 012, V6), valid until `expiresAt`. Not limited to people of
+   * one agency: only the platform issues it. Returns the token.
    */
-  issueAccountRecovery(
-    userId: string,
-    expiresAt: Date,
-    codeHash: (token: string) => Buffer,
-  ): Promise<string>
+  issueAccountRecovery(userId: string, expiresAt: Date): Promise<string>
   /**
    * After a "Non sono stato io" lock: removes every passkey, the authenticator app and its
    * recovery codes, which the intruder may have added. Returns how many of each.

@@ -26,7 +26,6 @@ import {
   createLogger,
   createMailer,
   createPgBossQueue,
-  createSignedTokens,
   createTokenService,
   createUnitOfWork,
   systemClock,
@@ -217,8 +216,6 @@ function describeOrganization(o: PlatformOrganization): string {
   ].join('\t')
 }
 
-const RECOVERY_CODE = 'Codice da dettare alla persona'
-
 const RECOVERY_SENT =
   "Link per la nuova password inviato all'indirizzo dell'account, valido 30 minuti"
 
@@ -238,7 +235,6 @@ async function enableUser(
       ...deps,
       queue,
       mailer: createMailer(config.nodeEnv, deps.ids),
-      signedTokens: createSignedTokens(config.encryptionKey),
     }
     let result
     try {
@@ -262,22 +258,20 @@ async function enableUser(
     if (recovery === null) return
     if (recovery.channel === 'email') {
       io.out(RECOVERY_SENT)
-      io.out(`${RECOVERY_CODE}: ${recovery.code}`)
       io.err(
         'L’account era stato bloccato con "Non sono stato io": la vecchia password, le passkey ' +
-          'e la verifica in due passaggi non valgono più. Il link da solo non basta: detta il ' +
-          "codice alla persona solo sul canale con cui hai verificato l'identità, vale 30 minuti.",
+          'e la verifica in due passaggi non valgono più. Il link vale 30 minuti e una sola ' +
+          "volta: se non arriva o scade, rilancia il comando dopo aver verificato di nuovo l'identità.",
       )
       return
     }
     // email is not configured: whoever runs the CLI controls the server anyway
     io.out(recovery.url)
-    io.out(`${RECOVERY_CODE}: ${recovery.code}`)
     io.err(
       'L’account era stato bloccato con "Non sono stato io": la vecchia password, le passkey e ' +
-        'la verifica in due passaggi non valgono più. L’email non è configurata, quindi link e ' +
-        'codice per sceglierne una nuova sono qui sopra: consegnali solo sul canale con cui hai ' +
-        "verificato l'identità, valgono 30 minuti.",
+        'la verifica in due passaggi non valgono più. L’email non è configurata, quindi il link ' +
+        'per sceglierne una nuova è qui sopra: consegnalo solo sul canale con cui hai ' +
+        "verificato l'identità, vale 30 minuti.",
     )
   } finally {
     await queue.stop({ graceful: true, timeoutMs: 5000 })

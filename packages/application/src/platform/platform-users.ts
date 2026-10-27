@@ -2,7 +2,6 @@ import { DomainError, normalizeEmail } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Mailer } from '../ports/mailer.js'
-import type { SignedTokens, TokenService } from '../ports/token-service.js'
 import type { Tx } from '../ports/tx.js'
 import {
   assertPlatform,
@@ -49,18 +48,15 @@ export interface EnableResult {
   /** `recovery_reissued`: active already, with a recovery pending; a new link replaces it. */
   status: 'enabled' | 'already_active' | 'recovery_reissued'
   /**
-   * Only after a "Non sono stato io" lock: the old password no longer works. `code`: six digits
-   * the operator dictates on the channel used to check the identity; the link alone does not
-   * work. `email`: the link is on its way to the account's address. `operator`: email is not
-   * configured, so the operator (who controls the server anyway) hands over link and code.
+   * Only after a "Non sono stato io" lock: the old password no longer works. `email`: the link
+   * is on its way to the account's address. `operator`: email is not configured, so the
+   * operator (who controls the server anyway) hands it over on the channel used to check the
+   * identity.
    */
-  recovery:
-    null | { channel: 'email'; code: string } | { channel: 'operator'; url: string; code: string }
+  recovery: null | { channel: 'email' } | { channel: 'operator'; url: string }
 }
 
 export type EnableDeps = Pick<PlatformDeps, 'uow' | 'clock' | 'config'> & {
-  tokens: Pick<TokenService, 'recoveryCode'>
-  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
   queue: Pick<JobQueue, 'send'>
   mailer: Pick<Mailer, 'isConfigured'>
 }
@@ -177,8 +173,8 @@ export async function enableUserEverywhere(
       )
     const now = deps.clock.now()
     const enabled = await tx.users.enable(userId, now)
-    // Active again but the recovery never finished (link lost or expired, five wrong codes, a
-    // reset that failed half-way): with the identity checked again, the old link goes and a new
+    // Active again but the recovery never finished (link lost or expired, a reset that failed
+    // half-way): with the identity checked again, the old link goes and a new
     // one is issued.
     const pending =
       !enabled && locked && user.status === 'active' && !(await tx.credentials.hasPassword(userId))
@@ -202,11 +198,11 @@ export async function enableUserEverywhere(
     // a change of privileges: whatever session is left starts over (spec §15.2)
     const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
     // The old password stops working in this same transaction and the person chooses a new one
-    // with the link and the code. Passkeys and the authenticator app go too: the intruder may
+    // with the link. Passkeys and the authenticator app go too: the intruder may
     // have added them; whoever needs a second factor sets it up again at the next sign-in.
     const passwordCleared = locked && (await tx.credentials.removePassword(userId))
     const removed = locked ? await tx.credentials.removeSecondFactors(userId) : null
-    // the previous recovery link and its code, and whatever else was pending
+    // the previous recovery link and whatever else was pending
     if (locked) await tx.credentials.revokePendingTokens(userId)
     if (enabled)
       await tx.audit.record({
@@ -228,12 +224,9 @@ export async function enableUserEverywhere(
       })
     if (!locked) return { status: 'enabled' as const, recovery: null }
     const expiresAt = new Date(now.getTime() + ACCOUNT_RECOVERY_LINK_TTL_MS)
-    const code = deps.tokens.recoveryCode()
     const url = passwordResetLinkUrl(
       deps.config.panelUrl,
-      await tx.credentials.issueAccountRecovery(userId, expiresAt, (token) =>
-        deps.signedTokens.recoveryCodeHash(token, code),
-      ),
+      await tx.credentials.issueAccountRecovery(userId, expiresAt),
     )
     const channel = byEmail ? 'email' : 'operator'
     const status = reissue ? ('recovery_reissued' as const) : ('enabled' as const)
@@ -248,7 +241,7 @@ export async function enableUserEverywhere(
       ip: author.ip,
       data: reissue ? { channel, reissued: true } : { channel },
     })
-    if (!byEmail) return { status, recovery: { channel: 'operator', url, code } }
+    if (!byEmail) return { status, recovery: { channel: 'operator', url } }
     // Queued before the commit: if it fails, nothing changes and the operator retries; the
     // handler waits for the commit (it retries until the account is active).
     await deps.queue.send('identity.account_recovery_email', {
@@ -256,6 +249,6 @@ export async function enableUserEverywhere(
       url,
       expiresAt: expiresAt.toISOString(),
     })
-    return { status, recovery: { channel: 'email', code } }
+    return { status, recovery: { channel: 'email' } }
   })
 }
