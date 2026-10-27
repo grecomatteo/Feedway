@@ -56,7 +56,7 @@ let db: Db
 let instance: BetterAuthInstance
 let auth: Auth
 let uow: UnitOfWork
-let deps: PlatformDeps & { queue: JobQueue; mailer: Mailer }
+let deps: PlatformDeps & { queue: JobQueue; mailer: Mailer; signedTokens: typeof signedTokens }
 let identityDeps: IdentityDeps
 let platformAdmin: PlatformActor
 const tokens = createTokenService()
@@ -84,6 +84,7 @@ beforeAll(async () => {
   const secret = randomBytes(32).toString('hex')
   instance = createBetterAuth({
     db,
+    signedTokens,
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',
@@ -111,6 +112,7 @@ beforeAll(async () => {
     config: { panelUrl: PANEL },
     queue,
     mailer: createMemoryMailer(),
+    signedTokens,
   }
   identityDeps = {
     uow,
@@ -584,6 +586,49 @@ describe('platform users', () => {
       .map((q) => q.data as JobPayloads['identity.account_recovery_email'])
       .filter((d) => d.userId === userId)
   const phone = { identityVerification: { method: 'phone_known_number' as const } }
+  const recoveryCodes = new Map<string, string>()
+  /** A six-digit code that is surely not the right one. */
+  const otherCode = (code: string) => String((Number(code) + 1) % 1_000_000).padStart(6, '0')
+  const errorCode = async (res: Response) => ((await res.json()) as { code?: string }).code ?? ''
+  const sessionCookie = (res: Response) =>
+    res.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('__Host-session='))
+      ?.split(';')[0] ?? ''
+  async function secondFactors(userId: string) {
+    await admin.query(
+      `insert into passkeys (id, public_key, user_id, credential_id, counter, device_type, backed_up)
+       values ($1, 'chiave', $2, $3, 0, 'singleDevice', false)`,
+      [randomUUID(), userId, randomUUID()],
+    )
+    await admin.query(
+      `insert into two_factors (id, secret, backup_codes, user_id) values ($1, 'segreto', 'codici', $2)`,
+      [randomUUID(), userId],
+    )
+    await admin.query('update users set two_factor_enabled = true where id = $1', [userId])
+  }
+  async function secondFactorRows(userId: string) {
+    const { rows } = await admin.query<{ passkeys: number; totp: number; enabled: boolean }>(
+      `select (select count(*)::int from passkeys where user_id = $1) as passkeys,
+              (select count(*)::int from two_factors where user_id = $1) as totp,
+              (select two_factor_enabled from users where id = $1) as enabled`,
+      [userId],
+    )
+    return rows[0]
+  }
+  async function lockNow(userId: string, clock: ReturnType<typeof fixedClock>) {
+    await lockAccountFromSecurityEmail(
+      { uow, tokens: signedTokens, clock, queue },
+      {
+        token: signedTokens.sign('security_lock', {
+          userId,
+          issuedAt: clock.now(),
+          expiresAt: new Date(clock.now().getTime() + 86_400_000),
+        }),
+        ip: null,
+      },
+    )
+  }
 
   test('enable-user after a security lock needs the identity checked, then emails a 30-minute link', async () => {
     const user = await person('bloccato')
@@ -592,12 +637,8 @@ describe('platform users', () => {
       await s.member(await s.organization(), user.id, 'member')
       await s.member(await s.organization(), user.id, 'member')
     })
-    const passkeyId = randomUUID()
-    await admin.query(
-      `insert into passkeys (id, public_key, user_id, credential_id, counter, device_type, backed_up)
-       values ($1, 'chiave', $2, $3, 0, 'singleDevice', false)`,
-      [passkeyId, user.id, randomUUID()],
-    )
+    // a passkey and an authenticator app the intruder may have added
+    await secondFactors(user.id)
     const clock = fixedClock(new Date())
     const lockDeps = { uow, tokens: signedTokens, clock, queue }
     const sign = () =>
@@ -633,8 +674,12 @@ describe('platform users', () => {
     expect(recoveryJobs(user.id)).toEqual([])
 
     const enabled = await enableUserEverywhere(at, SYSTEM_PLATFORM_ACTOR, user.id, phone)
-    // the link goes to the account's address, never to the operator
-    expect(enabled).toEqual({ status: 'enabled', recovery: { channel: 'email' } })
+    // the link goes to the account's address, never to the operator; the code to the operator
+    expect(enabled).toEqual({
+      status: 'enabled',
+      recovery: { channel: 'email', code: expect.stringMatching(/^\d{6}$/) as unknown },
+    })
+    const code = enabled.recovery?.code ?? ''
     const [sent, ...others] = recoveryJobs(user.id)
     expect(others).toEqual([])
     const url = sent?.url ?? ''
@@ -645,14 +690,22 @@ describe('platform users', () => {
       [`reset-password:${tokenOf(url)}`],
     )
     expect(link[0]?.expires_at.getTime()).toBe(clock.now().getTime() + 30 * 60_000)
-    // the old password is gone, with the same answer as a wrong one; the passkey stays
+    // the code is stored only as a keyed hash, with the same expiry, and never in the job
+    const { rows: stored } = await admin.query<{ value: string; expires_at: Date }>(
+      'select value, expires_at from verifications where identifier = $1',
+      [`account-recovery:${tokenOf(url)}`],
+    )
+    expect(stored[0]?.expires_at.getTime()).toBe(clock.now().getTime() + 30 * 60_000)
+    expect(stored[0]?.value).not.toContain(`"${code}"`)
+    expect(JSON.stringify(sent)).not.toContain(code)
+    // the old password is gone, with the same answer as a wrong one
     const refused = await signIn(user.email)
     expect(refused.status).toBe(401)
     expect(await refused.text()).toBe(
       await (await signIn(user.email, 'sbagliata-del-tutto')).text(),
     )
-    const passkeys = await admin.query('select 1 from passkeys where id = $1', [passkeyId])
-    expect(passkeys.rowCount).toBe(1)
+    // passkeys, authenticator app and recovery codes are gone too
+    expect(await secondFactorRows(user.id)).toEqual({ passkeys: 0, totp: 0, enabled: false })
     // how the identity was checked, then the reactivation, then where the link went
     const { rows: entries } = await admin.query<{ action: string; data: unknown }>(
       `select action, data from audit_log where entity_id = $1 and action in
@@ -669,6 +722,8 @@ describe('platform users', () => {
           sessionsClosed: 0,
           passwordCleared: true,
           resetLinkIssued: true,
+          passkeysRemoved: 1,
+          totpRemoved: 1,
         },
       },
       { action: 'auth.recovery_link_sent', data: { channel: 'email' } },
@@ -688,11 +743,26 @@ describe('platform users', () => {
     const page = new URL(opened.headers.get('location') ?? '')
     expect(page.pathname).toBe('/reimposta')
     const resetToken = page.searchParams.get('token') ?? ''
-    const reset = await post('/reset-password', { token: resetToken, newPassword: NEW_PASSWORD })
+    // the link alone is not enough: the code the operator dictated is needed too
+    const without = await post('/reset-password', { token: resetToken, newPassword: NEW_PASSWORD })
+    expect(without.status).toBe(400)
+    expect(await errorCode(without)).toBe('RECOVERY_CODE_REQUIRED')
+    const wrong = await post('/reset-password', {
+      token: resetToken,
+      newPassword: NEW_PASSWORD,
+      code: otherCode(code),
+    })
+    expect(wrong.status).toBe(400)
+    expect(await errorCode(wrong)).toBe('RECOVERY_CODE_INVALID')
+    const reset = await post('/reset-password', {
+      token: resetToken,
+      newPassword: NEW_PASSWORD,
+      code,
+    })
     expect(reset.status).toBe(200)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
     expect((await signIn(user.email)).status).toBe(401)
-    const again = await post('/reset-password', { token: resetToken, newPassword: PASSWORD })
+    const again = await post('/reset-password', { token: resetToken, newPassword: PASSWORD, code })
     expect(again.status).toBe(400)
     expect((await signIn(user.email)).status).toBe(401)
 
@@ -718,7 +788,13 @@ describe('platform users', () => {
       },
     )
     clock.advance(1000)
-    await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id, phone)
+    const late = await enableUserEverywhere(
+      { ...deps, clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      phone,
+    )
+    recoveryCodes.set(user.id, late.recovery?.code ?? '')
     const url = recoveryJobs(user.id)[0]?.url ?? ''
     const opened = await instance.handler(
       new Request(url, { headers: { 'x-app-client-ip': randomIp() } }),
@@ -726,9 +802,98 @@ describe('platform users', () => {
     expect(new URL(opened.headers.get('location') ?? '', PANEL).searchParams.get('error')).toBe(
       'INVALID_TOKEN',
     )
-    const reset = await post('/reset-password', { token: tokenOf(url), newPassword: NEW_PASSWORD })
+    const enabledLate = recoveryCodes.get(user.id) ?? ''
+    const reset = await post('/reset-password', {
+      token: tokenOf(url),
+      newPassword: NEW_PASSWORD,
+      code: enabledLate,
+    })
     expect(reset.status).toBe(400)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
+  test('five wrong codes void the link: the right one no longer works', async () => {
+    const user = await person('cinque-errori')
+    const clock = fixedClock(new Date())
+    await lockNow(user.id, clock)
+    clock.advance(1000)
+    const enabled = await enableUserEverywhere(
+      { ...deps, clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      phone,
+    )
+    const code = enabled.recovery?.code ?? ''
+    const token = tokenOf(recoveryJobs(user.id)[0]?.url ?? '')
+    const attempt = (given: string) =>
+      post('/reset-password', { token, newPassword: NEW_PASSWORD, code: given })
+    const answers: string[] = []
+    for (let i = 0; i < 5; i++) answers.push(await errorCode(await attempt(otherCode(code))))
+    expect(answers).toEqual([
+      'RECOVERY_CODE_INVALID',
+      'RECOVERY_CODE_INVALID',
+      'RECOVERY_CODE_INVALID',
+      'RECOVERY_CODE_INVALID',
+      'LINK_INVALID',
+    ])
+    const right = await attempt(code)
+    expect(right.status).toBe(400)
+    expect(await errorCode(right)).toBe('LINK_INVALID')
+    const { rowCount } = await admin.query(
+      'select 1 from verifications where identifier in ($1, $2)',
+      [`reset-password:${token}`, `account-recovery:${token}`],
+    )
+    expect(rowCount).toBe(0)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
+  test('after the recovery an Owner sets up the second factor again at once', async () => {
+    const user = await person('titolare-recuperato')
+    await seed(tdb.runtimeUrl, async (s) => {
+      await s.member(await s.organization(), user.id, 'owner')
+    })
+    await secondFactors(user.id)
+    const clock = fixedClock(new Date())
+    await lockNow(user.id, clock)
+    clock.advance(1000)
+    const enabled = await enableUserEverywhere(
+      { ...deps, clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      phone,
+    )
+    const token = tokenOf(recoveryJobs(user.id)[0]?.url ?? '')
+    const reset = await post('/reset-password', {
+      token,
+      newPassword: NEW_PASSWORD,
+      code: enabled.recovery?.code ?? '',
+    })
+    expect(reset.status).toBe(200)
+    // the password alone opens a session that may do nothing but set up the second factor
+    const signedIn = await signIn(user.email, NEW_PASSWORD)
+    expect(signedIn.status).toBe(200)
+    const cookie = sessionCookie(signedIn)
+    const session = await auth.getSession(new Headers({ cookie }))
+    if (!session) throw new Error('no session after the recovery')
+    const resolved = await resolveSessionUser(
+      { uow, config: { require2fa: 'admins' } },
+      session.session,
+    )
+    expect(resolved?.state).toBe('second_factor_required')
+    const setup = await instance.handler(
+      new Request(`${PANEL}/api/auth/two-factor/enable`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: PANEL,
+          'x-app-client-ip': randomIp(),
+          cookie,
+        },
+        body: JSON.stringify({ password: NEW_PASSWORD }),
+      }),
+    )
+    expect(setup.status).toBe(200)
+    expect(((await setup.json()) as { totpURI?: string }).totpURI).toMatch(/^otpauth:\/\//)
   })
 
   test('without email the operator gets the link, and the log says so', async () => {
@@ -755,6 +920,7 @@ describe('platform users', () => {
     expect(enabled.recovery).toEqual({
       channel: 'operator',
       url: expect.stringMatching(/\/api\/auth\/reset-password\/platform\./) as unknown,
+      code: expect.stringMatching(/^\d{6}$/) as unknown,
     })
     expect(recoveryJobs(user.id)).toEqual([])
     const entry = (await platformAudit('auth.recovery_link_sent')).find(
@@ -787,7 +953,7 @@ describe('platform users', () => {
     const enabled = await enableUserEverywhere({ ...deps, clock }, platformAdmin, user.id, {
       identityVerification: { method: 'in_person' },
     })
-    expect(enabled.recovery).toEqual({ channel: 'email' })
+    expect(enabled.recovery?.channel).toBe('email')
     expect((await signIn(user.email)).status).toBe(401)
   })
 

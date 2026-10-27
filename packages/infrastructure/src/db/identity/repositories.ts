@@ -11,7 +11,15 @@ import type {
 import type { AuthMethod } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { accounts, knownDevices, passkeys, sessions, users, verifications } from './schema.js'
+import {
+  accounts,
+  knownDevices,
+  passkeys,
+  sessions,
+  twoFactors,
+  users,
+  verifications,
+} from './schema.js'
 
 // users and sessions have no row level security (personal data, not an agency's): every
 // query names the user it is about. Only the identity module may import this file (enforced by
@@ -291,6 +299,9 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
  */
 export const PLATFORM_RESET_TOKEN_PREFIX = 'platform.'
 
+/** `verifications` identifier of the code that goes with a platform recovery link. */
+export const ACCOUNT_RECOVERY_IDENTIFIER = 'account-recovery:'
+
 export function drizzleCredentials(
   db: DbExecutor,
   ids: IdGenerator,
@@ -308,7 +319,7 @@ export function drizzleCredentials(
         .returning({ id: accounts.id })
       return removed.length > 0
     },
-    async issuePasswordResetToken(userId, expiresAt) {
+    async issueAccountRecovery(userId, expiresAt, codeHash) {
       onlySystem()
       const token = `${PLATFORM_RESET_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
       // the row Better Auth's internalAdapter.createVerificationValue would write (no hashing
@@ -319,7 +330,32 @@ export function drizzleCredentials(
         value: userId,
         expiresAt,
       })
+      // beside it, the code: only its keyed hash, and the wrong attempts (auth-hooks.ts)
+      await db.insert(verifications).values({
+        id: ids.newId(),
+        identifier: `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`,
+        value: JSON.stringify({
+          userId,
+          codeHash: codeHash(token).toString('base64url'),
+          failures: 0,
+        }),
+        expiresAt,
+      })
       return token
+    },
+    async removeSecondFactors(userId) {
+      onlySystem()
+      const removedPasskeys = await db
+        .delete(passkeys)
+        .where(eq(passkeys.userId, userId))
+        .returning({ id: passkeys.id })
+      // the row holds the authenticator secret and the recovery codes
+      const removedTotp = await db
+        .delete(twoFactors)
+        .where(eq(twoFactors.userId, userId))
+        .returning({ id: twoFactors.id })
+      await db.update(users).set({ twoFactorEnabled: false }).where(eq(users.id, userId))
+      return { passkeys: removedPasskeys.length, totp: removedTotp.length }
     },
     async revokePendingTokens(userId) {
       // Better Auth names the person in `value`: the id alone (reset links, the second factor

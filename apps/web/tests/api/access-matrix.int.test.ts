@@ -269,7 +269,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.passkey_removed': [],
   'auth.reauthenticated': ['method'],
   'auth.new_device': ['device'],
-  'auth.security_lock': ['sessionsClosed', 'tokensRevoked'],
+  'auth.security_lock': ['sessionsClosed', 'tokensRevoked', 'invitesRevoked'],
   'auth.security_lock_notified': ['recipients'],
   'auth.recovery_link_sent': ['channel'],
   'session.revoked': ['count'],
@@ -279,7 +279,14 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'user.activated': ['purpose', 'role'],
   'user.disabled': ['scope', 'sessionsClosed'],
   'user.identity_verified': ['method'],
-  'user.enabled': ['scope', 'sessionsClosed', 'passwordCleared', 'resetLinkIssued'],
+  'user.enabled': [
+    'scope',
+    'sessionsClosed',
+    'passwordCleared',
+    'resetLinkIssued',
+    'passkeysRemoved',
+    'totpRemoved',
+  ],
   'user.role_changed': ['from', 'to'],
   'user.password_reset_link': [],
   'user.profile_updated': [],
@@ -471,6 +478,7 @@ async function produceEveryAction() {
       config: { panelUrl: 'https://pannello.example.ts.net' },
       queue,
       mailer,
+      signedTokens: createSignedTokens(randomBytes(32)),
     }
     const actor = SYSTEM_PLATFORM_ACTOR
     const newOrg = await createOrganization(platform, actor, {
@@ -520,7 +528,7 @@ async function produceEveryAction() {
     const enabled = await enableUserEverywhere(platform, actor, locked.userId, {
       identityVerification: { method: 'in_person' },
     })
-    expect(enabled.recovery).toEqual({ channel: 'email' })
+    expect(enabled.recovery?.channel).toBe('email')
   } finally {
     await handle.close()
   }

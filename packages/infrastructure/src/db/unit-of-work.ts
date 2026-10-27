@@ -35,7 +35,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     organizations: drizzleOrganizations(db, ctx),
     orgMembers: drizzleOrgMembers(db),
     organizationKeys: drizzleOrganizationKeys(db),
-    invites: drizzleInvites(db),
+    invites: drizzleInvites(db, ctx),
     workspaces: drizzleWorkspaces(db),
     workspaceMembers: drizzleWorkspaceMembers(db),
     platformSettings: drizzlePlatformSettings(db),

@@ -2,6 +2,7 @@ import { DomainError, normalizeEmail } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Mailer } from '../ports/mailer.js'
+import type { SignedTokens, TokenService } from '../ports/token-service.js'
 import type { Tx } from '../ports/tx.js'
 import {
   assertPlatform,
@@ -47,14 +48,18 @@ const passwordResetLinkUrl = (panelUrl: string, token: string) =>
 export interface EnableResult {
   status: 'enabled' | 'already_active'
   /**
-   * Only after a "Non sono stato io" lock: the old password no longer works. `email`: the link
-   * is on its way to the account's address. `operator`: email is not configured, so the operator
-   * (who controls the server anyway) hands it over on the channel used to check the identity.
+   * Only after a "Non sono stato io" lock: the old password no longer works. `code`: six digits
+   * the operator dictates on the channel used to check the identity; the link alone does not
+   * work. `email`: the link is on its way to the account's address. `operator`: email is not
+   * configured, so the operator (who controls the server anyway) hands over link and code.
    */
-  recovery: null | { channel: 'email' } | { channel: 'operator'; url: string }
+  recovery:
+    null | { channel: 'email'; code: string } | { channel: 'operator'; url: string; code: string }
 }
 
 export type EnableDeps = Pick<PlatformDeps, 'uow' | 'clock' | 'config'> & {
+  tokens: Pick<TokenService, 'recoveryCode'>
+  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
   queue: Pick<JobQueue, 'send'>
   mailer: Pick<Mailer, 'isConfigured'>
 }
@@ -187,8 +192,10 @@ export async function enableUserEverywhere(
     // a change of privileges: whatever session is left starts over (spec §15.2)
     const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
     // The old password stops working in this same transaction and the person chooses a new one
-    // with the link; passkeys stay (device plus user verification).
+    // with the link and the code. Passkeys and the authenticator app go too: the intruder may
+    // have added them; whoever needs a second factor sets it up again at the next sign-in.
     const passwordCleared = locked && (await tx.credentials.removePassword(userId))
+    const removed = locked ? await tx.credentials.removeSecondFactors(userId) : null
     await tx.audit.record({
       organizationId: null,
       actorId: author.actorId,
@@ -198,13 +205,22 @@ export async function enableUserEverywhere(
       entityId: userId,
       workspaceId: null,
       ip: author.ip,
-      data: { scope: 'platform', sessionsClosed, passwordCleared, resetLinkIssued: locked },
+      data: {
+        scope: 'platform',
+        sessionsClosed,
+        passwordCleared,
+        resetLinkIssued: locked,
+        ...(removed ? { passkeysRemoved: removed.passkeys, totpRemoved: removed.totp } : {}),
+      },
     })
     if (!locked) return { status: 'enabled' as const, recovery: null }
     const expiresAt = new Date(now.getTime() + ACCOUNT_RECOVERY_LINK_TTL_MS)
+    const code = deps.tokens.recoveryCode()
     const url = passwordResetLinkUrl(
       deps.config.panelUrl,
-      await tx.credentials.issuePasswordResetToken(userId, expiresAt),
+      await tx.credentials.issueAccountRecovery(userId, expiresAt, (token) =>
+        deps.signedTokens.recoveryCodeHash(token, code),
+      ),
     )
     const channel = byEmail ? 'email' : 'operator'
     await tx.audit.record({
@@ -218,7 +234,8 @@ export async function enableUserEverywhere(
       ip: author.ip,
       data: { channel },
     })
-    if (!byEmail) return { status: 'enabled' as const, recovery: { channel: 'operator', url } }
+    if (!byEmail)
+      return { status: 'enabled' as const, recovery: { channel: 'operator', url, code } }
     // Queued before the commit: if it fails, nothing changes and the operator retries; the
     // handler waits for the commit (it retries until the account is active).
     await deps.queue.send('identity.account_recovery_email', {
@@ -226,6 +243,6 @@ export async function enableUserEverywhere(
       url,
       expiresAt: expiresAt.toISOString(),
     })
-    return { status: 'enabled' as const, recovery: { channel: 'email' } }
+    return { status: 'enabled' as const, recovery: { channel: 'email', code } }
   })
 }

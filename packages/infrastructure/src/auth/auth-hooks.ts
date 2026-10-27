@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { and, eq, gt, sql } from 'drizzle-orm'
 import {
   allowedWhileSecondFactorRequired,
@@ -10,6 +10,7 @@ import {
   type RateLimiter,
   type SessionState,
   type SessionUser,
+  type SignedTokens,
 } from '@app/application'
 import {
   canRemoveSecondFactor,
@@ -22,7 +23,11 @@ import {
 } from '@app/domain'
 import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import type { Db } from '../db/client.js'
-import { passkeys, sessions, users } from '../db/identity/schema.js'
+import { passkeys, sessions, users, verifications } from '../db/identity/schema.js'
+import {
+  ACCOUNT_RECOVERY_IDENTIFIER,
+  PLATFORM_RESET_TOKEN_PREFIX,
+} from '../db/identity/repositories.js'
 import { passwordStrength } from '../crypto/password-strength.js'
 import { toAuthMethod, toSessionInfo } from './auth-method.js'
 import { enforceIpLimit, tooManyRequests } from './rate-limits.js'
@@ -93,6 +98,8 @@ export interface HookDeps {
   events: AuthEventSink
   logger: Logger
   resolveSessionUser: SessionUserResolver
+  /** The code that goes with a platform recovery link is checked against its keyed hash. */
+  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
 }
 
 const clientIp = (request: Request): string => request.headers.get('x-app-client-ip') ?? 'unknown'
@@ -438,6 +445,9 @@ export function createBeforeHook(deps: HookDeps) {
         throw new APIError('UNPROCESSABLE_ENTITY', { message: check.reason, code: check.reason })
     }
 
+    // after the password checks: a refused password does not spend the code
+    if (path === '/reset-password') await enforceRecoveryCode(deps, ctx)
+
     await enforceAccountRules(deps, ctx, ctx.request)
 
     // A new password signs out every other device, whatever the browser asked (spec §15.2):
@@ -483,6 +493,103 @@ async function enforcePanelResetScope(db: Db, ctx: HookContext): Promise<void> {
         'Questo link non vale più: chiedine uno nuovo a chi gestisce l’agenzia o usa “Password dimenticata”',
       code: 'FORBIDDEN',
     })
+}
+
+/** Wrong codes a recovery link survives; the next one voids it. */
+export const RECOVERY_CODE_MAX_FAILURES = 5
+
+const RECOVERY_CODE = /^\d{6}$/
+
+interface RecoveryCodeRow {
+  userId: string
+  codeHash: string
+  failures: number
+}
+
+const isRecoveryCodeRow = (v: unknown): v is RecoveryCodeRow =>
+  typeof v === 'object' &&
+  v !== null &&
+  typeof (v as RecoveryCodeRow).userId === 'string' &&
+  typeof (v as RecoveryCodeRow).codeHash === 'string' &&
+  Number.isSafeInteger((v as RecoveryCodeRow).failures)
+
+const linkInvalid = () =>
+  new APIError('BAD_REQUEST', {
+    message: 'Il link non è valido o è scaduto: chiedi un nuovo link all’amministratore',
+    code: 'LINK_INVALID',
+  })
+
+/**
+ * A platform recovery link (after "Non sono stato io") works only with the six-digit code the
+ * administrator dictated on the channel used to check the identity: the email alone is not
+ * enough. Compared in constant time against its keyed hash; the fifth wrong code voids link and
+ * code. A right code is spent at once (link and code are used together, once). No code row
+ * beside the link means no reset: it fails closed.
+ */
+async function enforceRecoveryCode(
+  deps: Pick<HookDeps, 'db' | 'clock' | 'signedTokens'>,
+  ctx: HookContext,
+): Promise<void> {
+  const token = resetToken(ctx)
+  if (token === null || !token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  const given = ((ctx.body ?? {}) as Record<string, unknown>)['code']
+  const code = typeof given === 'string' ? given.trim() : ''
+  const now = deps.clock.now()
+  const outcome = await deps.db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({
+        id: verifications.id,
+        value: verifications.value,
+        expiresAt: verifications.expiresAt,
+      })
+      .from(verifications)
+      .where(eq(verifications.identifier, `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`))
+      .for('update')
+    let stored: unknown = null
+    try {
+      stored = row ? JSON.parse(row.value) : null
+    } catch {
+      stored = null
+    }
+    if (!row || row.expiresAt <= now || !isRecoveryCodeRow(stored)) return 'invalid' as const
+    if (!RECOVERY_CODE.test(code)) return 'missing' as const
+    const expected = Buffer.from(stored.codeHash, 'base64url')
+    const actual = deps.signedTokens.recoveryCodeHash(token, code)
+    if (expected.length === actual.length && timingSafeEqual(expected, actual)) {
+      await tx.delete(verifications).where(eq(verifications.id, row.id))
+      return 'ok' as const
+    }
+    const failures = stored.failures + 1
+    if (failures >= RECOVERY_CODE_MAX_FAILURES) {
+      await tx
+        .delete(verifications)
+        .where(
+          sql`${verifications.identifier} in (${`reset-password:${token}`}, ${`${ACCOUNT_RECOVERY_IDENTIFIER}${token}`})`,
+        )
+      return 'voided' as const
+    }
+    await tx
+      .update(verifications)
+      .set({ value: JSON.stringify({ ...stored, failures }) })
+      .where(eq(verifications.id, row.id))
+    return 'wrong' as const
+  })
+  switch (outcome) {
+    case 'ok':
+      return
+    case 'missing':
+      throw new APIError('BAD_REQUEST', {
+        message: 'Inserisci il codice di 6 cifre che ti ha comunicato l’amministratore',
+        code: 'RECOVERY_CODE_REQUIRED',
+      })
+    case 'wrong':
+      throw new APIError('BAD_REQUEST', {
+        message: 'Il codice non è corretto',
+        code: 'RECOVERY_CODE_INVALID',
+      })
+    default:
+      throw linkInvalid()
+  }
 }
 
 /** Email and name of the account a reset token belongs to; null for an unknown token. */

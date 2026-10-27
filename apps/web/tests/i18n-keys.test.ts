@@ -87,6 +87,7 @@ test.each([
       'expiryTitle',
       'expiryToday',
       'expiryTomorrow',
+      'code',
       'secondFactor',
       'notMe',
       'footer',

@@ -89,10 +89,21 @@ export interface CredentialsRepository {
   /** Removes the password credential; false when the account had none. Passkeys stay. */
   removePassword(userId: string): Promise<boolean>
   /**
-   * A reset token in the format `/reset-password` reads (ADR 012, V6), valid until
-   * `expiresAt`. Not limited to people of one agency: only the platform issues it.
+   * The recovery link after a verified reactivation: a reset token in the format
+   * `/reset-password` reads (ADR 012, V6) and, beside it, the keyed hash of the code the
+   * operator dictates (`codeHash` of the new token), both valid until `expiresAt`. Not limited
+   * to people of one agency: only the platform issues it. Returns the token.
    */
-  issuePasswordResetToken(userId: string, expiresAt: Date): Promise<string>
+  issueAccountRecovery(
+    userId: string,
+    expiresAt: Date,
+    codeHash: (token: string) => Buffer,
+  ): Promise<string>
+  /**
+   * After a "Non sono stato io" lock: removes every passkey, the authenticator app and its
+   * recovery codes, which the intruder may have added. Returns how many of each.
+   */
+  removeSecondFactors(userId: string): Promise<{ passkeys: number; totp: number }>
   /**
    * "Non sono stato io": deletes every pending link or challenge of the person that Better Auth
    * keeps in `verifications` (password reset, second factor waiting after the password, passkey
@@ -265,6 +276,8 @@ export interface InvitesRepository {
   countOpen(organizationId: string, now: Date): Promise<number>
   /** One open invite of the agency (purpose `invite`), without locking it. */
   findOpen(organizationId: string, id: string, now: Date): Promise<InviteRecord | null>
+  /** Open invites this person sent, in every agency. System scope only. */
+  listOpenSentBy(userId: string, now: Date): Promise<InviteRecord[]>
   /** The agency's own open invites (purpose `invite`), oldest first. */
   listOpen(organizationId: string, now: Date): Promise<InviteRecord[]>
   /**

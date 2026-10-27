@@ -14,6 +14,7 @@ import type {
   Logger,
   PasswordHasher,
   RateLimiter,
+  SignedTokens,
 } from '@app/application'
 import type { SessionUserResolver } from './auth-hooks.js'
 import type { Db } from '../db/client.js'
@@ -45,6 +46,8 @@ export interface BetterAuthDeps {
   events: AuthEventSink
   /** "Password dimenticata" queues `identity.password_reset_email`. */
   queue: Pick<JobQueue, 'send'>
+  /** Checks the code that goes with a platform recovery link (auth-hooks.ts). */
+  signedTokens: Pick<SignedTokens, 'recoveryCodeHash'>
   /**
    * `resolveSessionUser` from the application, bound to its unit of work: the hooks apply our
    * second-factor rules with it, since they cannot go through `Auth` (it wraps this instance).
@@ -121,6 +124,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     events: deps.events,
     logger: deps.logger,
     resolveSessionUser: deps.resolveSessionUser,
+    signedTokens: deps.signedTokens,
   }
 
   return betterAuth({

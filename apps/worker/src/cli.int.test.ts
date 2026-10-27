@@ -388,7 +388,9 @@ test('cli enable-user after "Non sono stato io" sends the link to the account, n
   expect(c.out).toEqual([
     'Account riattivato: i link "Non sono stato io" precedenti non valgono più',
     "Link per la nuova password inviato all'indirizzo dell'account, valido 30 minuti",
+    expect.stringMatching(/^Codice da dettare alla persona: \d{6}$/) as unknown,
   ])
+  expect(c.err.join('\n')).toMatch(/solo sul canale con cui hai verificato l'identità/)
   expect([...c.out, ...c.err].join('\n')).not.toMatch(/platform\.|reset-password|hash-finto/)
   const accounts = await admin.query(
     "select 1 from accounts where user_id = $1 and provider_id = 'credential'",
@@ -410,15 +412,18 @@ test('cli enable-user without email prints the 30-minute link with a warning', a
   const { id, email } = await lockedUser('Rita')
   const out = await runCliCaptured(['enable-user', email, '--verified-by', 'videochiamata'])
   expect(out.exitCode).toBe(0)
-  const [status, link, ...rest] = out.stdout.split('\n')
+  const [status, link, code, ...rest] = out.stdout.split('\n')
   expect(status).toMatch(/riattivato/)
   expect(link).toMatch(
     /^https:\/\/pannello\.example\.ts\.net\/api\/auth\/reset-password\/platform\.[A-Za-z0-9_-]+\?callbackURL=%2Freimposta$/,
   )
+  expect(code).toMatch(/^Codice da dettare alla persona: \d{6}$/)
   expect(rest).toEqual([])
-  expect(out.stderr).toMatch(/vecchia password non vale più/)
   expect(out.stderr).toMatch(
-    /consegnalo solo sul canale con cui hai verificato l'identità, vale 30 minuti/,
+    /vecchia password, le passkey e la verifica in due passaggi non valgono più/,
+  )
+  expect(out.stderr).toMatch(
+    /consegnali solo sul canale con cui hai verificato l'identità, valgono 30 minuti/,
   )
   // the token appears only in the link, never on stderr
   expect(out.stderr).not.toMatch(/platform\.|hash-finto/)

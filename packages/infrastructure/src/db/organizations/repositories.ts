@@ -319,7 +319,7 @@ function pgCode(error: unknown): string | undefined {
   return undefined
 }
 
-export function drizzleInvites(db: DbExecutor): InvitesRepository {
+export function drizzleInvites(db: DbExecutor, ctx: TxContext): InvitesRepository {
   const valid = (tokenHash: Buffer, now: Date) =>
     and(eq(invites.tokenHash, tokenHash), isNull(invites.usedAt), gt(invites.expiresAt, now))
   return {
@@ -385,6 +385,16 @@ export function drizzleInvites(db: DbExecutor): InvitesRepository {
           ),
         )
       return row?.n ?? 0
+    },
+    async listOpenSentBy(userId, now) {
+      if (ctx.kind !== 'system')
+        throw new Error('invites of every agency are read only in the system scope')
+      const rows = await db
+        .select(inviteColumns)
+        .from(invites)
+        .where(and(eq(invites.invitedBy, userId), openAt(now)))
+        .orderBy(asc(invites.createdAt), asc(invites.id))
+      return rows.map(toInvite)
     },
     async listOpen(organizationId, now) {
       const rows = await db

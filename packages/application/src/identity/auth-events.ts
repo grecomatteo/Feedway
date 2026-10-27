@@ -242,7 +242,8 @@ const LINK_INVALID_MESSAGE = 'Il link non è valido o è scaduto.'
 
 /**
  * "Non sono stato io" from a security email: disables the account, closes every session,
- * revokes every pending link and forgets the known devices, all in one transaction, and tells
+ * revokes every pending link, forgets the known devices and revokes the open invites the person
+ * sent, all in one transaction, and tells
  * the administrators. Safe to repeat; re-enabling is a platform administrator's job after
  * checking the person's identity (`cli enable-user --verified-by`), and links issued before that
  * reactivation are refused.
@@ -255,7 +256,9 @@ export async function lockAccountFromSecurityEmail(
   const claim = deps.tokens.verify('security_lock', input.token, now)
   if (claim === null) throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
   const { userId } = claim
-  await deps.uow.run({ userId }, async (tx) => {
+  // System scope: the invites the person sent belong to their agencies, and they are revoked in
+  // this same transaction. The person is only the one the signed link names.
+  await deps.uow.runAsSystem('security lock from a signed link', async (tx) => {
     const user = await tx.users.findByIdForUpdate(userId)
     if (user === null) throw new DomainError('LINK_INVALID', LINK_INVALID_MESSAGE)
     // a link from before the last reactivation (an old email) must not lock the account again
@@ -272,7 +275,25 @@ export async function lockAccountFromSecurityEmail(
     const tokensRevoked =
       (await tx.credentials.revokePendingTokens(userId)) +
       (await tx.knownDevices.deleteAllForUser(userId))
-    if (!disabled && !marked && sessionsClosed === 0 && tokensRevoked === 0) return
+    // whoever had the account may have invited accomplices: their links stop working
+    const sent = await tx.invites.listOpenSentBy(userId, now)
+    for (const invite of sent) {
+      await tx.invites.expire(invite.id, now)
+      await tx.audit.record({
+        organizationId: invite.organizationId,
+        actorId: userId,
+        source: 'panel',
+        action: 'user.invite_revoked',
+        entity: 'invite',
+        entityId: invite.id,
+        workspaceId: null,
+        ip: input.ip,
+        data: { reason: 'security_lock' },
+      })
+    }
+    const invitesRevoked = sent.length
+    if (!disabled && !marked && sessionsClosed === 0 && tokensRevoked === 0 && invitesRevoked === 0)
+      return
     await tx.audit.record({
       organizationId: null,
       actorId: userId,
@@ -282,7 +303,7 @@ export async function lockAccountFromSecurityEmail(
       entityId: userId,
       workspaceId: null,
       ip: input.ip,
-      data: { sessionsClosed, tokensRevoked },
+      data: { sessionsClosed, tokensRevoked, invitesRevoked },
     })
     // Once per lock. Queued before the commit: if it fails, nothing is locked and the person can
     // retry; the handler waits for the commit (it retries until it sees this lock).

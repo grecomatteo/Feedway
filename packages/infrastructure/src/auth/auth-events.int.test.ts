@@ -13,6 +13,7 @@ import {
 } from '@app/application'
 import { createDb, type Db } from '../db/client.js'
 import { auditLog } from '../db/audit/schema.js'
+import { invites } from '../db/organizations/schema.js'
 import { knownDevices, sessions, users, verifications } from '../db/identity/schema.js'
 import { createPasswordHasher } from '../crypto/password-hasher.js'
 import { createSignedTokens } from '../crypto/signed-tokens.js'
@@ -21,7 +22,7 @@ import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createLogger } from '../logging/logger.js'
 import { systemClock } from '../system/clock.js'
 import { uuidV7Generator } from '../system/id-generator.js'
-import { fixedClock, startTestDatabase, type TestDatabase } from '../testing/index.js'
+import { fixedClock, seed, startTestDatabase, type TestDatabase } from '../testing/index.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
 
 const PANEL = 'https://app.feedway.test'
@@ -67,6 +68,7 @@ function build(events: AuthEventSink): BetterAuthInstance {
   const secret = randomBytes(32).toString('hex')
   return createBetterAuth({
     db,
+    signedTokens: tokens,
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',
@@ -398,7 +400,7 @@ test('the lock link disables the account, closes every session and can be repeat
   expect((await auditOf(id)).filter((r) => r.action === 'auth.security_lock')).toEqual([
     expect.objectContaining({
       ip: '93.41.12.200',
-      data: { sessionsClosed: 2, tokensRevoked: pending + 2 },
+      data: { sessionsClosed: 2, tokensRevoked: pending + 2, invitesRevoked: 0 },
     }),
   ])
   // a disabled account cannot sign in again
@@ -423,9 +425,67 @@ test('a lock is repeatable: a later pending link is revoked too, without a secon
   expect(
     (await auditOf(id)).filter((r) => r.action === 'auth.security_lock').map((r) => r.data),
   ).toEqual([
-    { sessionsClosed: 0, tokensRevoked: 0 },
-    { sessionsClosed: 0, tokensRevoked: pending },
+    { sessionsClosed: 0, tokensRevoked: 0, invitesRevoked: 0 },
+    { sessionsClosed: 0, tokensRevoked: pending, invitesRevoked: 0 },
   ])
+})
+
+test('a lock revokes the invites the person sent and are still open, in each agency', async () => {
+  const { id } = await newUser()
+  const other = await newUser()
+  const [agencyA, agencyB] = await seed(tdb.runtimeUrl, async (s) => [
+    await s.organization(),
+    await s.organization(),
+  ])
+  const invite = async (organizationId: string, invitedBy: string, expiresInMs = 3600_000) => {
+    const inviteId = uuidV7Generator.newId()
+    await admin.insert(invites).values({
+      id: inviteId,
+      organizationId,
+      purpose: 'invite',
+      email: `invitato-${inviteId.slice(-8)}@example.test`,
+      tokenHash: randomBytes(32),
+      invitedBy,
+      orgRole: 'member',
+      expiresAt: new Date(Date.now() + expiresInMs),
+    })
+    return inviteId
+  }
+  const mine = [await invite(agencyA, id), await invite(agencyB, id)]
+  const expired = await invite(agencyA, id, -1000)
+  const theirs = await invite(agencyA, other.id)
+  const clock = fixedClock(new Date())
+  const token = tokens.sign('security_lock', {
+    userId: id,
+    issuedAt: clock.now(),
+    expiresAt: new Date(clock.now().getTime() + 7 * 86_400_000),
+  })
+  await lockAccountFromSecurityEmail({ uow, tokens, clock, queue }, { token, ip: null })
+  const rows = await admin.select().from(invites)
+  const open = (inviteId: string) =>
+    (rows.find((r) => r.id === inviteId)?.expiresAt.getTime() ?? 0) > clock.now().getTime()
+  expect(mine.map(open)).toEqual([false, false])
+  expect(open(theirs)).toBe(true)
+  const revoked = await admin
+    .select()
+    .from(auditLog)
+    .where(eq(auditLog.action, 'user.invite_revoked'))
+  expect(
+    revoked
+      .filter((r) => r.entityId !== null && [...mine, expired].includes(r.entityId))
+      .map((r) => ({ org: r.organizationId, id: r.entityId, actor: r.actorId, data: r.data }))
+      .sort((a, b) => (a.id ?? '').localeCompare(b.id ?? '')),
+  ).toEqual(
+    [
+      { org: agencyA, id: mine[0], actor: id, data: { reason: 'security_lock' } },
+      { org: agencyB, id: mine[1], actor: id, data: { reason: 'security_lock' } },
+    ].sort((a, b) => (a.id ?? '').localeCompare(b.id ?? '')),
+  )
+  expect((await auditOf(id)).find((r) => r.action === 'auth.security_lock')?.data).toEqual({
+    sessionsClosed: 0,
+    tokensRevoked: 0,
+    invitesRevoked: 2,
+  })
 })
 
 test('a lock whose notice cannot be queued changes nothing', async () => {
