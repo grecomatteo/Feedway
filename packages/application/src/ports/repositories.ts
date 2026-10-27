@@ -79,6 +79,8 @@ export interface UsersRepository {
    */
   markSecurityLocked(id: string, at: Date): Promise<boolean>
   platformAdminExists(): Promise<boolean>
+  /** Clears a "Non sono stato io" mark the recovery already closed. System scope only. */
+  clearSecurityLock(id: string): Promise<void>
   /** Platform administrators who can act: active, not anonymized. System scope only. */
   listActivePlatformAdmins(): Promise<UserRecord[]>
   setPlatformAdmin(id: string): Promise<void>
@@ -96,6 +98,8 @@ export interface UsersRepository {
 export interface CredentialsRepository {
   /** Removes the password credential; false when the account had none. Passkeys stay. */
   removePassword(userId: string): Promise<boolean>
+  /** Whether the account has a password; never the hash. Any scope. */
+  hasPassword(userId: string): Promise<boolean>
   /**
    * The recovery link after a verified reactivation: a reset token in the format
    * `/reset-password` reads (ADR 012, V6) and, beside it, the keyed hash of the code the

@@ -1012,6 +1012,64 @@ describe('platform users', () => {
     ])
   })
 
+  test('if closing the recovery fails after the new password, nothing stays stuck', async () => {
+    const user = await pendingRecovery('chiusura-fallita')
+    // the database refuses to clear the mark for this person: the after hook fails
+    const fn = `fail_clear_${user.id.replaceAll('-', '_')}`
+    await admin.query(`create function ${fn}() returns trigger language plpgsql as $$
+      begin
+        if new.id = '${user.id}' and new.security_locked_at is null
+           and old.security_locked_at is not null then
+          raise exception 'chiusura del recupero non riuscita';
+        end if;
+        return new;
+      end $$`)
+    await admin.query(
+      `create trigger ${fn} before update on users for each row execute function ${fn}()`,
+    )
+    let reset: Response
+    try {
+      reset = await post('/reset-password', {
+        token: user.token,
+        newPassword: NEW_PASSWORD,
+        code: user.code,
+      })
+    } finally {
+      await admin.query(`drop trigger ${fn} on users`)
+      await admin.query(`drop function ${fn}()`)
+    }
+    // the password is changed: the answer says so, and the mark is still there
+    expect(reset.status).toBe(200)
+    const mark = async () =>
+      (
+        await admin.query<{ security_locked_at: Date | null }>(
+          'select security_locked_at from users where id = $1',
+          [user.id],
+        )
+      ).rows[0]?.security_locked_at ?? null
+    expect(await mark()).not.toBeNull()
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
+
+    // ordinary resets work: the person has chosen a password, the recovery is over
+    const before = queued.length
+    await post('/request-password-reset', { email: user.email, redirectTo: '/reimposta' })
+    expect(
+      queued.slice(before).filter((q) => q.name === 'identity.password_reset_email').length,
+    ).toBe(1)
+    // and enable-user does not take the new password away: it only clears the stale mark
+    user.clock.advance(1000)
+    const again = await enableUserEverywhere(
+      { ...deps, clock: user.clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      phone,
+    )
+    expect(again).toEqual({ status: 'already_active', recovery: null })
+    expect(await mark()).toBeNull()
+    expect(await hasPassword(user.id)).toBe(true)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
+  })
+
   test('a new lock while the recovery is pending locks again and tells the administrators', async () => {
     const user = await pendingRecovery('di-nuovo-bloccato')
     user.clock.advance(1000)

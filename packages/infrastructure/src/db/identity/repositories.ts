@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, count, eq, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type {
   CredentialsRepository,
   IdGenerator,
@@ -177,6 +177,11 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .limit(1)
       return row !== undefined
     },
+    async clearSecurityLock(id) {
+      if (ctx.kind !== 'system')
+        throw new Error('a security lock is cleared only in the system scope')
+      await db.update(users).set({ securityLockedAt: null }).where(eq(users.id, id))
+    },
     async listActivePlatformAdmins() {
       if (ctx.kind !== 'system')
         throw new Error('platform administrators are listed only in the system scope')
@@ -327,6 +332,20 @@ export function drizzleCredentials(
         .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
         .returning({ id: accounts.id })
       return removed.length > 0
+    },
+    async hasPassword(userId) {
+      const [row] = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.userId, userId),
+            eq(accounts.providerId, 'credential'),
+            isNotNull(accounts.password),
+          ),
+        )
+        .limit(1)
+      return row !== undefined
     },
     async issueAccountRecovery(userId, expiresAt, codeHash) {
       onlySystem()

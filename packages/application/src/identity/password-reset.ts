@@ -51,7 +51,7 @@ export async function createPasswordResetLink(
     if (!user || user.status !== 'active' || user.anonymizedAt !== null)
       throw new DomainError('CONFLICT', 'Questo account non è attivo')
     // the person chooses the password with the platform's recovery link and code, nobody else
-    if (user.securityLockedAt !== null)
+    if (user.securityLockedAt !== null && !(await tx.credentials.hasPassword(userId)))
       throw new DomainError(
         'CONFLICT',
         'L’account è in recupero dopo un blocco "Non sono stato io": la nuova password si sceglie solo con il link e il codice dell’amministratore della piattaforma',
@@ -103,7 +103,10 @@ export async function sendPasswordResetEmail(
     deps.logger.info({}, 'password reset email skipped: account not active')
     return
   }
-  if (user.securityLockedAt !== null) {
+  const pending =
+    user.securityLockedAt !== null &&
+    !(await deps.uow.run({ userId: job.userId }, (tx) => tx.credentials.hasPassword(job.userId)))
+  if (pending) {
     deps.logger.info({}, 'password reset email skipped: recovery pending')
     return
   }

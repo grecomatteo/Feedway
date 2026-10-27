@@ -613,14 +613,20 @@ async function refuseOrdinaryResetWhileRecovering(db: Db, ctx: HookContext): Pro
   if (userId !== null && (await recoveryPending(db, userId))) throw linkInvalid()
 }
 
-/** "Non sono stato io" not yet closed by the person's own recovery (`users.security_locked_at`). */
+/**
+ * "Non sono stato io" not yet closed by the person's own recovery: the mark is set and the
+ * account is still disabled or has no password. Once the recovery link has set a password the
+ * recovery is over even if clearing the mark failed (the after hook is not in Better Auth's
+ * transaction): only that link can create a password while the mark is set.
+ */
 export async function recoveryPending(db: Db, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ lockedAt: users.securityLockedAt })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  return row !== undefined && row.lockedAt !== null
+  const { rows } = await db.execute<{ pending: boolean }>(
+    sql`select (u.security_locked_at is not null and (u.status <> 'active' or not exists (
+          select 1 from accounts a where a.user_id = u.id and a.provider_id = 'credential'
+            and a.password is not null))) as pending
+        from users u where u.id = ${userId}::uuid`,
+  )
+  return rows[0]?.pending === true
 }
 
 /**
@@ -783,7 +789,21 @@ async function recordEvent(deps: HookDeps, ctx: HookContext, request: Request): 
 export function createAfterHook(deps: HookDeps) {
   return createAuthMiddleware(async (ctx) => {
     if (!ctx.request) return
-    await completeRecovery(deps, ctx)
+    try {
+      await completeRecovery(deps, ctx)
+    } catch (error) {
+      // The password is already changed: the answer stays a success. The stale mark is harmless
+      // (`recoveryPending` sees the password) and the next `enable-user` clears it. Only the
+      // error code: a failed query's message carries its parameters.
+      const code = (error as { cause?: { code?: unknown } }).cause?.code
+      deps.logger.error(
+        {
+          requestId: header(ctx.request, 'x-app-request-id'),
+          code: typeof code === 'string' ? code : null,
+        },
+        'recovery not closed after the new password',
+      )
+    }
     await recordEvent(deps, ctx, ctx.request)
     if (ctx.path !== '/sign-in/email') return
     const email = (ctx.body as Record<string, unknown> | undefined)?.['email']

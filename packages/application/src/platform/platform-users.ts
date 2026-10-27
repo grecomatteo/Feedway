@@ -180,7 +180,12 @@ export async function enableUserEverywhere(
     // Active again but the recovery never finished (link lost or expired, five wrong codes, a
     // reset that failed half-way): with the identity checked again, the old link goes and a new
     // one is issued.
-    const reissue = !enabled && locked && user.status === 'active'
+    const pending =
+      !enabled && locked && user.status === 'active' && !(await tx.credentials.hasPassword(userId))
+    // a password set with the recovery link means the recovery is over, even if clearing the
+    // mark failed then: the mark goes now and the new password stays
+    if (!enabled && locked && !pending) await tx.users.clearSecurityLock(userId)
+    const reissue = pending
     if (!enabled && !reissue) return { status: 'already_active' as const, recovery: null }
     if (locked)
       await tx.audit.record({
