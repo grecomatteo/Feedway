@@ -4,6 +4,7 @@ export type { Logger, LogLevel } from './ports/logger.js'
 export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
   AccountLockedNoticeData,
+  AccountLockedNoticeEmailData,
   AccountRecoveryEmailData,
   JobPayloads,
   JobQueue,

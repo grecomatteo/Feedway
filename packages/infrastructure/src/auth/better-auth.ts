@@ -25,6 +25,7 @@ import {
   createAfterHook,
   createBeforeHook,
   mayOpenSession,
+  recoveryPending,
 } from './auth-hooks.js'
 
 export interface BetterAuthConfig {
@@ -161,6 +162,12 @@ export function createBetterAuth(deps: BetterAuthDeps) {
       resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
       sendResetPassword: async ({ user, url }) => {
         try {
+          // A recovery after "Non sono stato io" is pending: only its own link may set the
+          // password. Nothing leaves; the browser gets the answer of an unknown email.
+          if (await recoveryPending(deps.db, user.id)) {
+            deps.logger.info({}, 'password reset email skipped: recovery pending')
+            return
+          }
           // the handler checks the account again and sends nothing for a disabled one
           // Only for the email's wording: Better Auth computes the real expiry of the token with
           // its own clock, from resetPasswordTokenExpiresIn.

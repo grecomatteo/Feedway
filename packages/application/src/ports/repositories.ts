@@ -28,7 +28,11 @@ export interface UserRecord {
   disabledAt: Date | null
   /** Last reactivation by the platform: lock links issued before it no longer work. */
   reactivatedAt: Date | null
-  /** "Non sono stato io" since the last reactivation: the password is no longer trusted. */
+  /**
+   * "Non sono stato io": set by the lock, kept through the reactivation and cleared only when the
+   * person chooses a password with the recovery link and code. While set, no ordinary reset is
+   * issued or accepted (the account may be active, with no password and no second factor).
+   */
   securityLockedAt: Date | null
   anonymizedAt: Date | null
   createdAt: Date
@@ -64,11 +68,15 @@ export interface UsersRepository {
   /** false: the account was already disabled. */
   disable(id: string, at: Date): Promise<boolean>
   /**
-   * Platform reactivation, system scope only: active again, `reactivatedAt` set. false: the
-   * account was not disabled, or is anonymized.
+   * Platform reactivation, system scope only: active again, `reactivatedAt` set;
+   * `securityLockedAt` stays until the recovery is complete. false: the account was not
+   * disabled, or is anonymized.
    */
   enable(id: string, at: Date): Promise<boolean>
-  /** Records a "Non sono stato io" lock; false when one is already recorded. */
+  /**
+   * Records a "Non sono stato io" lock; false when one is already recorded and the account has
+   * not been reactivated since.
+   */
   markSecurityLocked(id: string, at: Date): Promise<boolean>
   platformAdminExists(): Promise<boolean>
   /** Platform administrators who can act: active, not anonymized. System scope only. */

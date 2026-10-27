@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type {
   CredentialsRepository,
   IdGenerator,
@@ -147,7 +147,7 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
       if (ctx.kind !== 'system') throw new Error('accounts are enabled only in the system scope')
       const changed = await db
         .update(users)
-        .set({ status: 'active', disabledAt: null, reactivatedAt: at, securityLockedAt: null })
+        .set({ status: 'active', disabledAt: null, reactivatedAt: at })
         .where(and(eq(users.id, id), eq(users.status, 'disabled'), isNull(users.anonymizedAt)))
         .returning({ id: users.id })
       return changed.length > 0
@@ -156,7 +156,16 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
       const marked = await db
         .update(users)
         .set({ securityLockedAt: at })
-        .where(and(eq(users.id, ownUser(ctx, id)), isNull(users.securityLockedAt)))
+        // a new lock while a recovery is pending (reactivated after the last lock) counts again
+        .where(
+          and(
+            eq(users.id, ownUser(ctx, id)),
+            or(
+              isNull(users.securityLockedAt),
+              sql`${users.reactivatedAt} >= ${users.securityLockedAt}`,
+            ),
+          ),
+        )
         .returning({ id: users.id })
       return marked.length > 0
     },

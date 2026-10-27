@@ -58,6 +58,7 @@ afterAll(async () => {
 
 function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDeps {
   return {
+    queue: runtime.queue,
     logger,
     uow: runtime.uow,
     clock: runtime.clock,

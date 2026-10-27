@@ -1,6 +1,7 @@
 import type {
   Clock,
   IdGenerator,
+  JobQueue,
   JobPayloads,
   Logger,
   Mailer,
@@ -14,6 +15,8 @@ import type {
 /** What a handler may use; built by the composition root (createRuntime). */
 export interface JobHandlerDeps {
   logger: Logger
+  /** A handler that fans work out queues the next jobs (lock notices, one per recipient). */
+  queue: Pick<JobQueue, 'send'>
   /** organization and user jobs open uow.run with the ids in their data */
   uow: UnitOfWork
   clock: Clock

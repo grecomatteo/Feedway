@@ -4,14 +4,17 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import type { Mailer } from '@app/application'
+import type { JobPayloads, JobQueue, Mailer } from '@app/application'
 import { createMemoryMailer, createRuntime, notConfiguredMailer } from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
 import { fixedClock, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { createTranslate, loadItalianMessages } from '../i18n.js'
 import type { JobHandlerDeps } from '../job-handler.js'
-import { identityAccountLockedNotice } from './identity-account-locked-notice.js'
+import {
+  identityAccountLockedNotice,
+  identityAccountLockedNoticeEmail,
+} from './identity-account-locked-notice.js'
 
 const PANEL = new URL('https://pannello.example.test')
 // 19:20 in Rome
@@ -55,9 +58,22 @@ afterAll(async () => {
   await tdb.stop()
 })
 
-function depsWith(mailer: Mailer): JobHandlerDeps {
+type NoticeEmail = JobPayloads['identity.account_locked_notice_email']
+const queued: NoticeEmail[] = []
+const recording: JobQueue = {
+  send(name, data) {
+    if (name === 'identity.account_locked_notice_email') queued.push(data as NoticeEmail)
+    return Promise.resolve(null)
+  },
+  work: () => Promise.reject(new Error('not used')),
+  ping: () => Promise.resolve(),
+  stop: () => Promise.resolve(),
+}
+
+function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
   return {
     logger: runtime.logger,
+    queue,
     uow: runtime.uow,
     clock: fixedClock(new Date(LOCKED_AT.getTime() + 60_000)),
     ids: runtime.ids,
@@ -149,7 +165,12 @@ test('the platform administrators and the Owners of the person’s agencies are 
   })
   await lock(locked.id)
   const mailer = createMemoryMailer()
+  // one job per recipient, each sent on its own: a retry never writes twice to anyone
+  queued.length = 0
   await identityAccountLockedNotice(job(locked.id), depsWith(mailer))
+  expect(queued).toHaveLength(2)
+  for (const data of queued)
+    await identityAccountLockedNoticeEmail({ id: randomUUID(), data }, depsWith(mailer))
 
   expect(mailer.sent.map((m) => m.to).sort()).toEqual([owner.email, platformAdmin.email].sort())
   for (const mail of mailer.sent) {
@@ -181,15 +202,16 @@ test('the platform administrators and the Owners of the person’s agencies are 
 test('a notice for a lock not yet committed is retried; after a reactivation it is dropped', async () => {
   const locked = await user('in-attesa')
   const mailer = createMemoryMailer()
+  queued.length = 0
   await expect(identityAccountLockedNotice(job(locked.id), depsWith(mailer))).rejects.toThrow()
-  expect(mailer.sent).toEqual([])
+  expect(queued).toEqual([])
 
   await admin.query('update users set reactivated_at = $2 where id = $1', [
     locked.id,
     new Date(LOCKED_AT.getTime() + 1000),
   ])
   await identityAccountLockedNotice(job(locked.id), depsWith(mailer))
-  expect(mailer.sent).toEqual([])
+  expect(queued).toEqual([])
   expect(await notified(locked.id)).toEqual([])
 })
 
@@ -200,4 +222,37 @@ test('without email configured the job completes and records that nobody was tol
   expect(await notified(locked.id)).toEqual([
     { data: { recipients: 0 }, organization_id: null, source: 'system' },
   ])
+})
+
+test('a retried notice queues each recipient once, and a failed email is retried alone', async () => {
+  const locked = await user('ripetuto')
+  const owner = await user('titolare-ripetuto')
+  await seed(tdb.runtimeUrl, async (s) => {
+    const org = await s.organization()
+    await s.member(org, locked.id, 'member')
+    await s.member(org, owner.id, 'owner')
+  })
+  await lock(locked.id)
+  // the real queue: the second run (a pg-boss retry) adds nothing
+  const mailer = createMemoryMailer()
+  await identityAccountLockedNotice(job(locked.id), depsWith(mailer, runtime.queue))
+  await identityAccountLockedNotice(job(locked.id), depsWith(mailer, runtime.queue))
+  const { rows } = await admin.query<{ data: NoticeEmail }>(
+    "select data from pgboss.job where name = 'identity.account_locked_notice_email'",
+  )
+  const mine = rows.map((r) => r.data).filter((d) => d.lockedUserId === locked.id)
+  expect(mine.map((d) => d.recipientId).sort()).toEqual([owner.id, platformAdmin.id].sort())
+
+  // the Owner's mail server fails: only the Owner's job fails, the administrator is not resent
+  const failing: Mailer = {
+    isConfigured: () => Promise.resolve(true),
+    send: (m) => (m.to === owner.email ? Promise.reject(new Error('smtp giù')) : mailer.send(m)),
+  }
+  const results = await Promise.allSettled(
+    mine.map((data) =>
+      identityAccountLockedNoticeEmail({ id: randomUUID(), data }, depsWith(failing)),
+    ),
+  )
+  expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+  expect(mailer.sent.map((m) => m.to)).toEqual([platformAdmin.email])
 })

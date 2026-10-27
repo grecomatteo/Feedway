@@ -8,6 +8,7 @@ test('every registered queue declares a scope', () => {
     ['identity.security_email', 'user'],
     ['identity.password_reset_email', 'user'],
     ['identity.account_locked_notice', 'system'],
+    ['identity.account_locked_notice_email', 'system'],
     ['identity.account_recovery_email', 'user'],
   ])
   expect(QUEUE_NAMES).toEqual([
@@ -15,6 +16,7 @@ test('every registered queue declares a scope', () => {
     'identity.security_email',
     'identity.password_reset_email',
     'identity.account_locked_notice',
+    'identity.account_locked_notice_email',
     'identity.account_recovery_email',
   ])
 })

@@ -19,5 +19,5 @@ export type {
   EnableResult,
   IdentityVerificationMethod,
 } from './platform-users.js'
-export { sendAccountLockedNotice } from './account-lock-notice.js'
+export { sendAccountLockedNotice, sendAccountLockedNoticeEmail } from './account-lock-notice.js'
 export type { AccountLockedNoticeDeps } from './account-lock-notice.js'

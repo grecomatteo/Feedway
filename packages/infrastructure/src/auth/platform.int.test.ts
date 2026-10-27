@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
   activateAccount,
   createAuthEventSink,
+  createPasswordResetLink,
   createOrganization,
   disableUserEverywhere,
   enableUserEverywhere,
@@ -810,6 +811,228 @@ describe('platform users', () => {
     })
     expect(reset.status).toBe(400)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
+  /** Locked, then enabled after a phone check: the recovery is pending. */
+  async function pendingRecovery(prefix: string) {
+    const user = await person(prefix)
+    const clock = fixedClock(new Date())
+    await lockNow(user.id, clock)
+    clock.advance(1000)
+    const enabled = await enableUserEverywhere(
+      { ...deps, clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      phone,
+    )
+    const url = recoveryJobs(user.id).at(-1)?.url ?? ''
+    return { ...user, clock, code: enabled.recovery?.code ?? '', token: tokenOf(url) }
+  }
+  const hasPassword = async (userId: string) =>
+    (
+      await admin.query(
+        "select 1 from accounts where user_id = $1 and provider_id = 'credential'",
+        [userId],
+      )
+    ).rowCount === 1
+
+  test('a recovery token in the query string, or an empty token in the body, is refused', async () => {
+    const user = await pendingRecovery('token-in-query')
+    for (const body of [{ token: '', newPassword: NEW_PASSWORD }, { newPassword: NEW_PASSWORD }]) {
+      const res = await instance.handler(
+        new Request(`${PANEL}/api/auth/reset-password?token=${encodeURIComponent(user.token)}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: PANEL,
+            'x-app-client-ip': randomIp(),
+          },
+          body: JSON.stringify(body),
+        }),
+      )
+      expect(res.status).toBe(400)
+      expect(await errorCode(res)).toBe('LINK_INVALID')
+    }
+    expect(await hasPassword(user.id)).toBe(false)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+    // the right request still works: nothing was spent
+    const reset = await post('/reset-password', {
+      token: user.token,
+      newPassword: NEW_PASSWORD,
+      code: user.code,
+    })
+    expect(reset.status).toBe(200)
+  })
+
+  test('while a recovery is pending, no ordinary reset is issued or accepted', async () => {
+    const user = await pendingRecovery('in-sospeso')
+    // "Password dimenticata": the same answer as an unknown email, and nothing is sent
+    const before = queued.length
+    const asked = await post('/request-password-reset', {
+      email: user.email,
+      redirectTo: '/reimposta',
+    })
+    const unknown = await post('/request-password-reset', {
+      email: uniqueEmail('nessuno'),
+      redirectTo: '/reimposta',
+    })
+    expect(asked.status).toBe(unknown.status)
+    expect(await asked.text()).toBe(await unknown.text())
+    expect(
+      queued
+        .slice(before)
+        .filter(
+          (q) =>
+            q.name === 'identity.password_reset_email' &&
+            (q.data as { userId: string }).userId === user.id,
+        ),
+    ).toEqual([])
+    // a reset token issued anyway (an agency's copied link, an older "Password dimenticata")
+    for (const url of [await auth.passwordResetUrl(user.email)]) {
+      const res = await post('/reset-password', {
+        token: tokenOf(url ?? ''),
+        newPassword: NEW_PASSWORD,
+      })
+      expect(res.status).toBe(400)
+      expect(await errorCode(res)).toBe('LINK_INVALID')
+    }
+    const plain = `semplice-${randomUUID()}`
+    await admin.query(
+      `insert into verifications (id, identifier, value, expires_at) values ($1, $2, $3, now() + interval '1 hour')`,
+      [randomUUID(), `reset-password:${plain}`, user.id],
+    )
+    const forgot = await post('/reset-password', { token: plain, newPassword: NEW_PASSWORD })
+    expect(forgot.status).toBe(400)
+    expect(await errorCode(forgot)).toBe('LINK_INVALID')
+    expect(await hasPassword(user.id)).toBe(false)
+
+    // the agency's panel says why it cannot make one
+    const { orgId } = await seed(tdb.runtimeUrl, async (s) => {
+      const orgId = await s.organization()
+      await s.member(orgId, user.id, 'member')
+      return { orgId }
+    })
+    const owner = await person('titolare-pannello')
+    await admin.query(
+      "insert into organization_members (organization_id, user_id, role, status) values ($1, $2, 'owner', 'active')",
+      [orgId, owner.id],
+    )
+    const actor = await resolveOrgActor({ uow }, { userId: owner.id, organizationSlug: orgId })
+    const now = new Date()
+    const session = {
+      id: randomUUID(),
+      userId: owner.id,
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: new Date(now.getTime() + 3600_000),
+      ipAddress: null,
+      userAgent: null,
+      authMethod: 'password_totp' as const,
+      reauthenticatedAt: now,
+    }
+    await expect(
+      createPasswordResetLink(identityDeps, actor, session, user.id, { ip: null }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: expect.stringMatching(/Non sono stato io/) as unknown,
+    })
+
+    // once the person has chosen the password with the recovery link, all is back to normal
+    const reset = await post('/reset-password', {
+      token: user.token,
+      newPassword: NEW_PASSWORD,
+      code: user.code,
+    })
+    expect(reset.status).toBe(200)
+    const { rows } = await admin.query<{ security_locked_at: Date | null }>(
+      'select security_locked_at from users where id = $1',
+      [user.id],
+    )
+    expect(rows[0]?.security_locked_at).toBeNull()
+    const again = queued.length
+    await post('/request-password-reset', { email: user.email, redirectTo: '/reimposta' })
+    expect(
+      queued.slice(again).filter((q) => q.name === 'identity.password_reset_email').length,
+    ).toBe(1)
+  })
+
+  test('a lost or spent recovery starts over: enable-user again revokes the old link', async () => {
+    const user = await pendingRecovery('di-nuovo')
+    // five wrong codes: the link is void
+    for (let i = 0; i < 5; i++)
+      await post('/reset-password', {
+        token: user.token,
+        newPassword: NEW_PASSWORD,
+        code: otherCode(user.code),
+      })
+    // a refused password does not spend anything either
+    user.clock.advance(1000)
+    const again = await enableUserEverywhere(
+      { ...deps, clock: user.clock },
+      SYSTEM_PLATFORM_ACTOR,
+      user.id,
+      { identityVerification: { method: 'in_person' } },
+    )
+    expect(again).toEqual({
+      status: 'recovery_reissued',
+      recovery: { channel: 'email', code: expect.stringMatching(/^\d{6}$/) as unknown },
+    })
+    const token = tokenOf(recoveryJobs(user.id).at(-1)?.url ?? '')
+    expect(token).not.toBe(user.token)
+    const code = again.recovery?.code ?? ''
+    const weak = await post('/reset-password', { token, newPassword: 'corta', code })
+    expect(weak.status).not.toBe(200)
+    const reset = await post('/reset-password', { token, newPassword: NEW_PASSWORD, code })
+    expect(reset.status).toBe(200)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
+    // without the identity check nothing is reissued
+    const second = await pendingRecovery('senza-verifica')
+    await expect(
+      enableUserEverywhere(deps, SYSTEM_PLATFORM_ACTOR, second.id),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    second.clock.advance(1000)
+    await enableUserEverywhere(
+      { ...deps, clock: second.clock },
+      SYSTEM_PLATFORM_ACTOR,
+      second.id,
+      phone,
+    )
+    const old = await post('/reset-password', {
+      token: second.token,
+      newPassword: NEW_PASSWORD,
+      code: second.code,
+    })
+    expect(await errorCode(old)).toBe('LINK_INVALID')
+    const entries = (await platformAudit('auth.recovery_link_sent')).filter(
+      (e) => e.entity_id === second.id,
+    )
+    expect(entries.map((e) => e.data)).toEqual([
+      { channel: 'email', reissued: true },
+      { channel: 'email' },
+    ])
+  })
+
+  test('a new lock while the recovery is pending locks again and tells the administrators', async () => {
+    const user = await pendingRecovery('di-nuovo-bloccato')
+    user.clock.advance(1000)
+    const before = queued.length
+    await lockNow(user.id, user.clock)
+    const notices = queued.slice(before).filter((q) => q.name === 'identity.account_locked_notice')
+    expect(notices.map((q) => q.data)).toEqual([
+      { lockedUserId: user.id, lockedAt: user.clock.now().toISOString() },
+    ])
+    const { rows } = await admin.query<{ status: string }>(
+      'select status from users where id = $1',
+      [user.id],
+    )
+    expect(rows[0]?.status).toBe('disabled')
+    // the pending recovery link went with the lock
+    const old = await post('/reset-password', {
+      token: user.token,
+      newPassword: NEW_PASSWORD,
+      code: user.code,
+    })
+    expect(await errorCode(old)).toBe('LINK_INVALID')
   })
 
   test('five wrong codes void the link: the right one no longer works', async () => {

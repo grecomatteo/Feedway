@@ -30,6 +30,7 @@ export const KNOWN_QUEUES = [
   'identity.security_email',
   'identity.password_reset_email',
   'identity.account_locked_notice',
+  'identity.account_locked_notice_email',
   'identity.account_recovery_email',
 ] as const
 

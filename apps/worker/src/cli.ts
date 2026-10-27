@@ -184,6 +184,10 @@ const DISABLE_MESSAGE: ReadonlyMap<string, string> = new Map([
 const ENABLE_MESSAGE: ReadonlyMap<string, string> = new Map([
   ['enabled', 'Account riattivato: i link "Non sono stato io" precedenti non valgono più'],
   ['already_active', 'Account già attivo: nessun cambiamento'],
+  [
+    'recovery_reissued',
+    'Account già attivo con un recupero in sospeso: il link precedente non vale più, ne è stato emesso uno nuovo',
+  ],
 ])
 
 /** The SQLSTATE or system code of a failure, never its message: drizzle puts the query parameters there. */

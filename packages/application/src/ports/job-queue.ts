@@ -20,6 +20,7 @@ interface JobDefinitions {
   'identity.security_email': { scope: 'user'; data: SecurityEmailData }
   'identity.password_reset_email': { scope: 'user'; data: PasswordResetEmailData }
   'identity.account_locked_notice': { scope: 'system'; data: AccountLockedNoticeData }
+  'identity.account_locked_notice_email': { scope: 'system'; data: AccountLockedNoticeEmailData }
   'identity.account_recovery_email': { scope: 'user'; data: AccountRecoveryEmailData }
 }
 
@@ -31,6 +32,11 @@ export interface AccountLockedNoticeData {
   lockedUserId: string
   /** ISO 8601: the lock it is about; a later reactivation makes the notice pointless. */
   lockedAt: string
+}
+
+/** One recipient of a lock notice: one job each, so a failed email is retried alone. */
+export interface AccountLockedNoticeEmailData extends AccountLockedNoticeData {
+  recipientId: string
 }
 
 /**
@@ -97,7 +103,15 @@ export interface JobQueue {
   send<N extends QueueName>(
     name: N,
     data: JobPayloads[N],
-    opts?: { singletonKey?: string; startAfter?: Date },
+    opts?: {
+      singletonKey?: string
+      startAfter?: Date
+      /**
+       * At most one job per key while pg-boss keeps it (completed ones included): a retried
+       * producer does not queue the same work twice. null: the job already existed.
+       */
+      dedupeKey?: string
+    },
   ): Promise<string | null>
   work<N extends QueueName>(
     name: N,

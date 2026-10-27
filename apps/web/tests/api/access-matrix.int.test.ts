@@ -271,7 +271,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'auth.new_device': ['device'],
   'auth.security_lock': ['sessionsClosed', 'tokensRevoked', 'invitesRevoked'],
   'auth.security_lock_notified': ['recipients'],
-  'auth.recovery_link_sent': ['channel'],
+  'auth.recovery_link_sent': ['channel', 'reissued'],
   'session.revoked': ['count'],
   'user.invited': ['orgRole', 'memberships[].workspaceId', 'memberships[].role'],
   'user.invite_resent': [],
@@ -512,6 +512,7 @@ async function produceEveryAction() {
     await sendAccountLockedNotice(
       {
         uow,
+        queue,
         mailer,
         translate: createTranslate(
           JSON.parse(

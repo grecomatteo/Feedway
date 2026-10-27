@@ -1,5 +1,9 @@
 import { displayName } from '@app/domain'
-import type { AccountLockedNoticeData } from '../ports/job-queue.js'
+import type {
+  AccountLockedNoticeData,
+  AccountLockedNoticeEmailData,
+  JobQueue,
+} from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
 import type { Mailer, MailMessage } from '../ports/mailer.js'
 import type { UserRecord } from '../ports/repositories.js'
@@ -9,6 +13,8 @@ import { dayAndTime, emailFrame, oneLine, renderEmail, usableTimeZone } from '..
 
 export interface AccountLockedNoticeDeps {
   uow: UnitOfWork
+  /** The notice fans out: one `identity.account_locked_notice_email` job per recipient. */
+  queue: Pick<JobQueue, 'send'>
   mailer: Mailer
   translate: Translate
   logger: Logger
@@ -33,7 +39,7 @@ interface Recipient {
  * is also an Owner gets one email, the administrator's. null: nothing to tell any more.
  */
 async function findRecipients(
-  deps: AccountLockedNoticeDeps,
+  deps: Pick<AccountLockedNoticeDeps, 'uow'>,
   job: AccountLockedNoticeData,
 ): Promise<{ locked: UserRecord; recipients: Recipient[] } | null> {
   const lockedAt = new Date(job.lockedAt)
@@ -42,10 +48,10 @@ async function findRecipients(
   return deps.uow.runAsSystem('platform: who hears about a security lock', async (tx) => {
     const locked = await tx.users.findById(job.lockedUserId)
     if (locked === null || locked.anonymizedAt !== null) return null
+    // reactivated since: the administrators have already dealt with it
+    if (locked.reactivatedAt !== null && locked.reactivatedAt.getTime() >= lockedAt.getTime())
+      return null
     if (locked.securityLockedAt?.getTime() !== lockedAt.getTime()) {
-      // reactivated since: the administrators have already dealt with it
-      if (locked.reactivatedAt !== null && locked.reactivatedAt.getTime() >= lockedAt.getTime())
-        return null
       // queued inside the lock's transaction, which has not committed yet: pg-boss retries
       throw new Error('security lock not visible yet')
     }
@@ -75,7 +81,7 @@ async function findRecipients(
 }
 
 function noticeFor(
-  deps: AccountLockedNoticeDeps,
+  deps: Omit<AccountLockedNoticeDeps, 'queue'>,
   locked: UserRecord,
   lockedAt: Date,
   recipient: Recipient,
@@ -134,10 +140,9 @@ function noticeFor(
 }
 
 /**
- * Job `identity.account_locked_notice`: after "Non sono stato io", tells who can help that the
- * account is locked and how it is given back (identity checked on an independent channel). No
- * action link and no token: the reactivation happens from the command line. The activity log
- * gets how many were told, never who.
+ * Job `identity.account_locked_notice`: after "Non sono stato io", finds who can help and queues
+ * one email job per recipient, keyed by lock and recipient: a retry of this job queues nobody
+ * twice, and a failed email is retried alone. The activity log gets how many were told, never who.
  */
 export async function sendAccountLockedNotice(
   deps: AccountLockedNoticeDeps,
@@ -148,14 +153,19 @@ export async function sendAccountLockedNotice(
     deps.logger.info({}, 'security lock notice skipped: nothing to tell')
     return
   }
-  const lockedAt = new Date(job.lockedAt)
   let recipients = 0
-  for (const recipient of found.recipients) {
-    const result = await deps.mailer.send(noticeFor(deps, found.locked, lockedAt, recipient))
-    if (result === 'sent') recipients += 1
-  }
-  if (found.recipients.length > 0 && recipients === 0)
+  if (await deps.mailer.isConfigured()) {
+    for (const { user } of found.recipients) {
+      await deps.queue.send(
+        'identity.account_locked_notice_email',
+        { lockedUserId: job.lockedUserId, lockedAt: job.lockedAt, recipientId: user.id },
+        { dedupeKey: `${job.lockedUserId}:${job.lockedAt}:${user.id}` },
+      )
+      recipients += 1
+    }
+  } else if (found.recipients.length > 0) {
     deps.logger.info({}, 'security lock notice not sent: not_configured')
+  }
   await deps.uow.runAsSystem('platform: record a security lock notice', (tx) =>
     tx.audit.record({
       organizationId: null,
@@ -169,4 +179,26 @@ export async function sendAccountLockedNotice(
       data: { recipients },
     }),
   )
+}
+
+/**
+ * Job `identity.account_locked_notice_email`: the notice for one recipient, written for them
+ * (administrator or Owner) at the moment it leaves. No action link and no token: the
+ * reactivation happens from the command line. A mail failure fails this job only.
+ */
+export async function sendAccountLockedNoticeEmail(
+  deps: Omit<AccountLockedNoticeDeps, 'queue'>,
+  job: AccountLockedNoticeEmailData,
+): Promise<void> {
+  const found = await findRecipients(deps, job)
+  const recipient = found?.recipients.find((r) => r.user.id === job.recipientId)
+  if (!found || !recipient) {
+    deps.logger.info({}, 'security lock notice skipped: recipient no longer concerned')
+    return
+  }
+  const result = await deps.mailer.send(
+    noticeFor(deps, found.locked, new Date(job.lockedAt), recipient),
+  )
+  if (result === 'not_configured')
+    deps.logger.info({}, 'security lock notice not sent: not_configured')
 }

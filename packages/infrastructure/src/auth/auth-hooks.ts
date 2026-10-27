@@ -240,9 +240,8 @@ async function rememberBefore(deps: HookDeps, ctx: HookContext, request: Request
     const userId = await pendingSecondFactorUser(deps, ctx, request)
     if (userId !== undefined) pending.set(request, { userId })
   } else if (path === '/reset-password') {
-    const body = (ctx.body ?? {}) as Record<string, unknown>
-    const token = body['token'] ?? (ctx.query as Record<string, unknown> | undefined)?.['token']
-    if (typeof token !== 'string' || token === '') return
+    const token = resetToken(ctx)
+    if (!token) return
     const verification = await ctx.context.internalAdapter.findVerificationValue(
       `reset-password:${token}`,
     )
@@ -401,6 +400,9 @@ export function createBeforeHook(deps: HookDeps) {
     await enforceIpLimit(deps.rateLimiter, path, clientIp(ctx.request))
 
     const body = (ctx.body ?? {}) as Record<string, unknown>
+    // Better Auth reads `body.token || query.token`: one token, in the body, or nothing. Before any
+    // other check, so none of them can look at a different token than the library will use.
+    if (path === '/reset-password') assertBodyResetToken(ctx)
     // Trusting a device would skip the second factor for it; the 12-hour idle limit needs a
     // session that is renewed on use, which `rememberMe: false` turns off; a passkey
     // registration would clone the session with no sign-in recorded.
@@ -426,7 +428,10 @@ export function createBeforeHook(deps: HookDeps) {
     const email = body['email']
     if (path === '/sign-in/email' && typeof email === 'string') await enforceLoginDelay(deps, email)
 
-    if (path === '/reset-password') await enforcePanelResetScope(deps.db, ctx)
+    if (path === '/reset-password') {
+      await refuseOrdinaryResetWhileRecovering(deps.db, ctx)
+      await enforcePanelResetScope(deps.db, ctx)
+    }
 
     if (path === '/reset-password' || path === '/change-password') {
       const newPassword = typeof body['newPassword'] === 'string' ? body['newPassword'] : ''
@@ -457,10 +462,16 @@ export function createBeforeHook(deps: HookDeps) {
   })
 }
 
+/** The reset token, only from the body (`assertBodyResetToken` refused any other form). */
 function resetToken(ctx: HookContext): string | null {
-  const body = (ctx.body ?? {}) as Record<string, unknown>
-  const token = body['token'] ?? (ctx.query as Record<string, unknown> | undefined)?.['token']
+  const token = ((ctx.body ?? {}) as Record<string, unknown>)['token']
   return typeof token === 'string' && token !== '' ? token : null
+}
+
+function assertBodyResetToken(ctx: HookContext): void {
+  const query = (ctx.query ?? {}) as Record<string, unknown>
+  const token = ((ctx.body ?? {}) as Record<string, unknown>)['token']
+  if ('token' in query || typeof token !== 'string' || token === '') throw linkInvalid()
 }
 
 /** The account a reset token belongs to; null for an unknown token. */
@@ -555,10 +566,9 @@ async function enforceRecoveryCode(
     if (!RECOVERY_CODE.test(code)) return 'missing' as const
     const expected = Buffer.from(stored.codeHash, 'base64url')
     const actual = deps.signedTokens.recoveryCodeHash(token, code)
-    if (expected.length === actual.length && timingSafeEqual(expected, actual)) {
-      await tx.delete(verifications).where(eq(verifications.id, row.id))
-      return 'ok' as const
-    }
+    // Kept until Better Auth has set the password (the after hook spends it with the link): a
+    // reset that fails after this check can be tried again with the same code.
+    if (expected.length === actual.length && timingSafeEqual(expected, actual)) return 'ok' as const
     const failures = stored.failures + 1
     if (failures >= RECOVERY_CODE_MAX_FAILURES) {
       await tx
@@ -590,6 +600,51 @@ async function enforceRecoveryCode(
     default:
       throw linkInvalid()
   }
+}
+
+/**
+ * While a recovery is pending (active, no password, no second factor) only the recovery link
+ * sets the password: not "Password dimenticata", not a link copied from a panel.
+ */
+async function refuseOrdinaryResetWhileRecovering(db: Db, ctx: HookContext): Promise<void> {
+  const token = resetToken(ctx)
+  if (token === null || token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  const userId = await resetTokenUserId(ctx, token)
+  if (userId !== null && (await recoveryPending(db, userId))) throw linkInvalid()
+}
+
+/** "Non sono stato io" not yet closed by the person's own recovery (`users.security_locked_at`). */
+export async function recoveryPending(db: Db, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ lockedAt: users.securityLockedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  return row !== undefined && row.lockedAt !== null
+}
+
+/**
+ * After a successful reset with a recovery link: the code goes with the link Better Auth has
+ * just spent, and the lock is over, so ordinary resets work again.
+ */
+async function completeRecovery(deps: Pick<HookDeps, 'db'>, ctx: HookContext): Promise<void> {
+  if (ctx.path !== '/reset-password' || ctx.context.returned instanceof APIError) return
+  const token = resetToken(ctx)
+  if (token === null || !token.startsWith(PLATFORM_RESET_TOKEN_PREFIX)) return
+  await deps.db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(verifications)
+      .where(eq(verifications.identifier, `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`))
+      .returning({ value: verifications.value })
+    let stored: unknown = null
+    try {
+      stored = row ? JSON.parse(row.value) : null
+    } catch {
+      stored = null
+    }
+    if (!isRecoveryCodeRow(stored)) return
+    await tx.update(users).set({ securityLockedAt: null }).where(eq(users.id, stored.userId))
+  })
 }
 
 /** Email and name of the account a reset token belongs to; null for an unknown token. */
@@ -728,6 +783,7 @@ async function recordEvent(deps: HookDeps, ctx: HookContext, request: Request): 
 export function createAfterHook(deps: HookDeps) {
   return createAuthMiddleware(async (ctx) => {
     if (!ctx.request) return
+    await completeRecovery(deps, ctx)
     await recordEvent(deps, ctx, ctx.request)
     if (ctx.path !== '/sign-in/email') return
     const email = (ctx.body as Record<string, unknown> | undefined)?.['email']
