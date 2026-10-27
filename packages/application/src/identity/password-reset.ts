@@ -50,11 +50,11 @@ export async function createPasswordResetLink(
       throw new DomainError('FORBIDDEN', 'Non puoi creare un link di reset per questo utente')
     if (!user || user.status !== 'active' || user.anonymizedAt !== null)
       throw new DomainError('CONFLICT', 'Questo account non è attivo')
-    // the person chooses the password with the platform's recovery link and code, nobody else
+    // the person chooses the password with the platform's recovery link, nobody else
     if (user.securityLockedAt !== null && !(await tx.credentials.hasPassword(userId)))
       throw new DomainError(
         'CONFLICT',
-        'L’account è in recupero dopo un blocco "Non sono stato io": la nuova password si sceglie solo con il link e il codice dell’amministratore della piattaforma',
+        'L’account è in recupero dopo un blocco "Non sono stato io": la nuova password si sceglie solo con il link inviato dall’amministratore della piattaforma',
       )
     // Better Auth writes the token with its own connection: if this transaction then fails, an
     // unreturned link expires on its own within the hour.

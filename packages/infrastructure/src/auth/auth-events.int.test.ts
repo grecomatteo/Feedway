@@ -68,7 +68,6 @@ function build(events: AuthEventSink): BetterAuthInstance {
   const secret = randomBytes(32).toString('hex')
   return createBetterAuth({
     db,
-    signedTokens: tokens,
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',

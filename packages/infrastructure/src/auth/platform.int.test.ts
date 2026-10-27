@@ -85,7 +85,6 @@ beforeAll(async () => {
   const secret = randomBytes(32).toString('hex')
   instance = createBetterAuth({
     db,
-    signedTokens,
     config: {
       panelUrl: PANEL,
       productName: 'Feedway',
@@ -587,9 +586,6 @@ describe('platform users', () => {
       .map((q) => q.data as JobPayloads['identity.account_recovery_email'])
       .filter((d) => d.userId === userId)
   const phone = { identityVerification: { method: 'phone_known_number' as const } }
-  const recoveryCodes = new Map<string, string>()
-  /** A six-digit code that is surely not the right one. */
-  const otherCode = (code: string) => String((Number(code) + 1) % 1_000_000).padStart(6, '0')
   const errorCode = async (res: Response) => ((await res.json()) as { code?: string }).code ?? ''
   const sessionCookie = (res: Response) =>
     res.headers
@@ -675,12 +671,8 @@ describe('platform users', () => {
     expect(recoveryJobs(user.id)).toEqual([])
 
     const enabled = await enableUserEverywhere(at, SYSTEM_PLATFORM_ACTOR, user.id, phone)
-    // the link goes to the account's address, never to the operator; the code to the operator
-    expect(enabled).toEqual({
-      status: 'enabled',
-      recovery: { channel: 'email', code: expect.stringMatching(/^\d{6}$/) as unknown },
-    })
-    const code = enabled.recovery?.code ?? ''
+    // the link goes to the account's address, never to the operator
+    expect(enabled).toEqual({ status: 'enabled', recovery: { channel: 'email' } })
     const [sent, ...others] = recoveryJobs(user.id)
     expect(others).toEqual([])
     const url = sent?.url ?? ''
@@ -691,14 +683,12 @@ describe('platform users', () => {
       [`reset-password:${tokenOf(url)}`],
     )
     expect(link[0]?.expires_at.getTime()).toBe(clock.now().getTime() + 30 * 60_000)
-    // the code is stored only as a keyed hash, with the same expiry, and never in the job
-    const { rows: stored } = await admin.query<{ value: string; expires_at: Date }>(
-      'select value, expires_at from verifications where identifier = $1',
-      [`account-recovery:${tokenOf(url)}`],
+    // the link is the only thing pending for the person: no code or other row beside it
+    const { rows: pendingRows } = await admin.query<{ identifier: string }>(
+      'select identifier from verifications where strpos(value, $1) > 0',
+      [user.id],
     )
-    expect(stored[0]?.expires_at.getTime()).toBe(clock.now().getTime() + 30 * 60_000)
-    expect(stored[0]?.value).not.toContain(`"${code}"`)
-    expect(JSON.stringify(sent)).not.toContain(code)
+    expect(pendingRows).toEqual([{ identifier: `reset-password:${tokenOf(url)}` }])
     // the old password is gone, with the same answer as a wrong one
     const refused = await signIn(user.email)
     expect(refused.status).toBe(401)
@@ -744,26 +734,12 @@ describe('platform users', () => {
     const page = new URL(opened.headers.get('location') ?? '')
     expect(page.pathname).toBe('/reimposta')
     const resetToken = page.searchParams.get('token') ?? ''
-    // the link alone is not enough: the code the operator dictated is needed too
-    const without = await post('/reset-password', { token: resetToken, newPassword: NEW_PASSWORD })
-    expect(without.status).toBe(400)
-    expect(await errorCode(without)).toBe('RECOVERY_CODE_REQUIRED')
-    const wrong = await post('/reset-password', {
-      token: resetToken,
-      newPassword: NEW_PASSWORD,
-      code: otherCode(code),
-    })
-    expect(wrong.status).toBe(400)
-    expect(await errorCode(wrong)).toBe('RECOVERY_CODE_INVALID')
-    const reset = await post('/reset-password', {
-      token: resetToken,
-      newPassword: NEW_PASSWORD,
-      code,
-    })
+    // the link alone is enough (Matteo's choice of 27/10): no code
+    const reset = await post('/reset-password', { token: resetToken, newPassword: NEW_PASSWORD })
     expect(reset.status).toBe(200)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
     expect((await signIn(user.email)).status).toBe(401)
-    const again = await post('/reset-password', { token: resetToken, newPassword: PASSWORD, code })
+    const again = await post('/reset-password', { token: resetToken, newPassword: PASSWORD })
     expect(again.status).toBe(400)
     expect((await signIn(user.email)).status).toBe(401)
 
@@ -789,13 +765,7 @@ describe('platform users', () => {
       },
     )
     clock.advance(1000)
-    const late = await enableUserEverywhere(
-      { ...deps, clock },
-      SYSTEM_PLATFORM_ACTOR,
-      user.id,
-      phone,
-    )
-    recoveryCodes.set(user.id, late.recovery?.code ?? '')
+    await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id, phone)
     const url = recoveryJobs(user.id)[0]?.url ?? ''
     const opened = await instance.handler(
       new Request(url, { headers: { 'x-app-client-ip': randomIp() } }),
@@ -803,12 +773,7 @@ describe('platform users', () => {
     expect(new URL(opened.headers.get('location') ?? '', PANEL).searchParams.get('error')).toBe(
       'INVALID_TOKEN',
     )
-    const enabledLate = recoveryCodes.get(user.id) ?? ''
-    const reset = await post('/reset-password', {
-      token: tokenOf(url),
-      newPassword: NEW_PASSWORD,
-      code: enabledLate,
-    })
+    const reset = await post('/reset-password', { token: tokenOf(url), newPassword: NEW_PASSWORD })
     expect(reset.status).toBe(400)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
   })
@@ -819,14 +784,9 @@ describe('platform users', () => {
     const clock = fixedClock(new Date())
     await lockNow(user.id, clock)
     clock.advance(1000)
-    const enabled = await enableUserEverywhere(
-      { ...deps, clock },
-      SYSTEM_PLATFORM_ACTOR,
-      user.id,
-      phone,
-    )
+    await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id, phone)
     const url = recoveryJobs(user.id).at(-1)?.url ?? ''
-    return { ...user, clock, code: enabled.recovery?.code ?? '', token: tokenOf(url) }
+    return { ...user, clock, token: tokenOf(url) }
   }
   const hasPassword = async (userId: string) =>
     (
@@ -859,7 +819,6 @@ describe('platform users', () => {
     const reset = await post('/reset-password', {
       token: user.token,
       newPassword: NEW_PASSWORD,
-      code: user.code,
     })
     expect(reset.status).toBe(200)
   })
@@ -941,7 +900,6 @@ describe('platform users', () => {
     const reset = await post('/reset-password', {
       token: user.token,
       newPassword: NEW_PASSWORD,
-      code: user.code,
     })
     expect(reset.status).toBe(200)
     const { rows } = await admin.query<{ security_locked_at: Date | null }>(
@@ -958,14 +916,7 @@ describe('platform users', () => {
 
   test('a lost or spent recovery starts over: enable-user again revokes the old link', async () => {
     const user = await pendingRecovery('di-nuovo')
-    // five wrong codes: the link is void
-    for (let i = 0; i < 5; i++)
-      await post('/reset-password', {
-        token: user.token,
-        newPassword: NEW_PASSWORD,
-        code: otherCode(user.code),
-      })
-    // a refused password does not spend anything either
+    // the email got lost: with the identity checked again, a new link replaces the old one
     user.clock.advance(1000)
     const again = await enableUserEverywhere(
       { ...deps, clock: user.clock },
@@ -973,16 +924,15 @@ describe('platform users', () => {
       user.id,
       { identityVerification: { method: 'in_person' } },
     )
-    expect(again).toEqual({
-      status: 'recovery_reissued',
-      recovery: { channel: 'email', code: expect.stringMatching(/^\d{6}$/) as unknown },
-    })
+    expect(again).toEqual({ status: 'recovery_reissued', recovery: { channel: 'email' } })
     const token = tokenOf(recoveryJobs(user.id).at(-1)?.url ?? '')
     expect(token).not.toBe(user.token)
-    const code = again.recovery?.code ?? ''
-    const weak = await post('/reset-password', { token, newPassword: 'corta', code })
+    const replaced = await post('/reset-password', { token: user.token, newPassword: NEW_PASSWORD })
+    expect(await errorCode(replaced)).toBe('INVALID_TOKEN')
+    // a refused password does not spend the link
+    const weak = await post('/reset-password', { token, newPassword: 'corta' })
     expect(weak.status).not.toBe(200)
-    const reset = await post('/reset-password', { token, newPassword: NEW_PASSWORD, code })
+    const reset = await post('/reset-password', { token, newPassword: NEW_PASSWORD })
     expect(reset.status).toBe(200)
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
     // without the identity check nothing is reissued
@@ -1000,9 +950,8 @@ describe('platform users', () => {
     const old = await post('/reset-password', {
       token: second.token,
       newPassword: NEW_PASSWORD,
-      code: second.code,
     })
-    expect(await errorCode(old)).toBe('LINK_INVALID')
+    expect(await errorCode(old)).toBe('INVALID_TOKEN')
     const entries = (await platformAudit('auth.recovery_link_sent')).filter(
       (e) => e.entity_id === second.id,
     )
@@ -1032,7 +981,6 @@ describe('platform users', () => {
       reset = await post('/reset-password', {
         token: user.token,
         newPassword: NEW_PASSWORD,
-        code: user.code,
       })
     } finally {
       await admin.query(`drop trigger ${fn} on users`)
@@ -1088,44 +1036,8 @@ describe('platform users', () => {
     const old = await post('/reset-password', {
       token: user.token,
       newPassword: NEW_PASSWORD,
-      code: user.code,
     })
-    expect(await errorCode(old)).toBe('LINK_INVALID')
-  })
-
-  test('five wrong codes void the link: the right one no longer works', async () => {
-    const user = await person('cinque-errori')
-    const clock = fixedClock(new Date())
-    await lockNow(user.id, clock)
-    clock.advance(1000)
-    const enabled = await enableUserEverywhere(
-      { ...deps, clock },
-      SYSTEM_PLATFORM_ACTOR,
-      user.id,
-      phone,
-    )
-    const code = enabled.recovery?.code ?? ''
-    const token = tokenOf(recoveryJobs(user.id)[0]?.url ?? '')
-    const attempt = (given: string) =>
-      post('/reset-password', { token, newPassword: NEW_PASSWORD, code: given })
-    const answers: string[] = []
-    for (let i = 0; i < 5; i++) answers.push(await errorCode(await attempt(otherCode(code))))
-    expect(answers).toEqual([
-      'RECOVERY_CODE_INVALID',
-      'RECOVERY_CODE_INVALID',
-      'RECOVERY_CODE_INVALID',
-      'RECOVERY_CODE_INVALID',
-      'LINK_INVALID',
-    ])
-    const right = await attempt(code)
-    expect(right.status).toBe(400)
-    expect(await errorCode(right)).toBe('LINK_INVALID')
-    const { rowCount } = await admin.query(
-      'select 1 from verifications where identifier in ($1, $2)',
-      [`reset-password:${token}`, `account-recovery:${token}`],
-    )
-    expect(rowCount).toBe(0)
-    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+    expect(await errorCode(old)).toBe('INVALID_TOKEN')
   })
 
   test('after the recovery an Owner sets up the second factor again at once', async () => {
@@ -1137,18 +1049,9 @@ describe('platform users', () => {
     const clock = fixedClock(new Date())
     await lockNow(user.id, clock)
     clock.advance(1000)
-    const enabled = await enableUserEverywhere(
-      { ...deps, clock },
-      SYSTEM_PLATFORM_ACTOR,
-      user.id,
-      phone,
-    )
+    await enableUserEverywhere({ ...deps, clock }, SYSTEM_PLATFORM_ACTOR, user.id, phone)
     const token = tokenOf(recoveryJobs(user.id)[0]?.url ?? '')
-    const reset = await post('/reset-password', {
-      token,
-      newPassword: NEW_PASSWORD,
-      code: enabled.recovery?.code ?? '',
-    })
+    const reset = await post('/reset-password', { token, newPassword: NEW_PASSWORD })
     expect(reset.status).toBe(200)
     // the password alone opens a session that may do nothing but set up the second factor
     const signedIn = await signIn(user.email, NEW_PASSWORD)
@@ -1201,7 +1104,6 @@ describe('platform users', () => {
     expect(enabled.recovery).toEqual({
       channel: 'operator',
       url: expect.stringMatching(/\/api\/auth\/reset-password\/platform\./) as unknown,
-      code: expect.stringMatching(/^\d{6}$/) as unknown,
     })
     expect(recoveryJobs(user.id)).toEqual([])
     const entry = (await platformAudit('auth.recovery_link_sent')).find(

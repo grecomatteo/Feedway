@@ -189,6 +189,8 @@ test('the platform administrators and the Owners of the person’s agencies are 
   // the address only to the platform administrators
   expect(forAdmin?.text).toContain(locked.email)
   expect(forAdmin?.text).toContain('riattivala con cli enable-user')
+  expect(forAdmin?.text).toContain("le arriverà all'indirizzo dell'account un link")
+  expect(forAdmin?.text).not.toMatch(/codice/i)
   expect(forOwner?.text).not.toContain(locked.email)
   expect(forOwner?.text).toContain(await organizationName(told.active))
   expect(forOwner?.text).toContain('La riattivazione la fa un amministratore della piattaforma')

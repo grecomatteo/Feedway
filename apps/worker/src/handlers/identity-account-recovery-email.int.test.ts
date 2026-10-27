@@ -108,10 +108,8 @@ test('the recovery link goes to the account’s address, with its 30 minutes', a
   expect(mail?.text).toContain(
     "Se non hai chiesto tu di riattivare l'account, non aprire il link e avvisa l'amministratore.",
   )
-  // the second channel: the code is not in the email, the email says it is needed
-  expect(mail?.text).toContain(
-    "Ti serve anche il codice di 6 cifre che l'amministratore ti ha comunicato di persona, al telefono o in videochiamata: non arriva per email.",
-  )
+  // the link alone is enough (Matteo's choice of 27/10): no code is mentioned
+  expect(mail?.text).not.toMatch(/codice/i)
   expect(mail?.text).toContain('Le passkey e la verifica in due passaggi sono state tolte:')
   // the orange button
   expect(mail?.html).toContain('bgcolor="#FF762E"')

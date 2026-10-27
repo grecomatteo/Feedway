@@ -2,8 +2,6 @@
 export interface TokenService {
   generate(): { token: string; hash: Buffer }
   hash(token: string): Buffer
-  /** Six random digits (CSPRNG) the operator dictates after a verified reactivation. */
-  recoveryCode(): string
 }
 
 export type SignedTokenPurpose = 'security_lock'
@@ -24,9 +22,4 @@ export interface SignedTokens {
   deviceHash(userId: string, deviceId: string): Buffer
   /** Keyed hash of an email address, for counters that must not hold the address itself. */
   addressHash(email: string): Buffer
-  /**
-   * Keyed hash of a recovery code bound to its link: the database never holds the code, and a
-   * code is worth nothing with another link.
-   */
-  recoveryCodeHash(token: string, code: string): Buffer
 }

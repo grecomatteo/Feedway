@@ -220,7 +220,7 @@
       "doneText": "Abbiamo chiuso tutte le sessioni e annullato i link in sospeso. Finché l'account resta bloccato nessuno può entrare.",
       "admin": {
         "lead": "Come si riattiva",
-        "text": "Prima verifica l'identità della persona su un canale indipendente da questa email e dall'account: una telefonata a un numero che conosci già, di persona o in videochiamata. Solo dopo riattivala con cli enable-user e l'opzione --verified-by: le arriverà all'indirizzo dell'account un link per scegliere una nuova password, e tu le detterai sullo stesso canale il codice di 6 cifre che la CLI ti mostra. Link e codice valgono 30 minuti.",
+        "text": "Prima verifica l'identità della persona su un canale indipendente da questa email e dall'account: una telefonata a un numero che conosci già, di persona o in videochiamata. Solo dopo riattivala con cli enable-user e l'opzione --verified-by: le arriverà all'indirizzo dell'account un link per scegliere una nuova password, valido 30 minuti e una sola volta. Se il suo ruolo richiede la verifica in due passaggi, la configurerà di nuovo al primo accesso.",
         "footer": "Ricevi questa email perché sei amministratore della piattaforma {product}."
       },
       "owner": {
@@ -232,7 +232,7 @@
     },
     "accountRecovery": {
       "subject": "Scegli una nuova password per rientrare in {product}",
-      "preheader": "Il link vale {minutes} minuti, funziona una sola volta e serve anche il codice dell'amministratore.",
+      "preheader": "Il link vale {minutes} minuti e funziona una sola volta.",
       "title": "Scegli una nuova password per rientrare",
       "intro": "Un amministratore ha verificato la tua identità e ha riattivato il tuo account {product}. La vecchia password non vale più: scegline una nuova con questo link.",
       "button": "Scegli una nuova password",
@@ -241,8 +241,7 @@
       "expiryTomorrow": "Funziona una sola volta, fino alle {time} di domani. Se scade, chiedi all'amministratore un nuovo link.",
       "secondFactor": "Le passkey e la verifica in due passaggi sono state tolte: se il tuo ruolo la richiede, la configurerai di nuovo al primo accesso.",
       "notMe": "Se non hai chiesto tu di riattivare l'account, non aprire il link e avvisa l'amministratore.",
-      "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}.",
-      "code": "Ti serve anche il codice di 6 cifre che l'amministratore ti ha comunicato di persona, al telefono o in videochiamata: non arriva per email."
+      "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}."
     }
   }
 }

@@ -313,9 +313,6 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
  */
 export const PLATFORM_RESET_TOKEN_PREFIX = 'platform.'
 
-/** `verifications` identifier of the code that goes with a platform recovery link. */
-export const ACCOUNT_RECOVERY_IDENTIFIER = 'account-recovery:'
-
 export function drizzleCredentials(
   db: DbExecutor,
   ids: IdGenerator,
@@ -347,7 +344,7 @@ export function drizzleCredentials(
         .limit(1)
       return row !== undefined
     },
-    async issueAccountRecovery(userId, expiresAt, codeHash) {
+    async issueAccountRecovery(userId, expiresAt) {
       onlySystem()
       const token = `${PLATFORM_RESET_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
       // the row Better Auth's internalAdapter.createVerificationValue would write (no hashing
@@ -356,17 +353,6 @@ export function drizzleCredentials(
         id: ids.newId(),
         identifier: `reset-password:${token}`,
         value: userId,
-        expiresAt,
-      })
-      // beside it, the code: only its keyed hash, and the wrong attempts (auth-hooks.ts)
-      await db.insert(verifications).values({
-        id: ids.newId(),
-        identifier: `${ACCOUNT_RECOVERY_IDENTIFIER}${token}`,
-        value: JSON.stringify({
-          userId,
-          codeHash: codeHash(token).toString('base64url'),
-          failures: 0,
-        }),
         expiresAt,
       })
       return token
