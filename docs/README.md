@@ -3,7 +3,7 @@
 | Documento | A cosa serve | Quando si aggiorna |
 |---|---|---|
 | [Specifica](superpowers/specs/2026-10-15-feedway-design.md) | Cosa fa la piattaforma e come è fatta: la fonte di verità | A ogni decisione che cambia comportamento o architettura |
-| [Hub per l'agenzia](superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Direzione dopo la 1.0: funzioni decise, proposte, rimandate e scartate, landing | A ogni decisione sull'hub; le versioni si fissano prima dei piani |
+| [Hub per l'agenzia](superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Direzione dopo la 1.0: funzioni decise, proposte, rimandate e scartate, landing | A ogni decisione sull'hub; le versioni si fissano quando si scrive il piano |
 | [Motivazioni account personale](superpowers/specs/2026-10-15-account-personale-proposta.md) | Perché Better Auth, confronto opzioni e costi, scelte GDPR | Non si aggiorna: integrata nella specifica v9 |
 | [Piano generale](superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, interfacce tra tappe, regole comuni | A ogni tappa |
 | Piani delle tappe (`superpowers/plans/2026-10-15-NN-*.md`) | Task eseguibili, file, firme, test | Scritti all'inizio di ogni tappa, sul codice reale |

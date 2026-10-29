@@ -19,7 +19,7 @@ In progettazione. La versione 1.0 si sviluppa in 12 tappe, ognuna installabile e
 | Documento | Contenuto |
 |---|---|
 | [Specifica](docs/superpowers/specs/2026-10-15-feedway-design.md) | Cosa fa la piattaforma e come è fatta |
-| [Hub per l'agenzia](docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Le funzioni decise dopo la 1.0, ancora da assegnare alle versioni |
+| [Hub per l'agenzia](docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Le funzioni decise dopo la 1.0 e l'ordine di riferimento delle versioni |
 | [Piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, le interfacce tra tappe, le regole comuni |
 | [Indice della documentazione](docs/README.md) | Tutti gli altri documenti |
 
