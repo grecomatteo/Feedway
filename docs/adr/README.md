@@ -19,3 +19,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15) |
 | [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Accettata (Matteo, 2026-10-17) |
 | [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16) |
+| [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica un punto di ADR 013) | Proposta (modulo deciso da Matteo, 2026-10-29) |

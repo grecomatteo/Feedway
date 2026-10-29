@@ -1164,7 +1164,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 ### 14.5 Sito pubblico
 
-Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza server, database, login né dati delle agenzie. Se la VPS è ferma o in aggiornamento il sito resta online.
+Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza database, login né dati delle agenzie; l'unica parte server è la funzione che invia il modulo "Richiedi una demo" (ADR 016). Se la VPS è ferma o in aggiornamento il sito resta online.
 
 **Indirizzi**: sito su `tuodominio.it` (`www` rimanda lì), pannello su `app.tuodominio.it`, file per Meta e link cliente su `pub.tuodominio.it` (§16.1). Il pulsante **"Accedi"** porta alla pagina di accesso del pannello. Il modulo di accesso non sta mai dentro il sito: passkey e cookie restano legati all'indirizzo del pannello (§15.1, §15.2) e un sito compromesso non può leggere password.
 
@@ -1180,7 +1180,7 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 
 Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul trattamento dei dati e stato del servizio (§18.2).
 
-**Contatti**: nella 1.0 un indirizzo email, senza modulo, così il sito non raccoglie dati personali. Un modulo o una lista d'attesa arriva con la 2.0, con consenso esplicito e conferma via email.
+**Contatti**: il pulsante "Richiedi una demo" apre un modulo (nome, agenzia, email e campi facoltativi); a Matteo arriva un'email con la richiesta e il sito non conserva nulla (deciso il 2026-10-29, ADR 016). Una lista d'attesa o la registrazione arrivano con la 2.0.
 
 **Privacy**: nessun cookie del sito, quindi nessun banner: tema solo automatico (segue il telefono o il computer, senza salvare preferenze) e protezioni anti-bot di Cloudflare spente sull'host del sito (mettono cookie). Statistiche di visita con Cloudflare Web Analytics, senza cookie né impronte del browser. Cloudflare tratta comunque gli indirizzi IP come fornitore, e l'informativa lo dice. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
 
@@ -1608,7 +1608,7 @@ Le versioni in cui entrano non sono decise: si fissano con Matteo prima di scriv
 | Cifratura dei backup | Sempre, con `age` | Claude |
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
-| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
+| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; modulo "Richiedi una demo" che invia un'email, senza salvare dati (ADR 016, deciso il 2026-10-29); nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
 | Navigazione | Contesto attivo come su Meta ("Tutti i clienti", un cliente, un profilo); si pubblica solo dentro un cliente | Matteo |
 | Scelta degli account | Elenco di profili (IG + Pagina FB collegata da Meta) con caselle, ogni account deselezionabile; solo interfaccia, il dominio non cambia | Matteo (idea), Claude (forma) |
 | Calendario e telefono | Mese come vista predefinita, settimana come vista dettagliata, libreria a richiesta; sul telefono barra in basso a cinque voci con il + al centro | Matteo |

@@ -8,6 +8,6 @@ Struttura, titolo e CTA sono decisi nel documento 04: titolo "Tutta la tua agenz
 
 Disegna testata e menu mobile, apertura, problema, sei schede, ruoli, spazio del cliente, esiti della pubblicazione, numeri "In arrivo", tre passi, fiducia, domande e chiusura. Rappresenta stati attivi, focus ed espansione quando pertinenti. Le ancore, i tab e le CTA sono specifiche da verificare poi nel browser, salvo interazioni realmente supportate e provate dalla tua versione Pen.
 
-L'azione Richiedi una demo apre per ora un contatto via email (percorso da definire); Accedi resta distinto. Le funzioni non pronte portano "In arrivo". Non aggiungere prezzi, trial, loghi clienti, testimonianze, recensioni o risultati numerici inventati. Conserva nei documenti le promesse da verificare prima della pubblicazione.
+L'azione Richiedi una demo apre il modulo di richiesta descritto nel documento 04 (disegna anche errori, invio e conferma); Accedi resta distinto. Le funzioni non pronte portano "In arrivo". Non aggiungere prezzi, trial, loghi clienti, testimonianze, recensioni o risultati numerici inventati. Conserva nei documenti le promesse da verificare prima della pubblicazione.
 
 Consegna tavole, componenti usati, font/asset disponibili, alternativa raccomandata e verifiche visive eseguite. Evita di ricostruire il marchio o sostituire la tela modificabile con un'unica immagine raster.

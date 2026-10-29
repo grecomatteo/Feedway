@@ -15,7 +15,7 @@ Le istruzioni dirette di Matteo prevalgono sulle proposte del pacchetto. Il bran
 ## Deciso il 26–29 ottobre 2026
 
 - Feedway come hub dell'agenzia, motto "Tutta la tua agenzia, in un solo posto." (`docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md`).
-- Landing: titolo con il motto, CTA **Richiedi una demo**, Accedi separato, struttura in 11 sezioni del documento 04, funzioni non pronte marcate "In arrivo". Percorso della richiesta di demo ancora da definire; modello commerciale non definito.
+- Landing: titolo con il motto, CTA **Richiedi una demo**, Accedi separato, struttura in 11 sezioni del documento 04, funzioni non pronte marcate "In arrivo". La CTA apre un modulo e la richiesta arriva via email a Matteo (29 ottobre, ADR 016); modello commerciale non definito.
 
 ## Proposto, ancora modificabile
 

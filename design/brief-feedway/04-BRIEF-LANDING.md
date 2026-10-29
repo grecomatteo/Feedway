@@ -11,7 +11,7 @@ Richiesta esplicita di Matteo: includere landing, ricerca dei concorrenti e work
 - Struttura in 11 sezioni (L02–L12 sotto), decisa il 29 ottobre.
 - Le funzioni non ancora disponibili si mostrano con l'etichetta **"In arrivo"**: la landing non promette ciò che non c'è.
 
-**Ancora aperto:** a chi arriva la richiesta di demo e cosa succede dopo. Il sito pubblico non ha moduli né cookie (ADR 013): finché non si decide, "Richiedi una demo" apre un contatto via email. Prezzi, prova gratuita e testimonianze restano esclusi.
+**Richiedi una demo** apre un modulo: nome, agenzia, email (obbligatori); telefono, numero di clienti e messaggio (facoltativi). A Matteo arriva un'email per parlarne; il sito non salva le richieste e non usa cookie (deciso il 2026-10-29, ADR 016). Dopo l'invio: "Richiesta inviata, ti scriviamo noi". Il modulo va disegnato con stati di errore, invio in corso e conferma, anche da telefono. Prezzi, prova gratuita e testimonianze restano esclusi.
 
 I testi qui sotto sono la base decisa. Le formulazioni si possono rifinire, ma senza cambiare il messaggio. Prima della pubblicazione ogni funzione mostrata va allineata a ciò che esiste davvero.
 
@@ -135,7 +135,7 @@ CTA **Richiedi una demo**, stesso comportamento dell'apertura. Logo nella varian
 
 ## Workflow della landing
 
-1. Messaggio, CTA e sequenza delle sezioni sono decisi (sopra). Resta da definire il percorso della richiesta di demo.
+1. Messaggio, CTA, modulo di richiesta e sequenza delle sezioni sono decisi (sopra).
 2. Selezionare le immagini Feedway necessarie per ogni sezione, con dati fittizi.
 3. Costruire il sistema dell'app e le viste che alimentano la landing. Preparare hero e sezione funzionale sulla tela Pen con asset modificabili.
 4. Mostrare composizione raccomandata e una sola alternativa, con identico copy e identici dati. Registrare la scelta visibile.

@@ -36,7 +36,7 @@ Brand kit approvato in `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`: ara
 
 ## Decisioni aperte
 
-- Landing decisa (29 ottobre 2026): titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04). *Aperta*: a chi arriva la richiesta di demo e cosa succede dopo; prezzi e prova gratuita.
+- Landing decisa (29 ottobre 2026): titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04). "Richiedi una demo" apre un modulo e la richiesta arriva via email a Matteo (ADR 016). *Aperta*: prezzi e prova gratuita.
 - *Aperta*: documenti legali del sito, da redigere prima del lancio.
 - *Aperta*: attività assegnabili, to-do e note personali nella 1.5 (come da specifica, consigliato) o anticipate nella 1.0. Dettagli in .
 - *Aperta*: Piano editoriale nella 1.0 (consigliato) o nella 1.1. Proposta in `design/proposta-piano-editoriale.md`.
