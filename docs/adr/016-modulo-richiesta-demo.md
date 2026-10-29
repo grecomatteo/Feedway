@@ -30,5 +30,5 @@ La landing ha come azione principale "Richiedi una demo". Matteo ha deciso che i
 - L'informativa privacy del sito va aggiornata prima del lancio (dati raccolti, finalità, conservazione nella casella email).
 - Test: validazione dei campi, campo nascosto, risposta senza JavaScript; l'invio reale è "non verificato" finché non si prova sul dominio vero.
 - **Da verificare:** se l'invio con Email Routing (`send_email`) è disponibile direttamente nelle funzioni di Pages o solo nei Worker. Nel secondo caso la funzione di Pages chiama un piccolo Worker dedicato con un service binding. Vanno verificati anche il piano gratuito e i limiti.
-- ADR 013 è "In parte modificata da ADR 016" e il piano della tappa 10 include modulo, segreti Cloudflare e test.
-- Requisito di Matteo: le richieste di demo devono arrivargli via email. Se Email Routing non basta, si usa l'alternativa scelta con lui, mai un salvataggio sul sito.
+- ADR 013 è "In parte modificata da ADR 016" e il piano generale (tappa 10) include modulo, segreti Cloudflare e test; il piano di dettaglio della tappa 10 dovrà fare lo stesso.
+- Requisito di Matteo: le richieste di demo devono arrivargli via email. Se Email Routing non basta, si usa un servizio di invio email (vedi Alternative), scelto con lui; mai un salvataggio sul sito.
