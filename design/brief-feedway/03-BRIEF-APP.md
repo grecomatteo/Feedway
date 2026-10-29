@@ -6,6 +6,8 @@ L'utente deve preparare, programmare e controllare contenuti Instagram e Faceboo
 
 Preferenze confermate il 15 ottobre 2026: esperienza visiva e creativa, miniature grandi, colori del brand; uso soprattutto da computer e occasionale da telefono. Restano validi i requisiti responsive, di accessibilità e PWA del documento v9.
 
+Direzione dopo la 1.0 (Matteo, 26–29 ottobre 2026): Feedway diventa l'hub dell'agenzia, con il motto "Tutta la tua agenzia, in un solo posto." L'app si organizza su tre regole: tutto parte dal cliente, ognuno vede solo il suo, l'agenzia accende solo i moduli che usa. Le schermate nuove (Oggi, pagina del cliente, portale, shooting, CRM, cruscotti) seguono `docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md`; questo brief resta valido per la grammatica visiva.
+
 Direzione proposta: uno studio editoriale visivo. Le fotografie e le copertine danno personalità; struttura e controlli restano regolari. Il colore dell'agenzia guida azioni e selezioni. Il colore degli stati conserva un significato indipendente dal brand.
 
 ## 2. Una sola grammatica visiva

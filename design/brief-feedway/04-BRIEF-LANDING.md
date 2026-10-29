@@ -1,12 +1,19 @@
 # Feedway — landing pubblica
 
-## Scopo, pubblico e decisione ancora aperta
+## Scopo, pubblico e decisioni
 
 Richiesta esplicita di Matteo: includere landing, ricerca dei concorrenti e workflow completo. Pubblico di lavoro proposto: professionisti e piccoli team che preparano contenuti Instagram/Facebook per più clienti. Il documento originale prevede un prodotto self-hosted e multiagenzia; un modello commerciale SaaS non è stato approvato.
 
-Per proseguire senza inventare un'offerta, il prototipo presenta il prodotto e offre **Esplora la demo** come azione primaria, **Accedi** come azione di servizio. La demo è una vera area locale con dati fittizi, non un pulsante che apre una finestra vuota. In futuro la CTA può diventare richiesta di demo o prova soltanto quando destinatario, offerta e percorso saranno definiti.
+**Decisioni di Matteo (26–29 ottobre 2026):**
 
-Il copy seguente è una proposta originale da verificare, non un testo commerciale già approvato. Le funzionalità illustrate sono obiettivi del progetto v9: prima della pubblicazione vanno allineate a quelle effettivamente disponibili.
+- Feedway si presenta come **l'hub dell'agenzia**, non come un altro programmatore di post. Motto e titolo: **"Tutta la tua agenzia, in un solo posto."** Direzione completa in `docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md`.
+- Azione principale: **Richiedi una demo**. **Accedi** resta l'azione di servizio.
+- Struttura in 11 sezioni (L02–L12 sotto), decisa il 29 ottobre.
+- Le funzioni non ancora disponibili si mostrano con l'etichetta **"In arrivo"**: la landing non promette ciò che non c'è.
+
+**Ancora aperto:** a chi arriva la richiesta di demo e cosa succede dopo. Il sito pubblico non ha moduli né cookie (ADR 013): finché non si decide, "Richiedi una demo" apre un contatto via email. Prezzi, prova gratuita e testimonianze restano esclusi.
+
+I testi qui sotto sono la base decisa. Le formulazioni si possono rifinire, ma senza cambiare il messaggio. Prima della pubblicazione ogni funzione mostrata va allineata a ciò che esiste davvero.
 
 ## Direzione raccomandata
 
@@ -35,81 +42,110 @@ La homepage attuale di Later privilegia l'influencer marketing: per Feedway è p
 
 In `riferimenti/landing/` sono inclusi quattro asset promozionali ufficiali della pagina Later e la provenienza. Non sono screenshot dell'intera landing. Per Buffer e Metricool il browser ha negato nuovi salvataggi: non sono stati aggirati i blocchi. Rimangono le fonti e i riferimenti app già acquisiti.
 
-## Architettura proposta della pagina
+## Architettura della pagina (decisa il 29 ottobre 2026)
+
+L'idea: non aprire con il calendario dei post, che fa sembrare Feedway "un altro programmatore di post". Si apre con l'agenzia intera e si arriva alla pubblicazione come uno dei pezzi, quello fatto meglio di tutti.
 
 ### L01 — Testata
 
-Logo originale orizzontale carbone. Navigazione: Prodotto, Come funziona, Per chi è, Domande. Accedi come azione di servizio; Esplora la demo come CTA. Su mobile menu apribile con tastiera, stato e focus corretti. Il menu fisso non deve coprire titoli e destinazioni delle ancore.
+Logo originale orizzontale carbone. Navigazione: Prodotto, Per chi è, Clienti, Domande. **Accedi** come azione di servizio, **Richiedi una demo** come CTA. Su mobile il menu si apre con la tastiera, con stato e focus corretti. Il menu fisso non deve coprire titoli e destinazioni delle ancore.
 
-### L02 — Hero
+### L02 — Apertura
 
-**Titolo proposto:** Il tuo piano social, una direzione chiara.
+**Titolo:** Tutta la tua agenzia, in un solo posto.
 
-**Descrizione proposta:** Organizza i contenuti Instagram e Facebook dei tuoi clienti, prepara i post e segui ogni pubblicazione da un unico spazio di lavoro.
+**Descrizione:** Clienti, team, contenuti e pubblicazioni: Feedway mette in ordine il lavoro di ogni giorno, dentro e fuori l'agenzia.
 
-**CTA:** Esplora la demo. **Azione secondaria:** Guarda come funziona, verso la sezione successiva.
+**CTA:** Richiedi una demo. **Azione secondaria:** Accedi.
 
-La schermata hero mostra cliente, settimana, miniature e stato comprensibile. Non mostra metriche di crescita, notifiche inventate, dati personali o dati di clienti reali. Il ritaglio conserva la comprensibilità; una didascalia alternativa descrive cosa si vede.
+**Visual:** la pagina "Oggi" con tre clienti fittizi, un post approvato, un'attività in scadenza e un post "Confermato". Non un calendario vuoto, niente metriche di crescita inventate o dati reali.
 
-### L03 — Dimostrazione delle viste
+### L03 — Il problema
 
-Titolo proposto: Il piano completo. Il dettaglio quando serve.
+**Titolo:** Sei app aperte, nessuna che sappia cosa fanno le altre.
 
-Tre schede o tab accessibili: Settimana, Griglia Instagram, Elenco. Stessa settimana e stessi contenuti fittizi. Cambiare tab cambia immagine e spiegazione, non naviga a contenuti vuoti. Un equivalente statico rimane disponibile se script o movimento sono disabilitati. Una sola vista principale mantiene il peso iniziale contenuto.
+WhatsApp per i clienti, Drive per i file, Excel per le ore, Meta per pubblicare. Il cliente scrive alle 23, il file giusto è in una chat di tre settimane fa e nessuno sa se il post di ieri è uscito davvero. Visual: icone generiche di chat, cartelle e foglio di calcolo che confluiscono in un solo riquadro Feedway, senza loghi di terzi.
 
-### L04 — Come funziona
+### L04 — Un posto per ogni cosa
 
-Tre passaggi collegati visivamente, con un'immagine di prodotto per ognuno:
+**Titolo:** Ogni cosa al suo posto. Ogni persona sa cosa fare.
 
-1. **Scegli il cliente.** Spazio, contenuti e destinazioni riconoscibili.
-2. **Prepara il contenuto.** Media, caption e controlli vicini all'anteprima.
-3. **Programma e segui l'esito.** Data, orario e risultato delle singole destinazioni.
+Sei schede accessibili, ognuna con una frase e una schermata: **Pianifica**, **Produci**, **Fai approvare**, **Pubblica e verifica**, **Misura**, **Gestisci l'agenzia**. Esempio, "Fai approvare": "Il cliente approva dal telefono. Tu lo sai subito. Basta rincorrere i messaggi." Le schede di funzioni non ancora disponibili portano "In arrivo". Un equivalente statico resta disponibile se script o movimento sono disattivati.
 
-Su desktop si può usare una composizione alternata anziché tre piccole card uguali. Su telefono la sequenza resta nel normale flusso di lettura. Evitare uno scroll bloccato con pannelli obbligatori.
+### L05 — Per chi lavora con te
 
-### L05 — Il punto distintivo: esiti comprensibili
+**Titolo:** Ognuno vede quello che gli serve. Niente di più.
 
-Titolo proposto: Sai cosa è uscito. E cosa richiede attenzione.
+Una riga per ruolo con la sua prima schermata: titolare, account, social media manager, copywriter, grafico, collaboratore esterno. Chiude con "Ruoli e permessi controllati su ogni azione". Non trasformarla in una matrice tecnica.
 
-Mostrare un estratto del dettaglio: quattro destinazioni confermate e una con problema. Un secondo stato opzionale distingue un esito ancora da accertare. Spiegazione breve: Feedway rende leggibile lo stato per destinazione e indirizza il recupero. Non promettere zero errori, pubblicazione garantita o affidabilità già misurata.
+### L06 — Il tuo cliente
 
-### L06 — Lavoro con più clienti
+**Titolo:** Il tuo cliente ha il suo spazio. Con il tuo marchio.
 
-Titolo proposto: Ogni cliente ha il suo spazio.
+Vede il calendario, approva, carica le foto, legge il report del mese. Non vede mai le vostre conversazioni interne. Visual: il portale sul telefono con il logo di un'agenzia di esempio. Ciò che non è ancora disponibile porta "In arrivo".
 
-Dimostrare tre contesti fittizi, lo stesso sistema UI e una vista condivisa di sola lettura. Il link cliente mostra il piano; non permette commenti o approvazioni nella v1. Si può accennare ai ruoli previsti, senza trasformare la sezione in una matrice tecnica.
+### L07 — Pubblica senza dubbi
 
-### L07 — FAQ
+**Titolo:** Lo sai quando un post è uscito. Davvero.
 
-Domande con risposte brevi ricavate dal progetto, riviste prima del lancio:
+Controlli prima di programmare, pubblicazione puntuale su Instagram e Facebook, verifica dopo l'uscita, avviso immediato se qualcosa va storto, caption diversa per ogni piattaforma. Estratto del dettaglio: quattro destinazioni confermate e una con problema. Non promettere zero errori, pubblicazione garantita o affidabilità già misurata.
 
-- **Per quali social è pensato?** Instagram e Facebook nella prima versione prevista.
-- **Posso organizzare più clienti?** Il modello prevede spazi di lavoro distinti per contenuti e account ammessi.
-- **Il cliente può vedere il calendario?** È prevista una vista condivisa di sola lettura.
-- **Posso preparare più post insieme?** È previsto un percorso di importazione e revisione in blocco, con errori per riga.
-- **Posso usarlo dal telefono?** L'esperienza dà priorità al computer; i compiti essenziali sono progettati anche per telefono.
+### L08 — I numeri dell'agenzia ("In arrivo")
 
-Non usare FAQ su prezzo, carta di credito o condizioni di vendita prima di aver definito l'offerta. Evitare dettagli su worker, database, token di sistema nella normale narrazione pubblica; l'eventuale documentazione di configurazione avrà un percorso dedicato.
+**Titolo:** Sai quanto ti costa ogni cliente.
 
-### L08 — Chiusura e footer
+Ore lavorate, contratti, rinnovi, margine per cliente; report per i clienti con il tuo logo. Etichetta "In arrivo" finché non c'è.
 
-Titolo proposto: Dai una direzione al prossimo contenuto.
+### L09 — Come si comincia
 
-CTA Esplora la demo, stesso comportamento dell'hero. Logo nella variante corretta, Accedi, navigazione essenziale e informazioni legali realmente disponibili. Nel prototipo, se un documento legale non esiste, segnalarlo nel registro come requisito di lancio: niente pagine normative inventate o collegamenti che fingono contenuti approvati.
+**Titolo:** Pronto in un pomeriggio.
+
+Tre passi veri: crea l'agenzia e invita il team; collega i profili dei clienti; importa il piano del mese o parti da un modello.
+
+### L10 — Fiducia
+
+**Titolo:** I dati dei tuoi clienti restano tuoi.
+
+API ufficiali Meta, accesso con passkey, ogni azione registrata, agenzie isolate tra loro, nessuna password dei clienti in chiaro.
+
+### L11 — Domande
+
+Risposte brevi ricavate dal progetto, riviste prima del lancio:
+
+- **Serve una Pagina Facebook?**
+- **Posso usarlo dal telefono?** L'esperienza dà priorità al computer; i compiti essenziali funzionano anche da telefono.
+- **Il cliente deve registrarsi?** Nella prima versione vede il calendario da un link; il portale con accesso arriva dopo.
+- **Quanti utenti posso invitare?**
+- **Che succede se un post non esce?**
+- **Funziona con TikTok e LinkedIn?** Risposta onesta: in arrivo, uno alla volta.
+
+Niente FAQ su prezzo, carta di credito o condizioni di vendita finché l'offerta non è definita. Niente dettagli su worker, database o token nella narrazione pubblica.
+
+### L12 — Chiusura e footer
+
+**Titolo:** Smetti di cercare. Inizia a lavorare. Sotto, il motto: Tutta la tua agenzia, in un solo posto.
+
+CTA **Richiedi una demo**, stesso comportamento dell'apertura. Logo nella variante corretta, Accedi, navigazione essenziale e informazioni legali realmente disponibili. Se un documento legale non esiste, va segnalato nel registro come requisito di lancio: niente pagine normative inventate.
+
+## Annunci e video (da sviluppare)
+
+- **Video di 30 secondi "Una giornata":** telefono che vibra (WhatsApp, email, Drive, Excel) e testo "Lunedì, 8:47"; lo schermo si svuota e si apre Feedway su "Oggi" ("E se fosse tutto qui?"); tre tagli: il cliente approva, il grafico riceve la nota, il post diventa "Confermato"; il titolare guarda il margine ("Clienti, team, contenuti, conti."); logo e motto.
+- **Ganci:** "Quante app apri prima delle 9? Noi una." · "Il cliente approva dal telefono. Tu smetti di rincorrerlo." · "Il post delle 18 è uscito? Feedway lo controlla per te." · "Sai quanto ti costa davvero ogni cliente?"
+- **Formati:** reel 9:16, caroselli "prima / dopo" (sei app contro una), serie "Un ruolo, un minuto".
 
 ## Workflow della landing
 
-1. Confermare l'assunzione di CTA e il pubblico durante la revisione del brief, senza bloccare la ricerca e il design del prodotto.
-2. Selezionare messaggio, sequenza delle sezioni e immagini Feedway necessarie. Definire la relazione CTA → demo → app.
+1. Messaggio, CTA e sequenza delle sezioni sono decisi (sopra). Resta da definire il percorso della richiesta di demo.
+2. Selezionare le immagini Feedway necessarie per ogni sezione, con dati fittizi.
 3. Costruire il sistema dell'app e le viste che alimentano la landing. Preparare hero e sezione funzionale sulla tela Pen con asset modificabili.
 4. Mostrare composizione raccomandata e una sola alternativa, con identico copy e identici dati. Registrare la scelta visibile.
 5. Completare pagina desktop 1440 px e telefono 390 px, menu, tab, FAQ, focus e movimento ridotto.
-6. Implementare in Nuxt nello stesso sistema. Percorso proposto: `/` landing, `/demo/calendario` demo ripristinabile, `/accedi` accesso. Adattare alle route esistenti senza sostituire pagine di produzione.
+6. Implementare in Nuxt nello stesso sistema. Percorso proposto: `/` landing, `/accedi` accesso; la demo interattiva con dati fittizi resta facoltativa. Adattare alle route esistenti senza sostituire pagine di produzione.
 7. Verificare comprensione del messaggio, comportamento delle CTA, responsive, accessibilità, immagini e prestazioni. Correggere le criticità, poi rifinire.
 8. Prima della pubblicazione allineare promesse a funzionalità effettive, destinazioni finali delle CTA, documenti legali e dati reali autorizzati. La preparazione locale non pubblica il sito.
 
 ## Criteri per giudicarla
 
-Il visitatore deve capire che è uno strumento di pianificazione/pubblicazione IG-FB per lavoro con clienti, riconoscere il prodotto e trovare l'azione successiva. Nella prova qualitativa chiedere alla persona di spiegare che cosa fa e che cosa succede cliccando la CTA. Non attribuire un tasso di conversione al mockup; una prova A/B valida richiede traffico, evento definito e condizioni comparabili.
+Il visitatore deve capire che Feedway è il posto dove l'agenzia lavora ogni giorno (clienti, team, contenuti, pubblicazione), riconoscere il prodotto e trovare l'azione successiva. Nella prova qualitativa chiedere alla persona di spiegare che cosa fa e che cosa succede cliccando la CTA. Non attribuire un tasso di conversione al mockup; una prova A/B valida richiede traffico, evento definito e condizioni comparabili.
 
 Le immagini devono essere reali esportazioni del design Feedway o componenti della demo, con dati fittizi chiari. L'hero non carica video pesanti per impostazione predefinita; copertina iniziale e caricamento differito dei media secondari, dimensioni riservate per evitare salti. Eventuale movimento con pausa o equivalente statico quando necessario.
