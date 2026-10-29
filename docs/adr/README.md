@@ -1,6 +1,6 @@
 # Decisioni architetturali (ADR)
 
-Ogni decisione importante ha una scheda: contesto, decisione, alternative scartate, conseguenze. Una decisione non si modifica: se cambia, una nuova ADR la sostituisce e la vecchia passa a "Sostituita da ADR NNN". Modello: [000-modello.md](000-modello.md).
+Ogni decisione importante ha una scheda: contesto, decisione, alternative scartate, conseguenze. Una decisione non si modifica: se cambia, una nuova ADR la sostituisce e la vecchia passa a "Sostituita da ADR NNN". Se cambiano solo alcuni punti, la vecchia resta valida e passa a "In parte modificata da ADR NNN", e la nuova elenca i punti modificati. Modello: [000-modello.md](000-modello.md).
 
 | ADR | Decisione | Stato |
 |---|---|---|
@@ -16,7 +16,7 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [010](010-versioni-runtime.md) | Versioni di base: Node 24, Nuxt 4, TypeScript 6.0 | Accettata (Matteo, 2026-10-15) |
 | [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Accettata (Matteo, 2026-10-15) |
 | [012](012-better-auth.md) | Accesso e account con Better Auth | Accettata (Matteo, 2026-10-15) |
-| [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15); in parte modificata da ADR 016, se accettata |
+| [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15); in parte modificata da ADR 016 |
 | [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Accettata (Matteo, 2026-10-17) |
 | [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16) |
-| [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica un punto di ADR 013) | Proposta (modulo deciso da Matteo, 2026-10-29) |
+| [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica due punti di ADR 013) | Accettata (Matteo, 2026-10-29) |

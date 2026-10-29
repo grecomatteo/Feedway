@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta · Accettata · Sostituita da ADR NNN |
+| **Stato** | Proposta · Accettata · Sostituita da ADR NNN · In parte modificata da ADR NNN |
 | **Data** | AAAA-MM-GG |
 | **Specifica** | sezione collegata |
 

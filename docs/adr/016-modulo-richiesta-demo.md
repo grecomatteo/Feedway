@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta: il modulo è deciso da Matteo (2026-10-29), la soluzione tecnica va accettata |
+| **Stato** | Accettata (Matteo, 2026-10-29) |
 | **Data** | 2026-10-29 |
 | **Specifica** | v9, §14.5; [hub per l'agenzia](../superpowers/specs/2026-10-29-feedway-hub-agenzia.md) §10 |
 | **Modifica** | ADR 013 in due punti: "nessun modulo che raccolga dati personali nella 1.0" e "non ha server" (la funzione del modulo è l'unica parte server). Il resto di ADR 013 resta valido |
@@ -30,4 +30,5 @@ La landing ha come azione principale "Richiedi una demo". Matteo ha deciso che i
 - L'informativa privacy del sito va aggiornata prima del lancio (dati raccolti, finalità, conservazione nella casella email).
 - Test: validazione dei campi, campo nascosto, risposta senza JavaScript; l'invio reale è "non verificato" finché non si prova sul dominio vero.
 - **Da verificare:** se l'invio con Email Routing (`send_email`) è disponibile direttamente nelle funzioni di Pages o solo nei Worker. Nel secondo caso la funzione di Pages chiama un piccolo Worker dedicato con un service binding. Vanno verificati anche il piano gratuito e i limiti.
-- Quando questa ADR è accettata, ADR 013 passa a "In parte modificata da ADR 016" e il piano della tappa 10 aggiunge modulo, segreti Cloudflare e test.
+- ADR 013 è "In parte modificata da ADR 016" e il piano generale (tappa 10) include modulo, segreti Cloudflare e test; il piano di dettaglio della tappa 10 dovrà fare lo stesso.
+- Requisito di Matteo: le richieste di demo devono arrivargli via email. Se Email Routing non basta, si usa un servizio di invio email (vedi Alternative), scelto con lui; mai un salvataggio sul sito.
