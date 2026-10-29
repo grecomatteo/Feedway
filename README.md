@@ -1,5 +1,7 @@
 # Feedway
 
+**Tutta la tua agenzia, in un solo posto.**
+
 Pannello self-hosted per programmare e pubblicare su **Instagram** e **Pagine Facebook** tramite le API ufficiali di Meta, pensato per agenzie che gestiscono molti clienti.
 
 - Foto, caroselli, reel e storie, con gli stessi media su più account, caption adattabile per piattaforma e controlli prima della pubblicazione.
@@ -8,6 +10,8 @@ Pannello self-hosted per programmare e pubblicare su **Instagram** e **Pagine Fa
 - Più utenti con ruoli, più clienti, predisposto per più agenzie isolate tra loro.
 - Tutto si configura dal pannello: dopo l'installazione nessuno tocca codice o file.
 
+Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del cliente, shooting, team, cruscotti e report ([direzione decisa](docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md)).
+
 ## Stato
 
 In progettazione. La versione 1.0 si sviluppa in 12 tappe, ognuna installabile e provabile.
@@ -15,6 +19,7 @@ In progettazione. La versione 1.0 si sviluppa in 12 tappe, ognuna installabile e
 | Documento | Contenuto |
 |---|---|
 | [Specifica](docs/superpowers/specs/2026-10-15-feedway-design.md) | Cosa fa la piattaforma e come è fatta |
+| [Hub per l'agenzia](docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Le funzioni decise dopo la 1.0, ancora da assegnare alle versioni |
 | [Piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, le interfacce tra tappe, le regole comuni |
 | [Indice della documentazione](docs/README.md) | Tutti gli altri documenti |
 

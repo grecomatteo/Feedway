@@ -89,9 +89,9 @@ Matteo ha scelto una direzione visibile; il percorso principale è navigabile; g
 
 | Compito / controllo | Esito atteso |
 |---|---|
-| Capire il prodotto dal primo schermo | La persona sa descrivere pianificazione/pubblicazione IG-FB e lavoro per clienti, senza confonderlo con analytics o influencer marketing. |
-| Usare Esplora la demo | Apre l'area prevista con dati fittizi, senza registrazione obbligatoria o invio di contatti non richiesto. |
-| Usare Accedi | Percorso distinto dalla demo; nessun dato reale esposto nella presentazione pubblica. |
+| Capire il prodotto dal primo schermo | La persona sa descrivere Feedway come il posto dove l'agenzia gestisce clienti, team, contenuti e pubblicazione IG-FB, senza confonderlo con analytics o influencer marketing. |
+| Usare Richiedi una demo | Apre il modulo (ADR 016): campi obbligatori segnalati, errori chiari vicino al campo, conferma dopo l'invio, funziona anche senza JavaScript e da telefono; nessun cookie. |
+| Usare Accedi | Percorso distinto da Richiedi una demo; nessun dato reale esposto nella presentazione pubblica. |
 | Cambiare vista, aprire FAQ e menu | Contenuto corrispondente, stato annunciato, tastiera e ritorno del focus corretti dove applicabile. |
 | Leggere su telefono | Titolo, CTA e prodotto comprensibili; nessun overflow involontario, ancore non coperte dal menu fisso. |
 | Controllare le promesse | Nessun prezzo, trial, loghi clienti, testimonianza, affiliazione Meta o risultato numerico privo di una fonte autorizzata. |

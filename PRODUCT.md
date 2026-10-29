@@ -2,11 +2,16 @@
 
 Fonte: `design/brief-feedway/` (brief app 03, landing 04, decisioni 08) e il documento funzionale originale `design/brief-feedway/progetto/PROGETTO-OPENMETA-v9-ORIGINALE.md`. L'intervista con Matteo è già stata svolta per il brief: qui sono raccolti i fatti confermati; le voci marcate *aperta* non sono decise.
 
+## Direzione
+
+- Motto: **"Tutta la tua agenzia, in un solo posto."** (Matteo, 26 ottobre 2026).
+- Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del cliente, shooting, team, cruscotti, pubblicazione verificata. La 1.0 resta la base. Decisioni in `docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md`.
+
 ## Utenti e lavoro
 
 - Professionisti e piccoli team di agenzia che preparano, programmano e controllano contenuti Instagram e Facebook per più clienti.
 - Lavoro soprattutto da computer; il telefono è occasionale ma i compiti essenziali devono funzionare (confermato da Matteo, 15 ottobre 2026).
-- Il cliente finale vede solo un calendario condiviso in sola lettura.
+- Nella 1.0 il cliente finale vede solo un calendario condiviso in sola lettura. Dopo: portale con accesso via email, di default solo il calendario editoriale, altre sezioni accese dall'agenzia per cliente.
 
 ## Cosa rende possibile
 
@@ -31,7 +36,7 @@ Brand kit approvato in `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`: ara
 
 ## Decisioni aperte
 
-- *Aperta*: finalità commerciale della landing. Assunzione di lavoro: presentazione + demo interattiva + accesso; niente prezzi, trial, testimonianze o raccolta contatti.
+- Landing decisa (29 ottobre 2026): titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04). "Richiedi una demo" apre un modulo e la richiesta arriva via email a Matteo (ADR 016). *Aperta*: prezzi e prova gratuita.
 - *Aperta*: documenti legali del sito, da redigere prima del lancio.
 - *Aperta*: attività assegnabili, to-do e note personali nella 1.5 (come da specifica, consigliato) o anticipate nella 1.0. Dettagli in .
 - *Aperta*: Piano editoriale nella 1.0 (consigliato) o nella 1.1. Proposta in `design/proposta-piano-editoriale.md`.

@@ -939,7 +939,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 1. Ogni fatto rilevante genera un **evento** scritto nella stessa transazione del cambio di stato (pattern *outbox*): se lo stato è salvato, la notifica non può perdersi.
 2. Il dispatcher decide **chi** riceve (autore, Manager dello spazio, Admin, Owner) e su **quali canali**, secondo le preferenze.
 3. Un lavoro `notify.deliver` per ogni destinatario e canale, con tentativi automatici; ogni invio è registrato (canale, esito, errore).
-4. I canali implementano un'unica interfaccia `NotificationChannel`: aggiungerne uno (Slack, Discord, WhatsApp, notifiche push della PWA) non tocca il resto.
+4. I canali implementano un'unica interfaccia `NotificationChannel`: aggiungerne uno non tocca il resto. Il prossimo è la notifica push della PWA; Slack, Discord e WhatsApp sono esclusi per ora (deciso il 2026-10-29, §18.8).
 5. I tipi di evento sono registrati da ogni modulo (§7.3) con livello, destinatari e testi: le attività della versione 1.5 useranno lo stesso centro notifiche, le stesse email e lo stesso bot.
 
 ### 12.2 Eventi
@@ -1164,7 +1164,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 ### 14.5 Sito pubblico
 
-Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza server, database, login né dati delle agenzie. Se la VPS è ferma o in aggiornamento il sito resta online.
+Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza database, login né dati delle agenzie; l'unica parte server è la funzione che invia il modulo "Richiedi una demo" (ADR 016, soluzione tecnica proposta). Se la VPS è ferma o in aggiornamento il sito resta online.
 
 **Indirizzi**: sito su `tuodominio.it` (`www` rimanda lì), pannello su `app.tuodominio.it`, file per Meta e link cliente su `pub.tuodominio.it` (§16.1). Il pulsante **"Accedi"** porta alla pagina di accesso del pannello. Il modulo di accesso non sta mai dentro il sito: passkey e cookie restano legati all'indirizzo del pannello (§15.1, §15.2) e un sito compromesso non può leggere password.
 
@@ -1172,7 +1172,8 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 
 | Pagina | Contenuto |
 |---|---|
-| Home | Cosa fa Feedway in una frase; vantaggi principali (IG e FB da un solo posto, anteprima come su Meta, verifica dopo la pubblicazione, più clienti e più utenti, uso da telefono); come funziona in tre passi; immagini del prodotto vero; domande frequenti; "Accedi" e "Contattaci" |
+| Home | La landing in 11 sezioni del brief `design/brief-feedway/04-BRIEF-LANDING.md`: titolo "Tutta la tua agenzia, in un solo posto.", immagini del prodotto vero, funzioni non pronte segnate "In arrivo", domande frequenti; "Richiedi una demo" e "Accedi" |
+| Richiedi una demo | Il modulo di richiesta e la pagina di conferma, che funziona anche senza JavaScript (ADR 016) |
 | Privacy | Informativa del sito, con te come titolare; diversa dall'informativa delle agenzie, che sta nel pannello (§15.7) |
 | Cookie | Dichiara che il sito non usa cookie di profilazione né di terze parti |
 | Note legali | Titolare, sede e contatti. Se c'è la partita IVA va indicata nella home (art. 35 DPR 633/1972): la mettiamo nel piè di pagina di ogni pagina |
@@ -1180,7 +1181,7 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 
 Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul trattamento dei dati e stato del servizio (§18.2).
 
-**Contatti**: nella 1.0 un indirizzo email, senza modulo, così il sito non raccoglie dati personali. Un modulo o una lista d'attesa arriva con la 2.0, con consenso esplicito e conferma via email.
+**Contatti**: il pulsante "Richiedi una demo" apre un modulo (nome, agenzia, email e campi facoltativi); a Matteo arriva un'email con la richiesta e il sito non conserva nulla (modulo deciso il 2026-10-29; soluzione tecnica proposta in ADR 016). Una lista d'attesa o la registrazione arrivano con la 2.0.
 
 **Privacy**: nessun cookie del sito, quindi nessun banner: tema solo automatico (segue il telefono o il computer, senza salvare preferenze) e protezioni anti-bot di Cloudflare spente sull'host del sito (mettono cookie). Statistiche di visita con Cloudflare Web Analytics, senza cookie né impronte del browser. Cloudflare tratta comunque gli indirizzi IP come fornitore, e l'informativa lo dice. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
 
@@ -1453,8 +1454,9 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | 1.3 | Statistiche e report per cliente con modelli personalizzabili, orario migliore per pubblicare, analisi dei concorrenti (§18.5) | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
+| Da assegnare | Funzioni dell'hub per l'agenzia decise il 2026-10-26/29: pagina cliente con CRM, portale cliente, shooting, richieste tra colleghi, cruscotti, bacheca annunci, guide interne, notifiche push, calendario esportabile e collegabile, strumenti nel browser | §18.8 e [hub per l'agenzia](2026-10-29-feedway-hub-agenzia.md); le versioni si decidono insieme a Matteo prima dei piani |
 | Dopo la 1.5, anche dopo la 2.0 | Altri social come moduli: LinkedIn, TikTok, YouTube, Pinterest, X e altri, uno alla volta | §18.6; ordine da decidere, ogni piattaforma ha la sua revisione dell'app |
-| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento di tutti i clienti con i login (richiede la revisione dell'app), dominio per agenzia, esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
+| 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento di tutti i clienti con i login (richiede la revisione dell'app), sottodominio di Feedway per agenzia (deciso il 2026-10-27), esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
 
 ### 18.3 Predisposizione per MCP
 
@@ -1482,7 +1484,7 @@ Obiettivo: usare la piattaforma come strumento di lavoro quotidiano dell'agenzia
 **Note e schede cliente**
 - **Note** personali (solo tue) o condivise con l'agenzia o con chi lavora su un cliente, con la stessa scelta di visibilità delle attività; utili anche al Member senza spazi (§10.1).
 - Per ogni cliente una scheda con brief, contatti, tono di voce, linee guida del brand, hashtag e orari preferiti; note interne con cronologia.
-- Nessuna password dei clienti salvata in chiaro: se servirà, sarà un modulo a parte con cifratura dedicata.
+- Nessuna password dei clienti salvata in chiaro: la cassaforte credenziali, decisa il 2026-10-27, sarà un modulo a parte con cifratura dedicata (§18.8).
 
 **Dati** (modulo `tasks`, tabelle con `organization_id` e RLS): `tasks` (organization_id, workspace_id facoltativo, visibility personal|workspace|organization, title, description, status, priority, due_at, completed_at, created_by, post_id facoltativo, recurrence jsonb), `task_assignees`, `task_checklist_items`, `task_comments`, `client_profiles`, `notes` (visibility personal|workspace|organization, workspace_id facoltativo). Permessi nuovi: `task.create`, `task.assign`, `task.manage_others`, `client_profile.edit`.
 
@@ -1503,7 +1505,7 @@ Aggiunte il 2026-10-23 dopo il confronto con le funzioni di Postiz e Metricool, 
 - Dall'editor del post e dalla libreria (§11.8): **ritaglio** con i formati delle piattaforme (1:1, 4:5, 1,91:1, 9:16) o libero, con la guida del ritaglio della griglia del profilo (§11.5); **rotazione** di 90°, **raddrizzamento** e **capovolgimento**.
 - Nei caroselli, "Applica a tutte" porta tutte le foto allo stesso formato.
 - Non distruttivo: l'originale resta e "Ripristina originale" lo riporta. La versione modificata la crea il worker con sharp (già nello stack) e passa dai controlli di §9.2 come ogni altro file.
-- Esclusi di proposito: testi, filtri, adesivi, ritocchi e modifica dei video.
+- Esclusi di proposito: testi, filtri, adesivi, ritocchi e modifica dei video. Confermato da Matteo il 2026-10-29: le copertine con titolo, anche dei reel, si preparano fuori e si caricano già pronte.
 
 **Preset di pubblicazione**
 - Allargano i gruppi di account salvati (§11.7): oltre agli account, un preset può contenere un modello di caption, una firma, delle etichette e un orario predefinito o una fascia oraria (§11.6). Un gruppo di oggi diventa un preset con i soli account.
@@ -1548,6 +1550,24 @@ Deciso il 2026-10-26. Obiettivo: togliere all'agenzia il lavoro di rincorrere il
 - Sicurezza: l'azione passa dal link con il suo token, con limitazione delle richieste e voce nel registro attività; se il link ha la password, la richiede anche per approvare. Da decidere nel piano: identificare chi approva (nome dichiarato o email verificata).
 - Dati (indicativi): `post_approvals` (organization_id, post_id, share_link_id, decision approved|changes_requested, comment, post_version, created_at), con RLS. Nessun permesso Meta in più.
 
+### 18.8 Feedway come hub per l'agenzia
+
+Deciso tra il 2026-10-26 e il 2026-10-29. Motto: **"Tutta la tua agenzia, in un solo posto."** Feedway diventa il posto dove l'agenzia lavora ogni giorno: clienti, team, contenuti, shooting, pubblicazione e numeri. La 1.0 non cambia, salvo la caption per piattaforma (§11.2) e il sito pubblico (§14.5: motto, landing, modulo "Richiedi una demo").
+
+Tutte le decisioni sono nel documento [Feedway come hub per l'agenzia](2026-10-29-feedway-hub-agenzia.md). In sintesi:
+- **Clienti:** pagina del cliente con scheda operativa (tutti) e scheda commerciale (solo chi ha il CRM), contratto e pacchetto del mese con contatore, portale materiali, offboarding, cassaforte credenziali.
+- **Portale del cliente:** accesso con invito via email; di default solo il calendario editoriale, il resto lo accende l'agenzia cliente per cliente; note interne, commenti del team, ore, costi, CRM e incassi mai visibili.
+- **CRM:** visibile a Owner e Admin, che possono dare l'accesso ad altre persone una per una.
+- **Shooting:** calendario, richiesta con accettazione, copertura dei clienti, invito e promemoria automatici con canale scelto (predefinito: solo push).
+- **Team:** richieste tra colleghi, "il mio giorno", bacheca annunci (con "urgente" che supera le ore di silenzio), guide interne generali e per cliente.
+- **Notifiche:** push della PWA come nuovo canale; al primo accesso ognuno sceglie i suoi canali.
+- **Calendario:** esportabile (.ics) e collegabile a Google o Apple, con filtri.
+- **Cruscotti:** "La mia giornata", cruscotto dell'agenzia, report "lavoro svolto" per il cliente.
+- **Strumenti nel browser:** estrattore di fotogrammi, compressore video; QR e link brevi.
+- **Rimandate:** casella unica di commenti e messaggi (con la revisione Meta), area Vendite. **Scartate:** Slack, Discord, WhatsApp, liberatorie, filigrana, galleria di selezione.
+
+Le versioni in cui entrano non sono decise: si fissano con Matteo prima di scrivere i piani. Ogni area è un modulo (§7.3), con `organization_id`, RLS e i suoi permessi.
+
 ## 19. Decisioni prese
 
 | Tema | Decisione | Da chi |
@@ -1589,7 +1609,7 @@ Deciso il 2026-10-26. Obiettivo: togliere all'agenzia il lavoro di rincorrere il
 | Cifratura dei backup | Sempre, con `age` | Claude |
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
-| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; contatti via email senza modulo; nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
+| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; modulo "Richiedi una demo" che invia un'email, senza salvare dati (deciso il 2026-10-29; soluzione tecnica proposta in ADR 016); nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
 | Navigazione | Contesto attivo come su Meta ("Tutti i clienti", un cliente, un profilo); si pubblica solo dentro un cliente | Matteo |
 | Scelta degli account | Elenco di profili (IG + Pagina FB collegata da Meta) con caselle, ogni account deselezionabile; solo interfaccia, il dominio non cambia | Matteo (idea), Claude (forma) |
 | Calendario e telefono | Mese come vista predefinita, settimana come vista dettagliata, libreria a richiesta; sul telefono barra in basso a cinque voci con il + al centro | Matteo |
@@ -1597,6 +1617,9 @@ Deciso il 2026-10-26. Obiettivo: togliere all'agenzia il lavoro di rincorrere il
 | Calendario cliente | Mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, "Stampa o salva PDF" con le sole pubblicazioni future | Matteo |
 | Member senza spazi | Ruolo valido nell'agenzia; dalla 1.5 attività, to-do e note | Matteo |
 | Piano editoriale | Nella 1.0, tappa 9 con la parte cliente nella tappa 10 (§11.12) | Matteo (confermato il 2026-10-15, su raccomandazione di Claude) |
+| Direzione del prodotto | Hub per l'agenzia, motto "Tutta la tua agenzia, in un solo posto." (§18.8) | Matteo (2026-10-26/29) |
+| Landing | Titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04) | Matteo (2026-10-27/29) |
+| Canali di notifica dopo la 1.0 | Push della PWA; Slack, Discord e WhatsApp esclusi per ora | Matteo (2026-10-29) |
 
 ---
 

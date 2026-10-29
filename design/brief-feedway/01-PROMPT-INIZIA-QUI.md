@@ -8,7 +8,7 @@ Il nome pubblico è Feedway. OpenMeta è il nome storico del documento originale
 
 **Brand vincolante:** leggi `brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md` e `06-Implementazione/palette.json` dentro il kit. Usa gli SVG originali, proporzioni e margini; nessuna ricostruzione del lettering. Arancio #FF762E e carbone #242321; bianco/carta come fondi di servizio; titoli Sora 650 e corpo system-ui. Sui pulsanti arancioni usa etichette carbone e separazione leggibile. Il logo approvato e la palette prevalgono sui suggerimenti generici di una skill.
 
-Preferisco miniature grandi, interfaccia visiva e creativa, uso soprattutto da computer. App: modalità operativa, controlli stabili e contenuti al centro. Landing: presentazione chiara con più libertà compositiva nello stesso brand. Assunzione iniziale della landing: mostrare il prodotto, aprire una demo interattiva e accedere all'app. Prezzi, trial e raccolta commerciale di contatti non sono ancora definiti.
+Preferisco miniature grandi, interfaccia visiva e creativa, uso soprattutto da computer. App: modalità operativa, controlli stabili e contenuti al centro. Landing: presentazione chiara con più libertà compositiva nello stesso brand. Landing decisa: Feedway come hub dell'agenzia, motto "Tutta la tua agenzia, in un solo posto.", CTA Richiedi una demo con modulo, Accedi separato (documento 04). Prezzi e prova gratuita non sono ancora definiti.
 
 Procedi così:
 

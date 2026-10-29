@@ -12,12 +12,16 @@ Le istruzioni dirette di Matteo prevalgono sulle proposte del pacchetto. Il bran
 - App operativa e landing incluse; sviluppo con Claude Code, Pen già collegato secondo Matteo, interesse per Impeccable.
 - Preservare v9, ruoli, caption comune con testo per piattaforma facoltativo (deciso il 26 ottobre 2026), destinazioni del cliente e calendario condiviso in sola lettura nella 1.0 (approvazione del cliente dalla 1.1).
 
+## Deciso il 26–29 ottobre 2026
+
+- Feedway come hub dell'agenzia, motto "Tutta la tua agenzia, in un solo posto." (`docs/superpowers/specs/2026-10-29-feedway-hub-agenzia.md`).
+- Landing: titolo con il motto, CTA **Richiedi una demo**, Accedi separato, struttura in 11 sezioni del documento 04, funzioni non pronte marcate "In arrivo". La CTA apre un modulo e la richiesta arriva via email a Matteo (29 ottobre, ADR 016); modello commerciale non definito.
+
 ## Proposto, ancora modificabile
 
 - Calendario settimana a colonne come ingresso, mese/elenco disponibili; confronto solo se non già scelto.
-- Landing orientata a presentazione e demo, CTA Esplora la demo e accesso separato. Il modello commerciale non è stato definito: la precedente domanda è stata interrotta per fornire il branding, non ha ricevuto una scelta commerciale.
 - Hero affiancato e sequenza sezioni del documento 04; copy originale proposto.
-- Route `/`, `/demo/calendario`, `/accedi` da adattare al repository.
+- Route `/`, `/accedi` da adattare al repository; una demo interattiva con dati fittizi resta facoltativa.
 - Misure UI e componenti proposti nel brief, mantenendo il brand.
 
 ## Compatibilità e fonti ufficiali delle skill
