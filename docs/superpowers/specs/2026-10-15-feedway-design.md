@@ -1620,6 +1620,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 | Direzione del prodotto | Hub per l'agenzia, motto "Tutta la tua agenzia, in un solo posto." (§18.8) | Matteo (2026-10-26/29) |
 | Landing | Titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04) | Matteo (2026-10-27/29) |
 | Canali di notifica dopo la 1.0 | Push della PWA; Slack, Discord e WhatsApp esclusi per ora | Matteo (2026-10-29) |
+| Versioni dell'hub | Fissate da chi scrive il piano, partendo dall'ordine di riferimento; quali funzioni fare resta una scelta di Matteo | Matteo (delega, 2026-10-29) |
 
 ---
 

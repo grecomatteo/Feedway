@@ -1,6 +1,6 @@
 # Feedway come hub per l'agenzia
 
-Data: 2026-10-29 · Stato: **direzione di prodotto decisa da Matteo; versioni ancora da assegnare**
+Data: 2026-10-29 · Stato: **direzione di prodotto decisa da Matteo; versioni fissate nei piani, su delega di Matteo**
 
 Questo documento raccoglie le decisioni prese da Matteo tra il 26 e il 29 ottobre 2026 sul futuro di Feedway dopo la 1.0. È il riferimento per i piani delle versioni successive. Non cambia la 1.0, salvo la caption per piattaforma (§11.2 della specifica) e il sito pubblico della tappa 10: motto, struttura della landing e modulo "Richiedi una demo" (§14.5, ADR 016). La specifica principale è [2026-10-15-feedway-design.md](2026-10-15-feedway-design.md) e rimanda qui da §18.8.
 
@@ -280,18 +280,18 @@ Priorità consigliate: P1 prima, P3 ultime.
 
 ## 9. Ordine di riferimento
 
-Il 2026-10-29 Matteo ha delegato la scelta delle versioni: si fissano quando è adatto e necessario, cioè quando si scrive il piano di una versione, partendo da questo ordine. Chi scrive il piano aggiorna la tabella §18.2 della specifica e spiega nella PR ogni spostamento. Le proposte del §8.1 entrano solo dopo essere state scelte da Matteo. Le scelte che cambiano il prodotto (aggiungere o togliere una funzione) restano sue.
+Il 2026-10-29 Matteo ha delegato la scelta delle versioni: si fissano quando è adatto e necessario, cioè quando si scrive il piano di una versione, partendo da questo ordine. Chi scrive il piano aggiorna la tabella §18.2 della specifica e spiega nella PR ogni spostamento. Le voci *Da scegliere (§8.1)* della tabella sono proposte: entrano in un piano solo dopo essere state scelte da Matteo. Le scelte che cambiano il prodotto (aggiungere o togliere una funzione) restano sue.
 
 | Versione | Oggi nella specifica | Ordine di riferimento |
 |---|---|---|
-| 1.0 | Pubblicazione, piano editoriale, link cliente, notifiche | Uguale. Già decisi, quindi fuori dalla proposta: caption per piattaforma e nuova landing (§10) |
-| 1.1 | Ricorrenti, webhook, link in bio, Google, commenti del team, editor immagini, preset | In più: pagina Oggi, revisione interna, approvazione del cliente, ricerca globale, calendario esportabile |
-| 1.2 | Primo commento, Drive e Canva | Anticipa la 1.5: attività, pagina cliente con contratto, stati di produzione, discussione del cliente, banca idee, portale materiali. Drive e Canva slittano |
-| 1.3 | Statistiche, report, orario migliore, concorrenti | In più: ore e redditività, carico del team, report "lavoro svolto" |
-| 1.4 | AI per caption, server MCP | In più: bozza di piano dal brief |
+| 1.0 | Pubblicazione, piano editoriale, link cliente, notifiche | Uguale. Già decisi: caption per piattaforma e nuova landing (§10) |
+| 1.1 | Ricorrenti, webhook, link in bio, Google, commenti del team, editor immagini, preset | In più: pagina Oggi, approvazione del cliente, calendario esportabile. *Da scegliere (§8.1):* revisione interna, ricerca globale |
+| 1.2 | Primo commento, Drive e Canva | Anticipa la 1.5: attività, pagina cliente con contratto, portale materiali. Drive e Canva slittano. *Da scegliere (§8.1):* stati di produzione, discussione del cliente, banca idee |
+| 1.3 | Statistiche, report, orario migliore, concorrenti | In più: report "lavoro svolto". *Da scegliere (§8.1):* ore e redditività, carico del team |
+| 1.4 | AI per caption, server MCP | *Da scegliere (§8.1):* bozza di piano dal brief |
 | 1.5 e oltre | Strumenti di agenzia, altri social | Shooting e CRM se non anticipati, cassaforte credenziali, altri social |
 
-Su shooting e CRM la proposta è: prima S1, poi A1 e A2 (servono anche a T1), poi C1 e C2.
+Su shooting e CRM l'ordine di riferimento è: prima S1, poi A1 e A2 (servono anche a T1), poi C1 e C2.
 
 ## 10. Landing e comunicazione
 
