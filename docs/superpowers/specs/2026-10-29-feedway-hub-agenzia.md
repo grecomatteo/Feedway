@@ -325,6 +325,10 @@ Indicazioni per i piani. I nomi sono provvisori. Ogni tabella nuova ha `organiza
 
 - **Permessi nuovi:** `crm.view`, `crm.edit` (Owner e Admin più le persone aggiunte una per una), permessi per shooting, richieste, guide, annunci e portale.
 - **Accesso del cliente al portale:** è un tipo di utente esterno legato a uno spazio, distinto dai ruoli dell'agenzia, con le sole sezioni accese. Va progettato con una ADR prima del piano.
+- **Da fissare nelle ADR** (osservazioni dalla tappa 2, 2026-10-29):
+  - *Permessi per persona.* Oggi `can()` decide solo dalla matrice ruolo×permesso e la batteria di isolamento nasce da quella. Servono una tabella di concessioni (con `organization_id` e RLS), un `can()` che la legga e la batteria estesa. Proposta: una concessione cade quando la persona cambia ruolo o viene disattivata. Concessioni e revoche vanno nel registro attività.
+  - *Utenti esterni.* Un'email corrisponde a un solo account per tutte le agenzie, quindi un referente del cliente può essere anche membro di un'agenzia. Proposta: un tipo di appartenenza separato, legato allo spazio, che `can()` non tratta mai come ruolo dell'agenzia. Da decidere per gli esterni: chi riceve l'avviso del blocco "Non sono stato io" e se la 2FA è obbligatoria.
+  - *Push.* Le email di sicurezza restano sempre email e non si possono disattivare.
 - **Notifiche:** un nuovo canale push. Preferenze scelte al primo accesso. Un livello "urgente" per gli annunci che supera le ore di silenzio. La scelta del canale (push o email) per invito e promemoria dello shooting.
 - **Moduli probabili:** `clients` (pagina cliente, contratto, CRM), `shooting`, `requests` (A2 e T1), `guides`, `announcements`, `portal`. I confini si decidono nelle ADR dei piani.
 
