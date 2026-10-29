@@ -21,7 +21,7 @@ Le istruzioni dirette di Matteo prevalgono sulle proposte del pacchetto. Il bran
 
 - Calendario settimana a colonne come ingresso, mese/elenco disponibili; confronto solo se non già scelto.
 - Hero affiancato e sequenza sezioni del documento 04; copy originale proposto.
-- Route `/`, `/demo/calendario`, `/accedi` da adattare al repository.
+- Route `/`, `/accedi` da adattare al repository; una demo interattiva con dati fittizi resta facoltativa.
 - Misure UI e componenti proposti nel brief, mantenendo il brand.
 
 ## Compatibilità e fonti ufficiali delle skill

@@ -44,7 +44,7 @@ Non serve allegare una per una le immagini: Claude Code può consultare i file n
 - App e landing pubblica entrambe nel lavoro richiesto, con un unico sistema visivo.
 - Stack Nuxt/Vue/TypeScript e vincoli funzionali del v9.
 
-La finalità commerciale della landing non è ancora stata scelta: nel prototipo si propone **presentazione del prodotto + demo interattiva + accesso all'app**. Non si inventano abbonamenti, prova gratuita, testimonianze o un servizio demo commerciale. Questa assunzione è modificabile senza rifare il brand.
+La landing è decisa (29 ottobre 2026): Feedway come hub dell'agenzia, titolo "Tutta la tua agenzia, in un solo posto.", CTA **Richiedi una demo** che apre un modulo, più l'accesso all'app (documento 04). Non si inventano abbonamenti, prova gratuita o testimonianze.
 
 ## Stato della consegna
 

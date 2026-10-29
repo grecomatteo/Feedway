@@ -1164,7 +1164,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 
 ### 14.5 Sito pubblico
 
-Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza database, login né dati delle agenzie; l'unica parte server è la funzione che invia il modulo "Richiedi una demo" (ADR 016). Se la VPS è ferma o in aggiornamento il sito resta online.
+Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 013): pagine statiche su Cloudflare Pages, senza database, login né dati delle agenzie; l'unica parte server è la funzione che invia il modulo "Richiedi una demo" (ADR 016, soluzione tecnica proposta). Se la VPS è ferma o in aggiornamento il sito resta online.
 
 **Indirizzi**: sito su `tuodominio.it` (`www` rimanda lì), pannello su `app.tuodominio.it`, file per Meta e link cliente su `pub.tuodominio.it` (§16.1). Il pulsante **"Accedi"** porta alla pagina di accesso del pannello. Il modulo di accesso non sta mai dentro il sito: passkey e cookie restano legati all'indirizzo del pannello (§15.1, §15.2) e un sito compromesso non può leggere password.
 
@@ -1172,7 +1172,8 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 
 | Pagina | Contenuto |
 |---|---|
-| Home | Cosa fa Feedway in una frase; vantaggi principali (IG e FB da un solo posto, anteprima come su Meta, verifica dopo la pubblicazione, più clienti e più utenti, uso da telefono); come funziona in tre passi; immagini del prodotto vero; domande frequenti; "Accedi" e "Contattaci" |
+| Home | La landing in 11 sezioni del brief `design/brief-feedway/04-BRIEF-LANDING.md`: titolo "Tutta la tua agenzia, in un solo posto.", immagini del prodotto vero, funzioni non pronte segnate "In arrivo", domande frequenti; "Richiedi una demo" e "Accedi" |
+| Richiedi una demo | Il modulo di richiesta e la pagina di conferma, che funziona anche senza JavaScript (ADR 016) |
 | Privacy | Informativa del sito, con te come titolare; diversa dall'informativa delle agenzie, che sta nel pannello (§15.7) |
 | Cookie | Dichiara che il sito non usa cookie di profilazione né di terze parti |
 | Note legali | Titolare, sede e contatti. Se c'è la partita IVA va indicata nella home (art. 35 DPR 633/1972): la mettiamo nel piè di pagina di ogni pagina |
@@ -1180,7 +1181,7 @@ Il sito presenta Feedway e porta all'accesso. È **separato dal pannello** (ADR 
 
 Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul trattamento dei dati e stato del servizio (§18.2).
 
-**Contatti**: il pulsante "Richiedi una demo" apre un modulo (nome, agenzia, email e campi facoltativi); a Matteo arriva un'email con la richiesta e il sito non conserva nulla (deciso il 2026-10-29, ADR 016). Una lista d'attesa o la registrazione arrivano con la 2.0.
+**Contatti**: il pulsante "Richiedi una demo" apre un modulo (nome, agenzia, email e campi facoltativi); a Matteo arriva un'email con la richiesta e il sito non conserva nulla (modulo deciso il 2026-10-29; soluzione tecnica proposta in ADR 016). Una lista d'attesa o la registrazione arrivano con la 2.0.
 
 **Privacy**: nessun cookie del sito, quindi nessun banner: tema solo automatico (segue il telefono o il computer, senza salvare preferenze) e protezioni anti-bot di Cloudflare spente sull'host del sito (mettono cookie). Statistiche di visita con Cloudflare Web Analytics, senza cookie né impronte del browser. Cloudflare tratta comunque gli indirizzi IP come fornitore, e l'informativa lo dice. Font serviti dal sito stesso; nessun contenuto incorporato da terzi (i video stanno sul sito o partono solo al clic).
 
@@ -1551,7 +1552,7 @@ Deciso il 2026-10-26. Obiettivo: togliere all'agenzia il lavoro di rincorrere il
 
 ### 18.8 Feedway come hub per l'agenzia
 
-Deciso tra il 2026-10-26 e il 2026-10-29. Motto: **"Tutta la tua agenzia, in un solo posto."** Feedway diventa il posto dove l'agenzia lavora ogni giorno: clienti, team, contenuti, shooting, pubblicazione e numeri. La 1.0 non cambia, salvo la caption per piattaforma già in §11.2.
+Deciso tra il 2026-10-26 e il 2026-10-29. Motto: **"Tutta la tua agenzia, in un solo posto."** Feedway diventa il posto dove l'agenzia lavora ogni giorno: clienti, team, contenuti, shooting, pubblicazione e numeri. La 1.0 non cambia, salvo la caption per piattaforma (§11.2) e il sito pubblico (§14.5: motto, landing, modulo "Richiedi una demo").
 
 Tutte le decisioni sono nel documento [Feedway come hub per l'agenzia](2026-10-29-feedway-hub-agenzia.md). In sintesi:
 - **Clienti:** pagina del cliente con scheda operativa (tutti) e scheda commerciale (solo chi ha il CRM), contratto e pacchetto del mese con contatore, portale materiali, offboarding, cassaforte credenziali.
@@ -1608,7 +1609,7 @@ Le versioni in cui entrano non sono decise: si fissano con Matteo prima di scriv
 | Cifratura dei backup | Sempre, con `age` | Claude |
 | Flusso Git | PR piccole per task, squash merge, una versione per tappa (`docs/flusso-git.md`) | Matteo |
 | Licenza | Proprietaria, tutti i diritti riservati | Claude, modificabile |
-| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; modulo "Richiedi una demo" che invia un'email, senza salvare dati (ADR 016, deciso il 2026-10-29); nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
+| Sito pubblico | Sito statico separato dal pannello, su Cloudflare Pages, nella tappa 10; modulo "Richiedi una demo" che invia un'email, senza salvare dati (deciso il 2026-10-29; soluzione tecnica proposta in ADR 016); nessun cookie (ADR 013) | Matteo (idea), Claude (forma) |
 | Navigazione | Contesto attivo come su Meta ("Tutti i clienti", un cliente, un profilo); si pubblica solo dentro un cliente | Matteo |
 | Scelta degli account | Elenco di profili (IG + Pagina FB collegata da Meta) con caselle, ogni account deselezionabile; solo interfaccia, il dominio non cambia | Matteo (idea), Claude (forma) |
 | Calendario e telefono | Mese come vista predefinita, settimana come vista dettagliata, libreria a richiesta; sul telefono barra in basso a cinque voci con il + al centro | Matteo |

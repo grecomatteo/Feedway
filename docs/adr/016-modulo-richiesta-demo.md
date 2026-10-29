@@ -5,7 +5,7 @@
 | **Stato** | Proposta: il modulo è deciso da Matteo (2026-10-29), la soluzione tecnica va accettata |
 | **Data** | 2026-10-29 |
 | **Specifica** | v9, §14.5; [hub per l'agenzia](../superpowers/specs/2026-10-29-feedway-hub-agenzia.md) §10 |
-| **Modifica** | ADR 013, solo il punto "nessun modulo che raccolga dati personali nella 1.0" |
+| **Modifica** | ADR 013 in due punti: "nessun modulo che raccolga dati personali nella 1.0" e "non ha server" (la funzione del modulo è l'unica parte server). Il resto di ADR 013 resta valido |
 
 ## Contesto
 La landing ha come azione principale "Richiedi una demo". Matteo ha deciso che il pulsante apre un modulo: chi è interessato inserisce i suoi dati e a Matteo arriva un'email per parlarne. L'ADR 013 escludeva moduli nella 1.0 e la specifica (§14.5) li rimandava alla 2.0. Il sito resta statico, senza database e senza cookie.
@@ -29,4 +29,5 @@ La landing ha come azione principale "Richiedi una demo". Matteo ha deciso che i
 - Servono su Cloudflare: Email Routing attivo sul dominio, l'indirizzo di Matteo verificato, il segreto con l'indirizzo. Li configura Matteo.
 - L'informativa privacy del sito va aggiornata prima del lancio (dati raccolti, finalità, conservazione nella casella email).
 - Test: validazione dei campi, campo nascosto, risposta senza JavaScript; l'invio reale è "non verificato" finché non si prova sul dominio vero.
-- **Da verificare:** che l'invio tramite Email Routing da una funzione di Pages sia disponibile sul piano gratuito e i suoi limiti.
+- **Da verificare:** se l'invio con Email Routing (`send_email`) è disponibile direttamente nelle funzioni di Pages o solo nei Worker. Nel secondo caso la funzione di Pages chiama un piccolo Worker dedicato con un service binding. Vanno verificati anche il piano gratuito e i limiti.
+- Quando questa ADR è accettata, ADR 013 passa a "In parte modificata da ADR 016" e il piano della tappa 10 aggiunge modulo, segreti Cloudflare e test.

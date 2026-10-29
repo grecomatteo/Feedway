@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Accettata (Matteo, 2026-10-15) |
+| **Stato** | Accettata (Matteo, 2026-10-15). Modifica in corso: ADR 016 (proposta) toglie i punti "nessun modulo" e "non ha server" per il modulo "Richiedi una demo" |
 | **Data** | 2026-10-15 |
 | **Specifica** | v9, §14.5 |
 

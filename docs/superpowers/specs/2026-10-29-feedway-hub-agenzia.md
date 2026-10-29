@@ -2,7 +2,7 @@
 
 Data: 2026-10-29 · Stato: **direzione di prodotto decisa da Matteo; versioni ancora da assegnare**
 
-Questo documento raccoglie le decisioni prese da Matteo tra il 26 e il 29 ottobre 2026 sul futuro di Feedway dopo la 1.0. È il riferimento per i piani delle versioni successive. Non cambia la 1.0, salvo la caption per piattaforma già scritta nella specifica (§11.2). La specifica principale è [2026-10-15-feedway-design.md](2026-10-15-feedway-design.md) e rimanda qui da §18.8.
+Questo documento raccoglie le decisioni prese da Matteo tra il 26 e il 29 ottobre 2026 sul futuro di Feedway dopo la 1.0. È il riferimento per i piani delle versioni successive. Non cambia la 1.0, salvo la caption per piattaforma (§11.2 della specifica) e il sito pubblico della tappa 10: motto, struttura della landing e modulo "Richiedi una demo" (§14.5, ADR 016). La specifica principale è [2026-10-15-feedway-design.md](2026-10-15-feedway-design.md) e rimanda qui da §18.8.
 
 Regole di lettura:
 
@@ -74,7 +74,7 @@ Sul telefono restano le cinque voci in basso già previste (Oggi, Calendario, + 
 
 ### 3.1 Pagina del cliente (decisa)
 
-Una pagina per ogni cliente che raccoglie tutto in blocchi. È il centro dell'hub. Ha **due schede** (deciso il 2026-10-29):
+Una pagina per ogni cliente che raccoglie tutto in blocchi. È il centro dell'hub e allarga la scheda cliente prevista nella 1.5 (§18.4 della specifica, `client_profiles`), che diventa la sua scheda operativa. Ha **due schede** (deciso il 2026-10-29):
 
 - **Scheda operativa**, per tutti quelli che lavorano sul cliente, editor compresi: brief, tono di voce, colori, cose da evitare, guide (§5.4).
 - **Scheda commerciale**, solo per chi ha accesso al CRM (§3.4): contratto, prezzo, scadenze, pagamenti, note riservate. Chi non ha il CRM non vede la scheda e non sa che esiste.
@@ -280,11 +280,11 @@ Priorità consigliate: P1 prima, P3 ultime.
 
 ## 9. Ordine proposto (non deciso)
 
-È una proposta di Claude e **non è approvata**. Matteo ha chiesto di riorganizzare le versioni solo dopo averne parlato insieme. Fino ad allora vale la tabella §18.2 della specifica.
+È una proposta e **non è approvata**. Matteo ha chiesto di riorganizzare le versioni solo dopo averne parlato insieme. Fino ad allora vale la tabella §18.2 della specifica.
 
 | Versione | Oggi nella specifica | Proposta |
 |---|---|---|
-| 1.0 | Pubblicazione, piano editoriale, link cliente, notifiche | Uguale, con la caption per piattaforma (già decisa). Landing con il motto e le aree future segnate "In arrivo" |
+| 1.0 | Pubblicazione, piano editoriale, link cliente, notifiche | Uguale. Già decisi, quindi fuori dalla proposta: caption per piattaforma e nuova landing (§10) |
 | 1.1 | Ricorrenti, webhook, link in bio, Google, commenti del team, editor immagini, preset | In più: pagina Oggi, revisione interna, approvazione del cliente, ricerca globale, calendario esportabile |
 | 1.2 | Primo commento, Drive e Canva | Anticipa la 1.5: attività, pagina cliente con contratto, stati di produzione, discussione del cliente, banca idee, portale materiali. Drive e Canva slittano |
 | 1.3 | Statistiche, report, orario migliore, concorrenti | In più: ore e redditività, carico del team, report "lavoro svolto" |
@@ -301,7 +301,7 @@ Decisioni:
 - Azione principale: **"Richiedi una demo"** (Matteo, 2026-10-27). "Accedi" resta l'azione di servizio.
 - Le funzioni non ancora pronte si mostrano con l'etichetta "In arrivo". Non si promette ciò che non c'è.
 
-- "Richiedi una demo" apre un **modulo**: chi è interessato inserisce i suoi dati e a Matteo arriva un'email per parlarne (Matteo, 2026-10-29). Il sito non salva le richieste e resta senza cookie. Soluzione tecnica in ADR 016 (proposta).
+- "Richiedi una demo" apre un **modulo**: chi è interessato inserisce i suoi dati e a Matteo arriva un'email per parlarne (Matteo, 2026-10-29). Il sito non salva le richieste e resta senza cookie. Soluzione tecnica in ADR 016, ancora proposta.
 
 Prezzi e prova gratuita restano aperti, come nella specifica.
 
