@@ -1454,7 +1454,7 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 | 1.3 | Statistiche e report per cliente con modelli personalizzabili, orario migliore per pubblicare, analisi dei concorrenti (§18.5) | Permessi Meta per gli insight |
 | 1.4 | Assistente AI per caption e hashtag, server MCP | §18.3 |
 | 1.5 | Strumenti di agenzia: attività e to-do, note e schede cliente | §18.4; nessun permesso Meta in più |
-| Da assegnare | Funzioni dell'hub per l'agenzia decise il 2026-10-26/29: pagina cliente con CRM, portale cliente, shooting, richieste tra colleghi, cruscotti, bacheca annunci, guide interne, notifiche push, calendario esportabile e collegabile, strumenti nel browser | §18.8 e [hub per l'agenzia](2026-10-29-feedway-hub-agenzia.md); le versioni si decidono insieme a Matteo prima dei piani |
+| Da assegnare | Funzioni dell'hub per l'agenzia decise il 2026-10-26/29: pagina cliente con CRM, portale cliente, shooting, richieste tra colleghi, cruscotti, bacheca annunci, guide interne, notifiche push, calendario esportabile e collegabile, strumenti nel browser | §18.8 e [hub per l'agenzia](2026-10-29-feedway-hub-agenzia.md); la versione si fissa quando si scrive il suo piano, partendo dall'ordine di riferimento (delega di Matteo, 2026-10-29) |
 | Dopo la 1.5, anche dopo la 2.0 | Altri social come moduli: LinkedIn, TikTok, YouTube, Pinterest, X e altri, uno alla volta | §18.6; ordine da decidere, ogni piattaforma ha la sua revisione dell'app |
 | 2.0 | Piattaforma aperta ad altre agenzie: pannello della piattaforma, prezzi, registrazione e termini di servizio sul sito, registrazione libera con verifica dell'email, abbonamenti e pagamenti, collegamento di tutti i clienti con i login (richiede la revisione dell'app), sottodominio di Feedway per agenzia (deciso il 2026-10-27), esportazione e cancellazione di un'organizzazione, accesso di supporto | Richiede revisione dell'app Meta e verifica della tua azienda (§20); l'app Meta comune vuole sul sito gli indirizzi di informativa e di cancellazione dei dati (da verificare) |
 
@@ -1566,7 +1566,7 @@ Tutte le decisioni sono nel documento [Feedway come hub per l'agenzia](2026-10-2
 - **Strumenti nel browser:** estrattore di fotogrammi, compressore video; QR e link brevi.
 - **Rimandate:** casella unica di commenti e messaggi (con la revisione Meta), area Vendite. **Scartate:** Slack, Discord, WhatsApp, liberatorie, filigrana, galleria di selezione.
 
-Le versioni in cui entrano non sono decise: si fissano con Matteo prima di scrivere i piani. Ogni area è un modulo (§7.3), con `organization_id`, RLS e i suoi permessi.
+Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione, partendo dall'ordine di riferimento del documento (delega di Matteo, 2026-10-29). Ogni area è un modulo (§7.3), con `organization_id`, RLS e i suoi permessi.
 
 ## 19. Decisioni prese
 

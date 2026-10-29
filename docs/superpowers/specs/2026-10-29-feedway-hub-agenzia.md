@@ -11,7 +11,7 @@ Regole di lettura:
 - **Rimandata**: si riprende più avanti, nel momento indicato.
 - **Scartata**: non si fa. Non va riproposta senza un motivo nuovo.
 
-La versione in cui entra ogni funzione **non è ancora decisa**. L'ordine del §9 è solo una proposta, da discutere insieme prima di scrivere i piani.
+La versione in cui entra ogni funzione si fissa quando serve, cioè quando si scrive il piano di quella versione, partendo dall'ordine di riferimento del §9 (delega di Matteo, 2026-10-29).
 
 ## Indice
 
@@ -278,11 +278,11 @@ Priorità consigliate: P1 prima, P3 ultime.
 - **Filigrana sulle anteprime (S2)** (2026-10-27).
 - **Galleria di selezione delle foto per il cliente (S3)** (2026-10-27).
 
-## 9. Ordine proposto (non deciso)
+## 9. Ordine di riferimento
 
-È una proposta e **non è approvata**. Matteo ha chiesto di riorganizzare le versioni solo dopo averne parlato insieme. Fino ad allora vale la tabella §18.2 della specifica.
+Il 2026-10-29 Matteo ha delegato la scelta delle versioni: si fissano quando è adatto e necessario, cioè quando si scrive il piano di una versione, partendo da questo ordine. Chi scrive il piano aggiorna la tabella §18.2 della specifica e spiega nella PR ogni spostamento. Le proposte del §8.1 entrano solo dopo essere state scelte da Matteo. Le scelte che cambiano il prodotto (aggiungere o togliere una funzione) restano sue.
 
-| Versione | Oggi nella specifica | Proposta |
+| Versione | Oggi nella specifica | Ordine di riferimento |
 |---|---|---|
 | 1.0 | Pubblicazione, piano editoriale, link cliente, notifiche | Uguale. Già decisi, quindi fuori dalla proposta: caption per piattaforma e nuova landing (§10) |
 | 1.1 | Ricorrenti, webhook, link in bio, Google, commenti del team, editor immagini, preset | In più: pagina Oggi, revisione interna, approvazione del cliente, ricerca globale, calendario esportabile |
