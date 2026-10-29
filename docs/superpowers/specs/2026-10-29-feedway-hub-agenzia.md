@@ -301,7 +301,7 @@ Decisioni:
 - Azione principale: **"Richiedi una demo"** (Matteo, 2026-10-27). "Accedi" resta l'azione di servizio.
 - Le funzioni non ancora pronte si mostrano con l'etichetta "In arrivo". Non si promette ciò che non c'è.
 
-- "Richiedi una demo" apre un **modulo**: chi è interessato inserisce i suoi dati e a Matteo arriva un'email per parlarne (Matteo, 2026-10-29). Il sito non salva le richieste e resta senza cookie. Soluzione tecnica in ADR 016, ancora proposta.
+- "Richiedi una demo" apre un **modulo**: chi è interessato inserisce i suoi dati e a Matteo arriva un'email per parlarne (Matteo, 2026-10-29). Il sito non salva le richieste e resta senza cookie. Soluzione tecnica in ADR 016, accettata.
 
 Prezzi e prova gratuita restano aperti, come nella specifica.
 
