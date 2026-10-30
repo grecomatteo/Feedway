@@ -73,8 +73,12 @@ const mailNotConfigured = () =>
 const mailSendFailed = () =>
   new DomainError('MAIL_SEND_FAILED', 'Non siamo riusciti a inviare l’invito: riprova tra poco')
 
-async function assertMailConfigured(deps: Pick<InviteDeps, 'mailer'>): Promise<void> {
-  if (!(await deps.mailer.isConfigured())) throw mailNotConfigured()
+async function assertMailConfigured(
+  deps: Pick<InviteDeps, 'mailer'>,
+  organizationId: string,
+): Promise<void> {
+  // the agency's own SMTP settings, else the platform default
+  if (!(await deps.mailer.isConfigured(organizationId))) throw mailNotConfigured()
 }
 
 function allowanceKeys(
@@ -184,8 +188,13 @@ function inviteMessage(
 }
 
 /** After the commit: the token lives only in this message, never in a queue or a table. */
-function sendInviteMail(deps: InviteDeps, mail: InviteMail): Promise<'sent' | 'not_configured'> {
-  return deps.mailer.send(inviteMessage(deps, mail))
+function sendInviteMail(
+  deps: InviteDeps,
+  organizationId: string,
+  mail: InviteMail,
+): Promise<'sent' | 'not_configured'> {
+  // the agency's own SMTP settings, else the platform default
+  return deps.mailer.send(inviteMessage(deps, mail), { organizationId })
 }
 
 /** Never the message of the error: a mail server may echo the address or the link. */
@@ -229,7 +238,7 @@ export async function inviteUser(
     throw new DomainError('VALIDATION', 'Ogni spazio va indicato una volta sola', {
       field: 'memberships',
     })
-  await assertMailConfigured(deps)
+  await assertMailConfigured(deps, actor.organizationId)
   await assertAllowance(deps, organizationId, email)
 
   const { token, hash } = deps.tokens.generate()
@@ -315,7 +324,7 @@ export async function inviteUser(
 
   let result: 'sent' | 'not_configured'
   try {
-    result = await sendInviteMail(deps, mail)
+    result = await sendInviteMail(deps, organizationId, mail)
   } catch (error) {
     deps.logger.error({ inviteId: mail.inviteId, failure: failureOf(error) }, 'invite email failed')
     await cancelUnsent(deps, actor, mail.inviteId, request)
@@ -487,7 +496,7 @@ export async function resendInvite(
 ): Promise<{ inviteId: string; expiresAt: Date }> {
   assertActorSession(actor, session)
   if (!isUuid(inviteId)) throw inviteNotFound()
-  await assertMailConfigured(deps)
+  await assertMailConfigured(deps, actor.organizationId)
   const { organizationId } = actor
   const scope = { organizationId, userId: actor.userId }
   // read and check first, count outside any transaction, then change it under the lock
@@ -520,7 +529,7 @@ export async function resendInvite(
 
   let result: 'sent' | 'not_configured'
   try {
-    result = await sendInviteMail(deps, mail)
+    result = await sendInviteMail(deps, organizationId, mail)
   } catch (error) {
     deps.logger.error({ inviteId: mail.inviteId, failure: failureOf(error) }, 'invite email failed')
     throw mailSendFailed()

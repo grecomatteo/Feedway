@@ -26,6 +26,12 @@ const insertPersonalAudit = (c: pg.Client, actorId: string) =>
      values ($1, null, $2, 'panel', 'account.updated')`,
     [newId(), actorId],
   )
+const insertIntegration = (c: pg.Client, organizationId: string | null) =>
+  c.query(
+    `insert into integrations (id, organization_id, kind, config, secret_enc, key_version, secret_hint)
+     values ($1, $2, 'smtp', '{}', 'v1.1.x', 1, 'abcd')`,
+    [newId(), organizationId],
+  )
 const setOrgStatus = (id: string, status: string) =>
   asSystem((c) => c.query('update organizations set status = $1 where id = $2', [status, id]))
 const setMemberStatus = (organizationId: string, userId: string, status: string) =>
@@ -103,6 +109,8 @@ beforeAll(async () => {
        values ($1, $2, $3, 'panel', 'workspace.created')`,
       [newId(), orgA, u1],
     )
+    await insertIntegration(c, orgA)
+    await insertIntegration(c, null)
   })
 }, 120_000)
 afterAll(async () => {
@@ -120,6 +128,7 @@ test('without context no tenant rows are visible', async () => {
     'workspace_members',
     'audit_log',
     'api_tokens',
+    'integrations',
   ]
   for (const t of tables) {
     expect((await runtime.query(`select * from ${t}`)).rowCount, t).toBe(0)
@@ -290,4 +299,51 @@ test('runtime role does not bypass RLS', async () => {
     `select rolbypassrls from pg_roles where rolname = 'app_runtime'`,
   )
   expect(rows[0]?.rolbypassrls).toBe(false)
+})
+
+test('integrations: an agency reaches only its own row, the platform default only the system scope', async () => {
+  const owners = (rows: { organization_id: string | null }[]) => rows.map((r) => r.organization_id)
+  const inA = await inOrg(orgA, (c) =>
+    c.query<{ organization_id: string | null }>('select organization_id from integrations'),
+  )
+  expect(owners(inA.rows)).toEqual([orgA])
+  const inB = await inOrg(orgB, (c) => c.query('select organization_id from integrations'))
+  expect(inB.rowCount).toBe(0)
+  expect((await asUser(u1, (c) => c.query('select * from integrations'))).rowCount).toBe(0)
+  const all = await asSystem((c) =>
+    c.query<{ organization_id: string | null }>('select organization_id from integrations'),
+  )
+  expect(owners(all.rows).sort()).toEqual([orgA, null].sort())
+
+  // an agency writes neither another agency's row nor the platform default
+  await expect(inOrg(orgB, (c) => insertIntegration(c, orgA))).rejects.toThrow(/row-level security/)
+  await expect(inOrg(orgA, (c) => insertIntegration(c, null))).rejects.toThrow(/row-level security/)
+  const touched = await inOrg(orgA, (c) =>
+    c.query(`update integrations set secret_hint = 'zzzz' where organization_id is null`),
+  )
+  expect(touched.rowCount).toBe(0)
+  const moved = inOrg(orgA, (c) =>
+    c.query('update integrations set organization_id = null where organization_id = $1', [orgA]),
+  )
+  await expect(moved).rejects.toThrow(/row-level security/)
+  const deleted = await inOrg(orgB, (c) => c.query('delete from integrations'))
+  expect(deleted.rowCount).toBe(0)
+})
+
+test('integrations: one row per agency and kind, and one platform default per kind', async () => {
+  await expect(asSystem((c) => insertIntegration(c, orgA))).rejects.toThrow(
+    /integrations_owner_kind/,
+  )
+  await expect(asSystem((c) => insertIntegration(c, null))).rejects.toThrow(
+    /integrations_owner_kind/,
+  )
+  await expect(
+    asSystem((c) =>
+      c.query(
+        `insert into integrations (id, organization_id, kind, config, secret_enc, key_version, secret_hint)
+         values ($1, $2, 'ftp', '{}', 'v1.1.x', 1, 'abcd')`,
+        [newId(), orgB],
+      ),
+    ),
+  ).rejects.toThrow(/integrations_kind/)
 })

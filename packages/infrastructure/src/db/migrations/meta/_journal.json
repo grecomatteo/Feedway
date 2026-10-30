@@ -43,6 +43,13 @@
       "when": 1792754868325,
       "tag": "0005_user_security_locked_at",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793354998688,
+      "tag": "0006_integrations",
+      "breakpoints": true
     }
   ]
 }

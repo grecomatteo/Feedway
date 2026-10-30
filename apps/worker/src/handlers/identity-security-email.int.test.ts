@@ -108,6 +108,7 @@ test('security email goes to the user with a working lock link', async () => {
   await identitySecurityEmail(job(userId), depsWith(mailer))
   const mail = mailer.sent.at(-1)
   expect(mail?.to).toBe(email)
+  expect(mailer.senders).toEqual([{ organizationId: null }])
   expect(mail?.subject).toBe('Nuovo accesso al tuo account Feedway')
   // shortened address, Rome time, the readable device, never the full IP
   expect(mail?.text).toContain('Rete (approssimativa): 93.41.12.0')

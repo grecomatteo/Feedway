@@ -173,6 +173,7 @@ test('the platform administrators and the Owners of the person’s agencies are 
     await identityAccountLockedNoticeEmail({ id: randomUUID(), data }, depsWith(mailer))
 
   expect(mailer.sent.map((m) => m.to).sort()).toEqual([owner.email, platformAdmin.email].sort())
+  expect(mailer.senders).toEqual([{ organizationId: null }, { organizationId: null }])
   for (const mail of mailer.sent) {
     expect(mail.subject).toBe('Account bloccato: Marta Bianchi · Feedway')
     expect(mail.text.split('\n')[0]).toBe('Marta Bianchi ha bloccato il suo account')
@@ -248,7 +249,8 @@ test('a retried notice queues each recipient once, and a failed email is retried
   // the Owner's mail server fails: only the Owner's job fails, the administrator is not resent
   const failing: Mailer = {
     isConfigured: () => Promise.resolve(true),
-    send: (m) => (m.to === owner.email ? Promise.reject(new Error('smtp giù')) : mailer.send(m)),
+    send: (m, sender) =>
+      m.to === owner.email ? Promise.reject(new Error('smtp giù')) : mailer.send(m, sender),
   }
   const results = await Promise.allSettled(
     mine.map((data) =>

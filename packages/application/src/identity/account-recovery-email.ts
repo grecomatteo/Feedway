@@ -1,5 +1,6 @@
 import type { AccountRecoveryEmailData } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
+import { PLATFORM_SENDER } from '../ports/mailer.js'
 import type { Mailer } from '../ports/mailer.js'
 import type { Translate } from '../ports/translator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
@@ -70,11 +71,14 @@ export async function sendAccountRecoveryEmail(
     ],
     footerReason: t('email.accountRecovery.footer', values),
   })
-  const result = await deps.mailer.send({
-    to: user.email,
-    subject: oneLine(t('email.accountRecovery.subject', values)),
-    text,
-    html,
-  })
+  const result = await deps.mailer.send(
+    {
+      to: user.email,
+      subject: oneLine(t('email.accountRecovery.subject', values)),
+      text,
+      html,
+    },
+    PLATFORM_SENDER,
+  )
   if (result === 'not_configured') deps.logger.info({}, 'recovery email not sent: not_configured')
 }

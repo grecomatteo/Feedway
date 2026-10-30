@@ -2,6 +2,7 @@ import { shortenIp } from '@app/domain'
 import type { Clock } from '../ports/clock.js'
 import type { SecurityEmailData } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
+import { PLATFORM_SENDER } from '../ports/mailer.js'
 import type { Mailer, MailMessage } from '../ports/mailer.js'
 import type { SignedTokens } from '../ports/token-service.js'
 import type { Translate } from '../ports/translator.js'
@@ -130,9 +131,9 @@ export async function sendSecurityEmail(
     text,
     html,
   }
-  const result = await deps.mailer.send(message)
+  const result = await deps.mailer.send(message, PLATFORM_SENDER)
   if (result === 'not_configured') {
-    // Expected until stage 3 configures email: the event is in the activity log anyway.
+    // Expected while no SMTP settings exist: the event is in the activity log anyway.
     deps.logger.info({ kind: job.kind }, 'security email not sent: not_configured')
   }
 }

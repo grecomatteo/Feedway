@@ -4,6 +4,8 @@ import type {
   JobQueue,
   KeyRing,
   Logger,
+  IntegrationCredentialSource,
+  IntegrationStore,
   Mailer,
   RateLimiter,
   SignedTokens,
@@ -18,7 +20,9 @@ import { createKeyRing } from './crypto/key-ring.js'
 import { createSignedTokens } from './crypto/signed-tokens.js'
 import { createTokenService } from './crypto/tokens.js'
 import { createFileMailer } from './mail/file-mailer.js'
-import { notConfiguredMailer } from './mail/not-configured-mailer.js'
+import { createSmtpMailer } from './mail/smtp-mailer.js'
+import { createSmtpSender } from './mail/smtp/smtp-sender.js'
+import { createIntegrationStore } from './db/integrations/integration-store.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
@@ -62,7 +66,9 @@ export interface Runtime {
   signedTokens: SignedTokens
   /** Random single-use tokens of our links (invites, activation). */
   tokens: TokenService
-  /** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
+  /** Integration settings per agency, with the platform default (secrets sealed). */
+  integrations: IntegrationStore & IntegrationCredentialSource
+  /** A file mailbox in tests; elsewhere SMTP with the settings read at every send. */
   mailer: Mailer
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
@@ -70,9 +76,24 @@ export interface Runtime {
 
 const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
 
-/** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
-export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], ids: IdGenerator): Mailer {
-  return nodeEnv === 'test' ? createFileMailer({ dir: TEST_MAIL_DIR, ids }) : notConfiguredMailer
+export interface MailerDeps {
+  ids: IdGenerator
+  logger: Logger
+  integrations: Pick<IntegrationStore, 'get'> & IntegrationCredentialSource
+}
+
+/**
+ * A file mailbox in tests; elsewhere SMTP, with the agency's settings or the platform default
+ * read at every send (no message leaves while neither exists).
+ */
+export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], deps: MailerDeps): Mailer {
+  return nodeEnv === 'test'
+    ? createFileMailer({ dir: TEST_MAIL_DIR, ids: deps.ids })
+    : createSmtpMailer({
+        integrations: deps.integrations,
+        smtp: createSmtpSender(),
+        logger: deps.logger.child({ component: 'mailer' }),
+      })
 }
 
 export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): Promise<Runtime> {
@@ -87,7 +108,8 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
     const signedTokens = createSignedTokens(config.encryptionKey)
-    const mailer = createMailer(config.nodeEnv, ids)
+    const integrations = createIntegrationStore({ db: handle.db, keyRing, ids, logger })
+    const mailer = createMailer(config.nodeEnv, { ids, logger, integrations })
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,
@@ -106,6 +128,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       storage,
       signedTokens,
       tokens: createTokenService(),
+      integrations,
       mailer,
       close: () => handle.close(),
     }

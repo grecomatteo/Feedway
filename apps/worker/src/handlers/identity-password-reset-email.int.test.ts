@@ -94,6 +94,8 @@ test('the reset email goes to the account with the link and when it stops workin
   })
   const mail = mailer.sent.at(-1)
   expect(mail?.to).toBe(email)
+  // never an agency's settings: the platform's
+  expect(mailer.senders).toEqual([{ organizationId: null }])
   expect(mail?.subject).toBe('Scegli una nuova password per Feedway')
   expect(mail?.text).toContain(`Scegli una nuova password:\n${RESET_URL}`)
   expect(mail?.text).toContain(
