@@ -17,7 +17,7 @@ export async function waitFor(check: () => Promise<boolean>, timeoutMs: number):
   }
 }
 
-function freePort(): Promise<number> {
+export function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer()
     server.once('error', reject)
@@ -46,9 +46,12 @@ export function buildWebOnce(): void {
 }
 
 /** Builds the app once and starts the production server against the given database. */
-export async function startWeb(env: Record<string, string>): Promise<RunningWeb> {
+export async function startWeb(
+  env: Record<string, string>,
+  opts: { port?: number } = {},
+): Promise<RunningWeb> {
   buildWebOnce()
-  const port = await freePort()
+  const port = opts.port ?? (await freePort())
   const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
     cwd: webDir,
     env: {

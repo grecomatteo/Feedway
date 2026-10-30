@@ -21,12 +21,25 @@ function get(messages: unknown, key: string): unknown {
 // What sendSecurityEmail passes: any other placeholder would make the job fail.
 const SECURITY_EMAIL_VALUES = new Set(['product', 'device', 'when', 'whenShort'])
 
+// The two email change notices also name both addresses in their intro.
+const ADDRESSES = new Set(['oldEmail', 'newEmail'])
+const EXTRA_PARTS: Partial<Record<(typeof SECURITY_EMAIL_KINDS)[number], string[]>> = {
+  email_change_requested: ['pending', 'lockExplain'],
+  email_changed: [],
+}
+
 test.each(SECURITY_EMAIL_KINDS)('security email %s has all its texts', (kind) => {
-  for (const part of ['subject', 'preheader', 'title', 'intro', 'footer']) {
+  const extra = EXTRA_PARTS[kind]
+  for (const part of ['subject', 'preheader', 'title', 'intro', 'footer', ...(extra ?? [])]) {
     const text = get(it, `email.security.${kind}.${part}`)
     expect(text).toEqual(expect.any(String))
     const placeholders = [...String(text).matchAll(/\{(\w+)\}/g)].map((m) => m[1])
-    for (const name of placeholders) expect(SECURITY_EMAIL_VALUES).toContain(name)
+    for (const name of placeholders)
+      expect(
+        SECURITY_EMAIL_VALUES.has(String(name)) ||
+          (extra !== undefined && part === 'intro' && ADDRESSES.has(String(name))),
+        `${kind}.${part}: {${String(name)}}`,
+      ).toBe(true)
   }
 })
 
@@ -51,6 +64,8 @@ test('the lock text and the validity of its link are separate texts', () => {
 // What sendAccountLockedNotice and sendAccountRecoveryEmail pass to their texts.
 const NOTICE_VALUES = new Set(['product', 'name'])
 const RECOVERY_VALUES = new Set(['product', 'minutes', 'time'])
+// What sendEmailChangeEmail passes (E5).
+const EMAIL_CHANGE_VALUES = new Set(['product', 'oldEmail', 'newEmail', 'minutes', 'time'])
 
 test.each([
   [
@@ -88,6 +103,23 @@ test.each([
       'expiryToday',
       'expiryTomorrow',
       'secondFactor',
+      'notMe',
+      'footer',
+    ],
+  ],
+  [
+    'email.emailChange',
+    EMAIL_CHANGE_VALUES,
+    [
+      'subject',
+      'preheader',
+      'title',
+      'intro',
+      'pending',
+      'button',
+      'warnedTitle',
+      'warnedToday',
+      'warnedTomorrow',
       'notMe',
       'footer',
     ],

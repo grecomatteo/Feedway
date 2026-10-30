@@ -3,6 +3,7 @@ import {
   AVATAR_MAX_BYTES,
   AVATAR_MAX_PIXELS,
   AVATAR_SIZES,
+  isValidTimeZone,
   avatarUrl,
   displayName,
   initials,
@@ -63,4 +64,11 @@ test('crop must be a square inside the image', () => {
 test('the photo url carries the content hash of the current photo', () => {
   expect(avatarUrl('u1', null)).toBeNull()
   expect(avatarUrl('u1', 'users/u1/avatar/ab12')).toBe('/api/v1/users/u1/avatar/256?v=ab12')
+})
+
+test('time zones are IANA names the runtime knows', () => {
+  expect(isValidTimeZone('Europe/Rome')).toBe(true)
+  expect(isValidTimeZone('America/New_York')).toBe(true)
+  expect(isValidTimeZone('Europe/Roma')).toBe(false)
+  expect(isValidTimeZone('')).toBe(false)
 })

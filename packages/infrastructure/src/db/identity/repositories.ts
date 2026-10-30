@@ -1,7 +1,8 @@
-import { randomBytes } from 'node:crypto'
-import { and, count, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { and, count, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm'
 import type {
   CredentialsRepository,
+  EmailChangesRepository,
   IdGenerator,
   KnownDevicesRepository,
   SessionsRepository,
@@ -207,6 +208,39 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .set({ nickname })
         .where(eq(users.id, ownUser(ctx, id)))
     },
+    async updateProfile(id, fields) {
+      const set: Partial<typeof users.$inferInsert> = {}
+      if (fields.name !== undefined) set.name = fields.name
+      if (fields.nickname !== undefined) set.nickname = fields.nickname
+      if (fields.theme !== undefined) set.theme = fields.theme
+      if (fields.timezone !== undefined) set.timezone = fields.timezone
+      if (Object.keys(set).length === 0) return
+      await db
+        .update(users)
+        .set(set)
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
+    async changeEmail(id, email) {
+      const own = ownUser(ctx, id)
+      // only whether the address is taken, never whose it is
+      const [other] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, email), ne(users.id, own)))
+        .limit(1)
+      if (other) return 'taken'
+      try {
+        // in a savepoint: two confirmations of the same address at once, the unique index decides
+        await db.transaction((sp) =>
+          sp.update(users).set({ email, emailVerified: true }).where(eq(users.id, own)),
+        )
+      } catch (error) {
+        const code = (error as { code?: unknown; cause?: { code?: unknown } }).cause?.code
+        if (code === '23505' || (error as { code?: unknown }).code === '23505') return 'taken'
+        throw error
+      }
+      return 'changed'
+    },
     async setLastOrganization(id, organizationId) {
       await db
         .update(users)
@@ -379,6 +413,85 @@ export function drizzleCredentials(
         .where(sql`strpos(${verifications.value}, ${ownUser(ctx, userId)}) > 0`)
         .returning({ id: verifications.id })
       return deleted.length
+    },
+  }
+}
+
+/** Stored like Better Auth's own pending links, so "Non sono stato io" revokes it with them. */
+const emailChangeIdentifier = (userId: string) => `email-change:${userId}`
+
+interface StoredEmailChange {
+  userId: string
+  to: string
+  tokenHash: string
+}
+
+function parseEmailChange(value: string): StoredEmailChange | null {
+  try {
+    const parsed = JSON.parse(value) as Partial<StoredEmailChange>
+    return typeof parsed.userId === 'string' &&
+      typeof parsed.to === 'string' &&
+      typeof parsed.tokenHash === 'string'
+      ? { userId: parsed.userId, to: parsed.to, tokenHash: parsed.tokenHash }
+      : null
+  } catch {
+    return null
+  }
+}
+
+export function drizzleEmailChanges(
+  db: DbExecutor,
+  ids: IdGenerator,
+  ctx: TxContext,
+): EmailChangesRepository {
+  async function current(userId: string, now: Date, lock = false) {
+    const query = db
+      .select({ value: verifications.value, expiresAt: verifications.expiresAt })
+      .from(verifications)
+      .where(
+        and(
+          eq(verifications.identifier, emailChangeIdentifier(ownUser(ctx, userId))),
+          gt(verifications.expiresAt, now),
+        ),
+      )
+      .limit(1)
+    // a confirmation holds the row until it commits: a newer request waits, then replaces it
+    const [row] = lock ? await query.for('update') : await query
+    if (!row) return null
+    const stored = parseEmailChange(row.value)
+    return stored?.userId === userId ? { stored, expiresAt: row.expiresAt } : null
+  }
+  return {
+    async replace(userId, change) {
+      const identifier = emailChangeIdentifier(ownUser(ctx, userId))
+      await db.delete(verifications).where(eq(verifications.identifier, identifier))
+      const value: StoredEmailChange = {
+        userId,
+        to: change.to,
+        tokenHash: change.tokenHash.toString('base64url'),
+      }
+      await db.insert(verifications).values({
+        id: ids.newId(),
+        identifier,
+        value: JSON.stringify(value),
+        expiresAt: change.expiresAt,
+      })
+    },
+    async findByToken(userId, tokenHash, now) {
+      const found = await current(userId, now, true)
+      if (!found) return null
+      const stored = Buffer.from(found.stored.tokenHash, 'base64url')
+      if (stored.length !== tokenHash.length || !timingSafeEqual(stored, tokenHash)) return null
+      return { userId, to: found.stored.to, expiresAt: found.expiresAt }
+    },
+    async findForUser(userId, now) {
+      const found = await current(userId, now)
+      return found ? { userId, to: found.stored.to, expiresAt: found.expiresAt } : null
+    },
+    async deleteForUser(userId) {
+      await db
+        .delete(verifications)
+        .where(eq(verifications.identifier, emailChangeIdentifier(ownUser(ctx, userId))))
     },
   }
 }

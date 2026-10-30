@@ -33,6 +33,8 @@ export type AuthEvent =
       userId: string
       ip: string | null
       userAgent: string | null
+      /** `email_change_requested`: the address asked for, for E5b. */
+      newEmail?: string
     }
 
 export interface AuthEventContext {
@@ -170,8 +172,8 @@ async function recordChange(
 ) {
   const { userId, ip } = event
   const now = deps.clock.now()
-  await deps.uow.run({ userId }, (tx) =>
-    tx.audit.record({
+  const currentEmail = await deps.uow.run({ userId }, async (tx) => {
+    await tx.audit.record({
       organizationId: null,
       actorId: userId,
       source: 'panel',
@@ -180,14 +182,21 @@ async function recordChange(
       entityId: userId,
       workspaceId: null,
       ip,
-    }),
-  )
+    })
+    return (await tx.users.findById(userId))?.email ?? null
+  })
+  // E5b goes to the address the account has now, even if the new one is confirmed first
+  const warning =
+    event.kind === 'email_change_requested' && currentEmail !== null && event.newEmail
+      ? { notifyEmail: currentEmail, newEmail: event.newEmail }
+      : {}
   await deps.queue.send('identity.security_email', {
     userId,
     kind: event.kind,
     occurredAt: now.toISOString(),
     deviceLabel: readableDevice(event.userAgent),
     ip: jobIp(ip),
+    ...warning,
   })
 }
 

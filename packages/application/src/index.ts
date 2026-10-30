@@ -6,6 +6,7 @@ export type {
   AccountLockedNoticeData,
   AccountLockedNoticeEmailData,
   AccountRecoveryEmailData,
+  EmailChangeEmailData,
   JobPayloads,
   JobQueue,
   PasswordResetEmailData,
@@ -54,6 +55,7 @@ export type {
 } from './ports/audit-log.js'
 export type {
   CredentialsRepository,
+  EmailChangesRepository,
   KnownDevicesRepository,
   InvitePurpose,
   InviteRecord,
@@ -63,7 +65,9 @@ export type {
   OrganizationsRepository,
   OrgMemberRecord,
   OrgMembersRepository,
+  PendingEmailChange,
   PlatformSettingsRepository,
+  ProfileFields,
   SessionRecord,
   SessionsRepository,
   UserOrganizationRecord,

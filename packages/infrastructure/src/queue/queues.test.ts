@@ -10,6 +10,7 @@ test('every registered queue declares a scope', () => {
     ['identity.account_locked_notice', 'system'],
     ['identity.account_locked_notice_email', 'system'],
     ['identity.account_recovery_email', 'user'],
+    ['identity.email_change', 'user'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -18,11 +19,19 @@ test('every registered queue declares a scope', () => {
     'identity.account_locked_notice',
     'identity.account_locked_notice_email',
     'identity.account_recovery_email',
+    'identity.email_change',
   ])
 })
 
 test('a reset link does not stay in the queue tables past its hour', () => {
   expect(QUEUES.find((q) => q.name === 'identity.password_reset_email')?.retention).toEqual({
+    retentionSeconds: 3600,
+    deleteAfterSeconds: 3600,
+  })
+})
+
+test('an email change link does not stay in the queue tables past its hour', () => {
+  expect(QUEUES.find((q) => q.name === 'identity.email_change')?.retention).toEqual({
     retentionSeconds: 3600,
     deleteAfterSeconds: 3600,
   })

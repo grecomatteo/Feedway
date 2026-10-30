@@ -22,6 +22,7 @@ interface JobDefinitions {
   'identity.account_locked_notice': { scope: 'system'; data: AccountLockedNoticeData }
   'identity.account_locked_notice_email': { scope: 'system'; data: AccountLockedNoticeEmailData }
   'identity.account_recovery_email': { scope: 'user'; data: AccountRecoveryEmailData }
+  'identity.email_change': { scope: 'user'; data: EmailChangeEmailData }
 }
 
 /**
@@ -65,6 +66,7 @@ export const SECURITY_EMAIL_KINDS = [
   'new_device',
   'password_changed',
   'password_reset',
+  'email_change_requested',
   'email_changed',
   'totp_enabled',
   'totp_disabled',
@@ -84,11 +86,21 @@ export interface SecurityEmailData {
   /** Already shortened (last IPv4 octet zero, IPv6 /48). */
   ip: string | null
   /**
-   * Where to write instead of the account's address: for `email_changed` (E5b, sent when the
-   * change is asked, Task 25) the address the account had then, so the warning reaches it even
-   * if the new one is confirmed before the job runs.
+   * Where to write instead of the account's address: for `email_change_requested` (E5b, sent
+   * when the change is asked) and `email_changed` (once it is done, Task 25) the address the
+   * account had then, so the notice reaches it even after the new one is confirmed.
    */
   notifyEmail?: string
+  /** `email_change_requested`: the address asked for, shown in full (the person chose it). */
+  newEmail?: string
+}
+
+/** E5: the confirmation link to the new address. It holds the token: kept one hour only. */
+export interface EmailChangeEmailData {
+  to: string
+  url: string
+  /** ISO 8601: when the link stops working, for the email's wording. */
+  expiresAt: string
 }
 
 export type QueueName = keyof JobDefinitions

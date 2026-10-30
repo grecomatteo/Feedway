@@ -85,9 +85,44 @@ export interface UsersRepository {
   listActivePlatformAdmins(): Promise<UserRecord[]>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
+  /** Only the fields given change. The person's own scope. */
+  updateProfile(id: string, fields: ProfileFields): Promise<void>
+  /**
+   * The confirmed new address, already verified by its link. `taken`: another account has it now
+   * (it was free when the change was asked); nothing changes then.
+   */
+  changeEmail(id: string, email: string): Promise<'changed' | 'taken'>
   /** The agency the panel opens next time. */
   setLastOrganization(id: string, organizationId: string): Promise<void>
   countPasskeys(id: string): Promise<number>
+}
+
+export interface ProfileFields {
+  name?: string
+  nickname?: string | null
+  theme?: 'light' | 'dark' | 'system'
+  timezone?: string | null
+}
+
+/** An email change asked from the account page and waiting for the link to the new address. */
+export interface PendingEmailChange {
+  userId: string
+  to: string
+  expiresAt: Date
+}
+
+/**
+ * Email changes waiting for confirmation (Task 25). One per person: a new request replaces the
+ * old one, so only the latest link works. Kept where "Non sono stato io" revokes every pending
+ * link of the person (`CredentialsRepository.revokePendingTokens`). The person's own scope.
+ */
+export interface EmailChangesRepository {
+  replace(userId: string, change: { to: string; tokenHash: Buffer; expiresAt: Date }): Promise<void>
+  /** The change a link names, if it is the person's latest and has not expired. */
+  findByToken(userId: string, tokenHash: Buffer, now: Date): Promise<PendingEmailChange | null>
+  /** The person's pending change, if any and not expired. */
+  findForUser(userId: string, now: Date): Promise<PendingEmailChange | null>
+  deleteForUser(userId: string): Promise<void>
 }
 
 /**

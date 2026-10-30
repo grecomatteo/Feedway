@@ -10,7 +10,8 @@ export type EmailBlock =
   /** A bold line of its own ("Sei stato tu?") and its text below. */
   | { kind: 'lead'; lead: string; text: string }
   | { kind: 'button'; label: string; url: string; tone: 'primary' | 'danger' }
-  | { kind: 'box'; title: string; text: string }
+  /** `info` is the blue notice of E5: its meaning is in the title, not in the colour. */
+  | { kind: 'box'; title: string; text: string; tone?: 'info' }
   | { kind: 'details'; rows: readonly { label: string; value: string }[] }
 
 export interface EmailContent {
@@ -32,6 +33,8 @@ const C = {
   text: '#242321',
   muted: '#5F5B55',
   box: '#F3F1EC',
+  info: '#E7EFFA',
+  infoLine: '#1F5AA6',
   primary: '#FF762E',
   danger: '#B3261E',
   onDanger: '#FFFFFF',
@@ -73,8 +76,10 @@ const note14 = font(BODY_FONT, 14, 20, C.muted)
 
 const presentation = 'role="presentation" border="0" cellpadding="0" cellspacing="0"'
 
-function box(inner: string): string {
-  return `<table ${presentation} width="100%" style="width:100%;border-collapse:separate;"><tr><td bgcolor="${C.box}" style="background-color:${C.box};border:1px solid ${C.line};border-radius:8px;padding:16px 20px;">${inner}</td></tr></table>`
+function box(inner: string, tone?: 'info'): string {
+  const fill = tone === 'info' ? C.info : C.box
+  const line = tone === 'info' ? C.infoLine : C.line
+  return `<table ${presentation} width="100%" style="width:100%;border-collapse:separate;"><tr><td bgcolor="${fill}" style="background-color:${fill};border:1px solid ${line};border-radius:8px;padding:16px 20px;">${inner}</td></tr></table>`
 }
 
 function button(block: Extract<EmailBlock, { kind: 'button' }>, fallback: string): string {
@@ -98,6 +103,7 @@ function blockHtml(block: EmailBlock, chrome: EmailContent['chrome']): string {
       return box(
         p(block.title, font(BODY_FONT, 15, 21, C.text, 600)) +
           p(block.text, `${font(BODY_FONT, 15, 22, C.text)}padding-top:6px;`),
+        block.tone,
       )
     case 'details':
       return box(

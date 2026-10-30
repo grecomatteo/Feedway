@@ -15,6 +15,53 @@
   "a11y": {
     "skipToContent": "Vai al contenuto"
   },
+  "account": {
+    "title": "Il mio account",
+    "loading": "Carico il tuo account…",
+    "loadError": "Non siamo riusciti a caricare il tuo account.",
+    "signedOut": "Accedi per vedere il tuo account.",
+    "retry": "Riprova",
+    "save": "Salva",
+    "saved": "Modifiche salvate.",
+    "optional": "Facoltativo",
+    "tabs": {
+      "label": "Sezioni dell'account",
+      "profile": "Profilo"
+    },
+    "profile": {
+      "title": "Nome e soprannome",
+      "name": "Nome e cognome",
+      "nickname": "Soprannome",
+      "nicknameHelp": "Se lo scrivi, il pannello lo mostra al posto del nome; il nome completo resta visibile passandoci sopra. Fino a 30 caratteri."
+    },
+    "preferences": {
+      "title": "Preferenze",
+      "timezone": "Fuso orario",
+      "timezoneHelp": "Per date e orari delle email che ricevi. Senza una scelta vale quello dell'agenzia.",
+      "agencyZone": "Quello dell'agenzia",
+      "searchZone": "Cerca una città"
+    },
+    "email": {
+      "title": "Email",
+      "current": "Indirizzo attuale:",
+      "explain": "Ti mandiamo un link al nuovo indirizzo: il cambio vale solo quando lo apri. Avvisiamo anche l'indirizzo attuale, così puoi fermare un cambio che non hai chiesto tu.",
+      "newEmail": "Nuovo indirizzo",
+      "password": "Password attuale",
+      "passwordHelp": "Per confermare che sei tu.",
+      "submit": "Invia il link di conferma",
+      "sent": "Ti abbiamo inviato un link a {email}. Il link scade tra 60 minuti; fino ad allora accedi con l'indirizzo attuale.",
+      "notConfigured": "Il cambio dell'email sarà disponibile quando la piattaforma avrà configurato l'invio delle email.",
+      "invalid": "Scrivi un indirizzo email valido, diverso da quello attuale."
+    }
+  },
+  "confirmEmail": {
+    "title": "Conferma il nuovo indirizzo",
+    "intro": "Conferma per usare questo indirizzo con il tuo account Feedway. Il link funziona una sola volta.",
+    "button": "Conferma il nuovo indirizzo",
+    "missing": "Il link non è completo: aprilo di nuovo dall'email che hai ricevuto.",
+    "done": "Fatto: ora il tuo account usa {email}.",
+    "doneNext": "Da adesso accedi con il nuovo indirizzo. Le sessioni aperte restano attive."
+  },
   "errors": {
     "UNAUTHENTICATED": "Sessione scaduta: accedi di nuovo.",
     "FORBIDDEN": "Non hai i permessi per questa operazione.",
@@ -129,11 +176,20 @@
         "intro": "La password del tuo account {product} è stata reimpostata con un link di recupero.",
         "footer": "Ricevi questa email perché la password del tuo account {product} è stata reimpostata."
       },
+      "email_change_requested": {
+        "subject": "È stato chiesto di cambiare l'email del tuo account {product}",
+        "preheader": "Se sei stato tu, non devi fare nulla. Se no, blocca l'account.",
+        "title": "È stato chiesto di cambiare la tua email",
+        "intro": "{whenShort} è stato chiesto di sostituire {oldEmail} con {newEmail} come indirizzo del tuo account {product}.",
+        "pending": "Il cambio avverrà solo quando il nuovo indirizzo sarà confermato.",
+        "lockExplain": "Blocca l'account: annulliamo il cambio, chiudiamo tutte le sessioni e annulliamo i link in sospeso. Avvisiamo gli amministratori: uno di loro verificherà la tua identità e ti manderà un link per scegliere una nuova password.",
+        "footer": "Ricevi questa email perché è l'indirizzo attuale del tuo account {product} e qualcuno ha chiesto di cambiarlo."
+      },
       "email_changed": {
         "subject": "L'email del tuo account è cambiata · {product}",
         "preheader": "{whenShort}, {device}. Se non sei stato tu, blocca l'account.",
         "title": "L'email del tuo account è cambiata",
-        "intro": "L'indirizzo email del tuo account {product} è stato cambiato. Ti scriviamo al vecchio indirizzo per avvisarti.",
+        "intro": "L'indirizzo del tuo account {product} ora è {newEmail}, al posto di {oldEmail}. Ti scriviamo al vecchio indirizzo per avvisarti.",
         "footer": "Ricevi questa email perché era l'indirizzo del tuo account {product}."
       },
       "totp_enabled": {
@@ -249,6 +305,19 @@
       "title": "L'email di sistema funziona",
       "intro": "Questa è un'email di prova chiesta da un amministratore della piattaforma {product}. Se la stai leggendo, inviti, avvisi di sicurezza e link di recupero partono con le impostazioni attuali.",
       "footer": "Ricevi questa email perché un amministratore della piattaforma {product} ha chiesto una prova a questo indirizzo."
+    },
+    "emailChange": {
+      "subject": "Conferma il nuovo indirizzo del tuo account {product}",
+      "preheader": "Il cambio vale solo dopo la conferma. Abbiamo avvisato anche il vecchio indirizzo.",
+      "title": "Conferma il tuo nuovo indirizzo",
+      "intro": "Hai chiesto di usare {newEmail} come indirizzo del tuo account {product}, al posto di {oldEmail}.",
+      "pending": "Il cambio vale solo dopo la conferma. Fino ad allora accedi con l'indirizzo di prima.",
+      "button": "Conferma il nuovo indirizzo",
+      "warnedTitle": "Abbiamo avvisato anche il vecchio indirizzo",
+      "warnedToday": "Per sicurezza abbiamo scritto anche a {oldEmail}. Il link di conferma scade tra {minutes} minuti, alle {time} di oggi, e funziona una sola volta.",
+      "warnedTomorrow": "Per sicurezza abbiamo scritto anche a {oldEmail}. Il link di conferma scade tra {minutes} minuti, alle {time} di domani, e funziona una sola volta.",
+      "notMe": "Non hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.",
+      "footer": "Ricevi questa email perché è stato chiesto di usare questo indirizzo per un account {product}."
     }
   }
 }

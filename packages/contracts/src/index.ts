@@ -6,6 +6,7 @@ export {
   ActivateResponse,
   activateLinkRoute,
   completeLinkRoute,
+  confirmEmailChangeRoute,
   describeLinkRoute,
   LinkDescription,
   linkRoutes,

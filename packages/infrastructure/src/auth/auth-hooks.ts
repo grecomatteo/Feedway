@@ -7,6 +7,7 @@ import {
   type AuthSessionInfo,
   type Clock,
   type Logger,
+  type Mailer,
   type RateLimiter,
   type SessionState,
   type SessionUser,
@@ -41,8 +42,9 @@ export const ALLOWED_PATHS: ReadonlySet<string> = new Set([
   '/reset-password',
   '/reset-password/:token',
   '/change-password',
+  // the link to the new address is ours (confirmEmailChange): Better Auth's `/verify-email`
+  // would open a session from an email link, past the second factor
   '/change-email',
-  '/verify-email',
   '/two-factor/enable',
   '/two-factor/disable',
   '/two-factor/get-totp-uri',
@@ -94,6 +96,8 @@ export interface HookDeps {
   events: AuthEventSink
   logger: Logger
   resolveSessionUser: SessionUserResolver
+  /** Whether email can leave: without it `/change-email` answers MAIL_NOT_CONFIGURED. */
+  mailer?: Pick<Mailer, 'isConfigured'>
 }
 
 const clientIp = (request: Request): string => request.headers.get('x-app-client-ip') ?? 'unknown'
@@ -294,6 +298,7 @@ const SECOND_FACTOR_PROOFS: ReadonlySet<string> = new Set([
 
 /** Changes that weaken the account: the session must have been confirmed in the last minutes. */
 const NEEDS_REAUTH: ReadonlySet<string> = new Set([
+  '/change-email',
   '/two-factor/disable',
   '/two-factor/generate-backup-codes',
   '/passkey/delete-passkey',
@@ -446,11 +451,45 @@ export function createBeforeHook(deps: HookDeps) {
 
     await enforceAccountRules(deps, ctx, ctx.request)
 
+    if (path === '/change-email') {
+      if (!(await mailCanLeave(deps)))
+        throw new APIError('CONFLICT', {
+          message:
+            'Il cambio dell’email sarà disponibile quando la piattaforma avrà configurato l’invio delle email',
+          code: 'MAIL_NOT_CONFIGURED',
+        })
+      // Per person, not only per address: each request writes to both mailboxes, and the
+      // library takes longer when the address is free (enumeration by timing).
+      const userId = pending.get(ctx.request)?.userId
+      if (userId !== undefined) {
+        const hit = await deps.rateLimiter.hit(
+          `user:change-email:${userId}`,
+          EMAIL_CHANGES_PER_HOUR,
+          3_600_000,
+        )
+        if (!hit.allowed) throw tooManyRequests(Math.ceil(hit.retryAfterMs / 1000))
+      }
+      // the link and where it leads are ours: whatever else the browser sends is dropped
+      return { context: { body: { newEmail: body['newEmail'] } } }
+    }
+
     // A new password signs out every other device, whatever the browser asked (spec §15.2):
     // whoever knew the old one must not stay in.
     if (path === '/change-password')
       return { context: { body: { ...body, revokeOtherSessions: true } } }
   })
+}
+
+/** Email change requests per person per hour. */
+export const EMAIL_CHANGES_PER_HOUR = 5
+
+async function mailCanLeave(deps: HookDeps): Promise<boolean> {
+  try {
+    return (await deps.mailer?.isConfigured()) === true
+  } catch (error) {
+    deps.logger.error({ err: error }, 'mail settings not readable')
+    return false
+  }
 }
 
 /** The reset token, only from the body (`assertBodyResetToken` refused any other form). */
@@ -660,6 +699,19 @@ async function eventFor(
       return { kind: 'passkey_added', userId, ip, userAgent }
     case '/passkey/delete-passkey':
       return { kind: 'passkey_removed', userId, ip, userAgent }
+    case '/change-email': {
+      // E5b goes out whether or not the address is free: the answer is the same either way
+      const newEmail = (ctx.body as Record<string, unknown> | undefined)?.['newEmail']
+      return typeof newEmail === 'string'
+        ? {
+            kind: 'email_change_requested',
+            userId,
+            ip,
+            userAgent,
+            newEmail: newEmail.toLowerCase(),
+          }
+        : null
+    }
     default:
       return null
   }

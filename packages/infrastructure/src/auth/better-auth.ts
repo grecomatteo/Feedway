@@ -12,6 +12,7 @@ import type {
   IdGenerator,
   JobQueue,
   Logger,
+  Mailer,
   PasswordHasher,
   RateLimiter,
 } from '@app/application'
@@ -51,6 +52,14 @@ export interface BetterAuthDeps {
    * second-factor rules with it, since they cannot go through `Auth` (it wraps this instance).
    */
   resolveSessionUser: SessionUserResolver
+  /**
+   * `/change-email` (Task 25): `start` is `startEmailChange` from the application; without it,
+   * or with email not configured, the change answers MAIL_NOT_CONFIGURED.
+   */
+  emailChange?: {
+    mailer: Pick<Mailer, 'isConfigured'>
+    start(input: { userId: string; newEmail: string }): Promise<void>
+  }
 }
 
 /** Paths where a person signs in from scratch: the session never inherits an older one. */
@@ -122,6 +131,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     events: deps.events,
     logger: deps.logger,
     resolveSessionUser: deps.resolveSessionUser,
+    ...(deps.emailChange ? { mailer: deps.emailChange.mailer } : {}),
   }
 
   return betterAuth({
@@ -132,7 +142,28 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     trustedOrigins: [origin],
     telemetry: { enabled: false },
     disabledPaths: ['/sign-up/email', '/update-user', '/delete-user'],
-    user: { deleteUser: { enabled: false } },
+    // The library checks the session, the address and whether another account has it (then it
+    // answers the same, sending nothing); the link and its confirmation are ours.
+    user: { deleteUser: { enabled: false }, changeEmail: { enabled: true } },
+    emailVerification: {
+      sendOnSignUp: false,
+      // Only `/change-email` reaches this (sign-up and `/send-verification-email` are closed):
+      // `user.email` is the new address. Better Auth's token and URL are not used.
+      sendVerificationEmail: async ({ user }) => {
+        try {
+          if (!deps.emailChange) throw new Error('email change is not wired')
+          await deps.emailChange.start({ userId: user.id, newEmail: user.email })
+        } catch (error) {
+          // A failure must not answer differently from an address already in use (enumeration).
+          // Only the error code: a failed query's message carries its parameters.
+          const code = (error as { cause?: { code?: unknown } }).cause?.code
+          deps.logger.error(
+            { code: typeof code === 'string' ? code : null },
+            'email change link not queued',
+          )
+        }
+      },
+    },
     database: drizzleAdapter(deps.db, { provider: 'pg', usePlural: true, schema }),
     advanced: {
       // With `true` the name would become `__Secure-__Host-session` (ADR 012, V5).

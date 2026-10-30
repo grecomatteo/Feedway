@@ -45,6 +45,8 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'POST /api/v1/auth/reauth': () => ({ password: PASSWORD }),
   'POST /api/v1/links/{token}/activate': () => ({ name: 'Persona Nuova', password: null }),
   'POST /api/v1/security/lock': () => ({ token: 'link-non-valido' }),
+  'POST /api/v1/email-change/confirm': () => ({ token: 'link-non-valido' }),
+  'PATCH /api/v1/me': () => ({ theme: 'dark' }),
   'PATCH /api/v1/orgs/{org}/settings': () => ({ name: 'Agenzia della batteria' }),
   'POST /api/v1/orgs/{org}/invites': (ids) => ({
     email: ids.email,
