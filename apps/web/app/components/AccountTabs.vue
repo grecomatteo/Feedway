@@ -1,12 +1,16 @@
 <script setup lang="ts">
 const route = useRoute()
 
-const tabs = [{ to: '/account', label: 'account.tabs.profile' }] as const
+const tabs = [
+  { to: '/account', label: 'account.tabs.profile' },
+  { to: '/account/sicurezza', label: 'account.tabs.security' },
+  { to: '/account/dispositivi', label: 'account.tabs.devices' },
+] as const
 </script>
 
 <template>
   <nav :aria-label="$t('account.tabs.label')">
-    <ul class="inline-flex gap-1 rounded-lg bg-(--app-surface-sunken) p-1">
+    <ul class="inline-flex max-w-full flex-wrap gap-1 rounded-lg bg-(--app-surface-sunken) p-1">
       <li v-for="tab in tabs" :key="tab.to">
         <NuxtLink
           :to="tab.to"

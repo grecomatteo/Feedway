@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from 'node:crypto'
-import { expect, type APIRequestContext } from '@playwright/test'
+import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { createDb, createPasswordHasher } from '@app/infrastructure'
 import { seed } from '@app/infrastructure/testing'
 
@@ -14,6 +14,11 @@ export interface E2ePerson {
 
 /** A member of a new agency, with a password. */
 export async function newMember(name = 'Matteo Greco'): Promise<E2ePerson> {
+  return newPerson(name, 'member')
+}
+
+/** Someone with a password and the given role in a new agency. */
+export async function newPerson(name: string, role: 'owner' | 'member'): Promise<E2ePerson> {
   const runtimeUrl = process.env.E2E_DATABASE_URL
   const adminUrl = process.env.E2E_ADMIN_URL
   if (!runtimeUrl || !adminUrl) throw new Error('e2e database not available')
@@ -21,7 +26,7 @@ export async function newMember(name = 'Matteo Greco'): Promise<E2ePerson> {
   const userId = await seed(runtimeUrl, async (s) => {
     const org = await s.organization()
     const id = await s.user({ email, name })
-    await s.member(org, id, 'member')
+    await s.member(org, id, role)
     return id
   })
   const admin = createDb(adminUrl, { max: 1, applicationName: 'e2e-people' })
@@ -51,4 +56,23 @@ export async function signIn(request: APIRequestContext, person: E2ePerson) {
     data: { email: person.email, password: E2E_PASSWORD },
   })
   expect(res.status()).toBe(200)
+}
+
+/** A query on the test database as its owner, to check what a test cannot see in the page. */
+export async function adminQuery<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const adminUrl = process.env.E2E_ADMIN_URL
+  if (!adminUrl) throw new Error('e2e database not available')
+  const admin = createDb(adminUrl, { max: 1, applicationName: 'e2e-check' })
+  try {
+    return (await admin.pool.query(sql, params)).rows as T[]
+  } finally {
+    await admin.close()
+  }
+}
+
+/** Requests of this page from an address of its own: the per-address limits are not under test. */
+export function ownAddress(page: Page) {
+  return page.setExtraHTTPHeaders({
+    'x-forwarded-for': `10.61.${String(randomInt(250))}.${String(randomInt(250))}`,
+  })
 }

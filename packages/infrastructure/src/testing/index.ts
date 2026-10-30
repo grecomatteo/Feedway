@@ -3,6 +3,7 @@ import type { Clock } from '@app/application'
 export { startTestDatabase } from './test-database.js'
 export type { TestDatabase } from './test-database.js'
 export { startContractServer, CONTRACT_PASSWORD } from '../auth/contract/serve.js'
+export { secretOf, totpCode } from '../auth/contract/helpers.js'
 export type { ContractServer } from '../auth/contract/serve.js'
 
 export function fixedClock(at: Date): Clock & { advance(ms: number): void } {

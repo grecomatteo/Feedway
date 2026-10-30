@@ -9,8 +9,10 @@ useHead({ title: () => t('confirmEmail.title') })
 
 // Read once, then dropped from the address bar: the link works only once anyway.
 const token = typeof route.query['t'] === 'string' ? route.query['t'] : ''
+const router = useRouter()
 onMounted(() => {
-  if (token !== '') history.replaceState(history.state, '', route.path)
+  // through the router: it keeps its own copy of the address in history.state
+  if (token !== '') void router.replace({ path: route.path })
 })
 
 const sending = ref(false)
