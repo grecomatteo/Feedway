@@ -21,3 +21,5 @@ export type {
 } from './platform-users.js'
 export { sendAccountLockedNotice, sendAccountLockedNoticeEmail } from './account-lock-notice.js'
 export type { AccountLockedNoticeDeps } from './account-lock-notice.js'
+export { createMailSettings } from './mail-settings.js'
+export type { MailSettingsDeps } from './mail-settings.js'

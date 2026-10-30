@@ -127,10 +127,15 @@ async function countSent(
   }
 }
 
-/** How the email names whoever invites: their nickname, else their name. */
-async function nameOf(tx: Tx, userId: string): Promise<string> {
+/** How the email names whoever invites (nickname, else name), and where replies go. */
+async function inviterOf(tx: Tx, userId: string): Promise<{ name: string; email: string | null }> {
   const [user] = await tx.users.summaries([userId])
-  return user ? displayName(user) : ''
+  return user ? { name: displayName(user), email: user.email } : { name: '', email: null }
+}
+
+async function inviterFields(tx: Tx, userId: string) {
+  const { name, email } = await inviterOf(tx, userId)
+  return { inviter: name, inviterEmail: email }
 }
 
 interface InviteMail {
@@ -140,6 +145,8 @@ interface InviteMail {
   expiresAt: Date
   organizationName: string
   inviter: string
+  /** Replies go to whoever invites, not to the platform's address. */
+  inviterEmail: string | null
   /** Someone already has this address: they sign in to accept, they create nothing. */
   existingAccount: boolean
 }
@@ -180,7 +187,14 @@ function inviteMessage(
     ],
     footerReason: t('email.invite.footer', values),
   })
-  return { to: mail.to, subject: oneLine(t('email.invite.subject', values)), text, html }
+  return {
+    to: mail.to,
+    subject: oneLine(t('email.invite.subject', values)),
+    text,
+    html,
+    // sent by the platform in the product's name (ADR 017); answers reach whoever invites
+    ...(mail.inviterEmail !== null && { replyTo: mail.inviterEmail }),
+  }
 }
 
 /** After the commit: the token lives only in this message, never in a queue or a table. */
@@ -308,7 +322,7 @@ export async function inviteUser(
       token,
       expiresAt: expires,
       organizationName: organization.name,
-      inviter: await nameOf(tx, actor.userId),
+      ...(await inviterFields(tx, actor.userId)),
       existingAccount: existing !== null,
     }
   })
@@ -512,7 +526,7 @@ export async function resendInvite(
       token,
       expiresAt: expires,
       organizationName: organization.name,
-      inviter: await nameOf(tx, actor.userId),
+      ...(await inviterFields(tx, actor.userId)),
       // the same reading as the activation page
       existingAccount: (await existingAccountFor(tx, invite)) !== null,
     }

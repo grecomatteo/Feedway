@@ -17,6 +17,22 @@ export type {
   SecurityEmailKind,
 } from './ports/job-queue.js'
 export type { Mailer, MailMessage } from './ports/mailer.js'
+export { INTEGRATION_KINDS, SMTP_PORTS } from './ports/integration-store.js'
+export type {
+  IntegrationConfigs,
+  IntegrationCredentials,
+  IntegrationKind,
+  IntegrationRecord,
+  IntegrationRecordInput,
+  IntegrationReplacement,
+  IntegrationsRepository,
+  IntegrationStore,
+  IntegrationTx,
+  IntegrationView,
+  MailSettingsSource,
+  SmtpConfig,
+  SmtpPort,
+} from './ports/integration-store.js'
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject } from './ports/storage.js'

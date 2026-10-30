@@ -1,4 +1,5 @@
 import type { AuditLog } from './audit-log.js'
+import type { IntegrationsRepository } from './integration-store.js'
 import type {
   CredentialsRepository,
   InvitesRepository,
@@ -43,5 +44,6 @@ export interface Tx {
   workspaces: WorkspacesRepository
   workspaceMembers: WorkspaceMembersRepository
   platformSettings: PlatformSettingsRepository
+  integrations: IntegrationsRepository
   audit: AuditLog
 }

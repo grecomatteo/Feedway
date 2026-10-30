@@ -132,7 +132,7 @@ export async function sendSecurityEmail(
   }
   const result = await deps.mailer.send(message)
   if (result === 'not_configured') {
-    // Expected until stage 3 configures email: the event is in the activity log anyway.
+    // Expected while no SMTP settings exist: the event is in the activity log anyway.
     deps.logger.info({ kind: job.kind }, 'security email not sent: not_configured')
   }
 }

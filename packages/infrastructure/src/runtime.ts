@@ -1,9 +1,12 @@
+import { createMailSettings } from '@app/application'
 import type {
   Clock,
   IdGenerator,
   JobQueue,
   KeyRing,
   Logger,
+  IntegrationStore,
+  MailSettingsSource,
   Mailer,
   RateLimiter,
   SignedTokens,
@@ -18,7 +21,9 @@ import { createKeyRing } from './crypto/key-ring.js'
 import { createSignedTokens } from './crypto/signed-tokens.js'
 import { createTokenService } from './crypto/tokens.js'
 import { createFileMailer } from './mail/file-mailer.js'
-import { notConfiguredMailer } from './mail/not-configured-mailer.js'
+import { createSmtpMailer } from './mail/smtp-mailer.js'
+import { createSmtpSender } from './mail/smtp/smtp-sender.js'
+import { createIntegrationStore } from './db/integrations/integration-store.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
@@ -38,6 +43,8 @@ export type RuntimeConfig = Pick<
 > & {
   /** Folder for stored files; the `media` volume is mounted at the default. */
   mediaRoot?: string
+  /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
+  panelUrl?: URL
 }
 
 export const DEFAULT_MEDIA_ROOT = '/media'
@@ -62,7 +69,9 @@ export interface Runtime {
   signedTokens: SignedTokens
   /** Random single-use tokens of our links (invites, activation). */
   tokens: TokenService
-  /** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
+  /** The platform integrations (SMTP), secrets sealed; used inside `runAsSystem`. */
+  integrations: IntegrationStore
+  /** A file mailbox in tests; elsewhere SMTP with the settings read at every send. */
   mailer: Mailer
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
@@ -70,9 +79,28 @@ export interface Runtime {
 
 const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
 
-/** A file mailbox in tests; "not configured" elsewhere until stage 3 configures SMTP. */
-export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], ids: IdGenerator): Mailer {
-  return nodeEnv === 'test' ? createFileMailer({ dir: TEST_MAIL_DIR, ids }) : notConfiguredMailer
+export interface MailerDeps {
+  ids: IdGenerator
+  logger: Logger
+  settings: MailSettingsSource
+  /** The panel's address: its host name is what the mailer says in EHLO. */
+  panelUrl?: URL
+}
+
+/**
+ * A file mailbox in tests; elsewhere SMTP, with the agency's settings or the platform default
+ * read at every send (no message leaves while neither exists).
+ */
+export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], deps: MailerDeps): Mailer {
+  return nodeEnv === 'test'
+    ? createFileMailer({ dir: TEST_MAIL_DIR, ids: deps.ids })
+    : createSmtpMailer({
+        settings: deps.settings,
+        smtp: createSmtpSender(
+          deps.panelUrl === undefined ? {} : { clientName: deps.panelUrl.hostname },
+        ),
+        logger: deps.logger.child({ component: 'mailer' }),
+      })
 }
 
 export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): Promise<Runtime> {
@@ -87,7 +115,13 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
     const signedTokens = createSignedTokens(config.encryptionKey)
-    const mailer = createMailer(config.nodeEnv, ids)
+    const integrations = createIntegrationStore({ keyRing })
+    const mailer = createMailer(config.nodeEnv, {
+      ids,
+      logger,
+      settings: createMailSettings({ uow, integrations }),
+      ...(config.panelUrl !== undefined && { panelUrl: config.panelUrl }),
+    })
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,
@@ -106,6 +140,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       storage,
       signedTokens,
       tokens: createTokenService(),
+      integrations,
       mailer,
       close: () => handle.close(),
     }

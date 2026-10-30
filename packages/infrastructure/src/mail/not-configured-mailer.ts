@@ -1,6 +1,6 @@
 import type { Mailer } from '@app/application'
 
-/** Production until stage 3: SMTP is not configured yet, so messages are dropped. */
+/** Drops every message: for tests of the paths taken when no SMTP settings exist. */
 export const notConfiguredMailer: Mailer = {
   isConfigured: () => Promise.resolve(false),
   send: () => Promise.resolve('not_configured'),

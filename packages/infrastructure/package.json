@@ -22,6 +22,7 @@
     "@zxcvbn-ts/language-it": "4.1.1",
     "better-auth": "1.7.10",
     "drizzle-orm": "0.45.4",
+    "nodemailer": "10.2.1",
     "pg": "8.23.1",
     "pg-boss": "12.38.0",
     "pino": "10.4.0",
@@ -32,6 +33,7 @@
     "@testcontainers/postgresql": "12.2.1",
     "@types/pg": "8.23.1",
     "drizzle-kit": "0.31.11",
+    "smtp-server": "3.21.1",
     "testcontainers": "12.2.1"
   }
 }

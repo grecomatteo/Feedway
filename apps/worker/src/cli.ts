@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import {
   createBootstrapLink,
+  createMailSettings,
   createOrganization,
   disableUserEverywhere,
   enableUserEverywhere,
@@ -14,6 +15,7 @@ import {
   SYSTEM_PLATFORM_ACTOR,
   type EnableDeps,
   type Logger,
+  type Mailer,
   type IdentityVerificationMethod,
   type PlatformDeps,
   type PlatformOrganization,
@@ -22,6 +24,7 @@ import { ConfigError, loadConfig, type WorkerConfig } from '@app/config'
 import { DomainError, type LimitKey, type OrganizationLimits } from '@app/domain'
 import {
   createDb,
+  createIntegrationStore,
   createKeyRing,
   createLogger,
   createMailer,
@@ -224,6 +227,7 @@ async function enableUser(
   command: Extract<Command, { name: 'enable-user' }>,
   config: WorkerConfig,
   deps: PlatformDeps,
+  mailer: Mailer,
   io: CliIo,
   logger: Logger,
 ): Promise<void> {
@@ -234,7 +238,7 @@ async function enableUser(
     const enableDeps: EnableDeps = {
       ...deps,
       queue,
-      mailer: createMailer(config.nodeEnv, deps.ids),
+      mailer,
     }
     let result
     try {
@@ -282,6 +286,7 @@ async function execute(
   command: Command,
   config: WorkerConfig,
   deps: PlatformDeps,
+  mailer: Mailer,
   io: CliIo,
   logger: Logger,
 ): Promise<void> {
@@ -338,7 +343,7 @@ async function execute(
       return
     }
     case 'enable-user':
-      return enableUser(command, config, deps, io, logger)
+      return enableUser(command, config, deps, mailer, io, logger)
   }
 }
 
@@ -372,17 +377,22 @@ export async function runCli(
   const logger = createLogger({ service: 'cli', level: 'warn', destination: process.stderr })
   const handle = createDb(config.databaseUrl, { max: 1, applicationName: 'cli' })
   try {
+    const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock: systemClock })
+    const ids = uuidV7Generator
+    const uow = createUnitOfWork({ db: handle.db, ids, logger })
+    const settings = createMailSettings({ uow, integrations: createIntegrationStore({ keyRing }) })
     await execute(
       command,
       config,
       {
-        uow: createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger }),
+        uow,
         clock: systemClock,
-        ids: uuidV7Generator,
+        ids,
         tokens: createTokenService(),
-        keyRing: createKeyRing({ platformKey: config.encryptionKey, clock: systemClock }),
+        keyRing,
         config: { panelUrl: config.panelUrl.toString() },
       },
+      createMailer(config.nodeEnv, { ids, logger, settings, panelUrl: config.panelUrl }),
       io,
       logger,
     )

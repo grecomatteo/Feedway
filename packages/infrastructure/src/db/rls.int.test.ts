@@ -26,6 +26,12 @@ const insertPersonalAudit = (c: pg.Client, actorId: string) =>
      values ($1, null, $2, 'panel', 'account.updated')`,
     [newId(), actorId],
   )
+const insertIntegration = (c: pg.Client, organizationId: string | null) =>
+  c.query(
+    `insert into integrations (id, organization_id, kind, config, secret_enc, key_version)
+     values ($1, $2, 'smtp', '{}', 'v1.1.x', 1)`,
+    [newId(), organizationId],
+  )
 const setOrgStatus = (id: string, status: string) =>
   asSystem((c) => c.query('update organizations set status = $1 where id = $2', [status, id]))
 const setMemberStatus = (organizationId: string, userId: string, status: string) =>
@@ -103,6 +109,7 @@ beforeAll(async () => {
        values ($1, $2, $3, 'panel', 'workspace.created')`,
       [newId(), orgA, u1],
     )
+    await insertIntegration(c, null)
   })
 }, 120_000)
 afterAll(async () => {
@@ -290,4 +297,43 @@ test('runtime role does not bypass RLS', async () => {
     `select rolbypassrls from pg_roles where rolname = 'app_runtime'`,
   )
   expect(rows[0]?.rolbypassrls).toBe(false)
+})
+
+test('integrations: the platform SMTP row is reachable only in the system scope', async () => {
+  for (const scope of [
+    (c: Fn<pg.QueryResult>) => inOrg(orgA, c),
+    (c: Fn<pg.QueryResult>) => asUser(u1, c),
+  ]) {
+    expect((await scope((c) => c.query('select * from integrations'))).rowCount).toBe(0)
+    expect(
+      (await scope((c) => c.query(`update integrations set config = '{"x": 1}'`))).rowCount,
+    ).toBe(0)
+    expect((await scope((c) => c.query('delete from integrations'))).rowCount).toBe(0)
+  }
+  expect((await runtime.query('select * from integrations')).rowCount).toBe(0)
+  expect((await asSystem((c) => c.query('select * from integrations'))).rowCount).toBe(1)
+  // an agency cannot write the platform's row
+  await expect(inOrg(orgA, (c) => insertIntegration(c, null))).rejects.toThrow(/row-level security/)
+})
+
+test('integrations: SMTP is platform only, and one row per kind', async () => {
+  // not even in the system scope: agencies configure no SMTP (ADR 017)
+  await expect(asSystem((c) => insertIntegration(c, orgA))).rejects.toThrow(
+    /integrations_smtp_platform_only/,
+  )
+  await expect(inOrg(orgA, (c) => insertIntegration(c, orgA))).rejects.toThrow(
+    /integrations_smtp_platform_only/,
+  )
+  await expect(asSystem((c) => insertIntegration(c, null))).rejects.toThrow(
+    /integrations_owner_kind/,
+  )
+  await expect(
+    asSystem((c) =>
+      c.query(
+        `insert into integrations (id, organization_id, kind, config, secret_enc, key_version)
+         values ($1, null, 'ftp', '{}', 'v1.1.x', 1)`,
+        [newId()],
+      ),
+    ),
+  ).rejects.toThrow(/integrations_kind/)
 })
