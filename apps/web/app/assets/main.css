@@ -35,6 +35,9 @@
   --ui-text-toned: var(--app-text);
   --ui-text-highlighted: var(--app-text);
   --ui-primary: var(--app-brand);
+  /* states with the contrast of the brand kit, not the library's defaults */
+  --ui-error: var(--app-danger);
+  --ui-success: var(--app-success);
   --ui-ring: var(--app-focus);
 }
 

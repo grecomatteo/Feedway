@@ -9,10 +9,11 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // (origin, cookies). Chromium treats localhost as secure, so the __Host- cookies are kept.
   const port = await freePort()
   const panelUrl = `http://localhost:${String(port)}`
+  const encryptionKey = randomBytes(32).toString('base64')
   const web = await startWeb(
     {
       DATABASE_URL: tdb.runtimeUrl,
-      APP_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
+      APP_ENCRYPTION_KEY: encryptionKey,
       BETTER_AUTH_SECRET: randomBytes(32).toString('base64'),
       PANEL_URL: panelUrl,
       APP_VERSION: '0.0.0-e2e',
@@ -22,6 +23,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.E2E_BASE_URL = `${panelUrl}/`
   process.env.E2E_ADMIN_URL = tdb.adminUrl
   process.env.E2E_DATABASE_URL = tdb.runtimeUrl
+  // only to sign "Non sono stato io" links as a security email would
+  process.env.E2E_ENCRYPTION_KEY = encryptionKey
   return async () => {
     await web.stop()
     await tdb.stop()

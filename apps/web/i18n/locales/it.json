@@ -26,7 +26,9 @@
     "optional": "Facoltativo",
     "tabs": {
       "label": "Sezioni dell'account",
-      "profile": "Profilo"
+      "profile": "Profilo",
+      "security": "Sicurezza",
+      "devices": "Dispositivi"
     },
     "profile": {
       "title": "Nome e soprannome",
@@ -61,6 +63,90 @@
     "missing": "Il link non è completo: aprilo di nuovo dall'email che hai ricevuto.",
     "done": "Fatto: ora il tuo account usa {email}.",
     "doneNext": "Da adesso accedi con il nuovo indirizzo. Le sessioni aperte restano attive."
+  },
+  "security": {
+    "title": "Sicurezza",
+    "cancel": "Annulla",
+    "lastFactor": "La verifica in due passaggi è obbligatoria per il tuo ruolo: aggiungi prima un altro metodo (una passkey o l'app di autenticazione), poi potrai togliere questo.",
+    "password": {
+      "title": "Password",
+      "explain": "Ti avvisiamo via email a ogni cambio della password.",
+      "current": "Password attuale",
+      "next": "Nuova password",
+      "nextHelp": "Almeno 12 caratteri. Una frase lunga è più sicura e più facile da ricordare.",
+      "submit": "Cambia password",
+      "done": "Password cambiata."
+    },
+    "totp": {
+      "title": "App di autenticazione",
+      "on": "Attiva",
+      "off": "Non attiva",
+      "explain": "Un codice di 6 cifre dall'app (per esempio Google Authenticator o 1Password) oltre alla password, a ogni accesso.",
+      "passwordHelp": "Serve per attivarla, rigenerare i codici o disattivarla.",
+      "enable": "Attiva l'app di autenticazione",
+      "scan": "Aggiungi un account nell'app scrivendo questa chiave, oppure apri il link da questo dispositivo. Poi scrivi il codice che ti mostra.",
+      "secretLabel": "Chiave da scrivere nell'app",
+      "openApp": "Apri nell'app di autenticazione",
+      "code": "Codice di 6 cifre",
+      "verify": "Verifica e attiva",
+      "codesTitle": "Codici di recupero",
+      "codesExplain": "Ognuno vale una volta sola, se non hai l'app a portata di mano. Conservali in un posto sicuro: non li mostreremo più.",
+      "codesSaved": "Li ho salvati",
+      "regenerate": "Nuovi codici di recupero",
+      "disable": "Disattiva"
+    },
+    "passkeys": {
+      "title": "Passkey",
+      "explain": "Accedi con l'impronta, il volto o il PIN del dispositivo, senza password. Vale anche come secondo passaggio.",
+      "empty": "Non hai ancora aggiunto passkey.",
+      "unnamed": "Passkey senza nome",
+      "defaultName": "Passkey",
+      "created": "Aggiunta il {date}",
+      "name": "Nome della passkey",
+      "rename": "Rinomina",
+      "renameOf": "Rinomina {name}",
+      "remove": "Elimina",
+      "removeOf": "Elimina {name}",
+      "add": "Aggiungi passkey",
+      "added": "Passkey aggiunta.",
+      "renamed": "Nome salvato.",
+      "removed": "Passkey eliminata.",
+      "cancelled": "Operazione annullata dal dispositivo. Riprova quando vuoi.",
+      "unsupported": "Questo browser non supporta le passkey."
+    }
+  },
+  "devices": {
+    "title": "Dispositivi",
+    "explain": "I dispositivi da cui hai accesso al tuo account. Se non ne riconosci uno, fallo uscire e cambia la password.",
+    "listLabel": "Dispositivi collegati",
+    "empty": "Nessun dispositivo collegato.",
+    "deviceOn": "{browser} su {os}",
+    "current": "Questo dispositivo",
+    "ip": "IP approssimato: {ip}",
+    "ipUnknown": "IP non disponibile",
+    "lastActive": "Ultimo uso: {date}",
+    "signOut": "Esci",
+    "signOutOf": "Esci da {device}",
+    "signedOut": "Il dispositivo è uscito.",
+    "signOutAll": "Esci da tutti i dispositivi",
+    "confirmTitle": "Uscire da tutti i dispositivi?",
+    "confirmText": "Esci anche da questo: dovrai accedere di nuovo ovunque.",
+    "confirm": "Esci da tutti",
+    "allSignedOut": "Sei uscito da tutti i dispositivi."
+  },
+  "reauth": {
+    "title": "Conferma che sei tu",
+    "description": "Prima di questo cambio ti chiediamo di nuovo la password, o una passkey.",
+    "password": "Password",
+    "confirm": "Conferma",
+    "withPasskey": "Usa una passkey"
+  },
+  "notMe": {
+    "title": "Non sono stato io",
+    "intro": "Hai ricevuto un avviso per un'attività che non riconosci. Bloccando l'account esci da tutti i dispositivi e nessuno potrà accedere, nemmeno tu, finché la piattaforma non lo riattiva dopo averti contattato.",
+    "missing": "Il link è incompleto. Apri di nuovo il pulsante dall'email.",
+    "submit": "Blocca il mio account",
+    "done": "Account bloccato. Abbiamo chiuso tutti gli accessi: la piattaforma ti contatterà per riattivarlo."
   },
   "errors": {
     "UNAUTHENTICATED": "Sessione scaduta: accedi di nuovo.",
@@ -319,5 +405,19 @@
       "notMe": "Non hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.",
       "footer": "Ricevi questa email perché è stato chiesto di usare questo indirizzo per un account {product}."
     }
+  },
+  "authErrors": {
+    "INVALID_PASSWORD": "Password non corretta.",
+    "PASSWORD_TOO_SHORT": "La password deve avere almeno 12 caratteri.",
+    "PASSWORD_TOO_LONG": "La password è troppo lunga.",
+    "INVALID_CODE": "Codice non corretto. Controlla l'ora del dispositivo e riprova.",
+    "INVALID_BACKUP_CODE": "Codice di recupero non corretto.",
+    "TOTP_ALREADY_ENABLED": "L'app di autenticazione è già attiva.",
+    "PASSKEY_NOT_FOUND": "Passkey non trovata: ricarica la pagina.",
+    "FAILED_TO_VERIFY_REGISTRATION": "Non siamo riusciti a registrare la passkey. Riprova.",
+    "PREVIOUSLY_REGISTERED": "Questa passkey è già registrata.",
+    "AUTHENTICATION_FAILED": "La passkey non è stata riconosciuta.",
+    "CREDENTIAL_ACCOUNT_NOT_FOUND": "Il tuo account non ha una password: usa una passkey.",
+    "ACCOUNT_TEMPORARILY_LOCKED": "Troppi tentativi: riprova tra qualche minuto."
   }
 }

@@ -25,10 +25,12 @@ export function useApi() {
     const data = (error as FetchError<ErrorBody> | undefined)?.data
     const code = data?.error?.code ?? data?.code ?? 'INTERNAL'
     const field = data?.error?.issues?.[0]?.path?.[0]?.toString() ?? null
-    const message =
-      data?.error?.message ??
-      data?.message ??
-      (i18n.te(`errors.${code}`) ? i18n.t(`errors.${code}`) : '')
+    // Better Auth answers in English for its own codes: those have texts of ours (authErrors)
+    const message = i18n.te(`authErrors.${code}`)
+      ? i18n.t(`authErrors.${code}`)
+      : (data?.error?.message ??
+        data?.message ??
+        (i18n.te(`errors.${code}`) ? i18n.t(`errors.${code}`) : ''))
     return { code, message: message === '' ? i18n.t('errors.INTERNAL') : message, field }
   }
 
