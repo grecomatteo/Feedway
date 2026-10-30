@@ -63,7 +63,7 @@ const rangeLabel = computed(() => {
 })
 const listDays = computed(() => {
   if (focusDay.value) return [DateTime.fromISO(focusDay.value, { zone: ZONE })]
-  return effectiveView.value === 'list' && view.value !== 'month' ? days.value : []
+  return effectiveView.value === 'list' ? days.value : []
 })
 
 function shift(n: number) {

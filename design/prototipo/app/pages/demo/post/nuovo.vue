@@ -325,7 +325,7 @@ async function saveDraft() {
               >
                 <p class="basis-full text-[13px] font-semibold">Trascina qui il video, oppure:</p>
                 <label class="fw-btn fw-btn--primary cursor-pointer">
-                  <UIcon name="i-lucide-upload" class="size-4" aria-hidden="true" />Scegli un video dal computer
+                  <UIcon name="i-lucide-upload" class="size-4" aria-hidden="true" />Scegli dal computer
                   <input type="file" accept="video/mp4,video/quicktime,.mp4,.mov" class="sr-only" @change="pickVideo">
                 </label>
                 <button type="button" class="fw-btn" @click="startUpload"><UIcon name="i-lucide-film" class="size-4" aria-hidden="true" />Usa il video di esempio</button>
