@@ -58,10 +58,11 @@ test.each<RuntimeRole>(['web', 'worker'])('the %s runtime wires every service', 
       userId: ownerA,
       issuedAt: issued,
     })
-    // outside tests emails leave by SMTP, and only once the panel has settings for it
-    expect(await runtime.mailer.isConfigured(orgA)).toBe(false)
-    expect(await runtime.mailer.isConfigured(null)).toBe(false)
-    expect(await runtime.integrations.get(orgA, 'smtp')).toBeNull()
+    // outside tests emails leave by the platform's SMTP, once the administrator has set it
+    expect(await runtime.mailer.isConfigured()).toBe(false)
+    expect(
+      await runtime.uow.runAsSystem('test', (tx) => runtime.integrations.getPlatform(tx, 'smtp')),
+    ).toBeNull()
   } finally {
     await rm(mediaRoot, { recursive: true, force: true })
     await runtime.queue.stop({ graceful: false, timeoutMs: 1000 })

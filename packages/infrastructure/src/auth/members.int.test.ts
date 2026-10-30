@@ -337,8 +337,8 @@ describe('invites', () => {
     expect(activationLinkIn(mailer.sent, sample.email).url).toMatch(
       /^https:\/\/app\.feedway\.test\/attiva\//,
     )
-    // with the agency's SMTP settings (the store falls back to the platform default)
-    expect(mailer.senders.at(-1)).toEqual({ organizationId: w.orgA })
+    // sent by the platform in the product's name; answers reach whoever invites
+    expect(mailer.sent.filter((m) => m.to === sample.email).at(-1)?.replyTo).toBe(w.manager.email)
     expect(r.expiresAt.getTime() - before).toBeGreaterThanOrEqual(72 * 3600_000 - 1000)
     expect(r.expiresAt.getTime() - before).toBeLessThanOrEqual(72 * 3600_000 + 60_000)
     const entry = await lastAudit(w.orgA)

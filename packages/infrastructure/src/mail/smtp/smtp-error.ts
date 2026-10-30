@@ -31,10 +31,37 @@ export class SmtpSendError extends Error {
   }
 }
 
-/** One line, without the given secrets, cut to 200 characters. */
-export function safeResponse(text: string, secrets: readonly string[]): string {
-  let out = text.replace(/[\r\n\t]+/g, ' ')
-  for (const s of secrets) if (s.length > 0) out = out.split(s).join('[REDACTED]')
+// Anything shaped like an address: servers echo the sender and the recipients.
+const EMAIL = /[^\s<>"'(),;:@[\]]+@[^\s<>"'(),;:@[\]]+/g
+
+const base64Forms = (value: string) => {
+  const b = Buffer.from(value, 'utf8').toString('base64')
+  return [b, b.replace(/=+$/, '')]
+}
+
+/**
+ * One line, without the username and the secret (in clear, in base64, as the AUTH PLAIN and
+ * LOGIN exchanges send them) and without email addresses, cut to 200 characters.
+ */
+export function safeResponse(
+  text: string,
+  credentials: { username: string; secret: string },
+): string {
+  const { username: u, secret: s } = credentials
+  const forms = [
+    s,
+    u,
+    ...base64Forms(s),
+    ...base64Forms(u),
+    ...base64Forms(`\u0000${u}\u0000${s}`),
+    ...base64Forms(`${u}\u0000${u}\u0000${s}`),
+  ]
+    .filter((f) => f.length > 0)
+    // longest first: a shorter form inside a longer one must not leave the rest behind
+    .sort((a, b) => b.length - a.length)
+  let out = text.replace(/[\u0000-\u001f\u007f]+/g, ' ')
+  for (const f of forms) out = out.split(f).join('[REDACTED]')
+  out = out.replace(EMAIL, '[email]')
   // a secret cut in half by the limit would still leak its start: remove, then cut
   return out.length > RESPONSE_MAX ? `${out.slice(0, RESPONSE_MAX)}…` : out
 }

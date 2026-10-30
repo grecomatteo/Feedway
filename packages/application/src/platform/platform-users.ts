@@ -1,7 +1,6 @@
 import { DomainError, normalizeEmail } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { JobQueue } from '../ports/job-queue.js'
-import { PLATFORM_SENDER } from '../ports/mailer.js'
 import type { Mailer } from '../ports/mailer.js'
 import type { Tx } from '../ports/tx.js'
 import {
@@ -158,7 +157,7 @@ export async function enableUserEverywhere(
   if (method !== undefined && !isVerificationMethod(method))
     throw new DomainError('VALIDATION', 'Metodo di verifica dell’identità non valido')
   // read before the transaction: no network wait while the account row is locked
-  const byEmail = await deps.mailer.isConfigured(PLATFORM_SENDER.organizationId)
+  const byEmail = await deps.mailer.isConfigured()
   return deps.uow.runAsSystem('platform: enable an account', async (tx): Promise<EnableResult> => {
     const author = await platformAuthor(tx, caller, request)
     const user = await targetUser(tx, caller, userId)

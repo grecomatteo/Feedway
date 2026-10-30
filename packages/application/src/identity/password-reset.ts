@@ -2,7 +2,6 @@ import { DomainError, type OrgActor } from '@app/domain'
 import type { Auth, AuthSessionInfo } from '../ports/auth.js'
 import type { PasswordResetEmailData } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
-import { PLATFORM_SENDER } from '../ports/mailer.js'
 import type { Mailer } from '../ports/mailer.js'
 import type { Translate } from '../ports/translator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
@@ -148,15 +147,12 @@ export async function sendPasswordResetEmail(
     ],
     footerReason: t('email.passwordReset.footer', values),
   })
-  const result = await deps.mailer.send(
-    {
-      to: user.email,
-      subject: oneLine(t('email.passwordReset.subject', values)),
-      text,
-      html,
-    },
-    PLATFORM_SENDER,
-  )
+  const result = await deps.mailer.send({
+    to: user.email,
+    subject: oneLine(t('email.passwordReset.subject', values)),
+    text,
+    html,
+  })
   if (result === 'not_configured')
     deps.logger.info({}, 'password reset email not sent: not_configured')
 }

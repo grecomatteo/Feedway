@@ -73,12 +73,8 @@ const mailNotConfigured = () =>
 const mailSendFailed = () =>
   new DomainError('MAIL_SEND_FAILED', 'Non siamo riusciti a inviare l’invito: riprova tra poco')
 
-async function assertMailConfigured(
-  deps: Pick<InviteDeps, 'mailer'>,
-  organizationId: string,
-): Promise<void> {
-  // the agency's own SMTP settings, else the platform default
-  if (!(await deps.mailer.isConfigured(organizationId))) throw mailNotConfigured()
+async function assertMailConfigured(deps: Pick<InviteDeps, 'mailer'>): Promise<void> {
+  if (!(await deps.mailer.isConfigured())) throw mailNotConfigured()
 }
 
 function allowanceKeys(
@@ -131,10 +127,15 @@ async function countSent(
   }
 }
 
-/** How the email names whoever invites: their nickname, else their name. */
-async function nameOf(tx: Tx, userId: string): Promise<string> {
+/** How the email names whoever invites (nickname, else name), and where replies go. */
+async function inviterOf(tx: Tx, userId: string): Promise<{ name: string; email: string | null }> {
   const [user] = await tx.users.summaries([userId])
-  return user ? displayName(user) : ''
+  return user ? { name: displayName(user), email: user.email } : { name: '', email: null }
+}
+
+async function inviterFields(tx: Tx, userId: string) {
+  const { name, email } = await inviterOf(tx, userId)
+  return { inviter: name, inviterEmail: email }
 }
 
 interface InviteMail {
@@ -144,6 +145,8 @@ interface InviteMail {
   expiresAt: Date
   organizationName: string
   inviter: string
+  /** Replies go to whoever invites, not to the platform's address. */
+  inviterEmail: string | null
   /** Someone already has this address: they sign in to accept, they create nothing. */
   existingAccount: boolean
 }
@@ -184,17 +187,19 @@ function inviteMessage(
     ],
     footerReason: t('email.invite.footer', values),
   })
-  return { to: mail.to, subject: oneLine(t('email.invite.subject', values)), text, html }
+  return {
+    to: mail.to,
+    subject: oneLine(t('email.invite.subject', values)),
+    text,
+    html,
+    // sent by the platform in the product's name (ADR 017); answers reach whoever invites
+    ...(mail.inviterEmail !== null && { replyTo: mail.inviterEmail }),
+  }
 }
 
 /** After the commit: the token lives only in this message, never in a queue or a table. */
-function sendInviteMail(
-  deps: InviteDeps,
-  organizationId: string,
-  mail: InviteMail,
-): Promise<'sent' | 'not_configured'> {
-  // the agency's own SMTP settings, else the platform default
-  return deps.mailer.send(inviteMessage(deps, mail), { organizationId })
+function sendInviteMail(deps: InviteDeps, mail: InviteMail): Promise<'sent' | 'not_configured'> {
+  return deps.mailer.send(inviteMessage(deps, mail))
 }
 
 /** Never the message of the error: a mail server may echo the address or the link. */
@@ -238,7 +243,7 @@ export async function inviteUser(
     throw new DomainError('VALIDATION', 'Ogni spazio va indicato una volta sola', {
       field: 'memberships',
     })
-  await assertMailConfigured(deps, actor.organizationId)
+  await assertMailConfigured(deps)
   await assertAllowance(deps, organizationId, email)
 
   const { token, hash } = deps.tokens.generate()
@@ -317,14 +322,14 @@ export async function inviteUser(
       token,
       expiresAt: expires,
       organizationName: organization.name,
-      inviter: await nameOf(tx, actor.userId),
+      ...(await inviterFields(tx, actor.userId)),
       existingAccount: existing !== null,
     }
   })
 
   let result: 'sent' | 'not_configured'
   try {
-    result = await sendInviteMail(deps, organizationId, mail)
+    result = await sendInviteMail(deps, mail)
   } catch (error) {
     deps.logger.error({ inviteId: mail.inviteId, failure: failureOf(error) }, 'invite email failed')
     await cancelUnsent(deps, actor, mail.inviteId, request)
@@ -496,7 +501,7 @@ export async function resendInvite(
 ): Promise<{ inviteId: string; expiresAt: Date }> {
   assertActorSession(actor, session)
   if (!isUuid(inviteId)) throw inviteNotFound()
-  await assertMailConfigured(deps, actor.organizationId)
+  await assertMailConfigured(deps)
   const { organizationId } = actor
   const scope = { organizationId, userId: actor.userId }
   // read and check first, count outside any transaction, then change it under the lock
@@ -521,7 +526,7 @@ export async function resendInvite(
       token,
       expiresAt: expires,
       organizationName: organization.name,
-      inviter: await nameOf(tx, actor.userId),
+      ...(await inviterFields(tx, actor.userId)),
       // the same reading as the activation page
       existingAccount: (await existingAccountFor(tx, invite)) !== null,
     }
@@ -529,7 +534,7 @@ export async function resendInvite(
 
   let result: 'sent' | 'not_configured'
   try {
-    result = await sendInviteMail(deps, organizationId, mail)
+    result = await sendInviteMail(deps, mail)
   } catch (error) {
     deps.logger.error({ inviteId: mail.inviteId, failure: failureOf(error) }, 'invite email failed')
     throw mailSendFailed()

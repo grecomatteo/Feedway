@@ -1,5 +1,5 @@
 {
-  "id": "012d66fe-e118-4d2f-9ada-ceb4be1d0944",
+  "id": "401c285c-8d47-42a2-9a68-e4f97585a079",
   "prevId": "2a806d31-bf59-47b5-beb1-a796dd8a0c08",
   "version": "7",
   "dialect": "postgresql",
@@ -1957,12 +1957,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "secret_hint": {
-          "name": "secret_hint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "updated_by": {
           "name": "updated_by",
           "type": "uuid",
@@ -2023,9 +2017,9 @@
           "name": "integrations_kind",
           "value": "kind in ('smtp')"
         },
-        "integrations_secret_hint_length": {
-          "name": "integrations_secret_hint_length",
-          "value": "char_length(\"integrations\".\"secret_hint\") <= 4"
+        "integrations_smtp_platform_only": {
+          "name": "integrations_smtp_platform_only",
+          "value": "\"integrations\".\"kind\" <> 'smtp' or \"integrations\".\"organization_id\" is null"
         }
       },
       "isRLSEnabled": false

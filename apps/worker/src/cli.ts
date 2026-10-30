@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import {
   createBootstrapLink,
+  createMailSettings,
   createOrganization,
   disableUserEverywhere,
   enableUserEverywhere,
@@ -378,19 +379,20 @@ export async function runCli(
   try {
     const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock: systemClock })
     const ids = uuidV7Generator
-    const integrations = createIntegrationStore({ db: handle.db, keyRing, ids, logger })
+    const uow = createUnitOfWork({ db: handle.db, ids, logger })
+    const settings = createMailSettings({ uow, integrations: createIntegrationStore({ keyRing }) })
     await execute(
       command,
       config,
       {
-        uow: createUnitOfWork({ db: handle.db, ids, logger }),
+        uow,
         clock: systemClock,
         ids,
         tokens: createTokenService(),
         keyRing,
         config: { panelUrl: config.panelUrl.toString() },
       },
-      createMailer(config.nodeEnv, { ids, logger, integrations }),
+      createMailer(config.nodeEnv, { ids, logger, settings, panelUrl: config.panelUrl }),
       io,
       logger,
     )

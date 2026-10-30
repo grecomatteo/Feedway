@@ -99,7 +99,6 @@ test('the recovery link goes to the account’s address, with its 30 minutes', a
   await identityAccountRecoveryEmail(job(userId), depsWith(mailer))
   const mail = mailer.sent.at(-1)
   expect(mail?.to).toBe(email)
-  expect(mailer.senders).toEqual([{ organizationId: null }])
   expect(mail?.subject).toBe('Scegli una nuova password per rientrare in Feedway')
   expect(mail?.text.split('\n')[0]).toBe('Scegli una nuova password per rientrare')
   expect(mail?.text).toContain(`Scegli una nuova password:\n${RECOVERY_URL}`)

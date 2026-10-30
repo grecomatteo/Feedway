@@ -1,11 +1,12 @@
+import { createMailSettings } from '@app/application'
 import type {
   Clock,
   IdGenerator,
   JobQueue,
   KeyRing,
   Logger,
-  IntegrationCredentialSource,
   IntegrationStore,
+  MailSettingsSource,
   Mailer,
   RateLimiter,
   SignedTokens,
@@ -42,6 +43,8 @@ export type RuntimeConfig = Pick<
 > & {
   /** Folder for stored files; the `media` volume is mounted at the default. */
   mediaRoot?: string
+  /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
+  panelUrl?: URL
 }
 
 export const DEFAULT_MEDIA_ROOT = '/media'
@@ -66,8 +69,8 @@ export interface Runtime {
   signedTokens: SignedTokens
   /** Random single-use tokens of our links (invites, activation). */
   tokens: TokenService
-  /** Integration settings per agency, with the platform default (secrets sealed). */
-  integrations: IntegrationStore & IntegrationCredentialSource
+  /** The platform integrations (SMTP), secrets sealed; used inside `runAsSystem`. */
+  integrations: IntegrationStore
   /** A file mailbox in tests; elsewhere SMTP with the settings read at every send. */
   mailer: Mailer
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
@@ -79,7 +82,9 @@ const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
 export interface MailerDeps {
   ids: IdGenerator
   logger: Logger
-  integrations: Pick<IntegrationStore, 'get'> & IntegrationCredentialSource
+  settings: MailSettingsSource
+  /** The panel's address: its host name is what the mailer says in EHLO. */
+  panelUrl?: URL
 }
 
 /**
@@ -90,8 +95,10 @@ export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], deps: MailerDeps
   return nodeEnv === 'test'
     ? createFileMailer({ dir: TEST_MAIL_DIR, ids: deps.ids })
     : createSmtpMailer({
-        integrations: deps.integrations,
-        smtp: createSmtpSender(),
+        settings: deps.settings,
+        smtp: createSmtpSender(
+          deps.panelUrl === undefined ? {} : { clientName: deps.panelUrl.hostname },
+        ),
         logger: deps.logger.child({ component: 'mailer' }),
       })
 }
@@ -108,8 +115,13 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
     const signedTokens = createSignedTokens(config.encryptionKey)
-    const integrations = createIntegrationStore({ db: handle.db, keyRing, ids, logger })
-    const mailer = createMailer(config.nodeEnv, { ids, logger, integrations })
+    const integrations = createIntegrationStore({ keyRing })
+    const mailer = createMailer(config.nodeEnv, {
+      ids,
+      logger,
+      settings: createMailSettings({ uow, integrations }),
+      ...(config.panelUrl !== undefined && { panelUrl: config.panelUrl }),
+    })
     const queue = await createPgBossQueue({
       url: config.databaseUrl,
       logger,

@@ -14,6 +14,7 @@ import {
   drizzleOrganizations,
   drizzleOrgMembers,
 } from './organizations/repositories.js'
+import { drizzleIntegrations } from './integrations/repositories.js'
 import { drizzlePlatformSettings } from './platform/repositories.js'
 import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
@@ -39,6 +40,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     workspaces: drizzleWorkspaces(db),
     workspaceMembers: drizzleWorkspaceMembers(db),
     platformSettings: drizzlePlatformSettings(db),
+    integrations: drizzleIntegrations(db, ids),
     audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })

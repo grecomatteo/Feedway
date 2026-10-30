@@ -20,4 +20,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Accettata (Matteo, 2026-10-17) |
 | [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16) |
 | [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica due punti di ADR 013) | Accettata (Matteo, 2026-10-29) |
-| [017](017-invio-email-via-smtp.md) | Invio email via SMTP (anticipato dalla tappa 3) | Proposta |
+| [017](017-invio-email-via-smtp.md) | Invio email via SMTP della piattaforma (anticipato dalla tappa 3; modifica un punto di ADR 007) | Proposta |

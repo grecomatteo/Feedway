@@ -9,8 +9,8 @@ import { Writable } from 'node:stream'
 import { SMTPServer } from 'smtp-server'
 import type { SMTPServerOptions } from 'smtp-server'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-import type { IntegrationCredentialSource, MailMessage, SmtpConfig } from '@app/application'
-import { PLATFORM_SENDER } from '@app/application'
+import type { MailMessage, MailSettingsSource, SmtpConfig } from '@app/application'
+import { createMailSettings } from '@app/application'
 import { createKeyRing } from '../crypto/key-ring.js'
 import { createDb } from '../db/client.js'
 import type { DbHandle } from '../db/client.js'
@@ -18,19 +18,21 @@ import { createIntegrationStore } from '../db/integrations/integration-store.js'
 import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createLogger } from '../logging/logger.js'
 import { uuidV7Generator } from '../system/id-generator.js'
-import { fixedClock, seed, startTestDatabase } from '../testing/index.js'
+import { fixedClock, startTestDatabase } from '../testing/index.js'
 import type { TestDatabase } from '../testing/index.js'
 import { createSmtpMailer } from './smtp-mailer.js'
 import { createSmtpSender } from './smtp/smtp-sender.js'
 import type { SmtpTestingOptions } from './smtp/smtp-sender.js'
 
 // Only fake servers on 127.0.0.1: no real mail server is ever contacted.
-const NAMES = ['smtp.feedway.test', 'agenzia.feedway.test', 'piattaforma.feedway.test']
+const NAMES = ['smtp.feedway.test', 'piattaforma.feedway.test']
 const USER = 'invii@feedway.test'
 const PASSWORD = 'parola-di-prova-giusta'
 const WRONG_PASSWORD = 'parola-di-prova-sbagliata'
 
 interface Received {
+  /** The name the client gave in EHLO. */
+  clientName: string
   user: string
   from: string
   to: string[]
@@ -106,6 +108,7 @@ function fakeSmtp(opts: SMTPServerOptions & { pair?: { key: string; cert: string
       stream.on('data', (c: Buffer) => chunks.push(c))
       stream.on('end', () => {
         received.push({
+          clientName: session.hostNameAppearsAs,
           user: String(session.user),
           from: session.envelope.mailFrom ? session.envelope.mailFrom.address : '',
           to: session.envelope.rcptTo.map((r) => r.address),
@@ -126,7 +129,8 @@ let starttlsPort: number
 let noStarttlsPort: number
 let untrustedPort: number
 let silentPort: number
-const silentSockets: Socket[] = []
+let drippingPort: number
+const openSockets: Socket[] = []
 
 const logger = createLogger({
   service: 'worker',
@@ -154,22 +158,21 @@ const message: MailMessage = {
   html: '<p>Ciao</p>',
 }
 
-/** A credential source holding one fixed setting, for the tests that need no database. */
-const fixed = (c: SmtpConfig, secret = PASSWORD) => ({
-  get: () => Promise.resolve(null),
-  credentials: (() =>
-    Promise.resolve({
-      kind: 'smtp',
-      owner: 'platform',
-      config: c,
-      secret,
-    })) as IntegrationCredentialSource['credentials'],
+/** One fixed platform setting, for the tests that need no database. */
+const fixed = (c: SmtpConfig, secret = PASSWORD): MailSettingsSource => ({
+  isConfigured: () => Promise.resolve(true),
+  credentials: () => Promise.resolve({ kind: 'smtp', config: c, secret }),
 })
 
-function mailerFor(c: SmtpConfig, testing: SmtpTestingOptions, secret = PASSWORD) {
+function mailerFor(
+  c: SmtpConfig,
+  testing: SmtpTestingOptions,
+  secret = PASSWORD,
+  clientName?: string,
+) {
   return createSmtpMailer({
-    integrations: fixed(c, secret),
-    smtp: createSmtpSender({ testing }),
+    settings: fixed(c, secret),
+    smtp: createSmtpSender({ testing, ...(clientName !== undefined && { clientName }) }),
     logger,
   })
 }
@@ -186,11 +189,29 @@ beforeAll(async () => {
   )
   untrustedPort = await listen(fakeSmtp({ secure: true, pair: untrusted }))
   // accepts the connection and never says a word
-  const silent = createServer((socket) => silentSockets.push(socket))
+  const silent = createServer((socket) => openSockets.push(socket))
   silentPort = await listen(silent, silent)
+  // greets, then answers EHLO one byte at a time, forever: no socket timeout ever trips
+  const dripping = createServer((socket) => {
+    openSockets.push(socket)
+    socket.on('error', () => undefined)
+    socket.write('220 lento.feedway.test ESMTP\r\n')
+    socket.once('data', () => {
+      const line = '250-RALLENTA\r\n'
+      let i = 0
+      const timer = setInterval(() => {
+        if (socket.destroyed) clearInterval(timer)
+        else socket.write(line.charAt(i++ % line.length))
+      }, 20)
+      socket.on('close', () => {
+        clearInterval(timer)
+      })
+    })
+  })
+  drippingPort = await listen(dripping, dripping)
 }, 60_000)
 afterAll(async () => {
-  for (const s of silentSockets) s.destroy()
+  for (const s of openSockets) s.destroy()
   await Promise.all(
     servers.map(
       (s) =>
@@ -207,24 +228,28 @@ afterAll(async () => {
 test('a message leaves over implicit TLS (465) with the configured sender', async () => {
   const before = received.length
   const mailer = mailerFor(config({ port: 465, security: 'tls' }), fake(tlsPort))
-  expect(await mailer.send(message, PLATFORM_SENDER)).toBe('sent')
+  expect(await mailer.send(message)).toBe('sent')
   const got = received.slice(before)
   expect(got).toHaveLength(1)
   expect(got[0]).toMatchObject({ user: USER, from: 'avvisi@feedway.test', to: [message.to] })
   expect(got[0]?.data).toMatch(/^Subject: Prova di invio$/m)
-  expect(got[0]?.data).toMatch(/^From: avvisi@feedway\.test$/m)
+  // always in the product's name, with the platform's address
+  expect(got[0]?.data).toMatch(/^From: Feedway <avvisi@feedway\.test>$/m)
+  expect(got[0]?.data).not.toMatch(/^Reply-To:/m)
+  // never the machine's own name in EHLO
+  expect(got[0]?.clientName).toBe('feedway.invalid')
 })
 
 test('a message leaves over STARTTLS (587)', async () => {
   const before = received.length
   const mailer = mailerFor(config(), fake(starttlsPort))
-  expect(await mailer.send(message, PLATFORM_SENDER)).toBe('sent')
+  expect(await mailer.send(message)).toBe('sent')
   expect(received.slice(before)).toHaveLength(1)
 })
 
 test('wrong credentials: an auth failure, without the password', async () => {
   const mailer = mailerFor(config(), fake(starttlsPort), WRONG_PASSWORD)
-  const error = await mailer.send(message, PLATFORM_SENDER).catch((e: unknown) => e)
+  const error = await mailer.send(message).catch((e: unknown) => e)
   expect(error).toMatchObject({ name: 'SmtpSendError', kind: 'auth' })
   expect(JSON.stringify(error) + String(error)).not.toContain(WRONG_PASSWORD)
 })
@@ -235,28 +260,28 @@ test('a server that never answers: a timeout, quickly', async () => {
     timeouts: { connectionMs: 500, greetingMs: 300, socketMs: 500 },
   })
   const started = Date.now()
-  await expect(mailer.send(message, PLATFORM_SENDER)).rejects.toMatchObject({ kind: 'timeout' })
+  await expect(mailer.send(message)).rejects.toMatchObject({ kind: 'timeout' })
   expect(Date.now() - started).toBeLessThan(5_000)
 })
 
 test('no STARTTLS on 587: nothing is sent in clear text', async () => {
   const before = received.length
   const mailer = mailerFor(config(), fake(noStarttlsPort))
-  await expect(mailer.send(message, PLATFORM_SENDER)).rejects.toMatchObject({ kind: 'tls' })
+  await expect(mailer.send(message)).rejects.toMatchObject({ kind: 'tls' })
   expect(received.length).toBe(before)
 })
 
 test('a certificate we do not trust, or for another name, is refused', async () => {
   const before = received.length
   const untrustedMailer = mailerFor(config({ port: 465, security: 'tls' }), fake(untrustedPort))
-  await expect(untrustedMailer.send(message, PLATFORM_SENDER)).rejects.toMatchObject({
+  await expect(untrustedMailer.send(message)).rejects.toMatchObject({
     kind: 'tls',
   })
   const otherName = mailerFor(
     config({ host: 'altro.feedway.test', port: 465, security: 'tls' }),
     fake(tlsPort),
   )
-  await expect(otherName.send(message, PLATFORM_SENDER)).rejects.toMatchObject({ kind: 'tls' })
+  await expect(otherName.send(message)).rejects.toMatchObject({ kind: 'tls' })
   expect(received.length).toBe(before)
 })
 
@@ -268,7 +293,7 @@ test.each([
 ])('a host that resolves to %s is refused before any connection', async (_, addresses) => {
   const before = received.length
   const mailer = mailerFor(config(), { resolve: () => Promise.resolve(addresses) })
-  await expect(mailer.send(message, PLATFORM_SENDER)).rejects.toMatchObject({
+  await expect(mailer.send(message)).rejects.toMatchObject({
     kind: 'blocked_destination',
   })
   expect(received.length).toBe(before)
@@ -281,7 +306,7 @@ test('a recipient or a subject that could add headers is refused', async () => {
     { ...message, to: 'a@b.test\r\nBcc: c@d.test' },
     { ...message, subject: 'Ciao\r\nBcc: c@d.test' },
   ])
-    await expect(mailer.send(bad, PLATFORM_SENDER)).rejects.toMatchObject({
+    await expect(mailer.send(bad)).rejects.toMatchObject({
       kind: 'invalid_config',
     })
 })
@@ -294,57 +319,96 @@ test('the secret never reaches the logs', () => {
   expect(all).not.toContain(Buffer.from(`\u0000${USER}\u0000${PASSWORD}`).toString('base64'))
 })
 
+test('the EHLO name is the panel host when given', async () => {
+  const before = received.length
+  const mailer = mailerFor(config(), fake(starttlsPort), PASSWORD, 'Pannello.Feedway.test')
+  await mailer.send(message)
+  expect(received.slice(before).map((r) => r.clientName)).toEqual(['pannello.feedway.test'])
+  // an unusable name falls back, it never reaches the server as typed
+  const odd = mailerFor(config(), fake(starttlsPort), PASSWORD, 'x\r\nMAIL FROM:<a@b.test>')
+  await odd.send(message)
+  expect(received.at(-1)?.clientName).toBe('feedway.invalid')
+})
+
+test('a server that drips its answers is cut off by the overall deadline', async () => {
+  const mailer = mailerFor(config(), {
+    ...fake(drippingPort),
+    timeouts: { connectionMs: 5_000, greetingMs: 5_000, socketMs: 5_000, totalMs: 800 },
+  })
+  const started = Date.now()
+  await expect(mailer.send(message)).rejects.toMatchObject({ kind: 'timeout' })
+  expect(Date.now() - started).toBeLessThan(3_000)
+})
+
+test('Reply-To carries the given plain address', async () => {
+  const before = received.length
+  const mailer = mailerFor(config(), fake(starttlsPort))
+  await mailer.send({ ...message, replyTo: 'chi-invita@agenzia.test' })
+  const data = received.slice(before)[0]?.data ?? ''
+  expect(data).toMatch(/^Reply-To: chi-invita@agenzia\.test$/m)
+  expect(data).toMatch(/^From: Feedway <avvisi@feedway\.test>$/m)
+  // the envelope sender stays the platform's
+  expect(received.at(-1)?.from).toBe('avvisi@feedway.test')
+})
+
+test.each([
+  'chi@agenzia.test\r\nBcc: altro@esempio.test',
+  'uno@agenzia.test, due@agenzia.test',
+  '"Nome" <chi@agenzia.test>',
+  'chi@agenzia.test>',
+  '',
+])('a Reply-To that is not a plain address (%j) is refused', async (replyTo) => {
+  const before = received.length
+  const mailer = mailerFor(config(), fake(starttlsPort))
+  await expect(mailer.send({ ...message, replyTo })).rejects.toMatchObject({
+    kind: 'invalid_config',
+  })
+  expect(received.length).toBe(before)
+})
+
 describe('with the settings in the database', () => {
   let tdb: TestDatabase
   let handle: DbHandle
-  let withOwn: string, withoutOwn: string
 
   beforeAll(async () => {
     tdb = await startTestDatabase()
     handle = createDb(tdb.runtimeUrl, { max: 2, applicationName: 'test' })
-    ;({ withOwn, withoutOwn } = await seed(tdb.runtimeUrl, async (s) => ({
-      withOwn: await s.organization(),
-      withoutOwn: await s.organization(),
-    })))
   }, 120_000)
   afterAll(async () => {
     await handle.close()
     await tdb.stop()
   })
 
-  test('an agency without settings falls back to the platform; security emails use the platform', async () => {
+  test('the mailer reads the platform SMTP at every send', async () => {
     const keyRing = createKeyRing({ platformKey: randomBytes(32), clock: fixedClock(new Date()) })
     const uow = createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger })
-    await uow.runAsSystem('test', (tx) => keyRing.createOrganizationKey(tx, withOwn))
-    const store = createIntegrationStore({ db: handle.db, keyRing, ids: uuidV7Generator, logger })
+    const integrations = createIntegrationStore({ keyRing })
     const mailer = createSmtpMailer({
-      integrations: store,
+      settings: createMailSettings({ uow, integrations }),
       smtp: createSmtpSender({ testing: fake(starttlsPort) }),
       logger,
     })
-    expect(await mailer.send(message, { organizationId: withoutOwn })).toBe('not_configured')
-    expect(await mailer.isConfigured(withoutOwn)).toBe(false)
+    expect(await mailer.isConfigured()).toBe(false)
+    expect(await mailer.send(message)).toBe('not_configured')
 
-    await store.replace(null, 'smtp', {
-      config: config({ host: 'piattaforma.feedway.test', username: 'piattaforma@feedway.test' }),
-      secret: PASSWORD,
-      updatedBy: null,
-    })
-    await store.replace(withOwn, 'smtp', {
-      config: config({ host: 'agenzia.feedway.test', username: 'agenzia@feedway.test' }),
-      secret: PASSWORD,
-      updatedBy: null,
-    })
-    expect(await mailer.isConfigured(withoutOwn)).toBe(true)
-
+    const replace = (username: string) =>
+      uow.runAsSystem('test', (tx) =>
+        integrations.replacePlatform(tx, 'smtp', {
+          config: config({ host: 'piattaforma.feedway.test', username }),
+          secret: PASSWORD,
+          updatedBy: null,
+        }),
+      )
+    await replace('primo@feedway.test')
+    expect(await mailer.isConfigured()).toBe(true)
     const before = received.length
-    await mailer.send(message, { organizationId: withOwn })
-    await mailer.send(message, { organizationId: withoutOwn })
-    await mailer.send(message, PLATFORM_SENDER)
+    await mailer.send(message)
+    // a change applies to the next email, with no restart
+    await replace('secondo@feedway.test')
+    await mailer.send(message)
     expect(received.slice(before).map((r) => r.user)).toEqual([
-      'agenzia@feedway.test',
-      'piattaforma@feedway.test',
-      'piattaforma@feedway.test',
+      'primo@feedway.test',
+      'secondo@feedway.test',
     ])
     expect(logLines.join('\n')).not.toContain(PASSWORD)
   })

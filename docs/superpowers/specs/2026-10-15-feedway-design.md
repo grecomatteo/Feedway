@@ -482,13 +482,13 @@ Alla fine il pannello verifica che l'account sia pubblicabile (permessi, collega
 
 ### 8.3 Integrazioni e segreti
 
-**Impostazioni → Integrazioni** dell'organizzazione (solo Owner), ognuna con guida e pulsante "Prova". Email e Telegram possono usare i valori predefiniti della piattaforma, che l'amministratore della piattaforma imposta in **Piattaforma → Integrazioni** (§14.4) insieme alla sorveglianza esterna:
+**Impostazioni → Integrazioni** dell'organizzazione (solo Owner), ognuna con guida e pulsante "Prova". Telegram può usare il valore predefinito della piattaforma, che l'amministratore della piattaforma imposta in **Piattaforma → Integrazioni** (§14.4) insieme all'email e alla sorveglianza esterna:
 - **Meta**: App ID, App Secret, token. "Sostituisci token" verifica il nuovo prima di salvarlo; il vecchio resta attivo finché il nuovo non risulta valido.
 - **Telegram**: guida @BotFather, token del bot, messaggio di prova.
-- **Email**: modelli per Gmail, Brevo e SMTP generico, email di prova.
+- **Email** (solo amministratore della piattaforma, sezione Piattaforma; ADR 017, decisione di Matteo del 30/10): un solo SMTP per tutta l'installazione, nessuna impostazione per le agenzie, tutte le email partono a nome di Feedway. Modelli per Gmail, Brevo e SMTP generico, email di prova.
 - **Sorveglianza esterna** (solo amministratore della piattaforma, sezione Piattaforma): URL del servizio (es. healthchecks.io), segnale di prova.
 
-I segreti sono cifrati nel database (AES-256-GCM) con la chiave dati dell'organizzazione, a sua volta cifrata con la chiave generata dall'installazione (§6.5), **non si rileggono mai** (si vedono le ultime 4 cifre e la data), si possono solo sostituire, ogni modifica richiede riconferma e finisce nel registro attività.
+I segreti sono cifrati nel database (AES-256-GCM) con la chiave dati dell'organizzazione, a sua volta cifrata con la chiave generata dall'installazione (§6.5), **non si rileggono mai** (si vede solo che sono impostati e la data: niente ultime cifre, ADR 017), si possono solo sostituire, ogni modifica richiede riconferma e finisce nel registro attività.
 
 ### 8.4 Sincronizzazione e salute degli account
 
@@ -964,7 +964,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
 - **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Il mio account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
-- **Email**: SMTP configurato dal pannello, modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
+- **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
 - **Preferenze per utente**: canali e livello minimo per ogni tipo di evento; "tutto ovunque" per i test.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
 - **Raggruppamento**: più eventi simili nello stesso minuto diventano un solo messaggio con l'elenco.
@@ -1079,9 +1079,9 @@ share_links         id, workspace_id, token_hash, label, created_by, options (js
                     password_hash, expires_at, revoked_at, last_viewed_at, view_count
 
 -- Sistema
-integrations        organization_id (null = predefinita della piattaforma),
-                    kind (meta|telegram|smtp|heartbeat), config (jsonb),
-                    secret_enc, key_version, secret_hint, updated_by, verified_at
+integrations        organization_id (null = predefinita della piattaforma; smtp solo
+                    della piattaforma, ADR 017), kind (meta|telegram|smtp|heartbeat),
+                    config (jsonb), secret_enc, key_version, updated_by, verified_at
 branding            organization_id (null = piattaforma), logo_key, primary_color,
                     email_footer
 settings            key, value (jsonb), updated_by   (solo piattaforma)
@@ -1598,7 +1598,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 | Caption nel link cliente | Visibile di default | Claude, modificabile |
 | Riepilogo giornaliero | 8:00 tutti i giorni | Claude, modificabile |
 | Ore di silenzio | Disattivate di default | Claude, modificabile |
-| Email | Pronta, attiva quando configuri un SMTP | Claude |
+| Email | Un solo SMTP della piattaforma, impostato dall'amministratore; le agenzie non configurano nulla (ADR 017) | Matteo (30/10) |
 | Modifica caption dopo la pubblicazione | Esclusa (Instagram via API non lo consente) | Claude |
 | Programmazione FB | Gestita da Feedway, non nativa (ADR 003) | Claude |
 | Nome | **Feedway** (scelto il 2026-10-15; repository `grecomatteo/Feedway`). Il nome visibile sta in una sola costante e nessun identificativo tecnico lo contiene (database `app`, pacchetti `@app/*`) | Matteo |

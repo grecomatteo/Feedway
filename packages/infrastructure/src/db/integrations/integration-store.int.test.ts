@@ -1,144 +1,130 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import type { SmtpConfig } from '@app/application'
+import type { SmtpConfig, Tx } from '@app/application'
 import { createKeyRing } from '../../crypto/key-ring.js'
+import { createLogger } from '../../logging/logger.js'
+import { uuidV7Generator } from '../../system/id-generator.js'
 import { fixedClock, seed, startTestDatabase, withScope } from '../../testing/index.js'
 import type { TestDatabase } from '../../testing/index.js'
-import { uuidV7Generator } from '../../system/id-generator.js'
 import { createDb } from '../client.js'
 import type { DbHandle } from '../client.js'
 import { createUnitOfWork } from '../unit-of-work.js'
 import { createIntegrationStore } from './integration-store.js'
-import { createLogger } from '../../logging/logger.js'
 
 let tdb: TestDatabase
 let handle: DbHandle
-let orgA: string, orgB: string, ownerA: string
-let store: ReturnType<typeof createIntegrationStore>
-const ring = createKeyRing({ platformKey: randomBytes(32), clock: fixedClock(new Date()) })
+let orgA: string, ownerA: string
+let uow: ReturnType<typeof createUnitOfWork>
+const platformKey = randomBytes(32)
+const store = createIntegrationStore({
+  keyRing: createKeyRing({ platformKey, clock: fixedClock(new Date()) }),
+})
 const logger = createLogger({ service: 'worker', level: 'error' })
+const asSystem = <T>(fn: (tx: Tx) => Promise<T>) => uow.runAsSystem('test', fn)
 
 const smtp = (over: Partial<SmtpConfig> = {}): SmtpConfig => ({
-  host: 'smtp.agenzia.example',
+  host: 'smtp.piattaforma.example',
   port: 587,
   security: 'starttls',
-  username: 'invii@agenzia.example',
-  from: 'avvisi@agenzia.example',
+  username: 'invii@piattaforma.example',
+  from: 'avvisi@piattaforma.example',
   ...over,
 })
-const AGENCY_SECRET = 'parola-segreta-della-agenzia'
-const PLATFORM_SECRET = 'parola-segreta-della-piattaforma'
+const SECRET = 'parola-segreta-della-piattaforma'
 
 const rawRows = () =>
   withScope(tdb.runtimeUrl, { kind: 'system' }, async (c) => {
-    const { rows } = await c.query<{
-      organization_id: string | null
-      config: unknown
-      secret_enc: string
-      key_version: number
-      secret_hint: string
-    }>('select organization_id, config, secret_enc, key_version, secret_hint from integrations')
+    const { rows } = await c.query<Record<string, unknown>>('select * from integrations')
     return rows
   })
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
   handle = createDb(tdb.runtimeUrl, { max: 2, applicationName: 'test' })
-  ;({ orgA, orgB, ownerA } = await seed(tdb.runtimeUrl, async (s) => {
+  uow = createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger })
+  ;({ orgA, ownerA } = await seed(tdb.runtimeUrl, async (s) => {
     const a = await s.organization()
-    const b = await s.organization()
     const owner = await s.user()
     await s.member(a, owner, 'owner')
-    return { orgA: a, orgB: b, ownerA: owner }
+    return { orgA: a, ownerA: owner }
   }))
-  const uow = createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger })
-  for (const o of [orgA, orgB])
-    await uow.runAsSystem('test', (tx) => ring.createOrganizationKey(tx, o))
-  store = createIntegrationStore({ db: handle.db, keyRing: ring, ids: uuidV7Generator, logger })
 }, 120_000)
 afterAll(async () => {
   await handle.close()
   await tdb.stop()
 })
 
-test('nothing configured: no settings and no credentials, for an agency or the platform', async () => {
-  expect(await store.get(orgA, 'smtp')).toBeNull()
-  expect(await store.get(null, 'smtp')).toBeNull()
-  expect(await store.credentials(orgA, 'smtp')).toBeNull()
+test('nothing configured: no settings and no credentials', async () => {
+  expect(await asSystem((tx) => store.getPlatform(tx, 'smtp'))).toBeNull()
+  expect(await asSystem((tx) => store.platformCredentials(tx, 'smtp'))).toBeNull()
 })
 
-test('the platform default serves every agency without its own settings', async () => {
-  const view = await store.replace(null, 'smtp', {
-    config: smtp({ host: 'SMTP.Piattaforma.example', port: 465, security: 'tls' }),
-    secret: PLATFORM_SECRET,
-    updatedBy: null,
-  })
-  expect(view).toMatchObject({ owner: 'platform', secretHint: 'orma', verifiedAt: null })
+test('the platform SMTP is stored in the system scope; the view never holds the secret', async () => {
+  const view = await asSystem((tx) =>
+    store.replacePlatform(tx, 'smtp', {
+      config: smtp({ host: 'SMTP.Piattaforma.example', port: 465, security: 'tls' }),
+      secret: SECRET,
+      updatedBy: null,
+    }),
+  )
+  expect(view).toMatchObject({ kind: 'smtp', secretSet: true, verifiedAt: null, updatedBy: null })
   expect(view.config.host).toBe('smtp.piattaforma.example')
-  expect(view).not.toHaveProperty('secret')
-  expect(await store.get(orgB, 'smtp')).toMatchObject({ owner: 'platform' })
-  expect(await store.credentials(orgB, 'smtp')).toMatchObject({
-    owner: 'platform',
-    secret: PLATFORM_SECRET,
-  })
-  expect(await store.credentials(null, 'smtp')).toMatchObject({ secret: PLATFORM_SECRET })
-})
-
-test('an agency with its own settings uses them; the others keep the default', async () => {
-  const view = await store.replace(orgA, 'smtp', {
-    config: smtp(),
-    secret: AGENCY_SECRET,
-    updatedBy: ownerA,
-  })
-  expect(view).toMatchObject({ owner: 'organization', secretHint: 'nzia', updatedBy: ownerA })
-  expect(await store.credentials(orgA, 'smtp')).toEqual({
+  expect(JSON.stringify(view)).not.toContain('parola')
+  expect(await asSystem((tx) => store.platformCredentials(tx, 'smtp'))).toEqual({
     kind: 'smtp',
-    owner: 'organization',
-    config: smtp(),
-    secret: AGENCY_SECRET,
+    config: view.config,
+    secret: SECRET,
   })
-  expect((await store.credentials(orgB, 'smtp'))?.owner).toBe('platform')
-  // security emails ask for the platform: never an agency's server
-  expect((await store.credentials(null, 'smtp'))?.secret).toBe(PLATFORM_SECRET)
 })
 
-test('the secret is sealed at rest with the agency key, bound to its row, and only a hint shows', async () => {
-  const rows = await rawRows()
-  const own = rows.find((r) => r.organization_id === orgA)
-  expect(own?.secret_enc).toMatch(/^v1\.1\./)
-  expect(own?.key_version).toBe(1)
-  expect(own?.secret_hint).toBe('nzia')
-  for (const r of rows) {
-    expect(JSON.stringify(r.config)).not.toContain('parola')
-    expect(r.secret_enc).not.toContain('parola')
-  }
-  // a sealed value copied onto another agency's row does not open there
-  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
-    c.query(
-      `insert into integrations (id, organization_id, kind, config, secret_enc, key_version, secret_hint)
-       select $1, $2, kind, config, secret_enc, key_version, secret_hint from integrations
-        where organization_id = $3`,
-      [randomUUID(), orgB, orgA],
-    ),
-  )
-  await expect(store.credentials(orgB, 'smtp')).rejects.toThrow()
-  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
-    c.query('delete from integrations where organization_id = $1', [orgB]),
-  )
+test('at rest: sealed with the platform key, no hint column, nothing of the secret in clear', async () => {
+  const [row] = await rawRows()
+  expect(row).not.toHaveProperty('secret_hint')
+  expect(row?.['secret_enc']).toMatch(/^v1\.1\./)
+  expect(row?.['key_version']).toBe(1)
+  expect(JSON.stringify(row)).not.toContain('parola')
+  // another installation's key does not open it
+  const other = createIntegrationStore({
+    keyRing: createKeyRing({ platformKey: randomBytes(32), clock: fixedClock(new Date()) }),
+  })
+  await expect(asSystem((tx) => other.platformCredentials(tx, 'smtp'))).rejects.toThrow()
+})
+
+test('an agency transaction neither sees nor writes the platform SMTP', async () => {
+  const scope = { organizationId: orgA, userId: ownerA }
+  expect(await uow.run(scope, (tx) => store.getPlatform(tx, 'smtp'))).toBeNull()
+  expect(await uow.run(scope, (tx) => store.platformCredentials(tx, 'smtp'))).toBeNull()
+  const refused = await uow
+    .run(scope, (tx) =>
+      store.replacePlatform(tx, 'smtp', {
+        config: smtp(),
+        secret: 'altra-parola',
+        updatedBy: ownerA,
+      }),
+    )
+    .catch((e: unknown) => e)
+  expect(String((refused as { cause?: unknown }).cause)).toMatch(/row-level security/)
+  expect(await asSystem((tx) => store.platformCredentials(tx, 'smtp'))).toMatchObject({
+    secret: SECRET,
+  })
 })
 
 test('replacing keeps one row, resets the verification and changes the secret', async () => {
   await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
-    c.query('update integrations set verified_at = now() where organization_id = $1', [orgA]),
+    c.query('update integrations set verified_at = now()'),
   )
-  const view = await store.replace(orgA, 'smtp', {
-    config: smtp({ port: 2525 }),
-    secret: 'nuova-parola-della-agenzia',
-    updatedBy: ownerA,
-  })
-  expect(view).toMatchObject({ verifiedAt: null, config: { port: 2525 } })
-  expect((await rawRows()).filter((r) => r.organization_id === orgA)).toHaveLength(1)
-  expect((await store.credentials(orgA, 'smtp'))?.secret).toBe('nuova-parola-della-agenzia')
+  const view = await asSystem((tx) =>
+    store.replacePlatform(tx, 'smtp', {
+      config: smtp({ port: 2525 }),
+      secret: 'nuova-parola-della-piattaforma',
+      updatedBy: ownerA,
+    }),
+  )
+  expect(view).toMatchObject({ verifiedAt: null, updatedBy: ownerA, config: { port: 2525 } })
+  expect(await rawRows()).toHaveLength(1)
+  expect((await asSystem((tx) => store.platformCredentials(tx, 'smtp')))?.secret).toBe(
+    'nuova-parola-della-piattaforma',
+  )
 })
 
 test.each([
@@ -147,21 +133,27 @@ test.each([
   ['STARTTLS on 465', { port: 465, security: 'starttls' }],
   ['an IP address as host', { host: '10.0.0.1' }],
   ['a host with a port', { host: 'smtp.example.com:25' }],
-  ['a sender with a display name', { from: 'Feedway <avvisi@agenzia.example>' }],
+  ['a sender with a display name', { from: 'Feedway <avvisi@piattaforma.example>' }],
   ['a sender with a line break', { from: 'a@b.example\r\nBcc: x@y.example' }],
   ['two senders', { from: 'a@b.example,c@d.example' }],
   ['a username with a line break', { username: 'a\r\nb' }],
 ] as [string, Partial<SmtpConfig>][])('settings with %s are refused', async (_, over) => {
   await expect(
-    store.replace(orgB, 'smtp', { config: smtp(over), secret: 'una-parola', updatedBy: null }),
+    asSystem((tx) =>
+      store.replacePlatform(tx, 'smtp', {
+        config: smtp(over),
+        secret: 'una-parola',
+        updatedBy: null,
+      }),
+    ),
   ).rejects.toMatchObject({ code: 'VALIDATION' })
 })
 
-test('an empty or control-character secret is refused, and the error never holds it', async () => {
+test('an empty, control-character or oversized secret is refused, and the error never holds it', async () => {
   for (const secret of ['', 'parola\r\nsegreta', 'x'.repeat(1025)]) {
-    const error = await store
-      .replace(orgB, 'smtp', { config: smtp(), secret, updatedBy: null })
-      .catch((e: unknown) => e)
+    const error = await asSystem((tx) =>
+      store.replacePlatform(tx, 'smtp', { config: smtp(), secret, updatedBy: null }),
+    ).catch((e: unknown) => e)
     expect(error).toMatchObject({ code: 'VALIDATION' })
     if (secret.length > 0) expect((error as Error).message).not.toContain(secret)
   }

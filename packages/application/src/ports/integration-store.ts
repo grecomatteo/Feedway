@@ -19,17 +19,14 @@ export interface IntegrationConfigs {
   smtp: SmtpConfig
 }
 
-/** Whose row answered: the agency's own, or the platform default it falls back to. */
-export type IntegrationOwner = 'organization' | 'platform'
-
 /**
- * What the panel may show. The secret never comes back: only its last 4 characters.
+ * What the panel may show. Nothing of the secret comes back, not even its last characters
+ * (ADR 017): only that one is set, and since when.
  */
 export interface IntegrationView<K extends IntegrationKind = IntegrationKind> {
   kind: K
-  owner: IntegrationOwner
   config: IntegrationConfigs[K]
-  secretHint: string
+  secretSet: true
   updatedBy: string | null
   verifiedAt: Date | null
   updatedAt: Date
@@ -38,7 +35,6 @@ export interface IntegrationView<K extends IntegrationKind = IntegrationKind> {
 /** For the adapter that sends, and only for it: the secret in clear. Never logged or returned. */
 export interface IntegrationCredentials<K extends IntegrationKind = IntegrationKind> {
   kind: K
-  owner: IntegrationOwner
   config: IntegrationConfigs[K]
   secret: string
 }
@@ -46,33 +42,67 @@ export interface IntegrationCredentials<K extends IntegrationKind = IntegrationK
 export interface IntegrationReplacement<K extends IntegrationKind = IntegrationKind> {
   config: IntegrationConfigs[K]
   secret: string
-  /** The user who changed it; null from the command line of the platform. */
+  /** The platform administrator who changed it; null from the command line. */
+  updatedBy: string | null
+}
+
+/** A stored row as the database holds it: the secret still sealed. */
+export interface IntegrationRecord {
+  config: unknown
+  secretEnc: string
+  keyVersion: number
+  updatedBy: string | null
+  verifiedAt: Date | null
+  updatedAt: Date
+}
+
+export interface IntegrationRecordInput {
+  config: unknown
+  secretEnc: string
+  keyVersion: number
   updatedBy: string | null
 }
 
 /**
- * Integrations per agency, with the platform default (`organizationId` null). An agency's rows
- * are read and written only in that agency's scope; the platform's only in the system scope.
- * Authorization (Owner, platform administrator) and the audit entry belong to the use case.
+ * Platform rows of `integrations` (organization null) in the current transaction. They exist only
+ * in the system scope: elsewhere row level security hides them and refuses the writes. The
+ * agency rows arrive with the integrations of stage 3 (Meta, Telegram).
+ */
+export interface IntegrationsRepository {
+  findPlatform(kind: IntegrationKind): Promise<IntegrationRecord | null>
+  /** Inserts or replaces the row; the verification is reset. */
+  upsertPlatform(kind: IntegrationKind, input: IntegrationRecordInput): Promise<IntegrationRecord>
+}
+
+/** What the store needs of a transaction. */
+export interface IntegrationTx {
+  integrations: IntegrationsRepository
+}
+
+/**
+ * Platform integrations with sealed secrets, inside the caller's `runAsSystem` transaction, so
+ * the audit entry of a change sits in the same one. SMTP is platform only (ADR 017).
+ * Authorization and the audit entry belong to the use case.
  */
 export interface IntegrationStore {
-  /** The agency's own, else the platform default; null when neither exists. */
-  get<K extends IntegrationKind>(
-    organizationId: string | null,
+  getPlatform<K extends IntegrationKind>(
+    tx: IntegrationTx,
     kind: K,
   ): Promise<IntegrationView<K> | null>
-  /** Validates the config, seals the secret and replaces the row (verification is reset). */
-  replace<K extends IntegrationKind>(
-    organizationId: string | null,
+  replacePlatform<K extends IntegrationKind>(
+    tx: IntegrationTx,
     kind: K,
     replacement: IntegrationReplacement<K>,
   ): Promise<IntegrationView<K>>
-}
-
-/** Internal port of the senders (the SMTP mailer): same fallback as `get`, secret in clear. */
-export interface IntegrationCredentialSource {
-  credentials<K extends IntegrationKind>(
-    organizationId: string | null,
+  /** Internal, for the senders only: the secret in clear. */
+  platformCredentials<K extends IntegrationKind>(
+    tx: IntegrationTx,
     kind: K,
   ): Promise<IntegrationCredentials<K> | null>
+}
+
+/** Where the SMTP mailer reads the platform's settings at every send. */
+export interface MailSettingsSource {
+  isConfigured(): Promise<boolean>
+  credentials(): Promise<IntegrationCredentials | null>
 }

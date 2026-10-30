@@ -84,6 +84,10 @@ export default tseslint.config(
           selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
           message: 'Usa la porta Clock, non Date.now().',
         },
+        {
+          selector: 'TemplateElement[value.raw=/app\\.scope/], Literal[value=/app\\.scope/]',
+          message: 'app.scope si imposta solo in UnitOfWork.runAsSystem, nei moduli consentiti.',
+        },
       ],
     },
   },
@@ -97,6 +101,28 @@ export default tseslint.config(
           property: 'runAsSystem',
           message:
             "runAsSystem vede tutte le agenzie: usa uow.run con l'ambito. Solo i moduli elencati in RUN_AS_SYSTEM_ALLOWED possono aprirlo.",
+        },
+      ],
+    },
+  },
+  {
+    // The system scope opens only through UnitOfWork.runAsSystem, the call the rule above
+    // restricts: no other product code may set app.scope by hand (ADR 017).
+    // (domain and application get the same selector in their own block above: a second
+    // no-restricted-syntax here would replace theirs)
+    files: ['apps/**/*.ts', 'packages/infrastructure/src/**/*.ts', 'packages/ui/**/*.ts'],
+    ignores: [
+      '**/*.test.ts',
+      'packages/infrastructure/src/db/unit-of-work.ts',
+      'packages/*/src/testing/**',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TemplateElement[value.raw=/app\\.scope/], Literal[value=/app\\.scope/]',
+          message:
+            'app.scope si imposta solo in UnitOfWork.runAsSystem: usa quello, nei moduli consentiti.',
         },
       ],
     },

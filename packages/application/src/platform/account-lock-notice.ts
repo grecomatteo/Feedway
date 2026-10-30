@@ -5,7 +5,6 @@ import type {
   JobQueue,
 } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
-import { PLATFORM_SENDER } from '../ports/mailer.js'
 import type { Mailer, MailMessage } from '../ports/mailer.js'
 import type { UserRecord } from '../ports/repositories.js'
 import type { Translate } from '../ports/translator.js'
@@ -155,7 +154,7 @@ export async function sendAccountLockedNotice(
     return
   }
   let recipients = 0
-  if (await deps.mailer.isConfigured(PLATFORM_SENDER.organizationId)) {
+  if (await deps.mailer.isConfigured()) {
     for (const { user } of found.recipients) {
       await deps.queue.send(
         'identity.account_locked_notice_email',
@@ -199,7 +198,6 @@ export async function sendAccountLockedNoticeEmail(
   }
   const result = await deps.mailer.send(
     noticeFor(deps, found.locked, new Date(job.lockedAt), recipient),
-    PLATFORM_SENDER,
   )
   if (result === 'not_configured')
     deps.logger.info({}, 'security lock notice not sent: not_configured')
