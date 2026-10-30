@@ -66,9 +66,21 @@ export const securityLockRoute = defineContract({
   scope: 'public',
 })
 
+/** The link of the email to the new address (E5): works without a session, opens none. */
+export const confirmEmailChangeRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/email-change/confirm',
+  summary: 'Conferma il nuovo indirizzo email dal link ricevuto',
+  request: { body: z.strictObject({ token: z.string().min(1).max(512) }) },
+  response: z.object({ email: z.string() }),
+  auth: 'public',
+  scope: 'public',
+})
+
 export const linkRoutes = [
   describeLinkRoute,
   activateLinkRoute,
   completeLinkRoute,
   securityLockRoute,
+  confirmEmailChangeRoute,
 ] as const

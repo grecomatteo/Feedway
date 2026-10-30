@@ -39,6 +39,12 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 1800, deleteAfterSeconds: 1800 },
   },
+  // the data holds the confirmation link to the new address: gone after its hour
+  'identity.email_change': {
+    policy: 'standard',
+    scope: 'user',
+    retention: { retentionSeconds: 3600, deleteAfterSeconds: 3600 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

@@ -7,6 +7,7 @@ import type { SignedTokens } from '../ports/token-service.js'
 import type { Translate } from '../ports/translator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import {
+  type EmailBlock,
   capitalize,
   dayAndTime,
   emailFrame,
@@ -87,41 +88,73 @@ export async function sendSecurityEmail(
     ...securityWhen(t, new Date(job.occurredAt), timeZone),
   }
   const base = `email.security.${job.kind}`
-  const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
-    preheader: t(`${base}.preheader`, values),
-    title: t(`${base}.title`, values),
-    blocks: [
-      { kind: 'paragraph', text: t(`${base}.intro`, values) },
+  const lockButton: EmailBlock[] = [
+    {
+      kind: 'button',
+      label: t('email.security.lockButton'),
+      url: lockUrl.toString(),
+      tone: 'danger',
+    },
+    { kind: 'paragraph', text: t('email.security.lockLinkValidity'), tone: 'muted' },
+  ]
+  const details: EmailBlock = {
+    kind: 'details',
+    rows: [
+      { label: t('email.security.labels.when'), value: values.when },
+      { label: t('email.security.labels.device'), value: job.deviceLabel },
       {
-        kind: 'details',
-        rows: [
-          { label: t('email.security.labels.when'), value: values.when },
-          { label: t('email.security.labels.device'), value: job.deviceLabel },
-          {
-            label: t('email.security.labels.network'),
-            value: shortIp === '' ? t('email.security.unknownIp') : shortIp,
-          },
-        ],
+        label: t('email.security.labels.network'),
+        value: shortIp === '' ? t('email.security.unknownIp') : shortIp,
       },
-      {
-        kind: 'lead',
-        lead: t('email.security.itWasMe.lead'),
-        text: t('email.security.itWasMe.text'),
-      },
+    ],
+  }
+  const itWasMe: EmailBlock = {
+    kind: 'lead',
+    lead: t('email.security.itWasMe.lead'),
+    text: t('email.security.itWasMe.text'),
+  }
+  const addresses = { oldEmail: job.notifyEmail ?? user.email, newEmail: job.newEmail ?? '' }
+  let blocks: EmailBlock[]
+  if (job.kind === 'email_change_requested') {
+    // E5b: no link to confirm anything, only the lock, which also cancels the change
+    blocks = [
+      { kind: 'paragraph', text: t(`${base}.intro`, { ...values, ...addresses }) },
+      { kind: 'paragraph', text: t(`${base}.pending`, values) },
+      itWasMe,
+      { kind: 'lead', lead: t('email.security.notMe.lead'), text: t(`${base}.lockExplain`) },
+      ...lockButton,
+    ]
+  } else if (job.kind === 'email_changed') {
+    // the change is done: whoever ignored E5b learns it here and can still lock the account
+    blocks = [
+      { kind: 'paragraph', text: t(`${base}.intro`, { ...values, ...addresses }) },
+      details,
+      itWasMe,
       {
         kind: 'lead',
         lead: t('email.security.notMe.lead'),
         text: t('email.security.lockExplain'),
       },
+      ...lockButton,
+    ]
+  } else {
+    blocks = [
+      { kind: 'paragraph', text: t(`${base}.intro`, values) },
+      details,
+      itWasMe,
       {
-        kind: 'button',
-        label: t('email.security.lockButton'),
-        url: lockUrl.toString(),
-        tone: 'danger',
+        kind: 'lead',
+        lead: t('email.security.notMe.lead'),
+        text: t('email.security.lockExplain'),
       },
-      { kind: 'paragraph', text: t('email.security.lockLinkValidity'), tone: 'muted' },
-    ],
+      ...lockButton,
+    ]
+  }
+  const { html, text } = renderEmail({
+    ...emailFrame(t, deps.panelUrl, deps.productName),
+    preheader: t(`${base}.preheader`, values),
+    title: t(`${base}.title`, values),
+    blocks,
     footerReason: `${t(`${base}.footer`, values)} ${t('email.security.cannotDisable')}`,
   })
   const message: MailMessage = {

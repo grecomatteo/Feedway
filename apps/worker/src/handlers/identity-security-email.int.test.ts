@@ -176,6 +176,7 @@ const SUBJECTS: Record<(typeof SECURITY_EMAIL_KINDS)[number], string> = {
   new_device: 'Nuovo accesso al tuo account Feedway',
   password_changed: 'La tua password è cambiata · Feedway',
   password_reset: 'La tua password è stata reimpostata · Feedway',
+  email_change_requested: "È stato chiesto di cambiare l'email del tuo account Feedway",
   email_changed: "L'email del tuo account è cambiata · Feedway",
   totp_enabled: 'Verifica in due passaggi attivata · Feedway',
   totp_disabled: 'Verifica in due passaggi disattivata · Feedway',
@@ -184,23 +185,52 @@ const SUBJECTS: Record<(typeof SECURITY_EMAIL_KINDS)[number], string> = {
   passkey_removed: 'Passkey eliminata · Feedway',
 }
 
+const TITLES: Partial<Record<(typeof SECURITY_EMAIL_KINDS)[number], string>> = {
+  new_device: 'Nuovo accesso al tuo account',
+  email_change_requested: 'È stato chiesto di cambiare la tua email',
+}
+
 test.each(SECURITY_EMAIL_KINDS)(
   'the %s email has its own subject and title, and the lock button',
   async (kind) => {
     const { userId } = await newUserWithSessions(0)
     const mailer = createMemoryMailer()
-    await identitySecurityEmail(job(userId, { kind }), depsWith(mailer))
+    await identitySecurityEmail(
+      job(userId, { kind, notifyEmail: 'vecchio@example.test', newEmail: 'nuovo@example.test' }),
+      depsWith(mailer),
+    )
     const mail = mailer.sent.at(-1)
     expect(mail?.subject).toBe(SUBJECTS[kind])
-    const title =
-      kind === 'new_device'
-        ? 'Nuovo accesso al tuo account'
-        : SUBJECTS[kind].replace(' · Feedway', '')
+    const title = TITLES[kind] ?? SUBJECTS[kind].replace(' · Feedway', '')
     expect(mail?.text.split('\n')[0]).toBe(title)
     expect(mail?.text).toContain("Non sono stato io, blocca l'account:")
-    expect(mail?.html).toContain('Rete (approssimativa)')
+    if (kind !== 'email_change_requested') expect(mail?.html).toContain('Rete (approssimativa)')
   },
 )
+
+test('the warning of an email change names both addresses and says the lock cancels it', async () => {
+  const { userId } = await newUserWithSessions(0)
+  const mailer = createMemoryMailer()
+  await identitySecurityEmail(
+    job(userId, {
+      kind: 'email_change_requested',
+      notifyEmail: 'vecchio@example.test',
+      newEmail: 'nuovo@example.test',
+    }),
+    depsWith(mailer),
+  )
+  const mail = mailer.sent.at(-1)
+  expect(mail?.to).toBe('vecchio@example.test')
+  expect(mail?.text).toContain(
+    'Lunedì 19 ottobre alle 10:30 è stato chiesto di sostituire vecchio@example.test con nuovo@example.test come indirizzo del tuo account Feedway.',
+  )
+  expect(mail?.text).toContain('Il cambio avverrà solo quando il nuovo indirizzo sarà confermato.')
+  expect(mail?.text).toContain("Blocca l'account: annulliamo il cambio")
+  // no link to confirm anything: the only link is the lock
+  expect(mail?.text.match(/https:\/\/\S+/g)).toEqual([
+    expect.stringContaining('https://pannello.example.test/sicurezza/non-sono-stato-io?t='),
+  ])
+})
 
 test('the lock text says only what the lock does today', async () => {
   const { userId } = await newUserWithSessions(0)

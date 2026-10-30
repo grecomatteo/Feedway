@@ -25,6 +25,15 @@ const base: EmailContent = {
 }
 
 describe('html', () => {
+  test('the info box of E5 is blue with a blue border; the plain box stays neutral', () => {
+    const { html } = renderEmail({
+      ...base,
+      blocks: [{ kind: 'box', title: 'Abbiamo avvisato', text: 'Anche il vecchio.', tone: 'info' }],
+    })
+    expect(html).toContain('background-color:#E7EFFA;border:1px solid #1F5AA6;')
+    expect(renderEmail(base).html).not.toContain('#E7EFFA')
+  })
+
   test('a light-only page for email clients, at most 600 px wide, with the hidden preheader first', () => {
     const { html } = renderEmail(base)
     expect(html).toMatch(/^<!doctype html>/i)

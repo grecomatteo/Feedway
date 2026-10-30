@@ -58,3 +58,14 @@ export function validateCrop(
     y + size <= image.height
   )
 }
+
+/** A time zone the runtime knows by its IANA name (`Europe/Rome`); `Europe/Roma` is not one. */
+export function isValidTimeZone(value: string): boolean {
+  if (value === '' || value.length > 64) return false
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value })
+    return true
+  } catch {
+    return false
+  }
+}

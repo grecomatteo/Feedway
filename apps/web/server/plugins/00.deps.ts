@@ -1,4 +1,4 @@
-import { createAuthEventSink, resolveSessionUser } from '@app/application'
+import { createAuthEventSink, resolveSessionUser, startEmailChange } from '@app/application'
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
 import {
   createAuthAdapter,
@@ -53,6 +53,20 @@ export default defineNitroPlugin((nitroApp) => {
           { uow: runtime.uow, config: { require2fa: config.require2fa } },
           session,
         ),
+      emailChange: {
+        mailer: runtime.mailer,
+        start: (input) =>
+          startEmailChange(
+            {
+              uow: runtime.uow,
+              queue: runtime.queue,
+              tokens: runtime.tokens,
+              clock: runtime.clock,
+              panelUrl: config.panelUrl,
+            },
+            input,
+          ),
+      },
     })
     const auth = createAuthAdapter(betterAuth, { db: runtime.db, clock: runtime.clock })
     runtime.logger.info({}, 'web started')

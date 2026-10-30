@@ -4,6 +4,7 @@ import { drizzleAuditLog } from './audit/repositories.js'
 import type { Db, DbExecutor } from './client.js'
 import {
   drizzleCredentials,
+  drizzleEmailChanges,
   drizzleKnownDevices,
   drizzleSessions,
   drizzleUsers,
@@ -32,6 +33,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     users: drizzleUsers(db, ctx),
     sessions: drizzleSessions(db, ctx),
     credentials: drizzleCredentials(db, ids, ctx),
+    emailChanges: drizzleEmailChanges(db, ids, ctx),
     knownDevices: drizzleKnownDevices(db, ctx),
     organizations: drizzleOrganizations(db, ctx),
     orgMembers: drizzleOrgMembers(db),

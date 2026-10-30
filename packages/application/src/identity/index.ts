@@ -48,3 +48,17 @@ export { createPasswordResetLink, sendPasswordResetEmail } from './password-rese
 export type { PasswordResetEmailDeps } from './password-reset.js'
 export { sendAccountRecoveryEmail } from './account-recovery-email.js'
 export type { AccountRecoveryEmailDeps } from './account-recovery-email.js'
+export { updateProfile } from './profile.js'
+export type { ProfileInput } from './profile.js'
+export {
+  confirmEmailChange,
+  EMAIL_CHANGE_PAGE_PATH,
+  EMAIL_CHANGE_TTL_MS,
+  sendEmailChangeEmail,
+  startEmailChange,
+} from './email-change.js'
+export type {
+  ConfirmEmailChangeDeps,
+  EmailChangeEmailDeps,
+  StartEmailChangeDeps,
+} from './email-change.js'

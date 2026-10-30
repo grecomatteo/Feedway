@@ -45,6 +45,24 @@ export const meRoute = defineContract({
   scope: 'personal',
 })
 
+/** Only the fields sent change; the others stay as they are. */
+export const updateMeRoute = defineContract({
+  method: 'PATCH',
+  path: '/api/v1/me',
+  summary: 'Cambia nome, soprannome, tema o fuso orario della persona collegata',
+  request: {
+    body: z.strictObject({
+      name: z.string().max(200).optional(),
+      nickname: z.string().max(200).nullable().optional(),
+      theme: z.enum(['light', 'dark', 'system']).optional(),
+      timezone: z.string().max(64).nullable().optional(),
+    }),
+  },
+  response: Me,
+  auth: 'session',
+  scope: 'personal',
+})
+
 export const myOrganizationsRoute = defineContract({
   method: 'GET',
   path: '/api/v1/me/organizations',
@@ -119,6 +137,7 @@ export const revokeAllMySessionsRoute = defineContract({
 
 export const meRoutes = [
   meRoute,
+  updateMeRoute,
   myOrganizationsRoute,
   mySecondFactorRoute,
   mySessionsRoute,

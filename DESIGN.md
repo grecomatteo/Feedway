@@ -113,7 +113,7 @@ Tutte le coppie superano AA: testo 15,7:1 su bianco, testo secondario 6,74:1 su 
 
 ### Contenuto e dati
 
-- Tempi: invito 72 h, reset 60 minuti (dal piano della tappa 2). Cambio email: 24 h sulla tela, **da fissare nel Task 1** con il valore reale di Better Auth.
+- Tempi: invito 72 h, reset 60 minuti (dal piano della tappa 2). Cambio email: **60 minuti**, fissato nel Task 25 (la tela diceva 24 h).
 - Date scritte per esteso («giovedì 29 ottobre alle 19:20»). Inviti (E1, E2) nel fuso predefinito dell'installazione, finché le agenzie non avranno un fuso proprio; email di sicurezza (E3, E4, E5, E5b) nel fuso dell'utente, con ripiego su `Europe/Rome` come nel piano della tappa 2.
 - E3: luogo approssimativo con la dicitura «stimato dalla rete: può essere impreciso»; se manca, la riga si omette. **Non è nel piano**: oggi ci sono solo IP abbreviato e `deviceLabel`. Una fonte GeoIP richiede una ADR; finché non c'è, la riga non compare.
 - Ogni email è `multipart/alternative` con la versione solo testo della tela (titolo, paragrafi, «Etichetta del pulsante:» + URL, «--», piè di pagina).
