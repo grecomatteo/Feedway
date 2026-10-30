@@ -38,5 +38,21 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
       if (!row) throw new Error('integration not stored')
       return recordOf(row)
     },
+    async markPlatformVerified(kind, at, version) {
+      const rows = await db
+        .update(integrations)
+        // the column keeps its value: a successful test is not a change of the settings
+        .set({ verifiedAt: at, updatedAt: sql`${integrations.updatedAt}` })
+        .where(
+          and(
+            isNull(integrations.organizationId),
+            eq(integrations.kind, kind),
+            // a JavaScript date holds milliseconds, the column microseconds
+            sql`date_trunc('milliseconds', ${integrations.updatedAt}) = ${version.toISOString()}::timestamptz`,
+          ),
+        )
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
   }
 }

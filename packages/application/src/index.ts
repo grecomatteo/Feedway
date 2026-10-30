@@ -16,7 +16,8 @@ export type {
   SecurityEmailData,
   SecurityEmailKind,
 } from './ports/job-queue.js'
-export type { Mailer, MailMessage } from './ports/mailer.js'
+export { MAIL_FAILURE_KINDS, MailSendError } from './ports/mailer.js'
+export type { MailFailureKind, Mailer, MailMessage } from './ports/mailer.js'
 export { INTEGRATION_KINDS, SMTP_PORTS } from './ports/integration-store.js'
 export type {
   IntegrationConfigs,

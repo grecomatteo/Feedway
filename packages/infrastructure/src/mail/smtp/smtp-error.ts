@@ -1,16 +1,8 @@
-export type SmtpFailureKind =
-  /** The settings cannot be used as they are (host, port, sender, recipient). */
-  | 'invalid_config'
-  /** The host resolves to an address we never connect to (loopback, private networks...). */
-  | 'blocked_destination'
-  | 'dns'
-  | 'timeout'
-  /** No TLS, or a certificate that does not verify. */
-  | 'tls'
-  | 'auth'
-  | 'connection'
-  /** The server answered but refused the sender, the recipient or the message. */
-  | 'rejected'
+import { MailSendError } from '@app/application'
+import type { MailFailureKind } from '@app/application'
+
+/** The kinds of the port (`MAIL_FAILURE_KINDS`): the panel and the CLI read them. */
+export type SmtpFailureKind = MailFailureKind
 
 const RESPONSE_MAX = 200
 const INPUT_MAX = 2_000
@@ -19,16 +11,10 @@ const INPUT_MAX = 2_000
  * A failed send, classified. The message never holds the username, the password, the recipient
  * or the body: only the kind and, when the server answered, its reply cut short.
  */
-export class SmtpSendError extends Error {
-  readonly kind: SmtpFailureKind
-  /** The server's reply, on one line, at most 200 characters, credentials removed. */
-  readonly response: string | undefined
-
+export class SmtpSendError extends MailSendError {
   constructor(kind: SmtpFailureKind, response?: string) {
-    super(response === undefined ? `smtp ${kind}` : `smtp ${kind}: ${response}`)
+    super(kind, response, 'smtp')
     this.name = 'SmtpSendError'
-    this.kind = kind
-    this.response = response
   }
 }
 

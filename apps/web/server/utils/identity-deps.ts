@@ -1,4 +1,4 @@
-import type { IdentityDeps, InviteDeps } from '@app/application'
+import type { IdentityDeps, InviteDeps, PlatformMailDeps } from '@app/application'
 import { PRODUCT_NAME } from '@app/config'
 import { passwordStrength } from '@app/infrastructure'
 import type { Deps } from './deps'
@@ -32,5 +32,20 @@ export function inviteDeps(deps: Deps): InviteDeps {
     productName: PRODUCT_NAME,
     defaultTimezone: deps.config.defaultTimezone,
     signedTokens: deps.signedTokens,
+  }
+}
+
+/** The system email: its settings, the mailer that tries them, the test email's texts. */
+export function platformMailDeps(deps: Deps): PlatformMailDeps {
+  return {
+    uow: deps.uow,
+    integrations: deps.integrations,
+    clock: deps.clock,
+    rateLimiter: deps.rateLimiter,
+    mailer: deps.mailer,
+    translate: deps.translate,
+    logger: deps.logger,
+    panelUrl: deps.config.panelUrl,
+    productName: PRODUCT_NAME,
   }
 }

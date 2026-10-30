@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import type { ApiContract } from '@app/contracts'
 import type { ResolvedSession } from '@app/application'
-import type { OrgActor } from '@app/domain'
+import type { OrgActor, PlatformActor } from '@app/domain'
 import { HttpProblem, failureEntry, issuesFromZod, toErrorResponse } from './http-errors'
 
 const DEFAULT_MAX_BODY_BYTES = 16 * 1024
@@ -18,7 +18,11 @@ export interface ApiContext<C extends ApiContract> {
   body: Out<C['request']['body']>
   /** null only on a public route without a session */
   session: C['auth'] extends 'public' ? ResolvedSession | null : ResolvedSession
-  actor: C['scope'] extends 'organization' ? OrgActor : null
+  actor: C['scope'] extends 'organization'
+    ? OrgActor
+    : C['scope'] extends 'platform'
+      ? PlatformActor
+      : null
   /** written by our proxy middleware (05.client-ip), never by the client */
   ip: string | null
   userAgent: string | null
@@ -89,6 +93,15 @@ async function authorize(event: H3Event, auth: ApiContract['auth']) {
 }
 
 /**
+ * The platform administrator, from the session. Anyone else gets 404: the routes do not exist
+ * for them. The use case reads the role again inside its transaction (`platformAuthor`).
+ */
+function platformActorOf(session: ResolvedSession | null): PlatformActor {
+  if (session?.user.platformRole !== 'admin') throw new HttpProblem('NOT_FOUND')
+  return { userId: session.user.id, platformRole: 'admin' }
+}
+
+/**
  * A thin `/api/v1` route over its contract (packages/contracts): limits, then session, then
  * agency, then input. So an anonymous caller gets 401 and an invisible agency 404 before any
  * validation could describe the route. The answer is parsed with the response DTO, so a field
@@ -112,8 +125,11 @@ export function defineApiRoute<C extends ApiContract>(
       const isPublic = contract.auth === 'public'
       if (options.rateLimit && isPublic) await limit(event, options.rateLimit)
       const session = await authorize(event, contract.auth)
+      // before the limit: someone else behind the administrator's address must not use up
+      // their allowance, nor learn from a 429 that the route exists
+      const platformActor = contract.scope === 'platform' ? platformActorOf(session) : null
       if (options.rateLimit && !isPublic) await limit(event, options.rateLimit)
-      const actor = contract.scope === 'organization' ? await requireOrgActor(event) : null
+      const actor = contract.scope === 'organization' ? await requireOrgActor(event) : platformActor
       const { params, query, body } = contract.request
       const ctx = {
         event,
@@ -144,6 +160,16 @@ export const REAUTH_RATE_LIMIT = { name: 'reauth', limit: 10, windowMs: 60_000 }
 
 /** Each invite is a live link: a stolen session must not mint them in bulk. */
 export const INVITES_RATE_LIMIT = { name: 'invites', limit: 30, windowMs: 60_000 }
+
+/** Each change of the system email is a reauth-protected write: a few a minute are plenty. */
+export const PLATFORM_SETTINGS_RATE_LIMIT = {
+  name: 'platform-settings',
+  limit: 10,
+  windowMs: 60_000,
+}
+
+/** Each test is an email to an address; the use case also limits each administrator (5/10 min). */
+export const MAIL_TEST_RATE_LIMIT_ROUTE = { name: 'mail-test', limit: 5, windowMs: 60_000 }
 
 /** Each reset link takes over an account if it leaks. */
 export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs: 60_000 }

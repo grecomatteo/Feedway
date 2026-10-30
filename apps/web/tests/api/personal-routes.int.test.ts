@@ -20,9 +20,9 @@ beforeEach(async () => {
 })
 
 test('every registered route belongs to exactly one battery', () => {
-  expect(apiRoutes.every((r) => ['organization', 'personal', 'public'].includes(r.scope))).toBe(
-    true,
-  )
+  expect(
+    apiRoutes.every((r) => ['organization', 'personal', 'platform', 'public'].includes(r.scope)),
+  ).toBe(true)
   // agency routes carry the agency; the others never do
   for (const r of apiRoutes)
     expect(r.path.startsWith('/api/v1/orgs/{org}/'), routeKey(r)).toBe(r.scope === 'organization')

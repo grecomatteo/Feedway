@@ -35,6 +35,10 @@ Si può rilanciare senza rischi: i segreti e le chiavi che esistono già non ven
 - `.env`: solo impostazioni senza segreti (immagine, versione, indirizzo del pannello, email dell'Owner, chiave pubblica dei backup).
 - Fai una copia di `secrets/` in un posto sicuro fuori dalla VPS (per esempio nei backup cifrati). È l'unica copia della chiave dei dati: senza di lei non si leggono più. Tieni la chiave privata dei backup separata dal backup stesso.
 
+## Email di sistema e filtro in uscita
+
+Dopo l'installazione imposta l'SMTP della piattaforma: senza, nessuna email parte. Nello stesso momento blocca i collegamenti dai container verso l'IP pubblico della VPS. Entrambe le cose sono in [Configurare l'email di sistema](email-di-sistema.md).
+
 ## Aggiornamento
 
 ```bash

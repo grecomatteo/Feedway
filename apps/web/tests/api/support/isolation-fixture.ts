@@ -60,6 +60,14 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     role: 'viewer',
   }),
   'PUT /api/v1/orgs/{org}/workspaces/{id}/members/{userId}': () => ({ role: 'editor' }),
+  'PUT /api/v1/platform/mail-settings': () => ({
+    host: 'smtp.feedway.test',
+    port: 587,
+    username: 'invii@feedway.test',
+    from: 'avvisi@feedway.test',
+    password: 'parola-della-batteria',
+  }),
+  'POST /api/v1/platform/mail-settings/test': () => ({ to: 'prova@feedway.test' }),
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {

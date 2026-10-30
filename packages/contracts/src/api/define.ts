@@ -11,9 +11,10 @@ export type ApiAuth = 'public' | 'session' | 'session_any_state'
 
 /**
  * Whose data the route touches; decides which part of the isolation battery (Task 21) it
- * joins. `organization` routes live under `/api/v1/orgs/{org}/`.
+ * joins. `organization` routes live under `/api/v1/orgs/{org}/`, `platform` routes (the
+ * platform administrator only) under `/api/v1/platform/`.
  */
-export type ApiScope = 'organization' | 'personal' | 'public'
+export type ApiScope = 'organization' | 'personal' | 'platform' | 'public'
 
 export interface ApiRequest {
   /** z.strictObject with one key per `{param}` of the path */

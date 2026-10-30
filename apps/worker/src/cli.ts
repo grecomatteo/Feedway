@@ -7,9 +7,12 @@ import {
   disableUserEverywhere,
   enableUserEverywhere,
   findOrganizationBySlug,
+  getPlatformMailSettings,
   listOrganizations,
   platformUserIdByEmail,
   reactivateOrganization,
+  replacePlatformMailSettings,
+  sendPlatformTestEmail,
   setOrganizationLimits,
   suspendOrganization,
   SYSTEM_PLATFORM_ACTOR,
@@ -18,7 +21,9 @@ import {
   type Mailer,
   type IdentityVerificationMethod,
   type PlatformDeps,
+  type PlatformMailSettings,
   type PlatformOrganization,
+  type SmtpPort,
 } from '@app/application'
 import { ConfigError, loadConfig, type WorkerConfig } from '@app/config'
 import { DomainError, type LimitKey, type OrganizationLimits } from '@app/domain'
@@ -30,10 +35,13 @@ import {
   createMailer,
   createPgBossQueue,
   createTokenService,
+  createTranslate,
   createUnitOfWork,
   systemClock,
   uuidV7Generator,
 } from '@app/infrastructure'
+import { loadItalianMessages } from './i18n.js'
+import { readSecret, SecretInputError } from './read-secret.js'
 
 const EXIT_FAILED = 1
 const EXIT_USAGE = 64
@@ -51,6 +59,10 @@ const USAGE = [
   '  list-organizations',
   '  disable-user <email>',
   '  enable-user <email> [--verified-by telefono|di-persona|videochiamata]',
+  '  mail-settings show',
+  '  mail-settings set --host <host> --port 465|587|2525 --username <utente> --from <email> [--security tls|starttls]',
+  '      (la password solo da stdin; vuota: resta quella salvata)',
+  '  mail-settings test <email>',
 ].join('\n')
 
 export interface CliIo {
@@ -58,6 +70,11 @@ export interface CliIo {
   out(line: string): void
   /** Messages for the person at the terminal. */
   err(line: string): void
+  /**
+   * A secret from stdin, never from argv or the environment: without echo on a terminal, the
+   * whole input (one trailing newline removed) from a pipe. Only `mail-settings set` asks.
+   */
+  readSecret?(prompt: string): Promise<string>
 }
 
 class UsageError extends Error {}
@@ -83,6 +100,16 @@ type Command =
   | { name: 'list-organizations' }
   | { name: 'disable-user'; email: string }
   | { name: 'enable-user'; email: string; verifiedBy: IdentityVerificationMethod | null }
+  | { name: 'mail-settings-show' }
+  | {
+      name: 'mail-settings-set'
+      host: string
+      port: SmtpPort
+      security: 'tls' | 'starttls' | undefined
+      username: string
+      from: string
+    }
+  | { name: 'mail-settings-test'; to: string }
 
 /** `--verified-by`: how the identity was checked, from a fixed list (never free text). */
 const VERIFIED_BY: ReadonlyMap<string, IdentityVerificationMethod> = new Map([
@@ -91,6 +118,15 @@ const VERIFIED_BY: ReadonlyMap<string, IdentityVerificationMethod> = new Map([
   ['videochiamata', 'video_call'],
 ])
 const VERIFIED_BY_USAGE = '--verified-by telefono|di-persona|videochiamata'
+
+const SMTP_PORT_OF: ReadonlyMap<string, SmtpPort> = new Map([
+  ['465', 465],
+  ['587', 587],
+  ['2525', 2525],
+])
+
+// a secret on the command line ends up in the shell history and in `ps`
+const SECRET_OPTION = /^--?(password|pass|secret|pwd)(=|$)/i
 
 function wholeNumber(option: string, raw: string): number {
   if (!/^\d+$/.test(raw)) throw new UsageError(`--${option} vuole un numero intero da 0 in su`)
@@ -172,8 +208,57 @@ function parseCommand(args: readonly string[]): Command {
       if (verifiedBy === undefined) throw new UsageError(`Valori ammessi: ${VERIFIED_BY_USAGE}`)
       return { name, email: positionals[0] ?? '', verifiedBy }
     }
+    case 'mail-settings':
+      return parseMailSettings(rest)
     default:
       throw new UsageError(`Comando sconosciuto: '${name ?? ''}'.`)
+  }
+}
+
+function parseMailSettings(args: readonly string[]): Command {
+  if (args.some((a) => SECRET_OPTION.test(a)))
+    throw new UsageError('La password non si passa come opzione: il comando la legge da stdin.')
+  const [sub, ...rest] = args
+  let parsed
+  try {
+    parsed = parseArgs({
+      args: rest,
+      options: {
+        host: { type: 'string' },
+        port: { type: 'string' },
+        security: { type: 'string' },
+        username: { type: 'string' },
+        from: { type: 'string' },
+      },
+      allowPositionals: true,
+      strict: true,
+    })
+  } catch (error) {
+    throw new UsageError(error instanceof Error ? error.message : String(error))
+  }
+  const { values, positionals } = parsed
+  const given = Object.keys(values).length
+  switch (sub) {
+    case 'show':
+      if (given > 0 || positionals.length > 0) throw new UsageError("'show' non vuole argomenti")
+      return { name: 'mail-settings-show' }
+    case 'test':
+      if (given > 0 || positionals.length !== 1)
+        throw new UsageError("'test' vuole solo l'indirizzo a cui mandare la prova")
+      return { name: 'mail-settings-test', to: positionals[0] ?? '' }
+    case 'set': {
+      if (positionals.length > 0) throw new UsageError("'set' vuole solo opzioni")
+      const { host, port, security, username, from } = values
+      if (host === undefined || port === undefined || username === undefined || from === undefined)
+        throw new UsageError('Servono --host, --port, --username e --from')
+      const smtpPort = SMTP_PORT_OF.get(port)
+      if (smtpPort === undefined) throw new UsageError('--port vuole 465, 587 o 2525')
+      if (security !== undefined && security !== 'tls' && security !== 'starttls')
+        throw new UsageError('--security vuole tls o starttls')
+      return { name: 'mail-settings-set', host, port: smtpPort, security, username, from }
+    }
+    default:
+      throw new UsageError("Usa 'mail-settings show', 'mail-settings set' o 'mail-settings test'")
   }
 }
 
@@ -282,6 +367,99 @@ async function enableUser(
   }
 }
 
+const SECURITY_LABEL = { tls: 'TLS', starttls: 'STARTTLS' } as const
+
+/** One `name<TAB>value` line per field; the password only as set, never its value. */
+function describeMailSettings(view: PlatformMailSettings): string[] {
+  return [
+    `host\t${view.host}`,
+    `porta\t${String(view.port)}`,
+    `sicurezza\t${SECURITY_LABEL[view.security]}`,
+    `utente\t${view.username}`,
+    `mittente\t${view.from}`,
+    'password\timpostata',
+    `verificata\t${view.verifiedAt === null ? 'no' : view.verifiedAt.toISOString()}`,
+    `aggiornata\t${view.updatedAt.toISOString()}`,
+  ]
+}
+
+const TEST_FAILURE: Readonly<Record<string, string>> = {
+  not_configured: 'l’email di sistema non è impostata: usa prima mail-settings set',
+  invalid_config: 'impostazioni non utilizzabili (host, porta, mittente o destinatario)',
+  blocked_destination: 'l’host porta a un indirizzo interno o riservato: non ci colleghiamo',
+  dns: 'il nome dell’host non si risolve',
+  timeout: 'il server non ha risposto in tempo',
+  tls: 'TLS non disponibile o certificato non valido',
+  auth: 'utente o password rifiutati dal server',
+  connection: 'collegamento non riuscito',
+  rejected: 'il server ha rifiutato il messaggio',
+  unexpected: 'errore inatteso',
+}
+
+async function mailSettings(
+  command: Extract<Command, { name: `mail-settings-${string}` }>,
+  config: WorkerConfig,
+  deps: PlatformDeps,
+  mailer: Mailer,
+  io: CliIo,
+  logger: Logger,
+): Promise<number> {
+  const system = SYSTEM_PLATFORM_ACTOR
+  const integrations = createIntegrationStore({ keyRing: deps.keyRing })
+  switch (command.name) {
+    case 'mail-settings-show': {
+      const view = await getPlatformMailSettings({ uow: deps.uow, integrations }, system)
+      if (view === null) io.err('Email di sistema non impostata: usa mail-settings set')
+      else for (const line of describeMailSettings(view)) io.out(line)
+      return 0
+    }
+    case 'mail-settings-set': {
+      if (io.readSecret === undefined) throw new Error('no stdin reader for the secret')
+      const typed = await io.readSecret('Password SMTP (vuota: resta quella salvata): ')
+      const view = await replacePlatformMailSettings(
+        { uow: deps.uow, integrations, clock: deps.clock },
+        system,
+        {
+          host: command.host,
+          port: command.port,
+          ...(command.security !== undefined && { security: command.security }),
+          username: command.username,
+          from: command.from,
+          ...(typed.length > 0 && { secret: typed }),
+        },
+      )
+      for (const line of describeMailSettings(view)) io.out(line)
+      io.err('Salvate. Manda una prova con: mail-settings test <email>')
+      return 0
+    }
+    case 'mail-settings-test': {
+      const result = await sendPlatformTestEmail(
+        {
+          uow: deps.uow,
+          integrations,
+          clock: deps.clock,
+          // the CLI is not limited: whoever runs it already controls the server
+          rateLimiter: { hit: () => Promise.resolve({ allowed: true, retryAfterMs: 0 }) },
+          mailer,
+          translate: createTranslate(loadItalianMessages()),
+          logger,
+          panelUrl: config.panelUrl,
+          productName: 'Feedway',
+        },
+        system,
+        command.to,
+      )
+      if (result.ok) {
+        io.out('Email di prova inviata: impostazioni verificate')
+        return 0
+      }
+      io.out(`Email di prova non riuscita: ${TEST_FAILURE[result.kind] ?? result.kind}`)
+      if (result.response !== null) io.err(`Risposta del server: ${result.response}`)
+      return EXIT_FAILED
+    }
+  }
+}
+
 async function execute(
   command: Command,
   config: WorkerConfig,
@@ -289,9 +467,13 @@ async function execute(
   mailer: Mailer,
   io: CliIo,
   logger: Logger,
-): Promise<void> {
+): Promise<number | undefined> {
   const system = SYSTEM_PLATFORM_ACTOR
   switch (command.name) {
+    case 'mail-settings-show':
+    case 'mail-settings-set':
+    case 'mail-settings-test':
+      return mailSettings(command, config, deps, mailer, io, logger)
     case 'bootstrap-link': {
       const { url } = await createBootstrapLink({
         ...deps,
@@ -343,7 +525,8 @@ async function execute(
       return
     }
     case 'enable-user':
-      return enableUser(command, config, deps, mailer, io, logger)
+      await enableUser(command, config, deps, mailer, io, logger)
+      return
   }
 }
 
@@ -381,7 +564,7 @@ export async function runCli(
     const ids = uuidV7Generator
     const uow = createUnitOfWork({ db: handle.db, ids, logger })
     const settings = createMailSettings({ uow, integrations: createIntegrationStore({ keyRing }) })
-    await execute(
+    const exitCode = await execute(
       command,
       config,
       {
@@ -396,9 +579,9 @@ export async function runCli(
       io,
       logger,
     )
-    return 0
+    return exitCode ?? 0
   } catch (error) {
-    if (error instanceof DomainError) {
+    if (error instanceof DomainError || error instanceof SecretInputError) {
       io.err(error.message)
       return EXIT_FAILED
     }
@@ -424,5 +607,6 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
     err: (line) => {
       process.stderr.write(`${line}\n`)
     },
+    readSecret: (prompt) => readSecret(process.stdin, process.stderr, prompt),
   })
 }

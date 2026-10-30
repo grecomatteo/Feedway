@@ -115,6 +115,12 @@ test('platform admin has platform permissions only', () => {
   )
   expect(canPlatform({ userId: 'p', platformRole: 'admin' }, 'platform.users.manage')).toBe(true)
   expect(canPlatform({ userId: 'u', platformRole: null }, 'platform.users.manage')).toBe(false)
+  expect(canPlatform({ userId: 'p', platformRole: 'admin' }, 'platform.integrations.manage')).toBe(
+    true,
+  )
+  expect(canPlatform({ userId: 'u', platformRole: null }, 'platform.integrations.manage')).toBe(
+    false,
+  )
 })
 
 test('platform admin role adds nothing inside an organization', () => {

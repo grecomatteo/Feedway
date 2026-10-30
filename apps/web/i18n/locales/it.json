@@ -242,6 +242,13 @@
       "secondFactor": "Le passkey e la verifica in due passaggi sono state tolte: se il tuo ruolo la richiede, la configurerai di nuovo al primo accesso.",
       "notMe": "Se non hai chiesto tu di riattivare l'account, non aprire il link e avvisa l'amministratore.",
       "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}."
+    },
+    "mailTest": {
+      "subject": "Email di prova · {product}",
+      "preheader": "Se la leggi, l'email di sistema funziona.",
+      "title": "L'email di sistema funziona",
+      "intro": "Questa è un'email di prova chiesta da un amministratore della piattaforma {product}. Se la stai leggendo, inviti, avvisi di sicurezza e link di recupero partono con le impostazioni attuali.",
+      "footer": "Ricevi questa email perché un amministratore della piattaforma {product} ha chiesto una prova a questo indirizzo."
     }
   }
 }
