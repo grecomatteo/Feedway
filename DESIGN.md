@@ -120,3 +120,23 @@ Tutte le coppie superano AA: testo 15,7:1 su bianco, testo secondario 6,74:1 su 
 - Anteprima (preheader) nascosta in testa al corpo HTML, testi nella scheda tecnica di ogni email.
 - Domini, percorsi e nomi sulla tela (feedway.studioriva.it, `/sicurezza/blocca/…`, Studio Riva, Giulia Ferri) sono fittizi: valgono l'URL dell'installazione e i percorsi del piano (per esempio `PANEL_URL/sicurezza/non-sono-stato-io?t=<token>`).
 - **Avviso al vecchio indirizzo (scelta di Matteo, 26 ottobre 2026):** E5b parte subito, insieme a E5, quando il cambio viene chiesto, così si può bloccarlo prima che avvenga. Il piano della tappa 2 (Task 25, `email_changed` inviato a cambio avvenuto) va aggiornato di conseguenza.
+
+## Direzione Hallmark per l'hub (29 ottobre 2026)
+
+Matteo: «mi piace, seguire le linee guida di Hallmark con più gerarchia di colore; non tutto arancione». Tavole in `design/feedway-ui-hallmark.pen` (giro 3) ed esportazioni in `design/feedway-ui-hallmark-assets/app/` (app) e `hub/` (landing). Ancora da riportare nella tela principale e nel codice.
+
+**Tema.** Hallmark Coral adattato al marchio: carta e scrivania calde, cartoncino con una luce da sinistra e ombra a destra, scelte in una scanalatura, orari e numeri in colonna in Geist Mono. Restano Sora per i titoli e il corpo di sistema.
+
+**Regole del colore**
+
+| Colore | Dove va | Dove non va |
+|---|---|---|
+| Arancio pieno | Logo (una volta per schermata), azione principale, voce o giorno selezionato (segno sottile), conteggi delle cose nuove per te (barra laterale, campanella) | Sfondi di riquadri, filetti decorativi, icone delle liste, barre di avanzamento, testo sotto i 24 px su fondo chiaro |
+| Pesca (`brand-soft`) | Voce attiva, riepilogo del giorno, avvisi «aspetta te» (approvazioni, richieste, shooting da accettare), fondo caldo di alcune sezioni della landing | Al posto dell'arancio sulle azioni |
+| Rosso | Problema: pieno solo nel conteggio del riquadro, tenue nella riga e nell'etichetta | Errori di forma da poco |
+| Ambra | In ritardo, da accertare, in scadenza, sotto il pacchetto | Avvisi generici |
+| Blu | Programmato | Link o azioni |
+| Verde | Fatto: confermato, approvato | Successi ovvi (nessun avviso di festa) |
+| Carbone | Testo, icone, numeri grandi, barre di avanzamento in regola, pulsante ripetuto in testata della landing | |
+
+Gli stati usano sempre colore, icona e testo, con fondo tenue. Per schermata: un solo grande blocco arancio (sulla landing è la scritta del footer; la sezione del portale passa a pesca). Logo arancio in testata, barra laterale e footer: scelta di Matteo, la guida del marchio preferirebbe il carbone sul chiaro.
