@@ -24,6 +24,7 @@ Si scrivono insieme al codice che descrivono, così non restano mai indietro:
 | `runbooks/installazione.md` | 1 |
 | `runbooks/aggiornamento-e-rollback.md` | 1 |
 | `runbooks/primo-accesso-e-nuova-agenzia.md` | 2 |
+| [`runbooks/email-di-sistema.md`](runbooks/email-di-sistema.md) | 2 |
 | `privacy/informativa.md`, `privacy/registro-trattamenti.md` | 2 |
 | `runbooks/rotazione-token-meta.md` | 3 |
 | `runbooks/meta-collegamento-account.md` | 3 |

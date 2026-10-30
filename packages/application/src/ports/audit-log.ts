@@ -45,6 +45,8 @@ export const AUDIT_ACTIONS = [
   'member.added',
   'member.role_changed',
   'member.removed',
+  'platform.mail_settings_changed',
+  'platform.mail_test_sent',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

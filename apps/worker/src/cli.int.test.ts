@@ -441,3 +441,146 @@ test('cli enable-user without email prints the 30-minute link with a warning', a
   )
   expect(sent.map((r) => r.data)).toEqual([{ channel: 'operator' }])
 })
+
+// ---------------------------------------------------------------------------------------------
+// mail-settings: the platform's SMTP. The password comes from stdin only.
+
+const SMTP_PASSWORD = 'parola-del-server-di-posta'
+const SET = [
+  'mail-settings',
+  'set',
+  '--host',
+  'SMTP.Feedway.test',
+  '--port',
+  '587',
+  '--username',
+  'invii@feedway.test',
+  '--from',
+  'avvisi@feedway.test',
+]
+
+function withStdin(secret: string) {
+  const c = capture()
+  const prompts: string[] = []
+  return {
+    ...c,
+    io: {
+      ...c.io,
+      readSecret: (prompt: string) => {
+        prompts.push(prompt)
+        return Promise.resolve(secret)
+      },
+    },
+    prompts,
+  }
+}
+
+test('cli mail-settings refuses a password given as an option, before reading anything', async () => {
+  for (const option of ['--password', '--password=x', '--secret', '-pass'])
+    for (const sub of ['set', 'show']) {
+      const c = withStdin(SMTP_PASSWORD)
+      expect(await runCli(['mail-settings', sub, option, SMTP_PASSWORD], env, c.io)).toBe(64)
+      expect(c.err.join('\n')).toMatch(/stdin/)
+      expect(c.prompts).toEqual([])
+      expect([...c.out, ...c.err].join('\n')).not.toContain(SMTP_PASSWORD)
+    }
+  const { rows } = await admin.query('select 1 from integrations')
+  expect(rows).toHaveLength(0)
+})
+
+test('cli mail-settings show before anything is set', async () => {
+  const c = capture()
+  expect(await runCli(['mail-settings', 'show'], env, c.io)).toBe(0)
+  expect(c.out).toEqual([])
+  expect(c.err.join('\n')).toMatch(/non impostata/)
+})
+
+test('cli mail-settings set needs a password the first time', async () => {
+  const c = withStdin('')
+  expect(await runCli(SET, env, c.io)).toBe(1)
+  expect(c.err.join('\n')).toMatch(/password/)
+})
+
+test('cli mail-settings set stores the settings, shows them without the password, audits as system', async () => {
+  const c = withStdin(SMTP_PASSWORD)
+  expect(await runCli(SET, env, c.io)).toBe(0)
+  expect(c.prompts).toHaveLength(1)
+  expect(c.out.slice(0, 7)).toEqual([
+    'host\tsmtp.feedway.test',
+    'porta\t587',
+    'sicurezza\tSTARTTLS',
+    'utente\tinvii@feedway.test',
+    'mittente\tavvisi@feedway.test',
+    'password\timpostata',
+    'verificata\tno',
+  ])
+  expect([...c.out, ...c.err].join('\n')).not.toContain(SMTP_PASSWORD)
+  expect(await lastAuditAsSystem()).toMatchObject({
+    action: 'platform.mail_settings_changed',
+    source: 'system',
+    actorId: null,
+  })
+  const shown = capture()
+  expect(await runCli(['mail-settings', 'show'], env, shown.io)).toBe(0)
+  expect(shown.out.slice(0, 7)).toEqual(c.out.slice(0, 7))
+  expect(shown.out.join('\n')).not.toContain(SMTP_PASSWORD)
+  // at rest the password is sealed
+  const { rows } = await admin.query<{ row: string }>(
+    'select row_to_json(i)::text as row from integrations i',
+  )
+  expect(rows[0]?.row).not.toContain(SMTP_PASSWORD)
+})
+
+test('cli mail-settings set with an empty password keeps the stored one', async () => {
+  const c = withStdin('')
+  const args = SET.map((a) => (a === 'avvisi@feedway.test' ? 'sistema@feedway.test' : a))
+  expect(await runCli(args, env, c.io)).toBe(0)
+  expect(c.out).toContain('mittente\tsistema@feedway.test')
+  const { rows } = await admin.query<{ data: unknown }>(
+    "select data from audit_log where action = 'platform.mail_settings_changed' order by created_at desc limit 1",
+  )
+  expect(rows[0]?.data).toEqual({ fields: ['from'] })
+})
+
+test('cli mail-settings set checks its options', async () => {
+  for (const args of [
+    ['mail-settings', 'set', '--host', 'smtp.feedway.test'],
+    SET.map((a) => (a === '587' ? '25' : a)),
+    [...SET, '--security', 'nessuna'],
+    [...SET, 'di-troppo'],
+    ['mail-settings', 'boh'],
+    ['mail-settings', 'test'],
+  ]) {
+    const c = withStdin(SMTP_PASSWORD)
+    expect(await runCli(args, env, c.io), args.join(' ')).toBe(64)
+    expect(c.prompts).toEqual([])
+  }
+  // values the adapter refuses: nothing stored, the person learns why
+  const c = withStdin(SMTP_PASSWORD)
+  expect(
+    await runCli(
+      SET.map((a) => (a === '587' ? '465' : a)).concat('--security', 'starttls'),
+      env,
+      c.io,
+    ),
+  ).toBe(1)
+  expect(c.err.join('\n')).toMatch(/non valid/)
+})
+
+test('cli mail-settings test sends the test email and marks the settings verified', async () => {
+  const c = capture()
+  expect(
+    await runCli(
+      ['mail-settings', 'test', 'prova@feedway.test'],
+      { ...env, NODE_ENV: 'test' },
+      c.io,
+    ),
+  ).toBe(0)
+  expect(c.out).toEqual(['Email di prova inviata: impostazioni verificate'])
+  const shown = capture()
+  await runCli(['mail-settings', 'show'], env, shown.io)
+  expect(shown.out.find((l) => l.startsWith('verificata\t'))).toMatch(/^verificata\t\d{4}-/)
+  expect(await lastAuditAsSystem()).toMatchObject({ action: 'platform.mail_test_sent' })
+  const bad = capture()
+  expect(await runCli(['mail-settings', 'test', 'a@b.test, c@d.test'], env, bad.io)).toBe(1)
+})

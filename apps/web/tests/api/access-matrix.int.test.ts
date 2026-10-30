@@ -11,6 +11,8 @@ import {
   enableUserEverywhere,
   lockAccountFromSecurityEmail,
   reactivateOrganization,
+  replacePlatformMailSettings,
+  sendPlatformTestEmail,
   sendAccountLockedNotice,
   setOrganizationLimits,
   suspendOrganization,
@@ -18,6 +20,7 @@ import {
 import type { AuditAction, JobPayloads, JobQueue } from '@app/application'
 import {
   createDb,
+  createIntegrationStore,
   createKeyRing,
   createLogger,
   createMemoryMailer,
@@ -307,6 +310,9 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'member.added': ['role'],
   'member.role_changed': ['from', 'to'],
   'member.removed': ['role'],
+  // names of the fields only: never a value, never the password
+  'platform.mail_settings_changed': ['fields[]'],
+  'platform.mail_test_sent': ['ok', 'kind'],
 }
 
 /**
@@ -530,6 +536,34 @@ async function produceEveryAction() {
       identityVerification: { method: 'in_person' },
     })
     expect(enabled.recovery?.channel).toBe('email')
+
+    // the system email: a change and a test (their routes: platform-routes.int.test.ts)
+    const mailDeps = {
+      uow,
+      integrations: createIntegrationStore({ keyRing: platform.keyRing }),
+      clock: systemClock,
+      // the system is not limited
+      rateLimiter: { hit: () => Promise.reject(new Error('not used')) },
+      mailer,
+      translate: createTranslate(
+        JSON.parse(
+          readFileSync(new URL('../../i18n/locales/it.json', import.meta.url), 'utf8'),
+        ) as unknown,
+      ),
+      logger: createLogger({ service: 'web', level: 'error' }),
+      panelUrl: new URL('https://pannello.example.ts.net'),
+      productName: 'Feedway',
+    }
+    await replacePlatformMailSettings(mailDeps, actor, {
+      host: 'smtp.feedway.test',
+      port: 587,
+      username: 'invii@feedway.test',
+      from: 'avvisi@feedway.test',
+      secret: 'parola-del-registro',
+    })
+    expect(await sendPlatformTestEmail(mailDeps, actor, 'prova@feedway.test')).toMatchObject({
+      ok: true,
+    })
   } finally {
     await handle.close()
   }
@@ -588,13 +622,14 @@ test('audit data holds only the listed keys and nothing personal', async () => {
 
 // ---------------------------------------------------------------------------------------------
 
-/** The OpenAPI document names the `password` and `token` fields of the requests it describes. */
-const OPENAPI_KEYS = ['password', 'token']
+/** The OpenAPI document names the `password` and `token` request fields and the `passwordSet` flag. */
+const OPENAPI_KEYS = ['password', 'token', 'passwordSet']
 
 test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const token = await fx.openLink()
-  const gets = apiRoutes.filter((r) => r.method === 'GET')
+  // the platform's routes do not exist for an agency's people: platform-routes.int.test.ts
+  const gets = apiRoutes.filter((r) => r.method === 'GET' && r.scope !== 'platform')
   expect(gets.length).toBeGreaterThan(0)
   for (const route of gets) {
     const path = fill(route.path, { ...pathValues(ids), token })

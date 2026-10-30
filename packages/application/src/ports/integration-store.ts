@@ -72,6 +72,12 @@ export interface IntegrationsRepository {
   findPlatform(kind: IntegrationKind): Promise<IntegrationRecord | null>
   /** Inserts or replaces the row; the verification is reset. */
   upsertPlatform(kind: IntegrationKind, input: IntegrationRecordInput): Promise<IntegrationRecord>
+  /**
+   * Marks the row as tried with success at `at`, only if it is still the version that was tried
+   * (`version`, its `updatedAt` to the millisecond): settings changed meanwhile stay unverified.
+   * `updatedAt` does not move. false: nothing marked.
+   */
+  markPlatformVerified(kind: IntegrationKind, at: Date, version: Date): Promise<boolean>
 }
 
 /** What the store needs of a transaction. */

@@ -33,6 +33,12 @@ describe.each(apiRoutes.map((r) => [`${r.method} ${r.path}`, r] as const))('%s',
     if (underOrg) expect(route.auth).toBe('session')
   })
 
+  test('a platform route is under /platform and needs an active session, and only those', () => {
+    const underPlatform = route.path.startsWith('/api/v1/platform/')
+    expect(route.scope === 'platform').toBe(underPlatform)
+    if (underPlatform) expect(route.auth).toBe('session')
+  })
+
   test('a personal route needs a session', () => {
     if (route.scope === 'personal') expect(route.auth).not.toBe('public')
   })

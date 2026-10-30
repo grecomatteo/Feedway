@@ -17,11 +17,16 @@ export type Permission =
   | 'organization.settings.view'
   | 'organization.settings.manage'
 
-export type PlatformPermission = 'platform.organizations.manage' | 'platform.users.manage'
+export type PlatformPermission =
+  | 'platform.organizations.manage'
+  | 'platform.users.manage'
+  /** The platform's own integrations: the system email (ADR 017). */
+  | 'platform.integrations.manage'
 
 export const PLATFORM_PERMISSIONS: ReadonlySet<PlatformPermission> = new Set<PlatformPermission>([
   'platform.organizations.manage',
   'platform.users.manage',
+  'platform.integrations.manage',
 ])
 
 /** Permissions that only make sense inside one workspace: without `workspaceId` they are denied. */

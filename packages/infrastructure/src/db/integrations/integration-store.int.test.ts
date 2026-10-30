@@ -158,3 +158,35 @@ test('an empty, control-character or oversized secret is refused, and the error 
     if (secret.length > 0) expect((error as Error).message).not.toContain(secret)
   }
 })
+
+test('a successful test marks only the version it tried, and leaves updatedAt as it is', async () => {
+  const tried = await asSystem((tx) =>
+    store.replacePlatform(tx, 'smtp', { config: smtp(), secret: SECRET, updatedBy: null }),
+  )
+  const at = new Date()
+  // settings changed while the email was leaving: nothing is marked
+  expect(
+    await asSystem((tx) =>
+      tx.integrations.markPlatformVerified('smtp', at, new Date(tried.updatedAt.getTime() - 1)),
+    ),
+  ).toBe(false)
+  expect((await asSystem((tx) => store.getPlatform(tx, 'smtp')))?.verifiedAt).toBeNull()
+  expect(
+    await asSystem((tx) => tx.integrations.markPlatformVerified('smtp', at, tried.updatedAt)),
+  ).toBe(true)
+  const marked = await asSystem((tx) => store.getPlatform(tx, 'smtp'))
+  expect(marked?.verifiedAt?.getTime()).toBe(at.getTime())
+  expect(marked?.updatedAt.getTime()).toBe(tried.updatedAt.getTime())
+})
+
+test('outside the system scope nothing can be marked verified', async () => {
+  const current = await asSystem((tx) =>
+    store.replacePlatform(tx, 'smtp', { config: smtp(), secret: SECRET, updatedBy: null }),
+  )
+  expect(
+    await uow.run({ organizationId: orgA, userId: ownerA }, (tx) =>
+      tx.integrations.markPlatformVerified('smtp', new Date(), current.updatedAt),
+    ),
+  ).toBe(false)
+  expect((await asSystem((tx) => store.getPlatform(tx, 'smtp')))?.verifiedAt).toBeNull()
+})
