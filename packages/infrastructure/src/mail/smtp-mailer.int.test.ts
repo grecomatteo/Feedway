@@ -357,14 +357,20 @@ test.each([
   '"Nome" <chi@agenzia.test>',
   'chi@agenzia.test>',
   '',
-])('a Reply-To that is not a plain address (%j) is refused', async (replyTo) => {
-  const before = received.length
-  const mailer = mailerFor(config(), fake(starttlsPort))
-  await expect(mailer.send({ ...message, replyTo })).rejects.toMatchObject({
-    kind: 'invalid_config',
-  })
-  expect(received.length).toBe(before)
-})
+])(
+  'a Reply-To that is not a plain address (%j) is dropped, the email still goes',
+  async (replyTo) => {
+    const before = received.length
+    const mailer = mailerFor(config(), fake(starttlsPort))
+    await mailer.send({ ...message, replyTo })
+    const sent = received.slice(before)
+    expect(sent).toHaveLength(1)
+    const data = sent[0]?.data ?? ''
+    expect(data).not.toMatch(/^Reply-To:/im)
+    expect(data).not.toMatch(/^Bcc:/im)
+    expect(sent[0]?.to).toEqual([message.to])
+  },
+)
 
 describe('with the settings in the database', () => {
   let tdb: TestDatabase

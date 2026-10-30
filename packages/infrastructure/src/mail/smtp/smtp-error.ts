@@ -13,6 +13,7 @@ export type SmtpFailureKind =
   | 'rejected'
 
 const RESPONSE_MAX = 200
+const INPUT_MAX = 2_000
 
 /**
  * A failed send, classified. The message never holds the username, the password, the recipient
@@ -59,7 +60,8 @@ export function safeResponse(
     .filter((f) => f.length > 0)
     // longest first: a shorter form inside a longer one must not leave the rest behind
     .sort((a, b) => b.length - a.length)
-  let out = text.replace(/[\u0000-\u001f\u007f]+/g, ' ')
+  // bounded first: a hostile server's huge reply must not make the patterns below slow
+  let out = text.slice(0, INPUT_MAX).replace(/[\u0000-\u001f\u007f]+/g, ' ')
   for (const f of forms) out = out.split(f).join('[REDACTED]')
   out = out.replace(EMAIL, '[email]')
   // a secret cut in half by the limit would still leak its start: remove, then cut

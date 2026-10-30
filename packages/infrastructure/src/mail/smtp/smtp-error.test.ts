@@ -38,3 +38,12 @@ test('the error message carries only the kind and the cleaned reply', () => {
   const error = new SmtpSendError('rejected', safeResponse('550 no <a@b.test>', credentials))
   expect(error.message).toBe('smtp rejected: 550 no <[email]>')
 })
+
+test('a very long reply is bounded before cleaning and still redacted', () => {
+  const long = `550 ${credentials.secret} ${'y'.repeat(500_000)}`
+  const started = performance.now()
+  const out = safeResponse(long, credentials)
+  expect(performance.now() - started).toBeLessThan(500)
+  expect(out).not.toContain(credentials.secret)
+  expect(out.length).toBeLessThanOrEqual(201)
+})

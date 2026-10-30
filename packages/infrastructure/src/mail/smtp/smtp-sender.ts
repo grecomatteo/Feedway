@@ -115,12 +115,7 @@ export function createSmtpSender(opts: SmtpSenderOptions = {}): SmtpSender {
     async send(rawConfig, secret, message) {
       // stored settings are checked again: the database is not trusted to hold valid ones
       const config = parseSmtpConfig(rawConfig)
-      if (
-        config === null ||
-        !isMailAddress(message.to) ||
-        /[\r\n]/.test(message.subject) ||
-        (message.replyTo !== undefined && !isMailAddress(message.replyTo))
-      )
+      if (config === null || !isMailAddress(message.to) || /[\r\n]/.test(message.subject))
         throw new SmtpSendError('invalid_config')
       // every email leaves in the product's name (ADR 017); structured, so nodemailer quotes
       // and encodes the name and nothing is concatenated by hand
@@ -170,7 +165,9 @@ export function createSmtpSender(opts: SmtpSenderOptions = {}): SmtpSender {
           transport.sendMail({
             from,
             to: message.to,
-            ...(message.replyTo !== undefined && { replyTo: message.replyTo }),
+            // a Reply-To that is not a plain address is left out, never sent as given
+            ...(message.replyTo !== undefined &&
+              isMailAddress(message.replyTo) && { replyTo: message.replyTo }),
             envelope: { from: config.from, to: [message.to] },
             subject: message.subject,
             text: message.text,
