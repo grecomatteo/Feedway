@@ -2,7 +2,7 @@
   "name": "feedway",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.15.0",
+  "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=24.11 <25"
   },
@@ -31,13 +31,13 @@
     "@types/node": "^24.19.2",
     "dependency-cruiser": "18.7.0",
     "eslint": "^10.12.0",
-    "eslint-plugin-security": "4.2.0",
+    "eslint-plugin-security": "4.2.1",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "prettier": "3.9.10",
     "turbo": "2.11.10",
     "typescript": "~6.0.3",
-    "typescript-eslint": "8.72.0",
+    "typescript-eslint": "8.72.1",
     "vitest": "5.0.5"
   }
 }

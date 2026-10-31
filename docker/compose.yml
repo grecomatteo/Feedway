@@ -14,7 +14,7 @@ x-hardened: &hardened
 
 services:
   postgres:
-    image: postgres:18-alpine@sha256:898c60cb390d1085bc97bdd6a1ae968757421df394b071848b52b1c09c89d6a5
+    image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
     command: postgres -c shared_buffers=256MB
     environment:
       POSTGRES_USER: postgres
@@ -118,7 +118,7 @@ services:
     pids_limit: 200
 
   tailscale:
-    image: tailscale/tailscale@sha256:b11583ad2e93e4671128538c88cf11f460444a5d7e449311dd1933a400ab849d
+    image: tailscale/tailscale@sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
     hostname: ${TS_HOSTNAME:-feedway}
     environment:
       TS_HOSTNAME: ${TS_HOSTNAME:-feedway}
