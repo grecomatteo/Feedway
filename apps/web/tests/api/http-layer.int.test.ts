@@ -622,3 +622,21 @@ describe('responses', () => {
     expect(requests.filter((line) => line.includes('/pagina-che-non-esiste'))).toHaveLength(1)
   })
 })
+
+test('text that looks like HTML reaches the route as it is (no input filter, ADR 018)', async () => {
+  // a sender written as "Name <address>" and a password with angle brackets are valid input
+  const p = await personIn('member')
+  const cookie = await signIn(p.email)
+  const r = await call(
+    'POST',
+    '/api/v1/auth/reauth',
+    { password: '<script>alert(1)</script>' },
+    {
+      cookie,
+    },
+  )
+  expect(r.status).toBe(403)
+  expect((await errorOf(r)).code).toBe('REAUTH_FAILED')
+  const named = await call('PATCH', '/api/v1/me', { nickname: 'Anna <a@b.test>' }, { cookie })
+  expect(named.status).not.toBe(400)
+})

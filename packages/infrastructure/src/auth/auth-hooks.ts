@@ -100,6 +100,12 @@ export interface HookDeps {
   mailer?: Pick<Mailer, 'isConfigured'>
 }
 
+/**
+ * Sent by the panel when a passkey confirms the person already signed in ("Conferma che sei
+ * tu"): the passkey must then be theirs, or the browser would switch to someone else's session.
+ */
+export const REAUTH_HEADER = 'x-app-reauth'
+
 const clientIp = (request: Request): string => request.headers.get('x-app-client-ip') ?? 'unknown'
 
 /** A request header written by our middleware (Task 10); absent or empty is null. */
@@ -326,6 +332,41 @@ function secondFactorMissing(factors: { totpEnabled: boolean; passkeys: number }
   })
 }
 
+/**
+ * A confirmation with a passkey (REAUTH_HEADER) checks the passkey's owner before the library
+ * verifies it: only the person of the session in this browser may confirm, so no new session
+ * of someone else is ever opened here.
+ */
+async function enforcePasskeyConfirmationPerson(
+  deps: HookDeps,
+  ctx: HookContext,
+  request: Request,
+): Promise<void> {
+  if (ctx.path !== '/passkey/verify-authentication' || request.headers.get(REAUTH_HEADER) === null)
+    return
+  const current = await sessionOfCookie(deps, ctx)
+  if (!current)
+    throw new APIError('UNAUTHORIZED', { message: 'Accedi di nuovo', code: 'UNAUTHENTICATED' })
+  const response = ((ctx.body ?? {}) as Record<string, unknown>)['response']
+  const credentialId =
+    typeof response === 'object' && response !== null
+      ? (response as Record<string, unknown>)['id']
+      : undefined
+  const [row] =
+    typeof credentialId === 'string' && credentialId !== ''
+      ? await deps.db
+          .select({ userId: passkeys.userId })
+          .from(passkeys)
+          .where(eq(passkeys.credentialID, credentialId))
+          .limit(1)
+      : []
+  if (row?.userId !== current.userId)
+    throw new APIError('FORBIDDEN', {
+      message: 'Usa una passkey del tuo account',
+      code: 'REAUTH_FAILED',
+    })
+}
+
 async function ownsPasskey(db: Db, userId: string, passkeyId: unknown): Promise<boolean> {
   if (typeof passkeyId !== 'string' || !UUID.test(passkeyId)) return false
   const [row] = await db
@@ -424,8 +465,18 @@ export function createBeforeHook(deps: HookDeps) {
       )
     }
 
+    await enforcePasskeyConfirmationPerson(deps, ctx, ctx.request)
+
     const email = body['email']
     if (path === '/sign-in/email' && typeof email === 'string') await enforceLoginDelay(deps, email)
+
+    // "Password dimenticata" cannot send anything without the platform's email: the panel then
+    // tells the person to ask their agency for a link. The same for every address.
+    if (path === '/request-password-reset' && deps.mailer && !(await mailCanLeave(deps)))
+      throw new APIError('CONFLICT', {
+        message: 'L’invio delle email non è ancora configurato',
+        code: 'MAIL_NOT_CONFIGURED',
+      })
 
     if (path === '/reset-password') {
       await refuseOrdinaryResetWhileRecovering(deps.db, ctx)

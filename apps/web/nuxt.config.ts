@@ -56,5 +56,8 @@ export default defineNuxtConfig({
     // Off: it counts in memory per process and trusts the first X-Forwarded-For entry, which the
     // client writes. Our database-backed limits (PgRateLimiter) guard login and public routes.
     rateLimiter: false,
+    // Off (ADR 018): it refused valid input that looks like HTML (a sender "Name <address>", a
+    // password with angle brackets) and protects nothing that output encoding does not.
+    xssValidator: false,
   },
 })

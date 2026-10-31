@@ -563,13 +563,17 @@ async function softPasskey(userId: string): Promise<SoftPasskey> {
   return key
 }
 
-function passkeySignIn(key: SoftPasskey, opts: { userVerified: boolean; cookie?: string }) {
+function passkeySignIn(
+  key: SoftPasskey,
+  opts: { userVerified: boolean; cookie?: string; reauth?: boolean },
+) {
   return signInWithPasskey(key, {
     handler: (r) => instance.handler(r),
     panel: PANEL,
     ip: '10.9.0.1',
     userVerified: opts.userVerified,
     ...(opts.cookie === undefined ? {} : { cookie: opts.cookie }),
+    ...(opts.reauth === true ? { headers: { 'x-app-reauth': '1' } } : {}),
   })
 }
 
@@ -635,6 +639,39 @@ test('without a session, or with someone else, a passkey sign-in is not a reauth
   expect(await sessionIds(other.id)).toEqual([theirs])
   expect((await newestSession(p.id))?.reauthenticated_at).toBeNull()
   expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
+})
+
+test("a confirmation with someone else's passkey is refused and opens no session", async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const other = await person()
+  const [theirs] = await sessionIds(other.id)
+  const mine = await sessionIds(p.id)
+  const res = await passkeySignIn(key, {
+    userVerified: true,
+    cookie: other.headers.get('cookie') ?? '',
+    reauth: true,
+  })
+  expect(res.status).toBe(403)
+  expect(((await res.json()) as { code?: string }).code).toBe('REAUTH_FAILED')
+  expect(res.headers.getSetCookie().filter((c) => c.startsWith('__Host-session='))).toEqual([])
+  expect(await sessionIds(p.id)).toEqual(mine)
+  expect(await sessionIds(other.id)).toEqual([theirs])
+  expect(await auditOf(other.id, 'auth.reauthenticated')).toEqual([])
+})
+
+test('a confirmation with a passkey needs a session, and works with the own passkey', async () => {
+  const p = await person()
+  const key = await softPasskey(p.id)
+  const without = await passkeySignIn(key, { userVerified: true, reauth: true })
+  expect(without.status).toBe(401)
+  const res = await passkeySignIn(key, {
+    userVerified: true,
+    cookie: p.headers.get('cookie') ?? '',
+    reauth: true,
+  })
+  expect(res.status).toBe(200)
+  expect((await newestSession(p.id))?.reauthenticated_at).not.toBeNull()
 })
 
 test('a tampered cookie or a session past 30 days does not count', async () => {

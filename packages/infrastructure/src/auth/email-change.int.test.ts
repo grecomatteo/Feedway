@@ -455,3 +455,31 @@ test('a person may ask at most five changes an hour', async () => {
   expect(sixth.status).toBe(429)
   expect(await sixth.json()).toMatchObject({ code: 'RATE_LIMITED' })
 })
+
+test('"Password dimenticata" says when email cannot leave, the same for any address', async () => {
+  const p = await person()
+  mailConfigured = false
+  const known = await post(
+    '/request-password-reset',
+    { email: p.email, redirectTo: '/reimposta' },
+    '',
+  )
+  const unknown = await post(
+    '/request-password-reset',
+    { email: 'nessuno-qui@esempio.it', redirectTo: '/reimposta' },
+    '',
+  )
+  expect(known.status).toBe(409)
+  expect(await known.json()).toMatchObject({ code: 'MAIL_NOT_CONFIGURED' })
+  expect(unknown.status).toBe(409)
+  expect(queued).toEqual([])
+
+  mailConfigured = true
+  const sent = await post(
+    '/request-password-reset',
+    { email: p.email, redirectTo: '/reimposta' },
+    '',
+  )
+  expect(sent.status).toBe(200)
+  expect(queued.map((q) => q.name)).toEqual(['identity.password_reset_email'])
+})
