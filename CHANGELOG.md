@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.2.0](https://github.com/grecomatteo/Feedway/compare/v0.1.2...v0.2.0) (2026-10-31)
+
+
+### Novità
+
+* **audit:** consultazione del registro attività ([#69](https://github.com/grecomatteo/Feedway/issues/69)) ([616ddef](https://github.com/grecomatteo/Feedway/commit/616ddef98fe3f8659109440496c783e801a7eeaa))
+* **design:** modelli delle email transazionali ([#77](https://github.com/grecomatteo/Feedway/issues/77)) ([2abde98](https://github.com/grecomatteo/Feedway/commit/2abde981daa773924f9b44877167bdac7f976c12))
+* **design:** revisione Hallmark di landing e app per l'hub dell'agenzia ([#89](https://github.com/grecomatteo/Feedway/issues/89)) ([6dbe5f4](https://github.com/grecomatteo/Feedway/commit/6dbe5f42e3e42e8eda72b57e155b30c79224eb0c))
+* **identity:** attivazione da invito ripetibile e primo account ([#53](https://github.com/grecomatteo/Feedway/issues/53)) ([f4857a6](https://github.com/grecomatteo/Feedway/commit/f4857a6b9192c2baab29a9d8ec43d8467a3b7e7d))
+* **identity:** Better Auth configurato dietro la porta Auth ([#50](https://github.com/grecomatteo/Feedway/issues/50)) ([1e13fde](https://github.com/grecomatteo/Feedway/commit/1e13fdeccf901a1f64f3ce74891dde12e40fb004))
+* **identity:** blocco con avviso agli amministratori e recupero verificato dell'account ([#82](https://github.com/grecomatteo/Feedway/issues/82)) ([a7fb54f](https://github.com/grecomatteo/Feedway/commit/a7fb54fff4c45664430812adcd0e8e957d2f6ceb))
+* **identity:** email con il design Feedway ([#81](https://github.com/grecomatteo/Feedway/issues/81)) ([c0f83af](https://github.com/grecomatteo/Feedway/commit/c0f83af12774d8456728d31e922c4f2d9acc9207))
+* **identity:** inviti solo via email, con elenco, nuovo invio e annullamento ([#78](https://github.com/grecomatteo/Feedway/issues/78)) ([2c7ae39](https://github.com/grecomatteo/Feedway/commit/2c7ae3947ff0837bf4914024edf32e4e675ef031))
+* **identity:** link del primo account da installazione e aggiornamento ([#54](https://github.com/grecomatteo/Feedway/issues/54)) ([715295a](https://github.com/grecomatteo/Feedway/commit/715295a21f9d2821bcda04297dcabd099f584889))
+* **identity:** permessi, ruoli e can() con organizzazioni ([#39](https://github.com/grecomatteo/Feedway/issues/39)) ([7f17c59](https://github.com/grecomatteo/Feedway/commit/7f17c59513b98def73013836d87055383c675b57))
+* **identity:** profilo con soprannome, preferenze e cambio email ([#94](https://github.com/grecomatteo/Feedway/issues/94)) ([0ffd207](https://github.com/grecomatteo/Feedway/commit/0ffd207f202a1571dbc1cba6edcb4a9452462af8))
+* **identity:** registro degli accessi, dispositivi noti ed email di sicurezza ([#52](https://github.com/grecomatteo/Feedway/issues/52)) ([8370b37](https://github.com/grecomatteo/Feedway/commit/8370b376a7416fafa1d9964bc6a4414e3fcb12f6))
+* **identity:** regole del secondo fattore, membri, inviti e reset ([#60](https://github.com/grecomatteo/Feedway/issues/60)) ([f0e0d6f](https://github.com/grecomatteo/Feedway/commit/f0e0d6fe26e3bc75996b54c61ef18372ab2e3ba0))
+* **identity:** regole di password, sessioni, secondo fattore, profilo, privacy e limiti ([#40](https://github.com/grecomatteo/Feedway/issues/40)) ([9969802](https://github.com/grecomatteo/Feedway/commit/9969802f19a6c78a9f667131bc23feca95bf8589))
+* **identity:** riconferma dell'identità e dispositivi collegati ([#57](https://github.com/grecomatteo/Feedway/issues/57)) ([da59c3a](https://github.com/grecomatteo/Feedway/commit/da59c3a5ddabbeb4fe8e1cdc8dcbaabd8c4ee365))
+* **identity:** sessione risolta e secondo fattore obbligatorio ([#55](https://github.com/grecomatteo/Feedway/issues/55)) ([a7d055a](https://github.com/grecomatteo/Feedway/commit/a7d055ae1fee66358925a337d3b21e2c27115006))
+* **identity:** tabelle di Better Auth e dati personali ([#41](https://github.com/grecomatteo/Feedway/issues/41)) ([5a34e1d](https://github.com/grecomatteo/Feedway/commit/5a34e1d563477076ea5497498b30db5ea59063af))
+* **infra:** chiavi per organizzazione, token firmati, argon2id e robustezza delle password ([#43](https://github.com/grecomatteo/Feedway/issues/43)) ([45cfa0f](https://github.com/grecomatteo/Feedway/commit/45cfa0ff22c29aea4de35b84c90959dfd3035dc1))
+* **infra:** invio email via SMTP della piattaforma con impostazioni cifrate ([#90](https://github.com/grecomatteo/Feedway/issues/90)) ([29fae19](https://github.com/grecomatteo/Feedway/commit/29fae19edd57f1fe91f6a1b163fa55a446a2f085))
+* **infra:** limitatore condiviso, ambito delle code e regole su Better Auth ([#45](https://github.com/grecomatteo/Feedway/issues/45)) ([775c9cf](https://github.com/grecomatteo/Feedway/commit/775c9cf265affd4aa63ddba664b17f9b12035b4f))
+* **infra:** porta Storage su disco con batteria di contratto ([#47](https://github.com/grecomatteo/Feedway/issues/47)) ([ac415e7](https://github.com/grecomatteo/Feedway/commit/ac415e7a9b60f6bda9fea18549bc60f1ec3e6f12))
+* **infra:** radice di composizione condivisa tra web e worker ([#46](https://github.com/grecomatteo/Feedway/issues/46)) ([631667c](https://github.com/grecomatteo/Feedway/commit/631667cbe1c26a145565421fc0d4605d42d3f168))
+* **infra:** unit of work con ambito, repository e registro attività ([#44](https://github.com/grecomatteo/Feedway/issues/44)) ([a779279](https://github.com/grecomatteo/Feedway/commit/a779279b9b5ea639f62c0fba2c8cb6bb5198f83b))
+* **organizations:** contesto dell'agenzia per chi agisce ([#56](https://github.com/grecomatteo/Feedway/issues/56)) ([f69fb46](https://github.com/grecomatteo/Feedway/commit/f69fb46a4030ccfa9efde3f54bbb1289bfc4556e))
+* **organizations:** organizzazioni, spazi, inviti, registro e RLS ([#42](https://github.com/grecomatteo/Feedway/issues/42)) ([4030efa](https://github.com/grecomatteo/Feedway/commit/4030efa52b8cb4f098961685ea33c09337e120cc))
+* **platform:** email di sistema impostabile da CLI e dalle API con email di prova ([#93](https://github.com/grecomatteo/Feedway/issues/93)) ([16f0025](https://github.com/grecomatteo/Feedway/commit/16f00259e3dda3cf74d25e5b6fdf08ad0f1695ae))
+* **platform:** organizzazioni, limiti, sospensione e CLI ([#63](https://github.com/grecomatteo/Feedway/issues/63)) ([282f254](https://github.com/grecomatteo/Feedway/commit/282f254c57917a2af4aa1acac11acefc3afcb0de))
+* **web:** Better Auth montato nel pannello con CSRF, IP del client e cookie del dispositivo ([#51](https://github.com/grecomatteo/Feedway/issues/51)) ([b8b22fe](https://github.com/grecomatteo/Feedway/commit/b8b22feb264d277490a67ce6b24f5956fbeb414c))
+* **web:** livello HTTP, mappatura degli errori e pagina d'errore ([#70](https://github.com/grecomatteo/Feedway/issues/70)) ([160c291](https://github.com/grecomatteo/Feedway/commit/160c2910e59ee59f0ba58eb08428df6237bd39b9))
+* **web:** pagine dell'agenzia, utenti, spazi, registro e passaggio di proprietà ([#97](https://github.com/grecomatteo/Feedway/issues/97)) ([a20c545](https://github.com/grecomatteo/Feedway/commit/a20c545dad278580bda901cf83a83a4dd89c3540))
+* **web:** rotte v1 di identità, agenzie, spazi e registro ([#75](https://github.com/grecomatteo/Feedway/issues/75)) ([ea08e17](https://github.com/grecomatteo/Feedway/commit/ea08e17a1757fcc7a8ad77af31fdaaa69bbd8e8e))
+* **web:** schermate di accesso, attivazione ed email di sistema ([#96](https://github.com/grecomatteo/Feedway/issues/96)) ([6a77ea7](https://github.com/grecomatteo/Feedway/commit/6a77ea72c0963225d4d7fc84f5c9f5f85d6aee30))
+* **web:** schermate sicurezza e dispositivi ([#95](https://github.com/grecomatteo/Feedway/issues/95)) ([26aab24](https://github.com/grecomatteo/Feedway/commit/26aab24d1fb4b85fd47e69f613f28eed96a30859))
+* **workspaces:** spazi di lavoro e membri ([#68](https://github.com/grecomatteo/Feedway/issues/68)) ([dc94e48](https://github.com/grecomatteo/Feedway/commit/dc94e48f032db1670764db40f22d06098d770b42))
+
+
+### Correzioni
+
+* **config:** versioni corrette delle dipendenze segnalate da Dependabot ([#91](https://github.com/grecomatteo/Feedway/issues/91)) ([4b05acb](https://github.com/grecomatteo/Feedway/commit/4b05acb096aa45e07fa1d3143d209c307fd55c5b))
+* **infra:** aggiornamenti minor e patch con lockfile che Renovate sa rigenerare ([#64](https://github.com/grecomatteo/Feedway/issues/64)) ([304ef23](https://github.com/grecomatteo/Feedway/commit/304ef23ba6c2ed523b77c785715c635cfded3093))
+
+
+### Documentazione
+
+* adr 016 accettata da matteo ([#86](https://github.com/grecomatteo/Feedway/issues/86)) ([f64df8e](https://github.com/grecomatteo/Feedway/commit/f64df8e6b4f3a1d2e74a45dd0a1d1636d0969be0))
+* caption per piattaforma nella 1.0 e approvazione del cliente nella 1.1 ([#80](https://github.com/grecomatteo/Feedway/issues/80)) ([1f32cf2](https://github.com/grecomatteo/Feedway/commit/1f32cf2e14b49a881fe46c7f7f5ec18521741804))
+* **design:** avviso al vecchio indirizzo alla richiesta del cambio email ([#79](https://github.com/grecomatteo/Feedway/issues/79)) ([f1f83b4](https://github.com/grecomatteo/Feedway/commit/f1f83b42b28abde7101a927c11c2e4ad3099eda8))
+* feedway come hub per l'agenzia e nuova landing ([#84](https://github.com/grecomatteo/Feedway/issues/84)) ([55f8468](https://github.com/grecomatteo/Feedway/commit/55f846875c83913d419367972ebb8680c4913f52))
+* funzioni dal confronto con la concorrenza e altri social come moduli ([#67](https://github.com/grecomatteo/Feedway/issues/67)) ([9bca2b0](https://github.com/grecomatteo/Feedway/commit/9bca2b0b41900e9620976faacba55a5ff1f8be0a))
+* **identity:** note della direzione hub nel piano della tappa 2 ([#85](https://github.com/grecomatteo/Feedway/issues/85)) ([af4b191](https://github.com/grecomatteo/Feedway/commit/af4b191d89c98b6537e209b1678bcf43b2fdeb78))
+* **identity:** revisione del piano della tappa 2 sul codice della tappa 1 ([#35](https://github.com/grecomatteo/Feedway/issues/35)) ([cdf7a1f](https://github.com/grecomatteo/Feedway/commit/cdf7a1fa504129ab3e845f101ddf9c5d517b5e2e))
+* **identity:** verifiche preliminari di Better Auth 1.7.10 ([#37](https://github.com/grecomatteo/Feedway/issues/37)) ([397aabc](https://github.com/grecomatteo/Feedway/commit/397aabcf1b84e3555648208df6dd1d17a3e21a5b))
+* **infra:** correzioni al piano B e ai controlli locali ([#59](https://github.com/grecomatteo/Feedway/issues/59)) ([cd022d2](https://github.com/grecomatteo/Feedway/commit/cd022d29236b3d38602813d5a83555bc8b37987f))
+* **infra:** vietato il runner self-hosted con repository pubblico ([#61](https://github.com/grecomatteo/Feedway/issues/61)) ([7de79bb](https://github.com/grecomatteo/Feedway/commit/7de79bbcd1d0501a9c26a45983d2db78da5074ad))
+* versioni dell'hub fissate al momento dei piani (delega di matteo) ([#87](https://github.com/grecomatteo/Feedway/issues/87)) ([2d2fb59](https://github.com/grecomatteo/Feedway/commit/2d2fb590401870ea313b711933596ded4f402d81))
+
 ## [0.1.2](https://github.com/grecomatteo/Feedway/compare/v0.1.1...v0.1.2) (2026-10-17)
 
 
