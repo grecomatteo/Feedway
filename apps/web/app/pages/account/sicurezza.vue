@@ -39,45 +39,7 @@ const lastFactor = computed(() => {
 })
 
 // ---- confirmation of identity, asked only when the server wants it
-const reauthOpen = ref(false)
-let pending: {
-  action: (password?: string) => Promise<void>
-  resolve: () => void
-  reject: (e: unknown) => void
-} | null = null
-/**
- * Runs `action`; when the server asks for a recent confirmation, asks it and runs it again.
- * Settles only once the action has really run, failed, or the person closed the dialog.
- */
-const withReauth: WithReauth = async (action) => {
-  try {
-    await action()
-  } catch (e) {
-    if (failure(e).code !== 'REAUTH_REQUIRED') throw e
-    pending?.reject(new ReauthCancelled())
-    await new Promise<void>((resolve, reject) => {
-      pending = { action, resolve, reject }
-      reauthOpen.value = true
-    })
-  }
-}
-async function reauthDone(password: string | null) {
-  const p = pending
-  pending = null
-  if (!p) return
-  try {
-    await p.action(password ?? undefined)
-    p.resolve()
-  } catch (e) {
-    p.reject(e)
-  }
-}
-watch(reauthOpen, (open) => {
-  if (open || !pending) return
-  // closed without confirming
-  pending.reject(new ReauthCancelled())
-  pending = null
-})
+const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
 
 // ---- password
 const passwordForm = reactive({ current: '', next: '' })

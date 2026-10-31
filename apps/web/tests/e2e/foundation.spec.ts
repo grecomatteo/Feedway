@@ -30,7 +30,13 @@ test('skip link is the first focusable element', async ({ page }) => {
 
 test('theme can be switched and persists after a reload', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Tema' }).click()
+  // under load the first click can land before the page is interactive: open until it shows
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Tema' }).click()
+    await expect(page.getByRole('menuitemcheckbox', { name: 'Scuro' })).toBeVisible({
+      timeout: 1000,
+    })
+  }).toPass()
   await page.getByRole('menuitemcheckbox', { name: 'Scuro' }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   await page.reload()

@@ -28,7 +28,7 @@ async function confirm(how: 'password' | 'passkey') {
   problem.value = null
   try {
     if (how === 'password') await call('POST', '/api/v1/auth/reauth', { password: password.value })
-    else await passkey.authenticate()
+    else await passkey.authenticate({ reauth: true })
     const typed = how === 'password' ? password.value : null
     password.value = ''
     // done first: closing without it means "cancelled" to the page

@@ -10,7 +10,7 @@ test.beforeEach(({ baseURL }) => {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 test('a page that does not exist shows the branded 404 and leads home', async ({ page }) => {
-  const response = await page.goto('/pagina-che-non-esiste')
+  const response = await page.goto('/pagina/che-non-esiste')
   expect(response?.status()).toBe(404)
   expect(response?.headers()['content-type']).toContain('text/html')
   await expect(page.getByRole('heading', { level: 1, name: 'Pagina non trovata' })).toBeVisible()
@@ -24,7 +24,7 @@ test('a page that does not exist shows the branded 404 and leads home', async ({
 })
 
 test('the 404 page has no accessibility violations', async ({ page }) => {
-  await page.goto('/pagina-che-non-esiste')
+  await page.goto('/pagina/che-non-esiste')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
@@ -50,7 +50,7 @@ test('a failure shows a generic page with the request id, never the detail', asy
 })
 
 test('the error page fits a phone screen without sideways scrolling', async ({ page }) => {
-  await page.goto('/pagina-che-non-esiste')
+  await page.goto('/pagina/che-non-esiste')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

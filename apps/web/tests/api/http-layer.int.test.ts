@@ -615,11 +615,11 @@ describe('responses', () => {
 
   test('an error page is one request in the log, not two', async () => {
     const lines = await logLinesDuring(() =>
-      fetch(web.url('/pagina-che-non-esiste'), { headers: { accept: 'text/html' } }),
+      fetch(web.url('/pagina/che-non-esiste'), { headers: { accept: 'text/html' } }),
     )
     const requests = lines.filter((line) => line.includes('"msg":"request"'))
     expect(requests.filter((line) => line.includes('/__nuxt_error'))).toEqual([])
-    expect(requests.filter((line) => line.includes('/pagina-che-non-esiste'))).toHaveLength(1)
+    expect(requests.filter((line) => line.includes('/pagina/che-non-esiste'))).toHaveLength(1)
   })
 })
 
