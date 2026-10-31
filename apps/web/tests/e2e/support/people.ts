@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { createDb, createPasswordHasher } from '@app/infrastructure'
-import { seed } from '@app/infrastructure/testing'
+import { secretOf, seed, totpCode } from '@app/infrastructure/testing'
 
 // low entropy on purpose: a made-up value, not a secret for the leak scanner
 export const E2E_PASSWORD = 'cavallo-batteria-graffetta-lago'
@@ -117,4 +117,61 @@ export function ownAddress(page: Page) {
   return page.setExtraHTTPHeaders({
     'x-forwarded-for': `10.61.${String(randomInt(250))}.${String(randomInt(250))}`,
   })
+}
+
+/** Someone with a password and the given role in an existing agency. */
+export async function addPerson(
+  organizationSlug: string,
+  name: string,
+  role: 'owner' | 'admin' | 'member',
+  workspaces: { workspaceId: string; role: 'manager' | 'publisher' | 'editor' | 'viewer' }[] = [],
+): Promise<E2ePerson> {
+  const runtimeUrl = process.env.E2E_DATABASE_URL
+  if (!runtimeUrl) throw new Error('e2e database not available')
+  const email = `e2e-${randomUUID().slice(0, 8)}@example.test`
+  const userId = await seed(runtimeUrl, async (s) => {
+    const id = await s.user({ email, name })
+    await s.member(organizationSlug, id, role)
+    for (const w of workspaces) await s.workspaceMember(organizationSlug, w.workspaceId, id, w.role)
+    return id
+  })
+  await adminQuery(
+    `insert into accounts (id, account_id, provider_id, user_id, password, updated_at)
+     values ($1, $2::text, 'credential', $2::uuid, $3, now())`,
+    [randomUUID(), userId, await createPasswordHasher().hash(E2E_PASSWORD)],
+  )
+  return { userId, email, name, organizationSlug }
+}
+
+/** A passkey row, enough for "has a second factor" (it never signs anything). */
+export async function addPasskeyRow(userId: string): Promise<void> {
+  await adminQuery(
+    `insert into passkeys (id, name, public_key, user_id, credential_id, counter, device_type, backed_up, created_at)
+     values ($1, 'Portatile', 'chiave-finta', $2, $3, 0, 'multiDevice', true, now())`,
+    [randomUUID(), userId, randomBytes(16).toString('base64url')],
+  )
+}
+
+/** Signs in and turns on the authenticator app, as an Owner or Admin must; returns the key. */
+export async function signInWithTotp(request: APIRequestContext, person: E2ePerson) {
+  await signIn(request, person)
+  const headers = {
+    origin: new URL(process.env.E2E_BASE_URL ?? '').origin,
+    'x-app-request': '1',
+    // the per-address limit on the code is not what these tests measure
+    'x-forwarded-for': `10.62.${String(randomInt(250))}.${String(randomInt(250))}`,
+  }
+  const enabled = await request.post('/api/auth/two-factor/enable', {
+    headers,
+    data: { password: E2E_PASSWORD },
+  })
+  expect(enabled.status()).toBe(200)
+  const { totpURI } = (await enabled.json()) as { totpURI: string }
+  const secret = secretOf(totpURI)
+  const verified = await request.post('/api/auth/two-factor/verify-totp', {
+    headers,
+    data: { code: totpCode(secret) },
+  })
+  expect(verified.status()).toBe(200)
+  return secret
 }

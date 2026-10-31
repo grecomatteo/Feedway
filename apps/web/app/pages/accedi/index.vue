@@ -14,6 +14,8 @@ const route = useRoute()
 useHead({ title: () => t('signIn.title') })
 
 const next = computed(() => safeNext(route.query['dopo']))
+/** Why the person is asked to sign in again: only known reasons, never text from the address. */
+const notice = computed(() => (route.query['avviso'] === 'ruolo' ? t('signIn.roleChanged') : null))
 const form = reactive({ email: '', password: '' })
 const sending = ref<'password' | 'passkey' | null>(null)
 const problem = ref<ApiFailure | null>(null)
@@ -40,22 +42,28 @@ async function continueSignedIn() {
 
 /** Passkeys in the email field's suggestions, while the page is open. */
 let autofill: AbortController | null = null
-onMounted(async () => {
-  if (!(await passkey.autofillSupported())) return
-  autofill = new AbortController()
-  try {
-    await passkey.authenticate({ autofill: true, signal: autofill.signal })
-    await continueSignedIn()
-  } catch {
-    // aborted or dismissed: the buttons are still there
-  }
+let autofillRun: Promise<void> | null = null
+onMounted(() => {
+  autofillRun = (async () => {
+    if (!(await passkey.autofillSupported())) return
+    autofill = new AbortController()
+    try {
+      await passkey.authenticate({ autofill: true, signal: autofill.signal })
+      await continueSignedIn()
+    } catch {
+      // aborted or dismissed: the buttons are still there
+    }
+  })()
 })
 onBeforeUnmount(() => autofill?.abort())
 
 async function withPasskey() {
   autofill?.abort()
+  // the server keeps one challenge per browser: the suggestion's request must end before the
+  // button asks for its own, or the later answer replaces it ("Challenge not found")
   sending.value = 'passkey'
   problem.value = null
+  await autofillRun
   try {
     await passkey.authenticate()
     await continueSignedIn()
@@ -120,6 +128,7 @@ async function skipPasskey() {
   <PasskeyPrompt v-if="offerPasskey" @done="skipPasskey" />
   <div v-else class="space-y-5">
     <h1 class="text-2xl">{{ $t('signIn.title') }}</h1>
+    <p v-if="notice" role="status" class="text-(--app-success)">{{ notice }}</p>
 
     <UButton
       block

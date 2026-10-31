@@ -20,7 +20,16 @@ export default defineNuxtConfig({
     strategy: 'no_prefix',
     locales: [{ code: 'it', language: 'it-IT', file: 'it.json', name: 'Italiano' }],
   },
-  icon: { provider: 'none', clientBundle: { scan: true } },
+  icon: {
+    provider: 'none',
+    // composables name icons too (the agency menu), so they are scanned with the components
+    clientBundle: {
+      scan: {
+        globInclude: ['app/**/*.{vue,ts}'],
+        globExclude: ['node_modules', 'dist', '.output', '.nuxt', 'tests'],
+      },
+    },
+  },
   telemetry: false,
   nitro: {
     errorHandler: fileURLToPath(new URL('./server/error.ts', import.meta.url)),

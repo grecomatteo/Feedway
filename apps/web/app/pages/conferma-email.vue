@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// a click before the page runs in the browser would be lost
+const ready = useHydrated()
 import type { ApiFailure } from '~/composables/useApi'
 
 const { t } = useI18n()
@@ -55,7 +57,7 @@ async function confirm() {
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ problem.message }}
       </p>
-      <UButton class="min-h-11" :loading="sending" @click="confirm">
+      <UButton class="min-h-11" :loading="sending" :disabled="!ready" @click="confirm">
         {{ $t('confirmEmail.button') }}
       </UButton>
     </template>

@@ -449,7 +449,8 @@
     "invalid": "Email o password non corretti",
     "tooMany": "Troppi tentativi. Riprova tra qualche minuto.",
     "wait": "Troppi tentativi. Riprova tra {seconds} secondi.",
-    "passkeyCancelled": "Accesso con passkey annullato. Puoi riprovare o usare la password."
+    "passkeyCancelled": "Accesso con passkey annullato. Puoi riprovare o usare la password.",
+    "roleChanged": "Il tuo ruolo è cambiato: accedi di nuovo per continuare."
   },
   "passkeyPrompt": {
     "title": "Vuoi accedere più in fretta?",
@@ -532,13 +533,17 @@
   },
   "agencyHome": {
     "title": "Agenzia",
-    "welcome": "Il tuo ruolo: {role}.",
+    "welcome": "Il tuo ruolo: {role}. Da qui raggiungi le pagine dell'agenzia.",
     "suspended": "Questa agenzia è sospesa: per ora non puoi lavorarci."
   },
   "roles": {
     "owner": "Owner",
     "admin": "Admin",
-    "member": "Membro"
+    "member": "Membro",
+    "manager": "Manager",
+    "publisher": "Publisher",
+    "editor": "Editor",
+    "viewer": "Viewer"
   },
   "systemEmail": {
     "title": "Email di sistema",
@@ -574,5 +579,183 @@
       "connection": "Connessione al server non riuscita.",
       "rejected": "Il server ha rifiutato il messaggio."
     }
+  },
+  "roleExplain": {
+    "member": "Lavora solo sui clienti che gli assegni, con il ruolo scelto per ciascuno.",
+    "admin": "Gestisce persone, clienti e account social di tutta l'agenzia.",
+    "manager": "Gestisce il cliente: post di tutti, impostazioni dei contenuti, persone e link di approvazione.",
+    "publisher": "Prepara e pubblica i propri post.",
+    "editor": "Prepara bozze e carica contenuti, senza pubblicare.",
+    "viewer": "Vede calendario e post, senza modificare."
+  },
+  "agency": {
+    "switcher": "Agenzia",
+    "suspendedOthers": "Puoi passare a un'altra delle tue agenzie dal selettore.",
+    "nav": {
+      "label": "Navigazione principale",
+      "home": "Home",
+      "workspaces": "Clienti",
+      "users": "Utenti",
+      "audit": "Registro attività",
+      "settings": "Impostazioni"
+    }
+  },
+  "context": {
+    "label": "Contesto",
+    "all": "Tutti i clienti"
+  },
+  "agencies": {
+    "title": "Scegli agenzia",
+    "empty": "Non fai parte di nessuna agenzia.",
+    "suspended": "Sospesa"
+  },
+  "copyLink": {
+    "copy": "Copia",
+    "copied": "Link copiato.",
+    "failed": "Copia non riuscita: seleziona il link e copialo a mano."
+  },
+  "workspaces": {
+    "title": "Clienti",
+    "explain": "Ogni cliente è uno spazio di lavoro con le sue persone e i suoi ruoli.",
+    "newName": "Nome del nuovo cliente",
+    "create": "Crea",
+    "empty": "Nessun cliente per ora.",
+    "emptyCreate": "Crea il primo cliente qui sopra.",
+    "emptyAsk": "Chiedi a chi gestisce l'agenzia di aggiungerti a un cliente.",
+    "members": "Persone",
+    "membersOf": "Persone di {name}",
+    "rename": "Rinomina",
+    "renameOf": "Rinomina {name}",
+    "archive": "Archivia",
+    "archiveOf": "Archivia {name}",
+    "renamed": "Nome salvato.",
+    "archived": "{name} archiviato.",
+    "archivedTitle": "Archiviati",
+    "archiveTitle": "Archiviare {name}?",
+    "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti."
+  },
+  "workspaceMembers": {
+    "title": "Persone del cliente",
+    "titleOf": "Persone di {name}",
+    "missing": "Questo cliente non esiste o non lo vedi.",
+    "empty": "Nessuna persona su questo cliente.",
+    "listLabel": "Persone del cliente",
+    "roleOf": "Ruolo di {name}",
+    "remove": "Togli",
+    "removeOf": "Togli {name}",
+    "added": "Persona aggiunta.",
+    "roleChanged": "Ruolo di {name} cambiato.",
+    "removed": "{name} tolto dal cliente.",
+    "addTitle": "Aggiungi una persona",
+    "person": "Persona",
+    "role": "Ruolo",
+    "add": "Aggiungi",
+    "noCandidates": "Tutte le persone dell'agenzia con il ruolo Member sono già qui. Owner e Admin vedono già ogni cliente."
+  },
+  "users": {
+    "title": "Utenti",
+    "count": "{people} persone, {invites} inviti in attesa",
+    "col": {
+      "person": "Persona",
+      "agency": "In agenzia",
+      "clients": "Ruoli per cliente",
+      "status": "Stato",
+      "lastLogin": "Ultimo accesso",
+      "actions": "Azioni"
+    },
+    "allClients": "Tutti i clienti",
+    "noClients": "Nessun cliente",
+    "roleIn": "{role} di {name}",
+    "active": "Attivo",
+    "disabled": "Disattivato",
+    "never": "Mai",
+    "roleOf": "Ruolo di {name} nell'agenzia",
+    "reset": "Link di reset",
+    "resetOf": "Link di reset per {name}",
+    "disable": "Disattiva",
+    "disableOf": "Disattiva {name}",
+    "enable": "Riattiva",
+    "enableOf": "Riattiva {name}",
+    "roleChanged": "Ruolo di {name} cambiato: deve accedere di nuovo.",
+    "disabledDone": "{name} è disattivato ed è uscito da tutti i dispositivi.",
+    "enabledDone": "{name} è di nuovo attivo.",
+    "resetReady": "Link pronto per {name}: vale un'ora, consegnalo di persona o su un canale sicuro.",
+    "resetLinkFor": "Link di reset per {name}",
+    "invitesTitle": "Inviti in attesa",
+    "inviteExpires": "scade il {when}",
+    "resend": "Invia di nuovo",
+    "resendOf": "Invia di nuovo l'invito a {email}",
+    "revoke": "Annulla",
+    "revokeOf": "Annulla l'invito a {email}",
+    "inviteResent": "Nuovo invito inviato a {email}.",
+    "inviteRevoked": "Invito a {email} annullato.",
+    "invite": {
+      "button": "Invita",
+      "title": "Invita una persona",
+      "explain": "Il link arriva solo alla sua email e vale 72 ore.",
+      "agencyRole": "Ruolo nell'agenzia",
+      "clients": "Clienti e ruoli",
+      "noClients": "Crea prima un cliente per assegnarlo.",
+      "noAccess": "Nessun accesso",
+      "send": "Invia l'invito",
+      "sent": "Invito inviato a {email}."
+    }
+  },
+  "transfer": {
+    "button": "Passa la proprietà",
+    "title": "Passa la proprietà dell'agenzia",
+    "explain": "Scegli un Admin attivo con il secondo passaggio all'accesso. Diventerà Owner e tu diventerai Admin. Poi entrambi dovrete accedere di nuovo.",
+    "to": "Nuovo Owner",
+    "noCandidates": "Nessun Admin attivo con il secondo passaggio all'accesso: nomina prima un Admin.",
+    "confirm": "Passa la proprietà",
+    "done": "Proprietà passata. Ora sei Admin."
+  },
+  "audit": {
+    "title": "Registro attività",
+    "explain": "Chi ha fatto cosa e quando, dal più recente.",
+    "empty": "Nessuna attività registrata.",
+    "more": "Mostra altre",
+    "actions": {
+      "auth_login": "è entrato nel pannello",
+      "auth_logout": "è uscito",
+      "auth_reauthenticated": "ha confermato la propria identità",
+      "auth_new_device": "è entrato da un nuovo dispositivo",
+      "auth_email_changed": "ha cambiato email",
+      "auth_passkey_added": "ha aggiunto una passkey",
+      "auth_passkey_removed": "ha tolto una passkey",
+      "auth_totp_enabled": "ha attivato l'app di autenticazione",
+      "auth_totp_disabled": "ha disattivato l'app di autenticazione",
+      "auth_password_changed": "ha cambiato la password",
+      "auth_security_lock": "ha bloccato il proprio account",
+      "organization_settings_changed": "ha cambiato le impostazioni dell'agenzia",
+      "organization_ownership_transferred": "ha passato la proprietà dell'agenzia",
+      "session_revoked": "ha scollegato dei dispositivi",
+      "user_activated": "ha attivato l'account",
+      "user_disabled": "ha disattivato un utente",
+      "user_enabled": "ha riattivato un utente",
+      "user_invited": "ha invitato una persona",
+      "user_invite_resent": "ha inviato di nuovo un invito",
+      "user_invite_revoked": "ha annullato un invito",
+      "user_password_reset_link": "ha creato un link di reset",
+      "user_profile_updated": "ha aggiornato il profilo",
+      "user_role_changed": "ha cambiato un ruolo",
+      "workspace_created": "ha creato un cliente",
+      "workspace_renamed": "ha rinominato un cliente",
+      "workspace_archived": "ha archiviato un cliente",
+      "workspace_member_added": "ha aggiunto una persona a un cliente",
+      "workspace_member_removed": "ha tolto una persona da un cliente",
+      "workspace_member_role_changed": "ha cambiato un ruolo su un cliente"
+    }
+  },
+  "orgSettings": {
+    "title": "Impostazioni",
+    "ownerOnly": "Solo l'Owner può cambiarle.",
+    "name": "Nome dell'agenzia",
+    "require2fa": "Secondo passaggio all'accesso obbligatorio per",
+    "policy": {
+      "admins": "Owner e Admin",
+      "all": "Tutti"
+    },
+    "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare."
   }
 }

@@ -63,6 +63,8 @@ export function useSession() {
     const slugs = me.organizations.filter((o) => o.status === 'active').map((o) => o.slug)
     const last = me.lastOrganizationSlug
     if (last && slugs.includes(last)) return `/${last}`
+    // several agencies and no last one: the person chooses
+    if (slugs.length > 1) return '/agenzie'
     return slugs[0] ? `/${slugs[0]}` : '/account'
   }
 

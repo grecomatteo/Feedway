@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// a click before the page runs in the browser would be lost
+const ready = useHydrated()
 import type { ApiFailure } from '~/composables/useApi'
 
 const { t } = useI18n()
@@ -50,7 +52,7 @@ async function lock() {
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ problem.message }}
       </p>
-      <UButton class="min-h-11" color="error" :loading="sending" @click="lock">
+      <UButton class="min-h-11" color="error" :loading="sending" :disabled="!ready" @click="lock">
         {{ $t('notMe.submit') }}
       </UButton>
     </template>

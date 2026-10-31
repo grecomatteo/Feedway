@@ -63,7 +63,8 @@ const signIn = () => clearError({ redirect: '/accedi' })
 
 <template>
   <UApp>
-    <NuxtLayout>
+    <!-- never the layout of the address: an agency's layout would draw that agency around it -->
+    <NuxtLayout name="default">
       <section class="py-8 sm:py-16" aria-labelledby="error-title">
         <p class="mb-2 text-sm font-medium text-(--app-text-muted)">
           {{ t('errorPage.statusLabel', { status }) }}

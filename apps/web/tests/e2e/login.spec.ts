@@ -34,7 +34,10 @@ const skipPasskeyOffer = async (page: Page) => {
 
 test('wrong password shows a generic inline error', async ({ page }) => {
   await page.goto('/accedi')
-  await page.getByLabel('Email', { exact: true }).fill('nessuno@example.test')
+  // an address of its own: the per-account limit counts the other runs of this test too
+  await page
+    .getByLabel('Email', { exact: true })
+    .fill(`nessuno-${randomUUID().slice(0, 8)}@example.test`)
   await page.getByLabel('Password', { exact: true }).fill('sbagliata-123456')
   await page.getByRole('button', { name: 'Accedi con la password' }).click()
   await expect(page.getByRole('alert')).toHaveText('Email o password non corretti')
