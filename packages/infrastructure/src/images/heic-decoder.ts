@@ -31,7 +31,11 @@ else {
 }
 `
 
-const LIBHEIF = createRequire(import.meta.url).resolve('libheif-js/wasm-bundle.js')
+// Resolved on first use: in the bundled server, a chunk can run before the entry sets its own
+// module URL, and resolving then would look for the library from the wrong place.
+let libheifPath: string | undefined
+const libheif = () =>
+  (libheifPath ??= createRequire(import.meta.url).resolve('libheif-js/wasm-bundle.js'))
 
 /**
  * Raw RGBA pixels of the primary image of a HEIC. The size is read from the header and checked
@@ -44,7 +48,7 @@ export function decodeHeic(
   return new Promise((resolve) => {
     const worker = new Worker(WORKER_SOURCE, {
       eval: true,
-      workerData: { module: LIBHEIF, bytes, maxPixels: opts.maxPixels },
+      workerData: { module: libheif(), bytes, maxPixels: opts.maxPixels },
       // libheif prints its parse errors: they are the photo's, not ours
       stdout: true,
       stderr: true,
