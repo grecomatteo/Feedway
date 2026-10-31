@@ -33,7 +33,7 @@ overrides:
   # once the package that pulls it in ships the fixed version on its own.
   '@esbuild-kit/core-utils>esbuild': 0.25.12
   'fontless>esbuild': 0.28.2
-  '@rollup/plugin-terser>serialize-javascript': 7.1.3
+  '@rollup/plugin-terser>serialize-javascript': 7.1.4
   'fast-uri@>=3.0.0 <3.1.9': 3.1.9
-  'seroval@>=1.5.5 <1.6.11': 1.6.11
-  'listhen>node-forge': 1.4.1
+  'seroval@>=1.5.5 <1.6.11': 1.7.6
+  'listhen>node-forge': 1.4.2
