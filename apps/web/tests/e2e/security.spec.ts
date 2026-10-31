@@ -45,7 +45,7 @@ test('one device is signed out from the devices page, then all of them', async (
     await expect(page.getByRole('status')).toHaveText('Il dispositivo è uscito.')
     await expect(devices.getByRole('listitem')).toHaveCount(1)
     await elsewhere.goto('/account/dispositivi')
-    await expect(elsewhere.getByRole('alert')).toContainText('Accedi per vedere il tuo account.')
+    await expect(elsewhere).toHaveURL(/\/accedi\?dopo=/)
 
     await signIn(elsewhere.request, person)
     await page.reload()
@@ -55,9 +55,9 @@ test('one device is signed out from the devices page, then all of them', async (
     await expect(page.getByRole('status')).toHaveText('Sei uscito da tutti i dispositivi.')
 
     await elsewhere.reload()
-    await expect(elsewhere.getByRole('alert')).toContainText('Accedi per vedere il tuo account.')
+    await expect(elsewhere).toHaveURL(/\/accedi\?dopo=/)
     await page.reload()
-    await expect(page.getByRole('alert')).toContainText('Accedi per vedere il tuo account.')
+    await expect(page).toHaveURL(/\/accedi\?dopo=/)
     const left = await adminQuery<{ n: string }>(
       'select count(*) as n from sessions where user_id = $1',
       [person.userId],
@@ -90,7 +90,7 @@ test('the not-me link locks the account after the button is pressed', async ({ p
 
   // the session of this browser is gone, and the password no longer opens one
   await page.goto('/account')
-  await expect(page.getByRole('alert')).toContainText('Accedi per vedere il tuo account.')
+  await expect(page).toHaveURL(/\/accedi\?dopo=/)
   const baseURL = process.env.E2E_BASE_URL ?? ''
   const res = await page.request.post('/api/auth/sign-in/email', {
     headers: { origin: new URL(baseURL).origin, 'x-app-request': '1' },

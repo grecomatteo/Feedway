@@ -1,6 +1,16 @@
+import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { totpCode } from '@app/infrastructure/testing'
-import { adminQuery, E2E_PASSWORD, newMember, ownAddress, signIn } from './support/people.ts'
+import {
+  adminQuery,
+  E2E_PASSWORD,
+  inviteLink,
+  newMember,
+  newPerson,
+  ownAddress,
+  signIn,
+  signInFromPage,
+} from './support/people.ts'
 import { addVirtualAuthenticator } from './support/virtual-authenticator.ts'
 
 // The virtual authenticator is a DevTools feature: every project here runs Chromium.
@@ -162,4 +172,63 @@ test('an owner cannot turn off the only second factor, and the panel says why', 
     data: { password: E2E_PASSWORD },
   })
   expect(res.status()).toBe(403)
+})
+
+test('activation with a passkey signs in with that passkey', async ({ page }) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'admin')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Pia Chiave')
+  await expect(page.getByRole('radio', { name: /^Passkey/ })).toBeChecked()
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+  const [user] = await adminQuery<{ id: string }>('select id from users where email = $1', [email])
+  const sessions = await sessionsOf(user?.id ?? '')
+  expect(sessions.map((s) => s.auth_method)).toEqual(['passkey'])
+})
+
+test('passkey is proposed after password sign-in, then signs in without password', async ({
+  page,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const person = await newMember()
+  await signInFromPage(page, person)
+  await page.getByRole('button', { name: 'Crea una passkey' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
+  await page.context().clearCookies()
+  await page.goto('/accedi')
+  await page.getByRole('button', { name: 'Accedi con passkey' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
+  expect((await sessionsOf(person.userId)).map((s) => s.auth_method)).toContain('passkey')
+})
+
+test('admin with a passkey who signs in with the password is told to use the passkey', async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const person = await newPerson('Ada Admin', 'admin')
+  // the first passkey of an admin, set up right after the password sign-in
+  await signIn(page.request, person)
+  await page.goto('/accedi/secondo-fattore')
+  await page.getByRole('button', { name: 'Crea una passkey' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
+
+  // another browser, without the passkey (here it would sign in from the email field)
+  const other = await browser.newContext({ baseURL: baseURL ?? '' })
+  try {
+    const elsewhere = await other.newPage()
+    await ownAddress(elsewhere)
+    await signInFromPage(elsewhere, person)
+    await expect(elsewhere).toHaveURL(/\/accedi\/secondo-fattore$/)
+    await expect(elsewhere.getByText('esci e accedi con quella')).toBeVisible()
+    await expect(elsewhere.getByRole('button', { name: 'Crea una passkey' })).toHaveCount(0)
+  } finally {
+    await other.close()
+  }
 })

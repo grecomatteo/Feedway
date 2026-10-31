@@ -53,9 +53,9 @@ test('a wrong nickname gets its error next to the field', async ({ page }) => {
   await expect(profile.getByText('Il soprannome può avere al massimo 30 caratteri')).toBeVisible()
 })
 
-test('without a session the account page says to sign in', async ({ page }) => {
+test('without a session the account page leads to the sign-in page', async ({ page }) => {
   await page.goto('/account')
-  await expect(page.getByRole('alert')).toContainText('Accedi per vedere il tuo account.')
+  await expect(page).toHaveURL(/\/accedi\?dopo=/)
 })
 
 test('the confirmation page refuses a link that does not work', async ({ page }) => {

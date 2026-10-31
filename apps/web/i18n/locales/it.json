@@ -418,6 +418,161 @@
     "PREVIOUSLY_REGISTERED": "Questa passkey è già registrata.",
     "AUTHENTICATION_FAILED": "La passkey non è stata riconosciuta.",
     "CREDENTIAL_ACCOUNT_NOT_FOUND": "Il tuo account non ha una password: usa una passkey.",
-    "ACCOUNT_TEMPORARILY_LOCKED": "Troppi tentativi: riprova tra qualche minuto."
+    "ACCOUNT_TEMPORARILY_LOCKED": "Troppi tentativi: riprova tra qualche minuto.",
+    "INVALID_EMAIL_OR_PASSWORD": "Email o password non corretti",
+    "INVALID_TOKEN": "Il link non è valido o è scaduto.",
+    "TOO_SHORT": "La password deve avere almeno 12 caratteri.",
+    "TOO_LONG": "La password è troppo lunga.",
+    "TOO_WEAK": "Password troppo facile da indovinare: aggiungi parole o caratteri, ed evita nome ed email.",
+    "USER_VERIFICATION_REQUIRED": "Conferma la passkey con il PIN, il volto o l'impronta.",
+    "INVALID_TWO_FACTOR_COOKIE": "L'accesso è scaduto: ricomincia da email e password."
+  },
+  "auth": {
+    "footer": "Accesso solo su invito della tua agenzia."
+  },
+  "nav": {
+    "label": "Menu",
+    "agency": "Agenzia",
+    "account": "Il mio account",
+    "systemEmail": "Email di sistema",
+    "signOut": "Esci"
+  },
+  "signIn": {
+    "title": "Accedi a Feedway",
+    "withPasskey": "Accedi con passkey",
+    "or": "oppure",
+    "email": "Email",
+    "password": "Password",
+    "withPassword": "Accedi con la password",
+    "forgot": "Password dimenticata?",
+    "forgotHint": "Ti mandiamo un link per email.",
+    "invalid": "Email o password non corretti",
+    "tooMany": "Troppi tentativi. Riprova tra qualche minuto.",
+    "wait": "Troppi tentativi. Riprova tra {seconds} secondi.",
+    "passkeyCancelled": "Accesso con passkey annullato. Puoi riprovare o usare la password."
+  },
+  "passkeyPrompt": {
+    "title": "Vuoi accedere più in fretta?",
+    "explain": "Con una passkey entri con il volto, l'impronta o il PIN del dispositivo, senza scrivere la password. È anche più sicura.",
+    "create": "Crea una passkey",
+    "notNow": "Non ora",
+    "defaultName": "Passkey",
+    "cancelled": "Creazione della passkey annullata."
+  },
+  "verify": {
+    "title": "Verifica in due passaggi",
+    "appExplain": "Scrivi il codice di 6 cifre che vedi nell'app di autenticazione.",
+    "backupExplain": "Scrivi uno dei codici di recupero che hai salvato. Ogni codice vale una volta sola.",
+    "appCode": "Codice dell'app",
+    "backupCode": "Codice di recupero",
+    "submit": "Verifica",
+    "useBackup": "Usa un codice di recupero",
+    "useApp": "Usa l'app di autenticazione",
+    "back": "Torna all'accesso",
+    "expired": "L'accesso è scaduto: ricomincia da email e password."
+  },
+  "forgot": {
+    "title": "Password dimenticata",
+    "explain": "Scrivi l'email del tuo account: ti mandiamo un link per sceglierne una nuova.",
+    "submit": "Mandami il link",
+    "sent": "Se l'indirizzo è registrato, riceverai un link entro qualche minuto. Controlla anche la posta indesiderata.",
+    "noMail": "L'invio delle email non è ancora attivo. Chiedi un link per reimpostare la password a chi gestisce la tua agenzia.",
+    "invalid": "Scrivi un indirizzo email valido."
+  },
+  "reset": {
+    "title": "Scegli una nuova password",
+    "explain": "La nuova password vale subito: gli altri dispositivi collegati escono.",
+    "password": "Nuova password",
+    "help": "Almeno 12 caratteri. Più è lunga, meglio è: anche una frase va bene.",
+    "submit": "Salva la password",
+    "done": "Password cambiata. Ora puoi accedere.",
+    "signIn": "Accedi",
+    "invalid": "Il link non è valido o è scaduto. Chiedine uno nuovo.",
+    "askAgain": "Chiedi un nuovo link"
+  },
+  "password": {
+    "tooShort": "Troppo corta",
+    "fair": "Accettabile",
+    "good": "Buona"
+  },
+  "activate": {
+    "title": "Attiva il tuo account",
+    "bootstrapTitle": "Crea il primo account",
+    "joinTitle": "Entra in {agency}",
+    "loading": "Controllo il link…",
+    "invalid": "Il link non è valido o è scaduto: chiedi un nuovo invito a chi gestisce l'agenzia.",
+    "intro": "Ti hanno invitato in {agency} con l'indirizzo {email}.",
+    "introNoAgency": "Crea l'account per {email}.",
+    "name": "Nome e cognome",
+    "method": "Come vuoi accedere",
+    "passkey": "Passkey (consigliata)",
+    "passkeyHelp": "Entri con il volto, l'impronta o il PIN di questo dispositivo.",
+    "password": "Password",
+    "passwordHelp": "Se il tuo ruolo lo richiede, aggiungerai anche un'app di autenticazione.",
+    "submit": "Attiva l'account",
+    "weakPassword": "Password troppo facile da indovinare: aggiungi parole o caratteri, ed evita nome ed email.",
+    "passkeyCancelled": "Creazione della passkey annullata. Puoi riprovare.",
+    "existingExplain": "Hai già un account Feedway ({email}): accedi con quello per accettare l'invito.",
+    "accept": "Accetta l'invito",
+    "signInFirst": "Accedi per accettare",
+    "otherAccount": "Ora sei collegato come {email}: esci e accedi con l'account dell'invito."
+  },
+  "totpEnrollment": {
+    "title": "Aggiungi l'app di autenticazione",
+    "explain": "Il tuo ruolo richiede un secondo passaggio all'accesso: un codice dall'app di autenticazione del telefono.",
+    "start": "Continua",
+    "preparing": "Preparo la chiave…",
+    "retry": "Riprova"
+  },
+  "secondFactor": {
+    "title": "Secondo passaggio",
+    "explain": "Il tuo ruolo richiede un secondo passaggio all'accesso. Scegli come farlo: una passkey oppure l'app di autenticazione.",
+    "useApp": "Usa l'app di autenticazione",
+    "useExisting": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella. Con la sola password non si aggiungono altri metodi."
+  },
+  "agencyHome": {
+    "title": "Agenzia",
+    "welcome": "Il tuo ruolo: {role}.",
+    "suspended": "Questa agenzia è sospesa: per ora non puoi lavorarci."
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Membro"
+  },
+  "systemEmail": {
+    "title": "Email di sistema",
+    "explain": "Il server SMTP con cui Feedway manda inviti, reset e avvisi di sicurezza. Lo vedi solo tu, come amministratore della piattaforma.",
+    "settings": "Server SMTP",
+    "configured": "Configurata",
+    "notConfigured": "Non configurata",
+    "updatedAt": "Ultima modifica: {when}.",
+    "verifiedAt": "Ultima prova riuscita: {when}.",
+    "host": "Server",
+    "port": "Porta",
+    "security": "Sicurezza",
+    "securityAuto": "Automatica (TLS su 465, STARTTLS sulle altre)",
+    "username": "Utente",
+    "from": "Indirizzo del mittente",
+    "fromHelp": "Le email partono a nome di Feedway da questo indirizzo.",
+    "password": "Password SMTP",
+    "passwordKeep": "Lasciala vuota per tenere quella salvata. Non viene mai mostrata.",
+    "testTitle": "Email di prova",
+    "testExplain": "Manda un'email per controllare che il server funzioni.",
+    "testTo": "Manda a",
+    "testSend": "Manda l'email di prova",
+    "testResult": {
+      "sent": "Email di prova inviata. Controlla la casella.",
+      "not_configured": "Salva prima le impostazioni.",
+      "unexpected": "Errore inatteso del server SMTP.",
+      "invalid_config": "Impostazioni non valide: controlla server e porta.",
+      "blocked_destination": "Questo server non è raggiungibile da Feedway.",
+      "dns": "Il nome del server non esiste.",
+      "timeout": "Il server non risponde.",
+      "tls": "Connessione sicura non riuscita: controlla porta e sicurezza.",
+      "auth": "Utente o password SMTP non corretti.",
+      "connection": "Connessione al server non riuscita.",
+      "rejected": "Il server ha rifiutato il messaggio."
+    }
   }
 }

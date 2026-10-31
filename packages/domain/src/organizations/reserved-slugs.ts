@@ -5,6 +5,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'attiva',
   'reimposta',
   'account',
+  'conferma-email',
   'profilo',
   'privacy',
   'sicurezza',

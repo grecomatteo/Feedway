@@ -26,8 +26,8 @@ export function usePasskey() {
   const { call } = useApi()
   const supported = () => typeof window !== 'undefined' && 'PublicKeyCredential' in window
 
-  /** A new passkey for the signed-in person. */
-  async function register(name: string): Promise<void> {
+  /** A new passkey for the signed-in person; returns its credential id. */
+  async function register(name: string): Promise<string> {
     const options = await call<
       PublicKeyCredentialCreationOptions & {
         challenge: string
@@ -59,13 +59,30 @@ export function usePasskey() {
         },
       },
     })
+    return credential.id
+  }
+
+  /** Whether the browser can offer passkeys in the email field's autofill. */
+  async function autofillSupported(): Promise<boolean> {
+    if (!supported()) return false
+    const check = (
+      PublicKeyCredential as unknown as { isConditionalMediationAvailable?: () => Promise<boolean> }
+    ).isConditionalMediationAvailable
+    try {
+      return typeof check === 'function' ? await check.call(PublicKeyCredential) : false
+    } catch {
+      return false
+    }
   }
 
   /**
-   * A passkey sign-in. With a session of the same person it is a reauth: the server replaces
-   * the session with a confirmed one (its cookie comes with the answer).
+   * A passkey sign-in. `reauth`: the person signed in confirms it is them; the server then
+   * accepts only their own passkey and replaces the session with a confirmed one.
+   * `autofill`: the passkeys appear in the email field's suggestions (conditional mediation).
    */
-  async function authenticate(): Promise<void> {
+  async function authenticate(
+    opts: { reauth?: boolean; autofill?: boolean; signal?: AbortSignal; only?: string } = {},
+  ): Promise<void> {
     const options = await call<
       PublicKeyCredentialRequestOptions & {
         challenge: string
@@ -76,26 +93,41 @@ export function usePasskey() {
       publicKey: {
         ...options,
         challenge: toBytes(options.challenge),
-        allowCredentials: descriptors(options.allowCredentials),
+        // `only`: the passkey just created, so another account's passkey on this device cannot
+        // be picked by mistake
+        allowCredentials: descriptors(
+          opts.only === undefined
+            ? options.allowCredentials
+            : [{ id: opts.only, type: 'public-key' }],
+        ),
       },
+      ...(opts.autofill === true
+        ? { mediation: 'conditional' as CredentialMediationRequirement }
+        : {}),
+      ...(opts.signal ? { signal: opts.signal } : {}),
     })) as PublicKeyCredential | null
     if (!credential) throw new Error('passkey not used')
     const response = credential.response as AuthenticatorAssertionResponse
-    await call('POST', '/api/auth/passkey/verify-authentication', {
-      response: {
-        id: credential.id,
-        rawId: toText(credential.rawId),
-        type: credential.type,
-        clientExtensionResults: credential.getClientExtensionResults(),
+    await call(
+      'POST',
+      '/api/auth/passkey/verify-authentication',
+      {
         response: {
-          clientDataJSON: toText(response.clientDataJSON),
-          authenticatorData: toText(response.authenticatorData),
-          signature: toText(response.signature),
-          userHandle: response.userHandle ? toText(response.userHandle) : undefined,
+          id: credential.id,
+          rawId: toText(credential.rawId),
+          type: credential.type,
+          clientExtensionResults: credential.getClientExtensionResults(),
+          response: {
+            clientDataJSON: toText(response.clientDataJSON),
+            authenticatorData: toText(response.authenticatorData),
+            signature: toText(response.signature),
+            userHandle: response.userHandle ? toText(response.userHandle) : undefined,
+          },
         },
       },
-    })
+      opts.reauth === true ? { 'x-app-reauth': '1' } : {},
+    )
   }
 
-  return { supported, register, authenticate }
+  return { supported, autofillSupported, register, authenticate }
 }

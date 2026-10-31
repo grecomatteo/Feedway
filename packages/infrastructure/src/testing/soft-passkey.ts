@@ -51,6 +51,8 @@ interface Ceremony {
   panel: string
   ip: string
   cookie?: string
+  /** Extra request headers, as the panel sends them (`x-app-reauth` for a confirmation). */
+  headers?: Record<string, string>
 }
 
 async function challengeFrom(
@@ -84,6 +86,7 @@ function postJson(ceremony: Ceremony, path: string, cookie: string, body: unknow
         'x-app-client-ip': ceremony.ip,
         'content-type': 'application/json',
         cookie: joinCookies(ceremony.cookie, cookie),
+        ...ceremony.headers,
       },
       body: JSON.stringify(body),
     }),
