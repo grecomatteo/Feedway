@@ -8,13 +8,7 @@ import it from '../../i18n/locales/it.json' with { type: 'json' }
 
 /** Codes the HTTP layer adds to the domain ones: framework and request errors. */
 type HttpCode =
-  | 'SOLE_OWNER'
-  | 'FILE_TOO_LARGE'
-  | 'UNSUPPORTED_FILE_TYPE'
-  | 'BAD_REQUEST'
-  | 'REQUEST_TOO_LARGE'
-  | 'UNSUPPORTED_MEDIA_TYPE'
-  | 'INTERNAL'
+  'SOLE_OWNER' | 'BAD_REQUEST' | 'REQUEST_TOO_LARGE' | 'UNSUPPORTED_MEDIA_TYPE' | 'INTERNAL'
 
 export type ErrorCode = DomainErrorCode | HttpCode
 

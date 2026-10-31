@@ -293,7 +293,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'user.role_changed': ['from', 'to'],
   'user.password_reset_link': [],
   'user.profile_updated': [],
-  'user.avatar_changed': [],
+  'user.avatar_changed': ['removed'],
   'user.data_exported': [],
   'user.anonymized': [],
   'user.anonymization_scheduled': [],
@@ -628,8 +628,11 @@ const OPENAPI_KEYS = ['password', 'token', 'passwordSet']
 test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const token = await fx.openLink()
-  // the platform's routes do not exist for an agency's people: platform-routes.int.test.ts
-  const gets = apiRoutes.filter((r) => r.method === 'GET' && r.scope !== 'platform')
+  // the platform's routes do not exist for an agency's people: platform-routes.int.test.ts;
+  // files (photos) are no JSON to scan, and avatar.int.test.ts checks who reads them
+  const gets = apiRoutes.filter(
+    (r) => r.method === 'GET' && r.scope !== 'platform' && r.download === undefined,
+  )
   expect(gets.length).toBeGreaterThan(0)
   for (const route of gets) {
     const path = fill(route.path, { ...pathValues(ids), token })

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { z } from 'zod'
-import { ApiErrorBody } from './define.js'
+import { ApiErrorBody, FileResponse } from './define.js'
 import { apiRoutes, openApiDocument } from './registry.js'
 
 const templateParams = (path: string) => [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
@@ -49,7 +49,16 @@ describe.each(apiRoutes.map((r) => [`${r.method} ${r.path}`, r] as const))('%s',
   })
 
   test('only methods that change something have a body', () => {
-    if (route.method === 'GET') expect(route.request.body).toBeUndefined()
+    if (route.method === 'GET') {
+      expect(route.request.body).toBeUndefined()
+      expect(route.upload).toBeUndefined()
+    }
+  })
+
+  test('an upload has no JSON body, a download answers a file and only from GET', () => {
+    if (route.upload) expect(route.request.body).toBeUndefined()
+    expect(route.download === undefined || route.method === 'GET').toBe(true)
+    expect(route.response === FileResponse).toBe(route.download !== undefined)
   })
 })
 

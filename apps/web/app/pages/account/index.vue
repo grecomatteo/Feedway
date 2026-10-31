@@ -5,6 +5,7 @@ import type { ApiFailure } from '~/composables/useApi'
 const { t } = useI18n()
 const { call, failure } = useApi()
 const colorMode = useColorMode()
+const session = useSession()
 
 useHead({ title: () => t('account.title') })
 
@@ -51,6 +52,12 @@ async function save(state: ReturnType<typeof formState>, body: Record<string, un
   } finally {
     state.sending = false
   }
+}
+
+// ---- photo: the header shows it too, so the session is read again
+async function avatarSaved(value: Me) {
+  me.value = value
+  await session.load()
 }
 
 // ---- name and nickname
@@ -167,6 +174,8 @@ async function changeEmail() {
     </div>
 
     <template v-else-if="me">
+      <AvatarUploader :me="me" @saved="avatarSaved" />
+
       <section
         aria-labelledby="account-profile"
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
