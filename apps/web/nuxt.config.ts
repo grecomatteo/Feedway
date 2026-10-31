@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 export default defineNuxtConfig({
@@ -34,7 +35,15 @@ export default defineNuxtConfig({
   nitro: {
     errorHandler: fileURLToPath(new URL('./server/error.ts', import.meta.url)),
     // workspace packages are TypeScript sources: bundle them instead of importing them at runtime
-    externals: { inline: [/^@app\//] },
+    externals: {
+      inline: [/^@app\//],
+      // the HEIC decoder is loaded by path inside a worker thread: the tracer cannot see it
+      traceInclude: [
+        createRequire(new URL('../../packages/infrastructure/', import.meta.url)).resolve(
+          'libheif-js/wasm-bundle.js',
+        ),
+      ],
+    },
   },
   security: {
     nonce: true,

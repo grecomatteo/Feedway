@@ -220,6 +220,20 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .set(set)
         .where(eq(users.id, ownUser(ctx, id)))
     },
+    async setAvatar(id, avatar) {
+      await db
+        .update(users)
+        .set({ avatarKey: avatar?.key ?? null, image: avatar?.image ?? null })
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
+    async avatarKeyOf(id) {
+      const [row] = await db
+        .select({ avatarKey: users.avatarKey })
+        .from(users)
+        // a disabled or anonymized account shows no photo, whatever its memberships say
+        .where(and(eq(users.id, id), eq(users.status, 'active'), isNull(users.anonymizedAt)))
+      return row?.avatarKey ?? null
+    },
     async changeEmail(id, email) {
       const own = ownUser(ctx, id)
       // only whether the address is taken, never whose it is

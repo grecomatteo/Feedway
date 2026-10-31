@@ -280,7 +280,7 @@ async function transferred() {
           <tr v-for="m in data.items" :key="m.id" class="border-t border-(--app-border)">
             <th scope="row" class="px-4 py-2 font-normal">
               <span class="flex items-center gap-2">
-                <UserAvatar :name="m.displayName" />
+                <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
                 <span>
                   <span class="block font-semibold">{{ m.displayName }}</span>
                   <span class="block text-(--app-text-muted)">{{ m.email }}</span>

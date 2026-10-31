@@ -1,13 +1,16 @@
 import { STATUS_CODES } from 'node:http'
+import { Readable } from 'node:stream'
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
-import type { ApiContract } from '@app/contracts'
+import type { ApiContract, FileAnswer } from '@app/contracts'
 import type { ResolvedSession } from '@app/application'
 import type { OrgActor, PlatformActor } from '@app/domain'
 import { HttpProblem, failureEntry, issuesFromZod, toErrorResponse } from './http-errors'
 
 const DEFAULT_MAX_BODY_BYTES = 16 * 1024
 const JSON_TYPE = /^application\/json\s*(;|$)/i
+/** Room for the multipart boundaries and part headers around an uploaded file. */
+const MULTIPART_FRAMING_BYTES = 16 * 1024
 
 type Out<T> = T extends z.ZodType ? z.output<T> : undefined
 
@@ -16,6 +19,8 @@ export interface ApiContext<C extends ApiContract> {
   params: Out<C['request']['params']>
   query: Out<C['request']['query']>
   body: Out<C['request']['body']>
+  /** The uploaded file of an `upload` route, already within its limit. */
+  file: C['upload'] extends { maxBytes: number } ? Buffer : undefined
   /** null only on a public route without a session */
   session: C['auth'] extends 'public' ? ResolvedSession | null : ResolvedSession
   actor: C['scope'] extends 'organization'
@@ -78,6 +83,69 @@ async function readJsonBody(event: H3Event, maxBytes: number): Promise<unknown> 
   }
 }
 
+const megabytes = (bytes: number) => Math.round(bytes / (1024 * 1024))
+
+/**
+ * The one file of a multipart body. A declared length over the limit is refused before
+ * anything is read; a body without one was already bounded while read (middleware/03).
+ */
+async function readUpload(event: H3Event, maxBytes: number): Promise<Buffer> {
+  const mediaType = (getRequestHeader(event, 'content-type') ?? '').split(';')[0] ?? ''
+  if (mediaType.trim().toLowerCase() !== 'multipart/form-data')
+    throw new HttpProblem('UNSUPPORTED_MEDIA_TYPE')
+  const tooLarge = () =>
+    new HttpProblem('FILE_TOO_LARGE', {
+      message: `Il file può pesare al massimo ${String(megabytes(maxBytes))} MB`,
+    })
+  const limit = maxBytes + MULTIPART_FRAMING_BYTES
+  if (Number(getRequestHeader(event, 'content-length') ?? 0) > limit) {
+    setResponseHeader(event, 'connection', 'close')
+    throw tooLarge()
+  }
+  const raw = await readRawBody(event, false)
+  if (raw !== undefined && raw.length > limit) throw tooLarge()
+  const parts = raw === undefined || raw.length === 0 ? [] : await readMultipartFormData(event)
+  const noFile = () =>
+    new HttpProblem('VALIDATION', {
+      issues: [{ path: ['file'], message: 'Scegli un file' }],
+    })
+  if (!parts || parts.length !== 1) throw noFile()
+  const [part] = parts
+  if (part?.name !== 'file' || part.filename === undefined) throw noFile()
+  if (part.data.length > maxBytes) throw tooLarge()
+  return part.data
+}
+
+/** A download route's answer: the bytes, or 304 when the client already holds this version. */
+async function sendFile(event: H3Event, contentType: string, answer: FileAnswer) {
+  setResponseHeader(event, 'content-type', contentType)
+  if (answer.cacheControl) setResponseHeader(event, 'cache-control', answer.cacheControl)
+  if (answer.filename)
+    setResponseHeader(
+      event,
+      'content-disposition',
+      `attachment; filename="${answer.filename.replace(/[^\w.-]/g, '_')}"`,
+    )
+  const release = () => {
+    // a stored file stays open until its body is read or abandoned
+    if (!(answer.body instanceof Uint8Array)) void answer.body[Symbol.asyncIterator]().return?.()
+  }
+  if (answer.etag !== undefined) {
+    const tag = `"${answer.etag}"`
+    setResponseHeader(event, 'etag', tag)
+    const asked = getRequestHeader(event, 'if-none-match') ?? ''
+    if (asked.split(',').some((t) => t.trim().replace(/^W\//, '') === tag)) {
+      release()
+      setResponseStatus(event, 304)
+      return null
+    }
+  }
+  setResponseHeader(event, 'content-length', answer.size)
+  if (answer.body instanceof Uint8Array) return Buffer.from(answer.body)
+  await sendStream(event, Readable.from(answer.body))
+  return null
+}
+
 async function limit(event: H3Event, rule: NonNullable<ApiRouteOptions['rateLimit']>) {
   const ip = getRequestHeader(event, 'x-app-client-ip') ?? 'unknown'
   const hit = await useDeps().rateLimiter.hit(`ip:${rule.name}:${ip}`, rule.limit, rule.windowMs)
@@ -138,6 +206,7 @@ export function defineApiRoute<C extends ApiContract>(
         body: body
           ? parse(body, await readJsonBody(event, contract.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES))
           : undefined,
+        file: contract.upload ? await readUpload(event, contract.upload.maxBytes) : undefined,
         session,
         actor,
         ip: getRequestHeader(event, 'x-app-client-ip') ?? null,
@@ -145,6 +214,8 @@ export function defineApiRoute<C extends ApiContract>(
       } as ApiContext<C>
       const answer = contract.response.safeParse(await handler(ctx))
       if (!answer.success) throw new Error('answer does not match the response contract')
+      if (contract.download)
+        return await sendFile(event, contract.download.contentType, answer.data as FileAnswer)
       return answer.data
     } catch (error) {
       return sendApiError(event, error)
@@ -173,3 +244,6 @@ export const MAIL_TEST_RATE_LIMIT_ROUTE = { name: 'mail-test', limit: 5, windowM
 
 /** Each reset link takes over an account if it leaks. */
 export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs: 60_000 }
+
+/** Each photo is decoded and resized: a stolen session must not keep the server busy. */
+export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }

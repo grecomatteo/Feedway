@@ -49,7 +49,7 @@ const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
           to="/account"
           class="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-(--app-surface-sunken)"
         >
-          <UserAvatar :name="me.displayName" />
+          <UserAvatar :name="me.displayName" :src="me.avatarUrl" />
           <span class="truncate text-sm">{{ me.displayName }}</span>
         </NuxtLink>
         <div class="flex items-center justify-between">

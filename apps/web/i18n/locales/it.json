@@ -757,5 +757,31 @@
       "all": "Tutti"
     },
     "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare."
+  },
+  "avatar": {
+    "title": "Foto profilo",
+    "help": "JPEG, PNG, WebP o HEIC (le foto dell'iPhone), fino a 5 MB. Puoi anche trascinarla qui. Togliamo posizione e dati della fotocamera; la vedono solo le persone delle tue agenzie.",
+    "dropHere": "Rilascia qui",
+    "choose": "Scegli foto",
+    "remove": "Togli la foto",
+    "uploading": "Carico la foto…",
+    "tooLarge": "La foto può pesare al massimo 5 MB: scegline una più leggera.",
+    "wrongType": "Usa una foto JPEG, PNG, WebP o HEIC.",
+    "cropTitle": "Ritaglia la foto",
+    "cropHelp": "Sposta il cerchio trascinandolo, con le frecce o con i pulsanti; + e − ingrandiscono e rimpiccioliscono.",
+    "cropArea": "Parte della foto da usare",
+    "cropValue": "Quadrato di {size} pixel, a {x} da sinistra e {y} dall'alto",
+    "moveLeft": "Sposta a sinistra",
+    "moveRight": "Sposta a destra",
+    "moveUp": "Sposta in alto",
+    "moveDown": "Sposta in basso",
+    "zoomIn": "Ingrandisci",
+    "zoomOut": "Rimpicciolisci",
+    "previewLarge": "Nel profilo",
+    "previewSmall": "Negli elenchi",
+    "cancel": "Annulla",
+    "save": "Usa questa foto",
+    "saved": "Foto profilo salvata.",
+    "removed": "Foto tolta: ora si vedono le tue iniziali."
   }
 }
