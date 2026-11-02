@@ -58,6 +58,8 @@ export {
 export type { AvatarDeps } from './avatar.js'
 export {
   buildDataExport,
+  DATA_EXPORT_MAX_ACTIVITY,
+  DATA_EXPORT_STALE_MS,
   DATA_EXPORTS_PER_DAY,
   listDataExports,
   openDataExport,

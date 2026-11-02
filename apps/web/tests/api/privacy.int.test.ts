@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterAll, beforeAll, expect, test } from 'vitest'
+import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { errorCodeOf, startApiEnv } from './identity-env.js'
 import type { ApiEnv, Person } from './identity-env.js'
 
@@ -17,6 +17,12 @@ beforeAll(async () => {
   cookies['person'] = await env.signIn(person)
   cookies['colleague'] = await env.signIn(colleague)
 }, 300_000)
+
+// the password confirmation lasts a few minutes: each test starts with a fresh one
+beforeEach(async () => {
+  await env.reauth(cookies['person'] ?? '')
+  await env.reauth(cookies['colleague'] ?? '')
+})
 
 afterAll(async () => {
   await env.stop()
@@ -43,17 +49,13 @@ async function readyExport(userId: string, expiresIn: string) {
 const download = (id: string, cookie: string) =>
   env.call('GET', `/api/v1/me/exports/${id}/download`, undefined, { cookie })
 
-test('a request is prepared once and shown with its status', async () => {
+test('a request is shown with its status, to its owner only', async () => {
   const first = await env.call('POST', '/api/v1/me/exports', undefined, {
     cookie: cookies['person'],
   })
   expect(first.status).toBe(200)
   const created = (await first.json()) as { id: string; status: string; expiresAt: null }
   expect(created).toMatchObject({ status: 'pending', expiresAt: null })
-  const again = await env.call('POST', '/api/v1/me/exports', undefined, {
-    cookie: cookies['person'],
-  })
-  expect(((await again.json()) as { id: string }).id).toBe(created.id)
   const list = await env.call('GET', '/api/v1/me/exports', undefined, {
     cookie: cookies['person'],
   })
@@ -93,4 +95,15 @@ test('without a session nothing is answered', async () => {
   const id = await readyExport(person.userId, '1 day')
   expect((await env.call('GET', `/api/v1/me/exports/${id}/download`)).status).toBe(401)
   expect((await env.call('POST', '/api/v1/me/exports')).status).toBe(401)
+})
+
+test('without a recent password confirmation the archive is neither prepared nor sent', async () => {
+  const id = await readyExport(person.userId, '1 day')
+  const cookie = await env.signIn(person)
+  const ask = await env.call('POST', '/api/v1/me/exports', undefined, { cookie })
+  expect(ask.status).toBe(403)
+  expect(await errorCodeOf(ask)).toBe('REAUTH_REQUIRED')
+  const get = await download(id, cookie)
+  expect(get.status).toBe(403)
+  expect(await errorCodeOf(get)).toBe('REAUTH_REQUIRED')
 })

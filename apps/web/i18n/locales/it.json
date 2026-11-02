@@ -151,7 +151,8 @@
     "expires": "Scaricabile fino al {date}.",
     "failed": "Non siamo riusciti a preparare il file. Riprova.",
     "expired": "Il file è scaduto: preparane uno nuovo.",
-    "requestedAt": "Richiesto il {date}"
+    "requestedAt": "Richiesto il {date}",
+    "reauth": "Prima di preparare e di scaricare il file ti chiediamo di nuovo la password."
   },
   "reauth": {
     "title": "Conferma che sei tu",

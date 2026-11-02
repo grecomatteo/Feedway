@@ -18,7 +18,16 @@ const preparing = computed(
   () => latest.value?.status === 'pending' || latest.value?.status === 'running',
 )
 const sending = ref(false)
+const downloading = ref(false)
 const problem = ref<string | null>(null)
+
+// asking for the data and downloading it both need the password (or a passkey) again
+const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
+const { data: factors } = useFetch<SecondFactor>('/api/v1/me/second-factor', {
+  key: 'second-factor',
+  server: false,
+  lazy: true,
+})
 
 // while the file is being prepared the page asks again every 3 seconds, and stops after
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -52,12 +61,45 @@ async function request() {
   sending.value = true
   problem.value = null
   try {
-    await call('POST', '/api/v1/me/exports')
+    await withReauth(async () => {
+      await call('POST', '/api/v1/me/exports')
+    })
     await refresh()
   } catch (e) {
-    problem.value = failure(e).message
+    if (!(e instanceof ReauthCancelled)) problem.value = failure(e).message
   } finally {
     sending.value = false
+  }
+}
+
+/** The file through a request of the page, so a missing confirmation opens the dialog. */
+async function download(item: DataExport) {
+  downloading.value = true
+  problem.value = null
+  try {
+    await withReauth(async () => {
+      const response = await $fetch.raw<Blob>(
+        `/api/v1/me/exports/${encodeURIComponent(item.id)}/download`,
+        { responseType: 'blob' },
+      )
+      const name =
+        /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1] ??
+        'dati-personali.zip'
+      if (!response._data) throw new Error('empty download')
+      const url = URL.createObjectURL(response._data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = name
+      link.click()
+      setTimeout(() => {
+        URL.revokeObjectURL(url)
+      }, 60_000)
+    })
+  } catch (e) {
+    if (!(e instanceof ReauthCancelled)) problem.value = failure(e).message
+    await refresh()
+  } finally {
+    downloading.value = false
   }
 }
 </script>
@@ -122,9 +164,8 @@ async function request() {
       <UButton
         class="min-h-11"
         icon="i-lucide-download"
-        :to="`/api/v1/me/exports/${encodeURIComponent(latest.id)}/download`"
-        external
-        download
+        :loading="downloading"
+        @click="download(latest)"
       >
         {{ $t('dataExport.download') }}
       </UButton>
@@ -144,11 +185,18 @@ async function request() {
         {{ latest ? $t('dataExport.requestAgain') : $t('dataExport.request') }}
       </UButton>
       <p class="text-sm text-(--app-text-muted)">{{ $t('dataExport.limit') }}</p>
+      <p class="text-sm text-(--app-text-muted)">{{ $t('dataExport.reauth') }}</p>
     </div>
 
     <p v-if="problem" role="alert" class="flex items-center gap-2 text-(--app-danger)">
       <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
       {{ problem }}
     </p>
+
+    <ReauthDialog
+      v-model:open="reauthOpen"
+      :passkeys="factors?.passkeys.length ?? 0"
+      @done="reauthDone"
+    />
   </section>
 </template>

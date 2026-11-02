@@ -1,4 +1,5 @@
 import { DomainError, RETENTION } from '@app/domain'
+import type { AuthSessionInfo } from '../ports/auth.js'
 import type { Clock } from '../ports/clock.js'
 import type { IdGenerator } from '../ports/id-generator.js'
 import type { JobQueue } from '../ports/job-queue.js'
@@ -7,6 +8,7 @@ import type { DataExportRecord, DataExportStatus } from '../ports/repositories.j
 import type { Storage, StoredObject } from '../ports/storage.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import { assertRecentReauth } from './reauth.js'
 import type { ZipEntry, ZipWriter } from '../ports/zip-writer.js'
 
 export interface DataExportDto {
@@ -24,15 +26,37 @@ const DAY_MS = 24 * 3600_000
 const AUDIT_PAGE = 1000
 /** Requests shown to the person. */
 const LISTED = 5
+/**
+ * An export still being prepared after this long is taken as failed: the worker stopped on it.
+ * The person can ask again, and a retried job may take it over.
+ */
+export const DATA_EXPORT_STALE_MS = 3600_000
+/** At most this many activity entries go in the archive, the newest; the rest is noted. */
+export const DATA_EXPORT_MAX_ACTIVITY = 50_000
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
-/** A ready file past its time is shown as expired, whatever the row still says. */
+const staleBefore = (now: Date) => new Date(now.getTime() - DATA_EXPORT_STALE_MS)
+
+/**
+ * A ready file past its time is shown as expired, and one stuck in preparation as failed,
+ * whatever the row still says.
+ */
+function statusOf(record: DataExportRecord, now: Date): DataExportStatus {
+  if (record.status === 'ready' && record.expiresAt !== null && record.expiresAt <= now)
+    return 'expired'
+  if (
+    (record.status === 'pending' || record.status === 'running') &&
+    record.updatedAt < staleBefore(now)
+  )
+    return 'failed'
+  return record.status
+}
+
 function toDto(record: DataExportRecord, now: Date): DataExportDto {
-  const expired = record.status === 'ready' && record.expiresAt !== null && record.expiresAt <= now
   return {
     id: record.id,
-    status: expired ? 'expired' : record.status,
+    status: statusOf(record, now),
     createdAt: record.createdAt.toISOString(),
     expiresAt: record.expiresAt?.toISOString() ?? null,
   }
@@ -40,17 +64,21 @@ function toDto(record: DataExportRecord, now: Date): DataExportDto {
 
 /**
  * "Scarica i miei dati": one archive at a time. A request while one is being prepared returns
- * that one; at most three requests a day.
+ * that one; at most three requests a day. The whole account in one file: the session must have
+ * been confirmed with the password or a passkey in the last minutes (REAUTH_REQUIRED).
  */
 export async function requestDataExport(
   deps: { uow: UnitOfWork; queue: Pick<JobQueue, 'send'>; clock: Clock; ids: IdGenerator },
   user: { id: string },
+  session: AuthSessionInfo,
+  request: { ip: string | null },
 ): Promise<DataExportDto> {
   const now = deps.clock.now()
+  assertRecentReauth(session, now)
   return deps.uow.run({ userId: user.id }, async (tx) => {
     // the row lock puts two requests at once in line: the second finds the first
     await tx.users.findByIdForUpdate(user.id)
-    const active = await tx.dataExports.findActive(user.id)
+    const active = await tx.dataExports.findActive(user.id, staleBefore(now))
     if (active) return toDto(active, now)
     const since = new Date(now.getTime() - DAY_MS)
     if ((await tx.dataExports.countSince(user.id, since)) >= DATA_EXPORTS_PER_DAY)
@@ -61,7 +89,11 @@ export async function requestDataExport(
     const id = deps.ids.newId()
     await tx.dataExports.create({ id, userId: user.id, createdAt: now })
     // queued before the commit: if it fails nothing is recorded; the job waits for the commit
-    await deps.queue.send('identity.data_export', { userId: user.id, exportId: id })
+    await deps.queue.send('identity.data_export', {
+      userId: user.id,
+      exportId: id,
+      ip: request.ip,
+    })
     const created = await tx.dataExports.find(user.id, id)
     if (!created) throw new Error('data export not found after insert')
     return toDto(created, now)
@@ -87,16 +119,21 @@ export async function listDataExports(
 export async function openDataExport(
   deps: { uow: UnitOfWork; storage: Storage; clock: Clock },
   user: { id: string },
+  session: AuthSessionInfo,
   exportId: string,
 ): Promise<{ object: StoredObject; createdAt: Date }> {
+  // like the request: a session alone does not take the whole account away
+  assertRecentReauth(session, deps.clock.now())
   if (!UUID.test(exportId)) throw new DomainError('NOT_FOUND', 'Esportazione non trovata')
   const record = await deps.uow.run({ userId: user.id }, (tx) =>
     tx.dataExports.find(user.id, exportId),
   )
   if (!record) throw new DomainError('NOT_FOUND', 'Esportazione non trovata')
-  const status = toDto(record, deps.clock.now()).status
+  const status = statusOf(record, deps.clock.now())
   if (status === 'expired')
     throw new DomainError('LINK_INVALID', 'Il file è scaduto: chiedi di nuovo i tuoi dati')
+  if (status === 'failed')
+    throw new DomainError('CONFLICT', 'Il file non è stato preparato: chiedi di nuovo i tuoi dati')
   if (status !== 'ready' || record.storageKey === null)
     throw new DomainError('CONFLICT', 'Il file non è ancora pronto')
   const object = await deps.storage.get(record.storageKey)
@@ -134,26 +171,30 @@ async function readAll(object: StoredObject): Promise<Uint8Array> {
   return all
 }
 
-/** Every entry of one query, page by page. */
-async function allOwnEntries(
+type OwnEntry = Awaited<ReturnType<Tx['audit']['listOwn']>>[number]
+
+/** The entries of one query, newest first, page by page: at most `max`, plus one to tell. */
+async function ownEntries(
   tx: Tx,
   organizationId: string | null,
   actorId: string,
-): Promise<Awaited<ReturnType<Tx['audit']['listOwn']>>> {
-  const all: Awaited<ReturnType<Tx['audit']['listOwn']>> = []
+  max: number,
+): Promise<OwnEntry[]> {
+  const all: OwnEntry[] = []
   let after: { position: string; id: string } | undefined
-  for (;;) {
+  while (all.length <= max) {
     const page = await tx.audit.listOwn({
       organizationId,
       actorId,
-      limit: AUDIT_PAGE,
+      limit: Math.min(AUDIT_PAGE, max + 1 - all.length),
       ...(after && { after }),
     })
     all.push(...page)
     const last = page.at(-1)
-    if (page.length < AUDIT_PAGE || !last) return all
+    if (page.length === 0 || !last) break
     after = { position: last.position, id: last.id }
   }
+  return all
 }
 
 const README = `I tuoi dati personali
@@ -175,21 +216,39 @@ impronta, e non serve a te.
 Le date sono in UTC (formato ISO 8601).
 `
 
+const README_TRUNCATED = `
+Attività: ci sono solo le ${String(DATA_EXPORT_MAX_ACTIVITY)} azioni più recenti. Per le più
+vecchie scrivi all'amministratore del pannello.
+`
+
 /**
  * The job: the person's data only, read in their own scope and in each agency's scope, into
  * `users/<id>/exports/<exportId>.zip`. Never a password hash, a 2FA secret, a code or a token.
  */
 export async function buildDataExport(
   deps: DataExportJobDeps,
-  data: { userId: string; exportId: string },
+  data: { userId: string; exportId: string; ip: string | null },
 ): Promise<void> {
   const { userId, exportId } = data
   const own = { userId }
-  const record = await deps.uow.run(own, (tx) => tx.dataExports.find(userId, exportId))
+  const now = () => deps.clock.now()
+  const claim = await deps.uow.run(own, async (tx) => {
+    const record = await tx.dataExports.find(userId, exportId)
+    if (!record) return 'missing'
+    // pending, or running on a worker that stopped: one run at a time, a retry takes over
+    const claimed = await tx.dataExports.claim(userId, exportId, staleBefore(now()), now())
+    if (!claimed) return 'done'
+    const user = await tx.users.findById(userId)
+    // locked or disabled after the request: whoever holds the session gets nothing
+    if (!user || user.status !== 'active' || user.securityLockedAt !== null) {
+      await tx.dataExports.update(userId, exportId, { status: 'failed', at: now() })
+      return 'refused'
+    }
+    return 'claimed'
+  })
   // queued before the commit: retried until the row is there
-  if (!record) throw new Error('data export not committed yet')
-  if (record.status !== 'pending' && record.status !== 'running') return
-  await deps.uow.run(own, (tx) => tx.dataExports.update(userId, exportId, { status: 'running' }))
+  if (claim === 'missing') throw new Error('data export not committed yet')
+  if (claim !== 'claimed') return
   try {
     const entries = await collect(deps, userId)
     const archive = deps.zip.create(entries)
@@ -197,26 +256,34 @@ export async function buildDataExport(
     await deps.storage.put(key, Buffer.from(archive), { contentType: 'application/zip' })
     const expiresAt = new Date(deps.clock.now().getTime() + RETENTION.dataExportMs)
     await deps.uow.run(own, async (tx) => {
-      await tx.dataExports.update(userId, exportId, { status: 'ready', storageKey: key, expiresAt })
+      await tx.dataExports.update(userId, exportId, {
+        status: 'ready',
+        storageKey: key,
+        expiresAt,
+        at: now(),
+      })
+      // asked from the panel: the address of the request, not the worker's
       await tx.audit.record({
         organizationId: null,
         actorId: userId,
-        source: 'system',
+        source: 'panel',
         action: 'user.data_exported',
         entity: 'user',
         entityId: userId,
         workspaceId: null,
-        ip: null,
+        ip: data.ip,
       })
       // only the newest archive stays: an older one is shown as expired and its file goes
       for (const older of await tx.dataExports.listRecent(userId, LISTED))
         if (older.id !== exportId && older.status === 'ready')
-          await tx.dataExports.update(userId, older.id, { status: 'expired' })
+          await tx.dataExports.update(userId, older.id, { status: 'expired', at: now() })
     })
   } catch (error) {
     // the person sees "non riuscita" and can ask again; nothing to retry on our side
     deps.logger.error({ err: error, exportId }, 'data export failed')
-    await deps.uow.run(own, (tx) => tx.dataExports.update(userId, exportId, { status: 'failed' }))
+    await deps.uow.run(own, (tx) =>
+      tx.dataExports.update(userId, exportId, { status: 'failed', at: now() }),
+    )
     return
   }
   try {
@@ -238,29 +305,50 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
       sessions: await tx.sessions.findForUser(userId),
       passkeys: await tx.credentials.listPasskeys(userId),
       devices: await tx.knownDevices.list(userId),
-      activity: await allOwnEntries(tx, null, userId),
+      activity: await ownEntries(tx, null, userId, DATA_EXPORT_MAX_ACTIVITY),
     }
   })
   const { user, memberships } = personal
   const agencies = []
-  const activity = personal.activity.map((entry) => ({ entry, agency: null as string | null }))
+  let activity = personal.activity.map((entry) => ({ entry, agency: null as string | null }))
+  // the newest entries across the account and every agency, never more than the limit in memory
+  const keepNewest = (): boolean => {
+    activity.sort((a, b) => (a.entry.position < b.entry.position ? 1 : -1))
+    if (activity.length <= DATA_EXPORT_MAX_ACTIVITY) return false
+    activity = activity.slice(0, DATA_EXPORT_MAX_ACTIVITY)
+    return true
+  }
+  let truncated = keepNewest()
   for (const m of memberships) {
     const inAgency = await deps.uow.run(
       { organizationId: m.organizationId, userId },
       async (tx) => {
         const roles = await tx.workspaceMembers.rolesOf(m.organizationId, userId)
-        const workspaces = []
-        for (const [workspaceId, role] of roles) {
-          const workspace = await tx.workspaces.findForShare(m.organizationId, workspaceId)
-          if (workspace)
-            workspaces.push({
-              id: workspace.id,
-              nome: workspace.name,
-              ruolo: role,
-              archiviato: workspace.archivedAt !== null,
-            })
+        // read as a plain member: only the workspaces the person is in, and no row locks
+        const visible = await tx.workspaces.listVisible({
+          userId,
+          platformRole: null,
+          organizationId: m.organizationId,
+          orgRole: 'member',
+          memberships: roles,
+        })
+        const workspaces = visible.flatMap((workspace) => {
+          const role = roles.get(workspace.id)
+          return role
+            ? [
+                {
+                  id: workspace.id,
+                  nome: workspace.name,
+                  ruolo: role,
+                  archiviato: workspace.archivedAt !== null,
+                },
+              ]
+            : []
+        })
+        return {
+          workspaces,
+          activity: await ownEntries(tx, m.organizationId, userId, DATA_EXPORT_MAX_ACTIVITY),
         }
-        return { workspaces, activity: await allOwnEntries(tx, m.organizationId, userId) }
       },
     )
     agencies.push({
@@ -272,11 +360,14 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
       clienti: inAgency.workspaces,
     })
     activity.push(...inAgency.activity.map((entry) => ({ entry, agency: m.name })))
+    if (keepNewest()) truncated = true
   }
-  activity.sort((a, b) => (a.entry.position < b.entry.position ? 1 : -1))
 
   const entries: ZipEntry[] = [
-    { path: 'LEGGIMI.txt', data: new TextEncoder().encode(README) },
+    {
+      path: 'LEGGIMI.txt',
+      data: new TextEncoder().encode(truncated ? README + README_TRUNCATED : README),
+    },
     {
       path: 'profilo.json',
       data: json({

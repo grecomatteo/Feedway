@@ -7,6 +7,7 @@ export type {
   AccountLockedNoticeEmailData,
   AccountRecoveryEmailData,
   EmailChangeEmailData,
+  DataExportJobData,
   JobPayloads,
   JobQueue,
   PasswordResetEmailData,

@@ -223,8 +223,13 @@ export interface DataExportRecord {
 export interface DataExportsRepository {
   /** `createdAt` from the clock: the daily limit counts with the same clock. */
   create(entry: { id: string; userId: string; createdAt: Date }): Promise<void>
-  /** The one being prepared (`pending` or `running`), if any. */
-  findActive(userId: string): Promise<DataExportRecord | null>
+  /** The one being prepared (`pending` or `running`) and changed since `staleBefore`, if any. */
+  findActive(userId: string, staleBefore: Date): Promise<DataExportRecord | null>
+  /**
+   * Marks it `running` for one job: only from `pending`, or from a `running` left unchanged
+   * since `staleBefore` (its worker stopped). False when another run has it or it is done.
+   */
+  claim(userId: string, id: string, staleBefore: Date, at: Date): Promise<boolean>
   /** Requests made since `since`, whatever their status. */
   countSince(userId: string, since: Date): Promise<number>
   find(userId: string, id: string): Promise<DataExportRecord | null>
@@ -234,7 +239,7 @@ export interface DataExportsRepository {
   update(
     userId: string,
     id: string,
-    change: { status: DataExportStatus; storageKey?: string; expiresAt?: Date },
+    change: { status: DataExportStatus; storageKey?: string; expiresAt?: Date; at: Date },
   ): Promise<boolean>
 }
 
