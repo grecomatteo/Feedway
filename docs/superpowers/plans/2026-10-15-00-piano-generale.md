@@ -19,7 +19,8 @@
 | `00-piano-generale.md` | Questo documento: ordine, confini e interfacce tra tappe, regole comuni | Pronto |
 | `01-fondamenta.md` | Tappa 1, eseguibile | Pronto |
 | `02-identita.md` | Tappa 2, eseguibile | Pronto |
-| `03-meta.md` … `12-produzione.md` | Tappe 3–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
+| `03-meta.md` | Tappa 3, formato leggero | Pronto, da approvare |
+| `04-media.md` … `12-produzione.md` | Tappe 4–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
@@ -84,8 +85,8 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Matteo prova:** crea il suo account con la sua agenzia, attiva la 2FA, invita un collaboratore come Publisher in uno spazio e verifica che non veda gli altri spazi; crea da comando una seconda agenzia di prova e verifica che i dati non si mescolino.
 
 ### Tappa 3 · Meta
-- **Costruisce:** collegamenti account multipli (login Facebook, login Instagram, utente di sistema in 5 passi, ADR 015, specifica §8.0), integrazioni cifrate dell'agenzia (Meta; Telegram ed email come schede pronte) e sezione **Piattaforma → Integrazioni** visibile solo all'amministratore della piattaforma (valori predefiniti di email e Telegram, sorveglianza esterna), "Aggiungi account", sincronizzazione, salute e quota, promemoria, assegnazione account agli spazi, **profili** (account IG + Pagina FB collegata da Meta, specifica §3) e il loro livello nel selettore del contesto, con l'estensione dei test di Task 23 della tappa 2 a `?profilo=` (account invisibile o fuori dallo spazio: stesso ritorno a "Tutti i clienti"). RF-02, RF-03, RF-05, RF-20, RF-21.
-- **Introduce:** `IntegrationStore` (per organizzazione, con valori predefiniti della piattaforma per email e Telegram, segreti cifrati con `KeyRing.forOrganization`), adattatore SMTP del `Mailer` (da qui partono le email accodate nella tappa 2, comprese quelle di sicurezza), `MetaGraphClient` (live/mock/dry-run, `appsecret_proof`, classificazione errori, lettura dei limiti d'uso e rallentamento per account e per organizzazione), `tools/meta-mock`, tabelle `integrations`, `account_connections`, `social_accounts` (unico per organizzazione), `workspace_accounts`; limite `social_accounts`.
+- **Costruisce:** collegamenti account multipli (login Facebook, login Instagram, utente di sistema in 5 passi, ADR 015, specifica §8.0), integrazione Meta cifrata dell'agenzia (Telegram e sorveglianza esterna passano alla tappa 8, decisione di Matteo del 2026-11-02; l'email della piattaforma è già nella tappa 2, ADR 017), "Aggiungi account", sincronizzazione, salute e quota, promemoria, assegnazione account agli spazi, **profili** (account IG + Pagina FB collegata da Meta, specifica §3) e il loro livello nel selettore del contesto, con l'estensione dei test di Task 23 della tappa 2 a `?profilo=` (account invisibile o fuori dallo spazio: stesso ritorno a "Tutti i clienti"). RF-02, RF-03, RF-05, RF-20, RF-21.
+- **Introduce:** righe dell'agenzia in `IntegrationStore` (segreti cifrati con `KeyRing.forOrganization`), porta `PlatformConnector` e modulo `platforms/meta` (ADR 019) con il client della Graph API (live/mock/dry-run, `appsecret_proof`, classificazione errori, lettura dei limiti d'uso; il rallentamento si applica dalla tappa 7), `tools/meta-mock`, `JobQueue.schedule`, tabelle `account_connections`, `social_accounts` (unico per organizzazione), `workspace_accounts`, `connection_attempts`; limite `social_accounts`. Piano: `03-meta.md`.
 - **Matteo prova:** crea l'app Meta, collega dal pannello con login Facebook (Pagina più IG) e con login Instagram (solo IG), e verifica il rinnovo dei token; l'utente di sistema con token incollato **nel pannello** resta l'alternativa. Le risposte reali di Meta vengono registrate (senza token) e diventano le risposte del finto Graph API.
 - **Serve da Matteo:** app Meta con i ruoli del team (tester anche per Instagram), un account IG con Pagina FB e uno solo IG professionale, di prova; l'utente di sistema solo se vuole quel collegamento.
 
@@ -108,11 +109,12 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 7 · Pubblicazione
 - **Costruisce:** macchina a stati completa, preparazione 15 minuti prima, pubblicazione IG e FB per tutti i tipi, tentativi, esito incerto e ricerca del post, riconciliatore ogni minuto, verifica a 3/10/30 minuti, "Riprova" senza doppioni, pausa se l'autore ha perso i permessi o se l'organizzazione è sospesa (in quel caso nessuna notifica verso i suoi canali). RF-50, RF-51, RF-52, CS1, CS3, CS4.
-- **Introduce:** `MetaPublisher`, lavori `target.*` (con `organizationId` nei dati) e `scheduler.reconcile` (uno dei moduli di sistema, l'unico che legge le destinazioni di tutte le agenzie), limite di lavori pesanti contemporanei per organizzazione, tabelle `target_attempts` e `outbox_events` (gli eventi si scrivono da qui, le notifiche li leggeranno nella tappa 8).
+- **Introduce:** `PlatformPublisher` (implementata da `platforms/meta`, ADR 019), lavori `target.*` (con `organizationId` nei dati) e `scheduler.reconcile` (uno dei moduli di sistema, l'unico che legge le destinazioni di tutte le agenzie), limite di lavori pesanti contemporanei per organizzazione, tabelle `target_attempts` e `outbox_events` (gli eventi si scrivono da qui, le notifiche li leggeranno nella tappa 8).
 - **Matteo prova:** con il finto Graph API, riavvia il worker a metà pubblicazione e controlla che non nascano doppioni; poi la prima pubblicazione reale, insieme, su ogni tipo.
 
 ### Tappa 8 · Notifiche
 - **Scalabilità:** bot Telegram, battito e riconciliatore girano con lock consultivo: con più worker uno solo è attivo.
+- **Dalla tappa 3** (decisione di Matteo, 2026-11-02): integrazione Telegram dell'agenzia con valore predefinito della piattaforma, e sorveglianza esterna nella sezione **Piattaforma → Integrazioni**.
 - **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00 con **sezioni registrabili dai moduli** (la prima esterna sarà quella del piano editoriale), battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
 - **Introduce:** `NotificationChannel`, tabelle `notifications`, `notification_deliveries`, `notification_prefs`, `telegram_links`, `system_heartbeats`.
 - **Serve da Matteo:** bot Telegram, SMTP, account healthchecks.io.
@@ -154,20 +156,20 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `Clock` | 1 | `now(): Date` |
 | `IdGenerator` | 1 | `newId(): string` (UUID v7) |
 | `Logger` | 1 | `debug/info/warn/error(obj, msg?)`, `child(bindings): Logger` |
-| `JobQueue` | 1 | `send(name, data, opts?)`, `work(name, handler, opts?)`, `stop()` |
+| `JobQueue` | 1 | `send(name, data, opts?)`, `work(name, handler, opts?)`, `stop()`; `schedule(name, cron, data, { tz })` dalla tappa 3 |
 | `UnitOfWork` | 2 | `run<T>(scope: { organizationId, userId } \| { userId }, fn)`, `runAsSystem<T>(reason, fn)` |
 | `AuditLog` | 2 | dentro la transazione: `tx.audit.record(entry: AuditEntry): Promise<void>` |
 | `PasswordHasher` | 2 | `hash(plain)`, `verify(hash, plain)` |
 | `KeyRing` / `SecretBox` | 2 | `platform()`, `forOrganization(tx, orgId)`; `seal(plain, aad)`, `open(sealed, aad)` |
 | `RateLimiter` | 2 | `hit(key, limit, windowMs)`, più registrazione e azzeramento dei tentativi falliti (piano 02, Task 7) |
 | `Auth` | 2 | adattatore di Better Auth: sessione della richiesta, account da invito, revoca delle sessioni, link di reset, verifica della riconferma; nessun altro modulo importa Better Auth |
-| `IntegrationStore` | 3 | `get(organizationId, kind)` (con ricaduta sulla piattaforma), `replace(organizationId, kind, config, secret)` |
-| `MetaGraphClient` | 3 | funzioni tipizzate per chiamata, errori classificati `transient`/`permanent`/`uncertain` |
+| `IntegrationStore` | 2 (piattaforma), 3 (agenzia) | `getPlatform/replacePlatform/platformCredentials(tx, kind, …)`; `get/replace/credentials(tx, organizationId, kind, …)` dalla tappa 3; ricaduta sulla piattaforma per Telegram dalla tappa 8 |
+| `PlatformConnector` | 3 | per tipo di collegamento: `verifyApp`, `loadAppCredentials`, `startLogin`, `completeLogin`, `connectWithToken`, `listAccounts`, `refresh`, `checkHealth` (ADR 019); il client della Graph API resta nell'infrastruttura di `platforms/meta` |
 | `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete` dalla tappa 2; `publicUrl(variant)` dalla tappa 4; chiavi `org/<id>/…` e `users/<id>/…` |
-| `Mailer` | 2 (in memoria, file, "non configurato"), 3 (SMTP) | `isConfigured()`, `send(message)` |
+| `Mailer` | 2 (in memoria, file, "non configurato", SMTP della piattaforma: ADR 017) | `isConfigured()`, `send(message)` |
 | `AvatarProcessor` / `ZipWriter` | 2 | foto profilo (sharp, libheif-js) ed esportazione dei dati (fflate) |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
-| `MetaPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo |
+| `PlatformPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo, implementata da `platforms/meta` (ADR 019) |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
 | Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
 | Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |
