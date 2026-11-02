@@ -5,6 +5,7 @@ const tabs = [
   { to: '/account', label: 'account.tabs.profile' },
   { to: '/account/sicurezza', label: 'account.tabs.security' },
   { to: '/account/dispositivi', label: 'account.tabs.devices' },
+  { to: '/account/privacy', label: 'account.tabs.privacy' },
 ] as const
 </script>
 

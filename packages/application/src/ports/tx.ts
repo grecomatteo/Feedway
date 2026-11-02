@@ -2,6 +2,7 @@ import type { AuditLog } from './audit-log.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type {
   CredentialsRepository,
+  DataExportsRepository,
   EmailChangesRepository,
   InvitesRepository,
   KnownDevicesRepository,
@@ -39,6 +40,7 @@ export interface Tx {
   credentials: CredentialsRepository
   emailChanges: EmailChangesRepository
   knownDevices: KnownDevicesRepository
+  dataExports: DataExportsRepository
   organizations: OrganizationsRepository
   orgMembers: OrgMembersRepository
   organizationKeys: OrganizationKeysRepository

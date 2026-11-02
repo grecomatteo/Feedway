@@ -22,6 +22,7 @@
     "@zxcvbn-ts/language-it": "4.1.1",
     "better-auth": "1.7.10",
     "drizzle-orm": "0.45.4",
+    "fflate": "0.8.2",
     "libheif-js": "1.23.5",
     "nodemailer": "10.2.1",
     "pg": "8.23.1",

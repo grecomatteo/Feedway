@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
@@ -116,6 +119,31 @@ const OWNED_BY_ANOTHER: Record<
       values: { id: f.a.people.viewer.userId, size: '256' },
       async untouched() {
         expect((await f.env.call('GET', path, undefined, { cookie })).status).toBe(200)
+      },
+    }
+  },
+  'GET /api/v1/me/exports/{id}/download': async (f) => {
+    const id = randomUUID()
+    const userId = f.a.people.viewer.userId
+    const key = `users/${userId}/exports/${id}.zip`
+    await mkdir(join(f.env.web.mediaRoot, 'users', userId, 'exports'), { recursive: true })
+    await writeFile(
+      join(f.env.web.mediaRoot, key),
+      `${JSON.stringify({ contentType: 'application/zip' })}\nPK archive of the viewer`,
+    )
+    await f.env.admin.pool.query(
+      `insert into data_exports (id, user_id, status, storage_key, expires_at)
+       values ($1, $2, 'ready', $3, now() + interval '1 day')`,
+      [id, userId, key],
+    )
+    return {
+      values: { id },
+      async untouched() {
+        const own = await f.env.call('GET', `/api/v1/me/exports/${id}/download`, undefined, {
+          cookie: f.cookies.viewer,
+        })
+        expect(own.status).toBe(200)
+        expect(await own.text()).toBe('PK archive of the viewer')
       },
     }
   },

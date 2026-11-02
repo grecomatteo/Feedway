@@ -39,6 +39,7 @@ export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject } from './ports/storage.js'
 export type { AvatarCrop, AvatarProcessor } from './ports/avatar-processor.js'
+export type { ZipEntry, ZipWriter } from './ports/zip-writer.js'
 export type { Auth, AuthSessionInfo, PasskeySummary } from './ports/auth.js'
 export type { KeyRing, KeyTx, SecretBox } from './ports/key-ring.js'
 export type { PasswordHasher } from './ports/password-hasher.js'
@@ -53,9 +54,13 @@ export type {
   AuditQuery,
   AuditRecord,
   AuditSource,
+  OwnAuditRecord,
 } from './ports/audit-log.js'
 export type {
   CredentialsRepository,
+  DataExportRecord,
+  DataExportStatus,
+  DataExportsRepository,
   EmailChangesRepository,
   KnownDevicesRepository,
   InvitePurpose,

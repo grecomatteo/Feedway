@@ -23,6 +23,7 @@ interface JobDefinitions {
   'identity.account_locked_notice_email': { scope: 'system'; data: AccountLockedNoticeEmailData }
   'identity.account_recovery_email': { scope: 'user'; data: AccountRecoveryEmailData }
   'identity.email_change': { scope: 'user'; data: EmailChangeEmailData }
+  'identity.data_export': { scope: 'user'; data: { exportId: string } }
 }
 
 /**

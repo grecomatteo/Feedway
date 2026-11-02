@@ -45,6 +45,12 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 3600, deleteAfterSeconds: 3600 },
   },
+  // ids only; an archive asked a day ago and never built is no longer wanted
+  'identity.data_export': {
+    policy: 'standard',
+    scope: 'user',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

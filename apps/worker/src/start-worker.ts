@@ -4,6 +4,7 @@ import {
   identityAccountLockedNoticeEmail,
 } from './handlers/identity-account-locked-notice.js'
 import { identityAccountRecoveryEmail } from './handlers/identity-account-recovery-email.js'
+import { identityDataExport } from './handlers/identity-data-export.js'
 import { identityEmailChange } from './handlers/identity-email-change.js'
 import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
@@ -38,6 +39,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'identity.account_locked_notice_email': identityAccountLockedNoticeEmail,
     'identity.account_recovery_email': identityAccountRecoveryEmail,
     'identity.email_change': identityEmailChange,
+    'identity.data_export': identityDataExport,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
