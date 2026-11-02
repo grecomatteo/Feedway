@@ -148,7 +148,11 @@ export interface DataExportJobDeps {
   clock: Clock
   zip: ZipWriter
   logger: Logger
+  /** For tests: the activity cap and the entries read per query. */
+  limits?: { maxActivity: number; auditPage: number }
 }
+
+const DEFAULT_LIMITS = { maxActivity: DATA_EXPORT_MAX_ACTIVITY, auditPage: AUDIT_PAGE }
 
 const exportKey = (userId: string, exportId: string) => `users/${userId}/exports/${exportId}.zip`
 
@@ -178,15 +182,16 @@ async function ownEntries(
   tx: Tx,
   organizationId: string | null,
   actorId: string,
-  max: number,
+  limits: { maxActivity: number; auditPage: number },
 ): Promise<OwnEntry[]> {
+  const max = limits.maxActivity
   const all: OwnEntry[] = []
   let after: { position: string; id: string } | undefined
   while (all.length <= max) {
     const page = await tx.audit.listOwn({
       organizationId,
       actorId,
-      limit: Math.min(AUDIT_PAGE, max + 1 - all.length),
+      limit: Math.min(limits.auditPage, max + 1 - all.length),
       ...(after && { after }),
     })
     all.push(...page)
@@ -216,9 +221,9 @@ impronta, e non serve a te.
 Le date sono in UTC (formato ISO 8601).
 `
 
-const README_TRUNCATED = `
-Attività: ci sono solo le ${String(DATA_EXPORT_MAX_ACTIVITY)} azioni più recenti. Per le più
-vecchie scrivi all'amministratore del pannello.
+const readmeTruncated = (max: number) => `
+Attività: ci sono solo le ${String(max)} azioni più recenti. Per le più vecchie scrivi
+all'amministratore del pannello.
 `
 
 /**
@@ -296,6 +301,7 @@ export async function buildDataExport(
 }
 
 async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntry[]> {
+  const limits = deps.limits ?? DEFAULT_LIMITS
   const personal = await deps.uow.run({ userId }, async (tx) => {
     const user = await tx.users.findById(userId)
     if (!user) throw new Error('user not found')
@@ -305,7 +311,7 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
       sessions: await tx.sessions.findForUser(userId),
       passkeys: await tx.credentials.listPasskeys(userId),
       devices: await tx.knownDevices.list(userId),
-      activity: await ownEntries(tx, null, userId, DATA_EXPORT_MAX_ACTIVITY),
+      activity: await ownEntries(tx, null, userId, limits),
     }
   })
   const { user, memberships } = personal
@@ -314,8 +320,8 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
   // the newest entries across the account and every agency, never more than the limit in memory
   const keepNewest = (): boolean => {
     activity.sort((a, b) => (a.entry.position < b.entry.position ? 1 : -1))
-    if (activity.length <= DATA_EXPORT_MAX_ACTIVITY) return false
-    activity = activity.slice(0, DATA_EXPORT_MAX_ACTIVITY)
+    if (activity.length <= limits.maxActivity) return false
+    activity = activity.slice(0, limits.maxActivity)
     return true
   }
   let truncated = keepNewest()
@@ -347,7 +353,7 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
         })
         return {
           workspaces,
-          activity: await ownEntries(tx, m.organizationId, userId, DATA_EXPORT_MAX_ACTIVITY),
+          activity: await ownEntries(tx, m.organizationId, userId, limits),
         }
       },
     )
@@ -366,7 +372,9 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
   const entries: ZipEntry[] = [
     {
       path: 'LEGGIMI.txt',
-      data: new TextEncoder().encode(truncated ? README + README_TRUNCATED : README),
+      data: new TextEncoder().encode(
+        truncated ? README + readmeTruncated(limits.maxActivity) : README,
+      ),
     },
     {
       path: 'profilo.json',

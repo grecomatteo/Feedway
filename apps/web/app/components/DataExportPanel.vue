@@ -19,11 +19,12 @@ const preparing = computed(
 )
 const sending = ref(false)
 const downloading = ref(false)
+const statusEl = ref<HTMLElement | null>(null)
 const problem = ref<string | null>(null)
 
 // asking for the data and downloading it both need the password (or a passkey) again
 const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
-const { data: factors } = useFetch<SecondFactor>('/api/v1/me/second-factor', {
+const { data: factors } = useFetch<{ passkeys: unknown[] }>('/api/v1/me/second-factor', {
   key: 'second-factor',
   server: false,
   lazy: true,
@@ -65,6 +66,9 @@ async function request() {
       await call('POST', '/api/v1/me/exports')
     })
     await refresh()
+    // the button just used goes away while the file is prepared: focus the news instead
+    await nextTick()
+    statusEl.value?.focus()
   } catch (e) {
     if (!(e instanceof ReauthCancelled)) problem.value = failure(e).message
   } finally {
@@ -78,22 +82,8 @@ async function download(item: DataExport) {
   problem.value = null
   try {
     await withReauth(async () => {
-      const response = await $fetch.raw<Blob>(
-        `/api/v1/me/exports/${encodeURIComponent(item.id)}/download`,
-        { responseType: 'blob' },
-      )
-      const name =
-        /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1] ??
-        'dati-personali.zip'
-      if (!response._data) throw new Error('empty download')
-      const url = URL.createObjectURL(response._data)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = name
-      link.click()
-      setTimeout(() => {
-        URL.revokeObjectURL(url)
-      }, 60_000)
+      const file = await fetchFile(`/api/v1/me/exports/${encodeURIComponent(item.id)}/download`)
+      saveBlob(file.blob, file.filename ?? 'dati-personali.zip')
     })
   } catch (e) {
     if (!(e instanceof ReauthCancelled)) problem.value = failure(e).message
@@ -153,8 +143,10 @@ async function download(item: DataExport) {
     </template>
 
     <p
+      ref="statusEl"
       role="status"
       aria-live="polite"
+      tabindex="-1"
       :class="latest?.status === 'failed' ? 'text-(--app-danger)' : ''"
     >
       {{ announcement }}

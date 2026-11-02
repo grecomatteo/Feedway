@@ -428,3 +428,48 @@ test('an account locked after the request gets no archive', async () => {
     await admin.query('update users set security_locked_at = null where id = $1', [stranger])
   }
 })
+
+test('past the activity cap only the newest entries go in, and the readme says so', async () => {
+  const dto = await request(user)
+  await buildDataExport(
+    { ...jobDeps(), limits: { maxActivity: 2, auditPage: 1 } },
+    { userId: user, exportId: dto.id, ip: IP },
+  )
+  const { object } = await open(user, dto.id)
+  const files = unzipSync(await bytesOf(object))
+  const { rows } = await admin.query<{ at: string }>(
+    `select to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as at
+       from audit_log where actor_id = $1
+      order by created_at desc, id desc`,
+    [user],
+  )
+  const activity = json(files, 'attivita.json') as { quando: string }[]
+  // the entry of this very export is written after the archive
+  const before = rows.map((r) => r.at).filter((at) => at <= (activity[0]?.quando ?? ''))
+  expect(activity.map((a) => a.quando)).toEqual(before.slice(0, 2))
+  expect(text(files, 'LEGGIMI.txt')).toContain('ci sono solo le 2 azioni più recenti')
+})
+
+test('agencies where the membership is disabled or the agency suspended are included', async () => {
+  const { person, suspended } = await seed(tdb.runtimeUrl, async (s) => {
+    const p = await s.user()
+    const off = await s.organization({ status: 'suspended' })
+    await s.member(orgA, p, 'member', 'disabled')
+    await s.member(off, p, 'member')
+    return { person: p, suspended: off }
+  })
+  const { files } = await exportFor(person)
+  const agencies = json(files, 'agenzie.json') as {
+    id: string
+    statoAppartenenza: string
+    statoAgenzia: string
+  }[]
+  expect(agencies.find((a) => a.id === orgA)).toMatchObject({
+    statoAppartenenza: 'disattivata',
+    statoAgenzia: 'attiva',
+  })
+  expect(agencies.find((a) => a.id === suspended)).toMatchObject({
+    statoAppartenenza: 'attiva',
+    statoAgenzia: 'sospesa',
+  })
+})

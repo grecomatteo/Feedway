@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { listDataExports, requestDataExport, type JobPayloads } from '@app/application'
+import { listDataExports } from '@app/application'
 import { createRuntime, createZipWriter, notConfiguredMailer } from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
 import { seed, startTestDatabase } from '@app/infrastructure/testing'
@@ -57,41 +57,14 @@ const deps = (): JobHandlerDeps => ({
 
 test('the job writes the archive and marks the export ready', async () => {
   const userId = await seed(tdb.runtimeUrl, (s) => s.user({ name: 'Marco Neri' }))
-  const sent: JobPayloads['identity.data_export'][] = []
-  const dto = await requestDataExport(
-    {
-      uow: runtime.uow,
-      clock: runtime.clock,
-      ids: runtime.ids,
-      queue: {
-        send: (_name, data) => {
-          sent.push(data as JobPayloads['identity.data_export'])
-          return Promise.resolve('job')
-        },
-      },
-    },
-    { id: userId },
-    {
-      id: 'session',
-      userId,
-      createdAt: runtime.clock.now(),
-      expiresAt: new Date(runtime.clock.now().getTime() + 3600_000),
-      updatedAt: runtime.clock.now(),
-      ipAddress: null,
-      userAgent: null,
-      authMethod: 'password',
-      reauthenticatedAt: runtime.clock.now(),
-    },
-    { ip: '192.0.2.1' },
+  const exportId = runtime.ids.newId()
+  await runtime.uow.run({ userId }, (tx) =>
+    tx.dataExports.create({ id: exportId, userId, createdAt: runtime.clock.now() }),
   )
-  expect(sent).toEqual([{ userId, exportId: dto.id, ip: '192.0.2.1' }])
-  await identityDataExport(
-    { id: 'job', data: { userId, exportId: dto.id, ip: '192.0.2.1' } },
-    deps(),
-  )
+  await identityDataExport({ id: 'job', data: { userId, exportId, ip: null } }, deps())
   const [ready] = await listDataExports({ uow: runtime.uow, clock: runtime.clock }, { id: userId })
-  expect(ready).toMatchObject({ id: dto.id, status: 'ready' })
-  const object = await runtime.storage.get(`users/${userId}/exports/${dto.id}.zip`)
+  expect(ready).toMatchObject({ id: exportId, status: 'ready' })
+  const object = await runtime.storage.get(`users/${userId}/exports/${exportId}.zip`)
   if (!object) throw new Error('archive missing')
   const chunks: Uint8Array[] = []
   for await (const c of object.body) chunks.push(c)

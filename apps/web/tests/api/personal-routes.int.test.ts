@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
+import { createLocalDiskStorage } from '@app/infrastructure'
 import { imageFixture } from '@app/infrastructure/testing'
 import type { ErrorJson } from './identity-env.js'
 import { fill, routeKey, sampleBody, startIsolationFixture } from './support/isolation-fixture.js'
@@ -126,10 +125,10 @@ const OWNED_BY_ANOTHER: Record<
     const id = randomUUID()
     const userId = f.a.people.viewer.userId
     const key = `users/${userId}/exports/${id}.zip`
-    await mkdir(join(f.env.web.mediaRoot, 'users', userId, 'exports'), { recursive: true })
-    await writeFile(
-      join(f.env.web.mediaRoot, key),
-      `${JSON.stringify({ contentType: 'application/zip' })}\nPK archive of the viewer`,
+    await createLocalDiskStorage({ root: f.env.web.mediaRoot }).put(
+      key,
+      Buffer.from('PK archive of the viewer'),
+      { contentType: 'application/zip' },
     )
     await f.env.admin.pool.query(
       `insert into data_exports (id, user_id, status, storage_key, expires_at)
