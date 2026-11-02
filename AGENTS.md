@@ -14,8 +14,8 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 
 - **Un task alla volta**, su un ramo `<tipo>/<tappa>-<argomento>`, con una PR piccola. Non allargare il lavoro oltre il task.
 - **TDD**: test che fallisce → codice minimo → test verde → commit. Mostra l'esito dei comandi, non riassumerlo a memoria.
-- **Un solo agente per task** scrive codice e test. Poi c'è l'agente revisore della PR e, solo nei casi elencati nel [flusso Git](docs/flusso-git.md) §Revisione, la revisione di sicurezza dedicata. Non dividere il task tra altri sottoagenti (implementatore, revisore della specifica, revisore della qualità): è lavoro doppio.
-- **E2E in locale** solo per le schermate che il task tocca (`playwright test <file>`). La suite completa la fa girare la CI.
+- **Un solo agente per task** scrive codice e test (vale anche dove l'intestazione dei piani 01 e 02 consiglia subagent-driven-development). Poi c'è l'agente revisore della PR e, solo nei casi elencati nel [flusso Git](docs/flusso-git.md) §Revisione, la revisione di sicurezza dedicata. Non dividere il task tra altri sottoagenti (implementatore, revisore della specifica, revisore della qualità): è lavoro doppio.
+- **E2E durante il lavoro**: solo le schermate che il task tocca (`pnpm --filter @app/web test:e2e <file>`, nel cloud con `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`). La suite completa resta in `pnpm verify:ci`, una volta sola prima del push.
 - **Prima di dire "fatto"**: `pnpm verify` verde, test pertinenti verdi, diff riletto. Se qualcosa non è verificato, dillo.
 - **Mai**: disattivare o saltare test, usare `--no-verify`, fare push su `main`, riscrivere la storia di rami altrui, aggiungere dipendenze non previste dal piano senza una ADR.
 
@@ -46,7 +46,7 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 
 ## Design Feedway
 
-- Per nuovo lavoro UI o cambiamenti ai flussi, leggi `design/brief-feedway/03-BRIEF-APP.md` oppure `04-BRIEF-LANDING.md` secondo la superficie. Per dominio e permessi la fonte è la [specifica](docs/superpowers/specs/2026-10-15-feedway-design.md): il v9 originale in `design/brief-feedway/progetto/` è solo storico, non va riletto.
+- Per nuovo lavoro UI o cambiamenti ai flussi, leggi `design/brief-feedway/03-BRIEF-APP.md` oppure `04-BRIEF-LANDING.md` secondo la superficie. Per dominio e permessi la fonte è la [specifica](docs/superpowers/specs/2026-10-15-feedway-design.md): il v9 originale in `design/brief-feedway/progetto/` si consulta solo per il lavoro di design, come chiede il pacchetto del brief.
 - Per logo, colori e tipografia usa `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md`. Gli asset approvati e il brief prevalgono sulle preferenze generiche delle skill.
 - Usa Pencil tramite MCP e le istruzioni ottenute da `read_skill()`. Gestisci il file `design/feedway-ui.pen` con gli strumenti Pencil. Mantieni modificabili componenti e variabili.
 - Per revisioni UI, errori, responsive e prestazioni usa `design/brief-feedway/06-PROMPT-REVISIONE.md` e i criteri del documento 05. Separa osservazioni sulla tela, prove nel browser e controlli del codice.
