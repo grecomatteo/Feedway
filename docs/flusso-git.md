@@ -85,7 +85,7 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 - Ogni PR ha una revisione di codice prima del merge, fatta da un agente revisore separato da chi ha scritto il codice. Matteo guarda le PR che vuole, quando vuole: non è un passaggio obbligatorio.
 - I commenti si risolvono con un commit o con una risposta che spiega perché no. Nessuna conversazione resta aperta al merge **(GitHub)**.
 - Chi rivede controlla: corrispondenza con specifica e piano, test scritti prima, significativi e senza doppioni (`docs/convenzioni.md` §Test), confini tra livelli e moduli, isolamento tra agenzie, sicurezza, accessibilità, chiarezza.
-- **Revisione di sicurezza dedicata** (un secondo agente che cerca come aggirare le protezioni): solo quando il task tocca accessi, sessioni, permessi, isolamento tra agenzie, segreti, token, upload o dati che arrivano da fuori (Meta, file, webhook). Negli altri task basta la revisione normale, che controlla comunque la sicurezza.
+- **Revisione di sicurezza dedicata** (un secondo agente che cerca come aggirare le protezioni): solo quando il task tocca accessi, sessioni, permessi, segreti, token, upload, risposte di Meta o webhook, oppure aggiunge una tabella con `organization_id` e RLS, una rotta di organizzazione, una rotta pubblica senza sessione o un uso di `runAsSystem`. Negli altri task basta la revisione normale, che controlla comunque la sicurezza.
 
 **Merge**
 - **Chi fonde**: l'agente che ha aperto la PR la fonde da solo, appena la CI è verde, la revisione è fatta e le conversazioni sono risolte (decisione di Matteo, 2026-10-15). Matteo non deve fare nessun passaggio; se vuole fermare una PR lo scrive nella chat o nella PR.

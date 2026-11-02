@@ -71,20 +71,21 @@ Regole che la CI non può controllare tutte da sola. Quelle controllate sono mar
 
 Ogni test deve poter fallire per un motivo che a Feedway importa. Più test sulla stessa cosa rallentano la CI e ogni modifica, senza proteggere di più.
 
-- **Una regola, un test.** Ogni regola si prova una volta sola, al livello più basso che riesce a mostrarla. Ai livelli sopra si prova solo che la regola viene usata (un caso, non tutte le varianti). Esempio: la robustezza della password si prova nei test di `password-strength`; reset e cambio password verificano solo che una password debole venga rifiutata.
-- **Livelli.**
+- **Una regola, un test.** Ogni regola si prova una volta sola, al livello più basso che riesce a mostrarla. Ai livelli sopra si prova solo che la regola viene usata (un caso, non tutte le varianti). Esempio: la robustezza della password si prova nei test di `password-policy`; reset e cambio password verificano solo che una password debole venga rifiutata.
+I livelli sono quattro:
 
 | Livello | Cosa prova | Esempio |
 |---|---|---|
-| Unit (`*.test.ts`) | Logica pura: dominio, regole, `can()`, validazioni, funzioni dei casi d'uso con porte finte | `can.test.ts`, le regole di §9 |
+| Unit (`*.test.ts`) | Logica pura: dominio, regole, `can()`, validazioni, funzioni dei casi d'uso con porte finte | `can.test.ts`, le regole di pubblicazione (specifica §9) |
 | Integrazione (`*.int.test.ts`) | Solo ciò che ha bisogno del database vero o di Better Auth: query, RLS, transazioni, concorrenza, sessioni, contratto con le librerie | due inviti contemporanei per l'ultimo posto |
 | API (`apps/web/tests/api`) | Il livello HTTP: codici, intestazioni, CSRF, mappatura degli errori, batteria di isolamento | `http-layer.int.test.ts` |
 | E2E (Playwright) | Un percorso principale per schermata, con axe; non le varianti di errore già provate sotto | accesso con passkey |
 
 - **Niente doppioni tra livelli.** Una variante d'errore già provata nel caso d'uso non si riprova nella rotta né nell'E2E.
+- **Eccezione: isolamento e permessi.** La batteria di isolamento (`cross-organization.int.test.ts`) e la matrice dei permessi via HTTP (`access-matrix.int.test.ts`) ripetono apposta su ogni rotta i rifiuti già provati nei casi d'uso. Ogni rotta o lavoro nuovo ci entra sempre e non si sfoltiscono.
 - **Raggruppa per comportamento**, non per origine: nessun blocco tipo `describe('review follow-ups')`. Un test nato da una revisione va nel gruppo del comportamento che prova.
 - **File piccoli.** Sopra le 600 righe un file di test si divide per argomento (`members-invites.int.test.ts`, `members-roles.int.test.ts`…). L'avvio di Better Auth, dell'unit of work e dei dati di prova sta nei moduli di `packages/infrastructure/src/testing/`, non ripetuto in ogni file.
-- **Riordino quando si tocca.** I test esistenti si adeguano a queste regole quando un task li modifica, non con PR di solo riordino.
+- **Riordino quando si tocca.** Un task adegua solo i test che modifica o aggiunge (per esempio li sposta nel file d'argomento giusto). Dividere un file grande che il task deve toccare è ammesso in una PR preparatoria di sola divisione, subito prima del task; altre PR di solo riordino no.
 - **Mai** saltare, disattivare o indebolire un test per far passare la CI (vedi `AGENTS.md`).
 
 ## Commenti
