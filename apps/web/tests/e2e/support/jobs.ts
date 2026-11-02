@@ -36,7 +36,7 @@ export async function runDataExportJob(userId: string): Promise<void> {
       zip: createZipWriter(),
       logger: quiet,
     }
-    for (const { id } of rows) await buildDataExport(deps, { userId, exportId: id })
+    for (const { id } of rows) await buildDataExport(deps, { userId, exportId: id, ip: null })
   } finally {
     await admin.close()
     await db.close()

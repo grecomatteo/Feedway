@@ -1,5 +1,19 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
 import type {
   CredentialsRepository,
   DataExportRecord,
@@ -392,9 +406,10 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
         id: entry.id,
         userId: ownUser(ctx, entry.userId),
         createdAt: entry.createdAt,
+        updatedAt: entry.createdAt,
       })
     },
-    async findActive(userId) {
+    async findActive(userId, staleBefore) {
       const [row] = await db
         .select(dataExportColumns)
         .from(dataExports)
@@ -402,6 +417,7 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
           and(
             eq(dataExports.userId, ownUser(ctx, userId)),
             inArray(dataExports.status, ['pending', 'running']),
+            gte(dataExports.updatedAt, staleBefore),
           ),
         )
         .orderBy(desc(dataExports.createdAt), desc(dataExports.id))
@@ -431,6 +447,23 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
         .limit(limit)
       return rows.map(toDataExport)
     },
+    async claim(userId, id, staleBefore, at) {
+      const claimed = await db
+        .update(dataExports)
+        .set({ status: 'running', updatedAt: at })
+        .where(
+          and(
+            eq(dataExports.userId, ownUser(ctx, userId)),
+            eq(dataExports.id, id),
+            or(
+              eq(dataExports.status, 'pending'),
+              and(eq(dataExports.status, 'running'), lt(dataExports.updatedAt, staleBefore)),
+            ),
+          ),
+        )
+        .returning({ id: dataExports.id })
+      return claimed.length > 0
+    },
     async update(userId, id, change) {
       const updated = await db
         .update(dataExports)
@@ -438,7 +471,7 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
           status: change.status,
           ...(change.storageKey !== undefined && { storageKey: change.storageKey }),
           ...(change.expiresAt !== undefined && { expiresAt: change.expiresAt }),
-          updatedAt: new Date(),
+          updatedAt: change.at,
         })
         .where(and(eq(dataExports.userId, ownUser(ctx, userId)), eq(dataExports.id, id)))
         .returning({ id: dataExports.id })

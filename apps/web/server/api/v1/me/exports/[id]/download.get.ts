@@ -9,6 +9,7 @@ export default defineApiRoute(
     const { object, createdAt } = await openDataExport(
       { uow, storage, clock },
       session.user,
+      session.session,
       params.id,
     )
     return {

@@ -71,9 +71,24 @@ test('the job writes the archive and marks the export ready', async () => {
       },
     },
     { id: userId },
+    {
+      id: 'session',
+      userId,
+      createdAt: runtime.clock.now(),
+      expiresAt: new Date(runtime.clock.now().getTime() + 3600_000),
+      updatedAt: runtime.clock.now(),
+      ipAddress: null,
+      userAgent: null,
+      authMethod: 'password',
+      reauthenticatedAt: runtime.clock.now(),
+    },
+    { ip: '192.0.2.1' },
   )
-  expect(sent).toEqual([{ userId, exportId: dto.id }])
-  await identityDataExport({ id: 'job', data: { userId, exportId: dto.id } }, deps())
+  expect(sent).toEqual([{ userId, exportId: dto.id, ip: '192.0.2.1' }])
+  await identityDataExport(
+    { id: 'job', data: { userId, exportId: dto.id, ip: '192.0.2.1' } },
+    deps(),
+  )
   const [ready] = await listDataExports({ uow: runtime.uow, clock: runtime.clock }, { id: userId })
   expect(ready).toMatchObject({ id: dto.id, status: 'ready' })
   const object = await runtime.storage.get(`users/${userId}/exports/${dto.id}.zip`)

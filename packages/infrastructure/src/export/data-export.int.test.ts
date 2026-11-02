@@ -7,9 +7,11 @@ import pg from 'pg'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import {
   buildDataExport,
+  DATA_EXPORT_STALE_MS,
   listDataExports,
   openDataExport,
   requestDataExport,
+  type AuthSessionInfo,
   type DataExportJobDeps,
   type JobPayloads,
   type JobQueue,
@@ -146,6 +148,26 @@ beforeEach(async () => {
 })
 
 const requestDeps = () => ({ uow, queue, clock, ids: uuidV7Generator })
+const IP = '192.0.2.10'
+/** A session confirmed with the password just now. */
+const sessionOf = (
+  userId: string,
+  reauthenticatedAt: Date | null = clock.now(),
+): AuthSessionInfo => ({
+  id: randomUUID(),
+  userId,
+  createdAt: clock.now(),
+  expiresAt: new Date(clock.now().getTime() + DAY),
+  updatedAt: clock.now(),
+  ipAddress: IP,
+  userAgent: null,
+  authMethod: 'password',
+  reauthenticatedAt,
+})
+const request = (userId: string) =>
+  requestDataExport(requestDeps(), { id: userId }, sessionOf(userId), { ip: IP })
+const open = (userId: string, id: string) =>
+  openDataExport({ uow, storage, clock }, { id: userId }, sessionOf(userId), id)
 const jobDeps = (): DataExportJobDeps => ({
   uow,
   storage,
@@ -161,11 +183,11 @@ async function bytesOf(object: { body: AsyncIterable<Uint8Array> }) {
 }
 
 async function exportFor(userId: string) {
-  const dto = await requestDataExport(requestDeps(), { id: userId })
+  const dto = await request(userId)
   const job = sent.at(-1)
   if (!job) throw new Error('no job queued')
   await buildDataExport(jobDeps(), job)
-  const { object } = await openDataExport({ uow, storage, clock }, { id: userId }, dto.id)
+  const { object } = await open(userId, dto.id)
   return { id: dto.id, files: unzipSync(await bytesOf(object)) }
 }
 
@@ -271,16 +293,10 @@ test('download works for 24 hours, only for the owner', async () => {
   const [listed] = await listDataExports({ uow, clock }, { id: user })
   expect(listed).toMatchObject({ id, status: 'ready' })
   expect(new Date(listed?.expiresAt ?? 0).getTime()).toBe(clock.now().getTime() + DAY)
-  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: colleague }, id))).toBe(
-    'NOT_FOUND',
-  )
-  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: user }, 'not-an-id'))).toBe(
-    'NOT_FOUND',
-  )
+  expect(await codeOf(open(colleague, id))).toBe('NOT_FOUND')
+  expect(await codeOf(open(user, 'not-an-id'))).toBe('NOT_FOUND')
   clock.advance(DAY + 60_000)
-  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: user }, id))).toBe(
-    'LINK_INVALID',
-  )
+  expect(await codeOf(open(user, id))).toBe('LINK_INVALID')
   expect((await listDataExports({ uow, clock }, { id: user }))[0]).toMatchObject({
     status: 'expired',
   })
@@ -288,29 +304,24 @@ test('download works for 24 hours, only for the owner', async () => {
 
 test('a fourth request in 24 hours is limited', async () => {
   for (let i = 0; i < 3; i++) {
-    const dto = await requestDataExport(requestDeps(), { id: user })
-    await buildDataExport(jobDeps(), { userId: user, exportId: dto.id })
+    const dto = await request(user)
+    await buildDataExport(jobDeps(), { userId: user, exportId: dto.id, ip: IP })
   }
-  expect(await codeOf(requestDataExport(requestDeps(), { id: user }))).toBe('RATE_LIMITED')
+  expect(await codeOf(request(user))).toBe('RATE_LIMITED')
   clock.advance(DAY + 1000)
-  expect(await codeOf(requestDataExport(requestDeps(), { id: user }))).toBe('OK')
+  expect(await codeOf(request(user))).toBe('OK')
 })
 
 test('a pending export is returned instead of a new one', async () => {
-  const first = await requestDataExport(requestDeps(), { id: user })
-  const second = await requestDataExport(requestDeps(), { id: user })
+  const first = await request(user)
+  const second = await request(user)
   expect(second.id).toBe(first.id)
   expect(sent).toHaveLength(1)
-  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: user }, first.id))).toBe(
-    'CONFLICT',
-  )
+  expect(await codeOf(open(user, first.id))).toBe('CONFLICT')
 })
 
 test('two requests at once make one export', async () => {
-  const [a, b] = await Promise.all([
-    requestDataExport(requestDeps(), { id: user }),
-    requestDataExport(requestDeps(), { id: user }),
-  ])
+  const [a, b] = await Promise.all([request(user), request(user)])
   expect(a.id).toBe(b.id)
   expect(sent).toHaveLength(1)
 })
@@ -328,21 +339,22 @@ test('the archive goes under the person and a personal entry records it', async 
   expect((await storage.list(`users/${user}/exports/`)).map((o) => o.key)).toEqual([
     `users/${user}/exports/${id}.zip`,
   ])
-  const { rows } = await admin.query<{ source: string }>(
-    `select source from audit_log
+  const { rows } = await admin.query<{ source: string; ip: string }>(
+    `select source, host(ip) as ip from audit_log
       where action = 'user.data_exported' and actor_id = $1 and organization_id is null`,
     [user],
   )
   expect(rows.length).toBeGreaterThan(0)
-  expect(rows[0]?.source).toBe('system')
+  // the request's address, not the worker's
+  expect(rows[0]).toEqual({ source: 'panel', ip: IP })
 })
 
 test('a job for an export already done does nothing; a failure marks it failed', async () => {
   const { id } = await exportFor(user)
-  await buildDataExport(jobDeps(), { userId: user, exportId: id })
+  await buildDataExport(jobDeps(), { userId: user, exportId: id, ip: IP })
   expect((await listDataExports({ uow, clock }, { id: user }))[0]?.status).toBe('ready')
 
-  const dto = await requestDataExport(requestDeps(), { id: colleague })
+  const dto = await request(colleague)
   const broken: DataExportJobDeps = {
     ...jobDeps(),
     zip: {
@@ -351,14 +363,68 @@ test('a job for an export already done does nothing; a failure marks it failed',
       },
     },
   }
-  await buildDataExport(broken, { userId: colleague, exportId: dto.id })
+  await buildDataExport(broken, { userId: colleague, exportId: dto.id, ip: IP })
   expect((await listDataExports({ uow, clock }, { id: colleague }))[0]?.status).toBe('failed')
   // a failed one does not block a new request
-  expect((await requestDataExport(requestDeps(), { id: colleague })).id).not.toBe(dto.id)
+  expect((await request(colleague)).id).not.toBe(dto.id)
 })
 
 test('a job for an export not yet committed is retried', async () => {
   await expect(
-    buildDataExport(jobDeps(), { userId: user, exportId: uuidV7Generator.newId() }),
+    buildDataExport(jobDeps(), { userId: user, exportId: uuidV7Generator.newId(), ip: IP }),
   ).rejects.toThrow()
+})
+
+test('asking for the data or downloading it needs a recent password confirmation', async () => {
+  const { id } = await exportFor(user)
+  const unconfirmed = sessionOf(user, null)
+  expect(
+    await codeOf(requestDataExport(requestDeps(), { id: user }, unconfirmed, { ip: IP })),
+  ).toBe('REAUTH_REQUIRED')
+  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: user }, unconfirmed, id))).toBe(
+    'REAUTH_REQUIRED',
+  )
+  const old = sessionOf(user, new Date(clock.now().getTime() - 3600_000))
+  expect(await codeOf(openDataExport({ uow, storage, clock }, { id: user }, old, id))).toBe(
+    'REAUTH_REQUIRED',
+  )
+})
+
+test('an export stuck in preparation lets the person ask again', async () => {
+  const stuck = await request(colleague)
+  clock.advance(DATA_EXPORT_STALE_MS + 60_000)
+  expect((await listDataExports({ uow, clock }, { id: colleague }))[0]).toMatchObject({
+    id: stuck.id,
+    status: 'failed',
+  })
+  const next = await request(colleague)
+  expect(next.id).not.toBe(stuck.id)
+  expect(next.status).toBe('pending')
+})
+
+test('a second run of the same job does not build it again', async () => {
+  const dto = await request(colleague)
+  const job = { userId: colleague, exportId: dto.id, ip: IP }
+  const entries = async () =>
+    (
+      await admin.query(
+        `select 1 from audit_log where action = 'user.data_exported' and actor_id = $1`,
+        [colleague],
+      )
+    ).rowCount
+  const before = await entries()
+  await Promise.all([buildDataExport(jobDeps(), job), buildDataExport(jobDeps(), job)])
+  expect(await entries()).toBe((before ?? 0) + 1)
+})
+
+test('an account locked after the request gets no archive', async () => {
+  const dto = await request(stranger)
+  await admin.query('update users set security_locked_at = now() where id = $1', [stranger])
+  try {
+    await buildDataExport(jobDeps(), { userId: stranger, exportId: dto.id, ip: IP })
+    expect((await listDataExports({ uow, clock }, { id: stranger }))[0]?.status).toBe('failed')
+    expect(await storage.list(`users/${stranger}/exports/`)).toEqual([])
+  } finally {
+    await admin.query('update users set security_locked_at = null where id = $1', [stranger])
+  }
 })
