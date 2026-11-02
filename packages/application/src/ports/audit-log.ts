@@ -141,4 +141,16 @@ export interface AuditLog {
     after?: { position: string; id: string }
     limit: number
   }): Promise<OwnAuditRecord[]>
+  /**
+   * Whether an entry like this is already recorded (to record it once when a step is repeated).
+   * `organizationId: null` looks only at entries with no agency, which row level security shows
+   * to their author or in the system scope.
+   */
+  exists(query: {
+    organizationId: string | null
+    action: AuditAction
+    entityId: string
+    /** Any source when left out. */
+    source?: AuditSource
+  }): Promise<boolean>
 }

@@ -279,20 +279,20 @@ export async function anonymizeUserByPlatform(
     return false
   })
   await anonymizeUser(deps, { userId, source: 'system', ip: request.ip })
-  if (!already)
-    await deps.uow.runAsSystem('platform: record an anonymization', async (tx) => {
-      const author = await platformAuthor(tx, caller, request)
-      await tx.audit.record({
-        organizationId: null,
-        actorId: author.actorId,
-        source: author.source,
-        action: 'user.anonymized',
-        entity: 'user',
-        entityId: userId,
-        workspaceId: null,
-        ip: author.ip,
-        data: {},
-      })
+  // recorded once, also when an earlier run stopped after the account was anonymized
+  await deps.uow.runAsSystem('platform: record an anonymization', async (tx) => {
+    const author = await platformAuthor(tx, caller, request)
+    const entry = { organizationId: null, action: 'user.anonymized', entityId: userId } as const
+    if (await tx.audit.exists({ ...entry, source: author.source })) return
+    await tx.audit.record({
+      ...entry,
+      actorId: author.actorId,
+      source: author.source,
+      entity: 'user',
+      workspaceId: null,
+      ip: author.ip,
+      data: {},
     })
+  })
   return already ? 'already_anonymized' : 'anonymized'
 }

@@ -45,6 +45,7 @@ let uow: UnitOfWork
 let storage: Storage
 let root: string
 let orgA: string
+let orgB: string
 let ownerA: string
 const logger = createLogger({ service: 'web', level: 'error' })
 const handled: UserAnonymizedEvent[] = []
@@ -92,6 +93,7 @@ beforeAll(async () => {
   auth = createAuthAdapter(instance, { db, clock: systemClock })
   await seed(tdb.runtimeUrl, async (s) => {
     orgA = await s.organization()
+    orgB = await s.organization()
   })
   await admin.query(`update organizations set name = 'Agenzia A' where id = $1`, [orgA])
   ownerA = (await person('owner')).id
@@ -330,8 +332,20 @@ test('the platform administrator cannot delete the account from the panel', asyn
 
 test('an interrupted anonymization completes when run again, recording it once', async () => {
   const member = await memberWithData()
+  await admin.query(
+    `insert into organization_members (organization_id, user_id, role) values ($1, $2, 'member')`,
+    [orgB, member.id],
+  )
+  // the run stops in the second agency, after the first one is done
+  let agencies = 0
   const failing = deps({
-    storage: { deletePrefix: () => Promise.reject(new Error('disco non raggiungibile')) },
+    uow: {
+      ...uow,
+      run: (scope, fn) =>
+        'organizationId' in scope && ++agencies === 2
+          ? Promise.reject(new Error('database non raggiungibile'))
+          : uow.run(scope, fn),
+    },
   })
   await expect(anonymizeUser(failing, { userId: member.id, source: 'panel' })).rejects.toThrow()
   // already closed: no credential is left, and the account is disabled
@@ -344,7 +358,10 @@ test('an interrupted anonymization completes when run again, recording it once',
   await anonymizeUser(deps(), { userId: member.id, source: 'panel' })
   expect((await rawUser(member.id))?.anonymized_at).not.toBeNull()
   expect(await storage.list(`users/${member.id}/`)).toEqual([])
-  expect(await anonymizedEntries(member.id)).toHaveLength(2)
+  // one entry per agency and one personal, however many runs
+  expect((await anonymizedEntries(member.id)).map((e) => e.organization_id).sort()).toEqual(
+    [null, orgA, orgB].sort(),
+  )
   // the modules' handlers run on every run
   expect(handled).toEqual([
     { userId: member.id, source: 'panel' },

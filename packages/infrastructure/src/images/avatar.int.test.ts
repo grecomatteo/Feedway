@@ -268,3 +268,39 @@ test('remove goes back to the initials and deletes every file', async () => {
   )
   expect(rows).toHaveLength(1)
 })
+
+test('a crop that ends after the account was deleted keeps no photo', async () => {
+  const leaving = await seed(tdb.runtimeUrl, (s) => s.user())
+  const staged = await uploadAvatarSource(deps, userOf(leaving), {
+    bytes: await imageFixture('photo.jpg'),
+  })
+  const deleting: AvatarDeps = {
+    ...deps,
+    avatars: {
+      ...deps.avatars,
+      async crop(source, crop) {
+        const files = await deps.avatars.crop(source, crop)
+        await handle.pool.query(
+          `update users set status = 'disabled', anonymized_at = now() where id = $1`,
+          [leaving],
+        )
+        return files
+      },
+    },
+  }
+  const attempt = cropAvatar(
+    deleting,
+    userOf(leaving),
+    { stagingId: staged.stagingId, x: 0, y: 0, size: Math.min(staged.width, staged.height) },
+    { ip: null },
+  )
+  await expect(attempt).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  const { rows } = await handle.pool.query<{ avatar_key: string | null }>(
+    'select avatar_key from users where id = $1',
+    [leaving],
+  )
+  expect(rows[0]?.avatar_key).toBeNull()
+  expect((await keys(`users/${leaving}/avatar/`)).filter((k) => !k.includes('/staging/'))).toEqual(
+    [],
+  )
+})

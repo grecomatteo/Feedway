@@ -71,9 +71,11 @@ export async function deleteMyAccount(
 /**
  * Removes a person's personal data and keeps the history attributed to the id ("Utente
  * rimosso"). Repeatable: a run stopped half-way completes when run again, and a complete run
- * repeated changes nothing but calling the modules' handlers again. The caller has already
- * checked who may ask (`deleteMyAccount`, the platform's CLI, retention) and that the person
- * owns no agency; a membership that became Owner meanwhile stops the run before it is disabled.
+ * repeated changes nothing but calling the modules' handlers again; each entry of the activity
+ * log is recorded once. The caller has already checked who may ask (`deleteMyAccount`, the
+ * platform's CLI, retention). The account is disabled under its row lock before anything is
+ * removed, and an ownership transfer locks the same row: nobody becomes Owner of an agency
+ * while their account is being removed.
  */
 export async function anonymizeUser(
   deps: AnonymizeDeps,
@@ -89,7 +91,7 @@ export async function anonymizeUser(
     const user = await tx.users.findById(userId)
     if (!user) throw new DomainError('NOT_FOUND', 'Utente non trovato')
     const agencies = (await tx.orgMembers.listForUser(userId)).map((m) => m.organizationId)
-    return { email: user.email, alreadyAnonymized: user.anonymizedAt !== null, agencies }
+    return { email: user.email, agencies }
   })
 
   // (1) from here no sign-in is possible
@@ -112,7 +114,8 @@ export async function anonymizeUser(
         { email: before.email, userId },
         now,
       )
-      if (before.alreadyAnonymized) return
+      const entry = { organizationId, action: 'user.anonymized', entityId: userId } as const
+      if (await tx.audit.exists(entry)) return
       await tx.audit.record({
         organizationId,
         actorId: panel ? userId : null,
@@ -137,7 +140,8 @@ export async function anonymizeUser(
       at: now,
     })
     // the platform records its own entry: a personal one is written by its author only
-    if (panel && !before.alreadyAnonymized)
+    const entry = { organizationId: null, action: 'user.anonymized', entityId: userId } as const
+    if (panel && !(await tx.audit.exists({ ...entry, source })))
       await tx.audit.record({
         organizationId: null,
         actorId: userId,
