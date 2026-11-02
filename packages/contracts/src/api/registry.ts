@@ -1,11 +1,13 @@
 import { z } from 'zod'
 import { ApiErrorBody, defineContract, type ApiContract } from './define.js'
 import { auditRoutes } from './audit.js'
+import { avatarRoutes } from './avatar.js'
 import { authRoutes } from './auth.js'
 import { linkRoutes } from './links.js'
 import { meRoutes } from './me.js'
 import { organizationRoutes } from './organizations.js'
 import { platformRoutes } from './platform.js'
+import { privacyRoutes } from './privacy.js'
 import { userRoutes } from './users.js'
 import { workspaceRoutes } from './workspaces.js'
 
@@ -28,6 +30,8 @@ export const apiRoutes: readonly ApiContract[] = [
   ...linkRoutes,
   ...authRoutes,
   ...meRoutes,
+  ...avatarRoutes,
+  ...privacyRoutes,
   ...organizationRoutes,
   ...userRoutes,
   ...workspaceRoutes,
@@ -50,7 +54,7 @@ export interface OpenApiOperation {
   operationId: string
   summary: string
   parameters?: OpenApiParameter[]
-  requestBody?: { required: true; content: { 'application/json': { schema: JsonSchema } } }
+  requestBody?: { required: true; content: Record<string, { schema: JsonSchema }> }
   responses: Record<string, unknown>
   security: Record<string, string[]>[]
 }
@@ -114,11 +118,38 @@ function operation(route: ApiContract): OpenApiOperation {
         content: { 'application/json': { schema: jsonSchema(route.request.body, 'input') } },
       },
     }),
+    ...(route.upload && {
+      requestBody: {
+        required: true as const,
+        content: {
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              required: ['file'],
+              properties: {
+                file: {
+                  type: 'string',
+                  contentMediaType: 'application/octet-stream',
+                  maxLength: route.upload.maxBytes,
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
     responses: {
       '200': {
         description: 'OK',
-        content: { 'application/json': { schema: jsonSchema(route.response, 'output') } },
+        content: route.download
+          ? {
+              [route.download.contentType]: {
+                schema: { type: 'string', contentMediaType: route.download.contentType },
+              },
+            }
+          : { 'application/json': { schema: jsonSchema(route.response, 'output') } },
       },
+      ...(route.download && { '304': { description: 'Non modificato (If-None-Match)' } }),
       default: { $ref: '#/components/responses/Error' },
     },
     security: route.auth === 'public' ? [] : [{ session: [] }],

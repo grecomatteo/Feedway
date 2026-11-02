@@ -1,4 +1,4 @@
-import type { Auth, Translate } from '@app/application'
+import type { Auth, AvatarDeps, AvatarProcessor, Translate } from '@app/application'
 import type { WebConfig } from '@app/config'
 import type { Runtime } from '@app/infrastructure'
 
@@ -7,6 +7,8 @@ export interface Deps extends Runtime {
   auth: Auth
   /** The panel's texts, for the emails the web writes itself (invites). */
   translate: Translate
+  /** Profile photos: at most two at once in this process (memory), more wait or are refused. */
+  avatars: AvatarProcessor
 }
 
 let deps: Deps | undefined
@@ -27,4 +29,16 @@ export async function depsReady(): Promise<void> {
 export function useDeps(): Deps {
   if (!deps) throw new Error('dependencies not initialised')
   return deps
+}
+
+/** What the profile photo use cases need, from the process's dependencies. */
+export function avatarDeps(): AvatarDeps {
+  const deps = useDeps()
+  return {
+    uow: deps.uow,
+    storage: deps.storage,
+    avatars: deps.avatars,
+    ids: deps.ids,
+    panelUrl: deps.config.panelUrl,
+  }
 }

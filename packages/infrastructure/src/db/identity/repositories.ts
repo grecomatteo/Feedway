@@ -1,7 +1,24 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { and, count, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
 import type {
   CredentialsRepository,
+  DataExportRecord,
+  DataExportStatus,
+  DataExportsRepository,
   EmailChangesRepository,
   IdGenerator,
   KnownDevicesRepository,
@@ -14,6 +31,7 @@ import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
 import {
   accounts,
+  dataExports,
   knownDevices,
   passkeys,
   sessions,
@@ -220,6 +238,20 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .set(set)
         .where(eq(users.id, ownUser(ctx, id)))
     },
+    async setAvatar(id, avatar) {
+      await db
+        .update(users)
+        .set({ avatarKey: avatar?.key ?? null, image: avatar?.image ?? null })
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
+    async avatarKeyOf(id) {
+      const [row] = await db
+        .select({ avatarKey: users.avatarKey })
+        .from(users)
+        // a disabled or anonymized account shows no photo, whatever its memberships say
+        .where(and(eq(users.id, id), eq(users.status, 'active'), isNull(users.anonymizedAt)))
+      return row?.avatarKey ?? null
+    },
     async changeEmail(id, email) {
       const own = ownUser(ctx, id)
       // only whether the address is taken, never whose it is
@@ -337,6 +369,114 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
         .returning({ userId: knownDevices.userId })
       return deleted.length
     },
+    async list(userId) {
+      return db
+        .select({ firstSeenAt: knownDevices.firstSeenAt, lastSeenAt: knownDevices.lastSeenAt })
+        .from(knownDevices)
+        .where(eq(knownDevices.userId, ownUser(ctx, userId)))
+        .orderBy(desc(knownDevices.lastSeenAt))
+    },
+  }
+}
+
+const dataExportColumns = {
+  id: dataExports.id,
+  userId: dataExports.userId,
+  status: dataExports.status,
+  storageKey: dataExports.storageKey,
+  expiresAt: dataExports.expiresAt,
+  createdAt: dataExports.createdAt,
+  updatedAt: dataExports.updatedAt,
+}
+
+const toDataExport = (row: {
+  id: string
+  userId: string
+  status: string
+  storageKey: string | null
+  expiresAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}): DataExportRecord => ({ ...row, status: row.status as DataExportStatus })
+
+export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsRepository {
+  return {
+    async create(entry) {
+      await db.insert(dataExports).values({
+        id: entry.id,
+        userId: ownUser(ctx, entry.userId),
+        createdAt: entry.createdAt,
+        updatedAt: entry.createdAt,
+      })
+    },
+    async findActive(userId, staleBefore) {
+      const [row] = await db
+        .select(dataExportColumns)
+        .from(dataExports)
+        .where(
+          and(
+            eq(dataExports.userId, ownUser(ctx, userId)),
+            inArray(dataExports.status, ['pending', 'running']),
+            gte(dataExports.updatedAt, staleBefore),
+          ),
+        )
+        .orderBy(desc(dataExports.createdAt), desc(dataExports.id))
+        .limit(1)
+      return row ? toDataExport(row) : null
+    },
+    async countSince(userId, since) {
+      const [row] = await db
+        .select({ n: count() })
+        .from(dataExports)
+        .where(and(eq(dataExports.userId, ownUser(ctx, userId)), gte(dataExports.createdAt, since)))
+      return row?.n ?? 0
+    },
+    async find(userId, id) {
+      const [row] = await db
+        .select(dataExportColumns)
+        .from(dataExports)
+        .where(and(eq(dataExports.userId, ownUser(ctx, userId)), eq(dataExports.id, id)))
+      return row ? toDataExport(row) : null
+    },
+    async listRecent(userId, limit) {
+      const rows = await db
+        .select(dataExportColumns)
+        .from(dataExports)
+        .where(eq(dataExports.userId, ownUser(ctx, userId)))
+        .orderBy(desc(dataExports.createdAt), desc(dataExports.id))
+        .limit(limit)
+      return rows.map(toDataExport)
+    },
+    async claim(userId, id, staleBefore, at) {
+      const claimed = await db
+        .update(dataExports)
+        .set({ status: 'running', updatedAt: at })
+        .where(
+          and(
+            eq(dataExports.userId, ownUser(ctx, userId)),
+            eq(dataExports.id, id),
+            or(
+              eq(dataExports.status, 'pending'),
+              and(eq(dataExports.status, 'running'), lt(dataExports.updatedAt, staleBefore)),
+            ),
+          ),
+        )
+        .returning({ id: dataExports.id })
+      return claimed.length > 0
+    },
+    async update(userId, id, change) {
+      const updated = await db
+        .update(dataExports)
+        .set({
+          status: change.status,
+          ...(change.storageKey !== undefined && { storageKey: change.storageKey }),
+          ...(change.expiresAt !== undefined && { expiresAt: change.expiresAt }),
+          updatedAt: change.at,
+        })
+        .where(and(eq(dataExports.userId, ownUser(ctx, userId)), eq(dataExports.id, id)))
+        .returning({ id: dataExports.id })
+      return updated.length > 0
+    },
   }
 }
 
@@ -356,6 +496,18 @@ export function drizzleCredentials(
     if (ctx.kind !== 'system') throw new Error('credentials change only in the system scope')
   }
   return {
+    async listPasskeys(userId) {
+      return db
+        .select({
+          name: passkeys.name,
+          deviceType: passkeys.deviceType,
+          backedUp: passkeys.backedUp,
+          createdAt: passkeys.createdAt,
+        })
+        .from(passkeys)
+        .where(eq(passkeys.userId, ownUser(ctx, userId)))
+        .orderBy(passkeys.createdAt)
+    },
     async removePassword(userId) {
       onlySystem()
       const removed = await db

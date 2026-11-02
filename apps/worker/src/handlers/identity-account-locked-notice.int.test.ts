@@ -5,7 +5,12 @@ import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { JobPayloads, JobQueue, Mailer } from '@app/application'
-import { createMemoryMailer, createRuntime, notConfiguredMailer } from '@app/infrastructure'
+import {
+  createMemoryMailer,
+  createRuntime,
+  createZipWriter,
+  notConfiguredMailer,
+} from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
 import { fixedClock, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
@@ -78,6 +83,7 @@ function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
     clock: fixedClock(new Date(LOCKED_AT.getTime() + 60_000)),
     ids: runtime.ids,
     storage: runtime.storage,
+    zip: createZipWriter(),
     mailer,
     signedTokens: runtime.signedTokens,
     translate: createTranslate(loadItalianMessages()),

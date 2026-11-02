@@ -28,7 +28,8 @@
       "label": "Sezioni dell'account",
       "profile": "Profilo",
       "security": "Sicurezza",
-      "devices": "Dispositivi"
+      "devices": "Dispositivi",
+      "privacy": "Privacy"
     },
     "profile": {
       "title": "Nome e soprannome",
@@ -133,6 +134,25 @@
     "confirmText": "Esci anche da questo: dovrai accedere di nuovo ovunque.",
     "confirm": "Esci da tutti",
     "allSignedOut": "Sei uscito da tutti i dispositivi."
+  },
+  "dataExport": {
+    "title": "Privacy",
+    "heading": "I tuoi dati",
+    "explain": "Scarica in un file ZIP i dati che il pannello conserva su di te: profilo, agenzie e clienti, sessioni e dispositivi, attività registrate a tuo nome e foto profilo. Password, codici e chiavi non ci sono mai.",
+    "request": "Scarica i miei dati",
+    "requestAgain": "Prepara un nuovo file",
+    "limit": "Puoi chiederli fino a 3 volte in 24 ore. Il file resta scaricabile per 24 ore.",
+    "stepsLabel": "Avanzamento",
+    "stepPreparing": "In preparazione",
+    "stepReady": "Pronto",
+    "preparing": "Stiamo preparando il file. Puoi lasciare questa pagina: lo ritrovi qui quando è pronto.",
+    "ready": "Il file è pronto.",
+    "download": "Scarica il file",
+    "expires": "Scaricabile fino al {date}.",
+    "failed": "Non siamo riusciti a preparare il file. Riprova.",
+    "expired": "Il file è scaduto: preparane uno nuovo.",
+    "requestedAt": "Richiesto il {date}",
+    "reauth": "Prima di preparare e di scaricare il file ti chiediamo di nuovo la password."
   },
   "reauth": {
     "title": "Conferma che sei tu",
@@ -757,5 +777,31 @@
       "all": "Tutti"
     },
     "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare."
+  },
+  "avatar": {
+    "title": "Foto profilo",
+    "help": "JPEG, PNG, WebP o HEIC (le foto dell'iPhone), fino a 5 MB. Puoi anche trascinarla qui. Togliamo posizione e dati della fotocamera; la vedono solo le persone delle tue agenzie.",
+    "dropHere": "Rilascia qui",
+    "choose": "Scegli foto",
+    "remove": "Togli la foto",
+    "uploading": "Carico la foto…",
+    "tooLarge": "La foto può pesare al massimo 5 MB: scegline una più leggera.",
+    "wrongType": "Usa una foto JPEG, PNG, WebP o HEIC.",
+    "cropTitle": "Ritaglia la foto",
+    "cropHelp": "Sposta il cerchio trascinandolo, con le frecce o con i pulsanti; + e − ingrandiscono e rimpiccioliscono.",
+    "cropArea": "Parte della foto da usare",
+    "cropValue": "Quadrato di {size} pixel, a {x} da sinistra e {y} dall'alto",
+    "moveLeft": "Sposta a sinistra",
+    "moveRight": "Sposta a destra",
+    "moveUp": "Sposta in alto",
+    "moveDown": "Sposta in basso",
+    "zoomIn": "Ingrandisci",
+    "zoomOut": "Rimpicciolisci",
+    "previewLarge": "Nel profilo",
+    "previewSmall": "Negli elenchi",
+    "cancel": "Annulla",
+    "save": "Usa questa foto",
+    "saved": "Foto profilo salvata.",
+    "removed": "Foto tolta: ora si vedono le tue iniziali."
   }
 }

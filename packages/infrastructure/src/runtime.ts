@@ -41,7 +41,7 @@ export type RuntimeConfig = Pick<
   WebConfig,
   'nodeEnv' | 'databaseUrl' | 'encryptionKey' | 'logLevel'
 > & {
-  /** Folder for stored files; the `media` volume is mounted at the default. */
+  /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
   mediaRoot?: string
   /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
   panelUrl?: URL

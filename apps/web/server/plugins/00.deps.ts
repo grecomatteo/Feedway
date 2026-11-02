@@ -2,6 +2,7 @@ import { createAuthEventSink, resolveSessionUser, startEmailChange } from '@app/
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
 import {
   createAuthAdapter,
+  createAvatarProcessor,
   createBetterAuth,
   createPasswordHasher,
   createRuntime,
@@ -70,7 +71,13 @@ export default defineNitroPlugin((nitroApp) => {
     })
     const auth = createAuthAdapter(betterAuth, { db: runtime.db, clock: runtime.clock })
     runtime.logger.info({}, 'web started')
-    return { ...runtime, config, auth, translate: createTranslate(it) }
+    return {
+      ...runtime,
+      config,
+      auth,
+      translate: createTranslate(it),
+      avatars: createAvatarProcessor(),
+    }
   }).catch((error: unknown) => {
     // the container restarts; the cause is in the log
     console.error('web failed to start', error instanceof Error ? error.message : error)

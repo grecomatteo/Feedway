@@ -48,6 +48,24 @@ export { createPasswordResetLink, sendPasswordResetEmail } from './password-rese
 export type { PasswordResetEmailDeps } from './password-reset.js'
 export { sendAccountRecoveryEmail } from './account-recovery-email.js'
 export type { AccountRecoveryEmailDeps } from './account-recovery-email.js'
+export {
+  cropAvatar,
+  readAvatar,
+  readAvatarStaging,
+  removeAvatar,
+  uploadAvatarSource,
+} from './avatar.js'
+export type { AvatarDeps } from './avatar.js'
+export {
+  buildDataExport,
+  DATA_EXPORT_MAX_ACTIVITY,
+  DATA_EXPORT_STALE_MS,
+  DATA_EXPORTS_PER_DAY,
+  listDataExports,
+  openDataExport,
+  requestDataExport,
+} from './data-export.js'
+export type { DataExportDto, DataExportJobDeps } from './data-export.js'
 export { updateProfile } from './profile.js'
 export type { ProfileInput } from './profile.js'
 export {
