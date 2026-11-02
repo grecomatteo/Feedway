@@ -1,6 +1,6 @@
 # Piano generale di sviluppo (versione 1.0)
 
-> **For agentic workers:** questo è il piano quadro. Ogni tappa ha il proprio piano eseguibile (`2026-10-15-NN-*.md`); per eseguirne uno usa superpowers:subagent-driven-development (consigliato) o superpowers:executing-plans. I passi usano le caselle (`- [ ]`).
+> **For agentic workers:** questo è il piano quadro. Ogni tappa ha il proprio piano eseguibile (`2026-10-15-NN-*.md`); per eseguirne uno usa superpowers:executing-plans: un solo agente per task, più l'agente revisore della PR (`AGENTS.md`). I passi usano le caselle (`- [ ]`).
 
 **Obiettivo:** portare la piattaforma dalla specifica v9 alla versione 1.0 in uso quotidiano, in 12 tappe installabili e provabili sulla VPS.
 
