@@ -20,11 +20,14 @@ Per dominio e casi d'uso si lavora in **TDD**:
 3. migliora il codice con i test verdi;
 4. commit.
 
-| Livello | File | Comando | Cosa |
-|---|---|---|---|
-| Unit | `*.test.ts` | `pnpm test:unit` | Dominio, regole, funzioni pure. Copertura ≥ 90% su `packages/domain` |
-| Integrazione | `*.int.test.ts` | `pnpm test:int` | Casi d'uso, repository, coda, RLS su Postgres reale (Testcontainers) |
-| End-to-end | `apps/web/e2e/*.spec.ts` | `pnpm test:e2e` | Flussi nel browser, telefono e computer, tema chiaro e scuro, accessibilità con axe |
+| Livello | File | Comando |
+|---|---|---|
+| Unit | `*.test.ts` | `pnpm test:unit` (copertura ≥ 90% su `packages/domain`) |
+| Integrazione | `*.int.test.ts` | `pnpm test:int` (Postgres reale con Testcontainers) |
+| API | `apps/web/tests/api/*.int.test.ts` | `pnpm test:int` |
+| End-to-end | `apps/web/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
+
+Cosa va a quale livello, e come evitare i doppioni: [docs/convenzioni.md](docs/convenzioni.md) §Test.
 
 Regole sui test:
 - Un test descrive un comportamento, non l'implementazione.
