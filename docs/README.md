@@ -6,7 +6,7 @@
 | [Hub per l'agenzia](superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Direzione dopo la 1.0: funzioni decise, proposte, rimandate e scartate, landing | A ogni decisione sull'hub; le versioni si fissano quando si scrive il piano |
 | [Motivazioni account personale](superpowers/specs/2026-10-15-account-personale-proposta.md) | Perché Better Auth, confronto opzioni e costi, scelte GDPR | Non si aggiorna: integrata nella specifica v9 |
 | [Piano generale](superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, interfacce tra tappe, regole comuni | A ogni tappa |
-| Piani delle tappe (`superpowers/plans/2026-10-15-NN-*.md`) | Task eseguibili, file, firme, test | Scritti all'inizio di ogni tappa, sul codice reale |
+| Piani delle tappe (`superpowers/plans/2026-10-15-NN-*.md`) | Task eseguibili, file, firme, test | Il piano della tappa N+1 si scrive mentre si chiude la N, sul codice reale. A tappa chiusa resta come storico: non si rilegge |
 | `design/` (alla radice) | Progetto grafico in Pencil, branding (`design/brand/`) e guida al design | Quando Matteo manda nuovo materiale (specifica §14.1) |
 | [Stack](stack.md) | Ogni componente con le alternative valutate e lo stato delle versioni | A ogni cambio di componente e a ogni revisione periodica |
 | [ADR](adr/README.md) | Decisioni architetturali con le alternative scartate | Una nuova scheda per ogni decisione importante |

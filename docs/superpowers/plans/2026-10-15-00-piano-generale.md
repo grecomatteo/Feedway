@@ -1,6 +1,6 @@
 # Piano generale di sviluppo (versione 1.0)
 
-> **For agentic workers:** questo è il piano quadro. Ogni tappa ha il proprio piano eseguibile (`2026-10-15-NN-*.md`); per eseguirne uno usa superpowers:subagent-driven-development (consigliato) o superpowers:executing-plans. I passi usano le caselle (`- [ ]`).
+> **For agentic workers:** questo è il piano quadro. Ogni tappa ha il proprio piano eseguibile (`2026-10-15-NN-*.md`); per eseguirne uno usa superpowers:executing-plans, con le regole di `AGENTS.md` che prevalgono sulla skill: un solo agente per task, una PR per task, stop sulle differenze tra specifica, piano e codice, agente revisore separato per ogni PR. I passi usano le caselle (`- [ ]`).
 
 **Obiettivo:** portare la piattaforma dalla specifica v9 alla versione 1.0 in uso quotidiano, in 12 tappe installabili e provabili sulla VPS.
 
@@ -19,9 +19,11 @@
 | `00-piano-generale.md` | Questo documento: ordine, confini e interfacce tra tappe, regole comuni | Pronto |
 | `01-fondamenta.md` | Tappa 1, eseguibile | Pronto |
 | `02-identita.md` | Tappa 2, eseguibile | Pronto |
-| `03-meta.md` … `12-produzione.md` | Tappe 3–12 | Si scrivono all'inizio di ogni tappa |
+| `03-meta.md` … `12-produzione.md` | Tappe 3–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
+
+**Formato dei piani dalla tappa 3** (deciso con Matteo il 2026-11-02). I piani delle tappe 1–2 contengono il codice dei task, che poi viene riscritto e corretto nelle PR: lo stesso lavoro fatto due volte. Dalla tappa 3 un piano contiene, per ogni task: obiettivo e requisiti (RF, sezioni della specifica), file e moduli toccati, firme pubbliche (porte, casi d'uso, rotte), tabelle e migrazioni, **elenco dei test** con lo scenario in una riga e il livello (vedi `docs/convenzioni.md` §Test), criteri di fine. Il codice si scrive solo nella PR. Un frammento di codice nel piano resta ammesso solo per un'interfaccia tra moduli o un punto delicato (per esempio una query con lock). Il piano della tappa N+1 si scrive mentre si chiude la tappa N, non tutti insieme.
 
 ## 2. Aggiornamenti rispetto alla specifica
 
