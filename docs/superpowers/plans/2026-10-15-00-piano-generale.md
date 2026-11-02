@@ -23,6 +23,8 @@
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
+**Formato dei piani dalla tappa 3** (deciso con Matteo il 2026-11-02). I piani delle tappe 1–2 contengono il codice dei task, che poi viene riscritto e corretto nelle PR: lo stesso lavoro fatto due volte. Dalla tappa 3 un piano contiene, per ogni task: obiettivo e requisiti (RF, sezioni della specifica), file e moduli toccati, firme pubbliche (porte, casi d'uso, rotte), tabelle e migrazioni, **elenco dei test** con lo scenario in una riga e il livello (vedi `docs/convenzioni.md` §Test), criteri di fine. Il codice si scrive solo nella PR. Un frammento di codice nel piano resta ammesso solo per un'interfaccia tra moduli o un punto delicato (per esempio una query con lock). Il piano della tappa N+1 si scrive mentre si chiude la tappa N, non tutti insieme.
+
 ## 2. Aggiornamenti rispetto alla specifica
 
 Scelte prese preparando il piano, già riportate nella specifica v9 (§6.3 ADR 010–011, §7.4, §13, §15.6, §16.2, §16.7, §19) e approvate con essa il 2026-10-15.
