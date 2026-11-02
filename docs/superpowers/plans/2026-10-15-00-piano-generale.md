@@ -164,9 +164,9 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `RateLimiter` | 2 | `hit(key, limit, windowMs)`, più registrazione e azzeramento dei tentativi falliti (piano 02, Task 7) |
 | `Auth` | 2 | adattatore di Better Auth: sessione della richiesta, account da invito, revoca delle sessioni, link di reset, verifica della riconferma; nessun altro modulo importa Better Auth |
 | `IntegrationStore` | 2 (piattaforma), 3 (agenzia) | `getPlatform/replacePlatform/platformCredentials(tx, kind, …)`; `get/replace/credentials(tx, organizationId, kind, …)` dalla tappa 3; ricaduta sulla piattaforma per Telegram dalla tappa 8 |
-| `PlatformConnector` | 3 | per tipo di collegamento: `loadAppCredentials`, `startLogin`, `completeLogin`, `connectWithToken`, `listAccounts`, `refresh`, `checkHealth` (ADR 019); il client della Graph API resta nell'infrastruttura di `platforms/meta` |
+| `PlatformConnector` | 3 | per tipo di collegamento: `verifyApp`, `loadAppCredentials`, `startLogin`, `completeLogin`, `connectWithToken`, `listAccounts`, `refresh`, `checkHealth` (ADR 019); il client della Graph API resta nell'infrastruttura di `platforms/meta` |
 | `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete` dalla tappa 2; `publicUrl(variant)` dalla tappa 4; chiavi `org/<id>/…` e `users/<id>/…` |
-| `Mailer` | 2 (in memoria, file, "non configurato"), 3 (SMTP) | `isConfigured()`, `send(message)` |
+| `Mailer` | 2 (in memoria, file, "non configurato", SMTP della piattaforma: ADR 017) | `isConfigured()`, `send(message)` |
 | `AvatarProcessor` / `ZipWriter` | 2 | foto profilo (sharp, libheif-js) ed esportazione dei dati (fflate) |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
 | `PlatformPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo, implementata da `platforms/meta` (ADR 019) |

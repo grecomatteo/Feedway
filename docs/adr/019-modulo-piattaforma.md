@@ -24,6 +24,7 @@ Fatti dal codice della tappa 2:
   - casi d'uso: elenco degli account, assegnazione agli spazi, profili dentro uno spazio, avvio e chiusura di un collegamento, sincronizzazione e salute;
   - conosce `platform` (`instagram`, `facebook`) e `connection kind` (`facebook_login`, `instagram_login`, `meta_system_user`) solo come stringhe di elenchi chiusi. Una piattaforma nuova li allarga con una migrazione (§18.6).
 - **Porta `PlatformConnector`** in `packages/application/src/ports/platform-connector.ts`. Ce n'è una per tipo di collegamento, con funzioni che parlano solo di account, token e salute, mai di Pagine o container. Le credenziali dell'app arrivano opache:
+  - `verifyApp(appCredentials)`: prova le credenziali dell'app prima di salvarle;
   - `loadAppCredentials(tx, organizationId)`: il connettore legge le credenziali della propria app (per Meta dall'integrazione `meta`) e le restituisce come valore opaco, che `accounts` passa alle altre funzioni senza guardarci dentro;
   - `startLogin(input)`: indirizzo a cui mandare il browser e `state` da conservare;
   - `completeLogin(input)`: dal codice di ritorno a un token sigillabile, scadenza e account trovati;
