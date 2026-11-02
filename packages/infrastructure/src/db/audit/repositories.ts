@@ -1,9 +1,20 @@
 import type { AuditAction, AuditLog, AuditSource, IdGenerator } from '@app/application'
 import { isPersonalAuditAction } from '@app/application'
-import { and, desc, eq, gte, lt, lte, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, lt, lte, sql, type SQL } from 'drizzle-orm'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
 import { auditLog } from './schema.js'
+
+const positionOf = sql<string>`to_char(${auditLog.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`
+
+function olderThan(after: { position: string; id: string }): SQL[] {
+  const at = sql`${after.position}::timestamptz`
+  // the plain bound lets the index range-scan
+  return [
+    lte(auditLog.createdAt, at),
+    sql`(${auditLog.createdAt}, ${auditLog.id}) < (${at}, ${after.id}::uuid)`,
+  ]
+}
 
 // user.* actions may be personal too (user.anonymized has one entry per agency and one personal)
 const isAgencyAction = (action: string) =>
@@ -48,12 +59,7 @@ export function drizzleAuditLog(db: DbExecutor, ids: IdGenerator, ctx: TxContext
       if (q.source !== undefined) where.push(eq(auditLog.source, q.source))
       if (q.from !== undefined) where.push(gte(auditLog.createdAt, q.from))
       if (q.to !== undefined) where.push(lt(auditLog.createdAt, q.to))
-      if (q.after !== undefined) {
-        const at = sql`${q.after.position}::timestamptz`
-        // the plain bound lets the (organization_id, created_at) index range-scan
-        where.push(lte(auditLog.createdAt, at))
-        where.push(sql`(${auditLog.createdAt}, ${auditLog.id}) < (${at}, ${q.after.id}::uuid)`)
-      }
+      if (q.after !== undefined) where.push(...olderThan(q.after))
       const rows = await db
         .select({
           id: auditLog.id,
@@ -66,7 +72,7 @@ export function drizzleAuditLog(db: DbExecutor, ids: IdGenerator, ctx: TxContext
           workspaceId: auditLog.workspaceId,
           data: auditLog.data,
           createdAt: auditLog.createdAt,
-          position: sql<string>`to_char(${auditLog.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+          position: positionOf,
         })
         .from(auditLog)
         .where(and(...where))
@@ -75,6 +81,41 @@ export function drizzleAuditLog(db: DbExecutor, ids: IdGenerator, ctx: TxContext
       return rows.map((row) => ({
         ...row,
         organizationId: q.organizationId,
+        source: row.source as AuditSource,
+        action: row.action as AuditAction,
+        data: row.data as Record<string, unknown>,
+      }))
+    },
+    async listOwn(q) {
+      // explicit filters on top of row level security: one agency (or none) and one actor
+      const where: SQL[] = [
+        q.organizationId === null
+          ? isNull(auditLog.organizationId)
+          : eq(auditLog.organizationId, q.organizationId),
+        eq(auditLog.actorId, q.actorId),
+      ]
+      if (q.after !== undefined) where.push(...olderThan(q.after))
+      const rows = await db
+        .select({
+          id: auditLog.id,
+          organizationId: auditLog.organizationId,
+          source: auditLog.source,
+          action: auditLog.action,
+          entity: auditLog.entity,
+          entityId: auditLog.entityId,
+          workspaceId: auditLog.workspaceId,
+          ip: sql<string | null>`host(${auditLog.ip})`,
+          data: auditLog.data,
+          createdAt: auditLog.createdAt,
+          position: positionOf,
+        })
+        .from(auditLog)
+        .where(and(...where))
+        .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
+        .limit(q.limit)
+      return rows.map((row) => ({
+        ...row,
+        actorId: q.actorId,
         source: row.source as AuditSource,
         action: row.action as AuditAction,
         data: row.data as Record<string, unknown>,

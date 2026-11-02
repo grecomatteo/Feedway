@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
+import { createLocalDiskStorage } from '@app/infrastructure'
 import { imageFixture } from '@app/infrastructure/testing'
 import type { ErrorJson } from './identity-env.js'
 import { fill, routeKey, sampleBody, startIsolationFixture } from './support/isolation-fixture.js'
@@ -116,6 +118,31 @@ const OWNED_BY_ANOTHER: Record<
       values: { id: f.a.people.viewer.userId, size: '256' },
       async untouched() {
         expect((await f.env.call('GET', path, undefined, { cookie })).status).toBe(200)
+      },
+    }
+  },
+  'GET /api/v1/me/exports/{id}/download': async (f) => {
+    const id = randomUUID()
+    const userId = f.a.people.viewer.userId
+    const key = `users/${userId}/exports/${id}.zip`
+    await createLocalDiskStorage({ root: f.env.web.mediaRoot }).put(
+      key,
+      Buffer.from('PK archive of the viewer'),
+      { contentType: 'application/zip' },
+    )
+    await f.env.admin.pool.query(
+      `insert into data_exports (id, user_id, status, storage_key, expires_at)
+       values ($1, $2, 'ready', $3, now() + interval '1 day')`,
+      [id, userId, key],
+    )
+    return {
+      values: { id },
+      async untouched() {
+        const own = await f.env.call('GET', `/api/v1/me/exports/${id}/download`, undefined, {
+          cookie: f.cookies.viewer,
+        })
+        expect(own.status).toBe(200)
+        expect(await own.text()).toBe('PK archive of the viewer')
       },
     }
   },

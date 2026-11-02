@@ -10,6 +10,7 @@ import type {
   Storage,
   Translate,
   UnitOfWork,
+  ZipWriter,
 } from '@app/application'
 
 /** What a handler may use; built by the composition root (createRuntime). */
@@ -22,6 +23,8 @@ export interface JobHandlerDeps {
   clock: Clock
   ids: IdGenerator
   storage: Storage
+  /** Builds the "Scarica i miei dati" archive. */
+  zip: ZipWriter
   mailer: Mailer
   signedTokens: SignedTokens
   /** Texts of the emails, from the panel's it.json. */

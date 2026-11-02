@@ -7,6 +7,7 @@ import { linkRoutes } from './links.js'
 import { meRoutes } from './me.js'
 import { organizationRoutes } from './organizations.js'
 import { platformRoutes } from './platform.js'
+import { privacyRoutes } from './privacy.js'
 import { userRoutes } from './users.js'
 import { workspaceRoutes } from './workspaces.js'
 
@@ -30,6 +31,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...authRoutes,
   ...meRoutes,
   ...avatarRoutes,
+  ...privacyRoutes,
   ...organizationRoutes,
   ...userRoutes,
   ...workspaceRoutes,

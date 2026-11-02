@@ -247,3 +247,5 @@ export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs
 
 /** Each photo is decoded and resized: a stolen session must not keep the server busy. */
 export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }
+/** "Scarica i miei dati": requests and downloads; the use case keeps its own daily limit. */
+export const DATA_EXPORT_RATE_LIMIT = { name: 'data-exports', limit: 30, windowMs: 10 * 60_000 }

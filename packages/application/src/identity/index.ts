@@ -56,6 +56,16 @@ export {
   uploadAvatarSource,
 } from './avatar.js'
 export type { AvatarDeps } from './avatar.js'
+export {
+  buildDataExport,
+  DATA_EXPORT_MAX_ACTIVITY,
+  DATA_EXPORT_STALE_MS,
+  DATA_EXPORTS_PER_DAY,
+  listDataExports,
+  openDataExport,
+  requestDataExport,
+} from './data-export.js'
+export type { DataExportDto, DataExportJobDeps } from './data-export.js'
 export { updateProfile } from './profile.js'
 export type { ProfileInput } from './profile.js'
 export {
