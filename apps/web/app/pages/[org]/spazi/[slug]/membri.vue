@@ -136,7 +136,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
           class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-3"
         >
           <span class="flex items-center gap-2">
-            <UserAvatar :name="m.displayName" />
+            <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
             <span>{{ m.displayName }}</span>
             <UBadge v-if="m.status === 'disabled'" color="neutral" variant="subtle">
               {{ $t('users.disabled') }}

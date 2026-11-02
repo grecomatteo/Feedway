@@ -22,10 +22,12 @@
     "@zxcvbn-ts/language-it": "4.1.1",
     "better-auth": "1.7.10",
     "drizzle-orm": "0.45.4",
+    "libheif-js": "1.23.5",
     "nodemailer": "10.2.1",
     "pg": "8.23.1",
     "pg-boss": "12.38.0",
     "pino": "10.4.0",
+    "sharp": "0.35.5",
     "uuid": "14.0.3",
     "zod": "4.6.7"
   },

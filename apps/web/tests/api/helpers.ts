@@ -1,5 +1,7 @@
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
@@ -33,6 +35,8 @@ export function freePort(): Promise<number> {
 
 export interface RunningWeb {
   url(path: string): string
+  /** The server's MEDIA_ROOT: where its stored files land. */
+  mediaRoot: string
   /** Everything the server wrote so far (its log lines), also echoed to this process. */
   output(): string
   stop(): Promise<void>
@@ -52,12 +56,15 @@ export async function startWeb(
 ): Promise<RunningWeb> {
   buildWebOnce()
   const port = opts.port ?? (await freePort())
+  // each server its own folder: /media is the container's volume
+  const mediaRoot = mkdtempSync(join(tmpdir(), 'web-media-'))
   const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
     cwd: webDir,
     env: {
       ...process.env,
       NODE_ENV: 'test',
       APP_TEST_ROUTES: '1',
+      MEDIA_ROOT: mediaRoot,
       PORT: String(port),
       HOST: '127.0.0.1',
       ...env,
@@ -84,6 +91,7 @@ export async function startWeb(
   )
   return {
     url: (path) => `${base}${path}`,
+    mediaRoot,
     output: () => output,
     stop() {
       return new Promise((resolve) => {
@@ -113,12 +121,15 @@ export function panelClient(web: RunningWeb, panel: string) {
   ): Promise<Response> {
     const headers: Record<string, string> = { origin: opts.origin ?? panel, ...opts.headers }
     if (!opts.omitAppHeader) headers['x-app-request'] = '1'
-    if (body !== undefined) headers['content-type'] ??= 'application/json'
+    // a form carries its own multipart type and boundary
+    const form = body instanceof FormData
+    if (body !== undefined && !form) headers['content-type'] ??= 'application/json'
     if (opts.cookie !== undefined) headers['cookie'] = opts.cookie
     return fetch(web.url(path), {
       method,
       headers,
-      body: body === undefined ? null : typeof body === 'string' ? body : JSON.stringify(body),
+      body:
+        body === undefined ? null : form || typeof body === 'string' ? body : JSON.stringify(body),
       redirect: 'manual',
     })
   }

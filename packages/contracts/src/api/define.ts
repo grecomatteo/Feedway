@@ -42,7 +42,33 @@ export interface ApiContract<
   scope: S
   /** Largest JSON body accepted, in bytes (default 16 KiB). */
   maxBodyBytes?: number
+  /**
+   * The body is `multipart/form-data` with one file in the part `file`, of at most `maxBytes`
+   * (the route reads no more than that, plus the multipart framing). No JSON `body` then.
+   */
+  upload?: { maxBytes: number }
+  /** The answer is a file of this media type, not JSON: `response` is then `FileResponse`. */
+  download?: { contentType: string }
 }
+
+/** What a download route hands back: the bytes and how the client may keep them. */
+export interface FileAnswer {
+  body: Uint8Array | AsyncIterable<Uint8Array>
+  size: number
+  /** A strong validator; a request with the same `If-None-Match` gets 304 and no body. */
+  etag?: string
+  cacheControl?: string
+  /** Saved under this name (`Content-Disposition: attachment`) instead of shown. */
+  filename?: string
+}
+
+export const FileResponse = z.custom<FileAnswer>(
+  (value) =>
+    typeof value === 'object' &&
+    value !== null &&
+    'body' in value &&
+    typeof (value as { size?: unknown }).size === 'number',
+)
 
 /** Keeps the literal types, so a route handler knows its session and actor are there. */
 export function defineContract<

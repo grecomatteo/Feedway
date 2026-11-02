@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
+import { imageFixture } from '@app/infrastructure/testing'
 import type { ErrorJson } from './identity-env.js'
 import { fill, routeKey, sampleBody, startIsolationFixture } from './support/isolation-fixture.js'
 import type { IsolationFixture, SampleIds } from './support/isolation-fixture.js'
@@ -39,6 +40,31 @@ const personalRoutesWithoutIds = personalRoutes.filter((r) => !/\{\w+\}/.test(r.
  * Something of another person the route names in its path, and how to tell it is untouched.
  * A personal route with a parameter and no entry here fails the battery.
  */
+/** A photo upload as the panel sends it. */
+async function photoForm(): Promise<FormData> {
+  const data = new FormData()
+  data.append('file', new Blob([new Uint8Array(await imageFixture('photo.jpg'))]), 'foto.jpg')
+  return data
+}
+
+/** A preview uploaded by the person of `cookie`, ready to crop. */
+async function stagedPhoto(cookie: string): Promise<{ stagingId: string; previewUrl: string }> {
+  const r = await fx.env.call('POST', '/api/v1/me/avatar', await photoForm(), { cookie })
+  expect(r.status).toBe(200)
+  return (await r.json()) as { stagingId: string; previewUrl: string }
+}
+
+/** Routes whose request needs something of the caller first (a file, a preview). */
+const PREPARED_BODY: Record<string, (cookie: string) => Promise<unknown>> = {
+  'POST /api/v1/me/avatar': () => photoForm(),
+  'POST /api/v1/me/avatar/crop': async (cookie) => ({
+    stagingId: (await stagedPhoto(cookie)).stagingId,
+    x: 0,
+    y: 0,
+    size: 400,
+  }),
+}
+
 const OWNED_BY_ANOTHER: Record<
   string,
   (fx: IsolationFixture) => Promise<{ values: Record<string, string>; untouched(): Promise<void> }>
@@ -60,6 +86,36 @@ const OWNED_BY_ANOTHER: Record<
             ])
           ).rowCount,
         ).toBe(rows.length)
+      },
+    }
+  },
+  'GET /api/v1/me/avatar/staging/{id}': async (f) => {
+    const preview = await stagedPhoto(f.cookies.viewer)
+    return {
+      values: { id: preview.stagingId },
+      async untouched() {
+        const own = await f.env.call('GET', preview.previewUrl, undefined, {
+          cookie: f.cookies.viewer,
+        })
+        expect(own.status).toBe(200)
+      },
+    }
+  },
+  'GET /api/v1/users/{id}/avatar/{size}': async (f) => {
+    const cookie = f.cookies.viewer
+    const preview = await stagedPhoto(cookie)
+    const crop = await f.env.call(
+      'POST',
+      '/api/v1/me/avatar/crop',
+      { stagingId: preview.stagingId, x: 0, y: 0, size: 400 },
+      { cookie },
+    )
+    expect(crop.status).toBe(200)
+    const path = `/api/v1/users/${f.a.people.viewer.userId}/avatar/256`
+    return {
+      values: { id: f.a.people.viewer.userId, size: '256' },
+      async untouched() {
+        expect((await f.env.call('GET', path, undefined, { cookie })).status).toBe(200)
       },
     }
   },
@@ -142,11 +198,13 @@ test.each(personalRoutesWithoutIds)(
     const other = fx.a.people.viewer
     const cookie = await fx.env.signIn(fx.b.member)
     await fx.refreshReauth()
-    const r = await fx.env.call(route.method, route.path, sampleBody(route, noIds), { cookie })
-    const body = await r.text()
-    expect(r.status, body).toBe(200)
-    expect(body).not.toContain(other.userId)
-    expect(body).not.toContain(other.email)
+    const prepared = PREPARED_BODY[routeKey(route)]
+    const body = prepared ? await prepared(cookie) : sampleBody(route, noIds)
+    const r = await fx.env.call(route.method, route.path, body, { cookie })
+    const text = await r.text()
+    expect(r.status, text).toBe(200)
+    expect(text).not.toContain(other.userId)
+    expect(text).not.toContain(other.email)
     // the other person is still signed in
     expect(
       (await fx.env.call('GET', '/api/v1/me', undefined, { cookie: fx.cookies.viewer })).status,

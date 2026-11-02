@@ -88,6 +88,17 @@ export interface UsersRepository {
   /** Only the fields given change. The person's own scope. */
   updateProfile(id: string, fields: ProfileFields): Promise<void>
   /**
+   * The photo (`users/<id>/avatar/<hash>`, and the panel URL Better Auth calls `image`), or
+   * none. The person's own scope.
+   */
+  setAvatar(id: string, avatar: { key: string; image: string } | null): Promise<void>
+  /**
+   * Only the key of the photo, to serve it: the caller decides first whether the person asking
+   * may see it (themselves, or a colleague of an active agency). Null for a disabled or
+   * anonymized account.
+   */
+  avatarKeyOf(id: string): Promise<string | null>
+  /**
    * The confirmed new address, already verified by its link. `taken`: another account has it now
    * (it was free when the change was asked); nothing changes then.
    */

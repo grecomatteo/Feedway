@@ -105,6 +105,16 @@ test('rejects media retention out of range', () => {
   )
 })
 
+test('media root defaults to the volume and must be an absolute path', () => {
+  expect(loadConfig('web', validWebEnv).mediaRoot).toBe('/media')
+  expect(loadConfig('web', { ...validWebEnv, MEDIA_ROOT: '/tmp/media' }).mediaRoot).toBe(
+    '/tmp/media',
+  )
+  expect(issuesOf({ ...validWebEnv, MEDIA_ROOT: 'media' })).toContainEqual(
+    expect.objectContaining({ variable: 'MEDIA_ROOT' }),
+  )
+})
+
 test('worker accepts a list of known queues and rejects unknown ones', () => {
   const ok = loadConfig('worker', { ...validWebEnv, WORKER_QUEUES: 'system.selftest' })
   expect(ok.workerQueues).toEqual(['system.selftest'])

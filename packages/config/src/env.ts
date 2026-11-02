@@ -49,6 +49,7 @@ const RESOLVABLE = [
   'META_MODE',
   'TZ_DEFAULT',
   'MEDIA_RETENTION_DAYS',
+  'MEDIA_ROOT',
   'REQUIRE_2FA',
   'BOOTSTRAP_OWNER_EMAIL',
   'BOOTSTRAP_ORGANIZATION_NAME',
@@ -132,6 +133,10 @@ const appSchema = z
       }),
       7,
     ),
+    MEDIA_ROOT: withDefault(
+      z.string().regex(/^\/[^\0]*$/, { error: 'deve essere un percorso assoluto' }),
+      '/media',
+    ),
     REQUIRE_2FA: withDefault(z.enum(['admins', 'all']), 'admins'),
     BOOTSTRAP_OWNER_EMAIL: optional(z.email({ error: 'deve essere un indirizzo email' })),
     BOOTSTRAP_ORGANIZATION_NAME: withDefault(
@@ -186,6 +191,8 @@ export interface AppConfig {
   metaMode: 'live' | 'mock' | 'dry-run'
   defaultTimezone: string
   mediaRetentionDays: number
+  /** Folder of stored files (photos, exports): the `media` volume in the container. */
+  mediaRoot: string
   require2fa: 'admins' | 'all'
   bootstrapOwnerEmail: string | null
   /** Name of the agency created with the first account. */
@@ -310,6 +317,7 @@ export function loadConfig(
     metaMode: v.META_MODE,
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
+    mediaRoot: v.MEDIA_ROOT,
     require2fa: v.REQUIRE_2FA,
     bootstrapOwnerEmail: v.BOOTSTRAP_OWNER_EMAIL ?? null,
     bootstrapOrganizationName: v.BOOTSTRAP_ORGANIZATION_NAME,
