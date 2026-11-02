@@ -154,6 +154,22 @@
     "requestedAt": "Richiesto il {date}",
     "reauth": "Prima di preparare e di scaricare il file ti chiediamo di nuovo la password."
   },
+  "accountDeletion": {
+    "heading": "Elimina il mio account",
+    "now": "Si cancellano subito: password, passkey, app di autenticazione, sessioni aperte, dispositivi riconosciuti, foto profilo e file dei tuoi dati. Esci da tutte le agenzie e da tutti i clienti.",
+    "stays": "Nelle agenzie resta lo storico di ciò che hai fatto, ma senza nome, email o foto: comparirai come «Utente rimosso».",
+    "final": "Non si può annullare. Se ti servono i tuoi dati, scaricali prima.",
+    "owner": "Sei l'Owner di {agency}: prima passa la proprietà a un Admin dalla pagina Utenti.",
+    "platformAdmin": "Sei l'amministratore della piattaforma: il tuo account si elimina solo dal server.",
+    "start": "Elimina il mio account",
+    "confirmTitle": "Eliminare l'account?",
+    "confirmExplain": "Dopo ti chiediamo anche la password, o una passkey.",
+    "typeEmail": "Per confermare scrivi la tua email: {email}",
+    "confirm": "Elimina definitivamente",
+    "doneTitle": "Account eliminato",
+    "done": "Il tuo account non esiste più: accessi, foto e dispositivi sono stati cancellati e sei uscito da tutte le agenzie.",
+    "signIn": "Vai all'accesso"
+  },
   "reauth": {
     "title": "Conferma che sei tu",
     "description": "Prima di questo cambio ti chiediamo di nuovo la password, o una passkey.",

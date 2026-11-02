@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import {
+  anonymizeUserByPlatform,
   createBootstrapLink,
   createMailSettings,
   createOrganization,
@@ -24,12 +25,15 @@ import {
   type PlatformMailSettings,
   type PlatformOrganization,
   type SmtpPort,
+  userAnonymizedHandlers,
 } from '@app/application'
 import { ConfigError, loadConfig, type WorkerConfig } from '@app/config'
 import { DomainError, type LimitKey, type OrganizationLimits } from '@app/domain'
 import {
+  createCredentialEraser,
   createDb,
   createIntegrationStore,
+  createLocalDiskStorage,
   createKeyRing,
   createLogger,
   createMailer,
@@ -39,6 +43,7 @@ import {
   createUnitOfWork,
   systemClock,
   uuidV7Generator,
+  type Db,
 } from '@app/infrastructure'
 import { loadItalianMessages } from './i18n.js'
 import { readSecret, SecretInputError } from './read-secret.js'
@@ -59,6 +64,7 @@ const USAGE = [
   '  list-organizations',
   '  disable-user <email>',
   '  enable-user <email> [--verified-by telefono|di-persona|videochiamata]',
+  '  anonymize-user <email>',
   '  mail-settings show',
   '  mail-settings set --host <host> --port 465|587|2525 --username <utente> --from <email> [--security tls|starttls]',
   '      (la password solo da stdin; vuota: resta quella salvata)',
@@ -98,7 +104,7 @@ type Command =
   | { name: 'suspend-organization' | 'reactivate-organization'; slug: string }
   | { name: 'set-limits'; slug: string; limits: OrganizationLimits }
   | { name: 'list-organizations' }
-  | { name: 'disable-user'; email: string }
+  | { name: 'disable-user' | 'anonymize-user'; email: string }
   | { name: 'enable-user'; email: string; verifiedBy: IdentityVerificationMethod | null }
   | { name: 'mail-settings-show' }
   | {
@@ -200,6 +206,7 @@ function parseCommand(args: readonly string[]): Command {
       return { name, slug: slugOf(positionals[0] ?? ''), limits }
     }
     case 'disable-user':
+    case 'anonymize-user':
       return { name, email: one() }
     case 'enable-user': {
       const { values, positionals } = parse({ 'verified-by': { type: 'string' } }, 1)
@@ -467,6 +474,7 @@ async function execute(
   mailer: Mailer,
   io: CliIo,
   logger: Logger,
+  db: Db,
 ): Promise<number | undefined> {
   const system = SYSTEM_PLATFORM_ACTOR
   switch (command.name) {
@@ -527,8 +535,33 @@ async function execute(
     case 'enable-user':
       await enableUser(command, config, deps, mailer, io, logger)
       return
+    case 'anonymize-user': {
+      const userId = await platformUserIdByEmail(deps, system, command.email)
+      const result = await anonymizeUserByPlatform(
+        {
+          uow: deps.uow,
+          clock: deps.clock,
+          auth: { deleteAllCredentials: createCredentialEraser({ db }) },
+          storage: createLocalDiskStorage({ root: config.mediaRoot }),
+          logger,
+          onUserAnonymized: userAnonymizedHandlers(),
+        },
+        system,
+        userId,
+      )
+      io.out(ANONYMIZE_MESSAGE.get(result) ?? result)
+      return
+    }
   }
 }
+
+const ANONYMIZE_MESSAGE: ReadonlyMap<string, string> = new Map([
+  [
+    'anonymized',
+    'Account anonimizzato: accessi, foto e dispositivi cancellati, storico come "Utente rimosso"',
+  ],
+  ['already_anonymized', 'Account già anonimizzato'],
+])
 
 /** Platform commands run in the image: `docker compose run --rm worker cli <command>`. */
 export async function runCli(
@@ -578,6 +611,7 @@ export async function runCli(
       createMailer(config.nodeEnv, { ids, logger, settings, panelUrl: config.panelUrl }),
       io,
       logger,
+      handle.db,
     )
     return exitCode ?? 0
   } catch (error) {

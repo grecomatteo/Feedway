@@ -11,3 +11,6 @@ export const COOKIE_NAMES = {
 
 /** Our own cookie, set by the panel, not by Better Auth. */
 export const DEVICE_COOKIE = '__Host-device'
+
+/** Better Auth's session cookie, cleared by the panel when the account is deleted. */
+export const SESSION_COOKIE = COOKIE_NAMES.session_token.name

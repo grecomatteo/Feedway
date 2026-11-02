@@ -8,6 +8,7 @@ export { findOrganizationBySlug, listOrganizations } from './list-organizations.
 export type { PlatformOrganization } from './list-organizations.js'
 export {
   ACCOUNT_RECOVERY_LINK_TTL_MS,
+  anonymizeUserByPlatform,
   disableUserEverywhere,
   enableUserEverywhere,
   IDENTITY_VERIFICATION_METHODS,

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNull, or, sql, type SQL } from 'drizzle-orm'
 import { DomainError } from '@app/domain'
 import type {
   InviteRecord,
@@ -436,6 +436,20 @@ export function drizzleInvites(db: DbExecutor, ctx: TxContext): InvitesRepositor
         .update(invites)
         .set({ expiresAt: at })
         .where(and(eq(invites.id, id), isNull(invites.usedAt), gt(invites.expiresAt, at)))
+    },
+    async expireOpenFor(organizationId, person, at) {
+      const ended = await db
+        .update(invites)
+        .set({ expiresAt: at })
+        .where(
+          and(
+            eq(invites.organizationId, organizationId),
+            or(eq(invites.email, person.email), eq(invites.existingUserId, person.userId)),
+            openAt(at),
+          ),
+        )
+        .returning({ id: invites.id })
+      return ended.length
     },
   }
 }

@@ -80,3 +80,7 @@ export type {
   EmailChangeEmailDeps,
   StartEmailChangeDeps,
 } from './email-change.js'
+export { anonymizeUser, deleteMyAccount, ownedAgencyName } from './delete-account.js'
+export type { AnonymizeDeps } from './delete-account.js'
+export { userAnonymizedHandlers } from './module.js'
+export type { AnonymizationSource, UserAnonymizedEvent, UserAnonymizedHandler } from './module.js'

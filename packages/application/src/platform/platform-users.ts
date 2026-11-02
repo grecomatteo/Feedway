@@ -1,5 +1,5 @@
 import { DomainError, normalizeEmail } from '@app/domain'
-import { isUuid } from '../identity/index.js'
+import { anonymizeUser, isUuid, ownedAgencyName, type AnonymizeDeps } from '../identity/index.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Mailer } from '../ports/mailer.js'
 import type { Tx } from '../ports/tx.js'
@@ -251,4 +251,48 @@ export async function enableUserEverywhere(
     })
     return { status, recovery: { channel: 'email' } }
   })
+}
+
+/**
+ * The platform anonymizes an account on the person's request (spec §15.7), with the same rule
+ * as "Elimina il mio account": nobody who owns an agency (SOLE_OWNER). Repeatable: a run that
+ * stopped half-way completes; an account already anonymized only runs the modules' handlers
+ * again. `already_anonymized` says so, so the CLI never claims a change that did not happen.
+ */
+export async function anonymizeUserByPlatform(
+  deps: AnonymizeDeps,
+  caller: PlatformCaller,
+  userId: string,
+  request: PlatformRequest = NO_REQUEST,
+): Promise<'anonymized' | 'already_anonymized'> {
+  assertPlatform(caller, 'platform.users.manage')
+  const already = await deps.uow.runAsSystem('platform: check an anonymization', async (tx) => {
+    await platformAuthor(tx, caller, request)
+    const user = await targetUser(tx, caller, userId)
+    if (user.anonymizedAt !== null) return true
+    const agency = await ownedAgencyName(tx, userId)
+    if (agency !== null)
+      throw new DomainError(
+        'SOLE_OWNER',
+        `È l’Owner di ${agency}: prima la proprietà passa a un Admin dalla pagina Utenti`,
+      )
+    return false
+  })
+  await anonymizeUser(deps, { userId, source: 'system', ip: request.ip })
+  if (!already)
+    await deps.uow.runAsSystem('platform: record an anonymization', async (tx) => {
+      const author = await platformAuthor(tx, caller, request)
+      await tx.audit.record({
+        organizationId: null,
+        actorId: author.actorId,
+        source: author.source,
+        action: 'user.anonymized',
+        entity: 'user',
+        entityId: userId,
+        workspaceId: null,
+        ip: author.ip,
+        data: {},
+      })
+    })
+  return already ? 'already_anonymized' : 'anonymized'
 }

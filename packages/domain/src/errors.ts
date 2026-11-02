@@ -15,6 +15,8 @@ export const DOMAIN_ERROR_CODES = [
   'SECOND_FACTOR_REQUIRED',
   /** The agency is suspended: its members cannot work in it (403). */
   'ORGANIZATION_SUSPENDED',
+  /** The person owns an agency: the ownership passes to an Admin first (409). */
+  'SOLE_OWNER',
   /** A limit of the agency is reached (409). */
   'LIMIT_REACHED',
   /** The action sends an email and the platform has no email configured (409). */

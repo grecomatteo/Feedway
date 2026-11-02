@@ -106,6 +106,11 @@ export interface UsersRepository {
   /** The agency the panel opens next time. */
   setLastOrganization(id: string, organizationId: string): Promise<void>
   countPasskeys(id: string): Promise<number>
+  /**
+   * "Elimina il mio account": name, email, nickname, photo and time zone go, the account is
+   * disabled for good. Dates already set stay (a repeated run changes nothing). Own scope.
+   */
+  anonymize(id: string, change: { email: string; name: string; at: Date }): Promise<void>
 }
 
 export interface ProfileFields {
@@ -235,6 +240,8 @@ export interface DataExportsRepository {
   find(userId: string, id: string): Promise<DataExportRecord | null>
   /** Newest first. */
   listRecent(userId: string, limit: number): Promise<DataExportRecord[]>
+  /** Forgets every request of the person; their files go with the storage folder. */
+  deleteAllForUser(userId: string): Promise<number>
   /** False when there is no such export of the person. */
   update(
     userId: string,
@@ -387,6 +394,15 @@ export interface InvitesRepository {
   replaceToken(id: string, tokenHash: Buffer, expiresAt: Date): Promise<void>
   /** Ends the link now: it stops working and frees its seat. */
   expire(id: string, at: Date): Promise<void>
+  /**
+   * Ends every open link of the agency for this person (by address or by account), whatever
+   * its purpose; returns how many.
+   */
+  expireOpenFor(
+    organizationId: string,
+    person: { email: string; userId: string },
+    at: Date,
+  ): Promise<number>
 }
 
 export interface WorkspaceRecord {
@@ -487,6 +503,8 @@ export interface WorkspaceMembersRepository {
   ): Promise<number>
   /** false: the user had no role there. */
   remove(organizationId: string, workspaceId: string, userId: string): Promise<boolean>
+  /** Takes the user out of every workspace of the agency; returns how many. */
+  removeAllForUser(organizationId: string, userId: string): Promise<number>
 }
 
 /** Platform-wide settings (`settings` table), outside any agency. */

@@ -17,7 +17,8 @@ async function confirmPassword(page: Page) {
   await expect(dialog).toBeHidden()
 }
 
-test('download my data shows progress and then the file', async ({ page }) => {
+// one path through the screen: first the data, then the account (as the page suggests)
+test('download my data, then delete my account', async ({ page }) => {
   const person = await newMember('Chiara Russo')
   await signIn(page.request, person)
   await page.goto('/account/privacy')
@@ -51,4 +52,17 @@ test('download my data shows progress and then the file', async ({ page }) => {
     section.getByRole('button', { name: 'Scarica il file' }).click(),
   ])
   expect(download.suggestedFilename()).toMatch(/^dati-personali-\d{4}-\d{2}-\d{2}\.zip$/)
+
+  const deletion = page.getByRole('region', { name: 'Elimina il mio account' })
+  await deletion.getByRole('button', { name: 'Elimina il mio account' }).click()
+  const confirm = page.getByRole('dialog', { name: "Eliminare l'account?" })
+  const final = confirm.getByRole('button', { name: 'Elimina definitivamente' })
+  await expect(final).toBeDisabled()
+  await confirm.getByLabel(/Per confermare scrivi la tua email/).fill(person.email.toUpperCase())
+  await final.click()
+  // the confirmation from the download is still recent: no second password
+  await expect(page).toHaveURL(/\/account-eliminato$/)
+  await expect(page.getByRole('heading', { name: 'Account eliminato' })).toBeVisible()
+  await page.goto('/account/privacy')
+  await expect(page).toHaveURL(/\/accedi/)
 })
