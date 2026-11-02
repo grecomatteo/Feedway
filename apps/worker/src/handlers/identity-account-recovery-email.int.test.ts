@@ -9,6 +9,7 @@ import {
   createLogger,
   createMemoryMailer,
   createRuntime,
+  createZipWriter,
   notConfiguredMailer,
 } from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
@@ -61,6 +62,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger, at = ISSUED):
     clock: fixedClock(at),
     ids: runtime.ids,
     storage: runtime.storage,
+    zip: createZipWriter(),
     mailer,
     signedTokens: runtime.signedTokens,
     translate: createTranslate(loadItalianMessages()),

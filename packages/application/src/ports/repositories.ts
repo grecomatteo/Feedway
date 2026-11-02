@@ -146,6 +146,12 @@ export interface CredentialsRepository {
   removePassword(userId: string): Promise<boolean>
   /** Whether the account has a password; never the hash. Any scope. */
   hasPassword(userId: string): Promise<boolean>
+  /** The person's passkeys: name, kind and date, never a key or a credential id. Own scope. */
+  listPasskeys(
+    userId: string,
+  ): Promise<
+    { name: string | null; deviceType: string; backedUp: boolean; createdAt: Date | null }[]
+  >
   /**
    * The recovery link after a verified reactivation: a reset token in the format
    * `/reset-password` reads (ADR 012, V6), valid until `expiresAt`. Not limited to people of
@@ -196,6 +202,40 @@ export interface KnownDevicesRepository {
   touch(userId: string, deviceHash: Buffer, at: Date): Promise<boolean>
   /** Forgets every device of the person; returns how many. */
   deleteAllForUser(userId: string): Promise<number>
+  /** When each device was first and last seen; never the hash. The person's own scope. */
+  list(userId: string): Promise<{ firstSeenAt: Date; lastSeenAt: Date }[]>
+}
+
+export type DataExportStatus = 'pending' | 'running' | 'ready' | 'failed' | 'expired'
+
+export interface DataExportRecord {
+  id: string
+  userId: string
+  status: DataExportStatus
+  /** `users/<id>/exports/<exportId>.zip` once ready. */
+  storageKey: string | null
+  expiresAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+/** "Scarica i miei dati" (Task 27). The person's own scope. */
+export interface DataExportsRepository {
+  /** `createdAt` from the clock: the daily limit counts with the same clock. */
+  create(entry: { id: string; userId: string; createdAt: Date }): Promise<void>
+  /** The one being prepared (`pending` or `running`), if any. */
+  findActive(userId: string): Promise<DataExportRecord | null>
+  /** Requests made since `since`, whatever their status. */
+  countSince(userId: string, since: Date): Promise<number>
+  find(userId: string, id: string): Promise<DataExportRecord | null>
+  /** Newest first. */
+  listRecent(userId: string, limit: number): Promise<DataExportRecord[]>
+  /** False when there is no such export of the person. */
+  update(
+    userId: string,
+    id: string,
+    change: { status: DataExportStatus; storageKey?: string; expiresAt?: Date },
+  ): Promise<boolean>
 }
 
 export interface OrganizationRecord {

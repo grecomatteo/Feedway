@@ -28,7 +28,8 @@
       "label": "Sezioni dell'account",
       "profile": "Profilo",
       "security": "Sicurezza",
-      "devices": "Dispositivi"
+      "devices": "Dispositivi",
+      "privacy": "Privacy"
     },
     "profile": {
       "title": "Nome e soprannome",
@@ -133,6 +134,24 @@
     "confirmText": "Esci anche da questo: dovrai accedere di nuovo ovunque.",
     "confirm": "Esci da tutti",
     "allSignedOut": "Sei uscito da tutti i dispositivi."
+  },
+  "dataExport": {
+    "title": "Privacy",
+    "heading": "I tuoi dati",
+    "explain": "Scarica in un file ZIP i dati che il pannello conserva su di te: profilo, agenzie e clienti, sessioni e dispositivi, attività registrate a tuo nome e foto profilo. Password, codici e chiavi non ci sono mai.",
+    "request": "Scarica i miei dati",
+    "requestAgain": "Prepara un nuovo file",
+    "limit": "Puoi chiederli fino a 3 volte in 24 ore. Il file resta scaricabile per 24 ore.",
+    "stepsLabel": "Avanzamento",
+    "stepPreparing": "In preparazione",
+    "stepReady": "Pronto",
+    "preparing": "Stiamo preparando il file. Puoi lasciare questa pagina: lo ritrovi qui quando è pronto.",
+    "ready": "Il file è pronto.",
+    "download": "Scarica il file",
+    "expires": "Scaricabile fino al {date}.",
+    "failed": "Non siamo riusciti a preparare il file. Riprova.",
+    "expired": "Il file è scaduto: preparane uno nuovo.",
+    "requestedAt": "Richiesto il {date}"
   },
   "reauth": {
     "title": "Conferma che sei tu",
