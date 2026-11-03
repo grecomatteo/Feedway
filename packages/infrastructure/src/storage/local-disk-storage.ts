@@ -15,6 +15,8 @@ const OWNER = `(org|users)/${UUID}/`
 const SEGMENT = '[a-z0-9_-][a-z0-9._-]*'
 const KEY = new RegExp(`^${OWNER}(${SEGMENT}/)*${SEGMENT}$`)
 const PREFIX = new RegExp(`^${OWNER}(${SEGMENT}/)*$`)
+// Listing may also cover every owner of a kind (the daily retention); removing never does.
+const LIST_PREFIX = new RegExp(`^(org|users)/$|${PREFIX.source}`)
 // Printable ASCII only, so the one-line JSON header stays well under HEADER_READ bytes.
 const CONTENT_TYPE = /^[\x20-\x7e]{1,200}$/
 const HEADER_READ = 1024
@@ -150,7 +152,7 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
     },
 
     async list(prefix) {
-      const files = await walk(pathOf(prefix, PREFIX))
+      const files = await walk(pathOf(prefix, LIST_PREFIX))
       const listed = await Promise.all(
         files.map(async (file) => {
           const handle = await open(file, 'r').catch((error: unknown) => {

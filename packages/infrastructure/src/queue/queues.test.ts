@@ -12,6 +12,8 @@ test('every registered queue declares a scope', () => {
     ['identity.account_recovery_email', 'user'],
     ['identity.email_change', 'user'],
     ['identity.data_export', 'user'],
+    ['identity.retention', 'system'],
+    ['identity.anonymization_notice', 'user'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -22,7 +24,13 @@ test('every registered queue declares a scope', () => {
     'identity.account_recovery_email',
     'identity.email_change',
     'identity.data_export',
+    'identity.retention',
+    'identity.anonymization_notice',
   ])
+})
+
+test('the daily retention runs once at a time', () => {
+  expect(QUEUES.find((q) => q.name === 'identity.retention')?.policy).toBe('singleton')
 })
 
 test('a reset link does not stay in the queue tables past its hour', () => {

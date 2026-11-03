@@ -83,6 +83,7 @@ function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
     clock: fixedClock(new Date(LOCKED_AT.getTime() + 60_000)),
     ids: runtime.ids,
     storage: runtime.storage,
+    credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used')) },
     zip: createZipWriter(),
     mailer,
     signedTokens: runtime.signedTokens,

@@ -51,6 +51,18 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
   },
+  // one run at a time; a run that waited a day is replaced by the next one
+  'identity.retention': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
+  // ids and a date; the Owner can be told again by the next day's run
+  'identity.anonymization_notice': {
+    policy: 'standard',
+    scope: 'user',
+    retention: { retentionSeconds: 3 * 86_400, deleteAfterSeconds: 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

@@ -65,6 +65,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDe
     clock: runtime.clock,
     ids: runtime.ids,
     storage: runtime.storage,
+    credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used')) },
     zip: createZipWriter(),
     mailer,
     signedTokens: runtime.signedTokens,

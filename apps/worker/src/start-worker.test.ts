@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test } from 'vitest'
-import type { JobQueue, Logger, QueueName } from '@app/application'
+import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import { startWorker } from './start-worker.js'
 import type { WorkerDeps } from './start-worker.js'
 
@@ -21,6 +21,7 @@ const services: WorkerDeps['services'] = {
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),
   },
+  credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used in this test')) },
   zip: {
     create: () => {
       throw new Error('not used in this test')
@@ -65,7 +66,12 @@ const silentLogger: Logger = {
 function fakeQueue() {
   const workedQueues: QueueName[] = []
   const stops: { graceful: boolean; timeoutMs: number }[] = []
-  const queue: JobQueue = {
+  const schedules: { name: string; cron: string; tz: string }[] = []
+  const queue: JobQueue & JobScheduler = {
+    schedule(name, cron, _data, opts) {
+      schedules.push({ name, cron, tz: opts.tz })
+      return Promise.resolve()
+    },
     send: () => Promise.resolve(null),
     work(name) {
       workedQueues.push(name)
@@ -77,7 +83,7 @@ function fakeQueue() {
       return Promise.resolve()
     },
   }
-  return { queue, workedQueues, stops }
+  return { queue, workedQueues, stops, schedules }
 }
 
 const heartbeatPath = () => join(mkdtempSync(join(tmpdir(), 'w-')), 'heartbeat')
@@ -127,7 +133,7 @@ test('stop asks the queue for a graceful stop with a 30 s timeout', async () => 
 test('a handler receives the job data and its dependencies', async () => {
   let registered:
     ((job: { id: string; data: { requestedAt: string } }) => Promise<void>) | undefined
-  const queue: JobQueue = {
+  const queue: JobQueue & JobScheduler = {
     ...fakeQueue().queue,
     work(_name, handler) {
       // only system.selftest is consumed in this test
@@ -152,5 +158,21 @@ test('a handler receives the job data and its dependencies', async () => {
   })
   await registered?.({ id: 'j1', data: { requestedAt: '2026-10-18T10:00:00Z' } })
   expect(seen).toEqual([{ requestedAt: '2026-10-18T10:00:00Z' }, silentLogger, services.clock])
+  await w.stop()
+})
+
+test('the worker that consumes the retention schedules it every day at 03:30 Italian time', async () => {
+  const q = fakeQueue()
+  const w = await startWorker({
+    queue: q.queue,
+    logger: silentLogger,
+    services,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['identity.retention'],
+  })
+  expect(q.schedules).toEqual([
+    { name: 'identity.retention', cron: '30 3 * * *', tz: 'Europe/Rome' },
+  ])
   await w.stop()
 })
