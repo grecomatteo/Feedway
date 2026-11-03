@@ -66,6 +66,7 @@
     "doneNext": "Da adesso accedi con il nuovo indirizzo. Le sessioni aperte restano attive."
   },
   "security": {
+    "onlyPasskey": "Hai un solo modo per il secondo passaggio: una passkey. Se perdi il dispositivo non potrai più accedere. Aggiungi l'app di autenticazione, con i 10 codici di recupero, oppure una seconda passkey da un altro dispositivo.",
     "title": "Sicurezza",
     "cancel": "Annulla",
     "lastFactor": "La verifica in due passaggi è obbligatoria per il tuo ruolo: aggiungi prima un altro metodo (una passkey o l'app di autenticazione), poi potrai togliere questo.",
@@ -576,6 +577,12 @@
     "start": "Continua",
     "preparing": "Preparo la chiave…",
     "retry": "Riprova"
+  },
+  "backupFactor": {
+    "title": "Aggiungi un modo di riserva",
+    "explain": "Ora entri solo con questa passkey. Se perdi o cambi il dispositivo non potrai più accedere, nemmeno con una nuova password. Aggiungi l'app di autenticazione, che ti dà anche 10 codici di recupero, oppure una passkey su un altro dispositivo.",
+    "addNow": "Aggiungilo ora",
+    "later": "Più tardi"
   },
   "secondFactor": {
     "title": "Secondo passaggio",
