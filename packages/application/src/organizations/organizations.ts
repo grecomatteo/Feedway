@@ -101,7 +101,8 @@ export async function getOrganizationSettings(
 export interface OrganizationSettingsInput {
   name?: string
   require2fa?: TwoFactorPolicy
-  privacy?: { controllerName: string; contactEmail: string; extraText?: string }
+  /** null removes the controller data */
+  privacy?: { controllerName: string; contactEmail: string; extraText?: string } | null
 }
 
 const PRIVACY_PROBLEMS = {
@@ -155,8 +156,9 @@ export async function updateOrganizationSettings(
         { field: 'require2fa' },
       )
   }
-  let privacy: OrganizationPrivacySettings | undefined
-  if (input.privacy !== undefined) {
+  let privacy: OrganizationPrivacySettings | null | undefined =
+    input.privacy === null ? null : undefined
+  if (input.privacy !== undefined && input.privacy !== null) {
     const valid = checkPrivacySettings(input.privacy)
     if (!valid.ok)
       throw new DomainError('VALIDATION', PRIVACY_PROBLEMS[valid.field], { field: valid.field })

@@ -85,6 +85,9 @@ test('the privacy controller data is checked and trimmed', () => {
   expect(refused({ controllerName: 'Rossi', contactEmail: 'non-un-indirizzo' })).toBe(
     'privacy.contactEmail',
   )
+  expect(refused({ controllerName: 'Rossi', contactEmail: 'a@b.it?cc=c@d.it' })).toBe(
+    'privacy.contactEmail',
+  )
   expect(
     refused({ controllerName: 'Rossi', contactEmail: 'a@b.it', extraText: 'x'.repeat(2001) }),
   ).toBe('privacy.extraText')

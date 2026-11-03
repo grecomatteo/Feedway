@@ -64,7 +64,7 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 | Finalità | Sapere chi ha fatto cosa e quando; ricostruire un incidente |
 | Base giuridica | Legittimo interesse alla sicurezza e alla responsabilità (art. 6.1.f; art. 5.2) |
 | Dati | Autore, azione, oggetto, data, indirizzo IP. Mai password, token o testi completi |
-| Conservazione | Voci: per la vita dell'agenzia. IP: abbreviati dopo 90 giorni (ultimo blocco azzerato). Una persona anonimizzata resta come «Utente rimosso» |
+| Conservazione | Voci: 24 mesi, poi riassunte (specifica §15.7; **non ancora applicato**: oggi restano per la vita dell'agenzia). IP: abbreviati dopo 90 giorni (ultimo blocco azzerato). Una persona anonimizzata resta come «Utente rimosso» |
 
 ### 6. «Scarica i miei dati»
 

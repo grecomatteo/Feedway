@@ -244,6 +244,9 @@ describe('organization settings', () => {
     })
     const [entry] = await auditOf(a.org)
     expect(entry?.data).toEqual({ fields: ['privacy'] })
+    // null removes them
+    await updateOrganizationSettings(deps, owner, fresh(owner), { privacy: null }, REQ)
+    expect((await getOrganizationSettings(deps, owner)).privacy).toBeNull()
   })
 
   test('raising the rule closes no session: a member without a second factor owes one next', async () => {

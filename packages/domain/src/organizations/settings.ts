@@ -65,7 +65,9 @@ export function checkPrivacySettings(raw: {
   if (length < 2 || length > PRIVACY_CONTROLLER_MAX_LENGTH || !isPlainDisplayName(controllerName))
     return { ok: false, field: 'privacy.controllerName' }
   const contactEmail = normalizeEmail(raw.contactEmail)
-  if (contactEmail === null) return { ok: false, field: 'privacy.contactEmail' }
+  // it becomes a mailto: link: nothing that adds headers or a body to it
+  if (contactEmail === null || /[?&%/:]/.test(contactEmail))
+    return { ok: false, field: 'privacy.contactEmail' }
   const extraText = (raw.extraText ?? '').trim().replace(/\r\n?/g, '\n')
   if (
     Array.from(extraText).length > PRIVACY_EXTRA_TEXT_MAX_LENGTH ||

@@ -55,19 +55,24 @@ async function save() {
   Object.assign(state, { sending: true, problem: null, field: '', done: false })
   try {
     await withReauth(async () => {
-      // the controller data go together, once both required fields are written
-      const privacy =
-        form.controllerName.trim() !== '' || form.contactEmail.trim() !== ''
-          ? {
-              controllerName: form.controllerName,
-              contactEmail: form.contactEmail,
-              extraText: form.extraText,
-            }
+      // the controller data go as a whole: anything written is checked by the server; all
+      // three emptied remove what was stored
+      const written = [form.controllerName, form.contactEmail, form.extraText].some(
+        (v) => v.trim() !== '',
+      )
+      const privacy = written
+        ? {
+            controllerName: form.controllerName,
+            contactEmail: form.contactEmail,
+            extraText: form.extraText,
+          }
+        : data.value?.privacy
+          ? null
           : undefined
       data.value = await call<Settings>('PATCH', org.api('/settings'), {
         name: form.name,
         require2fa: form.require2fa,
-        ...(privacy ? { privacy } : {}),
+        ...(privacy === undefined ? {} : { privacy }),
       })
     })
     state.done = true

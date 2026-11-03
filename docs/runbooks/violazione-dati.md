@@ -7,7 +7,7 @@ Il GDPR (art. 33) chiede di **avvisare il Garante entro 72 ore** da quando te ne
 ## Ora 0: contieni
 
 1. **Chiudi l'accesso.**
-   - Account rubato: dal pannello della piattaforma, oppure, dalla cartella `docker`, `docker compose run --rm worker cli disable-user <email>` (chiude tutte le sessioni). La persona stessa può usare «Non sono stato io» dall'email di sicurezza.
+   - Account rubato: dal pannello della piattaforma, oppure, da `/opt/feedway`, `docker compose --project-directory . -f docker/compose.yml run --rm worker cli disable-user <email>` (chiude tutte le sessioni). La persona stessa può usare «Non sono stato io» dall'email di sicurezza.
    - VPS compromessa: togli il nodo dalla rete Tailscale dalla console di Tailscale; non spegnere la VPS se puoi evitarlo (servono i log).
 2. **Cambia i segreti esposti**: password di Postgres, chiave di Tailscale, token Meta (dalla tappa 3). Mai incollarli in chat o in un ticket.
 3. **Annota l'ora** in cui te ne sei accorto: da lì partono le 72 ore.
@@ -17,8 +17,8 @@ Il GDPR (art. 33) chiede di **avvisare il Garante entro 72 ore** da quando te ne
 Apri una sessione sul database:
 
 ```bash
-cd /opt/feedway/docker
-docker compose exec postgres psql -U postgres -d app
+cd /opt/feedway
+docker compose --project-directory . -f docker/compose.yml exec postgres psql -U postgres -d app
 ```
 
 Le query leggono il registro attività (`audit_log`). Sostituisci i valori tra `<>`.
@@ -40,7 +40,7 @@ select created_at, actor_id, action, ip, data
 from audit_log
 where action in ('auth.login', 'auth.login_failed', 'auth.second_factor_failed', 'auth.new_device')
   and created_at > now() - interval '7 days'
-  and (ip <<= '<ip>/32' or actor_id = (select id from users where email = '<email>'))
+  and (ip = '<ip>' or actor_id = (select id from users where email = '<email>'))
 order by created_at;
 ```
 
@@ -55,12 +55,12 @@ order by created_at desc
 limit 200;
 ```
 
-**Quali agenzie e quanti account sono coinvolti**
+**Quali agenzie e quanti account sono coinvolti** (le voci `auth.*` sono personali, senza agenzia: qui contano le azioni fatte dentro un'agenzia)
 
 ```sql
 select organization_id, count(distinct actor_id) as persone, count(*) as azioni
 from audit_log
-where created_at between '<da>' and '<a>' and ip <<= '<ip>/32'
+where created_at between '<da>' and '<a>' and ip = '<ip>' and organization_id is not null
 group by organization_id;
 ```
 

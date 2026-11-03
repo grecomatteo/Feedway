@@ -31,13 +31,14 @@ export const organizationSettingsRoute = defineContract({
 export const UpdateOrganizationSettingsBody = z.strictObject({
   name: z.string().max(400).optional(),
   require2fa: TwoFactorPolicy.optional(),
-  /** The controller data of the privacy notice, replaced as a whole. */
+  /** The controller data of the privacy notice, replaced as a whole; null removes them. */
   privacy: z
     .strictObject({
       controllerName: z.string().max(1000),
       contactEmail: z.string().max(1000),
       extraText: z.string().max(10_000).optional(),
     })
+    .nullable()
     .optional(),
 })
 
