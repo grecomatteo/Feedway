@@ -34,6 +34,8 @@ export const KNOWN_QUEUES = [
   'identity.account_recovery_email',
   'identity.email_change',
   'identity.data_export',
+  'identity.retention',
+  'identity.anonymization_notice',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

@@ -24,6 +24,18 @@ interface JobDefinitions {
   'identity.account_recovery_email': { scope: 'user'; data: AccountRecoveryEmailData }
   'identity.email_change': { scope: 'user'; data: EmailChangeEmailData }
   'identity.data_export': { scope: 'user'; data: DataExportJobData }
+  'identity.retention': { scope: 'system'; data: object }
+  'identity.anonymization_notice': { scope: 'user'; data: AnonymizationNoticeData }
+}
+
+/**
+ * To an Owner (`userId`): a person disabled by the platform will be anonymized on
+ * `scheduledFor` (ISO 8601) unless reactivated. Ids and a date only.
+ */
+export interface AnonymizationNoticeData {
+  subjectId: string
+  organizationId: string
+  scheduledFor: string
 }
 
 /** "Scarica i miei dati": the request's IP goes to the activity entry written when it is ready. */
@@ -139,4 +151,15 @@ export interface JobQueue {
   ): Promise<void>
   ping(): Promise<void>
   stop(opts: { graceful: boolean; timeoutMs: number }): Promise<void>
+}
+
+/** The consumer's cron schedules (pg-boss `schedule`), apart from `JobQueue`: the web never schedules. */
+export interface JobScheduler {
+  /** Runs `name` on a cron schedule (five fields) in time zone `tz`; again replaces it. */
+  schedule<N extends QueueName>(
+    name: N,
+    cron: string,
+    data: JobPayloads[N],
+    opts: { tz: string },
+  ): Promise<void>
 }

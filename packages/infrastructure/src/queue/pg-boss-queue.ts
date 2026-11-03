@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { PgBoss } from 'pg-boss'
-import type { JobQueue, Logger } from '@app/application'
+import type { JobQueue, JobScheduler, Logger } from '@app/application'
 
 export interface PgBossQueueOptions {
   url: string
@@ -16,7 +16,9 @@ function dedupeId(name: string, key: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-8${h.slice(13, 16)}-${((parseInt(h.slice(16, 18), 16) & 0x3f) | 0x80).toString(16)}${h.slice(18, 20)}-${h.slice(20, 32)}`
 }
 
-export async function createPgBossQueue(opts: PgBossQueueOptions): Promise<JobQueue> {
+export async function createPgBossQueue(
+  opts: PgBossQueueOptions,
+): Promise<JobQueue & JobScheduler> {
   const { url, logger, role } = opts
   const consumer = role === 'consumer'
   const boss = new PgBoss({
@@ -47,6 +49,10 @@ export async function createPgBossQueue(opts: PgBossQueueOptions): Promise<JobQu
       await boss.work(name, { localConcurrency: workOpts?.concurrency ?? 1 }, async (jobs) => {
         for (const job of jobs) await handler({ id: job.id, data: job.data as never })
       })
+    },
+    async schedule(name, cron, data, scheduleOpts) {
+      if (!consumer) throw new Error('only the consumer schedules jobs')
+      await boss.schedule(name, cron, data, { tz: scheduleOpts.tz })
     },
     async ping() {
       await boss.getDb().executeSql('select 1 from pgboss.queue limit 1', [])

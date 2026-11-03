@@ -12,6 +12,7 @@ interface Member {
   secondFactorConfigured: boolean
   workspaces: { id: string; name: string; role: WorkspaceRole }[]
   lastLoginAt: string | null
+  anonymizationScheduledFor: string | null
 }
 interface Invite {
   id: string
@@ -305,6 +306,13 @@ async function transferred() {
               <UBadge :color="m.status === 'active' ? 'success' : 'neutral'" variant="subtle">
                 {{ m.status === 'active' ? $t('users.active') : $t('users.disabled') }}
               </UBadge>
+              <p v-if="m.anonymizationScheduledFor" class="mt-1 text-sm text-(--app-text-muted)">
+                {{
+                  $t('users.anonymizationScheduled', {
+                    date: formatDate(m.anonymizationScheduledFor, false),
+                  })
+                }}
+              </p>
             </td>
             <td class="px-4 py-2">
               {{ m.lastLoginAt ? formatDate(m.lastLoginAt, true) : $t('users.never') }}

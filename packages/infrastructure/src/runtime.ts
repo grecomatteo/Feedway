@@ -3,6 +3,7 @@ import type {
   Clock,
   IdGenerator,
   JobQueue,
+  JobScheduler,
   KeyRing,
   Logger,
   IntegrationStore,
@@ -57,8 +58,8 @@ export interface Runtime {
   logger: Logger
   db: Db
   pool: DbHandle['pool']
-  /** The web only sends jobs; the worker also consumes them. */
-  queue: JobQueue
+  /** The web only sends jobs; the worker also consumes them and keeps the schedules. */
+  queue: JobQueue & JobScheduler
   clock: Clock
   ids: IdGenerator
   uow: UnitOfWork

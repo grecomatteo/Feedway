@@ -15,6 +15,8 @@ export const Member = z.object({
   secondFactorConfigured: z.boolean(),
   workspaces: z.array(z.object({ id: z.string(), name: z.string(), role: WorkspaceRole })),
   lastLoginAt: Timestamp.nullable(),
+  /** Disabled by the platform: the day its personal data will be anonymized, if announced. */
+  anonymizationScheduledFor: z.string().nullable(),
 })
 
 export const listMembersRoute = defineContract({

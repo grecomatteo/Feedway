@@ -1,5 +1,10 @@
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
-import { createRuntime, createZipWriter, QUEUE_NAMES } from '@app/infrastructure'
+import {
+  createCredentialEraser,
+  createRuntime,
+  createZipWriter,
+  QUEUE_NAMES,
+} from '@app/infrastructure'
 import { createTranslate, loadItalianMessages } from './i18n.js'
 import { startWorker } from './start-worker.js'
 
@@ -28,6 +33,7 @@ async function main(): Promise<void> {
       clock,
       ids,
       storage,
+      credentials: { deleteAllCredentials: createCredentialEraser({ db: runtime.db }) },
       zip: createZipWriter(),
       mailer,
       signedTokens,

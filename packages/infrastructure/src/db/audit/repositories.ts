@@ -66,6 +66,29 @@ export function drizzleAuditLog(db: DbExecutor, ids: IdGenerator, ctx: TxContext
         .limit(1)
       return row !== undefined
     },
+    async latest(q) {
+      const [row] = await db
+        .select({ createdAt: auditLog.createdAt, data: auditLog.data })
+        .from(auditLog)
+        .where(
+          and(
+            q.organizationId === null
+              ? isNull(auditLog.organizationId)
+              : eq(auditLog.organizationId, q.organizationId),
+            eq(auditLog.action, q.action),
+            eq(auditLog.entityId, q.entityId),
+          ),
+        )
+        .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
+        .limit(1)
+      return row ? { createdAt: row.createdAt, data: row.data as Record<string, unknown> } : null
+    },
+    async shortenIpsBefore(before) {
+      const { rows } = await db.execute<{ n: number }>(
+        sql`select audit_shorten_ips(${before}::timestamptz) as n`,
+      )
+      return rows[0]?.n ?? 0
+    },
     async listForOrganization(q) {
       // the agency filter is explicit: row level security also lets a person read their own
       // personal entries (organization_id null), which never belong in an agency's log

@@ -1,4 +1,5 @@
 import type {
+  Auth,
   Clock,
   IdGenerator,
   JobQueue,
@@ -23,6 +24,8 @@ export interface JobHandlerDeps {
   clock: Clock
   ids: IdGenerator
   storage: Storage
+  /** Removes every credential of a person the retention anonymizes. */
+  credentials: Pick<Auth, 'deleteAllCredentials'>
   /** Builds the "Scarica i miei dati" archive. */
   zip: ZipWriter
   mailer: Mailer
