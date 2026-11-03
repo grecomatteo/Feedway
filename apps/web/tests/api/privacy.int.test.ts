@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
+import { RETENTION } from '@app/domain'
 import { createLocalDiskStorage } from '@app/infrastructure'
 import { errorCodeOf, startApiEnv } from './identity-env.js'
 import type { ApiEnv, Person } from './identity-env.js'
@@ -10,11 +11,13 @@ import type { ApiEnv, Person } from './identity-env.js'
 
 let env: ApiEnv
 let person: Person
+let agencySlug: string
 
 beforeAll(async () => {
   env = await startApiEnv('privacy')
-  const org = (await env.agency()).id
-  person = await env.person(org, 'member')
+  const agency = await env.agency()
+  agencySlug = agency.slug
+  person = await env.person(agency.id, 'member')
 }, 300_000)
 
 afterAll(async () => {
@@ -66,4 +69,45 @@ test('deleting the account clears the session cookie and the session stops worki
   expect(await r.json()).toEqual({ deleted: true })
   expect(r.headers.getSetCookie().join('\n')).toMatch(/__Host-session=;.*Max-Age=0/i)
   expect((await env.call('GET', '/api/v1/me', undefined, { cookie })).status).toBe(401)
+})
+
+test('the public notice needs no session and names the first agency, with the code’s values', async () => {
+  const before = await env.call('GET', '/api/v1/privacy')
+  expect(before.status).toBe(200)
+  // a platform not activated yet: nobody to name
+  expect(await before.json()).toMatchObject({ organizationName: null, controllerName: null })
+
+  const first = (await env.agency()).id
+  await env.admin.pool.query(
+    `update organizations set name = 'La mia agenzia',
+       settings = settings || '{"privacy":{"controllerName":"Rossi S.r.l.","contactEmail":"privacy@rossi.it"}}'
+     where id = $1`,
+    [first],
+  )
+  await env.admin.pool.query(
+    `insert into settings (key, value) values ('platform.first_organization_id', to_jsonb($1::text))`,
+    [first],
+  )
+  const r = await env.call('GET', '/api/v1/privacy')
+  expect(r.status).toBe(200)
+  const notice = (await r.json()) as Record<string, unknown>
+  expect(notice).toMatchObject({
+    organizationName: 'La mia agenzia',
+    controllerName: 'Rossi S.r.l.',
+    contactEmail: 'privacy@rossi.it',
+    extraText: null,
+    retention: RETENTION,
+  })
+  expect(notice.cookies).toContainEqual({
+    name: '__Host-device',
+    purpose: 'device',
+    maxAgeSeconds: 400 * 86_400,
+  })
+})
+
+test('an agency’s notice reaches its members', async () => {
+  const cookie = await env.signIn(person)
+  const r = await env.call('GET', `/api/v1/orgs/${agencySlug}/privacy`, undefined, { cookie })
+  expect(r.status).toBe(200)
+  expect(await r.json()).toMatchObject({ controllerName: null, retention: RETENTION })
 })

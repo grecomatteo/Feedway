@@ -1,4 +1,5 @@
 import { isPlainDisplayName } from '../identity/display-name.js'
+import { normalizeEmail } from '../identity/email.js'
 import type { TwoFactorPolicy } from '../identity/second-factor-policy.js'
 
 export interface OrganizationPrivacySettings {
@@ -41,4 +42,55 @@ export function checkOrganizationName(
 export function organizationName(raw: string): string | null {
   const check = checkOrganizationName(raw)
   return check.ok ? check.value : null
+}
+
+export const PRIVACY_CONTROLLER_MAX_LENGTH = 200
+export const PRIVACY_EXTRA_TEXT_MAX_LENGTH = 2000
+/** Control and direction characters; a new line is allowed in the extra text. */
+const HIDDEN_IN_TEXT = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/u
+
+export type PrivacyField = 'privacy.controllerName' | 'privacy.contactEmail' | 'privacy.extraText'
+
+/**
+ * The controller data of an agency's privacy notice (spec §15.7), as stored: the controller's
+ * name as plain text, a contact address, an optional extra text (plain text, shown as is).
+ */
+export function checkPrivacySettings(raw: {
+  controllerName: string
+  contactEmail: string
+  extraText?: string
+}): { ok: true; value: OrganizationPrivacySettings } | { ok: false; field: PrivacyField } {
+  const controllerName = raw.controllerName.trim()
+  const length = Array.from(controllerName).length
+  if (length < 2 || length > PRIVACY_CONTROLLER_MAX_LENGTH || !isPlainDisplayName(controllerName))
+    return { ok: false, field: 'privacy.controllerName' }
+  const contactEmail = normalizeEmail(raw.contactEmail)
+  // it becomes a mailto: link: nothing that adds headers or a body to it
+  if (contactEmail === null || /[?&%/:]/.test(contactEmail))
+    return { ok: false, field: 'privacy.contactEmail' }
+  const extraText = (raw.extraText ?? '').trim().replace(/\r\n?/g, '\n')
+  if (
+    Array.from(extraText).length > PRIVACY_EXTRA_TEXT_MAX_LENGTH ||
+    HIDDEN_IN_TEXT.test(extraText.replace(/\n/g, ''))
+  )
+    return { ok: false, field: 'privacy.extraText' }
+  return {
+    ok: true,
+    value: { controllerName, contactEmail, ...(extraText === '' ? {} : { extraText }) },
+  }
+}
+
+/** What an agency stored, if it is complete; anything else counts as not filled in. */
+export function storedPrivacySettings(
+  settings: Record<string, unknown>,
+): OrganizationPrivacySettings | null {
+  const privacy = settings.privacy
+  if (typeof privacy !== 'object' || privacy === null) return null
+  const { controllerName, contactEmail, extraText } = privacy as Record<string, unknown>
+  if (typeof controllerName !== 'string' || typeof contactEmail !== 'string') return null
+  return {
+    controllerName,
+    contactEmail,
+    ...(typeof extraText === 'string' ? { extraText } : {}),
+  }
 }
