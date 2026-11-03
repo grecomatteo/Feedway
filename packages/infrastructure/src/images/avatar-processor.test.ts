@@ -169,3 +169,21 @@ test('at most two images are processed at once; more wait, too many are refused'
   const refused = results.find((r) => r.status === 'rejected')
   expect(refused?.status === 'rejected' && refused.reason).toMatchObject({ code: 'RATE_LIMITED' })
 })
+
+test('by default one image is processed at a time and libvips keeps no cache', async () => {
+  let running = 0
+  let peak = 0
+  const defaults = createAvatarProcessor({
+    onStart: () => {
+      running += 1
+      peak = Math.max(peak, running)
+    },
+    onEnd: () => {
+      running -= 1
+    },
+  })
+  const png = await pngOfSize(1500, 1500)
+  await Promise.all(Array.from({ length: 3 }, () => defaults.normalize(png)))
+  expect(peak).toBe(1)
+  expect(sharp.cache()).toMatchObject({ memory: { max: 0 }, items: { max: 0 } })
+})

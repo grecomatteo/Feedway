@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The first authenticator app of a session that owes the second factor: key and link (no QR:
- * it would need a new package, see the Task 24 note), the code, then the 10 recovery codes.
+ * The first authenticator app of a session that owes the second factor: QR code, key and link
+ * (uqr, docs/stack.md), the code, then the 10 recovery codes.
  * `password`: already typed on the page (activation); otherwise the component asks it.
  */
 const props = defineProps<{ password?: string }>()
@@ -104,6 +104,8 @@ onMounted(() => {
 
     <template v-else-if="state.step === 'scan'">
       <p>{{ $t('security.totp.scan') }}</p>
+      <p class="text-sm text-(--app-text-muted)">{{ $t('security.totp.replaces') }}</p>
+      <TotpQrCode :link="link" />
       <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
         {{ secret }}
       </p>
