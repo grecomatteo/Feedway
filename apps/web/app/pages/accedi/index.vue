@@ -189,5 +189,8 @@ async function skipPasskey() {
       </NuxtLink>
       {{ $t('signIn.forgotHint') }}
     </p>
+    <p class="text-sm">
+      <NuxtLink to="/privacy" class="underline">{{ $t('privacyNotice.link') }}</NuxtLink>
+    </p>
   </div>
 </template>

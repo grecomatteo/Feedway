@@ -66,3 +66,18 @@ test('download my data, then delete my account', async ({ page }) => {
   await page.goto('/account/privacy')
   await expect(page).toHaveURL(/\/accedi/)
 })
+
+// the notice is a screen of its own: one path, from the sign-in page
+test('the privacy notice opens from the sign-in page', async ({ page }) => {
+  await page.goto('/accedi')
+  await page.getByRole('link', { name: 'Informativa privacy' }).click()
+  await expect(page).toHaveURL(/\/privacy$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cookie' })).toBeVisible()
+  await expect(page.getByText('__Host-device')).toBeVisible()
+  const axe = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze()
+  expect(axe.violations).toEqual([])
+})

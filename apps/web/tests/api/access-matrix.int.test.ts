@@ -92,6 +92,8 @@ const RULES: Record<string, readonly Rule[]> = {
   'PATCH /api/v1/orgs/{org}/settings': [
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
+  // the agency's privacy notice: every member, whatever the role
+  'GET /api/v1/orgs/{org}/privacy': [{ permission: 'workspace.view', level: 'organization' }],
   'GET /api/v1/orgs/{org}/members': [{ permission: 'users.manage', level: 'organization' }],
   // users.manage (Owner, Admin) or, inside a workspace, workspace.members.manage
   'POST /api/v1/orgs/{org}/invites': [

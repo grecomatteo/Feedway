@@ -1,5 +1,10 @@
 import { expect, test } from 'vitest'
-import { checkOrganizationName, mergeSettings, organizationName } from './settings.js'
+import {
+  checkOrganizationName,
+  checkPrivacySettings,
+  mergeSettings,
+  organizationName,
+} from './settings.js'
 
 const privacy = { controllerName: 'Agenzia A', contactEmail: 'privacy@a.it' }
 
@@ -48,4 +53,45 @@ test('an agency or workspace name is a name: no links, no control or direction c
   expect(checkOrganizationName('A')).toEqual({ ok: false, reason: 'LENGTH' })
   expect(checkOrganizationName(' Agenzia 2.0 ')).toEqual({ ok: true, value: 'Agenzia 2.0' })
   expect(organizationName('https://truffa.example')).toBeNull()
+})
+
+test('the privacy controller data is checked and trimmed', () => {
+  expect(
+    checkPrivacySettings({
+      controllerName: '  Rossi S.r.l. ',
+      contactEmail: ' Privacy@Rossi.IT ',
+      extraText: '  Responsabile: Mario Rossi.\nTelefono 02 1234  ',
+    }),
+  ).toEqual({
+    ok: true,
+    value: {
+      controllerName: 'Rossi S.r.l.',
+      contactEmail: 'privacy@rossi.it',
+      extraText: 'Responsabile: Mario Rossi.\nTelefono 02 1234',
+    },
+  })
+  // an empty extra text is no extra text
+  expect(
+    checkPrivacySettings({ controllerName: 'Rossi', contactEmail: 'a@b.it', extraText: ' ' }),
+  ).toEqual({ ok: true, value: { controllerName: 'Rossi', contactEmail: 'a@b.it' } })
+  const refused = (input: Parameters<typeof checkPrivacySettings>[0]) => {
+    const r = checkPrivacySettings(input)
+    return r.ok ? null : r.field
+  }
+  expect(refused({ controllerName: 'R', contactEmail: 'a@b.it' })).toBe('privacy.controllerName')
+  expect(refused({ controllerName: 'https://x.it', contactEmail: 'a@b.it' })).toBe(
+    'privacy.controllerName',
+  )
+  expect(refused({ controllerName: 'Rossi', contactEmail: 'non-un-indirizzo' })).toBe(
+    'privacy.contactEmail',
+  )
+  expect(refused({ controllerName: 'Rossi', contactEmail: 'a@b.it?cc=c@d.it' })).toBe(
+    'privacy.contactEmail',
+  )
+  expect(
+    refused({ controllerName: 'Rossi', contactEmail: 'a@b.it', extraText: 'x'.repeat(2001) }),
+  ).toBe('privacy.extraText')
+  expect(refused({ controllerName: 'Rossi', contactEmail: 'a@b.it', extraText: 'a‮b' })).toBe(
+    'privacy.extraText',
+  )
 })

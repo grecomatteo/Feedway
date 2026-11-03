@@ -19,7 +19,7 @@ import type {
 import type { SessionUserResolver } from './auth-hooks.js'
 import type { Db } from '../db/client.js'
 import * as schema from '../db/identity/schema.js'
-import { COOKIE_NAMES } from './cookie-names.js'
+import { COOKIE_NAMES, TWO_FACTOR_COOKIE_MAX_AGE_SECONDS } from './cookie-names.js'
 import {
   authMethodForPath,
   createAfterHook,
@@ -230,6 +230,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
         issuer: deps.config.productName,
         totpOptions: { digits: 6, period: 30 },
         backupCodeOptions: { amount: 10, length: 10 },
+        twoFactorCookieMaxAge: TWO_FACTOR_COOKIE_MAX_AGE_SECONDS,
         allowPasswordless: true,
       }),
       passkey({
