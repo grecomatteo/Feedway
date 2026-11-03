@@ -9,7 +9,6 @@
 
 Il pannello self-hosted con cui un'agenzia programma, pubblica e controlla i contenuti **Instagram** e **Facebook** di tutti i suoi clienti, tramite le API ufficiali di Meta.
 
-![Versione](https://img.shields.io/badge/versione-0.1.2-FF762E)
 ![Node](https://img.shields.io/badge/Node-24_LTS-242321?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-242321?logo=typescript&logoColor=white)
 ![Nuxt](https://img.shields.io/badge/Nuxt-4-242321?logo=nuxt&logoColor=white)
@@ -74,8 +73,8 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 | Tappa | Contenuto | Stato |
 |---|---|---|
 | 1 · Fondamenta | Monorepo, database, coda, worker, design system, immagine Docker, `install.sh` e `update.sh`, CI | ✅ Rilasciata (v0.1.x) |
-| 2 · Identità | Account, 2FA e passkey, agenzie isolate con RLS, ruoli, inviti, spazi di lavoro, privacy | 🚧 In corso |
-| 3 · Meta | Collegamento degli account Instagram e Facebook | 📝 Piano scritto |
+| 2 · Identità | Accesso con password, passkey e 2FA; agenzie isolate con RLS, spazi di lavoro, ruoli e inviti; registro attività; profilo; email di sistema; privacy (scarica i miei dati, elimina l'account, conservazione automatica) | 🚧 In chiusura |
+| 3 · Meta | Collegamento di Pagine Facebook e profili Instagram: utente di sistema e accesso unificato di Meta | 📝 Piano pronto |
 | 4–12 | Media, regole, post, pubblicazione, notifiche, pianificazione, condivisione, operazioni, messa in produzione | ⏳ Da fare |
 
 Dettaglio di ogni tappa nel [piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md); cosa è uscito in ogni versione nel [CHANGELOG](CHANGELOG.md).
@@ -162,11 +161,11 @@ Feedway gira con Docker Compose su una VPS Linux (x64 o ARM) e il pannello si ra
 
 ```bash
 git clone https://github.com/grecomatteo/Feedway.git /opt/feedway && cd /opt/feedway
-git checkout v0.1.2            # sempre una versione con tag, mai main
-./scripts/install.sh           # chiede nome host e chiave Tailscale, email dell'Owner
+git checkout vX.Y.Z            # l'ultima versione con tag, mai main
+./scripts/install.sh           # chiede nome host e chiave Tailscale, email dell'Owner e nome dell'agenzia
 ```
 
-Lo script genera chiavi e password, avvia i container e stampa l'indirizzo del pannello. Gli aggiornamenti eseguono prima la migrazione e tornano indietro con un comando:
+Lo script genera chiavi e password, avvia i container e stampa l'indirizzo del pannello e il link di primo accesso dell'Owner. Gli aggiornamenti eseguono prima la migrazione e tornano indietro con un comando:
 
 ```bash
 ./scripts/update.sh v0.2.0     # o senza argomenti per l'ultima release
