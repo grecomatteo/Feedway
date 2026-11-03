@@ -97,6 +97,8 @@ test('sign-in with the authenticator app code', async ({ page }) => {
 
 /** Key, code, recovery codes: returns the key. */
 async function enrolFromPage(page: Page): Promise<string> {
+  // the key can be scanned from another device too
+  await expect(page.getByRole('img', { name: "QR code da inquadrare con l'app" })).toBeVisible()
   const link = await page
     .getByRole('link', { name: "Apri nell'app di autenticazione" })
     .getAttribute('href')
