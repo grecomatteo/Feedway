@@ -10,7 +10,8 @@
     "loading": "Controllo in corso…",
     "ok": "Tutto funziona.",
     "error": "Qualche parte del sistema non risponde.",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "signIn": "Accedi al pannello"
   },
   "a11y": {
     "skipToContent": "Vai al contenuto"

@@ -13,6 +13,10 @@ const { data, status, error, refresh } = useFetch('/api/ready', {
 <template>
   <div class="space-y-6">
     <h1 class="text-3xl">{{ PRODUCT_NAME }}</h1>
+    <!-- signed in, /accedi goes straight to the person's agency -->
+    <UButton to="/accedi" size="xl" class="min-h-11" icon="i-lucide-log-in">
+      {{ $t('home.signIn') }}
+    </UButton>
     <section
       aria-labelledby="system-status"
       class="rounded-xl border border-(--app-border) bg-(--app-surface) p-4"

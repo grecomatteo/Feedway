@@ -13,6 +13,13 @@ test('home shows the product name and a ready status', async ({ page }) => {
   await expect(page.getByRole('status')).toBeVisible()
 })
 
+test('home leads to sign-in', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Accedi al pannello' }).click()
+  await expect(page).toHaveURL(/\/accedi$/)
+  await expect(page.getByRole('button', { name: 'Accedi con la password' })).toBeVisible()
+})
+
 test('home has no accessibility violations', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
