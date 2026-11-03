@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Records every call in $STUB_LOG and answers just enough for the scripts under test.
 echo "docker $*" >>"${STUB_LOG:?}"
+[ "${1:-}" != compose ] || echo "COMPOSE_FILE=${COMPOSE_FILE:-}" >>"$STUB_LOG"
 case "$1" in
   --version) echo "Docker version ${STUB_DOCKER_VERSION:-27.3.1}, build stub" ;;
   info) exit 0 ;;
