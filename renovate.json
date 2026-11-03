@@ -5,6 +5,7 @@
   "schedule": ["before 7am on monday"],
   "updateNotScheduled": false,
   "rebaseWhen": "conflicted",
+  "minimumReleaseAge": "2 days",
   "automerge": false,
   "platformAutomerge": false,
   "semanticCommits": "enabled",
