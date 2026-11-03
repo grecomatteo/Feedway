@@ -19,7 +19,7 @@
 | `00-piano-generale.md` | Questo documento: ordine, confini e interfacce tra tappe, regole comuni | Pronto |
 | `01-fondamenta.md` | Tappa 1, eseguibile | Pronto |
 | `02-identita.md` | Tappa 2, eseguibile | Pronto |
-| `03-meta.md` | Tappa 3, formato leggero | Pronto, da approvare |
+| `03-meta.md` | Tappa 3, formato leggero | Pronto (approvato da Matteo il 2026-11-03) |
 | `04-media.md` … `12-produzione.md` | Tappe 4–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
