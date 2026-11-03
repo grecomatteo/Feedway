@@ -86,6 +86,7 @@
       "passwordHelp": "Serve per attivarla, rigenerare i codici o disattivarla.",
       "enable": "Attiva l'app di autenticazione",
       "scan": "Aggiungi un account nell'app scrivendo questa chiave, oppure apri il link da questo dispositivo. Poi scrivi il codice che ti mostra.",
+      "replaces": "Se avevi già aggiunto Feedway all'app in un tentativo precedente, elimina quella voce: i suoi codici non valgono più.",
       "secretLabel": "Chiave da scrivere nell'app",
       "openApp": "Apri nell'app di autenticazione",
       "code": "Codice di 6 cifre",

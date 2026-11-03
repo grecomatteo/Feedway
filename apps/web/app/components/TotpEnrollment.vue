@@ -104,6 +104,7 @@ onMounted(() => {
 
     <template v-else-if="state.step === 'scan'">
       <p>{{ $t('security.totp.scan') }}</p>
+      <p class="text-sm text-(--app-text-muted)">{{ $t('security.totp.replaces') }}</p>
       <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
         {{ secret }}
       </p>
