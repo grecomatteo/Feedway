@@ -50,6 +50,14 @@ cd /opt/feedway
 
 Lo script passa alla versione indicata, scarica l'immagine, **esegue prima la migrazione del database** e solo se riesce riavvia web e worker. Se la migrazione fallisce, il pannello in esecuzione non viene toccato. Il repository deve essere pulito (nessuna modifica non salvata).
 
+**Primo aggiornamento da una 0.1.x.** Lo script che parte è quello della versione installata, che non conosce i passi delle versioni nuove (per esempio il nome della prima agenzia e il link del primo account). Succede una volta sola. Quando ha finito, rilancia lo stesso comando con la stessa versione:
+
+```bash
+./scripts/update.sh v0.2.2     # di nuovo, ora con lo script nuovo
+```
+
+Il secondo giro non cambia la versione da cui tornare indietro: resta quella di prima dell'aggiornamento.
+
 ## Tornare alla versione precedente
 
 ```bash
@@ -67,9 +75,10 @@ Attenzione: il ritorno indietro cambia il programma, non il database. Le migrazi
 - La foto profilo dà errore e nei log c'è `EACCES` su `/media`: succede alle installazioni fatte prima della v0.2.2, dove la cartella dei file è di root. Una volta sola:
 
   ```bash
-  docker compose --project-directory . -f docker/compose.yml run --rm --no-deps --user 0 --entrypoint chown web 10001:10001 /media
+  ./scripts/compose.sh run --rm --no-deps --user 0 --entrypoint chown web 10001:10001 /media
   ```
 
-- `docker compose --project-directory . -f docker/compose.yml ps` mostra lo stato dei servizi.
-- `docker compose --project-directory . -f docker/compose.yml logs --tail 100 web worker migrate` mostra i log.
+- `./scripts/compose.sh ps` mostra lo stato dei servizi.
+- `./scripts/compose.sh logs --tail 100 web worker migrate` mostra i log.
+- `scripts/compose.sh` è `docker compose` con i file scritti in `.env` (`COMPOSE_FILE`): se sulla VPS hai aggiunto un file compose tuo (per esempio `docker/compose.local.yml`), aggiungilo lì, per esempio `COMPOSE_FILE=docker/compose.yml:docker/compose.local.yml`, e vale per `update.sh`, `fw.sh` e i comandi di questi runbook.
 - "Tailscale non ha un nome DNS": controlla che la chiave sia valida e che HTTPS sia attivo nella rete Tailscale.

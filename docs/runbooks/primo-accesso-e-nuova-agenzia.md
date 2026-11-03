@@ -3,7 +3,13 @@
 Come si crea il primo account dopo l'installazione e come si aggiunge un'altra agenzia. I comandi si lanciano sulla VPS da `/opt/feedway`. Per brevità:
 
 ```bash
-alias fw='docker compose --project-directory . -f docker/compose.yml run --rm --no-deps worker cli'
+alias fw=/opt/feedway/scripts/fw.sh
+```
+
+`scripts/fw.sh` usa i file compose scritti in `.env` (`COMPOSE_FILE`), anche quelli aggiunti a mano sulla VPS. Da uno script parte senza terminale; dentro un ciclo `while read` aggiungi `< /dev/null`, altrimenti il comando può leggersi le righe del ciclo:
+
+```bash
+while read -r slug; do fw suspend-organization "$slug" < /dev/null; done < agenzie.txt
 ```
 
 ## Primo account (amministratore della piattaforma e Owner della prima agenzia)
@@ -36,6 +42,7 @@ fw create-organization --name "Agenzia Rossi" --owner-email titolare@rossi.it
 
 - Stampa lo slug dell'agenzia e un **link di attivazione per l'Owner** (vale un'ora): mandalo alla persona per un canale che conosci già.
 - Se l'Owner ha già un account, il link non serve: trova la nuova agenzia nel selettore delle agenzie.
+- Per **provare che due agenzie non si vedono**, dai alla seconda un Owner con un'**altra email**. Con la stessa email la persona è in tutte e due le agenzie e le vede entrambe: è giusto così, ma non prova l'isolamento.
 - I limiti (spazi, account social, utenti, spazio su disco, post al giorno) partono dai valori predefiniti. Per cambiarli: `fw set-limits <slug> --users 10` (o `--unlimited`). Per vederle tutte: `fw list-organizations`.
 - I dati delle agenzie non si mescolano mai: lo garantisce il database (RLS) per ogni tabella.
 
