@@ -14,7 +14,14 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 
 ## Stato
 
-In progettazione. La versione 1.0 si sviluppa in 12 tappe, ognuna installabile e provabile.
+In sviluppo. La versione 1.0 si costruisce in 12 tappe, ognuna installabile e provabile.
+
+| Tappa | Contenuto | Stato |
+|---|---|---|
+| 1 · Fondamenta | Monorepo, database con isolamento tra agenzie, coda, immagine Docker, installazione su VPS con Tailscale | Fatta |
+| 2 · Identità | Accesso con password, passkey e secondo passaggio; agenzie, clienti (spazi), ruoli e inviti; registro attività; profilo e foto; email di sistema; privacy (scarica i miei dati, elimina l'account, conservazione automatica, informativa) | Fatta (resta la prova di Matteo sulla VPS) |
+| 3 · Meta | Collegamento di Pagine Facebook e profili Instagram: utente di sistema e accesso unificato di Meta | Piano pronto, da avviare |
+| 4–12 | Contenuti, pubblicazione, calendario, notifiche, backup e il resto della 1.0 | Vedi il piano generale |
 
 | Documento | Contenuto |
 |---|---|
@@ -33,32 +40,40 @@ Requisiti: Node 24, pnpm (versione in `package.json`), Docker.
 
 ```bash
 pnpm install
-docker compose -f docker/compose.dev.yml up -d   # Postgres (poi finto Graph API e Mailpit)
+docker compose -f docker/compose.dev.yml up -d   # Postgres
 pnpm dev                                         # pannello su app.feedway.localhost, worker
 pnpm verify                                      # formato, lint, tipi, confini, test unitari
+pnpm test:int                                    # test con il database (serve Docker)
+pnpm build && pnpm test:e2e                      # schermate con Playwright e axe
 ```
 
-Lo sviluppo non usa mai account Meta reali: c'è un finto Graph API in `tools/meta-mock`.
+Lo sviluppo non usa mai account Meta reali: dalla tappa 3 c'è un finto Graph API in `tools/meta-mock`. Le email di sistema si provano senza un server vero (vedi [email di sistema](docs/runbooks/email-di-sistema.md)).
 
 Prima di contribuire leggi [CONTRIBUTING.md](CONTRIBUTING.md) e il [flusso Git](docs/flusso-git.md).
 
 ## Installazione sulla VPS
 
 ```bash
-curl -fsSL <url dello script nella release> -o install.sh && bash install.sh
+git clone <repository> /opt/feedway && cd /opt/feedway
+git checkout <versione>
+./scripts/install.sh
 ```
 
-Lo script chiede email, nome dell'agenzia e indirizzi, genera chiavi e password, avvia i container e stampa il link per creare il primo account. Gli aggiornamenti si fanno con `./scripts/update.sh`. Guida completa in `docs/runbooks/installazione.md` (scritta nella tappa 1).
+Lo script chiede il nome host Tailscale, la chiave di Tailscale e l'email dell'Owner, genera chiavi e password, avvia i container e stampa il link per creare il primo account. Il pannello risponde su `https://<nome>.<rete>.ts.net`, solo dai dispositivi della rete Tailscale. Gli aggiornamenti si fanno con `./scripts/update.sh`, che sa anche tornare alla versione precedente.
+
+Guide: [installazione e aggiornamento](docs/runbooks/installazione.md), [email di sistema](docs/runbooks/email-di-sistema.md), [violazione dei dati](docs/runbooks/violazione-dati.md). Il [registro dei trattamenti](docs/privacy/registro-trattamenti.md) ha alcuni campi da completare a cura dell'agenzia.
 
 ## Struttura
 
 ```
-apps/        web (Nuxt), worker, site (sito pubblico), mcp (futuro)
+apps/        web (pannello Nuxt e API), worker (lavori in coda e comandi `cli`)
+             in arrivo: site (sito pubblico), mcp
 packages/    domain, application, infrastructure, config, contracts, ui
-tools/       meta-mock, fixture per i confini
-docker/      immagine, compose, init del database
-scripts/     installazione, aggiornamento, verifica dei backup
-docs/        specifica, piani, ADR, runbook, guide
+tools/       regole di lint e fixture per i confini (dalla tappa 3: meta-mock)
+docker/      immagine, compose (produzione, sviluppo, CI), Postgres, Tailscale
+scripts/     installazione, aggiornamento, controlli della CI
+docs/        specifica, piani, ADR, runbook, privacy, convenzioni
+design/      brief, marchio, prototipo grafico
 ```
 
 ## Sicurezza
