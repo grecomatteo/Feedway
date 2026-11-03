@@ -91,7 +91,10 @@ function limiter(opts: { concurrency: number; maxWaiting: number }) {
 }
 
 export interface AvatarProcessorOptions {
-  /** Images processed at once in this process (memory: a 40 MP image is ~160 MB decoded). */
+  /**
+   * Images processed at once in this process. One by default: a 40 MP HEIC takes ~450 MB at its
+   * peak, and two at once went over the panel's memory limit.
+   */
   concurrency?: number
   /** Requests that may wait for a slot; more get RATE_LIMITED. */
   maxWaiting?: number
@@ -102,8 +105,10 @@ export interface AvatarProcessorOptions {
 
 /** sharp (libvips) for JPEG, PNG and WebP; libheif-js for the HEIC of iPhones. */
 export function createAvatarProcessor(options: AvatarProcessorOptions = {}): AvatarProcessor {
+  // libvips would keep decoded images in its cache: memory the panel never gets back
+  sharp.cache(false)
   const run = limiter({
-    concurrency: options.concurrency ?? 2,
+    concurrency: options.concurrency ?? 1,
     maxWaiting: options.maxWaiting ?? 8,
   })
   const job = <T>(work: () => Promise<T>) =>

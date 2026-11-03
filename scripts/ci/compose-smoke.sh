@@ -68,6 +68,14 @@ check "containers run as non-root" not_root
 readonly_fs() { ! dc exec -T web touch /app/x 2>/dev/null; }
 check "root filesystem is read-only" readonly_fs
 
+# A fresh media volume takes the owner of /media in the image: the app user must be able to write.
+media_writable() {
+  for svc in web worker; do
+    dc exec -T "$svc" sh -c 'mkdir -p /media/.smoke && rmdir /media/.smoke' || return 1
+  done
+}
+check "media volume is writable by the app user" media_writable
+
 edge_net="${project}_edge"
 no_postgres_from_edge() {
   ! docker run --rm --network "$edge_net" --entrypoint getent "${IMAGE}:${IMAGE_TAG}" hosts postgres >/dev/null 2>&1

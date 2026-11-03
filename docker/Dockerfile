@@ -33,7 +33,9 @@ RUN apt-get update \
        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
        /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-* \
     && groupadd --gid 10001 app \
-    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin app
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /media \
+    && chown 10001:10001 /media
 WORKDIR /app
 COPY --from=build /out/worker/node_modules ./apps/worker/node_modules
 COPY --from=build /repo/apps/worker/dist ./apps/worker/dist
