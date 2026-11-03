@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { withScope } from '@app/infrastructure/testing'
 import {
   E2E_PASSWORD,
   addPasskeyRow,
@@ -151,6 +152,63 @@ test('a person in two agencies switches, and another agency address is not found
   await signIn(page.request, stranger)
   await page.goto(`/${owner.organizationSlug}/spazi`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
+})
+
+async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
+  const owner = await newPerson('Olga Sospesa', 'owner')
+  const id = randomUUID()
+  await adminQuery(
+    "insert into organizations (id, name, slug, status) values ($1::uuid, 'Agenzia Ferma', $1::text, $2)",
+    [id, secondStatus],
+  )
+  await adminQuery(
+    "insert into organization_members (organization_id, user_id, role, status) values ($1, $2, 'member', 'active')",
+    [id, owner.userId],
+  )
+  await signInWithTotp(page.request, owner)
+  return { owner, second: id }
+}
+
+const switcher = (page: Page) =>
+  page.getByRole('button', { name: 'Agenzia' }).locator('visible=true')
+
+test('a suspended agency hides the menu, and one click leaves it', async ({ page }) => {
+  const { owner, second } = await ownerOfTwo(page, 'suspended')
+  await page.goto(`/${second}`)
+  await expect(page.getByRole('alert')).toHaveText(
+    'Questa agenzia è sospesa: per ora non puoi lavorarci.',
+  )
+  await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Clienti' })).toHaveCount(0)
+  const [first] = await adminQuery<{ name: string }>(
+    'select name from organizations where slug = $1',
+    [owner.organizationSlug],
+  )
+  await switcher(page).click()
+  await page.getByRole('menuitemcheckbox', { name: first?.name ?? '' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${owner.organizationSlug}$`))
+  await expect(page.getByRole('link', { name: 'Clienti' }).first()).toBeVisible()
+})
+
+test('a suspension made while the page is open shows when the tab comes back', async ({ page }) => {
+  const { second } = await ownerOfTwo(page, 'active')
+  await page.goto(`/${second}`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Ferma' })).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  // as the platform does it: only the system scope may change the status
+  await withScope(process.env.E2E_DATABASE_URL ?? '', { kind: 'system' }, (c) =>
+    c.query("update organizations set status = 'suspended', suspended_at = now() where id = $1", [
+      second,
+    ]),
+  )
+  // the tab comes back to the front: the panel asks again who the person is
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(page.getByRole('alert')).toHaveText(
+    'Questa agenzia è sospesa: per ora non puoi lavorarci.',
+  )
 })
 
 test('a role change asks for the confirmation and then runs', async ({ page }) => {

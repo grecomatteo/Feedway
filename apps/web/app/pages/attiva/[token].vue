@@ -56,6 +56,12 @@ const signedInAs = ref<string | null>(null)
 onMounted(async () => {
   const view = await session.load().catch(() => null)
   if (view?.state === 'active') signedInAs.value = view.me.email
+  // reloaded after activating: the account exists and the link is used, the second factor is
+  // still to set up. Go on with it (the component asks the password again).
+  if (view?.state === 'second_factor' && view.me) {
+    slug = view.me.organizations[0]?.slug ?? ''
+    step.value = 'totp'
+  }
 })
 
 const form = reactive({
