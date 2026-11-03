@@ -1,6 +1,11 @@
-import type { IdentityDeps, InviteDeps, PlatformMailDeps } from '@app/application'
+import type {
+  IdentityDeps,
+  InviteDeps,
+  PlatformMailDeps,
+  PrivacyNoticeDeps,
+} from '@app/application'
 import { PRODUCT_NAME } from '@app/config'
-import { passwordStrength } from '@app/infrastructure'
+import { PANEL_COOKIES, passwordStrength } from '@app/infrastructure'
 import type { Deps } from './deps'
 
 export function identityDeps(deps: Deps): IdentityDeps {
@@ -48,4 +53,9 @@ export function platformMailDeps(deps: Deps): PlatformMailDeps {
     panelUrl: deps.config.panelUrl,
     productName: PRODUCT_NAME,
   }
+}
+
+/** The privacy notice: the cookies are the ones the panel sets. */
+export function privacyNoticeDeps(deps: Deps): PrivacyNoticeDeps {
+  return { uow: deps.uow, cookies: PANEL_COOKIES }
 }

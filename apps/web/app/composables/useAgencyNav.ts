@@ -21,6 +21,7 @@ export function useAgencyNav() {
         label: 'agency.nav.settings',
         icon: 'i-lucide-settings',
       })
+    list.push({ to: org.to('/privacy'), label: 'agency.nav.privacy', icon: 'i-lucide-shield' })
     return list
   })
 }

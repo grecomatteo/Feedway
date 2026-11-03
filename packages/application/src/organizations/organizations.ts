@@ -2,6 +2,9 @@ import {
   can,
   DomainError,
   checkOrganizationName,
+  checkPrivacySettings,
+  storedPrivacySettings,
+  type OrganizationPrivacySettings,
   type OrgActor,
   type OrgRole,
   type TwoFactorPolicy,
@@ -58,6 +61,8 @@ export interface OrganizationSettingsDto {
   /** The agency's own rule; null keeps the platform's. */
   require2fa: TwoFactorPolicy | null
   platformRequire2fa: TwoFactorPolicy
+  /** The controller data of the privacy notice; null until the Owner fills it in. */
+  privacy: OrganizationPrivacySettings | null
 }
 
 const TWO_FACTOR_POLICIES: readonly TwoFactorPolicy[] = ['admins', 'all']
@@ -89,13 +94,22 @@ export async function getOrganizationSettings(
     slug: organization.slug,
     require2fa: storedPolicy(organization.settings),
     platformRequire2fa: deps.config.require2fa,
+    privacy: storedPrivacySettings(organization.settings),
   }
 }
 
 export interface OrganizationSettingsInput {
   name?: string
   require2fa?: TwoFactorPolicy
+  privacy?: { controllerName: string; contactEmail: string; extraText?: string }
 }
+
+const PRIVACY_PROBLEMS = {
+  'privacy.controllerName': 'Il titolare va da 2 a 200 caratteri, senza link',
+  'privacy.contactEmail': 'Scrivi un indirizzo email valido',
+  'privacy.extraText':
+    'Il testo aggiuntivo può avere al massimo 2000 caratteri, senza caratteri nascosti',
+} as const
 
 const cannotManage = () =>
   new DomainError('FORBIDDEN', 'Solo l’Owner può cambiare le impostazioni dell’agenzia')
@@ -141,6 +155,13 @@ export async function updateOrganizationSettings(
         { field: 'require2fa' },
       )
   }
+  let privacy: OrganizationPrivacySettings | undefined
+  if (input.privacy !== undefined) {
+    const valid = checkPrivacySettings(input.privacy)
+    if (!valid.ok)
+      throw new DomainError('VALIDATION', PRIVACY_PROBLEMS[valid.field], { field: valid.field })
+    privacy = valid.value
+  }
   assertRecentReauth(session, deps.clock.now())
 
   await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
@@ -163,11 +184,22 @@ export async function updateOrganizationSettings(
     if (name !== undefined && name !== organization.name) fields.push('name')
     const policyChanged = require2fa !== undefined && require2fa !== current
     if (policyChanged) fields.push('require2fa')
+    const privacyChanged =
+      privacy !== undefined &&
+      JSON.stringify(privacy) !== JSON.stringify(storedPrivacySettings(organization.settings))
+    if (privacyChanged) fields.push('privacy')
     if (fields.length === 0) return
 
     await tx.organizations.update(organizationId, {
       ...(fields.includes('name') && name !== undefined ? { name } : {}),
-      ...(policyChanged ? { settings: { require2fa } } : {}),
+      ...(policyChanged || privacyChanged
+        ? {
+            settings: {
+              ...(policyChanged ? { require2fa } : {}),
+              ...(privacyChanged ? { privacy } : {}),
+            },
+          }
+        : {}),
     })
     await tx.audit.record({
       organizationId,

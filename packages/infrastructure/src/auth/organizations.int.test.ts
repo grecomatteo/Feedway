@@ -223,6 +223,29 @@ describe('organization settings', () => {
     expect((await auditOf(a.org)).length).toBe(entries)
   })
 
+  test('the Owner fills in the privacy controller; the values never go to the log', async () => {
+    const a = await agency()
+    const owner = await actorOf(a.owner, a.org)
+    expect((await getOrganizationSettings(deps, owner)).privacy).toBeNull()
+    const privacy = { controllerName: 'Rossi S.r.l.', contactEmail: 'Privacy@Rossi.it' }
+    await expect(
+      updateOrganizationSettings(
+        deps,
+        owner,
+        fresh(owner),
+        { privacy: { ...privacy, contactEmail: 'rossi' } },
+        REQ,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION', details: { field: 'privacy.contactEmail' } })
+    await updateOrganizationSettings(deps, owner, fresh(owner), { privacy }, REQ)
+    expect((await getOrganizationSettings(deps, owner)).privacy).toEqual({
+      controllerName: 'Rossi S.r.l.',
+      contactEmail: 'privacy@rossi.it',
+    })
+    const [entry] = await auditOf(a.org)
+    expect(entry?.data).toEqual({ fields: ['privacy'] })
+  })
+
   test('raising the rule closes no session: a member without a second factor owes one next', async () => {
     const a = await agency()
     const owner = await actorOf(a.owner, a.org)

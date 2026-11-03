@@ -7,6 +7,7 @@ interface Settings {
   slug: string
   require2fa: 'admins' | 'all' | null
   platformRequire2fa: 'admins' | 'all'
+  privacy: { controllerName: string; contactEmail: string; extraText?: string } | null
 }
 
 const org = useOrganization()
@@ -22,13 +23,22 @@ const { data, status, error, refresh } = useFetch<Settings>(() => org.api('/sett
   server: false,
   lazy: true,
 })
-const form = reactive({ name: '', require2fa: 'admins' as 'admins' | 'all' })
+const form = reactive({
+  name: '',
+  require2fa: 'admins' as 'admins' | 'all',
+  controllerName: '',
+  contactEmail: '',
+  extraText: '',
+})
 watch(
   data,
   (s) => {
     if (!s) return
     form.name = s.name
     form.require2fa = s.require2fa ?? s.platformRequire2fa
+    form.controllerName = s.privacy?.controllerName ?? ''
+    form.contactEmail = s.privacy?.contactEmail ?? ''
+    form.extraText = s.privacy?.extraText ?? ''
   },
   { immediate: true },
 )
@@ -45,9 +55,19 @@ async function save() {
   Object.assign(state, { sending: true, problem: null, field: '', done: false })
   try {
     await withReauth(async () => {
+      // the controller data go together, once both required fields are written
+      const privacy =
+        form.controllerName.trim() !== '' || form.contactEmail.trim() !== ''
+          ? {
+              controllerName: form.controllerName,
+              contactEmail: form.contactEmail,
+              extraText: form.extraText,
+            }
+          : undefined
       data.value = await call<Settings>('PATCH', org.api('/settings'), {
         name: form.name,
         require2fa: form.require2fa,
+        ...(privacy ? { privacy } : {}),
       })
     })
     state.done = true
@@ -63,6 +83,8 @@ async function save() {
     state.sending = false
   }
 }
+const fieldError = (name: string) =>
+  state.field === name ? (state.problem ?? undefined) : undefined
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 </script>
 
@@ -110,7 +132,56 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             :ui="{ item: 'min-h-11 items-center' }"
           />
         </UFormField>
-        <p v-if="state.problem && state.field !== 'name'" role="alert" class="text-(--app-danger)">
+        <fieldset class="min-w-0 space-y-4 border-t border-(--app-border) pt-4">
+          <legend class="text-lg">{{ $t('orgSettings.privacy.title') }}</legend>
+          <p
+            v-if="!data.privacy && org.may.value.editSettings"
+            class="rounded-md border border-(--app-border-strong) bg-(--app-surface-sunken) p-3"
+          >
+            {{ $t('orgSettings.privacy.missing') }}
+          </p>
+          <p class="text-sm text-(--app-text-muted)">
+            {{ $t('orgSettings.privacy.help') }}
+            <NuxtLink :to="org.to('/privacy')" class="underline">{{
+              $t('orgSettings.privacy.see')
+            }}</NuxtLink>
+          </p>
+          <UFormField
+            :label="$t('orgSettings.privacy.controllerName')"
+            name="privacy.controllerName"
+            :error="fieldError('privacy.controllerName')"
+          >
+            <UInput v-model="form.controllerName" class="w-full" size="xl" />
+          </UFormField>
+          <UFormField
+            :label="$t('orgSettings.privacy.contactEmail')"
+            name="privacy.contactEmail"
+            :error="fieldError('privacy.contactEmail')"
+          >
+            <UInput v-model="form.contactEmail" type="email" class="w-full" size="xl" />
+          </UFormField>
+          <UFormField
+            :label="$t('orgSettings.privacy.extraText')"
+            :help="$t('orgSettings.privacy.extraTextHelp')"
+            name="privacy.extraText"
+            :error="fieldError('privacy.extraText')"
+          >
+            <UTextarea v-model="form.extraText" class="w-full" :rows="4" autoresize />
+          </UFormField>
+        </fieldset>
+        <p
+          v-if="
+            state.problem &&
+            ![
+              'name',
+              'privacy.controllerName',
+              'privacy.contactEmail',
+              'privacy.extraText',
+            ].includes(state.field)
+          "
+          role="alert"
+          class="text-(--app-danger)"
+        >
           {{ state.problem }}
         </p>
         <div v-if="org.may.value.editSettings" class="flex flex-wrap items-center gap-3">

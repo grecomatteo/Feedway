@@ -523,4 +523,6 @@ export interface WorkspaceMembersRepository {
 /** Platform-wide settings (`settings` table), outside any agency. */
 export interface PlatformSettingsRepository {
   set(key: string, value: unknown, updatedBy: string | null): Promise<void>
+  /** The stored value; undefined when the key was never set. */
+  get(key: string): Promise<unknown>
 }

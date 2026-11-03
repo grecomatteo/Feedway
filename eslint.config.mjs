@@ -12,6 +12,7 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/identity/bootstrap.ts',
   'packages/application/src/identity/sessions.ts',
   'packages/application/src/identity/retention.ts',
+  'packages/application/src/identity/privacy-notice.ts',
 ]
 
 export default tseslint.config(

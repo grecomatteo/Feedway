@@ -648,7 +648,8 @@
       "workspaces": "Clienti",
       "users": "Utenti",
       "audit": "Registro attività",
-      "settings": "Impostazioni"
+      "settings": "Impostazioni",
+      "privacy": "Privacy"
     }
   },
   "context": {
@@ -808,7 +809,17 @@
       "admins": "Owner e Admin",
       "all": "Tutti"
     },
-    "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare."
+    "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare.",
+    "privacy": {
+      "title": "Informativa privacy",
+      "help": "Chi è il titolare dei dati del team e come contattarlo: compaiono nella pagina Privacy, anche in quella pubblica collegata dall'accesso.",
+      "see": "Vedi l'informativa",
+      "missing": "L'informativa non indica ancora il titolare: compila nome e email di contatto.",
+      "controllerName": "Titolare del trattamento",
+      "contactEmail": "Email per le richieste sulla privacy",
+      "extraText": "Testo aggiuntivo (facoltativo)",
+      "extraTextHelp": "Per esempio il responsabile della protezione dei dati o la sede. Fino a 2000 caratteri, testo semplice."
+    }
   },
   "avatar": {
     "title": "Foto profilo",
@@ -835,5 +846,41 @@
     "save": "Usa questa foto",
     "saved": "Foto profilo salvata.",
     "removed": "Foto tolta: ora si vedono le tue iniziali."
+  },
+  "privacyNotice": {
+    "title": "Privacy",
+    "link": "Informativa privacy",
+    "backToSignIn": "Vai all'accesso",
+    "controllerTitle": "Chi tratta i dati",
+    "controller": "Il titolare del trattamento dei dati del team di {agency} è {name}.",
+    "contact": "Per qualsiasi richiesta sui tuoi dati scrivi a",
+    "notFilled": "L'agenzia non ha ancora indicato il titolare e il contatto per la privacy. Puoi chiederli a chi ti ha invitato.",
+    "whatTitle": "Quali dati e perché",
+    "what": "Nome, soprannome, email, foto profilo se la carichi, le credenziali di accesso (password cifrata, passkey, app di autenticazione), le sessioni e i dispositivi da cui accedi, e il registro delle attività con indirizzo IP e data.",
+    "why": "Servono a farti accedere in sicurezza, a mostrare chi ha fatto cosa nell'agenzia e ad avvisarti di accessi da dispositivi nuovi. La base è il rapporto di lavoro o di collaborazione con l'agenzia e il suo interesse a tenere il pannello sicuro.",
+    "retentionTitle": "Per quanto li conserviamo",
+    "retention": {
+      "sessions": "Sessioni: cancellate {period} dopo la scadenza.",
+      "devices": "Dispositivi da cui accedi: cancellati se non li usi per {period}.",
+      "auditIp": "Indirizzi IP nel registro attività: abbreviati dopo {period}.",
+      "exports": "Archivio «Scarica i miei dati»: scaricabile per {period}, poi cancellato.",
+      "avatarStaging": "Foto caricate e non ritagliate: cancellate dopo {period}.",
+      "disabled": "Account disattivati dalla piattaforma: dati personali anonimizzati dopo {period}, con un avviso all'agenzia almeno {notice} prima."
+    },
+    "days": "{n} giorno | {n} giorni",
+    "hours": "{n} ora | {n} ore",
+    "minutes": "{n} minuto | {n} minuti",
+    "untilClosed": "fino alla chiusura del browser",
+    "cookiesTitle": "Cookie",
+    "cookiesIntro": "Il pannello usa solo cookie tecnici, necessari a farlo funzionare: niente statistiche né pubblicità, per questo non c'è un banner.",
+    "cookies": {
+      "session": "tiene aperta la sessione dopo l'accesso; si rinnova finché usi il pannello",
+      "second_factor": "ricorda per pochi minuti che hai inserito la password, mentre confermi il secondo passaggio",
+      "passkey": "conserva per pochi minuti la sfida di una passkey mentre la usi o la crei",
+      "device": "identificativo casuale del dispositivo, per avvisarti di un accesso da un dispositivo nuovo; nessun dato personale",
+      "theme": "ricorda il tema chiaro o scuro che hai scelto"
+    },
+    "rightsTitle": "I tuoi diritti",
+    "rights": "Puoi vedere e correggere i tuoi dati da «Il mio account», scaricarli da «Privacy» ed eliminare l'account. Per gli altri diritti (limitazione, opposizione, reclamo al Garante) scrivi al contatto indicato sopra."
   }
 }
