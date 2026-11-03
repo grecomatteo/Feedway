@@ -106,6 +106,7 @@ onMounted(() => {
 
     <template v-else-if="state.step === 'scan'">
       <p>{{ $t('security.totp.scan') }}</p>
+      <p class="text-sm text-(--app-text-muted)">{{ $t('security.totp.replaces') }}</p>
       <!-- dark on white in both themes: authenticator apps read it reliably -->
       <svg
         v-if="qr"

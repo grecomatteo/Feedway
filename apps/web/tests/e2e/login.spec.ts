@@ -125,6 +125,24 @@ test('activation with a password and 2FA lands on the agency home', async ({ pag
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
 })
 
+test('a reload while setting up 2FA resumes the setup instead of blocking', async ({ page }) => {
+  const email = `riprende-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'admin')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Rita Bassi')
+  await page.getByRole('radio', { name: /^Password/ }).check()
+  await page.getByRole('textbox', { name: /^Password/ }).fill(NEW_PASSWORD)
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page.getByLabel('Codice di 6 cifre')).toBeVisible()
+
+  await page.reload()
+  // the account exists and the link is used: the page goes on with the second factor
+  await page.getByLabel('Password', { exact: true }).fill(NEW_PASSWORD)
+  await page.getByRole('button', { name: 'Continua' }).click()
+  await enrolFromPage(page)
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+})
+
 test('an existing user accepts an invite after signing in, without a password form', async ({
   page,
 }) => {
