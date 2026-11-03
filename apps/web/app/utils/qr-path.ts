@@ -12,7 +12,7 @@ export function qrPath(text: string): { size: number; d: string } {
   let d = ''
   modules.forEach((row, y) => {
     row.forEach((dark, x) => {
-      if (dark) d += `M${x + QUIET_ZONE} ${y + QUIET_ZONE}h1v1h-1z`
+      if (dark) d += `M${String(x + QUIET_ZONE)} ${String(y + QUIET_ZONE)}h1v1h-1z`
     })
   })
   return { size: modules.length + 2 * QUIET_ZONE, d }
