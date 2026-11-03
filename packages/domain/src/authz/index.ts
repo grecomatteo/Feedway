@@ -1,4 +1,4 @@
-export { ALL_PERMISSIONS, WORKSPACE_PERMISSIONS } from './permissions.js'
+export { ALL_PERMISSIONS, PLATFORM_PERMISSIONS, WORKSPACE_PERMISSIONS } from './permissions.js'
 export type { Permission, PlatformPermission } from './permissions.js'
 export { WORKSPACE_ROLES } from './roles.js'
 export type { OrgRole, WorkspaceRole } from './roles.js'

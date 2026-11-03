@@ -82,7 +82,7 @@ export type {
 } from './email-change.js'
 export { anonymizeUser, deleteMyAccount, ownedAgencyName } from './delete-account.js'
 export type { AnonymizeDeps } from './delete-account.js'
-export { userAnonymizedHandlers } from './module.js'
+export { identityModule } from './module.js'
 export type { AnonymizationSource, UserAnonymizedEvent, UserAnonymizedHandler } from './module.js'
 export { runRetention, sendAnonymizationNotice } from './retention.js'
 export type { AnonymizationNoticeDeps, RetentionDeps, RetentionReport } from './retention.js'

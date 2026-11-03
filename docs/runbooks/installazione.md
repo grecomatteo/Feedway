@@ -19,11 +19,12 @@ Finché il repository e l'immagine sono privati servono due accessi, entrambi in
 
 ```bash
 cd /opt/feedway
-git checkout v0.1.1   # o la versione che vuoi installare
+git tag --sort=-v:refname | head -n 1   # l'ultima versione pubblicata
+git checkout vX.Y.Z                      # quella stampata sopra, o la versione che vuoi
 ./scripts/install.sh
 ```
 
-Le domande sono tre: il nome host Tailscale (di solito `pannello`), la chiave di autenticazione Tailscale (non viene mostrata) e l'email dell'Owner. Alla fine lo script stampa l'indirizzo del pannello, del tipo `https://pannello.<rete>.ts.net`, raggiungibile solo dai dispositivi della tua rete Tailscale.
+Le domande sono quattro: il nome host Tailscale (di solito `pannello`), la chiave di autenticazione Tailscale (non viene mostrata), l'email dell'Owner e il nome della tua agenzia. Il primo accesso è spiegato in [primo accesso e nuova agenzia](primo-accesso-e-nuova-agenzia.md). Alla fine lo script stampa l'indirizzo del pannello, del tipo `https://pannello.<rete>.ts.net`, raggiungibile solo dai dispositivi della tua rete Tailscale.
 
 Lo script mostra **una sola volta** la chiave privata dei backup. Salvala subito nel gestore di password: senza di lei i backup non si possono aprire. Non viene scritta da nessuna parte sul server.
 

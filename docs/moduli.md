@@ -13,19 +13,20 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 | Rotte | `apps/web/server/api/v1/orgs/[org]/<modulo>/` | Adattatori sottili: validano, chiamano il caso d'uso, traducono |
 | Lavori | `apps/worker/src/jobs/<modulo>/` | Gestori sottili dei lavori in coda |
 | Pagine | `apps/web/app/pages/[org]/…` | Percorsi in italiano (`/[org]/calendario`) |
-| Registrazione | `packages/application/src/<modulo>/module.ts` | Permessi, eventi, notifiche, menu, voci del calendario, strumenti MCP, code |
+| Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, reazione all'anonimizzazione di un utente. Eventi, notifiche, menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
 
 ## 2. Regole
 
 - Un modulo legge e scrive **solo le proprie tabelle** **(CI: dependency-cruiser)**.
 - Per i dati di un altro modulo usa le funzioni del suo `index.ts`, oppure reagisce ai suoi **eventi** dall'outbox.
-- Il modulo si registra da sé in `module.ts`; l'unico punto centrale è una riga nell'elenco dei moduli (`packages/application/src/modules.ts`), che l'applicazione legge all'avvio.
-- Un modulo si può **attivare per organizzazione** (`organizations.settings.modules`). Rotte, menu e lavori di un modulo spento non rispondono per quell'organizzazione.
+- Il modulo si registra da sé in `module.ts`; l'unico punto centrale è una riga nell'elenco `MODULES` (`packages/application/src/modules.ts`). Il tipo è in `packages/application/src/module-definition.ts`; esempi: `identity/module.ts`, `workspaces/module.ts`.
+- `modules.test.ts` controlla che ogni permesso e ogni coda appartengano a **un solo** modulo: un permesso nuovo senza modulo fa fallire il test. I permessi delle tappe future sono nell'elenco `FUTURE_PERMISSIONS` del test, da togliere quando il loro modulo arriva.
+- Un modulo si può **attivare per organizzazione** (`organizations.settings.modules`). Rotte, menu e lavori di un modulo spento non rispondono per quell'organizzazione. *Non ancora realizzato*: arriva con il primo modulo facoltativo.
 
 ## 3. Passi
 
 1. **ADR**, se il modulo introduce una dipendenza o una decisione nuova.
-2. **Permessi** nel dominio (`risorsa.azione`), aggiunti ai ruoli di sistema, con i test della matrice (ruolo × permesso × situazione).
+2. **Permessi** nel dominio (`risorsa.azione`), aggiunti ai ruoli di sistema e al `module.ts` del modulo, con i test della matrice (ruolo × permesso × situazione).
 3. **Tabelle** con `organization_id`, chiavi esterne composte con `organization_id`, indici che iniziano con `organization_id` o `workspace_id`, **RLS** con la policy `org_isolation`, permessi per `app_runtime`. Migrazione generata e riletta.
 4. **Casi d'uso** in TDD: `can()` per primo, `uow.run` con ambito, `tx.audit.record` per ogni azione rilevante, eventi nell'outbox per gli effetti verso altri moduli.
 5. **Contratti** Zod e **rotte** registrate nel registro OpenAPI: entrano da sole nella batteria di **isolamento tra agenzie**.
