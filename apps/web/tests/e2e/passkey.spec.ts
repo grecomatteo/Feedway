@@ -127,6 +127,7 @@ test('an owner cannot turn off the only second factor, and the panel says why', 
   const totp = page.getByRole('region', { name: 'App di autenticazione' })
   await totp.getByLabel('Password attuale').fill(E2E_PASSWORD)
   await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
+  await expect(totp.getByRole('img', { name: "QR code da inquadrare con l'app" })).toBeVisible()
   const secret = (await totp.getByLabel("Chiave da scrivere nell'app").innerText()).replace(
     /\s/g,
     '',

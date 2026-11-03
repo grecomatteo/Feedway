@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { qrPath } from '~/utils/qr-path'
 /**
  * The first authenticator app of a session that owes the second factor: QR code, key and link
  * (uqr, docs/stack.md), the code, then the 10 recovery codes.
@@ -19,7 +18,6 @@ const state = reactive({
   problem: null as string | null,
 })
 const link = computed(() => (state.uri.startsWith('otpauth://totp/') ? state.uri : ''))
-const qr = computed(() => (link.value ? qrPath(link.value) : null))
 const secret = computed(() => {
   if (link.value === '') return ''
   try {
@@ -107,17 +105,7 @@ onMounted(() => {
     <template v-else-if="state.step === 'scan'">
       <p>{{ $t('security.totp.scan') }}</p>
       <p class="text-sm text-(--app-text-muted)">{{ $t('security.totp.replaces') }}</p>
-      <!-- dark on white in both themes: authenticator apps read it reliably -->
-      <svg
-        v-if="qr"
-        role="img"
-        :aria-label="$t('security.totp.qrLabel')"
-        :viewBox="`0 0 ${qr.size} ${qr.size}`"
-        class="size-48 rounded-md bg-white"
-        shape-rendering="crispEdges"
-      >
-        <path :d="qr.d" fill="#000" />
-      </svg>
+      <TotpQrCode :link="link" />
       <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
         {{ secret }}
       </p>
