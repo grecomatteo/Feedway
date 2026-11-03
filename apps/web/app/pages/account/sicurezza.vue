@@ -239,6 +239,7 @@ const regenerateCodes = () =>
 
         <div v-if="totp.step === 'scan'" class="space-y-4">
           <p>{{ $t('security.totp.scan') }}</p>
+          <TotpQrCode :link="totpLink" />
           <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
             {{ totpSecret }}
           </p>
