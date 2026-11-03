@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { apiRoutes } from '@app/contracts'
-import { seed } from '@app/infrastructure/testing'
+import { seed, withScope } from '@app/infrastructure/testing'
 import { errorCodeOf } from './identity-env.js'
 import type { ErrorJson } from './identity-env.js'
 import {
@@ -90,16 +90,22 @@ test.each(foreignIdCases)('$kind of B inside the A path gives 404 on $method $pa
   await expectNotFound(c, { ...idsOfB, [c.kind]: idsOfA[c.kind] }, fx.cookies.ownerOfB)
 })
 
+/** 403 ORGANIZATION_SUSPENDED, with nothing changed. */
+async function expectSuspended(r: OrgRequest, ids: SampleIds, cookie: string) {
+  const before = await fx.snapshot()
+  const { path, body } = request(r, ids)
+  const answer = await fx.env.call(r.method, path, body, { cookie })
+  expect(answer.status, `${r.method} ${path}`).toBe(403)
+  expect(await errorCodeOf(answer)).toBe('ORGANIZATION_SUSPENDED')
+  expect(await fx.snapshot(), `${r.method} ${path} changed rows`).toEqual(before)
+}
+
 test('suspended organization routes answer 403 while the other agency works', async () => {
   const suspended = await fx.env.agency({ status: 'suspended' })
   await seed(fx.env.tdb.runtimeUrl, (s) => s.member(suspended.id, fx.both.userId, 'member'))
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
-  for (const r of orgRequests) {
-    const { path, body } = request(r, { ...ids, org: suspended.slug })
-    const answer = await fx.env.call(r.method, path, body, { cookie: fx.cookies.both })
-    expect(answer.status, path).toBe(403)
-    expect(await errorCodeOf(answer)).toBe('ORGANIZATION_SUSPENDED')
-  }
+  for (const r of orgRequests)
+    await expectSuspended(r, { ...ids, org: suspended.slug }, fx.cookies.both)
   for (const slug of [fx.a.slug, fx.b.slug])
     expect(
       (
@@ -109,6 +115,22 @@ test('suspended organization routes answer 403 while the other agency works', as
       ).status,
     ).toBe(200)
 })
+
+test.each(orgRequests)(
+  'the Owner of a suspended agency gets 403 on its own rows: $method $path',
+  async (r) => {
+    const { cookie, ids } = await fx.throwawayAgency()
+    // after the sign-in, as the platform does it: the session was opened on an active agency
+    await withScope(fx.env.tdb.runtimeUrl, { kind: 'system' }, (c) =>
+      c.query(
+        "update organizations set status = 'suspended', suspended_at = now() where slug = $1",
+        [ids.org],
+      ),
+    )
+    await fx.refreshReauth()
+    await expectSuspended(r, ids, cookie)
+  },
+)
 
 test('a person who also works for B cannot be taken over from A', async () => {
   const r = await fx.env.call(

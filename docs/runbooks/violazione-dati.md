@@ -7,7 +7,7 @@ Il GDPR (art. 33) chiede di **avvisare il Garante entro 72 ore** da quando te ne
 ## Ora 0: contieni
 
 1. **Chiudi l'accesso.**
-   - Account rubato: dal pannello della piattaforma, oppure, da `/opt/feedway`, `docker compose --project-directory . -f docker/compose.yml run --rm worker cli disable-user <email>` (chiude tutte le sessioni). La persona stessa può usare «Non sono stato io» dall'email di sicurezza.
+   - Account rubato: dal pannello della piattaforma, oppure, da `/opt/feedway`, `./scripts/fw.sh disable-user <email>` (chiude tutte le sessioni). La persona stessa può usare «Non sono stato io» dall'email di sicurezza.
    - VPS compromessa: togli il nodo dalla rete Tailscale dalla console di Tailscale; non spegnere la VPS se puoi evitarlo (servono i log).
 2. **Cambia i segreti esposti**: password di Postgres, chiave di Tailscale, token Meta (dalla tappa 3). Mai incollarli in chat o in un ticket.
 3. **Annota l'ora** in cui te ne sei accorto: da lì partono le 72 ore.
@@ -18,7 +18,7 @@ Apri una sessione sul database:
 
 ```bash
 cd /opt/feedway
-docker compose --project-directory . -f docker/compose.yml exec postgres psql -U postgres -d app
+./scripts/compose.sh exec postgres psql -U postgres -d app
 ```
 
 Le query leggono il registro attività (`audit_log`). Sostituisci i valori tra `<>`.
