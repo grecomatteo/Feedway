@@ -3,6 +3,8 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "docker:pinDigests"],
   "timezone": "Europe/Rome",
   "schedule": ["before 7am on monday"],
+  "updateNotScheduled": false,
+  "rebaseWhen": "conflicted",
   "automerge": false,
   "platformAutomerge": false,
   "semanticCommits": "enabled",
