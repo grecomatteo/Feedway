@@ -64,6 +64,12 @@ Attenzione: il ritorno indietro cambia il programma, non il database. Le migrazi
 
 ## Se qualcosa non va
 
+- La foto profilo dà errore e nei log c'è `EACCES` su `/media`: succede alle installazioni fatte prima della v0.2.2, dove la cartella dei file è di root. Una volta sola:
+
+  ```bash
+  docker compose --project-directory . -f docker/compose.yml run --rm --no-deps --user 0 --entrypoint chown web 10001:10001 /media
+  ```
+
 - `docker compose --project-directory . -f docker/compose.yml ps` mostra lo stato dei servizi.
 - `docker compose --project-directory . -f docker/compose.yml logs --tail 100 web worker migrate` mostra i log.
 - "Tailscale non ha un nome DNS": controlla che la chiave sia valida e che HTTPS sia attivo nella rete Tailscale.
