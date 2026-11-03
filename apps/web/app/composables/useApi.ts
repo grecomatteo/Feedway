@@ -1,10 +1,12 @@
 import type { FetchError } from 'ofetch'
+import { withSupportCode } from '../utils/support-code'
 
 /** The error body of our routes and of Better Auth, as far as the panel reads it. */
 interface ErrorBody {
   error?: {
     code?: string
     message?: string
+    requestId?: string
     reason?: string
     issues?: { path?: (string | number)[] }[]
   }
@@ -46,7 +48,11 @@ export function useApi() {
         (i18n.te(`errors.${code}`) ? i18n.t(`errors.${code}`) : ''))
     return {
       code,
-      message: message === '' ? i18n.t('errors.INTERNAL') : message,
+      message: withSupportCode(
+        message === '' ? i18n.t('errors.INTERNAL') : message,
+        code,
+        data?.error?.requestId,
+      ),
       field,
       status: fetchError?.statusCode ?? fetchError?.response?.status ?? 0,
       retryAfter: Number.isFinite(retry) && retry > 0 ? retry : null,
