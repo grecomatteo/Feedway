@@ -24,5 +24,6 @@ export interface Storage {
   delete(key: string): Promise<void>
   /** Removes every object under `prefix` (which ends with `/`); returns how many. */
   deletePrefix(prefix: string): Promise<number>
+  /** `prefix` is an owner folder, or `users/` / `org/` for every owner (system jobs only). */
   list(prefix: string): Promise<{ key: string; size: number; modifiedAt: Date }[]>
 }

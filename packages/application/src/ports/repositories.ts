@@ -46,6 +46,7 @@ export interface UserSummary {
   nickname: string | null
   avatarKey: string | null
   status: 'active' | 'disabled'
+  disabledAt: Date | null
   anonymizedAt: Date | null
   lastLoginAt: Date | null
   twoFactorEnabled: boolean
@@ -111,6 +112,8 @@ export interface UsersRepository {
    * disabled for good. Dates already set stay (a repeated run changes nothing). Own scope.
    */
   anonymize(id: string, change: { email: string; name: string; at: Date }): Promise<void>
+  /** Disabled by the platform before `before`, not anonymized, oldest first. System scope only. */
+  listDisabledBefore(before: Date): Promise<UserRecord[]>
 }
 
 export interface ProfileFields {
@@ -174,6 +177,8 @@ export interface CredentialsRepository {
    * challenges). Also in the person's own scope. Returns how many were deleted.
    */
   revokePendingTokens(userId: string): Promise<number>
+  /** Pending links and challenges past their time, of everyone. System scope only. */
+  deleteExpiredVerifications(now: Date): Promise<number>
 }
 
 export interface SessionRecord {
@@ -198,6 +203,8 @@ export interface SessionsRepository {
   delete(userId: string, sessionId: string): Promise<boolean>
   /** Signs the person out everywhere; returns how many sessions were closed. */
   deleteAllForUser(userId: string): Promise<number>
+  /** Sessions of everyone that expired before `before`. System scope only. */
+  deleteExpiredBefore(before: Date): Promise<number>
 }
 
 /** Devices a person signed in from, by keyed hash of the `__Host-device` cookie id. */
@@ -209,6 +216,8 @@ export interface KnownDevicesRepository {
   deleteAllForUser(userId: string): Promise<number>
   /** When each device was first and last seen; never the hash. The person's own scope. */
   list(userId: string): Promise<{ firstSeenAt: Date; lastSeenAt: Date }[]>
+  /** Devices of everyone last seen before `before`. System scope only. */
+  deleteUnusedBefore(before: Date): Promise<number>
 }
 
 export type DataExportStatus = 'pending' | 'running' | 'ready' | 'failed' | 'expired'
@@ -240,6 +249,10 @@ export interface DataExportsRepository {
   find(userId: string, id: string): Promise<DataExportRecord | null>
   /** Newest first. */
   listRecent(userId: string, limit: number): Promise<DataExportRecord[]>
+  /** Ready files of everyone whose time ran out before `now`. System scope only. */
+  listExpiredReady(now: Date): Promise<DataExportRecord[]>
+  /** Pending or running untouched since `before` become failed. System scope only. */
+  failStuck(before: Date, at: Date): Promise<number>
   /** Forgets every request of the person; their files go with the storage folder. */
   deleteAllForUser(userId: string): Promise<number>
   /** False when there is no such export of the person. */

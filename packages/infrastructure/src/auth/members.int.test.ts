@@ -1282,6 +1282,7 @@ describe('members', () => {
       name: 'Anna Rossi',
       nickname: null,
       email: w.manager.email,
+      anonymizationScheduledFor: null,
       avatarUrl: null,
       orgRole: 'member',
       status: 'active',

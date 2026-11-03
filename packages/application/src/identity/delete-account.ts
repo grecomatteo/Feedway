@@ -38,10 +38,22 @@ export async function ownedAgencyName(tx: Tx, userId: string): Promise<string | 
  * agency, and never the platform administrator from the panel. The account is disabled here,
  * before the credentials go: from now on no session works, no export or ownership reaches it.
  */
-async function prepare(tx: Tx, userId: string, at: Date, panel: boolean): Promise<void> {
+async function prepare(
+  tx: Tx,
+  userId: string,
+  at: Date,
+  panel: boolean,
+  disabledSince: Date | undefined,
+): Promise<boolean> {
   const user = await tx.users.findByIdForUpdate(userId)
   if (!user) throw new DomainError('NOT_FOUND', 'Utente non trovato')
-  if (user.anonymizedAt !== null) return
+  if (user.anonymizedAt !== null) return true
+  // the retention decided on a disabled period: a reactivation since then wins
+  if (
+    disabledSince !== undefined &&
+    (user.status !== 'disabled' || user.disabledAt?.getTime() !== disabledSince.getTime())
+  )
+    return false
   if (panel && user.platformRole === 'admin')
     throw new DomainError(
       'FORBIDDEN',
@@ -50,6 +62,7 @@ async function prepare(tx: Tx, userId: string, at: Date, panel: boolean): Promis
   const agency = await ownedAgencyName(tx, userId)
   if (agency !== null) throw soleOwner(agency)
   await tx.users.disable(userId, at)
+  return true
 }
 
 /**
@@ -79,20 +92,27 @@ export async function deleteMyAccount(
  */
 export async function anonymizeUser(
   deps: AnonymizeDeps,
-  input: { userId: string; source: AnonymizationSource; ip?: string | null },
-): Promise<void> {
+  input: {
+    userId: string
+    source: AnonymizationSource
+    ip?: string | null
+    /** Only if the account is still disabled since then (retention); else nothing is done. */
+    disabledSince?: Date
+  },
+): Promise<boolean> {
   const { userId, source } = input
   const ip = input.ip ?? null
   const panel = source === 'panel'
   const now = deps.clock.now()
   // (0) the address and the agencies, read before anything changes
   const before = await deps.uow.run({ userId }, async (tx) => {
-    await prepare(tx, userId, now, panel)
+    if (!(await prepare(tx, userId, now, panel, input.disabledSince))) return null
     const user = await tx.users.findById(userId)
     if (!user) throw new DomainError('NOT_FOUND', 'Utente non trovato')
     const agencies = (await tx.orgMembers.listForUser(userId)).map((m) => m.organizationId)
     return { email: user.email, agencies }
   })
+  if (before === null) return false
 
   // (1) from here no sign-in is possible
   await deps.auth.deleteAllCredentials(userId)
@@ -160,4 +180,5 @@ export async function anonymizeUser(
   // (5) the other modules
   for (const handler of deps.onUserAnonymized) await handler({ userId, source })
   deps.logger.info({ userId, source }, 'user anonymized')
+  return true
 }

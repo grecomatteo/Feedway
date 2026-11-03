@@ -39,6 +39,32 @@ export interface MemberDto {
   secondFactorConfigured: boolean
   workspaces: { id: string; name: string; role: WorkspaceRole }[]
   lastLoginAt: Date | null
+  /**
+   * Disabled by the platform and told to the agency: the day (ISO 8601) the personal data will
+   * be anonymized, unless the account is reactivated. Null otherwise.
+   */
+  anonymizationScheduledFor: string | null
+}
+
+/** The date of the notice the agency got for the current disable, if any. */
+/** The date announced to the agency for the current disabled period, if any. */
+export async function scheduledAnonymization(
+  tx: Tx,
+  organizationId: string,
+  user: { id: string; status: string; disabledAt: Date | null; anonymizedAt: Date | null },
+): Promise<string | null> {
+  if (user.status !== 'disabled' || user.disabledAt === null || user.anonymizedAt !== null)
+    return null
+  const notice = await tx.audit.latest({
+    organizationId,
+    action: 'user.anonymization_scheduled',
+    entityId: user.id,
+  })
+  // only a notice of the current disabled period counts
+  const at = notice?.data['scheduledFor']
+  return notice?.data['disabledAt'] === user.disabledAt.toISOString() && typeof at === 'string'
+    ? at
+    : null
 }
 
 export async function listMembers(
@@ -54,6 +80,9 @@ export async function listMembers(
       (await tx.users.summaries(members.map((m) => m.userId))).map((u) => [u.id, u]),
     )
     const workspaces = await tx.workspaceMembers.listForOrganization(organizationId)
+    const scheduled = new Map<string, string | null>()
+    for (const user of people.values())
+      scheduled.set(user.id, await scheduledAnonymization(tx, organizationId, user))
     return members.flatMap((m) => {
       const user = people.get(m.userId)
       if (!user) return []
@@ -75,6 +104,7 @@ export async function listMembers(
             .filter((w) => w.userId === m.userId)
             .map((w) => ({ id: w.workspaceId, name: w.workspaceName, role: w.role })),
           lastLoginAt: user.lastLoginAt,
+          anonymizationScheduledFor: scheduled.get(user.id) ?? null,
         },
       ]
     })

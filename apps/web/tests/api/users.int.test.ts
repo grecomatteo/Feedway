@@ -49,6 +49,7 @@ test('the member list answers the DTO to Owner and Admin, 403 to a Member', asyn
   for (const m of items)
     expect(Object.keys(m).sort()).toEqual(
       [
+        'anonymizationScheduledFor',
         'avatarUrl',
         'displayName',
         'email',

@@ -440,6 +440,21 @@
       "warnedTomorrow": "Per sicurezza abbiamo scritto anche a {oldEmail}. Il link di conferma scade tra {minutes} minuti, alle {time} di domani, e funziona una sola volta.",
       "notMe": "Non hai chiesto tu il cambio? Non confermare: l'indirizzo dell'account resta quello di prima.",
       "footer": "Ricevi questa email perché è stato chiesto di usare questo indirizzo per un account {product}."
+    },
+    "anonymizationNotice": {
+      "subject": "{name} sarà anonimizzato il {date} · {product}",
+      "preheader": "Disattivato dalla piattaforma da quasi due anni: il {date} nome, email e foto spariscono.",
+      "title": "{name} sarà anonimizzato il {date}",
+      "intro": "{name}, in {agency}, è disattivato dalla piattaforma {product} da quasi due anni.",
+      "what": {
+        "lead": "Cosa succede",
+        "text": "Il {date} si cancellano i suoi dati personali: nome, email, foto e accessi. Lo storico di {agency} resta, attribuito a «Utente rimosso»."
+      },
+      "keep": {
+        "lead": "Se deve tornare a lavorare",
+        "text": "Chiedi all'amministratore della piattaforma di riattivare l'account prima del {date}. Altrimenti non devi fare nulla."
+      },
+      "footer": "Ricevi questa email perché sei Owner di {agency} su {product}."
     }
   },
   "authErrors": {
@@ -735,7 +750,8 @@
       "noAccess": "Nessun accesso",
       "send": "Invia l'invito",
       "sent": "Invito inviato a {email}."
-    }
+    },
+    "anonymizationScheduled": "Dati personali anonimizzati dal {date}, se non viene riattivato"
   },
   "transfer": {
     "button": "Passa la proprietà",

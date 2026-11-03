@@ -1,4 +1,4 @@
-import type { JobQueue, Logger, QueueName } from '@app/application'
+import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import {
   identityAccountLockedNotice,
   identityAccountLockedNoticeEmail,
@@ -6,6 +6,7 @@ import {
 import { identityAccountRecoveryEmail } from './handlers/identity-account-recovery-email.js'
 import { identityDataExport } from './handlers/identity-data-export.js'
 import { identityEmailChange } from './handlers/identity-email-change.js'
+import { identityAnonymizationNotice, identityRetention } from './handlers/identity-retention.js'
 import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { systemSelftest } from './handlers/system-selftest.js'
@@ -15,7 +16,7 @@ import { startHeartbeat } from './heartbeat.js'
 export type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 
 export interface WorkerDeps {
-  queue: JobQueue
+  queue: JobQueue & JobScheduler
   logger: Logger
   /** Handed to every handler together with the logger. */
   services: Omit<JobHandlerDeps, 'logger' | 'queue'>
@@ -28,6 +29,9 @@ export interface WorkerDeps {
 }
 
 const STOP_TIMEOUT_MS = 30_000
+/** Every day at 03:30, Italian time (spec §15.7). */
+export const RETENTION_CRON = '30 3 * * *'
+export const RETENTION_TZ = 'Europe/Rome'
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
@@ -40,6 +44,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'identity.account_recovery_email': identityAccountRecoveryEmail,
     'identity.email_change': identityEmailChange,
     'identity.data_export': identityDataExport,
+    'identity.retention': identityRetention,
+    'identity.anonymization_notice': identityAnonymizationNotice,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
@@ -52,6 +58,9 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- see above
   const consumeOne = <N extends QueueName>(name: N) => consume(name, handlers[name])
   for (const name of queues) await consumeOne(name)
+  // the daily retention: pg-boss keeps one schedule, so every worker setting it is harmless
+  if (queues.includes('identity.retention'))
+    await queue.schedule('identity.retention', RETENTION_CRON, {}, { tz: RETENTION_TZ })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {

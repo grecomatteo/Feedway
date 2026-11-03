@@ -153,4 +153,12 @@ export interface AuditLog {
     /** Any source when left out. */
     source?: AuditSource
   }): Promise<boolean>
+  /** The newest entry like this, with its time and data; same visibility as `exists`. */
+  latest(query: {
+    organizationId: string | null
+    action: AuditAction
+    entityId: string
+  }): Promise<{ createdAt: Date; data: Record<string, unknown> } | null>
+  /** Shortens the IPs of entries older than `before` (§15.7); returns how many. */
+  shortenIpsBefore(before: Date): Promise<number>
 }

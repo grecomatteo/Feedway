@@ -44,6 +44,7 @@ const deps = (): JobHandlerDeps => ({
   clock: runtime.clock,
   ids: runtime.ids,
   storage: runtime.storage,
+  credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used')) },
   zip: createZipWriter(),
   mailer: notConfiguredMailer,
   signedTokens: runtime.signedTokens,

@@ -91,6 +91,10 @@ const toUser = (row: UserRow): UserRecord => ({
   createdAt: row.createdAt,
 })
 
+function systemOnly(ctx: TxContext, what: string): void {
+  if (ctx.kind !== 'system') throw new Error(`${what} only in the system scope`)
+}
+
 // Personal tables have no row level security: outside the system scope a user reaches only their
 // own rows, whatever id the caller passes.
 function ownUser(ctx: TxContext, userId: string): string {
@@ -117,6 +121,7 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
           nickname: users.nickname,
           avatarKey: users.avatarKey,
           status: users.status,
+          disabledAt: users.disabledAt,
           anonymizedAt: users.anonymizedAt,
           lastLoginAt: users.lastLoginAt,
           twoFactorEnabled: users.twoFactorEnabled,
@@ -304,6 +309,21 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         })
         .where(eq(users.id, ownUser(ctx, id)))
     },
+    async listDisabledBefore(before) {
+      systemOnly(ctx, 'disabled accounts are listed')
+      const rows = await db
+        .select(userColumns)
+        .from(users)
+        .where(
+          and(
+            eq(users.status, 'disabled'),
+            isNull(users.anonymizedAt),
+            lt(users.disabledAt, before),
+          ),
+        )
+        .orderBy(users.disabledAt, users.id)
+      return rows.map(toUser)
+    },
   }
 }
 
@@ -355,6 +375,14 @@ export function drizzleSessions(db: DbExecutor, ctx: TxContext): SessionsReposit
         .returning({ id: sessions.id })
       return deleted.length
     },
+    async deleteExpiredBefore(before) {
+      systemOnly(ctx, 'expired sessions are deleted')
+      const deleted = await db
+        .delete(sessions)
+        .where(lt(sessions.expiresAt, before))
+        .returning({ id: sessions.id })
+      return deleted.length
+    },
   }
 }
 
@@ -393,6 +421,14 @@ export function drizzleKnownDevices(db: DbExecutor, ctx: TxContext): KnownDevice
         .from(knownDevices)
         .where(eq(knownDevices.userId, ownUser(ctx, userId)))
         .orderBy(desc(knownDevices.lastSeenAt))
+    },
+    async deleteUnusedBefore(before) {
+      systemOnly(ctx, 'unused devices are deleted')
+      const deleted = await db
+        .delete(knownDevices)
+        .where(lt(knownDevices.lastSeenAt, before))
+        .returning({ userId: knownDevices.userId })
+      return deleted.length
     },
   }
 }
@@ -495,6 +531,28 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
         .returning({ id: dataExports.id })
       return updated.length > 0
     },
+    async listExpiredReady(now) {
+      systemOnly(ctx, 'expired exports are listed')
+      const rows = await db
+        .select(dataExportColumns)
+        .from(dataExports)
+        .where(and(eq(dataExports.status, 'ready'), lt(dataExports.expiresAt, now)))
+      return rows.map(toDataExport)
+    },
+    async failStuck(before, at) {
+      systemOnly(ctx, 'stuck exports are failed')
+      const failed = await db
+        .update(dataExports)
+        .set({ status: 'failed', updatedAt: at })
+        .where(
+          and(
+            inArray(dataExports.status, ['pending', 'running']),
+            lt(dataExports.updatedAt, before),
+          ),
+        )
+        .returning({ id: dataExports.id })
+      return failed.length
+    },
     async deleteAllForUser(userId) {
       const deleted = await db
         .delete(dataExports)
@@ -588,6 +646,14 @@ export function drizzleCredentials(
       const deleted = await db
         .delete(verifications)
         .where(sql`strpos(${verifications.value}, ${ownUser(ctx, userId)}) > 0`)
+        .returning({ id: verifications.id })
+      return deleted.length
+    },
+    async deleteExpiredVerifications(now) {
+      onlySystem()
+      const deleted = await db
+        .delete(verifications)
+        .where(lt(verifications.expiresAt, now))
         .returning({ id: verifications.id })
       return deleted.length
     },

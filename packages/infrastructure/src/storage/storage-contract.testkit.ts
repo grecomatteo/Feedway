@@ -98,6 +98,18 @@ export function storageContract(
       expect(await s.list(`org/${u1}/nothing/`)).toEqual([])
     })
 
+    test('the retention lists every owner of a kind, never removes them all at once', async () => {
+      const s = await fresh()
+      await s.put(`users/${u1}/a.bin`, bytes, webp)
+      await s.put(`users/${u2}/b.bin`, bytes, webp)
+      await s.put(`org/${u1}/c.bin`, bytes, webp)
+      expect((await s.list('users/')).map((o) => o.key)).toEqual(
+        [`users/${u1}/a.bin`, `users/${u2}/b.bin`].sort(),
+      )
+      await expect(s.deletePrefix('org/')).rejects.toMatchObject({ code: 'VALIDATION' })
+      await expect(s.list('other/')).rejects.toMatchObject({ code: 'VALIDATION' })
+    })
+
     test.each([
       '../etc/passwd',
       `users/${u1}/../../x`,
