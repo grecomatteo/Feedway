@@ -9,6 +9,15 @@ const me = computed(() => org.me.value)
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()
 const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
+
+// A suspension made by the platform must show without a reload: ask again who the person is
+// when the tab comes back to the front and when they move to another agency.
+const refresh = () => {
+  if (document.visibilityState === 'visible') void session.load().catch(() => undefined)
+}
+onMounted(() => document.addEventListener('visibilitychange', refresh))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', refresh))
+watch(org.slug, refresh)
 </script>
 
 <template>
@@ -22,14 +31,14 @@ const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
 
     <!-- computer: the sidebar -->
     <aside
-      class="hidden w-64 shrink-0 flex-col gap-4 border-r border-(--app-border) bg-(--app-nav-bg) p-3 md:flex"
+      class="hidden w-64 shrink-0 flex-col gap-4 border-r border-(--app-border) bg-(--app-nav-bg) p-3 md:sticky md:top-0 md:flex md:h-dvh md:self-start md:overflow-y-auto"
     >
       <NuxtLink :to="org.to()" class="flex min-h-11 items-center px-2"><AppLogo /></NuxtLink>
       <div class="space-y-1">
         <OrgSwitcher />
         <ContextSwitcher v-if="org.active.value" />
       </div>
-      <nav :aria-label="$t('agency.nav.label')">
+      <nav v-if="org.active.value" :aria-label="$t('agency.nav.label')">
         <ul class="space-y-1">
           <li v-for="item in nav" :key="item.to">
             <NuxtLink
@@ -79,15 +88,22 @@ const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
     </header>
 
     <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">
-      <fieldset v-if="org.active.value" :disabled="!ready" class="m-0 min-w-0 border-0 p-0">
+      <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
+           the layout reads only once a page has loaded, so without it the first link out of a
+           suspended agency would change the address and nothing else. -->
+      <fieldset
+        v-show="org.active.value"
+        :disabled="!ready || !org.active.value"
+        class="m-0 min-w-0 border-0 p-0"
+      >
         <slot />
       </fieldset>
-      <section v-else aria-labelledby="suspended" class="space-y-3">
+      <section v-if="!org.active.value" aria-labelledby="suspended" class="space-y-3">
         <h1 id="suspended" class="text-3xl">{{ org.organization.value?.name }}</h1>
         <p role="alert">{{ $t('agencyHome.suspended') }}</p>
         <p v-if="many" class="text-(--app-text-muted)">{{ $t('agency.suspendedOthers') }}</p>
       </section>
     </main>
-    <MobileNav />
+    <MobileNav v-if="org.active.value" />
   </div>
 </template>

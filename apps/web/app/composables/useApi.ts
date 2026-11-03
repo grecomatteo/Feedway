@@ -33,12 +33,15 @@ export interface ApiFailure {
  */
 export function useApi() {
   const i18n = useI18n()
+  const session = useSession()
 
   function failure(error: unknown): ApiFailure {
     const fetchError = error as FetchError<ErrorBody> | undefined
     const data = fetchError?.data
     const retry = Number(fetchError?.response?.headers.get('retry-after') ?? '')
     const code = data?.error?.code ?? data?.code ?? 'INTERNAL'
+    // the agency was suspended while the page was open: the layout shows it once `me` is fresh
+    if (code === 'ORGANIZATION_SUSPENDED') void session.load().catch(() => undefined)
     const field = data?.error?.issues?.[0]?.path?.[0]?.toString() ?? null
     // Better Auth answers in English for its own codes: those have texts of ours (authErrors)
     const message = i18n.te(`authErrors.${code}`)
