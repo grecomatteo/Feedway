@@ -67,4 +67,9 @@ export interface Auth {
   passwordResetUrl(email: string): Promise<string | null>
   /** The factors a person holds: TOTP on or off, and their passkeys, oldest first. */
   secondFactorStatus(userId: string): Promise<{ totpEnabled: boolean; passkeys: PasskeySummary[] }>
+  /**
+   * "Elimina il mio account": every way in goes at once (sessions, password and other accounts,
+   * authenticator app and recovery codes, passkeys, pending links). Repeatable.
+   */
+  deleteAllCredentials(userId: string): Promise<void>
 }

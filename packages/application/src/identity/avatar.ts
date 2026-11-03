@@ -81,9 +81,12 @@ export async function cropAvatar(
   await deps.storage.put(fileOf(key, 256), files[256], { contentType: 'image/webp' })
   await deps.storage.put(fileOf(key, 64), files[64], { contentType: 'image/webp' })
   const url = avatarUrl(user.id, key) ?? ''
-  const previous = await deps.uow.run({ userId: user.id }, async (tx) => {
-    // the row lock orders two crops at once: each removes the photo the other replaced
+  const outcome = await deps.uow.run({ userId: user.id }, async (tx) => {
+    // the row lock orders two crops at once: each removes the photo the other replaced; it also
+    // orders a crop after "Elimina il mio account", whose account keeps no photo
     const current = await tx.users.findByIdForUpdate(user.id)
+    if (!current || current.status !== 'active' || current.anonymizedAt !== null)
+      return { gone: true as const }
     await tx.users.setAvatar(user.id, { key, image: new URL(url, deps.panelUrl).toString() })
     await tx.audit.record({
       organizationId: null,
@@ -96,8 +99,13 @@ export async function cropAvatar(
       ip: request.ip,
       data: { removed: false },
     })
-    return current?.avatarKey ?? null
+    return { gone: false as const, previous: current.avatarKey }
   })
+  if (outcome.gone) {
+    await removeFiles(deps.storage, key)
+    throw new DomainError('UNAUTHENTICATED', 'Sessione scaduta: accedi di nuovo')
+  }
+  const { previous } = outcome
   if (previous !== null && previous !== key) await removeFiles(deps.storage, previous)
   // only this preview: one uploaded meanwhile in another tab stays
   await deps.storage.delete(stagingKey(user.id, input.stagingId))

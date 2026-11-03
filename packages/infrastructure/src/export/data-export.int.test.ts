@@ -473,3 +473,31 @@ test('agencies where the membership is disabled or the agency suspended are incl
     statoAgenzia: 'sospesa',
   })
 })
+
+test('an archive finished after the account was deleted is thrown away', async () => {
+  const leaving = await seed(tdb.runtimeUrl, (s) => s.user())
+  await request(leaving)
+  const job = sent.at(-1)
+  if (!job) throw new Error('no job queued')
+  const deleting: DataExportJobDeps = {
+    ...jobDeps(),
+    storage: {
+      ...storage,
+      async put(key, body, opts) {
+        const written = await storage.put(key, body, opts)
+        await admin.query(
+          `update users set status = 'disabled', anonymized_at = now() where id = $1`,
+          [leaving],
+        )
+        return written
+      },
+    },
+  }
+  await buildDataExport(deleting, job)
+  expect(await storage.list(`users/${leaving}/`)).toEqual([])
+  const { rows } = await admin.query<{ status: string }>(
+    'select status from data_exports where user_id = $1',
+    [leaving],
+  )
+  expect(rows).toEqual([{ status: 'failed' }])
+})

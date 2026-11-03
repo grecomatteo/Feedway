@@ -1,16 +1,21 @@
 import { randomBytes } from 'node:crypto'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { startTestDatabase } from '@app/infrastructure/testing'
+import { seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { runCli } from './cli.js'
 
 let tdb: TestDatabase
 let admin: pg.Client
 let env: Record<string, string>
+let mediaRoot: string
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
+  mediaRoot = await mkdtemp(join(tmpdir(), 'cli-test-media-'))
   admin = new pg.Client({ connectionString: tdb.adminUrl })
   await admin.connect()
   env = {
@@ -19,11 +24,13 @@ beforeAll(async () => {
     PANEL_URL: 'https://pannello.example.ts.net',
     BOOTSTRAP_OWNER_EMAIL: 'titolare@esempio.it',
     LOG_LEVEL: 'error',
+    MEDIA_ROOT: mediaRoot,
   }
 })
 afterAll(async () => {
   await admin.end()
   await tdb.stop()
+  await rm(mediaRoot, { recursive: true, force: true })
 })
 
 function capture() {
@@ -583,4 +590,43 @@ test('cli mail-settings test sends the test email and marks the settings verifie
   expect(await lastAuditAsSystem()).toMatchObject({ action: 'platform.mail_test_sent' })
   const bad = capture()
   expect(await runCli(['mail-settings', 'test', 'a@b.test, c@d.test'], env, bad.io)).toBe(1)
+})
+
+test('cli anonymize-user follows the rules of "Elimina il mio account"', async () => {
+  let owner = '',
+    member = '',
+    organizationId = ''
+  await seed(tdb.runtimeUrl, async (s) => {
+    organizationId = await s.organization()
+    owner = await s.user({ name: 'Olga', email: 'olga@anonimizza.it' })
+    member = await s.user({ name: 'Marco', email: 'marco@anonimizza.it' })
+    await s.member(organizationId, owner, 'owner')
+    await s.member(organizationId, member, 'member')
+  })
+  await admin.query(`update organizations set name = 'Agenzia Rossi' where id = $1`, [
+    organizationId,
+  ])
+
+  const refused = await runCliCaptured(['anonymize-user', 'olga@anonimizza.it'])
+  expect(refused.exitCode).toBe(1)
+  expect(refused.stderr).toContain('Owner di Agenzia Rossi')
+
+  const done = await runCliCaptured(['anonymize-user', 'MARCO@anonimizza.it'])
+  expect(done.exitCode).toBe(0)
+  expect(done.stdout).toMatch(/anonimizzato/)
+  const { rows } = await admin.query<{ id: string; name: string; email: string }>(
+    'select id, name, email from users where id = any($1)',
+    [[owner, member]],
+  )
+  expect(rows.find((r) => r.id === owner)).toMatchObject({ name: 'Olga' })
+  expect(rows.find((r) => r.id === member)).toMatchObject({
+    name: 'Utente rimosso',
+    email: `${member}@utente-rimosso.invalid`,
+  })
+  expect(await lastAuditAsSystem()).toMatchObject({
+    action: 'user.anonymized',
+    source: 'system',
+    organizationId: null,
+    actorId: null,
+  })
 })

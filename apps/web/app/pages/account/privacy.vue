@@ -25,6 +25,9 @@ const signedOut = computed(() => error.value?.statusCode === 401)
       <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
       {{ $t('account.signedOut') }}
     </p>
-    <DataExportPanel v-else :me="me ?? null" />
+    <template v-else>
+      <DataExportPanel :me="me ?? null" />
+      <AccountDeletionPanel :me="me ?? null" />
+    </template>
   </div>
 </template>

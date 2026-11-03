@@ -7,6 +7,7 @@ const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   '/reimposta',
   '/conferma-email',
   '/sicurezza/non-sono-stato-io',
+  '/account-eliminato',
 ])
 const isPublic = (path: string) => PUBLIC_PATHS.has(path) || path.startsWith('/attiva/')
 

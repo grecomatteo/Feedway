@@ -222,6 +222,8 @@ export async function transferOwnership(
     const target = await targetMember(tx, actor, newOwnerUserId)
     if (target.userId === actor.userId || target.role !== 'admin' || target.status !== 'active')
       throw new DomainError('FORBIDDEN', 'La proprietà passa solo a un Admin attivo dell’agenzia')
+    // the same row lock as "Elimina il mio account": a person being removed never becomes Owner
+    await tx.users.findByIdForUpdate(newOwnerUserId)
     const [person] = await tx.users.summaries([newOwnerUserId])
     if (!person || person.status !== 'active' || person.anonymizedAt !== null)
       throw new DomainError('FORBIDDEN', 'La proprietà passa solo a un Admin attivo dell’agenzia')

@@ -260,7 +260,19 @@ export async function buildDataExport(
     const key = exportKey(userId, exportId)
     await deps.storage.put(key, Buffer.from(archive), { contentType: 'application/zip' })
     const expiresAt = new Date(deps.clock.now().getTime() + RETENTION.dataExportMs)
-    await deps.uow.run(own, async (tx) => {
+    const kept = await deps.uow.run(own, async (tx) => {
+      // the same row lock as "Elimina il mio account": an account removed or locked while the
+      // archive was built never gets it, and its file does not outlive the account
+      const user = await tx.users.findByIdForUpdate(userId)
+      if (
+        !user ||
+        user.status !== 'active' ||
+        user.anonymizedAt !== null ||
+        user.securityLockedAt !== null
+      ) {
+        await tx.dataExports.update(userId, exportId, { status: 'failed', at: now() })
+        return false
+      }
       await tx.dataExports.update(userId, exportId, {
         status: 'ready',
         storageKey: key,
@@ -282,7 +294,12 @@ export async function buildDataExport(
       for (const older of await tx.dataExports.listRecent(userId, LISTED))
         if (older.id !== exportId && older.status === 'ready')
           await tx.dataExports.update(userId, older.id, { status: 'expired', at: now() })
+      return true
     })
+    if (!kept) {
+      await deps.storage.delete(key)
+      return
+    }
   } catch (error) {
     // the person sees "non riuscita" and can ask again; nothing to retry on our side
     deps.logger.error({ err: error, exportId }, 'data export failed')

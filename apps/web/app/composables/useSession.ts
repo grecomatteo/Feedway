@@ -78,5 +78,11 @@ export function useSession() {
     }
   }
 
-  return { view, load, current, home, signOut }
+  /** The server already closed the session (account deleted): forget it here too. */
+  function forget() {
+    view.value = { state: 'signed_out' }
+    clearNuxtData()
+  }
+
+  return { view, load, current, home, signOut, forget }
 }

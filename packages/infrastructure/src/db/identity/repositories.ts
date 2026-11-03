@@ -286,6 +286,24 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         .where(eq(passkeys.userId, ownUser(ctx, id)))
       return row?.n ?? 0
     },
+    async anonymize(id, change) {
+      await db
+        .update(users)
+        .set({
+          name: change.name,
+          email: change.email,
+          emailVerified: false,
+          nickname: null,
+          image: null,
+          avatarKey: null,
+          timezone: null,
+          lastOrganizationId: null,
+          status: 'disabled',
+          disabledAt: sql`coalesce(${users.disabledAt}, ${change.at})`,
+          anonymizedAt: sql`coalesce(${users.anonymizedAt}, ${change.at})`,
+        })
+        .where(eq(users.id, ownUser(ctx, id)))
+    },
   }
 }
 
@@ -476,6 +494,13 @@ export function drizzleDataExports(db: DbExecutor, ctx: TxContext): DataExportsR
         .where(and(eq(dataExports.userId, ownUser(ctx, userId)), eq(dataExports.id, id)))
         .returning({ id: dataExports.id })
       return updated.length > 0
+    },
+    async deleteAllForUser(userId) {
+      const deleted = await db
+        .delete(dataExports)
+        .where(eq(dataExports.userId, ownUser(ctx, userId)))
+        .returning({ id: dataExports.id })
+      return deleted.length
     },
   }
 }

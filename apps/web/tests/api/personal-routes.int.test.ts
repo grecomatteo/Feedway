@@ -181,6 +181,9 @@ const FOREIGN_ANSWER: Record<string, ForeignAnswer> = {
   },
 }
 
+/** Routes after which the caller no longer exists. */
+const DISPOSABLE_CALLER = new Set(['DELETE /api/v1/me'])
+
 const noIds: SampleIds = {
   org: '',
   workspace: '',
@@ -223,7 +226,11 @@ test.each(personalRoutesWithoutIds)(
   '$method $path answers about the caller only',
   async (route: ApiContract) => {
     const other = fx.a.people.viewer
-    const cookie = await fx.env.signIn(fx.b.member)
+    // deleting the account ends the caller: a person of its own, so later cases keep theirs
+    const caller = DISPOSABLE_CALLER.has(routeKey(route))
+      ? await fx.env.person(fx.b.id, 'member')
+      : fx.b.member
+    const cookie = await fx.env.signIn(caller)
     await fx.refreshReauth()
     const prepared = PREPARED_BODY[routeKey(route)]
     const body = prepared ? await prepared(cookie) : sampleBody(route, noIds)

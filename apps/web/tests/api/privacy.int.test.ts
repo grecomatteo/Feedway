@@ -4,8 +4,9 @@ import { createLocalDiskStorage } from '@app/infrastructure'
 import { errorCodeOf, startApiEnv } from './identity-env.js'
 import type { ApiEnv, Person } from './identity-env.js'
 
-// Rules of the export (owner only, 24 hours, limits, reauth) are tested in the use case and in
-// the isolation battery; here only what HTTP adds: headers, and the session reaching the use case.
+// Rules of the export and of the deletion (owner only, 24 hours, limits, reauth, Owner) are tested
+// in the use cases and in the isolation battery; here only what HTTP adds: headers, cookies, and
+// the session reaching the use case.
 
 let env: ApiEnv
 let person: Person
@@ -54,4 +55,15 @@ test('the routes hand the session to the use case: without a recent confirmation
   const r = await env.call('POST', '/api/v1/me/exports', undefined, { cookie })
   expect(r.status).toBe(403)
   expect(await errorCodeOf(r)).toBe('REAUTH_REQUIRED')
+})
+
+test('deleting the account clears the session cookie and the session stops working', async () => {
+  const leaving = await env.person((await env.agency()).id, 'member')
+  const cookie = await env.signIn(leaving)
+  await env.reauth(cookie)
+  const r = await env.call('DELETE', '/api/v1/me', undefined, { cookie })
+  expect(r.status).toBe(200)
+  expect(await r.json()).toEqual({ deleted: true })
+  expect(r.headers.getSetCookie().join('\n')).toMatch(/__Host-session=;.*Max-Age=0/i)
+  expect((await env.call('GET', '/api/v1/me', undefined, { cookie })).status).toBe(401)
 })

@@ -227,5 +227,17 @@ export function drizzleWorkspaceMembers(db: DbExecutor): WorkspaceMembersReposit
         .returning({ userId: workspaceMembers.userId })
       return removed.length > 0
     },
+    async removeAllForUser(organizationId, userId) {
+      const removed = await db
+        .delete(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.organizationId, organizationId),
+            eq(workspaceMembers.userId, userId),
+          ),
+        )
+        .returning({ userId: workspaceMembers.userId })
+      return removed.length
+    },
   }
 }

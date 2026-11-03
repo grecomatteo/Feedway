@@ -1,8 +1,15 @@
 import { randomBytes } from 'node:crypto'
-import { and, asc, desc, eq, gt, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, ne, or, sql } from 'drizzle-orm'
 import type { Auth, Clock } from '@app/application'
 import { isBeyondAbsoluteLifetime } from '@app/domain'
-import { passkeys, sessions, users } from '../db/identity/schema.js'
+import {
+  accounts,
+  passkeys,
+  sessions,
+  twoFactors,
+  users,
+  verifications,
+} from '../db/identity/schema.js'
 import type { Db } from '../db/client.js'
 import { toSessionInfo } from './auth-method.js'
 import type { BetterAuthInstance } from './better-auth.js'
@@ -163,5 +170,47 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         })),
       }
     },
+
+    deleteAllCredentials: createCredentialEraser({ db }),
   }
 }
+
+/**
+ * "Elimina il mio account": every way in goes at once. Only the database, no Better Auth: the
+ * CLI (`anonymize-user`) uses it too.
+ */
+export function createCredentialEraser(deps: { db: Db }): Auth['deleteAllCredentials'] {
+  const { db } = deps
+  return async (userId) => {
+    await db.transaction(async (t) => {
+      const [user] = await t
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for('update')
+      if (!user) return
+      await t.delete(sessions).where(eq(sessions.userId, userId))
+      // the password and any linked sign-in
+      await t.delete(accounts).where(eq(accounts.userId, userId))
+      // the authenticator secret and the recovery codes
+      await t.delete(twoFactors).where(eq(twoFactors.userId, userId))
+      await t.delete(passkeys).where(eq(passkeys.userId, userId))
+      await t.update(users).set({ twoFactorEnabled: false }).where(eq(users.id, userId))
+      // Pending links and challenges name the person by id (reset links, the second factor
+      // after the password, passkey challenges, email changes) or by address.
+      await t
+        .delete(verifications)
+        .where(
+          or(
+            sql`strpos(${verifications.value}, ${userId}) > 0`,
+            sql`strpos(${verifications.identifier}, ${userId}) > 0`,
+            eq(verifications.identifier, user.email),
+            sql`${verifications.identifier} like ${`%:${escapeLike(user.email)}`}`,
+          ),
+        )
+    })
+  }
+}
+
+/** The address as a literal inside a LIKE pattern. */
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`)

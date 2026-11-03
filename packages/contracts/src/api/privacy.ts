@@ -44,8 +44,23 @@ export const downloadDataExportRoute = defineContract({
   scope: 'personal',
 })
 
+/**
+ * Elimina il mio account: credentials, photo and devices go, the rest stays as "Utente
+ * rimosso". Needs a recent reauth; refused to the Owner of an agency (409 SOLE_OWNER).
+ */
+export const deleteMeRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/me',
+  summary: 'Elimina il mio account (anonimizza i dati personali e chiude ogni sessione)',
+  request: {},
+  response: z.object({ deleted: z.literal(true) }),
+  auth: 'session',
+  scope: 'personal',
+})
+
 export const privacyRoutes = [
   requestDataExportRoute,
   listDataExportsRoute,
   downloadDataExportRoute,
+  deleteMeRoute,
 ] as const
