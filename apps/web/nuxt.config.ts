@@ -15,6 +15,8 @@ export default defineNuxtConfig({
     classSuffix: '',
     storage: 'cookie',
     storageKey: 'theme',
+    // THEME_COOKIE_MAX_AGE_SECONDS: the privacy notice states this duration
+    cookieAttrs: { 'max-age': '31536000', path: '/' },
   },
   i18n: {
     defaultLocale: 'it',

@@ -221,6 +221,7 @@ test('agency screens have no a11y violations', async ({ page }) => {
     `/${org}/spazi`,
     `/${org}/registro`,
     `/${org}/impostazioni`,
+    `/${org}/privacy`,
   ]) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -241,11 +242,16 @@ test('agency screens have no a11y violations', async ({ page }) => {
   )
 })
 
-test('settings: the owner renames the agency after the confirmation', async ({ page }) => {
+test('settings: the owner renames the agency and names the privacy controller', async ({
+  page,
+}) => {
   const owner = await newPerson('Olga Impostazioni', 'owner')
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}/impostazioni`)
+  await expect(page.getByText("L'informativa non indica ancora il titolare")).toBeVisible()
   await page.getByLabel("Nome dell'agenzia").fill('Studio Aurora')
+  await page.getByLabel('Titolare del trattamento').fill('Studio Aurora S.r.l.')
+  await page.getByLabel('Email per le richieste sulla privacy').fill('privacy@aurora.example')
   await page.getByRole('button', { name: 'Salva' }).click()
   await confirmWithPassword(page)
   await expect(page.getByRole('status')).toHaveText('Modifiche salvate.')

@@ -24,7 +24,7 @@ export { createAuthAdapter, createCredentialEraser } from './auth/auth-adapter.j
 export { isSecondFactorGatedAuthPath } from './auth/auth-hooks.js'
 export { clientIp } from './auth/client-ip.js'
 export { DEVICE_COOKIE_MAX_AGE_SECONDS, isDeviceId, newDeviceId } from './auth/device-id.js'
-export { DEVICE_COOKIE, SESSION_COOKIE } from './auth/cookie-names.js'
+export { DEVICE_COOKIE, PANEL_COOKIES, SESSION_COOKIE } from './auth/cookie-names.js'
 export { createSignedTokens } from './crypto/signed-tokens.js'
 export { createMemoryMailer } from './mail/memory-mailer.js'
 export { createFileMailer, readFileMailbox } from './mail/file-mailer.js'

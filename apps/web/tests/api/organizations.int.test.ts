@@ -27,6 +27,7 @@ test('Owner and Admin read the settings; a Member and a stranger do not', async 
     slug: agency.slug,
     require2fa: null,
     platformRequire2fa: 'admins',
+    privacy: null,
   })
   const memberCookie = await env.signIn(member)
   expect(
