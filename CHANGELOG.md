@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/grecomatteo/Feedway/compare/v0.2.0...v0.2.1) (2026-11-03)
+
+
+### Correzioni
+
+* **infra:** immagine di rilascio senza la cache di Trivy ([#114](https://github.com/grecomatteo/Feedway/issues/114)) ([91e8682](https://github.com/grecomatteo/Feedway/commit/91e8682c9d70905200fc410fd48662cb7a7d029f))
+
 ## [0.2.0](https://github.com/grecomatteo/Feedway/compare/v0.1.2...v0.2.0) (2026-11-03)
 
 
