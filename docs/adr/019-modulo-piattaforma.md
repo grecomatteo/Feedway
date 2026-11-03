@@ -22,7 +22,7 @@ Fatti dal codice della tappa 2:
 - **Modulo `accounts`** (generico), nelle cartelle `accounts/` di `domain`, `application`, `infrastructure/db`, `contracts`, rotte e lavori:
   - tabelle `social_accounts`, `account_connections`, `workspace_accounts`;
   - casi d'uso: elenco degli account, assegnazione agli spazi, profili dentro uno spazio, avvio e chiusura di un collegamento, sincronizzazione e salute;
-  - conosce `platform` (`instagram`, `facebook`) e `connection kind` (`facebook_login`, `instagram_login`, `meta_system_user`) solo come stringhe di elenchi chiusi. Una piattaforma nuova li allarga con una migrazione (§18.6).
+  - conosce `platform` (`instagram`, `facebook`) e `connection kind` (`meta_business_login` e `meta_system_user`, vedi [ADR 020](020-accesso-unificato-meta.md)) solo come stringhe di elenchi chiusi. Una piattaforma nuova li allarga con una migrazione (§18.6).
 - **Porta `PlatformConnector`** in `packages/application/src/ports/platform-connector.ts`. Ce n'è una per tipo di collegamento, con funzioni che parlano solo di account, token e salute, mai di Pagine o container. Le credenziali dell'app arrivano opache:
   - `verifyApp(appCredentials)`: prova le credenziali dell'app prima di salvarle;
   - `loadAppCredentials(tx, organizationId)`: il connettore legge le credenziali della propria app (per Meta dall'integrazione `meta`) e le restituisce come valore opaco, che `accounts` passa alle altre funzioni senza guardarci dentro;
@@ -33,7 +33,7 @@ Fatti dal codice della tappa 2:
   - `refresh(credentials)`: nuovo token e nuova scadenza, oppure "non rinnovabile";
   - `checkHealth(credentials, account)`: token, permessi, asset e quota, con l'esito `ok`, `warning` o `error` e un messaggio.
 - **Modulo `platforms/meta`**:
-  - `packages/infrastructure/src/platforms/meta/`: il client della Graph API, i tre connettori e la classificazione degli errori;
+  - `packages/infrastructure/src/platforms/meta/`: il client della Graph API, i due connettori (`meta_system_user`, `meta_business_login`) e la classificazione degli errori;
   - `packages/application/src/platforms/meta/`: i casi d'uso propri di Meta, come l'integrazione dell'agenzia;
   - `packages/domain/src/platforms/meta/`: le regole pure di Meta, se servono (permessi richiesti, scadenze, soglie di uso).
 
@@ -41,7 +41,7 @@ Fatti dal codice della tappa 2:
 - **Registro delle piattaforme**: una mappa costante `connection kind → PlatformConnector` costruita nella radice di composizione (`packages/infrastructure/src/runtime.ts`). Non si introduce il registro generale dei moduli finché non serve a un secondo consumatore: `docs/moduli.md` lo segnala come non ancora costruito.
 - **Il "profilo" resta generico**: `social_accounts.page_id` (nome della specifica §13) è la chiave che lega due account in un profilo. Per Meta è l'id della Pagina; per una piattaforma senza abbinamenti è vuota.
 - **Credenziali**:
-  - dell'app Meta dell'agenzia: integrazione `meta` per organizzazione in `integrations`. App ID e App ID di Instagram stanno in `config`; i due secret, come JSON, sono sigillati con `KeyRing.forOrganization` e AAD `integrations:org:<organizationId>:meta`;
+  - dell'app Meta dell'agenzia: integrazione `meta` per organizzazione in `integrations`. App ID e `configId` dell'accesso unificato stanno in `config` (ADR 020); il secret, come JSON `{ appSecret }`, è sigillato con `KeyRing.forOrganization` e AAD `integrations:org:<organizationId>:meta`;
   - di ogni collegamento: il token sta sigillato sulla riga di `account_connections` (`token_enc`, `key_version`), con la stessa chiave e AAD `account_connections:<organizationId>:<connectionId>`.
 
   La specifica (§13 al posto di `token_secret_id`, e §8.3) si aggiorna nella PR del Task 5 della tappa 3.
