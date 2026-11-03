@@ -13,3 +13,5 @@ docs
 playwright-report
 test-results
 coverage
+# Tool caches in the workspace (the release job's Trivy DB is hundreds of MB)
+.cache
