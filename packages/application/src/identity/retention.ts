@@ -4,13 +4,13 @@ import type { Clock } from '../ports/clock.js'
 import type { AnonymizationNoticeData, JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
 import type { Mailer } from '../ports/mailer.js'
-import type { UserRecord } from '../ports/repositories.js'
 import type { Storage } from '../ports/storage.js'
 import type { Translate } from '../ports/translator.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { dayAndTime, emailFrame, oneLine, renderEmail, usableTimeZone } from '../mail/index.js'
 import { anonymizeUser } from './delete-account.js'
+import { scheduledAnonymization } from './members.js'
 import type { UserAnonymizedHandler } from './module.js'
 
 export interface RetentionDeps {
@@ -36,6 +36,8 @@ export interface RetentionReport {
   noticesScheduled: number
   anonymized: number
   skipped: number
+  /** Files or people that failed this time: logged, retried tomorrow; the rest goes on. */
+  failed: number
 }
 
 /** Disabled this long, the Owners hear that the person will be anonymized (24 months − 30 days). */
@@ -66,28 +68,45 @@ export async function runRetention(deps: RetentionDeps): Promise<RetentionReport
   )
 
   // the file goes first: a row marked expired with its file still there would never be retried
+  let failed = 0
+  const tryEach = async (what: object, fn: () => Promise<void>): Promise<boolean> => {
+    try {
+      await fn()
+      return true
+    } catch (err) {
+      deps.logger.error({ ...what, err }, 'retention step failed')
+      failed += 1
+      return false
+    }
+  }
+
   let exportsExpired = 0
   for (const record of await system('expired exports', (tx) =>
     tx.dataExports.listExpiredReady(now),
-  )) {
-    if (record.storageKey !== null) await deps.storage.delete(record.storageKey)
-    await system('expired export', (tx) =>
-      tx.dataExports.update(record.userId, record.id, { status: 'expired', at: now }),
+  ))
+    if (
+      await tryEach({ exportId: record.id }, async () => {
+        if (record.storageKey !== null) await deps.storage.delete(record.storageKey)
+        await system('expired export', (tx) =>
+          tx.dataExports.update(record.userId, record.id, { status: 'expired', at: now }),
+        )
+      })
     )
-    exportsExpired += 1
-  }
+      exportsExpired += 1
   const exportsFailed = await system('stuck exports', (tx) =>
     tx.dataExports.failStuck(cut.dataExportBefore, now),
   )
 
   let avatarPreviews = 0
   for (const file of await deps.storage.list('users/'))
-    if (file.key.includes('/avatar/staging/') && file.modifiedAt < cut.avatarStagingBefore) {
-      await deps.storage.delete(file.key)
+    if (
+      file.key.includes('/avatar/staging/') &&
+      file.modifiedAt < cut.avatarStagingBefore &&
+      (await tryEach({}, () => deps.storage.delete(file.key)))
+    )
       avatarPreviews += 1
-    }
 
-  const people = await disabledPeople(deps, now)
+  const people = await disabledPeople(deps, now, tryEach)
   const report: RetentionReport = {
     sessions,
     devices,
@@ -97,6 +116,7 @@ export async function runRetention(deps: RetentionDeps): Promise<RetentionReport
     exportsFailed,
     avatarPreviews,
     ...people,
+    failed,
   }
   deps.logger.info({ report }, 'retention done')
   return report
@@ -110,6 +130,7 @@ export async function runRetention(deps: RetentionDeps): Promise<RetentionReport
 async function disabledPeople(
   deps: RetentionDeps,
   now: Date,
+  tryEach: (what: object, fn: () => Promise<void>) => Promise<boolean>,
 ): Promise<Pick<RetentionReport, 'noticesScheduled' | 'anonymized' | 'skipped'>> {
   const system = <T>(reason: string, fn: (tx: Tx) => Promise<T>) =>
     deps.uow.runAsSystem(`identity.retention: ${reason}`, fn)
@@ -118,48 +139,30 @@ async function disabledPeople(
 
   for (const user of await system('disabled accounts', (tx) =>
     tx.users.listDisabledBefore(noticeBefore),
-  )) {
-    const disabledAt = user.disabledAt
-    if (disabledAt === null) continue
-    const decision = await system('one disabled account', async (tx) => {
-      // read again under the row lock: reactivated or anonymized since the list
-      const current = await tx.users.findByIdForUpdate(user.id)
-      if (current?.status !== 'disabled' || current.anonymizedAt !== null) return 'gone' as const
-      if (current.disabledAt?.getTime() !== disabledAt.getTime()) return 'gone' as const
-      const memberships = await tx.orgMembers.listForUser(user.id)
-      const reason =
-        current.platformRole === 'admin'
-          ? 'platform_admin'
-          : memberships.some((m) => m.role === 'owner')
-            ? 'owner'
-            : null
-      const period = disabledAt.toISOString()
-      if (reason !== null) {
-        deps.logger.warn({ userId: user.id, reason }, 'anonymization skipped')
-        if ((await forPeriod(tx, ACTION_SKIPPED, user.id, period)) === null)
-          await platformEntry(tx, ACTION_SKIPPED, user.id, { reason, disabledAt: period })
-        return 'skipped' as const
+  ))
+    // one person failing never holds back the others
+    await tryEach({ userId: user.id }, async () => {
+      const disabledAt = user.disabledAt
+      if (disabledAt === null) return
+      const decision = await system('one disabled account', (tx) =>
+        decide(deps, tx, user.id, disabledAt, now),
+      )
+      if (decision.kind === 'skipped') result.skipped += 1
+      if (decision.kind === 'noticed') {
+        // sent once the entries are committed; the dedupe key makes a resend harmless
+        for (const job of decision.jobs)
+          await deps.queue.send('identity.anonymization_notice', job.data, {
+            dedupeKey: job.dedupeKey,
+          })
+        result.noticesScheduled += 1
       }
-      const notice = await forPeriod(tx, ACTION_SCHEDULED, user.id, period)
-      if (notice === null) {
-        const scheduledFor = new Date(
-          Math.max(
-            disabledAt.getTime() + RETENTION.disabledUserMs,
-            now.getTime() + RETENTION.anonymizationNoticeMs,
-          ),
-        )
-        await scheduleNotice(deps, tx, current, memberships, scheduledFor)
-        return 'noticed' as const
-      }
-      // the date told to the Owners: 24 months disabled and 30 days after the notice
-      const scheduledFor = typeof notice.scheduledFor === 'string' ? notice.scheduledFor : null
-      if (scheduledFor === null) return 'waiting' as const
-      return new Date(scheduledFor) <= now ? ('due' as const) : ('waiting' as const)
-    })
-    if (decision === 'skipped') result.skipped += 1
-    if (decision === 'noticed') result.noticesScheduled += 1
-    if (decision === 'due') {
-      await anonymizeUser(deps, { userId: user.id, source: 'system' })
+      if (decision.kind !== 'due') return
+      const done = await anonymizeUser(deps, {
+        userId: user.id,
+        source: 'system',
+        disabledSince: disabledAt,
+      })
+      if (!done) return
       await system('record an anonymization', async (tx) => {
         const entry = {
           organizationId: null,
@@ -170,9 +173,61 @@ async function disabledPeople(
           await platformEntry(tx, 'user.anonymized', user.id, {})
       })
       result.anonymized += 1
+    })
+  return result
+}
+
+interface NoticeJob {
+  data: AnonymizationNoticeData & { userId: string }
+  dedupeKey: string
+}
+
+type Decision =
+  { kind: 'gone' | 'skipped' | 'waiting' | 'due' } | { kind: 'noticed'; jobs: NoticeJob[] }
+
+/** Under the account's row lock: what to do with this disabled period. */
+async function decide(
+  deps: RetentionDeps,
+  tx: Tx,
+  userId: string,
+  disabledAt: Date,
+  now: Date,
+): Promise<Decision> {
+  // read again under the row lock: reactivated or anonymized since the list
+  const current = await tx.users.findByIdForUpdate(userId)
+  if (current?.status !== 'disabled' || current.anonymizedAt !== null) return { kind: 'gone' }
+  if (current.disabledAt?.getTime() !== disabledAt.getTime()) return { kind: 'gone' }
+  const memberships = await tx.orgMembers.listForUser(userId)
+  const reason =
+    current.platformRole === 'admin'
+      ? 'platform_admin'
+      : memberships.some((m) => m.role === 'owner')
+        ? 'owner'
+        : null
+  const period = disabledAt.toISOString()
+  if (reason !== null) {
+    deps.logger.warn({ userId, reason }, 'anonymization skipped')
+    if ((await forPeriod(tx, ACTION_SKIPPED, userId, period)) === null)
+      await platformEntry(tx, ACTION_SKIPPED, userId, { reason, disabledAt: period })
+    return { kind: 'skipped' }
+  }
+  const notice = await forPeriod(tx, ACTION_SCHEDULED, userId, period)
+  if (notice === null) {
+    const scheduledFor = new Date(
+      Math.max(
+        disabledAt.getTime() + RETENTION.disabledUserMs,
+        now.getTime() + RETENTION.anonymizationNoticeMs,
+      ),
+    )
+    return {
+      kind: 'noticed',
+      jobs: await recordNotice(tx, userId, period, memberships, scheduledFor),
     }
   }
-  return result
+  // the date told to the Owners: 24 months disabled and 30 days after the notice
+  const scheduledFor = typeof notice.scheduledFor === 'string' ? notice.scheduledFor : null
+  if (scheduledFor === null) return { kind: 'waiting' }
+  return { kind: new Date(scheduledFor) <= now ? 'due' : 'waiting' }
 }
 
 /**
@@ -211,20 +266,18 @@ function platformEntry(
 
 /**
  * The platform's own entry decides when the notice was given; each agency the person was in gets
- * one too, and its active Owners an email (one job each, never twice for the same period).
+ * one too, and its active Owners an email: the jobs to send, one per Owner and period.
  */
-async function scheduleNotice(
-  deps: RetentionDeps,
+async function recordNotice(
   tx: Tx,
-  user: UserRecord,
+  userId: string,
+  period: string,
   memberships: Awaited<ReturnType<Tx['orgMembers']['listForUser']>>,
   scheduledFor: Date,
-): Promise<void> {
-  const data = {
-    scheduledFor: scheduledFor.toISOString(),
-    disabledAt: user.disabledAt?.toISOString() ?? null,
-  }
-  await platformEntry(tx, ACTION_SCHEDULED, user.id, data)
+): Promise<NoticeJob[]> {
+  const data = { scheduledFor: scheduledFor.toISOString(), disabledAt: period }
+  await platformEntry(tx, ACTION_SCHEDULED, userId, data)
+  const jobs: NoticeJob[] = []
   for (const m of memberships) {
     await tx.audit.record({
       organizationId: m.organizationId,
@@ -232,7 +285,7 @@ async function scheduleNotice(
       source: 'system',
       action: ACTION_SCHEDULED,
       entity: 'user',
-      entityId: user.id,
+      entityId: userId,
       workspaceId: null,
       ip: null,
       data,
@@ -241,19 +294,17 @@ async function scheduleNotice(
       (o) => o.role === 'owner' && o.status === 'active',
     )
     for (const owner of owners)
-      await deps.queue.send(
-        'identity.anonymization_notice',
-        {
+      jobs.push({
+        data: {
           userId: owner.userId,
-          subjectId: user.id,
+          subjectId: userId,
           organizationId: m.organizationId,
           scheduledFor: data.scheduledFor,
         },
-        {
-          dedupeKey: `${user.id}:${String(data.disabledAt)}:${m.organizationId}:${owner.userId}`,
-        },
-      )
+        dedupeKey: `${userId}:${period}:${m.organizationId}:${owner.userId}`,
+      })
   }
+  return jobs
 }
 
 export interface AnonymizationNoticeDeps {
@@ -285,6 +336,9 @@ export async function sendAnonymizationNotice(
     if ((await tx.orgMembers.find(organizationId, job.subjectId)) === null) return null
     const subject = await tx.users.findById(job.subjectId)
     if (subject?.status !== 'disabled' || subject.anonymizedAt !== null) return null
+    // a job left from an earlier disabled period is not sent: the next run gives the new date
+    const scheduledFor = await scheduledAnonymization(tx, organizationId, subject)
+    if (scheduledFor !== job.scheduledFor) return null
     const agency = await tx.organizations.findById(organizationId)
     return agency ? { owner, subject, agency: agency.name } : null
   })

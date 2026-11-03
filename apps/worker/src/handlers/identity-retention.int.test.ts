@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import {
+  anonymizeUser,
   listMembers,
   runRetention,
   userAnonymizedHandlers,
@@ -18,7 +19,6 @@ import {
   createMemoryMailer,
   createRuntime,
   createZipWriter,
-  QUEUES,
 } from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
 import { fixedClock, seed, startTestDatabase } from '@app/infrastructure/testing'
@@ -278,34 +278,71 @@ test('disabled user: notice at 23 months, anonymization after 24 months and 30 d
   expect(await anonymizedAt(person)).not.toBeNull()
 })
 
-test('a re-enabled user is not anonymized', async () => {
-  const { person } = await agencyWithDisabled(701)
+test('a re-enabled user is not anonymized, and the Owner is not told', async () => {
+  const { person, ownerEmail } = await agencyWithDisabled(701)
   await runRetention(deps())
   await enable(person)
+  await deliverNotices()
+  expect(mailsTo(ownerEmail)).toHaveLength(0)
   clock.advance(days(31))
   await runRetention(deps())
   expect(await anonymizedAt(person)).toBeNull()
 })
 
+test('an anonymization decided before a reactivation does nothing', async () => {
+  const { person } = await agencyWithDisabled(800)
+  const disabledSince = new Date(clock.now().getTime() - days(800))
+  await enable(person)
+  expect(await anonymizeUser(deps(), { userId: person, source: 'system', disabledSince })).toBe(
+    false,
+  )
+  const { rows } = await admin.query<{ status: string }>('select status from users where id = $1', [
+    person,
+  ])
+  expect(rows[0]?.status).toBe('active')
+})
+
+test('one person failing does not hold back the others', async () => {
+  const first = await agencyWithDisabled(800)
+  const second = await agencyWithDisabled(800)
+  await runRetention(deps())
+  clock.advance(days(31))
+  const eraser = createCredentialEraser({ db: runtime.db })
+  const report = await runRetention({
+    ...deps(),
+    auth: {
+      deleteAllCredentials: (id) =>
+        id === first.person ? Promise.reject(new Error('giù')) : eraser(id),
+    },
+  })
+  expect(report.failed).toBe(1)
+  expect(await anonymizedAt(second.person)).not.toBeNull()
+  // tomorrow the first one completes
+  await runRetention(deps())
+  expect(await anonymizedAt(first.person)).not.toBeNull()
+})
+
 test('a notice from an earlier disabled period does not count', async () => {
   const { person, ownerEmail } = await agencyWithDisabled(701)
   await runRetention(deps())
-  await deliverNotices()
   await enable(person)
   clock.advance(days(2))
   await disableAt(person, clock.now())
+  // the email of the earlier period, still queued, is not sent with its old date
+  await deliverNotices()
+  expect(mailsTo(ownerEmail)).toHaveLength(0)
   clock.advance(days(731))
   await runRetention(deps())
   await deliverNotices()
   expect(await anonymizedAt(person)).toBeNull()
-  expect(mailsTo(ownerEmail)).toHaveLength(2)
+  expect(mailsTo(ownerEmail)).toHaveLength(1)
   clock.advance(days(31))
   await runRetention(deps())
   expect(await anonymizedAt(person)).not.toBeNull()
 })
 
 test('an owner or the platform admin is never anonymized automatically', async () => {
-  const { org: orgB, owner: ownerOfB, ownerEmail } = await agencyWithDisabled(0)
+  const { owner: ownerOfB, ownerEmail } = await agencyWithDisabled(0)
   const platformAdmin = await seed(tdb.runtimeUrl, (s) => s.user())
   await admin.query(`update users set platform_role = 'admin' where id = $1`, [platformAdmin])
   await disableAt(ownerOfB, new Date(clock.now().getTime() - days(800)))
@@ -324,7 +361,6 @@ test('an owner or the platform admin is never anonymized automatically', async (
   expect(rows.map((r) => r.reason).sort()).toEqual(['owner', 'platform_admin'])
   // two people, two runs
   expect(warnings.filter((w) => w.includes('anonymization skipped'))).toHaveLength(4)
-  expect(orgB).toBeTruthy()
 })
 
 test('running twice the same day changes nothing more', async () => {
@@ -342,12 +378,6 @@ test('running twice the same day changes nothing more', async () => {
     noticesScheduled: 0,
     anonymized: 0,
     skipped: 0,
-  })
-})
-
-test('retention queue is declared as a system queue', () => {
-  expect(QUEUES.find((q) => q.name === 'identity.retention')).toMatchObject({
-    scope: 'system',
-    policy: 'singleton',
+    failed: 0,
   })
 })

@@ -29,6 +29,10 @@ test('every registered queue declares a scope', () => {
   ])
 })
 
+test('the daily retention runs once at a time', () => {
+  expect(QUEUES.find((q) => q.name === 'identity.retention')?.policy).toBe('singleton')
+})
+
 test('a reset link does not stay in the queue tables past its hour', () => {
   expect(QUEUES.find((q) => q.name === 'identity.password_reset_email')?.retention).toEqual({
     retentionSeconds: 3600,

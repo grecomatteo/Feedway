@@ -47,7 +47,8 @@ export interface MemberDto {
 }
 
 /** The date of the notice the agency got for the current disable, if any. */
-async function scheduledAnonymization(
+/** The date announced to the agency for the current disabled period, if any. */
+export async function scheduledAnonymization(
   tx: Tx,
   organizationId: string,
   user: { id: string; status: string; disabledAt: Date | null; anonymizedAt: Date | null },
