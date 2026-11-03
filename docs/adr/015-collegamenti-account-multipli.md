@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Accettata (Matteo, 2026-10-16) |
+| **Stato** | Accettata (Matteo, 2026-10-16). L'elenco dei tipi e la conseguenza sui token a 60 giorni cambiano con [ADR 020](020-accesso-unificato-meta.md) (proposta) |
 | **Data** | 2026-10-16 |
 | **Specifica** | v9, §8 |
 
