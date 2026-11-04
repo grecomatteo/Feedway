@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0](https://github.com/grecomatteo/Feedway/compare/v0.2.1...v0.3.0) (2026-11-04)
+
+
+### Novità
+
+* **identity:** QR code per attivare l'app di autenticazione ([#120](https://github.com/grecomatteo/Feedway/issues/120)) ([98e2b7f](https://github.com/grecomatteo/Feedway/commit/98e2b7fad40a86c709bbc9a92673a7aa88a6adc4))
+
+
+### Correzioni
+
+* **identity:** attivazione che riprende dopo un ricaricamento della pagina ([#118](https://github.com/grecomatteo/Feedway/issues/118)) ([ff2eed6](https://github.com/grecomatteo/Feedway/commit/ff2eed61000a843b5a10d2485611c3bf073b1423))
+* **identity:** metodo di riserva proposto a chi ha solo una passkey come secondo fattore ([#125](https://github.com/grecomatteo/Feedway/issues/125)) ([1894aa0](https://github.com/grecomatteo/Feedway/commit/1894aa05753a93cdeb5f02e97c4f4c717fc900be))
+* **infra:** cartella media scrivibile e codice per l'assistenza negli errori ([#116](https://github.com/grecomatteo/Feedway/issues/116)) ([1d45936](https://github.com/grecomatteo/Feedway/commit/1d459364cdbdd97c5e5cfc923cdca483c9362ce4))
+* **infra:** foto HEIC senza arresti del pannello per memoria ([#117](https://github.com/grecomatteo/Feedway/issues/117)) ([8ebfb32](https://github.com/grecomatteo/Feedway/commit/8ebfb32b9408315c7e7cd9015705e4617b36193e))
+* **ops:** comandi dei runbook con i file compose di .env e senza consumare lo stdin ([#123](https://github.com/grecomatteo/Feedway/issues/123)) ([5e4a715](https://github.com/grecomatteo/Feedway/commit/5e4a71532185985a3bf46f865c531b474ea4d273))
+* **web:** agenzia sospesa senza menu, uscita al primo clic e sospensione visibile subito ([#121](https://github.com/grecomatteo/Feedway/issues/121)) ([66f6376](https://github.com/grecomatteo/Feedway/commit/66f6376b31fdccec7b5e5a9493f4d76ed429a61a))
+* **web:** la pagina iniziale porta all'accesso ([#124](https://github.com/grecomatteo/Feedway/issues/124)) ([6315667](https://github.com/grecomatteo/Feedway/commit/6315667f3cc6ec9de20ecde044b7b8d4a05d53bf))
+
+
+### Documentazione
+
+* **ops:** la prossima versione è la 0.3.0 ([#126](https://github.com/grecomatteo/Feedway/issues/126)) ([b804a4b](https://github.com/grecomatteo/Feedway/commit/b804a4b36ff6ee6b673166a92dcc04b4898dbb94))
+
 ## [0.2.1](https://github.com/grecomatteo/Feedway/compare/v0.2.0...v0.2.1) (2026-11-03)
 
 
