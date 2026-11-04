@@ -184,6 +184,8 @@ test('activation with a passkey signs in with that passkey', async ({ page }) =>
   await page.getByLabel('Nome e cognome').fill('Pia Chiave')
   await expect(page.getByRole('radio', { name: /^Passkey/ })).toBeChecked()
   await page.getByRole('button', { name: "Attiva l'account" }).click()
+  // an admin with only this passkey is offered a backup first
+  await page.getByRole('button', { name: 'Più tardi' }).click()
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
   const [user] = await adminQuery<{ id: string }>('select id from users where email = $1', [email])
   const sessions = await sessionsOf(user?.id ?? '')
@@ -218,6 +220,7 @@ test('admin with a passkey who signs in with the password is told to use the pas
   await signIn(page.request, person)
   await page.goto('/accedi/secondo-fattore')
   await page.getByRole('button', { name: 'Crea una passkey' }).click()
+  await page.getByRole('button', { name: 'Più tardi' }).click()
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
 
   // another browser, without the passkey (here it would sign in from the email field)
@@ -232,4 +235,32 @@ test('admin with a passkey who signs in with the password is told to use the pas
   } finally {
     await other.close()
   }
+})
+
+test('an admin whose only factor is a passkey is offered a backup until there is one', async ({
+  page,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const person = await newPerson('Bea Riserva', 'admin')
+  await signIn(page.request, person)
+  await page.goto('/accedi/secondo-fattore')
+  await page.getByRole('button', { name: 'Crea una passkey' }).click()
+  await expect(page.getByRole('heading', { name: 'Aggiungi un modo di riserva' })).toBeVisible()
+  await page.getByRole('button', { name: 'Aggiungilo ora' }).click()
+  await expect(page).toHaveURL(/\/account\/sicurezza$/)
+  const warning = page.getByText('Hai un solo modo per il secondo passaggio')
+  await expect(warning).toBeVisible()
+
+  const totp = page.getByRole('region', { name: 'App di autenticazione' })
+  await totp.getByLabel('Password attuale').fill(E2E_PASSWORD)
+  await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
+  const secret = (await totp.getByLabel("Chiave da scrivere nell'app").innerText()).replace(
+    /\s/g,
+    '',
+  )
+  await totp.getByRole('textbox', { name: 'Codice di 6 cifre' }).fill(totpCode(secret))
+  await totp.getByRole('button', { name: 'Verifica e attiva' }).click()
+  await totp.getByRole('button', { name: 'Li ho salvati' }).click()
+  await expect(warning).toHaveCount(0)
 })

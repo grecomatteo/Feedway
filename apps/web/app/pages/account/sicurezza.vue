@@ -31,6 +31,12 @@ const {
 })
 const signedOut = computed(() => error.value?.statusCode === 401)
 
+/** The role requires 2FA and a single passkey is all there is: losing it would lock them out. */
+const onlyPasskey = computed(() => {
+  const f = factors.value
+  return f?.required === true && !f.totpEnabled && f.passkeys.length === 1
+})
+
 /** With the role that requires 2FA, the last factor stays: the panel says why. */
 const lastFactor = computed(() => {
   const f = factors.value
@@ -174,6 +180,13 @@ const regenerateCodes = () =>
     </div>
 
     <template v-else-if="factors">
+      <p
+        v-if="onlyPasskey"
+        class="flex items-start gap-3 rounded-xl border border-(--app-border-strong) bg-(--app-surface-sunken) p-4"
+      >
+        <UIcon name="i-lucide-shield-alert" class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        <span>{{ $t('security.onlyPasskey') }}</span>
+      </p>
       <section
         aria-labelledby="security-password"
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"

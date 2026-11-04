@@ -80,7 +80,7 @@ const methodItems = computed(() => [
   { value: 'password', label: t('activate.password'), description: t('activate.passwordHelp') },
 ])
 
-const step = ref<'form' | 'totp'>('form')
+const step = ref<'form' | 'totp' | 'backup'>('form')
 const sending = ref(false)
 const problem = ref<ApiFailure | null>(null)
 /** The password typed in the form, kept only until the authenticator app is set up. */
@@ -116,6 +116,12 @@ async function activate(body: Record<string, unknown>) {
       await call('POST', `${path}/complete`)
       // the activation session gives way to a passkey sign-in (it satisfies the second factor)
       await passkey.authenticate({ only: created })
+      // where the role requires a second factor, this passkey is the only one: offer a backup
+      const factors = await call<{ required: boolean }>('GET', '/api/v1/me/second-factor')
+      if (factors.required) {
+        step.value = 'backup'
+        return
+      }
     }
     if (typeof body['password'] === 'string') typedPassword.value = body['password']
     form.password = ''
@@ -161,6 +167,7 @@ const signInTo = computed(() => ({ path: '/accedi', query: { dopo: `/attiva/${HI
 <template>
   <div class="space-y-5">
     <TotpEnrollment v-if="step === 'totp'" :password="typedPassword" @done="totpDone" />
+    <BackupFactorOffer v-else-if="step === 'backup'" @later="goIn" />
 
     <template v-else>
       <h1 class="text-2xl">{{ heading }}</h1>

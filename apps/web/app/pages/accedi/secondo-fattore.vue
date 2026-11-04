@@ -12,7 +12,7 @@ useHead({ title: () => t('secondFactor.title') })
 
 const view = computed(() => session.view.value)
 const useExisting = computed(() => view.value.state === 'second_factor' && view.value.useExisting)
-const choice = ref<'none' | 'totp'>('none')
+const choice = ref<'none' | 'totp' | 'backup'>('none')
 const sending = ref(false)
 const problem = ref<string | null>(null)
 
@@ -28,7 +28,8 @@ async function withPasskey() {
     const created = await passkey.register(t('passkeyPrompt.defaultName'))
     // a passkey sign-in satisfies the second factor and replaces this session
     await passkey.authenticate({ only: created })
-    await enter()
+    // the role requires a second factor and this passkey is the only one
+    choice.value = 'backup'
   } catch (e) {
     problem.value = e instanceof DOMException ? t('passkeyPrompt.cancelled') : failure(e).message
   } finally {
@@ -49,6 +50,8 @@ async function withPasskey() {
     </template>
 
     <TotpEnrollment v-else-if="choice === 'totp'" @done="enter" />
+
+    <BackupFactorOffer v-else-if="choice === 'backup'" @later="enter" />
 
     <template v-else>
       <p>{{ $t('secondFactor.explain') }}</p>
