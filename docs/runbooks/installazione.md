@@ -53,7 +53,7 @@ Lo script passa alla versione indicata, scarica l'immagine, **esegue prima la mi
 **Primo aggiornamento da una 0.1.x.** Lo script che parte è quello della versione installata, che non conosce i passi delle versioni nuove (per esempio il nome della prima agenzia e il link del primo account). Succede una volta sola. Quando ha finito, rilancia lo stesso comando con la stessa versione:
 
 ```bash
-./scripts/update.sh v0.2.2     # di nuovo, ora con lo script nuovo
+./scripts/update.sh v0.3.0     # di nuovo, ora con lo script nuovo
 ```
 
 Il secondo giro non cambia la versione da cui tornare indietro: resta quella di prima dell'aggiornamento.
@@ -72,7 +72,7 @@ Attenzione: il ritorno indietro cambia il programma, non il database. Le migrazi
 
 ## Se qualcosa non va
 
-- La foto profilo dà errore e nei log c'è `EACCES` su `/media`: succede alle installazioni fatte prima della v0.2.2, dove la cartella dei file è di root. Una volta sola:
+- La foto profilo dà errore e nei log c'è `EACCES` su `/media`: succede alle installazioni fatte prima della v0.3.0, dove la cartella dei file è di root. Una volta sola:
 
   ```bash
   ./scripts/compose.sh run --rm --no-deps --user 0 --entrypoint chown web 10001:10001 /media
