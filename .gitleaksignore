@@ -1,0 +1,13 @@
+# Findings of the full-history scan (CI run by hand on the release branch) checked one by one:
+# none is a credential.
+# Signed image links (googleusercontent ?key=) in the design references
+ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/brief-feedway/riferimenti/app/fonti.csv:generic-api-key:29
+ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/brief-feedway/riferimenti/app/fonti.csv:generic-api-key:30
+ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/brief-feedway/riferimenti/app/riferimenti.json:generic-api-key:557
+ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/brief-feedway/riferimenti/app/riferimenti.json:generic-api-key:577
+# The id of the Pencil document, not a secret
+ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/feedway-ui.pen:generic-api-key:26761
+# Example passwords in the code snippets of the stage 2 plan
+b9e65b9d992db46cd780e7781fdde5db2af00c77:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:147
+8ca99fbf16cbc0b29b2ba456bfdfb552c3e0913e:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:457
+8ca99fbf16cbc0b29b2ba456bfdfb552c3e0913e:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:458
