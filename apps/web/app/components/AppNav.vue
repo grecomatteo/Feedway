@@ -30,14 +30,6 @@ const current = (to: string) => route.path === to || route.path.startsWith(`${to
       <UserAvatar v-if="link.to === '/account'" :name="me.displayName" :src="me.avatarUrl" />
       {{ $t(link.label) }}
     </NuxtLink>
-    <UButton
-      class="min-h-11"
-      color="neutral"
-      variant="ghost"
-      icon="i-lucide-log-out"
-      @click="() => session.signOut()"
-    >
-      {{ $t('nav.signOut') }}
-    </UButton>
+    <SignOutButton />
   </nav>
 </template>
