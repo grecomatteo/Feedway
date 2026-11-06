@@ -75,8 +75,10 @@ Attenzione: il ritorno indietro cambia il programma, non il database. Le migrazi
 - La foto profilo dà errore e nei log c'è `EACCES` su `/media`: succede alle installazioni fatte prima della v0.3.0, dove la cartella dei file è di root. Una volta sola:
 
   ```bash
-  ./scripts/compose.sh run --rm --no-deps --user 0 --entrypoint chown web 10001:10001 /media
+  ./scripts/compose.sh run --rm -T --no-deps --user 0 --cap-add CHOWN --entrypoint chown web 10001:10001 /media
   ```
+
+  Il servizio `web` toglie al container tutti i permessi di sistema (`cap_drop: ALL`): senza `--cap-add CHOWN` anche root risponde «Operation not permitted». `-T` serve quando il comando parte da uno script, senza terminale.
 
 - `./scripts/compose.sh ps` mostra lo stato dei servizi.
 - `./scripts/compose.sh logs --tail 100 web worker migrate` mostra i log.
