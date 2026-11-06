@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/grecomatteo/Feedway/compare/v0.3.0...v0.4.0) (2026-11-06)
+
+
+### Novità
+
+* **identity:** prima password da Sicurezza per chi non ne ha ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+* **identity:** recupero dell'accesso da comando, con verifica dell'identità ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+
+
+### Correzioni
+
+* **identity:** «Esci» chiude la sessione anche sul server ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+* **identity:** attivazione con passkey annullata che non lascia l'account senza accesso ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+* **identity:** prima password sicura anche durante un recupero e a link scaduto ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+
+
+### Documentazione
+
+* **ops:** cartella media di root sistemata con il permesso CHOWN ([a269369](https://github.com/grecomatteo/Feedway/commit/a269369736ecb5cec030da3ca4d2913894e7939f))
+
 ## [0.3.0](https://github.com/grecomatteo/Feedway/compare/v0.2.1...v0.3.0) (2026-11-04)
 
 
