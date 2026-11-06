@@ -53,12 +53,16 @@ export async function sendAccountRecoveryEmail(
   const { time } = dayAndTime(expiresAt, timeZone)
   const today = isSameDay(now, expiresAt, timeZone)
   const values = { product: deps.productName, minutes: String(minutesLeft), time }
+  // after recover-user nothing was disabled: the texts speak of the access, not a reactivation
+  const recovered = job.reason === 'recovered'
+  const variant = (key: 'intro' | 'notMe' | 'footer') =>
+    `email.accountRecovery.${recovered ? `${key}Recovered` : key}`
   const { html, text } = renderEmail({
     ...emailFrame(t, deps.panelUrl, deps.productName),
     preheader: t('email.accountRecovery.preheader', values),
     title: t('email.accountRecovery.title', values),
     blocks: [
-      { kind: 'paragraph', text: t('email.accountRecovery.intro', values) },
+      { kind: 'paragraph', text: t(variant('intro'), values) },
       { kind: 'button', label: t('email.accountRecovery.button'), url: job.url, tone: 'primary' },
       {
         kind: 'box',
@@ -66,9 +70,9 @@ export async function sendAccountRecoveryEmail(
         text: t(`email.accountRecovery.${today ? 'expiryToday' : 'expiryTomorrow'}`, values),
       },
       { kind: 'paragraph', text: t('email.accountRecovery.secondFactor') },
-      { kind: 'paragraph', text: t('email.accountRecovery.notMe') },
+      { kind: 'paragraph', text: t(variant('notMe')) },
     ],
-    footerReason: t('email.accountRecovery.footer', values),
+    footerReason: t(variant('footer'), values),
   })
   const result = await deps.mailer.send({
     to: user.email,

@@ -152,3 +152,22 @@ test('without email configured the job completes, and the link is never logged',
   expect(lines.some((l) => l.includes('recovery email not sent: not_configured'))).toBe(true)
   expect(lines.join('\n')).not.toContain(SECRET)
 })
+
+test('after recover-user the email speaks of the access recovered, not of a reactivation', async () => {
+  const { userId } = await newUser()
+  const mailer = createMemoryMailer()
+  const recovered = job(userId)
+  await identityAccountRecoveryEmail(
+    { ...recovered, data: { ...recovered.data, reason: 'recovered' as const } },
+    depsWith(mailer),
+  )
+  const text = mailer.sent.at(-1)?.text ?? ''
+  expect(text).toContain(
+    'Un amministratore ha verificato la tua identità e ha tolto tutti i modi per accedere al tuo account Feedway',
+  )
+  expect(text).toContain(
+    "Se non hai chiesto tu di recuperare l'accesso, non aprire il link e avvisa l'amministratore.",
+  )
+  expect(text).not.toMatch(/riattivat/)
+  expect(text).toContain(`Scegli una nuova password:\n${RECOVERY_URL}`)
+})
