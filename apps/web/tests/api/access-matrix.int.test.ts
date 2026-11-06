@@ -292,6 +292,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
     'passkeysRemoved',
     'totpRemoved',
   ],
+  'user.access_reset': ['sessionsClosed', 'passwordCleared', 'passkeysRemoved', 'totpRemoved'],
   'user.role_changed': ['from', 'to'],
   'user.password_reset_link': [],
   'user.profile_updated': [],
@@ -339,6 +340,8 @@ const NOT_EXERCISED: readonly AuditAction[] = [
   'user.anonymized',
   'user.anonymization_scheduled',
   'user.anonymization_skipped',
+  // from the CLI only (recover-user): its data is checked in platform.int.test.ts
+  'user.access_reset',
 ]
 
 /** `a`, `a.b`, `a[].b`; an empty list stands as `a[]`. */

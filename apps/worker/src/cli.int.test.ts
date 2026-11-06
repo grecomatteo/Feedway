@@ -449,6 +449,58 @@ test('cli enable-user without email prints the 30-minute link with a warning', a
   expect(sent.map((r) => r.data)).toEqual([{ channel: 'operator' }])
 })
 
+/** An active account that lost every way in (it still has a password row here). */
+async function strandedUser(name: string) {
+  const email = `${name.toLowerCase()}@esempio.it`
+  const { rows } = await admin.query<{ id: string }>(
+    `insert into users (id, name, email, status) values (gen_random_uuid(), $1, $2, 'active')
+     returning id`,
+    [name, email],
+  )
+  const id = rows[0]?.id ?? ''
+  await admin.query(
+    `insert into accounts (id, account_id, provider_id, user_id, password, updated_at)
+     values (gen_random_uuid(), $1::text, 'credential', $1::uuid, 'hash-finto', now())`,
+    [id],
+  )
+  return { id, email }
+}
+
+test('cli recover-user needs --verified-by, without free text', async () => {
+  const { id, email } = await strandedUser('Liana')
+  const missing = await runCliCaptured(['recover-user', email])
+  expect(missing.exitCode).toBe(64)
+  expect(missing.stderr).toMatch(/--verified-by telefono\|di-persona\|videochiamata/)
+  const free = await runCliCaptured(['recover-user', email, '--verified-by', 'mi ha scritto'])
+  expect(free.exitCode).toBe(64)
+  const accounts = await admin.query('select 1 from accounts where user_id = $1', [id])
+  expect(accounts.rowCount).toBe(1)
+})
+
+test('cli recover-user without email prints the 30-minute link with a warning', async () => {
+  const { id, email } = await strandedUser('Nicola')
+  const out = await runCliCaptured(['recover-user', email, '--verified-by', 'di-persona'])
+  expect(out.exitCode).toBe(0)
+  const [status, link, ...rest] = out.stdout.split('\n')
+  expect(status).toMatch(/Accesso azzerato/)
+  expect(link).toMatch(
+    /^https:\/\/pannello\.example\.ts\.net\/api\/auth\/reset-password\/platform\.[A-Za-z0-9_-]+\?callbackURL=%2Freimposta$/,
+  )
+  expect(rest).toEqual([])
+  expect(out.stderr).toMatch(/consegnalo solo sul canale con cui hai verificato l'identità/)
+  expect(out.stderr).not.toMatch(/platform\.|hash-finto/)
+  const accounts = await admin.query(
+    "select 1 from accounts where user_id = $1 and provider_id = 'credential'",
+    [id],
+  )
+  expect(accounts.rowCount).toBe(0)
+  const { rows: verified } = await admin.query<{ data: unknown }>(
+    "select data from audit_log where action = 'user.identity_verified' and entity_id = $1",
+    [id],
+  )
+  expect(verified.map((r) => r.data)).toEqual([{ method: 'in_person' }])
+})
+
 // ---------------------------------------------------------------------------------------------
 // mail-settings: the platform's SMTP. The password comes from stdin only.
 

@@ -67,6 +67,11 @@ export interface AccountRecoveryEmailData {
   url: string
   /** ISO 8601 */
   expiresAt: string
+  /**
+   * `reactivated` (also when absent): after a "Non sono stato io" lock (enable-user);
+   * `recovered`: the person had no way in left (recover-user).
+   */
+  reason?: 'reactivated' | 'recovered'
 }
 
 /** "Password dimenticata": the link holds the reset token, so the job is kept one hour only. */

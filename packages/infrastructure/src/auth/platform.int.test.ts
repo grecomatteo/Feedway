@@ -14,6 +14,7 @@ import {
   lockAccountFromSecurityEmail,
   platformUserIdByEmail,
   reactivateOrganization,
+  recoverUserAccess,
   resolveOrgActor,
   resolveSessionUser,
   setOrganizationLimits,
@@ -747,6 +748,84 @@ describe('platform users', () => {
     clock.advance(1000)
     await lockAccountFromSecurityEmail(lockDeps, { token: sign(), ip: null })
     expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
+  test('recover-user, with the identity checked, clears every way in and emails a 30-minute link', async () => {
+    // an Owner who lost the only passkey: nothing works but a new way in from the platform
+    const user = await person('senza-accesso')
+    await seed(tdb.runtimeUrl, async (s) => {
+      await s.member(await s.organization(), user.id, 'owner')
+    })
+    await secondFactors(user.id)
+    // a session still open somewhere
+    await auth.openSession(user.id, { ip: null, userAgent: null, authMethod: 'activation' })
+    const clock = fixedClock(new Date())
+    const at = { ...deps, clock }
+
+    await expect(
+      recoverUserAccess(at, SYSTEM_PLATFORM_ACTOR, user.id, {} as typeof phone),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(
+      recoverUserAccess(at, SYSTEM_PLATFORM_ACTOR, user.id, {
+        identityVerification: { method: 'mi ha scritto su chat' as 'in_person' },
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(recoveryJobs(user.id)).toEqual([])
+    expect(await sessionCount(user.id)).toBe(1)
+
+    expect(await recoverUserAccess(at, SYSTEM_PLATFORM_ACTOR, user.id, phone)).toEqual({
+      recovery: { channel: 'email' },
+    })
+    expect(await sessionCount(user.id)).toBe(0)
+    expect(await secondFactorRows(user.id)).toEqual({ passkeys: 0, totp: 0, enabled: false })
+    expect((await signIn(user.email)).status).toBe(401)
+    const [first] = recoveryJobs(user.id)
+    expect(first?.expiresAt).toBe(new Date(clock.now().getTime() + 30 * 60_000).toISOString())
+    expect(first?.reason).toBe('recovered')
+    const { rows: entries } = await admin.query<{ action: string; data: unknown }>(
+      `select action, data from audit_log where entity_id = $1 and action in
+        ('user.identity_verified', 'user.access_reset', 'auth.recovery_link_sent')
+        order by created_at, id`,
+      [user.id],
+    )
+    expect(entries).toEqual([
+      { action: 'user.identity_verified', data: { method: 'phone_known_number' } },
+      {
+        action: 'user.access_reset',
+        data: { sessionsClosed: 1, passwordCleared: true, passkeysRemoved: 1, totpRemoved: 1 },
+      },
+      { action: 'auth.recovery_link_sent', data: { channel: 'email' } },
+    ])
+
+    // run again (the email never came): the first link stops working
+    clock.advance(1000)
+    await recoverUserAccess(at, SYSTEM_PLATFORM_ACTOR, user.id, phone)
+    const second = recoveryJobs(user.id)[1]
+    const stale = await post('/reset-password', {
+      token: tokenOf(first?.url ?? ''),
+      newPassword: NEW_PASSWORD,
+    })
+    expect(stale.status).toBe(400)
+    const reset = await post('/reset-password', {
+      token: tokenOf(second?.url ?? ''),
+      newPassword: NEW_PASSWORD,
+    })
+    expect(reset.status).toBe(200)
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(200)
+    const { rows: lock } = await admin.query<{ security_locked_at: Date | null }>(
+      'select security_locked_at from users where id = $1',
+      [user.id],
+    )
+    expect(lock[0]?.security_locked_at).toBeNull()
+  })
+
+  test('recover-user leaves a disabled account to enable-user', async () => {
+    const user = await person('spento')
+    await disableUserEverywhere(deps, SYSTEM_PLATFORM_ACTOR, user.id)
+    await expect(
+      recoverUserAccess(deps, SYSTEM_PLATFORM_ACTOR, user.id, phone),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+    expect(recoveryJobs(user.id)).toEqual([])
   })
 
   test('the recovery link stops working after 30 minutes, whatever the email says', async () => {

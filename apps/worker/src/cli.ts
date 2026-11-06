@@ -12,6 +12,7 @@ import {
   listOrganizations,
   platformUserIdByEmail,
   reactivateOrganization,
+  recoverUserAccess,
   replacePlatformMailSettings,
   sendPlatformTestEmail,
   setOrganizationLimits,
@@ -64,6 +65,8 @@ const USAGE = [
   '  list-organizations',
   '  disable-user <email>',
   '  enable-user <email> [--verified-by telefono|di-persona|videochiamata]',
+  '  recover-user <email> --verified-by telefono|di-persona|videochiamata',
+  '      (chi non ha più modi per entrare: toglie password, passkey e 2FA e manda un link)',
   '  anonymize-user <email>',
   '  mail-settings show',
   '  mail-settings set --host <host> --port 465|587|2525 --username <utente> --from <email> [--security tls|starttls]',
@@ -106,6 +109,7 @@ type Command =
   | { name: 'list-organizations' }
   | { name: 'disable-user' | 'anonymize-user'; email: string }
   | { name: 'enable-user'; email: string; verifiedBy: IdentityVerificationMethod | null }
+  | { name: 'recover-user'; email: string; verifiedBy: IdentityVerificationMethod }
   | { name: 'mail-settings-show' }
   | {
       name: 'mail-settings-set'
@@ -215,6 +219,17 @@ function parseCommand(args: readonly string[]): Command {
       if (verifiedBy === undefined) throw new UsageError(`Valori ammessi: ${VERIFIED_BY_USAGE}`)
       return { name, email: positionals[0] ?? '', verifiedBy }
     }
+    case 'recover-user': {
+      const { values, positionals } = parse({ 'verified-by': { type: 'string' } }, 1)
+      const raw = values['verified-by']
+      const verifiedBy = typeof raw === 'string' ? VERIFIED_BY.get(raw) : undefined
+      // always required: the person asking may not be the account's owner
+      if (verifiedBy === undefined)
+        throw new UsageError(
+          `Verifica prima l'identità su un canale indipendente, poi: ${VERIFIED_BY_USAGE}`,
+        )
+      return { name, email: positionals[0] ?? '', verifiedBy }
+    }
     case 'mail-settings':
       return parseMailSettings(rest)
     default:
@@ -314,7 +329,7 @@ function describeOrganization(o: PlatformOrganization): string {
 const RECOVERY_SENT =
   "Link per la nuova password inviato all'indirizzo dell'account, valido 30 minuti"
 
-/** Only `enable-user` sends jobs: the queue connects for it alone. */
+/** Only `enable-user` and `recover-user` send jobs: the queue connects for them alone. */
 async function enableUser(
   command: Extract<Command, { name: 'enable-user' }>,
   config: WorkerConfig,
@@ -368,6 +383,42 @@ async function enableUser(
         'la verifica in due passaggi non valgono più. L’email non è configurata, quindi il link ' +
         'per sceglierne una nuova è qui sopra: consegnalo solo sul canale con cui hai ' +
         "verificato l'identità, vale 30 minuti.",
+    )
+  } finally {
+    await queue.stop({ graceful: true, timeoutMs: 5000 })
+  }
+}
+
+/** `recover-user`: like `enable-user` after a lock, for an active account with no way in. */
+async function recoverUser(
+  command: Extract<Command, { name: 'recover-user' }>,
+  config: WorkerConfig,
+  deps: PlatformDeps,
+  mailer: Mailer,
+  io: CliIo,
+  logger: Logger,
+): Promise<void> {
+  const system = SYSTEM_PLATFORM_ACTOR
+  const userId = await platformUserIdByEmail(deps, system, command.email)
+  const queue = await createPgBossQueue({ url: config.databaseUrl, logger, role: 'producer' })
+  try {
+    const { recovery } = await recoverUserAccess({ ...deps, queue, mailer }, system, userId, {
+      identityVerification: { method: command.verifiedBy },
+    })
+    io.out('Accesso azzerato: password, passkey, app di autenticazione e sessioni non valgono più')
+    if (recovery.channel === 'email') {
+      io.out(RECOVERY_SENT)
+      io.err(
+        'Il link vale 30 minuti e una sola volta: se non arriva o scade, rilancia il comando ' +
+          "dopo aver verificato di nuovo l'identità. Chi deve avere la verifica in due passaggi " +
+          'la configura di nuovo al primo accesso.',
+      )
+      return
+    }
+    io.out(recovery.url)
+    io.err(
+      "L'email non è configurata, quindi il link per scegliere la nuova password è qui sopra: " +
+        "consegnalo solo sul canale con cui hai verificato l'identità, vale 30 minuti.",
     )
   } finally {
     await queue.stop({ graceful: true, timeoutMs: 5000 })
@@ -534,6 +585,9 @@ async function execute(
     }
     case 'enable-user':
       await enableUser(command, config, deps, mailer, io, logger)
+      return
+    case 'recover-user':
+      await recoverUser(command, config, deps, mailer, io, logger)
       return
     case 'anonymize-user': {
       const userId = await platformUserIdByEmail(deps, system, command.email)

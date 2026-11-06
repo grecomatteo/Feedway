@@ -13,12 +13,14 @@ export {
   enableUserEverywhere,
   IDENTITY_VERIFICATION_METHODS,
   platformUserIdByEmail,
+  recoverUserAccess,
 } from './platform-users.js'
 export type {
   EnableDeps,
   EnableInput,
   EnableResult,
   IdentityVerificationMethod,
+  RecoverInput,
 } from './platform-users.js'
 export { sendAccountLockedNotice, sendAccountLockedNoticeEmail } from './account-lock-notice.js'
 export type { AccountLockedNoticeDeps } from './account-lock-notice.js'
