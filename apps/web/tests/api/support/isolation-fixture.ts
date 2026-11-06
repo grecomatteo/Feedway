@@ -47,6 +47,7 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'POST /api/v1/security/lock': () => ({ token: 'link-non-valido' }),
   'POST /api/v1/email-change/confirm': () => ({ token: 'link-non-valido' }),
   'PATCH /api/v1/me': () => ({ theme: 'dark' }),
+  'POST /api/v1/me/password': () => ({ password: PASSWORD }),
   // a preview nobody uploaded: the personal battery crops a real one of the caller
   'POST /api/v1/me/avatar/crop': () => ({ stagingId: randomUUID(), x: 0, y: 0, size: 64 }),
   'PATCH /api/v1/orgs/{org}/settings': () => ({ name: 'Agenzia della batteria' }),

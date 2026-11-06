@@ -363,3 +363,26 @@ test('with passkeys only, the authenticator app asks no password', async ({ page
   await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
   await expect(totp.getByLabel('Codice di 6 cifre')).toBeVisible()
 })
+
+test('with passkeys only, a first password is set without a current one', async ({ page }) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'member')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Paolo Primapassword')
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+  await page.goto('/account/sicurezza')
+  const password = page.getByRole('region', { name: 'Password' })
+  await expect(password.getByLabel('Password attuale')).toHaveCount(0)
+  await password.getByLabel('Nuova password').fill(E2E_PASSWORD)
+  await password.getByRole('button', { name: 'Imposta la password' }).click()
+  // the passkey sign-in of the activation is the recent confirmation the server asks for
+  await expect(password.getByRole('status')).toHaveText(
+    'Password impostata: ora puoi accedere anche con email e password.',
+  )
+  // the form now changes it, with the current one
+  await expect(password.getByLabel('Password attuale')).toBeVisible()
+  await signIn(page.request, { userId: '', email, name: '', organizationSlug })
+})

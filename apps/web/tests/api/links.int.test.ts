@@ -205,3 +205,79 @@ test('a passkey activation left halfway goes on only with a way to sign in', asy
     (await call('POST', '/api/auth/two-factor/enable', { password: PASSWORD }, after)).status,
   ).toBe(200)
 })
+
+/** A member activated without a password whose passkey never came: their session cookie. */
+async function withoutWayIn() {
+  const email = `senza-${randomUUID().slice(0, 8)}@esempio.it`
+  const { token } = await invite(email)
+  const started = await call('POST', `/api/v1/links/${token}/activate`, {
+    name: 'Persona Nuova',
+    password: null,
+  })
+  expect(await started.json()).toMatchObject({ next: 'register_passkey' })
+  const { rows } = await admin.pool.query<{ id: string }>('select id from users where email = $1', [
+    email,
+  ])
+  return { email, userId: rows[0]?.id ?? '', cookie: sessionCookie(started) ?? '' }
+}
+
+const signInWith = (email: string, password: string) =>
+  call('POST', '/api/auth/sign-in/email', { email, password }, { 'x-forwarded-for': '6.6.7.1' })
+
+test('an account with no way in sets its password with the session alone', async () => {
+  const p = await withoutWayIn()
+  const weak = await call(
+    'POST',
+    '/api/v1/me/password',
+    { password: 'password' },
+    { cookie: p.cookie },
+  )
+  expect(weak.status).toBe(422)
+  expect(await weak.json()).toMatchObject({ error: { issues: [{ path: ['password'] }] } })
+  const set = await call(
+    'POST',
+    '/api/v1/me/password',
+    { password: PASSWORD },
+    { cookie: p.cookie },
+  )
+  expect(set.status).toBe(200)
+  expect((await signInWith(p.email, PASSWORD)).status).toBe(200)
+  // only once: from now on the password changes with the current one
+  const again = await call(
+    'POST',
+    '/api/v1/me/password',
+    { password: PASSWORD },
+    { cookie: p.cookie },
+  )
+  expect(again.status).toBe(409)
+})
+
+test('with passkeys only, setting a password needs a recent confirmation', async () => {
+  const p = await withoutWayIn()
+  await admin.pool.query(
+    `insert into passkeys (id, name, public_key, user_id, credential_id, counter, device_type, backed_up, created_at)
+     values ($1, 'Portatile', 'chiave-finta', $2, $3, 0, 'multiDevice', true, now())`,
+    [randomUUID(), p.userId, randomBytes(16).toString('base64url')],
+  )
+  const refused = await call(
+    'POST',
+    '/api/v1/me/password',
+    { password: PASSWORD },
+    { cookie: p.cookie },
+  )
+  expect(refused.status).toBe(403)
+  expect(await refused.json()).toMatchObject({ error: { code: 'REAUTH_REQUIRED' } })
+  await admin.pool.query('update sessions set reauthenticated_at = now() where user_id = $1', [
+    p.userId,
+  ])
+  expect(
+    (await call('POST', '/api/v1/me/password', { password: PASSWORD }, { cookie: p.cookie }))
+      .status,
+  ).toBe(200)
+  expect((await signInWith(p.email, PASSWORD)).status).toBe(200)
+  const audit = await admin.pool.query<{ action: string }>(
+    "select action from audit_log where actor_id = $1 and action = 'auth.password_changed'",
+    [p.userId],
+  )
+  expect(audit.rowCount).toBe(1)
+})

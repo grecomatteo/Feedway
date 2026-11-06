@@ -94,3 +94,10 @@ test('an activation left without a way to sign in may set one, nothing else may'
     allowedWhileSecondFactorRequired('GET', activate, { ...firstSetup, hasPassword: false }),
   ).toBe(false)
 })
+
+test('once the activation link is gone, the session alone may still set the first password', () => {
+  const noWayIn = { ...firstSetup, hasPassword: false }
+  expect(allowedWhileSecondFactorRequired('POST', '/api/v1/me/password', noWayIn)).toBe(true)
+  for (const f of [{ ...firstSetup, hasPassword: true }, { ...noWayIn, passkeys: 1 }, firstSetup])
+    expect(allowedWhileSecondFactorRequired('POST', '/api/v1/me/password', f)).toBe(false)
+})

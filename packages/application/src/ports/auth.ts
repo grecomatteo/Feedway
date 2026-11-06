@@ -55,6 +55,11 @@ export interface Auth {
     name: string
     password: string | null
   }): Promise<void>
+  /**
+   * A first password for an account that has none (passkeys only, or no way in yet); false when
+   * it already has one.
+   */
+  setPasswordIfNone(userId: string, password: string): Promise<boolean>
   /** A session opened by us, with the same cookie as a real sign-in (ADR 012, V8). */
   openSession(
     userId: string,

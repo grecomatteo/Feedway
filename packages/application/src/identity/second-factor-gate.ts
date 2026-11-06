@@ -28,11 +28,12 @@ const FIRST_SETUP: readonly (Route | RegExp)[] = [
 
 /**
  * Only for an account with no way to sign in yet (an activation whose passkey was cancelled):
- * the activation again, to set a password. The route itself takes only the session that opened
- * the activation.
+ * a password, from the activation again (it takes only the session that opened it) or, once
+ * the link is used or expired, from the session alone.
  */
-const UNFINISHED_ACTIVATION: readonly RegExp[] = [
+const UNFINISHED_ACTIVATION: readonly (Route | RegExp)[] = [
   /^POST \/api\/v1\/links\/[A-Za-z0-9_-]+\/activate$/,
+  'POST /api/v1/me/password',
 ]
 
 /**

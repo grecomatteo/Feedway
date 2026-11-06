@@ -78,7 +78,10 @@
       "next": "Nuova password",
       "nextHelp": "Almeno 12 caratteri. Una frase lunga è più sicura e più facile da ricordare.",
       "submit": "Cambia password",
-      "done": "Password cambiata."
+      "done": "Password cambiata.",
+      "firstDone": "Password impostata: ora puoi accedere anche con email e password.",
+      "firstExplain": "Non hai ancora una password: impostala per poter accedere anche senza passkey. Ti avvisiamo via email.",
+      "setSubmit": "Imposta la password"
     },
     "totp": {
       "title": "App di autenticazione",

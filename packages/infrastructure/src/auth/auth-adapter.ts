@@ -116,6 +116,22 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         })
     },
 
+    async setPasswordIfNone(userId, password) {
+      const ctx = await instance.$context
+      const credential = await ctx.internalAdapter.findCredentialAccount(userId)
+      if (credential?.password) return false
+      const hash = await ctx.password.hash(password)
+      if (credential) await ctx.internalAdapter.updatePassword(userId, hash)
+      else
+        await ctx.internalAdapter.linkAccount({
+          userId,
+          providerId: 'credential',
+          accountId: userId,
+          password: hash,
+        })
+      return true
+    },
+
     async openSession(userId, meta) {
       const opened = await instance.api.openActivationSession({
         body: { userId, ipAddress: meta.ip, userAgent: meta.userAgent },
