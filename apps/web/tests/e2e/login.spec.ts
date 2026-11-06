@@ -239,3 +239,36 @@ test('the system email page is for the platform administrator only', async ({ pa
   await expect(page.getByLabel('Password SMTP')).toHaveValue('')
   expect((await axe(page)).violations).toEqual([])
 })
+
+test('«Esci» closes the session on the server, not only on the screen', async ({ page }) => {
+  const person = await newMember()
+  await signInFromPage(page, person)
+  await skipPasskeyOffer(page)
+  await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
+  // on a phone the agency pages have no «Esci»: the account page has it everywhere
+  await page.goto('/account')
+  const cookies = await page.context().cookies()
+  await page.getByRole('button', { name: 'Esci', exact: true }).click()
+  await expect(page).toHaveURL(/\/accedi$/)
+  const left = await adminQuery<{ n: string }>(
+    'select count(*) as n from sessions where user_id = $1',
+    [person.userId],
+  )
+  expect(left[0]?.n).toBe('0')
+  // the cookie from before is worth nothing now, even sent by hand
+  await page.context().addCookies(cookies)
+  expect((await page.request.get('/api/v1/me')).status()).toBe(401)
+})
+
+test('a failed sign-out says so and keeps the person where they are', async ({ page }) => {
+  const person = await newMember()
+  await signInFromPage(page, person)
+  await skipPasskeyOffer(page)
+  await page.goto('/account')
+  await page.route('**/api/auth/sign-out', (route) =>
+    route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }),
+  )
+  await page.getByRole('button', { name: 'Esci', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Uscita non riuscita')
+  await expect(page).toHaveURL(/\/account$/)
+})

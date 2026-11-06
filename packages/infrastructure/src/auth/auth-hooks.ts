@@ -410,6 +410,13 @@ async function enforceAccountRules(
   )
     throw secondFactorMissing(factors)
 
+  // a second factor next to no first one: the person could never sign in again
+  if (path === '/two-factor/enable' && !resolved.user.hasPassword && factors.passkeys === 0)
+    throw new APIError('FORBIDDEN', {
+      message: 'Scegli prima come accedere: una passkey o una password',
+      code: 'PRIMARY_METHOD_REQUIRED',
+    })
+
   if (NEEDS_REAUTH.has(path) && !hasRecentReauth(found.reauthenticatedAt, deps.clock.now()))
     throw new APIError('FORBIDDEN', {
       message: 'Conferma la tua identità per continuare',

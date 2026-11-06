@@ -29,6 +29,8 @@ export interface SessionUser {
     status: 'active' | 'suspended'
   }[]
   secondFactor: { required: boolean; totpEnabled: boolean; passkeys: number }
+  /** False for an activation whose passkey never came, or an account with passkeys only. */
+  hasPassword: boolean
 }
 
 export type SessionState = 'active' | 'second_factor_required'
@@ -80,10 +82,15 @@ export async function resolveSessionUser(
     const memberships = (await tx.orgMembers.listForUser(userId)).filter(
       (m) => m.status === 'active',
     )
-    return { user, memberships, passkeys: await tx.users.countPasskeys(userId) }
+    return {
+      user,
+      memberships,
+      passkeys: await tx.users.countPasskeys(userId),
+      hasPassword: await tx.credentials.hasPassword(userId),
+    }
   })
   if (!loaded) return null
-  const { user, memberships, passkeys } = loaded
+  const { user, memberships, passkeys, hasPassword } = loaded
 
   const required = requiresSecondFactor({
     platformRole: user.platformRole,
@@ -119,6 +126,7 @@ export async function resolveSessionUser(
         status: m.organizationStatus,
       })),
       secondFactor: { required, totpEnabled: user.twoFactorEnabled, passkeys },
+      hasPassword,
     },
   }
 }

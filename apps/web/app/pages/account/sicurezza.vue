@@ -19,7 +19,11 @@ const { call, failure } = useApi()
 
 useHead({ title: () => t('security.title') })
 
-const { data: me } = useFetch<Me>('/api/v1/me', { key: 'me', server: false, lazy: true })
+const { data: me, refresh: refreshMe } = useFetch<Me>('/api/v1/me', {
+  key: 'me',
+  server: false,
+  lazy: true,
+})
 const {
   data: factors,
   error,
@@ -54,6 +58,8 @@ const passwordState = reactive({
   problem: null as string | null,
   field: '',
   done: false,
+  /** The last success was a first password: the form now changes it. */
+  first: false,
 })
 async function changePassword() {
   Object.assign(passwordState, { sending: true, problem: null, field: '', done: false })
@@ -64,11 +70,30 @@ async function changePassword() {
     })
     passwordForm.current = ''
     passwordForm.next = ''
-    passwordState.done = true
+    Object.assign(passwordState, { done: true, first: false })
   } catch (e) {
     const f = failure(e)
     passwordState.problem = f.message
     passwordState.field = f.code === 'INVALID_PASSWORD' ? 'current' : 'next'
+  } finally {
+    passwordState.sending = false
+  }
+}
+
+/** Passkeys only, or no way in yet: the first password needs no current one. */
+const firstPassword = computed(() => me.value?.hasPassword === false)
+async function setFirstPassword() {
+  Object.assign(passwordState, { sending: true, problem: null, field: '', done: false })
+  try {
+    await withReauth(() => call('POST', '/api/v1/me/password', { password: passwordForm.next }))
+    passwordForm.next = ''
+    Object.assign(passwordState, { done: true, first: true })
+    await refreshMe()
+  } catch (e) {
+    if (!(e instanceof ReauthCancelled)) {
+      passwordState.problem = failure(e).message
+      passwordState.field = 'next'
+    }
   } finally {
     passwordState.sending = false
   }
@@ -192,9 +217,18 @@ const regenerateCodes = () =>
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <h2 id="security-password" class="text-lg">{{ $t('security.password.title') }}</h2>
-        <p class="text-sm text-(--app-text-muted)">{{ $t('security.password.explain') }}</p>
-        <form class="space-y-4" novalidate @submit.prevent="changePassword">
+        <p class="text-sm text-(--app-text-muted)">
+          {{
+            firstPassword ? $t('security.password.firstExplain') : $t('security.password.explain')
+          }}
+        </p>
+        <form
+          class="space-y-4"
+          novalidate
+          @submit.prevent="firstPassword ? setFirstPassword() : changePassword()"
+        >
           <UFormField
+            v-if="!firstPassword"
             :label="$t('security.password.current')"
             name="current-password"
             required
@@ -229,10 +263,16 @@ const regenerateCodes = () =>
           </UFormField>
           <div class="flex flex-wrap items-center gap-3">
             <UButton type="submit" class="min-h-11" :loading="passwordState.sending">
-              {{ $t('security.password.submit') }}
+              {{
+                firstPassword ? $t('security.password.setSubmit') : $t('security.password.submit')
+              }}
             </UButton>
             <p v-if="passwordState.done" role="status" class="text-(--app-success)">
-              {{ $t('security.password.done') }}
+              {{
+                passwordState.first
+                  ? $t('security.password.firstDone')
+                  : $t('security.password.done')
+              }}
             </p>
           </div>
         </form>
@@ -304,7 +344,16 @@ const regenerateCodes = () =>
         </div>
 
         <form v-else class="space-y-4" novalidate @submit.prevent>
+          <!-- with passkeys only there is no password to confirm -->
+          <p
+            v-if="me?.hasPassword === false && totp.problem"
+            role="alert"
+            class="text-(--app-danger)"
+          >
+            {{ totp.problem }}
+          </p>
           <UFormField
+            v-else-if="me?.hasPassword !== false"
             :label="$t('security.password.current')"
             :help="$t('security.totp.passwordHelp')"
             name="totp-password"

@@ -29,6 +29,8 @@ export const Me = z.object({
     totpEnabled: z.boolean(),
     passkeys: z.number().int(),
   }),
+  /** False for an account that signs in with passkeys only, or that has no way in yet. */
+  hasPassword: z.boolean(),
   /** `second_factor_required`: the panel shows only the second factor setup. */
   sessionState: z.enum(['active', 'second_factor_required']),
 })
@@ -135,6 +137,17 @@ export const revokeAllMySessionsRoute = defineContract({
   scope: 'personal',
 })
 
+/** Only for an account without a password; a password already set changes with the current one. */
+export const setMyPasswordRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/me/password',
+  summary: 'Imposta la prima password di un account che non ne ha',
+  request: { body: z.strictObject({ password: z.string().min(1).max(1024) }) },
+  response: z.object({ passwordSet: z.literal(true) }),
+  auth: 'session_any_state',
+  scope: 'personal',
+})
+
 export const meRoutes = [
   meRoute,
   updateMeRoute,
@@ -143,4 +156,5 @@ export const meRoutes = [
   mySessionsRoute,
   revokeMySessionRoute,
   revokeAllMySessionsRoute,
+  setMyPasswordRoute,
 ] as const

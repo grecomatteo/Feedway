@@ -223,33 +223,131 @@ export async function enableUserEverywhere(
         },
       })
     if (!locked) return { status: 'enabled' as const, recovery: null }
-    const expiresAt = new Date(now.getTime() + ACCOUNT_RECOVERY_LINK_TTL_MS)
-    const url = passwordResetLinkUrl(
-      deps.config.panelUrl,
-      await tx.credentials.issueAccountRecovery(userId, expiresAt),
+    const recovery = await sendRecoveryLink(tx, deps, author, userId, {
+      now,
+      byEmail,
+      reissued: reissue,
+      reason: 'reactivated',
+    })
+    return { status: reissue ? ('recovery_reissued' as const) : ('enabled' as const), recovery }
+  })
+}
+
+/** The 30-minute link to choose a new password, to the account's address or to the operator. */
+async function sendRecoveryLink(
+  tx: Tx,
+  deps: EnableDeps,
+  author: Awaited<ReturnType<typeof platformAuthor>>,
+  userId: string,
+  opts: { now: Date; byEmail: boolean; reissued: boolean; reason: 'reactivated' | 'recovered' },
+): Promise<NonNullable<EnableResult['recovery']>> {
+  const expiresAt = new Date(opts.now.getTime() + ACCOUNT_RECOVERY_LINK_TTL_MS)
+  const url = passwordResetLinkUrl(
+    deps.config.panelUrl,
+    await tx.credentials.issueAccountRecovery(userId, expiresAt),
+  )
+  const channel = opts.byEmail ? 'email' : 'operator'
+  await tx.audit.record({
+    organizationId: null,
+    actorId: author.actorId,
+    source: author.source,
+    action: 'auth.recovery_link_sent',
+    entity: 'user',
+    entityId: userId,
+    workspaceId: null,
+    ip: author.ip,
+    data: opts.reissued ? { channel, reissued: true } : { channel },
+  })
+  if (!opts.byEmail) return { channel: 'operator', url }
+  // Queued before the commit: if it fails, nothing changes and the operator retries; the
+  // handler waits for the commit (it retries until the account is active).
+  await deps.queue.send('identity.account_recovery_email', {
+    userId,
+    url,
+    expiresAt: expiresAt.toISOString(),
+    ...(opts.reason === 'recovered' ? { reason: 'recovered' as const } : {}),
+  })
+  return { channel: 'email' }
+}
+
+export interface RecoverInput {
+  /** Always required: never free text, so nothing personal is logged. */
+  identityVerification: { method: IdentityVerificationMethod }
+}
+
+/**
+ * Someone with no way in left (the only passkey lost, an activation that never got one): after
+ * the platform administrator checked the identity on an independent channel, every way in goes
+ * (password, passkeys, authenticator app and codes, sessions, pending links) and a 30-minute
+ * link to choose a new password goes to the account's address, as after "Non sono stato io".
+ * The recovery stays pending until the new password (the lock mark, see `enableUserEverywhere`);
+ * run again, it revokes the previous link and issues a new one.
+ */
+export async function recoverUserAccess(
+  deps: EnableDeps,
+  caller: PlatformCaller,
+  userId: string,
+  input: RecoverInput,
+  request: PlatformRequest = NO_REQUEST,
+): Promise<{ recovery: NonNullable<EnableResult['recovery']> }> {
+  assertPlatform(caller, 'platform.users.manage')
+  const method: unknown = (input as Partial<RecoverInput>).identityVerification?.method
+  if (!isVerificationMethod(method))
+    throw new DomainError(
+      'VALIDATION',
+      'Recupera l’accesso solo dopo aver verificato l’identità della persona su un canale indipendente (telefonata a un numero già noto, di persona, videochiamata) e indica quale',
     )
-    const channel = byEmail ? 'email' : 'operator'
-    const status = reissue ? ('recovery_reissued' as const) : ('enabled' as const)
+  // read before the transaction: no network wait while the account row is locked
+  const byEmail = await deps.mailer.isConfigured()
+  return deps.uow.runAsSystem('platform: recover the access to an account', async (tx) => {
+    const author = await platformAuthor(tx, caller, request)
+    const user = await targetUser(tx, caller, userId)
+    if (user.anonymizedAt !== null)
+      throw new DomainError('CONFLICT', 'Questo account è stato anonimizzato')
+    if (user.status !== 'active')
+      throw new DomainError('CONFLICT', 'L’account è disattivato: riattivalo con enable-user')
+    const now = deps.clock.now()
+    const pending = user.securityLockedAt !== null
+    // the mark keeps "Password dimenticata" closed until the new password is chosen
+    await tx.users.markSecurityLocked(userId, now)
     await tx.audit.record({
       organizationId: null,
       actorId: author.actorId,
       source: author.source,
-      action: 'auth.recovery_link_sent',
+      action: 'user.identity_verified',
       entity: 'user',
       entityId: userId,
       workspaceId: null,
       ip: author.ip,
-      data: reissue ? { channel, reissued: true } : { channel },
+      data: { method },
     })
-    if (!byEmail) return { status, recovery: { channel: 'operator', url } }
-    // Queued before the commit: if it fails, nothing changes and the operator retries; the
-    // handler waits for the commit (it retries until the account is active).
-    await deps.queue.send('identity.account_recovery_email', {
-      userId,
-      url,
-      expiresAt: expiresAt.toISOString(),
+    const sessionsClosed = await tx.sessions.deleteAllForUser(userId)
+    const passwordCleared = await tx.credentials.removePassword(userId)
+    const removed = await tx.credentials.removeSecondFactors(userId)
+    await tx.credentials.revokePendingTokens(userId)
+    await tx.audit.record({
+      organizationId: null,
+      actorId: author.actorId,
+      source: author.source,
+      action: 'user.access_reset',
+      entity: 'user',
+      entityId: userId,
+      workspaceId: null,
+      ip: author.ip,
+      data: {
+        sessionsClosed,
+        passwordCleared,
+        passkeysRemoved: removed.passkeys,
+        totpRemoved: removed.totp,
+      },
     })
-    return { status, recovery: { channel: 'email' } }
+    const recovery = await sendRecoveryLink(tx, deps, author, userId, {
+      now,
+      byEmail,
+      reissued: pending,
+      reason: 'recovered',
+    })
+    return { recovery }
   })
 }
 

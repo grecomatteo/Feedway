@@ -78,7 +78,10 @@
       "next": "Nuova password",
       "nextHelp": "Almeno 12 caratteri. Una frase lunga è più sicura e più facile da ricordare.",
       "submit": "Cambia password",
-      "done": "Password cambiata."
+      "done": "Password cambiata.",
+      "firstDone": "Password impostata: ora puoi accedere anche con email e password.",
+      "firstExplain": "Non hai ancora una password: impostala per poter accedere anche senza passkey. Ti avvisiamo via email.",
+      "setSubmit": "Imposta la password"
     },
     "totp": {
       "title": "App di autenticazione",
@@ -423,7 +426,10 @@
       "expiryTomorrow": "Funziona una sola volta, fino alle {time} di domani. Se scade, chiedi all'amministratore un nuovo link.",
       "secondFactor": "Le passkey e la verifica in due passaggi sono state tolte: se il tuo ruolo la richiede, la configurerai di nuovo al primo accesso.",
       "notMe": "Se non hai chiesto tu di riattivare l'account, non aprire il link e avvisa l'amministratore.",
-      "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}."
+      "footer": "Ricevi questa email perché un amministratore ha riattivato il tuo account {product}.",
+      "introRecovered": "Un amministratore ha verificato la tua identità e ha tolto tutti i modi per accedere al tuo account {product}, come gli hai chiesto. Scegli una nuova password con questo link.",
+      "notMeRecovered": "Se non hai chiesto tu di recuperare l'accesso, non aprire il link e avvisa l'amministratore.",
+      "footerRecovered": "Ricevi questa email perché un amministratore ha recuperato l'accesso al tuo account {product}."
     },
     "mailTest": {
       "subject": "Email di prova · {product}",
@@ -490,7 +496,8 @@
     "agency": "Agenzia",
     "account": "Il mio account",
     "systemEmail": "Email di sistema",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "signOutFailed": "Uscita non riuscita: la sessione è ancora aperta. Riprova tra poco."
   },
   "signIn": {
     "title": "Accedi a Feedway",
@@ -567,7 +574,12 @@
     "passwordHelp": "Se il tuo ruolo lo richiede, aggiungerai anche un'app di autenticazione.",
     "submit": "Attiva l'account",
     "weakPassword": "Password troppo facile da indovinare: aggiungi parole o caratteri, ed evita nome ed email.",
-    "passkeyCancelled": "Creazione della passkey annullata. Puoi riprovare.",
+    "passkeyCancelled": "Creazione della passkey annullata.",
+    "methodTitle": "Scegli come accedere",
+    "methodExplain": "L'account è creato, ma per entrare ti serve ancora una passkey o una password.",
+    "retryPasskey": "Riprova la passkey",
+    "usePassword": "Usa una password",
+    "savePassword": "Salva la password",
     "existingExplain": "Hai già un account Feedway ({email}): accedi con quello per accettare l'invito.",
     "accept": "Accetta l'invito",
     "signInFirst": "Accedi per accettare",
@@ -590,6 +602,7 @@
     "title": "Secondo passaggio",
     "explain": "Il tuo ruolo richiede un secondo passaggio all'accesso. Scegli come farlo: una passkey oppure l'app di autenticazione.",
     "useApp": "Usa l'app di autenticazione",
+    "firstPassword": "Non hai ancora un modo per accedere: crea una passkey oppure scegli una password, poi aggiungi l'app di autenticazione.",
     "useExisting": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella. Con la sola password non si aggiungono altri metodi."
   },
   "agencyHome": {

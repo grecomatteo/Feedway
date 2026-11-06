@@ -292,6 +292,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
     'passkeysRemoved',
     'totpRemoved',
   ],
+  'user.access_reset': ['sessionsClosed', 'passwordCleared', 'passkeysRemoved', 'totpRemoved'],
   'user.role_changed': ['from', 'to'],
   'user.password_reset_link': [],
   'user.profile_updated': [],
@@ -339,6 +340,8 @@ const NOT_EXERCISED: readonly AuditAction[] = [
   'user.anonymized',
   'user.anonymization_scheduled',
   'user.anonymization_skipped',
+  // from the CLI only (recover-user): its data is checked in platform.int.test.ts
+  'user.access_reset',
 ]
 
 /** `a`, `a.b`, `a[].b`; an empty list stands as `a[]`. */
@@ -624,8 +627,14 @@ test('audit data holds only the listed keys and nothing personal', async () => {
 
 // ---------------------------------------------------------------------------------------------
 
-/** The OpenAPI document names the `password` and `token` request fields and the `passwordSet` flag. */
-const OPENAPI_KEYS = ['password', 'token', 'passwordSet']
+/**
+ * Keys known not to hold a secret: the OpenAPI document names the `password` and `token`
+ * request fields and the `passwordSet` and `hasPassword` flags; the profile has `hasPassword`.
+ */
+const KNOWN_KEYS: Record<string, readonly string[]> = {
+  'GET /api/v1/openapi.json': ['password', 'token', 'passwordSet', 'hasPassword'],
+  'GET /api/v1/me': ['hasPassword'],
+}
 
 test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
@@ -641,7 +650,7 @@ test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s'
     const r = await fx.env.call('GET', path, undefined, { cookie: fx.cookies[role] })
     const body = await r.text()
     if (role === 'owner') expect(r.status, `${path}: ${body}`).toBe(200)
-    const allowed = routeKey(route) === 'GET /api/v1/openapi.json' ? OPENAPI_KEYS : []
+    const allowed = KNOWN_KEYS[routeKey(route)] ?? []
     expect(secretsIn(body, allowed), path).toEqual([])
   }
 })

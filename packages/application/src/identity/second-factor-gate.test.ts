@@ -76,3 +76,28 @@ test('the query string and a trailing slash do not change the answer', () => {
   expect(allowedWhileSecondFactorRequired('POST', '/api/auth/sign-out/', firstSetup)).toBe(true)
   expect(allowedWhileSecondFactorRequired('post', '/api/auth/sign-out', firstSetup)).toBe(true)
 })
+
+test('an activation left without a way to sign in may set one, nothing else may', () => {
+  const activate = '/api/v1/links/Ab3_-x/activate'
+  // a passkey cancelled: no password, no factor yet
+  expect(
+    allowedWhileSecondFactorRequired('POST', activate, { ...firstSetup, hasPassword: false }),
+  ).toBe(true)
+  for (const f of [
+    { ...firstSetup, hasPassword: true },
+    { totpEnabled: false, passkeys: 1, hasPassword: false },
+    { totpEnabled: true, passkeys: 0, hasPassword: false },
+    firstSetup,
+  ])
+    expect(allowedWhileSecondFactorRequired('POST', activate, f)).toBe(false)
+  expect(
+    allowedWhileSecondFactorRequired('GET', activate, { ...firstSetup, hasPassword: false }),
+  ).toBe(false)
+})
+
+test('once the activation link is gone, the session alone may still set the first password', () => {
+  const noWayIn = { ...firstSetup, hasPassword: false }
+  expect(allowedWhileSecondFactorRequired('POST', '/api/v1/me/password', noWayIn)).toBe(true)
+  for (const f of [{ ...firstSetup, hasPassword: true }, { ...noWayIn, passkeys: 1 }, firstSetup])
+    expect(allowedWhileSecondFactorRequired('POST', '/api/v1/me/password', f)).toBe(false)
+})

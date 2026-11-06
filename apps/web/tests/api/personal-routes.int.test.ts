@@ -65,6 +65,16 @@ const PREPARED_BODY: Record<string, (cookie: string) => Promise<unknown>> = {
     y: 0,
     size: 400,
   }),
+  // a first password: the caller is a person of its own whose password is taken away first
+  'POST /api/v1/me/password': async (cookie) => {
+    const me = await fx.env.call('GET', '/api/v1/me', undefined, { cookie })
+    const { id } = (await me.json()) as { id: string }
+    await fx.env.admin.pool.query(
+      "update accounts set password = null where user_id = $1 and provider_id = 'credential'",
+      [id],
+    )
+    return { password: 'una-frase-lunga-per-la-prima-password' }
+  },
 }
 
 const OWNED_BY_ANOTHER: Record<
@@ -182,7 +192,7 @@ const FOREIGN_ANSWER: Record<string, ForeignAnswer> = {
 }
 
 /** Routes after which the caller no longer exists. */
-const DISPOSABLE_CALLER = new Set(['DELETE /api/v1/me'])
+const DISPOSABLE_CALLER = new Set(['DELETE /api/v1/me', 'POST /api/v1/me/password'])
 
 const noIds: SampleIds = {
   org: '',

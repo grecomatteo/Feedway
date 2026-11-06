@@ -11,6 +11,7 @@ import {
   verifications,
 } from '../db/identity/schema.js'
 import type { Db } from '../db/client.js'
+import { uuidV7Generator } from '../system/id-generator.js'
 import { toSessionInfo } from './auth-method.js'
 import type { BetterAuthInstance } from './better-auth.js'
 import { PANEL_RESET_TOKEN_PREFIX, PASSWORD_RESET_PAGE } from './auth-hooks.js'
@@ -114,6 +115,37 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
           accountId: id,
           password: hash,
         })
+    },
+
+    async setPasswordIfNone(userId, password) {
+      const ctx = await instance.$context
+      const hash = await ctx.password.hash(password)
+      // One transaction under the account's row lock: a recovery (`recover-user`) that marks
+      // the lock and removes every way in waits for it, or it already happened and nothing is set.
+      return db.transaction(async (t) => {
+        const [user] = await t
+          .select({ status: users.status, lockedAt: users.securityLockedAt })
+          .from(users)
+          .where(eq(users.id, userId))
+          .for('update')
+        if (!user || user.status !== 'active' || user.lockedAt !== null) return 'unavailable'
+        const [credential] = await t
+          .select({ id: accounts.id, password: accounts.password })
+          .from(accounts)
+          .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
+        if (credential?.password) return 'already_set'
+        if (credential)
+          await t.update(accounts).set({ password: hash }).where(eq(accounts.id, credential.id))
+        else
+          await t.insert(accounts).values({
+            id: uuidV7Generator.newId(),
+            accountId: userId,
+            providerId: 'credential',
+            userId,
+            password: hash,
+          })
+        return 'set'
+      })
     },
 
     async openSession(userId, meta) {

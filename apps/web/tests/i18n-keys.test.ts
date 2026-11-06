@@ -105,6 +105,9 @@ test.each([
       'secondFactor',
       'notMe',
       'footer',
+      'introRecovered',
+      'notMeRecovered',
+      'footerRecovered',
     ],
   ],
   [
