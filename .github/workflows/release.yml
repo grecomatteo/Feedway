@@ -7,9 +7,12 @@ on:
 # Each job asks for what it needs, nothing more.
 permissions: {}
 
+# Like CI: GitHub's runners unless the repository variable CI_RUNNER names another runner label
+# (the self-hosted runner while the monthly Actions minutes are spent: docs/flusso-git.md §5).
+
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: write
       pull-requests: write
@@ -27,7 +30,7 @@ jobs:
   publish-image:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -83,3 +86,7 @@ jobs:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           echo "Immagine pubblicata (amd64 e arm64): $IMAGE@$DIGEST" | tee -a "$GITHUB_STEP_SUMMARY"
+      # a self-hosted runner keeps its Docker config between jobs: the token must not stay there
+      - name: Uscita da GHCR
+        if: always()
+        run: docker logout ghcr.io
