@@ -4,7 +4,9 @@ on:
   # No run on push to main: the ruleset only merges a branch up to date with main and green on its
   # merge commit, so the squashed commit has the tree CI already tested. Running again costs ~30
   # billed minutes per merge for nothing.
+  # A draft runs nothing: the run starts when the PR is marked ready, then at every push.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   # Release PRs are opened with the default token and do not start workflows: run CI by hand on their branch.
   workflow_dispatch:
 
@@ -22,6 +24,7 @@ concurrency:
 # The job names below are the required checks of the main ruleset (.github/rulesets/main.json).
 jobs:
   lint-types:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
@@ -52,6 +55,7 @@ jobs:
         run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 && ./actionlint -color
 
   architecture:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
@@ -75,6 +79,7 @@ jobs:
         run: pnpm vitest run tools/arch-fixtures
 
   unit:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
@@ -101,6 +106,7 @@ jobs:
   # Manual runs do everything. Steps skip only on an explicit 'false', so a
   # missing output runs them.
   integration:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
@@ -122,6 +128,7 @@ jobs:
         run: pnpm test:int
 
   e2e:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
@@ -152,6 +159,7 @@ jobs:
           retention-days: 7
 
   security:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
@@ -183,6 +191,7 @@ jobs:
         run: bats scripts/tests
 
   image:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 45
     steps:
@@ -235,6 +244,7 @@ jobs:
           fi
 
   install-smoke:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
