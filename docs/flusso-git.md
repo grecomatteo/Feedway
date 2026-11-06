@@ -118,6 +118,7 @@ I controlli obbligatori partono sempre, così il merge non resta mai in attesa d
 - **Versionamento semantico** (`MAJOR.MINOR.PATCH`). Fino alla 1.0 ogni tappa produce una minor: tappa 1 → `0.1.0`, tappa 2 → `0.2.0` … La tappa 12 produce `1.0.0`.
 - **release-please** legge i commit su `main` e tiene aperta una **PR di rilascio** con il `CHANGELOG.md` e la versione successiva. L'agente la fonde a fine tappa, quando tutti i criteri di fine tappa sono verificati; Matteo installa la nuova versione con `update.sh` e la prova.
 - Il merge della PR di rilascio crea il **tag** `vX.Y.Z` e la **GitHub Release** con le note "Cosa provare", poi la CI pubblica l'immagine su GHCR con tag di versione e digest.
+- Ogni architettura si costruisce sul suo runner (amd64 su `ubuntu-latest`, arm64 su `ubuntu-24.04-arm`, gratis finché il repository è pubblico): l'emulazione di arm64 bloccava la build di Nuxt per ore. Restano su GHCR anche i tag `vX.Y.Z-amd64` e `vX.Y.Z-arm64`, uniti nel tag `vX.Y.Z`. Se la pubblicazione fallisce dopo il tag, si rilancia da Actions → «Rilascio» → *Run workflow* con il tag (es. `v0.4.0`): ricostruisce l'immagine da quel tag, senza un nuovo rilascio.
 - Sulla VPS si installa sempre una versione con tag, mai `main`: `./scripts/update.sh vX.Y.Z`.
 - **Milestone GitHub** = tappa. Ogni issue e PR della tappa appartiene alla sua milestone.
 
