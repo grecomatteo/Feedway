@@ -14,6 +14,12 @@ export interface SetPasswordDeps {
   events: AuthEventSink
 }
 
+const recoveryOnly = () =>
+  new DomainError(
+    'FORBIDDEN',
+    'Per questo account la password si sceglie dal link di recupero ricevuto per email',
+  )
+
 const alreadySet = () =>
   new DomainError('CONFLICT', 'Hai già una password: cambiala con quella attuale')
 
@@ -34,11 +40,7 @@ export async function setFirstPassword(
     const user = await tx.users.findById(userId)
     if (!user) throw new DomainError('UNAUTHENTICATED', 'Sessione scaduta: accedi di nuovo')
     if (await tx.credentials.hasPassword(userId)) throw alreadySet()
-    if (user.securityLockedAt !== null)
-      throw new DomainError(
-        'FORBIDDEN',
-        'Per questo account la password si sceglie dal link di recupero ricevuto per email',
-      )
+    if (user.securityLockedAt !== null) throw recoveryOnly()
     if ((await tx.users.countPasskeys(userId)) > 0) assertRecentReauth(session, deps.clock.now())
     const check = checkPassword(
       input.password,
@@ -51,7 +53,10 @@ export async function setFirstPassword(
         reason: check.reason,
       })
   })
-  if (!(await deps.auth.setPasswordIfNone(userId, input.password))) throw alreadySet()
+  // checked again with the write, under the account's lock: a recovery may have come meanwhile
+  const outcome = await deps.auth.setPasswordIfNone(userId, input.password)
+  if (outcome === 'already_set') throw alreadySet()
+  if (outcome === 'unavailable') throw recoveryOnly()
   await deps.events.record(
     { kind: 'password_changed', userId, ip: request.ip, userAgent: request.userAgent },
     { requestId: request.requestId },

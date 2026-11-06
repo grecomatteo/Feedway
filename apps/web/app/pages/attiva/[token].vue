@@ -131,9 +131,12 @@ function problemOf(e: unknown): ApiFailure {
  * a passkey sign-in. A cancel or an error leaves the account without a way in: the `method`
  * step offers the passkey again or a password, never the activation from scratch.
  */
+/** The passkey already created: a retry after a later failure only signs in with it. */
+let registered: Awaited<ReturnType<typeof passkey.register>> | null = null
 async function withPasskey() {
   try {
-    const created = await passkey.register(t('passkeyPrompt.defaultName'))
+    registered ??= await passkey.register(t('passkeyPrompt.defaultName'))
+    const created = registered
     await call('POST', `${path}/complete`)
     // the activation session gives way to a passkey sign-in (it satisfies the second factor)
     await passkey.authenticate({ only: created })

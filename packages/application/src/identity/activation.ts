@@ -146,7 +146,10 @@ async function checkResume(tx: Tx, invite: InviteRecord, userId: string, input: 
   const elsewhere = (await tx.orgMembers.listForUser(userId)).some(
     (m) => m.organizationId !== invite.organizationId,
   )
-  if (passkeys > 0 || elsewhere)
+  // After the activation session (lastLoginAt), a password can only come from Sicurezza: it
+  // changes with the current one, not from the link. Before it, a retry replaces the password.
+  const passwordSince = user.lastLoginAt !== null && (await tx.credentials.hasPassword(userId))
+  if (passkeys > 0 || elsewhere || passwordSince)
     throw new DomainError('CONFLICT', 'Questo account è già attivo: accedi')
   if (user.lastLoginAt !== null && input.sessionUserId !== userId) throw signInFirst()
 }

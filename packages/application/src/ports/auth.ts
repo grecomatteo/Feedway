@@ -56,10 +56,14 @@ export interface Auth {
     password: string | null
   }): Promise<void>
   /**
-   * A first password for an account that has none (passkeys only, or no way in yet); false when
-   * it already has one.
+   * A first password for an account that has none (passkeys only, or no way in yet), checked and
+   * written under the account's row lock: `unavailable` for an account not active or waiting for
+   * its recovery link.
    */
-  setPasswordIfNone(userId: string, password: string): Promise<boolean>
+  setPasswordIfNone(
+    userId: string,
+    password: string,
+  ): Promise<'set' | 'already_set' | 'unavailable'>
   /** A session opened by us, with the same cookie as a real sign-in (ADR 012, V8). */
   openSession(
     userId: string,

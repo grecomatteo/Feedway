@@ -218,7 +218,7 @@ async function withoutWayIn() {
   const { rows } = await admin.pool.query<{ id: string }>('select id from users where email = $1', [
     email,
   ])
-  return { email, userId: rows[0]?.id ?? '', cookie: sessionCookie(started) ?? '' }
+  return { email, token, userId: rows[0]?.id ?? '', cookie: sessionCookie(started) ?? '' }
 }
 
 const signInWith = (email: string, password: string) =>
@@ -250,6 +250,15 @@ test('an account with no way in sets its password with the session alone', async
     { cookie: p.cookie },
   )
   expect(again.status).toBe(409)
+  // the link still open does not change it either: that takes the current password
+  const relink = await call(
+    'POST',
+    `/api/v1/links/${p.token}/activate`,
+    { name: 'Persona Nuova', password: 'un-altra-frase-lunga-e-sicura' },
+    { cookie: p.cookie },
+  )
+  expect(relink.status).toBe(409)
+  expect((await signInWith(p.email, PASSWORD)).status).toBe(200)
 })
 
 test('with passkeys only, setting a password needs a recent confirmation', async () => {

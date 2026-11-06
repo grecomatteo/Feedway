@@ -819,6 +819,16 @@ describe('platform users', () => {
     expect(lock[0]?.security_locked_at).toBeNull()
   })
 
+  test('a first password never lands on an account waiting for its recovery link', async () => {
+    const user = await person('recupero-in-corso')
+    expect(await auth.setPasswordIfNone(user.id, NEW_PASSWORD)).toBe('already_set')
+    await recoverUserAccess(deps, SYSTEM_PLATFORM_ACTOR, user.id, phone)
+    // checked with the write, under the account's lock: a request that passed its checks
+    // before the recovery sets nothing after it
+    expect(await auth.setPasswordIfNone(user.id, NEW_PASSWORD)).toBe('unavailable')
+    expect((await signIn(user.email, NEW_PASSWORD)).status).toBe(401)
+  })
+
   test('recover-user leaves a disabled account to enable-user', async () => {
     const user = await person('spento')
     await disableUserEverywhere(deps, SYSTEM_PLATFORM_ACTOR, user.id)

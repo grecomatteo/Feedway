@@ -386,3 +386,28 @@ test('with passkeys only, a first password is set without a current one', async 
   await expect(password.getByLabel('Password attuale')).toBeVisible()
   await signIn(page.request, { userId: '', email, name: '', organizationSlug })
 })
+
+test('a passkey cancelled and the link expired: the second factor page asks a password first', async ({
+  page,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path } = await inviteLink(email, 'admin')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Elsa Scaduta')
+  await cancelNextPasskey(page)
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page.getByRole('heading', { name: 'Scegli come accedere' })).toBeVisible()
+  await adminQuery("update invites set expires_at = now() - interval '1 minute' where email = $1", [
+    email,
+  ])
+
+  await page.goto('/accedi/secondo-fattore')
+  await expect(page.getByRole('button', { name: "Usa l'app di autenticazione" })).toHaveCount(0)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Salva la password' }).click()
+  // with a password the authenticator app can follow
+  await page.getByRole('button', { name: "Usa l'app di autenticazione" }).click()
+  await expect(page.getByLabel('Codice di 6 cifre')).toBeVisible()
+})
