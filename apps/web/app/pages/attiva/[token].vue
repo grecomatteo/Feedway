@@ -55,11 +55,18 @@ const linkProblem = computed(() =>
 const signedInAs = ref<string | null>(null)
 onMounted(async () => {
   const view = await session.load().catch(() => null)
+  const me = view?.state === 'active' || view?.state === 'second_factor' ? view.me : null
   if (view?.state === 'active') signedInAs.value = view.me.email
-  // reloaded after activating: the account exists and the link is used, the second factor is
-  // still to set up. Go on with it (the component asks the password again).
-  if (view?.state === 'second_factor' && view.me) {
-    slug = view.me.organizations[0]?.slug ?? ''
+  if (!me) return
+  // reloaded after activating: the account exists. Without a passkey or a password it has no
+  // way in yet (a passkey cancelled), and that comes first; otherwise the second factor is
+  // still to set up (the component asks the password again).
+  if (!me.hasPassword && me.secondFactor.passkeys === 0 && token !== '') {
+    slug = me.organizations[0]?.slug ?? ''
+    account = { name: me.name, nickname: me.nickname }
+    step.value = 'method'
+  } else if (view?.state === 'second_factor') {
+    slug = me.organizations[0]?.slug ?? ''
     step.value = 'totp'
   }
 })
@@ -80,7 +87,11 @@ const methodItems = computed(() => [
   { value: 'password', label: t('activate.password'), description: t('activate.passwordHelp') },
 ])
 
-const step = ref<'form' | 'totp' | 'backup'>('form')
+const step = ref<'form' | 'method' | 'totp' | 'backup'>('form')
+/** The account the activation created, for the `method` step after a reload. */
+let account: { name: string; nickname: string | null } | null = null
+/** `method` step: the password field is open. */
+const choosingPassword = ref(false)
 const sending = ref(false)
 const problem = ref<ApiFailure | null>(null)
 /** The password typed in the form, kept only until the authenticator app is set up. */
@@ -105,6 +116,38 @@ async function goIn() {
   await navigateTo(slug ? `/${slug}` : '/accedi')
 }
 
+function problemOf(e: unknown): ApiFailure {
+  const f =
+    e instanceof DOMException
+      ? { ...failure(null), message: t('activate.passkeyCancelled') }
+      : failure(e)
+  return f.field === 'password' && f.code === 'VALIDATION'
+    ? { ...f, message: t('activate.weakPassword') }
+    : f
+}
+
+/**
+ * The passkey of an account the activation already created: registered, the link closed, then
+ * a passkey sign-in. A cancel or an error leaves the account without a way in: the `method`
+ * step offers the passkey again or a password, never the activation from scratch.
+ */
+async function withPasskey() {
+  try {
+    const created = await passkey.register(t('passkeyPrompt.defaultName'))
+    await call('POST', `${path}/complete`)
+    // the activation session gives way to a passkey sign-in (it satisfies the second factor)
+    await passkey.authenticate({ only: created })
+  } catch (e) {
+    problem.value = problemOf(e)
+    step.value = 'method'
+    return
+  }
+  // where the role requires a second factor, this passkey is the only one: offer a backup
+  const factors = await call<{ required: boolean }>('GET', '/api/v1/me/second-factor')
+  if (factors.required) step.value = 'backup'
+  else await goIn()
+}
+
 async function activate(body: Record<string, unknown>) {
   sending.value = true
   problem.value = null
@@ -112,33 +155,40 @@ async function activate(body: Record<string, unknown>) {
     const r = await call<ActivateResponse>('POST', `${path}/activate`, body)
     slug = r.organizationSlug
     if (r.next === 'register_passkey') {
-      const created = await passkey.register(t('passkeyPrompt.defaultName'))
-      await call('POST', `${path}/complete`)
-      // the activation session gives way to a passkey sign-in (it satisfies the second factor)
-      await passkey.authenticate({ only: created })
-      // where the role requires a second factor, this passkey is the only one: offer a backup
-      const factors = await call<{ required: boolean }>('GET', '/api/v1/me/second-factor')
-      if (factors.required) {
-        step.value = 'backup'
-        return
-      }
+      account = { name: String(body['name'] ?? ''), nickname: (body['nickname'] as string) ?? null }
+      await withPasskey()
+      return
     }
     if (typeof body['password'] === 'string') typedPassword.value = body['password']
     form.password = ''
+    choosingPassword.value = false
     await goIn()
   } catch (e) {
-    const f =
-      e instanceof DOMException
-        ? { ...failure(null), message: t('activate.passkeyCancelled') }
-        : failure(e)
-    problem.value =
-      f.field === 'password' && f.code === 'VALIDATION'
-        ? { ...f, message: t('activate.weakPassword') }
-        : f
+    problem.value = problemOf(e)
   } finally {
     sending.value = false
   }
 }
+
+async function retryPasskey() {
+  sending.value = true
+  problem.value = null
+  try {
+    await withPasskey()
+  } catch (e) {
+    problem.value = problemOf(e)
+  } finally {
+    sending.value = false
+  }
+}
+
+/** `method` step: the activation again, with a password, from the session it opened. */
+const savePassword = () =>
+  activate({
+    name: account?.name ?? form.name,
+    nickname: account?.nickname ?? null,
+    password: form.password,
+  })
 
 const submitNew = () =>
   activate({
@@ -168,6 +218,61 @@ const signInTo = computed(() => ({ path: '/accedi', query: { dopo: `/attiva/${HI
   <div class="space-y-5">
     <TotpEnrollment v-if="step === 'totp'" :password="typedPassword" @done="totpDone" />
     <BackupFactorOffer v-else-if="step === 'backup'" @later="goIn" />
+
+    <section v-else-if="step === 'method'" aria-labelledby="activate-method" class="space-y-4">
+      <h1 id="activate-method" class="text-2xl">{{ $t('activate.methodTitle') }}</h1>
+      <p v-if="formError" role="alert" class="text-(--app-danger)">{{ formError }}</p>
+      <p>{{ $t('activate.methodExplain') }}</p>
+      <form v-if="choosingPassword" class="space-y-4" novalidate @submit.prevent="savePassword">
+        <UFormField
+          :label="$t('signIn.password')"
+          :help="$t('reset.help')"
+          name="new-password"
+          required
+          :error="fieldError('password')"
+        >
+          <UInput
+            v-model="form.password"
+            type="password"
+            autocomplete="new-password"
+            class="w-full"
+            size="xl"
+          />
+        </UFormField>
+        <PasswordStrength :password="form.password" />
+        <UButton type="submit" block size="xl" class="min-h-12" :loading="sending">
+          {{ $t('activate.savePassword') }}
+        </UButton>
+      </form>
+      <div class="space-y-3">
+        <UButton
+          v-if="passkey.supported()"
+          block
+          size="xl"
+          class="min-h-12"
+          icon="i-lucide-key-round"
+          :variant="choosingPassword ? 'outline' : 'solid'"
+          :color="choosingPassword ? 'neutral' : 'primary'"
+          :loading="sending && !choosingPassword"
+          :disabled="sending"
+          @click="retryPasskey"
+        >
+          {{ $t('activate.retryPasskey') }}
+        </UButton>
+        <UButton
+          v-if="!choosingPassword"
+          block
+          size="xl"
+          class="min-h-12"
+          color="neutral"
+          variant="outline"
+          :disabled="sending"
+          @click="choosingPassword = true"
+        >
+          {{ $t('activate.usePassword') }}
+        </UButton>
+      </div>
+    </section>
 
     <template v-else>
       <h1 class="text-2xl">{{ heading }}</h1>

@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const resolved = await loadSession(event)
   if (resolved?.state !== 'second_factor_required') return
   const factors = resolved.user.secondFactor
-  if (allowedWhileSecondFactorRequired(event.method, path, factors)) return
+  const hasPassword = resolved.user.hasPassword
+  if (allowedWhileSecondFactorRequired(event.method, path, { ...factors, hasPassword })) return
   return sendApiError(event, secondFactorProblem(factors))
 })

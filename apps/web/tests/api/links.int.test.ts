@@ -32,7 +32,7 @@ afterAll(async () => {
   await tdb.stop()
 })
 
-async function invite(email: string) {
+async function invite(email: string, role: 'member' | 'admin' = 'member') {
   const token = randomBytes(32).toString('base64url')
   const { organizationId, workspaceId } = await seed(tdb.runtimeUrl, async (s) => {
     const organizationId = await s.organization()
@@ -40,12 +40,13 @@ async function invite(email: string) {
   })
   await admin.pool.query(
     `insert into invites (id, organization_id, purpose, email, token_hash, org_role, memberships, expires_at)
-     values ($1, $2, 'invite', $3, $4, 'member', $5, now() + interval '1 hour')`,
+     values ($1, $2, 'invite', $3, $4, $5, $6, now() + interval '1 hour')`,
     [
       randomUUID(),
       organizationId,
       email,
       createHash('sha256').update(token, 'utf8').digest(),
+      role,
       JSON.stringify([{ workspaceId, role: 'editor' }]),
     ],
   )
@@ -158,4 +159,49 @@ test('the link routes allow twenty requests a minute per address', async () => {
   })
   expect(blocked.status).toBe(429)
   expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/)
+})
+
+test('a passkey activation left halfway goes on only with a way to sign in', async () => {
+  const email = `meta-${randomUUID().slice(0, 8)}@esempio.it`
+  const { token } = await invite(email, 'admin')
+  const ip = { 'x-forwarded-for': '6.6.6.7' }
+  const started = await call(
+    'POST',
+    `/api/v1/links/${token}/activate`,
+    { name: 'Persona Nuova', password: null },
+    ip,
+  )
+  expect(await started.json()).toMatchObject({ next: 'register_passkey' })
+  const cookie = sessionCookie(started) ?? ''
+  const withSession = { ...ip, cookie }
+
+  // the passkey never came: no second factor next to no first one, and the link stays open
+  const totp = await call('POST', '/api/auth/two-factor/enable', {}, withSession)
+  expect(totp.status).toBe(403)
+  expect(await totp.json()).toMatchObject({ code: 'PRIMARY_METHOD_REQUIRED' })
+  expect((await call('POST', `/api/v1/links/${token}/complete`, {}, withSession)).status).toBe(409)
+  const open = await admin.pool.query<{ used_at: Date | null }>(
+    'select used_at from invites where email = $1',
+    [email],
+  )
+  expect(open.rows[0]?.used_at).toBeNull()
+
+  // the same session sets a password instead: the link is used from now on
+  const password = await call(
+    'POST',
+    `/api/v1/links/${token}/activate`,
+    { name: 'Persona Nuova', password: PASSWORD },
+    withSession,
+  )
+  expect(password.status).toBe(200)
+  expect(await password.json()).toMatchObject({ next: 'done' })
+  const used = await admin.pool.query<{ used_at: Date | null }>(
+    'select used_at from invites where email = $1',
+    [email],
+  )
+  expect(used.rows[0]?.used_at).not.toBeNull()
+  const after = { ...ip, cookie: sessionCookie(password) ?? cookie }
+  expect(
+    (await call('POST', '/api/auth/two-factor/enable', { password: PASSWORD }, after)).status,
+  ).toBe(200)
 })

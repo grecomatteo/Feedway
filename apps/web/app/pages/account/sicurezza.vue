@@ -304,7 +304,16 @@ const regenerateCodes = () =>
         </div>
 
         <form v-else class="space-y-4" novalidate @submit.prevent>
+          <!-- with passkeys only there is no password to confirm -->
+          <p
+            v-if="me?.hasPassword === false && totp.problem"
+            role="alert"
+            class="text-(--app-danger)"
+          >
+            {{ totp.problem }}
+          </p>
           <UFormField
+            v-else-if="me?.hasPassword !== false"
             :label="$t('security.password.current')"
             :help="$t('security.totp.passwordHelp')"
             name="totp-password"

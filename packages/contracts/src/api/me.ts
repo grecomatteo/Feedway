@@ -29,6 +29,8 @@ export const Me = z.object({
     totpEnabled: z.boolean(),
     passkeys: z.number().int(),
   }),
+  /** False for an account that signs in with passkeys only, or that has no way in yet. */
+  hasPassword: z.boolean(),
   /** `second_factor_required`: the panel shows only the second factor setup. */
   sessionState: z.enum(['active', 'second_factor_required']),
 })
