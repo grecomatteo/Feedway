@@ -62,15 +62,7 @@ watch(org.slug, refresh)
           <span class="truncate text-sm">{{ me.displayName }}</span>
         </NuxtLink>
         <div class="flex items-center justify-between">
-          <UButton
-            class="min-h-11"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-log-out"
-            @click="() => session.signOut()"
-          >
-            {{ $t('nav.signOut') }}
-          </UButton>
+          <SignOutButton />
           <ThemeSwitcher />
         </div>
       </div>

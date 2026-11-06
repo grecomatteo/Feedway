@@ -490,7 +490,8 @@
     "agency": "Agenzia",
     "account": "Il mio account",
     "systemEmail": "Email di sistema",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "signOutFailed": "Uscita non riuscita: la sessione è ancora aperta. Riprova tra poco."
   },
   "signIn": {
     "title": "Accedi a Feedway",

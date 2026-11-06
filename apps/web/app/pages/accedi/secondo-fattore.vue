@@ -36,6 +36,15 @@ async function withPasskey() {
     sending.value = false
   }
 }
+
+async function leave() {
+  problem.value = null
+  try {
+    await session.signOut()
+  } catch {
+    problem.value = t('nav.signOutFailed')
+  }
+}
 </script>
 
 <template>
@@ -44,7 +53,8 @@ async function withPasskey() {
 
     <template v-if="useExisting">
       <p role="alert">{{ $t('secondFactor.useExisting') }}</p>
-      <UButton block size="xl" class="min-h-12" :disabled="!ready" @click="() => session.signOut()">
+      <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
+      <UButton block size="xl" class="min-h-12" :disabled="!ready" @click="leave">
         {{ $t('nav.signOut') }}
       </UButton>
     </template>
@@ -79,13 +89,7 @@ async function withPasskey() {
         >
           {{ $t('secondFactor.useApp') }}
         </UButton>
-        <UButton
-          block
-          class="min-h-11"
-          color="neutral"
-          variant="ghost"
-          @click="() => session.signOut()"
-        >
+        <UButton block class="min-h-11" color="neutral" variant="ghost" @click="leave">
           {{ $t('nav.signOut') }}
         </UButton>
       </fieldset>
