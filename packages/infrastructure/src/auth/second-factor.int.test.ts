@@ -707,3 +707,46 @@ test('registering a passkey cannot open a second session', async () => {
   expect(await res.json()).toMatchObject({ message: 'Opzione non disponibile' })
   expect(await sessionRows(p.id)).toHaveLength(1)
 })
+
+/** An activation whose passkey never came: an account with no password, and its session. */
+async function withoutPassword(role: OrgRole) {
+  const id = randomUUID()
+  await auth.createUser({
+    id,
+    email: `senza-${id.slice(0, 8)}@esempio.it`,
+    name: 'Anna Rossi',
+    password: null,
+  })
+  const org = await seed(tdb.runtimeUrl, (s) => s.organization())
+  await seed(tdb.runtimeUrl, (s) => s.member(org, id, role))
+  const { setCookie } = await auth.openSession(id, {
+    ip: null,
+    userAgent: null,
+    authMethod: 'activation',
+  })
+  return { id, cookie: cookieHeader(setCookie) }
+}
+
+test('the session says whether the person has a password', async () => {
+  const p = await person()
+  expect((await resolved(await signIn(p.email))).user.hasPassword).toBe(true)
+  const q = await withoutPassword('member')
+  expect((await resolved(q.cookie)).user.hasPassword).toBe(false)
+})
+
+test('an account with neither password nor passkey cannot set up the authenticator app', async () => {
+  for (const role of ['owner', 'member'] as const) {
+    const q = await withoutPassword(role)
+    const res = await post('/two-factor/enable', {}, q.cookie)
+    expect(res.status).toBe(403)
+    expect(await res.json()).toMatchObject({ code: 'PRIMARY_METHOD_REQUIRED' })
+    expect(await totpRow(q.id)).toBeNull()
+  }
+})
+
+test('with a passkey and no password, the authenticator app asks no password', async () => {
+  const q = await withoutPassword('member')
+  await addPasskeyRow(q.id)
+  const res = await post('/two-factor/enable', {}, q.cookie)
+  expect(res.status).toBe(200)
+})

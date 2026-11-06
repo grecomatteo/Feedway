@@ -27,18 +27,28 @@ const FIRST_SETUP: readonly (Route | RegExp)[] = [
 ]
 
 /**
+ * Only for an account with no way to sign in yet (an activation whose passkey was cancelled):
+ * the activation again, to set a password. The route itself takes only the session that opened
+ * the activation.
+ */
+const UNFINISHED_ACTIVATION: readonly RegExp[] = [
+  /^POST \/api\/v1\/links\/[A-Za-z0-9_-]+\/activate$/,
+]
+
+/**
  * A person who already has a factor must sign in with it: a stolen password alone may not add
  * a new one (spec §15.1).
  */
 export function allowedWhileSecondFactorRequired(
   method: string,
   path: string,
-  factors: { totpEnabled: boolean; passkeys: number },
+  factors: { totpEnabled: boolean; passkeys: number; hasPassword?: boolean },
 ): boolean {
   const bare = (path.split('?')[0] ?? '').replace(/\/+$/, '')
   const route = `${method.toUpperCase()} ${bare}`
   const matches = (r: Route | RegExp) => (typeof r === 'string' ? r === route : r.test(route))
   if (ALWAYS.some(matches)) return true
   if (factors.totpEnabled || factors.passkeys > 0) return false
-  return FIRST_SETUP.some(matches)
+  if (FIRST_SETUP.some(matches)) return true
+  return factors.hasPassword === false && UNFINISHED_ACTIVATION.some(matches)
 }

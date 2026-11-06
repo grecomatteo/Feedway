@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { totpCode } from '@app/infrastructure/testing'
+import { secretOf, totpCode } from '@app/infrastructure/testing'
 import {
   adminQuery,
   E2E_PASSWORD,
@@ -26,6 +26,24 @@ const sessionsOf = (userId: string) =>
   adminQuery<{ id: string; reauthenticated_at: Date | null; auth_method: string }>(
     'select id, reauthenticated_at, auth_method from sessions where user_id = $1',
     [userId],
+  )
+
+/** The person closes the passkey window once: the next `create` is refused like a cancel. */
+async function cancelNextPasskey(page: Page) {
+  await page.evaluate(() => {
+    const original = navigator.credentials.create.bind(navigator.credentials)
+    navigator.credentials.create = () => {
+      navigator.credentials.create = original
+      return Promise.reject(new DOMException('closed by the person', 'NotAllowedError'))
+    }
+  })
+}
+
+const inviteOf = (email: string) =>
+  adminQuery<{ used_at: Date | null; user_id: string | null }>(
+    `select i.used_at, u.id as user_id from invites i left join users u on u.email = i.email
+     where i.email = $1`,
+    [email],
   )
 
 async function addPasskey(page: Page) {
@@ -263,4 +281,85 @@ test('an admin whose only factor is a passkey is offered a backup until there is
   await totp.getByRole('button', { name: 'Verifica e attiva' }).click()
   await totp.getByRole('button', { name: 'Li ho salvati' }).click()
   await expect(warning).toHaveCount(0)
+})
+
+test('a passkey cancelled at activation can be tried again, then signs in alone', async ({
+  page,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'admin')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Rita Riprova')
+  await cancelNextPasskey(page)
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page.getByRole('heading', { name: 'Scegli come accedere' })).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('annullata')
+  expect((await inviteOf(email))[0]?.used_at).toBeNull()
+
+  await page.getByRole('button', { name: 'Riprova la passkey' }).click()
+  await page.getByRole('button', { name: 'Più tardi' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+  expect((await inviteOf(email))[0]?.used_at).not.toBeNull()
+
+  // leaving and coming back takes the passkey alone
+  await page.context().clearCookies()
+  await page.goto('/accedi')
+  await page.getByRole('button', { name: 'Accedi con passkey' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+})
+
+test('a passkey cancelled, then a reload, asks for a way to sign in before the app', async ({
+  page,
+}) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'admin')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Rino Ricarica')
+  await cancelNextPasskey(page)
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page.getByRole('heading', { name: 'Scegli come accedere' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Scegli come accedere' })).toBeVisible()
+  await expect(page.getByLabel('Password attuale')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Usa una password' }).click()
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Salva la password' }).click()
+
+  // only now the authenticator app, without asking the password again
+  const link = await page
+    .getByRole('link', { name: "Apri nell'app di autenticazione" })
+    .getAttribute('href')
+  await page.getByLabel('Codice di 6 cifre').fill(totpCode(secretOf(link ?? '')))
+  await page.getByRole('button', { name: 'Verifica e attiva' }).click()
+  await page.getByRole('button', { name: 'Li ho salvati' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+  const [invite] = await inviteOf(email)
+  expect(invite?.used_at).not.toBeNull()
+  const passwords = await adminQuery<{ n: string }>(
+    `select count(*) as n from accounts where user_id = $1 and password is not null`,
+    [invite?.user_id],
+  )
+  expect(passwords[0]?.n).toBe('1')
+})
+
+test('with passkeys only, the authenticator app asks no password', async ({ page }) => {
+  await addVirtualAuthenticator(page)
+  await ownAddress(page)
+  const email = `pk-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'member')
+  await page.goto(path)
+  await page.getByLabel('Nome e cognome').fill('Sara Solochiave')
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+  await page.goto('/account/sicurezza')
+  const totp = page.getByRole('region', { name: 'App di autenticazione' })
+  await expect(totp.getByRole('button', { name: "Attiva l'app di autenticazione" })).toBeVisible()
+  await expect(totp.getByLabel('Password attuale')).toHaveCount(0)
+  await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
+  await expect(totp.getByLabel('Codice di 6 cifre')).toBeVisible()
 })

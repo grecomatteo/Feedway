@@ -28,6 +28,7 @@ test('me answers the person and the session state, with nothing else', async () 
       'avatarUrl',
       'displayName',
       'email',
+      'hasPassword',
       'id',
       'lastOrganizationSlug',
       'locale',
@@ -48,6 +49,7 @@ test('me answers the person and the session state, with nothing else', async () 
     sessionState: 'active',
     organizations: [{ id: agency.id, slug: agency.slug, role: 'member', status: 'active' }],
     secondFactor: { required: false, totpEnabled: false, passkeys: 0 },
+    hasPassword: true,
   })
 
   expect((await get('/api/v1/me')).status).toBe(401)
