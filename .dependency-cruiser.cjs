@@ -115,6 +115,32 @@ module.exports = {
       },
       to: { path: '(^|/)packages/infrastructure/src/db/identity/' },
     },
+    {
+      name: 'meta-only-inside-platform',
+      comment: 'ADR 019: only platforms/meta and the composition root know the Graph API client',
+      severity: 'error',
+      from: {
+        pathNot: [
+          '(^|/)packages/infrastructure/src/platforms/meta/',
+          '(^|/)packages/infrastructure/src/runtime\\.ts$',
+        ],
+      },
+      to: { path: '(^|/)packages/infrastructure/src/platforms/meta/' },
+    },
+    {
+      name: 'infrastructure-index-hides-meta',
+      comment: 'ADR 019: the public index of infrastructure never re-exports Meta code',
+      severity: 'error',
+      from: { path: '(^|/)packages/infrastructure/src/index\\.ts$' },
+      to: { path: '(^|/)packages/infrastructure/src/platforms/' },
+    },
+    {
+      name: 'accounts-knows-no-platform',
+      comment: 'ADR 019: the accounts module is generic and never imports a platform module',
+      severity: 'error',
+      from: { path: '(^|/)packages/(domain|application)/src/accounts/' },
+      to: { path: '(^|/)packages/(domain|application)/src/platforms/' },
+    },
     { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
     {
       name: 'no-orphans',

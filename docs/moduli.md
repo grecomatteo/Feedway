@@ -9,13 +9,15 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 | Regole | `packages/domain/src/<modulo>/` | Tipi, regole pure, permessi del modulo |
 | Casi d'uso | `packages/application/src/<modulo>/` | Un file per caso d'uso; `index.ts` è l'**unica** porta d'ingresso per gli altri moduli |
 | Dati | `packages/infrastructure/src/db/<modulo>/` | Tabelle Drizzle, SQL di RLS, repository |
-| Contratti | `packages/contracts/src/<modulo>/` | Schemi Zod e DTO per API e pannello |
+| Contratti | `packages/contracts/src/api/<modulo>.ts` | Schemi Zod e DTO per API e pannello |
 | Rotte | `apps/web/server/api/v1/orgs/[org]/<modulo>/` | Adattatori sottili: validano, chiamano il caso d'uso, traducono |
-| Lavori | `apps/worker/src/jobs/<modulo>/` | Gestori sottili dei lavori in coda |
+| Lavori | `apps/worker/src/handlers/<modulo>-<lavoro>.ts` | Gestori sottili dei lavori in coda |
 | Pagine | `apps/web/app/pages/[org]/…` | Percorsi in italiano (`/[org]/calendario`) |
 | Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, reazione all'anonimizzazione di un utente. Eventi, notifiche, menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
 
 ## 2. Regole
+
+- **Piattaforme social** ([ADR 019](adr/019-modulo-piattaforma.md)): il modulo `accounts` è generico e non conosce nessuna piattaforma. Il codice di Meta sta solo in `platforms/meta/` di `domain`, `application` e `infrastructure`, e il client della Graph API è in `packages/infrastructure/src/platforms/meta/`. I connettori si trovano con una mappa `connection kind → PlatformConnector` in `packages/infrastructure/src/runtime.ts`, separata dal registro dei moduli. **(CI: dependency-cruiser)**
 
 - Un modulo legge e scrive **solo le proprie tabelle** **(CI: dependency-cruiser)**.
 - Per i dati di un altro modulo usa le funzioni del suo `index.ts`, oppure reagisce ai suoi **eventi** dall'outbox.
