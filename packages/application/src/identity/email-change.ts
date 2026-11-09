@@ -195,7 +195,7 @@ export async function sendEmailChangeEmail(
   }
   const today = isSameDay(now, expiresAt, timeZone)
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.emailChange.preheader', values),
     title: t('email.emailChange.title', values),
     blocks: [

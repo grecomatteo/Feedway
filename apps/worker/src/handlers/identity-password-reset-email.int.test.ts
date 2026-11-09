@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import type { Logger, Mailer } from '@app/application'
+import { EMAIL_LOGO_CID, type Logger, type Mailer } from '@app/application'
 import {
   createLogger,
   createMemoryMailer,
@@ -103,7 +103,7 @@ test('the reset email goes to the account with the link and when it stops workin
     'Il link scade tra 60 minuti: funziona una sola volta, fino alle 20:20 di oggi.',
   )
   expect(mail?.html).toContain(`href="${RESET_URL.replace('&', '&amp;')}"`)
-  expect(mail?.html).toContain(`src="${PANEL.origin}/email/feedway-logo@2x.png"`)
+  expect(mail?.html).toContain(`src="cid:${EMAIL_LOGO_CID}"`)
 })
 
 test('a link that ends after midnight says so, in the person’s time zone', async () => {

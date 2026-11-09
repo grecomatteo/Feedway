@@ -169,7 +169,7 @@ function inviteMessage(
   const kind = mail.existingAccount ? 'existingAccount' : 'newAccount'
   const url = activationUrl(deps.config.panelUrl, mail.token)
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.config.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t(`email.invite.${kind}.preheader`, values),
     title: t('email.invite.title', values),
     blocks: [

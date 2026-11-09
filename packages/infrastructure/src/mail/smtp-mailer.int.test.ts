@@ -10,7 +10,7 @@ import { SMTPServer } from 'smtp-server'
 import type { SMTPServerOptions } from 'smtp-server'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import type { MailMessage, MailSettingsSource, SmtpConfig } from '@app/application'
-import { createMailSettings } from '@app/application'
+import { createMailSettings, EMAIL_LOGO_CID } from '@app/application'
 import { createKeyRing } from '../crypto/key-ring.js'
 import { createDb } from '../db/client.js'
 import type { DbHandle } from '../db/client.js'
@@ -338,6 +338,20 @@ test('a server that drips its answers is cut off by the overall deadline', async
   const started = Date.now()
   await expect(mailer.send(message)).rejects.toMatchObject({ kind: 'timeout' })
   expect(Date.now() - started).toBeLessThan(3_000)
+})
+
+test('the logo travels inside the message, for mail clients that cannot reach the panel', async () => {
+  const before = received.length
+  const mailer = mailerFor(config(), fake(starttlsPort))
+  await mailer.send({ ...message, html: `<img src="cid:${EMAIL_LOGO_CID}" alt="Feedway">` })
+  const data = received.slice(before)[0]?.data ?? ''
+  expect(data).toMatch(/^Content-Type: multipart\/related/m)
+  expect(data).toMatch(new RegExp(`^Content-ID: <${EMAIL_LOGO_CID}>$`, 'm'))
+  expect(data).toMatch(/^Content-Disposition: inline/m)
+  // a message that does not show the logo carries no image
+  const plain = received.length
+  await mailer.send(message)
+  expect(received.slice(plain)[0]?.data).not.toMatch(/^Content-ID:/m)
 })
 
 test('Reply-To carries the given plain address', async () => {

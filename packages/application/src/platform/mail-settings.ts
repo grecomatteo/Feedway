@@ -295,7 +295,7 @@ function testMessage(
   const t = deps.translate
   const values = { product: deps.productName }
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.mailTest.preheader', values),
     title: t('email.mailTest.title', values),
     blocks: [{ kind: 'paragraph', text: t('email.mailTest.intro', values) }],
