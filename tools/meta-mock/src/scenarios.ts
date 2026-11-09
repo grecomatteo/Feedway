@@ -14,14 +14,19 @@ export interface ScenarioOptions {
   /** Back to the initial data, with no scenario active. */
   default: None
   /** 190/463 on every call with the token (all tokens when omitted); `debug_token` says invalid. */
-  token_expired: Match & { token?: string }
+  token_expired: { token?: string }
   /** The permission drops out of `debug_token` and `me/permissions`; calls on `path` answer `code`. */
-  permission_missing: Match & { permission?: string; token?: string; code?: 10 | 200 }
+  permission_missing: {
+    path?: string | RegExp
+    permission?: string
+    token?: string
+    code?: 10 | 200
+  }
   /** The node disappears from every list and its own id answers 100/33. */
   asset_removed: { id: string }
   /** `content_publishing_limit` reports the whole quota used. */
   quota_exhausted: { igUserId?: string }
-  /** A rate limit error, with the usage headers at 100%. */
+  /** A rate limit error, with the usage headers at 100% and `minutesToRegain` (5) in the business one. */
   rate_limited: Match & { code?: 4 | 17 | 32 | 613 | 80001 | 80002; minutesToRegain?: number }
   /** A temporary error (code 2 by default) as JSON. */
   transient_error: Match & { code?: 1 | 2; status?: number; retryAfter?: number }

@@ -120,7 +120,12 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
   }
 
   /** Infrastructure faults: they replace the answer before Meta looks at the request. */
-  function fault(path: string, res: ServerResponse, carryOn: () => void): boolean {
+  function fault(
+    path: string,
+    token: TokenFixture | undefined,
+    res: ServerResponse,
+    carryOn: () => void,
+  ): boolean {
     const hit = active.find(
       (s) =>
         ['rate_limited', 'transient_error', 'error', 'timeout', 'malformed', 'html_5xx'].includes(
@@ -140,7 +145,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
           res,
           { message: RATE_LIMIT_MESSAGES[code] ?? 'Rate limit', type: 'OAuthException', code },
           400,
-          usageHeaders(undefined, true),
+          usageHeaders(token, true, hit.opts.minutesToRegain ?? 5),
         )
         return true
       }
@@ -223,6 +228,11 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       (s) => s.opts.token === undefined || s.opts.token === token,
     )
 
+  function invalidLogin(res: ServerResponse): void {
+    res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' })
+    res.end('<!DOCTYPE html><html><body>Invalid login request.</body></html>')
+  }
+
   function dialog(params: URLSearchParams, res: ServerResponse): void {
     const redirectUri = params.get('redirect_uri')
     const state = params.get('state')
@@ -232,11 +242,16 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       redirectUri === null ||
       state === null
     ) {
-      res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' })
-      res.end('<!DOCTYPE html><html><body>Invalid login request.</body></html>')
+      invalidLogin(res)
       return
     }
-    const back = new URL(redirectUri)
+    let back: URL
+    try {
+      back = new URL(redirectUri)
+    } catch {
+      invalidLogin(res)
+      return
+    }
     if (has('access_denied')) {
       back.searchParams.set('error', 'access_denied')
       back.searchParams.set('error_code', '200')
@@ -385,7 +400,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     const denied = scenariosNamed('permission_missing').find(
       (s) =>
         s.opts.path !== undefined &&
-        matches(s.opts, path) &&
+        matches({ path: s.opts.path }, path) &&
         (s.opts.token === undefined || s.opts.token === tokenValue),
     )
     if (denied !== undefined) {
@@ -572,7 +587,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       else if (path === '/debug_token') debugToken(params, bearer ?? queryToken, res)
       else graph(req.method ?? 'GET', path, params, bearer ?? queryToken, res, fullSelf)
     }
-    if (!fault(path, res, route)) route()
+    const token = data.tokens[bearer ?? queryToken ?? '']
+    if (!fault(path, token, res, route)) route()
   }
 
   const server = createServer(handle)
@@ -586,6 +602,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         data = loadFixtures()
         active = []
         removed.clear()
+        codes.clear()
         return
       }
       const opts = (args[0] ?? {}) as ScenarioOptions[N]

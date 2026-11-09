@@ -143,3 +143,15 @@ test('a Graph API call without a valid appsecret_proof is rejected', async () =>
   expect(wrong.status).toBe(400)
   expect(mock.calls().map((c) => c.path)).toEqual(['/me/accounts', '/me/accounts'])
 })
+
+test('a login request with an invalid return address answers 400 and the mock keeps running', async () => {
+  const dialog = new URL(`${mock.url}/v25.0/dialog/oauth`)
+  dialog.search = new URLSearchParams({
+    client_id: META_MOCK.app.id,
+    config_id: META_MOCK.app.configId,
+    redirect_uri: 'not a url',
+    state: 's',
+  }).toString()
+  expect((await fetch(dialog, { redirect: 'manual' })).status).toBe(400)
+  expect((await graph('/me', META_MOCK.tokens.systemUser)).status).toBe(200)
+})
