@@ -91,6 +91,11 @@ async function recordLogin(deps: AuthEventDeps, event: Extract<AuthEvent, { kind
         data: { method: event.method },
       })
     }
+    // Signed in with their own credentials: the activation is over, and the sessions it opened
+    // (cookies the browser has already replaced) close with it.
+    for (const s of await tx.sessions.findForUser(userId))
+      if (s.authMethod === 'activation' && s.id !== sessionId)
+        await tx.sessions.delete(userId, s.id)
     const knownBefore = await tx.knownDevices.count(userId)
     // Without the cookie id we cannot tell the device apart: it counts as new.
     const isNew =

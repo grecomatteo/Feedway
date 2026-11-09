@@ -200,6 +200,14 @@ function signIn(email: string, password: string) {
   )
 }
 
+async function sessionMethods(userId: string) {
+  const { rows } = await admin.query<{ auth_method: string }>(
+    'select auth_method from sessions where user_id = $1 order by created_at',
+    [userId],
+  )
+  return rows.map((r) => r.auth_method)
+}
+
 /** Same deps, with one step failing: as if the process died there. */
 function failing(step: 'createUser' | 'memberships' | 'openSession'): IdentityDeps {
   const brokenUow: UnitOfWork = {
@@ -428,6 +436,28 @@ describe('invites', () => {
     const r = await activateAccount(deps, form(token, { sessionUserId: u?.id ?? null }))
     expect(r.next).toBe('done')
     expect((await signIn(email, STRONG)).status).toBe(200)
+  })
+
+  test('a new activation session replaces the earlier one', async () => {
+    const email = uniqueEmail('rifatta')
+    const { token } = await inviteFixture(email)
+    await activateAccount(deps, form(token, { password: null }))
+    const [u] = await userByEmail(email)
+    const userId = u?.id ?? ''
+    // the passkey was cancelled: the same person chooses a password with the open link
+    await activateAccount(deps, form(token, { sessionUserId: userId }))
+    expect(await sessionMethods(userId)).toEqual(['activation'])
+  })
+
+  test('the activation sessions end when the person signs in with their own credentials', async () => {
+    const email = uniqueEmail('accesso')
+    const { token } = await inviteFixture(email)
+    await activateAccount(deps, form(token))
+    const [u] = await userByEmail(email)
+    const userId = u?.id ?? ''
+    expect(await sessionMethods(userId)).toEqual(['activation'])
+    expect((await signIn(email, STRONG)).status).toBe(200)
+    expect(await sessionMethods(userId)).toEqual(['password'])
   })
 
   test('an agency owner invite makes the person Owner, and the activation is recorded once', async () => {

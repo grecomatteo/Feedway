@@ -291,6 +291,9 @@ export async function activateAccount(
 
   // Step 4: an existing account keeps the session it signed in with.
   if (who.kind === 'existing') return { setCookie: [], organizationSlug: slug, next: 'done' }
+  // A new account has only the sessions of earlier attempts (checkResume): the new one replaces
+  // them, so none is left open behind the browser's back.
+  await deps.auth.revokeAllSessions(who.userId)
   const { setCookie } = await deps.auth.openSession(who.userId, {
     ip: input.ip,
     userAgent: input.userAgent,
