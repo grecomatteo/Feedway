@@ -92,7 +92,7 @@ async function recordLogin(deps: AuthEventDeps, event: Extract<AuthEvent, { kind
       })
     }
     // Signed in with their own credentials: the activation is over, and the sessions it opened
-    // (cookies the browser has already replaced) close with it.
+    // close with it, on any device.
     for (const s of await tx.sessions.findForUser(userId))
       if (s.authMethod === 'activation' && s.id !== sessionId)
         await tx.sessions.delete(userId, s.id)

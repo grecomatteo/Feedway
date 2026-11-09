@@ -449,6 +449,19 @@ describe('invites', () => {
     expect(await sessionMethods(userId)).toEqual(['activation'])
   })
 
+  test('a retry that fails to open its session keeps the earlier one', async () => {
+    const email = uniqueEmail('ritenta')
+    const { token } = await inviteFixture(email)
+    await activateAccount(deps, form(token, { password: null }))
+    const [u] = await userByEmail(email)
+    const userId = u?.id ?? ''
+    await expect(
+      activateAccount(failing('openSession'), form(token, { sessionUserId: userId })),
+    ).rejects.toThrow('processo interrotto')
+    // the person still has the session the next attempt needs
+    expect(await sessionMethods(userId)).toEqual(['activation'])
+  })
+
   test('the activation sessions end when the person signs in with their own credentials', async () => {
     const email = uniqueEmail('accesso')
     const { token } = await inviteFixture(email)

@@ -153,7 +153,7 @@ export function createAuthAdapter(instance: BetterAuthInstance, deps: AuthAdapte
         body: { userId, ipAddress: meta.ip, userAgent: meta.userAgent },
         returnHeaders: true,
       })
-      return { setCookie: opened.headers.getSetCookie() }
+      return { setCookie: opened.headers.getSetCookie(), sessionId: opened.response.sessionId }
     },
 
     async passwordResetUrl(email) {
