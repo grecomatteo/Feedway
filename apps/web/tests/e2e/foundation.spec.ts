@@ -35,20 +35,27 @@ test('skip link is the first focusable element', async ({ page }) => {
   await expect(page.locator(':focus')).toHaveAttribute('href', '#main')
 })
 
-test('theme can be switched and persists after a reload', async ({ page }) => {
+test('the theme follows the system, then one click turns it to the other and it stays', async ({
+  page,
+}) => {
   await page.goto('/')
-  // under load the first click can land before the page is interactive: open until it shows
+  const html = page.locator('html')
+  const systemDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  if (systemDark) await expect(html).toHaveClass(/dark/)
+  else await expect(html).not.toHaveClass(/dark/)
+  const toggle = page.getByRole('button', { name: 'Passa al tema chiaro o scuro' })
+  // under load the first click can land before the page is interactive: click until it turns
   await expect(async () => {
-    await page.getByRole('button', { name: 'Tema' }).click()
-    await expect(page.getByRole('menuitemcheckbox', { name: 'Scuro' })).toBeVisible({
-      timeout: 1000,
-    })
+    await toggle.click()
+    if (systemDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
+    else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
   }).toPass()
-  await page.getByRole('menuitemcheckbox', { name: 'Scuro' }).click()
-  await expect(page.locator('html')).toHaveClass(/dark/)
+  // no menu: a single click is the whole switch
+  await expect(page.getByRole('menu')).toHaveCount(0)
   await page.reload()
-  await expect(page.locator('html')).toHaveClass(/dark/)
-  await page.getByRole('button', { name: 'Tema' }).click()
-  await page.getByRole('menuitemcheckbox', { name: 'Chiaro' }).click()
-  await expect(page.locator('html')).not.toHaveClass(/dark/)
+  if (systemDark) await expect(html).not.toHaveClass(/dark/)
+  else await expect(html).toHaveClass(/dark/)
+  await toggle.click()
+  if (systemDark) await expect(html).toHaveClass(/dark/)
+  else await expect(html).not.toHaveClass(/dark/)
 })

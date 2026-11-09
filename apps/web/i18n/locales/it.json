@@ -1,6 +1,7 @@
 {
   "theme": {
     "label": "Tema",
+    "toggle": "Passa al tema chiaro o scuro",
     "light": "Chiaro",
     "dark": "Scuro",
     "system": "Automatico"

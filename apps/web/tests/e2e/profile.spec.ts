@@ -43,6 +43,48 @@ test('profile edits are saved and theme follows the user to a new device', async
   }
 })
 
+test('the theme button keeps the choice in the profile, so a new visit keeps it', async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const person = await newMember()
+  await signIn(page.request, person)
+  await page.goto('/account')
+  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  // a new person follows the system until the first choice
+  const wasDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  if (wasDark) await expect(page.locator('html')).toHaveClass(/dark/)
+  else await expect(page.locator('html')).not.toHaveClass(/dark/)
+  const saved: number[] = []
+  page.on('response', (r) => {
+    if (r.url().endsWith('/api/v1/me') && r.request().method() === 'PATCH') saved.push(r.status())
+  })
+  const html = page.locator('html')
+  // under load the first click can land before the page is interactive: click until it turns
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).first().click()
+    if (wasDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
+    else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
+  }).toPass()
+  await expect.poll(() => saved).toEqual([200])
+
+  // another browser whose system says the opposite: the profile wins
+  const other = await browser.newContext({
+    baseURL: baseURL ?? '',
+    colorScheme: wasDark ? 'dark' : 'light',
+  })
+  try {
+    const elsewhere = await other.newPage()
+    await signIn(elsewhere.request, person)
+    await elsewhere.goto('/account')
+    if (wasDark) await expect(elsewhere.locator('html')).not.toHaveClass(/dark/)
+    else await expect(elsewhere.locator('html')).toHaveClass(/dark/)
+  } finally {
+    await other.close()
+  }
+})
+
 test('a wrong nickname gets its error next to the field', async ({ page }) => {
   const person = await newMember()
   await signIn(page.request, person)
