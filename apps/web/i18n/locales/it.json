@@ -603,7 +603,8 @@
     "title": "Secondo passaggio",
     "explain": "Il tuo ruolo richiede un secondo passaggio all'accesso. Scegli come farlo: una passkey oppure l'app di autenticazione.",
     "useApp": "Usa l'app di autenticazione",
-    "firstPassword": "Non hai ancora un modo per accedere: crea una passkey oppure scegli una password, poi aggiungi l'app di autenticazione.",
+    "explainNoWayIn": "Il tuo ruolo richiede un secondo passaggio all'accesso, ma non hai ancora un modo per entrare. Crea una passkey, che vale già come secondo passaggio, oppure scegli una password.",
+    "firstPassword": "Con una password, subito dopo aggiungi l'app di autenticazione.",
     "useExisting": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella. Con la sola password non si aggiungono altri metodi."
   },
   "agencyHome": {
