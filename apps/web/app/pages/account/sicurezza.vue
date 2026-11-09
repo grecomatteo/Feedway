@@ -146,12 +146,19 @@ const startTotp = () =>
     )
     Object.assign(totp, { uri: r.totpURI, backupCodes: r.backupCodes, step: 'scan', code: '' })
   })
-const verifyTotp = () =>
-  totpAction(async () => {
-    await call('POST', '/api/auth/two-factor/verify-totp', { code: totp.code.replace(/\s/g, '') })
+function verifyTotp() {
+  // an empty or half-written code (a stray Enter, an autofill) never reaches the server
+  const code = totp.code.replace(/\s/g, '')
+  if (!/^\d{6}$/.test(code)) {
+    totp.problem = t('security.totp.codeIncomplete')
+    return
+  }
+  return totpAction(async () => {
+    await call('POST', '/api/auth/two-factor/verify-totp', { code })
     Object.assign(totp, { step: 'codes', password: '', uri: '', code: '' })
     await refresh()
   })
+}
 const disableTotp = () =>
   totpAction(() =>
     withReauth(async (password) => {
