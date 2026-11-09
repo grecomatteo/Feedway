@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./platforms/meta": "./src/platforms/meta/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

@@ -134,6 +134,7 @@ const appSchema = z
     ),
     META_GRAPH_VERSION_SUNSET: optional(z.iso.date({ error: 'deve essere una data AAAA-MM-GG' })),
     META_MODE: withDefault(z.enum(['live', 'mock', 'dry-run']), 'live'),
+    META_RECORD_DIR: optional(z.string().min(1)),
     TZ_DEFAULT: withDefault(
       z.string().refine((v) => IANAZone.isValidZone(v), { error: 'fuso orario non valido' }),
       'Europe/Rome',
@@ -202,6 +203,8 @@ export interface AppConfig {
   /** Retirement date of `metaGraphVersion` (YYYY-MM-DD): the panel warns 90 days before. */
   metaGraphVersionSunset: string
   metaMode: 'live' | 'mock' | 'dry-run'
+  /** Redacted Meta answers are saved here, only with metaMode `live` (Meta test, plan 03 Task 13). */
+  metaRecordDir: string | null
   defaultTimezone: string
   mediaRetentionDays: number
   /** Folder of stored files (photos, exports): the `media` volume in the container. */
@@ -340,6 +343,7 @@ export function loadConfig(
     metaGraphVersion: v.META_GRAPH_VERSION,
     metaGraphVersionSunset,
     metaMode: v.META_MODE,
+    metaRecordDir: v.META_RECORD_DIR ?? null,
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     mediaRoot: v.MEDIA_ROOT,
