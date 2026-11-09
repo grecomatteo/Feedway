@@ -7,7 +7,7 @@ export default defineApiRoute(
     const user = await onePerPerson(session.user.id, () =>
       cropAvatar(avatarDeps(), session.user, body, { ip }),
     )
-    return { ...user, sessionState: session.state }
+    return meOf(user, session.state)
   },
   { rateLimit: AVATAR_RATE_LIMIT },
 )

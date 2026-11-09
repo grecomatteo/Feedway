@@ -217,10 +217,9 @@ const regenerateCodes = () =>
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <h2 id="security-password" class="text-lg">{{ $t('security.password.title') }}</h2>
-        <p class="text-sm text-(--app-text-muted)">
-          {{
-            firstPassword ? $t('security.password.firstExplain') : $t('security.password.explain')
-          }}
+        <p v-if="me" class="text-sm text-(--app-text-muted)">
+          <template v-if="firstPassword">{{ $t('security.password.firstExplain') }} </template>
+          {{ me.emailNotices ? $t('security.password.notice') : $t('security.password.noticeOff') }}
         </p>
         <form
           class="space-y-4"
