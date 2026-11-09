@@ -31,6 +31,8 @@ export const Me = z.object({
   }),
   /** False for an account that signs in with passkeys only, or that has no way in yet. */
   hasPassword: z.boolean(),
+  /** The platform sends email: security notices (password changed…) reach the person. */
+  emailNotices: z.boolean(),
   /** `second_factor_required`: the panel shows only the second factor setup. */
   sessionState: z.enum(['active', 'second_factor_required']),
 })

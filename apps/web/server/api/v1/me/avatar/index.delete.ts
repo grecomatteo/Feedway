@@ -3,5 +3,5 @@ import { removeAvatarRoute } from '@app/contracts'
 
 export default defineApiRoute(removeAvatarRoute, async ({ session, ip }) => {
   const user = await removeAvatar(avatarDeps(), session.user, { ip })
-  return { ...user, sessionState: session.state }
+  return meOf(user, session.state)
 })

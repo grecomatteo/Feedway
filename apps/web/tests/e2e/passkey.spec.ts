@@ -376,6 +376,10 @@ test('with passkeys only, a first password is set without a current one', async 
   await page.goto('/account/sicurezza')
   const password = page.getByRole('region', { name: 'Password' })
   await expect(password.getByLabel('Password attuale')).toHaveCount(0)
+  // the test server sends email: the notice is promised
+  await expect(
+    password.getByText('Ti avvisiamo via email a ogni cambio della password.'),
+  ).toBeVisible()
   await password.getByLabel('Nuova password').fill(E2E_PASSWORD)
   await password.getByRole('button', { name: 'Imposta la password' }).click()
   // the passkey sign-in of the activation is the recent confirmation the server asks for
@@ -405,6 +409,8 @@ test('a passkey cancelled and the link expired: the second factor page asks a pa
 
   await page.goto('/accedi/secondo-fattore')
   await expect(page.getByRole('button', { name: "Usa l'app di autenticazione" })).toHaveCount(0)
+  // the app is not offered, and the text does not offer it either
+  await expect(page.getByText('ma non hai ancora un modo per entrare')).toBeVisible()
   await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
   await page.getByRole('button', { name: 'Salva la password' }).click()
   // with a password the authenticator app can follow

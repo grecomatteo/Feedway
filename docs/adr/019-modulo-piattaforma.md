@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta |
+| **Stato** | Accettata (Matteo, con il piano della tappa 3, 2026-11-03) |
 | **Data** | 2026-11-02 |
 | **Specifica** | v9, §7.3, §8, §18.6; piano generale §8.8; ADR 015 |
 
@@ -38,7 +38,7 @@ Fatti dal codice della tappa 2:
   - `packages/domain/src/platforms/meta/`: le regole pure di Meta, se servono (permessi richiesti, scadenze, soglie di uso).
 
   Il client Meta resta nell'infrastruttura e non è una porta di `application`: i casi d'uso parlano solo con `PlatformConnector`. Il piano generale §6 si aggiorna di conseguenza, e la porta di pubblicazione della tappa 7 sarà generica (`PlatformPublisher`), implementata da Meta. Le tappe 5–7 aggiungono qui regole, pubblicazione e anteprima.
-- **Registro delle piattaforme**: una mappa costante `connection kind → PlatformConnector` costruita nella radice di composizione (`packages/infrastructure/src/runtime.ts`). Non si introduce il registro generale dei moduli finché non serve a un secondo consumatore: `docs/moduli.md` lo segnala come non ancora costruito.
+- **Registro delle piattaforme**: una mappa costante `connection kind → PlatformConnector` costruita nella radice di composizione (`packages/infrastructure/src/runtime.ts`), separata dal registro generale dei moduli. Quando questa ADR è stata scritta il registro dei moduli non esisteva ancora; è nato con la chiusura della tappa 2 (#111, nota del 2026-11-09).
 - **Il "profilo" resta generico**: `social_accounts.page_id` (nome della specifica §13) è la chiave che lega due account in un profilo. Per Meta è l'id della Pagina; per una piattaforma senza abbinamenti è vuota.
 - **Credenziali**:
   - dell'app Meta dell'agenzia: integrazione `meta` per organizzazione in `integrations`. App ID e `configId` dell'accesso unificato stanno in `config` (ADR 020); il secret, come JSON `{ appSecret }`, è sigillato con `KeyRing.forOrganization` e AAD `integrations:org:<organizationId>:meta`;
@@ -51,7 +51,7 @@ Fatti dal codice della tappa 2:
 
 ## Alternative scartate
 - **Un solo modulo `meta` con le tabelle degli account dentro**: alla seconda piattaforma bisognerebbe spostare tabelle e casi d'uso usati da post, calendario e profili.
-- **Registro generale dei moduli subito** (`module.ts`, `ModulePermissions`): oggi non ha consumatori, perché i permessi sugli account sono già nel nucleo. Costruirlo prima vorrebbe dire indovinarne la forma.
+- **Registro generale dei moduli subito** (`module.ts`, `ModulePermissions`): il 2026-11-02 non aveva consumatori, perché i permessi sugli account erano già nel nucleo. Superata: il registro è nato con la #111 per i moduli della tappa 2, e non cambia la mappa delle piattaforme.
 - **Token dei collegamenti in `integrations`**: `integrations` ha una riga per agenzia e tipo, mentre i collegamenti sono molti per agenzia e hanno scadenza e stato propri.
 
 ## Conseguenze

@@ -28,6 +28,7 @@ test('me answers the person and the session state, with nothing else', async () 
       'avatarUrl',
       'displayName',
       'email',
+      'emailNotices',
       'hasPassword',
       'id',
       'lastOrganizationSlug',
@@ -50,6 +51,8 @@ test('me answers the person and the session state, with nothing else', async () 
     organizations: [{ id: agency.id, slug: agency.slug, role: 'member', status: 'active' }],
     secondFactor: { required: false, totpEnabled: false, passkeys: 0 },
     hasPassword: true,
+    // the test server writes emails to a mailbox: security notices go out
+    emailNotices: true,
   })
 
   expect((await get('/api/v1/me')).status).toBe(401)

@@ -291,11 +291,14 @@ export async function activateAccount(
 
   // Step 4: an existing account keeps the session it signed in with.
   if (who.kind === 'existing') return { setCookie: [], organizationSlug: slug, next: 'done' }
-  const { setCookie } = await deps.auth.openSession(who.userId, {
+  const { setCookie, sessionId } = await deps.auth.openSession(who.userId, {
     ip: input.ip,
     userAgent: input.userAgent,
     authMethod: 'activation',
   })
+  // A new account has only the sessions of earlier attempts (checkResume): the new one replaces
+  // them, closed only once it exists so a failure here leaves the person a way to retry.
+  await deps.auth.revokeAllSessions(who.userId, { exceptSessionId: sessionId })
   // From now on a retry with the open link needs this session (checkResume).
   await deps.uow.run({ userId: who.userId }, (tx) =>
     tx.users.setLastLoginAt(who.userId, deps.clock.now()),

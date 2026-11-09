@@ -94,16 +94,23 @@ export default defineNitroPlugin((nitroApp) => {
       const started = event.context['startedAt'] as number | undefined
       // a request answered before startup finished has no logger yet
       if (event.context.requestId === undefined) return
-      useDeps().logger.info(
-        {
-          requestId: event.context.requestId,
-          method: event.method,
-          path: event.path.split('?')[0],
-          status: event.node.res.statusCode,
-          durationMs: started === undefined ? undefined : Date.now() - started,
-        },
-        'request',
-      )
+      const durationMs = started === undefined ? undefined : Date.now() - started
+      // the session the request came with (already resolved by 20.session), to tell who did what
+      void Promise.resolve(event.context.auth)
+        .catch(() => null)
+        .then((resolved) => {
+          useDeps().logger.info(
+            {
+              requestId: event.context.requestId,
+              method: event.method,
+              path: event.path.split('?')[0],
+              status: event.node.res.statusCode,
+              durationMs,
+              ...(resolved ? { userId: resolved.user.id, sessionId: resolved.session.id } : {}),
+            },
+            'request',
+          )
+        })
     })
   })
 })

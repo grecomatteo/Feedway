@@ -241,21 +241,20 @@ test('an account with no way in sets its password with the session alone', async
     { cookie: p.cookie },
   )
   expect(set.status).toBe(200)
-  expect((await signInWith(p.email, PASSWORD)).status).toBe(200)
+  const signedIn = await signInWith(p.email, PASSWORD)
+  expect(signedIn.status).toBe(200)
+  // signed in with the password: the activation session is over
+  expect((await call('GET', '/api/v1/me', undefined, { cookie: p.cookie })).status).toBe(401)
+  const cookie = sessionCookie(signedIn) ?? ''
   // only once: from now on the password changes with the current one
-  const again = await call(
-    'POST',
-    '/api/v1/me/password',
-    { password: PASSWORD },
-    { cookie: p.cookie },
-  )
+  const again = await call('POST', '/api/v1/me/password', { password: PASSWORD }, { cookie })
   expect(again.status).toBe(409)
   // the link still open does not change it either: that takes the current password
   const relink = await call(
     'POST',
     `/api/v1/links/${p.token}/activate`,
     { name: 'Persona Nuova', password: 'un-altra-frase-lunga-e-sicura' },
-    { cookie: p.cookie },
+    { cookie },
   )
   expect(relink.status).toBe(409)
   expect((await signInWith(p.email, PASSWORD)).status).toBe(200)
