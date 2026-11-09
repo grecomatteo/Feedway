@@ -116,6 +116,20 @@ async function goIn() {
   await navigateTo(slug ? `/${slug}` : '/accedi')
 }
 
+/** Signed in as someone else: that session closes before a new account takes this browser. */
+async function leaveOther() {
+  sending.value = true
+  problem.value = null
+  try {
+    await session.signOut({ stay: { keep: 'activation-link' } })
+    signedInAs.value = null
+  } catch {
+    problem.value = { ...failure(null), message: t('nav.signOutFailed') }
+  } finally {
+    sending.value = false
+  }
+}
+
 function problemOf(e: unknown): ApiFailure {
   const f =
     e instanceof DOMException
@@ -301,6 +315,16 @@ const signInTo = computed(() => ({ path: '/accedi', query: { dopo: `/attiva/${HI
             {{ $t('activate.signInFirst') }}
           </UButton>
         </template>
+      </template>
+
+      <template v-else-if="link && signedInAs !== null && signedInAs !== link.email">
+        <p role="alert">
+          {{ $t('activate.otherAccountNew', { email: signedInAs, invited: link.email }) }}
+        </p>
+        <p v-if="formError" role="alert" class="text-(--app-danger)">{{ formError }}</p>
+        <UButton block size="xl" class="min-h-12" :loading="sending" @click="leaveOther">
+          {{ $t('activate.signOutAndContinue') }}
+        </UButton>
       </template>
 
       <form v-else-if="link" class="space-y-4" novalidate @submit.prevent="submitNew">

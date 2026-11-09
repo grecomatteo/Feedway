@@ -143,6 +143,30 @@ test('a reload while setting up 2FA resumes the setup instead of blocking', asyn
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
 })
 
+test('an invite opened while signed in as someone else asks to leave that account first', async ({
+  page,
+}) => {
+  const other = await newMember()
+  await signIn(page.request, other)
+  const email = `nuovo-${randomUUID().slice(0, 8)}@example.test`
+  const { path, organizationSlug } = await inviteLink(email, 'member')
+  await page.goto(path)
+  await expect(page.getByRole('alert')).toContainText(`Ora sei collegato come ${other.email}`)
+  await expect(page.getByLabel('Nome e cognome')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Esci e continua' }).click()
+  // the other account is out, on the server too, and the invite goes on
+  await page.getByLabel('Nome e cognome').fill('Nadia Nuova')
+  const left = await adminQuery<{ n: number }>(
+    'select count(*)::int as n from sessions where user_id = $1',
+    [other.userId],
+  )
+  expect(left[0]?.n).toBe(0)
+  await page.getByRole('radio', { name: /^Password/ }).check()
+  await page.getByRole('textbox', { name: /^Password/ }).fill(NEW_PASSWORD)
+  await page.getByRole('button', { name: "Attiva l'account" }).click()
+  await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
+})
+
 test('an existing user accepts an invite after signing in, without a password form', async ({
   page,
 }) => {
