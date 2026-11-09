@@ -1,0 +1,4 @@
+{
+  "client": { "token": "mock-business-login-token" },
+  "personal_ig": { "token": "mock-business-login-personal-token" }
+}

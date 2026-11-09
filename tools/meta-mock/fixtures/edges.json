@@ -1,0 +1,38 @@
+{
+  "4000000000000001/accounts": [
+    {
+      "ref": "5000000000000001",
+      "access_token": "mock-page-token-5000000000000001",
+      "tasks": ["ADVERTISE", "ANALYZE", "CREATE_CONTENT", "MESSAGING", "MODERATE", "MANAGE"]
+    },
+    {
+      "ref": "5000000000000002",
+      "access_token": "mock-page-token-5000000000000002",
+      "tasks": ["ANALYZE", "CREATE_CONTENT", "MODERATE"]
+    }
+  ],
+  "4000000000000001/businesses": ["3000000000000001"],
+  "3000000000000001/owned_pages": ["5000000000000001"],
+  "3000000000000001/client_pages": [
+    { "ref": "5000000000000002", "permitted_tasks": ["ANALYZE", "CREATE_CONTENT", "MODERATE"] }
+  ],
+  "3000000000000001/instagram_business_accounts": ["6000000000000002", "6000000000000003"],
+  "3000000000000002/owned_pages": [],
+  "3000000000000002/client_pages": [],
+  "3000000000000002/instagram_business_accounts": ["6000000000000004", "6000000000000003"],
+  "3000000000000003/owned_pages": [],
+  "3000000000000003/client_pages": [],
+  "3000000000000003/instagram_business_accounts": [],
+  "6000000000000001/content_publishing_limit": [
+    { "quota_usage": 2, "config": { "quota_total": 50, "quota_duration": 86400 } }
+  ],
+  "6000000000000002/content_publishing_limit": [
+    { "quota_usage": 0, "config": { "quota_total": 50, "quota_duration": 86400 } }
+  ],
+  "6000000000000003/content_publishing_limit": [
+    { "quota_usage": 7, "config": { "quota_total": 50, "quota_duration": 86400 } }
+  ],
+  "6000000000000004/content_publishing_limit": [
+    { "quota_usage": 1, "config": { "quota_total": 50, "quota_duration": 86400 } }
+  ]
+}
