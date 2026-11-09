@@ -294,6 +294,8 @@ interface CallSpec {
   credentials?: MetaTokenCredentials
   /** App token (`id|secret`) in the header: `debug_token`, which takes no proof. */
   appToken?: string
+  /** False for calls that must not run twice: the authorization code works only once. */
+  retry?: boolean
 }
 
 export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphClient {
@@ -346,7 +348,11 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
       // Meta may have acted on a request that timed out: never retried (plan 03, Task 3)
       if (err instanceof DOMException && err.name === 'TimeoutError')
         throw new MetaError({ kind: 'uncertain', reason: 'timeout' })
-      throw new MetaError({ kind: 'transient', reason: 'meta_unavailable' })
+      // without retries the request may have reached Meta: the outcome is unknown
+      throw new MetaError({
+        kind: spec.retry === false ? 'uncertain' : 'transient',
+        reason: 'meta_unavailable',
+      })
     }
     const body = parseJson(text)
     const usage = readUsage(res.headers)
@@ -412,7 +418,8 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         )
         // Rate limits and blocks are transient too, but waiting seconds does not help: the
         // caller waits with Retry-After or the usage headers (spec §8.6, from stage 7)
-        if (err.reason !== 'meta_unavailable' || n >= MAX_ATTEMPTS) throw err
+        if (err.reason !== 'meta_unavailable' || spec.retry === false || n >= MAX_ATTEMPTS)
+          throw err
         const wait = baseDelay * 2 ** (n - 1) * (0.5 + Math.random())
         await new Promise((resolve) => setTimeout(resolve, wait))
       }
@@ -444,6 +451,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
       const result = await call(
         {
           name: 'oauth/access_token',
+          retry: false,
           path: '/oauth/access_token',
           params: {
             client_id: app.appId,

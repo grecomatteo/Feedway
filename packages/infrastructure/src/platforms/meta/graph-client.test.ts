@@ -266,6 +266,21 @@ describe('error classification', () => {
     expect(mock.calls().length - before).toBe(3)
   })
 
+  test('the code exchange is never retried: the code works only once', async () => {
+    const code = await codeFromDialog()
+    mock.scenario('transient_error', { path: '/oauth/access_token' })
+    const err = await failure(client.exchangeCode(app, { code, redirectUri: REDIRECT }))
+    expect([err.kind, err.reason]).toEqual(['transient', 'meta_unavailable'])
+    expect(mock.calls().filter((c) => c.path === '/oauth/access_token')).toHaveLength(1)
+  })
+
+  test('a non JSON 429 is transient', async () => {
+    mock.scenario('html_5xx', { path: '/me', status: 429, times: 1 })
+    const me = await client.getMe(systemUser)
+    expect(me.data.id).toBe(META_MOCK.users.systemUser)
+    expect(mock.calls().filter((c) => c.path === '/me')).toHaveLength(2)
+  })
+
   test('an expired token shows up in debug_token too', async () => {
     mock.scenario('token_expired', { token: META_MOCK.tokens.systemUser })
     const info = await client.debugToken(app, META_MOCK.tokens.systemUser)

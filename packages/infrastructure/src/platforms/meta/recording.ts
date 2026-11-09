@@ -2,7 +2,20 @@ const SECRET_KEY = /token|secret|proof/i
 const ID_KEY = /^(id|.+_id)$/
 const IDS_KEY = /_ids$/
 const NAME_KEYS = new Set(['name', 'username', 'application'])
-const SIGNED_URL_PARAMS = ['oh', 'oe', 'access_token', 'appsecret_proof', 'input_token', 'code']
+// Meta's free text (errors) may hold ids and never leaves the client
+const TEXT_KEYS = new Set(['message', 'error_user_msg', 'error_user_title', 'error_data'])
+// cursors encode object ids
+const CURSOR_KEYS = new Set(['after', 'before'])
+const URL_PARAMS = [
+  'oh',
+  'oe',
+  'access_token',
+  'appsecret_proof',
+  'input_token',
+  'code',
+  'after',
+  'before',
+]
 
 /**
  * Redacts a Graph API answer for META_RECORD_DIR (plan 03, Task 3), so a recording can replace
@@ -33,8 +46,12 @@ export function createRecordingRedactor(): (value: unknown) => unknown {
     if (!/^https?:\/\//.test(text)) return text
     try {
       const url = new URL(text)
-      for (const param of SIGNED_URL_PARAMS)
+      for (const param of URL_PARAMS)
         if (url.searchParams.has(param)) url.searchParams.set(param, 'REDACTED')
+      url.pathname = url.pathname
+        .split('/')
+        .map((segment) => (/^\d+$/.test(segment) ? fakeId(segment) : segment))
+        .join('/')
       return url.toString()
     } catch {
       return text
@@ -48,11 +65,12 @@ export function createRecordingRedactor(): (value: unknown) => unknown {
           ? fakeId(item)
           : redact(item, null),
       )
+    if (key !== null && TEXT_KEYS.has(key) && value !== null) return 'REDACTED'
     if (typeof value === 'object' && value !== null)
       return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redact(v, k)]))
     if (typeof value !== 'string' || key === null)
       return typeof value === 'string' ? redactString(value) : value
-    if (SECRET_KEY.test(key)) return 'REDACTED'
+    if (SECRET_KEY.test(key) || TEXT_KEYS.has(key) || CURSOR_KEYS.has(key)) return 'REDACTED'
     if (ID_KEY.test(key)) return fakeId(value)
     if (NAME_KEYS.has(key)) return fakeName(value)
     return redactString(value)
