@@ -117,7 +117,8 @@ module.exports = {
     },
     {
       name: 'meta-only-inside-platform',
-      comment: 'ADR 019: only platforms/meta and the composition root know the Graph API client',
+      comment:
+        'ADR 019: only platforms/meta itself and the composition root import infrastructure/platforms/meta',
       severity: 'error',
       from: {
         pathNot: [

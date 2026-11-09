@@ -17,8 +17,7 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 
 ## 2. Regole
 
-- **Piattaforme social** ([ADR 019](adr/019-modulo-piattaforma.md)): il modulo `accounts` è generico e non conosce nessuna piattaforma. Il codice di Meta sta solo in `platforms/meta/` di `domain`, `application` e `infrastructure`, e il client della Graph API è in `packages/infrastructure/src/platforms/meta/`. I connettori si trovano con una mappa `connection kind → PlatformConnector` in `packages/infrastructure/src/runtime.ts`, separata dal registro dei moduli. **(CI: dependency-cruiser)**
-
+- **Piattaforme social** ([ADR 019](adr/019-modulo-piattaforma.md)): il modulo `accounts` è generico e non conosce nessuna piattaforma. Il codice di Meta sta in `platforms/meta/` di `domain`, `application` e `infrastructure`. I connettori si trovano con una mappa `connection kind → PlatformConnector` in `packages/infrastructure/src/runtime.ts`, separata dal registro dei moduli. La CI (dependency-cruiser) controlla che solo `platforms/meta/` e `runtime.ts` importino `packages/infrastructure/src/platforms/meta/`, che l'index di `infrastructure` non riesporti le piattaforme e che `accounts` non importi `platforms/`.
 - Un modulo legge e scrive **solo le proprie tabelle** **(CI: dependency-cruiser)**.
 - Per i dati di un altro modulo usa le funzioni del suo `index.ts`, oppure reagisce ai suoi **eventi** dall'outbox.
 - Il modulo si registra da sé in `module.ts`; l'unico punto centrale è una riga nell'elenco `MODULES` (`packages/application/src/modules.ts`). Il tipo è in `packages/application/src/module-definition.ts`; esempi: `identity/module.ts`, `workspaces/module.ts`.
