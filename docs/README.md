@@ -12,6 +12,7 @@
 | [ADR](adr/README.md) | Decisioni architetturali con le alternative scartate | Una nuova scheda per ogni decisione importante |
 | [Flusso Git](flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci | Quando cambia il modo di lavorare |
 | [Convenzioni](convenzioni.md) | Lingua, TypeScript, nomi, errori, tempo, database, interfaccia | Quando nasce una regola nuova |
+| [Meta](platforms/meta.md) | Cosa dice la documentazione di Meta: versione, accessi, permessi, salute, errori, con fonte e data | A ogni cambio di versione della Graph API e dopo ogni prova su Meta vera |
 | [Moduli](moduli.md) | Ricetta per aggiungere un modulo | Quando cambia la forma di un modulo |
 | [CONTRIBUTING](../CONTRIBUTING.md) · [AGENTS](../AGENTS.md) · [SECURITY](../SECURITY.md) | Come si contribuisce, istruzioni per gli agenti, segnalazioni di sicurezza | Raramente |
 

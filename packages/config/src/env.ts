@@ -40,6 +40,12 @@ export const KNOWN_QUEUES = [
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
 
+// Retirement dates from Meta's "Versions" page, read 2026-11-09 (docs/platforms/meta.md).
+const META_GRAPH_SUNSETS: Readonly<Record<string, string>> = {
+  'v24.0': '2028-02-18',
+  'v25.0': '2028-07-29',
+}
+
 const RESOLVABLE = [
   'DATABASE_URL',
   'DATABASE_MIGRATOR_URL',
@@ -49,6 +55,7 @@ const RESOLVABLE = [
   'PANEL_URL',
   'PUBLIC_URL',
   'META_GRAPH_VERSION',
+  'META_GRAPH_VERSION_SUNSET',
   'META_MODE',
   'TZ_DEFAULT',
   'MEDIA_RETENTION_DAYS',
@@ -122,9 +129,10 @@ const appSchema = z
     PANEL_URL: z.string({ error: 'obbligatoria' }).pipe(url),
     PUBLIC_URL: optional(url),
     META_GRAPH_VERSION: withDefault(
-      z.string().regex(/^v\d+\.\d+$/, { error: 'deve avere la forma v24.0' }),
-      'v24.0',
+      z.string().regex(/^v\d+\.\d+$/, { error: 'deve avere la forma v25.0' }),
+      'v25.0',
     ),
+    META_GRAPH_VERSION_SUNSET: optional(z.iso.date({ error: 'deve essere una data AAAA-MM-GG' })),
     META_MODE: withDefault(z.enum(['live', 'mock', 'dry-run']), 'live'),
     TZ_DEFAULT: withDefault(
       z.string().refine((v) => IANAZone.isValidZone(v), { error: 'fuso orario non valido' }),
@@ -191,6 +199,8 @@ export interface AppConfig {
   panelUrl: URL
   publicUrl: URL | null
   metaGraphVersion: string
+  /** Retirement date of `metaGraphVersion` (YYYY-MM-DD): the panel warns 90 days before. */
+  metaGraphVersionSunset: string
   metaMode: 'live' | 'mock' | 'dry-run'
   defaultTimezone: string
   mediaRetentionDays: number
@@ -307,6 +317,17 @@ export function loadConfig(
       issues.push({ variable: 'BETTER_AUTH_SECRETS', problem: BETTER_AUTH_SECRETS_FORM })
     else if (secret !== undefined) betterAuth = { secret, secrets }
   }
+  let metaGraphVersionSunset = ''
+  if (parsed.success) {
+    const { META_GRAPH_VERSION: version, META_GRAPH_VERSION_SUNSET: sunset } = parsed.data
+    const known = sunset ?? META_GRAPH_SUNSETS[version]
+    if (known === undefined)
+      issues.push({
+        variable: 'META_GRAPH_VERSION_SUNSET',
+        problem: 'obbligatoria per una versione senza data di ritiro nota',
+      })
+    else metaGraphVersionSunset = known
+  }
   if (issues.length > 0 || !parsed.success) throw new ConfigError(issues)
 
   const v = parsed.data
@@ -317,6 +338,7 @@ export function loadConfig(
     panelUrl: new URL(v.PANEL_URL),
     publicUrl: v.PUBLIC_URL ? new URL(v.PUBLIC_URL) : null,
     metaGraphVersion: v.META_GRAPH_VERSION,
+    metaGraphVersionSunset,
     metaMode: v.META_MODE,
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
