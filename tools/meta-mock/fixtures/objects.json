@@ -1,0 +1,53 @@
+{
+  "3000000000000001": { "id": "3000000000000001", "name": "Agenzia Demo" },
+  "3000000000000002": { "id": "3000000000000002", "name": "Cliente Demo" },
+  "3000000000000003": { "id": "3000000000000003", "name": "Cliente con profilo personale" },
+  "4000000000000001": { "id": "4000000000000001", "name": "Feedway (utente di sistema)" },
+  "4000000000000002": {
+    "id": "4000000000000002",
+    "name": "Feedway (Cliente Demo)",
+    "client_business_id": "3000000000000002"
+  },
+  "4000000000000003": {
+    "id": "4000000000000003",
+    "name": "Feedway (Cliente con profilo personale)",
+    "client_business_id": "3000000000000003"
+  },
+  "5000000000000001": {
+    "id": "5000000000000001",
+    "name": "Forno Luce",
+    "category": "Panetteria",
+    "picture": { "data": { "url": "https://scontent.example.test/forno.jpg?oh=aa11&oe=6A00" } },
+    "instagram_business_account": { "ref": "6000000000000001" }
+  },
+  "5000000000000002": {
+    "id": "5000000000000002",
+    "name": "Bottega Verde",
+    "category": "Negozio",
+    "picture": { "data": { "url": "https://scontent.example.test/bottega.jpg?oh=bb22&oe=6A00" } }
+  },
+  "6000000000000001": {
+    "id": "6000000000000001",
+    "username": "fornoluce",
+    "name": "Forno Luce",
+    "profile_picture_url": "https://scontent.example.test/fornoluce.jpg?oh=cc33&oe=6A00"
+  },
+  "6000000000000002": {
+    "id": "6000000000000002",
+    "username": "studio.rossi",
+    "name": "Studio Rossi",
+    "profile_picture_url": "https://scontent.example.test/studio.jpg?oh=dd44&oe=6A00"
+  },
+  "6000000000000003": {
+    "id": "6000000000000003",
+    "username": "caffe.centrale",
+    "name": "Caffè Centrale",
+    "profile_picture_url": "https://scontent.example.test/caffe.jpg?oh=ee55&oe=6A00"
+  },
+  "6000000000000004": {
+    "id": "6000000000000004",
+    "username": "palestra.nord",
+    "name": "Palestra Nord",
+    "profile_picture_url": "https://scontent.example.test/palestra.jpg?oh=ff66&oe=6A00"
+  }
+}
