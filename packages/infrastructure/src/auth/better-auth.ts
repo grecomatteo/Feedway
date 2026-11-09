@@ -109,7 +109,7 @@ const activationSession = {
         const opened = session as typeof session | null
         if (!opened) throw new Error('activation session refused')
         await setSessionCookie(ctx, { session: opened, user })
-        return ctx.json({ ok: true })
+        return ctx.json({ sessionId: opened.id })
       },
     ),
   },

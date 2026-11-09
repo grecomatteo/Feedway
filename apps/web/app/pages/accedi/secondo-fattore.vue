@@ -90,7 +90,7 @@ async function leave() {
     <BackupFactorOffer v-else-if="choice === 'backup'" @later="enter" />
 
     <template v-else>
-      <p>{{ $t('secondFactor.explain') }}</p>
+      <p>{{ noWayIn ? $t('secondFactor.explainNoWayIn') : $t('secondFactor.explain') }}</p>
       <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
       <fieldset :disabled="!ready" class="min-w-0 space-y-3">
         <UButton

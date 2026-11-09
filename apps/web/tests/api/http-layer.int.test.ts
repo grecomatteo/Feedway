@@ -613,6 +613,27 @@ describe('responses', () => {
     expect(anonymous.headers.get('cache-control')).toBe('private, no-store')
   })
 
+  test('a request line names the person and the session behind it', async () => {
+    const p = await personIn('member')
+    const cookie = await signIn(p.email)
+    const { rows } = await admin.pool.query<{ id: string }>(
+      'select id from sessions where user_id = $1',
+      [p.userId],
+    )
+    let requestId = ''
+    const lines = await logLinesDuring(async () => {
+      requestId = (await call('GET', '/api/v1/me', undefined, { cookie })).headers.get(
+        'x-request-id',
+      ) as string
+    })
+    const line = lines.find((l) => l.includes(requestId) && l.includes('"msg":"request"'))
+    expect(JSON.parse(line ?? '{}')).toMatchObject({ userId: p.userId, sessionId: rows[0]?.id })
+    const anonymous = await logLinesDuring(() => call('GET', '/api/v1/me'))
+    const anonymousLine = anonymous.find((l) => l.includes('"path":"/api/v1/me"'))
+    expect(anonymousLine).toBeDefined()
+    expect(JSON.parse(anonymousLine ?? '{}')).not.toHaveProperty('userId')
+  })
+
   test('an error page is one request in the log, not two', async () => {
     const lines = await logLinesDuring(() =>
       fetch(web.url('/pagina/che-non-esiste'), { headers: { accept: 'text/html' } }),
