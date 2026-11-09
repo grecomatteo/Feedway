@@ -13,6 +13,9 @@ test.each([
   ['module-imports-better-auth', 'better-auth-only-in-adapter'],
   ['infrastructure-imports-resolved-better-auth', 'better-auth-only-in-adapter'],
   ['db-module-imports-identity', 'identity-tables-only-from-identity'],
+  ['meta-client-outside-platform', 'meta-only-inside-platform'],
+  ['meta-in-infrastructure-index', 'infrastructure-index-hides-meta'],
+  ['accounts-imports-platforms', 'accounts-knows-no-platform'],
 ])('fixture %s violates rule %s', (fixture, rule) => {
   const result = runDepcruise(`tools/arch-fixtures/${fixture}`)
   expect(result.exitCode).not.toBe(0)

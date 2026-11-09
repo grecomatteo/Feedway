@@ -22,5 +22,5 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica due punti di ADR 013) | Accettata (Matteo, 2026-10-29) |
 | [017](017-invio-email-via-smtp.md) | Invio email via SMTP della piattaforma (anticipato dalla tappa 3; modifica un punto di ADR 007) | Proposta |
 | [018](018-niente-filtro-xss-sugli-input.md) | Niente filtro anti-XSS sugli input: la difesa sta in uscita | Accettata (Matteo, 2026-10-30) |
-| [019](019-modulo-piattaforma.md) | Confini del modulo piattaforma: `accounts` generico e `platforms/meta` | Proposta |
+| [019](019-modulo-piattaforma.md) | Confini del modulo piattaforma: `accounts` generico e `platforms/meta` | Accettata (Matteo, 2026-11-03) |
 | [020](020-accesso-unificato-meta.md) | Accesso unificato di Meta al posto dei login Facebook e Instagram (modifica alcuni punti di ADR 015 e 019) | Proposta |
