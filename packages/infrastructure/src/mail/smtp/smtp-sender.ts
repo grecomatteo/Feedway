@@ -1,8 +1,9 @@
-import type { MailMessage, SmtpConfig } from '@app/application'
+import { EMAIL_LOGO_CID, type MailMessage, type SmtpConfig } from '@app/application'
 import { PRODUCT_NAME } from '@app/config'
 import { createTransport } from 'nodemailer'
 import { normalizeHostName, resolveDestination, systemResolve } from './destination.js'
 import type { Destination, Resolve } from './destination.js'
+import { EMAIL_LOGO_PNG } from '../email-logo.js'
 import { isMailAddress, parseSmtpConfig } from './smtp-config.js'
 import { safeResponse, SmtpSendError } from './smtp-error.js'
 import type { SmtpFailureKind } from './smtp-error.js'
@@ -172,6 +173,18 @@ export function createSmtpSender(opts: SmtpSenderOptions = {}): SmtpSender {
             subject: message.subject,
             text: message.text,
             html: message.html,
+            // the logo is attached only to messages that show it (inline, by Content-ID)
+            ...(message.html.includes(`cid:${EMAIL_LOGO_CID}`) && {
+              attachments: [
+                {
+                  filename: 'feedway-logo.png',
+                  content: EMAIL_LOGO_PNG,
+                  contentType: 'image/png',
+                  cid: EMAIL_LOGO_CID,
+                  contentDisposition: 'inline' as const,
+                },
+              ],
+            }),
             disableFileAccess: true,
             disableUrlAccess: true,
           }),

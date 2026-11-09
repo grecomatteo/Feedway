@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/grecomatteo/Feedway/compare/v0.4.1...v0.5.0) (2026-11-09)
+
+
+### Novità
+
+* **accounts:** confini del modulo Meta controllati dalla CI ([#139](https://github.com/grecomatteo/Feedway/issues/139)) ([df45596](https://github.com/grecomatteo/Feedway/commit/df455968fa18537057858a63ec44cda59e8a99d9))
+* **accounts:** finto Graph API di Meta per test e sviluppo ([#143](https://github.com/grecomatteo/Feedway/issues/143)) ([d0573c1](https://github.com/grecomatteo/Feedway/commit/d0573c12ac658f5a00323baa070d23e44fe83295))
+* **config:** Graph API v25.0 con data di ritiro e verifiche su Meta ([#141](https://github.com/grecomatteo/Feedway/issues/141)) ([455f566](https://github.com/grecomatteo/Feedway/commit/455f5664dade08e0f1fe6a249886817916fbbebe))
+
+
+### Correzioni
+
+* **identity:** un invito aperto a metà di un altro accesso chiede di uscire ([304304a](https://github.com/grecomatteo/Feedway/commit/304304a0bc86aaf8be5774c3a5b0452db058286d))
+* **identity:** un invito aperto con un altro account chiede prima di uscire ([304304a](https://github.com/grecomatteo/Feedway/commit/304304a0bc86aaf8be5774c3a5b0452db058286d))
+* **notifications:** il logo viaggia dentro l'email ([304304a](https://github.com/grecomatteo/Feedway/commit/304304a0bc86aaf8be5774c3a5b0452db058286d))
+* **web:** logo con il simbolo nelle schermate di accesso ([304304a](https://github.com/grecomatteo/Feedway/commit/304304a0bc86aaf8be5774c3a5b0452db058286d))
+
 ## [0.4.1](https://github.com/grecomatteo/Feedway/compare/v0.4.0...v0.4.1) (2026-11-09)
 
 

@@ -1,3 +1,10 @@
+/**
+ * The logo travels inside each message: the mailer attaches it under this Content-ID to any
+ * message whose HTML shows it. The panel is often reachable only on a private network, where
+ * mail clients cannot fetch an image.
+ */
+export const EMAIL_LOGO_CID = 'logo@feedway'
+
 export interface MailMessage {
   to: string
   subject: string

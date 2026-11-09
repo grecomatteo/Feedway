@@ -111,7 +111,7 @@ function noticeFor(
   ]
   const role = forAdmin ? 'admin' : 'owner'
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.lockNotice.preheader', values),
     title: t('email.lockNotice.title', values),
     blocks: [

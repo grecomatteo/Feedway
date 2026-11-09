@@ -17,7 +17,7 @@ const base: EmailContent = {
   ],
   footerReason: 'Ricevi questa email perché Giulia ti ha invitato.',
   productName: 'Feedway',
-  logoUrl: 'https://pannello.example.test/email/feedway-logo@2x.png',
+  logoUrl: 'cid:logo@feedway',
   chrome: {
     buttonFallback: 'Se il pulsante non funziona, copia questo indirizzo nel browser:',
     serviceNotice: 'È un messaggio di servizio: lo inviamo solo quando serve al tuo account.',
@@ -53,7 +53,7 @@ describe('html', () => {
     const { html } = renderEmail(base)
     const images = html.match(/<img\b[^>]*>/g) ?? []
     expect(images).toHaveLength(1)
-    expect(images[0]).toContain('src="https://pannello.example.test/email/feedway-logo@2x.png"')
+    expect(images[0]).toContain('src="cid:logo@feedway"')
     expect(images[0]).toContain('alt="Feedway"')
     expect(images[0]).toContain('width="176"')
     expect(images[0]).toContain('height="51"')
@@ -148,8 +148,12 @@ describe('escaping', () => {
     ).toThrow(/link/)
   })
 
-  test('the logo address follows the same rule', () => {
-    expect(() => renderEmail({ ...base, logoUrl: 'javascript:alert(1)' })).toThrow(/link/)
+  test('the logo is an image inside the message or a web address, nothing else', () => {
+    expect(() => renderEmail({ ...base, logoUrl: 'javascript:alert(1)' })).toThrow(/logo/)
+    expect(() => renderEmail({ ...base, logoUrl: 'cid:"onerror=x' })).toThrow(/logo/)
+    expect(renderEmail({ ...base, logoUrl: 'https://pannello.example.test/l.png' }).html).toContain(
+      'src="https://pannello.example.test/l.png"',
+    )
   })
 })
 

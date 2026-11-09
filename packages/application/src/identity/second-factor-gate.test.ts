@@ -101,3 +101,14 @@ test('once the activation link is gone, the session alone may still set the firs
   for (const f of [{ ...firstSetup, hasPassword: true }, { ...noWayIn, passkeys: 1 }, firstSetup])
     expect(allowedWhileSecondFactorRequired('POST', '/api/v1/me/password', f)).toBe(false)
 })
+
+test('the public description of a link stays readable, whatever factors the session has', () => {
+  for (const f of [
+    firstSetup,
+    { totpEnabled: true, passkeys: 0 },
+    { totpEnabled: false, passkeys: 1 },
+  ]) {
+    expect(allowedWhileSecondFactorRequired('GET', '/api/v1/links/Ab3_-x', f)).toBe(true)
+    expect(allowedWhileSecondFactorRequired('GET', '/api/v1/links/Ab3_-x/extra', f)).toBe(false)
+  }
+})
