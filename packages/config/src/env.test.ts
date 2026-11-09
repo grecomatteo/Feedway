@@ -26,7 +26,8 @@ test('valid web env parses with defaults', () => {
   expect(c.metaMode).toBe('live')
   expect(c.defaultTimezone).toBe('Europe/Rome')
   expect(c.mediaRetentionDays).toBe(7)
-  expect(c.metaGraphVersion).toBe('v24.0')
+  expect(c.metaGraphVersion).toBe('v25.0')
+  expect(c.metaGraphVersionSunset).toBe('2028-07-29')
   expect(c.encryptionKey).toHaveLength(32)
 })
 
@@ -214,4 +215,29 @@ test('test-only routes are off by default and allowed only with NODE_ENV=test', 
   expect(issuesOf({ ...validWebEnv, NODE_ENV: 'test', APP_TEST_ROUTES: 'yes' })).toEqual([
     expect.objectContaining({ variable: 'APP_TEST_ROUTES' }),
   ])
+})
+
+test('takes the sunset of a known Graph API version from the table', () => {
+  const c = loadConfig('web', { ...validWebEnv, META_GRAPH_VERSION: 'v24.0' })
+  expect(c.metaGraphVersionSunset).toBe('2028-02-18')
+})
+
+test('requires the sunset for a Graph API version without a known date', () => {
+  expect(issuesOf({ ...validWebEnv, META_GRAPH_VERSION: 'v99.0' })).toContainEqual({
+    variable: 'META_GRAPH_VERSION_SUNSET',
+    problem: 'obbligatoria per una versione senza data di ritiro nota',
+  })
+  const c = loadConfig('web', {
+    ...validWebEnv,
+    META_GRAPH_VERSION: 'v99.0',
+    META_GRAPH_VERSION_SUNSET: '2029-01-31',
+  })
+  expect(c.metaGraphVersionSunset).toBe('2029-01-31')
+})
+
+test('rejects a sunset that is not a calendar date', () => {
+  expect(issuesOf({ ...validWebEnv, META_GRAPH_VERSION_SUNSET: '2028-02-30' })).toContainEqual({
+    variable: 'META_GRAPH_VERSION_SUNSET',
+    problem: 'deve essere una data AAAA-MM-GG',
+  })
 })

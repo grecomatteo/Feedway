@@ -1302,7 +1302,8 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `PANEL_URL` | `https://feedway.tuo-tailnet.ts.net` | | |
 | `PUBLIC_URL` / `PUBLIC_HOST` | `https://pub.tuodominio.it` | | Host pubblico |
 | `SITE_URL` | `https://tuodominio.it` | | Facoltativa: collegamento al sito dalla pagina di accesso |
-| `META_GRAPH_VERSION` | es. `v24.0` | | Aggiornata con PR e test |
+| `META_GRAPH_VERSION` | `v25.0` | | Aggiornata con PR e test ([docs/platforms/meta.md](../../platforms/meta.md)) |
+| `META_GRAPH_VERSION_SUNSET` | `2028-07-29` | | Data di ritiro della versione; predefinita per le versioni note, obbligatoria per le altre. Avviso 90 giorni prima (§8.4) |
 | `META_MODE` | `live` | | `live`, `mock`, `dry-run` |
 | `TZ_DEFAULT` | `Europe/Rome` | | |
 | `MEDIA_RETENTION_DAYS` | `7` | | |
