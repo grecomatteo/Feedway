@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.1](https://github.com/grecomatteo/Feedway/compare/v0.4.0...v0.4.1) (2026-11-09)
+
+
+### Correzioni
+
+* **identity:** le sessioni di attivazione si chiudono a fine attivazione ([4b856da](https://github.com/grecomatteo/Feedway/commit/4b856da4109d098f067210cedd69ccaf1be3fd5f))
+* **web:** il secondo passaggio non propone l'app a chi non ha un modo per entrare ([4b856da](https://github.com/grecomatteo/Feedway/commit/4b856da4109d098f067210cedd69ccaf1be3fd5f))
+* **web:** l'avviso via email del cambio password solo con l'email configurata ([4b856da](https://github.com/grecomatteo/Feedway/commit/4b856da4109d098f067210cedd69ccaf1be3fd5f))
+* **web:** utente e sessione nella riga di log di ogni richiesta ([4b856da](https://github.com/grecomatteo/Feedway/commit/4b856da4109d098f067210cedd69ccaf1be3fd5f))
+
 ## [0.4.0](https://github.com/grecomatteo/Feedway/compare/v0.3.0...v0.4.0) (2026-11-06)
 
 
