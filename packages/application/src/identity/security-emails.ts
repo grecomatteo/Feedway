@@ -151,7 +151,7 @@ export async function sendSecurityEmail(
     ]
   }
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t(`${base}.preheader`, values),
     title: t(`${base}.title`, values),
     blocks,

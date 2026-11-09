@@ -71,8 +71,9 @@ export function useSession() {
   /**
    * Closes the session on the server, then here. Throws when the server did not close it: the
    * cookie only goes away with the server's answer, so leaving the page would only hide it.
+   * `stay`: the page goes on without the account (an invite for someone else), keeping its own data.
    */
-  async function signOut() {
+  async function signOut(opts: { stay?: { keep: string } } = {}) {
     try {
       // Better Auth answers 415 to a POST without a JSON body
       await $fetch('/api/auth/sign-out', {
@@ -86,8 +87,11 @@ export function useSession() {
       if ((fetchError.statusCode ?? fetchError.response?.status) !== 401) throw e
     }
     view.value = { state: 'signed_out' }
-    clearNuxtData()
-    await navigateTo('/accedi')
+    const keep = opts.stay?.keep
+    if (keep === undefined) {
+      clearNuxtData()
+      await navigateTo('/accedi')
+    } else clearNuxtData((key) => key !== keep)
   }
 
   /** The server already closed the session (account deleted): forget it here too. */

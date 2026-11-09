@@ -6,9 +6,11 @@ type Route = `${'GET' | 'POST'} ${string}`
 /**
  * Always open: leaving, reading the session state, signing in again with a passkey (it opens a
  * new session that satisfies the rule, it adds no factor) and closing an activation link once
- * its passkey exists (it only marks the person's own link as used).
+ * its passkey exists (it only marks the person's own link as used). A link's description is
+ * public anyway: a half-finished sign-in in this browser must not hide someone else's invite.
  */
 const ALWAYS: readonly (Route | RegExp)[] = [
+  /^GET \/api\/v1\/links\/[A-Za-z0-9_-]+$/,
   'POST /api/auth/sign-out',
   'GET /api/auth/get-session',
   'GET /api/auth/passkey/generate-authenticate-options',

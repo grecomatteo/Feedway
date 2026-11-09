@@ -67,6 +67,16 @@ function webLink(value: string): string {
   return value
 }
 
+/** An image attached to the message (`cid:`) or a web address. */
+function logoSource(value: string): string {
+  if (/^cid:[\w.@-]+$/.test(value)) return value
+  try {
+    return webLink(value)
+  } catch {
+    throw new Error('email logo must be an attached image or a web address')
+  }
+}
+
 const font = (family: string, size: number, lineHeight: number, color: string, weight = 400) =>
   `margin:0;font-family:${family};font-size:${String(size)}px;line-height:${String(lineHeight)}px;font-weight:${String(weight)};color:${color};`
 
@@ -155,7 +165,7 @@ body{margin:0;padding:0;}
 const PREVIEW_FILLER = '&#847;&zwnj;&nbsp;'.repeat(40)
 
 export function renderEmail(content: EmailContent): { html: string; text: string } {
-  const logo = escapeHtml(webLink(content.logoUrl))
+  const logo = escapeHtml(logoSource(content.logoUrl))
   const product = escapeHtml(content.productName)
   const blocks = content.blocks
     .map(

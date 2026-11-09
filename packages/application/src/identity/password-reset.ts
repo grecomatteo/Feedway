@@ -128,7 +128,7 @@ export async function sendPasswordResetEmail(
   const today = isSameDay(now, expiresAt, timeZone)
   const values = { product: deps.productName, minutes, time }
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.passwordReset.preheader', values),
     title: t('email.passwordReset.title', values),
     blocks: [

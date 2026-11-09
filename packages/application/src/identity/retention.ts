@@ -355,7 +355,7 @@ export async function sendAnonymizationNotice(
     date: dayAndTime(new Date(job.scheduledFor), timeZone, { year: true }).day,
   }
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.anonymizationNotice.preheader', values),
     title: t('email.anonymizationNotice.title', values),
     blocks: [

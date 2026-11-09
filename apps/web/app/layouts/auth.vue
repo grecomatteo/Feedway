@@ -11,7 +11,7 @@
     </header>
     <main id="main" class="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-12 sm:pt-10">
       <div class="mb-6 flex justify-center">
-        <AppLogo />
+        <BrandLogo />
       </div>
       <div class="rounded-xl border border-(--app-border) bg-(--app-surface) p-6 shadow-sm sm:p-8">
         <slot />

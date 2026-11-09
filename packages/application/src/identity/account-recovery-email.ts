@@ -58,7 +58,7 @@ export async function sendAccountRecoveryEmail(
   const variant = (key: 'intro' | 'notMe' | 'footer') =>
     `email.accountRecovery.${recovered ? `${key}Recovered` : key}`
   const { html, text } = renderEmail({
-    ...emailFrame(t, deps.panelUrl, deps.productName),
+    ...emailFrame(t, deps.productName),
     preheader: t('email.accountRecovery.preheader', values),
     title: t('email.accountRecovery.title', values),
     blocks: [
