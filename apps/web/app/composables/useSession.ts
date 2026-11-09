@@ -71,8 +71,8 @@ export function useSession() {
   /**
    * Closes the session on the server, then here. Throws when the server did not close it: the
    * cookie only goes away with the server's answer, so leaving the page would only hide it.
+   * `stay`: the page goes on without the account (an invite for someone else), keeping its own data.
    */
-  /** `stay`: the page goes on without the account (an invite for someone else), keeping its own data. */
   async function signOut(opts: { stay?: { keep: string } } = {}) {
     try {
       // Better Auth answers 415 to a POST without a JSON body

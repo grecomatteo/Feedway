@@ -167,6 +167,25 @@ test('an invite opened while signed in as someone else asks to leave that accoun
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
 })
 
+test('an invite opened halfway through a sign-in by someone else asks to leave that account too', async ({
+  page,
+}) => {
+  // the role asks for 2FA, not set up yet: the session waits for the second factor
+  const other = await newPerson('Alba Admin', 'admin')
+  await signIn(page.request, other)
+  const email = `nuovo-${randomUUID().slice(0, 8)}@example.test`
+  const { path } = await inviteLink(email, 'member')
+  await page.goto(path)
+  await expect(page.getByRole('alert')).toContainText(`Ora sei collegato come ${other.email}`)
+  await page.getByRole('button', { name: 'Esci e continua' }).click()
+  await expect(page.getByLabel('Nome e cognome')).toBeVisible()
+  const left = await adminQuery<{ n: number }>(
+    'select count(*)::int as n from sessions where user_id = $1',
+    [other.userId],
+  )
+  expect(left[0]?.n).toBe(0)
+})
+
 test('an existing user accepts an invite after signing in, without a password form', async ({
   page,
 }) => {

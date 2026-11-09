@@ -53,11 +53,32 @@ const linkProblem = computed(() =>
 
 // an existing account accepts while signed in as that account
 const signedInAs = ref<string | null>(null)
+/** The link once it answered, or null when it failed or there is no token. */
+function linkSettled(): Promise<LinkDescription | null> {
+  if (token === '') return Promise.resolve(null)
+  return new Promise((resolve) => {
+    const stop = watch(
+      [link, linkError],
+      ([l, e]) => {
+        if (!l && !e) return
+        queueMicrotask(() => stop())
+        resolve(l ?? null)
+      },
+      { immediate: true },
+    )
+  })
+}
 onMounted(async () => {
   const view = await session.load().catch(() => null)
   const me = view?.state === 'active' || view?.state === 'second_factor' ? view.me : null
   if (view?.state === 'active') signedInAs.value = view.me.email
   if (!me) return
+  // someone else, even halfway through signing in: the page asks to leave that account first
+  const invited = await linkSettled()
+  if (invited && !invited.existingUser && invited.email !== me.email) {
+    signedInAs.value = me.email
+    return
+  }
   // reloaded after activating: the account exists. Without a passkey or a password it has no
   // way in yet (a passkey cancelled), and that comes first; otherwise the second factor is
   // still to set up (the component asks the password again).
