@@ -235,6 +235,11 @@ test('requires the sunset for a Graph API version without a known date', () => {
   expect(c.metaGraphVersionSunset).toBe('2029-01-31')
 })
 
+test('an explicit sunset wins over the table, also for a known version', () => {
+  const c = loadConfig('web', { ...validWebEnv, META_GRAPH_VERSION_SUNSET: '2028-01-01' })
+  expect(c.metaGraphVersionSunset).toBe('2028-01-01')
+})
+
 test('rejects a sunset that is not a calendar date', () => {
   expect(issuesOf({ ...validWebEnv, META_GRAPH_VERSION_SUNSET: '2028-02-30' })).toContainEqual({
     variable: 'META_GRAPH_VERSION_SUNSET',
