@@ -59,3 +59,24 @@ test('the theme follows the system, then one click turns it to the other and it 
   if (systemDark) await expect(html).toHaveClass(/dark/)
   else await expect(html).not.toHaveClass(/dark/)
 })
+
+test('the tab shows the Feedway icon, from the brand kit', async ({ page, request }) => {
+  await page.goto('/accedi')
+  const icons = page.locator('head link[rel="icon"]')
+  await expect(icons).toHaveCount(2)
+  for (const href of [
+    '/favicon.ico',
+    '/brand/favicon.ico',
+    '/brand/favicon.svg',
+    '/brand/apple-touch-icon.png',
+    '/brand/site.webmanifest',
+    '/brand/icon-192.png',
+  ]) {
+    const r = await request.get(href)
+    expect(r.status(), href).toBe(200)
+  }
+  await expect(page.locator('head link[rel="apple-touch-icon"]')).toHaveAttribute(
+    'href',
+    '/brand/apple-touch-icon.png',
+  )
+})
