@@ -101,8 +101,20 @@ const listingRejected = () =>
     'CONFLICT',
     'Meta non mostra gli account di questo collegamento: controlla il token e l’ID del Business Manager',
   )
+const listingError = (reason: 'rejected' | 'unavailable' | 'incomplete') =>
+  reason === 'unavailable'
+    ? unavailable()
+    : reason === 'incomplete'
+      ? new DomainError(
+          'CONFLICT',
+          'Meta manda un elenco di account che non finisce: Feedway non l’ha letto per intero',
+        )
+      : listingRejected()
 const notWorking = () =>
   new DomainError('CONFLICT', 'Il collegamento non funziona più: collegalo di nuovo')
+
+/** Opaque to this module: equal when the platform's module would build the same value. */
+const sameApp = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 const works = (status: ConnectionStatus) => status === 'active' || status === 'pending'
 
@@ -218,13 +230,18 @@ export async function connectWithToken(
     }
   }
   const listing = await connector.listAccounts({ app, token })
-  if (!listing.ok) throw listing.reason === 'unavailable' ? unavailable() : listingRejected()
+  if (!listing.ok) throw listingError(listing.reason)
   const now = deps.clock.now()
 
   return deps.uow.run(scope, async (tx) => {
     await assertStillManages(tx, actor)
     // the same lock as the imports: two pastes of the same user make one connection
     await tx.accounts.lockImport(organizationId)
+    await assertActiveOrganization(tx, organizationId)
+    // the token was checked against this app: another one saved meanwhile would not take it
+    const appNow = await connector.loadAppCredentials(tx, organizationId)
+    if (appNow === null || !sameApp(appNow, app))
+      throw new DomainError('CONFLICT', 'L’app Meta dell’agenzia è cambiata nel frattempo: riprova')
     const existing = await tx.connections.findByExternalUser(
       organizationId,
       input.kind,
@@ -324,7 +341,7 @@ async function openConnection(
 
 async function listLive(opened: OpenedConnection): Promise<PlatformAccount[]> {
   const listing = await opened.connector.listAccounts({ app: opened.app, token: opened.token })
-  if (!listing.ok) throw listing.reason === 'unavailable' ? unavailable() : listingRejected()
+  if (!listing.ok) throw listingError(listing.reason)
   return listing.accounts
 }
 
@@ -351,8 +368,8 @@ export async function listImportable(
  * Admin assigns them. Only accounts the connection sees right now; an account of another
  * working connection stays there (choice 2); the `social_accounts` limit counts under the
  * agency's import lock, so two imports never both take the last slot. The connection becomes
- * `active` (choice 6). The first health check arrives with plan 03 Task 10: until then the
- * accounts are "never checked" and cannot be chosen for a post.
+ * `active` (choice 6). The first health check arrives with plan 03 Task 10: until then a new
+ * account is "never checked" and cannot be chosen for a post.
  */
 export async function importAccounts(
   deps: ConnectionsDeps,

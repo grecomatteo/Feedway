@@ -1,7 +1,18 @@
 import { expect, test } from 'vitest'
-import type { MetaFacebookPage, MetaPage, MetaResult } from './graph-client.js'
+import type {
+  MetaFacebookPage,
+  MetaGraphClient,
+  MetaPage,
+  MetaResult,
+  MetaTokenInfo,
+} from './graph-client.js'
 import { MetaError } from './errors.js'
-import { MAX_LIST_REQUESTS, classifiedListing, listMetaAccounts } from './system-user-connector.js'
+import {
+  MAX_LIST_REQUESTS,
+  classifiedListing,
+  createMetaSystemUserConnector,
+  listMetaAccounts,
+} from './system-user-connector.js'
 
 // The defensive paging of the account listing (plan 03 Task 6), with a hand-made client: the
 // fake Graph API never sends pages that loop.
@@ -53,7 +64,7 @@ test('a page already seen stops the listing: no endless loop', async () => {
   const { client, asked } = clientOf((after) => answer([page(after ?? '0')], 'sempre-lo-stesso'))
   expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS, null))).toEqual({
     ok: false,
-    reason: 'unavailable',
+    reason: 'incomplete',
   })
   expect(asked).toHaveLength(2)
 })
@@ -63,7 +74,7 @@ test('a listing stops after its request budget', async () => {
   const { client, asked } = clientOf(() => answer([page(String(n))], `c${String(++n)}`))
   expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS, null))).toEqual({
     ok: false,
-    reason: 'unavailable',
+    reason: 'incomplete',
   })
   expect(asked).toHaveLength(MAX_LIST_REQUESTS)
 })
@@ -77,4 +88,51 @@ test('Meta errors become a refusal or no answer; other errors are not hidden', a
     await classifiedListing(failing(new MetaError({ kind: 'transient', reason: 'rate_limited' }))),
   ).toEqual({ ok: false, reason: 'unavailable' })
   await expect(classifiedListing(failing(new TypeError('bug')))).rejects.toThrow('bug')
+})
+
+const APP = { appId: '1000000000000001', appSecret: 'segreto-di-prova', businessId: null }
+const VALID: MetaTokenInfo = {
+  isValid: true,
+  type: 'SYSTEM_USER',
+  appId: APP.appId,
+  userId: '4000000000000001',
+  expiresAt: 'never',
+  dataAccessExpiresAt: 'never',
+  issuedAt: null,
+  scopes: [
+    'pages_show_list',
+    'pages_read_engagement',
+    'pages_manage_posts',
+    'instagram_basic',
+    'instagram_content_publish',
+    'business_management',
+  ],
+  granularScopes: [],
+  error: null,
+}
+
+const checkWith = (info: MetaTokenInfo) =>
+  createMetaSystemUserConnector({
+    client: {
+      debugToken: () => Promise.resolve({ data: info, usage: USAGE }),
+    } as unknown as MetaGraphClient,
+    integrations: { credentials: () => Promise.resolve(null) },
+  }).connectWithToken?.(APP, 'token-incollato')
+
+test('a valid system user token passes, and does not expire', async () => {
+  expect(await checkWith(VALID)).toMatchObject({
+    ok: true,
+    externalUserId: VALID.userId,
+    expiresAt: null,
+  })
+})
+
+test.each([
+  ['of another app', { ...VALID, appId: '1999999999999999' }],
+  ['of a page', { ...VALID, type: 'PAGE' }],
+  ['of the app itself', { ...VALID, type: 'APP' }],
+  ['without a user', { ...VALID, userId: null }],
+  ['not valid', { ...VALID, isValid: false }],
+])('a token %s is refused', async (_why, info) => {
+  expect(await checkWith(info)).toEqual({ ok: false, reason: 'rejected', permissions: [] })
 })

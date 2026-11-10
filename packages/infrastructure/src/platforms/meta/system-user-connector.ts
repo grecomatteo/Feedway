@@ -173,7 +173,8 @@ export async function classifiedListing(
   try {
     return { ok: true, accounts: await list() }
   } catch (error) {
-    if (error instanceof MetaListingError) return { ok: false, reason: 'unavailable' }
+    // stopping again would stop the same way: not worth a retry
+    if (error instanceof MetaListingError) return { ok: false, reason: 'incomplete' }
     if (!(error instanceof MetaError)) throw error
     return { ok: false, reason: REFUSED.has(error.reason) ? 'rejected' : 'unavailable' }
   }
@@ -216,8 +217,16 @@ export function createMetaSystemUserConnector(deps: {
         name,
         granted: scopes.has(name),
       }))
-      // a token of another app would also fail every call, its proof made with our secret
-      if (!info.isValid || info.appId !== credentials.appId || info.userId === null)
+      // a token of another app would also fail every call, its proof made with our secret; a
+      // page or app token is no user's (Meta's documented types, the system user's one is not
+      // verified: end of Task 7)
+      if (
+        !info.isValid ||
+        info.appId !== credentials.appId ||
+        info.userId === null ||
+        info.type === 'PAGE' ||
+        info.type === 'APP'
+      )
         return { ok: false, reason: 'rejected', permissions: [] }
       if (permissions.some((p) => !p.granted))
         return { ok: false, reason: 'permissions_missing', permissions }

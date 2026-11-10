@@ -76,6 +76,10 @@ export interface PlatformAccount {
   problem: 'role_missing' | null
 }
 
-/** `rejected`: the token or the account list is refused; `unavailable`: no answer. */
+/**
+ * `rejected`: the token or the account list is refused; `unavailable`: no answer; `incomplete`:
+ * the list does not end (too long, or a page that comes back), so it was not read whole.
+ */
 export type AccountListing =
-  { ok: true; accounts: PlatformAccount[] } | { ok: false; reason: 'rejected' | 'unavailable' }
+  | { ok: true; accounts: PlatformAccount[] }
+  | { ok: false; reason: 'rejected' | 'unavailable' | 'incomplete' }
