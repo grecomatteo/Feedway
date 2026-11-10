@@ -12,7 +12,7 @@ mock.scenario('default') // torna ai dati iniziali
 await mock.stop()
 ```
 
-In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 di default).
+In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 di default). Il pannello lo usa con `META_MODE=mock`, all'indirizzo `META_MOCK_URL` (predefinito `http://127.0.0.1:4010`). Con l'app finta (`META_MOCK.app`) Impostazioni → Integrazioni → Meta si salva e si prova.
 
 ## Cosa risponde
 

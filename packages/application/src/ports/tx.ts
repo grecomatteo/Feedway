@@ -15,18 +15,9 @@ import type {
   WorkspacesRepository,
 } from './repositories.js'
 
-export interface OrganizationKeyRecord {
-  version: number
-  /** Data key sealed with the platform key, `v1.<platformKeyVersion>.…` */
-  keyEnc: string
-  retiredAt: Date | null
-}
+import type { OrganizationKeysRepository } from './organization-keys.js'
 
-export interface OrganizationKeysRepository {
-  list(organizationId: string): Promise<OrganizationKeyRecord[]>
-  insert(organizationId: string, version: number, keyEnc: string): Promise<void>
-  retire(organizationId: string, version: number, at: Date): Promise<void>
-}
+export type { OrganizationKeyRecord, OrganizationKeysRepository } from './organization-keys.js'
 
 /**
  * One database transaction with its scope already set (organization, user or system).

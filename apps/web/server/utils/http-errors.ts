@@ -35,6 +35,8 @@ export const ERROR_STATUS: Readonly<Record<ErrorCode, number>> = {
   INTERNAL: 500,
   // the mail server failed us: an upstream error, worth a retry
   MAIL_SEND_FAILED: 502,
+  // Meta down or slow: an upstream error, worth a retry
+  PLATFORM_UNAVAILABLE: 502,
 }
 
 export type ErrorReason = keyof typeof it.errorReasons

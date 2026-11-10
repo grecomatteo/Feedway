@@ -62,6 +62,16 @@ async function expectNotFound(r: OrgRequest, ids: SampleIds, cookie: string) {
   expect(await fx.snapshot(), `${r.method} ${path} changed rows`).toEqual(before)
 }
 
+test('the scanner knows sealed columns and Meta tokens, and never echoes a whole token', () => {
+  const token = `EAA${'Bx7'.repeat(20)}`
+  expect(secretsIn(`{"a":"${token}"}`)).toEqual(['value EAABx7'])
+  expect(secretsIn('{"a":"IGAAQ1w2e3r4t5y6u7i8o9p0"}')).toEqual(['value IGAAQ1'])
+  expect(secretsIn('{"a":"v1.1.x","b":"secret_enc"}')).toEqual(['value secret'])
+  expect(secretsIn('{"a":"token_enc"}')).toEqual(['value token_'])
+  // words that only start like a token are not one
+  expect(secretsIn('{"a":"EAAsy","b":"eaa1234567890123456789012"}')).toEqual([])
+})
+
 test.each(orgRequests)('member of B cannot reach A via $method $path', async (r) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   for (const cookie of [fx.cookies.memberOfB, fx.cookies.ownerOfB])

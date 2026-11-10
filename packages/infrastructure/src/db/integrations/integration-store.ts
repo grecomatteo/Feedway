@@ -5,14 +5,19 @@ import type {
   IntegrationStore,
   IntegrationView,
   KeyRing,
+  OrganizationIntegrationKind,
+  PlatformIntegrationKind,
 } from '@app/application'
 import { DomainError } from '@app/domain'
+import { checkMetaIntegrationConfig } from '@app/domain/platforms/meta'
 import { parseSmtpConfig } from '../../mail/smtp/smtp-config.js'
 
 const SECRET_MAX = 1024
 
 /** Binds a sealed secret to its row: a value copied to another kind or owner does not open. */
-const aadFor = (kind: IntegrationKind) => `integrations:platform:${kind}`
+const aadFor = (kind: PlatformIntegrationKind) => `integrations:platform:${kind}`
+const orgAadFor = (organizationId: string, kind: OrganizationIntegrationKind) =>
+  `integrations:org:${organizationId}:${kind}`
 
 // Sealed form `v1.<keyVersion>.…` (SecretBox): the version says which key to keep for rotation.
 function keyVersionOf(sealed: string): number {
@@ -23,6 +28,16 @@ function keyVersionOf(sealed: string): number {
 
 const PARSERS: { [K in IntegrationKind]: (value: unknown) => IntegrationConfigs[K] | null } = {
   smtp: parseSmtpConfig,
+  meta: (value) => {
+    const checked = checkMetaIntegrationConfig(value)
+    return checked.ok ? checked.value : null
+  },
+}
+
+/** Control characters are never part of a real password, token or app secret. */
+function checkSecret(secret: string): void {
+  if (secret.length === 0 || secret.length > SECRET_MAX || /[\u0000-\u001f\u007f]/.test(secret))
+    throw new DomainError('VALIDATION', 'Segreto dell’integrazione non valido')
 }
 
 function storedConfig<K extends IntegrationKind>(
@@ -48,7 +63,8 @@ function viewOf<K extends IntegrationKind>(kind: K, record: IntegrationRecord): 
 
 /**
  * Seals and opens the platform's integration secrets with `KeyRing.platform()`, inside the
- * caller's transaction (system scope: elsewhere the rows are invisible and unwritable).
+ * caller's transaction (system scope: elsewhere the rows are invisible and unwritable), and an
+ * agency's with that agency's data key, inside the agency's transaction.
  */
 export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationStore {
   const box = () => deps.keyRing.platform()
@@ -77,9 +93,7 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
       if (config === null)
         throw new DomainError('VALIDATION', 'Impostazioni dell’integrazione non valide')
       const { secret } = replacement
-      // control characters are never part of a real password or token
-      if (secret.length === 0 || secret.length > SECRET_MAX || /[\u0000-\u001f\u007f]/.test(secret))
-        throw new DomainError('VALIDATION', 'Segreto dell’integrazione non valido')
+      checkSecret(secret)
       const secretEnc = box().seal(secret, aadFor(kind))
       const record = await tx.integrations.upsertPlatform(kind, {
         config,
@@ -88,6 +102,45 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
         updatedBy: replacement.updatedBy,
       })
       return viewOf(kind, record)
+    },
+
+    async get(tx, organizationId, kind) {
+      const record = await tx.integrations.findForOrganization(organizationId, kind)
+      return record === null ? null : viewOf(kind, record)
+    },
+
+    async credentials(tx, organizationId, kind) {
+      const record = await tx.integrations.findForOrganization(organizationId, kind)
+      if (record === null) return null
+      const sealer = await deps.keyRing.forOrganization(tx, organizationId)
+      return {
+        kind,
+        config: storedConfig(kind, record),
+        secret: sealer.open(record.secretEnc, orgAadFor(organizationId, kind)),
+        updatedAt: record.updatedAt,
+      }
+    },
+
+    async replace(tx, organizationId, kind, replacement) {
+      const config = PARSERS[kind](replacement.config)
+      if (config === null)
+        throw new DomainError('VALIDATION', 'Impostazioni dell’integrazione non valide')
+      checkSecret(replacement.secret)
+      const sealer = await deps.keyRing.forOrganization(tx, organizationId)
+      const secretEnc = sealer.seal(replacement.secret, orgAadFor(organizationId, kind))
+      const record = await tx.integrations.upsertForOrganization(
+        organizationId,
+        kind,
+        {
+          config,
+          secretEnc,
+          keyVersion: keyVersionOf(secretEnc),
+          updatedBy: replacement.updatedBy,
+          verifiedAt: replacement.verifiedAt,
+        },
+        replacement.expectedVersion,
+      )
+      return record === null ? null : viewOf(kind, record)
     },
   }
 }

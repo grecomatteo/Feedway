@@ -95,6 +95,8 @@ Descrizioni e dipendenze dal [Permissions Reference](https://developers.facebook
 
 **Conseguenza per il Task 4.** Senza un'API, la scadenza del Data Use Checkup la inserisce l'Owner nell'integrazione Meta, come prevede il piano. Il promemoria del Task 11 la usa. Finché l'app resta in sviluppo il campo può restare vuoto.
 
+**Prova dell'app (Task 4).** Meta non ha una chiamata che controlla solo App ID e secret. Feedway chiama `debug_token` autorizzato con il token dell'app (nell'intestazione) e con l'App ID, che non è un segreto, come `input_token`: con un secret sbagliato l'autorizzazione fallisce (190). Il secret non viaggia mai in un indirizzo, dove un proxy potrebbe registrarlo. **Non verificato**: è il punto 9 della lista in fondo.
+
 ## `appsecret_proof`
 
 - Si calcola come HMAC-SHA256 del token con il secret dell'app come chiave (`hash_hmac('sha256', $access_token, $app_secret)` nell'esempio di Meta, quindi in esadecimale) e si passa come parametro `appsecret_proof` a ogni chiamata. Fonte: [Securing requests](https://developers.facebook.com/docs/graph-api/securing-requests).
@@ -158,3 +160,4 @@ Gli errori della pubblicazione Instagram (sottocodici 2207xxx) servono alla tapp
 6. Con l'utente di sistema di Trendy: `me/businesses`, e se servono `ads_management` o `ads_read`.
 7. Con l'accesso unificato: se la pubblicazione su una Pagina del cliente chiede `ads_management` o `ads_read`.
 8. Con **Require App Secret** attivo: scambio del codice e `debug_token` senza `appsecret_proof`.
+9. La prova dell'app del Task 4 (pulsante «Prova» in Impostazioni → Integrazioni → Meta): `debug_token` autorizzato con il token dell'app `{app-id}|{app-secret}` e con l'App ID come `input_token` risponde 200, e con un secret sbagliato fallisce con il codice 190.

@@ -9,6 +9,8 @@ import type {
   IntegrationStore,
   MailSettingsSource,
   Mailer,
+  MetaAppCredentials,
+  PlatformConnector,
   RateLimiter,
   SignedTokens,
   TokenService,
@@ -25,6 +27,8 @@ import { createFileMailer } from './mail/file-mailer.js'
 import { createSmtpMailer } from './mail/smtp-mailer.js'
 import { createSmtpSender } from './mail/smtp/smtp-sender.js'
 import { createIntegrationStore } from './db/integrations/integration-store.js'
+import { createMetaAppConnector } from './platforms/meta/app-connector.js'
+import { createMetaGraphClient } from './platforms/meta/graph-client.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
@@ -41,12 +45,14 @@ export type RuntimeRole = 'web' | 'worker'
 export type RuntimeConfig = Pick<
   WebConfig,
   'nodeEnv' | 'databaseUrl' | 'encryptionKey' | 'logLevel'
-> & {
-  /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
-  mediaRoot?: string
-  /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
-  panelUrl?: URL
-}
+> &
+  // left out by the tests of modules that never call Meta
+  Partial<Pick<WebConfig, 'metaMode' | 'metaGraphVersion' | 'metaMockUrl' | 'metaRecordDir'>> & {
+    /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
+    mediaRoot?: string
+    /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
+    panelUrl?: URL
+  }
 
 export const DEFAULT_MEDIA_ROOT = '/media'
 
@@ -74,11 +80,36 @@ export interface Runtime {
   integrations: IntegrationStore
   /** A file mailbox in tests; elsewhere SMTP with the settings read at every send. */
   mailer: Mailer
+  /** The Meta connector (ADR 019); for now only the check of the agency's app (plan 03 Task 4). */
+  meta: Pick<PlatformConnector<MetaAppCredentials>, 'verifyApp'>
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
 
 const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
+
+/** Without its settings the process has no way to Meta: a call is a bug, never a silent no. */
+const META_NOT_CONFIGURED: Runtime['meta'] = {
+  verifyApp: () => Promise.reject(new Error('Meta is not configured in this process')),
+}
+
+function createMeta(
+  config: RuntimeConfig,
+  deps: { clock: Clock; logger: Logger },
+): Runtime['meta'] {
+  const { metaMode: mode, metaGraphVersion: version } = config
+  if (mode === undefined || version === undefined) return META_NOT_CONFIGURED
+  const client = createMetaGraphClient({
+    mode,
+    version,
+    ...(mode === 'mock' &&
+      typeof config.metaMockUrl === 'string' && { baseUrl: config.metaMockUrl }),
+    clock: deps.clock,
+    logger: deps.logger.child({ component: 'meta' }),
+    recordDir: config.metaRecordDir ?? null,
+  })
+  return createMetaAppConnector(client)
+}
 
 export interface MailerDeps {
   ids: IdGenerator
@@ -143,6 +174,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       tokens: createTokenService(),
       integrations,
       mailer,
+      meta: createMeta(config, { clock, logger }),
       close: () => handle.close(),
     }
   } catch (error) {

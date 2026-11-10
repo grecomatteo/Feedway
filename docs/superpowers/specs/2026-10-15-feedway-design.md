@@ -1305,6 +1305,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `META_GRAPH_VERSION` | `v25.0` | | Aggiornata con PR e test ([docs/platforms/meta.md](../../platforms/meta.md)) |
 | `META_GRAPH_VERSION_SUNSET` | `2028-07-29` | | Data di ritiro della versione; predefinita per le versioni note, obbligatoria per le altre. Avviso 90 giorni prima (§8.4) |
 | `META_MODE` | `live` | | `live`, `mock`, `dry-run` |
+| `META_MOCK_URL` | `http://127.0.0.1:4010` | | Solo con `META_MODE=mock`: indirizzo del finto Graph API (`tools/meta-mock`) |
 | `TZ_DEFAULT` | `Europe/Rome` | | |
 | `MEDIA_RETENTION_DAYS` | `7` | | |
 | `REQUIRE_2FA` | `admins` | | `admins` o `all` |
