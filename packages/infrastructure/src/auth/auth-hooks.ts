@@ -228,7 +228,8 @@ async function dropLeftoverSession(
 
 async function rememberBefore(deps: HookDeps, ctx: HookContext, request: Request): Promise<void> {
   const path = ctx.path
-  if (path === '/passkey/verify-authentication') {
+  // a sign-in from a browser that already holds a session: the new one takes its place
+  if (path === '/passkey/verify-authentication' || path === '/sign-in/email') {
     const previousSession = await sessionOfCookie(deps, ctx)
     if (previousSession) pending.set(request, { previousSession })
     return
@@ -728,7 +729,7 @@ async function eventFor(
       ip,
       userAgent,
       deviceId: header(request, 'x-app-device-id'),
-      // only a passkey sign-in reads the session it arrives with, and only the same person's
+      // a passkey or password sign-in reads the session it arrives with: only the same person's
       previousSessionId:
         remembered.previousSession?.userId === created.session.userId
           ? remembered.previousSession.id
