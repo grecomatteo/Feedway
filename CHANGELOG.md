@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/grecomatteo/Feedway/compare/v0.6.0...v0.7.0) (2026-11-10)
+
+
+### Novità
+
+* **accounts:** integrazione Meta dell'agenzia ([#146](https://github.com/grecomatteo/Feedway/issues/146)) ([6d7b3c2](https://github.com/grecomatteo/Feedway/commit/6d7b3c25ea2bd2d19462dcdee561f86e57ab31f8))
+* **accounts:** tabelle e regole degli account ([#151](https://github.com/grecomatteo/Feedway/issues/151)) ([f3a1d63](https://github.com/grecomatteo/Feedway/commit/f3a1d63a28cf1c7cc227058c6cac6da93c0f2387))
+
+
+### Correzioni
+
+* **identity:** senza password l'app di autenticazione non parte ([976ed99](https://github.com/grecomatteo/Feedway/commit/976ed99866de20c39ff7053367e5b4e1ff7451d1))
+* **identity:** un nuovo accesso dallo stesso browser sostituisce la sessione ([976ed99](https://github.com/grecomatteo/Feedway/commit/976ed99866de20c39ff7053367e5b4e1ff7451d1))
+* **web:** il tema scelto prima dell'accesso resta dopo l'accesso ([976ed99](https://github.com/grecomatteo/Feedway/commit/976ed99866de20c39ff7053367e5b4e1ff7451d1))
+
 ## [0.6.0](https://github.com/grecomatteo/Feedway/compare/v0.5.0...v0.6.0) (2026-11-10)
 
 
