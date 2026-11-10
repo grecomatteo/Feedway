@@ -1,7 +1,19 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
-import { TEST_MAIL_DIR, createDb, createPasswordHasher, readFileMailbox } from '@app/infrastructure'
+import {
+  TEST_MAIL_DIR,
+  createDb,
+  createKeyRing,
+  createLogger,
+  createPasswordHasher,
+  createUnitOfWork,
+  readFileMailbox,
+  systemClock,
+  uuidV7Generator,
+} from '@app/infrastructure'
 import type { DbHandle } from '@app/infrastructure'
+import { startMetaMock } from '@app/meta-mock'
+import type { MetaMock } from '@app/meta-mock'
 import { activationLinkIn, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { panelClient, sessionCookieOf, startWeb } from './helpers.js'
@@ -23,9 +35,11 @@ export interface ApiEnv {
   tdb: TestDatabase
   admin: DbHandle
   web: RunningWeb
+  /** The fake Graph API the server calls (META_MODE=mock): no real Meta is ever reached. */
+  meta: MetaMock
   /** Every request from its own address, so the per-address limits stay out of the way. */
   call(method: Method, path: string, body?: unknown, opts?: CallOptions): Promise<Response>
-  /** A new agency; its slug is its id. */
+  /** A new agency with its data key, as the CLI creates one; its slug is its id. */
   agency(opts?: { status?: 'suspended' }): Promise<{ id: string; slug: string }>
   /** A person with a password, member of `organizationId` with `role`. */
   person(
@@ -48,11 +62,22 @@ export interface ApiEnv {
 export async function startApiEnv(name: string): Promise<ApiEnv> {
   const tdb = await startTestDatabase()
   const admin = createDb(tdb.adminUrl, { max: 2, applicationName: `${name}-web-test` })
+  const runtimeDb = createDb(tdb.runtimeUrl, { max: 2, applicationName: `${name}-keys` })
+  const uow = createUnitOfWork({
+    db: runtimeDb.db,
+    ids: uuidV7Generator,
+    logger: createLogger({ service: 'web', level: 'error' }),
+  })
+  const encryptionKey = randomBytes(32)
+  const keyRing = createKeyRing({ platformKey: encryptionKey, clock: systemClock })
+  const meta = await startMetaMock()
   const web = await startWeb({
     DATABASE_URL: tdb.runtimeUrl,
-    APP_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
+    APP_ENCRYPTION_KEY: encryptionKey.toString('base64'),
     BETTER_AUTH_SECRET: randomBytes(32).toString('base64'),
     PANEL_URL: PANEL,
+    META_MODE: 'mock',
+    META_MOCK_URL: meta.url,
   })
   const panel = panelClient(web, PANEL)
   const hasher = createPasswordHasher()
@@ -73,9 +98,15 @@ export async function startApiEnv(name: string): Promise<ApiEnv> {
     tdb,
     admin,
     web,
+    meta,
     call,
     async agency(opts = {}) {
       const id = await seed(tdb.runtimeUrl, (s) => s.organization(opts))
+      // the agency's secrets (Meta) are sealed with it; a suspended agency is never entered
+      if (opts.status !== 'suspended')
+        await uow.run({ organizationId: id, userId: randomUUID() }, (tx) =>
+          keyRing.createOrganizationKey(tx, id),
+        )
       return { id, slug: id }
     },
     async person(organizationId, role, opts = {}) {
@@ -126,6 +157,8 @@ export async function startApiEnv(name: string): Promise<ApiEnv> {
     },
     async stop() {
       await web.stop()
+      await meta.stop()
+      await runtimeDb.close()
       await admin.close()
       await tdb.stop()
     },

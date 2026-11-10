@@ -332,10 +332,18 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       })
       return
     }
+    // the app token describes the app (how verifyApp tries App ID and secret, plan 03 Task 4)
+    const appData = {
+      app_id: data.app.id,
+      type: 'APP',
+      application: data.app.name,
+      is_valid: true,
+      scopes: [],
+    }
     send(
       res,
       200,
-      { data: debugDataFor(input, data.tokens[input]) },
+      { data: input === appToken ? appData : debugDataFor(input, data.tokens[input]) },
       usageHeaders(undefined, false),
     )
   }

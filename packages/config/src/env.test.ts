@@ -246,3 +246,21 @@ test('rejects a sunset that is not a calendar date', () => {
     problem: 'deve essere una data AAAA-MM-GG',
   })
 })
+
+test('with META_MODE=mock the fake Graph API is on 127.0.0.1:4010 unless told otherwise', () => {
+  expect(loadConfig('web', { ...validWebEnv, META_MODE: 'mock' }).metaMockUrl).toBe(
+    'http://127.0.0.1:4010',
+  )
+  expect(
+    loadConfig('web', { ...validWebEnv, META_MODE: 'mock', META_MOCK_URL: 'http://127.0.0.1:4999' })
+      .metaMockUrl,
+  ).toBe('http://127.0.0.1:4999')
+  // never used outside mock: no address of a fake reaches the real client
+  expect(
+    loadConfig('web', { ...validWebEnv, META_MODE: 'live', META_MOCK_URL: 'http://127.0.0.1:4999' })
+      .metaMockUrl,
+  ).toBeNull()
+  expect(
+    issuesOf({ ...validWebEnv, META_MODE: 'mock', META_MOCK_URL: 'non-un-indirizzo' }),
+  ).toContainEqual({ variable: 'META_MOCK_URL', problem: 'deve essere un indirizzo valido' })
+})

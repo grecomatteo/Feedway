@@ -6,3 +6,9 @@ export {
   type MetaUsage,
   type MetaUsageCounters,
 } from './usage.js'
+export {
+  checkMetaIntegrationConfig,
+  type MetaIntegrationCheck,
+  type MetaIntegrationConfig,
+  type MetaIntegrationField,
+} from './integration.js'

@@ -3,6 +3,7 @@ import { expect } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
 import { seed } from '@app/infrastructure/testing'
+import { META_MOCK } from '@app/meta-mock'
 import { PASSWORD, startApiEnv } from '../identity-env.js'
 import type { ApiEnv, Person } from '../identity-env.js'
 
@@ -51,6 +52,11 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   // a preview nobody uploaded: the personal battery crops a real one of the caller
   'POST /api/v1/me/avatar/crop': () => ({ stagingId: randomUUID(), x: 0, y: 0, size: 64 }),
   'PATCH /api/v1/orgs/{org}/settings': () => ({ name: 'Agenzia della batteria' }),
+  // the fake Graph API's app (META_MODE=mock): the Owner's save succeeds
+  'PUT /api/v1/orgs/{org}/integrations/meta': () => ({
+    appId: META_MOCK.app.id,
+    appSecret: META_MOCK.app.secret,
+  }),
   'POST /api/v1/orgs/{org}/invites': (ids) => ({
     email: ids.email,
     orgRole: 'member',
@@ -133,9 +139,11 @@ export function idKindsIn(route: ApiContract, withQuery: boolean): IdKind[] {
   return ID_KINDS.filter((kind) => request.includes(PLACEHOLDER_IDS[kind]))
 }
 
-// Keys a secret would sit under, in any case; values only a secret would hold.
+// Keys a secret would sit under, in any case; values only a secret would hold: sealed columns,
+// and Meta tokens (`EAA…`, and `IGAA…` of the old Instagram login, kept out of caution).
 const SECRET_KEY = /"(\w*(?:password|secret|token|backup_?codes)\w*)"\s*:/gi
-const SECRET_VALUE = /\$argon2|token_hash|key_enc|backup_?codes/i
+const SECRET_VALUE = /\$argon2|token_hash|key_enc|secret_enc|token_enc|backup_?codes/i
+const META_TOKEN = /\b(?:EAA|IGAA)[A-Za-z0-9]{20,}/
 
 /**
  * What in a response body looks like a secret. `allowedKeys`: exact key names that are known
@@ -145,8 +153,10 @@ export function secretsIn(body: string, allowedKeys: readonly string[] = []): st
   const keys = [...body.matchAll(SECRET_KEY)]
     .map((m) => m[1] ?? '')
     .filter((key) => !allowedKeys.includes(key))
-  const value = SECRET_VALUE.exec(body)
-  return [...keys.map((k) => `key ${k}`), ...(value ? [`value ${value[0]}`] : [])]
+  const values = [SECRET_VALUE.exec(body), META_TOKEN.exec(body)].flatMap((m) =>
+    m ? [`value ${m[0].slice(0, 6)}`] : [],
+  )
+  return [...keys.map((k) => `key ${k}`), ...values]
 }
 
 /** `{param}` → value; a parameter without a value fails the battery. */
@@ -202,6 +212,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   users: 'select id, email, name, status, platform_role from users',
   sessions: 'select id, user_id from sessions',
   audit_log: 'select id from audit_log',
+  integrations: 'select organization_id, kind, config, secret_enc, verified_at from integrations',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {

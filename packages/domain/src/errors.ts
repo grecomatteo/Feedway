@@ -23,6 +23,8 @@ export const DOMAIN_ERROR_CODES = [
   'MAIL_NOT_CONFIGURED',
   /** The mail server did not take a message the action depends on; nothing was kept (502). */
   'MAIL_SEND_FAILED',
+  /** A social platform (Meta) did not answer, or not in time; nothing was kept (502). */
+  'PLATFORM_UNAVAILABLE',
   /** An uploaded file is over its limit (413). */
   'FILE_TOO_LARGE',
   /** An uploaded file is not of a type the action accepts, judged by its bytes (415). */

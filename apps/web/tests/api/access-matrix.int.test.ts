@@ -32,6 +32,7 @@ import {
   uuidV7Generator,
 } from '@app/infrastructure'
 import type { Permission } from '@app/domain'
+import { META_MOCK } from '@app/meta-mock'
 import { MATRIX } from '@app/domain/testing'
 import {
   ACTOR_ROLES,
@@ -90,6 +91,16 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'organization.settings.view', level: 'organization' },
   ],
   'PATCH /api/v1/orgs/{org}/settings': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  // the agency's Meta app: the Admin sees it, only the Owner changes and tries it (spec §8.3)
+  'GET /api/v1/orgs/{org}/integrations/meta': [
+    { permission: 'organization.settings.view', level: 'organization' },
+  ],
+  'PUT /api/v1/orgs/{org}/integrations/meta': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'POST /api/v1/orgs/{org}/integrations/meta/test': [
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
   // the agency's privacy notice: every member, whatever the role
@@ -219,6 +230,7 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   const code = CODE_OF[c.status]
   if (code !== undefined) expect((JSON.parse(text) as ErrorJson).error.code, text).toBe(code)
   expect(secretsIn(text)).toEqual([])
+  expect(text).not.toContain(META_MOCK.app.secret)
 })
 
 test('an Admin invite: only the Owner sends it again (with a reauth) or cancels it', async () => {
@@ -316,6 +328,9 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   // names of the fields only: never a value, never the password
   'platform.mail_settings_changed': ['fields[]'],
   'platform.mail_test_sent': ['ok', 'kind'],
+  // names of the fields only: never the App Secret, not even the App ID
+  'integration.meta_changed': ['fields[]'],
+  'integration.meta_tested': ['ok', 'result'],
 }
 
 /**
@@ -367,6 +382,11 @@ function pathAllowed(path: string, allowed: readonly string[]): boolean {
   )
 }
 
+/** Values that name a field, never hold it: the App Secret changed, not what it is. */
+const FIELD_NAMES: Readonly<Record<string, readonly string[]>> = {
+  'integration.meta_changed': ['appSecret'],
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const LOOKS_SECRET = [
   /[^\s@"]+@[^\s@"]+\.[a-z]{2,}/i, // email
@@ -404,6 +424,12 @@ async function produceEveryAction() {
   }
   // agency actions, through the routes
   await ok('PATCH', `${org}/settings`, { name: 'Agenzia del registro', require2fa: 'all' })
+  // only the fake Graph API answers (META_MODE=mock)
+  await ok('PUT', `${org}/integrations/meta`, {
+    appId: META_MOCK.app.id,
+    appSecret: META_MOCK.app.secret,
+  })
+  await ok('POST', `${org}/integrations/meta/test`)
   await ok('POST', `${org}/invites`, {
     email: `registro-${randomUUID().slice(0, 8)}@example.test`,
     orgRole: 'member',
@@ -603,7 +629,10 @@ test('audit data holds only the listed keys and nothing personal', async () => {
     for (const path of dataPaths(data))
       if (!pathAllowed(path, allowed)) problems.push(`${action}: key ${path} not listed`)
     for (const text of stringsIn(data))
-      if (LOOKS_SECRET.some((re) => re.test(text)) || looksLikeToken(text))
+      if (
+        !(FIELD_NAMES[action]?.includes(text) ?? false) &&
+        (LOOKS_SECRET.some((re) => re.test(text)) || looksLikeToken(text))
+      )
         problems.push(`${action}: value ${JSON.stringify(text)} looks personal or secret`)
   }
   expect(problems).toEqual([])
@@ -628,11 +657,11 @@ test('audit data holds only the listed keys and nothing personal', async () => {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Keys known not to hold a secret: the OpenAPI document names the `password` and `token`
- * request fields and the `passwordSet` and `hasPassword` flags; the profile has `hasPassword`.
+ * Keys known not to hold a secret: the OpenAPI document names the `password`, `token` and
+ * `appSecret` request fields and the `passwordSet` and `hasPassword` flags; the profile has `hasPassword`.
  */
 const KNOWN_KEYS: Record<string, readonly string[]> = {
-  'GET /api/v1/openapi.json': ['password', 'token', 'passwordSet', 'hasPassword'],
+  'GET /api/v1/openapi.json': ['password', 'token', 'passwordSet', 'hasPassword', 'appSecret'],
   'GET /api/v1/me': ['hasPassword'],
 }
 

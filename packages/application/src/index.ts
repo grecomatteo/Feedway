@@ -35,6 +35,11 @@ export type {
   IntegrationTx,
   IntegrationView,
   MailSettingsSource,
+  OrganizationIntegrationKind,
+  OrganizationIntegrationRecordInput,
+  OrganizationIntegrationReplacement,
+  OrganizationIntegrationTx,
+  PlatformIntegrationKind,
   SmtpConfig,
   SmtpPort,
 } from './ports/integration-store.js'
@@ -95,3 +100,5 @@ export * from './platform/index.js'
 export * from './workspaces/index.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
+export type { AppVerification, PlatformConnector } from './ports/platform-connector.js'
+export * from './platforms/meta/index.js'

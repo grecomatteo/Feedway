@@ -57,6 +57,7 @@ const RESOLVABLE = [
   'META_GRAPH_VERSION',
   'META_GRAPH_VERSION_SUNSET',
   'META_MODE',
+  'META_MOCK_URL',
   'TZ_DEFAULT',
   'MEDIA_RETENTION_DAYS',
   'MEDIA_ROOT',
@@ -77,6 +78,9 @@ const isLocalHost = (url: URL) =>
   url.hostname === 'localhost' || url.hostname.endsWith('.localhost')
 
 const url = z.url({ error: 'deve essere un indirizzo valido' })
+
+/** Where `pnpm --filter @app/meta-mock start` listens (META_MOCK_PORT 4010). */
+const DEFAULT_META_MOCK_URL = 'http://127.0.0.1:4010'
 const emptyToUndefined = (v: unknown) => (v === '' ? undefined : v)
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess(emptyToUndefined, schema.optional())
@@ -135,6 +139,7 @@ const appSchema = z
     META_GRAPH_VERSION_SUNSET: optional(z.iso.date({ error: 'deve essere una data AAAA-MM-GG' })),
     META_MODE: withDefault(z.enum(['live', 'mock', 'dry-run']), 'live'),
     META_RECORD_DIR: optional(z.string().min(1)),
+    META_MOCK_URL: optional(url),
     TZ_DEFAULT: withDefault(
       z.string().refine((v) => IANAZone.isValidZone(v), { error: 'fuso orario non valido' }),
       'Europe/Rome',
@@ -205,6 +210,8 @@ export interface AppConfig {
   metaMode: 'live' | 'mock' | 'dry-run'
   /** Redacted Meta answers are saved here, only with metaMode `live` (Meta test, plan 03 Task 13). */
   metaRecordDir: string | null
+  /** The fake Graph API (`tools/meta-mock`), only with metaMode `mock`; null otherwise. */
+  metaMockUrl: string | null
   defaultTimezone: string
   mediaRetentionDays: number
   /** Folder of stored files (photos, exports): the `media` volume in the container. */
@@ -344,6 +351,7 @@ export function loadConfig(
     metaGraphVersionSunset,
     metaMode: v.META_MODE,
     metaRecordDir: v.META_RECORD_DIR ?? null,
+    metaMockUrl: v.META_MODE === 'mock' ? (v.META_MOCK_URL ?? DEFAULT_META_MOCK_URL) : null,
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     mediaRoot: v.MEDIA_ROOT,

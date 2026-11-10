@@ -12,14 +12,14 @@ mock.scenario('default') // torna ai dati iniziali
 await mock.stop()
 ```
 
-In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 di default).
+In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 di default). Il pannello lo usa con `META_MODE=mock`, all'indirizzo `META_MOCK_URL` (predefinito `http://127.0.0.1:4010`). Con l'app finta (`META_MOCK.app`) Impostazioni → Integrazioni → Meta si salva e si prova.
 
 ## Cosa risponde
 
 - Graph API su `<url>/<versione>/…`: nodi (`/me`, `/{id}`), elenchi paginati con `limit`, `after` e `summary=total_count`, `me/permissions`, `content_publishing_limit`, intestazioni `X-App-Usage` e `X-Business-Use-Case-Usage`.
 - Token in `Authorization: Bearer` o in `access_token`. `appsecret_proof` è obbligatorio, come con **Require App Secret** attivo; non serve nello scambio del codice né in `debug_token`, che usa il token dell'app (`docs/platforms/meta.md`).
 - Dialogo dell'accesso unificato su `<url>/<versione>/dialog/oauth`: controlla `client_id` e `config_id` e rimanda subito a `redirect_uri` con `code` e `state`. Il codice vale una volta sola e solo con lo stesso `redirect_uri`.
-- `GET /oauth/access_token` (scambio del codice) e `GET /debug_token`.
+- `GET /oauth/access_token` (scambio del codice) e `GET /debug_token`. Con `input_token` uguale al token dell'app, `debug_token` descrive l'app (`type: APP`): è la prova delle credenziali del Task 4.
 
 ## Dati iniziali
 
