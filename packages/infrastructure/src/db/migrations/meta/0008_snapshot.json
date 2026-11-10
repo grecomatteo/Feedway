@@ -1,5 +1,5 @@
 {
-  "id": "2b1adae5-a717-49d2-9b53-bd0bd04fb07d",
+  "id": "0a5bc6b4-92ca-4075-b33a-23d9ca07400c",
   "prevId": "fa1cfe42-3068-4127-a98e-45176d0095de",
   "version": "7",
   "dialect": "postgresql",
@@ -2159,6 +2159,10 @@
         "account_connections_status": {
           "name": "account_connections_status",
           "value": "status in ('pending', 'active', 'expired', 'revoked')"
+        },
+        "account_connections_key_version": {
+          "name": "account_connections_key_version",
+          "value": "\"account_connections\".\"key_version\" >= 1"
         }
       },
       "isRLSEnabled": false
@@ -2463,7 +2467,7 @@
         },
         "social_accounts_facebook_page": {
           "name": "social_accounts_facebook_page",
-          "value": "\"social_accounts\".\"platform\" <> 'facebook' or \"social_accounts\".\"page_id\" = \"social_accounts\".\"external_id\""
+          "value": "\"social_accounts\".\"platform\" <> 'facebook' or \"social_accounts\".\"page_id\" is not distinct from \"social_accounts\".\"external_id\""
         },
         "social_accounts_quota": {
           "name": "social_accounts_quota",
@@ -2565,9 +2569,10 @@
         }
       },
       "compositePrimaryKeys": {
-        "workspace_accounts_workspace_id_account_id_pk": {
-          "name": "workspace_accounts_workspace_id_account_id_pk",
+        "workspace_accounts_organization_id_workspace_id_account_id_pk": {
+          "name": "workspace_accounts_organization_id_workspace_id_account_id_pk",
           "columns": [
+            "organization_id",
             "workspace_id",
             "account_id"
           ]

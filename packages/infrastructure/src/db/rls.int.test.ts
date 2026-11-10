@@ -402,4 +402,11 @@ test('accounts: agency B cannot write rows that name agency A', async () => {
       sql,
     ).rejects.toThrow(/row-level security/)
   }
+  // nor can agency A move its own rows into agency B
+  for (const t of ACCOUNT_TABLES) {
+    await expect(
+      inOrg(orgA, (c) => c.query(`update ${t} set organization_id = $1`, [orgB])),
+      t,
+    ).rejects.toThrow(/row-level security|foreign key/)
+  }
 })

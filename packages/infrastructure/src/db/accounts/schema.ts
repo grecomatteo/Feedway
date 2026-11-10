@@ -50,6 +50,7 @@ export const accountConnections = pgTable(
     unique('account_connections_organization_id').on(t.organizationId, t.id),
     check('account_connections_kind', inList('kind', CONNECTION_KINDS)),
     check('account_connections_status', inList('status', CONNECTION_STATUSES)),
+    check('account_connections_key_version', sql`${t.keyVersion} >= 1`),
   ],
 )
 
@@ -97,7 +98,7 @@ export const socialAccounts = pgTable(
     // a Page is its own profile key
     check(
       'social_accounts_facebook_page',
-      sql`${t.platform} <> 'facebook' or ${t.pageId} = ${t.externalId}`,
+      sql`${t.platform} <> 'facebook' or ${t.pageId} is not distinct from ${t.externalId}`,
     ),
     check(
       'social_accounts_quota',
@@ -117,7 +118,8 @@ export const workspaceAccounts = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
-    primaryKey({ columns: [t.workspaceId, t.accountId] }),
+    // with the agency, so a conflict on insert can only be with a row of the same agency
+    primaryKey({ columns: [t.organizationId, t.workspaceId, t.accountId] }),
     index('workspace_accounts_account_idx').on(t.organizationId, t.accountId),
     foreignKey({
       name: 'workspace_accounts_workspace_fk',

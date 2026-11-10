@@ -15,7 +15,8 @@ CREATE TABLE "account_connections" (
 	CONSTRAINT "account_connections_external_user" UNIQUE("organization_id","kind","external_user_id"),
 	CONSTRAINT "account_connections_organization_id" UNIQUE("organization_id","id"),
 	CONSTRAINT "account_connections_kind" CHECK (kind in ('meta_system_user', 'meta_business_login')),
-	CONSTRAINT "account_connections_status" CHECK (status in ('pending', 'active', 'expired', 'revoked'))
+	CONSTRAINT "account_connections_status" CHECK (status in ('pending', 'active', 'expired', 'revoked')),
+	CONSTRAINT "account_connections_key_version" CHECK ("account_connections"."key_version" >= 1)
 );
 --> statement-breakpoint
 CREATE TABLE "connection_attempts" (
@@ -55,7 +56,7 @@ CREATE TABLE "social_accounts" (
 	CONSTRAINT "social_accounts_organization_id" UNIQUE("organization_id","id"),
 	CONSTRAINT "social_accounts_platform" CHECK (platform in ('instagram', 'facebook')),
 	CONSTRAINT "social_accounts_health" CHECK (health is null or health in ('ok', 'warning', 'error')),
-	CONSTRAINT "social_accounts_facebook_page" CHECK ("social_accounts"."platform" <> 'facebook' or "social_accounts"."page_id" = "social_accounts"."external_id"),
+	CONSTRAINT "social_accounts_facebook_page" CHECK ("social_accounts"."platform" <> 'facebook' or "social_accounts"."page_id" is not distinct from "social_accounts"."external_id"),
 	CONSTRAINT "social_accounts_quota" CHECK (("social_accounts"."quota_used" is null or "social_accounts"."quota_used" >= 0) and ("social_accounts"."quota_total" is null or "social_accounts"."quota_total" >= 0))
 );
 --> statement-breakpoint
@@ -65,7 +66,7 @@ CREATE TABLE "workspace_accounts" (
 	"account_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "workspace_accounts_workspace_id_account_id_pk" PRIMARY KEY("workspace_id","account_id")
+	CONSTRAINT "workspace_accounts_organization_id_workspace_id_account_id_pk" PRIMARY KEY("organization_id","workspace_id","account_id")
 );
 --> statement-breakpoint
 ALTER TABLE "account_connections" ADD CONSTRAINT "account_connections_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -143,7 +143,7 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
       if (!row) throw new Error('social account not stored')
       return accountOf(row)
     },
-    async markInactive(organizationId, accountIds) {
+    async markInactive(organizationId, connectionId, accountIds) {
       if (accountIds.length === 0) return 0
       const rows = await db
         .update(socialAccounts)
@@ -152,6 +152,8 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
           and(
             eq(socialAccounts.organizationId, organizationId),
             inArray(socialAccounts.id, [...accountIds]),
+            // an account another connection took over meanwhile is not this one's to close
+            eq(socialAccounts.connectionId, connectionId),
             eq(socialAccounts.active, true),
           ),
         )
@@ -274,7 +276,7 @@ export function drizzleConnectionAttempts(db: DbExecutor): ConnectionAttemptsRep
     async create(attempt) {
       await db.insert(connectionAttempts).values(attempt)
     },
-    async consume(organizationId, stateHash, userId, now) {
+    async consume(organizationId, kind, stateHash, userId, now) {
       // one statement: of two returns with the same state, only one finds the row unused
       const [row] = await db
         .update(connectionAttempts)
@@ -282,6 +284,7 @@ export function drizzleConnectionAttempts(db: DbExecutor): ConnectionAttemptsRep
         .where(
           and(
             eq(connectionAttempts.organizationId, organizationId),
+            eq(connectionAttempts.kind, kind),
             eq(connectionAttempts.stateHash, stateHash),
             eq(connectionAttempts.userId, userId),
             isNull(connectionAttempts.usedAt),
@@ -314,7 +317,13 @@ export function drizzleWorkspaceAccounts(db: DbExecutor): WorkspaceAccountsRepos
       const rows = await db
         .insert(workspaceAccounts)
         .values({ organizationId, workspaceId, accountId })
-        .onConflictDoNothing()
+        .onConflictDoNothing({
+          target: [
+            workspaceAccounts.organizationId,
+            workspaceAccounts.workspaceId,
+            workspaceAccounts.accountId,
+          ],
+        })
         .returning({ accountId: workspaceAccounts.accountId })
       return rows.length > 0
     },

@@ -177,9 +177,14 @@ test('importing again updates the account, moves the owner and makes it active a
   const account = await inA((tx) =>
     tx.accounts.upsertImported(imported(orgA, first.id, { externalId: 'ig-again' })),
   )
-  expect(await inA((tx) => tx.accounts.markInactive(orgA, [account.id]))).toBe(1)
+  expect(await inA((tx) => tx.accounts.markInactive(orgA, first.id, [account.id]))).toBe(1)
   // already inactive: nothing changes
-  expect(await inA((tx) => tx.accounts.markInactive(orgA, [account.id]))).toBe(0)
+  expect(await inA((tx) => tx.accounts.markInactive(orgA, first.id, [account.id]))).toBe(0)
+  // the old owner cannot close it once another connection has taken it
+  await inA((tx) =>
+    tx.accounts.upsertImported(imported(orgA, second.id, { externalId: 'ig-again' })),
+  )
+  expect(await inA((tx) => tx.accounts.markInactive(orgA, first.id, [account.id]))).toBe(0)
   const again = await inA((tx) =>
     tx.accounts.upsertImported(
       imported(orgA, second.id, { externalId: 'ig-again', name: 'Forno Luce Bio' }),
@@ -207,13 +212,15 @@ test('an account cannot point at a connection of another agency', async () => {
 
 test('a Facebook Page is its own profile key', async () => {
   const conn = await inA((tx) => connection(tx, orgA))
-  await expect(
-    inA((tx) =>
-      tx.accounts.upsertImported(
-        imported(orgA, conn.id, { platform: 'facebook', externalId: 'p1', pageId: 'p2' }),
+  for (const pageId of ['p2', null]) {
+    await expect(
+      inA((tx) =>
+        tx.accounts.upsertImported(
+          imported(orgA, conn.id, { platform: 'facebook', externalId: 'p1', pageId }),
+        ),
       ),
-    ),
-  ).rejects.toMatchObject(refusedBy('social_accounts_facebook_page'))
+    ).rejects.toMatchObject(refusedBy('social_accounts_facebook_page'))
+  }
 })
 
 test('workspaces list their accounts; the composite key refuses an account of another agency', async () => {
@@ -270,7 +277,7 @@ test('the active count follows markInactive, and imports of one agency wait for 
     return tx.accounts.upsertImported(imported(orgA, conn.id, { externalId: 'ig-count' }))
   })
   expect(await inA((tx) => tx.accounts.countActive(orgA))).toBe(before + 1)
-  await inA((tx) => tx.accounts.markInactive(orgA, [account.id]))
+  await inA((tx) => tx.accounts.markInactive(orgA, account.connectionId, [account.id]))
   expect(await inA((tx) => tx.accounts.countActive(orgA))).toBe(before)
 
   // the second import starts only after the first has committed
@@ -312,20 +319,43 @@ test('a login attempt is used once, by its own person, before it expires', async
       expiresAt,
     }),
   )
-  // another person, another agency, or too late: refused, and the attempt stays usable
-  expect(await inA((tx) => tx.connectionAttempts.consume(orgA, stateHash, memberA, now))).toBeNull()
-  expect(await inB((tx) => tx.connectionAttempts.consume(orgB, stateHash, ownerA, now))).toBeNull()
+  // another kind, another person, another agency, or too late: refused, and it stays usable
   expect(
-    await inA((tx) => tx.connectionAttempts.consume(orgA, stateHash, ownerA, expiresAt)),
+    await inA((tx) =>
+      tx.connectionAttempts.consume(orgA, 'meta_system_user', stateHash, ownerA, now),
+    ),
+  ).toBeNull()
+  expect(
+    await inA((tx) =>
+      tx.connectionAttempts.consume(orgA, 'meta_business_login', stateHash, memberA, now),
+    ),
+  ).toBeNull()
+  expect(
+    await inB((tx) =>
+      tx.connectionAttempts.consume(orgB, 'meta_business_login', stateHash, ownerA, now),
+    ),
+  ).toBeNull()
+  expect(
+    await inA((tx) =>
+      tx.connectionAttempts.consume(orgA, 'meta_business_login', stateHash, ownerA, expiresAt),
+    ),
   ).toBeNull()
 
   const results = await Promise.all(
-    [1, 2].map(() => inA((tx) => tx.connectionAttempts.consume(orgA, stateHash, ownerA, now))),
+    [1, 2].map(() =>
+      inA((tx) =>
+        tx.connectionAttempts.consume(orgA, 'meta_business_login', stateHash, ownerA, now),
+      ),
+    ),
   )
   const used = results.filter((r) => r !== null)
   expect(used).toHaveLength(1)
   expect(used[0]).toMatchObject({ userId: ownerA, kind: 'meta_business_login', usedAt: now })
-  expect(await inA((tx) => tx.connectionAttempts.consume(orgA, stateHash, ownerA, now))).toBeNull()
+  expect(
+    await inA((tx) =>
+      tx.connectionAttempts.consume(orgA, 'meta_business_login', stateHash, ownerA, now),
+    ),
+  ).toBeNull()
 })
 
 test('a login attempt belongs to a member of its agency', async () => {

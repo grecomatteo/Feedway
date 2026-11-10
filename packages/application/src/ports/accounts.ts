@@ -66,8 +66,15 @@ export interface SocialAccountsRepository {
    * active again. The health is kept: the first check after the import sets it.
    */
   upsertImported(input: ImportedAccountInput): Promise<SocialAccountRecord>
-  /** Accounts gone from the platform: inactive, never deleted (§8.4). Returns how many changed. */
-  markInactive(organizationId: string, ids: readonly string[]): Promise<number>
+  /**
+   * Accounts gone from the platform: inactive, never deleted (§8.4). Only those `connectionId`
+   * still owns (plan 03, choice 2). Returns how many changed.
+   */
+  markInactive(
+    organizationId: string,
+    connectionId: string,
+    ids: readonly string[],
+  ): Promise<number>
 }
 
 /** A row of `account_connections` without its token. */
@@ -155,12 +162,14 @@ export interface ConnectionAttemptsRepository {
     expiresAt: Date
   }): Promise<void>
   /**
-   * Marks the attempt used and returns it, only if it is this user's, not expired and not used
+   * Marks the attempt used and returns it, only if it is of this kind and this user's, not
+   * expired and not used
    * yet (plan 03, choice 5); null otherwise, with nothing changed. One use, even when two
    * returns race.
    */
   consume(
     organizationId: string,
+    kind: ConnectionKind,
     stateHash: Buffer,
     userId: string,
     now: Date,
