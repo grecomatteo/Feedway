@@ -101,4 +101,17 @@ export * from './workspaces/index.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
 export type { AppVerification, PlatformConnector } from './ports/platform-connector.js'
+export type {
+  ConnectionAttemptRecord,
+  ConnectionAttemptsRepository,
+  ConnectionRecord,
+  ConnectionsRepository,
+  ConnectionWithToken,
+  ImportedAccountInput,
+  NewConnection,
+  SocialAccountRecord,
+  SocialAccountsRepository,
+  WorkspaceAccountsRepository,
+} from './ports/accounts.js'
+export type { ConnectionTokens } from './ports/connection-tokens.js'
 export * from './platforms/meta/index.js'

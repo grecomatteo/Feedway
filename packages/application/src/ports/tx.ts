@@ -1,3 +1,9 @@
+import type {
+  ConnectionAttemptsRepository,
+  ConnectionsRepository,
+  SocialAccountsRepository,
+  WorkspaceAccountsRepository,
+} from './accounts.js'
 import type { AuditLog } from './audit-log.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type {
@@ -40,5 +46,9 @@ export interface Tx {
   workspaceMembers: WorkspaceMembersRepository
   platformSettings: PlatformSettingsRepository
   integrations: IntegrationsRepository
+  accounts: SocialAccountsRepository
+  connections: ConnectionsRepository
+  connectionAttempts: ConnectionAttemptsRepository
+  workspaceAccounts: WorkspaceAccountsRepository
   audit: AuditLog
 }

@@ -483,7 +483,7 @@ Alla fine il pannello verifica che l'account sia pubblicabile (permessi, collega
 ### 8.3 Integrazioni e segreti
 
 **Impostazioni → Integrazioni** dell'organizzazione (solo Owner), ognuna con guida e pulsante "Prova". Telegram può usare il valore predefinito della piattaforma, che l'amministratore della piattaforma imposta in **Piattaforma → Integrazioni** (§14.4) insieme all'email e alla sorveglianza esterna:
-- **Meta**: App ID, App Secret, token. "Sostituisci token" verifica il nuovo prima di salvarlo; il vecchio resta attivo finché il nuovo non risulta valido.
+- **Meta**: App ID e App Secret dell'app; il token sta sul collegamento. "Sostituisci token" verifica il nuovo prima di salvarlo; il vecchio resta attivo finché il nuovo non risulta valido. App ID e `configId` dell'accesso unificato (ADR 020) stanno in `integrations.config` della riga `meta` dell'agenzia; l'App Secret, come JSON `{ appSecret }`, in `integrations.secret_enc`. Il token non sta qui ma sulla riga del collegamento (`account_connections.token_enc`, §13), uno per collegamento (ADR 019).
 - **Telegram**: guida @BotFather, token del bot, messaggio di prova.
 - **Email** (solo amministratore della piattaforma, sezione Piattaforma; ADR 017, decisione di Matteo del 30/10): un solo SMTP per tutta l'installazione, nessuna impostazione per le agenzie, tutte le email partono a nome di Feedway. Modelli per Gmail, Brevo e SMTP generico, email di prova.
 - **Sorveglianza esterna** (solo amministratore della piattaforma, sezione Piattaforma): URL del servizio (es. healthchecks.io), segnale di prova.
@@ -1021,13 +1021,23 @@ workspaces          id, organization_id, name, slug (unico nell'organizzazione),
 workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer)
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
                     avatar_url, page_id (vuoto per Instagram solo), connection_id, active,
-                    health (ok|warning|error),
-                    health_message, last_synced_at
+                    health (ok|warning|error; vuoto = mai controllato, non selezionabile),
+                    health_message, last_synced_at, quota_used, quota_total, quota_checked_at
                     -- page_id: per Facebook l'id della Pagina stessa (= external_id),
                     -- per Instagram l'id della Pagina a cui Meta lo collega; serve al profilo (§3)
-account_connections id, organization_id, kind (facebook_login|instagram_login|meta_system_user),
-                    connected_by (user_id), token_secret_id, expires_at, status, last_refreshed_at
+                    -- connection_id: il collegamento proprietario, uno solo per account
+account_connections id, organization_id, kind (meta_system_user|meta_business_login, ADR 020),
+                    external_user_id, connected_by (user_id, solo informazione), token_enc,
+                    key_version, expires_at (vuoto = non scade), status (pending|active|expired|
+                    revoked), last_refreshed_at, last_usage (jsonb)
+                    -- UNIQUE (organization_id, kind, external_user_id): lo stesso utente Meta
+                    -- sostituisce il token del collegamento che c'è già
+                    -- token_enc: sigillato con la chiave dati dell'organizzazione,
+                    -- AAD account_connections:<organization_id>:<id> (ADR 019)
 workspace_accounts  workspace_id, account_id
+connection_attempts id, organization_id, user_id, kind, state_hash, expires_at (10 minuti), used_at
+                    -- accesso avviato dal pannello: lo state è <organization_id>.<valore casuale>
+                    -- e si conserva solo l'hash del valore; vale una volta, per chi l'ha avviato
 account_groups      id, workspace_id, name, account_ids
 time_slots          id, workspace_id, weekday, local_time
 

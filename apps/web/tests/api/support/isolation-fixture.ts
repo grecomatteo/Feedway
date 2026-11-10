@@ -213,6 +213,10 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   sessions: 'select id, user_id from sessions',
   audit_log: 'select id from audit_log',
   integrations: 'select organization_id, kind, config, secret_enc, verified_at from integrations',
+  account_connections: 'select * from account_connections',
+  social_accounts: 'select * from social_accounts',
+  workspace_accounts: 'select * from workspace_accounts',
+  connection_attempts: 'select * from connection_attempts',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
