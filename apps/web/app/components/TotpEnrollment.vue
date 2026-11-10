@@ -41,15 +41,22 @@ async function run(action: () => Promise<void>) {
     state.sending = false
   }
 }
-const start = () =>
-  run(async () => {
+function start() {
+  // the confirmation is the password typed here, unless the page already has it
+  const password = props.password ?? state.password
+  if (password === '') {
+    state.problem = t('totpEnrollment.passwordMissing')
+    return
+  }
+  return run(async () => {
     const r = await call<{ totpURI: string; backupCodes: string[] }>(
       'POST',
       '/api/auth/two-factor/enable',
-      { password: props.password ?? state.password },
+      { password },
     )
     Object.assign(state, { uri: r.totpURI, backupCodes: r.backupCodes, step: 'scan', password: '' })
   })
+}
 function verify() {
   // an empty or half-written code (a stray Enter, an autofill) never reaches the server
   const code = state.code.replace(/\s/g, '')
