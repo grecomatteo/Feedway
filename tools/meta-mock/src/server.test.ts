@@ -155,27 +155,3 @@ test('a login request with an invalid return address answers 400 and the mock ke
   expect((await fetch(dialog, { redirect: 'manual' })).status).toBe(400)
   expect((await graph('/me', META_MOCK.tokens.systemUser)).status).toBe(200)
 })
-
-test('debug_token on the app token itself describes the app; a wrong secret is refused', async () => {
-  const appToken = `${META_MOCK.app.id}|${META_MOCK.app.secret}`
-  const debug = (accessToken: string) => {
-    const url = new URL(`${mock.url}/v25.0/debug_token`)
-    url.search = new URLSearchParams({
-      input_token: appToken,
-      access_token: accessToken,
-    }).toString()
-    return fetch(url)
-  }
-  const ok = await debug(appToken)
-  expect(ok.status).toBe(200)
-  expect(((await ok.json()) as { data: unknown }).data).toEqual({
-    app_id: META_MOCK.app.id,
-    type: 'APP',
-    application: 'Feedway',
-    is_valid: true,
-    scopes: [],
-  })
-  const wrong = await debug(`${META_MOCK.app.id}|segreto-sbagliato`)
-  expect(wrong.status).toBe(400)
-  expect(((await wrong.json()) as { error: { code: number } }).error.code).toBe(190)
-})

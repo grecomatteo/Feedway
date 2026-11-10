@@ -140,7 +140,9 @@ export async function replaceMetaIntegration(
     await assertStillManages(tx, actor)
     return deps.integrations.credentials(tx, organizationId, 'meta')
   })
-  const typed = input.appSecret === undefined || input.appSecret === '' ? null : input.appSecret
+  // a pasted secret often carries a space or a line break around it
+  const trimmed = input.appSecret?.trim() ?? ''
+  const typed = trimmed === '' ? null : trimmed
   const appSecret = typed ?? read?.secret
   if (appSecret === undefined)
     throw new DomainError('VALIDATION', 'Serve l’App Secret dell’app Meta', { field: 'appSecret' })
@@ -214,10 +216,12 @@ export async function testMetaIntegration(
         )
   const ok = result === 'verified'
 
-  await deps.uow.run(scope, async (tx) => {
+  const marked = await deps.uow.run(scope, async (tx) => {
     await assertStillManages(tx, actor)
-    if (ok && read !== null)
-      await tx.integrations.markVerified(organizationId, 'meta', deps.clock.now(), read.updatedAt)
+    const done =
+      ok &&
+      read !== null &&
+      (await tx.integrations.markVerified(organizationId, 'meta', deps.clock.now(), read.updatedAt))
     await tx.audit.record({
       organizationId,
       actorId: userId,
@@ -229,6 +233,13 @@ export async function testMetaIntegration(
       ip: request.ip,
       data: { ok, result },
     })
+    return done
   })
+  // the settings tried are no longer the stored ones: the new ones were not tried
+  if (ok && !marked)
+    throw new DomainError(
+      'CONFLICT',
+      'Le impostazioni di Meta sono cambiate nel frattempo: riprova',
+    )
   return { ok, result }
 }

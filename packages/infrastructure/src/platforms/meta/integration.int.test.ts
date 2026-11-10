@@ -198,6 +198,26 @@ test('the same settings again change nothing and do not call Meta', async () => 
   expect(again.updatedAt.getTime()).toBe(first.updatedAt.getTime())
 })
 
+test('a pasted secret is trimmed', async () => {
+  await save({ appId: APP.appId, appSecret: `  ${APP.appSecret}\n` })
+  expect(await storedSecret(owner.organizationId)).toBe(APP.appSecret)
+})
+
+test('"Prova" while someone saves other settings: a conflict, the new ones stay unverified', async () => {
+  await save(APP)
+  duringVerify = async () => {
+    duringVerify = null
+    await save({ appId: APP.appId, businessId: '4000000000000001' })
+    await admin.query('update integrations set verified_at = null where organization_id = $1', [
+      owner.organizationId,
+    ])
+  }
+  await expect(testMetaIntegration(deps, owner, { ip: IP })).rejects.toMatchObject({
+    code: 'CONFLICT',
+  })
+  expect((await getMetaIntegration(deps, owner))?.verifiedAt).toBeNull()
+})
+
 test('the first save needs the secret', async () => {
   await expect(save({ appId: APP.appId })).rejects.toMatchObject({
     code: 'VALIDATION',

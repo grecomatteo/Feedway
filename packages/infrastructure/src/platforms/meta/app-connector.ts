@@ -15,9 +15,10 @@ const REJECTED: ReadonlySet<MetaErrorReason> = new Set([
 
 /**
  * The app part of the Meta connectors (ADR 019). Meta has no call that only checks App ID and
- * secret: `debug_token` on the app token `{app-id}|{app-secret}` authenticates with that same
- * token, so a wrong secret fails with 190, and the answer names the app. Not verified on real
- * Meta (docs/platforms/meta.md): tried at the end of plan 03 Task 7.
+ * secret: `debug_token` authenticates with the app token `{app-id}|{app-secret}` (in the header),
+ * so a wrong pair fails with 190. What it inspects does not matter here: the App ID, which is no
+ * secret, so the secret never travels in an address. Not verified on real Meta
+ * (docs/platforms/meta.md): tried at the end of plan 03 Task 7.
  */
 export function createMetaAppConnector(
   client: Pick<MetaGraphClient, 'debugToken'>,
@@ -25,10 +26,8 @@ export function createMetaAppConnector(
   return {
     async verifyApp(app) {
       try {
-        const { data } = await client.debugToken(app, `${app.appId}|${app.appSecret}`)
-        // an answer about another app would mean the App ID is not the one typed
-        if (data.appId !== null && data.appId !== app.appId)
-          return { ok: false, reason: 'rejected' }
+        // the answer is about `input_token`, not about the app: only the authentication counts
+        await client.debugToken(app, app.appId)
         return { ok: true }
       } catch (error) {
         if (!(error instanceof MetaError)) throw error
