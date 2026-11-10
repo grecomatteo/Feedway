@@ -6,6 +6,7 @@
  */
 const props = defineProps<{ password?: string }>()
 const emit = defineEmits<{ done: [] }>()
+const { t } = useI18n()
 const { call, failure } = useApi()
 
 const state = reactive({
@@ -49,11 +50,18 @@ const start = () =>
     )
     Object.assign(state, { uri: r.totpURI, backupCodes: r.backupCodes, step: 'scan', password: '' })
   })
-const verify = () =>
-  run(async () => {
-    await call('POST', '/api/auth/two-factor/verify-totp', { code: state.code.replace(/\s/g, '') })
+function verify() {
+  // an empty or half-written code (a stray Enter, an autofill) never reaches the server
+  const code = state.code.replace(/\s/g, '')
+  if (!/^\d{6}$/.test(code)) {
+    state.problem = t('security.totp.codeIncomplete')
+    return
+  }
+  return run(async () => {
+    await call('POST', '/api/auth/two-factor/verify-totp', { code })
     Object.assign(state, { step: 'codes', uri: '', code: '' })
   })
+}
 function finish() {
   state.backupCodes = []
   emit('done')

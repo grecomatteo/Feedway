@@ -35,20 +35,51 @@ test('skip link is the first focusable element', async ({ page }) => {
   await expect(page.locator(':focus')).toHaveAttribute('href', '#main')
 })
 
-test('theme can be switched and persists after a reload', async ({ page }) => {
+test('the theme follows the system, then one click turns it to the other and it stays', async ({
+  page,
+}) => {
   await page.goto('/')
-  // under load the first click can land before the page is interactive: open until it shows
+  const html = page.locator('html')
+  const systemDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  if (systemDark) await expect(html).toHaveClass(/dark/)
+  else await expect(html).not.toHaveClass(/dark/)
+  const toggle = page.getByRole('button', { name: 'Passa al tema chiaro o scuro' })
+  // under load the first click can land before the page is interactive: click until it turns
+  // (a click that did turn it is never repeated: a second one would turn it back)
+  const turned = async () =>
+    systemDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
   await expect(async () => {
-    await page.getByRole('button', { name: 'Tema' }).click()
-    await expect(page.getByRole('menuitemcheckbox', { name: 'Scuro' })).toBeVisible({
-      timeout: 1000,
-    })
+    if (!(await turned())) await toggle.click()
+    if (systemDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
+    else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
   }).toPass()
-  await page.getByRole('menuitemcheckbox', { name: 'Scuro' }).click()
-  await expect(page.locator('html')).toHaveClass(/dark/)
+  // no menu: a single click is the whole switch
+  await expect(page.getByRole('menu')).toHaveCount(0)
   await page.reload()
-  await expect(page.locator('html')).toHaveClass(/dark/)
-  await page.getByRole('button', { name: 'Tema' }).click()
-  await page.getByRole('menuitemcheckbox', { name: 'Chiaro' }).click()
-  await expect(page.locator('html')).not.toHaveClass(/dark/)
+  if (systemDark) await expect(html).not.toHaveClass(/dark/)
+  else await expect(html).toHaveClass(/dark/)
+  await toggle.click()
+  if (systemDark) await expect(html).toHaveClass(/dark/)
+  else await expect(html).not.toHaveClass(/dark/)
+})
+
+test('the tab shows the Feedway icon, from the brand kit', async ({ page, request }) => {
+  await page.goto('/accedi')
+  const icons = page.locator('head link[rel="icon"]')
+  await expect(icons).toHaveCount(2)
+  for (const href of [
+    '/favicon.ico',
+    '/brand/favicon.ico',
+    '/brand/favicon.svg',
+    '/brand/apple-touch-icon.png',
+    '/brand/site.webmanifest',
+    '/brand/icon-192.png',
+  ]) {
+    const r = await request.get(href)
+    expect(r.status(), href).toBe(200)
+  }
+  await expect(page.locator('head link[rel="apple-touch-icon"]')).toHaveAttribute(
+    'href',
+    '/brand/apple-touch-icon.png',
+  )
 })
