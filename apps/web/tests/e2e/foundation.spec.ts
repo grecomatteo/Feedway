@@ -45,8 +45,11 @@ test('the theme follows the system, then one click turns it to the other and it 
   else await expect(html).not.toHaveClass(/dark/)
   const toggle = page.getByRole('button', { name: 'Passa al tema chiaro o scuro' })
   // under load the first click can land before the page is interactive: click until it turns
+  // (a click that did turn it is never repeated: a second one would turn it back)
+  const turned = async () =>
+    systemDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
   await expect(async () => {
-    await toggle.click()
+    if (!(await turned())) await toggle.click()
     if (systemDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
     else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
   }).toPass()

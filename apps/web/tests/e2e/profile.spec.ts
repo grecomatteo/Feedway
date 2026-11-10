@@ -62,12 +62,21 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   })
   const html = page.locator('html')
   // under load the first click can land before the page is interactive: click until it turns
+  // (a click that did turn it is never repeated: a second one would turn it back)
+  const turned = async () => wasDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
   await expect(async () => {
-    await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).first().click()
+    if (!(await turned()))
+      await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).first().click()
     if (wasDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
     else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
   }).toPass()
   await expect.poll(() => saved).toEqual([200])
+  // the page's own preferences show the new choice, so saving them keeps it
+  await expect(
+    page
+      .getByRole('region', { name: 'Preferenze' })
+      .getByRole('radio', { name: wasDark ? 'Chiaro' : 'Scuro' }),
+  ).toBeChecked()
 
   // another browser whose system says the opposite: the profile wins
   const other = await browser.newContext({
