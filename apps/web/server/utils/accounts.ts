@@ -1,0 +1,54 @@
+import type {
+  ConnectionsDeps,
+  ConnectionView,
+  ImportableAccount,
+  SocialAccountRecord,
+} from '@app/application'
+import type { Deps } from './deps'
+
+/** Connections and imports: the platform connectors and the sealed tokens of the process. */
+export function connectionsDeps(deps: Deps): ConnectionsDeps {
+  return {
+    uow: deps.uow,
+    clock: deps.clock,
+    ids: deps.ids,
+    tokens: deps.connectionTokens,
+    connectors: deps.connectors,
+  }
+}
+
+/** What leaves for the panel: dates as ISO strings, never the token. */
+export const connectionDto = (c: ConnectionView) => ({
+  id: c.id,
+  kind: c.kind,
+  status: c.status,
+  expiresAt: c.expiresAt?.toISOString() ?? null,
+  createdAt: c.createdAt.toISOString(),
+})
+
+export const importableDto = (a: ImportableAccount) => ({
+  platform: a.platform,
+  externalId: a.externalId,
+  name: a.name,
+  username: a.username,
+  avatarUrl: a.avatarUrl,
+  pageId: a.pageId,
+  state: a.state,
+  problem: a.problem,
+  accountId: a.accountId,
+})
+
+export const socialAccountDto = (a: SocialAccountRecord) => ({
+  id: a.id,
+  platform: a.platform,
+  externalId: a.externalId,
+  name: a.name,
+  username: a.username,
+  avatarUrl: a.avatarUrl,
+  pageId: a.pageId,
+  active: a.active,
+  health: a.health,
+})
+
+/** Each of these calls Meta under the agency's app: a few a minute are plenty. */
+export const CONNECTIONS_RATE_LIMIT = { name: 'connections', limit: 20, windowMs: 60_000 }

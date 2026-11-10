@@ -50,6 +50,9 @@ export const AUDIT_ACTIONS = [
   'platform.mail_test_sent',
   'integration.meta_changed',
   'integration.meta_tested',
+  'connection.created',
+  'connection.token_replaced',
+  'accounts.imported',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
