@@ -595,6 +595,7 @@
     "title": "Aggiungi l'app di autenticazione",
     "explain": "Il tuo ruolo richiede un secondo passaggio all'accesso: un codice dall'app di autenticazione del telefono.",
     "start": "Continua",
+    "passwordMissing": "Scrivi la tua password.",
     "preparing": "Preparo la chiave…",
     "retry": "Riprova"
   },

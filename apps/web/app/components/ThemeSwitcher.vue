@@ -1,12 +1,6 @@
 <script setup lang="ts">
-import type { Me } from '@app/contracts'
-
 const colorMode = useColorMode()
 const session = useSession()
-const { call } = useApi()
-
-/** Each click counts: only the answer to the latest save is kept. */
-let saves = 0
 
 /**
  * One click to the opposite theme. Until the first click the theme follows the system
@@ -14,7 +8,8 @@ let saves = 0
  */
 async function toggle(event: MouseEvent) {
   const next = colorMode.value === 'dark' ? 'light' : 'dark'
-  void save(next)
+  // signed in: the profile keeps the choice, or the next visit would bring the old one back
+  void session.saveTheme(next)
   const apply = async () => {
     colorMode.preference = next
     await nextTick()
@@ -41,22 +36,6 @@ async function toggle(event: MouseEvent) {
       pseudoElement: '::view-transition-new(root)',
     },
   )
-}
-
-/** Signed in: the profile keeps the choice, or the next visit would bring the old one back. */
-async function save(theme: 'light' | 'dark') {
-  if (session.view.value.state !== 'active') return
-  const mine = ++saves
-  try {
-    const me = await call<Me>('PATCH', '/api/v1/me', { theme })
-    if (mine !== saves || session.view.value.state !== 'active') return
-    session.view.value = { state: 'active', me }
-    // the account page keeps its own copy of the profile: its preferences follow too
-    const page = useNuxtData<Me>('me')
-    if (page.data.value) page.data.value = me
-  } catch {
-    // the cookie still holds the theme on this device
-  }
 }
 </script>
 

@@ -449,7 +449,7 @@ test('a previous session of someone else is never touched by a login event', asy
   expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
 })
 
-test('only a passkey sign-in turns into a reauth', async () => {
+test('only a passkey sign-in turns into a reauth; a password one still replaces the old session', async () => {
   const p = await person()
   await signIn(p.email)
   const ids = await sessionIds(p.id)
@@ -466,8 +466,30 @@ test('only a passkey sign-in turns into a reauth', async () => {
     },
     { requestId: null },
   )
-  expect(await sessionIds(p.id)).toEqual(ids)
+  expect(await sessionIds(p.id)).toEqual([at(ids, 1)])
   expect(await reauthenticatedAt(at(ids, 1))).toBeNull()
+  expect(await auditOf(p.id, 'auth.reauthenticated')).toEqual([])
+})
+
+test('signing in again from a browser already signed in leaves one session, not two', async () => {
+  const p = await person()
+  const before = await sessionIds(p.id)
+  const res = await instance.handler(
+    new Request(`${PANEL}/api/auth/sign-in/email`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: PANEL,
+        cookie: (await signIn(p.email)).get('cookie') ?? '',
+        'x-app-client-ip': '10.9.0.1',
+      },
+      body: JSON.stringify({ email: p.email, password: PASSWORD }),
+    }),
+  )
+  expect(res.status).toBe(200)
+  // the person's first session (from person()) stays: it is another browser
+  const after = await sessionIds(p.id)
+  expect(after).toHaveLength(before.length + 1)
 })
 
 test('sessions list marks the current one and never exposes tokens or full ips', async () => {

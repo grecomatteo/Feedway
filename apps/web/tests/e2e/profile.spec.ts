@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { newMember, signIn } from './support/people.ts'
+import { adminQuery, E2E_PASSWORD, newMember, newPerson, signIn } from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -70,7 +70,9 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
     if (wasDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
     else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
   }).toPass()
-  await expect.poll(() => saved).toEqual([200])
+  // the page may save the same choice once more when its own copy of the profile arrives later
+  await expect.poll(() => saved.length).toBeGreaterThan(0)
+  expect(saved.every((status) => status === 200)).toBe(true)
   // the page's own preferences show the new choice, so saving them keeps it
   await expect(
     page
@@ -92,6 +94,71 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   } finally {
     await other.close()
   }
+})
+
+test('the theme chosen before signing in stays after it, and a profile that never chose takes it', async ({
+  page,
+}) => {
+  const html = page.locator('html')
+  await page.goto('/accedi')
+  const wasDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  const turned = async () => wasDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
+  // (a click that did turn it is never repeated: a second one would turn it back)
+  await expect(async () => {
+    if (!(await turned()))
+      await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).click()
+    expect(await turned()).toBe(true)
+  }).toPass()
+  const chosen = wasDark ? 'light' : 'dark'
+
+  // an Admin owes the second factor: the next page keeps the choice, the profile waits
+  const halfway = await newPerson('Bice Admin', 'admin')
+  await page.getByLabel('Email', { exact: true }).fill(halfway.email)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Accedi con la password' }).click()
+  await expect(page).toHaveURL(/\/accedi\/secondo-fattore$/)
+  expect(await turned()).toBe(true)
+  await page.getByRole('button', { name: 'Esci' }).first().click()
+  await expect(page).toHaveURL(/\/accedi/)
+
+  // a person with a full session: the profile takes the choice (signed in by the API, so the
+  // per-address sign-in limit stays out of this test)
+  const person = await newMember()
+  await signIn(page.request, person)
+  await page.goto('/account')
+  expect(await turned()).toBe(true)
+  await expect
+    .poll(async () => {
+      const rows = await adminQuery<{ theme: string }>('select theme from users where id = $1', [
+        person.userId,
+      ])
+      return rows[0]?.theme
+    })
+    .toBe(chosen)
+})
+
+test('after a light or dark choice, «Automatico» in the preferences sticks', async ({ page }) => {
+  const person = await newMember()
+  await signIn(page.request, person)
+  await page.goto('/account')
+  const preferences = page.getByRole('region', { name: 'Preferenze' })
+  await preferences.getByRole('radio', { name: 'Scuro' }).check()
+  await preferences.getByRole('button', { name: 'Salva' }).click()
+  await expect(preferences.getByRole('status')).toHaveText('Modifiche salvate.')
+  await preferences.getByRole('radio', { name: 'Automatico' }).check()
+  await preferences.getByRole('button', { name: 'Salva' }).click()
+  await expect(preferences.getByRole('status')).toHaveText('Modifiche salvate.')
+  const theme = async () =>
+    (
+      await adminQuery<{ theme: string }>('select theme from users where id = $1', [person.userId])
+    )[0]?.theme
+  // give a stray save the time to land, then read again after a reload
+  await page.waitForTimeout(1000)
+  expect(await theme()).toBe('system')
+  await page.reload()
+  await expect(preferences.getByRole('radio', { name: 'Automatico' })).toBeChecked()
+  await page.waitForTimeout(1000)
+  expect(await theme()).toBe('system')
 })
 
 test('a wrong nickname gets its error next to the field', async ({ page }) => {

@@ -248,18 +248,25 @@ test('login screens have no a11y violations', async ({ page }) => {
   }
 })
 
-test('an incomplete authenticator code is not sent, and says what is missing', async ({ page }) => {
+test('an empty password or an incomplete code is not sent, and says what is missing', async ({
+  page,
+}) => {
   const person = await newPerson('Ada Admin', 'admin')
   await signIn(page.request, person)
   await page.goto('/accedi/secondo-fattore')
   await page.getByRole('button', { name: "Usa l'app di autenticazione" }).click()
+  const sent: string[] = []
+  page.on('request', (r) => {
+    if (r.url().includes('/two-factor/')) sent.push(r.url())
+  })
+  // no password yet: the browser says so and asks nothing of the server
+  await page.getByRole('button', { name: 'Continua' }).click()
+  await expect(page.getByText('Scrivi la tua password.')).toBeVisible()
+  expect(sent).toEqual([])
   await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
   await page.getByRole('button', { name: 'Continua' }).click()
   await expect(page.getByRole('img', { name: "QR code da inquadrare con l'app" })).toBeVisible()
-  const sent: string[] = []
-  page.on('request', (r) => {
-    if (r.url().includes('/two-factor/verify-totp')) sent.push(r.url())
-  })
+  sent.length = 0
   await page.getByRole('button', { name: 'Verifica e attiva' }).click()
   await expect(page.getByText('Scrivi le 6 cifre che mostra l’app.')).toBeVisible()
   await page.getByLabel('Codice di 6 cifre').fill('12 3')

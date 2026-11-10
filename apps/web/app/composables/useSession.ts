@@ -20,9 +20,42 @@ export function useSession() {
   // on the server, the browser's cookie goes with the request
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
 
+  /**
+   * The theme saved in the profile wins on every device (the cookie only remembers it locally).
+   * A profile that never chose (`system`) takes the light or dark one picked in this browser,
+   * even before signing in, instead of undoing it.
+   */
   function applyTheme(me: Me) {
-    // the theme saved in the profile wins on every device (the cookie only remembers it locally)
-    if (colorMode.preference !== me.theme) colorMode.preference = me.theme
+    const local = colorMode.preference
+    if (me.theme === 'system' && (local === 'light' || local === 'dark')) {
+      // only a full session may change the profile: until then the browser keeps the choice
+      if (import.meta.client && me.sessionState === 'active') void saveTheme(local)
+      return
+    }
+    if (local !== me.theme) colorMode.preference = me.theme
+  }
+
+  const stateNow = (): SessionView['state'] => view.value.state
+  /** Each change counts: only the answer to the latest save is kept. */
+  const saves = useState('theme-saves', () => 0)
+  async function saveTheme(theme: 'light' | 'dark') {
+    if (view.value.state !== 'active') return
+    const mine = ++saves.value
+    try {
+      const me = await $fetch<Me>('/api/v1/me', {
+        method: 'PATCH',
+        headers: { 'x-app-request': '1' },
+        body: { theme },
+      })
+      // read again: a sign-out or another load may have landed meanwhile
+      if (mine !== saves.value || stateNow() !== 'active') return
+      view.value = { state: 'active', me }
+      // the account page keeps its own copy of the profile: its preferences follow too
+      const page = useNuxtData<Me>('me')
+      if (page.data.value) page.data.value = me
+    } catch {
+      // the cookie still holds the theme on this device
+    }
   }
 
   async function load(): Promise<SessionView> {
@@ -100,5 +133,5 @@ export function useSession() {
     clearNuxtData()
   }
 
-  return { view, load, current, home, signOut, forget }
+  return { view, load, current, home, signOut, forget, applyTheme, saveTheme }
 }

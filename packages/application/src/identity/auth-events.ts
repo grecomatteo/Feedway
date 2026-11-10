@@ -71,13 +71,13 @@ async function recordLogin(deps: AuthEventDeps, event: Extract<AuthEvent, { kind
   const alert = await deps.uow.run({ userId }, async (tx) => {
     await tx.users.setLastLoginAt(userId, now)
     await tx.sessions.setAuthMethod(userId, sessionId, event.method)
-    // A passkey sign-in over a valid session of the same person is a reauth: the new session
-    // starts confirmed and replaces the old one. `delete` only reaches this person's sessions.
-    const reauth =
-      event.method === 'passkey' &&
+    // A sign-in over a valid session of the same person replaces it: one browser, one session.
+    // With a passkey it is also a reauth, so the new session starts confirmed. `delete` only
+    // reaches this person's sessions.
+    const replaced =
       event.previousSessionId !== null &&
       (await tx.sessions.delete(userId, event.previousSessionId))
-    if (reauth) {
+    if (replaced && event.method === 'passkey') {
       await tx.sessions.setReauthenticated(userId, sessionId, now)
       await tx.audit.record({
         organizationId: null,
