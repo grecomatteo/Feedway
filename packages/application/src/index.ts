@@ -98,9 +98,19 @@ export * from './identity/index.js'
 export * from './organizations/index.js'
 export * from './platform/index.js'
 export * from './workspaces/index.js'
+export * from './accounts/index.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
-export type { AppVerification, PlatformConnector } from './ports/platform-connector.js'
+export type {
+  AccountListing,
+  AppVerification,
+  ConnectionCredentials,
+  PermissionCheck,
+  PlatformAccount,
+  PlatformConnector,
+  PlatformConnectors,
+  TokenCheck,
+} from './ports/platform-connector.js'
 export type {
   ConnectionAttemptRecord,
   ConnectionAttemptsRepository,

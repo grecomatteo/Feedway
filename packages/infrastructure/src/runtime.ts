@@ -9,8 +9,10 @@ import type {
   IntegrationStore,
   MailSettingsSource,
   Mailer,
+  ConnectionTokens,
   MetaAppCredentials,
   PlatformConnector,
+  PlatformConnectors,
   RateLimiter,
   SignedTokens,
   TokenService,
@@ -27,8 +29,9 @@ import { createFileMailer } from './mail/file-mailer.js'
 import { createSmtpMailer } from './mail/smtp-mailer.js'
 import { createSmtpSender } from './mail/smtp/smtp-sender.js'
 import { createIntegrationStore } from './db/integrations/integration-store.js'
-import { createMetaAppConnector } from './platforms/meta/app-connector.js'
+import { createConnectionTokens } from './db/accounts/connection-tokens.js'
 import { createMetaGraphClient } from './platforms/meta/graph-client.js'
+import { createMetaSystemUserConnector } from './platforms/meta/system-user-connector.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
@@ -80,8 +83,12 @@ export interface Runtime {
   integrations: IntegrationStore
   /** A file mailbox in tests; elsewhere SMTP with the settings read at every send. */
   mailer: Mailer
-  /** The Meta connector (ADR 019); for now only the check of the agency's app (plan 03 Task 4). */
+  /** The check of the agency's Meta app (plan 03 Task 4), shared by every Meta connector. */
   meta: Pick<PlatformConnector<MetaAppCredentials>, 'verifyApp'>
+  /** The registry of the platforms (ADR 019): `connection kind → PlatformConnector`. */
+  connectors: PlatformConnectors
+  /** Seals and opens the tokens of the connections with the agency's data key. */
+  connectionTokens: ConnectionTokens
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
@@ -95,10 +102,11 @@ const META_NOT_CONFIGURED: Runtime['meta'] = {
 
 function createMeta(
   config: RuntimeConfig,
-  deps: { clock: Clock; logger: Logger },
-): Runtime['meta'] {
+  deps: { clock: Clock; logger: Logger; integrations: IntegrationStore },
+): Pick<Runtime, 'meta' | 'connectors'> {
   const { metaMode: mode, metaGraphVersion: version } = config
-  if (mode === undefined || version === undefined) return META_NOT_CONFIGURED
+  if (mode === undefined || version === undefined)
+    return { meta: META_NOT_CONFIGURED, connectors: {} }
   const client = createMetaGraphClient({
     mode,
     version,
@@ -108,7 +116,9 @@ function createMeta(
     logger: deps.logger.child({ component: 'meta' }),
     recordDir: config.metaRecordDir ?? null,
   })
-  return createMetaAppConnector(client)
+  const systemUser = createMetaSystemUserConnector({ client, integrations: deps.integrations })
+  // the unified login (meta_business_login) joins with plan 03 Task 7
+  return { meta: systemUser, connectors: { meta_system_user: systemUser } }
 }
 
 export interface MailerDeps {
@@ -174,7 +184,8 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       tokens: createTokenService(),
       integrations,
       mailer,
-      meta: createMeta(config, { clock, logger }),
+      ...createMeta(config, { clock, logger, integrations }),
+      connectionTokens: createConnectionTokens({ keyRing }),
       close: () => handle.close(),
     }
   } catch (error) {

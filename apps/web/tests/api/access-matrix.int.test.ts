@@ -103,6 +103,16 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/integrations/meta/test': [
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
+  // connections and imports: Owner and Admin (spec §10.2, "Collegare account social")
+  'POST /api/v1/orgs/{org}/connections/system-user': [
+    { permission: 'accounts.manage', level: 'organization' },
+  ],
+  'GET /api/v1/orgs/{org}/connections/{connectionId}/importable': [
+    { permission: 'accounts.manage', level: 'organization' },
+  ],
+  'POST /api/v1/orgs/{org}/connections/{connectionId}/import': [
+    { permission: 'accounts.manage', level: 'organization' },
+  ],
   // the agency's privacy notice: every member, whatever the role
   'GET /api/v1/orgs/{org}/privacy': [{ permission: 'workspace.view', level: 'organization' }],
   'GET /api/v1/orgs/{org}/members': [{ permission: 'users.manage', level: 'organization' }],
@@ -331,6 +341,10 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   // names of the fields only: never the App Secret, not even the App ID
   'integration.meta_changed': ['fields[]'],
   'integration.meta_tested': ['ok', 'result'],
+  // the kind only: never the token, nor the Meta user it belongs to
+  'connection.created': ['kind'],
+  'connection.token_replaced': ['kind'],
+  'accounts.imported': ['count'],
 }
 
 /**
@@ -430,6 +444,11 @@ async function produceEveryAction() {
     appSecret: META_MOCK.app.secret,
   })
   await ok('POST', `${org}/integrations/meta/test`)
+  // the throwaway agency has its system user already: the same one again replaces the token
+  await ok('POST', `${org}/connections/system-user`, { token: META_MOCK.tokens.systemUser })
+  await ok('POST', `${org}/connections/${ids.connection}/import`, {
+    externalIds: [META_MOCK.pages.withInstagram],
+  })
   await ok('POST', `${org}/invites`, {
     email: `registro-${randomUUID().slice(0, 8)}@example.test`,
     orgRole: 'member',

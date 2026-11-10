@@ -11,8 +11,6 @@ const FUTURE_PERMISSIONS = [
   'post.manage_others',
   'post.retry',
   'share_link.manage',
-  'accounts.manage',
-  'workspace.accounts.assign',
 ]
 
 // Every queue: the Record type fails to compile when a queue is added without an entry here.

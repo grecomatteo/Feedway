@@ -1,3 +1,4 @@
+import { accountsModule } from './accounts/module.js'
 import { auditModule } from './audit/module.js'
 import { identityModule } from './identity/module.js'
 import type { ModuleDefinition, UserAnonymizedHandler } from './module-definition.js'
@@ -11,6 +12,7 @@ export const MODULES: readonly ModuleDefinition[] = [
   identityModule,
   organizationsModule,
   workspacesModule,
+  accountsModule,
   auditModule,
 ]
 

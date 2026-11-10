@@ -39,6 +39,8 @@ export interface SampleIds {
   email: string
   /** an open invite of the agency into `workspace`, sent by A's Manager (B's Owner in B) */
   invite: string
+  /** the agency's system user connection, on the fake Graph API */
+  connection: string
 }
 
 /** A valid body for every route that takes one; checked against the route's own schema. */
@@ -56,6 +58,14 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'PUT /api/v1/orgs/{org}/integrations/meta': () => ({
     appId: META_MOCK.app.id,
     appSecret: META_MOCK.app.secret,
+  }),
+  // the fake Graph API's system user (META_MODE=mock): a fake token, never a real one
+  'POST /api/v1/orgs/{org}/connections/system-user': () => ({
+    token: META_MOCK.tokens.systemUser,
+  }),
+  // a page the system user always sees (me/accounts), with or without the business id
+  'POST /api/v1/orgs/{org}/connections/{connectionId}/import': () => ({
+    externalIds: [META_MOCK.pages.withInstagram],
   }),
   'POST /api/v1/orgs/{org}/invites': (ids) => ({
     email: ids.email,
@@ -112,6 +122,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   admin: randomUUID(),
   email: 'segnaposto@example.test',
   invite: randomUUID(),
+  connection: randomUUID(),
 }
 
 /**
@@ -126,7 +137,14 @@ export function namesWorkspace(route: ApiContract): boolean {
   )
 }
 
-export const ID_KINDS = ['workspace', 'target', 'newcomer', 'admin', 'invite'] as const
+export const ID_KINDS = [
+  'workspace',
+  'target',
+  'newcomer',
+  'admin',
+  'invite',
+  'connection',
+] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
 /** The ids a request to the route carries, in the path, the body or (if asked) the query. */
@@ -174,6 +192,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   id: ids.workspace,
   userId: ids.target,
   inviteId: ids.invite,
+  connectionId: ids.connection,
   size: '256',
 })
 
@@ -264,6 +283,40 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
 
   const workspaceOf = { a: [a.id, w1, w2], b: [b.id, wb, wb] } as const
 
+  /**
+   * The agency's Meta app and its system user, through the routes as an Owner does it. One per
+   * agency: the same system user again only replaces its token (plan 03, choice 4).
+   */
+  async function metaConnection(slug: string, cookie: string): Promise<string> {
+    await env.admin.pool.query('update sessions set reauthenticated_at = now()')
+    const app = await env.call(
+      'PUT',
+      `/api/v1/orgs/${slug}/integrations/meta`,
+      {
+        appId: META_MOCK.app.id,
+        appSecret: META_MOCK.app.secret,
+        businessId: META_MOCK.businesses.agency,
+      },
+      { cookie },
+    )
+    expect(app.status, await app.clone().text()).toBe(200)
+    const r = await env.call(
+      'POST',
+      `/api/v1/orgs/${slug}/connections/system-user`,
+      { token: META_MOCK.tokens.systemUser },
+      { cookie },
+    )
+    const text = await r.text()
+    expect(r.status, text).toBe(200)
+    const id = (JSON.parse(text) as { connection: { id: string } | null }).connection?.id
+    if (id === undefined) throw new Error('the system user was not connected')
+    return id
+  }
+  const connectionOf = {
+    a: await metaConnection(a.slug, cookies.owner),
+    b: await metaConnection(b.slug, cookies.ownerOfB),
+  }
+
   /** An open invite written directly: its link is never needed, only its id. */
   async function openInvite(
     organizationId: string,
@@ -320,6 +373,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         ...ids,
         email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
         invite: await openInvite(organizationId, ids.workspace, sender),
+        connection: connectionOf[agency],
       }
     },
     async refreshReauth() {
@@ -350,6 +404,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           ...ids,
           email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
           invite: await openInvite(agency.id, ids.workspace, owner.userId),
+          connection: await metaConnection(agency.slug, cookie),
         },
       }
     },
