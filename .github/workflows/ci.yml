@@ -21,7 +21,8 @@ concurrency:
 # (a self-hosted runner once the monthly Actions minutes are spent, never while the repository is
 # public: docs/flusso-git.md §5).
 # timeout-minutes stops a hung job instead of letting it run for the 6 hour default.
-# The job names below are the required checks of the main ruleset (.github/rulesets/main.json).
+# The job names below are the required checks of the main ruleset (.github/rulesets/main.json),
+# except image-arm64, which `image` reports.
 jobs:
   lint-types:
     if: ${{ !github.event.pull_request.draft }}
@@ -195,9 +196,11 @@ jobs:
   # it the same way. Not a required check: `image` waits for it and fails if it failed, so the
   # ruleset keeps its job names. A pull request builds it only when the Dockerfile, the
   # dependencies, Node or the CI change; the release builds arm64 again anyway.
+  # With CI_RUNNER set (self-hosted fallback) and no CI_ARM64_RUNNER, the job runs on CI_RUNNER and
+  # skips the build, so no GitHub minutes are needed.
   image-arm64:
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ${{ vars.CI_ARM64_RUNNER || 'ubuntu-24.04-arm' }}
+    runs-on: ${{ vars.CI_ARM64_RUNNER || vars.CI_RUNNER || 'ubuntu-24.04-arm' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -205,12 +208,15 @@ jobs:
           fetch-depth: 2
       - id: changes
         run: scripts/ci/changes-step.sh
+      - name: Build arm64 saltata
+        if: steps.changes.outputs.arm64 != 'false' && !vars.CI_ARM64_RUNNER && vars.CI_RUNNER
+        run: echo "::warning::CI_RUNNER senza CI_ARM64_RUNNER, build arm64 saltata (la rifà il rilascio)."
       - name: Immagine arm64
-        if: steps.changes.outputs.arm64 != 'false'
+        if: steps.changes.outputs.arm64 != 'false' && (vars.CI_ARM64_RUNNER || !vars.CI_RUNNER)
         run: docker build -f docker/Dockerfile -t app:ci-arm64 --build-arg APP_VERSION=0.0.0-ci .
       # Native modules must arrive as platform packages: the image installs with --ignore-scripts.
       - name: Moduli nativi nell'immagine arm64
-        if: steps.changes.outputs.arm64 != 'false'
+        if: steps.changes.outputs.arm64 != 'false' && (vars.CI_ARM64_RUNNER || !vars.CI_RUNNER)
         run: |
           docker run --rm --entrypoint node -w /app/apps/worker app:ci-arm64 -e \
             "import('@node-rs/argon2').then(async (m) => { if (process.arch !== 'arm64' || !(await m.verify(await m.hash('x'), 'x'))) process.exit(1); console.log('argon2 ok', process.arch) })"
