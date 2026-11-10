@@ -68,3 +68,10 @@ h3 {
     scroll-behavior: auto !important;
   }
 }
+
+/* theme switch: the new theme is revealed by ThemeSwitcher's circle, not by a cross-fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

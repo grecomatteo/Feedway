@@ -201,14 +201,18 @@ test('a suspension made while the page is open shows when the tab comes back', a
       second,
     ]),
   )
-  // the tab comes back to the front: the panel asks again who the person is
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-    document.dispatchEvent(new Event('visibilitychange'))
-  })
-  await expect(page.getByRole('alert')).toHaveText(
-    'Questa agenzia è sospesa: per ora non puoi lavorarci.',
-  )
+  // the tab comes back to the front: the panel asks again who the person is. The page listens
+  // only once it runs in the browser, so under load the event is sent again until it shows.
+  await expect(async () => {
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await expect(page.getByRole('alert')).toHaveText(
+      'Questa agenzia è sospesa: per ora non puoi lavorarci.',
+      { timeout: 1000 },
+    )
+  }).toPass()
 })
 
 test('a role change asks for the confirmation and then runs', async ({ page }) => {

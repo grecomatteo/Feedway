@@ -7,7 +7,19 @@ export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@nuxtjs/i18n', 'nuxt-security'],
   css: ['~/assets/main.css'],
   // on every page, the error page included (it replaces app.vue)
-  app: { head: { htmlAttrs: { lang: 'it' } } },
+  app: {
+    head: {
+      htmlAttrs: { lang: 'it' },
+      // the brand kit's icons (04-Web/head-snippet.html)
+      link: [
+        { rel: 'icon', href: '/brand/favicon.ico', sizes: '16x16 32x32 48x48' },
+        { rel: 'icon', href: '/brand/favicon.svg', type: 'image/svg+xml' },
+        { rel: 'apple-touch-icon', href: '/brand/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/brand/site.webmanifest' },
+      ],
+      meta: [{ name: 'theme-color', content: '#FF762E' }],
+    },
+  },
   colorMode: {
     preference: 'system',
     fallback: 'light',

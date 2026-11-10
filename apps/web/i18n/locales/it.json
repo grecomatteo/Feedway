@@ -1,6 +1,7 @@
 {
   "theme": {
     "label": "Tema",
+    "toggle": "Passa al tema chiaro o scuro",
     "light": "Chiaro",
     "dark": "Scuro",
     "system": "Automatico"
@@ -97,6 +98,7 @@
       "secretLabel": "Chiave da scrivere nell'app",
       "openApp": "Apri nell'app di autenticazione",
       "code": "Codice di 6 cifre",
+      "codeIncomplete": "Scrivi le 6 cifre che mostra l’app.",
       "verify": "Verifica e attiva",
       "codesTitle": "Codici di recupero",
       "codesExplain": "Ognuno vale una volta sola, se non hai l'app a portata di mano. Conservali in un posto sicuro: non li mostreremo più.",
