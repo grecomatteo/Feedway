@@ -99,11 +99,15 @@ const zoneItems = computed(() => [
   })),
 ])
 async function savePreferences() {
+  // the browser takes the choice first: when the saved profile comes back, its theme and this
+  // one already agree, so a light or dark one left here does not fill a fresh «Automatico»
+  const previous = colorMode.preference
+  colorMode.preference = preferences.theme
   await save(preferencesState, {
     theme: preferences.theme,
     timezone: preferences.timezone === AGENCY_ZONE ? null : preferences.timezone,
   })
-  if (preferencesState.done) colorMode.preference = preferences.theme
+  if (!preferencesState.done) colorMode.preference = previous
 }
 
 // ---- email
