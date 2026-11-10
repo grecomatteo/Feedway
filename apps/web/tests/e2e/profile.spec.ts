@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { newMember, signIn } from './support/people.ts'
+import { adminQuery, E2E_PASSWORD, newMember, newPerson, signIn } from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -92,6 +92,49 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   } finally {
     await other.close()
   }
+})
+
+test('the theme chosen before signing in stays after it, and a profile that never chose takes it', async ({
+  page,
+}) => {
+  const html = page.locator('html')
+  await page.goto('/accedi')
+  const wasDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  const turned = async () => wasDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
+  // (a click that did turn it is never repeated: a second one would turn it back)
+  await expect(async () => {
+    if (!(await turned()))
+      await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).click()
+    expect(await turned()).toBe(true)
+  }).toPass()
+  const chosen = wasDark ? 'light' : 'dark'
+
+  // an Admin owes the second factor: the next page keeps the choice, the profile waits
+  const halfway = await newPerson('Bice Admin', 'admin')
+  await page.getByLabel('Email', { exact: true }).fill(halfway.email)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Accedi con la password' }).click()
+  await expect(page).toHaveURL(/\/accedi\/secondo-fattore$/)
+  expect(await turned()).toBe(true)
+  await page.getByRole('button', { name: 'Esci' }).first().click()
+  await expect(page).toHaveURL(/\/accedi/)
+
+  // a person with a full session: the profile takes the choice
+  const person = await newMember()
+  await page.getByLabel('Email', { exact: true }).fill(person.email)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Accedi con la password' }).click()
+  await page.getByRole('button', { name: 'Non ora' }).click()
+  await expect(page).not.toHaveURL(/\/accedi$/)
+  expect(await turned()).toBe(true)
+  await expect
+    .poll(async () => {
+      const rows = await adminQuery<{ theme: string }>('select theme from users where id = $1', [
+        person.userId,
+      ])
+      return rows[0]?.theme
+    })
+    .toBe(chosen)
 })
 
 test('a wrong nickname gets its error next to the field', async ({ page }) => {

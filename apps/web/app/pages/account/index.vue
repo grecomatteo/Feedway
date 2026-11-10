@@ -19,8 +19,8 @@ const {
 // The theme saved in the profile wins on every device (the cookie only remembers it locally).
 watch(
   () => me.value?.theme,
-  (theme) => {
-    if (theme && colorMode.preference !== theme) colorMode.preference = theme
+  () => {
+    if (me.value) session.applyTheme(me.value)
   },
   { immediate: true },
 )
