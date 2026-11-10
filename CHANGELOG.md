@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/grecomatteo/Feedway/compare/v0.5.0...v0.6.0) (2026-11-10)
+
+
+### Novità
+
+* **accounts:** client della Graph API di Meta ([#144](https://github.com/grecomatteo/Feedway/issues/144)) ([2227683](https://github.com/grecomatteo/Feedway/commit/2227683341ce0bd58b3a03faaf682aa2d9242247))
+
+
+### Correzioni
+
+* **identity:** un codice dell'app incompleto non parte ([d8bdd42](https://github.com/grecomatteo/Feedway/commit/d8bdd428d656a6650c682d19e20946a632d3209e))
+* **web:** il tema passa al contrario con un solo clic ([d8bdd42](https://github.com/grecomatteo/Feedway/commit/d8bdd428d656a6650c682d19e20946a632d3209e))
+* **web:** l'icona di Feedway nella scheda del browser ([d8bdd42](https://github.com/grecomatteo/Feedway/commit/d8bdd428d656a6650c682d19e20946a632d3209e))
+
 ## [0.5.0](https://github.com/grecomatteo/Feedway/compare/v0.4.1...v0.5.0) (2026-11-09)
 
 
