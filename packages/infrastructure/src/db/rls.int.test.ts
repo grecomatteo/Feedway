@@ -46,6 +46,14 @@ const setMemberStatus = (organizationId: string, userId: string, status: string)
 const orgA = newId()
 const orgB = newId()
 const [u1, u2, u3, u4, u5] = [newId(), newId(), newId(), newId(), newId()]
+// agency A's connection and account (plan 03, Task 5)
+const [connA, accountA] = [newId(), newId()]
+const ACCOUNT_TABLES = [
+  'account_connections',
+  'social_accounts',
+  'workspace_accounts',
+  'connection_attempts',
+]
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
@@ -110,6 +118,27 @@ beforeAll(async () => {
       [newId(), orgA, u1],
     )
     await insertIntegration(c, null)
+    await c.query(
+      `insert into account_connections
+         (id, organization_id, kind, external_user_id, connected_by, token_enc, key_version)
+       values ($1, $2, 'meta_system_user', 'su-1', $3, 'v1.1.x', 1)`,
+      [connA, orgA, u1],
+    )
+    await c.query(
+      `insert into social_accounts (id, organization_id, platform, external_id, name, connection_id)
+       values ($1, $2, 'instagram', 'ig-1', 'Forno', $3)`,
+      [accountA, orgA, connA],
+    )
+    await c.query(
+      `insert into workspace_accounts (organization_id, workspace_id, account_id)
+       values ($1, $2, $3)`,
+      [orgA, wsA, accountA],
+    )
+    await c.query(
+      `insert into connection_attempts (id, organization_id, user_id, kind, state_hash, expires_at)
+       values ($1, $2, $3, 'meta_business_login', $4, now() + interval '10 minutes')`,
+      [newId(), orgA, u1, Buffer.from(newId())],
+    )
   })
 }, 120_000)
 afterAll(async () => {
@@ -127,6 +156,7 @@ test('without context no tenant rows are visible', async () => {
     'workspace_members',
     'audit_log',
     'api_tokens',
+    ...ACCOUNT_TABLES,
   ]
   for (const t of tables) {
     expect((await runtime.query(`select * from ${t}`)).rowCount, t).toBe(0)
@@ -336,4 +366,40 @@ test('integrations: SMTP is platform only, and one row per kind', async () => {
       ),
     ),
   ).rejects.toThrow(/integrations_kind/)
+})
+
+test('accounts: the four tables of agency A are out of reach from agency B and from a user', async () => {
+  for (const scope of [
+    (c: Fn<pg.QueryResult>) => inOrg(orgB, c),
+    (c: Fn<pg.QueryResult>) => asUser(u2, c),
+  ]) {
+    for (const t of ACCOUNT_TABLES) {
+      expect((await scope((c) => c.query(`select * from ${t}`))).rowCount, t).toBe(0)
+      expect((await scope((c) => c.query(`update ${t} set updated_at = now()`))).rowCount, t).toBe(
+        0,
+      )
+      expect((await scope((c) => c.query(`delete from ${t}`))).rowCount, t).toBe(0)
+    }
+  }
+  for (const t of ACCOUNT_TABLES) {
+    expect((await inOrg(orgA, (c) => c.query(`select * from ${t}`))).rowCount, t).toBe(1)
+  }
+})
+
+test('accounts: agency B cannot write rows that name agency A', async () => {
+  const writes = [
+    `insert into account_connections
+       (id, organization_id, kind, external_user_id, connected_by, token_enc, key_version)
+     values ('${newId()}', '${orgA}', 'meta_system_user', 'su-b', '${u3}', 'v1.1.x', 1)`,
+    `insert into social_accounts (id, organization_id, platform, external_id, name, connection_id)
+     values ('${newId()}', '${orgA}', 'instagram', 'ig-b', 'B', '${connA}')`,
+    `insert into connection_attempts (id, organization_id, user_id, kind, state_hash, expires_at)
+     values ('${newId()}', '${orgA}', '${u2}', 'meta_business_login', 'x', now())`,
+  ]
+  for (const sql of writes) {
+    await expect(
+      inOrg(orgB, (c) => c.query(sql)),
+      sql,
+    ).rejects.toThrow(/row-level security/)
+  }
 })

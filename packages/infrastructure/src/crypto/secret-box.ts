@@ -14,6 +14,14 @@ function decode(text: string | undefined): Buffer {
   return bytes
 }
 
+/** The key version of a sealed value: rotation keeps the keys still in use. */
+export function sealedKeyVersion(sealed: string): number {
+  const [format, version] = sealed.split('.')
+  const n = Number(version)
+  if (format !== FORMAT || !Number.isInteger(n) || n < 1) throw new Error('malformed sealed value')
+  return n
+}
+
 /**
  * AES-256-GCM. Sealed form: `v1.<keyVersion>.<iv>.<ciphertext>.<tag>` (base64url);
  * `open` picks the key from the version, so old values stay readable after a rotation.

@@ -1,5 +1,11 @@
 import { sql } from 'drizzle-orm'
 import type { IdGenerator, Logger, Tx, UnitOfWork } from '@app/application'
+import {
+  drizzleConnectionAttempts,
+  drizzleConnections,
+  drizzleSocialAccounts,
+  drizzleWorkspaceAccounts,
+} from './accounts/repositories.js'
 import { drizzleAuditLog } from './audit/repositories.js'
 import type { Db, DbExecutor } from './client.js'
 import {
@@ -45,6 +51,10 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     workspaceMembers: drizzleWorkspaceMembers(db),
     platformSettings: drizzlePlatformSettings(db),
     integrations: drizzleIntegrations(db, ids),
+    accounts: drizzleSocialAccounts(db, ids),
+    connections: drizzleConnections(db),
+    connectionAttempts: drizzleConnectionAttempts(db),
+    workspaceAccounts: drizzleWorkspaceAccounts(db),
     audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })

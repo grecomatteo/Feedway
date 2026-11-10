@@ -10,6 +10,7 @@ import type {
 } from '@app/application'
 import { DomainError } from '@app/domain'
 import { checkMetaIntegrationConfig } from '@app/domain/platforms/meta'
+import { sealedKeyVersion } from '../../crypto/secret-box.js'
 import { parseSmtpConfig } from '../../mail/smtp/smtp-config.js'
 
 const SECRET_MAX = 1024
@@ -18,13 +19,6 @@ const SECRET_MAX = 1024
 const aadFor = (kind: PlatformIntegrationKind) => `integrations:platform:${kind}`
 const orgAadFor = (organizationId: string, kind: OrganizationIntegrationKind) =>
   `integrations:org:${organizationId}:${kind}`
-
-// Sealed form `v1.<keyVersion>.…` (SecretBox): the version says which key to keep for rotation.
-function keyVersionOf(sealed: string): number {
-  const version = Number(sealed.split('.')[1])
-  if (!Number.isInteger(version) || version < 1) throw new Error('malformed sealed value')
-  return version
-}
 
 const PARSERS: { [K in IntegrationKind]: (value: unknown) => IntegrationConfigs[K] | null } = {
   smtp: parseSmtpConfig,
@@ -98,7 +92,7 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
       const record = await tx.integrations.upsertPlatform(kind, {
         config,
         secretEnc,
-        keyVersion: keyVersionOf(secretEnc),
+        keyVersion: sealedKeyVersion(secretEnc),
         updatedBy: replacement.updatedBy,
       })
       return viewOf(kind, record)
@@ -134,7 +128,7 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
         {
           config,
           secretEnc,
-          keyVersion: keyVersionOf(secretEnc),
+          keyVersion: sealedKeyVersion(secretEnc),
           updatedBy: replacement.updatedBy,
           verifiedAt: replacement.verifiedAt,
         },
