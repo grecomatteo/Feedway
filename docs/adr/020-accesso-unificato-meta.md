@@ -28,6 +28,9 @@ Secondo la panoramica di Meta ([overview](https://developers.facebook.com/docume
 - `facebook_login` e `instagram_login` non entrano negli elenchi chiusi della 1.0. Le tabelle non esistono ancora, quindi non serve una migrazione. Se un giorno servissero per un'app vecchia, si aggiungono con una migrazione (§18.6).
 - Endpoint esatti, permessi della configurazione di Feedway, scadenza reale del token e modo di trovare gli account (Pagine e profili solo Instagram del portfolio) si fissano dalla documentazione nel Task 1 della tappa 3, con fonte e data. Si provano alla fine del Task 7 con l'app di Matteo e di nuovo nel Task 13. Questa ADR si accetta dopo la prova di fine Task 7.
 
+## Prova del 2026-11-11 e rinvio
+Matteo ha provato a mano l'accesso unificato su Meta vera ([docs/platforms/meta.md](../platforms/meta.md), «Prova su Meta vera del 2026-11-11»). Lo scambio del codice funziona e il token è di un utente di sistema creato da Meta nel portfolio del cliente, che non scade: la Scelta 1 regge. Però con l'app in modalità sviluppo i clienti senza ruoli nell'app non entrano («App non attiva»), e con i permessi della configurazione proposta da Meta non c'è un modo provato per elencare gli account scelti. **Matteo ha deciso di rinviare `meta_business_login` alla versione pubblica** (piano 03, Task 7): per l'uso interno basta l'utente di sistema. Questa ADR resta «Proposta» fino ad allora.
+
 ## Alternative scartate
 - **Tenere il login Instagram (`instagram.com/oauth`)**: con un'app nuova Meta lo rifiuta. Funzionerebbe solo con un'app creata prima del cambio, che Matteo non ha.
 - **Solo utente di sistema**: copre i clienti che danno accesso come partner al portfolio di Trendy. Non copre però il cliente con solo Instagram che non vuole o non sa farlo, che era il motivo del login Instagram in ADR 015.

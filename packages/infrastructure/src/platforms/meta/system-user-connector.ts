@@ -20,13 +20,10 @@ import type {
 } from './graph-client.js'
 
 // The system user of the agency's Business Manager (spec §8.1, plan 03 Task 6): a pasted token
-// that does not expire. The listing is shared with the unified login (Task 7).
+// that does not expire.
 
 /** The agency's app as the Meta connectors carry it, opaque to the accounts module. */
-export interface MetaConnectorApp extends MetaAppCredentials {
-  /** The Business Manager whose pages and profiles the system user lists; null: only its own. */
-  businessId: string | null
-}
+export type MetaConnectorApp = MetaAppCredentials
 
 /** At most this many requests for one listing: 50 items each, far more than an agency holds. */
 export const MAX_LIST_REQUESTS = 40
@@ -85,50 +82,27 @@ const instagramOf = (ig: MetaInstagramAccount, pageId: string | null): PlatformA
 })
 
 /**
- * Pages and Instagram profiles a Meta token sees, without doubles. `me/accounts` gives the
- * pages the user has a role on, each with its page token; the business edges add the pages of
- * the portfolio and of the clients who gave access as partners (`client_pages`), and the
- * profiles with no page. A page that arrives with no token anywhere cannot be published to:
- * "role missing". Not verified on real Meta (docs/platforms/meta.md, end of Task 7).
+ * Pages and Instagram profiles assigned to the system user, without doubles. `me/accounts`
+ * gives the pages with their page token and their Instagram; `me/assigned_instagram_accounts`
+ * gives every Instagram assigned, with or without a page. Verified on real Meta on 2026-11-11
+ * (docs/platforms/meta.md): the business edges list pages that are not assigned, and its
+ * Instagram edges answer 100/33, so neither is read. A page that arrives with no token cannot
+ * be published to: "role missing".
  */
 export async function listMetaAccounts(
-  client: Pick<
-    MetaGraphClient,
-    'listUserPages' | 'listBusinessPages' | 'listBusinessInstagramAccounts'
-  >,
+  client: Pick<MetaGraphClient, 'listUserPages' | 'listAssignedInstagramAccounts'>,
   credentials: MetaTokenCredentials,
-  businessId: string | null,
 ): Promise<PlatformAccount[]> {
   const budget = { left: MAX_LIST_REQUESTS }
   const pages: MetaFacebookPage[] = await readAll(
     (after) => client.listUserPages(credentials, after === undefined ? {} : { after }),
     budget,
   )
-  const igWithoutPage: MetaInstagramAccount[] = []
-  if (businessId !== null) {
-    for (const relation of ['owned', 'client'] as const)
-      pages.push(
-        ...(await readAll(
-          (after) =>
-            client.listBusinessPages(credentials, {
-              businessId,
-              relation,
-              ...(after === undefined ? {} : { after }),
-            }),
-          budget,
-        )),
-      )
-    igWithoutPage.push(
-      ...(await readAll(
-        (after) =>
-          client.listBusinessInstagramAccounts(credentials, {
-            businessId,
-            ...(after === undefined ? {} : { after }),
-          }),
-        budget,
-      )),
-    )
-  }
+  const assignedIg: MetaInstagramAccount[] = await readAll(
+    (after) =>
+      client.listAssignedInstagramAccounts(credentials, after === undefined ? {} : { after }),
+    budget,
+  )
 
   const byPage = new Map<string, MetaFacebookPage & { hasToken: boolean }>()
   for (const page of pages) {
@@ -158,7 +132,7 @@ export async function listMetaAccounts(
       accounts.push(instagramOf(ig, page.id))
     }
   }
-  for (const ig of igWithoutPage)
+  for (const ig of assignedIg)
     if (!seenIg.has(ig.id)) {
       seenIg.add(ig.id)
       accounts.push(instagramOf(ig, null))
@@ -192,11 +166,7 @@ export function createMetaSystemUserConnector(deps: {
     async loadAppCredentials(tx, organizationId) {
       const found = await deps.integrations.credentials(tx, organizationId, 'meta')
       if (found === null) return null
-      return {
-        appId: found.config.appId,
-        appSecret: found.secret,
-        businessId: found.config.businessId,
-      }
+      return { appId: found.config.appId, appSecret: found.secret }
     },
 
     async connectWithToken(credentials, token): Promise<TokenCheck> {
@@ -242,11 +212,7 @@ export function createMetaSystemUserConnector(deps: {
 
     listAccounts({ app: credentials, token }) {
       return classifiedListing(() =>
-        listMetaAccounts(
-          client,
-          { accessToken: token, appSecret: credentials.appSecret },
-          credentials.businessId,
-        ),
+        listMetaAccounts(client, { accessToken: token, appSecret: credentials.appSecret }),
       )
     },
   }

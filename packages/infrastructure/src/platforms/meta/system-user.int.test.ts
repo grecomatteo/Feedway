@@ -102,7 +102,7 @@ async function agencyWithOwner(opts: { app?: boolean } = {}): Promise<OrgActor> 
         config: {
           appId: META_MOCK.app.id,
           configId: null,
-          businessId: META_MOCK.businesses.agency,
+          businessId: null,
           dataUseCheckupDueOn: null,
         },
         secret: META_MOCK.app.secret,
@@ -183,12 +183,12 @@ afterAll(async () => {
   await tdb.stop()
 })
 
-test('a valid token: green permissions, every account once, partner pages included, pending', async () => {
+test('a valid token: green permissions, every assigned account once, pending', async () => {
   const result = await connect(` ${TOKEN}\n`)
   expect(result.outcome).toBe('connected')
   expect(result.permissions).toHaveLength(6)
   expect(result.permissions.every((p) => p.granted)).toBe(true)
-  // Bottega Verde comes from me/accounts and from client_pages: listed once, with its token
+  // Forno Luce's Instagram comes from the page and from the assigned ones: listed once, paired
   expect(result.accounts.map((a) => [a.platform, a.externalId, a.pageId, a.state])).toEqual([
     ['facebook', pages.withInstagram, pages.withInstagram, 'to_import'],
     ['instagram', instagram.ofPage, pages.withInstagram, 'to_import'],

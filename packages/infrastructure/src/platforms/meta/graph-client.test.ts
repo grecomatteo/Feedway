@@ -151,6 +151,13 @@ describe('successful calls', () => {
     })
     expect(partner.data.items.map((p) => p.id)).toEqual([META_MOCK.pages.withoutInstagram])
 
+    const assigned = await client.listAssignedInstagramAccounts(systemUser)
+    expect(assigned.data.items.map((a) => a.id)).toEqual([
+      META_MOCK.instagram.agencyOnly,
+      META_MOCK.instagram.shared,
+      META_MOCK.instagram.ofPage,
+    ])
+
     const profile = await client.getInstagramAccount(systemUser, META_MOCK.instagram.agencyOnly)
     expect(profile.data).toMatchObject({ username: 'studio.rossi', name: 'Studio Rossi' })
   })

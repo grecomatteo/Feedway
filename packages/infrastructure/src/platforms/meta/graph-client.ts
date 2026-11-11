@@ -89,6 +89,15 @@ export interface MetaGraphClient {
     credentials: MetaTokenCredentials,
     page?: { after?: string; limit?: number },
   ): Promise<MetaResult<MetaPage<MetaFacebookPage>>>
+  /** Every Instagram account assigned to the system user, with or without a page. */
+  listAssignedInstagramAccounts(
+    credentials: MetaTokenCredentials,
+    page?: { after?: string; limit?: number },
+  ): Promise<MetaResult<MetaPage<MetaInstagramAccount>>>
+  /**
+   * Not used by the system user (verified on 2026-11-11): `owned_pages` and `client_pages` list
+   * pages not assigned to it, and the business's Instagram edges answer 100/33.
+   */
   listBusinessPages(
     credentials: MetaTokenCredentials,
     input: { businessId: string; relation: 'owned' | 'client'; after?: string; limit?: number },
@@ -523,6 +532,19 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         listSchema(pageSchema),
       )
       return { data: toMetaPage(result.data, toPage), usage: result.usage }
+    },
+
+    async listAssignedInstagramAccounts(credentials, page) {
+      const result = await call(
+        {
+          name: 'me/assigned_instagram_accounts',
+          path: '/me/assigned_instagram_accounts',
+          params: { fields: igAccountFields, ...paging(page) },
+          credentials,
+        },
+        listSchema(igAccountSchema),
+      )
+      return { data: toMetaPage(result.data, toIgAccount), usage: result.usage }
     },
 
     async listBusinessPages(credentials, { businessId, relation, ...page }) {

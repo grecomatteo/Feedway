@@ -45,8 +45,7 @@ function clientOf(
         asked.push(p?.after)
         return Promise.resolve(listUserPages(p?.after))
       },
-      listBusinessPages: () => Promise.resolve(answer<MetaFacebookPage>([], null)),
-      listBusinessInstagramAccounts: () => Promise.resolve(answer([], null)),
+      listAssignedInstagramAccounts: () => Promise.resolve(answer([], null)),
     },
   }
 }
@@ -55,14 +54,14 @@ test('pages are followed by their cursor until the last one', async () => {
   const { client, asked } = clientOf((after) =>
     after === undefined ? answer([page('1')], 'c1') : answer([page('2')], null),
   )
-  const accounts = await listMetaAccounts(client, CREDENTIALS, null)
+  const accounts = await listMetaAccounts(client, CREDENTIALS)
   expect(accounts.map((a) => a.externalId)).toEqual(['1', '2'])
   expect(asked).toEqual([undefined, 'c1'])
 })
 
 test('a page already seen stops the listing: no endless loop', async () => {
   const { client, asked } = clientOf((after) => answer([page(after ?? '0')], 'sempre-lo-stesso'))
-  expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS, null))).toEqual({
+  expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS))).toEqual({
     ok: false,
     reason: 'incomplete',
   })
@@ -72,7 +71,7 @@ test('a page already seen stops the listing: no endless loop', async () => {
 test('a listing stops after its request budget', async () => {
   let n = 0
   const { client, asked } = clientOf(() => answer([page(String(n))], `c${String(++n)}`))
-  expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS, null))).toEqual({
+  expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS))).toEqual({
     ok: false,
     reason: 'incomplete',
   })
@@ -90,7 +89,7 @@ test('Meta errors become a refusal or no answer; other errors are not hidden', a
   await expect(classifiedListing(failing(new TypeError('bug')))).rejects.toThrow('bug')
 })
 
-const APP = { appId: '1000000000000001', appSecret: 'segreto-di-prova', businessId: null }
+const APP = { appId: '1000000000000001', appSecret: 'segreto-di-prova' }
 const VALID: MetaTokenInfo = {
   isValid: true,
   type: 'SYSTEM_USER',
