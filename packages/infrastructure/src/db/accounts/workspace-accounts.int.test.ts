@@ -146,13 +146,14 @@ test('Owner sees every account with its connection, a Member only those of their
 })
 
 test('the list comes a page at a time, the cursor on the id', async () => {
-  const before = (await listAccounts(deps, owner, {})).items.length
-  for (let i = 0; i < 3; i++) await account()
-  const first = await listAccounts(deps, owner, { limit: before + 2 })
-  expect(first.items).toHaveLength(before + 2)
-  expect(first.nextCursor).toBe(first.items.at(-1)?.id)
+  // ids grow with time: the accounts after this one are the three made here
+  const anchor = await account()
+  const made = [await account(), await account(), await account()].map((a) => a.id)
+  const first = await listAccounts(deps, owner, { cursor: anchor.id, limit: 2 })
+  expect(first.items.map((a) => a.id)).toEqual(made.slice(0, 2))
+  expect(first.nextCursor).toBe(made[1])
   const rest = await listAccounts(deps, owner, { cursor: first.nextCursor ?? '', limit: 10 })
-  expect(rest.items).toHaveLength(1)
+  expect(rest.items.map((a) => a.id)).toEqual(made.slice(2))
   expect(rest.nextCursor).toBeNull()
   await expect(listAccounts(deps, owner, { cursor: 'non-un-id' })).rejects.toMatchObject({
     code: 'VALIDATION',
