@@ -1,7 +1,7 @@
 /**
  * The settings of an agency's Meta app (spec §8.3, ADR 020), never the secret. Only the App ID
- * is required: the unified login needs `configId` (Task 7), the system user's listing may need
- * `businessId` (Meta documents no way to read it with that token, docs/platforms/meta.md), and
+ * is required: the unified login needs `configId` (Task 7, postponed), `businessId` is kept but
+ * no longer used by the system user's listing (real Meta, 2026-11-11, docs/platforms/meta.md), and
  * the Data Use Checkup has no API, so the Owner types its due date (empty while in development).
  */
 export interface MetaIntegrationConfig {

@@ -1,8 +1,55 @@
 # Meta: cosa dice la documentazione ufficiale
 
-Verifiche del Task 1 della tappa 3: ciò che i task successivi danno per buono sulla Graph API. Ogni riga ha la fonte e la data in cui è stata letta. Quello che la documentazione non dice è scritto **non verificato**: si prova alla fine del Task 7 sull'app di Matteo e di nuovo nel Task 13, mai da test o script (`AGENTS.md`).
+Verifiche del Task 1 della tappa 3: ciò che i task successivi danno per buono sulla Graph API. Ogni riga ha la fonte e la data in cui è stata letta. Quello che la documentazione non dice è scritto **non verificato**: una parte è stata provata a mano il 2026-11-11 (sotto), il resto si prova nel Task 13, mai da test o script (`AGENTS.md`).
 
 Tutte le pagine sono state lette il **2026-11-09**. Gli indirizzi senza dominio stanno su `https://developers.facebook.com`. Le fonti non di Meta sono segnate come tali e da sole non bastano.
+
+Il **2026-11-11** Matteo ha provato a mano su Meta vera, con il Graph API Explorer e l'app «Feedway» in modalità sviluppo: i risultati sono nella sezione [Prova su Meta vera del 2026-11-11](#prova-su-meta-vera-del-2026-11-11) e prevalgono su quanto scritto nelle altre sezioni. Dove una riga è stata smentita, lo dice.
+
+## Prova su Meta vera del 2026-11-11
+
+Graph API v26.0 (l'Explorer offre solo v26.0 e v27.0), app in modalità sviluppo, Business Manager dell'agenzia con un utente di sistema Admin. Nessun token è passato in chat né nel repository. Gli esiti completi, chiamata per chiamata, li conserva Matteo (`handoff/tappa-3/esiti-prova-meta.md` nella cartella del progetto).
+
+### Utente di sistema: verificato
+
+| Cosa | Esito |
+|---|---|
+| Generazione del token | Scadenza «Mai», i sei permessi della specifica tutti presenti. Se l'app non ha ancora i permessi delle Pagine, Meta avvisa («autorizzazioni non aggiunte alla tua app: `pages_read_engagement`, `pages_manage_posts`») e con **Continua** li aggiunge da solo. Va scritto nella guida di configurazione (Task 12 e 13) |
+| `debug_token` (dal debugger dei token, uguale con v25.0 e v27.0) | Tipo **System User**, scadenza **Mai**, accesso ai dati **Mai**, valido. Permessi: i sei, più `public_profile` aggiunto da Meta. Ambiti granulari: tutti «Applies to all objects», **senza id**. C'è un id utente per l'app. Il valore grezzo di `expires_at` non è stato letto (il debugger mostra «Mai») |
+| `me/accounts?fields=id,name,tasks,instagram_business_account{…}` | Solo le Pagine **assegnate** all'utente di sistema, con il loro Instagram e i `tasks`. Il token della Pagina si legge con `fields=access_token` |
+| `me/assigned_pages` | Le stesse Pagine assegnate, con i `tasks` |
+| `me/assigned_instagram_accounts?fields=id,username` | **Tutti** gli Instagram assegnati, con e senza Pagina. Un Instagram assegnato **dopo** la generazione del token compare senza rigenerarlo |
+| `me/businesses` | Risponde, ma con `data: []`: l'id del business non si ricava da qui |
+| `<business>/owned_pages`, `<business>/client_pages` | Rispondono, ma restituiscono anche Pagine **non assegnate** all'utente di sistema (8 contro 1 nella prova): Feedway non li usa |
+| `<business>/instagram_business_accounts`, `owned_instagram_accounts`, `instagram_accounts` | Errore **100 / 33** (GraphMethodException, «Unsupported get request»). `client_instagram_accounts`: errore 100, campo inesistente. Il nodo del business invece si legge |
+| `<ig>/content_publishing_limit` | `quota_usage` 0, `quota_total` **100**, `quota_duration` 86400 |
+| Pubblicazione su Instagram con Pagina | `POST <ig>/media` (`image_url`, `caption`), `status_code` subito `FINISHED`, `POST <ig>/media_publish` (`creation_id`): **ok**, il post è online |
+| Pubblicazione su Instagram **senza** Pagina | Stessi passi: **ok** |
+| Pubblicazione sulla Pagina | Con il token della Pagina, `POST <pagina>/photos` (`url`, `message`): **ok**. Basta l'accesso **parziale** alla Pagina con «Contenuti» |
+| Permessi della pubblicità | `ads_management` e `ads_read` **non servono** per pubblicare, né su Instagram né sulla Pagina |
+
+Non provato: la visibilità dei post creati dall'app in modalità sviluppo per chi non ha ruoli nell'app; le chiamate con **Require App Secret** acceso (era spento durante la prova, riacceso alla fine); `me/accounts` con più di una pagina di risultati.
+
+### Accesso unificato: verificato in parte
+
+Configurazione «API Instagram (accesso unificato)» proposta da Meta: token dell'utente di sistema, scadenza «Mai», risorse Account Instagram e Account pubblicitari. Permessi chiesti: `ads_management`, `ads_read`, `instagram_basic`, `instagram_content_publish`, `instagram_manage_comments`, `instagram_manage_messages`.
+
+| Cosa | Esito |
+|---|---|
+| Dialogo | L'indirizzo con `config_id` e senza `scope` funziona; Meta passa per `business.facebook.com` |
+| Modalità sviluppo | «Continua con Instagram» con un profilo **senza ruoli** nell'app: «App non attiva». Con l'app in sviluppo entra solo chi ha un ruolo: **i clienti veri entrano solo con l'app in modalità Live**, cioè dopo la revisione delle autorizzazioni |
+| «Continua con Facebook» | Con un amministratore dell'app: scelta del portfolio, degli account Instagram e (facoltativo) dell'account pubblicitario, poi ritorno all'indirizzo registrato con `code` e `state` |
+| Scambio del codice | `GET /oauth/access_token` con `client_id`, `client_secret`, `code` e lo stesso `redirect_uri`: **ok**. La risposta ha solo `access_token` e `token_type: "bearer"`, **senza `expires_in`** |
+| Il token | Tipo **System User**, scadenza **Mai**, accesso ai dati **Mai**. Appartiene a un utente di sistema nuovo, «Feedway System User», creato da Meta nel portfolio scelto. Id utente per l'app «Sconosciuto» nel debugger |
+| Permessi concessi | **Solo** `instagram_basic`, `instagram_content_publish`, `instagram_manage_comments`, `instagram_manage_messages` e `public_profile`. Niente `ads_*` (nessun account pubblicitario scelto) e niente `business_management`. Ambiti granulari senza id |
+| `me?fields=id,name,client_business_id` | Ok: restituisce l'id del portfolio scelto |
+| Elenco degli account scelti | `me/assigned_instagram_accounts` e `me/accounts`: **vuoti**. `<client_business_id>/owned_instagram_accounts`: errore **200** «Requires business_management permission». `<client_business_id>/instagram_business_accounts`: errore **200** «Missing perms» |
+| Uso dell'account scelto | `<ig>/content_publishing_limit` con questo token: **ok**. Il token funziona sull'account, ma Feedway **non ha un modo provato per elencarlo** |
+
+Domanda aperta: aggiungere `business_management` alla configurazione e leggere `<client_business_id>/owned_instagram_accounts` (non provato). Non provati: lo stesso `user_id` dopo un secondo accesso, la durata del codice.
+
+### Versione
+Nelle impostazioni dell'app («Aggiorna la versione dell'API») si scelgono solo **v26.0** (attuale) e **v27.0**. La **v27.0 esiste** (verificato il 2026-11-11). Il debugger dei token accetta ancora v25.0. **Non verificato**: se le chiamate con `v25.0` di un'app creata dopo l'uscita della v26.0 vengono trattate come v26.0. Feedway resta su `META_GRAPH_VERSION=v25.0` finché Meta non pubblica la data di ritiro della v26.0 (serve a `META_GRAPH_VERSION_SUNSET`); se compaiono errori di versione, si passa prima.
 
 ## Versione della Graph API
 
@@ -15,7 +62,7 @@ Tutte le pagine sono state lette il **2026-11-09**. Gli indirizzi senza dominio 
 
 - **Scelta: v25.0.** È la più recente con una data di ritiro pubblicata, e mancano più di 12 mesi (piano, Task 1). La v26.0 è più nuova ma senza data di ritiro, e `META_GRAPH_VERSION_SUNSET` deve averne una.
 - **Cosa cambia da v24.0 a v25.0 per Feedway: niente.** Il changelog della v25.0 ritira metriche delle statistiche delle Pagine e dei post (impression e visualizzazioni video; il ritiro vale per tutte le versioni), toglie i metadati dei campi da `metadata=1` (su tutte le versioni dal 2026-05-19) e porta cambi alla pubblicità e ai webhook. Nessun cambio per Instagram, login, `debug_token`, utenti di sistema, `owned_pages` o `client_pages`. Fonte: [Version 25.0](https://developers.facebook.com/docs/graph-api/changelog/version25.0). Le statistiche arrivano dopo la 1.0 (§18.2): quando si fanno, si usano le metriche nuove (`page_media_view`, `post_total_media_view_unique` e simili).
-- **Non verificato: la v27.0.** Gli esempi delle pagine di riferimento di Meta usano già `v27.0` (per esempio [content_publishing_limit](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit)), e un articolo non di Meta la dà uscita il 2026-11-04 ([relevantaudience.com](https://www.relevantaudience.com/meta/meta-marketing-api-v27-product-showcase-device-expansion-defaults/)). La pagina Versions, letta lo stesso giorno, non la elenca ancora. Il changelog delle versioni 26.0 e 27.0 non si apre da qui. Quando Meta pubblica la data di ritiro della v26.0 si rivaluta il passaggio, con una PR.
+- **La v27.0 esiste (verificato il 2026-11-11, nelle impostazioni dell'app).** Gli esempi delle pagine di riferimento di Meta usano già `v27.0` (per esempio [content_publishing_limit](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit)), e un articolo non di Meta la dà uscita il 2026-11-04 ([relevantaudience.com](https://www.relevantaudience.com/meta/meta-marketing-api-v27-product-showcase-device-expansion-defaults/)). La pagina Versions, letta lo stesso giorno, non la elenca ancora. Il changelog delle versioni 26.0 e 27.0 non si apre da qui. Quando Meta pubblica la data di ritiro della v26.0 si rivaluta il passaggio, con una PR.
 - **Non verificato: i cambi del 2026-10-27 su tutte le versioni.** Secondo un articolo non di Meta ([fixmation.dev](https://fixmation.dev/blog/meta-graph-api-27-october-all-versions)), da quel giorno su ogni versione falliscono le richieste con `date_format` e quelle con più oggetti insieme (`GET /?ids=…`), e i parametri `pretty` e `debug` vengono ignorati. Il client del Task 3 non usa nessuno dei due: una richiesta per oggetto, date lette come arrivano.
 - In configurazione: `META_GRAPH_VERSION=v25.0` e `META_GRAPH_VERSION_SUNSET`. Per v24.0 e v25.0 Feedway conosce la data; per un'altra versione la variabile è obbligatoria. Il promemoria del Task 11 avvisa 90 giorni prima (§8.4).
 
@@ -36,7 +83,7 @@ Tutte le pagine sono state lette il **2026-11-09**. Gli indirizzi senza dominio 
 | Portfolio del cliente | `GET /me?fields=client_business_id` con il token restituisce l'id del portfolio del cliente | [Facebook Login for Business](https://developers.facebook.com/docs/facebook-login/facebook-login-for-business/), [User](https://developers.facebook.com/docs/graph-api/reference/user/) |
 | Account visibili | "Your app can only access the assets that were designated by your business client". La documentazione **non dice con quale chiamata si elencano** | [Facebook Login for Business](https://developers.facebook.com/docs/facebook-login/facebook-login-for-business/) |
 
-**Come si trovano gli account dopo l'accesso: non verificato.** Le chiamate candidate, da provare alla fine del Task 7 in quest'ordine:
+**Come si trovano gli account dopo l'accesso: provato in parte il 2026-11-11.** Con i permessi della configurazione proposta da Meta le candidate 2 e 3 non funzionano (sezione della prova, sopra); la 1 (`owned_pages` e `client_pages` del portfolio del cliente) non è stata provata. Le chiamate candidate, come scritte prima della prova:
 1. `GET /{client_business_id}/owned_pages` e `GET /{client_business_id}/client_pages`, poi per ogni Pagina il campo `instagram_business_account` (le due chiamate: [owned_pages](https://developers.facebook.com/docs/graph-api/reference/business/owned_pages/), [client_pages](https://developers.facebook.com/docs/graph-api/reference/business/client_pages/));
 2. `GET /{client_business_id}/instagram_business_accounts`, che restituisce nodi IG User: dovrebbe coprire i profili Instagram senza Pagina ([instagram_business_accounts](https://developers.facebook.com/docs/graph-api/reference/business/instagram_business_accounts/)). Attenzione: la pagina [IG User](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/) descrive `id` come "Available for Page-backed Instagram accounts";
 3. `GET /me/accounts`, come per l'utente di sistema.
@@ -81,16 +128,16 @@ Descrizioni e dipendenze dal [Permissions Reference](https://developers.facebook
 | Token delle Pagine | Si leggono da `me/accounts`; un token di Pagina di lunga durata "do not have an expiration date" | [User accounts](https://developers.facebook.com/docs/graph-api/reference/user/accounts/), [Long-lived tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived) |
 | Id del business | `GET /{user-id}/businesses` esiste, ma la pagina non dice se risponde a un utente di sistema: **non verificato**. `client_business_id` vale solo per il token dell'accesso unificato | [User businesses](https://developers.facebook.com/docs/graph-api/reference/user/businesses/), [User](https://developers.facebook.com/docs/graph-api/reference/user/) |
 
-**Come Feedway elenca gli account dell'utente di sistema (Task 6).** `me/accounts`, poi, se l'integrazione ha `businessId`, `owned_pages`, `client_pages` e `instagram_business_accounts` di quel business, senza doppioni per id. Una Pagina che nessuna di queste chiamate dà con il suo `access_token` (solo `me/accounts` lo dà) è «non importabile: manca il ruolo». La lettura segue solo il cursore `after` sull'indirizzo della Graph API di Feedway, mai `paging.next`: si ferma con un errore dopo 40 richieste o se un cursore torna. Il token incollato vale solo se `debug_token` lo dà valido, della stessa app e con tutti i permessi; `expires_at` assente o `0` vale "non scade". **Non verificato** su Meta vera: si prova alla fine del Task 7.
+**Come Feedway elenca gli account dell'utente di sistema** (Task 6, corretto dopo la prova del 2026-11-11). `me/accounts` per le Pagine assegnate, con il loro token e il loro Instagram, e `me/assigned_instagram_accounts` per tutti gli Instagram assegnati, con o senza Pagina; senza doppioni per id. Un Instagram che arriva anche da una Pagina tiene quella Pagina come `page_id`. Gli archi del business non si leggono più: `owned_pages` e `client_pages` danno Pagine non assegnate, e quelli di Instagram rispondono 100/33. Una Pagina che arriva senza `access_token` è «non importabile: manca il ruolo». La lettura segue solo il cursore `after` sull'indirizzo della Graph API di Feedway, mai `paging.next`: si ferma con un errore dopo 40 richieste o se un cursore torna. Il token incollato vale solo se `debug_token` lo dà valido, della stessa app e con tutti i permessi; `expires_at` assente o `0` vale "non scade". Elenco e tipo del token verificati il 2026-11-11; il valore grezzo di `expires_at` no.
 
-**Conseguenza per il Task 4.** La documentazione non dà un modo sicuro di leggere l'id del business con il token dell'utente di sistema. Come prevede il piano, il Task 4 aggiunge `businessId` al `config` dell'integrazione Meta (l'Owner lo copia da Impostazioni del business), con il suo test. `me/businesses` si prova lo stesso alla fine del Task 7: se risponde, si può precompilare il campo.
+**Conseguenza per il Task 4.** La documentazione non dà un modo sicuro di leggere l'id del business con il token dell'utente di sistema. Come prevede il piano, il Task 4 aggiunge `businessId` al `config` dell'integrazione Meta (l'Owner lo copia da Impostazioni del business), con il suo test. Provato il 2026-11-11: `me/businesses` risponde vuoto, quindi non serve a precompilarlo. Dopo la correzione dell'elenco, `businessId` non serve più a trovare gli account: resta nell'integrazione, inutilizzato.
 
 ## Salute
 
 | Controllo | Cosa dice Meta | Fonte |
 |---|---|---|
 | `debug_token` | `GET /debug_token?input_token=…` con un token dell'app (`{app-id}\|{app-secret}`, o quello da `grant_type=client_credentials`) o di uno sviluppatore dell'app. Campi: `app_id`, `type`, `application`, `expires_at`, `data_access_expires_at`, `is_valid`, `issued_at`, `scopes`, `granular_scopes`, `user_id`, `profile_id`, `error` (`code`, `subcode`, `message`) | [debug_token](https://developers.facebook.com/docs/graph-api/reference/v7.0/debug_token), [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging), [Access tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens) |
-| `expires_at = 0` | La documentazione non dice cosa significa. **Non verificato**: dalla prova di fine Task 7. Proposta per il Task 3: fino ad allora `0` vale "non scade" solo per i token che secondo Meta non scadono: quello dell'accesso unificato (*Business Integration System User*) e quello dell'utente di sistema del Business Manager | — |
+| `expires_at = 0` | La documentazione non dice cosa significa. **Non verificato**: il debugger del 2026-11-11 mostra «Mai», non il valore grezzo. Proposta per il Task 3: fino ad allora `0` vale "non scade" solo per i token che secondo Meta non scadono: quello dell'accesso unificato (*Business Integration System User*) e quello dell'utente di sistema del Business Manager | — |
 | Token invalidati | Meta non avvisa: lo si scopre quando una chiamata fallisce ("access tokens may be invalidated before the expected expiration time"). Per questo il controllo è giornaliero | [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging) |
 | Quota Instagram | `GET /{ig-user-id}/content_publishing_limit?fields=quota_usage,config`, `since` facoltativo (al massimo 24 ore fa). Risposta: `quota_usage` e `config.quota_total` (oggi 50) con `config.quota_duration` (86400 secondi). La guida alla pubblicazione dice invece 100 post: si usa sempre il valore letto | [content_publishing_limit](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit), [Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing) |
 | Data Use Checkup | Annuale; non serve in modalità sviluppo, ma va fatto prima di passare l'app in Live. La documentazione **non indica un'API** per leggere la scadenza | [Data Use Checkup](https://developers.facebook.com/documentation/resp-plat-initiatives/individual-processes/data-use-checkup.md) |
@@ -152,14 +199,15 @@ Formato di un errore ([Handling Errors](https://developers.facebook.com/docs/gra
 
 Gli errori della pubblicazione Instagram (sottocodici 2207xxx) servono alla tappa 7: sono in [Instagram Error Codes](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/error-codes) e qui non si trascrivono.
 
-## Da provare su Meta vera (fine del Task 7, poi Task 13)
+## Da provare su Meta vera (Task 13, e prima se serve)
 
-1. Scambio del codice dell'accesso unificato, con `redirect_uri`.
-2. `debug_token` del token ottenuto: `type`, `expires_at` (0?), `data_access_expires_at`, `scopes`, `granular_scopes`, `user_id`.
-3. Lo stesso `user_id` dopo un secondo accesso dello stesso cliente.
-4. Quale delle tre chiamate elenca gli account, compreso un profilo solo Instagram, e se con quell'id si legge `content_publishing_limit`.
-5. La strada «Continua con Facebook».
-6. Con l'utente di sistema di Trendy: `me/businesses`, e se servono `ads_management` o `ads_read`.
-7. Con l'accesso unificato: se la pubblicazione su una Pagina del cliente chiede `ads_management` o `ads_read`.
-8. Con **Require App Secret** attivo: scambio del codice e `debug_token` senza `appsecret_proof`.
-9. La prova dell'app del Task 4 (pulsante «Prova» in Impostazioni → Integrazioni → Meta): `debug_token` autorizzato con il token dell'app `{app-id}|{app-secret}` e con l'App ID come `input_token` risponde 200, e con un secret sbagliato fallisce con il codice 190.
+Fatti il 2026-11-11 (sezione della prova): scambio del codice con `redirect_uri`; `debug_token` del token dell'accesso unificato (salvo il valore grezzo di `expires_at`); la strada «Continua con Facebook»; `me/businesses` e i permessi della pubblicità per l'utente di sistema (non servono).
+
+Restano:
+1. Lo stesso `user_id` dopo un secondo accesso dello stesso cliente.
+2. Come si elencano gli account scelti con l'accesso unificato: con `business_management` nella configurazione, `<client_business_id>/owned_instagram_accounts`.
+3. Con l'accesso unificato: se la pubblicazione su una Pagina del cliente chiede `ads_management` o `ads_read`.
+4. Con **Require App Secret** attivo: scambio del codice, `debug_token` senza `appsecret_proof` e le chiamate dell'utente di sistema con la prova.
+5. La prova dell'app del Task 4 (pulsante «Prova» in Impostazioni → Integrazioni → Meta): `debug_token` autorizzato con il token dell'app `{app-id}|{app-secret}` e con l'App ID come `input_token` risponde 200, e con un secret sbagliato fallisce con il codice 190.
+6. Un Instagram solo, di un cliente che lo condivide come partner con il Business Manager dell'agenzia, assegnato all'utente di sistema: compare in `me/assigned_instagram_accounts` e si pubblica?
+7. Il valore grezzo di `expires_at` e `data_access_expires_at` nella risposta di `debug_token` per i due tipi di token.

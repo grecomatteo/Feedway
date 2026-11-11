@@ -28,7 +28,8 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 | Cosa | Visto da |
 |---|---|
 | Business dell'agenzia con due Pagine: «Forno Luce» con Instagram collegato, «Bottega Verde» senza | utente di sistema (`me/accounts`, `owned_pages`, `client_pages`) |
-| Profilo solo Instagram nel business dell'agenzia (`studio.rossi`) | utente di sistema (`instagram_business_accounts`) |
+| Gli Instagram assegnati all'utente di sistema, con e senza Pagina | utente di sistema (`me/assigned_instagram_accounts`, la chiamata che Feedway usa) |
+| Profilo solo Instagram nel business dell'agenzia (`studio.rossi`) | utente di sistema (`me/assigned_instagram_accounts`; anche `instagram_business_accounts`, che su Meta vera risponde 100/33) |
 | Portfolio di un cliente con un profilo solo Instagram (`palestra.nord`) | accesso unificato |
 | Profilo Instagram condiviso (`caffe.centrale`), per la Scelta 2 del piano | entrambi |
 | Portfolio con solo un profilo Instagram personale: nessun account | accesso unificato con lo scenario `personal_ig_profile` |
@@ -41,4 +42,4 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 
 Le risposte stanno in `fixtures/`: `objects.json` (i nodi come li restituisce Meta), `edges.json` (gli elenchi), `tokens.json` (a chi appartiene ogni token, cosa vede e i dati di `debug_token`), `app.json` e `logins.json`.
 
-**Sono scritte a mano** dalla documentazione di Meta e **non verificate**: in particolare `type` e `expires_at` di `debug_token`, le chiamate che elencano gli account dell'accesso unificato e i testi e i sottocodici degli errori dello scambio del codice (`docs/platforms/meta.md`, «Da provare su Meta vera»). Nel Task 13 le risposte registrate e oscurate (`META_RECORD_DIR`) prendono il loro posto negli stessi file, senza cambiare il codice.
+**Sono scritte a mano** dalla documentazione di Meta e in gran parte **non verificate** (la prova a mano del 2026-11-11 è in `docs/platforms/meta.md`): in particolare `type` e `expires_at` di `debug_token`, le chiamate che elencano gli account dell'accesso unificato e i testi e i sottocodici degli errori dello scambio del codice (`docs/platforms/meta.md`, «Da provare su Meta vera»). Nel Task 13 le risposte registrate e oscurate (`META_RECORD_DIR`) prendono il loro posto negli stessi file, senza cambiare il codice.
