@@ -148,7 +148,13 @@ jobs:
       - if: steps.changes.outputs.code != 'false'
         run: pnpm install --frozen-lockfile
       - if: steps.changes.outputs.code != 'false'
-        run: pnpm --filter @app/web exec playwright install --with-deps chromium
+        # The runner image already has Chromium's libraries: without the Ubuntu mirrors, the
+        # browser alone is enough, and a missing library still fails the tests.
+        run: |
+          pnpm --filter @app/web exec playwright install --with-deps chromium || {
+            echo "::warning::apt non raggiunge i mirror di Ubuntu: installo solo Chromium"
+            pnpm --filter @app/web exec playwright install chromium
+          }
       - if: steps.changes.outputs.code != 'false'
         run: pnpm test:e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -187,7 +193,7 @@ jobs:
       - if: steps.changes.outputs.code != 'false'
         run: pnpm audit --audit-level high
       - if: steps.changes.outputs.code != 'false'
-        run: sudo apt-get update && sudo apt-get install --yes bats age
+        run: scripts/ci/install-tools.sh bats age
       - if: steps.changes.outputs.code != 'false'
         run: bats scripts/tests
 
@@ -266,7 +272,7 @@ jobs:
       - id: changes
         run: scripts/ci/changes-step.sh
       - if: steps.changes.outputs.code != 'false'
-        run: sudo apt-get update && sudo apt-get install --yes age
+        run: scripts/ci/install-tools.sh age
       - if: steps.changes.outputs.code != 'false'
         run: docker build -f docker/Dockerfile -t app:ci --build-arg APP_VERSION=0.0.0-ci .
       - if: steps.changes.outputs.code != 'false'
