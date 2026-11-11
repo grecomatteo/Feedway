@@ -16,6 +16,8 @@ import type { AuthSessionInfo } from '../ports/auth.js'
 import type { Clock } from '../ports/clock.js'
 import type { ConnectionTokens } from '../ports/connection-tokens.js'
 import type { IdGenerator } from '../ports/id-generator.js'
+import type { JobQueue } from '../ports/job-queue.js'
+import type { Logger } from '../ports/logger.js'
 import type {
   PermissionCheck,
   PlatformAccount,
@@ -24,6 +26,7 @@ import type {
 } from '../ports/platform-connector.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import { queueHealth } from './health.js'
 
 // Connections and their import (spec §8.1 steps 4–5, §8.2, plan 03 Task 6). The platform is
 // never called inside a transaction: read and open the token, close, call, then write over what
@@ -36,6 +39,9 @@ export interface ConnectionsDeps {
   ids: IdGenerator
   tokens: ConnectionTokens
   connectors: PlatformConnectors
+  /** The first health check after an import (§8.2). */
+  queue: Pick<JobQueue, 'send'>
+  logger: Logger
 }
 
 /** A connection as Owner and Admin see it: never its token. */
@@ -368,8 +374,8 @@ export async function listImportable(
  * Admin assigns them. Only accounts the connection sees right now; an account of another
  * working connection stays there (choice 2); the `social_accounts` limit counts under the
  * agency's import lock, so two imports never both take the last slot. The connection becomes
- * `active` (choice 6). The first health check arrives with plan 03 Task 10: until then a new
- * account is "never checked" and cannot be chosen for a post.
+ * `active` (choice 6). The first health check is queued once the import is saved: until it
+ * runs a new account is "never checked" and cannot be chosen for a post.
  */
 export async function importAccounts(
   deps: ConnectionsDeps,
@@ -396,7 +402,7 @@ export async function importAccounts(
   const accounts = chosen as PlatformAccount[]
   const { organizationId, userId } = actor
 
-  return deps.uow.run({ organizationId, userId }, async (tx) => {
+  const result = await deps.uow.run({ organizationId, userId }, async (tx) => {
     await assertStillManages(tx, actor)
     await tx.accounts.lockImport(organizationId)
     const organization = await assertActiveOrganization(tx, organizationId)
@@ -468,4 +474,15 @@ export async function importAccounts(
     })
     return { connection: viewOf({ ...connection, status }), accounts: imported }
   })
+  // after the commit, so the check finds the accounts; if the queue fails the import stays and
+  // the daily run checks them (Task 11)
+  try {
+    await queueHealth(deps, { organizationId, connectionId: result.connection.id })
+  } catch (error) {
+    deps.logger.error(
+      { err: error, connectionId: result.connection.id },
+      'first health check not queued',
+    )
+  }
+  return result
 }

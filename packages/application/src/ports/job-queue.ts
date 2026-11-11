@@ -26,6 +26,13 @@ interface JobDefinitions {
   'identity.data_export': { scope: 'user'; data: DataExportJobData }
   'identity.retention': { scope: 'system'; data: object }
   'identity.anonymization_notice': { scope: 'user'; data: AnonymizationNoticeData }
+  'accounts.sync': { scope: 'organization'; data: ConnectionJobData }
+  'accounts.health': { scope: 'organization'; data: ConnectionJobData }
+}
+
+/** A job about one connection of the agency (§8.4): its id only, never its token. */
+export interface ConnectionJobData {
+  connectionId: string
 }
 
 /**

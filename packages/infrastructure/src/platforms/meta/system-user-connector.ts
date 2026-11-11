@@ -1,5 +1,8 @@
 import type {
+  AccountHealthReport,
   AccountListing,
+  HealthCheck,
+  HealthTarget,
   IntegrationStore,
   MetaAppCredentials,
   PermissionCheck,
@@ -7,7 +10,7 @@ import type {
   PlatformConnector,
   TokenCheck,
 } from '@app/application'
-import { META_REQUIRED_PERMISSIONS } from '@app/domain/platforms/meta'
+import { META_REQUIRED_PERMISSIONS, type MetaUsage } from '@app/domain/platforms/meta'
 import { createMetaAppConnector } from './app-connector.js'
 import { MetaError, type MetaErrorReason } from './errors.js'
 import type {
@@ -140,6 +143,120 @@ export async function listMetaAccounts(
   return accounts
 }
 
+/** The token itself stopped working: the whole connection is concerned, not one account. */
+function tokenEnded(error: MetaError): 'expired' | 'revoked' | null {
+  if (error.reason === 'token_revoked') return 'revoked'
+  if (error.reason === 'token_invalid' || error.reason === 'checkpoint') return 'expired'
+  return null
+}
+
+class TokenEndedError extends Error {
+  constructor(readonly ended: 'expired' | 'revoked') {
+    super(`Meta token ${ended}`)
+  }
+}
+
+/**
+ * The daily check of §8.4 for the system user: `debug_token` (valid, every permission), the
+ * listing (still assigned, a role on the page), then the quota of each Instagram. A refusal of
+ * the token anywhere ends the check for the whole connection; any other error on one account
+ * leaves that account as it was: a lone 100/33 says nothing sure (docs/platforms/meta.md).
+ */
+export async function checkMetaHealth(
+  client: Pick<
+    MetaGraphClient,
+    'debugToken' | 'listUserPages' | 'listAssignedInstagramAccounts' | 'getPublishingLimit'
+  >,
+  app: MetaConnectorApp,
+  token: string,
+  targets: readonly HealthTarget[],
+): Promise<HealthCheck> {
+  const credentials = { accessToken: token, appSecret: app.appSecret }
+  let usage: MetaUsage
+  let missingPermission: boolean
+  try {
+    const debug = await client.debugToken(app, token)
+    usage = debug.usage
+    if (!debug.data.isValid)
+      // 190/458 in debug_token: the user took the authorization away (docs/platforms/meta.md)
+      return { ok: false, reason: debug.data.error?.subcode === 458 ? 'revoked' : 'expired' }
+    const scopes = new Set(debug.data.scopes)
+    missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.has(p))
+  } catch (error) {
+    if (!(error instanceof MetaError)) throw error
+    // debug_token authenticates the app: a refusal is about the app, not the token
+    return { ok: false, reason: REFUSED.has(error.reason) ? 'app_rejected' : 'unavailable' }
+  }
+  const report = (
+    t: HealthTarget,
+    health: AccountHealthReport['health'],
+    problem: AccountHealthReport['problem'] = null,
+    quota: AccountHealthReport['quota'] = null,
+  ): AccountHealthReport => ({
+    platform: t.platform,
+    externalId: t.externalId,
+    health,
+    problem,
+    quota,
+  })
+  if (missingPermission)
+    return {
+      ok: true,
+      accounts: targets.map((t) => report(t, 'error', 'permission_missing')),
+      usage,
+    }
+
+  let seen: PlatformAccount[]
+  try {
+    seen = await listMetaAccounts(client, credentials)
+  } catch (error) {
+    if (error instanceof MetaError) {
+      const ended = tokenEnded(error)
+      if (ended !== null) return { ok: false, reason: ended }
+      return { ok: false, reason: 'unavailable' }
+    }
+    if (error instanceof MetaListingError) return { ok: false, reason: 'unavailable' }
+    throw error
+  }
+  const byKey = new Map(seen.map((a) => [`${a.platform}:${a.externalId}`, a]))
+
+  const accounts: AccountHealthReport[] = []
+  try {
+    for (const target of targets) {
+      const found = byKey.get(`${target.platform}:${target.externalId}`)
+      if (found === undefined) accounts.push(report(target, 'error', 'not_assigned'))
+      else if (found.problem === 'role_missing')
+        accounts.push(report(target, 'error', 'role_missing'))
+      else if (target.platform === 'facebook') accounts.push(report(target, 'ok'))
+      else accounts.push(await instagramHealth(target))
+    }
+  } catch (error) {
+    if (error instanceof TokenEndedError) return { ok: false, reason: error.ended }
+    throw error
+  }
+  return { ok: true, accounts, usage }
+
+  async function instagramHealth(target: HealthTarget): Promise<AccountHealthReport> {
+    try {
+      const limit = await client.getPublishingLimit(credentials, target.externalId)
+      usage = limit.usage
+      const quota = { used: limit.data.quotaUsage, total: limit.data.quotaTotal }
+      return quota.used >= quota.total
+        ? report(target, 'warning', 'quota_exhausted', quota)
+        : report(target, 'ok', null, quota)
+    } catch (error) {
+      if (!(error instanceof MetaError)) throw error
+      const ended = tokenEnded(error)
+      if (ended !== null) throw new TokenEndedError(ended)
+      if (error.reason === 'permission_missing')
+        return report(target, 'error', 'permission_missing')
+      if (error.reason === 'page_role_missing') return report(target, 'error', 'role_missing')
+      // temporary, or not clear (100/33, timeout): the account stays as it was
+      return report(target, null)
+    }
+  }
+}
+
 /** The listing as the accounts module takes it: never a Meta error. */
 export async function classifiedListing(
   list: () => Promise<PlatformAccount[]>,
@@ -214,6 +331,11 @@ export function createMetaSystemUserConnector(deps: {
       return classifiedListing(() =>
         listMetaAccounts(client, { accessToken: token, appSecret: credentials.appSecret }),
       )
+    },
+
+    // no `refresh`: the system user's token does not expire (docs/platforms/meta.md)
+    checkHealth({ app: credentials, token }, targets) {
+      return checkMetaHealth(client, credentials, token, targets)
     },
   }
 }

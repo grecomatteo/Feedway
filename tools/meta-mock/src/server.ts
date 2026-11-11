@@ -213,20 +213,24 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       debug.scopes = debug.scopes.filter((p) => p !== permission)
       debug.granular_scopes = debug.granular_scopes.filter((g) => g.scope !== permission)
     }
-    if (isExpired(input))
+    const expired = expiry(input)
+    if (expired !== undefined)
       return {
         ...debug,
         is_valid: false,
         expires_at: debug.issued_at + 3600,
-        error: { code: 190, subcode: 463, message: 'Session has expired.' },
+        error: { code: 190, subcode: expired, message: 'Session has expired.' },
       }
     return { ...debug }
   }
 
-  const isExpired = (token: string) =>
-    scenariosNamed('token_expired').some(
+  /** The subcode of the token's `token_expired` scenario; undefined: the token works. */
+  const expiry = (token: string) => {
+    const hit = scenariosNamed('token_expired').find(
       (s) => s.opts.token === undefined || s.opts.token === token,
     )
+    return hit === undefined ? undefined : (hit.opts.subcode ?? 463)
+  }
 
   function invalidLogin(res: ServerResponse): void {
     res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' })
@@ -383,14 +387,15 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       return
     }
     const headers = usageHeaders(token, false)
-    if (isExpired(tokenValue)) {
+    const expired = expiry(tokenValue)
+    if (expired !== undefined) {
       sendError(
         res,
         {
           message: 'Error validating access token: Session has expired.',
           type: 'OAuthException',
           code: 190,
-          error_subcode: 463,
+          error_subcode: expired,
         },
         400,
         headers,

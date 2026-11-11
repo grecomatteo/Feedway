@@ -1,12 +1,11 @@
-import type { ConnectionKind, Platform } from '@app/domain'
+import type { AccountHealth, ConnectionKind, Platform } from '@app/domain'
 import type { OrganizationIntegrationTx } from './integration-store.js'
 
 /**
  * What a platform gives the product (ADR 019): one connector per connection kind. The app's
  * credentials arrive opaque, as the platform's module defines them; the accounts module never
  * looks inside. The answers of the platform arrive already classified: a use case never sees a
- * platform error. The unified login (plan 03 Task 7) adds `startLogin` and `completeLogin`; the
- * health jobs (Task 10) add `refresh` and `checkHealth`.
+ * platform error. The unified login (plan 03 Task 7) adds `startLogin` and `completeLogin`.
  */
 export interface PlatformConnector<AppCredentials = unknown> {
   /** Tries the app's credentials with the platform before they are saved. */
@@ -20,6 +19,16 @@ export interface PlatformConnector<AppCredentials = unknown> {
   connectWithToken?(app: AppCredentials, token: string): Promise<TokenCheck>
   /** The accounts the connection sees now, read live. */
   listAccounts(credentials: ConnectionCredentials<AppCredentials>): Promise<AccountListing>
+  /**
+   * A new token before this one expires. Left out by the kinds whose token cannot be renewed
+   * (the system user's does not expire): such a connection expires with its token.
+   */
+  refresh?(credentials: ConnectionCredentials<AppCredentials>): Promise<TokenRefresh>
+  /** Token, permissions, assignment and quota of the connection's accounts (§8.4). */
+  checkHealth(
+    credentials: ConnectionCredentials<AppCredentials>,
+    accounts: readonly HealthTarget[],
+  ): Promise<HealthCheck>
 }
 
 /** The kinds this process can reach; a kind left out has no connector here. */
@@ -83,3 +92,42 @@ export interface PlatformAccount {
 export type AccountListing =
   | { ok: true; accounts: PlatformAccount[] }
   | { ok: false; reason: 'rejected' | 'unavailable' | 'incomplete' }
+
+/** `not_renewable`: the platform has no renewal for it; `rejected`: it refuses this token. */
+export type TokenRefresh =
+  | { ok: true; token: string; expiresAt: Date | null }
+  | { ok: false; reason: 'not_renewable' | 'rejected' | 'unavailable' }
+
+/** An account to check, as the platform knows it. */
+export interface HealthTarget {
+  platform: Platform
+  externalId: string
+  pageId: string | null
+}
+
+/**
+ * Why an account is yellow or red. `permission_missing`: the token lacks a permission;
+ * `role_missing`: no role on the page; `not_assigned`: no longer among the connection's assets;
+ * `quota_exhausted`: no posts left in the platform's window.
+ */
+export type AccountProblem =
+  'permission_missing' | 'role_missing' | 'not_assigned' | 'quota_exhausted'
+
+export interface AccountHealthReport {
+  platform: Platform
+  externalId: string
+  /** null: the platform could not say this time (temporary error, an unclear answer): unchanged. */
+  health: AccountHealth | null
+  problem: AccountProblem | null
+  /** Posts used and allowed in the platform's window; null where there is none or it failed. */
+  quota: { used: number; total: number } | null
+}
+
+/**
+ * `ok`: the token works; `usage` is the platform's counters from the last call, opaque.
+ * `expired`: the token no longer works; `revoked`: the client took the access away;
+ * `app_rejected`: the agency's app is refused; `unavailable`: no answer, nothing is known.
+ */
+export type HealthCheck =
+  | { ok: true; accounts: AccountHealthReport[]; usage: unknown }
+  | { ok: false; reason: 'expired' | 'revoked' | 'app_rejected' | 'unavailable' }

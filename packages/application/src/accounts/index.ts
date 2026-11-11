@@ -17,3 +17,12 @@ export {
   unassignAccount,
 } from './workspace-accounts.js'
 export type { AccountListItem, WorkspaceAccount, WorkspaceProfile } from './workspace-accounts.js'
+export {
+  SYNC_REQUEST_LIMIT,
+  checkConnectionHealth,
+  connectionJobKey,
+  queueHealth,
+  requestSync,
+  syncConnection,
+} from './health.js'
+export type { AccountJobsDeps, ConnectionJob, JobOutcome, SyncRequestDeps } from './health.js'

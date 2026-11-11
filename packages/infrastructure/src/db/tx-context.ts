@@ -2,4 +2,5 @@
 export type TxContext =
   | { kind: 'system' }
   | { kind: 'user'; userId: string }
-  | { kind: 'organization'; organizationId: string; userId: string }
+  /** `userId` null: a job of the agency, acting for no person. */
+  | { kind: 'organization'; organizationId: string; userId: string | null }

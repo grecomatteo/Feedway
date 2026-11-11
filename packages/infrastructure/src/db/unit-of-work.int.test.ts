@@ -75,6 +75,17 @@ test('a user-only scope sets no organization', async () => {
   expect(rows[0]?.usr).toBe(ownerA)
 })
 
+test('an agency job sets the organization and no person', async () => {
+  const { rows } = await uow().run({ organizationId: orgA, userId: null }, settings)
+  expect(rows[0]).toMatchObject({ org: orgA, usr: '' })
+  const seen = await uow().run({ organizationId: orgA, userId: null }, (tx) =>
+    executorOf(tx).execute<{ organization_id: string }>(
+      sql`select organization_id from workspaces`,
+    ),
+  )
+  expect(new Set(seen.rows.map((r) => r.organization_id))).toEqual(new Set([orgA]))
+})
+
 test('runAsSystem opens the system scope, logs the reason and does not leak it', async () => {
   const { rows } = await uow().runAsSystem('test.reason', settings)
   expect(rows[0]?.scope).toBe('system')
@@ -87,6 +98,10 @@ test('runAsSystem opens the system scope, logs the reason and does not leak it',
 
 test('an empty scope is refused before touching the database', async () => {
   await expect(uow().run({ userId: '' }, () => Promise.resolve())).rejects.toThrow(/userId/)
+  // a job without its agency is not a job of the agency
+  await expect(uow().run({ userId: null } as never, () => Promise.resolve())).rejects.toThrow(
+    /userId/,
+  )
   await expect(
     uow().run({ organizationId: '', userId: ownerA }, () => Promise.resolve()),
   ).rejects.toThrow(/organizationId/)

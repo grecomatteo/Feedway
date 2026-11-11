@@ -76,7 +76,9 @@ export function executorOf(tx: Tx): DbExecutor {
 export function createUnitOfWork({ db, ids, logger }: UnitOfWorkDeps): UnitOfWork {
   return {
     async run(scope, fn) {
-      if (!scope.userId) throw new Error('a transaction scope needs a userId')
+      // null only for an agency's job; an empty or missing id is always a bug
+      if (scope.userId === null ? !('organizationId' in scope) : !scope.userId)
+        throw new Error('a transaction scope needs a userId')
       const ctx: TxContext =
         'organizationId' in scope
           ? { kind: 'organization', organizationId: scope.organizationId, userId: scope.userId }
@@ -87,7 +89,7 @@ export function createUnitOfWork({ db, ids, logger }: UnitOfWorkDeps): UnitOfWor
       const organizationId = ctx.kind === 'organization' ? ctx.organizationId : ''
       return db.transaction(async (t) => {
         await t.execute(
-          sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId}, true)`,
+          sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId ?? ''}, true)`,
         )
         return fn(buildTx(t, ids, ctx))
       })

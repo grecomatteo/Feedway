@@ -25,6 +25,8 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'identity.data_export': true,
   'identity.retention': true,
   'identity.anonymization_notice': true,
+  'accounts.sync': true,
+  'accounts.health': true,
 }
 
 test('each module has its own name', () => {

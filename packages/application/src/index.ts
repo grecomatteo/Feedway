@@ -102,14 +102,19 @@ export * from './accounts/index.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
 export type {
+  AccountHealthReport,
   AccountListing,
+  AccountProblem,
   AppVerification,
   ConnectionCredentials,
+  HealthCheck,
+  HealthTarget,
   PermissionCheck,
   PlatformAccount,
   PlatformConnector,
   PlatformConnectors,
   TokenCheck,
+  TokenRefresh,
 } from './ports/platform-connector.js'
 export type {
   ConnectionAttemptRecord,
@@ -117,8 +122,10 @@ export type {
   ConnectionRecord,
   ConnectionsRepository,
   ConnectionWithToken,
+  AccountHealthUpdate,
   ImportedAccountInput,
   NewConnection,
+  PlatformAccountUpdate,
   SocialAccountRecord,
   SocialAccountsRepository,
   WorkspaceAccountsRepository,

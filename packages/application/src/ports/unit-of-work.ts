@@ -1,7 +1,13 @@
 import type { Tx } from './tx.js'
 
-/** With only `userId`: personal data and the agency switcher, no agency rows. */
-export type TxScope = { organizationId: string; userId: string } | { userId: string }
+/**
+ * With only `userId`: personal data and the agency switcher, no agency rows. With `userId: null`:
+ * a job of the agency (plan §4), which acts for no person and sees nothing personal.
+ */
+export type TxScope =
+  | { organizationId: string; userId: string }
+  | { userId: string }
+  | { organizationId: string; userId: null }
 
 export interface UnitOfWork {
   /** One transaction whose row level security sees only `scope`. */

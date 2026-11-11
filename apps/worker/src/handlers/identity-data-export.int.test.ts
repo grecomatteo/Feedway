@@ -54,6 +54,12 @@ const deps = (): JobHandlerDeps => ({
     productName: 'Feedway',
     defaultTimezone: 'Europe/Rome',
   },
+  // the account jobs are not these tests'
+  connectors: {},
+  connectionTokens: {
+    seal: () => Promise.reject(new Error('not used')),
+    open: () => Promise.reject(new Error('not used')),
+  },
 })
 
 test('the job writes the archive and marks the export ready', async () => {

@@ -38,6 +38,25 @@ export interface ImportedAccountInput {
   at: Date
 }
 
+/** Names, picture and pair as the platform gives them now (daily sync, §8.4). */
+export interface PlatformAccountUpdate {
+  name: string
+  username: string | null
+  avatarUrl: string | null
+  pageId: string | null
+  at: Date
+}
+
+/** The outcome of a health check of one account (§8.4). */
+export interface AccountHealthUpdate {
+  health: AccountHealth
+  /** Why it is yellow or red, for the panel; null when it is green. */
+  message: string | null
+  /** null: the quota was not read this time and stays as it was. */
+  quota: { used: number; total: number } | null
+  at: Date
+}
+
 export interface SocialAccountsRepository {
   /**
    * The agency's accounts by name, inactive ones included. With `workspaceIds`, only those
@@ -71,7 +90,8 @@ export interface SocialAccountsRepository {
   lockImport(organizationId: string): Promise<void>
   /**
    * Inserts the account, or updates names, pair and owner of the one already there and makes it
-   * active again. The health is kept: the first check after the import sets it.
+   * active again. The health is kept for the same owner; an account that moves to another
+   * connection is "never checked" again, until the check queued after the import.
    */
   upsertImported(input: ImportedAccountInput): Promise<SocialAccountRecord>
   /**
@@ -83,6 +103,22 @@ export interface SocialAccountsRepository {
     connectionId: string,
     ids: readonly string[],
   ): Promise<number>
+  /** The accounts `connectionId` owns, inactive ones included. */
+  listOwnedBy(organizationId: string, connectionId: string): Promise<SocialAccountRecord[]>
+  /** Only an active account `connectionId` still owns; false otherwise. */
+  updateFromPlatform(
+    organizationId: string,
+    connectionId: string,
+    id: string,
+    update: PlatformAccountUpdate,
+  ): Promise<boolean>
+  /** Only an account `connectionId` still owns; false otherwise. */
+  setHealth(
+    organizationId: string,
+    connectionId: string,
+    id: string,
+    update: AccountHealthUpdate,
+  ): Promise<boolean>
 }
 
 /** A row of `account_connections` without its token. */
