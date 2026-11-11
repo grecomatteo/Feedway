@@ -1,8 +1,10 @@
 import type {
+  AccountListItem,
   ConnectionsDeps,
   ConnectionView,
   ImportableAccount,
   SocialAccountRecord,
+  WorkspaceAccount,
 } from '@app/application'
 import type { Deps } from './deps'
 
@@ -48,6 +50,33 @@ export const socialAccountDto = (a: SocialAccountRecord) => ({
   pageId: a.pageId,
   active: a.active,
   health: a.health,
+})
+
+/** An account of a workspace: never anything of its connection. */
+export const workspaceAccountDto = (a: WorkspaceAccount) => ({
+  id: a.id,
+  platform: a.platform,
+  externalId: a.externalId,
+  name: a.name,
+  username: a.username,
+  avatarUrl: a.avatarUrl,
+  pageId: a.pageId,
+  active: a.active,
+  health: a.health,
+  healthMessage: a.healthMessage,
+  selectable: a.selectable,
+  quota:
+    a.quotaUsed === null || a.quotaTotal === null || a.quotaCheckedAt === null
+      ? null
+      : { used: a.quotaUsed, total: a.quotaTotal, checkedAt: a.quotaCheckedAt.toISOString() },
+  lastSyncedAt: a.lastSyncedAt?.toISOString() ?? null,
+})
+
+export const accountListItemDto = (a: AccountListItem) => ({
+  ...workspaceAccountDto(a),
+  workspaceIds: a.workspaceIds,
+  connection: a.connection,
+  createdAt: a.createdAt.toISOString(),
 })
 
 /** Each of these calls Meta under the agency's app: a few a minute are plenty. */

@@ -94,8 +94,94 @@ export const importAccountsRoute = defineContract({
   scope: 'organization',
 })
 
+// «Account social» and the profiles of a workspace (spec §3, §14.4, plan 03 Task 9)
+
+const Health = z.enum(['ok', 'warning', 'error'])
+
+/** An account as a workspace sees it: nothing of the connection that reaches it. */
+export const WorkspaceAccount = z.object({
+  id: Id,
+  platform: Platform,
+  externalId: z.string(),
+  name: z.string(),
+  username: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  pageId: z.string().nullable(),
+  active: z.boolean(),
+  /** null: never checked yet. */
+  health: Health.nullable(),
+  healthMessage: z.string().nullable(),
+  /** Can be a destination of a post now. */
+  selectable: z.boolean(),
+  quota: z.object({ used: z.number(), total: z.number(), checkedAt: Timestamp }).nullable(),
+  lastSyncedAt: Timestamp.nullable(),
+})
+
+export const AccountListItem = WorkspaceAccount.extend({
+  /** Its workspaces, among those the person sees. */
+  workspaceIds: z.array(Id),
+  /** Owner and Admin only; null for everyone else. */
+  connection: z.object({ id: Id, kind: ConnectionKind, status: ConnectionStatus }).nullable(),
+  createdAt: Timestamp,
+})
+
+export const listAccountsRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/accounts',
+  summary:
+    'Gli account social: Owner e Admin tutti, gli altri quelli dei propri spazi; 50 per pagina',
+  request: {
+    params: OrgParams,
+    query: z.strictObject({
+      cursor: Id.optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+    }),
+  },
+  response: z.object({ items: z.array(AccountListItem), nextCursor: Id.nullable() }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+const WorkspaceAccountParams = z.strictObject({ org: OrgSlug, id: Id, accountId: Id })
+
+export const assignAccountRoute = defineContract({
+  method: 'PUT',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}',
+  summary: 'Assegna un account attivo allo spazio (Owner e Admin)',
+  request: { params: WorkspaceAccountParams },
+  response: z.object({ assigned: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const unassignAccountRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}',
+  summary: 'Toglie un account dallo spazio (Owner e Admin)',
+  request: { params: WorkspaceAccountParams },
+  response: z.object({ removed: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const workspaceProfilesRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/profiles',
+  summary: 'I profili dello spazio: Instagram e Pagina che Meta collega, solo fra i suoi account',
+  request: { params: z.strictObject({ org: OrgSlug, id: Id }) },
+  response: z.object({
+    items: z.array(z.object({ key: z.string(), id: Id, accounts: z.array(WorkspaceAccount) })),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const accountRoutes = [
   connectSystemUserRoute,
   importableAccountsRoute,
   importAccountsRoute,
+  listAccountsRoute,
+  assignAccountRoute,
+  unassignAccountRoute,
+  workspaceProfilesRoute,
 ] as const

@@ -4,6 +4,7 @@ export {
   createWorkspace,
   currentActor,
   listWorkspaces,
+  lockVisibleWorkspace,
   renameWorkspace,
   workspaceNotFound,
 } from './workspaces.js'

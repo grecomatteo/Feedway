@@ -53,6 +53,8 @@ export const AUDIT_ACTIONS = [
   'connection.created',
   'connection.token_replaced',
   'accounts.imported',
+  'account.assigned',
+  'account.unassigned',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

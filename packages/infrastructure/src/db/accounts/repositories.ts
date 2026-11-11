@@ -52,34 +52,53 @@ const accountOf = (row: AccountRow): SocialAccountRecord => ({
   health: row.health as AccountHealth | null,
 })
 
+/** The agency's accounts, or those assigned to one of `workspaceIds`; null: none at all. */
+function accountsWhere(
+  db: DbExecutor,
+  organizationId: string,
+  workspaceIds: readonly string[] | undefined,
+) {
+  if (workspaceIds?.length === 0) return null
+  const inOrganization = eq(socialAccounts.organizationId, organizationId)
+  if (!workspaceIds) return inOrganization
+  return and(
+    inOrganization,
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(workspaceAccounts)
+        .where(
+          and(
+            eq(workspaceAccounts.organizationId, organizationId),
+            eq(workspaceAccounts.accountId, socialAccounts.id),
+            inArray(workspaceAccounts.workspaceId, [...workspaceIds]),
+          ),
+        ),
+    ),
+  )
+}
+
 export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialAccountsRepository {
   return {
     async list(organizationId, filter = {}) {
-      const { workspaceIds } = filter
-      if (workspaceIds?.length === 0) return []
-      const inOrganization = eq(socialAccounts.organizationId, organizationId)
-      const where = workspaceIds
-        ? and(
-            inOrganization,
-            exists(
-              db
-                .select({ one: sql`1` })
-                .from(workspaceAccounts)
-                .where(
-                  and(
-                    eq(workspaceAccounts.organizationId, organizationId),
-                    eq(workspaceAccounts.accountId, socialAccounts.id),
-                    inArray(workspaceAccounts.workspaceId, [...workspaceIds]),
-                  ),
-                ),
-            ),
-          )
-        : inOrganization
+      const where = accountsWhere(db, organizationId, filter.workspaceIds)
+      if (where === null) return []
       const rows = await db
         .select(accountColumns)
         .from(socialAccounts)
         .where(where)
         .orderBy(asc(socialAccounts.name), asc(socialAccounts.id))
+      return rows.map(accountOf)
+    },
+    async listPage(organizationId, page) {
+      const where = accountsWhere(db, organizationId, page.workspaceIds)
+      if (where === null) return []
+      const rows = await db
+        .select(accountColumns)
+        .from(socialAccounts)
+        .where(page.afterId === undefined ? where : and(where, gt(socialAccounts.id, page.afterId)))
+        .orderBy(asc(socialAccounts.id))
+        .limit(page.limit)
       return rows.map(accountOf)
     },
     async findById(organizationId, id) {
@@ -346,6 +365,22 @@ export function drizzleWorkspaceAccounts(db: DbExecutor): WorkspaceAccountsRepos
         )
         .orderBy(asc(workspaceAccounts.accountId))
       return rows.map((r) => r.accountId)
+    },
+    async listForAccounts(organizationId, accountIds) {
+      if (accountIds.length === 0) return []
+      return db
+        .select({
+          accountId: workspaceAccounts.accountId,
+          workspaceId: workspaceAccounts.workspaceId,
+        })
+        .from(workspaceAccounts)
+        .where(
+          and(
+            eq(workspaceAccounts.organizationId, organizationId),
+            inArray(workspaceAccounts.accountId, [...accountIds]),
+          ),
+        )
+        .orderBy(asc(workspaceAccounts.accountId), asc(workspaceAccounts.workspaceId))
     },
   }
 }

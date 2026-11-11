@@ -41,6 +41,8 @@ export interface SampleIds {
   invite: string
   /** the agency's system user connection, on the fake Graph API */
   connection: string
+  /** an active social account of the agency, of `connection`, in no workspace */
+  account: string
 }
 
 /** A valid body for every route that takes one; checked against the route's own schema. */
@@ -123,6 +125,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   email: 'segnaposto@example.test',
   invite: randomUUID(),
   connection: randomUUID(),
+  account: randomUUID(),
 }
 
 /**
@@ -144,6 +147,7 @@ export const ID_KINDS = [
   'admin',
   'invite',
   'connection',
+  'account',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -193,6 +197,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   userId: ids.target,
   inviteId: ids.invite,
   connectionId: ids.connection,
+  accountId: ids.account,
   size: '256',
 })
 
@@ -342,6 +347,22 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** A fresh imported account of the connection, written directly: no Meta call per case. */
+  async function socialAccount(organizationId: string, connectionId: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into social_accounts (id, organization_id, platform, external_id, name, connection_id)
+       values ($1, $2, 'instagram', $3, 'Account della batteria', $4)`,
+      [
+        id,
+        organizationId,
+        `1784${String(Date.now()).slice(-8)}${randomUUID().slice(0, 4)}`,
+        connectionId,
+      ],
+    )
+    return id
+  }
+
   const fixture: IsolationFixture = {
     env,
     a: { ...a, w1, w2, people },
@@ -374,6 +395,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
         invite: await openInvite(organizationId, ids.workspace, sender),
         connection: connectionOf[agency],
+        account: await socialAccount(organizationId, connectionOf[agency]),
       }
     },
     async refreshReauth() {
@@ -397,6 +419,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
       await env.addPasskey(ids.admin)
       const cookie = await env.strongSignIn(owner)
       await fixture.refreshReauth()
+      const connection = await metaConnection(agency.slug, cookie)
       return {
         cookie,
         ids: {
@@ -404,7 +427,8 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           ...ids,
           email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
           invite: await openInvite(agency.id, ids.workspace, owner.userId),
-          connection: await metaConnection(agency.slug, cookie),
+          connection,
+          account: await socialAccount(agency.id, connection),
         },
       }
     },

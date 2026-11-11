@@ -818,6 +818,8 @@
       "connection_created": "ha aggiunto un collegamento Meta",
       "connection_token_replaced": "ha sostituito il token di un collegamento",
       "accounts_imported": "ha importato degli account social",
+      "account_assigned": "ha assegnato un account social a un cliente",
+      "account_unassigned": "ha tolto un account social da un cliente",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",

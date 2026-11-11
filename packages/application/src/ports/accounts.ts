@@ -47,6 +47,14 @@ export interface SocialAccountsRepository {
     organizationId: string,
     filter?: { workspaceIds?: readonly string[] },
   ): Promise<SocialAccountRecord[]>
+  /**
+   * One page of the agency's accounts by id, inactive ones included: those after `afterId`, at
+   * most `limit`. `workspaceIds` as in `list`.
+   */
+  listPage(
+    organizationId: string,
+    page: { workspaceIds?: readonly string[]; afterId?: string; limit: number },
+  ): Promise<SocialAccountRecord[]>
   findById(organizationId: string, id: string): Promise<SocialAccountRecord | null>
   /** The ones by platform and external id, for an import; the missing ones are left out. */
   findByExternalIds(
@@ -183,4 +191,9 @@ export interface WorkspaceAccountsRepository {
   unassign(organizationId: string, workspaceId: string, accountId: string): Promise<boolean>
   /** The ids of the accounts assigned to the workspace. */
   listForWorkspace(organizationId: string, workspaceId: string): Promise<string[]>
+  /** Where each of these accounts is assigned. */
+  listForAccounts(
+    organizationId: string,
+    accountIds: readonly string[],
+  ): Promise<{ accountId: string; workspaceId: string }[]>
 }

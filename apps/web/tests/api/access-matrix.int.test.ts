@@ -113,6 +113,18 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/connections/{connectionId}/import': [
     { permission: 'accounts.manage', level: 'organization' },
   ],
+  // «Account social»: everyone, each seeing the accounts of their own workspaces (Task 9)
+  'GET /api/v1/orgs/{org}/accounts': [{ permission: 'workspace.view', level: 'organization' }],
+  // assigning is for Owner and Admin, refused before the workspace is looked at
+  'PUT /api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}': [
+    { permission: 'workspace.accounts.assign', level: 'organization' },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}': [
+    { permission: 'workspace.accounts.assign', level: 'organization' },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/profiles': [
+    { permission: 'workspace.view', level: 'workspace' },
+  ],
   // the agency's privacy notice: every member, whatever the role
   'GET /api/v1/orgs/{org}/privacy': [{ permission: 'workspace.view', level: 'organization' }],
   'GET /api/v1/orgs/{org}/members': [{ permission: 'users.manage', level: 'organization' }],
@@ -345,6 +357,8 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'connection.created': ['kind'],
   'connection.token_replaced': ['kind'],
   'accounts.imported': ['count'],
+  'account.assigned': [],
+  'account.unassigned': [],
 }
 
 /**
@@ -449,6 +463,8 @@ async function produceEveryAction() {
   await ok('POST', `${org}/connections/${ids.connection}/import`, {
     externalIds: [META_MOCK.pages.withInstagram],
   })
+  await ok('PUT', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
+  await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('POST', `${org}/invites`, {
     email: `registro-${randomUUID().slice(0, 8)}@example.test`,
     orgRole: 'member',
