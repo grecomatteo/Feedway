@@ -156,7 +156,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `Clock` | 1 | `now(): Date` |
 | `IdGenerator` | 1 | `newId(): string` (UUID v7) |
 | `Logger` | 1 | `debug/info/warn/error(obj, msg?)`, `child(bindings): Logger` |
-| `JobQueue` | 1 | `send(name, data, opts?)`, `work(name, handler, opts?)`, `stop()`; `schedule(name, cron, data, { tz })` dalla tappa 3 |
+| `JobQueue` / `JobScheduler` | 1, 2 | `send(name, data, opts?)`, `work(name, handler, opts?)`, `stop()`; `JobScheduler.schedule(name, cron, data, { tz })` dalla tappa 2 (Task 29), separata perché la usa solo il worker: la usano `identity.retention` (03:30) e `accounts.daily` (04:00, tappa 3), ora di Roma |
 | `UnitOfWork` | 2 | `run<T>(scope: { organizationId, userId } \| { userId }, fn)`, `runAsSystem<T>(reason, fn)`; dalla tappa 3 anche `{ organizationId, userId: null }` per i lavori di un'agenzia, che non agiscono per una persona |
 | `AuditLog` | 2 | dentro la transazione: `tx.audit.record(entry: AuditEntry): Promise<void>` |
 | `PasswordHasher` | 2 | `hash(plain)`, `verify(hash, plain)` |

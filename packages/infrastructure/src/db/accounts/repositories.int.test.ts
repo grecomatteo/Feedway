@@ -372,3 +372,61 @@ test('a login attempt belongs to a member of its agency', async () => {
     ),
   ).rejects.toMatchObject(refusedBy('connection_attempts_member_fk'))
 })
+
+test('the daily clean-up removes only expired attempts and old pending connections', async () => {
+  const attempt = (expiresAt: Date) =>
+    inA((tx) =>
+      tx.connectionAttempts.create({
+        id: newId(),
+        organizationId: orgA,
+        userId: ownerA,
+        kind: 'meta_business_login',
+        stateHash: randomBytes(32),
+        expiresAt,
+      }),
+    )
+  await attempt(new Date(now.getTime() - 1))
+  await attempt(new Date(now.getTime() + 60_000))
+  await inB((tx) =>
+    tx.connectionAttempts.create({
+      id: newId(),
+      organizationId: orgB,
+      userId: ownerB,
+      kind: 'meta_business_login',
+      stateHash: randomBytes(32),
+      expiresAt: new Date(now.getTime() - 1),
+    }),
+  )
+  // earlier tests may have left attempts of their own: counted from here on
+  expect(await inA((tx) => tx.connectionAttempts.deleteExpired(orgA, now))).toBeGreaterThan(0)
+  expect(await inA((tx) => tx.connectionAttempts.deleteExpired(orgA, now))).toBe(0)
+  // the one still valid stays: it expires only later
+  expect(
+    await inA((tx) => tx.connectionAttempts.deleteExpired(orgA, new Date(now.getTime() + 60_001))),
+  ).toBeGreaterThan(0)
+  // the other agency's expired attempt is its own run's
+  expect(await inB((tx) => tx.connectionAttempts.deleteExpired(orgB, now))).toBeGreaterThan(0)
+
+  const [lonely, withAccount, working] = await inA(async (tx) => {
+    const a = await connection(tx, orgA)
+    const b = await connection(tx, orgA)
+    const c = await connection(tx, orgA)
+    await tx.connections.setStatus(orgA, c.id, 'active')
+    return [a, b, c]
+  })
+  // an account keeps its connection even if it were still pending
+  await inA((tx) =>
+    tx.accounts.upsertImported(
+      imported(orgA, withAccount.id, { externalId: '17841400000000777', pageId: null }),
+    ),
+  )
+  const afterNow = new Date(Date.now() + 60_000)
+  // created after the cut-off: kept
+  expect(
+    await inA((tx) => tx.connections.deleteStalePending(orgA, new Date(Date.now() - 60_000))),
+  ).toBe(0)
+  expect(await inA((tx) => tx.connections.deleteStalePending(orgA, afterNow))).toBeGreaterThan(0)
+  const left = await inA((tx) => tx.connections.list(orgA))
+  expect(left.map((c) => c.id)).not.toContain(lonely.id)
+  expect(left.map((c) => c.id)).toEqual(expect.arrayContaining([withAccount.id, working.id]))
+})

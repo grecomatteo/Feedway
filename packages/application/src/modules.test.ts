@@ -27,6 +27,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'identity.anonymization_notice': true,
   'accounts.sync': true,
   'accounts.health': true,
+  'accounts.daily': true,
 }
 
 test('each module has its own name', () => {

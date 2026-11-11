@@ -1,4 +1,5 @@
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
+import { accountsDaily } from './handlers/accounts-daily.js'
 import { accountsHealth } from './handlers/accounts-health.js'
 import { accountsSync } from './handlers/accounts-sync.js'
 import {
@@ -34,6 +35,9 @@ const STOP_TIMEOUT_MS = 30_000
 /** Every day at 03:30, Italian time (spec §15.7). */
 export const RETENTION_CRON = '30 3 * * *'
 export const RETENTION_TZ = 'Europe/Rome'
+/** Every day at 04:00, Italian time: syncs and clean-up of the accounts (plan 03 Task 11). */
+export const ACCOUNTS_DAILY_CRON = '0 4 * * *'
+export const ACCOUNTS_DAILY_TZ = 'Europe/Rome'
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
@@ -50,6 +54,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'identity.anonymization_notice': identityAnonymizationNotice,
     'accounts.sync': accountsSync,
     'accounts.health': accountsHealth,
+    'accounts.daily': accountsDaily,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
@@ -62,9 +67,11 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- see above
   const consumeOne = <N extends QueueName>(name: N) => consume(name, handlers[name])
   for (const name of queues) await consumeOne(name)
-  // the daily retention: pg-boss keeps one schedule, so every worker setting it is harmless
+  // the daily runs: pg-boss keeps one schedule per queue, so every worker setting it is harmless
   if (queues.includes('identity.retention'))
     await queue.schedule('identity.retention', RETENTION_CRON, {}, { tz: RETENTION_TZ })
+  if (queues.includes('accounts.daily'))
+    await queue.schedule('accounts.daily', ACCOUNTS_DAILY_CRON, {}, { tz: ACCOUNTS_DAILY_TZ })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {

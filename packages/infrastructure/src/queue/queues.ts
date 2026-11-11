@@ -75,6 +75,12 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'organization',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
+  // as the retention: one run at a time, a run that waited a day is replaced by the next one
+  'accounts.daily': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

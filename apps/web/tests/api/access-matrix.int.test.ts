@@ -122,6 +122,10 @@ const RULES: Record<string, readonly Rule[]> = {
   ],
   // «Account social»: everyone, each seeing the accounts of their own workspaces (Task 9)
   'GET /api/v1/orgs/{org}/accounts': [{ permission: 'workspace.view', level: 'organization' }],
+  // the Meta reminders: Owner and Admin, who can act on them (plan 03 Task 11)
+  'GET /api/v1/orgs/{org}/accounts/reminders': [
+    { permission: 'accounts.manage', level: 'organization' },
+  ],
   // assigning is for Owner and Admin, refused before the workspace is looked at
   'PUT /api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}': [
     { permission: 'workspace.accounts.assign', level: 'organization' },

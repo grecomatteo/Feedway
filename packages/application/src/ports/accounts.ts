@@ -185,6 +185,11 @@ export interface ConnectionsRepository {
   setStatus(organizationId: string, id: string, status: ConnectionStatus): Promise<boolean>
   /** The platform's usage counters from the last call. */
   recordUsage(organizationId: string, id: string, usage: unknown): Promise<void>
+  /**
+   * The daily clean-up (plan 03 Task 11): new connections still `pending`, created before
+   * `createdBefore` and with no account, are deleted. Returns how many.
+   */
+  deleteStalePending(organizationId: string, createdBefore: Date): Promise<number>
 }
 
 export interface ConnectionAttemptRecord {
@@ -218,6 +223,8 @@ export interface ConnectionAttemptsRepository {
     userId: string,
     now: Date,
   ): Promise<ConnectionAttemptRecord | null>
+  /** The daily clean-up: attempts expired at `now`, used or not, are deleted. Returns how many. */
+  deleteExpired(organizationId: string, now: Date): Promise<number>
 }
 
 export interface WorkspaceAccountsRepository {

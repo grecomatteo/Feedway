@@ -1,4 +1,17 @@
-import { and, asc, count, eq, exists, gt, inArray, isNull, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  eq,
+  exists,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  notExists,
+  sql,
+} from 'drizzle-orm'
 import type {
   ConnectionAttemptsRepository,
   ConnectionRecord,
@@ -348,6 +361,30 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
         .set({ lastUsage: usage })
         .where(connectionKey(organizationId, id))
     },
+    async deleteStalePending(organizationId, createdBefore) {
+      const rows = await db
+        .delete(accountConnections)
+        .where(
+          and(
+            eq(accountConnections.organizationId, organizationId),
+            eq(accountConnections.status, 'pending'),
+            lt(accountConnections.createdAt, createdBefore),
+            notExists(
+              db
+                .select({ id: socialAccounts.id })
+                .from(socialAccounts)
+                .where(
+                  and(
+                    eq(socialAccounts.organizationId, accountConnections.organizationId),
+                    eq(socialAccounts.connectionId, accountConnections.id),
+                  ),
+                ),
+            ),
+          ),
+        )
+        .returning({ id: accountConnections.id })
+      return rows.length
+    },
   }
 }
 
@@ -380,6 +417,18 @@ export function drizzleConnectionAttempts(db: DbExecutor): ConnectionAttemptsRep
           usedAt: connectionAttempts.usedAt,
         })
       return row ? { ...row, kind: row.kind as ConnectionKind } : null
+    },
+    async deleteExpired(organizationId, now) {
+      const rows = await db
+        .delete(connectionAttempts)
+        .where(
+          and(
+            eq(connectionAttempts.organizationId, organizationId),
+            lte(connectionAttempts.expiresAt, now),
+          ),
+        )
+        .returning({ id: connectionAttempts.id })
+      return rows.length
     },
   }
 }
