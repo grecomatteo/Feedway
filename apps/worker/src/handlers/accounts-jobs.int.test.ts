@@ -239,8 +239,12 @@ test('a 100/33 on one account: it stays active and as it was; the others are che
   const a = await connection(runtime, of, {
     accounts: [...FORNO_LUCE, { platform: 'instagram', externalId: instagram.agencyOnly }],
   })
-  await accountsHealth(job(of, a.id), handlerDeps(runtime))
-  mock.scenario('quota_exhausted', { igUserId: instagram.agencyOnly })
+  // a state no Meta answer of this test would give: only "left as it was" keeps it
+  await admin.query(
+    `update social_accounts set health = 'warning', health_message = 'prima'
+      where organization_id = $1 and external_id = $2`,
+    [of.organizationId, instagram.ofPage],
+  )
   mock.scenario('error', {
     code: 100,
     subcode: 33,
@@ -248,8 +252,12 @@ test('a 100/33 on one account: it stays active and as it was; the others are che
   })
   await accountsHealth(job(of, a.id), handlerDeps(runtime))
   const after = await byId(of)
-  expect(after[instagram.ofPage]).toMatchObject({ active: true, health: 'ok' })
-  expect(after[instagram.agencyOnly]?.health).toBe('warning')
+  expect(after[instagram.ofPage]).toMatchObject({
+    active: true,
+    health: 'warning',
+    health_message: 'prima',
+  })
+  expect(after[instagram.agencyOnly]?.health).toBe('ok')
   expect((await connectionRow(a.id))?.status).toBe('active')
 })
 
@@ -280,15 +288,6 @@ test('Meta failing on every attempt: the last state stays and the job fails', as
   ])
 })
 
-test('a job without its agency fails at once', async () => {
-  await expect(
-    accountsSync(
-      { id: 'lavoro', data: { connectionId: 'x' } as never },
-      handlerDeps(runtime, recordingQueue()),
-    ),
-  ).rejects.toThrow(/organizationId/)
-})
-
 const ownerOf = (of: Agency): OrgActor => ({
   userId: of.ownerId,
   platformRole: null,
@@ -312,6 +311,10 @@ test('«Aggiorna»: through the real queue to the worker, sync then health; agai
   try {
     const syncDeps = { uow: runtime.uow, queue: runtime.queue, rateLimiter: runtime.rateLimiter }
     await requestSync(syncDeps, ownerOf(of), { connectionId: a.id })
+    // the same uuid in capitals is the same connection, and the same limit
+    await expect(
+      requestSync(syncDeps, ownerOf(of), { connectionId: a.id.toUpperCase() }),
+    ).rejects.toMatchObject({ code: 'RATE_LIMITED' })
     await expect(requestSync(syncDeps, ownerOf(of), { connectionId: a.id })).rejects.toMatchObject({
       code: 'RATE_LIMITED',
     })

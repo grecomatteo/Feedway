@@ -63,8 +63,8 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 3 * 86_400, deleteAfterSeconds: 86_400 },
   },
-  // ids only; one running and one waiting per connection (singletonKey), the next day's run
-  // replaces one that waited a day
+  // ids only; per connection (singletonKey) one running and one waiting, a further one is
+  // refused; a job that waited a day is dropped
   'accounts.sync': {
     policy: 'stately',
     scope: 'organization',

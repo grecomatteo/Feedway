@@ -121,7 +121,10 @@ test.each(organizationQueues as OrganizationQueue[])(
 
     // A's agency naming B's things: B is not seen, so nothing happens anywhere
     const afterA = await snapshot(world.a)
+    const calls = mock.calls().length
     await run(name, world.crossing)
+    // and B's token is never opened for Meta
+    expect(mock.calls()).toHaveLength(calls)
     expect(await snapshot(world.a)).toEqual(afterA)
     expect(await snapshot(world.b)).toEqual(beforeB)
   },

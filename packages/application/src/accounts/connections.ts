@@ -406,9 +406,25 @@ export async function importAccounts(
     await assertStillManages(tx, actor)
     await tx.accounts.lockImport(organizationId)
     const organization = await assertActiveOrganization(tx, organizationId)
-    // read again under the lock: it may have stopped working while the platform answered
-    const connection = await tx.connections.findById(organizationId, opened.connection.id)
-    if (connection === null) throw connectionNotFound()
+    // read again and locked: it may have stopped working while the platform answered, and a
+    // health check that ends it now waits for this import, then finds it as it is left
+    const locked = await tx.connections.findWithToken(organizationId, opened.connection.id, {
+      forUpdate: true,
+    })
+    if (locked === null) throw connectionNotFound()
+    const connection: ConnectionRecord = {
+      id: locked.id,
+      organizationId: locked.organizationId,
+      kind: locked.kind,
+      externalUserId: locked.externalUserId,
+      connectedBy: locked.connectedBy,
+      expiresAt: locked.expiresAt,
+      status: locked.status,
+      lastRefreshedAt: locked.lastRefreshedAt,
+      lastUsage: locked.lastUsage,
+      createdAt: locked.createdAt,
+      updatedAt: locked.updatedAt,
+    }
     if (!works(connection.status)) throw notWorking()
 
     const states = await annotate(tx, organizationId, connection, accounts)

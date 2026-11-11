@@ -52,7 +52,10 @@ export type JobOutcome =
   /** The token stopped working: the connection and its accounts are red. */
   | { outcome: 'ended'; status: 'expired' | 'revoked' }
 
-/** Both jobs of a connection, one at a time: the queue's key (stately policy). */
+/**
+ * The key of a connection's jobs: one running and one waiting per queue (stately policy). A
+ * sync and a health check of the same connection may overlap: `lockSame` guards their writes.
+ */
 export const connectionJobKey = (job: ConnectionJob) => job.connectionId
 
 /** At most one sync a request every 5 minutes per connection (plan 03 Task 10). */
@@ -352,7 +355,8 @@ export async function requestSync(
   if (!can(actor, 'accounts.manage', { organizationId })) throw cannotManage()
   const notFound = () => new DomainError('NOT_FOUND', 'Collegamento non trovato')
   if (!isUuid(input.connectionId)) throw notFound()
-  await deps.uow.run({ organizationId, userId }, async (tx) => {
+  // the id as the database holds it: the same uuid in capitals is another key for the limit
+  const connectionId = await deps.uow.run({ organizationId, userId }, async (tx) => {
     const membership = await tx.orgMembers.find(organizationId, userId)
     if (
       membership?.status !== 'active' ||
@@ -364,10 +368,12 @@ export async function requestSync(
     if (connection === null) throw notFound()
     if (!works(connection.status))
       throw new DomainError('CONFLICT', 'Il collegamento non funziona più: collegalo di nuovo')
+    return connection.id
   })
   const { limit, windowMs } = SYNC_REQUEST_LIMIT
+  // counted before the job is queued: a queue that fails costs the person these 5 minutes
   const { allowed, retryAfterMs } = await deps.rateLimiter.hit(
-    `accounts.sync:${input.connectionId}`,
+    `accounts.sync:${connectionId}`,
     limit,
     windowMs,
   )
@@ -377,6 +383,6 @@ export async function requestSync(
       'Questo collegamento si è aggiornato da poco: riprova tra qualche minuto',
       { retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) },
     )
-  const job = { organizationId, connectionId: input.connectionId }
+  const job = { organizationId, connectionId }
   await deps.queue.send('accounts.sync', job, { singletonKey: connectionJobKey(job) })
 }
