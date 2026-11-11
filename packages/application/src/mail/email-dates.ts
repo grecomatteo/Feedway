@@ -34,7 +34,8 @@ export function dayAndTime(
   return { day, time: timeOfDay(at, timeZone) }
 }
 
-const calendarDay = (at: Date, timeZone: string) =>
+/** The calendar date (YYYY-MM-DD) of `at` in `timeZone`. */
+export const calendarDay = (at: Date, timeZone: string) =>
   new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',

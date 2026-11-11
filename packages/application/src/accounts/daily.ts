@@ -51,14 +51,21 @@ export async function runAccountsDaily(deps: AccountsDailyDeps): Promise<Account
   }
   for (const { id: organizationId } of organizations) {
     try {
-      const active = await deps.uow.run({ organizationId, userId: null }, async (tx) => {
-        report.attemptsDeleted += await tx.connectionAttempts.deleteExpired(organizationId, now)
-        report.pendingDeleted += await tx.connections.deleteStalePending(
+      // an import running right now on an old pending connection makes this step fail on the
+      // foreign key: nothing is lost, the job is retried
+      const cleaned = await deps.uow.run({ organizationId, userId: null }, async (tx) => {
+        const attempts = await tx.connectionAttempts.deleteExpired(organizationId, now)
+        const pending = await tx.connections.deleteStalePending(
           organizationId,
           new Date(now.getTime() - PENDING_CONNECTION_MAX_AGE_MS),
         )
-        return (await tx.connections.list(organizationId)).filter((c) => c.status === 'active')
+        const connections = await tx.connections.list(organizationId)
+        return { attempts, pending, active: connections.filter((c) => c.status === 'active') }
       })
+      // counted once the transaction is committed
+      report.attemptsDeleted += cleaned.attempts
+      report.pendingDeleted += cleaned.pending
+      const { active } = cleaned
       for (const connection of active) {
         const job = { organizationId, connectionId: connection.id }
         const id = await deps.queue.send('accounts.sync', job, {

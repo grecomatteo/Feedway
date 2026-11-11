@@ -1,5 +1,6 @@
 import { can, DomainError, metaReminders, type MetaReminder, type OrgActor } from '@app/domain'
 import { assertActiveOrganization } from '../workspaces/index.js'
+import { calendarDay } from '../mail/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { IntegrationStore } from '../ports/integration-store.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
@@ -19,14 +20,6 @@ export interface MetaRemindersDeps {
 
 const cannotManage = () =>
   new DomainError('FORBIDDEN', 'Solo Owner e Admin vedono i promemoria di Meta')
-
-const calendarDay = (at: Date, timeZone: string) =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(at)
 
 /** Owner and Admin (`accounts.manage`): what needs doing on Meta, platform first. */
 export async function listMetaReminders(

@@ -76,6 +76,8 @@ test('a token that still works and ends within 5 days is recalled, not before', 
   expect(metaReminders({ ...base, connections: at('2027-01-15T09:00:00Z') })).toEqual([
     { kind: 'token_expiring', connectionId: 'c1', expiresAt: new Date('2027-01-15T09:00:00Z') },
   ])
+  // past its expiry but not yet marked by the health check: still recalled
+  expect(kinds({ connections: at('2027-01-09T00:00:00Z') })).toEqual(['token_expiring'])
   // a connection that no longer works has its own red state, not a reminder
   expect(
     kinds({ connections: [{ id: 'c1', status: 'expired', expiresAt: new Date('2027-01-11') }] }),

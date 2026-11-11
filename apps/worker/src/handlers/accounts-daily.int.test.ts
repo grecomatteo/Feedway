@@ -77,6 +77,8 @@ test('one sync per active connection, even with two runs at once; suspended agen
   )
 
   await Promise.all([run(), run()])
+  // the day's sync already done: the same day's run does not queue it again
+  await admin.query("update pgboss.job set state = 'completed' where name = 'accounts.sync'")
   await run()
 
   // ids only, and only the working connection of the active agency

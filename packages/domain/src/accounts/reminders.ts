@@ -18,7 +18,10 @@ export type MetaReminder =
   | { kind: 'data_use_checkup'; dueOn: string; daysLeft: number }
   /** The client took the access back: the connection needs a new access. */
   | { kind: 'access_revoked'; connectionId: string }
-  /** A token that still works and ends soon without having been renewed. */
+  /**
+   * A token that still works and ends soon without having been renewed; also one already past
+   * its expiry until the health check marks the connection `expired`.
+   */
   | { kind: 'token_expiring'; connectionId: string; expiresAt: Date }
 
 export interface MetaRemindersInput {
