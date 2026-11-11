@@ -36,7 +36,7 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 
 ## Scenari
 
-`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted`, `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`. Le opzioni sono descritte in `src/scenarios.ts`. Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
+`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted`, `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`. Le opzioni sono descritte in `src/scenarios.ts`; `token_expired` accetta anche `subcode` (458: il cliente ha tolto l'autorizzazione). Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
 
 ## Fixture
 

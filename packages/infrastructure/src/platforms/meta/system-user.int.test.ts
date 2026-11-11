@@ -35,6 +35,7 @@ let mock: MetaMock
 let deps: ConnectionsDeps
 let owner: OrgActor
 let logs: string[]
+let queued: { name: string; data: unknown; opts: unknown }[]
 
 const IP = '203.0.113.7'
 const TOKEN = META_MOCK.tokens.systemUser
@@ -164,11 +165,19 @@ beforeAll(async () => {
     ids: uuidV7Generator,
     tokens: createConnectionTokens({ keyRing }),
     connectors: { meta_system_user: connector, meta_business_login: connector },
+    queue: {
+      send: (name, data, opts) => {
+        queued.push({ name, data, opts })
+        return Promise.resolve('job')
+      },
+    },
+    logger,
   }
 }, 120_000)
 
 beforeEach(async () => {
   logs = []
+  queued = []
   owner = await agencyWithOwner()
 })
 
@@ -281,6 +290,14 @@ test('import: the connection becomes active, accounts stay out of every workspac
       owner.organizationId,
     ]),
   ).toEqual([{ data: { count: 2 } }])
+  // the first health check, ids only (§8.2, plan 03 Task 10)
+  expect(queued).toEqual([
+    {
+      name: 'accounts.health',
+      data: { organizationId: owner.organizationId, connectionId: id },
+      opts: { singletonKey: id },
+    },
+  ])
 })
 
 test('an external id the connection does not see is refused', async () => {
@@ -328,8 +345,24 @@ test('an account of a working connection stays there; one of an expired connecti
   await expect(importing(second, [instagram.shared])).rejects.toMatchObject({ code: 'CONFLICT' })
 
   await admin.query(`update account_connections set status = 'expired' where id = $1`, [first])
+  // red under the expired connection: the new owner has not checked it yet
+  await admin.query(
+    `update social_accounts set health = 'error', health_message = 'scaduto'
+      where organization_id = $1`,
+    [owner.organizationId],
+  )
   const moved = await importing(second, [instagram.shared])
-  expect(moved.accounts[0]?.connectionId).toBe(second)
+  expect(moved.accounts[0]).toMatchObject({
+    connectionId: second,
+    health: null,
+    healthMessage: null,
+  })
+  // imported again by the same owner, an account keeps its health
+  await importing(second, [instagram.shared])
+  await admin.query(`update social_accounts set health = 'ok' where organization_id = $1`, [
+    owner.organizationId,
+  ])
+  expect((await importing(second, [instagram.shared])).accounts[0]?.health).toBe('ok')
   await expect(listImportable(deps, owner, { connectionId: first })).rejects.toMatchObject({
     code: 'CONFLICT',
   })

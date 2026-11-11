@@ -89,6 +89,12 @@ function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
     signedTokens: runtime.signedTokens,
     translate: createTranslate(loadItalianMessages()),
     panel: { url: PANEL, productName: 'Feedway', defaultTimezone: 'Europe/Rome' },
+    // the account jobs are not these tests'
+    connectors: {},
+    connectionTokens: {
+      seal: () => Promise.reject(new Error('not used')),
+      open: () => Promise.reject(new Error('not used')),
+    },
   }
 }
 

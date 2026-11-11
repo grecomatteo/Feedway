@@ -157,7 +157,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `IdGenerator` | 1 | `newId(): string` (UUID v7) |
 | `Logger` | 1 | `debug/info/warn/error(obj, msg?)`, `child(bindings): Logger` |
 | `JobQueue` | 1 | `send(name, data, opts?)`, `work(name, handler, opts?)`, `stop()`; `schedule(name, cron, data, { tz })` dalla tappa 3 |
-| `UnitOfWork` | 2 | `run<T>(scope: { organizationId, userId } \| { userId }, fn)`, `runAsSystem<T>(reason, fn)` |
+| `UnitOfWork` | 2 | `run<T>(scope: { organizationId, userId } \| { userId }, fn)`, `runAsSystem<T>(reason, fn)`; dalla tappa 3 anche `{ organizationId, userId: null }` per i lavori di un'agenzia, che non agiscono per una persona |
 | `AuditLog` | 2 | dentro la transazione: `tx.audit.record(entry: AuditEntry): Promise<void>` |
 | `PasswordHasher` | 2 | `hash(plain)`, `verify(hash, plain)` |
 | `KeyRing` / `SecretBox` | 2 | `platform()`, `forOrganization(tx, orgId)`; `seal(plain, aad)`, `open(sealed, aad)` |

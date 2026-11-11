@@ -1,4 +1,6 @@
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
+import { accountsHealth } from './handlers/accounts-health.js'
+import { accountsSync } from './handlers/accounts-sync.js'
 import {
   identityAccountLockedNotice,
   identityAccountLockedNoticeEmail,
@@ -46,6 +48,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'identity.data_export': identityDataExport,
     'identity.retention': identityRetention,
     'identity.anonymization_notice': identityAnonymizationNotice,
+    'accounts.sync': accountsSync,
+    'accounts.health': accountsHealth,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }

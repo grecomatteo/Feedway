@@ -94,6 +94,17 @@ export const importAccountsRoute = defineContract({
   scope: 'organization',
 })
 
+export const syncConnectionRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/connections/{connectionId}/sync',
+  summary:
+    'Aggiorna gli account del collegamento e la loro salute (Owner e Admin, al massimo una volta ogni 5 minuti): il lavoro parte in coda',
+  request: { params: ConnectionParams },
+  response: z.object({ queued: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 // «Account social» and the profiles of a workspace (spec §3, §14.4, plan 03 Task 9)
 
 const Health = z.enum(['ok', 'warning', 'error'])
@@ -180,6 +191,7 @@ export const accountRoutes = [
   connectSystemUserRoute,
   importableAccountsRoute,
   importAccountsRoute,
+  syncConnectionRoute,
   listAccountsRoute,
   assignAccountRoute,
   unassignAccountRoute,

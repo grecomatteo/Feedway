@@ -4,6 +4,7 @@ import type {
   ConnectionView,
   ImportableAccount,
   SocialAccountRecord,
+  SyncRequestDeps,
   WorkspaceAccount,
 } from '@app/application'
 import type { Deps } from './deps'
@@ -16,6 +17,8 @@ export function connectionsDeps(deps: Deps): ConnectionsDeps {
     ids: deps.ids,
     tokens: deps.connectionTokens,
     connectors: deps.connectors,
+    queue: deps.queue,
+    logger: deps.logger,
   }
 }
 
@@ -78,6 +81,11 @@ export const accountListItemDto = (a: AccountListItem) => ({
   connection: a.connection,
   createdAt: a.createdAt.toISOString(),
 })
+
+/** «Aggiorna»: the connection's sync, queued for the worker. */
+export function syncRequestDeps(deps: Deps): SyncRequestDeps {
+  return { uow: deps.uow, queue: deps.queue, rateLimiter: deps.rateLimiter }
+}
 
 /** Each of these calls Meta under the agency's app: a few a minute are plenty. */
 export const CONNECTIONS_RATE_LIMIT = { name: 'connections', limit: 20, windowMs: 60_000 }

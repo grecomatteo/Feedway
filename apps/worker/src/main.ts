@@ -43,6 +43,8 @@ async function main(): Promise<void> {
         productName: PRODUCT_NAME,
         defaultTimezone: config.defaultTimezone,
       },
+      connectors: runtime.connectors,
+      connectionTokens: runtime.connectionTokens,
     },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,

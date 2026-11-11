@@ -146,6 +146,9 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
         connectionId: account.connectionId,
         active: true,
         lastSyncedAt: at,
+        // another owner has not checked it yet: "never checked" until its first check
+        health: sql`case when ${socialAccounts.connectionId} = excluded.connection_id then ${socialAccounts.health} end`,
+        healthMessage: sql`case when ${socialAccounts.connectionId} = excluded.connection_id then ${socialAccounts.healthMessage} end`,
       }
       const [row] = await db
         .insert(socialAccounts)
@@ -178,6 +181,64 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
         )
         .returning({ id: socialAccounts.id })
       return rows.length
+    },
+    async listOwnedBy(organizationId, connectionId) {
+      const rows = await db
+        .select(accountColumns)
+        .from(socialAccounts)
+        .where(
+          and(
+            eq(socialAccounts.organizationId, organizationId),
+            eq(socialAccounts.connectionId, connectionId),
+          ),
+        )
+        .orderBy(asc(socialAccounts.id))
+      return rows.map(accountOf)
+    },
+    async updateFromPlatform(organizationId, connectionId, id, update) {
+      const rows = await db
+        .update(socialAccounts)
+        .set({
+          name: update.name,
+          username: update.username,
+          avatarUrl: update.avatarUrl,
+          pageId: update.pageId,
+          lastSyncedAt: update.at,
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(
+            eq(socialAccounts.organizationId, organizationId),
+            eq(socialAccounts.id, id),
+            eq(socialAccounts.connectionId, connectionId),
+            eq(socialAccounts.active, true),
+          ),
+        )
+        .returning({ id: socialAccounts.id })
+      return rows.length > 0
+    },
+    async setHealth(organizationId, connectionId, id, update) {
+      const rows = await db
+        .update(socialAccounts)
+        .set({
+          health: update.health,
+          healthMessage: update.message,
+          ...(update.quota !== null && {
+            quotaUsed: update.quota.used,
+            quotaTotal: update.quota.total,
+            quotaCheckedAt: update.at,
+          }),
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(
+            eq(socialAccounts.organizationId, organizationId),
+            eq(socialAccounts.id, id),
+            eq(socialAccounts.connectionId, connectionId),
+          ),
+        )
+        .returning({ id: socialAccounts.id })
+      return rows.length > 0
     },
   }
 }

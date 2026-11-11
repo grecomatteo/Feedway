@@ -14,6 +14,8 @@ test('every registered queue declares a scope', () => {
     ['identity.data_export', 'user'],
     ['identity.retention', 'system'],
     ['identity.anonymization_notice', 'user'],
+    ['accounts.sync', 'organization'],
+    ['accounts.health', 'organization'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -26,7 +28,14 @@ test('every registered queue declares a scope', () => {
     'identity.data_export',
     'identity.retention',
     'identity.anonymization_notice',
+    'accounts.sync',
+    'accounts.health',
   ])
+})
+
+test('the jobs of one connection wait for each other, one waiting at most', () => {
+  for (const name of ['accounts.sync', 'accounts.health'])
+    expect(QUEUES.find((q) => q.name === name)?.policy).toBe('stately')
 })
 
 test('the daily retention runs once at a time', () => {

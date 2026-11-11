@@ -63,6 +63,10 @@ afterAll(async () => {
 beforeEach(async () => {
   // REAUTH_REQUIRED would hide the permission the case is about
   await fx.refreshReauth()
+  // and so would the sync's 5 minutes, after the Owner's case has used them
+  await fx.env.admin.pool.query(
+    "delete from rate_limit_counters where key like 'hits:accounts.sync:%'",
+  )
 })
 
 /**
@@ -111,6 +115,9 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'accounts.manage', level: 'organization' },
   ],
   'POST /api/v1/orgs/{org}/connections/{connectionId}/import': [
+    { permission: 'accounts.manage', level: 'organization' },
+  ],
+  'POST /api/v1/orgs/{org}/connections/{connectionId}/sync': [
     { permission: 'accounts.manage', level: 'organization' },
   ],
   // «Account social»: everyone, each seeing the accounts of their own workspaces (Task 9)

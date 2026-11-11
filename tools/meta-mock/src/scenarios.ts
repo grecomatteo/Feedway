@@ -13,8 +13,11 @@ type None = Record<string, never>
 export interface ScenarioOptions {
   /** Back to the initial data, with no scenario active. */
   default: None
-  /** 190/463 on every call with the token (all tokens when omitted); `debug_token` says invalid. */
-  token_expired: { token?: string }
+  /**
+   * 190/463 (or `subcode`: 458, the user removed the app) on every call with the token (all
+   * tokens when omitted); `debug_token` says invalid, with the same subcode.
+   */
+  token_expired: { token?: string; subcode?: 458 | 460 | 463 | 467 }
   /** The permission drops out of `debug_token` and `me/permissions`; calls on `path` answer `code`. */
   permission_missing: {
     path?: string | RegExp

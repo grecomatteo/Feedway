@@ -63,6 +63,18 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 3 * 86_400, deleteAfterSeconds: 86_400 },
   },
+  // ids only; per connection (singletonKey) one running and one waiting, a further one is
+  // refused; a job that waited a day is dropped
+  'accounts.sync': {
+    policy: 'stately',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
+  'accounts.health': {
+    policy: 'stately',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

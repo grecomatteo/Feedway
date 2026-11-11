@@ -1,11 +1,13 @@
 import type {
   Auth,
   Clock,
+  ConnectionTokens,
   IdGenerator,
   JobQueue,
   JobPayloads,
   Logger,
   Mailer,
+  PlatformConnectors,
   QueueName,
   SignedTokens,
   Storage,
@@ -33,6 +35,9 @@ export interface JobHandlerDeps {
   /** Texts of the emails, from the panel's it.json. */
   translate: Translate
   panel: { url: URL; productName: string; defaultTimezone: string }
+  /** The platforms (ADR 019) and the sealed tokens of the connections, for the account jobs. */
+  connectors: PlatformConnectors
+  connectionTokens: ConnectionTokens
 }
 
 export type JobHandler<N extends QueueName> = (
