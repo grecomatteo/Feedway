@@ -99,7 +99,7 @@ const tokenRejected = () =>
 const listingRejected = () =>
   new DomainError(
     'CONFLICT',
-    'Meta non mostra gli account di questo collegamento: controlla il token e l’ID del Business Manager',
+    'Meta non mostra gli account di questo collegamento: controlla il token e le risorse assegnate all’utente di sistema',
   )
 const listingError = (reason: 'rejected' | 'unavailable' | 'incomplete') =>
   reason === 'unavailable'

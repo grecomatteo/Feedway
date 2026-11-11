@@ -59,6 +59,28 @@ test('pages are followed by their cursor until the last one', async () => {
   expect(asked).toEqual([undefined, 'c1'])
 })
 
+test('an assigned Instagram already seen through its page keeps that page, and comes once', async () => {
+  const ig = (id: string) => ({ id, username: `ig${id}`, name: null, profilePictureUrl: null })
+  const asked: (string | undefined)[] = []
+  const client = {
+    listUserPages: () =>
+      Promise.resolve(answer([{ ...page('1'), instagramAccount: ig('10') }], null)),
+    listAssignedInstagramAccounts: (_c: unknown, p?: { after?: string }) => {
+      asked.push(p?.after)
+      return Promise.resolve(
+        p?.after === undefined ? answer([ig('10')], 'c1') : answer([ig('20')], null),
+      )
+    },
+  }
+  const accounts = await listMetaAccounts(client, CREDENTIALS)
+  expect(accounts.map((a) => [a.platform, a.externalId, a.pageId])).toEqual([
+    ['facebook', '1', '1'],
+    ['instagram', '10', '1'],
+    ['instagram', '20', null],
+  ])
+  expect(asked).toEqual([undefined, 'c1'])
+})
+
 test('a page already seen stops the listing: no endless loop', async () => {
   const { client, asked } = clientOf((after) => answer([page(after ?? '0')], 'sempre-lo-stesso'))
   expect(await classifiedListing(() => listMetaAccounts(client, CREDENTIALS))).toEqual({
