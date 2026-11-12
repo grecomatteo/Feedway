@@ -857,6 +857,46 @@
       "contactEmail": "Email per le richieste sulla privacy",
       "extraText": "Testo aggiuntivo (facoltativo)",
       "extraTextHelp": "Per esempio il responsabile della protezione dei dati o la sede. Fino a 2000 caratteri, testo semplice."
+    },
+    "tabs": {
+      "label": "Sezioni delle impostazioni",
+      "general": "Generali",
+      "integrations": "Integrazioni"
+    }
+  },
+  "metaIntegration": {
+    "title": "Meta",
+    "explain": "L'app Meta dell'agenzia: con lei Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
+    "notConfigured": "Da configurare",
+    "notVerified": "Da provare",
+    "verified": "Funziona",
+    "updatedAt": "Ultima modifica: {when}.",
+    "verifiedAt": "Meta l'ha accettata il {when}.",
+    "emptyTitle": "L'app Meta non è ancora configurata",
+    "emptyAdmin": "La configura l'Owner dell'agenzia. Quando è pronta, la vedi qui.",
+    "appId": "App ID",
+    "appSecret": "App Secret",
+    "appSecretKeep": "È impostato. Lascia vuoto per tenerlo; scrivine uno nuovo per sostituirlo.",
+    "appSecretSet": "impostato (non si rilegge mai)",
+    "businessId": "ID del Business Manager",
+    "businessIdHelp": "Facoltativo: con questo i link delle guide aprono direttamente il tuo Business Manager. Lo trovi in Impostazioni del business → Informazioni sul business.",
+    "dataUseCheckup": "Scadenza del Data Use Checkup",
+    "dataUseCheckupHelp": "Facoltativa. La data entro cui Meta chiede la verifica annuale sull'uso dei dati: la trovi nella dashboard dell'app. Ti avvisiamo 30 giorni prima.",
+    "save": "Salva e verifica",
+    "saved": "Salvata: Meta ha accettato App ID e App Secret.",
+    "test": "Prova",
+    "testResult": {
+      "verified": "Funziona: Meta accetta App ID e App Secret.",
+      "not_configured": "Salva prima App ID e App Secret.",
+      "rejected": "Meta non accetta questo App ID con questo App Secret: ricopiali dalla dashboard dell'app.",
+      "unavailable": "Meta non risponde: riprova tra qualche minuto."
+    },
+    "guide": {
+      "title": "Come preparare l'app Meta",
+      "create": "Su developers.facebook.com scegli «Crea app», tipo Business, e collegala al Business Manager dell'agenzia.",
+      "copy": "Nell'app apri Impostazioni → Di base e copia qui App ID e App Secret.",
+      "checkup": "Segna la scadenza del Data Use Checkup quando Meta la mostra nella dashboard.",
+      "pagePermissions": "Se l'app non ha ancora i permessi delle Pagine non serve aggiungerli a mano: Meta li aggiunge da solo quando generi il token dell'utente di sistema."
     }
   },
   "avatar": {

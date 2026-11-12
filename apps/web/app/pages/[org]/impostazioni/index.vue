@@ -101,6 +101,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         {{ $t('orgSettings.ownerOnly') }}
       </p>
     </header>
+    <SettingsTabs />
 
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
