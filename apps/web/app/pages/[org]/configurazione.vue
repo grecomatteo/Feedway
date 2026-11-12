@@ -48,13 +48,14 @@ function goTo(s: Step) {
   viewing.value = s
 }
 function next(from: 2 | 3) {
-  walked.value = from === 2 ? 3 : 4
-  viewing.value = null
+  const to: Step = from === 2 ? 3 : 4
+  // a step seen again never undoes the ones already walked
+  if (to > walked.value) walked.value = to
+  viewing.value = to
 }
 
-function appSaved(integration: MetaIntegration) {
+function appUpdated(integration: MetaIntegration) {
   setup.app.data.value = { integration }
-  viewing.value = null
 }
 
 const businessId = computed(() => setup.integration.value?.businessId ?? null)
@@ -88,6 +89,16 @@ async function imported() {
   viewing.value = null
   await Promise.all([setup.refresh(), refreshNuxtData(`accounts-${org.slug.value}`)])
 }
+
+// the step's content is replaced: its heading takes the focus, so nobody is left on the page body
+const stepHeading = ref<HTMLElement | null>(null)
+watch(
+  [shown, reached],
+  (_now, before) => {
+    if (before[1] !== null) stepHeading.value?.focus()
+  },
+  { flush: 'post' },
+)
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 </script>
@@ -153,7 +164,9 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         aria-labelledby="setup-done"
         class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
-        <h2 id="setup-done" class="text-lg">{{ $t('firstSetup.done.title') }}</h2>
+        <h2 id="setup-done" ref="stepHeading" tabindex="-1" class="text-lg">
+          {{ $t('firstSetup.done.title') }}
+        </h2>
         <p>{{ $t('firstSetup.done.text') }}</p>
         <div class="flex flex-wrap gap-3">
           <UButton :to="org.to('/spazi')" class="min-h-11" icon="i-lucide-briefcase">
@@ -176,7 +189,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         aria-labelledby="setup-step"
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
-        <h2 id="setup-step" class="text-lg">
+        <h2 id="setup-step" ref="stepHeading" tabindex="-1" class="text-lg">
           {{ $t(`firstSetup.step${shown}.title`) }}
         </h2>
 
@@ -189,7 +202,8 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             :integration="setup.integration.value"
             editable
             :with-reauth="withReauth"
-            @update:integration="appSaved"
+            @update:integration="appUpdated"
+            @saved="viewing = null"
           />
         </template>
 
@@ -228,7 +242,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               <code>{{ p }}</code>
             </li>
           </ul>
-          <p class="text-sm text-(--app-text-muted)">{{ $t('firstSetup.step4.never') }}</p>
+          <p class="text-sm text-(--app-text-muted)">{{ $t('firstSetup.step4.checked') }}</p>
           <UButton class="min-h-11" icon="i-lucide-key-round" @click="tokenOpen = true">
             {{ $t('firstSetup.step4.paste') }}
           </UButton>

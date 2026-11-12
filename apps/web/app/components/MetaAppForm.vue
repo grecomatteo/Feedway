@@ -16,7 +16,11 @@ const props = defineProps<{
   editable: boolean
   withReauth: WithReauth
 }>()
-const emit = defineEmits<{ 'update:integration': [integration: MetaIntegration] }>()
+const emit = defineEmits<{
+  'update:integration': [integration: MetaIntegration]
+  /** Saved and accepted by Meta; a test only updates the date. */
+  saved: []
+}>()
 const org = useOrganization()
 const { call, failure } = useApi()
 
@@ -59,6 +63,7 @@ async function submit() {
       emit('update:integration', r.integration)
       form.appSecret = ''
       save.done = true
+      emit('saved')
     })
   } catch (e) {
     if (!(e instanceof ReauthCancelled)) save.failure = failure(e)

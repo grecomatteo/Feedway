@@ -56,7 +56,15 @@ test('first setup: the five steps, interrupted and taken up again', async ({ pag
   await expect(current(page)).toContainText("Crea l'utente di sistema")
   await page.getByRole('button', { name: 'Fatto, avanti' }).click()
   await expect(current(page)).toContainText('Assegna Pagine e Instagram')
+  // the new step's heading takes the focus
+  await expect(page.getByRole('heading', { name: 'Assegna Pagine e Instagram' })).toBeFocused()
   await page.getByRole('button', { name: 'Fatto, avanti' }).click()
+  await expect(current(page)).toContainText('Genera e incolla il token')
+  // a step seen again does not undo the next ones
+  await page.getByRole('button', { name: /2\. Crea l'utente di sistema/ }).click()
+  await page.getByRole('button', { name: 'Fatto, avanti' }).click()
+  await expect(current(page)).toContainText('Assegna Pagine e Instagram')
+  await page.getByRole('button', { name: /4\. Genera e incolla il token/ }).click()
   await expect(current(page)).toContainText('Genera e incolla il token')
   await expect(page.getByText('instagram_content_publish')).toBeVisible()
 

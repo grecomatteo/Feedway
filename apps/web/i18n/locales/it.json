@@ -1041,7 +1041,7 @@
     "step4": {
       "title": "Genera e incolla il token",
       "explain": "Nell'utente di sistema premi «Genera token», scegli l'app Meta, la scadenza «Mai» e spunta questi permessi:",
-      "never": "Lo verifichiamo con Meta prima di salvarlo: i permessi che mancano si vedono in rosso.",
+      "checked": "Lo verifichiamo con Meta prima di salvarlo: i permessi che mancano si vedono in rosso.",
       "paste": "Incolla il token"
     },
     "step5": {
