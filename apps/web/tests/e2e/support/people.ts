@@ -184,7 +184,10 @@ export async function signInWithTotp(request: APIRequestContext, person: E2ePers
   return secret
 }
 
-/** The agency's data key, which the install makes for a real agency: its Meta secrets need it. */
+/**
+ * The agency's data key, which the install makes for a real agency: its Meta secrets need it.
+ * The seed uses the agency's id as its slug.
+ */
 export async function addDataKey(organizationSlug: string): Promise<void> {
   const runtimeUrl = process.env.E2E_DATABASE_URL
   const key = process.env.E2E_ENCRYPTION_KEY

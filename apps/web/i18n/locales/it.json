@@ -866,7 +866,7 @@
   },
   "metaIntegration": {
     "title": "Meta",
-    "explain": "L'app Meta dell'agenzia: con lei Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
+    "explain": "È l'app con cui Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
     "notConfigured": "Da configurare",
     "notVerified": "Da provare",
     "verified": "Funziona",
@@ -883,7 +883,7 @@
     "dataUseCheckup": "Scadenza del Data Use Checkup",
     "dataUseCheckupHelp": "Facoltativa. La data entro cui Meta chiede la verifica annuale sull'uso dei dati: la trovi nella dashboard dell'app. Ti avvisiamo 30 giorni prima.",
     "save": "Salva e verifica",
-    "saved": "Salvata: Meta ha accettato App ID e App Secret.",
+    "saved": "Impostazioni di Meta salvate.",
     "test": "Prova",
     "testResult": {
       "verified": "Funziona: Meta accetta App ID e App Secret.",

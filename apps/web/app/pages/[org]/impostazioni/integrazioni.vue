@@ -4,6 +4,7 @@ import type { ApiFailure } from '~/composables/useApi'
 
 definePageMeta({ layout: 'agency' })
 
+/** As `MetaTestResult` of the contract. */
 type TestResult = 'verified' | 'not_configured' | 'rejected' | 'unavailable'
 
 const org = useOrganization()
@@ -82,7 +83,11 @@ async function runTest() {
       org.api('/integrations/meta/test'),
     )
     test.result = r.result
-    if (r.ok) await refresh()
+    // the date only: a refetch would swap the form for "loading" and drop what was typed
+    if (r.ok && data.value?.integration)
+      data.value = {
+        integration: { ...data.value.integration, verifiedAt: new Date().toISOString() },
+      }
   } catch (e) {
     test.problem = failure(e).message
   } finally {
@@ -102,7 +107,7 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
     </header>
     <SettingsTabs />
 
-    <p v-if="status === 'pending' || status === 'idle'" role="status">
+    <p v-if="!data && !error && (status === 'pending' || status === 'idle')" role="status">
       {{ $t('account.loading') }}
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">

@@ -56,9 +56,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await page.getByLabel('App Secret').fill(META_MOCK.app.secret)
   await page.getByLabel('Scadenza del Data Use Checkup').fill('2027-03-31')
   await page.getByRole('button', { name: 'Salva e verifica' }).click()
-  await expect(page.getByRole('status')).toHaveText(
-    'Salvata: Meta ha accettato App ID e App Secret.',
-  )
+  await expect(page.getByRole('status')).toHaveText('Impostazioni di Meta salvate.')
   await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
   // the secret never comes back
   await expect(page.getByLabel('App Secret')).toHaveValue('')
@@ -78,5 +76,15 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await expect(adminPage.getByText('impostato (non si rilegge mai)')).toBeVisible()
   await expect(adminPage.getByRole('button', { name: 'Salva e verifica' })).toHaveCount(0)
   await expect(adminPage.getByRole('button', { name: 'Prova' })).toHaveCount(0)
+  expect((await axe(adminPage)).violations).toEqual([])
   await context.close()
+})
+
+test('meta integration: an admin sees that the owner has not set it up yet', async ({ page }) => {
+  const admin = await newPerson('Ada Senza Meta', 'admin')
+  await signInWithTotp(page.request, admin)
+  await page.goto(`/${admin.organizationSlug}/impostazioni/integrazioni`)
+  await expect(page.getByText("L'app Meta non è ancora configurata")).toBeVisible()
+  await expect(page.getByLabel('App ID')).toHaveCount(0)
+  expect((await axe(page)).violations).toEqual([])
 })
