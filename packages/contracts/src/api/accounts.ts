@@ -187,12 +187,45 @@ export const workspaceProfilesRoute = defineContract({
   scope: 'organization',
 })
 
+const CalendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+/** What Owner and Admin are reminded of about Meta (§8.4, RF-21); the panel words it. */
+export const MetaReminder = z.discriminatedUnion('kind', [
+  /** `daysLeft` below zero: the version is already retired. */
+  z.object({
+    kind: z.literal('graph_version_sunset'),
+    version: z.string(),
+    dueOn: CalendarDate,
+    daysLeft: z.number().int(),
+  }),
+  /** `daysLeft` below zero: overdue. */
+  z.object({
+    kind: z.literal('data_use_checkup'),
+    dueOn: CalendarDate,
+    daysLeft: z.number().int(),
+  }),
+  z.object({ kind: z.literal('access_revoked'), connectionId: Id }),
+  z.object({ kind: z.literal('token_expiring'), connectionId: Id, expiresAt: Timestamp }),
+])
+
+export const metaRemindersRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/accounts/reminders',
+  summary:
+    'I promemoria di Meta per Owner e Admin: versione della Graph API al ritiro, Data Use Checkup, accessi tolti e token in scadenza',
+  request: { params: OrgParams },
+  response: z.object({ items: z.array(MetaReminder) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const accountRoutes = [
   connectSystemUserRoute,
   importableAccountsRoute,
   importAccountsRoute,
   syncConnectionRoute,
   listAccountsRoute,
+  metaRemindersRoute,
   assignAccountRoute,
   unassignAccountRoute,
   workspaceProfilesRoute,

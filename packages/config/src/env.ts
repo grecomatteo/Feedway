@@ -38,6 +38,7 @@ export const KNOWN_QUEUES = [
   'identity.anonymization_notice',
   'accounts.sync',
   'accounts.health',
+  'accounts.daily',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

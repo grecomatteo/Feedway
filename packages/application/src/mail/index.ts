@@ -3,7 +3,14 @@ import type { Translate } from '../ports/translator.js'
 import type { EmailContent } from './render-email.js'
 
 export { renderEmail, oneLine, type EmailBlock, type EmailContent } from './render-email.js'
-export { capitalize, dayAndTime, isSameDay, timeOfDay, usableTimeZone } from './email-dates.js'
+export {
+  calendarDay,
+  capitalize,
+  dayAndTime,
+  isSameDay,
+  timeOfDay,
+  usableTimeZone,
+} from './email-dates.js'
 
 /** What every email shares: the product, the logo, the common texts. */
 export function emailFrame(

@@ -3,9 +3,11 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
   assignAccount,
   listAccounts,
+  listMetaReminders,
   listProfiles,
   unassignAccount,
   type ImportedAccountInput,
+  type MetaRemindersDeps,
   type SocialAccountRecord,
   type Tx,
 } from '@app/application'
@@ -214,4 +216,56 @@ test('the profiles of a workspace pair only its own active accounts', async () =
   await expect(listProfiles(deps, viewer, { workspaceId: ws })).rejects.toMatchObject({
     code: 'NOT_FOUND',
   })
+})
+
+test('the Meta reminders read the checkup date and the connections, on the panel’s calendar', async () => {
+  // the agency's Meta app is the integration store's (its own tests): only the date matters here
+  const meta = { dataUseCheckupDueOn: '2027-03-01' }
+  const integrations: MetaRemindersDeps['integrations'] = {
+    get: () => Promise.resolve({ config: meta } as never),
+  }
+  const revoked = await inOrg(async (tx) => {
+    const id = uuidV7Generator.newId()
+    const sealed = await tokens.seal(tx, { organizationId: org, id }, `EAA-token-${id}`)
+    await tx.connections.create({
+      id,
+      organizationId: org,
+      kind: 'meta_system_user',
+      externalUserId: `su-${id}`,
+      connectedBy: owner.userId,
+      ...sealed,
+      expiresAt: null,
+    })
+    await tx.connections.setStatus(org, id, 'revoked')
+    return id
+  })
+  const remindersAt = (iso: string) =>
+    listMetaReminders(
+      {
+        uow: deps.uow,
+        clock: fixedClock(new Date(iso)),
+        integrations,
+        graph: { version: 'v24.0', sunset: '2028-07-29' },
+        timeZone: 'Europe/Rome',
+      },
+      owner,
+    )
+  // 23:30 UTC of 29 January is already 30 January in Rome: 30 days before the checkup
+  expect(await remindersAt('2027-01-29T23:30:00Z')).toEqual([
+    { kind: 'data_use_checkup', dueOn: '2027-03-01', daysLeft: 30 },
+    { kind: 'access_revoked', connectionId: revoked },
+  ])
+  expect((await remindersAt('2027-01-29T22:30:00Z')).map((r) => r.kind)).toEqual(['access_revoked'])
+  await expect(
+    listMetaReminders(
+      {
+        uow: deps.uow,
+        clock: fixedClock(new Date()),
+        integrations,
+        graph: { version: 'v24.0', sunset: '2028-07-29' },
+        timeZone: 'Europe/Rome',
+      },
+      viewer,
+    ),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 })

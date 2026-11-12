@@ -182,3 +182,17 @@ test('the worker that consumes the retention schedules it every day at 03:30 Ita
   ])
   await w.stop()
 })
+
+test('the worker that consumes the accounts run schedules it every day at 04:00 Italian time', async () => {
+  const q = fakeQueue()
+  const w = await startWorker({
+    queue: q.queue,
+    logger: silentLogger,
+    services,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['accounts.daily'],
+  })
+  expect(q.schedules).toEqual([{ name: 'accounts.daily', cron: '0 4 * * *', tz: 'Europe/Rome' }])
+  await w.stop()
+})

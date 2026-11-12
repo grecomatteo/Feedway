@@ -28,6 +28,7 @@ interface JobDefinitions {
   'identity.anonymization_notice': { scope: 'user'; data: AnonymizationNoticeData }
   'accounts.sync': { scope: 'organization'; data: ConnectionJobData }
   'accounts.health': { scope: 'organization'; data: ConnectionJobData }
+  'accounts.daily': { scope: 'system'; data: object }
 }
 
 /** A job about one connection of the agency (§8.4): its id only, never its token. */

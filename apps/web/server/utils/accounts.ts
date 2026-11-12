@@ -3,10 +3,12 @@ import type {
   ConnectionsDeps,
   ConnectionView,
   ImportableAccount,
+  MetaRemindersDeps,
   SocialAccountRecord,
   SyncRequestDeps,
   WorkspaceAccount,
 } from '@app/application'
+import type { MetaReminder } from '@app/domain'
 import type { Deps } from './deps'
 
 /** Connections and imports: the platform connectors and the sealed tokens of the process. */
@@ -89,3 +91,17 @@ export function syncRequestDeps(deps: Deps): SyncRequestDeps {
 
 /** Each of these calls Meta under the agency's app: a few a minute are plenty. */
 export const CONNECTIONS_RATE_LIMIT = { name: 'connections', limit: 20, windowMs: 60_000 }
+
+/** The Meta reminders: the Graph API version of the config, counted on the panel's calendar. */
+export function metaRemindersDeps(deps: Deps): MetaRemindersDeps {
+  return {
+    uow: deps.uow,
+    clock: deps.clock,
+    integrations: deps.integrations,
+    graph: { version: deps.config.metaGraphVersion, sunset: deps.config.metaGraphVersionSunset },
+    timeZone: deps.config.defaultTimezone,
+  }
+}
+
+export const metaReminderDto = (r: MetaReminder) =>
+  r.kind === 'token_expiring' ? { ...r, expiresAt: r.expiresAt.toISOString() } : r
