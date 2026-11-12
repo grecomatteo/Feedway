@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Clock, Logger } from '@app/application'
@@ -316,6 +316,13 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
   const baseDelay = opts.retryBaseDelayMs ?? 500
   const recordDir = opts.mode === 'live' ? (opts.recordDir ?? null) : null
   const redact = createRecordingRedactor()
+  // web and worker share the folder and each counts from 1: the prefix keeps their files apart,
+  // and starts with the time so a listing sorts the sessions in order
+  const startedAt = opts.clock
+    .now()
+    .toISOString()
+    .replaceAll(/[-:]|\.\d+/g, '')
+  const session = `${startedAt}-${randomBytes(3).toString('hex')}`
   let recorded = 0
 
   async function record(name: string, status: number, body: unknown): Promise<void> {
@@ -325,9 +332,11 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
       await mkdir(recordDir, { recursive: true })
       const file = join(
         recordDir,
-        `${String(recorded).padStart(4, '0')}-${name.replaceAll('/', '_')}.json`,
+        `${session}-${String(recorded).padStart(4, '0')}-${name.replaceAll('/', '_')}.json`,
       )
-      await writeFile(file, JSON.stringify({ call: name, status, body: redact(body) }, null, 2))
+      await writeFile(file, JSON.stringify({ call: name, status, body: redact(body) }, null, 2), {
+        flag: 'wx',
+      })
     } catch (err) {
       opts.logger.warn({ metaCall: name, err }, 'meta recording failed')
     }

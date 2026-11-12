@@ -43,3 +43,19 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 Le risposte stanno in `fixtures/`: `objects.json` (i nodi come li restituisce Meta), `edges.json` (gli elenchi), `tokens.json` (a chi appartiene ogni token, cosa vede e i dati di `debug_token`), `app.json` e `logins.json`.
 
 **Sono scritte a mano** dalla documentazione di Meta e in gran parte **non verificate** (la prova a mano del 2026-11-11 è in `docs/platforms/meta.md`): in particolare `type` e `expires_at` di `debug_token`, le chiamate che elencano gli account dell'accesso unificato e i testi e i sottocodici degli errori dello scambio del codice (`docs/platforms/meta.md`, «Da provare su Meta vera»). Nel Task 13 le risposte registrate e oscurate (`META_RECORD_DIR`) prendono il loro posto negli stessi file, senza cambiare il codice.
+
+## Registrare le risposte di Meta vera
+
+Si fa solo durante una prova concordata su Meta vera, su un'installazione con `META_MODE=live`. Mai da test o script.
+
+1. Nel file `.env` dell'installazione aggiungi `META_RECORD_DIR=/media/meta-record`. Il container è in sola lettura: la cartella deve stare nel volume `media`.
+2. Ricrea pannello e lavori, dalla cartella dell'installazione: `./scripts/compose.sh up -d web worker`.
+3. Fai la prova dal pannello. Ogni risposta di Meta diventa un file `<avvio>-<sigla>-<numero>-<chiamata>.json`. Pannello e lavori scrivono nella stessa cartella con sigle diverse, così nessun file ne sovrascrive un altro.
+4. Alla fine togli la riga da `.env` e ricrea di nuovo pannello e lavori. Poi copia la cartella fuori dal volume e cancellala da lì (i due servizi usano lo stesso volume):
+
+   ```bash
+   ./scripts/compose.sh cp web:/media/meta-record ./meta-record
+   ./scripts/compose.sh exec web rm -rf /media/meta-record
+   ```
+
+I file escono già oscurati: niente token, segreti, `appsecret_proof`, cursori, testi degli errori, parametri firmati delle immagini (`oh`, `oe`). Id e nomi diventano valori finti, stabili dentro la stessa sigla. Due sigle diverse danno id finti diversi allo stesso account. Prima di metterli in `fixtures/` vanno riletti uno per uno: chi li copia controlla che non resti nessun dato reale.

@@ -1,3 +1,6 @@
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
 import type { Logger } from '@app/application'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
@@ -316,4 +319,40 @@ test('no token, secret, proof or code reaches the log', async () => {
     'appsecret_proof',
   ])
     expect(log).not.toContain(secret)
+})
+
+describe('META_RECORD_DIR', () => {
+  let dir: string
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'meta-record-'))
+  })
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  const recordingClient = () =>
+    createMetaGraphClient({
+      mode: 'live',
+      version: 'v25.0',
+      baseUrl: mock.url,
+      clock: fixedClock(new Date('2026-11-09T12:00:00Z')),
+      logger: memoryLogger(),
+      recordDir: dir,
+    })
+
+  test('two processes on the same folder never overwrite each other', async () => {
+    // web and worker get the same META_RECORD_DIR and each starts counting from 1
+    const web = recordingClient()
+    const worker = recordingClient()
+    await web.debugToken(app, META_MOCK.tokens.systemUser)
+    await worker.debugToken(app, META_MOCK.tokens.systemUser)
+
+    const files = await readdir(dir)
+    expect(files).toHaveLength(2)
+    for (const file of files) {
+      const saved = await readFile(join(dir, file), 'utf8')
+      expect(JSON.parse(saved)).toMatchObject({ call: 'debug_token', status: 200 })
+      expect(saved).not.toContain(META_MOCK.tokens.systemUser)
+    }
+  })
 })
