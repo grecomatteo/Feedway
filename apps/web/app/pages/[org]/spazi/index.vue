@@ -142,6 +142,15 @@ async function archive() {
           <div class="flex flex-wrap items-center gap-2">
             <RoleBadge :role="w.myRole" />
             <UButton
+              class="min-h-11"
+              color="neutral"
+              variant="outline"
+              :to="org.to(`/spazi/${w.slug}/account`)"
+              :aria-label="$t('workspaces.accountsOf', { name: w.name })"
+            >
+              {{ $t('workspaces.accounts') }}
+            </UButton>
+            <UButton
               v-if="canManageMembers(w)"
               class="min-h-11"
               color="neutral"

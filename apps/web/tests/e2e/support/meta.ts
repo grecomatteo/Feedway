@@ -13,7 +13,12 @@ function headers() {
   }
 }
 
-async function send(request: APIRequestContext, method: 'POST' | 'PUT', path: string, data = {}) {
+async function send(
+  request: APIRequestContext,
+  method: 'POST' | 'PUT',
+  path: string,
+  data?: unknown,
+) {
   const res = await request.fetch(path, { method, headers: headers(), data })
   expect(res.status(), `${method} ${path}`).toBe(200)
   return (await res.json()) as unknown
@@ -64,4 +69,14 @@ export async function connectedAgency(
     externalIds,
   })
   return { connectionId: connected.connection.id }
+}
+
+/** An account put into a workspace through the API of a signed-in Owner or Admin. */
+export async function assignAccount(
+  request: APIRequestContext,
+  org: string,
+  workspaceId: string,
+  accountId: string,
+): Promise<void> {
+  await send(request, 'PUT', `/api/v1/orgs/${org}/workspaces/${workspaceId}/accounts/${accountId}`)
 }
