@@ -71,6 +71,17 @@ export const connectSystemUserRoute = defineContract({
   scope: 'organization',
 })
 
+export const listConnectionsRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/connections',
+  summary:
+    'I collegamenti dell’agenzia, anche quelli ancora senza account (Owner e Admin): mai il token',
+  request: { params: OrgParams },
+  response: z.object({ items: z.array(Connection) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const importableAccountsRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/connections/{connectionId}/importable',
@@ -221,6 +232,7 @@ export const metaRemindersRoute = defineContract({
 
 export const accountRoutes = [
   connectSystemUserRoute,
+  listConnectionsRoute,
   importableAccountsRoute,
   importAccountsRoute,
   syncConnectionRoute,

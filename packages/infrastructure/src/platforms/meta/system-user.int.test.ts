@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest
 import {
   connectWithToken,
   importAccounts,
+  listConnections,
   listImportable,
   type AuthSessionInfo,
   type ConnectionsDeps,
@@ -296,6 +297,21 @@ test('import: the connection becomes active, accounts stay out of every workspac
       name: 'accounts.health',
       data: { organizationId: owner.organizationId, connectionId: id },
       opts: { singletonKey: id },
+    },
+  ])
+})
+
+test('the connections of the agency, a pending one too, never with their token', async () => {
+  expect(await listConnections(deps, owner)).toEqual([])
+  const { connection } = await connect()
+  const listed = await listConnections(deps, owner)
+  expect(listed).toEqual([
+    {
+      id: connection?.id,
+      kind: 'meta_system_user',
+      status: 'pending',
+      expiresAt: null,
+      createdAt: expect.any(Date) as Date,
     },
   ])
 })

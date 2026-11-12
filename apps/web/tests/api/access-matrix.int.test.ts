@@ -108,6 +108,7 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
   // connections and imports: Owner and Admin (spec §10.2, "Collegare account social")
+  'GET /api/v1/orgs/{org}/connections': [{ permission: 'accounts.manage', level: 'organization' }],
   'POST /api/v1/orgs/{org}/connections/system-user': [
     { permission: 'accounts.manage', level: 'organization' },
   ],
