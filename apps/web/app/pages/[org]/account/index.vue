@@ -162,9 +162,14 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
 <template>
   <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('socialAccounts.title') }}</h1>
-      <p class="text-(--app-text-muted)">{{ $t('socialAccounts.explain') }}</p>
+    <header class="flex flex-wrap items-start justify-between gap-3">
+      <div class="space-y-1">
+        <h1 class="text-3xl">{{ $t('socialAccounts.title') }}</h1>
+        <p class="text-(--app-text-muted)">{{ $t('socialAccounts.explain') }}</p>
+      </div>
+      <UButton :to="org.to('/account/aggiungi')" class="min-h-11" icon="i-lucide-plus">
+        {{ $t('socialAccounts.add') }}
+      </UButton>
     </header>
 
     <MetaReminders :items="reminders?.items ?? []" />
@@ -254,8 +259,8 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         :title="$t('socialAccounts.emptyTitle')"
         :text="$t('socialAccounts.emptyText')"
       >
-        <NuxtLink :to="org.to('/impostazioni/integrazioni')" class="underline">
-          {{ $t('socialAccounts.emptyLink') }}
+        <NuxtLink :to="org.to('/account/aggiungi')" class="underline">
+          {{ $t('socialAccounts.add') }}
         </NuxtLink>
       </EmptyState>
       <ul v-else class="space-y-4" :aria-label="$t('socialAccounts.list')">
