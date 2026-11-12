@@ -31,6 +31,7 @@ export function useOrganization() {
     viewSettings: isManager.value,
     editSettings: role.value === 'owner',
     createWorkspace: isManager.value,
+    manageAccounts: isManager.value,
     transferOwnership: role.value === 'owner',
   }))
   const active = computed(() => organization.value?.status === 'active')

@@ -7,6 +7,8 @@ export function useAgencyNav() {
       { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-house' },
       { to: org.to('/spazi'), label: 'agency.nav.workspaces', icon: 'i-lucide-briefcase' },
     ]
+    if (may.manageAccounts)
+      list.push({ to: org.to('/account'), label: 'agency.nav.accounts', icon: 'i-lucide-at-sign' })
     if (may.manageUsers)
       list.push({ to: org.to('/utenti'), label: 'agency.nav.users', icon: 'i-lucide-users' })
     if (may.viewAudit)

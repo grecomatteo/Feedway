@@ -680,7 +680,8 @@
       "users": "Utenti",
       "audit": "Registro attività",
       "settings": "Impostazioni",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "accounts": "Account social"
     }
   },
   "context": {
@@ -898,6 +899,76 @@
       "checkup": "Segna la scadenza del Data Use Checkup quando Meta la mostra nella dashboard.",
       "pagePermissions": "Se l'app non ha ancora i permessi delle Pagine non serve aggiungerli a mano: Meta li aggiunge da solo quando generi il token dell'utente di sistema."
     }
+  },
+  "socialAccounts": {
+    "title": "Account social",
+    "explain": "Le Pagine Facebook e i profili Instagram dell'agenzia, con il loro stato e i clienti a cui sono assegnati.",
+    "list": "Account social",
+    "connections": "Collegamenti",
+    "kind": {
+      "meta_system_user": "Utente di sistema Meta",
+      "meta_business_login": "Accesso con Facebook o Instagram"
+    },
+    "connectionAccounts": "{n} account | {n} account",
+    "connectionStatus": {
+      "pending": "in attesa dei primi account",
+      "active": "funziona",
+      "expired": "token scaduto: va ricollegato",
+      "revoked": "accesso tolto: va ricollegato"
+    },
+    "sync": "Sincronizza",
+    "syncQueued": "Sincronizzazione avviata: nomi, stato e quota si aggiornano tra poco.",
+    "syncTooSoon": "Hai già sincronizzato questo collegamento da poco: riprova tra qualche minuto.",
+    "replaceToken": "Sostituisci token",
+    "reconnect": "Ricollega",
+    "tokenDone": {
+      "replaced": "Token sostituito: il collegamento funziona di nuovo.",
+      "connected": "Token salvato: è un nuovo collegamento, con un altro utente di sistema."
+    },
+    "platform": {
+      "instagram": "Instagram",
+      "facebook": "Pagina Facebook"
+    },
+    "quota": "Pubblicati {used} su {total} nelle ultime 24 ore",
+    "noWorkspace": "Non assegnato a nessun cliente",
+    "workspaces": "Clienti: {names}",
+    "state": {
+      "ok": "Attivo",
+      "warning": "Attenzione",
+      "error": "Con problema",
+      "reconnect": "Da ricollegare",
+      "unchecked": "Da controllare",
+      "inactive": "Inattivo"
+    },
+    "emptyTitle": "Nessun account collegato",
+    "emptyText": "Collega l'utente di sistema Meta e importa le Pagine e i profili Instagram dell'agenzia.",
+    "more": "Mostra altri account",
+    "loading": "Carico gli account social…",
+    "loadError": "Non siamo riusciti a caricare gli account social.",
+    "workspaceCount": "Assegnato a {n} cliente | Assegnato a {n} clienti",
+    "emptyLink": "Prima l'app Meta: Impostazioni → Integrazioni"
+  },
+  "metaToken": {
+    "explain": "Incolla il token generato per l'utente di sistema nel Business Manager. Lo verifichiamo con Meta prima di salvarlo: fino ad allora resta valido quello di prima.",
+    "token": "Token dell'utente di sistema",
+    "tokenHelp": "Non si rilegge mai: dopo il salvataggio vedi solo se funziona.",
+    "confirm": "Verifica e salva",
+    "permissionsMissing": "Meta ha accettato il token, ma mancano dei permessi. Rigeneralo spuntando quelli in rosso: non abbiamo salvato niente.",
+    "permissions": "Permessi del token",
+    "granted": "concesso",
+    "notGranted": "manca"
+  },
+  "metaReminders": {
+    "title": "Da sistemare su Meta",
+    "today": "oggi",
+    "inDays": "tra {n} giorno | tra {n} giorni",
+    "graphSunset": "Meta ritira la versione {version} della Graph API il {date} ({when}): aggiorna Feedway prima di allora.",
+    "graphRetired": "Meta ha ritirato la versione {version} della Graph API il {date}: aggiorna Feedway, le chiamate possono smettere di funzionare.",
+    "checkupDue": "Il Data Use Checkup dell'app Meta scade il {date} ({when}): completalo nella dashboard dell'app.",
+    "checkupOverdue": "Il Data Use Checkup dell'app Meta è scaduto il {date}: completalo subito nella dashboard dell'app, altrimenti Meta può bloccarla.",
+    "accessRevoked": "Un cliente ha tolto l'accesso a un collegamento: i suoi account non pubblicano finché non lo ricolleghi.",
+    "tokenExpiring": "Il token di un collegamento scade il {date} e non si rinnova da solo: sostituiscilo per non fermare le pubblicazioni.",
+    "tokenExpired": "Il token di un collegamento è scaduto il {date}: sostituiscilo, i suoi account non pubblicano."
   },
   "avatar": {
     "title": "Foto profilo",
