@@ -6,6 +6,13 @@
 const props = defineProps<{ url: string; label: string; multiline?: boolean; copied?: string }>()
 const done = ref(false)
 const failed = ref(false)
+watch(
+  () => props.url,
+  () => {
+    done.value = false
+    failed.value = false
+  },
+)
 async function copy() {
   failed.value = false
   try {

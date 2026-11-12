@@ -102,6 +102,14 @@ async function findAccounts() {
   }
 }
 
+// another system user sees other accounts: what was found belongs to the previous one
+function chooseConnection(id: string) {
+  chosenConnection.value = id
+  found.value = null
+  imported.value = null
+  search.problem = ''
+}
+
 const tokenOpen = ref(false)
 function tokenDone(_outcome: 'connected' | 'replaced', saved: TokenSaved) {
   savedConnection.value = saved.connection.id
@@ -269,7 +277,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 :items="connectionItems"
                 class="w-full sm:w-72"
                 size="xl"
-                @update:model-value="chosenConnection = $event as string"
+                @update:model-value="chooseConnection($event as string)"
               />
             </UFormField>
             <div class="flex flex-wrap gap-3">
