@@ -20,6 +20,25 @@ async function send(request: APIRequestContext, method: 'POST' | 'PUT', path: st
 }
 
 /**
+ * The agency's Meta app saved through the API of a signed-in Owner, with a recent reauth: what
+ * Impostazioni → Integrazioni leaves behind.
+ */
+export async function metaApp(
+  request: APIRequestContext,
+  org: string,
+  opts: { dataUseCheckupDueOn?: string; businessId?: string } = {},
+): Promise<void> {
+  await addDataKey(org)
+  await send(request, 'POST', '/api/v1/auth/reauth', { password: E2E_PASSWORD })
+  await send(request, 'PUT', `/api/v1/orgs/${org}/integrations/meta`, {
+    appId: META_MOCK.app.id,
+    appSecret: META_MOCK.app.secret,
+    ...(opts.dataUseCheckupDueOn && { dataUseCheckupDueOn: opts.dataUseCheckupDueOn }),
+    ...(opts.businessId && { businessId: opts.businessId }),
+  })
+}
+
+/**
  * What «Aggiungi account» leaves behind, through the API of a signed-in Owner: the agency's app,
  * the system user connected with the fake Graph API and every account it sees imported.
  */
@@ -28,14 +47,8 @@ export async function connectedAgency(
   org: string,
   opts: { dataUseCheckupDueOn?: string } = {},
 ): Promise<{ connectionId: string }> {
-  await addDataKey(org)
-  await send(request, 'POST', '/api/v1/auth/reauth', { password: E2E_PASSWORD })
+  await metaApp(request, org, opts)
   const api = `/api/v1/orgs/${org}`
-  await send(request, 'PUT', `${api}/integrations/meta`, {
-    appId: META_MOCK.app.id,
-    appSecret: META_MOCK.app.secret,
-    ...(opts.dataUseCheckupDueOn && { dataUseCheckupDueOn: opts.dataUseCheckupDueOn }),
-  })
   const connected = (await send(request, 'POST', `${api}/connections/system-user`, {
     token: META_MOCK.tokens.systemUser,
   })) as {

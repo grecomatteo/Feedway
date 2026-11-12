@@ -941,12 +941,75 @@
       "inactive": "Inattivo"
     },
     "emptyTitle": "Nessun account collegato",
-    "emptyText": "Collega l'utente di sistema Meta e importa le Pagine e i profili Instagram dell'agenzia.",
+    "emptyText": "Collega l'utente di sistema Meta e importa le Pagine e i profili Instagram dei clienti.",
     "more": "Mostra altri account",
     "loading": "Carico gli account social…",
     "loadError": "Non siamo riusciti a caricare gli account social.",
     "workspaceCount": "Assegnato a {n} cliente | Assegnato a {n} clienti",
-    "emptyLink": "Prima l'app Meta: Impostazioni → Integrazioni"
+    "add": "Aggiungi account"
+  },
+  "addAccount": {
+    "title": "Aggiungi account",
+    "explain": "Una Pagina Facebook o un profilo Instagram arriva in Feedway attraverso l'utente di sistema dell'agenzia: rispondi alla domanda e segui i passi.",
+    "back": "Torna agli account social",
+    "newTab": "(si apre in una nuova scheda)",
+    "noApp": "Prima serve l'app Meta dell'agenzia",
+    "noAppOwner": "Salva App ID e App Secret, poi torna qui ad aggiungere gli account.",
+    "noAppAdmin": "La configura l'Owner dell'agenzia: quando è pronta, torna qui.",
+    "noAppLink": "Impostazioni → Integrazioni",
+    "question": "L'account è già nel tuo Business Manager?",
+    "answer": {
+      "own": "Sì, è nel Business Manager dell'agenzia",
+      "client": "No, è di un cliente con un Business Manager suo",
+      "personal": "È un profilo Instagram personale"
+    },
+    "answerHelp": {
+      "own": "Anche un profilo Instagram senza Pagina, se è nel tuo Business Manager.",
+      "client": "Il caso più comune: il cliente ti dà accesso come partner.",
+      "personal": "Prima va trasformato in un profilo professionale."
+    },
+    "personal": {
+      "title": "Trasformalo in un profilo professionale",
+      "step1": "Nell'app Instagram apri il profilo, poi il menu, Impostazioni e privacy → Tipo di account e strumenti → Passa a un account professionale. È gratuito.",
+      "step2": "Scegli Creator o Business. I post e i follower restano.",
+      "step3": "Poi aggiungilo al tuo Business Manager, o fallo condividere dal cliente come partner, e torna qui con una delle altre due risposte."
+    },
+    "client": {
+      "title": "Chiedi al cliente l'accesso come partner",
+      "explain": "Manda al cliente questo messaggio: dentro ci sono i passi e l'ID del tuo Business Manager.",
+      "messageLabel": "Messaggio per il cliente",
+      "copied": "Messaggio copiato.",
+      "businessIdMissing": "[ID del Business Manager dell'agenzia]",
+      "noBusinessIdOwner": "Nel messaggio manca l'ID del tuo Business Manager: aggiungilo in",
+      "noBusinessIdAdmin": "Nel messaggio manca l'ID del Business Manager dell'agenzia: chiedilo all'Owner, o scrivilo tu prima di mandarlo.",
+      "message": "Ciao! Per pubblicare sulla tua Pagina Facebook e sul tuo profilo Instagram da Feedway, {agency} ha bisogno dell'accesso come partner al tuo Business Manager. Ci vogliono due minuti:\n\n1. Apri business.facebook.com/settings e scegli il tuo business.\n2. In Utenti → Partner premi «Aggiungi» e poi «Dai a un partner l'accesso alle tue risorse».\n3. Scrivi l'ID del nostro Business Manager: {businessId}\n4. Scegli la tua Pagina e il tuo profilo Instagram e attiva il controllo completo.\n\nNon ci servono la tua password né altri accessi. Grazie!"
+    },
+    "assign": {
+      "title": "Dai l'account all'utente di sistema",
+      "titleClient": "Quando il cliente ha dato l'accesso",
+      "accepted": "Le Pagine e i profili del cliente compaiono nel tuo Business Manager tra le risorse condivise dai partner.",
+      "open": "Nel Business Manager apri",
+      "systemUsers": "Utenti di sistema",
+      "assets": "Scegli l'utente di sistema di Feedway e premi «Assegna risorse».",
+      "full": "Scegli la Pagina e il profilo Instagram, anche senza Pagina, e attiva il controllo completo.",
+      "find": "Torna qui e cerca i nuovi account."
+    },
+    "noSystemUser": "L'utente di sistema non è ancora collegato a Feedway: incolla il suo token, poi scegli gli account.",
+    "connectSystemUser": "Collega l'utente di sistema",
+    "otherSystemUser": "Usa un altro utente di sistema",
+    "whichSystemUser": "Utente di sistema",
+    "systemUserN": "Utente di sistema {n}",
+    "search": "Cerca nuovi account",
+    "found": "Account trovati",
+    "noneFound": "L'utente di sistema non vede ancora nessun account: controlla di avergli assegnato le risorse, poi cerca di nuovo.",
+    "state": {
+      "imported": "Già importato",
+      "other_connection": "Arriva già da un altro collegamento",
+      "not_importable": "Manca il controllo completo: assegnalo di nuovo all'utente di sistema"
+    },
+    "chooseSome": "Scegli gli account da importare",
+    "import": "Importa {n} account | Importa {n} account",
+    "imported": "Importato {n} account. Ora assegnalo a un cliente dalla pagina del cliente. | Importati {n} account. Ora assegnali ai clienti dalla pagina di ogni cliente."
   },
   "metaToken": {
     "explain": "Incolla il token generato per l'utente di sistema nel Business Manager. Lo verifichiamo con Meta prima di salvarlo: fino ad allora resta valido quello di prima.",
