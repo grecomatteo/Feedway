@@ -69,6 +69,8 @@ services:
         META_MODE: ${META_MODE:-live}
         META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v25.0}
         META_GRAPH_VERSION_SUNSET: ${META_GRAPH_VERSION_SUNSET:-}
+        # off unless set: only for the test on real Meta (plan 03, Task 13), inside the media volume
+        META_RECORD_DIR: ${META_RECORD_DIR:-}
         TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
         MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
         REQUIRE_2FA: ${REQUIRE_2FA:-admins}
