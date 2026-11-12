@@ -58,4 +58,4 @@ Si fa solo durante una prova concordata su Meta vera, su un'installazione con `M
    ./scripts/compose.sh exec web rm -rf /media/meta-record
    ```
 
-I file escono già oscurati: niente token, segreti, `appsecret_proof`, cursori, testi degli errori, parametri firmati delle immagini (`oh`, `oe`). Id e nomi diventano valori finti, stabili dentro la stessa sigla. Due sigle diverse danno id finti diversi allo stesso account. Prima di metterli in `fixtures/` vanno riletti uno per uno: chi li copia controlla che non resti nessun dato reale.
+I file escono già oscurati: niente token, segreti, `appsecret_proof`, cursori, testi degli errori, parametri firmati delle immagini (`oh`, `oe`). Id e nomi diventano valori finti, stabili solo dentro la stessa sigla: ogni sigla numera da capo, quindi in due sigle lo stesso id finto può indicare due account diversi. I file di sigle diverse non si uniscono così come sono. Prima di metterli in `fixtures/` vanno riletti uno per uno: chi li copia controlla che non resti nessun dato reale.

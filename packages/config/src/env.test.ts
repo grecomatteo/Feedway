@@ -247,6 +247,18 @@ test('rejects a sunset that is not a calendar date', () => {
   })
 })
 
+test('META_RECORD_DIR reaches web and worker, and empty means off', () => {
+  const live = { ...validWebEnv, META_MODE: 'live' }
+  for (const role of ['web', 'worker'] as const) {
+    expect(loadConfig(role, { ...live, META_RECORD_DIR: '/media/meta-record' }).metaRecordDir).toBe(
+      '/media/meta-record',
+    )
+    // the compose file passes an empty value when the line is not in .env
+    expect(loadConfig(role, { ...live, META_RECORD_DIR: '' }).metaRecordDir).toBeNull()
+    expect(loadConfig(role, live).metaRecordDir).toBeNull()
+  }
+})
+
 test('with META_MODE=mock the fake Graph API is on 127.0.0.1:4010 unless told otherwise', () => {
   expect(loadConfig('web', { ...validWebEnv, META_MODE: 'mock' }).metaMockUrl).toBe(
     'http://127.0.0.1:4010',
