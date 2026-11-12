@@ -77,6 +77,13 @@ const { data: reminders } = useFetch<{ items: MetaReminder[] }>(
 
 const { data: workspaces } = useWorkspaces()
 const workspaceName = (id: string) => workspaces.value?.items.find((w) => w.id === id)?.name
+function workspaceNames(ids: string[]) {
+  const names = ids.map((id) => workspaceName(id)).filter(Boolean)
+  // the names arrive with the workspaces: until then, how many
+  return names.length === ids.length
+    ? t('socialAccounts.workspaces', { names: names.join(', ') })
+    : t('socialAccounts.workspaceCount', { n: ids.length }, ids.length)
+}
 
 /** The profile of §3: an Instagram and the Page Meta links to it share the page id. */
 const profiles = computed(() => {
@@ -121,15 +128,18 @@ function stateOf(a: AccountItem): {
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
 
-const sync = reactive({ id: '', message: '', ok: false })
+const sync = reactive({ id: '', message: '', ok: false, sending: false })
 async function syncConnection(id: string) {
-  Object.assign(sync, { id, message: '', ok: false })
+  if (sync.sending) return
+  Object.assign(sync, { id, message: '', ok: false, sending: true })
   try {
     await call('POST', org.api(`/connections/${id}/sync`))
     Object.assign(sync, { message: t('socialAccounts.syncQueued'), ok: true })
   } catch (e) {
     const f = failure(e)
     sync.message = f.code === 'RATE_LIMITED' ? t('socialAccounts.syncTooSoon') : f.message
+  } finally {
+    sync.sending = false
   }
 }
 
@@ -142,7 +152,7 @@ function openToken(reconnect: boolean) {
   })
 }
 async function tokenDone(outcome: 'connected' | 'replaced') {
-  Object.assign(sync, { id: '', message: '', ok: false })
+  Object.assign(sync, { id: '', message: '', ok: false, sending: false })
   token.done = t(`socialAccounts.tokenDone.${outcome}`)
   await Promise.all([refresh(), refreshNuxtData(`meta-reminders-${org.slug.value}`)])
 }
@@ -160,12 +170,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
     <MetaReminders :items="reminders?.items ?? []" />
 
     <p v-if="status === 'pending' || status === 'idle'" role="status">
-      {{ $t('account.loading') }}
+      {{ $t('socialAccounts.loading') }}
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">
       <p class="flex items-center gap-2 text-(--app-danger)">
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
-        {{ $t('account.loadError') }}
+        {{ $t('socialAccounts.loadError') }}
       </p>
       <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
@@ -190,8 +200,10 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             <div class="min-w-0 space-y-1">
               <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
               <p class="text-sm text-(--app-text-muted)">
-                {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts) }}
-                ·
+                <template v-if="nextCursor === null">
+                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts) }}
+                  ·
+                </template>
                 <span :class="broken(c.status) ? 'text-(--app-danger)' : undefined">{{
                   $t(`socialAccounts.connectionStatus.${c.status}`)
                 }}</span>
@@ -203,7 +215,8 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-refresh-cw"
-                :disabled="broken(c.status)"
+                :disabled="broken(c.status) || (sync.sending && sync.id !== c.id)"
+                :loading="sync.sending && sync.id === c.id"
                 @click="syncConnection(c.id)"
               >
                 {{ $t('socialAccounts.sync') }}
@@ -240,7 +253,11 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         icon="i-lucide-at-sign"
         :title="$t('socialAccounts.emptyTitle')"
         :text="$t('socialAccounts.emptyText')"
-      />
+      >
+        <NuxtLink :to="org.to('/impostazioni/integrazioni')" class="underline">
+          {{ $t('socialAccounts.emptyLink') }}
+        </NuxtLink>
+      </EmptyState>
       <ul v-else class="space-y-4" :aria-label="$t('socialAccounts.list')">
         <li
           v-for="profile in profiles"
@@ -287,12 +304,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                     {{
                       a.workspaceIds.length === 0
                         ? $t('socialAccounts.noWorkspace')
-                        : $t('socialAccounts.workspaces', {
-                            names: a.workspaceIds
-                              .map((id) => workspaceName(id))
-                              .filter(Boolean)
-                              .join(', '),
-                          })
+                        : workspaceNames(a.workspaceIds)
                     }}
                   </p>
                 </div>

@@ -27,7 +27,13 @@ const lines = computed(() =>
       case 'access_revoked':
         return t('metaReminders.accessRevoked')
       case 'token_expiring':
-        return t('metaReminders.tokenExpiring', { date: formatDate(r.expiresAt, true) })
+        // the health check marks it expired later: until then it may already be past
+        return t(
+          new Date(r.expiresAt).getTime() <= Date.now()
+            ? 'metaReminders.tokenExpired'
+            : 'metaReminders.tokenExpiring',
+          { date: formatDate(r.expiresAt, true) },
+        )
     }
   }),
 )

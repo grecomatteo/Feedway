@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
 import { connectedAgency } from './support/meta.ts'
-import { newPerson, ownAddress, signInWithTotp } from './support/people.ts'
+import { addPerson, newPerson, ownAddress, signIn, signInWithTotp } from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -14,9 +14,11 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
-/** A calendar day `days` from now, as the Owner types it. */
+/** A calendar day `days` from now in the panel's time zone, where the reminder counts days. */
 const dayFromNow = (days: number) =>
-  new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(
+    new Date(Date.now() + days * 86_400_000),
+  )
 
 test('social accounts: empty before anything is connected', async ({ page }) => {
   const owner = await newPerson('Olga Vuota', 'owner')
@@ -63,4 +65,20 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   // the reauth of the setup is recent: no "Conferma che sei tu"
   await expect(page.getByText('Token sostituito: il collegamento funziona di nuovo.')).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
+})
+
+test('social accounts: an admin manages them, a member never sees them', async ({ page }) => {
+  const admin = await newPerson('Ada Account', 'admin')
+  await signInWithTotp(page.request, admin)
+  const org = admin.organizationSlug
+  await page.goto(`/${org}/account`)
+  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+
+  const member = await addPerson(org, 'Mario Membro', 'member')
+  await page.context().clearCookies()
+  await signIn(page.request, member)
+  await page.goto(`/${org}`)
+  await expect(page.getByRole('link', { name: 'Account social' })).toHaveCount(0)
+  await page.goto(`/${org}/account`)
+  await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
 })

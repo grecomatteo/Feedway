@@ -942,7 +942,11 @@
     },
     "emptyTitle": "Nessun account collegato",
     "emptyText": "Collega l'utente di sistema Meta e importa le Pagine e i profili Instagram dell'agenzia.",
-    "more": "Mostra altri account"
+    "more": "Mostra altri account",
+    "loading": "Carico gli account social…",
+    "loadError": "Non siamo riusciti a caricare gli account social.",
+    "workspaceCount": "Assegnato a {n} cliente | Assegnato a {n} clienti",
+    "emptyLink": "Prima l'app Meta: Impostazioni → Integrazioni"
   },
   "metaToken": {
     "explain": "Incolla il token generato per l'utente di sistema nel Business Manager. Lo verifichiamo con Meta prima di salvarlo: fino ad allora resta valido quello di prima.",
@@ -963,7 +967,8 @@
     "checkupDue": "Il Data Use Checkup dell'app Meta scade il {date} ({when}): completalo nella dashboard dell'app.",
     "checkupOverdue": "Il Data Use Checkup dell'app Meta è scaduto il {date}: completalo subito nella dashboard dell'app, altrimenti Meta può bloccarla.",
     "accessRevoked": "Un cliente ha tolto l'accesso a un collegamento: i suoi account non pubblicano finché non lo ricolleghi.",
-    "tokenExpiring": "Il token di un collegamento scade il {date} e non si rinnova da solo: sostituiscilo per non fermare le pubblicazioni."
+    "tokenExpiring": "Il token di un collegamento scade il {date} e non si rinnova da solo: sostituiscilo per non fermare le pubblicazioni.",
+    "tokenExpired": "Il token di un collegamento è scaduto il {date}: sostituiscilo, i suoi account non pubblicano."
   },
   "avatar": {
     "title": "Foto profilo",
