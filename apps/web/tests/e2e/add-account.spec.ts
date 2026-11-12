@@ -39,6 +39,13 @@ test('add account: the system user token, then the accounts to import', async ({
 
   const found = page.getByRole('group', { name: 'Account trovati' })
   await expect(found.getByRole('checkbox')).not.toHaveCount(0)
+
+  // back from Meta with nothing imported yet: the system user is still known
+  await page.reload()
+  await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
+  await expect(page.getByRole('button', { name: "Collega l'utente di sistema" })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cerca nuovi account' }).click()
+  await expect(found.getByRole('checkbox')).not.toHaveCount(0)
   await found.getByRole('checkbox', { name: /Studio Rossi/ }).check()
   await found.getByRole('checkbox', { name: /Bottega Verde/ }).check()
   expect((await axe(page)).violations).toEqual([])

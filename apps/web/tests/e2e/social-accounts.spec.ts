@@ -67,6 +67,20 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   expect((await axe(page)).violations).toEqual([])
 })
 
+test('social accounts: a system user without accounts yet is listed as waiting', async ({
+  page,
+}) => {
+  const owner = await newPerson('Olga Attesa', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await connectedAgency(page.request, org, { importAccounts: false })
+  await page.goto(`/${org}/account`)
+  const connections = page.getByRole('region', { name: 'Collegamenti' })
+  await expect(connections).toContainText('Utente di sistema Meta')
+  await expect(connections).toContainText('in attesa dei primi account')
+  await expect(page.getByText('Nessun account collegato')).toBeVisible()
+})
+
 test('social accounts: an admin manages them, a member never sees them', async ({ page }) => {
   const admin = await newPerson('Ada Account', 'admin')
   await signInWithTotp(page.request, admin)

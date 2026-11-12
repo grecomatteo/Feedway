@@ -1,4 +1,10 @@
-export { MAX_IMPORT, connectWithToken, importAccounts, listImportable } from './connections.js'
+export {
+  MAX_IMPORT,
+  connectWithToken,
+  importAccounts,
+  listConnections,
+  listImportable,
+} from './connections.js'
 export type {
   ConnectionView,
   ConnectionsDeps,

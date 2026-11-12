@@ -352,6 +352,22 @@ async function listLive(opened: OpenedConnection): Promise<PlatformAccount[]> {
 }
 
 /**
+ * The agency's connections, a new `pending` one too (Owner and Admin): «Aggiungi account» and
+ * the first setup (§8.1) see a system user connected before any account is imported.
+ */
+export async function listConnections(
+  deps: Pick<ConnectionsDeps, 'uow'>,
+  actor: OrgActor,
+): Promise<ConnectionView[]> {
+  const { organizationId, userId } = actor
+  if (!can(actor, 'accounts.manage', { organizationId })) throw cannotManage()
+  return deps.uow.run({ organizationId, userId }, async (tx) => {
+    await assertStillManages(tx, actor)
+    return (await tx.connections.list(organizationId)).map(viewOf)
+  })
+}
+
+/**
  * «Cerca nuovi account» (§8.2, plan 03 choice 3): what the connection sees now, read live, each
  * with its state. Nothing is written.
  */
