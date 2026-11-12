@@ -39,7 +39,10 @@ watch(
 )
 
 // the agency's accounts, to add one: Owner and Admin only (they manage the accounts)
-const canAssign = computed(() => org.may.value.manageAccounts)
+// an archived client stays as it is (§3): nothing to add or take out
+const canAssign = computed(
+  () => org.may.value.manageAccounts && (workspace.value?.archivedAt ?? null) === null,
+)
 const { data: agency, refresh: refreshAgency } = useFetch<{ items: AgencyAccount[] }>(
   () => org.api('/accounts?limit=100'),
   { server: false, lazy: true, immediate: canAssign.value },
@@ -61,11 +64,11 @@ const base = (accountId: string) =>
     `/workspaces/${encodeURIComponent(workspaceId.value ?? '')}/accounts/${encodeURIComponent(accountId)}`,
   )
 
-async function run(action: () => Promise<void>, message: string) {
+async function run(action: () => Promise<void>, message?: string) {
   Object.assign(state, { sending: true, problem: '', done: '' })
   try {
     await action()
-    state.done = message
+    if (message) state.done = message
   } catch (e) {
     state.problem = failure(e).message
   } finally {
@@ -74,14 +77,19 @@ async function run(action: () => Promise<void>, message: string) {
   }
 }
 const assign = () =>
-  run(
-    async () => {
-      const ids = [...chosen.value]
-      for (const id of ids) await call('PUT', base(id))
-      chosen.value = []
-    },
-    t('workspaceAccounts.added', { n: chosen.value.length }, chosen.value.length),
-  )
+  run(async () => {
+    let added = 0
+    try {
+      for (const id of [...chosen.value]) {
+        await call('PUT', base(id))
+        // what went in leaves the choice at once: after a failure only the rest stays chosen
+        chosen.value = chosen.value.filter((x) => x !== id)
+        added += 1
+      }
+    } finally {
+      if (added > 0) state.done = t('workspaceAccounts.added', { n: added }, added)
+    }
+  })
 const remove = (a: { id: string; name: string; platform: string }) =>
   run(
     () => call('DELETE', base(a.id)).then(() => undefined),
@@ -122,7 +130,11 @@ const accountLabel = (a: { platform: string; name: string }) =>
           icon="i-lucide-at-sign"
           :title="$t('workspaceAccounts.empty')"
           :text="
-            canAssign ? $t('workspaceAccounts.emptyAdmin') : $t('workspaceAccounts.emptyMember')
+            workspace?.archivedAt
+              ? $t('workspaceAccounts.emptyArchived')
+              : canAssign
+                ? $t('workspaceAccounts.emptyAdmin')
+                : $t('workspaceAccounts.emptyMember')
           "
         />
         <ul v-else class="space-y-4" :aria-label="$t('workspaceAccounts.list')">

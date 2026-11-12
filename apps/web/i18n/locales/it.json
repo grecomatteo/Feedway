@@ -738,7 +738,8 @@
     "noneFree": "Tutti gli account attivi dell'agenzia sono già in questo cliente.",
     "choose": "Scegli gli account da aggiungere",
     "add": "Aggiungi {n} account al cliente | Aggiungi {n} account al cliente",
-    "added": "Aggiunto {n} account al cliente. | Aggiunti {n} account al cliente."
+    "added": "Aggiunto {n} account al cliente. | Aggiunti {n} account al cliente.",
+    "emptyArchived": "Il cliente è archiviato: i suoi account non si cambiano più."
   },
   "workspaceMembers": {
     "title": "Persone del cliente",
