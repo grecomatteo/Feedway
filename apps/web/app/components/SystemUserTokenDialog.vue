@@ -1,18 +1,27 @@
 <script setup lang="ts">
 /**
- * "Sostituisci token" and "Ricollega" for the system user (spec §8.3): the new token is checked
- * by Meta before it is saved, the old one keeps working until then. Needs a recent confirmation
- * (withReauth of the page). The token is never shown again.
+ * The system user's token (spec §8.1 step 4, §8.3): to connect it, "Sostituisci token" and
+ * "Ricollega". The new token is checked by Meta before it is saved, the old one keeps working
+ * until then. Needs a recent confirmation (withReauth of the page). The token is never shown
+ * again. `done` also carries the connection and the accounts it sees, for the import.
  */
+import type { ImportableAccount } from '@app/contracts'
+
 interface PermissionCheck {
   name: string
   granted: boolean
 }
 type Outcome = 'connected' | 'replaced' | 'permissions_missing'
+export interface TokenSaved {
+  connection: { id: string }
+  accounts: ImportableAccount[]
+}
 
 const props = defineProps<{ withReauth: WithReauth; path: string; title: string }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ done: [outcome: Exclude<Outcome, 'permissions_missing'>] }>()
+const emit = defineEmits<{
+  done: [outcome: Exclude<Outcome, 'permissions_missing'>, saved: TokenSaved]
+}>()
 const { call, failure } = useApi()
 
 const token = ref('')
@@ -33,18 +42,19 @@ async function confirm() {
   missing.value = null
   try {
     await props.withReauth(async () => {
-      const r = await call<{ outcome: Outcome; permissions: PermissionCheck[] }>(
-        'POST',
-        props.path,
-        { token: token.value.trim() },
-      )
+      const r = await call<{
+        outcome: Outcome
+        permissions: PermissionCheck[]
+        connection: { id: string } | null
+        accounts: ImportableAccount[]
+      }>('POST', props.path, { token: token.value.trim() })
       token.value = ''
-      if (r.outcome === 'permissions_missing') {
+      if (r.outcome === 'permissions_missing' || r.connection === null) {
         missing.value = r.permissions
         return
       }
       open.value = false
-      emit('done', r.outcome)
+      emit('done', r.outcome, { connection: r.connection, accounts: r.accounts })
     })
   } catch (e) {
     if (!(e instanceof ReauthCancelled)) problem.value = failure(e).message

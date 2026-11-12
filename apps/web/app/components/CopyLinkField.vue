@@ -1,13 +1,16 @@
 <script setup lang="ts">
-/** A link to hand over by hand (a reset link): shown once, with a copy button. */
-const props = defineProps<{ url: string; label: string }>()
-const copied = ref(false)
+/**
+ * A text to hand over by hand, with a copy button: a link (a reset link, shown once) or, with
+ * `multiline`, a message to send.
+ */
+const props = defineProps<{ url: string; label: string; multiline?: boolean; copied?: string }>()
+const done = ref(false)
 const failed = ref(false)
 async function copy() {
   failed.value = false
   try {
     await navigator.clipboard.writeText(props.url)
-    copied.value = true
+    done.value = true
   } catch {
     failed.value = true
   }
@@ -17,7 +20,20 @@ async function copy() {
 <template>
   <div class="space-y-2">
     <UFormField :label="label" name="copy-link">
-      <div class="flex gap-2">
+      <div v-if="multiline" class="space-y-2">
+        <UTextarea
+          :model-value="url"
+          readonly
+          class="w-full"
+          :rows="8"
+          autoresize
+          @focus="($event.target as HTMLTextAreaElement).select()"
+        />
+        <UButton class="min-h-11" icon="i-lucide-copy" @click="copy">{{
+          $t('copyLink.copy')
+        }}</UButton>
+      </div>
+      <div v-else class="flex gap-2">
         <UInput
           :model-value="url"
           readonly
@@ -30,8 +46,8 @@ async function copy() {
         }}</UButton>
       </div>
     </UFormField>
-    <p v-if="copied" role="status" class="text-sm text-(--app-success)">
-      {{ $t('copyLink.copied') }}
+    <p v-if="done" role="status" class="text-sm text-(--app-success)">
+      {{ props.copied ?? $t('copyLink.copied') }}
     </p>
     <p v-if="failed" role="alert" class="text-sm text-(--app-danger)">
       {{ $t('copyLink.failed') }}
