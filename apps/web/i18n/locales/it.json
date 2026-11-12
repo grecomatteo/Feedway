@@ -686,7 +686,9 @@
   },
   "context": {
     "label": "Contesto",
-    "all": "Tutti i clienti"
+    "all": "Tutti i clienti",
+    "profile": "Profilo {name}",
+    "profileOf": "{workspace} › {profile}"
   },
   "agencies": {
     "title": "Scegli agenzia",
@@ -716,7 +718,28 @@
     "archived": "{name} archiviato.",
     "archivedTitle": "Archiviati",
     "archiveTitle": "Archiviare {name}?",
-    "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti."
+    "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti.",
+    "accounts": "Account",
+    "accountsOf": "Account di {name}"
+  },
+  "workspaceAccounts": {
+    "title": "Account del cliente",
+    "explain": "Le Pagine Facebook e i profili Instagram su cui il cliente può pubblicare. Un post usa solo gli account del suo cliente.",
+    "loadError": "Non siamo riusciti a caricare gli account del cliente.",
+    "assigned": "Account del cliente",
+    "list": "Account del cliente",
+    "empty": "Nessun account in questo cliente",
+    "emptyAdmin": "Aggiungi qui sotto le Pagine e i profili Instagram dell'agenzia che appartengono a questo cliente.",
+    "emptyMember": "Un Owner o un Admin dell'agenzia li aggiunge.",
+    "remove": "Togli",
+    "removeOf": "Togli {name} dal cliente",
+    "removed": "{name} non è più in questo cliente.",
+    "free": "Account da aggiungere",
+    "noneFree": "Tutti gli account attivi dell'agenzia sono già in questo cliente.",
+    "choose": "Scegli gli account da aggiungere",
+    "add": "Aggiungi {n} account al cliente | Aggiungi {n} account al cliente",
+    "added": "Aggiunto {n} account al cliente. | Aggiunti {n} account al cliente.",
+    "emptyArchived": "Il cliente è archiviato: i suoi account non si cambiano più."
   },
   "workspaceMembers": {
     "title": "Persone del cliente",

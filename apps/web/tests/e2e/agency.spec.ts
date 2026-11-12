@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { withScope } from '@app/infrastructure/testing'
+import { assignAccount, connectedAgency } from './support/meta.ts'
 import {
   E2E_PASSWORD,
   addPasskeyRow,
@@ -123,6 +124,58 @@ test('context switcher: hidden and unknown client slugs fall back the same way',
     await expect(p.getByRole('button', { name: 'Contesto' }).first()).toHaveText(/Tutti i clienti/)
   } finally {
     await other.close()
+  }
+})
+
+test('context switcher: a profile, its link, and profiles that are not there', async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const { org } = await agencyWithPublisher(page)
+  await connectedAgency(page.request, org)
+  const a = await workspaceId(org, 'Cliente A')
+  const accounts = await adminQuery<{ id: string; name: string; platform: string }>(
+    'select id, name, platform from social_accounts where organization_id = $1',
+    [org],
+  )
+  const id = (name: string, platform: string) =>
+    accounts.find((x) => x.name === name && x.platform === platform)?.id ?? ''
+  // Forno Luce's page and Instagram in A; Studio Rossi stays out of every client
+  await assignAccount(page.request, org, a, id('Forno Luce', 'facebook'))
+  await assignAccount(page.request, org, a, id('Forno Luce', 'instagram'))
+
+  await page.goto(`/${org}/spazi`)
+  const context = page.getByRole('button', { name: 'Contesto' }).first()
+  await context.click()
+  await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
+  await expect(context).toHaveText(/Cliente A/)
+  await context.click()
+  await page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' }).click()
+  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+  expect(page.url()).toMatch(/[?&]profilo=/)
+
+  // the copied link opens the same context in another browser of the same person
+  const link = page.url()
+  const cookies = await page.context().cookies()
+  const other = await browser.newContext({ baseURL: baseURL ?? '' })
+  try {
+    await other.addCookies(cookies)
+    const p = await other.newPage()
+    await ownAddress(p)
+    await p.goto(link)
+    await expect(p.getByRole('button', { name: 'Contesto' }).first()).toHaveText(
+      /Cliente A › Forno Luce/,
+    )
+  } finally {
+    await other.close()
+  }
+
+  // unknown, outside the client, or of another client: back to all clients, alike
+  const slug = new URL(link).searchParams.get('spazio') ?? ''
+  for (const profile of [randomUUID(), id('Studio Rossi', 'instagram')]) {
+    await page.goto(`/${org}/spazi?spazio=${slug}&profilo=${profile}`)
+    await expect(context).toHaveText(/Tutti i clienti/)
   }
 })
 
