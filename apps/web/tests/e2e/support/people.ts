@@ -1,6 +1,14 @@
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
-import { createDb, createPasswordHasher } from '@app/infrastructure'
+import {
+  createDb,
+  createKeyRing,
+  createLogger,
+  createPasswordHasher,
+  createUnitOfWork,
+  systemClock,
+  uuidV7Generator,
+} from '@app/infrastructure'
 import { secretOf, seed, totpCode } from '@app/infrastructure/testing'
 
 // low entropy on purpose: a made-up value, not a secret for the leak scanner
@@ -174,4 +182,28 @@ export async function signInWithTotp(request: APIRequestContext, person: E2ePers
   })
   expect(verified.status()).toBe(200)
   return secret
+}
+
+/**
+ * The agency's data key, which the install makes for a real agency: its Meta secrets need it.
+ * The seed uses the agency's id as its slug.
+ */
+export async function addDataKey(organizationSlug: string): Promise<void> {
+  const runtimeUrl = process.env.E2E_DATABASE_URL
+  const key = process.env.E2E_ENCRYPTION_KEY
+  if (!runtimeUrl || !key) throw new Error('e2e database not available')
+  const runtime = createDb(runtimeUrl, { max: 1, applicationName: 'e2e-keys' })
+  try {
+    const uow = createUnitOfWork({
+      db: runtime.db,
+      ids: uuidV7Generator,
+      logger: createLogger({ service: 'web', level: 'error' }),
+    })
+    const keyRing = createKeyRing({ platformKey: Buffer.from(key, 'base64'), clock: systemClock })
+    await uow.run({ organizationId: organizationSlug, userId: randomUUID() }, (tx) =>
+      keyRing.createOrganizationKey(tx, organizationSlug),
+    )
+  } finally {
+    await runtime.close()
+  }
 }
