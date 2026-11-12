@@ -1013,6 +1013,48 @@
     "import": "Importa {n} account | Importa {n} account",
     "imported": "Importato {n} account. Ora assegnalo a un cliente dalla pagina del cliente. | Importati {n} account. Ora assegnali ai clienti dalla pagina di ogni cliente."
   },
+  "firstSetup": {
+    "title": "Prima configurazione",
+    "explain": "Cinque passi per collegare Feedway a Meta con l'utente di sistema. Puoi fermarti quando vuoi: ripartiamo dal punto a cui sei arrivato.",
+    "home": "Sei al passo {n} di 5: collega Feedway a Meta per pubblicare sugli account dei clienti.",
+    "resume": "Riprendi la prima configurazione",
+    "progress": "Avanzamento",
+    "steps": "Passi",
+    "state": {
+      "done": "(fatto)",
+      "current": "(da fare ora)",
+      "todo": "(da fare)"
+    },
+    "next": "Fatto, avanti",
+    "step1": {
+      "title": "Crea l'app Meta"
+    },
+    "step2": {
+      "title": "Crea l'utente di sistema",
+      "add": "Premi «Aggiungi», dagli un nome (per esempio Feedway) e il ruolo Admin.",
+      "app": "Apri l'utente di sistema, premi «Assegna risorse» e scegli l'app Meta che hai appena creato, con il controllo completo."
+    },
+    "step3": {
+      "title": "Assegna Pagine e Instagram",
+      "clients": "Per le Pagine dei clienti che ti danno accesso come partner, lo stesso vale per le risorse condivise: puoi aggiungerle anche dopo, da Account social → Aggiungi account."
+    },
+    "step4": {
+      "title": "Genera e incolla il token",
+      "explain": "Nell'utente di sistema premi «Genera token», scegli l'app Meta, la scadenza «Mai» e spunta questi permessi:",
+      "checked": "Lo verifichiamo con Meta prima di salvarlo: i permessi che mancano si vedono in rosso.",
+      "paste": "Incolla il token"
+    },
+    "step5": {
+      "title": "Importa gli account",
+      "explain": "Cerca le Pagine e i profili Instagram che l'utente di sistema vede e scegli quali portare in Feedway."
+    },
+    "done": {
+      "title": "Configurazione completata",
+      "text": "Feedway è collegato a Meta. Ora assegna gli account ai clienti dalla pagina di ogni cliente.",
+      "workspaces": "Vai ai clienti",
+      "accounts": "Vai agli account social"
+    }
+  },
   "metaToken": {
     "explain": "Incolla il token generato per l'utente di sistema nel Business Manager. Lo verifichiamo con Meta prima di salvarlo: fino ad allora resta valido quello di prima.",
     "token": "Token dell'utente di sistema",
