@@ -1,6 +1,6 @@
 # Collegare Meta e gli account dei clienti
 
-Questo runbook serve all'Owner dell'agenzia: preparare l'app Meta, collegarla a Feedway e portare in Feedway le Pagine Facebook e i profili Instagram dei clienti. Le voci del pannello valgono dalla versione 0.8.0.
+Questo runbook serve all'Owner e agli Admin dell'agenzia: preparare l'app Meta, collegarla a Feedway e portare in Feedway le Pagine Facebook e i profili Instagram dei clienti. Le voci del pannello sono quelle del rilascio che segue la 0.7.0.
 
 In Feedway gli account arrivano da un **collegamento**. Nella 1.0 i collegamenti sono di due tipi ([ADR 020](../adr/020-accesso-unificato-meta.md)):
 
@@ -16,13 +16,13 @@ Quello che non è ancora stato provato su Meta vera è scritto **non verificato*
 ## Cosa serve prima
 
 - Un **Business Manager** dell'agenzia (business.facebook.com), con te come amministratore.
-- Il ruolo **Owner** in Feedway. L'Admin vede l'integrazione in sola lettura e può aggiungere account quando l'app è pronta.
+- Il ruolo **Owner** in Feedway per salvare App ID e App Secret: l'Admin li vede solo in sola lettura. Tutto il resto (token, account, Sincronizza, Ricollega) lo fanno sia l'Owner sia l'Admin.
 - Le persone che dovranno fare l'accesso unificato, quando arriverà, hanno un **ruolo nell'app** finché l'app è in modalità sviluppo ([Ruoli e tester](#ruoli-e-tester)).
 
 ## 1. L'app Meta
 
 1. Su [developers.facebook.com](https://developers.facebook.com/apps) premi «Crea app», scegli il tipo **Business** e collegala al Business Manager dell'agenzia.
-2. In Impostazioni dell'app → **Avanzate** → Sicurezza accendi **«Richiedi la chiave segreta»** (*Require App Secret*). Feedway firma con `appsecret_proof` ogni chiamata fatta con un token, quindi con l'opzione accesa un token rubato non basta: serve anche il secret.
+2. In Impostazioni dell'app → **Avanzate** → Sicurezza accendi **«Richiedi la chiave segreta»** (*Require App Secret*). Feedway firma con `appsecret_proof` ogni chiamata fatta con un token, quindi con l'opzione accesa un token rubato non basta: serve anche il secret. **Non verificato:** le chiamate di Feedway con l'opzione accesa (la prova del 2026-11-11 l'aveva spenta; [meta.md](../platforms/meta.md), punto 4 di «Da provare»).
 3. In Impostazioni → **Di base** copia **App ID** e **App Secret**.
 4. In Impostazioni → Avanzate, «Aggiorna la versione dell'API» propone la versione attuale. Feedway usa quella di `META_GRAPH_VERSION` (oggi v25.0, ritiro il 2028-07-29): non serve cambiare nulla qui.
 
@@ -32,7 +32,7 @@ Non serve aggiungere a mano i permessi delle Pagine: Meta li aggiunge da solo qu
 
 ## 2. L'app in Feedway
 
-Pannello → **Impostazioni** → **Integrazioni** → Meta. Chi apre il pannello per la prima volta trova lo stesso percorso nella home, alla scheda «Riprendi la prima configurazione»: sono cinque passi e si può riprendere quando si vuole.
+Pannello → **Impostazioni** → **Integrazioni** → Meta. In alternativa, nella home l'Owner trova la scheda **«Prima configurazione»** con il pulsante «Riprendi la prima configurazione»: sono cinque passi, si può riprendere quando si vuole, e la scheda resta finché non hai importato il primo account.
 
 1. Scrivi **App ID** e **App Secret**.
 2. Facoltativi:
@@ -60,7 +60,7 @@ Nel Business Manager dell'agenzia, **Impostazioni del business → Utenti → Ut
 4. Premi **«Genera token»**, scegli l'app, la scadenza **«Mai»** e spunta questi sei permessi:
    `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
    Se Meta avvisa che alcune autorizzazioni «non sono aggiunte alla tua app», premi **Continua**: le aggiunge lui.
-5. Copia il token e **incollalo solo nel pannello**: Account social → Aggiungi account → «Collega l'utente di sistema», oppure il passo 4 della prima configurazione. Mai in una chat, un'email o un file.
+5. Copia il token e **incollalo solo nel pannello**: Account social → Aggiungi account, rispondi alla domanda («Sì, è nel Business Manager dell'agenzia» oppure «No, è di un cliente…») e premi «Collega l'utente di sistema». Oppure usa il passo 4 della prima configurazione. Mai in una chat, un'email o un file.
 
 Feedway controlla il token con Meta prima di salvarlo. Se mancano dei permessi li mostra in rosso e **non salva niente**: rigenera il token spuntandoli.
 
@@ -129,11 +129,13 @@ Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno u
 | **Con problema** | «L'utente di sistema non ha un ruolo sulla Pagina» | nel Business Manager riassegna la Pagina all'utente di sistema con il controllo completo, poi Sincronizza |
 | **Con problema** | «Manca un permesso Meta» | genera un nuovo token con i sei permessi e sostituiscilo ([rotazione-token-meta.md](rotazione-token-meta.md)) |
 | **Con problema** | «L'account non è più assegnato a questo collegamento su Meta» | riassegnalo all'utente di sistema; se il cliente ha tolto l'accesso come partner, chiediglielo di nuovo |
-| **Da ricollegare** | «Il token del collegamento non vale più» | il token è stato revocato o l'utente di sistema non c'è più: genera un token nuovo e premi **Ricollega** sul collegamento |
+| **Da ricollegare** | «Il token del collegamento non vale più» | il token è stato revocato: genera un token nuovo **dallo stesso utente di sistema** e premi **Ricollega** sul collegamento. Se l'utente di sistema è stato eliminato, vedi sotto la tabella |
 | **Da ricollegare** | «Il cliente ha tolto l'accesso a Meta» | chiedi al cliente di ridare l'accesso, poi Ricollega |
 | **Inattivo** | — | l'account non compare più tra quelli dell'utente di sistema. Non si cancella, ma non torna attivo da solo e intanto non si può assegnare a un cliente. Riassegnalo all'utente di sistema su Meta, poi Aggiungi account → «Cerca nuovi account»: lo trovi tra quelli da importare e l'importazione lo riattiva |
 
-In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda anche il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro e i collegamenti che hanno smesso di funzionare.
+**Se l'utente di sistema è stato eliminato**, un token di un altro utente di sistema non ripara il vecchio collegamento: con «Ricollega» Feedway crea un collegamento nuovo («Token salvato: è un nuovo collegamento, con un altro utente di sistema») e il vecchio resta rosso. Assegna Pagine e Instagram al nuovo utente di sistema su Meta, poi Aggiungi account → «Cerca nuovi account» → «Importa»: gli account passano al collegamento nuovo e restano assegnati ai loro clienti.
+
+In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «token scaduto: va ricollegato».
 
 **Non verificato:** il sottocodice che Meta dà a un token revocato. Feedway lo tratta come «Il token del collegamento non vale più».
 
