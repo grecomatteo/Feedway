@@ -946,7 +946,8 @@
     "loading": "Carico gli account social…",
     "loadError": "Non siamo riusciti a caricare gli account social.",
     "workspaceCount": "Assegnato a {n} cliente | Assegnato a {n} clienti",
-    "add": "Aggiungi account"
+    "add": "Aggiungi account",
+    "connectionsError": "Non siamo riusciti a caricare i collegamenti."
   },
   "addAccount": {
     "title": "Aggiungi account",
@@ -995,10 +996,11 @@
       "find": "Torna qui e cerca i nuovi account."
     },
     "noSystemUser": "L'utente di sistema non è ancora collegato a Feedway: incolla il suo token, poi scegli gli account.",
+    "connectionsError": "Non siamo riusciti a vedere se l'utente di sistema è già collegato.",
     "connectSystemUser": "Collega l'utente di sistema",
     "otherSystemUser": "Usa un altro utente di sistema",
     "whichSystemUser": "Utente di sistema",
-    "systemUserN": "Utente di sistema {n}",
+    "systemUserSince": "Collegato il {when}",
     "search": "Cerca nuovi account",
     "found": "Account trovati",
     "noneFound": "L'utente di sistema non vede ancora nessun account: controlla di avergli assegnato le risorse, poi cerca di nuovo.",

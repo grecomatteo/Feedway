@@ -34,32 +34,35 @@ const {
 const integration = computed(() => app.value?.integration ?? null)
 const businessId = computed(() => integration.value?.businessId ?? null)
 
-// the system users already connected, from the accounts they bring (no list of connections yet)
-const { data: accounts } = useFetch<{
-  items: { connection: { id: string; kind: string; status: ConnectionStatus } | null }[]
-}>(() => org.api('/accounts?limit=100'), {
-  key: () => `add-account-connections-${org.slug.value}`,
+// the system users connected, a new one without accounts too
+const {
+  data: connections,
+  status: connectionsStatus,
+  error: connectionsError,
+  refresh: refreshConnections,
+} = useFetch<{
+  items: { id: string; kind: string; status: ConnectionStatus; createdAt: string }[]
+}>(() => org.api('/connections'), {
+  key: () => `connections-${org.slug.value}`,
   server: false,
   lazy: true,
 })
-const savedConnection = ref<string | null>(null)
-const connectionIds = computed(() => {
-  const ids = new Set<string>()
-  if (savedConnection.value) ids.add(savedConnection.value)
-  for (const a of accounts.value?.items ?? [])
-    if (
-      a.connection?.kind === 'meta_system_user' &&
-      (a.connection.status === 'active' || a.connection.status === 'pending')
-    )
-      ids.add(a.connection.id)
-  return [...ids]
-})
+const systemUsers = computed(() =>
+  (connections.value?.items ?? []).filter(
+    (c) => c.kind === 'meta_system_user' && (c.status === 'active' || c.status === 'pending'),
+  ),
+)
 const chosenConnection = ref<string | null>(null)
-const connectionId = computed(() => chosenConnection.value ?? connectionIds.value[0] ?? null)
+const connectionId = computed(
+  () =>
+    systemUsers.value.find((c) => c.id === chosenConnection.value)?.id ??
+    systemUsers.value[0]?.id ??
+    null,
+)
 const connectionItems = computed(() =>
-  connectionIds.value.map((id, i) => ({
-    label: t('addAccount.systemUserN', { n: i + 1 }),
-    value: id,
+  systemUsers.value.map((c) => ({
+    label: t('addAccount.systemUserSince', { when: formatDate(c.createdAt) }),
+    value: c.id,
   })),
 )
 
@@ -111,8 +114,8 @@ function chooseConnection(id: string) {
 }
 
 const tokenOpen = ref(false)
-function tokenDone(_outcome: 'connected' | 'replaced', saved: TokenSaved) {
-  savedConnection.value = saved.connection.id
+async function tokenDone(_outcome: 'connected' | 'replaced', saved: TokenSaved) {
+  await refreshConnections()
   chosenConnection.value = saved.connection.id
   imported.value = null
   found.value = saved.accounts
@@ -126,7 +129,11 @@ function searchAgain() {
 async function importedDone(count: number) {
   imported.value = count
   // what was just imported shows as such, and the list of the accounts page is fresh
-  await Promise.all([findAccounts(), refreshNuxtData(`accounts-${org.slug.value}`)])
+  await Promise.all([
+    findAccounts(),
+    refreshConnections(),
+    refreshNuxtData(`accounts-${org.slug.value}`),
+  ])
 }
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
@@ -260,7 +267,26 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         </ol>
 
         <div class="space-y-3 border-t border-(--app-border) pt-4">
-          <template v-if="connectionId === null">
+          <div v-if="connectionsError" role="alert" class="space-y-3">
+            <p class="text-(--app-danger)">{{ $t('addAccount.connectionsError') }}</p>
+            <UButton
+              class="min-h-11"
+              color="neutral"
+              variant="outline"
+              @click="() => refreshConnections()"
+            >
+              {{ $t('account.retry') }}
+            </UButton>
+          </div>
+          <p
+            v-else-if="
+              !connections && (connectionsStatus === 'pending' || connectionsStatus === 'idle')
+            "
+            role="status"
+          >
+            {{ $t('account.loading') }}
+          </p>
+          <template v-else-if="connectionId === null">
             <p>{{ $t('addAccount.noSystemUser') }}</p>
             <UButton class="min-h-11" icon="i-lucide-key-round" @click="tokenOpen = true">
               {{ $t('addAccount.connectSystemUser') }}

@@ -99,20 +99,26 @@ const profiles = computed(() => {
   }))
 })
 
-/** The connections the accounts come through, with how many accounts each one carries. */
-const connections = computed(() => {
-  const found = new Map<
-    string,
-    { id: string; kind: string; status: ConnectionStatus; accounts: number }
-  >()
-  for (const a of items.value) {
-    if (!a.connection) continue
-    const c = found.get(a.connection.id)
-    if (c) c.accounts += 1
-    else found.set(a.connection.id, { ...a.connection, accounts: 1 })
-  }
-  return [...found.values()]
+// every connection, a new one without accounts too; the list is not paged (a few per agency)
+const {
+  data: connectionList,
+  error: connectionsError,
+  refresh: refreshConnections,
+} = useFetch<{
+  items: { id: string; kind: string; status: ConnectionStatus }[]
+}>(() => org.api('/connections'), {
+  key: () => `connections-${org.slug.value}`,
+  server: false,
+  lazy: true,
 })
+
+/** The connections, with how many of the loaded accounts each one carries. */
+const connections = computed(() =>
+  (connectionList.value?.items ?? []).map((c) => ({
+    ...c,
+    accounts: items.value.filter((a) => a.connection?.id === c.id).length,
+  })),
+)
 
 function stateOf(a: AccountItem): {
   key: string
@@ -154,7 +160,11 @@ function openToken(reconnect: boolean) {
 async function tokenDone(outcome: 'connected' | 'replaced') {
   Object.assign(sync, { id: '', message: '', ok: false, sending: false })
   token.done = t(`socialAccounts.tokenDone.${outcome}`)
-  await Promise.all([refresh(), refreshNuxtData(`meta-reminders-${org.slug.value}`)])
+  await Promise.all([
+    refresh(),
+    refreshConnections(),
+    refreshNuxtData(`meta-reminders-${org.slug.value}`),
+  ])
 }
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
@@ -190,6 +200,17 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
     <template v-else>
       <p v-if="token.done" role="status" class="text-(--app-success)">{{ token.done }}</p>
 
+      <div v-if="connectionsError" role="alert" class="space-y-3">
+        <p class="text-(--app-danger)">{{ $t('socialAccounts.connectionsError') }}</p>
+        <UButton
+          class="min-h-11"
+          color="neutral"
+          variant="outline"
+          @click="() => refreshConnections()"
+        >
+          {{ $t('account.retry') }}
+        </UButton>
+      </div>
       <section
         v-if="connections.length > 0"
         aria-labelledby="connections"

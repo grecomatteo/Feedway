@@ -40,12 +40,13 @@ export async function metaApp(
 
 /**
  * What «Aggiungi account» leaves behind, through the API of a signed-in Owner: the agency's app,
- * the system user connected with the fake Graph API and every account it sees imported.
+ * the system user connected with the fake Graph API and every account it sees imported (none with
+ * `importAccounts: false`).
  */
 export async function connectedAgency(
   request: APIRequestContext,
   org: string,
-  opts: { dataUseCheckupDueOn?: string } = {},
+  opts: { dataUseCheckupDueOn?: string; importAccounts?: boolean } = {},
 ): Promise<{ connectionId: string }> {
   await metaApp(request, org, opts)
   const api = `/api/v1/orgs/${org}`
@@ -55,6 +56,7 @@ export async function connectedAgency(
     connection: { id: string }
     accounts: { externalId: string; state: string }[]
   }
+  if (opts.importAccounts === false) return { connectionId: connected.connection.id }
   const externalIds = connected.accounts
     .filter((a) => a.state === 'to_import')
     .map((a) => a.externalId)
