@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.8.0](https://github.com/grecomatteo/Feedway/compare/v0.7.0...v0.8.0) (2026-11-12)
+
+
+### Novità
+
+* **accounts:** elenco degli account, assegnazione agli spazi e profili ([#156](https://github.com/grecomatteo/Feedway/issues/156)) ([72dd2b5](https://github.com/grecomatteo/Feedway/commit/72dd2b52cb0565823a405ac3b3a33b1c316e4cbe))
+* **accounts:** elenco dei collegamenti dell'agenzia ([#164](https://github.com/grecomatteo/Feedway/issues/164)) ([10085ab](https://github.com/grecomatteo/Feedway/commit/10085ab77c5c71c98e1dee091387269e306fc555))
+* **accounts:** giro giornaliero degli account e promemoria Meta ([#160](https://github.com/grecomatteo/Feedway/issues/160)) ([925f711](https://github.com/grecomatteo/Feedway/commit/925f7115dbeec433525c926d460995504ac25261))
+* **accounts:** porta dei connettori e utente di sistema ([#152](https://github.com/grecomatteo/Feedway/issues/152)) ([78f5742](https://github.com/grecomatteo/Feedway/commit/78f5742ebe7b4a925b41739df130ca49cbf6baca))
+* **accounts:** sincronizzazione e salute degli account ([#157](https://github.com/grecomatteo/Feedway/issues/157)) ([96d1d85](https://github.com/grecomatteo/Feedway/commit/96d1d85189883f2cd303dc6c36c46d7726a3946f))
+* **web:** account del cliente e profilo nel selettore del contesto ([#166](https://github.com/grecomatteo/Feedway/issues/166)) ([c0003fa](https://github.com/grecomatteo/Feedway/commit/c0003fa0183df0c8cb6fa19c5162f1090c5f68f3))
+* **web:** aggiungi account, dalla domanda all'importazione ([#163](https://github.com/grecomatteo/Feedway/issues/163)) ([68aef4f](https://github.com/grecomatteo/Feedway/commit/68aef4f5b01fcea6a13b2c6a65f04ab941386b8e))
+* **web:** impostazioni, integrazione Meta ([#161](https://github.com/grecomatteo/Feedway/issues/161)) ([0e22ec3](https://github.com/grecomatteo/Feedway/commit/0e22ec389bb97b34b7a564b94e7fee896f7a135a))
+* **web:** prima configurazione in cinque passi ([#165](https://github.com/grecomatteo/Feedway/issues/165)) ([681a7c8](https://github.com/grecomatteo/Feedway/commit/681a7c89525dcb2046762b0c05329f7cb6e0ea27))
+* **web:** schermata account social con i promemoria Meta ([#162](https://github.com/grecomatteo/Feedway/issues/162)) ([218fb7a](https://github.com/grecomatteo/Feedway/commit/218fb7a57db444a6c2a025524081496c5a228ca4))
+
+
+### Correzioni
+
+* **accounts:** elenco dell'utente di sistema dalle risorse assegnate ([#155](https://github.com/grecomatteo/Feedway/issues/155)) ([054e726](https://github.com/grecomatteo/Feedway/commit/054e72650e05ad833c318a74019aa9d2e404dfcc))
+* **accounts:** registrazione delle risposte accendibile sull'installazione ([#168](https://github.com/grecomatteo/Feedway/issues/168)) ([c57027b](https://github.com/grecomatteo/Feedway/commit/c57027b28de15a980947cd87148a3e730fbc9c47))
+
+
+### Documentazione
+
+* **design:** verbale della revisione UI del Task 12 ([#167](https://github.com/grecomatteo/Feedway/issues/167)) ([c1f2313](https://github.com/grecomatteo/Feedway/commit/c1f2313389f3d7fdd30a875a494ef1ff63853b2b))
+
 ## [0.7.0](https://github.com/grecomatteo/Feedway/compare/v0.6.0...v0.7.0) (2026-11-10)
 
 
