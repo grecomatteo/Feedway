@@ -85,3 +85,19 @@ export function useActiveContext() {
 
   return { visible, workspace, profile, profiles, profileMissing }
 }
+
+/**
+ * The context part of the address (`spazio`, `profilo`), for links that move to another page
+ * of the agency without losing it (§14.6). Only what the switcher writes; nothing else follows.
+ */
+export function useContextQuery() {
+  const route = useRoute()
+  return computed(() => {
+    const query: Record<string, string> = {}
+    for (const key of ['spazio', 'profilo'] as const) {
+      const value = route.query[key]
+      if (typeof value === 'string' && value !== '') query[key] = value
+    }
+    return query
+  })
+}

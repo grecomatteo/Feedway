@@ -32,7 +32,7 @@ useHead({ title: () => org.organization.value?.name ?? t('agencyHome.title') })
     <ul class="grid gap-3 sm:grid-cols-2">
       <li v-for="item in nav.slice(1)" :key="item.to">
         <NuxtLink
-          :to="item.to"
+          :to="item.link"
           class="flex min-h-14 items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-surface) px-4 hover:border-(--app-border-strong)"
         >
           <UIcon :name="item.icon" class="size-5" aria-hidden="true" />
