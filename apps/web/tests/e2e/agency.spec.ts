@@ -450,3 +450,20 @@ test('mobile nav below 768 px: five places, no + yet, no a11y violations', async
   await expect(nav.getByRole('link', { name: 'Nuovo post' })).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 })
+
+test('sidebar: the brand logo, not the name typed out, in both themes', async ({ page }) => {
+  const owner = await newPerson('Olga Marchio', 'owner')
+  await signInWithTotp(page.request, owner)
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto(`/${owner.organizationSlug}`)
+  const sidebar = page.getByRole('complementary')
+  const logo = sidebar.getByRole('img', { name: 'Feedway' })
+  await expect(logo).toHaveCount(1)
+  await expect(logo).toBeVisible()
+  const dark = await page.evaluate(() => document.documentElement.classList.contains('dark'))
+  await expect(logo).toHaveAttribute(
+    'src',
+    dark ? '/brand/feedway-horizontal-arancio.svg' : '/brand/feedway-horizontal-carbone.svg',
+  )
+  expect((await logo.boundingBox())?.width).toBe(160)
+})
