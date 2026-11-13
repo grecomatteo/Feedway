@@ -203,6 +203,8 @@ const CalendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 /** What Owner and Admin are reminded of about Meta (§8.4, RF-21); the panel words it. */
 export const MetaReminder = z.discriminatedUnion('kind', [
+  /** Meta refused the agency's App ID and App Secret. */
+  z.object({ kind: z.literal('app_rejected') }),
   /** `daysLeft` below zero: the version is already retired. */
   z.object({
     kind: z.literal('graph_version_sunset'),
@@ -224,7 +226,7 @@ export const metaRemindersRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/accounts/reminders',
   summary:
-    'I promemoria di Meta per Owner e Admin: versione della Graph API al ritiro, Data Use Checkup, accessi tolti e token in scadenza',
+    'I promemoria di Meta per Owner e Admin: versione della Graph API al ritiro, App Secret rifiutato, Data Use Checkup, accessi tolti e token in scadenza',
   request: { params: OrgParams },
   response: z.object({ items: z.array(MetaReminder) }),
   auth: 'session',

@@ -5,6 +5,7 @@ import {
   E2E_PASSWORD,
   addDataKey,
   addPerson,
+  adminQuery,
   newPerson,
   ownAddress,
   signInWithTotp,
@@ -64,6 +65,29 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await page.getByRole('button', { name: 'Prova' }).click()
   await expect(page.getByRole('status')).toHaveText('Funziona: Meta accetta App ID e App Secret.')
   expect((await axe(page)).violations).toEqual([])
+
+  // a job's call was refused by Meta (the secret was reset there): red here and in the reminders
+  await adminQuery(
+    `update integrations set verified_at = null, rejected_at = now()
+       where kind = 'meta' and organization_id = (select id from organizations where slug = $1)`,
+    [org],
+  )
+  await page.reload()
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Non funziona')
+  await expect(page.getByText("Meta l'ha rifiutata il")).toBeVisible()
+  expect((await axe(page)).violations).toEqual([])
+  await page.goto(`/${org}/account`)
+  await expect(page.getByRole('region', { name: 'Da sistemare su Meta' })).toContainText(
+    "Meta non accetta più l'App ID o l'App Secret dell'agenzia",
+  )
+  // a test that works takes it away
+  await page.goto(`/${org}/impostazioni/integrazioni`)
+  await page.getByRole('button', { name: 'Prova' }).click()
+  await expect(page.getByRole('status')).toHaveText('Funziona: Meta accetta App ID e App Secret.')
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
+  await page.goto(`/${org}/account`)
+  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+  await expect(page.getByText("Meta non accetta più l'App ID")).toHaveCount(0)
 
   const admin = await addPerson(org, 'Ada Admin', 'admin')
   const context = await browser.newContext({ baseURL: baseURL ?? '' })

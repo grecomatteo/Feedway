@@ -11,6 +11,7 @@ const recordOf = (row: Row): IntegrationRecord => ({
   keyVersion: row.keyVersion,
   updatedBy: row.updatedBy,
   verifiedAt: row.verifiedAt,
+  rejectedAt: row.rejectedAt,
   updatedAt: row.updatedAt,
 })
 
@@ -33,7 +34,7 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
     },
     async upsertPlatform(kind, input) {
       // new settings have not been tried yet
-      const values = { ...input, verifiedAt: null }
+      const values = { ...input, verifiedAt: null, rejectedAt: null }
       const [row] = await db
         .insert(integrations)
         .values({ id: ids.newId(), organizationId: null, kind, ...values })
@@ -49,7 +50,7 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
       const rows = await db
         .update(integrations)
         // the column keeps its value: a successful test is not a change of the settings
-        .set({ verifiedAt: at, updatedAt: sql`${integrations.updatedAt}` })
+        .set({ verifiedAt: at, rejectedAt: null, updatedAt: sql`${integrations.updatedAt}` })
         .where(
           and(
             isNull(integrations.organizationId),
@@ -69,7 +70,9 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
       return row ? recordOf(row) : null
     },
 
-    async upsertForOrganization(organizationId, kind, input, expected) {
+    async upsertForOrganization(organizationId, kind, saved, expected) {
+      // new settings: whatever the platform refused before was about the old ones
+      const input = { ...saved, rejectedAt: null }
       if (expected === null) {
         // a row written by someone else since the read wins: nothing is overwritten
         const [row] = await db
@@ -96,7 +99,22 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
     async markVerified(organizationId, kind, at, version) {
       const rows = await db
         .update(integrations)
-        .set({ verifiedAt: at, updatedAt: sql`${integrations.updatedAt}` })
+        .set({ verifiedAt: at, rejectedAt: null, updatedAt: sql`${integrations.updatedAt}` })
+        .where(
+          and(
+            eq(integrations.organizationId, organizationId),
+            eq(integrations.kind, kind),
+            sameVersion(version),
+          ),
+        )
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
+
+    async markRejected(organizationId, kind, at, version) {
+      const rows = await db
+        .update(integrations)
+        .set({ verifiedAt: null, rejectedAt: at, updatedAt: sql`${integrations.updatedAt}` })
         .where(
           and(
             eq(integrations.organizationId, organizationId),

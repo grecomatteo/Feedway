@@ -294,6 +294,37 @@ test('"Prova": marks verified_at with the stored app, says when nothing is set o
   })
 })
 
+test('"Prova" refused by Meta: the app turns red until a test or a save works (D-1)', async () => {
+  await save(APP)
+  const view = async () => getMetaIntegration(deps, owner)
+  expect((await view())?.rejectedAt).toBeNull()
+  // the secret was reset on Meta: the stored one no longer works
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  expect(await testMetaIntegration(deps, owner, { ip: IP })).toEqual({
+    ok: false,
+    result: 'rejected',
+  })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  expect((await view())?.verifiedAt).toBeNull()
+  // Meta not answering says nothing about the app: the red stays
+  mock.scenario('html_5xx', { path: '/debug_token' })
+  await testMetaIntegration(deps, owner, { ip: IP })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  // it works again: green
+  mock.scenario('default')
+  expect((await testMetaIntegration(deps, owner, { ip: IP })).ok).toBe(true)
+  expect((await view())?.rejectedAt).toBeNull()
+  expect((await view())?.verifiedAt).toBeInstanceOf(Date)
+
+  // settings saved again (tried by Meta) clear it too
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  await testMetaIntegration(deps, owner, { ip: IP })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  mock.scenario('default')
+  await save({ ...APP, configId: META_MOCK.app.configId })
+  expect((await view())?.rejectedAt).toBeNull()
+})
+
 test('the activity entries hold field names and outcomes, never a secret', async () => {
   await save(APP)
   await save({ appId: APP.appId, appSecret: 'segreto-sbagliato' }).catch(() => undefined)

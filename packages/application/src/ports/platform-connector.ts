@@ -15,6 +15,16 @@ export interface PlatformConnector<AppCredentials = unknown> {
     tx: OrganizationIntegrationTx,
     organizationId: string,
   ): Promise<AppCredentials | null>
+  /**
+   * The platform refused the agency's app (D-1): its integration turns red until it is saved
+   * again or tried with success. Only the app that was loaded: one saved meanwhile stays as it is.
+   */
+  markAppRejected(
+    tx: OrganizationIntegrationTx,
+    organizationId: string,
+    app: AppCredentials,
+    at: Date,
+  ): Promise<void>
   /** Only the kinds whose token is pasted (system user, spec §8.1 step 4). */
   connectWithToken?(app: AppCredentials, token: string): Promise<TokenCheck>
   /** The accounts the connection sees now, read live. */

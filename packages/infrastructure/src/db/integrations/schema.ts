@@ -20,6 +20,8 @@ export const integrations = pgTable(
     keyVersion: integer('key_version').notNull(),
     updatedBy: uuid('updated_by'),
     verifiedAt: tz('verified_at'),
+    // the platform refused these settings (a test, or a job's call): until a save or a test works
+    rejectedAt: tz('rejected_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
