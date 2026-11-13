@@ -38,6 +38,8 @@ export interface IntegrationView<K extends IntegrationKind = IntegrationKind> {
   secretSet: true
   updatedBy: string | null
   verifiedAt: Date | null
+  /** The platform refused these settings since they were saved or last tried with success. */
+  rejectedAt: Date | null
   updatedAt: Date
 }
 
@@ -75,6 +77,7 @@ export interface IntegrationRecord {
   keyVersion: number
   updatedBy: string | null
   verifiedAt: Date | null
+  rejectedAt: Date | null
   updatedAt: Date
 }
 
@@ -120,8 +123,19 @@ export interface IntegrationsRepository {
     input: OrganizationIntegrationRecordInput,
     expected: Date | null,
   ): Promise<IntegrationRecord | null>
-  /** As `markPlatformVerified`, for an agency's row. */
+  /** As `markPlatformVerified`, for an agency's row; a refusal noted before goes away. */
   markVerified(
+    organizationId: string,
+    kind: OrganizationIntegrationKind,
+    at: Date,
+    version: Date,
+  ): Promise<boolean>
+  /**
+   * The platform refused the agency's settings at `at` (the secret was reset on Meta, say):
+   * not verified any more, until a save or a successful test. Only if still `version`, so a
+   * refusal of the old settings never marks new ones. false: nothing marked.
+   */
+  markRejected(
     organizationId: string,
     kind: OrganizationIntegrationKind,
     at: Date,

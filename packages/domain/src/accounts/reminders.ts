@@ -12,6 +12,8 @@ export const TOKEN_EXPIRY_NOTICE_MS = 5 * 24 * 60 * 60 * 1000
 
 /** What Owner and Admin are reminded of about Meta (§8.4, RF-21); the panel words it. */
 export type MetaReminder =
+  /** Meta refused the agency's App ID and App Secret: nothing works until they are fixed. */
+  | { kind: 'app_rejected' }
   /** `daysLeft` below zero: already retired. */
   | { kind: 'graph_version_sunset'; version: string; dueOn: string; daysLeft: number }
   /** `daysLeft` below zero: overdue. */
@@ -33,6 +35,8 @@ export interface MetaRemindersInput {
   graphVersionSunset: string
   /** YYYY-MM-DD, or null while the app is in development. */
   dataUseCheckupDueOn: string | null
+  /** Meta refused the app's settings (a test or a job's call) and no save or test worked since. */
+  appRejected: boolean
   connections: readonly { id: string; status: ConnectionStatus; expiresAt: Date | null }[]
 }
 
@@ -49,6 +53,7 @@ export function daysUntil(from: string, to: string): number {
 
 export function metaReminders(input: MetaRemindersInput): MetaReminder[] {
   const reminders: MetaReminder[] = []
+  if (input.appRejected) reminders.push({ kind: 'app_rejected' })
   const sunsetIn = daysUntil(input.today, input.graphVersionSunset)
   if (sunsetIn <= GRAPH_SUNSET_NOTICE_DAYS)
     reminders.push({

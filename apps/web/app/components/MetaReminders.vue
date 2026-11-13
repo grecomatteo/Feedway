@@ -12,6 +12,8 @@ const when = (daysLeft: number) =>
 const lines = computed(() =>
   props.items.map((r) => {
     switch (r.kind) {
+      case 'app_rejected':
+        return t('metaReminders.appRejected')
       case 'graph_version_sunset':
         return r.daysLeft < 0
           ? t('metaReminders.graphRetired', { version: r.version, date: day(r.dueOn) })

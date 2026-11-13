@@ -44,6 +44,7 @@ export async function listMetaReminders(
       graphVersion: deps.graph.version,
       graphVersionSunset: deps.graph.sunset,
       dataUseCheckupDueOn: integration?.config.dataUseCheckupDueOn ?? null,
+      appRejected: integration?.rejectedAt != null,
       connections: await tx.connections.list(organizationId),
     })
   })

@@ -265,6 +265,17 @@ test('without a recent reauth, or with a token Meta refuses, nothing is saved', 
   expect(await ownRows('account_connections')).toEqual([])
 })
 
+test('a token pasted while Meta refuses the app: nothing saved, the app turns red (D-1)', async () => {
+  const rejectedAt = async () =>
+    (await ownRows('integrations', "and kind = 'meta'"))[0]?.rejected_at as Date | null
+  expect(await rejectedAt()).toBeNull()
+  // the App Secret was reset on Meta: debug_token refuses the app
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  await expect(connect()).rejects.toMatchObject({ code: 'CONFLICT' })
+  expect(await ownRows('account_connections')).toEqual([])
+  expect(await rejectedAt()).toBeInstanceOf(Date)
+})
+
 test('an agency without its Meta app is told to set it first', async () => {
   owner = await agencyWithOwner({ app: false })
   await expect(connect()).rejects.toMatchObject({ code: 'CONFLICT' })

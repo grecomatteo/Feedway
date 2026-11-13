@@ -32,6 +32,8 @@ export interface MetaIntegrationDeps {
 /** What Owner and Admin see: the secret only as "set", through the row being there. */
 export interface MetaIntegrationView extends MetaIntegrationConfig {
   verifiedAt: Date | null
+  /** Meta refused the app (in a test or a job): red until a save or a test works (D-1). */
+  rejectedAt: Date | null
   updatedAt: Date
 }
 
@@ -73,10 +75,12 @@ const unavailable = () =>
 const viewOf = (found: {
   config: MetaIntegrationConfig
   verifiedAt: Date | null
+  rejectedAt: Date | null
   updatedAt: Date
 }): MetaIntegrationView => ({
   ...found.config,
   verifiedAt: found.verifiedAt,
+  rejectedAt: found.rejectedAt,
   updatedAt: found.updatedAt,
 })
 
@@ -193,8 +197,8 @@ function testResultOf(verification: AppVerification): MetaTestResult {
 }
 
 /**
- * "Prova" (Owner): tries the stored app with Meta. Success marks it verified, unless it changed
- * while Meta was answering. Recorded with `{ ok, result }`.
+ * "Prova" (Owner): tries the stored app with Meta. Success marks it verified, a refusal marks it
+ * rejected (D-1), unless it changed while Meta was answering. Recorded with `{ ok, result }`.
  */
 export async function testMetaIntegration(
   deps: MetaIntegrationDeps,
@@ -222,6 +226,9 @@ export async function testMetaIntegration(
       ok &&
       read !== null &&
       (await tx.integrations.markVerified(organizationId, 'meta', deps.clock.now(), read.updatedAt))
+    // a refusal of settings changed meanwhile says nothing about the new ones: not marked
+    if (result === 'rejected' && read !== null)
+      await tx.integrations.markRejected(organizationId, 'meta', deps.clock.now(), read.updatedAt)
     await tx.audit.record({
       organizationId,
       actorId: userId,

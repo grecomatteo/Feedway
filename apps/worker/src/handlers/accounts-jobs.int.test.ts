@@ -274,6 +274,24 @@ test('the Instagram quota used up: yellow, with the reason', async () => {
   expect(ig?.quota_used).toBe(ig?.quota_total)
 })
 
+test('the agency’s app refused (App Secret reset on Meta): the app turns red, not the accounts', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  // 400, code 100 without subcode: Meta's answer to an appsecret_proof it cannot check
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  // not retried: the problem is visible in the panel and only a person can fix it
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  const { rows } = await admin.query<{ rejected_at: Date | null; verified_at: Date | null }>(
+    "select rejected_at, verified_at from integrations where organization_id = $1 and kind = 'meta'",
+    [of.organizationId],
+  )
+  expect(rows[0]?.rejected_at).toBeInstanceOf(Date)
+  expect(rows[0]?.verified_at).toBeNull()
+  expect((await connectionRow(a.id))?.status).toBe('active')
+  expect((await accountsOf(of)).map((r) => r.health)).toEqual(['ok', 'ok'])
+})
+
 test('Meta failing on every attempt: the last state stays and the job fails', async () => {
   const of = await agency(tdb, runtime)
   const a = await connection(runtime, of, { accounts: FORNO_LUCE })

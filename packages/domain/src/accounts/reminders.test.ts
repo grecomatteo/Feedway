@@ -7,6 +7,7 @@ const base: MetaRemindersInput = {
   graphVersion: 'v24.0',
   graphVersionSunset: '2028-07-29',
   dataUseCheckupDueOn: null,
+  appRejected: false,
   connections: [],
 }
 
@@ -96,4 +97,14 @@ test('reminders come in a fixed order: platform first, then connections', () => 
       now: new Date('2028-07-01T09:00:00Z'),
     }),
   ).toEqual(['graph_version_sunset', 'data_use_checkup', 'access_revoked', 'token_expiring'])
+})
+
+test('an App Secret refused by Meta is recalled first, until a save or a test works', () => {
+  expect(kinds({ appRejected: false })).toEqual([])
+  expect(
+    kinds({
+      appRejected: true,
+      connections: [{ id: 'c1', status: 'revoked', expiresAt: null }],
+    }),
+  ).toEqual(['app_rejected', 'access_revoked'])
 })
