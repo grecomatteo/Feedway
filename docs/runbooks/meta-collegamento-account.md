@@ -135,9 +135,9 @@ Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno u
 
 **Se l'utente di sistema è stato eliminato**, un token di un altro utente di sistema non ripara il vecchio collegamento: con «Ricollega» Feedway crea un collegamento nuovo («Token salvato: è un nuovo collegamento, con un altro utente di sistema») e il vecchio resta rosso. Assegna Pagine e Instagram al nuovo utente di sistema su Meta, poi Aggiungi account → «Cerca nuovi account» → «Importa»: gli account passano al collegamento nuovo e restano assegnati ai loro clienti.
 
-In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «token scaduto: va ricollegato».
+In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «il token non vale più (revocato o scaduto): ricollega».
 
-Un token revocato nel Business Manager fa diventare il collegamento «token scaduto: va ricollegato» e gli account «Da ricollegare», con «Il token del collegamento non vale più» (verificato il 2026-11-12). Le assegnazioni ai clienti restano: dopo «Ricollega» gli account tornano «Attivo» dove erano.
+Un token revocato nel Business Manager fa diventare il collegamento «il token non vale più (revocato o scaduto): ricollega» e gli account «Da ricollegare», con «Il token del collegamento non vale più» (verificato il 2026-11-12). Le assegnazioni ai clienti restano: dopo «Ricollega» gli account tornano «Attivo» dove erano.
 
 ## Vedi anche
 - [rotazione-token-meta.md](rotazione-token-meta.md): sostituire il token dell'utente di sistema e il secret dell'app.

@@ -112,12 +112,13 @@ const {
   lazy: true,
 })
 
-/** The connections, with how many of the loaded accounts each one carries. */
+/** The connections, with how many of the loaded accounts each one carries, active or not. */
 const connections = computed(() =>
-  (connectionList.value?.items ?? []).map((c) => ({
-    ...c,
-    accounts: items.value.filter((a) => a.connection?.id === c.id).length,
-  })),
+  (connectionList.value?.items ?? []).map((c) => {
+    const mine = items.value.filter((a) => a.connection?.id === c.id)
+    const inactive = mine.filter((a) => !a.active).length
+    return { ...c, accounts: mine.length - inactive, inactive }
+  }),
 )
 
 function stateOf(a: AccountItem): {
@@ -227,7 +228,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
               <p class="text-sm text-(--app-text-muted)">
                 <template v-if="nextCursor === null">
-                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts) }}
+                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts)
+                  }}<template v-if="c.inactive > 0"
+                    >,
+                    {{
+                      $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive)
+                    }}</template
+                  >
                   ·
                 </template>
                 <span :class="broken(c.status) ? 'text-(--app-danger)' : undefined">{{
@@ -322,6 +329,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                     "
                   >
                     {{ a.healthMessage }}
+                  </p>
+                  <p v-if="!a.active" class="text-sm text-(--app-text-muted)">
+                    {{ $t('socialAccounts.inactiveWhy') }}
+                    <NuxtLink :to="org.to('/account/aggiungi')" class="underline">{{
+                      $t('addAccount.search')
+                    }}</NuxtLink
+                    >.
                   </p>
                   <p v-if="a.quota" class="text-sm text-(--app-text-muted)">
                     {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}

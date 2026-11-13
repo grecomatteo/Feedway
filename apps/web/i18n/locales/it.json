@@ -933,10 +933,12 @@
       "meta_business_login": "Accesso con Facebook o Instagram"
     },
     "connectionAccounts": "{n} account | {n} account",
+    "connectionInactive": "{n} inattivo | {n} inattivi",
+    "inactiveWhy": "Non è più assegnato all'utente di sistema su Meta, quindi non pubblica. Per riattivarlo assegnalo di nuovo su Meta, poi da «Aggiungi account» premi",
     "connectionStatus": {
       "pending": "in attesa dei primi account",
       "active": "funziona",
-      "expired": "token scaduto: va ricollegato",
+      "expired": "il token non vale più (revocato o scaduto): ricollega",
       "revoked": "accesso tolto: va ricollegato"
     },
     "sync": "Sincronizza",
