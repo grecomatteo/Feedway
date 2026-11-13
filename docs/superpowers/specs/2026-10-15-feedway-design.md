@@ -1310,7 +1310,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `BETTER_AUTH_SECRET` | 32 byte base64 | sì | Firma di cookie e token di Better Auth; rotazione con `BETTER_AUTH_SECRETS` |
 | `BACKUP_AGE_RECIPIENT` | `age1…` | | Chiave pubblica con cui si cifrano i backup; la privata resta fuori dalla VPS |
 | `PANEL_URL` | `https://feedway.tuo-tailnet.ts.net` | | |
-| `PUBLIC_URL` / `PUBLIC_HOST` | `https://pub.tuodominio.it` | | Host pubblico |
+| `PUBLIC_URL` | `https://pub.tuodominio.it` | | Host pubblico. `PUBLIC_HOST` non è una variabile: è l'host di `PUBLIC_URL`, che deve essere diverso da quello di `PANEL_URL`. Senza `PUBLIC_URL` l'host pubblico è spento (ADR 021) |
 | `SITE_URL` | `https://tuodominio.it` | | Facoltativa: collegamento al sito dalla pagina di accesso |
 | `META_GRAPH_VERSION` | `v25.0` | | Aggiornata con PR e test ([docs/platforms/meta.md](../../platforms/meta.md)) |
 | `META_GRAPH_VERSION_SUNSET` | `2028-07-29` | | Data di ritiro della versione; predefinita per le versioni note, obbligatoria per le altre. Avviso 90 giorni prima (§8.4) |
@@ -1318,6 +1318,15 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `META_MOCK_URL` | `http://127.0.0.1:4010` | | Solo con `META_MODE=mock`: indirizzo del finto Graph API (`tools/meta-mock`) |
 | `TZ_DEFAULT` | `Europe/Rome` | | |
 | `MEDIA_RETENTION_DAYS` | `7` | | |
+| `MEDIA_UPLOAD_DIR` | `/media/uploads` | | Pezzi dei caricamenti in corso, sul disco del web (ADR 021) |
+| `MEDIA_MAX_VIDEO_BYTES` / `MEDIA_MAX_IMAGE_BYTES` | `300000000` / `50000000` | | Dimensione massima di un file (§9.2, §11.1) |
+| `MEDIA_MAX_IMAGE_PIXELS` / `MEDIA_MAX_VIDEO_PIXELS` | `50000000` / `16777216` | | Pixel massimi (larghezza × altezza), controllati prima di decodificare |
+| `MEDIA_MAX_VIDEO_SECONDS` | `900` | | Durata massima, quella dei reel (§9.2) |
+| `MEDIA_WORKSPACE_MAX_BYTES` | | | Facoltativa: spazio massimo per spazio di lavoro (§11.1 punto 6), oltre a `storage_bytes` dell'agenzia |
+| `MEDIA_CONVERSIONS_PER_ORG` | `1` | | Conversioni contemporanee per agenzia (§6.5); con una conversione alla volta per l'installazione vale 1 |
+| `STORAGE_DRIVER` | `disk` | | `disk` o `s3` (ADR 021) |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_FORCE_PATH_STYLE` | `https://<account>.r2.cloudflarestorage.com` | | Solo con `s3`; regione predefinita `auto`, `S3_FORCE_PATH_STYLE` predefinita `1` |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | | sì | Solo con `s3` |
 | `REQUIRE_2FA` | `admins` | | `admins` o `all` |
 | `BACKUP_DIR` | `/srv/backups/feedway` | | Inclusa in rclone |
 | `BOOTSTRAP_OWNER_EMAIL` | | | Solo al primo avvio |
@@ -1374,10 +1383,10 @@ Il vincolo vero sono i 2 core condivisi: Feedway non deve mai occuparli entrambi
 | Container | Memoria max | CPU max |
 |---|---|---|
 | postgres (`shared_buffers` 256 MB) | 1 GB | 0,5 |
-| web | 768 MB | 0,5 |
+| web | 1,5 GB (foto profilo e logo HEIC decodificati qui, ADR 021) | 0,5 |
 | worker (con ffmpeg) | 2 GB | 1,0 |
 | backup | 256 MB | 0,25 |
-| **Totale** | **circa 4 GB** (a riposo 600–800 MB) | |
+| **Totale** | **circa 5 GB** (a riposo 600–800 MB) | |
 
 Conversioni video: una alla volta, `nice`, ffmpeg su un thread; prima la strada senza ricodifica (`faststart`, cambio contenitore), ricodifica solo se serve, con preset veloce; sempre subito dopo l'upload, mai all'orario di pubblicazione. Stima da verificare: qualche minuto per un reel di 60 s in 1080p.
 

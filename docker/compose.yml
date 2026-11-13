@@ -73,6 +73,16 @@ services:
         META_RECORD_DIR: ${META_RECORD_DIR:-}
         TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
         MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
+        # empty means the default in packages/config (ADR 021); STORAGE_DRIVER and S3_* come with
+        # the S3 adapter (plan 04, Task 7), its keys as secrets
+        MEDIA_UPLOAD_DIR: ${MEDIA_UPLOAD_DIR:-}
+        MEDIA_MAX_VIDEO_BYTES: ${MEDIA_MAX_VIDEO_BYTES:-}
+        MEDIA_MAX_IMAGE_BYTES: ${MEDIA_MAX_IMAGE_BYTES:-}
+        MEDIA_MAX_IMAGE_PIXELS: ${MEDIA_MAX_IMAGE_PIXELS:-}
+        MEDIA_MAX_VIDEO_SECONDS: ${MEDIA_MAX_VIDEO_SECONDS:-}
+        MEDIA_MAX_VIDEO_PIXELS: ${MEDIA_MAX_VIDEO_PIXELS:-}
+        MEDIA_WORKSPACE_MAX_BYTES: ${MEDIA_WORKSPACE_MAX_BYTES:-}
+        MEDIA_CONVERSIONS_PER_ORG: ${MEDIA_CONVERSIONS_PER_ORG:-}
         REQUIRE_2FA: ${REQUIRE_2FA:-admins}
         BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
         BOOTSTRAP_ORGANIZATION_NAME: ${BOOTSTRAP_ORGANIZATION_NAME:-}
@@ -95,7 +105,10 @@ services:
       retries: 6
       start_period: 20s
     networks: [internal, edge]
+    # spec §16.6: above the spec's 768 MB because the profile photo and the logo (HEIC up to
+    # 40 MP) are decoded here (#117, ADR 021)
     mem_limit: 1536m
+    cpus: 0.5
     pids_limit: 200
 
   worker:
@@ -117,7 +130,9 @@ services:
       retries: 4
       start_period: 20s
     networks: [internal, egress]
-    mem_limit: 1g
+    # spec §16.6: ffmpeg, one conversion at a time, never both cores
+    mem_limit: 2g
+    cpus: 1.0
     pids_limit: 200
 
   tailscale:
