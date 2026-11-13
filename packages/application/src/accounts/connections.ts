@@ -226,7 +226,12 @@ export async function connectWithToken(
   const check = await connector.connectWithToken(app, token)
   if (!check.ok) {
     if (check.reason === 'unavailable') throw unavailable()
-    if (check.reason === 'app_rejected') throw appRejected()
+    if (check.reason === 'app_rejected') {
+      await deps.uow.run(scope, (tx) =>
+        connector.markAppRejected(tx, organizationId, app, deps.clock.now()),
+      )
+      throw appRejected()
+    }
     if (check.reason === 'rejected') throw tokenRejected()
     return {
       outcome: 'permissions_missing',

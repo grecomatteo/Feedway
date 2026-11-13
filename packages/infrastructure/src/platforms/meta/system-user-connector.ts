@@ -26,7 +26,8 @@ import type {
 // that does not expire.
 
 /** The agency's app as the Meta connectors carry it, opaque to the accounts module. */
-export type MetaConnectorApp = MetaAppCredentials
+/** The app as the jobs use it, with the version of the settings it was read from. */
+export type MetaConnectorApp = MetaAppCredentials & { version: Date }
 
 /** At most this many requests for one listing: 50 items each, far more than an agency holds. */
 export const MAX_LIST_REQUESTS = 40
@@ -283,7 +284,11 @@ export function createMetaSystemUserConnector(deps: {
     async loadAppCredentials(tx, organizationId) {
       const found = await deps.integrations.credentials(tx, organizationId, 'meta')
       if (found === null) return null
-      return { appId: found.config.appId, appSecret: found.secret }
+      return { appId: found.config.appId, appSecret: found.secret, version: found.updatedAt }
+    },
+
+    async markAppRejected(tx, organizationId, credentials, at) {
+      await tx.integrations.markRejected(organizationId, 'meta', at, credentials.version)
     },
 
     async connectWithToken(credentials, token): Promise<TokenCheck> {

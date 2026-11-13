@@ -51,6 +51,7 @@ function viewOf<K extends IntegrationKind>(kind: K, record: IntegrationRecord): 
     secretSet: true,
     updatedBy: record.updatedBy,
     verifiedAt: record.verifiedAt,
+    rejectedAt: record.rejectedAt,
     updatedAt: record.updatedAt,
   }
 }

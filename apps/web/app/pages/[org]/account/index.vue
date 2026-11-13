@@ -112,12 +112,13 @@ const {
   lazy: true,
 })
 
-/** The connections, with how many of the loaded accounts each one carries. */
+/** The connections, with how many of the loaded accounts each one carries, active or not. */
 const connections = computed(() =>
-  (connectionList.value?.items ?? []).map((c) => ({
-    ...c,
-    accounts: items.value.filter((a) => a.connection?.id === c.id).length,
-  })),
+  (connectionList.value?.items ?? []).map((c) => {
+    const mine = items.value.filter((a) => a.connection?.id === c.id)
+    const inactive = mine.filter((a) => !a.active).length
+    return { ...c, accounts: mine.length - inactive, inactive }
+  }),
 )
 
 function stateOf(a: AccountItem): {
@@ -133,17 +134,50 @@ function stateOf(a: AccountItem): {
   return { key: 'ok', color: 'success' }
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
+const reactivable = (a: AccountItem) =>
+  a.connection?.kind === 'meta_system_user' && !broken(a.connection.status)
 
-const sync = reactive({ id: '', message: '', ok: false, sending: false })
+/**
+ * «Sincronizza»: one sync of a connection every few minutes (the server's limit). After a click,
+ * the button waits as long as the server says, and the message counts down.
+ */
+const sync = reactive({ id: '', sending: false })
+/** The last answer of each connection: announced once, while the countdown below it is not. */
+const outcomes = reactive<
+  Record<string, { kind: 'queued' | 'tooSoon' | 'failed'; message: string }>
+>({})
+const waitUntil = reactive<Record<string, number>>({})
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  clock = setInterval(() => (now.value = Date.now()), 5_000)
+})
+onBeforeUnmount(() => clearInterval(clock))
+const minutesLeft = (id: string) =>
+  Math.ceil(Math.max(0, (waitUntil[id] ?? 0) - now.value) / 60_000)
+const waiting = (id: string) => minutesLeft(id) > 0
+function wait(id: string, seconds: number | null) {
+  // without the server's answer, the same 5 minutes it uses
+  waitUntil[id] = Date.now() + (seconds ?? 300) * 1000
+  now.value = Date.now()
+}
 async function syncConnection(id: string) {
-  if (sync.sending) return
-  Object.assign(sync, { id, message: '', ok: false, sending: true })
+  if (sync.sending || waiting(id)) return
+  Object.assign(sync, { id, sending: true })
+  delete outcomes[id]
   try {
-    await call('POST', org.api(`/connections/${id}/sync`))
-    Object.assign(sync, { message: t('socialAccounts.syncQueued'), ok: true })
+    const answer = await call<{ retryAfterSeconds: number }>(
+      'POST',
+      org.api(`/connections/${id}/sync`),
+    )
+    wait(id, answer.retryAfterSeconds)
+    outcomes[id] = { kind: 'queued', message: t('socialAccounts.syncQueued') }
   } catch (e) {
     const f = failure(e)
-    sync.message = f.code === 'RATE_LIMITED' ? t('socialAccounts.syncTooSoon') : f.message
+    if (f.code === 'RATE_LIMITED') {
+      wait(id, f.retryAfter)
+      outcomes[id] = { kind: 'tooSoon', message: t('socialAccounts.syncTooSoon') }
+    } else outcomes[id] = { kind: 'failed', message: f.message }
   } finally {
     sync.sending = false
   }
@@ -158,7 +192,8 @@ function openToken(reconnect: boolean) {
   })
 }
 async function tokenDone(outcome: 'connected' | 'replaced') {
-  Object.assign(sync, { id: '', message: '', ok: false, sending: false })
+  Object.assign(sync, { id: '', sending: false })
+  for (const id of Object.keys(outcomes)) delete outcomes[id]
   token.done = t(`socialAccounts.tokenDone.${outcome}`)
   await Promise.all([
     refresh(),
@@ -227,7 +262,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
               <p class="text-sm text-(--app-text-muted)">
                 <template v-if="nextCursor === null">
-                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts) }}
+                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts)
+                  }}<template v-if="c.inactive > 0"
+                    >,
+                    {{
+                      $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive)
+                    }}</template
+                  >
                   ·
                 </template>
                 <span :class="broken(c.status) ? 'text-(--app-danger)' : undefined">{{
@@ -241,7 +282,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-refresh-cw"
-                :disabled="broken(c.status) || (sync.sending && sync.id !== c.id)"
+                :disabled="broken(c.status) || waiting(c.id) || (sync.sending && sync.id !== c.id)"
                 :loading="sync.sending && sync.id === c.id"
                 @click="syncConnection(c.id)"
               >
@@ -262,14 +303,21 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 }}
               </UButton>
             </div>
-            <p
-              v-if="sync.id === c.id && sync.message"
-              :role="sync.ok ? 'status' : 'alert'"
-              class="w-full text-sm"
-              :class="sync.ok ? 'text-(--app-success)' : 'text-(--app-danger)'"
-            >
-              {{ sync.message }}
-            </p>
+            <div v-if="outcomes[c.id] || waiting(c.id)" class="w-full space-y-1 text-sm">
+              <p
+                v-if="outcomes[c.id]"
+                :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
+                :class="{
+                  'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
+                  'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
+                }"
+              >
+                {{ outcomes[c.id]?.message }}
+              </p>
+              <p v-if="waiting(c.id)" class="text-(--app-text-muted)">
+                {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
+              </p>
+            </div>
           </li>
         </ul>
       </section>
@@ -322,6 +370,17 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                     "
                   >
                     {{ a.healthMessage }}
+                  </p>
+                  <p v-if="!a.active" class="text-sm text-(--app-text-muted)">
+                    <!-- only a working system user can find it again from «Aggiungi account» -->
+                    <template v-if="reactivable(a)">
+                      {{ $t('socialAccounts.inactiveWhy') }}
+                      <NuxtLink :to="org.to('/account/aggiungi')" class="underline">{{
+                        $t('addAccount.search')
+                      }}</NuxtLink
+                      >.
+                    </template>
+                    <template v-else>{{ $t('socialAccounts.inactiveOther') }}</template>
                   </p>
                   <p v-if="a.quota" class="text-sm text-(--app-text-muted)">
                     {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}

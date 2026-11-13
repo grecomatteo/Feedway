@@ -111,7 +111,7 @@ test('Meta errors become a refusal or no answer; other errors are not hidden', a
   await expect(classifiedListing(failing(new TypeError('bug')))).rejects.toThrow('bug')
 })
 
-const APP = { appId: '1000000000000001', appSecret: 'segreto-di-prova' }
+const APP = { appId: '1000000000000001', appSecret: 'segreto-di-prova', version: new Date(0) }
 const VALID: MetaTokenInfo = {
   isValid: true,
   type: 'SYSTEM_USER',
