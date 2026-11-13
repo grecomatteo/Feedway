@@ -4,7 +4,29 @@ Verifiche del Task 1 della tappa 3: ciò che i task successivi danno per buono s
 
 Tutte le pagine sono state lette il **2026-11-09**. Gli indirizzi senza dominio stanno su `https://developers.facebook.com`. Le fonti non di Meta sono segnate come tali e da sole non bastano.
 
+Il **2026-11-12** Matteo ha provato Feedway 0.8.0 dal pannello su Meta vera, con la registrazione delle risposte accesa: i risultati sono nella sezione [Prova dal pannello del 2026-11-12](#prova-dal-pannello-del-2026-11-12) e prevalgono su tutto il resto.
+
 Il **2026-11-11** Matteo ha provato a mano su Meta vera, con il Graph API Explorer e l'app «Feedway» in modalità sviluppo: i risultati sono nella sezione [Prova su Meta vera del 2026-11-11](#prova-su-meta-vera-del-2026-11-11) e prevalgono su quanto scritto nelle altre sezioni. Dove una riga è stata smentita, lo dice.
+
+## Prova dal pannello del 2026-11-12
+
+Feedway 0.8.0 sulla VPS, Graph API v25.0 (`META_GRAPH_VERSION`), app «Feedway» in modalità sviluppo con **Require App Secret acceso**, utente di sistema Admin del Business Manager dell'agenzia. Account di prova: una Pagina con il suo Instagram e un Instagram senza Pagina, di un profilo esterno che ha dato accesso al Business Manager dell'agenzia **come partner**. Le 73 risposte registrate (oscurate) sono state rilette e hanno aggiornato `tools/meta-mock`; non sono nel repository.
+
+| Cosa | Esito |
+|---|---|
+| Require App Secret acceso | Tutte le chiamate di Feedway funzionano: quelle con un token portano `appsecret_proof`; `debug_token` con il token dell'app non ne ha bisogno |
+| Prova dell'app (Task 4) | Secret giusto: `debug_token` con l'App ID come `input_token` risponde **200** con `is_valid: false`, errore 190 e `scopes` vuoto, e Feedway dice «Funziona». Secret sbagliato: **401**, codice 190 senza sottocodice |
+| `debug_token` dell'utente di sistema | `type` `SYSTEM_USER`, **`expires_at: 0`** e **`data_access_expires_at: 0`** (valori grezzi), `public_profile` aggiunto ai sei permessi, `granular_scopes` **senza** `target_ids`, `user_id` presente |
+| Token revocato | «Revoca token» nel Business Manager. Poi `me/accounts` risponde **401, 190/460**; `debug_token` dà `is_valid: false`, 190/**460** e `expires_at` resta 0. Feedway mette il collegamento in `expired` («token scaduto») e gli account «Da ricollegare»; «Ricollega» con un token nuovo li riporta attivi, con le assegnazioni ai clienti |
+| «Revoca token» | Revoca **tutti** i token dell'utente di sistema insieme: non si sceglie quale. Quindi non si è potuto provare se un token vecchio resta valido dopo averne generato uno nuovo |
+| App Secret reimpostato | Il secret vecchio smette **subito** di valere. Con il vecchio ancora in Feedway, le chiamate con un token danno **400, codice 100 senza sottocodice** (`appsecret_proof` non valido) e `debug_token` 401/190. I token dell'utente di sistema **restano validi**: basta salvare il secret nuovo |
+| Link alle impostazioni del business | `business.facebook.com/settings/system-users?business_id=<id>` apre gli utenti di sistema del business giusto |
+| Pagina con accesso parziale | Con «Contenuti» (e senza «Gestisci») `me/accounts` dà il token della Pagina: si importa |
+| Account di un cliente partner | La Pagina e i due Instagram, anche quello senza Pagina, compaiono in `me/accounts` e `me/assigned_instagram_accounts` e si importano. Quota: `quota_usage` 0, `quota_total` 100 |
+| Account tolto all'utente di sistema | Sparisce da `me/assigned_instagram_accounts` alla prima chiamata dopo: diventa inattivo alla sincronizzazione |
+| Post pubblicati con l'app in sviluppo | I post dell'11/11 si vedono in una finestra anonima, senza accesso: per l'utente di sistema la modalità Live **non serve** per pubblicare |
+
+Non provato: la stessa cosa con un cliente vero (non un profilo di prova); un Instagram condiviso come partner da un Business Manager diverso da quello del profilo di prova.
 
 ## Prova su Meta vera del 2026-11-11
 
@@ -137,21 +159,21 @@ Descrizioni e dipendenze dal [Permissions Reference](https://developers.facebook
 | Controllo | Cosa dice Meta | Fonte |
 |---|---|---|
 | `debug_token` | `GET /debug_token?input_token=…` con un token dell'app (`{app-id}\|{app-secret}`, o quello da `grant_type=client_credentials`) o di uno sviluppatore dell'app. Campi: `app_id`, `type`, `application`, `expires_at`, `data_access_expires_at`, `is_valid`, `issued_at`, `scopes`, `granular_scopes`, `user_id`, `profile_id`, `error` (`code`, `subcode`, `message`) | [debug_token](https://developers.facebook.com/docs/graph-api/reference/v7.0/debug_token), [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging), [Access tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens) |
-| `expires_at = 0` | La documentazione non dice cosa significa. **Non verificato**: il debugger del 2026-11-11 mostra «Mai», non il valore grezzo. Proposta per il Task 3: fino ad allora `0` vale "non scade" solo per i token che secondo Meta non scadono: quello dell'accesso unificato (*Business Integration System User*) e quello dell'utente di sistema del Business Manager | — |
+| `expires_at = 0` | La documentazione non dice cosa significa. Per l'utente di sistema il valore grezzo è `0` sia per `expires_at` sia per `data_access_expires_at` (verificato il 2026-11-12), e il debugger mostra «Mai». `0` vale "non scade" solo per i token che secondo Meta non scadono: quello dell'utente di sistema e quello dell'accesso unificato (*Business Integration System User*, valore grezzo **non verificato**) | — |
 | Token invalidati | Meta non avvisa: lo si scopre quando una chiamata fallisce ("access tokens may be invalidated before the expected expiration time"). Per questo il controllo è giornaliero | [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging) |
 | Quota Instagram | `GET /{ig-user-id}/content_publishing_limit?fields=quota_usage,config`, `since` facoltativo (al massimo 24 ore fa). Risposta: `quota_usage` e `config.quota_total` (oggi 50) con `config.quota_duration` (86400 secondi). La guida alla pubblicazione dice invece 100 post: si usa sempre il valore letto | [content_publishing_limit](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit), [Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing) |
 | Data Use Checkup | Annuale; non serve in modalità sviluppo, ma va fatto prima di passare l'app in Live. La documentazione **non indica un'API** per leggere la scadenza | [Data Use Checkup](https://developers.facebook.com/documentation/resp-plat-initiatives/individual-processes/data-use-checkup.md) |
 
 **Conseguenza per il Task 4.** Senza un'API, la scadenza del Data Use Checkup la inserisce l'Owner nell'integrazione Meta, come prevede il piano. Il promemoria del Task 11 la usa. Finché l'app resta in sviluppo il campo può restare vuoto.
 
-**Prova dell'app (Task 4).** Meta non ha una chiamata che controlla solo App ID e secret. Feedway chiama `debug_token` autorizzato con il token dell'app (nell'intestazione) e con l'App ID, che non è un segreto, come `input_token`: con un secret sbagliato l'autorizzazione fallisce (190). Il secret non viaggia mai in un indirizzo, dove un proxy potrebbe registrarlo. **Non verificato**: è il punto 9 della lista in fondo.
+**Prova dell'app (Task 4).** Meta non ha una chiamata che controlla solo App ID e secret. Feedway chiama `debug_token` autorizzato con il token dell'app (nell'intestazione) e con l'App ID, che non è un segreto, come `input_token`: con un secret sbagliato l'autorizzazione fallisce (401, 190). Il secret non viaggia mai in un indirizzo, dove un proxy potrebbe registrarlo. Verificato il 2026-11-12.
 
 ## `appsecret_proof`
 
 - Si calcola come HMAC-SHA256 del token con il secret dell'app come chiave (`hash_hmac('sha256', $access_token, $app_secret)` nell'esempio di Meta, quindi in esadecimale) e si passa come parametro `appsecret_proof` a ogni chiamata. Fonte: [Securing requests](https://developers.facebook.com/docs/graph-api/securing-requests).
 - Con **Require App Secret** attivo nella dashboard (Impostazioni dell'app → Avanzate) le chiamate senza il parametro falliscono. Va attivato nell'app Feedway (lo fa Matteo): Feedway chiama Meta solo dal server e lo manda sempre (§8.6).
 - È obbligatorio per l'API di gestione dei token degli utenti di sistema (`/{client_business_id}/system_user_access_tokens`). Fonte: [Facebook Login for Business](https://developers.facebook.com/docs/facebook-login/facebook-login-for-business/).
-- Non si usa nello scambio del codice né in `debug_token` con il token dell'app, che contiene già il secret. Questo è una deduzione dagli esempi di Meta: **non verificato**.
+- Non si usa in `debug_token` con il token dell'app, che contiene già il secret: verificato il 2026-11-12 con Require App Secret acceso. Nello scambio del codice: **non verificato** (accesso unificato, Task 7).
 
 ## Intestazioni d'uso
 
@@ -173,7 +195,7 @@ Formato di un errore ([Handling Errors](https://developers.facebook.com/docs/gra
 |---|---|---|---|---|
 | 190 (senza sottocodice), 190/463, 190/467 | Token scaduto, revocato o non valido | `permanent` | collegamento `expired` | [Handling Errors](https://developers.facebook.com/docs/graph-api/guides/error-handling), [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging) |
 | 190/458 | L'utente ha tolto l'autorizzazione all'app | `permanent` | collegamento `revoked` | stesse pagine |
-| 190/460 | Password cambiata o uscita dall'app | `permanent` | collegamento `expired`, rifare l'accesso | stesse pagine |
+| 190/460 | Password cambiata o uscita dall'app. Per l'utente di sistema è anche il **token revocato** dal Business Manager (verificato il 2026-11-12) | `permanent` | collegamento `expired`, ricollegare | stesse pagine |
 | 190/459, 190/464 | Account bloccato da un controllo o non confermato: "needs to log in at https://www.facebook.com" | `permanent` | collegamento `expired`; il messaggio dice di accedere a facebook.com e poi ricollegare | [Handling Errors](https://developers.facebook.com/docs/graph-api/guides/error-handling) |
 | 190/492 | "User associated with the Page access token does not have an appropriate role on the Page" | `permanent` | l'account diventa rosso: serve un ruolo sulla Pagina | stessa pagina |
 | 10, 200–299 | Permesso non concesso o tolto | `permanent` | account rosso, con il permesso da concedere | stessa pagina |
@@ -199,15 +221,18 @@ Formato di un errore ([Handling Errors](https://developers.facebook.com/docs/gra
 
 Gli errori della pubblicazione Instagram (sottocodici 2207xxx) servono alla tappa 7: sono in [Instagram Error Codes](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/error-codes) e qui non si trascrivono.
 
-## Da provare su Meta vera (Task 13, e prima se serve)
+## Da provare su Meta vera
 
-Fatti il 2026-11-11 (sezione della prova): scambio del codice con `redirect_uri`; `debug_token` del token dell'accesso unificato (salvo il valore grezzo di `expires_at`); la strada «Continua con Facebook»; `me/businesses` e i permessi della pubblicità per l'utente di sistema (non servono).
+Fatti il 2026-11-11: scambio del codice con `redirect_uri`; `debug_token` del token dell'accesso unificato (salvo il valore grezzo di `expires_at`); la strada «Continua con Facebook»; `me/businesses` e i permessi della pubblicità per l'utente di sistema (non servono).
 
-Restano:
+Fatti il 2026-11-12, dal pannello: Require App Secret acceso; la prova dell'app; il valore grezzo di `expires_at` e `data_access_expires_at` per l'utente di sistema; un Instagram senza Pagina condiviso come partner, assegnato all'utente di sistema (compare e si importa; la pubblicazione era stata provata l'11/11); il sottocodice di un token revocato (460).
+
+Restano, tutti per l'accesso unificato (Task 7, rinviato):
 1. Lo stesso `user_id` dopo un secondo accesso dello stesso cliente.
-2. Come si elencano gli account scelti con l'accesso unificato: con `business_management` nella configurazione, `<client_business_id>/owned_instagram_accounts`.
-3. Con l'accesso unificato: se la pubblicazione su una Pagina del cliente chiede `ads_management` o `ads_read`.
-4. Con **Require App Secret** attivo: scambio del codice, `debug_token` senza `appsecret_proof` e le chiamate dell'utente di sistema con la prova.
-5. La prova dell'app del Task 4 (pulsante «Prova» in Impostazioni → Integrazioni → Meta): `debug_token` autorizzato con il token dell'app `{app-id}|{app-secret}` e con l'App ID come `input_token` risponde 200, e con un secret sbagliato fallisce con il codice 190.
-6. Un Instagram solo, di un cliente che lo condivide come partner con il Business Manager dell'agenzia, assegnato all'utente di sistema: compare in `me/assigned_instagram_accounts` e si pubblica?
-7. Il valore grezzo di `expires_at` e `data_access_expires_at` nella risposta di `debug_token` per i due tipi di token.
+2. Come si elencano gli account scelti: con `business_management` nella configurazione, `<client_business_id>/owned_instagram_accounts`.
+3. Se la pubblicazione su una Pagina del cliente chiede `ads_management` o `ads_read`.
+4. Lo scambio del codice con Require App Secret acceso.
+5. Il valore grezzo di `expires_at` e `data_access_expires_at` del suo token.
+
+E per l'utente di sistema:
+6. Se generare un token nuovo lascia valido quello vecchio: «Revoca token» li revoca tutti insieme, quindi non si prova dal Business Manager.

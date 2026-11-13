@@ -24,6 +24,11 @@ Il token dell'utente di sistema **non scade** (verificato il 2026-11-11): Feedwa
 
 ## Sostituire il token dell'utente di sistema
 
+Nel Business Manager **«Revoca token» revoca tutti i token dell'utente di sistema insieme**, compreso quello che Feedway usa (verificato il 2026-11-12). Per questo ci sono due strade:
+
+- **Il token è stato esposto:** prima revochi, poi colleghi un token nuovo. Per qualche minuto gli account non pubblicano. Vedi [Se il token è stato esposto](#se-il-token-è-stato-esposto).
+- **Cambio senza urgenza** (permessi mancanti, controllo periodico): generi un token nuovo e lo sostituisci, senza revocare. Segui i passi qui sotto.
+
 1. Nel Business Manager dell'agenzia: **Impostazioni del business → Utenti → Utenti di sistema** → l'utente di sistema di Feedway → **«Genera token»**.
 2. Scegli l'app Meta di Feedway, la scadenza **«Mai»** e i sei permessi: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
 3. Nel pannello: **Account social** → nel riquadro Collegamenti, sull'utente di sistema, premi **«Sostituisci token»** (oppure **«Ricollega»** se il collegamento è rosso). Conferma la password se te la chiede, incolla il token e premi **«Verifica e salva»**.
@@ -32,15 +37,15 @@ Il token dell'utente di sistema **non scade** (verificato il 2026-11-11): Feedwa
    - «Meta ha accettato il token, ma mancano dei permessi»: non è stato salvato niente. Rigenera il token spuntando quelli in rosso.
    - «Token salvato: è un nuovo collegamento, con un altro utente di sistema»: hai generato il token da un **altro** utente di sistema. Il vecchio collegamento resta com'era. Se non era quello che volevi, rigenera il token dall'utente di sistema giusto.
 5. Premi **Sincronizza** sul collegamento: dopo qualche minuto gli account devono essere «Attivo».
-6. **Revoca il token vecchio** su Meta, dalla stessa pagina dell'utente di sistema. Generare un token nuovo **non** revoca quello vecchio: se il vecchio è finito dove non doveva, è questo il passo che lo rende inutile.
-7. Dopo 5 minuti (Sincronizza si può premere una volta ogni 5 minuti) premi di nuovo **Sincronizza**: il collegamento deve restare «funziona». Se diventa «token scaduto: va ricollegato», hai revocato il token nuovo invece del vecchio: torna al passo 1 e usa «Ricollega».
 
-**Non verificato:**
-- che generare un token nuovo lasci valido quello vecchio fino alla revoca;
-- il nome esatto del comando per revocare un token dell'utente di sistema;
-- il sottocodice che Meta dà a un token revocato. Feedway lo tratta come «Il token del collegamento non vale più».
+**Non verificato:** se il token vecchio resta valido dopo averne generato uno nuovo. Per questo, se il vecchio è finito dove non doveva, segui la strada qui sotto.
 
-Si provano con il Task 13 del piano 03.
+### Se il token è stato esposto
+
+1. Nel Business Manager, sulla pagina dell'utente di sistema, premi **«Revoca token»** e conferma («revocare tutti i token»).
+2. Premi **«Genera token»** e generane uno nuovo, come al passo 2 sopra.
+3. Nel pannello, sul collegamento, premi **Sincronizza**: diventa «token scaduto: va ricollegato» e gli account «Da ricollegare». Puoi saltare questo passo: serve solo a vedere che la revoca è arrivata.
+4. Premi **«Ricollega»**, incolla il token nuovo, «Verifica e salva». Gli account tornano «Attivo» e restano assegnati ai loro clienti (verificato il 2026-11-12).
 
 Il registro attività segna «ha sostituito il token di un collegamento», senza il token.
 
@@ -56,13 +61,15 @@ Il secret firma ogni chiamata di Feedway (`appsecret_proof`). Tra il momento in 
 
 Se al passo 5 un collegamento diventa «token scaduto: va ricollegato», il token non vale più con il secret nuovo: sostituiscilo come sopra, con «Ricollega».
 
-**Non verificato:** se Meta invalida subito il secret vecchio, e se i token degli utenti di sistema restano validi dopo la reimpostazione del secret. Il passo 5 serve a scoprirlo.
+Verificato il 2026-11-12: Meta invalida **subito** il secret vecchio, e i token degli utenti di sistema restano validi. Basta salvare il secret nuovo in Feedway.
+
+Attenzione: finché il secret nuovo non è salvato, oggi il pannello non lo segnala. «Prova» risponde «Meta non accetta questo App ID con questo App Secret», ma lo stato resta «Funziona» e gli account restano verdi. È un difetto noto, da correggere prima della chiusura della tappa 3.
 
 Il registro attività segna «ha cambiato l'integrazione Meta», senza il secret.
 
 ## Se il secret o il token sono stati esposti
 
-1. Sostituisci subito quello che è stato esposto, come sopra, e revoca il token vecchio.
+1. Sostituisci subito quello che è stato esposto, come sopra: per il token, con la strada «Se il token è stato esposto».
 2. Nel Business Manager controlla in **Utenti di sistema** che non ci siano utenti di sistema che non conosci, e che quello di Feedway abbia solo le risorse che gli hai assegnato.
 3. Controlla il registro attività di Feedway per modifiche all'integrazione o ai collegamenti che non hai fatto tu.
 4. Se pensi che qualcuno abbia usato le credenziali, segui [violazione-dati.md](violazione-dati.md).

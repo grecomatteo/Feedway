@@ -22,13 +22,13 @@ Quello che non è ancora stato provato su Meta vera è scritto **non verificato*
 ## 1. L'app Meta
 
 1. Su [developers.facebook.com](https://developers.facebook.com/apps) premi «Crea app», scegli il tipo **Business** e collegala al Business Manager dell'agenzia.
-2. In Impostazioni dell'app → **Avanzate** → Sicurezza accendi **«Richiedi la chiave segreta»** (*Require App Secret*). Feedway firma con `appsecret_proof` ogni chiamata fatta con un token, quindi con l'opzione accesa un token rubato non basta: serve anche il secret. **Non verificato:** le chiamate di Feedway con l'opzione accesa (la prova del 2026-11-11 l'aveva spenta; [meta.md](../platforms/meta.md), punto 4 di «Da provare»).
+2. In Impostazioni dell'app → **Avanzate** → Sicurezza accendi **«Richiedi la chiave segreta»** (*Require App Secret*). Feedway firma con `appsecret_proof` ogni chiamata fatta con un token, quindi con l'opzione accesa un token rubato non basta: serve anche il secret. Con l'opzione accesa Feedway funziona (verificato il 2026-11-12).
 3. In Impostazioni → **Di base** copia **App ID** e **App Secret**.
 4. In Impostazioni → Avanzate, «Aggiorna la versione dell'API» propone la versione attuale. Feedway usa quella di `META_GRAPH_VERSION` (oggi v25.0, ritiro il 2028-07-29): non serve cambiare nulla qui.
 
 Non serve aggiungere a mano i permessi delle Pagine: Meta li aggiunge da solo quando generi il token dell'utente di sistema (passo 3).
 
-**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). **Non verificato:** se i post pubblicati da un'app in sviluppo si vedono da chi non ha un ruolo nell'app. Va controllato prima di usare Feedway con un cliente vero; se non si vedono, l'app va portata in Live con la revisione delle autorizzazioni.
+**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11), e i post si vedono anche da chi non ha nessun ruolo nell'app (verificato il 2026-11-12, con una finestra anonima). La modalità Live serve solo per l'accesso unificato, quando arriverà.
 
 ## 2. L'app in Feedway
 
@@ -82,7 +82,7 @@ Assegnalo all'utente di sistema (Utenti di sistema → l'utente → «Assegna ri
 2. Il cliente apre il suo Business Manager, va in **Utenti → Partner**, aggiunge il tuo Business Manager come partner e gli dà la Pagina e il profilo Instagram con il controllo completo.
 3. Le risorse compaiono nel tuo Business Manager tra quelle condivise dai partner. Assegnale all'utente di sistema come sopra.
 
-**Non verificato:** le voci di menu «Utenti → Partner» e «Dai a un partner l'accesso alle tue risorse» nel Business Manager del cliente; un profilo Instagram condiviso come partner **senza** Pagina ([meta.md](../platforms/meta.md), punto 6 di «Da provare»).
+Un profilo Instagram condiviso come partner, anche **senza** Pagina, compare tra gli account e si importa (verificato il 2026-11-12). **Non verificato:** le voci di menu «Utenti → Partner» e «Dai a un partner l'accesso alle tue risorse» nel Business Manager del cliente.
 
 ### È un profilo Instagram personale
 Prima va trasformato in un profilo professionale, dall'app Instagram: Impostazioni e privacy → Tipo di account e strumenti → Passa a un account professionale. Poi si torna a uno dei due casi sopra.
@@ -124,7 +124,7 @@ Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno u
 | Stato | Messaggio | Cosa fare |
 |---|---|---|
 | **Attivo** | — | niente |
-| **Da controllare** | — | è appena stato importato: il primo controllo arriva in pochi minuti. Se resta così, premi Sincronizza |
+| **Da controllare** | — | il primo controllo non è ancora arrivato. Di solito parte con l'importazione e l'account è subito «Attivo»; se resta così, premi Sincronizza |
 | **Attenzione** | «Quota di pubblicazione di Instagram esaurita» | Instagram concede 100 post nelle ultime 24 ore: aspetta |
 | **Con problema** | «L'utente di sistema non ha un ruolo sulla Pagina» | nel Business Manager riassegna la Pagina all'utente di sistema con il controllo completo, poi Sincronizza |
 | **Con problema** | «Manca un permesso Meta» | genera un nuovo token con i sei permessi e sostituiscilo ([rotazione-token-meta.md](rotazione-token-meta.md)) |
@@ -137,7 +137,7 @@ Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno u
 
 In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «token scaduto: va ricollegato».
 
-**Non verificato:** il sottocodice che Meta dà a un token revocato. Feedway lo tratta come «Il token del collegamento non vale più».
+Un token revocato nel Business Manager fa diventare il collegamento «token scaduto: va ricollegato» e gli account «Da ricollegare», con «Il token del collegamento non vale più» (verificato il 2026-11-12). Le assegnazioni ai clienti restano: dopo «Ricollega» gli account tornano «Attivo» dove erano.
 
 ## Vedi anche
 - [rotazione-token-meta.md](rotazione-token-meta.md): sostituire il token dell'utente di sistema e il secret dell'app.
