@@ -218,7 +218,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       return {
         ...debug,
         is_valid: false,
-        expires_at: debug.issued_at + 3600,
+        // a revoked token keeps expires_at 0 (460, recorded on 2026-11-12): only 463 has a date
+        ...(expired === 463 && { expires_at: debug.issued_at + 3600 }),
         error: { code: 190, subcode: expired, message: 'Session has expired.' },
       }
     return { ...debug }
@@ -320,11 +321,15 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
 
   function debugToken(params: URLSearchParams, appToken: string | undefined, res: ServerResponse) {
     if (appToken !== `${data.app.id}|${data.app.secret}`) {
-      sendError(res, {
-        message: 'Invalid OAuth access token - Cannot parse access token',
-        type: 'OAuthException',
-        code: 190,
-      })
+      sendError(
+        res,
+        {
+          message: 'Invalid OAuth access token - Cannot parse access token',
+          type: 'OAuthException',
+          code: 190,
+        },
+        401,
+      )
       return
     }
     const input = params.get('input_token')
@@ -362,11 +367,15 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     }
     const token = data.tokens[tokenValue]
     if (token === undefined) {
-      sendError(res, {
-        message: 'Invalid OAuth access token - Cannot parse access token',
-        type: 'OAuthException',
-        code: 190,
-      })
+      sendError(
+        res,
+        {
+          message: 'Invalid OAuth access token - Cannot parse access token',
+          type: 'OAuthException',
+          code: 190,
+        },
+        401,
+      )
       return
     }
     const proof = params.get('appsecret_proof')
@@ -397,7 +406,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
           code: 190,
           error_subcode: expired,
         },
-        400,
+        401,
         headers,
       )
       return

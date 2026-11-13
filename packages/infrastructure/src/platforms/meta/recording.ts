@@ -6,6 +6,9 @@ const NAME_KEYS = new Set(['name', 'username', 'application'])
 const TEXT_KEYS = new Set(['message', 'error_user_msg', 'error_user_title', 'error_data'])
 // cursors encode object ids
 const CURSOR_KEYS = new Set(['after', 'before'])
+// Meta's image CDN puts ids in the file name and signatures in many parameters: never kept
+const CDN_HOST = /(^|\.)(fbcdn\.net|cdninstagram\.com)$/
+const FAKE_PICTURE = 'https://scontent.example.invalid/picture.jpg'
 const URL_PARAMS = [
   'oh',
   'oe',
@@ -19,7 +22,7 @@ const URL_PARAMS = [
 
 /**
  * Redacts a Graph API answer for META_RECORD_DIR (plan 03, Task 3), so a recording can replace
- * a hand-written fixture of tools/meta-mock: tokens out, signed image addresses out, ids and
+ * a hand-written fixture of tools/meta-mock: tokens out, image addresses of Meta's CDN replaced whole, ids and
  * names replaced by stable values (the same real id gives the same fake id across one session).
  */
 export function createRecordingRedactor(): (value: unknown) => unknown {
@@ -46,6 +49,7 @@ export function createRecordingRedactor(): (value: unknown) => unknown {
     if (!/^https?:\/\//.test(text)) return text
     try {
       const url = new URL(text)
+      if (CDN_HOST.test(url.hostname)) return FAKE_PICTURE
       for (const param of URL_PARAMS)
         if (url.searchParams.has(param)) url.searchParams.set(param, 'REDACTED')
       url.pathname = url.pathname

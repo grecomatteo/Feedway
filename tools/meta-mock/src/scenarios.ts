@@ -14,8 +14,9 @@ export interface ScenarioOptions {
   /** Back to the initial data, with no scenario active. */
   default: None
   /**
-   * 190/463 (or `subcode`: 458, the user removed the app) on every call with the token (all
-   * tokens when omitted); `debug_token` says invalid, with the same subcode.
+   * 190/463 (or `subcode`: 458, the user removed the app; 460, a system user token revoked in
+   * the Business Manager, recorded on 2026-11-12) on every call with the token (all tokens when
+   * omitted), with HTTP 401; `debug_token` says invalid, with the same subcode.
    */
   token_expired: { token?: string; subcode?: 458 | 460 | 463 | 467 }
   /** The permission drops out of `debug_token` and `me/permissions`; calls on `path` answer `code`. */
