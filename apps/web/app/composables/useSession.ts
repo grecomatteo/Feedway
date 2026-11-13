@@ -35,7 +35,7 @@ export function useSession() {
     if (local !== me.theme) colorMode.preference = me.theme
   }
 
-  /** The agency and context kept for «Il mio account» belong to the person who leaves. */
+  /** The agency and context kept for the personal settings belong to the person who leaves. */
   const agencySlug = useState<string>('agency-slug', () => '')
   const agencyContext = useState('agency-context', () => ({ slug: '', context: {} }))
   function forgetAgency() {

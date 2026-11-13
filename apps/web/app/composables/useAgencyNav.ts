@@ -2,7 +2,8 @@
  * The agency's menu: only what the person may use, and only what exists in this stage. `link`
  * carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
  * current page. `inUserMenu` entries are opened rarely: they live in the user's menu, not in the
- * sidebar (Matteo, 13/11: activity log, settings, privacy).
+ * sidebar (Matteo, 13/11: activity log, privacy). The agency's settings open from «Impostazioni»,
+ * with the person's own.
  */
 export function useAgencyNav() {
   const org = useOrganization()
@@ -22,13 +23,6 @@ export function useAgencyNav() {
         to: org.to('/registro'),
         label: 'agency.nav.audit',
         icon: 'i-lucide-scroll-text',
-        inUserMenu: true,
-      })
-    if (may.viewSettings)
-      list.push({
-        to: org.to('/impostazioni'),
-        label: 'agency.nav.settings',
-        icon: 'i-lucide-settings',
         inUserMenu: true,
       })
     list.push({

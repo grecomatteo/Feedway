@@ -9,7 +9,7 @@ const route = useRoute()
 const current = (to: string) =>
   to === org.to() ? route.path === to : route.path === to || route.path.startsWith(`${to}/`)
 const me = computed(() => org.me.value)
-// «Il mio account» shows the agency's menu too, but has no client context of its own
+// the personal settings (`/account/*`) show the agency's menu too, but have no client context of its own
 const inAgency = computed(() => Boolean(route.params['org']))
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()

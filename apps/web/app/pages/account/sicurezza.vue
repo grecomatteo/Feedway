@@ -183,16 +183,13 @@ const regenerateCodes = () =>
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('account.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="me" class="text-(--app-text-muted)">
         <span :title="me.name">{{ me.displayName }}</span
         >, {{ me.email }}
       </p>
-    </header>
-
-    <AccountTabs />
+    </template>
 
     <p v-if="!factors && !error" role="status">
       {{ $t('account.loading') }}
@@ -429,5 +426,5 @@ const regenerateCodes = () =>
         @done="reauthDone"
       />
     </template>
-  </div>
+  </SettingsShell>
 </template>

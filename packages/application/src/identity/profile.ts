@@ -53,7 +53,7 @@ function checked(input: ProfileInput): ProfileFields {
 }
 
 /**
- * "Il mio account": name, nickname, theme and time zone. Only what changed is written; the
+ * The personal settings ("Impostazioni"): name, nickname, theme and time zone. Only what changed is written; the
  * personal activity log names the fields, never their values.
  */
 export async function updateProfile(

@@ -19,7 +19,7 @@ export function useOrganization() {
   const session = useSession()
 
   const me = computed(() => (session.view.value.state === 'active' ? session.view.value.me : null))
-  // Outside the agency's pages («Il mio account»), the agency of the sidebar is the last one
+  // Outside the agency's pages (the personal settings, `/account/*`), the agency of the sidebar is the last one
   // visited in this tab, else the person's last one, else their only one.
   const remembered = useState<string>('agency-slug', () => '')
   const slug = computed(() => {

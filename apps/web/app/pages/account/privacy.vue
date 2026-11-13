@@ -12,16 +12,13 @@ const signedOut = computed(() => error.value?.statusCode === 401)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('account.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="me" class="text-(--app-text-muted)">
         <span :title="me.name">{{ me.displayName }}</span
         >, {{ me.email }}
       </p>
-    </header>
-
-    <AccountTabs />
+    </template>
 
     <p v-if="signedOut" role="alert" class="flex items-center gap-2 text-(--app-danger)">
       <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
@@ -31,5 +28,5 @@ const signedOut = computed(() => error.value?.statusCode === 401)
       <DataExportPanel :me="me ?? null" />
       <AccountDeletionPanel :me="me ?? null" />
     </template>
-  </div>
+  </SettingsShell>
 </template>

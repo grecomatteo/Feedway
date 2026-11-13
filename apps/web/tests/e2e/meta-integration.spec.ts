@@ -38,7 +38,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await addDataKey(org)
   await page.goto(`/${org}/impostazioni`)
   await page
-    .getByRole('navigation', { name: 'Sezioni delle impostazioni' })
+    .getByRole('navigation', { name: 'Impostazioni' })
     .getByRole('link', { name: 'Integrazioni' })
     .click()
   await expect(page.getByRole('heading', { name: 'Meta', exact: true })).toBeVisible()

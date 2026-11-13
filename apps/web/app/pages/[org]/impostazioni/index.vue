@@ -15,7 +15,7 @@ const { t } = useI18n()
 const { call, failure } = useApi()
 const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
 
-useHead({ title: () => t('orgSettings.title') })
+useHead({ title: () => t('orgSettings.tabs.general') })
 if (!org.may.value.viewSettings) throw createError({ statusCode: 404, statusMessage: 'Not Found' })
 
 const { data, status, error, refresh } = useFetch<Settings>(() => org.api('/settings'), {
@@ -94,14 +94,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('orgSettings.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="!org.may.value.editSettings" class="text-(--app-text-muted)">
         {{ $t('orgSettings.ownerOnly') }}
       </p>
-    </header>
-    <SettingsTabs />
+    </template>
 
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
@@ -201,5 +199,5 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
       </fieldset>
     </form>
     <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
-  </div>
+  </SettingsShell>
 </template>

@@ -64,10 +64,21 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 ## Menu dell'utente (13 novembre 2026, Matteo)
 
 - In fondo alla barra laterale una riga sola: foto, nome e sotto, in piccolo, «Ruolo · Agenzia». Nessuna freccia: al passaggio del mouse la riga si scurisce appena (`nav-hover`).
-- Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Il mio account»; le pagine dell'agenzia che si aprono di rado, «Registro attività», «Impostazioni» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
-- Niente selettore a tre segmenti per il tema (Matteo, 13/11: «non mi piace proprio»). «Automatico» si sceglie in «Il mio account» → Preferenze.
+- Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Impostazioni»; le pagine dell'agenzia che si aprono di rado, «Registro attività» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
+- Niente selettore a tre segmenti per il tema (Matteo, 13/11: «non mi piace proprio»). «Automatico» si sceglie in «Impostazioni» → Profilo e preferenze.
 - Sul telefono la foto in alto a destra apre lo stesso menu dal basso, a tutta larghezza.
-- «Il mio account» resta dentro la barra dell'agenzia.
+- «Impostazioni» resta dentro la barra dell'agenzia.
+
+## Impostazioni (13 novembre 2026, Matteo; tappa 4, Task 2)
+
+- Una sola voce «Impostazioni» nel menu dell'utente, al posto di «Il mio account» e delle impostazioni dell'agenzia. Apre sempre «Profilo e preferenze», anche per chi non ha agenzie.
+- Un guscio comune (`SettingsShell`): titolo «Impostazioni», sotto il nome e l'email (o «Solo l'Owner può cambiarle.» nelle schede dell'agenzia), poi due gruppi di schede:
+  - «Il tuo account»: Profilo e preferenze, Sicurezza, Dispositivi, Privacy;
+  - «Agenzia · <nome>»: Generali, Integrazioni, solo per Owner e Admin (`organization.settings.view`) dell'agenzia attiva o ricordata.
+- Computer (da 1024 px): i gruppi sono una colonna a sinistra da 12rem, la scheda attiva su `brand-soft`. Sotto i 1024 px i gruppi stanno sopra il contenuto, in riquadri `surface-sunken`; sul telefono le schede sono in due colonne, così nessuna va a capo da sola.
+- Gli indirizzi non cambiano (`/account/*`, `/<agenzia>/impostazioni/*`): i link delle email continuano a funzionare.
+- Sul telefono il quinto posto della barra in basso è «Impostazioni» (ingranaggio), acceso anche nelle schede dell'agenzia.
+- La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil. Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
 
 ## Email transazionali (26 ottobre 2026)
 

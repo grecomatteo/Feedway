@@ -964,7 +964,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 ### 12.3 Canali e preferenze
 
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
-- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Il mio account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
+- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Impostazioni" → "Il tuo account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
 - **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
 - **Preferenze per utente**: canali e livello minimo per ogni tipo di evento; "tutto ovunque" per i test.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
@@ -1167,9 +1167,9 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Account social | Admin | Stato, quota, "Aggiungi account", assegnazione agli spazi |
 | Utenti | Admin; Manager per inviti nei propri spazi | Inviti, ruoli, disattivazione nell'agenzia, reset (solo utenti della sola agenzia) |
 | Registro attività | Admin; Manager per il proprio spazio | Filtri per utente, azione, data, origine |
-| Impostazioni | Owner; Admin in sola lettura | Integrazioni, brand, 2FA obbligatoria, conservazione file dell'organizzazione |
+| Impostazioni → Agenzia | Owner; Admin in sola lettura | Integrazioni, brand, 2FA obbligatoria, conservazione file dell'organizzazione |
 | Piattaforma | Amministratore della piattaforma | Nella 1.0: sezione **Integrazioni** nel pannello (valori predefiniti di email e Telegram, sorveglianza esterna), visibile solo a lui; organizzazioni e limiti da comando. Nella 2.0: anche organizzazioni, limiti, uso e sospensione dal pannello |
-| Il mio account | tutti | Nome, soprannome, foto, email, passkey, password, 2FA, dispositivi collegati, Telegram, notifiche, tema, "Scarica i miei dati", "Elimina il mio account" (§10.5) |
+| Impostazioni → Il tuo account | tutti | Nome, soprannome, foto, email, passkey, password, 2FA, dispositivi collegati, Telegram, notifiche, tema, "Scarica i miei dati", "Elimina il mio account" (§10.5) |
 | Privacy | tutti, anche senza accesso | Informativa dell'agenzia (§15.7) |
 | Calendario condiviso | clienti, senza login | §11.10, con "Stampa o salva PDF" |
 
