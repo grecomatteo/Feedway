@@ -112,12 +112,13 @@ const {
   lazy: true,
 })
 
-/** The connections, with how many of the loaded accounts each one carries. */
+/** The connections, with how many of the loaded accounts each one carries, active or not. */
 const connections = computed(() =>
-  (connectionList.value?.items ?? []).map((c) => ({
-    ...c,
-    accounts: items.value.filter((a) => a.connection?.id === c.id).length,
-  })),
+  (connectionList.value?.items ?? []).map((c) => {
+    const mine = items.value.filter((a) => a.connection?.id === c.id)
+    const inactive = mine.filter((a) => !a.active).length
+    return { ...c, accounts: mine.length - inactive, inactive }
+  }),
 )
 
 function stateOf(a: AccountItem): {
@@ -133,6 +134,8 @@ function stateOf(a: AccountItem): {
   return { key: 'ok', color: 'success' }
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
+const reactivable = (a: AccountItem) =>
+  a.connection?.kind === 'meta_system_user' && !broken(a.connection.status)
 
 /**
  * «Sincronizza»: one sync of a connection every few minutes (the server's limit). After a click,
@@ -259,7 +262,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
               <p class="text-sm text-(--app-text-muted)">
                 <template v-if="nextCursor === null">
-                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts) }}
+                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts)
+                  }}<template v-if="c.inactive > 0"
+                    >,
+                    {{
+                      $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive)
+                    }}</template
+                  >
                   ·
                 </template>
                 <span :class="broken(c.status) ? 'text-(--app-danger)' : undefined">{{
@@ -361,6 +370,17 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                     "
                   >
                     {{ a.healthMessage }}
+                  </p>
+                  <p v-if="!a.active" class="text-sm text-(--app-text-muted)">
+                    <!-- only a working system user can find it again from «Aggiungi account» -->
+                    <template v-if="reactivable(a)">
+                      {{ $t('socialAccounts.inactiveWhy') }}
+                      <NuxtLink :to="org.to('/account/aggiungi')" class="underline">{{
+                        $t('addAccount.search')
+                      }}</NuxtLink
+                      >.
+                    </template>
+                    <template v-else>{{ $t('socialAccounts.inactiveOther') }}</template>
                   </p>
                   <p v-if="a.quota" class="text-sm text-(--app-text-muted)">
                     {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}
