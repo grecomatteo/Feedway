@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const org = useOrganization()
-const nav = useAgencyNav()
+const allNav = useAgencyNav()
+const nav = computed(() => allNav.value.filter((item) => !item.inUserMenu))
 const context = useContextQuery()
 useRememberAgency()
 const session = useSession()

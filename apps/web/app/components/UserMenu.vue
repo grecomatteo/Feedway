@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
  * The signed-in person at the bottom of the sidebar (`row`) or as a photo in the phone's top bar
- * (`avatar`). One click opens their menu: «Il mio account», the theme, the other agencies, «Esci».
+ * (`avatar`). One click opens their menu: «Il mio account», the rarely used agency pages, the
+ * other agencies, «Esci» and the theme.
  * On a phone it opens from the bottom, full width.
  */
 const props = withDefaults(defineProps<{ variant?: 'row' | 'avatar' }>(), { variant: 'row' })
-
-type ThemeChoice = 'light' | 'dark' | 'system'
 
 const org = useOrganization()
 const session = useSession()
@@ -29,14 +28,14 @@ const subtitle = computed(() =>
 const otherAgencies = computed(
   () => (me.value?.organizations.filter((o) => o.status === 'active').length ?? 0) > 1,
 )
-const themes: { value: ThemeChoice; icon: string; label: string }[] = [
-  { value: 'light', icon: 'i-lucide-sun', label: 'theme.light' },
-  { value: 'dark', icon: 'i-lucide-moon', label: 'theme.dark' },
-  { value: 'system', icon: 'i-lucide-monitor', label: 'theme.system' },
-]
+// the agency pages opened rarely, only with an agency of the person's
+const nav = useAgencyNav()
+const links = computed(() => (org.active.value ? nav.value.filter((item) => item.inUserMenu) : []))
+const dark = computed(() => colorMode.value === 'dark')
 
-/** The theme changes at once, without closing the menu; the profile keeps it. */
-function chooseTheme(value: ThemeChoice) {
+/** Light ↔ dark at once, without closing the menu; the profile keeps it. */
+function toggleTheme() {
+  const value = dark.value ? 'light' : 'dark'
   colorMode.preference = value
   void session.saveTheme(value)
 }
@@ -61,21 +60,17 @@ function focusAt(index: number) {
   if (list.length === 0) return
   list[(index + list.length) % list.length]?.focus()
 }
-/** Up and down go through every entry; left and right stay among the theme choices. */
+/** Up and down (and left and right on the last row) go through every entry. */
 function onKey(event: KeyboardEvent) {
   const list = items()
   const at = list.indexOf(document.activeElement as HTMLElement)
-  const inThemes = document.activeElement?.getAttribute('role') === 'menuitemradio'
   const move: Record<string, () => void> = {
     ArrowDown: () => focusAt(at + 1),
     ArrowUp: () => focusAt(at - 1),
     Home: () => focusAt(0),
     End: () => focusAt(list.length - 1),
-  }
-  if (inThemes) {
-    const first = list.findIndex((el) => el.getAttribute('role') === 'menuitemradio')
-    move['ArrowRight'] = () => focusAt(first + ((at - first + 1) % themes.length))
-    move['ArrowLeft'] = () => focusAt(first + ((at - first + themes.length - 1) % themes.length))
+    ArrowRight: () => focusAt(at + 1),
+    ArrowLeft: () => focusAt(at - 1),
   }
   const action = move[event.key]
   if (!action) return
@@ -120,12 +115,12 @@ const close = () => (open.value = false)
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
             :me="me"
-            :themes="themes"
-            :theme="colorMode.preference as ThemeChoice"
+            :links="links"
+            :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"
             :leave-failed="leaveFailed"
-            @theme="chooseTheme"
+            @toggle-theme="toggleTheme"
             @navigate="close"
             @sign-out="signOut"
           />
@@ -152,12 +147,12 @@ const close = () => (open.value = false)
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
             :me="me"
-            :themes="themes"
-            :theme="colorMode.preference as ThemeChoice"
+            :links="links"
+            :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"
             :leave-failed="leaveFailed"
-            @theme="chooseTheme"
+            @toggle-theme="toggleTheme"
             @navigate="close"
             @sign-out="signOut"
           />

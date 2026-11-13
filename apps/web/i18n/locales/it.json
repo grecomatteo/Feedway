@@ -1165,6 +1165,8 @@
   "userMenu": {
     "label": "Il tuo account",
     "open": "Menu di {name}",
-    "otherAgency": "Cambia agenzia"
+    "otherAgency": "Cambia agenzia",
+    "toDark": "Passa al tema scuro",
+    "toLight": "Passa al tema chiaro"
   }
 }
