@@ -27,8 +27,8 @@ Si scrivono insieme al codice che descrivono, così non restano mai indietro:
 | `runbooks/primo-accesso-e-nuova-agenzia.md` | 2 |
 | [`runbooks/email-di-sistema.md`](runbooks/email-di-sistema.md) | 2 |
 | [`privacy/registro-trattamenti.md`](privacy/registro-trattamenti.md); l'informativa è la pagina Privacy del pannello, generata dal codice | 2 |
-| `runbooks/rotazione-token-meta.md` | 3 |
-| `runbooks/meta-collegamento-account.md` | 3 |
+| [`runbooks/rotazione-token-meta.md`](runbooks/rotazione-token-meta.md) | 3 |
+| [`runbooks/meta-collegamento-account.md`](runbooks/meta-collegamento-account.md) | 3 |
 | [`runbooks/violazione-dati.md`](runbooks/violazione-dati.md) | 2 (anticipato) |
 | `runbooks/ripristino-backup.md`, `runbooks/incidenti.md` | 11 |
 | `CHANGELOG.md` (alla radice) | Generato da release-please a ogni rilascio |
