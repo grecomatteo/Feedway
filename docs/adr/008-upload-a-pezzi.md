@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Accettata (Matteo, 2026-10-15) |
+| **Stato** | Accettata (Matteo, 2026-10-15); completata da ADR 021 |
 | **Data** | 2026-10-15 |
 | **Specifica** | v9 |
 

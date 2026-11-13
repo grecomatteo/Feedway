@@ -11,7 +11,7 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [005](005-host-pubblico-separato.md) | Host pubblico separato dal pannello | Accettata (Matteo, 2026-10-15) |
 | [006](006-api-first.md) | API-first: ogni funzione è un caso d'uso esposto da /api/v1 | Accettata (Matteo, 2026-10-15) |
 | [007](007-segreti-cifrati-nel-database.md) | Segreti delle integrazioni cifrati nel database | Accettata (Matteo, 2026-10-15) |
-| [008](008-upload-a-pezzi.md) | Upload a pezzi da 20 MB | Accettata (Matteo, 2026-10-15) |
+| [008](008-upload-a-pezzi.md) | Upload a pezzi da 20 MB | Accettata (Matteo, 2026-10-15); completata da ADR 021 |
 | [009](009-organizzazioni-in-un-solo-database.md) | Più organizzazioni in un solo database | Accettata (Matteo, 2026-10-15) |
 | [010](010-versioni-runtime.md) | Versioni di base: Node 24, Nuxt 4, TypeScript 6.0 | Accettata (Matteo, 2026-10-15) |
 | [011](011-identificativi-neutri.md) | Identificativi tecnici neutri | Accettata (Matteo, 2026-10-15) |
@@ -24,4 +24,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [018](018-niente-filtro-xss-sugli-input.md) | Niente filtro anti-XSS sugli input: la difesa sta in uscita | Accettata (Matteo, 2026-10-30) |
 | [019](019-modulo-piattaforma.md) | Confini del modulo piattaforma: `accounts` generico e `platforms/meta` | Accettata (Matteo, 2026-11-03) |
 | [020](020-accesso-unificato-meta.md) | Accesso unificato di Meta al posto dei login Facebook e Instagram (modifica alcuni punti di ADR 015 e 019) | Proposta |
-| [021](021-storage-a-oggetti-e-caricamento-a-pezzi.md) | Storage a oggetti (client S3) e caricamento a pezzi: protocollo, pezzi sul disco del web, conversioni a turno tra le agenzie (completa ADR 008) | Proposta |
+| [021](021-storage-a-oggetti-e-caricamento-a-pezzi.md) | Storage a oggetti (client S3) e caricamento a pezzi: protocollo, pezzi sul disco del web, conversioni a turno tra le agenzie (completa ADR 008) | Accettata (Matteo, 2026-11-13) |

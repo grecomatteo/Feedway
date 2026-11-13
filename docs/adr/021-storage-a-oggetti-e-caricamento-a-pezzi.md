@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Stato** | Proposta |
+| **Stato** | Accettata (Matteo, 2026-11-13) |
 | **Data** | 2026-11-13 |
 | **Specifica** | v9, §6.5, §9.2, §11.1, §16.1, §16.2, §16.6; piano 04, Scelte 3, 4 e 7 |
-| **Rapporto con ADR 008** | La completa: ADR 008 (caricamento a pezzi da 20 MB) resta valida, e questa ADR fissa protocollo, posizione dei pezzi e verifica dell'impronta. I «20 MB» di ADR 008 diventano 20 MiB. Quando questa ADR è accettata, lo stato di ADR 008 diventa «Accettata; completata da ADR 021» |
+| **Rapporto con ADR 008** | La completa: ADR 008 (caricamento a pezzi da 20 MB) resta valida, e questa ADR fissa protocollo, posizione dei pezzi e verifica dell'impronta. I «20 MB» di ADR 008 diventano 20 MiB. Lo stato di ADR 008 diventa «Accettata; completata da ADR 021» |
 
 ## Contesto
 La tappa 4 porta foto e video fino a 300 MB, caricati spesso dal telefono su reti che cadono (ADR 008). In produzione i file restano sul disco della VPS, dietro la porta `Storage`. Il piano generale chiede però che il passaggio a uno storage a oggetti (Cloudflare R2) sia solo configurazione, provato nei test contro Garage (`docs/stack.md`).
@@ -56,7 +56,7 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - Il lavoro accodato al completamento porta `organizationId` e `mediaId`, ma serve da sveglia. **Ogni lavoro elabora un solo media**, così la sua durata non cresce con la coda:
   - chi non prende il lock finisce subito senza errore;
   - chi lo prende sceglie il prossimo media in `processing` dall'agenzia servita meno di recente e, dentro l'agenzia, il più vecchio. Lo elabora, libera il lock e, se resta un media in `processing`, accoda una nuova sveglia.
-- La scelta attraversa le agenzie, quindi è una lettura di sistema: una sola funzione, che restituisce solo identificativi, entra nella regola ESLint di `runAsSystem`. L'elaborazione di ogni media gira poi in `uow.run({ organizationId })`. **Il piano dice che solo `media.uploads_cleanup` attraversa le agenzie: questa è una seconda eccezione, da approvare con questa ADR.**
+- La scelta attraversa le agenzie, quindi è una lettura di sistema: una sola funzione, che restituisce solo identificativi, entra nella regola ESLint di `runAsSystem`. L'elaborazione di ogni media gira poi in `uow.run({ organizationId })`. **Il piano dice che solo `media.uploads_cleanup` attraversa le agenzie: questa è una seconda eccezione, approvata da Matteo con questa ADR.**
 - Il controllo dei media rimasti si fa dopo aver liberato il lock. Così non si perde un file la cui sveglia è arrivata mentre il lock era preso. Se il worker cade a metà, pg-boss fa scadere il lavoro e lo riprova.
 - `MEDIA_CONVERSIONS_PER_ORG` (predefinita 1) serve solo se un giorno la concorrenza globale sale.
 
