@@ -2,7 +2,14 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
 import { connectedAgency } from './support/meta.ts'
-import { addPerson, newPerson, ownAddress, signIn, signInWithTotp } from './support/people.ts'
+import {
+  addPerson,
+  adminQuery,
+  newPerson,
+  ownAddress,
+  signIn,
+  signInWithTotp,
+} from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -53,10 +60,20 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
 
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   await expect(connections).toContainText('Utente di sistema Meta')
-  await connections.getByRole('button', { name: 'Sincronizza' }).click()
+  const sync = connections.getByRole('button', { name: 'Sincronizza' })
+  await sync.click()
   await expect(connections.getByRole('status')).toContainText('Sincronizzazione avviata')
-  await connections.getByRole('button', { name: 'Sincronizza' }).click()
-  await expect(connections.getByRole('alert')).toContainText('Hai già sincronizzato')
+  // one sync every 5 minutes: the button waits too, and says for how long
+  // the countdown is not in the live region: it would be read again every minute
+  await expect(connections).toContainText('Puoi sincronizzare di nuovo tra 5 minuti')
+  await expect(connections.getByRole('status')).not.toContainText('Puoi sincronizzare')
+  await expect(sync).toBeDisabled()
+  // a page opened again does not know: the server's answer says how long is left
+  await page.reload()
+  await sync.click()
+  await expect(connections.getByRole('status')).toContainText('Hai già sincronizzato')
+  await expect(connections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
+  await expect(sync).toBeDisabled()
 
   await connections.getByRole('button', { name: 'Sostituisci token' }).click()
   const dialog = page.getByRole('dialog', { name: 'Sostituisci token' })
@@ -79,6 +96,48 @@ test('social accounts: a system user without accounts yet is listed as waiting',
   await expect(connections).toContainText('Utente di sistema Meta')
   await expect(connections).toContainText('in attesa dei primi account')
   await expect(page.getByText('Nessun account collegato')).toBeVisible()
+})
+
+test('social accounts: an inactive account says why, and a dead token says it plainly', async ({
+  page,
+}) => {
+  const owner = await newPerson('Olga Inattivo', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await connectedAgency(page.request, org)
+  const [total] = await adminQuery<{ n: number }>(
+    'select count(*)::int as n from social_accounts where organization_id = $1',
+    [org],
+  )
+  // Meta no longer hands the agency's own Instagram to the system user
+  await adminQuery(
+    "update social_accounts set active = false where organization_id = $1 and external_id = $2 and platform = 'instagram'",
+    [org, META_MOCK.instagram.agencyOnly],
+  )
+
+  await page.goto(`/${org}/account`)
+  const connections = page.getByRole('region', { name: 'Collegamenti' })
+  // only the active accounts count; the inactive one is named apart
+  await expect(connections).toContainText(`${String((total?.n ?? 0) - 1)} account, 1 inattivo`)
+  const inactive = page.getByTestId(`account-${META_MOCK.instagram.agencyOnly}`)
+  await expect(inactive).toContainText('Inattivo')
+  await expect(inactive).toContainText("Non è più assegnato all'utente di sistema su Meta")
+  await expect(inactive.getByRole('link', { name: 'Cerca nuovi account' })).toHaveAttribute(
+    'href',
+    `/${org}/account/aggiungi`,
+  )
+
+  // a revoked token answers like an expired one (190): the text does not guess which
+  await adminQuery("update account_connections set status = 'expired' where organization_id = $1", [
+    org,
+  ])
+  await page.reload()
+  await expect(connections).toContainText('il token non vale più (revocato o scaduto): ricollega')
+  // a dead connection cannot find it again: no advice that leads nowhere
+  await expect(inactive).toContainText('Meta non lo dà più a questo collegamento')
+  await expect(inactive.getByRole('link', { name: 'Cerca nuovi account' })).toHaveCount(0)
+  await expect(connections).not.toContainText('token scaduto')
+  expect((await axe(page)).violations).toEqual([])
 })
 
 test('social accounts: an admin manages them, a member never sees them', async ({ page }) => {

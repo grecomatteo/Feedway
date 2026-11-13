@@ -294,6 +294,51 @@ test('"Prova": marks verified_at with the stored app, says when nothing is set o
   })
 })
 
+test('"Prova" refused by Meta: the app turns red until a test or a save works (D-1)', async () => {
+  await save(APP)
+  const view = async () => getMetaIntegration(deps, owner)
+  expect((await view())?.rejectedAt).toBeNull()
+  // the secret was reset on Meta: the stored one no longer works
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  expect(await testMetaIntegration(deps, owner, { ip: IP })).toEqual({
+    ok: false,
+    result: 'rejected',
+  })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  expect((await view())?.verifiedAt).toBeNull()
+  // Meta not answering says nothing about the app: the red stays
+  mock.scenario('html_5xx', { path: '/debug_token' })
+  await testMetaIntegration(deps, owner, { ip: IP })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  // it works again: green
+  mock.scenario('default')
+  expect((await testMetaIntegration(deps, owner, { ip: IP })).ok).toBe(true)
+  expect((await view())?.rejectedAt).toBeNull()
+  expect((await view())?.verifiedAt).toBeInstanceOf(Date)
+
+  // settings saved again (tried by Meta) clear it too
+  mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  await testMetaIntegration(deps, owner, { ip: IP })
+  expect((await view())?.rejectedAt).toBeInstanceOf(Date)
+  mock.scenario('default')
+  await save({ ...APP, configId: META_MOCK.app.configId })
+  expect((await view())?.rejectedAt).toBeNull()
+})
+
+test('a refusal of settings replaced while Meta answered does not mark the new ones (D-1)', async () => {
+  await save(APP)
+  duringVerify = async () => {
+    duringVerify = null
+    await save({ appId: APP.appId, businessId: '4000000000000001' })
+    // Meta then refuses the settings read before the save
+    mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  }
+  await testMetaIntegration(deps, owner, { ip: IP }).catch(() => undefined)
+  const after = await getMetaIntegration(deps, owner)
+  expect(after?.businessId).toBe('4000000000000001')
+  expect(after?.rejectedAt).toBeNull()
+})
+
 test('the activity entries hold field names and outcomes, never a secret', async () => {
   await save(APP)
   await save({ appId: APP.appId, appSecret: 'segreto-sbagliato' }).catch(() => undefined)

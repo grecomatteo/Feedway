@@ -14,6 +14,7 @@ export function metaIntegrationDto(view: MetaIntegrationView) {
     businessId: view.businessId,
     dataUseCheckupDueOn: view.dataUseCheckupDueOn,
     verifiedAt: view.verifiedAt?.toISOString() ?? null,
+    rejectedAt: view.rejectedAt?.toISOString() ?? null,
     updatedAt: view.updatedAt.toISOString(),
   }
 }

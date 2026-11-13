@@ -1,0 +1,1 @@
+ALTER TABLE "integrations" ADD COLUMN "rejected_at" timestamp with time zone;

@@ -894,6 +894,8 @@
     "notConfigured": "Da configurare",
     "notVerified": "Da provare",
     "verified": "Funziona",
+    "rejected": "Non funziona",
+    "rejectedAt": "Meta l'ha rifiutata il {when}: aggiorna App ID o App Secret.",
     "updatedAt": "Ultima modifica: {when}.",
     "verifiedAt": "Meta l'ha accettata il {when}.",
     "emptyTitle": "L'app Meta non è ancora configurata",
@@ -933,15 +935,19 @@
       "meta_business_login": "Accesso con Facebook o Instagram"
     },
     "connectionAccounts": "{n} account | {n} account",
+    "connectionInactive": "{n} inattivo | {n} inattivi",
+    "inactiveOther": "Meta non lo dà più a questo collegamento, quindi non pubblica.",
+    "inactiveWhy": "Non è più assegnato all'utente di sistema su Meta, quindi non pubblica. Per riattivarlo assegnalo di nuovo su Meta, poi da «Aggiungi account» premi",
     "connectionStatus": {
       "pending": "in attesa dei primi account",
       "active": "funziona",
-      "expired": "token scaduto: va ricollegato",
+      "expired": "il token non vale più (revocato o scaduto): ricollega",
       "revoked": "accesso tolto: va ricollegato"
     },
     "sync": "Sincronizza",
     "syncQueued": "Sincronizzazione avviata: nomi, stato e quota si aggiornano tra poco.",
-    "syncTooSoon": "Hai già sincronizzato questo collegamento da poco: riprova tra qualche minuto.",
+    "syncAgainIn": "Puoi sincronizzare di nuovo tra {n} minuto. | Puoi sincronizzare di nuovo tra {n} minuti.",
+    "syncTooSoon": "Hai già sincronizzato questo collegamento da poco.",
     "replaceToken": "Sostituisci token",
     "reconnect": "Ricollega",
     "tokenDone": {
@@ -1092,6 +1098,7 @@
     "title": "Da sistemare su Meta",
     "today": "oggi",
     "inDays": "tra {n} giorno | tra {n} giorni",
+    "appRejected": "Meta non accetta più l'App ID o l'App Secret dell'agenzia: aggiornali in Impostazioni → Integrazioni → Meta.",
     "graphSunset": "Meta ritira la versione {version} della Graph API il {date} ({when}): aggiorna Feedway prima di allora.",
     "graphRetired": "Meta ha ritirato la versione {version} della Graph API il {date}: aggiorna Feedway, le chiamate possono smettere di funzionare.",
     "checkupDue": "Il Data Use Checkup dell'app Meta scade il {date} ({when}): completalo nella dashboard dell'app.",
