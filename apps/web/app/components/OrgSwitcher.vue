@@ -1,9 +1,13 @@
 <script setup lang="ts">
 // the menu opens only once the page runs in the browser: a click before that would be lost
 const ready = useHydrated()
-/** The person's other agencies, only when they have more than one. */
+/**
+ * The agency at the top of the sidebar: its tile (initials until the logo arrives) and its name.
+ * With more than one agency the row opens the list; no arrows, a light background on hover.
+ */
 const org = useOrganization()
 const others = computed(() => org.me.value?.organizations ?? [])
+const name = computed(() => org.organization.value?.name ?? '')
 const items = computed(() =>
   others.value.map((o) => ({
     label: o.name,
@@ -12,22 +16,27 @@ const items = computed(() =>
     onSelect: () => navigateTo(`/${o.slug}`),
   })),
 )
+const row = 'flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-start'
 </script>
 
 <template>
-  <UDropdownMenu v-if="others.length > 1" :items="items">
-    <UButton
+  <UDropdownMenu v-if="others.length > 1" :items="items" :ui="{ content: 'min-w-60' }">
+    <button
+      type="button"
       :disabled="!ready"
-      color="neutral"
-      variant="ghost"
-      class="min-h-11 w-full justify-between"
-      trailing-icon="i-lucide-chevrons-up-down"
-      :aria-label="$t('agency.switcher')"
+      :class="[
+        row,
+        'transition-colors duration-150 hover:bg-(--app-nav-hover) aria-expanded:bg-(--app-nav-hover)',
+      ]"
     >
-      <span class="truncate">{{ org.organization.value?.name }}</span>
-    </UButton>
+      <RowAvatar :name="name" shape="square" />
+      <span class="truncate text-sm font-semibold"
+        ><span class="sr-only">{{ $t('agency.switcher') }}: </span>{{ name }}</span
+      >
+    </button>
   </UDropdownMenu>
-  <p v-else class="flex min-h-11 items-center truncate px-2.5 text-sm font-semibold">
-    {{ org.organization.value?.name }}
+  <p v-else :class="row">
+    <RowAvatar :name="name" shape="square" />
+    <span class="truncate text-sm font-semibold">{{ name }}</span>
   </p>
 </template>

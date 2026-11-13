@@ -29,6 +29,10 @@ test('security headers are present', async () => {
   expect(csp).toMatch(/script-src[^;]*'nonce-/)
   expect(csp).toContain("frame-ancestors 'none'")
   expect(csp).toContain("object-src 'none'")
+  // images: ours, plus only Meta's image hosts for the clients' photos (until stage 4 copies them)
+  expect(csp).toMatch(
+    /img-src 'self' data: blob: https:\/\/\*\.fbcdn\.net https:\/\/\*\.cdninstagram\.com(;|$)/,
+  )
   expect(r.headers.get('x-content-type-options')).toBe('nosniff')
   expect(r.headers.get('referrer-policy')).toBe('same-origin')
   expect(r.headers.get('permissions-policy')).toContain('camera=()')

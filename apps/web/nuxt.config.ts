@@ -72,7 +72,15 @@ export default defineNuxtConfig({
         'default-src': ["'self'"],
         'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],
         'style-src': ["'self'", "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:', 'blob:'],
+        // the clients' Instagram and Page photos, as Meta gives them, until they are copied to
+        // our storage (stage 4): only Meta's image hosts, and no referrer goes with them
+        'img-src': [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://*.fbcdn.net',
+          'https://*.cdninstagram.com',
+        ],
         'connect-src': ["'self'"],
         'font-src': ["'self'"],
         'frame-ancestors': ["'none'"],
