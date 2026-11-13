@@ -6,6 +6,7 @@
 const org = useOrganization()
 const route = useRoute()
 const may = computed(() => org.may.value)
+const context = useContextQuery()
 const slots = computed(() => [
   { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-house' },
   { to: org.to('/spazi'), label: 'agency.nav.workspaces', icon: 'i-lucide-briefcase' },
@@ -28,7 +29,7 @@ const current = (to: string) =>
       <li v-for="(slot, i) in slots" :key="i" class="flex">
         <NuxtLink
           v-if="slot"
-          :to="slot.to"
+          :to="slot.to === '/account' ? slot.to : { path: slot.to, query: context }"
           :aria-current="current(slot.to) ? 'page' : undefined"
           class="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-(--app-text-muted) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
         >
