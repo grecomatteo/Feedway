@@ -1,4 +1,4 @@
-import type { Auth, AvatarDeps, AvatarProcessor, Translate } from '@app/application'
+import type { Auth, AvatarDeps, AvatarProcessor, LogoDeps, Translate } from '@app/application'
 import type { WebConfig } from '@app/config'
 import type { Runtime } from '@app/infrastructure'
 
@@ -40,5 +40,17 @@ export function avatarDeps(): AvatarDeps {
     avatars: deps.avatars,
     ids: deps.ids,
     panelUrl: deps.config.panelUrl,
+  }
+}
+
+/** What the agency logo use cases need: the same image processor as the profile photo. */
+export function logoDeps(): LogoDeps {
+  const deps = useDeps()
+  return {
+    uow: deps.uow,
+    storage: deps.storage,
+    images: deps.avatars,
+    ids: deps.ids,
+    clock: deps.clock,
   }
 }

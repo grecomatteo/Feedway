@@ -19,6 +19,7 @@ import {
 import {
   drizzleInvites,
   drizzleOrganizationKeys,
+  drizzleBranding,
   drizzleOrganizations,
   drizzleOrgMembers,
 } from './organizations/repositories.js'
@@ -46,6 +47,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     organizations: drizzleOrganizations(db, ctx),
     orgMembers: drizzleOrgMembers(db),
     organizationKeys: drizzleOrganizationKeys(db),
+    branding: drizzleBranding(db, ctx),
     invites: drizzleInvites(db, ctx),
     workspaces: drizzleWorkspaces(db),
     workspaceMembers: drizzleWorkspaceMembers(db),

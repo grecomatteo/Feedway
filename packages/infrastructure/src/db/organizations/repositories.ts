@@ -1,6 +1,7 @@
 import { and, asc, count, eq, gt, isNull, or, sql, type SQL } from 'drizzle-orm'
 import { DomainError } from '@app/domain'
 import type {
+  BrandingRepository,
   InviteRecord,
   InvitesRepository,
   OrganizationKeysRepository,
@@ -11,7 +12,13 @@ import type {
 } from '@app/application'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
-import { invites, organizationKeys, organizationMembers, organizations } from './schema.js'
+import {
+  branding,
+  invites,
+  organizationKeys,
+  organizationMembers,
+  organizations,
+} from './schema.js'
 
 // Every query names the organization even though RLS already limits the rows: two barriers.
 export function drizzleOrganizationKeys(db: DbExecutor): OrganizationKeysRepository {
@@ -153,6 +160,32 @@ export function drizzleOrganizations(db: DbExecutor, ctx: TxContext): Organizati
   }
 }
 
+export function drizzleBranding(db: DbExecutor, ctx: TxContext): BrandingRepository {
+  // the switcher reads the logo through `listForUser`; here only the agency of the scope
+  const inScope = (id: string) =>
+    ctx.kind === 'system' || (ctx.kind === 'organization' && ctx.organizationId === id)
+  return {
+    async logoKey(organizationId) {
+      if (!inScope(organizationId)) return null
+      const [row] = await db
+        .select({ logoKey: branding.logoKey })
+        .from(branding)
+        .where(eq(branding.organizationId, organizationId))
+      return row?.logoKey ?? null
+    },
+    async setLogo(organizationId, change) {
+      if (!inScope(organizationId)) throw new Error('an agency changes only its own logo')
+      await db
+        .insert(branding)
+        .values({ organizationId, logoKey: change.logoKey, updatedBy: change.updatedBy })
+        .onConflictDoUpdate({
+          target: branding.organizationId,
+          set: { logoKey: change.logoKey, updatedBy: change.updatedBy, updatedAt: sql`now()` },
+        })
+    },
+  }
+}
+
 const memberColumns = {
   organizationId: organizationMembers.organizationId,
   userId: organizationMembers.userId,
@@ -176,9 +209,11 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
           slug: organizations.slug,
           organizationStatus: organizations.status,
           require2fa: sql<string | null>`${organizations.settings}->>'require2fa'`,
+          logoKey: branding.logoKey,
         })
         .from(organizationMembers)
         .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
+        .leftJoin(branding, eq(branding.organizationId, organizationMembers.organizationId))
         .where(eq(organizationMembers.userId, userId))
         .orderBy(organizations.name, organizations.id)
       return rows.map((row) => ({

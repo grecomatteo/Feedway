@@ -1,18 +1,44 @@
 <script setup lang="ts">
-import type { AvatarSource, Me } from '@app/contracts'
 import type { ApiFailure } from '~/composables/useApi'
 
 /**
- * "Foto profilo": choose or drop a photo, crop a square (by dragging, with the buttons or the
- * keyboard), see it at both sizes, save. The server removes EXIF and GPS and checks the type
- * from the bytes; the checks here only spare a useless upload.
+ * A picture of the panel: the profile photo (`round`) or the agency's logo (`square`). Choose
+ * or drop an image; a photo is cropped to a circle (by dragging, with the buttons or the
+ * keyboard), a logo is shown whole, fitted inside the square (plan 04, choice 8). Both are seen
+ * at their two sizes before saving. The server removes EXIF and GPS and checks the type from the
+ * bytes; the checks here only spare a useless upload.
  */
-const props = defineProps<{ me: Me }>()
-const emit = defineEmits<{ saved: [me: Me] }>()
+interface Source {
+  stagingId: string
+  width: number
+  height: number
+  previewUrl: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    /** The name behind the initials shown without a picture. */
+    name: string
+    /** The current picture (256 px), or null. */
+    current: string | null
+    shape?: 'round' | 'square'
+    /** Upload (POST, multipart), save (POST, with the preview's id) and remove (DELETE). */
+    routes: { upload: string; save: string; remove: string }
+    /** The i18n group of the texts: `avatar` or `logo`. */
+    texts?: 'avatar' | 'logo'
+    /** Runs each change: the logo asks for a recent reauth (`withReauth`). */
+    guard?: (action: () => Promise<void>) => Promise<void>
+  }>(),
+  { shape: 'round', texts: 'avatar', guard: (action: () => Promise<void>) => action() },
+)
+const emit = defineEmits<{ saved: [answer: unknown] }>()
 
 const { t } = useI18n()
 const { call, failure } = useApi()
 const ready = useHydrated()
+const id = useId()
+const tx = (key: string) => t(`${props.texts}.${key}`)
+const cropping = computed(() => props.shape === 'round')
 
 const MAX_BYTES = 5 * 1024 * 1024
 const MIN_CROP = 64
@@ -28,20 +54,29 @@ const done = ref<string | null>(null)
 const dragging = ref(false)
 
 /** The uploaded preview and the square on it, in the preview's own pixels. */
-const source = ref<AvatarSource | null>(null)
+const source = ref<Source | null>(null)
 const crop = reactive({ x: 0, y: 0, size: 0 })
 const open = ref(false)
 
 const busy = computed(() => uploading.value || saving.value || removing.value)
+
+/** A change through the guard; closing the reauth dialog is not an error. */
+async function guarded(action: () => Promise<void>) {
+  try {
+    await props.guard(action)
+  } catch (e) {
+    if (!(e instanceof ReauthCancelled)) problem.value = messageOf(failure(e))
+  }
+}
 
 function choose() {
   input.value?.click()
 }
 
 function precheck(file: File): string | null {
-  if (file.size > MAX_BYTES) return t('avatar.tooLarge')
+  if (file.size > MAX_BYTES) return tx('tooLarge')
   if (file.type !== '' && !/^image\//.test(file.type) && !KNOWN.test(file.name))
-    return t('avatar.wrongType')
+    return tx('wrongType')
   return null
 }
 
@@ -54,26 +89,23 @@ async function upload(file: File) {
     return
   }
   uploading.value = true
-  try {
+  await guarded(async () => {
     const form = new FormData()
     form.append('file', file, file.name)
-    const answer = await call<AvatarSource>('POST', '/api/v1/me/avatar', form)
+    const answer = await call<Source>('POST', props.routes.upload, form)
     source.value = answer
     const side = Math.min(answer.width, answer.height)
     crop.size = side
     crop.x = Math.floor((answer.width - side) / 2)
     crop.y = Math.floor((answer.height - side) / 2)
     open.value = true
-  } catch (e) {
-    problem.value = messageOf(failure(e))
-  } finally {
-    uploading.value = false
-  }
+  })
+  uploading.value = false
 }
 
 function messageOf(f: ApiFailure): string {
-  if (f.code === 'FILE_TOO_LARGE' || f.code === 'REQUEST_TOO_LARGE') return t('avatar.tooLarge')
-  if (f.code === 'UNSUPPORTED_FILE_TYPE') return t('avatar.wrongType')
+  if (f.code === 'FILE_TOO_LARGE' || f.code === 'REQUEST_TOO_LARGE') return tx('tooLarge')
+  if (f.code === 'UNSUPPORTED_FILE_TYPE') return tx('wrongType')
   return f.message
 }
 
@@ -173,6 +205,12 @@ function onPointerUp() {
   drag = null
 }
 
+/** The logo whole inside the square, as the server will fit it. */
+const fitStyle = computed(() => {
+  const s = source.value
+  return s ? { backgroundImage: `url("${s.previewUrl}")` } : {}
+})
+
 /** The square as a circle of `px` pixels: the photo moved and scaled behind it. */
 function previewStyle(px: number) {
   const s = source.value
@@ -190,37 +228,32 @@ async function save() {
   if (!s) return
   saving.value = true
   problem.value = null
-  try {
-    const me = await call<Me>('POST', '/api/v1/me/avatar/crop', {
-      stagingId: s.stagingId,
-      x: crop.x,
-      y: crop.y,
-      size: crop.size,
-    })
+  await guarded(async () => {
+    const answer = await call<unknown>(
+      'POST',
+      props.routes.save,
+      cropping.value
+        ? { stagingId: s.stagingId, x: crop.x, y: crop.y, size: crop.size }
+        : { stagingId: s.stagingId },
+    )
     open.value = false
     source.value = null
-    done.value = t('avatar.saved')
-    emit('saved', me)
-  } catch (e) {
-    problem.value = messageOf(failure(e))
-  } finally {
-    saving.value = false
-  }
+    done.value = tx('saved')
+    emit('saved', answer)
+  })
+  saving.value = false
 }
 
 async function remove() {
   removing.value = true
   problem.value = null
   done.value = null
-  try {
-    const me = await call<Me>('DELETE', '/api/v1/me/avatar')
-    done.value = t('avatar.removed')
-    emit('saved', me)
-  } catch (e) {
-    problem.value = messageOf(failure(e))
-  } finally {
-    removing.value = false
-  }
+  await guarded(async () => {
+    const answer = await call<unknown>('DELETE', props.routes.remove)
+    done.value = tx('removed')
+    emit('saved', answer)
+  })
+  removing.value = false
 }
 
 watch(open, (value) => {
@@ -231,22 +264,23 @@ watch(open, (value) => {
 
 <template>
   <section
-    aria-labelledby="account-avatar"
+    :aria-labelledby="id"
     class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
   >
-    <h2 id="account-avatar" class="text-lg">{{ $t('avatar.title') }}</h2>
+    <h2 :id="id" class="text-lg">{{ tx('title') }}</h2>
     <div
       class="flex flex-wrap items-center gap-4 rounded-lg border-2 border-dashed p-4"
       :class="dragging ? 'border-(--app-brand) bg-(--app-brand-soft)' : 'border-transparent'"
-      data-testid="avatar-drop"
+      :data-testid="`${texts}-drop`"
       @dragover.prevent="dragging = ready && !busy"
       @dragleave="dragging = false"
       @drop.prevent="onDrop"
     >
-      <UserAvatar :name="props.me.displayName" :src="props.me.avatarUrl" size="lg" />
+      <UserAvatar v-if="cropping" :name="name" :src="current" size="lg" />
+      <AgencyLogo v-else :name="name" :src="current" size="lg" />
       <div class="min-w-0 flex-1 space-y-2">
         <p class="text-sm text-(--app-text-muted)">
-          {{ dragging ? $t('avatar.dropHere') : $t('avatar.help') }}
+          {{ dragging ? tx('dropHere') : tx('help') }}
         </p>
         <div class="flex flex-wrap gap-2">
           <UButton
@@ -256,10 +290,10 @@ watch(open, (value) => {
             :disabled="!ready || busy"
             @click="choose"
           >
-            {{ $t('avatar.choose') }}
+            {{ tx('choose') }}
           </UButton>
           <UButton
-            v-if="props.me.avatarUrl"
+            v-if="current"
             class="min-h-11"
             color="neutral"
             variant="outline"
@@ -268,7 +302,7 @@ watch(open, (value) => {
             :disabled="!ready || busy"
             @click="remove"
           >
-            {{ $t('avatar.remove') }}
+            {{ tx('remove') }}
           </UButton>
         </div>
         <input
@@ -278,24 +312,24 @@ watch(open, (value) => {
           class="sr-only"
           tabindex="-1"
           aria-hidden="true"
-          data-testid="avatar-file"
+          :data-testid="`${texts}-file`"
           @change="onPicked"
         />
       </div>
     </div>
-    <p v-if="uploading" role="status">{{ $t('avatar.uploading') }}</p>
+    <p v-if="uploading" role="status">{{ tx('uploading') }}</p>
     <p v-if="problem && !open" role="alert" class="text-(--app-danger)">{{ problem }}</p>
     <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
 
     <UModal
       v-model:open="open"
-      :title="$t('avatar.cropTitle')"
-      :description="$t('avatar.cropHelp')"
+      :title="tx('cropTitle')"
+      :description="tx('cropHelp')"
       :dismissible="!saving"
     >
       <template #body>
         <div v-if="source" class="space-y-4">
-          <div class="flex justify-center">
+          <div v-if="cropping" class="flex justify-center">
             <div class="relative overflow-hidden rounded-md select-none" :style="frameStyle">
               <img
                 :src="source.previewUrl"
@@ -329,7 +363,7 @@ watch(open, (value) => {
               />
             </div>
           </div>
-          <div class="flex flex-wrap items-center justify-center gap-2">
+          <div v-if="cropping" class="flex flex-wrap items-center justify-center gap-2">
             <UButton
               color="neutral"
               variant="outline"
@@ -381,7 +415,7 @@ watch(open, (value) => {
               @click="zoom(-1)"
             />
           </div>
-          <div class="flex items-end justify-center gap-6">
+          <div v-if="cropping" class="flex items-end justify-center gap-6">
             <figure class="space-y-1 text-center">
               <div
                 class="size-32 rounded-full bg-no-repeat"
@@ -389,13 +423,35 @@ watch(open, (value) => {
                 data-testid="avatar-preview-large"
               />
               <figcaption class="text-sm text-(--app-text-muted)">
-                {{ $t('avatar.previewLarge') }}
+                {{ tx('previewLarge') }}
               </figcaption>
             </figure>
             <figure class="space-y-1 text-center">
               <div class="size-8 rounded-full bg-no-repeat" :style="previewStyle(32)" />
               <figcaption class="text-sm text-(--app-text-muted)">
-                {{ $t('avatar.previewSmall') }}
+                {{ tx('previewSmall') }}
+              </figcaption>
+            </figure>
+          </div>
+          <!-- a logo is never cropped: whole, fitted inside the square, transparency kept -->
+          <div v-else class="flex items-end justify-center gap-6">
+            <figure class="space-y-1 text-center">
+              <div
+                class="size-32 rounded-xl border border-(--app-border) bg-(--app-surface) bg-contain bg-center bg-no-repeat"
+                :style="fitStyle"
+                :data-testid="`${texts}-preview-large`"
+              />
+              <figcaption class="text-sm text-(--app-text-muted)">
+                {{ tx('previewLarge') }}
+              </figcaption>
+            </figure>
+            <figure class="space-y-1 text-center">
+              <div
+                class="size-8 rounded-md border border-(--app-border) bg-(--app-surface) bg-contain bg-center bg-no-repeat"
+                :style="fitStyle"
+              />
+              <figcaption class="text-sm text-(--app-text-muted)">
+                {{ tx('previewSmall') }}
               </figcaption>
             </figure>
           </div>
@@ -411,10 +467,10 @@ watch(open, (value) => {
             :disabled="saving"
             @click="open = false"
           >
-            {{ $t('avatar.cancel') }}
+            {{ tx('cancel') }}
           </UButton>
           <UButton class="min-h-11" :loading="saving" @click="save">
-            {{ $t('avatar.save') }}
+            {{ tx('save') }}
           </UButton>
         </div>
       </template>

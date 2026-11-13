@@ -1,7 +1,7 @@
 import sharp from 'sharp'
 import { describe, expect, test } from 'vitest'
 import { DomainError } from '@app/domain'
-import { imageFixture, jpegWithGps, pngOfSize } from './test-images.js'
+import { imageFixture, jpegWithGps, pngOfSize, transparentLogoPng } from './test-images.js'
 import { createAvatarProcessor } from './avatar-processor.js'
 import { sniffImageType } from './sniff.js'
 
@@ -128,6 +128,67 @@ describe('normalize', () => {
     await expect(processor.normalize(heic.subarray(0, 400))).rejects.toMatchObject({
       code: 'VALIDATION',
     })
+  })
+})
+
+describe('normalize with a smaller minimum side (the logo)', () => {
+  test('a narrow logo passes with minSide 16, and its transparency stays', async () => {
+    const out = await processor.normalize(await transparentLogoPng(400, 40), { minSide: 16 })
+    expect([out.width, out.height]).toEqual([400, 40])
+    const meta = await sharp(out.webp).metadata()
+    expect(meta.format).toBe('webp')
+    expect(meta.hasAlpha).toBe(true)
+  })
+
+  test('under minSide is still VALIDATION', async () => {
+    await expect(
+      processor.normalize(await pngOfSize(400, 10), { minSide: 16 }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      message: expect.stringMatching(/16 pixel/) as unknown,
+    })
+  })
+})
+
+describe('fitSquare', () => {
+  test('a wide logo fits whole inside both squares, with transparent sides', async () => {
+    const { webp } = await processor.normalize(await transparentLogoPng(600, 200), {
+      minSide: 16,
+    })
+    const out = await processor.fitSquare(webp)
+    for (const [file, side] of [
+      [out[256], 256],
+      [out[64], 64],
+    ] as const) {
+      const meta = await sharp(file).metadata()
+      expect([meta.format, meta.width, meta.height, meta.hasAlpha]).toEqual([
+        'webp',
+        side,
+        side,
+        true,
+      ])
+    }
+    const { data, info } = await sharp(out[256]).ensureAlpha().raw().toBuffer({
+      resolveWithObject: true,
+    })
+    const alphaAt = (x: number, y: number) => data[(y * info.width + x) * info.channels + 3]
+    // the corners and the bands above and below the logo are transparent; the middle is not
+    expect(alphaAt(0, 0)).toBe(0)
+    expect(alphaAt(128, 10)).toBe(0)
+    expect(alphaAt(128, 245)).toBe(0)
+    expect(alphaAt(128, 128)).toBe(255)
+    expect(out.hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  test('an opaque photo is not cropped: it fits with transparent bands', async () => {
+    const { webp } = await processor.normalize(await imageFixture('photo.jpg'))
+    const out = await processor.fitSquare(webp)
+    const { data, info } = await sharp(out[256]).ensureAlpha().raw().toBuffer({
+      resolveWithObject: true,
+    })
+    // 600×400 → 256×171: about 42 px of transparency above and below
+    expect(data[(5 * info.width + 128) * info.channels + 3]).toBe(0)
+    expect(data[(128 * info.width + 2) * info.channels + 3]).toBe(255)
   })
 })
 

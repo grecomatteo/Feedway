@@ -1,13 +1,10 @@
 <script setup lang="ts">
 /**
- * The picture at the start of a sidebar row: a client's Instagram or Page photo, round, or an
- * agency's square tile. Initials when there is no picture or it does not load (Meta's addresses
- * expire after some days).
+ * The picture at the start of a sidebar row: a client's Instagram or Page photo, round (the
+ * agency's logo is `AgencyLogo`). Initials when there is no picture or it does not load (Meta's
+ * addresses expire after some days).
  */
-const props = withDefaults(
-  defineProps<{ name: string; src?: string | null; shape?: 'round' | 'square' }>(),
-  { src: null, shape: 'round' },
-)
+const props = withDefaults(defineProps<{ name: string; src?: string | null }>(), { src: null })
 const initials = computed(() =>
   props.name
     .split(/\s+/)
@@ -23,7 +20,6 @@ watch(
     failed.value = false
   },
 )
-const radius = computed(() => (props.shape === 'square' ? 'rounded-md' : 'rounded-full'))
 </script>
 
 <template>
@@ -31,7 +27,7 @@ const radius = computed(() => (props.shape === 'square' ? 'rounded-md' : 'rounde
     v-if="src && !failed"
     :src="src"
     alt=""
-    :class="['size-8 shrink-0 bg-(--app-surface-sunken) object-cover', radius]"
+    class="size-8 shrink-0 rounded-full bg-(--app-surface-sunken) object-cover"
     width="32"
     height="32"
     aria-hidden="true"
@@ -40,13 +36,7 @@ const radius = computed(() => (props.shape === 'square' ? 'rounded-md' : 'rounde
   />
   <span
     v-else
-    :class="[
-      'inline-flex size-8 shrink-0 items-center justify-center text-xs font-semibold',
-      radius,
-      shape === 'square'
-        ? 'bg-(--app-text) text-(--app-surface)'
-        : 'bg-(--app-brand-soft) text-(--app-text)',
-    ]"
+    class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-(--app-brand-soft) text-xs font-semibold text-(--app-text)"
     aria-hidden="true"
   >
     {{ initials }}

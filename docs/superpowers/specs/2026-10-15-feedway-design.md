@@ -1093,8 +1093,9 @@ share_links         id, workspace_id, token_hash, label, created_by, options (js
 integrations        organization_id (null = predefinita della piattaforma; smtp solo
                     della piattaforma, ADR 017), kind (meta|telegram|smtp|heartbeat),
                     config (jsonb), secret_enc, key_version, updated_by, verified_at
-branding            organization_id (null = piattaforma), logo_key, primary_color,
-                    email_footer
+branding            organization_id (PK, una riga per agenzia), logo_key,
+                    updated_by; primary_color, email_footer e il branding della
+                    piattaforma arrivano con la tappa 10 (piano 04, M1)
 settings            key, value (jsonb), updated_by   (solo piattaforma)
 system_heartbeats   process, instance, last_beat_at, details (jsonb)   (solo piattaforma)
 audit_log           id, organization_id (null = piattaforma), actor_id,

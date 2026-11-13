@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
-import { seed } from '@app/infrastructure/testing'
+import { seed, transparentLogoPng } from '@app/infrastructure/testing'
 import { META_MOCK } from '@app/meta-mock'
 import { PASSWORD, startApiEnv } from '../identity-env.js'
 import type { ApiEnv, Person } from '../identity-env.js'
@@ -45,6 +45,16 @@ export interface SampleIds {
   account: string
 }
 
+/** The file of every upload route: a small logo, which the Owner's upload accepts. */
+const SAMPLE_UPLOAD = await transparentLogoPng(120, 40)
+
+/** A multipart body with one file, as the panel sends it. */
+export function uploadForm(bytes: Buffer = SAMPLE_UPLOAD, name = 'logo.png'): FormData {
+  const form = new FormData()
+  form.append('file', new Blob([new Uint8Array(bytes)], { type: 'image/png' }), name)
+  return form
+}
+
 /** A valid body for every route that takes one; checked against the route's own schema. */
 const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'POST /api/v1/auth/reauth': () => ({ password: PASSWORD }),
@@ -56,6 +66,8 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   // a preview nobody uploaded: the personal battery crops a real one of the caller
   'POST /api/v1/me/avatar/crop': () => ({ stagingId: randomUUID(), x: 0, y: 0, size: 64 }),
   'PATCH /api/v1/orgs/{org}/settings': () => ({ name: 'Agenzia della batteria' }),
+  // a preview nobody uploaded: the matrix uploads one for the Owner's case
+  'POST /api/v1/orgs/{org}/logo/confirm': () => ({ stagingId: randomUUID() }),
   // the fake Graph API's app (META_MODE=mock): the Owner's save succeeds
   'PUT /api/v1/orgs/{org}/integrations/meta': () => ({
     appId: META_MOCK.app.id,
@@ -94,6 +106,8 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
+  // a new form each time: a sent body cannot be read again
+  if (route.upload) return uploadForm()
   const schema = route.request.body
   if (!schema) return undefined
   const sample = SAMPLE_BODIES[routeKey(route)]
@@ -190,6 +204,8 @@ export function fill(path: string, values: Record<string, string>): string {
   })
 }
 
+const PLACEHOLDER_STAGING = randomUUID()
+
 /** The path values of an agency's case. */
 export const pathValues = (ids: SampleIds): Record<string, string> => ({
   org: ids.org,
@@ -199,6 +215,8 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   connectionId: ids.connection,
   accountId: ids.account,
   size: '256',
+  // a preview nobody uploaded: the matrix uploads one for the Owner's case
+  stagingId: PLACEHOLDER_STAGING,
 })
 
 export interface IsolationFixture {

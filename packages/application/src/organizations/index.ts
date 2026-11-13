@@ -10,3 +10,5 @@ export type {
   OrganizationSettingsInput,
   OrganizationsDeps,
 } from './organizations.js'
+export { confirmLogo, readLogo, readLogoStaging, removeLogo, uploadLogoSource } from './logo.js'
+export type { LogoDeps } from './logo.js'

@@ -23,5 +23,12 @@ export { waitForLockWaiter } from './locks.js'
 export { activationLinkIn } from './mail.js'
 export { startFakeSmtp } from './fake-smtp.js'
 export type { FakeSmtp, FakeSmtpMessage } from './fake-smtp.js'
-export { imageFixture, imageInfo, jpegWithGps, pngOfSize } from '../images/test-images.js'
+export {
+  alphaAt,
+  imageFixture,
+  imageInfo,
+  jpegWithGps,
+  pngOfSize,
+  transparentLogoPng,
+} from '../images/test-images.js'
 export type { ImageFixture } from '../images/test-images.js'

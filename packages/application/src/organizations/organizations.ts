@@ -1,6 +1,7 @@
 import {
   can,
   DomainError,
+  logoUrl,
   checkOrganizationName,
   checkPrivacySettings,
   storedPrivacySettings,
@@ -31,6 +32,8 @@ export interface MyOrganization {
   role: OrgRole
   /** A suspended agency is listed, so the panel can say why it does not open. */
   status: 'active' | 'suspended'
+  /** The 256 px logo in the panel; null: the initials. */
+  logoUrl: string | null
 }
 
 /** The agencies where the person has an active membership (spec §6.5, switcher). */
@@ -50,6 +53,7 @@ export async function listMyOrganizations(
         name: m.name,
         role: m.role,
         status: m.organizationStatus,
+        logoUrl: logoUrl(m.slug, m.logoKey),
       }))
   })
 }

@@ -34,6 +34,17 @@ export function pngOfSize(width: number, height: number): Promise<Buffer> {
     .toBuffer()
 }
 
+/** A wide logo on a transparent background: a dark bar with a coloured dot, no backdrop. */
+export function transparentLogoPng(width = 600, height = 200): Promise<Buffer> {
+  const n = (value: number) => String(value)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${n(width)}" height="${n(height)}">
+    <rect x="${n(width / 4)}" y="${n(height / 4)}" width="${n(width / 2)}" height="${n(height / 2)}"
+      fill="#1e2a44"/>
+    <circle cx="${n(width / 2)}" cy="${n(height / 2)}" r="${n(height / 8)}" fill="#f0c878"/>
+  </svg>`
+  return sharp(Buffer.from(svg)).png().toBuffer()
+}
+
 export type ImageFixture =
   'photo.jpg' | 'photo.png' | 'photo.webp' | 'photo.heic' | 'anim.gif' | 'image.svg' | 'doc.pdf'
 
@@ -55,14 +66,27 @@ export async function imageFixture(name: ImageFixture): Promise<Buffer> {
 }
 
 /** What a test checks of an image: its size and whether it still carries EXIF. */
-export async function imageInfo(
-  bytes: Buffer,
-): Promise<{ format: string | undefined; width: number; height: number; exif: boolean }> {
+export async function imageInfo(bytes: Buffer): Promise<{
+  format: string | undefined
+  width: number
+  height: number
+  exif: boolean
+  hasAlpha: boolean
+}> {
   const meta = await sharp(bytes).metadata()
   return {
     format: meta.format,
     width: meta.width,
     height: meta.height,
     exif: meta.exif !== undefined,
+    hasAlpha: meta.hasAlpha,
   }
+}
+
+/** The opacity (0–255) of a pixel: 255 for an image without transparency. */
+export async function alphaAt(bytes: Buffer, x: number, y: number): Promise<number> {
+  const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({
+    resolveWithObject: true,
+  })
+  return data[(y * info.width + x) * info.channels + 3] ?? -1
 }

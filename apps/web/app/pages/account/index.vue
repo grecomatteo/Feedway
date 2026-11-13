@@ -57,6 +57,11 @@ async function save(state: ReturnType<typeof formState>, body: Record<string, un
 }
 
 // ---- photo: the header shows it too, so the session is read again
+const AVATAR_ROUTES = {
+  upload: '/api/v1/me/avatar',
+  save: '/api/v1/me/avatar/crop',
+  remove: '/api/v1/me/avatar',
+}
 async function avatarSaved(value: Me) {
   me.value = value
   await session.load()
@@ -177,7 +182,12 @@ async function changeEmail() {
     </div>
 
     <template v-else-if="me">
-      <AvatarUploader :me="me" @saved="avatarSaved" />
+      <AvatarUploader
+        :name="me.displayName"
+        :current="me.avatarUrl"
+        :routes="AVATAR_ROUTES"
+        @saved="(answer) => avatarSaved(answer as Me)"
+      />
 
       <section
         aria-labelledby="account-profile"

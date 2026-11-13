@@ -1,5 +1,6 @@
 import {
   avatarUrl,
+  logoUrl,
   displayName,
   requiresSecondFactor,
   sessionSatisfiesSecondFactor,
@@ -27,6 +28,8 @@ export interface SessionUser {
     name: string
     role: OrgRole
     status: 'active' | 'suspended'
+    /** The 256 px logo in the panel; null: the initials. */
+    logoUrl: string | null
   }[]
   secondFactor: { required: boolean; totpEnabled: boolean; passkeys: number }
   /** False for an activation whose passkey never came, or an account with passkeys only. */
@@ -124,6 +127,7 @@ export async function resolveSessionUser(
         name: m.name,
         role: m.role,
         status: m.organizationStatus,
+        logoUrl: logoUrl(m.slug, m.logoKey),
       })),
       secondFactor: { required, totpEnabled: user.twoFactorEnabled, passkeys },
       hasPassword,

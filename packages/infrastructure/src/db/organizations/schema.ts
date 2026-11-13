@@ -109,3 +109,16 @@ export const invites = pgTable(
     ),
   ],
 )
+
+// The agency's look (spec §13, plan 04 M1): only the logo for now, colour and email footer come
+// with stage 10. One row per agency, created with the first logo; RLS at the end of 0010.
+export const branding = pgTable('branding', {
+  organizationId: uuid('organization_id')
+    .primaryKey()
+    .references(() => organizations.id),
+  // `org/<id>/logo/<hash>`: the files are `<key>.webp` (256 px) and `<key>-64.webp`
+  logoKey: text('logo_key'),
+  updatedBy: uuid('updated_by'),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})

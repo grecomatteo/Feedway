@@ -45,10 +45,11 @@ import {
   sampleQuery,
   secretsIn,
   startIsolationFixture,
+  uploadForm,
 } from './support/isolation-fixture.js'
 import { PASSWORD } from './identity-env.js'
 import type { ErrorJson } from './identity-env.js'
-import type { ActorRole, IsolationFixture } from './support/isolation-fixture.js'
+import type { ActorRole, IsolationFixture, SampleIds } from './support/isolation-fixture.js'
 
 let fx: IsolationFixture
 
@@ -140,6 +141,20 @@ const RULES: Record<string, readonly Rule[]> = {
   // the agency's privacy notice: every member, whatever the role
   'GET /api/v1/orgs/{org}/privacy': [{ permission: 'workspace.view', level: 'organization' }],
   'GET /api/v1/orgs/{org}/members': [{ permission: 'users.manage', level: 'organization' }],
+  // the agency's logo: only the Owner changes it (with a reauth); every member sees it
+  'POST /api/v1/orgs/{org}/logo': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'GET /api/v1/orgs/{org}/logo/staging/{stagingId}': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'POST /api/v1/orgs/{org}/logo/confirm': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'DELETE /api/v1/orgs/{org}/logo': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'GET /api/v1/orgs/{org}/logo/{size}': [{ permission: 'workspace.view', level: 'organization' }],
   // users.manage (Owner, Admin) or, inside a workspace, workspace.members.manage
   'POST /api/v1/orgs/{org}/invites': [
     { permission: 'workspace.members.manage', level: 'workspace' },
@@ -199,6 +214,41 @@ const RULES: Record<string, readonly Rule[]> = {
 
 const orgRoutes = apiRoutes.filter((r) => r.scope === 'organization')
 
+/** A logo preview of the agency, uploaded by its Owner. */
+async function logoPreview(org: string): Promise<string> {
+  const r = await fx.env.call('POST', `/api/v1/orgs/${org}/logo`, uploadForm(), {
+    cookie: fx.cookies.owner,
+  })
+  expect(r.status, await r.clone().text()).toBe(200)
+  return ((await r.json()) as { stagingId: string }).stagingId
+}
+
+/**
+ * Routes whose success needs something there first: the logo's preview, or the logo itself.
+ * They run for every role, so a refusal is measured on the same request as the success.
+ */
+const PREPARE: Record<
+  string,
+  (ids: SampleIds) => Promise<{ values?: Record<string, string>; body?: unknown }>
+> = {
+  'GET /api/v1/orgs/{org}/logo/staging/{stagingId}': async (ids) => ({
+    values: { stagingId: await logoPreview(ids.org) },
+  }),
+  'POST /api/v1/orgs/{org}/logo/confirm': async (ids) => ({
+    body: { stagingId: await logoPreview(ids.org) },
+  }),
+  'GET /api/v1/orgs/{org}/logo/{size}': async (ids) => {
+    const confirmed = await fx.env.call(
+      'POST',
+      `/api/v1/orgs/${ids.org}/logo/confirm`,
+      { stagingId: await logoPreview(ids.org) },
+      { cookie: fx.cookies.owner },
+    )
+    expect(confirmed.status, await confirmed.clone().text()).toBe(200)
+    return {}
+  },
+}
+
 /** Members hold their role in w1 only; w2 is a workspace of the agency where they have none. */
 type Where = 'w1' | 'w2' | null
 
@@ -257,8 +307,12 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   }
   const query = c.rule.query ? sampleQuery(route, ids) : undefined
   if (c.rule.query && query === undefined) throw new Error(`no sample query for ${c.key}`)
-  const path = fill(route.path, pathValues(ids)) + (query === undefined ? '' : `?${query}`)
-  const r = await fx.env.call(route.method, path, sampleBody(route, ids), { cookie })
+  const prepared = (await PREPARE[c.key]?.(ids)) ?? {}
+  const path =
+    fill(route.path, { ...pathValues(ids), ...prepared.values }) +
+    (query === undefined ? '' : `?${query}`)
+  const body = 'body' in prepared ? prepared.body : sampleBody(route, ids)
+  const r = await fx.env.call(route.method, path, body, { cookie })
   const text = await r.text()
   expect(r.status, text).toBe(c.status)
   const code = CODE_OF[c.status]
@@ -352,6 +406,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'organization.reactivated': [],
   'organization.limits_changed': LIMITS.map((k) => `limits.${k}`),
   'organization.settings_changed': ['fields[]', 'require2fa.from', 'require2fa.to'],
+  'organization.logo_changed': ['removed'],
   'organization.ownership_transferred': ['from', 'to'],
   'workspace.created': [],
   'workspace.renamed': [],
@@ -470,6 +525,9 @@ async function produceEveryAction() {
     appSecret: META_MOCK.app.secret,
   })
   await ok('POST', `${org}/integrations/meta/test`)
+  const preview = JSON.parse(await ok('POST', `${org}/logo`, uploadForm())) as { stagingId: string }
+  await ok('POST', `${org}/logo/confirm`, { stagingId: preview.stagingId })
+  await ok('DELETE', `${org}/logo`)
   // the throwaway agency has its system user already: the same one again replaces the token
   await ok('POST', `${org}/connections/system-user`, { token: META_MOCK.tokens.systemUser })
   await ok('POST', `${org}/connections/${ids.connection}/import`, {
