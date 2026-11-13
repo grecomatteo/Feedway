@@ -95,7 +95,10 @@ services:
       retries: 6
       start_period: 20s
     networks: [internal, edge]
+    # spec §16.6: above the spec's 768 MB because the profile photo and the logo (HEIC up to
+    # 40 MP) are decoded here (#117, ADR 021)
     mem_limit: 1536m
+    cpus: 0.5
     pids_limit: 200
 
   worker:
@@ -117,7 +120,9 @@ services:
       retries: 4
       start_period: 20s
     networks: [internal, egress]
-    mem_limit: 1g
+    # spec §16.6: ffmpeg, one conversion at a time, never both cores
+    mem_limit: 2g
+    cpus: 1.0
     pids_limit: 200
 
   tailscale:

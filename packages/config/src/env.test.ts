@@ -276,3 +276,109 @@ test('with META_MODE=mock the fake Graph API is on 127.0.0.1:4010 unless told ot
     issuesOf({ ...validWebEnv, META_MODE: 'mock', META_MOCK_URL: 'non-un-indirizzo' }),
   ).toContainEqual({ variable: 'META_MOCK_URL', problem: 'deve essere un indirizzo valido' })
 })
+
+test('media limits default to the values of the plan (spec §9.2)', () => {
+  const c = loadConfig('web', validWebEnv)
+  expect(c.media).toEqual({
+    uploadDir: '/media/uploads',
+    maxVideoBytes: 300_000_000,
+    maxImageBytes: 50_000_000,
+    maxImagePixels: 50_000_000,
+    maxVideoSeconds: 900,
+    maxVideoPixels: 4096 * 4096,
+    workspaceMaxBytes: null,
+    conversionsPerOrg: 1,
+  })
+})
+
+test('media limits can be set and are checked', () => {
+  const c = loadConfig('web', {
+    ...validWebEnv,
+    MEDIA_UPLOAD_DIR: '/srv/pezzi',
+    MEDIA_MAX_VIDEO_BYTES: '100000000',
+    MEDIA_WORKSPACE_MAX_BYTES: '5000000000',
+  })
+  expect(c.media.uploadDir).toBe('/srv/pezzi')
+  expect(c.media.maxVideoBytes).toBe(100_000_000)
+  expect(c.media.workspaceMaxBytes).toBe(5_000_000_000)
+  expect(issuesOf({ ...validWebEnv, MEDIA_UPLOAD_DIR: 'pezzi' })).toContainEqual(
+    expect.objectContaining({ variable: 'MEDIA_UPLOAD_DIR' }),
+  )
+  for (const variable of [
+    'MEDIA_MAX_IMAGE_PIXELS',
+    'MEDIA_WORKSPACE_MAX_BYTES',
+    'MEDIA_CONVERSIONS_PER_ORG',
+  ])
+    expect(issuesOf({ ...validWebEnv, [variable]: '0' })).toContainEqual(
+      expect.objectContaining({ variable }),
+    )
+})
+
+test('without PUBLIC_URL the public host is off', () => {
+  const c = loadConfig('web', validWebEnv)
+  expect(c.publicUrl).toBeNull()
+  expect(c.publicHost).toBeNull()
+})
+
+test('the public host comes from PUBLIC_URL', () => {
+  const c = loadConfig('web', { ...validWebEnv, PUBLIC_URL: 'https://Pub.Example.it/' })
+  expect(c.publicHost).toBe('pub.example.it')
+})
+
+// cookies ignore the port: a public host on the panel's name would receive the panel's cookies
+test.each(['http://localhost:3000', 'http://LOCALHOST:3001'])(
+  'rejects a PUBLIC_URL on the same host as PANEL_URL (%s)',
+  (publicUrl) => {
+    expect(issuesOf({ ...validWebEnv, PUBLIC_URL: publicUrl })).toContainEqual({
+      variable: 'PUBLIC_URL',
+      problem: 'deve avere un host diverso da PANEL_URL',
+    })
+  },
+)
+
+test('storage stays on disk unless told otherwise', () => {
+  expect(loadConfig('web', validWebEnv).storage).toEqual({ driver: 'disk' })
+})
+
+const s3Env = {
+  ...validWebEnv,
+  STORAGE_DRIVER: 's3',
+  S3_ENDPOINT: 'http://garage:3900',
+  S3_BUCKET: 'feedway',
+  S3_ACCESS_KEY_ID: 'GKtest',
+  S3_SECRET_ACCESS_KEY: 'segreto-di-prova',
+}
+
+test('s3 storage reads its settings, secrets also from files', () => {
+  const c = loadConfig(
+    'worker',
+    { ...s3Env, S3_SECRET_ACCESS_KEY: undefined, S3_SECRET_ACCESS_KEY_FILE: '/run/secrets/s3' },
+    () => 'dal-file\n',
+  )
+  expect(c.storage).toEqual({
+    driver: 's3',
+    endpoint: 'http://garage:3900',
+    bucket: 'feedway',
+    region: 'auto',
+    credentials: { accessKeyId: 'GKtest', secretAccessKey: 'dal-file' },
+    forcePathStyle: true,
+  })
+  const r2 = loadConfig('web', { ...s3Env, S3_REGION: 'eu', S3_FORCE_PATH_STYLE: '0' })
+  expect(r2.storage).toMatchObject({ region: 'eu', forcePathStyle: false })
+})
+
+test('s3 storage without bucket or keys is rejected, and the secret is never echoed', () => {
+  const err = catchConfigError(() =>
+    loadConfig('web', { ...s3Env, S3_BUCKET: undefined, S3_ACCESS_KEY_ID: '' }),
+  )
+  expect(err.issues).toEqual(
+    expect.arrayContaining([
+      { variable: 'S3_BUCKET', problem: 'obbligatoria con STORAGE_DRIVER=s3' },
+      { variable: 'S3_ACCESS_KEY_ID', problem: 'obbligatoria con STORAGE_DRIVER=s3' },
+    ]),
+  )
+  expect(err.message).not.toContain('segreto-di-prova')
+  expect(issuesOf({ ...validWebEnv, STORAGE_DRIVER: 'ftp' })).toContainEqual(
+    expect.objectContaining({ variable: 'STORAGE_DRIVER' }),
+  )
+})

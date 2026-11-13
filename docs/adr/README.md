@@ -24,3 +24,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [018](018-niente-filtro-xss-sugli-input.md) | Niente filtro anti-XSS sugli input: la difesa sta in uscita | Accettata (Matteo, 2026-10-30) |
 | [019](019-modulo-piattaforma.md) | Confini del modulo piattaforma: `accounts` generico e `platforms/meta` | Accettata (Matteo, 2026-11-03) |
 | [020](020-accesso-unificato-meta.md) | Accesso unificato di Meta al posto dei login Facebook e Instagram (modifica alcuni punti di ADR 015 e 019) | Proposta |
+| [021](021-storage-a-oggetti-e-caricamento-a-pezzi.md) | Storage a oggetti (client S3) e caricamento a pezzi: protocollo, pezzi sul disco del web, conversioni a turno tra le agenzie (completa ADR 008) | Proposta |
