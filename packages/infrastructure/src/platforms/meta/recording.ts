@@ -6,8 +6,8 @@ const NAME_KEYS = new Set(['name', 'username', 'application'])
 const TEXT_KEYS = new Set(['message', 'error_user_msg', 'error_user_title', 'error_data'])
 // cursors encode object ids
 const CURSOR_KEYS = new Set(['after', 'before'])
-// Meta's image CDN puts ids in the file name and signatures in many parameters: never kept
-const CDN_HOST = /(^|\.)(fbcdn\.net|cdninstagram\.com)$/
+// Meta's image hosts (fbcdn, cdninstagram, lookaside on fbsbx) put ids in the file name and signatures in many parameters: never kept
+const CDN_HOST = /(^|\.)(fbcdn\.net|cdninstagram\.com|fbsbx\.com)$/
 const FAKE_PICTURE = 'https://scontent.example.invalid/picture.jpg'
 const URL_PARAMS = [
   'oh',
