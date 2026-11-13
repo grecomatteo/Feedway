@@ -64,7 +64,7 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 ## Menu dell'utente (13 novembre 2026, Matteo)
 
 - In fondo alla barra laterale una riga sola: foto, nome e sotto, in piccolo, «Ruolo · Agenzia». Nessuna freccia: al passaggio del mouse la riga si scurisce appena (`nav-hover`).
-- Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Il mio account»; le pagine dell'agenzia che si aprono di rado, «Registro attività» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
+- Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Il mio account»; le pagine dell'agenzia che si aprono di rado, «Registro attività», «Impostazioni» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
 - Niente selettore a tre segmenti per il tema (Matteo, 13/11: «non mi piace proprio»). «Automatico» si sceglie in «Il mio account» → Preferenze.
 - Sul telefono la foto in alto a destra apre lo stesso menu dal basso, a tutta larghezza.
 - «Il mio account» resta dentro la barra dell'agenzia.

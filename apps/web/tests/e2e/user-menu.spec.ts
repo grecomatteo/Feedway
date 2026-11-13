@@ -44,12 +44,17 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
     'href',
     `/${owner.organizationSlug}/registro`,
   )
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toHaveAttribute(
+    'href',
+    `/${owner.organizationSlug}/impostazioni`,
+  )
   await expect(menu.getByRole('menuitem', { name: 'Privacy' })).toBeVisible()
-  await expect(
-    page.getByRole('navigation', { name: 'Navigazione principale' }).getByRole('link', {
-      name: 'Registro attività',
-    }),
-  ).toHaveCount(0)
+  for (const name of ['Registro attività', 'Impostazioni', 'Privacy'])
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navigazione principale' })
+        .getByRole('link', { name, exact: true }),
+    ).toHaveCount(0)
 
   // the theme is one button beside «Esci»: it changes at once, stays open, and is kept
   const html = page.locator('html')
