@@ -687,8 +687,7 @@
   "context": {
     "label": "Contesto",
     "all": "Tutti i clienti",
-    "profile": "Profilo {name}",
-    "profileOf": "{workspace} › {profile}"
+    "profile": "Profilo {name}"
   },
   "agencies": {
     "title": "Scegli agenzia",

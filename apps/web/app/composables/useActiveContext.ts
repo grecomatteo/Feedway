@@ -6,6 +6,8 @@ export interface ProfileAccount {
   externalId: string
   name: string
   username: string | null
+  /** As Meta gave it at the last sync: the address expires after some days. */
+  avatarUrl: string | null
   active: boolean
   health: 'ok' | 'warning' | 'error' | null
   healthMessage: string | null
@@ -19,6 +21,13 @@ export interface WorkspaceProfile {
 /** The name of a profile (§3): its Facebook Page, or its only account. */
 export const profileName = (p: WorkspaceProfile) =>
   (p.accounts.find((a) => a.platform === 'facebook') ?? p.accounts[0])?.name ?? ''
+
+/** The photo of a profile: its Instagram's, else its Page's. */
+export const profilePhoto = (p: WorkspaceProfile) =>
+  (
+    p.accounts.find((a) => a.platform === 'instagram' && a.avatarUrl) ??
+    p.accounts.find((a) => a.avatarUrl)
+  )?.avatarUrl ?? null
 
 /** The profiles of a workspace, shared by the switcher and the pages that show them. */
 export function useWorkspaceProfiles(workspaceId: Ref<string | null>) {

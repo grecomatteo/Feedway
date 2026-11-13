@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { withScope } from '@app/infrastructure/testing'
+import { imageFixture, withScope } from '@app/infrastructure/testing'
 import { assignAccount, connectedAgency } from './support/meta.ts'
 import {
   E2E_PASSWORD,
@@ -144,6 +144,8 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   // Forno Luce's page and Instagram in A; Studio Rossi stays out of every client
   await assignAccount(page.request, org, a, id('Forno Luce', 'facebook'))
   await assignAccount(page.request, org, a, id('Forno Luce', 'instagram'))
+  // a second profile: only then the menu lists the profiles under the client
+  await assignAccount(page.request, org, a, id('Bottega Verde', 'facebook'))
 
   await page.goto(`/${org}/spazi`)
   const context = page.getByRole('button', { name: 'Contesto' }).first()
@@ -152,7 +154,7 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   await expect(context).toHaveText(/Cliente A/)
   await context.click()
   await page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' }).click()
-  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+  await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
   expect(page.url()).toMatch(/[?&]profilo=/)
 
   // the menu keeps the context: the calendar of a later stage reads it from the address
@@ -161,10 +163,10 @@ test('context switcher: a profile, its link, and profiles that are not there', a
     .locator('visible=true')
   await nav.getByRole('link', { name: 'Home' }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}\\?spazio=[^&]+&profilo=`))
-  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+  await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
   await nav.getByRole('link', { name: 'Clienti' }).click()
   await expect(page).toHaveURL(/\/spazi\?spazio=[^&]+&profilo=/)
-  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+  await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
 
   // the copied link opens the same context in another browser of the same person
   const link = page.url()
@@ -176,7 +178,7 @@ test('context switcher: a profile, its link, and profiles that are not there', a
     await ownAddress(p)
     await p.goto(link)
     await expect(p.getByRole('button', { name: 'Contesto' }).first()).toHaveText(
-      /Cliente A › Forno Luce/,
+      /Cliente A\s*Forno Luce/,
     )
   } finally {
     await other.close()
@@ -188,6 +190,54 @@ test('context switcher: a profile, its link, and profiles that are not there', a
     await page.goto(`/${org}/spazi?spazio=${slug}&profilo=${profile}`)
     await expect(context).toHaveText(/Tutti i clienti/)
   }
+})
+
+test('client selector: the photo of its Instagram, initials when it does not load, no arrows', async ({
+  page,
+}) => {
+  const { org } = await agencyWithPublisher(page)
+  await connectedAgency(page.request, org)
+  const a = await workspaceId(org, 'Cliente A')
+  const [ig] = await adminQuery<{ id: string }>(
+    "select id from social_accounts where organization_id = $1 and name = 'Forno Luce' and platform = 'instagram'",
+    [org],
+  )
+  const [fb] = await adminQuery<{ id: string }>(
+    "select id from social_accounts where organization_id = $1 and name = 'Forno Luce' and platform = 'facebook'",
+    [org],
+  )
+  await assignAccount(page.request, org, a, fb?.id ?? '')
+  await assignAccount(page.request, org, a, ig?.id ?? '')
+  // the picture Meta gave at the import, served by its image host
+  const photo = 'https://scontent-fra5-1.xx.fbcdn.net/v/forno-luce.png'
+  await adminQuery('update social_accounts set avatar_url = $2 where id = $1', [ig?.id, photo])
+  await page.route('https://*.fbcdn.net/**', async (route) =>
+    route.fulfill({ contentType: 'image/png', body: await imageFixture('photo.png') }),
+  )
+
+  await page.goto(`/${org}/spazi`)
+  const context = page.getByRole('button', { name: 'Contesto' }).first()
+  // clean rows: no up and down arrows on the selectors
+  await expect(page.locator('.iconify.i-lucide\\:chevrons-up-down')).toHaveCount(0)
+  await context.click()
+  await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
+  const img = context.locator(`img[src="${photo}"]`)
+  await expect(img).toBeVisible()
+  await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0)
+  // one profile only: the menu does not list it under the client
+  await context.click()
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' })).toHaveCount(0)
+  await page.getByRole('menuitemcheckbox', { name: 'Cliente B' }).click()
+  // no profile, no photo: the initials
+  await expect(context).toContainText('CB')
+  await expect(context.locator('img')).toHaveCount(0)
+
+  // an address of Meta's that expired: the initials again
+  await page.unroute('https://*.fbcdn.net/**')
+  await page.route('https://*.fbcdn.net/**', (route) => route.fulfill({ status: 403 }))
+  await page.goto(`/${org}/spazi?spazio=cliente-a`)
+  await expect(context).toContainText('CA')
+  expect((await axe(page)).violations).toEqual([])
 })
 
 test('a person in two agencies switches, and another agency address is not found', async ({
