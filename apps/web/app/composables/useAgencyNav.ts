@@ -1,7 +1,12 @@
-/** The agency's menu: only what the person may use, and only what exists in this stage. */
+/**
+ * The agency's menu: only what the person may use, and only what exists in this stage. `link`
+ * carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
+ * current page.
+ */
 export function useAgencyNav() {
   const org = useOrganization()
-  return computed(() => {
+  const context = useContextQuery()
+  const items = computed(() => {
     const may = org.may.value
     const list: { to: string; label: string; icon: string }[] = [
       { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-house' },
@@ -26,4 +31,7 @@ export function useAgencyNav() {
     list.push({ to: org.to('/privacy'), label: 'agency.nav.privacy', icon: 'i-lucide-shield' })
     return list
   })
+  return computed(() =>
+    items.value.map((item) => ({ ...item, link: { path: item.to, query: context.value } })),
+  )
 }

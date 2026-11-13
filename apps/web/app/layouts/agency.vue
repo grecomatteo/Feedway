@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const org = useOrganization()
 const nav = useAgencyNav()
+const context = useContextQuery()
 const session = useSession()
 const route = useRoute()
 const current = (to: string) =>
@@ -33,7 +34,9 @@ watch(org.slug, refresh)
     <aside
       class="hidden w-64 shrink-0 flex-col gap-4 border-r border-(--app-border) bg-(--app-nav-bg) p-3 md:sticky md:top-0 md:flex md:h-dvh md:self-start md:overflow-y-auto"
     >
-      <NuxtLink :to="org.to()" class="flex min-h-11 items-center px-2"><AppLogo /></NuxtLink>
+      <NuxtLink :to="{ path: org.to(), query: context }" class="flex min-h-11 items-center px-2"
+        ><AppLogo
+      /></NuxtLink>
       <div class="space-y-1">
         <OrgSwitcher />
         <ContextSwitcher v-if="org.active.value" />
@@ -42,7 +45,7 @@ watch(org.slug, refresh)
         <ul class="space-y-1">
           <li v-for="item in nav" :key="item.to">
             <NuxtLink
-              :to="item.to"
+              :to="item.link"
               :aria-current="current(item.to) ? 'page' : undefined"
               class="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm hover:bg-(--app-surface-sunken) aria-[current=page]:bg-(--app-brand-soft) aria-[current=page]:font-semibold"
             >
