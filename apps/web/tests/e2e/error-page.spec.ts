@@ -14,7 +14,7 @@ test('a page that does not exist shows the branded 404 and leads home', async ({
   expect(response?.status()).toBe(404)
   expect(response?.headers()['content-type']).toContain('text/html')
   await expect(page.getByRole('heading', { level: 1, name: 'Pagina non trovata' })).toBeVisible()
-  await expect(page.getByText('Feedway').first()).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Feedway' }).first()).toBeVisible()
   await expect(page.locator('body')).not.toContainText(/Page not found|stack|at /)
   await expect(page.getByTestId('request-id')).toHaveCount(0)
 

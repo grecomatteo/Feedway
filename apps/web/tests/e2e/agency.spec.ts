@@ -451,7 +451,8 @@ test('mobile nav below 768 px: five places, no + yet, no a11y violations', async
   expect((await axe(page)).violations).toEqual([])
 })
 
-test('sidebar: the brand logo, not the name typed out, in both themes', async ({ page }) => {
+// each project runs in its theme, light or dark: together they check both versions of the logo
+test('sidebar: the brand logo, not the name typed out, in the theme in use', async ({ page }) => {
   const owner = await newPerson('Olga Marchio', 'owner')
   await signInWithTotp(page.request, owner)
   await page.setViewportSize({ width: 1280, height: 800 })
