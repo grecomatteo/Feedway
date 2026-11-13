@@ -20,7 +20,7 @@
 | `01-fondamenta.md` | Tappa 1, eseguibile | Pronto |
 | `02-identita.md` | Tappa 2, eseguibile | Pronto |
 | `03-meta.md` | Tappa 3, formato leggero | Pronto (approvato da Matteo il 2026-11-03) |
-| `04-media.md` | Tappa 4, formato leggero | Bozza del 2026-11-13, da approvare con Matteo |
+| `04-media.md` | Tappa 4, formato leggero | Approvato da Matteo il 2026-11-13 |
 | `05-regole.md` … `12-produzione.md` | Tappe 5–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
@@ -93,8 +93,8 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 4 · Media
 - **Scalabilità:** la batteria di test di `Storage` gira anche contro Garage (S3 compatibile; MinIO Community non è più distribuito), così il passaggio a uno storage a oggetti (R2) sarà un cambio di configurazione.
-- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, **copia di anteprima** dei video in MP4 H.264 720p creata per prima (specifica §11.1 punto 7: l'HEVC dell'iPhone non si vede in Chrome e Firefox), host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45.
-- **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
+- **Costruisce:** caricamento con "Scegli file", trascinamento e incolla (specifica §11.1), upload a pezzi da 20 MB con ripresa e barre di avanzamento per file e complessive (§14.2), analisi (ffprobe/sharp), correzioni automatiche, varianti per piattaforma, **copia di anteprima** dei video in MP4 H.264 720p creata per prima (specifica §11.1 punto 7: l'HEVC dell'iPhone non si vede in Chrome e Firefox), host pubblico separato (`/m/*`, solo JPEG e MP4, token non elencabili), libreria con cartelle e tag. RF-30, RF-31, RF-45. In apertura, le correzioni della prova della tappa 3: una sola schermata «Impostazioni» (account e agenzia), logo dell'agenzia, foto dei clienti copiate nello storage (la CSP torna stretta), «un cliente = un profilo» all'importazione, navigazione riordinata e home del cliente (D-5, D-6, D-7).
+- **Introduce:** `Storage`, `MediaProbe`, `MediaTransformer`, separazione degli host nel web, lavoro `media.process`, tabelle `media`, `media_variants`, `library_*`, `upload_sessions`, `branding` (solo `logo_key`; la tappa 10 la completa), `social_accounts.avatar_key`; limite `storage_bytes` e limite di conversioni contemporanee per organizzazione (§6.5, equità tra agenzie).
 - **Matteo prova:** carica da telefono un HEIC, un `.mov` HEVC e un video lungo su rete instabile, e li rivede nel pannello da Chrome; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
 - **Serve da Matteo:** Tailscale Funnel attivo sulla VPS.
 
@@ -136,7 +136,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 10 · Condivisione e brand
 - **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio) con mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, contenuti in preparazione (campi esposti dichiarati uno per uno, con un test che la nota interna non esca mai) e **"Stampa o salva PDF"** con il foglio di stile di stampa (A4 orizzontale, un mese per pagina, solo da oggi in poi; prova automatica con il PDF generato da Playwright) (specifica §11.10), stesso foglio di stampa per il Piano editoriale con schede piene (§11.12), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con la landing del brief 04, "Richiedi una demo" (modulo con invio via email, ADR 016: funzione server, segreti Cloudflare, test) e "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
-- **Introduce:** tabelle `share_links`, `branding` (per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
+- **Introduce:** tabelle `share_links`, completamento di `branding` (colore e resto, per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
 - **Prerequisito:** branding e progetto in Pencil del sito approvati.
 
 ### Tappa 11 · Operazioni
@@ -166,7 +166,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `Auth` | 2 | adattatore di Better Auth: sessione della richiesta, account da invito, revoca delle sessioni, link di reset, verifica della riconferma; nessun altro modulo importa Better Auth |
 | `IntegrationStore` | 2 (piattaforma), 3 (agenzia) | `getPlatform/replacePlatform/platformCredentials(tx, kind, …)`; `get/replace/credentials(tx, organizationId, kind, …)` dalla tappa 3; ricaduta sulla piattaforma per Telegram dalla tappa 8 |
 | `PlatformConnector` | 3 | per tipo di collegamento: `verifyApp`, `loadAppCredentials`, `startLogin`, `completeLogin`, `connectWithToken`, `listAccounts`, `refresh`, `checkHealth` (ADR 019); il client della Graph API resta nell'infrastruttura di `platforms/meta` |
-| `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete` dalla tappa 2; `publicUrl(variant)` dalla tappa 4; chiavi `org/<id>/…` e `users/<id>/…` |
+| `Storage` | 2 (disco), 4 (media, Garage) | `put`, `get`, `delete` dalla tappa 2; `getRange` dalla tappa 4 (nessun `publicUrl`: l'host `/m/*` serve i file per token); chiavi `org/<id>/…` e `users/<id>/…` |
 | `Mailer` | 2 (in memoria, file, "non configurato", SMTP della piattaforma: ADR 017) | `isConfigured()`, `send(message)` |
 | `AvatarProcessor` / `ZipWriter` | 2 | foto profilo (sharp, libheif-js) ed esportazione dei dati (fflate) |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
