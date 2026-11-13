@@ -8,6 +8,8 @@ const MyOrganization = z.object({
   name: z.string(),
   role: OrgRole,
   status: z.enum(['active', 'suspended']),
+  /** The 256 px logo in the panel (`/64` for the small one); null: the initials. */
+  logoUrl: z.string().nullable(),
 })
 
 /** The signed-in person: their own data only, never a hash, token or secret. */

@@ -80,6 +80,13 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Sul telefono il quinto posto della barra in basso è «Impostazioni» (ingranaggio), acceso anche nelle schede dell'agenzia.
 - La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil. Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
 
+## Logo dell'agenzia (13 novembre 2026; tappa 4, Task 3)
+
+- In «Impostazioni → Agenzia → Generali», sopra il modulo, un riquadro «Logo dell'agenzia», solo per l'Owner. Lo stesso componente della foto profilo (`AvatarUploader`, forma `square`): scegli o trascina, poi una finestra «Controlla il logo» con le due misure, senza ritaglio.
+- Il logo non si ritaglia mai: si adatta intero dentro il quadrato, la trasparenza resta (`object-contain`, bordo `border` su `surface`, angoli `rounded-md` a 32 px e `rounded-xl` a 96 px).
+- Nella barra (`OrgSwitcher`) il logo prende il posto del quadratino scuro con le iniziali (`AgencyLogo`). Senza logo, o se non si carica, restano le iniziali. Sul telefono con una sola agenzia la barra in alto non mostra l'agenzia, come prima.
+- Schermate nella cartella del progetto, `schermate/tappa-4-logo/`. La tela in `design/feedway-ui.pen` non è aggiornata.
+
 ## Email transazionali (26 ottobre 2026)
 
 Tela: pagine «E0 · Email transazionali · componenti» e «E1–E5 · Email transazionali» in `design/feedway-ui.pen`; tavole in `design/tavole/email/`. Componenti Pencil: `Email · Intestazione`, `Email · Pulsante` (con la variante sicurezza), `Email · Riquadro`, `Email · Piè di pagina`, `Email · Modello`. Per ogni email la tela riporta oggetto, anteprima, quando parte, variabili, versione 600 px, versione 320 px e versione solo testo: i testi esatti sono lì.

@@ -293,6 +293,17 @@ export interface OrganizationsRepository {
   update(id: string, change: { name?: string; settings?: Record<string, unknown> }): Promise<void>
 }
 
+/** The agency's look (`branding`); only the logo until stage 10. */
+export interface BrandingRepository {
+  /** The logo of the agency the transaction is scoped to; null without one. */
+  logoKey(organizationId: string): Promise<string | null>
+  /** Creates the row on the first logo; null removes the logo and keeps the row. */
+  setLogo(
+    organizationId: string,
+    change: { logoKey: string | null; updatedBy: string },
+  ): Promise<void>
+}
+
 export interface OrgMemberRecord {
   organizationId: string
   userId: string
@@ -306,6 +317,8 @@ export interface UserOrganizationRecord extends OrgMemberRecord {
   organizationStatus: 'active' | 'suspended'
   /** `settings.require2fa` of the agency; null when it keeps the platform rule. */
   require2fa: TwoFactorPolicy | null
+  /** `branding.logo_key`: null without a logo. */
+  logoKey: string | null
 }
 
 export interface OrgMembersRepository {

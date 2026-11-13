@@ -88,6 +88,16 @@ async function save() {
     state.sending = false
   }
 }
+// ---- the logo: in the sidebar of every member, so the session is read again
+const logoRoutes = computed(() => ({
+  upload: org.api('/logo'),
+  save: org.api('/logo/confirm'),
+  remove: org.api('/logo'),
+}))
+async function logoSaved() {
+  await useSession().load()
+}
+
 const fieldError = (name: string) =>
   state.field === name ? (state.problem ?? undefined) : undefined
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
@@ -101,6 +111,16 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
       </p>
     </template>
 
+    <AvatarUploader
+      v-if="org.may.value.editSettings && org.organization.value"
+      :name="org.organization.value.name"
+      :current="org.organization.value.logoUrl"
+      shape="square"
+      texts="logo"
+      :routes="logoRoutes"
+      :guard="withReauth"
+      @saved="logoSaved"
+    />
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>

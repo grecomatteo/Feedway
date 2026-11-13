@@ -39,6 +39,7 @@ export const AUDIT_ACTIONS = [
   'organization.reactivated',
   'organization.limits_changed',
   'organization.settings_changed',
+  'organization.logo_changed',
   'organization.ownership_transferred',
   'workspace.created',
   'workspace.renamed',

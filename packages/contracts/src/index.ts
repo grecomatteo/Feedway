@@ -21,6 +21,7 @@ export {
 } from './api/links.js'
 export * from './api/audit.js'
 export * from './api/avatar.js'
+export * from './api/logo.js'
 export * from './api/privacy.js'
 export * from './api/auth.js'
 export * from './api/common.js'

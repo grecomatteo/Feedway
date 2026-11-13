@@ -77,6 +77,7 @@ export type {
   NewInvite,
   OrganizationRecord,
   OrganizationsRepository,
+  BrandingRepository,
   OrgMemberRecord,
   OrgMembersRepository,
   PendingEmailChange,

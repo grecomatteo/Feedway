@@ -92,6 +92,7 @@ test('my agencies list only the active memberships', async () => {
         name: expect.any(String) as unknown,
         role: 'member',
         status: 'active',
+        logoUrl: null,
       },
     ],
   })

@@ -22,10 +22,13 @@ const tooManyPixels = () =>
   new DomainError('VALIDATION', 'La foto è troppo grande: al massimo 40 megapixel', {
     field: 'file',
   })
-const tooSmall = () =>
-  new DomainError('VALIDATION', 'La foto è troppo piccola: almeno 64 pixel per lato', {
-    field: 'file',
-  })
+const tooSmall = (minSide: number) =>
+  new DomainError(
+    'VALIDATION',
+    `L’immagine è troppo piccola: almeno ${String(minSide)} pixel per lato`,
+    { field: 'file' },
+  )
+const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 } as const
 const unsupported = () =>
   new DomainError('UNSUPPORTED_FILE_TYPE', 'Usa una foto JPEG, PNG, WebP o HEIC', {
     field: 'file',
@@ -122,14 +125,15 @@ export function createAvatarProcessor(options: AvatarProcessorOptions = {}): Ava
     })
 
   return {
-    normalize: (bytes) =>
+    normalize: (bytes, opts = {}) =>
       job(async () => {
+        const minSide = opts.minSide ?? AVATAR_MIN_CROP
         const source = await sourceOf(bytes)
         const { data, info } = await render(
           source.resize(MAX_SIDE, MAX_SIDE, { fit: 'inside', withoutEnlargement: true }),
         )
         // the crop needs a square of at least AVATAR_MIN_CROP
-        if (Math.min(info.width, info.height) < AVATAR_MIN_CROP) throw tooSmall()
+        if (Math.min(info.width, info.height) < minSide) throw tooSmall(minSide)
         return { webp: data, width: info.width, height: info.height }
       }),
 
@@ -151,6 +155,24 @@ export function createAvatarProcessor(options: AvatarProcessorOptions = {}): Ava
           })
         const [large, small] = await Promise.all(
           AVATAR_SIZES.map(async (side) => (await render(sharp(square).resize(side, side))).data),
+        )
+        if (!large || !small) throw unreadable()
+        return { 256: large, 64: small, hash: createHash('sha256').update(large).digest('hex') }
+      }),
+
+    fitSquare: (webp) =>
+      job(async () => {
+        const [large, small] = await Promise.all(
+          AVATAR_SIZES.map(
+            async (side) =>
+              (
+                await render(
+                  sharp(webp)
+                    .ensureAlpha()
+                    .resize(side, side, { fit: 'contain', background: TRANSPARENT }),
+                )
+              ).data,
+          ),
         )
         if (!large || !small) throw unreadable()
         return { 256: large, 64: small, hash: createHash('sha256').update(large).digest('hex') }

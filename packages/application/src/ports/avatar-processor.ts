@@ -11,8 +11,15 @@ export interface AvatarCrop {
  * the declared type say) and `VALIDATION` for images over the pixel limit or that do not decode.
  */
 export interface AvatarProcessor {
-  /** Type from the bytes, EXIF and GPS removed, orientation applied, longest side 2048 px. */
-  normalize(bytes: Buffer): Promise<{ webp: Buffer; width: number; height: number }>
+  /**
+   * Type from the bytes, EXIF and GPS removed, orientation applied, longest side 2048 px,
+   * transparency kept. `minSide`: the shortest side allowed, AVATAR_MIN_CROP by default (a
+   * square must fit); a logo may be much wider than tall.
+   */
+  normalize(
+    bytes: Buffer,
+    options?: { minSide?: number },
+  ): Promise<{ webp: Buffer; width: number; height: number }>
   /** Size of an image `normalize` produced. */
   dimensions(webp: Buffer): Promise<{ width: number; height: number }>
   /**
@@ -20,4 +27,9 @@ export interface AvatarProcessor {
    * is the SHA-256 of the 256 px file, in hex: it names the photo.
    */
   crop(webp: Buffer, crop: AvatarCrop): Promise<{ 256: Buffer; 64: Buffer; hash: string }>
+  /**
+   * The whole image fitted inside two transparent squares, 256 and 64 px, never cropped (the
+   * agency's logo). `hash` as in `crop`.
+   */
+  fitSquare(webp: Buffer): Promise<{ 256: Buffer; 64: Buffer; hash: string }>
 }

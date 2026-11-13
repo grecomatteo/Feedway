@@ -832,6 +832,7 @@
       "auth_password_changed": "ha cambiato la password",
       "auth_security_lock": "ha bloccato il proprio account",
       "organization_settings_changed": "ha cambiato le impostazioni dell'agenzia",
+      "organization_logo_changed": "ha cambiato il logo dell'agenzia",
       "organization_ownership_transferred": "ha passato la proprietà dell'agenzia",
       "integration_meta_changed": "ha cambiato l'integrazione Meta",
       "integration_meta_tested": "ha provato l'integrazione Meta",
@@ -1126,6 +1127,25 @@
     "save": "Usa questa foto",
     "saved": "Foto profilo salvata.",
     "removed": "Foto tolta: ora si vedono le tue iniziali."
+  },
+  "logo": {
+    "title": "Logo dell'agenzia",
+    "current": "Logo attuale dell'agenzia",
+    "help": "JPEG, PNG, WebP o HEIC, fino a 5 MB. Puoi anche trascinarlo qui. Lo mostriamo intero, senza ritagliarlo, e la trasparenza resta. Lo vedono solo le persone dell'agenzia, accanto al suo nome.",
+    "dropHere": "Rilascia qui",
+    "choose": "Scegli il logo",
+    "remove": "Togli il logo",
+    "uploading": "Carico il logo…",
+    "tooLarge": "Il logo può pesare al massimo 5 MB: scegli un file più leggero.",
+    "wrongType": "Usa un'immagine JPEG, PNG, WebP o HEIC.",
+    "cropTitle": "Controlla il logo",
+    "cropHelp": "Ecco come si vedrà: intero, dentro il quadrato.",
+    "previewLarge": "Nelle impostazioni",
+    "previewSmall": "Nella barra",
+    "cancel": "Annulla",
+    "save": "Usa questo logo",
+    "saved": "Logo salvato: ora è nella barra.",
+    "removed": "Logo tolto: ora si vedono le iniziali dell'agenzia."
   },
   "privacyNotice": {
     "title": "Privacy",

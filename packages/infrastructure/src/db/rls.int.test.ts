@@ -135,6 +135,10 @@ beforeAll(async () => {
       [orgA, wsA, accountA],
     )
     await c.query(
+      `insert into branding (organization_id, logo_key, updated_by) values ($1, $2, $3)`,
+      [orgA, `org/${orgA}/logo/ab12`, u1],
+    )
+    await c.query(
       `insert into connection_attempts (id, organization_id, user_id, kind, state_hash, expires_at)
        values ($1, $2, $3, 'meta_business_login', $4, now() + interval '10 minutes')`,
       [newId(), orgA, u1, Buffer.from(newId())],
@@ -156,6 +160,7 @@ test('without context no tenant rows are visible', async () => {
     'workspace_members',
     'audit_log',
     'api_tokens',
+    'branding',
     ...ACCOUNT_TABLES,
   ]
   for (const t of tables) {
@@ -409,4 +414,29 @@ test('accounts: agency B cannot write rows that name agency A', async () => {
       t,
     ).rejects.toThrow(/row-level security|foreign key/)
   }
+})
+
+test('branding: an agency reaches only its own row; a person reads the logo of their agencies', async () => {
+  const logoOf = (rows: pg.QueryResult) => rows.rows.map((r: { logo_key: string }) => r.logo_key)
+  expect(logoOf(await inOrg(orgA, (c) => c.query('select logo_key from branding')))).toEqual([
+    `org/${orgA}/logo/ab12`,
+  ])
+  expect((await inOrg(orgB, (c) => c.query('select * from branding'))).rowCount).toBe(0)
+  expect((await inOrg(orgB, (c) => c.query('update branding set logo_key = null'))).rowCount).toBe(
+    0,
+  )
+  expect((await inOrg(orgB, (c) => c.query('delete from branding'))).rowCount).toBe(0)
+  await expect(
+    inOrg(orgB, (c) =>
+      c.query('insert into branding (organization_id, logo_key) values ($1, $2)', [orgA, 'x']),
+    ),
+  ).rejects.toThrow(/row-level security/)
+  // the switcher: members of A (u2 also of B) read A's logo; u3, only in B, does not
+  for (const u of [u1, u2])
+    expect((await asUser(u, (c) => c.query('select * from branding'))).rowCount, u).toBe(1)
+  expect((await asUser(u3, (c) => c.query('select * from branding'))).rowCount).toBe(0)
+  // u4 is disabled in A: no longer a reader
+  expect((await asUser(u4, (c) => c.query('select * from branding'))).rowCount).toBe(0)
+  // reading is all a person gets
+  expect((await asUser(u1, (c) => c.query('update branding set logo_key = null'))).rowCount).toBe(0)
 })
