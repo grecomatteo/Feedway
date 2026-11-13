@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest'
-import { requestSync, type PlatformConnector } from '@app/application'
+import { requestSync, syncWaitSeconds, type PlatformConnector } from '@app/application'
 import type { OrgActor } from '@app/domain'
 import type { Runtime } from '@app/infrastructure'
 import { startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
@@ -328,10 +328,16 @@ test('«Aggiorna»: through the real queue to the worker, sync then health; agai
   })
   try {
     const syncDeps = { uow: runtime.uow, queue: runtime.queue, rateLimiter: runtime.rateLimiter }
+    // a page opened later reads the wait from the server, without counting a sync
+    await expect(syncWaitSeconds(syncDeps, a.id)).resolves.toBeNull()
+    await expect(syncWaitSeconds(syncDeps, a.id)).resolves.toBeNull()
     // the answer says when the next sync is allowed, so the panel waits instead of asking again
     await expect(requestSync(syncDeps, ownerOf(of), { connectionId: a.id })).resolves.toEqual({
       retryAfterSeconds: 300,
     })
+    const left = await syncWaitSeconds(syncDeps, a.id)
+    expect(left).toBeGreaterThan(0)
+    expect(left).toBeLessThanOrEqual(300)
     // the same uuid in capitals is the same connection, and the same limit
     await expect(
       requestSync(syncDeps, ownerOf(of), { connectionId: a.id.toUpperCase() }),

@@ -105,7 +105,12 @@ const {
   error: connectionsError,
   refresh: refreshConnections,
 } = useFetch<{
-  items: { id: string; kind: string; status: ConnectionStatus }[]
+  items: {
+    id: string
+    kind: string
+    status: ConnectionStatus
+    syncRetryAfterSeconds: number | null
+  }[]
 }>(() => org.api('/connections'), {
   key: () => `connections-${org.slug.value}`,
   server: false,
@@ -161,6 +166,15 @@ function wait(id: string, seconds: number | null) {
   waitUntil[id] = Date.now() + (seconds ?? 300) * 1000
   now.value = Date.now()
 }
+// a page opened after a sync knows the wait from the server, before any click
+watch(connectionList, (list) => {
+  for (const c of list?.items ?? [])
+    if (c.syncRetryAfterSeconds !== null) {
+      const until = Date.now() + c.syncRetryAfterSeconds * 1000
+      if (until > (waitUntil[c.id] ?? 0)) waitUntil[c.id] = until
+    }
+  now.value = Date.now()
+})
 async function syncConnection(id: string) {
   if (sync.sending || waiting(id)) return
   Object.assign(sync, { id, sending: true })

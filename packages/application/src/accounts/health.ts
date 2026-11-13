@@ -349,6 +349,23 @@ export interface SyncRequestDeps {
 }
 
 /**
+ * How long until the connection may sync again, without counting a sync: a page opened after a
+ * click knows the wait before the person clicks again. null: a sync is allowed now.
+ */
+export async function syncWaitSeconds(
+  deps: { rateLimiter: Pick<RateLimiter, 'peek'> },
+  connectionId: string,
+): Promise<number | null> {
+  const { limit, windowMs } = SYNC_REQUEST_LIMIT
+  const { allowed, retryAfterMs } = await deps.rateLimiter.peek(
+    `accounts.sync:${connectionId}`,
+    limit,
+    windowMs,
+  )
+  return allowed ? null : Math.max(1, Math.ceil(retryAfterMs / 1000))
+}
+
+/**
  * «Aggiorna» on a connection (§8.4): Owner and Admin queue its sync, at most once every 5
  * minutes; the health check follows the sync. The answer says when the next one is allowed.
  */
