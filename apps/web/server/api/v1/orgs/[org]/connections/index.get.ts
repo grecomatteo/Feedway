@@ -1,6 +1,15 @@
-import { listConnections } from '@app/application'
+import { listConnections, syncWaitSeconds } from '@app/application'
 import { listConnectionsRoute } from '@app/contracts'
 
-export default defineApiRoute(listConnectionsRoute, async ({ actor }) => ({
-  items: (await listConnections(connectionsDeps(useDeps()), actor)).map(connectionDto),
-}))
+export default defineApiRoute(listConnectionsRoute, async ({ actor }) => {
+  const deps = useDeps()
+  const connections = await listConnections(connectionsDeps(deps), actor)
+  return {
+    items: await Promise.all(
+      connections.map(async (c) => ({
+        ...connectionDto(c),
+        syncRetryAfterSeconds: await syncWaitSeconds(deps, c.id),
+      })),
+    ),
+  }
+})
