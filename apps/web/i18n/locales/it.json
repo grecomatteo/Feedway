@@ -687,8 +687,7 @@
   "context": {
     "label": "Contesto",
     "all": "Tutti i clienti",
-    "profile": "Profilo {name}",
-    "profileOf": "{workspace} › {profile}"
+    "profile": "Profilo {name}"
   },
   "agencies": {
     "title": "Scegli agenzia",
@@ -894,6 +893,8 @@
     "notConfigured": "Da configurare",
     "notVerified": "Da provare",
     "verified": "Funziona",
+    "rejected": "Non funziona",
+    "rejectedAt": "Meta l'ha rifiutata il {when}: aggiorna App ID o App Secret.",
     "updatedAt": "Ultima modifica: {when}.",
     "verifiedAt": "Meta l'ha accettata il {when}.",
     "emptyTitle": "L'app Meta non è ancora configurata",
@@ -1096,6 +1097,7 @@
     "title": "Da sistemare su Meta",
     "today": "oggi",
     "inDays": "tra {n} giorno | tra {n} giorni",
+    "appRejected": "Meta non accetta più l'App ID o l'App Secret dell'agenzia: aggiornali in Impostazioni → Integrazioni → Meta.",
     "graphSunset": "Meta ritira la versione {version} della Graph API il {date} ({when}): aggiorna Feedway prima di allora.",
     "graphRetired": "Meta ha ritirato la versione {version} della Graph API il {date}: aggiorna Feedway, le chiamate possono smettere di funzionare.",
     "checkupDue": "Il Data Use Checkup dell'app Meta scade il {date} ({when}): completalo nella dashboard dell'app.",
@@ -1165,5 +1167,12 @@
     },
     "rightsTitle": "I tuoi diritti",
     "rights": "Puoi vedere e correggere i tuoi dati da «Il mio account», scaricarli da «Privacy» ed eliminare l'account. Per gli altri diritti (limitazione, opposizione) scrivi al contatto per la privacy dell'agenzia; puoi anche presentare reclamo al Garante per la protezione dei dati personali."
+  },
+  "userMenu": {
+    "label": "Il tuo account",
+    "open": "Menu di {name}",
+    "otherAgency": "Cambia agenzia",
+    "toDark": "Passa al tema scuro",
+    "toLight": "Passa al tema chiaro"
   }
 }

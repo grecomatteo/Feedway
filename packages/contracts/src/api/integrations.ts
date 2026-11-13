@@ -16,6 +16,8 @@ export const MetaIntegration = z.object({
   dataUseCheckupDueOn: z.string().nullable(),
   /** The last time Meta accepted App ID and secret. */
   verifiedAt: Timestamp.nullable(),
+  /** Meta refused App ID and secret (a test, or a job's call) since the last save or success. */
+  rejectedAt: Timestamp.nullable(),
   updatedAt: Timestamp,
 })
 export type MetaIntegration = z.infer<typeof MetaIntegration>

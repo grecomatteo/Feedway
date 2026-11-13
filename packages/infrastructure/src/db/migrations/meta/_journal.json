@@ -64,6 +64,13 @@
       "when": 1794309804390,
       "tag": "0008_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794540404700,
+      "tag": "0009_integrations_rejected_at",
+      "breakpoints": true
     }
   ]
 }

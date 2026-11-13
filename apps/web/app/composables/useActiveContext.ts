@@ -6,6 +6,8 @@ export interface ProfileAccount {
   externalId: string
   name: string
   username: string | null
+  /** As Meta gave it at the last sync: the address expires after some days. */
+  avatarUrl: string | null
   active: boolean
   health: 'ok' | 'warning' | 'error' | null
   healthMessage: string | null
@@ -19,6 +21,13 @@ export interface WorkspaceProfile {
 /** The name of a profile (§3): its Facebook Page, or its only account. */
 export const profileName = (p: WorkspaceProfile) =>
   (p.accounts.find((a) => a.platform === 'facebook') ?? p.accounts[0])?.name ?? ''
+
+/** The photo of a profile: its Instagram's, else its Page's. */
+export const profilePhoto = (p: WorkspaceProfile) =>
+  (
+    p.accounts.find((a) => a.platform === 'instagram' && a.avatarUrl) ??
+    p.accounts.find((a) => a.avatarUrl)
+  )?.avatarUrl ?? null
 
 /** The profiles of a workspace, shared by the switcher and the pages that show them. */
 export function useWorkspaceProfiles(workspaceId: Ref<string | null>) {
@@ -86,18 +95,48 @@ export function useActiveContext() {
   return { visible, workspace, profile, profiles, profileMissing }
 }
 
+const contextOf = (query: ReturnType<typeof useRoute>['query']) => {
+  const context: Record<string, string> = {}
+  for (const key of ['spazio', 'profilo'] as const) {
+    const value = query[key]
+    if (typeof value === 'string' && value !== '') context[key] = value
+  }
+  return context
+}
+
 /**
  * The context part of the address (`spazio`, `profilo`), for links that move to another page
  * of the agency without losing it (§14.6). Only what the switcher writes; nothing else follows.
+ * Outside the agency's pages («Il mio account») it is the one last seen in that agency.
  */
 export function useContextQuery() {
   const route = useRoute()
+  const org = useOrganization()
+  const last = useLastContext()
   return computed(() => {
-    const query: Record<string, string> = {}
-    for (const key of ['spazio', 'profilo'] as const) {
-      const value = route.query[key]
-      if (typeof value === 'string' && value !== '') query[key] = value
-    }
-    return query
+    if (route.params['org']) return contextOf(route.query)
+    return last.value.slug === org.slug.value ? last.value.context : {}
   })
+}
+
+const useLastContext = () =>
+  useState<{ slug: string; context: Record<string, string> }>('agency-context', () => ({
+    slug: '',
+    context: {},
+  }))
+
+/** Called by the agency's layout: the agency and context to keep for the personal pages. */
+export function useRememberAgency() {
+  const route = useRoute()
+  const agency = useState<string>('agency-slug', () => '')
+  const last = useLastContext()
+  watch(
+    () => [route.params['org'], route.query] as const,
+    ([slug, query]) => {
+      if (!slug) return
+      agency.value = String(slug)
+      last.value = { slug: String(slug), context: contextOf(query) }
+    },
+    { immediate: true },
+  )
 }

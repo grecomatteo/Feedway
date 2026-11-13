@@ -307,7 +307,15 @@ export async function checkConnectionHealth(
   if (!check.ok) {
     if (check.reason === 'expired' || check.reason === 'revoked')
       return endConnection(deps, job, opened, check.reason)
-    // the agency's app refused, or no answer: the accounts keep their last state
+    if (check.reason === 'app_rejected') {
+      // the agency's app, not the token: the integration turns red and asks for a person
+      await deps.uow.run(scopeOf(job), (tx) =>
+        opened.connector.markAppRejected(tx, job.organizationId, opened.app, deps.clock.now()),
+      )
+      deps.logger.warn({ connectionId: job.connectionId }, 'agency app rejected by the platform')
+      return skipped(deps, job, 'app rejected')
+    }
+    // no answer: the accounts keep their last state
     throw new Error(`health check ${check.reason}`)
   }
   const reports = new Map(check.accounts.map((r) => [keyOf(r), r]))

@@ -25,9 +25,11 @@ const org = useOrganization()
 const { call, failure } = useApi()
 
 const form = reactive({ appId: '', appSecret: '', businessId: '', dataUseCheckupDueOn: '' })
+// the stored settings only: a test changes just the dates and keeps what was typed
 watch(
-  () => props.integration,
-  (i) => {
+  () => props.integration?.updatedAt ?? null,
+  () => {
+    const i = props.integration
     Object.assign(form, {
       appId: i?.appId ?? '',
       appSecret: '',
@@ -82,9 +84,12 @@ async function runTest() {
       org.api('/integrations/meta/test'),
     )
     test.result = r.result
-    // the date only: a refetch would swap the form for "loading" and drop what was typed
+    // the dates only: a refetch would swap the form for "loading" and drop what was typed
+    const now = new Date().toISOString()
     if (r.ok && props.integration)
-      emit('update:integration', { ...props.integration, verifiedAt: new Date().toISOString() })
+      emit('update:integration', { ...props.integration, verifiedAt: now, rejectedAt: null })
+    else if (r.result === 'rejected' && props.integration)
+      emit('update:integration', { ...props.integration, verifiedAt: null, rejectedAt: now })
   } catch (e) {
     test.problem = failure(e).message
   } finally {

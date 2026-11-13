@@ -14,6 +14,7 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `surface` | `#FFFFFF` | `#242321` | Schede, pannelli |
 | `surface-sunken` | `#F3F1EC` | `#1F1E1C` | Selettori, righe secondarie |
 | `nav-bg` | `#F3F1EC` | `#141312` | Barra laterale |
+| `nav-hover` | `#E9E6DF` | `#22211F` | Riga della barra al passaggio del mouse o con il menu aperto |
 | `text` | `#242321` | `#F4F2EE` | Testo |
 | `text-muted` | `#5F5B55` | `#B9B4AC` | Metadati |
 | `border` / `border-strong` | `#E3DFD7` / `#CFCAC0` | `#3A3835` / `#55524D` | Bordi |
@@ -59,6 +60,14 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Copertina e video si caricano anche trascinando il file sull'area tratteggiata (16 ottobre).
 - Calendario cliente: «Stampa o salva PDF», A4 orizzontale, un mese per pagina, solo pubblicazioni da oggi in poi; i contenuti pianificati compaiono come «In preparazione».
 - Piano editoriale (proposta): sezione separata nel menu con mese da riempire e scelta del cliente; nel calendario principale schede tratteggiate «Da preparare» e selettore Tutto · Solo post · Solo piano; stampa del piano con schede piene e loghi. Dettagli in design/proposta-piano-editoriale.md.
+
+## Menu dell'utente (13 novembre 2026, Matteo)
+
+- In fondo alla barra laterale una riga sola: foto, nome e sotto, in piccolo, «Ruolo · Agenzia». Nessuna freccia: al passaggio del mouse la riga si scurisce appena (`nav-hover`).
+- Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Il mio account»; le pagine dell'agenzia che si aprono di rado, «Registro attività», «Impostazioni» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
+- Niente selettore a tre segmenti per il tema (Matteo, 13/11: «non mi piace proprio»). «Automatico» si sceglie in «Il mio account» → Preferenze.
+- Sul telefono la foto in alto a destra apre lo stesso menu dal basso, a tutta larghezza.
+- «Il mio account» resta dentro la barra dell'agenzia.
 
 ## Email transazionali (26 ottobre 2026)
 

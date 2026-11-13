@@ -2,6 +2,8 @@
 import type { Me } from '@app/contracts'
 import type { ApiFailure } from '~/composables/useApi'
 
+definePageMeta({ layout: 'personal' })
+
 const { t } = useI18n()
 const { call, failure } = useApi()
 const colorMode = useColorMode()

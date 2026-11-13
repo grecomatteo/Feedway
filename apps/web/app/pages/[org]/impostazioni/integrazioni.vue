@@ -51,15 +51,19 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="meta-integration" class="text-lg">{{ $t('metaIntegration.title') }}</h2>
           <UBadge
-            :color="integration?.verifiedAt ? 'success' : 'neutral'"
+            :color="
+              integration?.rejectedAt ? 'error' : integration?.verifiedAt ? 'success' : 'neutral'
+            "
             variant="subtle"
             data-testid="meta-integration-state"
           >
             {{
               integration
-                ? integration.verifiedAt
-                  ? $t('metaIntegration.verified')
-                  : $t('metaIntegration.notVerified')
+                ? integration.rejectedAt
+                  ? $t('metaIntegration.rejected')
+                  : integration.verifiedAt
+                    ? $t('metaIntegration.verified')
+                    : $t('metaIntegration.notVerified')
                 : $t('metaIntegration.notConfigured')
             }}
           </UBadge>
@@ -67,7 +71,12 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
         <p class="text-sm text-(--app-text-muted)">{{ $t('metaIntegration.explain') }}</p>
         <p v-if="integration" class="text-sm text-(--app-text-muted)">
           {{ $t('metaIntegration.updatedAt', { when: formatDate(integration.updatedAt, true) }) }}
-          <template v-if="integration.verifiedAt">
+          <template v-if="integration.rejectedAt">
+            {{
+              $t('metaIntegration.rejectedAt', { when: formatDate(integration.rejectedAt, true) })
+            }}
+          </template>
+          <template v-else-if="integration.verifiedAt">
             {{
               $t('metaIntegration.verifiedAt', { when: formatDate(integration.verifiedAt, true) })
             }}
