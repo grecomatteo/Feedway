@@ -123,6 +123,9 @@ test('social accounts: an inactive account says why, and a dead token says it pl
   ])
   await page.reload()
   await expect(connections).toContainText('il token non vale più (revocato o scaduto): ricollega')
+  // a dead connection cannot find it again: no advice that leads nowhere
+  await expect(inactive).toContainText('Meta non lo dà più a questo collegamento')
+  await expect(inactive.getByRole('link', { name: 'Cerca nuovi account' })).toHaveCount(0)
   await expect(connections).not.toContainText('token scaduto')
   expect((await axe(page)).violations).toEqual([])
 })

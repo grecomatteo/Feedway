@@ -934,6 +934,7 @@
     },
     "connectionAccounts": "{n} account | {n} account",
     "connectionInactive": "{n} inattivo | {n} inattivi",
+    "inactiveOther": "Meta non lo dà più a questo collegamento, quindi non pubblica.",
     "inactiveWhy": "Non è più assegnato all'utente di sistema su Meta, quindi non pubblica. Per riattivarlo assegnalo di nuovo su Meta, poi da «Aggiungi account» premi",
     "connectionStatus": {
       "pending": "in attesa dei primi account",

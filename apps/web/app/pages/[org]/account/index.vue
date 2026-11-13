@@ -134,6 +134,8 @@ function stateOf(a: AccountItem): {
   return { key: 'ok', color: 'success' }
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
+const reactivable = (a: AccountItem) =>
+  a.connection?.kind === 'meta_system_user' && !broken(a.connection.status)
 
 const sync = reactive({ id: '', message: '', ok: false, sending: false })
 async function syncConnection(id: string) {
@@ -331,11 +333,15 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                     {{ a.healthMessage }}
                   </p>
                   <p v-if="!a.active" class="text-sm text-(--app-text-muted)">
-                    {{ $t('socialAccounts.inactiveWhy') }}
-                    <NuxtLink :to="org.to('/account/aggiungi')" class="underline">{{
-                      $t('addAccount.search')
-                    }}</NuxtLink
-                    >.
+                    <!-- only a working system user can find it again from «Aggiungi account» -->
+                    <template v-if="reactivable(a)">
+                      {{ $t('socialAccounts.inactiveWhy') }}
+                      <NuxtLink :to="org.to('/account/aggiungi')" class="underline">{{
+                        $t('addAccount.search')
+                      }}</NuxtLink
+                      >.
+                    </template>
+                    <template v-else>{{ $t('socialAccounts.inactiveOther') }}</template>
                   </p>
                   <p v-if="a.quota" class="text-sm text-(--app-text-muted)">
                     {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}
