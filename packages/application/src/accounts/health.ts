@@ -342,13 +342,13 @@ export interface SyncRequestDeps {
 
 /**
  * «Aggiorna» on a connection (§8.4): Owner and Admin queue its sync, at most once every 5
- * minutes; the health check follows the sync.
+ * minutes; the health check follows the sync. The answer says when the next one is allowed.
  */
 export async function requestSync(
   deps: SyncRequestDeps,
   actor: OrgActor,
   input: { connectionId: string },
-): Promise<void> {
+): Promise<{ retryAfterSeconds: number }> {
   const { organizationId, userId } = actor
   const cannotManage = () =>
     new DomainError('FORBIDDEN', 'Solo Owner e Admin possono aggiornare gli account social')
@@ -385,4 +385,5 @@ export async function requestSync(
     )
   const job = { organizationId, connectionId }
   await deps.queue.send('accounts.sync', job, { singletonKey: connectionJobKey(job) })
+  return { retryAfterSeconds: Math.ceil(windowMs / 1000) }
 }

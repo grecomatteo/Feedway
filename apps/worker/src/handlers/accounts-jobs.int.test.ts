@@ -310,7 +310,10 @@ test('«Aggiorna»: through the real queue to the worker, sync then health; agai
   })
   try {
     const syncDeps = { uow: runtime.uow, queue: runtime.queue, rateLimiter: runtime.rateLimiter }
-    await requestSync(syncDeps, ownerOf(of), { connectionId: a.id })
+    // the answer says when the next sync is allowed, so the panel waits instead of asking again
+    await expect(requestSync(syncDeps, ownerOf(of), { connectionId: a.id })).resolves.toEqual({
+      retryAfterSeconds: 300,
+    })
     // the same uuid in capitals is the same connection, and the same limit
     await expect(
       requestSync(syncDeps, ownerOf(of), { connectionId: a.id.toUpperCase() }),

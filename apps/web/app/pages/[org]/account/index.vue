@@ -134,16 +134,57 @@ function stateOf(a: AccountItem): {
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
 
-const sync = reactive({ id: '', message: '', ok: false, sending: false })
+/**
+ * «Sincronizza»: one sync of a connection every few minutes (the server's limit). After a click,
+ * the button waits as long as the server says, and the message counts down.
+ */
+const sync = reactive({
+  id: '',
+  outcome: '' as '' | 'queued' | 'tooSoon' | 'failed',
+  message: '',
+  sending: false,
+})
+const waitUntil = reactive<Record<string, number>>({})
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  clock = setInterval(() => (now.value = Date.now()), 5_000)
+})
+onBeforeUnmount(() => clearInterval(clock))
+const minutesLeft = (id: string) =>
+  Math.ceil(Math.max(0, (waitUntil[id] ?? 0) - now.value) / 60_000)
+const waiting = (id: string) => minutesLeft(id) > 0
+function wait(id: string, seconds: number | null) {
+  // without the server's answer, the same 5 minutes it uses
+  waitUntil[id] = Date.now() + (seconds ?? 300) * 1000
+  now.value = Date.now()
+}
+const syncMessage = computed(() => {
+  const left = minutesLeft(sync.id)
+  const again = left > 0 ? ` ${t('socialAccounts.syncAgainIn', { n: left }, left)}` : ''
+  if (sync.outcome === 'queued') return t('socialAccounts.syncQueued') + again
+  if (sync.outcome === 'tooSoon')
+    return left > 0
+      ? t('socialAccounts.syncTooSoon', { n: left }, left)
+      : t('socialAccounts.syncReady')
+  return sync.message
+})
 async function syncConnection(id: string) {
-  if (sync.sending) return
-  Object.assign(sync, { id, message: '', ok: false, sending: true })
+  if (sync.sending || waiting(id)) return
+  Object.assign(sync, { id, outcome: '', message: '', sending: true })
   try {
-    await call('POST', org.api(`/connections/${id}/sync`))
-    Object.assign(sync, { message: t('socialAccounts.syncQueued'), ok: true })
+    const answer = await call<{ retryAfterSeconds: number }>(
+      'POST',
+      org.api(`/connections/${id}/sync`),
+    )
+    wait(id, answer.retryAfterSeconds)
+    sync.outcome = 'queued'
   } catch (e) {
     const f = failure(e)
-    sync.message = f.code === 'RATE_LIMITED' ? t('socialAccounts.syncTooSoon') : f.message
+    if (f.code === 'RATE_LIMITED') {
+      wait(id, f.retryAfter)
+      sync.outcome = 'tooSoon'
+    } else Object.assign(sync, { outcome: 'failed', message: f.message })
   } finally {
     sync.sending = false
   }
@@ -158,7 +199,7 @@ function openToken(reconnect: boolean) {
   })
 }
 async function tokenDone(outcome: 'connected' | 'replaced') {
-  Object.assign(sync, { id: '', message: '', ok: false, sending: false })
+  Object.assign(sync, { id: '', outcome: '', message: '', sending: false })
   token.done = t(`socialAccounts.tokenDone.${outcome}`)
   await Promise.all([
     refresh(),
@@ -241,7 +282,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-refresh-cw"
-                :disabled="broken(c.status) || (sync.sending && sync.id !== c.id)"
+                :disabled="broken(c.status) || waiting(c.id) || (sync.sending && sync.id !== c.id)"
                 :loading="sync.sending && sync.id === c.id"
                 @click="syncConnection(c.id)"
               >
@@ -263,12 +304,16 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               </UButton>
             </div>
             <p
-              v-if="sync.id === c.id && sync.message"
-              :role="sync.ok ? 'status' : 'alert'"
+              v-if="sync.id === c.id && sync.outcome"
+              :role="sync.outcome === 'queued' ? 'status' : 'alert'"
               class="w-full text-sm"
-              :class="sync.ok ? 'text-(--app-success)' : 'text-(--app-danger)'"
+              :class="{
+                'text-(--app-success)': sync.outcome === 'queued',
+                'text-(--app-text-muted)': sync.outcome === 'tooSoon',
+                'text-(--app-danger)': sync.outcome === 'failed',
+              }"
             >
-              {{ sync.message }}
+              {{ syncMessage }}
             </p>
           </li>
         </ul>

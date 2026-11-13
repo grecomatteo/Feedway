@@ -53,10 +53,20 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
 
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   await expect(connections).toContainText('Utente di sistema Meta')
-  await connections.getByRole('button', { name: 'Sincronizza' }).click()
+  const sync = connections.getByRole('button', { name: 'Sincronizza' })
+  await sync.click()
   await expect(connections.getByRole('status')).toContainText('Sincronizzazione avviata')
-  await connections.getByRole('button', { name: 'Sincronizza' }).click()
+  // one sync every 5 minutes: the button waits too, and says for how long
+  await expect(connections.getByRole('status')).toContainText(
+    'Puoi sincronizzare di nuovo tra 5 minuti',
+  )
+  await expect(sync).toBeDisabled()
+  // a page opened again does not know: the server's answer says how long is left
+  await page.reload()
+  await sync.click()
   await expect(connections.getByRole('alert')).toContainText('Hai già sincronizzato')
+  await expect(connections.getByRole('alert')).toContainText(/riprovare tra [1-5] minut/)
+  await expect(sync).toBeDisabled()
 
   await connections.getByRole('button', { name: 'Sostituisci token' }).click()
   const dialog = page.getByRole('dialog', { name: 'Sostituisci token' })
