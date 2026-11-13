@@ -115,7 +115,9 @@ I controlli obbligatori partono sempre, così il merge non resta mai in attesa d
 
 ## 6. Versioni e rilasci
 
-- **Versionamento semantico** (`MAJOR.MINOR.PATCH`). Fino alla 1.0 ogni tappa produce una minor: tappa 1 → `0.1.0`, tappa 2 → `0.2.0` … La tappa 12 produce `1.0.0`.
+- **Versionamento semantico** (`MAJOR.MINOR.PATCH`). Fino alla 1.0 ogni tappa produce una minor e la tappa 12 produce `1.0.0`. Le tappe 1–3 hanno alzato la minor a ogni rilascio con novità, quindi la tappa 3 si è chiusa con la `0.9.0`; dalla tappa 4 la minor segue di nuovo le tappe: tappa 4 → `0.10.0`, tappa 5 → `0.11.0` … (scelta di Matteo del 2026-11-13).
+  - Dentro una tappa `feat` e `fix` alzano solo la patch (`bump-patch-for-minor-pre-major` in `release-please-config.json`), così una correzione urgente esce come `0.10.1`.
+  - A fine tappa l'agente fonde l'ultima PR della tappa (di solito quella di chiusura) con il piè di pagina `Release-As: 0.N.0` nel messaggio dello squash: release-please porta la PR di rilascio a quella versione, e l'agente la fonde quando i criteri di fine tappa sono verificati.
 - **release-please** legge i commit su `main` e tiene aperta una **PR di rilascio** con il `CHANGELOG.md` e la versione successiva. L'agente la fonde a fine tappa, quando tutti i criteri di fine tappa sono verificati; Matteo installa la nuova versione con `update.sh` e la prova.
 - Il merge della PR di rilascio crea il **tag** `vX.Y.Z` e la **GitHub Release** con le note "Cosa provare", poi la CI pubblica l'immagine su GHCR con tag di versione e digest.
 - Ogni architettura si costruisce sul suo runner (amd64 su `ubuntu-latest`, arm64 su `ubuntu-24.04-arm`, gratis finché il repository è pubblico): l'emulazione di arm64 bloccava la build di Nuxt per ore. Restano su GHCR anche i tag `vX.Y.Z-amd64` e `vX.Y.Z-arm64`, uniti nel tag `vX.Y.Z`. Se la pubblicazione fallisce dopo il tag, si rilancia da Actions → «Rilascio» → *Run workflow* con il tag (es. `v0.4.0`): ricostruisce l'immagine da quel tag, senza un nuovo rilascio.
