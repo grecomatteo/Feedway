@@ -41,7 +41,8 @@ const items = computed(() => [
         label: w.name,
         avatar: { src: current ? (photo.value ?? undefined) : undefined, alt: w.name },
         type: 'checkbox' as const,
-        checked: current && profile.value === null,
+        // with one profile, the client and its profile are the same choice
+        checked: current && (profile.value === null || list.value.length <= 1),
         onSelect: () => pick(w.slug),
       },
       // the profiles of the client in context, right under it, only when it has more than one
@@ -65,7 +66,6 @@ const items = computed(() => [
     <button
       type="button"
       :disabled="!ready"
-      :aria-label="$t('context.label')"
       class="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-1 text-start transition-colors duration-150 hover:bg-(--app-nav-hover) aria-expanded:bg-(--app-nav-hover)"
     >
       <RowAvatar v-if="workspace" :name="workspace.name" :src="photo" />
@@ -77,6 +77,7 @@ const items = computed(() => [
         <UIcon name="i-lucide-layout-grid" class="size-4" />
       </span>
       <span class="min-w-0 flex-1">
+        <span class="sr-only">{{ $t('context.label') }}: </span>
         <span class="block truncate text-sm">{{ workspace?.name ?? $t('context.all') }}</span>
         <span v-if="workspace && profile" class="block truncate text-xs text-(--app-text-muted)">
           {{ profileName(profile) }}

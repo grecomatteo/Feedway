@@ -24,14 +24,15 @@ const row = 'flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-start'
     <button
       type="button"
       :disabled="!ready"
-      :aria-label="$t('agency.switcher')"
       :class="[
         row,
         'transition-colors duration-150 hover:bg-(--app-nav-hover) aria-expanded:bg-(--app-nav-hover)',
       ]"
     >
       <RowAvatar :name="name" shape="square" />
-      <span class="truncate text-sm font-semibold">{{ name }}</span>
+      <span class="truncate text-sm font-semibold"
+        ><span class="sr-only">{{ $t('agency.switcher') }}: </span>{{ name }}</span
+      >
     </button>
   </UDropdownMenu>
   <p v-else :class="row">

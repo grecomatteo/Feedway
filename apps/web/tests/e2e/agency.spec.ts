@@ -235,7 +235,10 @@ test('client selector: the photo of its Instagram, initials when it does not loa
   // an address of Meta's that expired: the initials again
   await page.unroute('https://*.fbcdn.net/**')
   await page.route('https://*.fbcdn.net/**', (route) => route.fulfill({ status: 403 }))
+  const refused = page.waitForResponse((r) => r.url().includes('fbcdn.net'))
   await page.goto(`/${org}/spazi?spazio=cliente-a`)
+  await refused
+  await expect(context.locator('img')).toHaveCount(0)
   await expect(context).toContainText('CA')
   expect((await axe(page)).violations).toEqual([])
 })
@@ -256,7 +259,10 @@ test('a person in two agencies switches, and another agency address is not found
   )
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
-  await page.getByRole('button', { name: 'Agenzia', exact: true }).first().click()
+  await page
+    .getByRole('button', { name: /^Agenzia:/ })
+    .first()
+    .click()
   await page.getByRole('menuitemcheckbox', { name: 'Agenzia Due' }).click()
   await expect(page).toHaveURL(new RegExp(`/${second?.id ?? ''}$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Due' })).toBeVisible()
@@ -284,7 +290,7 @@ async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
 }
 
 const switcher = (page: Page) =>
-  page.getByRole('button', { name: 'Agenzia', exact: true }).locator('visible=true')
+  page.getByRole('button', { name: /^Agenzia:/ }).locator('visible=true')
 
 test('a suspended agency hides the menu, and one click leaves it', async ({ page }) => {
   const { owner, second } = await ownerOfTwo(page, 'suspended')
