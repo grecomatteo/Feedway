@@ -111,7 +111,8 @@ export const syncConnectionRoute = defineContract({
   summary:
     'Aggiorna gli account del collegamento e la loro salute (Owner e Admin, al massimo una volta ogni 5 minuti): il lavoro parte in coda',
   request: { params: ConnectionParams },
-  response: z.object({ queued: z.literal(true) }),
+  // seconds before the next sync of this connection is allowed
+  response: z.object({ queued: z.literal(true), retryAfterSeconds: z.number().int().positive() }),
   auth: 'session',
   scope: 'organization',
 })

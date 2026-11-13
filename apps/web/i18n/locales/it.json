@@ -941,7 +941,8 @@
     },
     "sync": "Sincronizza",
     "syncQueued": "Sincronizzazione avviata: nomi, stato e quota si aggiornano tra poco.",
-    "syncTooSoon": "Hai già sincronizzato questo collegamento da poco: riprova tra qualche minuto.",
+    "syncAgainIn": "Puoi sincronizzare di nuovo tra {n} minuto. | Puoi sincronizzare di nuovo tra {n} minuti.",
+    "syncTooSoon": "Hai già sincronizzato questo collegamento da poco.",
     "replaceToken": "Sostituisci token",
     "reconnect": "Ricollega",
     "tokenDone": {
