@@ -9,11 +9,11 @@ test.beforeEach(({ baseURL }) => {
   test.skip(!baseURL || !process.env.E2E_DATABASE_URL, 'e2e server not available')
 })
 
-/** The photo shown next to "Il mio account" in the header, once it has loaded. */
+/** The small photo of the user menu (sidebar row, or phone top bar), once it has loaded. */
 async function headerPhoto(page: Page, userId: string) {
   const photo = page
-    .getByRole('navigation')
-    .locator(`img[src^="/api/v1/users/${userId}/avatar/64?v="]`)
+    .locator(`button img[src^="/api/v1/users/${userId}/avatar/64?v="]`)
+    .locator('visible=true')
   await expect(photo).toBeVisible()
   await expect
     .poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
@@ -61,7 +61,7 @@ test('photo chosen from file, cropped with keyboard, shown in the header', async
   // back to the initials
   await section.getByRole('button', { name: 'Togli la foto' }).click()
   await expect(section.getByRole('status')).toHaveText(/Foto tolta/)
-  await expect(page.getByRole('navigation').locator('img')).toHaveCount(0)
+  await expect(page.locator(`img[src^="/api/v1/users/${person.userId}/avatar/64"]`)).toHaveCount(0)
 })
 
 test('photo dropped on the uploader works too', async ({ page }) => {

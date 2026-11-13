@@ -2,11 +2,14 @@
 const org = useOrganization()
 const nav = useAgencyNav()
 const context = useContextQuery()
+useRememberAgency()
 const session = useSession()
 const route = useRoute()
 const current = (to: string) =>
   to === org.to() ? route.path === to : route.path === to || route.path.startsWith(`${to}/`)
 const me = computed(() => org.me.value)
+// «Il mio account» shows the agency's menu too, but has no client context of its own
+const inAgency = computed(() => Boolean(route.params['org']))
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()
 const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
@@ -39,7 +42,7 @@ watch(org.slug, refresh)
       /></NuxtLink>
       <div class="space-y-1">
         <OrgSwitcher />
-        <ContextSwitcher v-if="org.active.value" />
+        <ContextSwitcher v-if="org.active.value && inAgency" />
       </div>
       <nav v-if="org.active.value" :aria-label="$t('agency.nav.label')">
         <ul class="space-y-1">
@@ -55,19 +58,8 @@ watch(org.slug, refresh)
           </li>
         </ul>
       </nav>
-      <div class="mt-auto space-y-1 border-t border-(--app-border) pt-3">
-        <NuxtLink
-          v-if="me"
-          to="/account"
-          class="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-(--app-surface-sunken)"
-        >
-          <UserAvatar :name="me.displayName" :src="me.avatarUrl" />
-          <span class="truncate text-sm">{{ me.displayName }}</span>
-        </NuxtLink>
-        <div class="flex items-center justify-between">
-          <SignOutButton />
-          <ThemeSwitcher />
-        </div>
+      <div class="mt-auto border-t border-(--app-border) pt-3">
+        <UserMenu />
       </div>
     </aside>
 
@@ -77,9 +69,9 @@ watch(org.slug, refresh)
     >
       <div class="min-w-0 flex-1 space-y-1">
         <OrgSwitcher v-if="many || !org.active.value" />
-        <ContextSwitcher v-if="org.active.value" />
+        <ContextSwitcher v-if="org.active.value && inAgency" />
       </div>
-      <ThemeSwitcher />
+      <UserMenu variant="avatar" />
     </header>
 
     <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">

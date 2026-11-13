@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Me } from '@app/contracts'
 
+definePageMeta({ layout: 'personal' })
+
 const { t } = useI18n()
 
 useHead({ title: () => t('dataExport.title') })

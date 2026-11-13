@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { adminQuery, E2E_PASSWORD, newMember, newPerson, signIn } from './support/people.ts'
+import { openUserMenu } from './support/menu.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -64,12 +65,11 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   // under load the first click can land before the page is interactive: click until it turns
   // (a click that did turn it is never repeated: a second one would turn it back)
   const turned = async () => wasDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
-  await expect(async () => {
-    if (!(await turned()))
-      await page.getByRole('button', { name: 'Passa al tema chiaro o scuro' }).first().click()
-    if (wasDark) await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
-    else await expect(html).toHaveClass(/dark/, { timeout: 2000 })
-  }).toPass()
+  // the theme is in the user menu, next to the person's name
+  const menu = await openUserMenu(page, person.name)
+  await menu.getByRole('menuitemradio', { name: wasDark ? 'Chiaro' : 'Scuro' }).click()
+  await expect.poll(turned).toBe(true)
+  await page.keyboard.press('Escape')
   // the page may save the same choice once more when its own copy of the profile arrives later
   await expect.poll(() => saved.length).toBeGreaterThan(0)
   expect(saved.every((status) => status === 200)).toBe(true)

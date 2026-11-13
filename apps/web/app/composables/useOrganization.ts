@@ -19,7 +19,21 @@ export function useOrganization() {
   const session = useSession()
 
   const me = computed(() => (session.view.value.state === 'active' ? session.view.value.me : null))
-  const slug = computed(() => String(route.params['org'] ?? ''))
+  // Outside the agency's pages («Il mio account»), the agency of the sidebar is the last one
+  // visited in this tab, else the person's last one, else their only one.
+  const remembered = useState<string>('agency-slug', () => '')
+  const slug = computed(() => {
+    const asked = route.params['org']
+    if (asked) return String(asked)
+    const actives = (me.value?.organizations ?? []).filter((o) => o.status === 'active')
+    const known = (s: string | null | undefined) =>
+      s ? (actives.find((o) => o.slug === s)?.slug ?? null) : null
+    return (
+      known(remembered.value) ??
+      known(me.value?.lastOrganizationSlug) ??
+      (actives.length === 1 ? (actives[0]?.slug ?? '') : '')
+    )
+  })
   const organization = computed<MyOrganization | null>(
     () => me.value?.organizations.find((o) => o.slug === slug.value) ?? null,
   )

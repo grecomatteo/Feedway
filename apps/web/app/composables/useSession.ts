@@ -38,7 +38,7 @@ export function useSession() {
   const stateNow = (): SessionView['state'] => view.value.state
   /** Each change counts: only the answer to the latest save is kept. */
   const saves = useState('theme-saves', () => 0)
-  async function saveTheme(theme: 'light' | 'dark') {
+  async function saveTheme(theme: 'light' | 'dark' | 'system') {
     if (view.value.state !== 'active') return
     const mine = ++saves.value
     try {
