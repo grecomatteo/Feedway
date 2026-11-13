@@ -9,7 +9,7 @@ CREATE TABLE "branding" (
 ALTER TABLE "branding" ADD CONSTRAINT "branding_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 -- Hand-written from here (drizzle-kit does not manage row level security).
 -- An agency reads and writes only its own row, or the system scope; a person also reads the
--- logo of the agencies they belong to, for the switcher (as `org_listed_for_member`).
+-- logo of the agencies where they are an active member, for the switcher.
 ALTER TABLE "branding" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "branding" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE POLICY org_isolation ON branding
@@ -19,4 +19,5 @@ CREATE POLICY org_isolation ON branding
          OR current_setting('app.scope', true) = 'system');--> statement-breakpoint
 CREATE POLICY branding_listed_for_member ON branding FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM organization_members
-                 WHERE user_id = nullif(current_setting('app.user_id', true), '')::uuid));
+                 WHERE user_id = nullif(current_setting('app.user_id', true), '')::uuid
+                   AND status = 'active'));

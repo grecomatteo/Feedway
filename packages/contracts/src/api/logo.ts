@@ -7,7 +7,7 @@ const LOGO_UPLOAD_BYTES = 5 * 1024 * 1024
 const WEBP = { contentType: 'image/webp' } as const
 
 export const LogoSource = z.object({
-  stagingId: z.string(),
+  stagingId: Id,
   width: z.number().int(),
   height: z.number().int(),
   /** The preview, readable only by the Owner of the agency. */

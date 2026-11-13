@@ -1130,6 +1130,7 @@
   },
   "logo": {
     "title": "Logo dell'agenzia",
+    "current": "Logo attuale dell'agenzia",
     "help": "JPEG, PNG, WebP o HEIC, fino a 5 MB. Puoi anche trascinarlo qui. Lo mostriamo intero, senza ritagliarlo, e la trasparenza resta. Lo vedono solo le persone dell'agenzia, accanto al suo nome.",
     "dropHere": "Rilascia qui",
     "choose": "Scegli il logo",

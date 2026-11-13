@@ -106,7 +106,7 @@ export async function uploadLogoSource(
   return { stagingId, width, height }
 }
 
-/** The preview of the logo, for the Owner only; null when there is none. */
+/** The preview of the logo, for the Owner only (a read: no reauth); null when there is none. */
 export async function readLogoStaging(
   deps: Pick<LogoDeps, 'storage'>,
   actor: OrgActor,
@@ -136,13 +136,14 @@ export async function confirmLogo(
     throw new DomainError('NOT_FOUND', 'Il logo da salvare non c’è più: caricalo di nuovo')
   const files = await deps.images.fitSquare(await readAll(staged))
   const key = `${logoFolder(organizationId)}${files.hash}`
-  await deps.storage.put(fileOf(key, 256), files[256], { contentType: 'image/webp' })
-  await deps.storage.put(fileOf(key, 64), files[64], { contentType: 'image/webp' })
-  let previous: string | null
-  try {
-    previous = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-      await lockForChange(tx, actor)
-      const current = await tx.branding.logoKey(organizationId)
+  // the files are written under the row lock: a removal running meanwhile (which deletes its
+  // files under the same lock) can never delete the ones this logo points to
+  const previous = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    await lockForChange(tx, actor)
+    const current = await tx.branding.logoKey(organizationId)
+    await deps.storage.put(fileOf(key, 256), files[256], { contentType: 'image/webp' })
+    await deps.storage.put(fileOf(key, 64), files[64], { contentType: 'image/webp' })
+    try {
       await tx.branding.setLogo(organizationId, { logoKey: key, updatedBy: actor.userId })
       await tx.audit.record({
         organizationId,
@@ -155,16 +156,13 @@ export async function confirmLogo(
         ip: request.ip,
         data: { removed: false },
       })
-      return current
-    })
-  } catch (error) {
-    // the same logo may already be the agency's: its files stay
-    const current = await deps.uow.run({ organizationId, userId: actor.userId }, (tx) =>
-      tx.branding.logoKey(organizationId),
-    )
-    if (current !== key) await removeFiles(deps.storage, key)
-    throw error
-  }
+    } catch (error) {
+      // the same logo may already be the agency's: its files stay
+      if (current !== key) await removeFiles(deps.storage, key).catch(() => undefined)
+      throw error
+    }
+    return current
+  })
   if (previous !== null && previous !== key) await removeFiles(deps.storage, previous)
   // only this preview: one uploaded meanwhile in another tab stays
   await deps.storage.delete(stagingKey(organizationId, input.stagingId))
@@ -180,10 +178,10 @@ export async function removeLogo(
 ): Promise<{ logoUrl: null }> {
   assertCanChange(deps, actor, session)
   const { organizationId } = actor
-  const removed = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+  await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     await lockForChange(tx, actor)
     const current = await tx.branding.logoKey(organizationId)
-    if (current === null) return null
+    if (current === null) return
     await tx.branding.setLogo(organizationId, { logoKey: null, updatedBy: actor.userId })
     await tx.audit.record({
       organizationId,
@@ -196,10 +194,10 @@ export async function removeLogo(
       ip: request.ip,
       data: { removed: true },
     })
-    return current
+    // under the row lock, as a confirm writes its files: a confirm of this same logo waiting
+    // for the lock writes them again afterwards
+    await removeFiles(deps.storage, current)
   })
-  // only the files of the logo removed: a confirm running meanwhile writes its own first
-  if (removed !== null) await removeFiles(deps.storage, removed)
   await deps.storage.deletePrefix(stagingFolder(organizationId))
   return { logoUrl: null }
 }

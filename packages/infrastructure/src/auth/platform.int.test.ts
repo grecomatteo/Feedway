@@ -271,7 +271,14 @@ describe('organizations', () => {
     expect(r.slug).toBe('xy')
     const orgs = await listMyOrganizations({ uow }, { userId: existing.id })
     expect(orgs).toEqual([
-      { id: r.organizationId, slug: 'xy', name: 'XY', role: 'owner', status: 'active' },
+      {
+        id: r.organizationId,
+        slug: 'xy',
+        name: 'XY',
+        role: 'owner',
+        status: 'active',
+        logoUrl: null,
+      },
     ])
     const invites = await admin.query('select 1 from invites where organization_id = $1', [
       r.organizationId,

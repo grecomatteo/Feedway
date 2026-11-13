@@ -435,6 +435,8 @@ test('branding: an agency reaches only its own row; a person reads the logo of t
   for (const u of [u1, u2])
     expect((await asUser(u, (c) => c.query('select * from branding'))).rowCount, u).toBe(1)
   expect((await asUser(u3, (c) => c.query('select * from branding'))).rowCount).toBe(0)
+  // u4 is disabled in A: no longer a reader
+  expect((await asUser(u4, (c) => c.query('select * from branding'))).rowCount).toBe(0)
   // reading is all a person gets
   expect((await asUser(u1, (c) => c.query('update branding set logo_key = null'))).rowCount).toBe(0)
 })

@@ -31,11 +31,11 @@ const box = computed(() => (props.size === 'lg' ? 'size-24 rounded-xl' : 'size-8
   <img
     v-if="file && !failed"
     :src="file"
-    alt=""
+    :alt="size === 'lg' ? $t('logo.current') : ''"
     :class="['shrink-0 border border-(--app-border) bg-(--app-surface) object-contain', box]"
     :width="size === 'lg' ? 96 : 32"
     :height="size === 'lg' ? 96 : 32"
-    aria-hidden="true"
+    :aria-hidden="size === 'lg' ? undefined : 'true'"
     @error="failed = true"
   />
   <span
