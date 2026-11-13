@@ -385,5 +385,6 @@ export async function requestSync(
     )
   const job = { organizationId, connectionId }
   await deps.queue.send('accounts.sync', job, { singletonKey: connectionJobKey(job) })
+  // one sync a window (limit 1): the next one is a whole window away
   return { retryAfterSeconds: Math.ceil(windowMs / 1000) }
 }

@@ -138,12 +138,11 @@ const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
  * «Sincronizza»: one sync of a connection every few minutes (the server's limit). After a click,
  * the button waits as long as the server says, and the message counts down.
  */
-const sync = reactive({
-  id: '',
-  outcome: '' as '' | 'queued' | 'tooSoon' | 'failed',
-  message: '',
-  sending: false,
-})
+const sync = reactive({ id: '', sending: false })
+/** The last answer of each connection: announced once, while the countdown below it is not. */
+const outcomes = reactive<
+  Record<string, { kind: 'queued' | 'tooSoon' | 'failed'; message: string }>
+>({})
 const waitUntil = reactive<Record<string, number>>({})
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
@@ -159,32 +158,23 @@ function wait(id: string, seconds: number | null) {
   waitUntil[id] = Date.now() + (seconds ?? 300) * 1000
   now.value = Date.now()
 }
-const syncMessage = computed(() => {
-  const left = minutesLeft(sync.id)
-  const again = left > 0 ? ` ${t('socialAccounts.syncAgainIn', { n: left }, left)}` : ''
-  if (sync.outcome === 'queued') return t('socialAccounts.syncQueued') + again
-  if (sync.outcome === 'tooSoon')
-    return left > 0
-      ? t('socialAccounts.syncTooSoon', { n: left }, left)
-      : t('socialAccounts.syncReady')
-  return sync.message
-})
 async function syncConnection(id: string) {
   if (sync.sending || waiting(id)) return
-  Object.assign(sync, { id, outcome: '', message: '', sending: true })
+  Object.assign(sync, { id, sending: true })
+  delete outcomes[id]
   try {
     const answer = await call<{ retryAfterSeconds: number }>(
       'POST',
       org.api(`/connections/${id}/sync`),
     )
     wait(id, answer.retryAfterSeconds)
-    sync.outcome = 'queued'
+    outcomes[id] = { kind: 'queued', message: t('socialAccounts.syncQueued') }
   } catch (e) {
     const f = failure(e)
     if (f.code === 'RATE_LIMITED') {
       wait(id, f.retryAfter)
-      sync.outcome = 'tooSoon'
-    } else Object.assign(sync, { outcome: 'failed', message: f.message })
+      outcomes[id] = { kind: 'tooSoon', message: t('socialAccounts.syncTooSoon') }
+    } else outcomes[id] = { kind: 'failed', message: f.message }
   } finally {
     sync.sending = false
   }
@@ -199,7 +189,8 @@ function openToken(reconnect: boolean) {
   })
 }
 async function tokenDone(outcome: 'connected' | 'replaced') {
-  Object.assign(sync, { id: '', outcome: '', message: '', sending: false })
+  Object.assign(sync, { id: '', sending: false })
+  for (const id of Object.keys(outcomes)) delete outcomes[id]
   token.done = t(`socialAccounts.tokenDone.${outcome}`)
   await Promise.all([
     refresh(),
@@ -303,18 +294,21 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                 }}
               </UButton>
             </div>
-            <p
-              v-if="sync.id === c.id && sync.outcome"
-              :role="sync.outcome === 'queued' ? 'status' : 'alert'"
-              class="w-full text-sm"
-              :class="{
-                'text-(--app-success)': sync.outcome === 'queued',
-                'text-(--app-text-muted)': sync.outcome === 'tooSoon',
-                'text-(--app-danger)': sync.outcome === 'failed',
-              }"
-            >
-              {{ syncMessage }}
-            </p>
+            <div v-if="outcomes[c.id] || waiting(c.id)" class="w-full space-y-1 text-sm">
+              <p
+                v-if="outcomes[c.id]"
+                :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
+                :class="{
+                  'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
+                  'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
+                }"
+              >
+                {{ outcomes[c.id]?.message }}
+              </p>
+              <p v-if="waiting(c.id)" class="text-(--app-text-muted)">
+                {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
+              </p>
+            </div>
           </li>
         </ul>
       </section>
