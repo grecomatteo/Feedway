@@ -35,6 +35,14 @@ export function useSession() {
     if (local !== me.theme) colorMode.preference = me.theme
   }
 
+  /** The agency and context kept for «Il mio account» belong to the person who leaves. */
+  const agencySlug = useState<string>('agency-slug', () => '')
+  const agencyContext = useState('agency-context', () => ({ slug: '', context: {} }))
+  function forgetAgency() {
+    agencySlug.value = ''
+    agencyContext.value = { slug: '', context: {} }
+  }
+
   const stateNow = (): SessionView['state'] => view.value.state
   /** Each change counts: only the answer to the latest save is kept. */
   const saves = useState('theme-saves', () => 0)
@@ -120,6 +128,7 @@ export function useSession() {
       if ((fetchError.statusCode ?? fetchError.response?.status) !== 401) throw e
     }
     view.value = { state: 'signed_out' }
+    forgetAgency()
     const keep = opts.stay?.keep
     if (keep === undefined) {
       clearNuxtData()
@@ -130,6 +139,7 @@ export function useSession() {
   /** The server already closed the session (account deleted): forget it here too. */
   function forget() {
     view.value = { state: 'signed_out' }
+    forgetAgency()
     clearNuxtData()
   }
 

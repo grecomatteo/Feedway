@@ -42,6 +42,7 @@ function chooseTheme(value: ThemeChoice) {
 }
 
 async function signOut() {
+  if (leaving.value) return
   leaveFailed.value = false
   leaving.value = true
   try {
@@ -87,6 +88,8 @@ function focusFirst(event?: Event) {
 }
 watch(open, (value) => {
   if (value) focusFirst()
+  // a failure is about the last attempt: a menu opened again starts clean
+  else leaveFailed.value = false
 })
 const close = () => (open.value = false)
 </script>

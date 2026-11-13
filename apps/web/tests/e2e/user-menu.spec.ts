@@ -1,5 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
+import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { withScope } from '@app/infrastructure/testing'
 import {
   adminQuery,
   newMember,
@@ -31,6 +33,8 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toHaveCount(0)
 
   const menu = await openUserMenu(page, 'Olga Menu')
+  // the first entry takes the focus, on a phone too
+  await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
   // who is signed in heads the menu, outside its entries
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
@@ -70,6 +74,44 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
     `/${owner.organizationSlug}/spazi`,
   )
   expect((await axe(page)).violations).toEqual([])
+})
+
+test('«Il mio account» keeps the agency last opened, with its context', async ({ page }) => {
+  const owner = await newPerson('Olga Due Agenzie', 'owner')
+  const second = randomUUID()
+  await adminQuery(
+    "insert into organizations (id, name, slug, status) values ($1::uuid, 'Agenzia Seconda', $1::text, 'active')",
+    [second],
+  )
+  await adminQuery(
+    "insert into organization_members (organization_id, user_id, role, status) values ($1, $2, 'owner', 'active')",
+    [second, owner.userId],
+  )
+  await signInWithTotp(page.request, owner)
+  await page.goto(`/${second}/spazi?spazio=un-cliente`)
+  const menu = await openUserMenu(page, 'Olga Due Agenzie')
+  await menu.getByRole('menuitem', { name: 'Il mio account' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  // the sidebar is the second agency's, and its links keep the client chosen there
+  await expect(page.getByRole('link', { name: 'Clienti' }).first()).toHaveAttribute(
+    'href',
+    `/${second}/spazi?spazio=un-cliente`,
+  )
+  // «Cambia agenzia» is there with more than one agency
+  const again = await openUserMenu(page, 'Olga Due Agenzie')
+  await expect(again.getByRole('menuitem', { name: 'Cambia agenzia' })).toBeVisible()
+
+  // a suspended agency is not kept: the sidebar falls back to the other one
+  await withScope(process.env.E2E_DATABASE_URL ?? '', { kind: 'system' }, (c) =>
+    c.query("update organizations set status = 'suspended', suspended_at = now() where id = $1", [
+      second,
+    ]),
+  )
+  await page.goto('/account')
+  await expect(page.getByRole('link', { name: 'Clienti' }).first()).toHaveAttribute(
+    'href',
+    `/${owner.organizationSlug}/spazi`,
+  )
 })
 
 test('the user menu works from the keyboard', async ({ page, isMobile }) => {

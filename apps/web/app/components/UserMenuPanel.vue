@@ -101,6 +101,7 @@ const entry =
         tabindex="-1"
         :class="entry"
         :aria-busy="leaving"
+        :aria-disabled="leaving"
         @click="emit('signOut')"
       >
         <UIcon name="i-lucide-log-out" class="size-4 text-(--app-text-muted)" aria-hidden="true" />
