@@ -21,6 +21,7 @@ import type {
   MetaResult,
   MetaTokenCredentials,
 } from './graph-client.js'
+import type { MetaPictureDownloader } from './picture-download.js'
 
 // The system user of the agency's Business Manager (spec §8.1, plan 03 Task 6): a pasted token
 // that does not expire.
@@ -275,6 +276,8 @@ export async function classifiedListing(
 export function createMetaSystemUserConnector(deps: {
   client: MetaGraphClient
   integrations: Pick<IntegrationStore, 'credentials'>
+  /** The account pictures on Meta's CDN (plan 04 Task 4). */
+  pictures: MetaPictureDownloader
 }): PlatformConnector<MetaConnectorApp> {
   const { client } = deps
   const app = createMetaAppConnector(client)
@@ -342,5 +345,7 @@ export function createMetaSystemUserConnector(deps: {
     checkHealth({ app: credentials, token }, targets) {
       return checkMetaHealth(client, credentials, token, targets)
     },
+
+    fetchPicture: (url) => deps.pictures(url),
   }
 }

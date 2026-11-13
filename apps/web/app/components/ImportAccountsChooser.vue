@@ -69,6 +69,7 @@ async function submit() {
           >
             <template #label>
               <span class="flex items-center gap-2">
+                <RowAvatar :name="a.name" :src="a.avatarUrl" />
                 <UIcon
                   :name="a.platform === 'instagram' ? 'i-lucide-instagram' : 'i-lucide-facebook'"
                   class="size-5 shrink-0"
@@ -83,6 +84,7 @@ async function submit() {
             </template>
           </UCheckbox>
           <p v-else class="flex min-h-11 items-center gap-2">
+            <RowAvatar :name="a.name" :src="a.avatarUrl" />
             <UIcon
               :name="a.platform === 'instagram' ? 'i-lucide-instagram' : 'i-lucide-facebook'"
               class="size-5 shrink-0"

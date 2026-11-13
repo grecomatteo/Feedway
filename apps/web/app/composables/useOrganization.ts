@@ -8,6 +8,8 @@ export interface WorkspaceView {
   slug: string
   archivedAt: string | null
   myRole: 'owner' | 'admin' | 'manager' | 'publisher' | 'editor' | 'viewer'
+  /** Its first profile's picture, as Feedway keeps it (only in the list); null: the initials. */
+  photoUrl?: string | null
 }
 
 /**

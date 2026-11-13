@@ -1,5 +1,6 @@
 import type {
   Auth,
+  AvatarProcessor,
   Clock,
   ConnectionTokens,
   IdGenerator,
@@ -38,6 +39,8 @@ export interface JobHandlerDeps {
   /** The platforms (ADR 019) and the sealed tokens of the connections, for the account jobs. */
   connectors: PlatformConnectors
   connectionTokens: ConnectionTokens
+  /** sharp, for the pictures of the social accounts (plan 04 Task 4). */
+  images: AvatarProcessor
 }
 
 export type JobHandler<N extends QueueName> = (

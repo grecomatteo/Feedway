@@ -4,7 +4,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { listDataExports } from '@app/application'
-import { createRuntime, createZipWriter, notConfiguredMailer } from '@app/infrastructure'
+import {
+  createAvatarProcessor,
+  createRuntime,
+  createZipWriter,
+  notConfiguredMailer,
+} from '@app/infrastructure'
 import type { Runtime } from '@app/infrastructure'
 import { seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
@@ -60,6 +65,7 @@ const deps = (): JobHandlerDeps => ({
     seal: () => Promise.reject(new Error('not used')),
     open: () => Promise.reject(new Error('not used')),
   },
+  images: createAvatarProcessor(),
 })
 
 test('the job writes the archive and marks the export ready', async () => {

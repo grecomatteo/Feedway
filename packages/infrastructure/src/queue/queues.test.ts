@@ -17,6 +17,7 @@ test('every registered queue declares a scope', () => {
     ['accounts.sync', 'organization'],
     ['accounts.health', 'organization'],
     ['accounts.daily', 'system'],
+    ['accounts.avatar', 'organization'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -32,11 +33,12 @@ test('every registered queue declares a scope', () => {
     'accounts.sync',
     'accounts.health',
     'accounts.daily',
+    'accounts.avatar',
   ])
 })
 
-test('the jobs of one connection wait for each other, one waiting at most', () => {
-  for (const name of ['accounts.sync', 'accounts.health'])
+test('the jobs of one connection, or of one account, wait for each other, one waiting at most', () => {
+  for (const name of ['accounts.sync', 'accounts.health', 'accounts.avatar'])
     expect(QUEUES.find((q) => q.name === name)?.policy).toBe('stately')
 })
 

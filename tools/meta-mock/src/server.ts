@@ -1,4 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { parseFields, renderObject } from './fields.ts'
@@ -54,6 +55,11 @@ const NORMAL_USAGE: Usage = { call_count: 4, total_cputime: 2, total_time: 3 }
 const FULL_USAGE: Usage = { call_count: 100, total_cputime: 100, total_time: 100 }
 const DEFAULT_LIMIT = 25
 const VERSIONED = /^\/(v\d+\.\d+)(\/.*)$/
+// the profile pictures, served by the mock itself as Meta's CDN serves them (no token)
+const PICTURE = /^\/pictures\/([a-z0-9-]+)\.jpg$/
+const PICTURES_DIR = new URL('../fixtures/pictures/', import.meta.url)
+/** Fixture addresses start with this placeholder: the mock's own address replaces it. */
+const SELF_PLACEHOLDER = '{{mock}}'
 
 const RATE_LIMIT_MESSAGES: Record<number, string> = {
   4: '(#4) Application request limit reached',
@@ -83,6 +89,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
   const codes = new Map<string, { redirectUri: string; token: string; used: boolean }>()
   const timers = new Set<NodeJS.Timeout>()
   const removed = new Set<string>()
+  /** The mock's own address as each request reached it, for the picture addresses. */
+  const origins = new WeakMap<ServerResponse, string>()
 
   const scenariosNamed = <N extends ScenarioName>(name: N) =>
     active.filter((s): s is Extract<ActiveScenario, { name: N }> => s.name === name)
@@ -95,7 +103,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     headers: Record<string, string> = {},
   ): void {
     res.writeHead(status, { 'content-type': 'application/json; charset=UTF-8', ...headers })
-    res.end(typeof body === 'string' ? body : JSON.stringify(body))
+    const text = typeof body === 'string' ? body : JSON.stringify(body)
+    res.end(text.replaceAll(SELF_PLACEHOLDER, origins.get(res) ?? 'http://meta-mock.invalid'))
   }
 
   function sendError(
@@ -119,19 +128,24 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     return headers
   }
 
-  /** Infrastructure faults: they replace the answer before Meta looks at the request. */
+  /**
+   * Infrastructure faults: they replace the answer before Meta looks at the request. The
+   * pictures (the CDN) fail only for a fault that names their path.
+   */
   function fault(
     path: string,
     token: TokenFixture | undefined,
     res: ServerResponse,
     carryOn: () => void,
   ): boolean {
+    const isPicture = PICTURE.test(path)
     const hit = active.find(
       (s) =>
         ['rate_limited', 'transient_error', 'error', 'timeout', 'malformed', 'html_5xx'].includes(
           s.name,
         ) &&
         s.remaining > 0 &&
+        (!isPicture || (s.opts as Match).path !== undefined) &&
         matches(s.opts as Match, path),
     )
     if (hit === undefined) return false
@@ -566,8 +580,35 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     send(res, 200, body, headers)
   }
 
+  function picture(name: string, res: ServerResponse): void {
+    const applies = (s: { opts: { picture?: string } }) =>
+      s.opts.picture === undefined || s.opts.picture === name
+    const redirect = scenariosNamed('picture_redirect').find(applies)
+    if (redirect !== undefined) {
+      res.writeHead(302, { location: redirect.opts.to })
+      res.end()
+      return
+    }
+    if (scenariosNamed('picture_not_image').some(applies)) {
+      res.writeHead(200, { 'content-type': 'image/jpeg' })
+      res.end('<!DOCTYPE html><html><body>not a picture</body></html>')
+      return
+    }
+    let bytes: Buffer
+    try {
+      bytes = readFileSync(new URL(`${name}.jpg`, PICTURES_DIR))
+    } catch {
+      res.writeHead(404, { 'content-type': 'text/plain' })
+      res.end('URL signature mismatch')
+      return
+    }
+    res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': String(bytes.length) })
+    res.end(bytes)
+  }
+
   function handle(req: IncomingMessage, res: ServerResponse): void {
     const self = new URL(req.url ?? '/', 'http://meta-mock.invalid')
+    origins.set(res, `http://${req.headers.host ?? 'meta-mock.invalid'}`)
     const versioned = VERSIONED.exec(self.pathname)
     const header = req.headers.authorization
     const bearer =
@@ -582,6 +623,15 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       params: Object.fromEntries(self.searchParams),
       tokenIn: bearer !== undefined ? 'header' : queryToken !== undefined ? 'query' : 'none',
     })
+    const pictureName = PICTURE.exec(self.pathname)?.[1]
+    if (pictureName !== undefined && (req.method ?? 'GET') === 'GET') {
+      // the faults apply here too (`path: '/pictures/forno.jpg'`): a CDN that fails or is slow
+      const serve = () => {
+        picture(pictureName, res)
+      }
+      if (!fault(self.pathname, undefined, res, serve)) serve()
+      return
+    }
     if (versioned === null) {
       sendError(
         res,
@@ -621,6 +671,16 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       }
       const opts = (args[0] ?? {}) as ScenarioOptions[N]
       if (name === 'asset_removed') removed.add((opts as ScenarioOptions['asset_removed']).id)
+      if (name === 'picture_changed') {
+        const { id, picture: next = 'forno-nuova' } = opts as ScenarioOptions['picture_changed']
+        const node = data.objects[id]
+        const url = `${SELF_PLACEHOLDER}/pictures/${next}.jpg?oh=0a0a&oe=6B00`
+        if (node !== undefined) {
+          if ('profile_picture_url' in node) node.profile_picture_url = url
+          else node.picture = { data: { url } }
+        }
+        return
+      }
       const times = (opts as { times?: number }).times
       active.push({ name, opts, remaining: times ?? Infinity } as ActiveScenario)
     },

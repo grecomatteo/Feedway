@@ -54,6 +54,15 @@ export interface ScenarioOptions {
   personal_ig_profile: None
   /** `me/accounts` lists the page without `access_token`: the user has no role on it. */
   page_without_token: { pageId?: string }
+  /**
+   * The node (a Page or an Instagram account) gets another picture, at another address:
+   * `forno-nuova` by default, among those in `fixtures/pictures/`.
+   */
+  picture_changed: { id: string; picture?: string }
+  /** The pictures (or only `picture`) answer 200 with bytes that are no image. */
+  picture_not_image: { picture?: string }
+  /** The pictures (or only `picture`) answer 302 towards `to`. */
+  picture_redirect: { to: string; picture?: string }
 }
 
 export type ScenarioName = keyof ScenarioOptions

@@ -12,6 +12,8 @@ interface AccountItem {
   externalId: string
   name: string
   username: string | null
+  /** Feedway's copy of the picture; null: the initials. */
+  avatarUrl: string | null
   pageId: string | null
   active: boolean
   health: Health | null
@@ -363,9 +365,10 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               :data-testid="`account-${a.externalId}`"
             >
               <div class="flex min-w-0 items-start gap-3">
+                <RowAvatar :name="a.name" :src="a.avatarUrl" />
                 <UIcon
                   :name="a.platform === 'instagram' ? 'i-lucide-instagram' : 'i-lucide-facebook'"
-                  class="mt-0.5 size-5 shrink-0"
+                  class="mt-1.5 size-5 shrink-0"
                   aria-hidden="true"
                 />
                 <div class="min-w-0 space-y-1">

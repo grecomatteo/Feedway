@@ -57,6 +57,18 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 | Conservazione | Finché la persona non la toglie. Foto caricate e non ritagliate: cancellate dopo 1 ora |
 | Chi la vede | Solo le persone delle agenzie della persona |
 
+### 4 bis. Foto dei profili dei clienti
+
+| | |
+|---|---|
+| Finalità | Riconoscere nel pannello i profili Instagram e le Pagine Facebook dei clienti |
+| Base giuridica | Contratto con il cliente (art. 6.1.b) e legittimo interesse a un pannello chiaro (art. 6.1.f) |
+| Interessati | I clienti dell'agenzia: per lo più aziende; il profilo di una persona fisica, se è il cliente |
+| Dati | La foto pubblica del profilo, come Meta la dà, copiata da Feedway in due formati WebP senza metadati |
+| Origine | Meta (Graph API), all'importazione dell'account e a ogni sincronizzazione |
+| Conservazione | Finché l'account resta nell'agenzia. Una foto nuova sostituisce la vecchia, che si cancella subito. Si cancella con l'agenzia |
+| Chi la vede | Owner e Admin dell'agenzia; gli altri solo per gli account dei propri spazi. Mai dall'host pubblico |
+
 ### 5. Registro attività
 
 | | |

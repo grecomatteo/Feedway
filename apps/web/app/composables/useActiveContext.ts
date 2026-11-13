@@ -6,7 +6,7 @@ export interface ProfileAccount {
   externalId: string
   name: string
   username: string | null
-  /** As Meta gave it at the last sync: the address expires after some days. */
+  /** Feedway's copy of the picture, in the panel; null: none yet, the initials. */
   avatarUrl: string | null
   active: boolean
   health: 'ok' | 'warning' | 'error' | null

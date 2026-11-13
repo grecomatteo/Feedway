@@ -26,6 +26,7 @@ import type {
 } from '../ports/platform-connector.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import { queueAccountAvatars } from './avatar.js'
 import { queueHealth } from './health.js'
 
 // Connections and their import (spec §8.1 steps 4–5, §8.2, plan 03 Task 6). The platform is
@@ -65,6 +66,8 @@ export interface ImportableAccount extends PlatformAccount {
   state: ImportableState
   /** The Feedway account, when there is one already. */
   accountId: string | null
+  /** Its picture as Feedway keeps it; null without an account, or before the first copy. */
+  avatarKey: string | null
 }
 
 export type ConnectOutcome = 'connected' | 'replaced' | 'permissions_missing'
@@ -181,7 +184,12 @@ async function annotate(
       const owner = await ownerOf(record.connectionId)
       state = owner === null || canTakeOver(owner, connection) ? 'to_import' : 'other_connection'
     }
-    out.push({ ...account, state, accountId: record?.id ?? null })
+    out.push({
+      ...account,
+      state,
+      accountId: record?.id ?? null,
+      avatarKey: record?.avatarKey ?? null,
+    })
   }
   return out
 }
@@ -511,8 +519,13 @@ export async function importAccounts(
     })
     return { connection: viewOf({ ...connection, status }), accounts: imported }
   })
-  // after the commit, so the check finds the accounts; if the queue fails the import stays and
-  // the daily run checks them (Task 11)
+  // after the commit, so the jobs find the accounts; if the queue fails the import stays: the
+  // daily run checks them (Task 11), and its sync queues the pictures again
+  await queueAccountAvatars(
+    deps,
+    organizationId,
+    result.accounts.filter((a) => a.avatarUrl !== null).map((a) => a.id),
+  )
   try {
     await queueHealth(deps, { organizationId, connectionId: result.connection.id })
   } catch (error) {

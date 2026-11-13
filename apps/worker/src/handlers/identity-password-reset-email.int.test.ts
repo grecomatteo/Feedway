@@ -6,6 +6,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { EMAIL_LOGO_CID, type Logger, type Mailer } from '@app/application'
 import {
+  createAvatarProcessor,
   createLogger,
   createMemoryMailer,
   createRuntime,
@@ -75,6 +76,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDe
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),
     },
+    images: createAvatarProcessor(),
   }
 }
 

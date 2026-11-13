@@ -20,6 +20,7 @@ import {
 import type { AuditAction, JobPayloads, JobQueue } from '@app/application'
 import {
   createDb,
+  createLocalDiskStorage,
   createIntegrationStore,
   createKeyRing,
   createLogger,
@@ -138,6 +139,12 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/profiles': [
     { permission: 'workspace.view', level: 'workspace' },
   ],
+  // a stored picture: Owner and Admin every account, the others those of their workspaces (the
+  // case's account is put into the case's workspace, where every role of the case has a role;
+  // outside it, 404: account-avatar.int.test.ts)
+  'GET /api/v1/orgs/{org}/accounts/{accountId}/avatar/{size}': [
+    { permission: 'workspace.view', level: 'organization' },
+  ],
   // the agency's privacy notice: every member, whatever the role
   'GET /api/v1/orgs/{org}/privacy': [{ permission: 'workspace.view', level: 'organization' }],
   'GET /api/v1/orgs/{org}/members': [{ permission: 'users.manage', level: 'organization' }],
@@ -223,6 +230,27 @@ async function logoPreview(org: string): Promise<string> {
   return ((await r.json()) as { stagingId: string }).stagingId
 }
 
+/** The case's account with a stored picture, assigned to the case's workspace. */
+async function accountPicture(accountId: string, workspaceId: string): Promise<void> {
+  const { rows } = await fx.env.admin.pool.query<{ organization_id: string }>(
+    'select organization_id from social_accounts where id = $1',
+    [accountId],
+  )
+  const organizationId = rows[0]?.organization_id ?? ''
+  const key = `org/${organizationId}/accounts/${accountId}/avatar/${randomBytes(32).toString('hex')}`
+  const storage = createLocalDiskStorage({ root: fx.env.web.mediaRoot })
+  for (const file of [`${key}.webp`, `${key}-64.webp`])
+    await storage.put(file, Buffer.from('RIFF0000WEBPVP8 '), { contentType: 'image/webp' })
+  await fx.env.admin.pool.query('update social_accounts set avatar_key = $2 where id = $1', [
+    accountId,
+    key,
+  ])
+  await fx.env.admin.pool.query(
+    'insert into workspace_accounts (organization_id, workspace_id, account_id) values ($1, $2, $3)',
+    [organizationId, workspaceId, accountId],
+  )
+}
+
 /**
  * Routes whose success needs something there first: the logo's preview, or the logo itself.
  * They run for every role, so a refusal is measured on the same request as the success.
@@ -237,6 +265,10 @@ const PREPARE: Record<
   'POST /api/v1/orgs/{org}/logo/confirm': async (ids) => ({
     body: { stagingId: await logoPreview(ids.org) },
   }),
+  'GET /api/v1/orgs/{org}/accounts/{accountId}/avatar/{size}': async (ids) => {
+    await accountPicture(ids.account, ids.workspace)
+    return {}
+  },
   'GET /api/v1/orgs/{org}/logo/{size}': async (ids) => {
     const confirmed = await fx.env.call(
       'POST',

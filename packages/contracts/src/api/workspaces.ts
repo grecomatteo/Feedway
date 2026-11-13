@@ -19,7 +19,14 @@ export const listWorkspacesRoute = defineContract({
   path: '/api/v1/orgs/{org}/workspaces',
   summary: 'Gli spazi di lavoro visibili alla persona',
   request: { params: OrgParams },
-  response: z.object({ items: z.array(Workspace) }),
+  response: z.object({
+    items: z.array(
+      Workspace.extend({
+        /** The picture of its first profile, as Feedway keeps it; null: the initials. */
+        photoUrl: z.string().nullable(),
+      }),
+    ),
+  }),
   auth: 'session',
   scope: 'organization',
 })

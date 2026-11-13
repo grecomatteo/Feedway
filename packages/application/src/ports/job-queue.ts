@@ -29,6 +29,12 @@ interface JobDefinitions {
   'accounts.sync': { scope: 'organization'; data: ConnectionJobData }
   'accounts.health': { scope: 'organization'; data: ConnectionJobData }
   'accounts.daily': { scope: 'system'; data: object }
+  'accounts.avatar': { scope: 'organization'; data: AccountAvatarJobData }
+}
+
+/** The picture of one social account (plan 04 Task 4): its id only. */
+export interface AccountAvatarJobData {
+  accountId: string
 }
 
 /** A job about one connection of the agency (§8.4): its id only, never its token. */

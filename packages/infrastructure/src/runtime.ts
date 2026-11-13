@@ -31,6 +31,7 @@ import { createSmtpSender } from './mail/smtp/smtp-sender.js'
 import { createIntegrationStore } from './db/integrations/integration-store.js'
 import { createConnectionTokens } from './db/accounts/connection-tokens.js'
 import { createMetaGraphClient } from './platforms/meta/graph-client.js'
+import { createMetaPictureDownloader } from './platforms/meta/picture-download.js'
 import { createMetaSystemUserConnector } from './platforms/meta/system-user-connector.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
@@ -116,7 +117,16 @@ function createMeta(
     logger: deps.logger.child({ component: 'meta' }),
     recordDir: config.metaRecordDir ?? null,
   })
-  const systemUser = createMetaSystemUserConnector({ client, integrations: deps.integrations })
+  const pictures = createMetaPictureDownloader({
+    mode,
+    ...(mode === 'mock' &&
+      typeof config.metaMockUrl === 'string' && { mockUrl: config.metaMockUrl }),
+  })
+  const systemUser = createMetaSystemUserConnector({
+    client,
+    integrations: deps.integrations,
+    pictures,
+  })
   // the unified login (meta_business_login) joins with plan 03 Task 7
   return { meta: systemUser, connectors: { meta_system_user: systemUser } }
 }

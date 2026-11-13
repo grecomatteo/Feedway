@@ -1,3 +1,4 @@
+import { createAvatarProcessor } from '@app/infrastructure'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -59,6 +60,7 @@ const services: WorkerDeps['services'] = {
     seal: () => Promise.reject(new Error('not used')),
     open: () => Promise.reject(new Error('not used')),
   },
+  images: createAvatarProcessor(),
 }
 
 const silentLogger: Logger = {

@@ -3,8 +3,9 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { QueueName, QueueScopes } from '@app/application'
 import { QUEUES, type Runtime } from '@app/infrastructure'
 import { startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
-import { startMetaMock, type MetaMock } from '@app/meta-mock'
+import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
 import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
+import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
 import {
@@ -57,9 +58,26 @@ async function connectionsWorld(): Promise<World> {
   }
 }
 
+async function picturesWorld(): Promise<World> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const avatarUrl = `${mock.url}/pictures/fornoluce.jpg?oh=cc33&oe=6A00`
+  const seeded = FORNO_LUCE.map((s) => ({ ...s, avatarUrl }))
+  const ofA = await connection(runtime, a, { accounts: seeded })
+  const ofB = await connection(runtime, b, { accounts: seeded })
+  const ig = META_MOCK.instagram.ofPage
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, accountId: ofA.accounts[ig] },
+    crossing: { organizationId: a.organizationId, accountId: ofB.accounts[ig] },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
+  'accounts.avatar': { handler: accountsAvatar, world: picturesWorld },
 }
 
 // every row an agency's job could touch, by agency

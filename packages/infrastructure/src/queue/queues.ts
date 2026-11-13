@@ -81,6 +81,13 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
+  // ids only; per account (singletonKey) one running and one waiting; the next sync queues it
+  // again, so a job that waited a day is dropped
+  'accounts.avatar': {
+    policy: 'stately',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

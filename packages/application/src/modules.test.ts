@@ -28,6 +28,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'accounts.sync': true,
   'accounts.health': true,
   'accounts.daily': true,
+  'accounts.avatar': true,
 }
 
 test('each module has its own name', () => {

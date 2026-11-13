@@ -24,6 +24,7 @@ import { uuidV7Generator } from '../../system/id-generator.js'
 import { seed, startTestDatabase, withScope } from '../../testing/index.js'
 import type { TestDatabase } from '../../testing/index.js'
 import { createMetaGraphClient } from './graph-client.js'
+import { createMetaPictureDownloader } from './picture-download.js'
 import { createMetaSystemUserConnector } from './system-user-connector.js'
 
 // The pasted token and the import (plan 03 Task 6), against the fake Graph API only. Roles and
@@ -159,7 +160,11 @@ beforeAll(async () => {
     timeoutMs: 500,
     retryBaseDelayMs: 1,
   })
-  const connector = createMetaSystemUserConnector({ client, integrations })
+  const connector = createMetaSystemUserConnector({
+    client,
+    integrations,
+    pictures: createMetaPictureDownloader({ mode: 'mock', mockUrl: mock.url }),
+  })
   deps = {
     uow: createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger }),
     clock: systemClock,

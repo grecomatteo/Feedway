@@ -12,7 +12,7 @@ export default defineApiRoute(
     )
     return {
       connection: connectionDto(result.connection),
-      accounts: result.accounts.map(socialAccountDto),
+      accounts: result.accounts.map(socialAccountDto(params.org)),
     }
   },
   { rateLimit: CONNECTIONS_RATE_LIMIT },

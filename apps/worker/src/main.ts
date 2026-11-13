@@ -1,5 +1,6 @@
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
 import {
+  createAvatarProcessor,
   createCredentialEraser,
   createRuntime,
   createZipWriter,
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
       },
       connectors: runtime.connectors,
       connectionTokens: runtime.connectionTokens,
+      images: createAvatarProcessor(),
     },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,

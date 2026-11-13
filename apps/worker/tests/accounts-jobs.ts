@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import type { ConnectionKind, ConnectionStatus, Platform } from '@app/domain'
 import type { JobQueue } from '@app/application'
 import {
+  createAvatarProcessor,
   createRuntime,
   createZipWriter,
   notConfiguredMailer,
@@ -70,6 +71,7 @@ export function handlerDeps(
     },
     connectors: { meta_system_user: connector, meta_business_login: connector },
     connectionTokens: runtime.connectionTokens,
+    images: createAvatarProcessor(),
   }
 }
 
@@ -120,6 +122,8 @@ export interface AccountSeed {
   externalId: string
   name?: string
   pageId?: string | null
+  /** The picture's address as Meta gave it; none by default. */
+  avatarUrl?: string
 }
 
 /** A working connection with its imported accounts, as `importAccounts` leaves them. */
@@ -161,7 +165,7 @@ export async function connection(
         externalId: a.externalId,
         name: a.name ?? `Account ${a.externalId}`,
         username: null,
-        avatarUrl: null,
+        avatarUrl: a.avatarUrl ?? null,
         pageId: a.pageId ?? null,
         connectionId: id,
         at: new Date(),

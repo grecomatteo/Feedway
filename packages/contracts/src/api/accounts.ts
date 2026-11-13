@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineContract } from './define.js'
+import { defineContract, FileResponse } from './define.js'
 import { Id, OrgParams, OrgSlug, Timestamp } from './common.js'
 
 // Connections and the import of social accounts (spec §8.1 steps 4–5, §8.2, plan 03 Task 6).
@@ -25,6 +25,7 @@ export const ImportableAccount = z.object({
   externalId: z.string(),
   name: z.string(),
   username: z.string().nullable(),
+  /** Feedway's copy of the picture, in the panel; null: the initials (never Meta's address). */
   avatarUrl: z.string().nullable(),
   /** The key of the profile (§3): the page of the pair, null for an account alone. */
   pageId: z.string().nullable(),
@@ -41,6 +42,7 @@ export const SocialAccount = z.object({
   externalId: z.string(),
   name: z.string(),
   username: z.string().nullable(),
+  /** Feedway's copy of the picture, in the panel; null: the initials (never Meta's address). */
   avatarUrl: z.string().nullable(),
   pageId: z.string().nullable(),
   active: z.boolean(),
@@ -135,6 +137,7 @@ export const WorkspaceAccount = z.object({
   externalId: z.string(),
   name: z.string(),
   username: z.string().nullable(),
+  /** Feedway's copy of the picture, in the panel; null: the initials (never Meta's address). */
   avatarUrl: z.string().nullable(),
   pageId: z.string().nullable(),
   active: z.boolean(),
@@ -240,6 +243,21 @@ export const metaRemindersRoute = defineContract({
   scope: 'organization',
 })
 
+export const accountAvatarRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/accounts/{accountId}/avatar/{size}',
+  summary:
+    'La foto di un account social come la conserva Feedway (256 o 64 px): Owner e Admin tutte, gli altri quelle degli account dei propri spazi',
+  request: {
+    params: z.strictObject({ org: OrgSlug, accountId: Id, size: z.enum(['256', '64']) }),
+    query: z.strictObject({ v: z.string().max(64).optional() }),
+  },
+  download: { contentType: 'image/webp' },
+  response: FileResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const accountRoutes = [
   connectSystemUserRoute,
   listConnectionsRoute,
@@ -251,4 +269,5 @@ export const accountRoutes = [
   assignAccountRoute,
   unassignAccountRoute,
   workspaceProfilesRoute,
+  accountAvatarRoute,
 ] as const

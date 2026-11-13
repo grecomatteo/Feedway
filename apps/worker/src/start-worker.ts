@@ -1,4 +1,5 @@
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
+import { accountsAvatar } from './handlers/accounts-avatar.js'
 import { accountsDaily } from './handlers/accounts-daily.js'
 import { accountsHealth } from './handlers/accounts-health.js'
 import { accountsSync } from './handlers/accounts-sync.js'
@@ -55,6 +56,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.sync': accountsSync,
     'accounts.health': accountsHealth,
     'accounts.daily': accountsDaily,
+    'accounts.avatar': accountsAvatar,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }

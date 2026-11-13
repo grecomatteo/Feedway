@@ -111,6 +111,7 @@ export type {
   HealthCheck,
   HealthTarget,
   PermissionCheck,
+  PictureDownload,
   PlatformAccount,
   PlatformConnector,
   PlatformConnectors,

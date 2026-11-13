@@ -155,3 +155,43 @@ test('a login request with an invalid return address answers 400 and the mock ke
   expect((await fetch(dialog, { redirect: 'manual' })).status).toBe(400)
   expect((await graph('/me', META_MOCK.tokens.systemUser)).status).toBe(200)
 })
+
+test('the profile pictures point to the mock itself, which serves them as JPEG', async () => {
+  const token = META_MOCK.tokens.systemUser
+  const ig = await graph(`/${META_MOCK.instagram.ofPage}`, token, {
+    fields: 'id,profile_picture_url',
+  })
+  const url = (ig.body as unknown as { profile_picture_url: string }).profile_picture_url
+  expect(url.startsWith(`${mock.url}/pictures/fornoluce.jpg?`)).toBe(true)
+  const res = await fetch(url)
+  expect(res.status).toBe(200)
+  expect(res.headers.get('content-type')).toBe('image/jpeg')
+  const bytes = Buffer.from(await res.arrayBuffer())
+  expect(bytes.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]))
+  expect((await fetch(`${mock.url}/pictures/unknown.jpg`)).status).toBe(404)
+})
+
+test('the picture scenarios: a new picture, bytes that are no image, a redirect, a CDN error', async () => {
+  const token = META_MOCK.tokens.systemUser
+  mock.scenario('picture_changed', { id: META_MOCK.pages.withInstagram })
+  const page = await graph(`/${META_MOCK.pages.withInstagram}`, token, { fields: 'picture{url}' })
+  const url = (page.body as unknown as { picture: { data: { url: string } } }).picture.data.url
+  expect(url.startsWith(`${mock.url}/pictures/forno-nuova.jpg?`)).toBe(true)
+
+  mock.scenario('picture_not_image', { picture: 'forno' })
+  expect(await (await fetch(`${mock.url}/pictures/forno.jpg`)).text()).toContain('<html>')
+  expect((await fetch(`${mock.url}/pictures/bottega.jpg`)).status).toBe(200)
+
+  mock.scenario('picture_redirect', { to: 'https://elsewhere.example.test/x.jpg' })
+  const moved = await fetch(`${mock.url}/pictures/bottega.jpg`, { redirect: 'manual' })
+  expect(moved.status).toBe(302)
+  expect(moved.headers.get('location')).toBe('https://elsewhere.example.test/x.jpg')
+
+  mock.scenario('default')
+  // a fault without a path never reaches the pictures
+  mock.scenario('html_5xx')
+  expect((await fetch(`${mock.url}/pictures/studio.jpg`)).status).toBe(200)
+  mock.scenario('html_5xx', { path: '/pictures/studio.jpg', times: 1 })
+  expect((await fetch(`${mock.url}/pictures/studio.jpg`)).status).toBe(502)
+  expect((await fetch(`${mock.url}/pictures/studio.jpg`)).status).toBe(200)
+})

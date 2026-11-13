@@ -1020,12 +1020,15 @@ workspaces          id, organization_id, name, slug (unico nell'organizzazione),
                     default_post_time (facoltativa, ora locale), archived_at
 workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer)
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
-                    avatar_url, page_id (vuoto per Instagram solo), connection_id, active,
+                    avatar_url, avatar_key, page_id (vuoto per Instagram solo), connection_id, active,
                     health (ok|warning|error; vuoto = mai controllato, non selezionabile),
                     health_message, last_synced_at, quota_used, quota_total, quota_checked_at
                     -- page_id: per Facebook l'id della Pagina stessa (= external_id),
                     -- per Instagram l'id della Pagina a cui Meta lo collega; serve al profilo (§3)
                     -- connection_id: il collegamento proprietario, uno solo per account
+                    -- avatar_url: l'indirizzo di Meta, che scade; avatar_key: la copia di Feedway
+                    -- (org/<id>/accounts/<id>/avatar/<hash>.webp e -64.webp), dal lavoro
+                    -- accounts.avatar (tappa 4)
 account_connections id, organization_id, kind (meta_system_user|meta_business_login, ADR 020),
                     external_user_id, connected_by (user_id, solo informazione), token_enc,
                     key_version, expires_at (vuoto = non scade), status (pending|active|expired|

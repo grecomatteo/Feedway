@@ -8,7 +8,7 @@ import type {
   SyncRequestDeps,
   WorkspaceAccount,
 } from '@app/application'
-import type { MetaReminder } from '@app/domain'
+import { accountAvatarUrl, type MetaReminder } from '@app/domain'
 import type { Deps } from './deps'
 
 /** Connections and imports: the platform connectors and the sealed tokens of the process. */
@@ -33,38 +33,42 @@ export const connectionDto = (c: ConnectionView) => ({
   createdAt: c.createdAt.toISOString(),
 })
 
-export const importableDto = (a: ImportableAccount) => ({
+/**
+ * The pictures leave as Feedway's own copy, in the panel: Meta's addresses expire and the CSP
+ * allows none of them (plan 04 Task 4). An account not imported yet has none: the initials.
+ */
+export const importableDto = (slug: string) => (a: ImportableAccount) => ({
   platform: a.platform,
   externalId: a.externalId,
   name: a.name,
   username: a.username,
-  avatarUrl: a.avatarUrl,
+  avatarUrl: a.accountId === null ? null : accountAvatarUrl(slug, a.accountId, a.avatarKey),
   pageId: a.pageId,
   state: a.state,
   problem: a.problem,
   accountId: a.accountId,
 })
 
-export const socialAccountDto = (a: SocialAccountRecord) => ({
+export const socialAccountDto = (slug: string) => (a: SocialAccountRecord) => ({
   id: a.id,
   platform: a.platform,
   externalId: a.externalId,
   name: a.name,
   username: a.username,
-  avatarUrl: a.avatarUrl,
+  avatarUrl: accountAvatarUrl(slug, a.id, a.avatarKey),
   pageId: a.pageId,
   active: a.active,
   health: a.health,
 })
 
 /** An account of a workspace: never anything of its connection. */
-export const workspaceAccountDto = (a: WorkspaceAccount) => ({
+export const workspaceAccountDto = (slug: string) => (a: WorkspaceAccount) => ({
   id: a.id,
   platform: a.platform,
   externalId: a.externalId,
   name: a.name,
   username: a.username,
-  avatarUrl: a.avatarUrl,
+  avatarUrl: accountAvatarUrl(slug, a.id, a.avatarKey),
   pageId: a.pageId,
   active: a.active,
   health: a.health,
@@ -77,8 +81,8 @@ export const workspaceAccountDto = (a: WorkspaceAccount) => ({
   lastSyncedAt: a.lastSyncedAt?.toISOString() ?? null,
 })
 
-export const accountListItemDto = (a: AccountListItem) => ({
-  ...workspaceAccountDto(a),
+export const accountListItemDto = (slug: string) => (a: AccountListItem) => ({
+  ...workspaceAccountDto(slug)(a),
   workspaceIds: a.workspaceIds,
   connection: a.connection,
   createdAt: a.createdAt.toISOString(),

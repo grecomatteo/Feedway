@@ -39,7 +39,21 @@ export interface PlatformConnector<AppCredentials = unknown> {
     credentials: ConnectionCredentials<AppCredentials>,
     accounts: readonly HealthTarget[],
   ): Promise<HealthCheck>
+  /**
+   * The picture of an account, from the address the platform gave (`avatarUrl`), read whole
+   * into memory: only the platform's own picture hosts, no redirect elsewhere, a size and a time
+   * limit. The bytes are not trusted: the caller checks their type.
+   */
+  fetchPicture(url: string): Promise<PictureDownload>
 }
+
+/**
+ * `refused`: the address, a redirect or the size is not allowed, so nothing was (or will be)
+ * read; `gone`: the platform says the picture is not there (an address that expired);
+ * `unavailable`: no answer in time, or an error that may pass.
+ */
+export type PictureDownload =
+  { ok: true; bytes: Buffer } | { ok: false; reason: 'refused' | 'gone' | 'unavailable' }
 
 /** The kinds this process can reach; a kind left out has no connector here. */
 export type PlatformConnectors = { readonly [K in ConnectionKind]?: PlatformConnector }

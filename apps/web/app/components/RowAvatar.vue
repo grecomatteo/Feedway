@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The picture at the start of a sidebar row: a client's Instagram or Page photo, round (the
- * agency's logo is `AgencyLogo`). Initials when there is no picture or it does not load (Meta's
- * addresses expire after some days).
+ * The picture at the start of a row: a client's Instagram or Page photo as Feedway keeps it,
+ * round (the agency's logo is `AgencyLogo`). Initials when there is no picture yet or it does not
+ * load.
  */
 const props = withDefaults(defineProps<{ name: string; src?: string | null }>(), { src: null })
 const initials = computed(() =>

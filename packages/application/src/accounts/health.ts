@@ -7,6 +7,7 @@ import {
   type Platform,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
+import { queueAccountAvatars } from './avatar.js'
 import { assertActiveOrganization } from '../workspaces/index.js'
 import type { ConnectionWithToken, SocialAccountRecord } from '../ports/accounts.js'
 import type { Clock } from '../ports/clock.js'
@@ -146,7 +147,8 @@ function skipped(deps: AccountJobsDeps, job: ConnectionJob, why: string) {
  * `accounts.sync` (§8.4, plan 03 choices 2–3): names, pictures and pairs of the accounts the
  * connection owns; those gone from the platform become inactive, never deleted. Accounts not
  * imported are never created, and an inactive one does not come back on its own (the limit is
- * counted at the import). Then the health check of the same connection is queued.
+ * counted at the import). Then the copy of the pictures that changed (plan 04 Task 4) and the
+ * health check of the same connection are queued.
  */
 export async function syncConnection(
   deps: AccountJobsDeps,
@@ -175,6 +177,8 @@ export async function syncConnection(
     if (!(await lockSame(tx, opened))) return null
     let updated = 0
     const gone: string[] = []
+    // a new address (Meta signs them for a few days), or a picture never stored yet
+    const pictures: string[] = []
     for (const account of await tx.accounts.listOwnedBy(organizationId, connectionId)) {
       if (!account.active) continue
       const found = seen.get(keyOf(account))
@@ -190,15 +194,23 @@ export async function syncConnection(
           pageId: found.pageId,
           at: now,
         })
-      )
+      ) {
         updated += 1
+        if (
+          found.avatarUrl !== null &&
+          (found.avatarUrl !== account.avatarUrl || account.avatarKey === null)
+        )
+          pictures.push(account.id)
+      }
     }
     const inactive = await tx.accounts.markInactive(organizationId, connectionId, gone)
-    return { updated, inactive }
+    return { updated, inactive, pictures }
   })
   if (result === null) return skipped(deps, job, 'connection changed')
+  const { pictures, ...counts } = result
+  await queueAccountAvatars(deps, organizationId, pictures)
   await queueHealth(deps, job)
-  return { outcome: 'synced', ...result }
+  return { outcome: 'synced', ...counts }
 }
 
 /** The first check after an import, or the one after a sync. */

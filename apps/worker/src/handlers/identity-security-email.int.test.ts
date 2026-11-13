@@ -12,6 +12,7 @@ import {
   type SecurityEmailData,
 } from '@app/application'
 import {
+  createAvatarProcessor,
   createLogger,
   createMemoryMailer,
   createRuntime,
@@ -77,6 +78,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDe
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),
     },
+    images: createAvatarProcessor(),
   }
 }
 

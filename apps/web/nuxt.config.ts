@@ -72,15 +72,8 @@ export default defineNuxtConfig({
         'default-src': ["'self'"],
         'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],
         'style-src': ["'self'", "'unsafe-inline'"],
-        // the clients' Instagram and Page photos, as Meta gives them, until they are copied to
-        // our storage (stage 4): only Meta's image hosts, and no referrer goes with them
-        'img-src': [
-          "'self'",
-          'data:',
-          'blob:',
-          'https://*.fbcdn.net',
-          'https://*.cdninstagram.com',
-        ],
+        // nothing from Meta: the clients' pictures are Feedway's own copies (plan 04 Task 4)
+        'img-src': ["'self'", 'data:', 'blob:'],
         'connect-src': ["'self'"],
         'font-src': ["'self'"],
         'frame-ancestors': ["'none'"],
