@@ -61,6 +61,12 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   await expect(connections).toContainText('Utente di sistema Meta')
   const sync = connections.getByRole('button', { name: 'Sincronizza' })
+  // a second tab opened before the sync still offers it: the server says it is too soon
+  const other = await page.context().newPage()
+  await other.goto(`/${org}/account`)
+  const otherConnections = other.getByRole('region', { name: 'Collegamenti' })
+  const otherSync = otherConnections.getByRole('button', { name: 'Sincronizza' })
+  await expect(otherSync).toBeEnabled()
   await sync.click()
   await expect(connections.getByRole('status')).toContainText('Sincronizzazione avviata')
   // one sync every 5 minutes: the button waits too, and says for how long
@@ -68,6 +74,11 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await expect(connections).toContainText('Puoi sincronizzare di nuovo tra 5 minuti')
   await expect(connections.getByRole('status')).not.toContainText('Puoi sincronizzare')
   await expect(sync).toBeDisabled()
+  await otherSync.click()
+  await expect(otherConnections.getByRole('status')).toContainText('Hai già sincronizzato')
+  await expect(otherConnections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
+  await expect(otherSync).toBeDisabled()
+  await other.close()
   // a page opened again reads the wait from the server, before any click
   await page.reload()
   await expect(connections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
