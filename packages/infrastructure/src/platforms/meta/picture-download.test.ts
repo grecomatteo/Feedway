@@ -42,6 +42,11 @@ test('in mock mode no other host is reached, Meta included', async () => {
     reason: 'refused',
   })
   expect(calls).toEqual([])
+  const withoutMock = createMetaPictureDownloader({ mode: 'mock' })
+  expect(await withoutMock('https://scontent.xx.fbcdn.net/p.jpg')).toEqual({
+    ok: false,
+    reason: 'refused',
+  })
 })
 
 test('outside mock mode only https on Meta picture hosts is allowed, before any request', async () => {

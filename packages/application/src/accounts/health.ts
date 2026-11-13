@@ -177,7 +177,7 @@ export async function syncConnection(
     if (!(await lockSame(tx, opened))) return null
     let updated = 0
     const gone: string[] = []
-    // a new address (Meta signs them for a few days), or a picture never stored yet
+    // the accounts whose picture to copy again (Meta signs its addresses for a few days)
     const pictures: string[] = []
     for (const account of await tx.accounts.listOwnedBy(organizationId, connectionId)) {
       if (!account.active) continue
@@ -196,9 +196,11 @@ export async function syncConnection(
         })
       ) {
         updated += 1
+        // a new address, a picture never stored yet, or one Meta no longer gives
         if (
-          found.avatarUrl !== null &&
-          (found.avatarUrl !== account.avatarUrl || account.avatarKey === null)
+          found.avatarUrl === null
+            ? account.avatarKey !== null
+            : found.avatarUrl !== account.avatarUrl || account.avatarKey === null
         )
           pictures.push(account.id)
       }

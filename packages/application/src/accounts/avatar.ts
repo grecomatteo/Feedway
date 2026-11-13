@@ -41,6 +41,8 @@ export type AccountAvatarOutcome =
   /** The picture could not be read or is not an image: the previous one (or none) stays. */
   | { outcome: 'kept'; why: 'refused' | 'gone' | 'not_an_image' }
   | { outcome: 'stored'; changed: boolean }
+  /** Meta no longer gives a picture: the copy is removed. */
+  | { outcome: 'cleared' }
 
 /** One running and one waiting per account (stately policy). */
 export const accountAvatarJobKey = (job: AccountAvatarJob) => job.accountId
@@ -54,6 +56,25 @@ const fileOf = (key: string, size: 256 | 64) => `${key}${size === 64 ? '-64' : '
 async function removeFiles(storage: Storage, key: string): Promise<void> {
   await storage.delete(fileOf(key, 256))
   await storage.delete(fileOf(key, 64))
+}
+
+/**
+ * After the commit: every file of the account's folder but the current picture's goes, so a
+ * removal that failed once (the job is not retried for it) is done by the next picture. A
+ * failure here leaves files behind, never a missing picture: it is logged, the job succeeds.
+ */
+async function removeOthers(
+  deps: Pick<AccountAvatarDeps, 'storage' | 'logger'>,
+  job: AccountAvatarJob,
+  current: string | null,
+): Promise<void> {
+  const keep = current === null ? [] : [fileOf(current, 256), fileOf(current, 64)]
+  try {
+    for (const { key } of await deps.storage.list(avatarFolder(job)))
+      if (!keep.includes(key)) await deps.storage.delete(key)
+  } catch (error) {
+    deps.logger.warn({ err: error, accountId: job.accountId }, 'old account picture not removed')
+  }
 }
 
 /** Queues the picture of each account; a failure is logged, the caller's work stays done. */
@@ -91,13 +112,23 @@ export async function refreshAccountAvatar(
     const organization = await tx.organizations.findById(organizationId)
     if (organization?.status !== 'active') return null
     const account = await tx.accounts.findById(organizationId, accountId)
-    if (account?.active !== true || account.avatarUrl === null) return null
+    if (account?.active !== true) return null
+    if (account.avatarUrl === null) {
+      // Meta no longer gives a picture: Feedway's copy goes too, as the initials come back
+      if (account.avatarKey === null) return null
+      await tx.accounts.setAvatarKey(organizationId, accountId, null)
+      return { cleared: account.avatarKey }
+    }
     const connection = await tx.connections.findById(organizationId, account.connectionId)
     return connection === null
       ? null
       : { url: account.avatarUrl, kind: connection.kind, key: account.avatarKey }
   })
   if (found === null) return { outcome: 'skipped' }
+  if ('cleared' in found) {
+    await removeOthers(deps, job, null)
+    return { outcome: 'cleared' }
+  }
   const connector = deps.connectors[found.kind]
   if (!connector) throw new Error(`no platform connector for ${found.kind}`)
 
@@ -148,7 +179,7 @@ export async function refreshAccountAvatar(
     return { outcome: 'skipped' }
   }
   const { previous } = set
-  if (previous !== null && previous !== key) await removeFiles(deps.storage, previous)
+  if (previous !== key) await removeOthers(deps, job, key)
   return { outcome: 'stored', changed: previous !== key }
 }
 

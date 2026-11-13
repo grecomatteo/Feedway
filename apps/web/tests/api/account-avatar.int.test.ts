@@ -116,6 +116,7 @@ test('the Owner sees every picture of the agency, in both sizes, never cached pu
       expect(r.headers.get('content-type')).toBe('image/webp')
       expect(r.headers.get('cache-control')).toBe('private, max-age=86400')
       expect(r.headers.get('set-cookie')).toBeNull()
+      expect(r.headers.get('x-content-type-options')).toBe('nosniff')
     }
 })
 

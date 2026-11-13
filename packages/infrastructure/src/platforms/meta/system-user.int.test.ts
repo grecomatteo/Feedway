@@ -307,8 +307,14 @@ test('import: the connection becomes active, accounts stay out of every workspac
       owner.organizationId,
     ]),
   ).toEqual([{ data: { count: 2 } }])
-  // the first health check, ids only (§8.2, plan 03 Task 10)
+  // the copy of each picture (plan 04 Task 4), then the first health check, ids only (§8.2,
+  // plan 03 Task 10)
   expect(queued).toEqual([
+    ...result.accounts.map((a) => ({
+      name: 'accounts.avatar',
+      data: { organizationId: owner.organizationId, accountId: a.id },
+      opts: { singletonKey: a.id },
+    })),
     {
       name: 'accounts.health',
       data: { organizationId: owner.organizationId, connectionId: id },

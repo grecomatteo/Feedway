@@ -228,7 +228,8 @@ test("client selector: Feedway's copy of each client's photo, initials without i
   const itemA = page.getByRole('menuitemcheckbox', { name: 'Cliente A' })
   await expect(itemA.locator(`img[src^="${photo}"]`)).toBeVisible()
   await itemA.click()
-  const img = context.locator(`img[src^="${photo}"]`)
+  // the row shows the 64 px copy
+  const img = context.locator(`img[src^="${photo.replace('/256?', '/64?')}"]`)
   await expect(img).toBeVisible()
   await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0)
   // one profile only: the menu does not list it under the client
@@ -241,7 +242,7 @@ test("client selector: Feedway's copy of each client's photo, initials without i
 
   // a picture that does not load: the initials again
   await page.route('**/accounts/*/avatar/**', (route) => route.fulfill({ status: 404 }))
-  const refused = page.waitForResponse((r) => r.url().includes('/avatar/256'))
+  const refused = page.waitForResponse((r) => r.url().includes('/avatar/64'))
   await page.goto(`/${org}/spazi?spazio=cliente-a`)
   await refused
   await expect(context.locator('img')).toHaveCount(0)

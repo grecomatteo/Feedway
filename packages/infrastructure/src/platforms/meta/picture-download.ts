@@ -73,11 +73,12 @@ export function createMetaPictureDownloader(
   const fetchFn = opts.fetch ?? globalThis.fetch
   const timeoutMs = opts.timeoutMs ?? ACCOUNT_AVATAR_TIMEOUT_MS
   const maxBytes = opts.maxBytes ?? ACCOUNT_AVATAR_MAX_BYTES
-  const mockOrigin =
-    opts.mode === 'mock' && opts.mockUrl !== undefined ? parse(opts.mockUrl)?.origin : undefined
-  // in mock mode no address of the real Meta is ever reached
+  // in mock mode no address of the real Meta is ever reached: without the mock, nothing is
+  const mockOrigin = opts.mode === 'mock' ? (parse(opts.mockUrl ?? '')?.origin ?? null) : undefined
   const allowed = (url: URL) =>
-    mockOrigin === undefined ? isMetaPictureHost(url) : url.origin === mockOrigin
+    mockOrigin === undefined
+      ? isMetaPictureHost(url)
+      : mockOrigin !== null && url.origin === mockOrigin
 
   return async (address) => {
     const first = parse(address)

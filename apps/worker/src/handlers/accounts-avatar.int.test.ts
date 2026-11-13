@@ -212,3 +212,31 @@ test('an inactive account, or one without an address, is not downloaded', async 
   expect(pictureCalls()).toHaveLength(before)
   expect(await keyOf(ig)).toBeNull()
 })
+
+test('a picture Meta no longer gives is removed, and the initials come back', async () => {
+  const { of, ig, key } = await withPicture()
+  await admin.query('update social_accounts set avatar_url = null where id = $1', [ig])
+  await avatar(of, ig)
+  expect(await keyOf(ig)).toBeNull()
+  expect(await stored(key)).toEqual({ large: false, small: false })
+})
+
+test('files a failed removal left behind go with the next picture', async () => {
+  const { of, ig, key } = await withPicture()
+  // a stray copy, as a removal that failed after the commit would leave it
+  const stray = `${key.slice(0, key.lastIndexOf('/') + 1)}${'0'.repeat(64)}`
+  await runtime.storage.put(`${stray}.webp`, Buffer.from('x'), { contentType: 'image/webp' })
+  mock.scenario('picture_changed', { id: instagram.ofPage })
+  await admin.query('update social_accounts set avatar_url = $2 where id = $1', [
+    ig,
+    picture('forno-nuova'),
+  ])
+  await avatar(of, ig)
+  const next = await keyOf(ig)
+  expect(next).not.toBe(key)
+  expect(
+    (await runtime.storage.list(`org/${of.organizationId}/accounts/${ig}/avatar/`))
+      .map((o) => o.key)
+      .sort(),
+  ).toEqual([`${next ?? ''}-64.webp`, `${next ?? ''}.webp`].sort())
+})

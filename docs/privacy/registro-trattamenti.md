@@ -66,7 +66,7 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 | Interessati | I clienti dell'agenzia: per lo più aziende; il profilo di una persona fisica, se è il cliente |
 | Dati | La foto pubblica del profilo, come Meta la dà, copiata da Feedway in due formati WebP senza metadati |
 | Origine | Meta (Graph API), all'importazione dell'account e a ogni sincronizzazione |
-| Conservazione | Finché l'account resta nell'agenzia. Una foto nuova sostituisce la vecchia, che si cancella subito. Si cancella con l'agenzia |
+| Conservazione | Finché l'account resta nell'agenzia. Una foto nuova sostituisce la vecchia, che si cancella subito; una foto che Meta non dà più si cancella alla sincronizzazione successiva. Si cancellerà con l'agenzia (la cancellazione dell'agenzia non c'è ancora) |
 | Chi la vede | Owner e Admin dell'agenzia; gli altri solo per gli account dei propri spazi. Mai dall'host pubblico |
 
 ### 5. Registro attività
