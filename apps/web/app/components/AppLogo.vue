@@ -1,7 +1,4 @@
-<script setup lang="ts">
-import { PRODUCT_NAME } from '@app/config/product'
-</script>
-
+<!-- The logo of the panel's bars: the brand kit's horizontal logo, never the name typed out. -->
 <template>
-  <span class="font-display text-lg font-semibold tracking-tight">{{ PRODUCT_NAME }}</span>
+  <BrandLogo size="small" />
 </template>
