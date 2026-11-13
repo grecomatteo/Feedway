@@ -25,6 +25,7 @@ const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
 async function createWorkspace(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   await page.getByLabel('Nome del nuovo cliente').fill(name)
   await page.getByRole('button', { name: 'Crea', exact: true }).click()
   await expect(page.getByRole('list', { name: 'Clienti' }).getByText(name)).toBeVisible()

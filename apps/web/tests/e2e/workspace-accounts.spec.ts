@@ -27,6 +27,7 @@ test('client accounts: the owner assigns a profile and takes one account out', a
   await connectedAgency(page.request, org)
 
   await page.goto(`/${org}/spazi`)
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   await page.getByLabel('Nome del nuovo cliente').fill('Forno Luce')
   await page.getByRole('button', { name: 'Crea', exact: true }).click()
   await page.getByRole('link', { name: 'Account di Forno Luce' }).click()
@@ -57,6 +58,7 @@ test('client accounts: a member of the client sees them and cannot change them',
   const org = owner.organizationSlug
   await connectedAgency(page.request, org)
   await page.goto(`/${org}/spazi`)
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   await page.getByLabel('Nome del nuovo cliente').fill('Bottega')
   await page.getByRole('button', { name: 'Crea', exact: true }).click()
   await expect(page.getByRole('list', { name: 'Clienti' }).getByText('Bottega')).toBeVisible()
