@@ -77,7 +77,14 @@ export const listConnectionsRoute = defineContract({
   summary:
     'I collegamenti dell’agenzia, anche quelli ancora senza account (Owner e Admin): mai il token',
   request: { params: OrgParams },
-  response: z.object({ items: z.array(Connection) }),
+  response: z.object({
+    items: z.array(
+      Connection.extend({
+        /** Seconds until «Sincronizza» is allowed again; null: allowed now. */
+        syncRetryAfterSeconds: z.number().int().positive().nullable(),
+      }),
+    ),
+  }),
   auth: 'session',
   scope: 'organization',
 })

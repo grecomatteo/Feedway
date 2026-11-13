@@ -68,10 +68,8 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await expect(connections).toContainText('Puoi sincronizzare di nuovo tra 5 minuti')
   await expect(connections.getByRole('status')).not.toContainText('Puoi sincronizzare')
   await expect(sync).toBeDisabled()
-  // a page opened again does not know: the server's answer says how long is left
+  // a page opened again reads the wait from the server, before any click
   await page.reload()
-  await sync.click()
-  await expect(connections.getByRole('status')).toContainText('Hai già sincronizzato')
   await expect(connections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
   await expect(sync).toBeDisabled()
 

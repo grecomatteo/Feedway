@@ -29,6 +29,7 @@ export {
   connectionJobKey,
   queueHealth,
   requestSync,
+  syncWaitSeconds,
   syncConnection,
 } from './health.js'
 export { PENDING_CONNECTION_MAX_AGE_MS, runAccountsDaily } from './daily.js'
