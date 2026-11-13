@@ -170,7 +170,7 @@ function clienti() {
   return `<div class="head"><div><h1>Clienti</h1><p>5 clienti. <a class="link" style="font-size:inherit">Pizzeria Da Gino</a> ha un profilo da ricollegare.</p></div><button class="btn pri">${ic('plus')}<span class="l">Nuovo cliente</span></button></div>
   <div class="notice">${ic('link')}<span><b>2 profili trovati su Meta</b> non sono ancora in un cliente.</span><button class="btn">Sistemali</button></div>
   <div class="tools"><div class="seg"><button class="on">Attivi 5</button><button>Archiviati 1</button></div><div class="search">${ic('search')}Cerca un cliente o un profilo</div></div>
-  <div class="surface"><table><thead><tr><th>Cliente</th><th>Instagram e Facebook</th><th>Meta</th><th class="r">Persone</th><th></th></tr></thead><tbody>
+  <div class="surface"><table><thead><tr><th>Cliente</th><th>Profili</th><th>Collegamento</th><th class="r">Persone</th><th></th></tr></thead><tbody>
   ${C.map(c => `<tr><td><span class="cl">${av(c)}<b>${c.n}</b></span></td><td class="h">${prof(c)}</td><td>${st(c.st)}</td><td class="r">${c.ppl}</td><td style="width:52px"><button class="btn ghost">${ic('dots')}</button></td></tr>`).join('')}
   </tbody></table>
   <ul class="rows mob">${C.map(c => `<li>${av(c)}<span class="g"><b>${c.n}</b><span>${c.st==='warn' ? '<span class="st warn" style="display:inline-flex"><i></i>Da ricollegare</span>' : c.ig ? c.ig + ' · ' + c.fb : 'Nessun profilo collegato'}</span></span><button class="btn ghost">${ic('dots')}</button></li>`).join('')}</ul></div>`

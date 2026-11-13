@@ -42,3 +42,12 @@ Tavole: `schermate/tappa-4-revisione/proposta-clienti-e-profili.png` nella carte
 
 - Il collegamento a Meta in Impostazioni ti va bene, o preferisci tenerlo come scheda dentro Clienti («Clienti · Collegamento Meta»)?
 - Quando colleghi Meta la prima volta, creo **in automatico** un cliente per ogni profilo trovato (lo controlli e lo correggi dopo), o te li propongo uno per uno nell'elenco «Sistemali»? Consiglio la proposta: crea in automatico solo se lo confermi con un clic.
+
+## Altre piattaforme (Matteo, 13 novembre, sera)
+
+Matteo proverà ad aggiungere social oltre a Instagram e Facebook. Per questo nelle schermate:
+- la colonna si chiama «Profili» e lo stato «Collegamento», non «Instagram e Facebook» e «Meta»;
+- ogni profilo si mostra con l'icona della sua piattaforma;
+- in Impostazioni → Integrazioni c'è una voce per piattaforma.
+
+Oggi il sistema conosce solo Meta: aggiungere altre piattaforme è un lavoro a parte (connettore e ADR), che questa organizzazione non blocca.
