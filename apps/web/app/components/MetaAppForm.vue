@@ -25,9 +25,11 @@ const org = useOrganization()
 const { call, failure } = useApi()
 
 const form = reactive({ appId: '', appSecret: '', businessId: '', dataUseCheckupDueOn: '' })
+// the stored settings only: a test changes just the dates and keeps what was typed
 watch(
-  () => props.integration,
-  (i) => {
+  () => props.integration?.updatedAt ?? null,
+  () => {
+    const i = props.integration
     Object.assign(form, {
       appId: i?.appId ?? '',
       appSecret: '',

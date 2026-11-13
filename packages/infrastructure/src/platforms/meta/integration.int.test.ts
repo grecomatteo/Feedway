@@ -325,6 +325,20 @@ test('"Prova" refused by Meta: the app turns red until a test or a save works (D
   expect((await view())?.rejectedAt).toBeNull()
 })
 
+test('a refusal of settings replaced while Meta answered does not mark the new ones (D-1)', async () => {
+  await save(APP)
+  duringVerify = async () => {
+    duringVerify = null
+    await save({ appId: APP.appId, businessId: '4000000000000001' })
+    // Meta then refuses the settings read before the save
+    mock.scenario('error', { code: 100, status: 400, path: '/debug_token' })
+  }
+  await testMetaIntegration(deps, owner, { ip: IP }).catch(() => undefined)
+  const after = await getMetaIntegration(deps, owner)
+  expect(after?.businessId).toBe('4000000000000001')
+  expect(after?.rejectedAt).toBeNull()
+})
+
 test('the activity entries hold field names and outcomes, never a secret', async () => {
   await save(APP)
   await save({ appId: APP.appId, appSecret: 'segreto-sbagliato' }).catch(() => undefined)

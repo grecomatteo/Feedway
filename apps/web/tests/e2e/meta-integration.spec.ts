@@ -80,11 +80,13 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await expect(page.getByRole('region', { name: 'Da sistemare su Meta' })).toContainText(
     "Meta non accetta più l'App ID o l'App Secret dell'agenzia",
   )
-  // a test that works takes it away
+  // a test that works takes it away, and keeps what was typed and not saved yet
   await page.goto(`/${org}/impostazioni/integrazioni`)
+  await page.getByLabel('App Secret').fill('incollato-non-salvato')
   await page.getByRole('button', { name: 'Prova' }).click()
   await expect(page.getByRole('status')).toHaveText('Funziona: Meta accetta App ID e App Secret.')
   await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
+  await expect(page.getByLabel('App Secret')).toHaveValue('incollato-non-salvato')
   await page.goto(`/${org}/account`)
   await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
   await expect(page.getByText("Meta non accetta più l'App ID")).toHaveCount(0)
