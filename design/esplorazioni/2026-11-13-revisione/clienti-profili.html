@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedway · clienti e profili</title>
+<style>
+@font-face { font-family: Sora; src: url(Sora-Variable.ttf) format('truetype'); font-weight: 100 800; }
+:root {
+  --bg:#F6F3EE; --surface:#FFFDF9; --sunken:#EFEBE4; --nav:#EFEBE4; --text:#242321; --muted:#5F5B55;
+  --border:#E3DFD7; --strong:#CFCAC0; --brand:#FF762E; --brand-soft:#FFE8DA;
+  --ok:#17693F; --warn:#8A5200;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: Sora, system-ui, sans-serif; font-weight: 650; letter-spacing: -0.01em; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; }
+.app { min-height: 100dvh; display: flex; }
+.side { width: 256px; flex: none; background: var(--nav); border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 0; height: 100dvh; }
+.side .logo img { height: 26px; display: block; margin: 6px 8px; }
+.nav { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 14px; }
+.nav.on { background: var(--brand-soft); font-weight: 600; }
+.ctx { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; font-size: 14px; }
+.tile { width: 32px; height: 32px; border-radius: 8px; background: var(--text); color: var(--bg); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.me { margin-top: auto; border-top: 1px solid var(--border); padding: 12px 8px 0; display: flex; gap: 10px; align-items: center; }
+.me small { display: block; color: var(--muted); font-size: 12px; }
+.av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 650; flex: none; color: #fff; }
+.av.lg { width: 64px; height: 64px; font-size: 22px; font-family: Sora; }
+.av.n { background: var(--sunken); color: var(--text); }
+main { flex: 1; min-width: 0; padding: 32px 32px 48px; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.head h1 { font-size: 30px; line-height: 1.15; }
+.head p { color: var(--muted); margin-top: 4px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.btn.pri { background: var(--brand); color: var(--text); border: 1.5px solid var(--text); }
+.btn.out { border: 1px solid var(--strong); background: var(--surface); }
+.btn.ghost { padding: 0; }
+.muted { color: var(--muted); }
+.st { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.st i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.st.warn { color: var(--warn); font-weight: 600; }
+.st.warn i { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.st.none i { background: var(--strong); }
+.notice { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--brand-soft); border-radius: 10px; margin-bottom: 20px; font-size: 14px; }
+.notice .btn { margin-left: auto; min-height: 36px; background: var(--surface); border: 1px solid var(--strong); }
+.surface { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.tools { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.seg { display: inline-flex; background: var(--sunken); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+.seg button { min-height: 36px; padding: 0 14px; border-radius: 7px; font-size: 13.5px; color: var(--muted); }
+.seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(36,35,33,.15); }
+.search { flex: 1; max-width: 320px; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--strong); border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--muted); padding: 10px 16px; border-bottom: 1px solid var(--border); }
+td { height: 56px; padding: 0 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; }
+.cl { display: flex; align-items: center; gap: 12px; }
+.cl b { font-weight: 600; }
+.h { color: var(--muted); }
+.h .p { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; }
+.h .p svg { width: 15px; height: 15px; }
+.rows > li { list-style: none; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--border); }
+.rows > li:last-child { border-bottom: 0; }
+.rows .g { flex: 1; min-width: 0; }
+.rows .g b, .rows .g span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rows .g span { font-size: 13px; color: var(--muted); }
+.sec { margin-top: 28px; }
+.sec h2 { font-size: 17px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.chead { display: flex; gap: 20px; align-items: center; margin-bottom: 8px; }
+.chead h1 { font-size: 30px; }
+.tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin: 20px 0 24px; font-size: 14px; }
+.tabs a { padding: 12px 0; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.tabs a.on { color: var(--text); font-weight: 600; border-bottom-color: var(--text); }
+.soon { display: inline-block; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: var(--sunken); color: var(--muted); margin-left: 4px; }
+.dialog-bg { position: fixed; inset: 0; background: rgba(36,35,33,.35); display: grid; place-items: center; z-index: 30; padding: 16px; }
+.dialog { width: 560px; max-width: 100%; background: var(--surface); border-radius: 14px; box-shadow: 0 24px 60px -20px rgba(36,35,33,.45); overflow: hidden; }
+.dialog header { padding: 20px 24px 4px; }
+.dialog header h2 { font-size: 20px; }
+.dialog header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.dialog .body { padding: 12px 24px 8px; }
+.dialog footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 24px 20px; border-top: 1px solid var(--border); }
+.pick { border: 1px solid var(--border); border-radius: 10px; }
+.pick li { list-style: none; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+.pick li:last-child { border-bottom: 0; }
+.pick li.sel { background: var(--brand-soft); }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--strong); flex: none; }
+.sel .radio { border: 6px solid var(--text); }
+.field { margin-top: 16px; }
+.field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+.field .in { min-height: 44px; border: 1px solid var(--strong); border-radius: 8px; padding: 0 12px; display: flex; align-items: center; background: #fff; }
+.link { text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
+.top, .tabbar { display: none; }
+@media (max-width: 767px) {
+  .side { display: none; }
+  .app { display: block; }
+  main { padding: 20px 16px 104px; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .top img { height: 22px; }
+  .top span { display: flex; align-items: center; gap: 6px; font-size: 13.5px; min-height: 44px; }
+  .head h1, .chead h1 { font-size: 26px; }
+  .head .btn.pri .l { display: none; }
+  .tools .search { max-width: none; }
+  .tools .seg { display: none; }
+  table { display: none; }
+  .mob { display: block; }
+  .notice { flex-wrap: wrap; }
+  .notice .btn { margin-left: 0; }
+  .av.lg { width: 52px; height: 52px; font-size: 18px; }
+  .chead { gap: 14px; }
+  .chead .btn { display: none; }
+  .tabs { overflow-x: auto; gap: 20px; }
+  .tabs a { white-space: nowrap; }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; inset: auto 0 0 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 10; }
+  .tabbar a { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11.5px; color: var(--muted); text-decoration: none; }
+  .tabbar a.on { color: var(--text); font-weight: 650; }
+  .tabbar .plus { width: 46px; height: 46px; border-radius: 50%; background: var(--brand); border: 1.5px solid var(--text); display: grid; place-items: center; color: var(--text); }
+  .dialog-bg { place-items: end stretch; padding: 0; }
+  .dialog { width: 100%; border-radius: 16px 16px 0 0; }
+  .dialog footer { flex-direction: column-reverse; align-items: stretch; }
+  .dialog footer .btn { width: 100%; }
+}
+@media (min-width: 768px) { .mob { display: none; } }
+@media (max-width: 767px) { .dk .st { font-size: 0; gap: 0; } .dk .st i { width: 10px; height: 10px; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const q = new URLSearchParams(location.search), P = q.get('p') || 'clienti'
+const I = {
+  house:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  brief:'<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  cal:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  dots:'<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  down:'<path d="m6 9 6 6 6-6"/>',
+  ig:'<rect width="20" height="20" x="2" y="2" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
+  fb:'<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  back:'<path d="m15 18-6-6 6-6"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  me:'<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+}
+const ic = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`
+// tints stand in for the profile photos that arrive with Task 4
+const C = [
+  { n:'Forno Luce', ig:'@fornoluce', fb:'Forno Luce', st:'ok', ppl:3, tint:'#C8873E' },
+  { n:'Palestra Kinetic', ig:'@kinetic.gym', fb:'Kinetic Palestra', st:'ok', ppl:2, tint:'#3E6B8A' },
+  { n:'Pizzeria Da Gino', ig:'@dagino', fb:'Pizzeria Da Gino', st:'warn', ppl:1, tint:'#A8442F' },
+  { n:'Studio Riva', ig:'@studioriva', fb:'Studio Riva Architetti', st:'ok', ppl:3, tint:'#5D6B4E' },
+  { n:'Cantina Monteverde', ig:null, fb:null, st:'none', ppl:2, tint:null },
+]
+const ini = (s) => s.split(/\s+/).slice(0,2).map(w => w[0]).join('')
+const av = (c, lg) => `<span class="av ${lg?'lg':''} ${c.tint?'':'n'}" style="${c.tint?`background:${c.tint}`:''}">${ini(c.n)}</span>`
+const st = (s) => `<span class="st ${s}"><i></i>${s==='ok'?'Funziona':s==='warn'?'Da ricollegare':'Nessun profilo'}</span>`
+const prof = (c) => c.ig ? `<span class="p">${ic('ig')}${c.ig}</span><span class="p">${ic('fb')}${c.fb}</span>` : '<span class="p">Nessun profilo collegato</span>'
+const side = (on) => `<aside class="side"><a class="logo"><img src="logo.svg" alt="Feedway"></a>
+  <div><div class="ctx"><span class="tile">T</span><b>Trendy</b></div><div class="ctx"><span class="av n" style="background:transparent">${ic('brief')}</span>Tutti i clienti</div></div>
+  <nav>${[['house','Home'],['brief','Clienti'],['cal','Calendario'],['users','Utenti']].map(([i,l]) => `<div class="nav ${l===on?'on':''}">${ic(i)}${l}${l==='Calendario'?'<span class="soon">presto</span>':''}</div>`).join('')}</nav>
+  <div class="me"><span class="av n">MG</span><span><b style="font-size:14px">Matteo Greco</b><small>Owner · Trendy</small></span></div></aside>`
+const topBar = () => `<header class="top"><img src="logo.svg" alt="Feedway"><span>Tutti i clienti ${ic('down')}</span></header>`
+const bar = (on) => `<nav class="tabbar">${[['house','Home'],['cal','Calendario']].map(([i,l]) => `<a class="${l===on?'on':''}">${ic(i)}${l}</a>`).join('')}<a><span class="plus">${ic('plus')}</span></a><a class="${on==='Clienti'?'on':''}">${ic('brief')}Clienti</a><a><span class="av n" style="width:24px;height:24px;font-size:10px">MG</span>Tu</a></nav>`
+
+function clienti() {
+  return `<div class="head"><div><h1>Clienti</h1><p>5 clienti. <a class="link" style="font-size:inherit">Pizzeria Da Gino</a> ha un profilo da ricollegare.</p></div><button class="btn pri">${ic('plus')}<span class="l">Nuovo cliente</span></button></div>
+  <div class="notice">${ic('link')}<span><b>2 profili trovati su Meta</b> non sono ancora in un cliente.</span><button class="btn">Sistemali</button></div>
+  <div class="tools"><div class="seg"><button class="on">Attivi 5</button><button>Archiviati 1</button></div><div class="search">${ic('search')}Cerca un cliente o un profilo</div></div>
+  <div class="surface"><table><thead><tr><th>Cliente</th><th>Instagram e Facebook</th><th>Meta</th><th class="r">Persone</th><th></th></tr></thead><tbody>
+  ${C.map(c => `<tr><td><span class="cl">${av(c)}<b>${c.n}</b></span></td><td class="h">${prof(c)}</td><td>${st(c.st)}</td><td class="r">${c.ppl}</td><td style="width:52px"><button class="btn ghost">${ic('dots')}</button></td></tr>`).join('')}
+  </tbody></table>
+  <ul class="rows mob">${C.map(c => `<li>${av(c)}<span class="g"><b>${c.n}</b><span>${c.st==='warn' ? '<span class="st warn" style="display:inline-flex"><i></i>Da ricollegare</span>' : c.ig ? c.ig + ' · ' + c.fb : 'Nessun profilo collegato'}</span></span><button class="btn ghost">${ic('dots')}</button></li>`).join('')}</ul></div>`
+}
+function cliente() {
+  const c = C[0]
+  return `<a class="link muted" style="display:inline-flex;align-items:center;gap:4px;text-decoration:none;margin-bottom:12px">${ic('back')}Clienti</a>
+  <div class="chead">${av(c, true)}<div style="flex:1;min-width:0"><h1>${c.n}</h1><p class="muted h">${prof(c)}</p></div><button class="btn pri">${ic('plus')}Nuovo post</button><button class="btn ghost">${ic('dots')}</button></div>
+  <nav class="tabs"><a class="on">Panoramica</a><a>Calendario <span class="soon">presto</span></a><a>Libreria <span class="soon">presto</span></a><a>Persone</a></nav>
+  <section class="sec" style="margin-top:0"><h2>Profili social</h2>
+  <div class="surface"><ul class="rows">
+   <li><span class="av" style="background:${c.tint}">${ic('ig')}</span><span class="g"><b>${c.ig}</b><span>Instagram · account business · sincronizzato 12 min fa</span></span><span class="dk">${st('ok')}</span><button class="btn ghost">${ic('dots')}</button></li>
+   <li><span class="av" style="background:#1F5AA6">${ic('fb')}</span><span class="g"><b>${c.fb}</b><span>Pagina Facebook · sincronizzata 12 min fa</span></span><span class="dk">${st('ok')}</span><button class="btn ghost">${ic('dots')}</button></li>
+  </ul></div>
+  <p class="muted" style="font-size:13px;margin-top:8px">Nel menu «⋯»: ricollega, sostituisci con un altro profilo, togli dal cliente.</p></section>
+  <section class="sec"><h2>Chi ci lavora <button class="btn out" style="min-height:36px">${ic('plus')}Aggiungi</button></h2>
+  <div class="surface"><ul class="rows">
+   <li><span class="av n">GF</span><span class="g"><b>Giulia Ferri</b><span>Admin · tutti i clienti</span></span></li>
+   <li><span class="av n">CC</span><span class="g"><b>Carla Collaboratrice</b><span>Publisher</span></span><button class="btn ghost">${ic('dots')}</button></li>
+  </ul></div></section>`
+}
+function nuovo() {
+  const free = [
+    { n:'Gelateria Nuvola', ig:'@gelaterianuvola', fb:'Gelateria Nuvola', tint:'#D9A23B' },
+    { n:'Ottica Bellavista', ig:'@ottica.bellavista', fb:'Ottica Bellavista Roma', tint:'#4E6C78' },
+  ]
+  return clienti() + `<div class="dialog-bg"><div class="dialog" role="dialog" aria-label="Nuovo cliente">
+  <header><h2>Nuovo cliente</h2><p>Scegli il suo profilo: Instagram e la Pagina Facebook collegata arrivano insieme.</p></header>
+  <div class="body"><ul class="pick">${free.map((f,i) => `<li class="${i===0?'sel':''}"><span class="radio"></span><span class="av" style="background:${f.tint}">${ini(f.n)}</span><span style="flex:1;min-width:0"><b style="display:block">${f.ig}</b><span class="muted" style="font-size:13px">Pagina: ${f.fb}</span></span></li>`).join('')}
+  <li><span class="radio"></span><span class="av n">${ic('plus')}</span><span><b style="display:block">Senza profilo, per ora</b><span class="muted" style="font-size:13px">Lo colleghi dopo dalla pagina del cliente</span></span></li></ul>
+  <div class="field"><label>Nome del cliente</label><div class="in">Gelateria Nuvola</div></div></div>
+  <footer><a class="link">Non lo trovi? Aggiorna da Meta</a><span style="display:flex;gap:8px"><button class="btn">Annulla</button><button class="btn pri">Crea cliente</button></span></footer></div></div>`
+}
+const pages = { clienti: ['Clienti', clienti], cliente: ['Clienti', cliente], nuovo: ['Clienti', nuovo] }
+const [on, fn] = pages[P]
+document.getElementById('root').innerHTML = `<div class="app">${side(on)}${topBar()}<main><div class="wrap">${fn()}</div></main>${bar(on)}</div>`
+</script>
+</body>
+</html>
