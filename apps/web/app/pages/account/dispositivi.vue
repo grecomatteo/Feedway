@@ -28,16 +28,13 @@ const allSignedOut = ref(false)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('account.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="me && !allSignedOut" class="text-(--app-text-muted)">
         <span :title="me.name">{{ me.displayName }}</span
         >, {{ me.email }}
       </p>
-    </header>
-
-    <AccountTabs />
+    </template>
 
     <p v-if="allSignedOut" role="status" class="flex items-center gap-2 text-(--app-success)">
       <UIcon name="i-lucide-circle-check" aria-hidden="true" />
@@ -67,5 +64,5 @@ const allSignedOut = ref(false)
       @changed="() => refresh()"
       @all-signed-out="allSignedOut = true"
     />
-  </div>
+  </SettingsShell>
 </template>

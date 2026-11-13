@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The signed-in person at the bottom of the sidebar (`row`) or as a photo in the phone's top bar
- * (`avatar`). One click opens their menu: «Il mio account», the rarely used agency pages, the
+ * (`avatar`). One click opens their menu: «Impostazioni», the rarely used agency pages, the
  * other agencies, «Esci» and the theme.
  * On a phone it opens from the bottom, full width.
  */

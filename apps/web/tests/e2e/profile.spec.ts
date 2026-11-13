@@ -17,7 +17,7 @@ test('profile edits are saved and theme follows the user to a new device', async
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
 
   const profile = page.getByRole('region', { name: 'Nome e soprannome' })
   await profile.getByRole('textbox', { name: 'Soprannome' }).fill('Teo')
@@ -52,7 +52,7 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
   // a new person follows the system until the first choice
   const wasDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
   if (wasDark) await expect(page.locator('html')).toHaveClass(/dark/)

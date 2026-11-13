@@ -107,7 +107,7 @@ const contextOf = (query: ReturnType<typeof useRoute>['query']) => {
 /**
  * The context part of the address (`spazio`, `profilo`), for links that move to another page
  * of the agency without losing it (§14.6). Only what the switcher writes; nothing else follows.
- * Outside the agency's pages («Il mio account») it is the one last seen in that agency.
+ * Outside the agency's pages (the personal settings, `/account/*`) it is the one last seen in that agency.
  */
 export function useContextQuery() {
   const route = useRoute()

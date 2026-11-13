@@ -22,7 +22,7 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
-test('the user menu: who is signed in, the theme, and «Il mio account» with the sidebar', async ({
+test('the user menu: who is signed in, the theme, and «Impostazioni» with the sidebar', async ({
   page,
 }) => {
   const owner = await newPerson('Olga Menu', 'owner')
@@ -34,7 +34,7 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
 
   const menu = await openUserMenu(page, 'Olga Menu')
   // the first entry takes the focus, on a phone too
-  await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
   // who is signed in heads the menu, outside its entries
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
@@ -46,7 +46,7 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
   )
   await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toHaveAttribute(
     'href',
-    `/${owner.organizationSlug}/impostazioni`,
+    '/account',
   )
   await expect(menu.getByRole('menuitem', { name: 'Privacy' })).toBeVisible()
   for (const name of ['Registro attività', 'Impostazioni', 'Privacy'])
@@ -80,11 +80,11 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
 
-  // «Il mio account» keeps the agency's sidebar (or bottom bar) around it
+  // «Impostazioni» keeps the agency's sidebar (or bottom bar) around it
   const again = await openUserMenu(page, 'Olga Menu')
-  await again.getByRole('menuitem', { name: 'Il mio account' }).click()
+  await again.getByRole('menuitem', { name: 'Impostazioni' }).click()
   await expect(page).toHaveURL(/\/account$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Clienti' }).first()).toHaveAttribute(
     'href',
@@ -93,7 +93,7 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
   expect((await axe(page)).violations).toEqual([])
 })
 
-test('«Il mio account» keeps the agency last opened, with its context', async ({ page }) => {
+test('«Impostazioni» keeps the agency last opened, with its context', async ({ page }) => {
   const owner = await newPerson('Olga Due Agenzie', 'owner')
   const second = randomUUID()
   await adminQuery(
@@ -107,8 +107,8 @@ test('«Il mio account» keeps the agency last opened, with its context', async 
   await signInWithTotp(page.request, owner)
   await page.goto(`/${second}/spazi?spazio=un-cliente`)
   const menu = await openUserMenu(page, 'Olga Due Agenzie')
-  await menu.getByRole('menuitem', { name: 'Il mio account' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  await menu.getByRole('menuitem', { name: 'Impostazioni' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
   // the sidebar is the second agency's, and its links keep the client chosen there
   await expect(page.getByRole('link', { name: 'Clienti' }).first()).toHaveAttribute(
     'href',
@@ -137,7 +137,7 @@ test('the user menu works from the keyboard', async ({ page, isMobile }) => {
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
   const menu = await openUserMenu(page, 'Olga Tasti')
-  await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
   await page.keyboard.press('ArrowDown')
   await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toBeFocused()
   await page.keyboard.press('End')
@@ -146,7 +146,7 @@ test('the user menu works from the keyboard', async ({ page, isMobile }) => {
   await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeFocused()
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
 })
 
 test('«Esci» from the user menu closes the session', async ({ page }) => {
@@ -158,12 +158,12 @@ test('«Esci» from the user menu closes the session', async ({ page }) => {
   await expect(page).toHaveURL(/\/accedi$/)
 })
 
-test('without an agency, «Il mio account» keeps its own header', async ({ page }) => {
+test('without an agency, «Impostazioni» keeps its own header', async ({ page }) => {
   const person = await newMember('Nora Sola')
   await adminQuery('delete from organization_members where user_id = $1', [person.userId])
   await signIn(page.request, person)
   await page.goto('/account')
-  await expect(page.getByRole('heading', { level: 1, name: 'Il mio account' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toBeVisible()
 })

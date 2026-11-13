@@ -18,7 +18,6 @@
     "skipToContent": "Vai al contenuto"
   },
   "account": {
-    "title": "Il mio account",
     "loading": "Carico il tuo account…",
     "loadError": "Non siamo riusciti a caricare il tuo account.",
     "signedOut": "Accedi per vedere il tuo account.",
@@ -27,8 +26,7 @@
     "saved": "Modifiche salvate.",
     "optional": "Facoltativo",
     "tabs": {
-      "label": "Sezioni dell'account",
-      "profile": "Profilo",
+      "profile": "Profilo e preferenze",
       "security": "Sicurezza",
       "devices": "Dispositivi",
       "privacy": "Privacy"
@@ -498,10 +496,10 @@
   "nav": {
     "label": "Menu",
     "agency": "Agenzia",
-    "account": "Il mio account",
     "systemEmail": "Email di sistema",
     "signOut": "Esci",
-    "signOutFailed": "Uscita non riuscita: la sessione è ancora aperta. Riprova tra poco."
+    "signOutFailed": "Uscita non riuscita: la sessione è ancora aperta. Riprova tra poco.",
+    "settings": "Impostazioni"
   },
   "signIn": {
     "title": "Accedi a Feedway",
@@ -679,7 +677,6 @@
       "workspaces": "Clienti",
       "users": "Utenti",
       "audit": "Registro attività",
-      "settings": "Impostazioni",
       "privacy": "Privacy",
       "accounts": "Account social"
     }
@@ -862,7 +859,6 @@
     }
   },
   "orgSettings": {
-    "title": "Impostazioni",
     "ownerOnly": "Solo l'Owner può cambiarle.",
     "name": "Nome dell'agenzia",
     "require2fa": "Secondo passaggio all'accesso obbligatorio per",
@@ -882,7 +878,6 @@
       "extraTextHelp": "Per esempio il responsabile della protezione dei dati o la sede. Fino a 2000 caratteri, testo semplice."
     },
     "tabs": {
-      "label": "Sezioni delle impostazioni",
       "general": "Generali",
       "integrations": "Integrazioni"
     }
@@ -1174,5 +1169,12 @@
     "otherAgency": "Cambia agenzia",
     "toDark": "Passa al tema scuro",
     "toLight": "Passa al tema chiaro"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "groups": {
+      "mine": "Il tuo account",
+      "agency": "Agenzia"
+    }
   }
 }

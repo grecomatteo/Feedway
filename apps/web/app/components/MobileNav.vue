@@ -14,10 +14,14 @@ const slots = computed(() => [
   may.value.manageUsers
     ? { to: org.to('/utenti'), label: 'agency.nav.users', icon: 'i-lucide-users' }
     : null,
-  { to: '/account', label: 'nav.account', icon: 'i-lucide-circle-user' },
+  { to: '/account', label: 'nav.settings', icon: 'i-lucide-settings' },
 ])
+const under = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
+// «Impostazioni» holds the agency's settings too
 const current = (to: string) =>
-  to === org.to() ? route.path === to : route.path === to || route.path.startsWith(`${to}/`)
+  to === org.to()
+    ? route.path === to
+    : under(to) || (to === '/account' && under(org.to('/impostazioni')))
 </script>
 
 <template>

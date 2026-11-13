@@ -9,7 +9,7 @@ const { call, failure } = useApi()
 const colorMode = useColorMode()
 const session = useSession()
 
-useHead({ title: () => t('account.title') })
+useHead({ title: () => t('account.tabs.profile') })
 
 const {
   data: me,
@@ -149,16 +149,13 @@ async function changeEmail() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('account.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="me" class="text-(--app-text-muted)">
         <span :title="me.name">{{ me.displayName }}</span
         >, {{ me.email }}
       </p>
-    </header>
-
-    <AccountTabs />
+    </template>
 
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
@@ -327,5 +324,5 @@ async function changeEmail() {
         </form>
       </section>
     </template>
-  </div>
+  </SettingsShell>
 </template>

@@ -3,9 +3,10 @@ import type { Me } from '@app/contracts'
 import type { RouteLocationRaw } from 'vue-router'
 
 /**
- * The content of the user menu, the same in the sidebar's popover and in the phone's drawer. The
+ * The content of the user menu, the same in the sidebar's popover and in the phone's drawer.
+ * «Impostazioni» opens the person's settings and, from there, the agency's (Matteo, 13/11). The
  * pages opened rarely (activity log, privacy) live here instead of the sidebar; the theme is one
- * button beside «Esci», «Automatico» stays in «Il mio account» (Matteo, 13/11).
+ * button beside «Esci», «Automatico» stays in «Impostazioni» (Matteo, 13/11).
  */
 defineProps<{
   me: Me
@@ -41,12 +42,8 @@ const entry =
         :class="entry"
         @click="emit('navigate')"
       >
-        <UIcon
-          name="i-lucide-circle-user"
-          class="size-4 text-(--app-text-muted)"
-          aria-hidden="true"
-        />
-        {{ $t('nav.account') }}
+        <UIcon name="i-lucide-settings" class="size-4 text-(--app-text-muted)" aria-hidden="true" />
+        {{ $t('nav.settings') }}
       </NuxtLink>
 
       <NuxtLink

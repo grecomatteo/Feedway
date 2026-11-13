@@ -23,12 +23,10 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('orgSettings.title') }}</h1>
+  <SettingsShell>
+    <template #intro>
       <p v-if="!editable" class="text-(--app-text-muted)">{{ $t('orgSettings.ownerOnly') }}</p>
-    </header>
-    <SettingsTabs />
+    </template>
 
     <p v-if="!data && !error && (status === 'pending' || status === 'idle')" role="status">
       {{ $t('account.loading') }}
@@ -115,5 +113,5 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
 
       <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
     </template>
-  </div>
+  </SettingsShell>
 </template>

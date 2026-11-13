@@ -10,7 +10,7 @@ const links = computed(() => {
   const list: { to: string; label: string }[] = []
   const home = session.home(value)
   if (home !== '/account') list.push({ to: home, label: 'nav.agency' })
-  list.push({ to: '/account', label: 'nav.account' })
+  list.push({ to: '/account', label: 'nav.settings' })
   if (value.platformRole === 'admin')
     list.push({ to: '/piattaforma/email', label: 'nav.systemEmail' })
   return list
