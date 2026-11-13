@@ -155,6 +155,17 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   await expect(context).toHaveText(/Cliente A › Forno Luce/)
   expect(page.url()).toMatch(/[?&]profilo=/)
 
+  // the menu keeps the context: the calendar of a later stage reads it from the address
+  const nav = page
+    .getByRole('navigation', { name: 'Navigazione principale' })
+    .locator('visible=true')
+  await nav.getByRole('link', { name: 'Home' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}\\?spazio=[^&]+&profilo=`))
+  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+  await nav.getByRole('link', { name: 'Clienti' }).click()
+  await expect(page).toHaveURL(/\/spazi\?spazio=[^&]+&profilo=/)
+  await expect(context).toHaveText(/Cliente A › Forno Luce/)
+
   // the copied link opens the same context in another browser of the same person
   const link = page.url()
   const cookies = await page.context().cookies()
