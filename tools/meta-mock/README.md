@@ -42,7 +42,14 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 
 Le risposte stanno in `fixtures/`: `objects.json` (i nodi come li restituisce Meta), `edges.json` (gli elenchi), `tokens.json` (a chi appartiene ogni token, cosa vede e i dati di `debug_token`), `app.json` e `logins.json`.
 
-**Sono scritte a mano** dalla documentazione di Meta e in gran parte **non verificate** (la prova a mano del 2026-11-11 è in `docs/platforms/meta.md`): in particolare `type` e `expires_at` di `debug_token`, le chiamate che elencano gli account dell'accesso unificato e i testi e i sottocodici degli errori dello scambio del codice (`docs/platforms/meta.md`, «Da provare su Meta vera»). Nel Task 13 le risposte registrate e oscurate (`META_RECORD_DIR`) prendono il loro posto negli stessi file, senza cambiare il codice.
+Sono nate **scritte a mano** dalla documentazione di Meta. Il 2026-11-12 la prova dal pannello su Meta vera ha registrato 73 risposte dell'utente di sistema (`debug_token`, `me/accounts`, `me/assigned_instagram_accounts`, `content_publishing_limit`), e la parte che le riguarda è stata allineata a quelle:
+
+- `debug_token` dell'utente di sistema: `type` `SYSTEM_USER`, `expires_at` e `data_access_expires_at` a `0`, `public_profile` tra i permessi, ambiti granulari **senza** `target_ids`;
+- un token revocato nel Business Manager: errore 190 con sottocodice **460**, HTTP 401, e in `debug_token` `expires_at` resta `0`;
+- un errore 190 risponde con HTTP 401; un `appsecret_proof` fatto con un secret vecchio dà 400, codice 100, senza sottocodice;
+- la prova dell'app (`debug_token` con l'App ID come `input_token`) dà 200 con `is_valid: false` e l'errore 190; con un secret sbagliato, 401 e 190.
+
+Restano scritte a mano, e **non verificate**, le risposte dell'accesso unificato (Task 7, rinviato) e gli scenari di errore che la prova non ha incontrato. Le registrazioni originali non sono nel repository: si aggiornano i file qui sopra, senza cambiare il codice.
 
 ## Registrare le risposte di Meta vera
 

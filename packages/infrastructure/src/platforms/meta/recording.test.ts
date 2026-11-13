@@ -38,7 +38,6 @@ test('a recorded answer loses tokens, signed image parameters, cursors, ids, nam
     '445566',
   ])
     expect(text).not.toContain(real)
-  expect(text).toContain('_nc_cat=1')
   expect(text).toContain('limit=50')
   expect(text).toContain('"error_subcode":33')
 
@@ -46,4 +45,35 @@ test('a recorded answer loses tokens, signed image parameters, cursors, ids, nam
   const again = redact({ id: '178414' }) as { id: string }
   const first = redact(answer) as { granular_scopes: { target_ids: string[] }[] }
   expect(first.granular_scopes[0]?.target_ids[0]).toBe(again.id)
+})
+
+test("a picture on Meta's CDN leaves no id or signature: the whole address is replaced", () => {
+  // the shape recorded on real Meta on 2026-11-12 (numbers changed): ids in the file name,
+  // signatures in _nc_ohc, _nc_oc, oh and oe
+  const picture =
+    'https://scontent-fra5-1.xx.fbcdn.net/v/t39.30808-1/111222333_444555666777_888999_n.png' +
+    '?stp=cp0_dst-png_s50x50&_nc_cat=105&_nc_sid=f907e8&_nc_ohc=SIGNED1&_nc_oc=SIGNED2' +
+    '&oh=00_SIGNED3&oe=6A00'
+  const instagram = 'https://scontent.cdninstagram.com/v/t51.2885-19/123456_789_n.jpg?_nc_ht=x'
+  const lookaside =
+    'https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=246813579&ext=1&hash=SIGNED4'
+  const text = JSON.stringify(
+    createRecordingRedactor()({
+      picture: { data: { url: picture } },
+      profile_picture_url: instagram,
+      avatar: lookaside,
+    }),
+  )
+  for (const real of [
+    '111222333',
+    '444555666777',
+    '888999',
+    'SIGNED',
+    'f907e8',
+    '123456',
+    '_nc_',
+    '246813579',
+  ])
+    expect(text).not.toContain(real)
+  expect(text).toContain('https://scontent.example.invalid/picture.jpg')
 })
