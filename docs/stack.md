@@ -24,10 +24,11 @@ Criteri usati, in quest'ordine: **sicurezza e supporto lungo** (la 1.0 vivrà al
 | Esportazione dei dati (ZIP) | fflate | archiver, yazl, jszip | Piccolo, veloce, senza dipendenze, funziona a flusso | |
 | Sicurezza HTTP | nuxt-security | Header scritti a mano, Helmet | CSP con nonce, header e limiti già integrati in Nuxt | |
 | Elaborazione immagini | sharp (libvips) | Jimp, ImageMagick | Il più veloce in Node, usa poca memoria | 0.35 stabile |
-| Foto HEIC dell'iPhone | **libheif-js** | heic-convert, libvips di sistema con libheif, ffmpeg | sharp da solo non legge le HEIC dell'iPhone | **Cambiato:** heic-convert non è aggiornato dal 2023; libheif-js è mantenuto (ottobre 2026). Verifica con foto vere nella tappa 4 |
+| Foto HEIC dell'iPhone | **libheif-js** | heic-convert, libvips di sistema con libheif, ffmpeg | sharp da solo non legge le HEIC dell'iPhone | **Cambiato:** heic-convert non è aggiornato dal 2023; libheif-js è mantenuto (ottobre 2026). Verifica con foto vere dell'iPhone nella prova di Matteo della tappa 4 (piano 04, Task 13 e 14) |
 | Video | ffmpeg / ffprobe nell'immagine | Servizi esterni (Mux, Cloudinary) | Gratuito, in casa, standard di fatto | |
 | File | Disco della VPS dietro la porta `Storage` | Storage a oggetti fin da subito | Semplice e senza costi; la porta permette il passaggio a S3 senza cambiare codice | |
 | Storage a oggetti (futuro) e test S3 | Cloudflare R2 in produzione; **Garage** per i test | MinIO, SeaweedFS, RustFS, AWS S3 | R2 non fa pagare il traffico in uscita; Garage è leggero e open source | **Cambiato:** MinIO Community è in sola manutenzione, senza immagini Docker da ottobre 2025 e archiviato nel 2026 |
+| Client S3 | **@aws-sdk/client-s3** con @aws-sdk/lib-storage | aws4fetch, client di MinIO | Multipart con annullamento, paginazione e flussi già pronti; provato con Garage 2.5.0 (ADR 021) | Dalla tappa 4, Task 7 |
 | Email | Nodemailer verso SMTP (Brevo o Scaleway TEM) | Resend, Postmark, SES via API | Qualsiasi provider con lo stesso codice, configurato dal pannello, dati in Europa | |
 | Telegram | Bot API con grammY | Telegraf, chiamate HTTP dirette | Tipizzato e mantenuto | 1.46 stabile |
 | Date e fusi | Luxon | date-fns-tz, Day.js, Temporal | Fusi e ora legale corretti, API immutabile | Temporal non c'è ancora in Node LTS: si valuta quando ci sarà |

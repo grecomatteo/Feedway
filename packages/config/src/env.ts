@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { posix } from 'node:path'
 import { IANAZone } from 'luxon'
 import { z } from 'zod'
 
@@ -65,6 +66,21 @@ const RESOLVABLE = [
   'TZ_DEFAULT',
   'MEDIA_RETENTION_DAYS',
   'MEDIA_ROOT',
+  'MEDIA_UPLOAD_DIR',
+  'MEDIA_MAX_VIDEO_BYTES',
+  'MEDIA_MAX_IMAGE_BYTES',
+  'MEDIA_MAX_IMAGE_PIXELS',
+  'MEDIA_MAX_VIDEO_SECONDS',
+  'MEDIA_MAX_VIDEO_PIXELS',
+  'MEDIA_WORKSPACE_MAX_BYTES',
+  'MEDIA_CONVERSIONS_PER_ORG',
+  'STORAGE_DRIVER',
+  'S3_ENDPOINT',
+  'S3_BUCKET',
+  'S3_REGION',
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY',
+  'S3_FORCE_PATH_STYLE',
   'REQUIRE_2FA',
   'BOOTSTRAP_OWNER_EMAIL',
   'BOOTSTRAP_ORGANIZATION_NAME',
@@ -90,6 +106,22 @@ const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess(emptyToUndefined, schema.optional())
 const withDefault = <V extends string | number>(schema: z.ZodType<V>, value: V) =>
   z.preprocess(emptyToUndefined, schema.default(value))
+
+const absolutePath = z.string().regex(/^\/[^\0]*$/, { error: 'deve essere un percorso assoluto' })
+const positiveInt = z.coerce
+  .number({ error: 'deve essere un intero' })
+  .int({ error: 'deve essere un intero' })
+  .min(1, { error: 'deve essere almeno 1' })
+
+const trimSlash = (p: string) => posix.normalize(p).replace(/(.)\/+$/, '$1')
+
+/** The chunk folder must not hold or overlap the storage keys (`org/`, `users/`) of the disk. */
+function isOutsideKeys(dir: string, root: string): boolean {
+  const d = trimSlash(dir)
+  const r = trimSlash(root)
+  if (d === r || r.startsWith(`${d}/`) || d === '/') return false
+  return ['org', 'users'].every((k) => d !== `${r}/${k}` && !d.startsWith(`${r}/${k}/`))
+}
 
 const isKey32 = (v: string) =>
   /^[A-Za-z0-9+/]+={0,2}$/.test(v) && Buffer.from(v, 'base64').length === 32
@@ -154,10 +186,27 @@ const appSchema = z
       }),
       7,
     ),
-    MEDIA_ROOT: withDefault(
-      z.string().regex(/^\/[^\0]*$/, { error: 'deve essere un percorso assoluto' }),
-      '/media',
+    MEDIA_ROOT: withDefault(absolutePath, '/media'),
+    // inside the media volume but outside the storage keys (org/, users/); default MEDIA_ROOT/uploads
+    MEDIA_UPLOAD_DIR: optional(absolutePath),
+    // spec §9.2; decimal MB, so never above what Meta accepts
+    MEDIA_MAX_VIDEO_BYTES: withDefault(positiveInt, 300_000_000),
+    MEDIA_MAX_IMAGE_BYTES: withDefault(positiveInt, 50_000_000),
+    MEDIA_MAX_IMAGE_PIXELS: withDefault(positiveInt, 50_000_000),
+    MEDIA_MAX_VIDEO_SECONDS: withDefault(positiveInt, 900),
+    MEDIA_MAX_VIDEO_PIXELS: withDefault(positiveInt, 4096 * 4096),
+    MEDIA_WORKSPACE_MAX_BYTES: optional(positiveInt),
+    MEDIA_CONVERSIONS_PER_ORG: withDefault(positiveInt, 1),
+    STORAGE_DRIVER: withDefault(z.enum(['disk', 's3'], { error: 'deve essere disk o s3' }), 'disk'),
+    S3_ENDPOINT: optional(
+      url.refine((v) => /^https?:\/\//i.test(v), { error: 'deve usare http o https' }),
     ),
+    S3_BUCKET: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
+    S3_REGION: withDefault(z.string(), 'auto'),
+    S3_ACCESS_KEY_ID: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
+    S3_SECRET_ACCESS_KEY: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
+    // Garage needs path-style requests (verified with Garage 2.5.0, ADR 021); R2 accepts both
+    S3_FORCE_PATH_STYLE: withDefault(z.enum(['0', '1'], { error: 'deve essere 0 o 1' }), '1'),
     REQUIRE_2FA: withDefault(z.enum(['admins', 'all']), 'admins'),
     BOOTSTRAP_OWNER_EMAIL: optional(z.email({ error: 'deve essere un indirizzo email' })),
     BOOTSTRAP_ORGANIZATION_NAME: withDefault(
@@ -174,7 +223,37 @@ const appSchema = z
     APP_TEST_ROUTES: withDefault(z.enum(['0', '1'], { error: 'deve essere 0 o 1' }), '0'),
   })
   .check((ctx) => {
-    const { NODE_ENV, PANEL_URL, APP_TEST_ROUTES } = ctx.value
+    const { NODE_ENV, PANEL_URL, PUBLIC_URL, APP_TEST_ROUTES, STORAGE_DRIVER } = ctx.value
+    const { MEDIA_ROOT, MEDIA_UPLOAD_DIR } = ctx.value
+    if (MEDIA_UPLOAD_DIR !== undefined && !isOutsideKeys(MEDIA_UPLOAD_DIR, MEDIA_ROOT))
+      ctx.issues.push({
+        code: 'custom',
+        input: undefined,
+        path: ['MEDIA_UPLOAD_DIR'],
+        message: 'deve stare fuori da MEDIA_ROOT/org e MEDIA_ROOT/users',
+      })
+    if (STORAGE_DRIVER === 's3')
+      for (const name of ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const)
+        if (ctx.value[name] === undefined)
+          ctx.issues.push({
+            code: 'custom',
+            input: undefined,
+            path: [name],
+            message: 'obbligatoria con STORAGE_DRIVER=s3',
+          })
+    // cookies ignore the port: on the panel's host name the public host would get its cookies
+    if (
+      PUBLIC_URL !== undefined &&
+      URL.canParse(PUBLIC_URL) &&
+      URL.canParse(PANEL_URL) &&
+      new URL(PUBLIC_URL).hostname === new URL(PANEL_URL).hostname
+    )
+      ctx.issues.push({
+        code: 'custom',
+        input: undefined,
+        path: ['PUBLIC_URL'],
+        message: 'deve avere un host diverso da PANEL_URL',
+      })
     // routes that fail on purpose or expose internals: never outside the automated tests
     if (APP_TEST_ROUTES === '1' && NODE_ENV !== 'test')
       ctx.issues.push({
@@ -208,6 +287,11 @@ export interface AppConfig {
   encryptionKey: Buffer
   panelUrl: URL
   publicUrl: URL | null
+  /**
+   * Host name of PUBLIC_URL, where only `/m/*` and `/share/*` answer (spec §16.1); null without
+   * PUBLIC_URL: the public host is off. Requests are routed by entry point, never by `Host`.
+   */
+  publicHost: string | null
   metaGraphVersion: string
   /** Retirement date of `metaGraphVersion` (YYYY-MM-DD): the panel warns 90 days before. */
   metaGraphVersionSunset: string
@@ -220,6 +304,8 @@ export interface AppConfig {
   mediaRetentionDays: number
   /** Folder of stored files (photos, exports): the `media` volume in the container. */
   mediaRoot: string
+  media: MediaLimits
+  storage: StorageConfig
   require2fa: 'admins' | 'all'
   bootstrapOwnerEmail: string | null
   /** Name of the agency created with the first account. */
@@ -232,6 +318,33 @@ export interface AppConfig {
   /** Required for the web role, null for the worker. */
   betterAuth: BetterAuthSecrets | null
 }
+
+export interface MediaLimits {
+  /** Chunks of uploads in progress, on the web's disk until completed (ADR 021). */
+  uploadDir: string
+  maxVideoBytes: number
+  maxImageBytes: number
+  /** Checked from the header, before decoding. */
+  maxImagePixels: number
+  maxVideoSeconds: number
+  /** Width × height, checked from ffprobe before converting. */
+  maxVideoPixels: number
+  /** Space of one workspace (spec §11.1 point 6); null: no limit beyond the agency's. */
+  workspaceMaxBytes: number | null
+  conversionsPerOrg: number
+}
+
+export type StorageConfig =
+  | { driver: 'disk' }
+  | {
+      driver: 's3'
+      /** Unset for AWS itself; R2 and Garage need it. */
+      endpoint: string | undefined
+      bucket: string
+      region: string
+      credentials: { accessKeyId: string; secretAccessKey: string }
+      forcePathStyle: boolean
+    }
 
 export type WebConfig = AppConfig & { betterAuth: BetterAuthSecrets }
 export type WorkerConfig = AppConfig
@@ -250,6 +363,20 @@ export interface ConfigByRole {
 }
 
 type Env = Record<string, string | undefined>
+
+function storageOf(v: z.infer<typeof appSchema>): StorageConfig {
+  const { S3_BUCKET: bucket, S3_ACCESS_KEY_ID: accessKeyId, S3_SECRET_ACCESS_KEY: secret } = v
+  // the schema check has already rejected s3 without these
+  if (v.STORAGE_DRIVER === 'disk' || !bucket || !accessKeyId || !secret) return { driver: 'disk' }
+  return {
+    driver: 's3',
+    endpoint: v.S3_ENDPOINT,
+    bucket,
+    region: v.S3_REGION,
+    credentials: { accessKeyId, secretAccessKey: secret },
+    forcePathStyle: v.S3_FORCE_PATH_STYLE === '1',
+  }
+}
 
 /** Resolves `NAME` or `NAME_FILE` (trailing newline stripped); both set is an error. */
 function resolveVariables(env: Env, readFile: (path: string) => string): [Raw, ConfigIssue[]] {
@@ -351,6 +478,7 @@ export function loadConfig(
     encryptionKey: v.APP_ENCRYPTION_KEY,
     panelUrl: new URL(v.PANEL_URL),
     publicUrl: v.PUBLIC_URL ? new URL(v.PUBLIC_URL) : null,
+    publicHost: v.PUBLIC_URL ? new URL(v.PUBLIC_URL).hostname : null,
     metaGraphVersion: v.META_GRAPH_VERSION,
     metaGraphVersionSunset,
     metaMode: v.META_MODE,
@@ -359,6 +487,17 @@ export function loadConfig(
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     mediaRoot: v.MEDIA_ROOT,
+    media: {
+      uploadDir: v.MEDIA_UPLOAD_DIR ?? posix.join(v.MEDIA_ROOT, 'uploads'),
+      maxVideoBytes: v.MEDIA_MAX_VIDEO_BYTES,
+      maxImageBytes: v.MEDIA_MAX_IMAGE_BYTES,
+      maxImagePixels: v.MEDIA_MAX_IMAGE_PIXELS,
+      maxVideoSeconds: v.MEDIA_MAX_VIDEO_SECONDS,
+      maxVideoPixels: v.MEDIA_MAX_VIDEO_PIXELS,
+      workspaceMaxBytes: v.MEDIA_WORKSPACE_MAX_BYTES ?? null,
+      conversionsPerOrg: v.MEDIA_CONVERSIONS_PER_ORG,
+    },
+    storage: storageOf(v),
     require2fa: v.REQUIRE_2FA,
     bootstrapOwnerEmail: v.BOOTSTRAP_OWNER_EMAIL ?? null,
     bootstrapOrganizationName: v.BOOTSTRAP_ORGANIZATION_NAME,
