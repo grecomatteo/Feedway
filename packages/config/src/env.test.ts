@@ -382,3 +382,38 @@ test('s3 storage without bucket or keys is rejected, and the secret is never ech
     expect.objectContaining({ variable: 'STORAGE_DRIVER' }),
   )
 })
+
+test('an invalid PUBLIC_URL is a config error, not a crash', () => {
+  expect(issuesOf({ ...validWebEnv, PUBLIC_URL: 'non-un-indirizzo' })).toContainEqual(
+    expect.objectContaining({ variable: 'PUBLIC_URL' }),
+  )
+})
+
+test('media limits that are not numbers get our own message', () => {
+  expect(issuesOf({ ...validWebEnv, MEDIA_MAX_VIDEO_BYTES: 'tanti' })).toContainEqual({
+    variable: 'MEDIA_MAX_VIDEO_BYTES',
+    problem: 'deve essere un intero',
+  })
+})
+
+test('the upload dir follows MEDIA_ROOT and stays outside the storage keys', () => {
+  expect(loadConfig('web', { ...validWebEnv, MEDIA_ROOT: '/srv/media' }).media.uploadDir).toBe(
+    '/srv/media/uploads',
+  )
+  for (const dir of ['/media/org', '/media/users/pezzi', '/media'])
+    expect(issuesOf({ ...validWebEnv, MEDIA_UPLOAD_DIR: dir })).toContainEqual({
+      variable: 'MEDIA_UPLOAD_DIR',
+      problem: 'deve stare fuori da MEDIA_ROOT/org e MEDIA_ROOT/users',
+    })
+})
+
+test('s3 secret missing alone, blank keys and a non-http endpoint are rejected', () => {
+  expect(issuesOf({ ...s3Env, S3_SECRET_ACCESS_KEY: undefined })).toEqual([
+    { variable: 'S3_SECRET_ACCESS_KEY', problem: 'obbligatoria con STORAGE_DRIVER=s3' },
+  ])
+  const err = catchConfigError(() =>
+    loadConfig('web', { ...s3Env, S3_ACCESS_KEY_ID: '   ', S3_ENDPOINT: 'ftp://utente@host' }),
+  )
+  expect(err.issues.map((i) => i.variable).sort()).toEqual(['S3_ACCESS_KEY_ID', 'S3_ENDPOINT'])
+  expect(err.message).not.toContain('segreto-di-prova')
+})

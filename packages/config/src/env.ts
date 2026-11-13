@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { posix } from 'node:path'
 import { IANAZone } from 'luxon'
 import { z } from 'zod'
 
@@ -108,9 +109,19 @@ const withDefault = <V extends string | number>(schema: z.ZodType<V>, value: V) 
 
 const absolutePath = z.string().regex(/^\/[^\0]*$/, { error: 'deve essere un percorso assoluto' })
 const positiveInt = z.coerce
-  .number()
+  .number({ error: 'deve essere un intero' })
   .int({ error: 'deve essere un intero' })
   .min(1, { error: 'deve essere almeno 1' })
+
+const trimSlash = (p: string) => posix.normalize(p).replace(/(.)\/+$/, '$1')
+
+/** The chunk folder must not hold or overlap the storage keys (`org/`, `users/`) of the disk. */
+function isOutsideKeys(dir: string, root: string): boolean {
+  const d = trimSlash(dir)
+  const r = trimSlash(root)
+  if (d === r || r.startsWith(`${d}/`) || d === '/') return false
+  return ['org', 'users'].every((k) => d !== `${r}/${k}` && !d.startsWith(`${r}/${k}/`))
+}
 
 const isKey32 = (v: string) =>
   /^[A-Za-z0-9+/]+={0,2}$/.test(v) && Buffer.from(v, 'base64').length === 32
@@ -176,8 +187,8 @@ const appSchema = z
       7,
     ),
     MEDIA_ROOT: withDefault(absolutePath, '/media'),
-    // inside the media volume but outside the storage keys (org/, users/)
-    MEDIA_UPLOAD_DIR: withDefault(absolutePath, '/media/uploads'),
+    // inside the media volume but outside the storage keys (org/, users/); default MEDIA_ROOT/uploads
+    MEDIA_UPLOAD_DIR: optional(absolutePath),
     // spec §9.2; decimal MB, so never above what Meta accepts
     MEDIA_MAX_VIDEO_BYTES: withDefault(positiveInt, 300_000_000),
     MEDIA_MAX_IMAGE_BYTES: withDefault(positiveInt, 50_000_000),
@@ -187,11 +198,13 @@ const appSchema = z
     MEDIA_WORKSPACE_MAX_BYTES: optional(positiveInt),
     MEDIA_CONVERSIONS_PER_ORG: withDefault(positiveInt, 1),
     STORAGE_DRIVER: withDefault(z.enum(['disk', 's3'], { error: 'deve essere disk o s3' }), 'disk'),
-    S3_ENDPOINT: optional(url),
-    S3_BUCKET: optional(z.string()),
+    S3_ENDPOINT: optional(
+      url.refine((v) => /^https?:\/\//i.test(v), { error: 'deve usare http o https' }),
+    ),
+    S3_BUCKET: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
     S3_REGION: withDefault(z.string(), 'auto'),
-    S3_ACCESS_KEY_ID: optional(z.string()),
-    S3_SECRET_ACCESS_KEY: optional(z.string()),
+    S3_ACCESS_KEY_ID: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
+    S3_SECRET_ACCESS_KEY: optional(z.string().trim().min(1, { error: 'non può essere vuota' })),
     // Garage needs path-style requests (verified with Garage 2.5.0, ADR 021); R2 accepts both
     S3_FORCE_PATH_STYLE: withDefault(z.enum(['0', '1'], { error: 'deve essere 0 o 1' }), '1'),
     REQUIRE_2FA: withDefault(z.enum(['admins', 'all']), 'admins'),
@@ -211,6 +224,14 @@ const appSchema = z
   })
   .check((ctx) => {
     const { NODE_ENV, PANEL_URL, PUBLIC_URL, APP_TEST_ROUTES, STORAGE_DRIVER } = ctx.value
+    const { MEDIA_ROOT, MEDIA_UPLOAD_DIR } = ctx.value
+    if (MEDIA_UPLOAD_DIR !== undefined && !isOutsideKeys(MEDIA_UPLOAD_DIR, MEDIA_ROOT))
+      ctx.issues.push({
+        code: 'custom',
+        input: undefined,
+        path: ['MEDIA_UPLOAD_DIR'],
+        message: 'deve stare fuori da MEDIA_ROOT/org e MEDIA_ROOT/users',
+      })
     if (STORAGE_DRIVER === 's3')
       for (const name of ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const)
         if (ctx.value[name] === undefined)
@@ -223,6 +244,7 @@ const appSchema = z
     // cookies ignore the port: on the panel's host name the public host would get its cookies
     if (
       PUBLIC_URL !== undefined &&
+      URL.canParse(PUBLIC_URL) &&
       URL.canParse(PANEL_URL) &&
       new URL(PUBLIC_URL).hostname === new URL(PANEL_URL).hostname
     )
@@ -466,7 +488,7 @@ export function loadConfig(
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     mediaRoot: v.MEDIA_ROOT,
     media: {
-      uploadDir: v.MEDIA_UPLOAD_DIR,
+      uploadDir: v.MEDIA_UPLOAD_DIR ?? posix.join(v.MEDIA_ROOT, 'uploads'),
       maxVideoBytes: v.MEDIA_MAX_VIDEO_BYTES,
       maxImageBytes: v.MEDIA_MAX_IMAGE_BYTES,
       maxImagePixels: v.MEDIA_MAX_IMAGE_PIXELS,
