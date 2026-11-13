@@ -68,7 +68,7 @@ test('workspaces and invite: a publisher sees only their client and no users pag
   const { org, collab } = await agencyWithPublisher(page)
 
   await page.goto(`/${org}/utenti`)
-  await page.getByRole('button', { name: 'Invita' }).click()
+  await page.getByRole('button', { name: 'Invita', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Email').fill('nuova-persona@example.test')
   await dialog.getByRole('combobox', { name: 'Cliente A' }).click()
@@ -206,7 +206,7 @@ test('a person in two agencies switches, and another agency address is not found
   )
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
-  await page.getByRole('button', { name: 'Agenzia' }).first().click()
+  await page.getByRole('button', { name: 'Agenzia', exact: true }).first().click()
   await page.getByRole('menuitemcheckbox', { name: 'Agenzia Due' }).click()
   await expect(page).toHaveURL(new RegExp(`/${second?.id ?? ''}$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Due' })).toBeVisible()
@@ -234,7 +234,7 @@ async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
 }
 
 const switcher = (page: Page) =>
-  page.getByRole('button', { name: 'Agenzia' }).locator('visible=true')
+  page.getByRole('button', { name: 'Agenzia', exact: true }).locator('visible=true')
 
 test('a suspended agency hides the menu, and one click leaves it', async ({ page }) => {
   const { owner, second } = await ownerOfTwo(page, 'suspended')
@@ -297,7 +297,7 @@ test('inviting an Admin asks for the confirmation first', async ({ page }) => {
   const owner = await newPerson('Olga Invita', 'owner')
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}/utenti`)
-  await page.getByRole('button', { name: 'Invita' }).click()
+  await page.getByRole('button', { name: 'Invita', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Invita una persona' })
   await dialog.getByLabel('Email').fill('nuovo-admin@example.test')
   await dialog.getByRole('radio', { name: 'Admin' }).check()

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Me } from '@app/contracts'
 
+definePageMeta({ layout: 'personal' })
+
 interface Passkey {
   id: string
   name: string | null

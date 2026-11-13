@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Me } from '@app/contracts'
 
+definePageMeta({ layout: 'personal' })
+
 interface MySession {
   id: string
   device: { browser: string; os: string }

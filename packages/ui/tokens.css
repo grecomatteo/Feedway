@@ -5,6 +5,7 @@
   --app-surface: #FFFFFF;
   --app-surface-sunken: #F3F1EC;
   --app-nav-bg: #F3F1EC;
+  --app-nav-hover: #E9E6DF;
   --app-text: #242321;
   --app-text-muted: #5F5B55;
   --app-border: #E3DFD7;
@@ -35,6 +36,7 @@
   --app-surface: #242321;
   --app-surface-sunken: #1F1E1C;
   --app-nav-bg: #141312;
+  --app-nav-hover: #22211F;
   --app-text: #F4F2EE;
   --app-text-muted: #B9B4AC;
   --app-border: #3A3835;

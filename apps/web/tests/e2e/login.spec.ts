@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { secretOf, totpCode } from '@app/infrastructure/testing'
+import { openUserMenu } from './support/menu.ts'
 import {
   E2E_PASSWORD,
   adminQuery,
@@ -315,10 +316,10 @@ test('«Esci» closes the session on the server, not only on the screen', async 
   await signInFromPage(page, person)
   await skipPasskeyOffer(page)
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
-  // on a phone the agency pages have no «Esci»: the account page has it everywhere
   await page.goto('/account')
   const cookies = await page.context().cookies()
-  await page.getByRole('button', { name: 'Esci', exact: true }).click()
+  const menu = await openUserMenu(page, person.name)
+  await menu.getByRole('menuitem', { name: 'Esci' }).click()
   await expect(page).toHaveURL(/\/accedi$/)
   const left = await adminQuery<{ n: string }>(
     'select count(*) as n from sessions where user_id = $1',
@@ -338,7 +339,8 @@ test('a failed sign-out says so and keeps the person where they are', async ({ p
   await page.route('**/api/auth/sign-out', (route) =>
     route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }),
   )
-  await page.getByRole('button', { name: 'Esci', exact: true }).click()
+  const menu = await openUserMenu(page, person.name)
+  await menu.getByRole('menuitem', { name: 'Esci' }).click()
   await expect(page.getByRole('alert')).toContainText('Uscita non riuscita')
   await expect(page).toHaveURL(/\/account$/)
 })
