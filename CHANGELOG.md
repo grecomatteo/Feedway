@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0](https://github.com/grecomatteo/Feedway/compare/v0.8.0...v0.9.0) (2026-11-13)
+
+
+### Novità
+
+* **web:** menu dell'utente in fondo alla barra e «Il mio account» con la barra ([#175](https://github.com/grecomatteo/Feedway/issues/175)) ([8e2a118](https://github.com/grecomatteo/Feedway/commit/8e2a118a9727e9e6d3308a5d08f2918a1012a77b))
+* **web:** selettori di agenzia e cliente senza frecce, con la foto del profilo ([#176](https://github.com/grecomatteo/Feedway/issues/176)) ([cd8f0a1](https://github.com/grecomatteo/Feedway/commit/cd8f0a171d9afe1a8b8f20adb4067a90bd344b02))
+
+
+### Correzioni
+
+* **accounts:** «Sincronizza» aspetta il tempo del limite e dice quanto manca ([#173](https://github.com/grecomatteo/Feedway/issues/173)) ([c98fbcc](https://github.com/grecomatteo/Feedway/commit/c98fbcc05fc5be427072104315fd4f076b36eb90))
+* **accounts:** App Secret rifiutato da Meta diventa rosso ([#177](https://github.com/grecomatteo/Feedway/issues/177)) ([3d3488e](https://github.com/grecomatteo/Feedway/commit/3d3488eed7a29f7d529ca55cd3108f10c69c8aeb))
+* **accounts:** immagini oscurate e finto Meta allineato alla prova vera ([#170](https://github.com/grecomatteo/Feedway/issues/170)) ([29b73cd](https://github.com/grecomatteo/Feedway/commit/29b73cda289274e4bf4c35fc4cb6485e64893363))
+* **accounts:** testi del collegamento per token revocato e account inattivi ([#174](https://github.com/grecomatteo/Feedway/issues/174)) ([433e79c](https://github.com/grecomatteo/Feedway/commit/433e79c9f56cb97534f0295c650037961115fcad))
+* **web:** il contesto resta cambiando pagina dal menu ([#172](https://github.com/grecomatteo/Feedway/issues/172)) ([e41366a](https://github.com/grecomatteo/Feedway/commit/e41366a488406fadd03b9cb5f13a4a8aa08a1cfd))
+
+
+### Documentazione
+
+* **accounts:** runbook Meta ed esiti della prova dal pannello ([#169](https://github.com/grecomatteo/Feedway/issues/169)) ([0483b90](https://github.com/grecomatteo/Feedway/commit/0483b90a06e1c959e1507ea07366e9ef1c31f480))
+* **media:** piano della tappa 4 ([#178](https://github.com/grecomatteo/Feedway/issues/178)) ([78ce152](https://github.com/grecomatteo/Feedway/commit/78ce152d82f95d7c2c8df5aa06c73786eaeb2d47))
+
 ## [0.8.0](https://github.com/grecomatteo/Feedway/compare/v0.7.0...v0.8.0) (2026-11-12)
 
 
