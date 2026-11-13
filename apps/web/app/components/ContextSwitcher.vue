@@ -5,7 +5,8 @@ const ready = useHydrated()
  * "Tutti i clienti", one workspace the person sees, or one profile of that workspace (§14.6),
  * kept in the address (`?spazio=`, `&profilo=`). What is unknown or not visible falls back to
  * "Tutti i clienti" (useActiveContext). A clean row like the agency's and the person's: the
- * client's photo (its Instagram's, else its Page's) or its initials, no arrows.
+ * client's photo (its Instagram's, else its Page's, as Feedway keeps it) or its initials, no
+ * arrows.
  */
 const route = useRoute()
 const router = useRouter()
@@ -13,10 +14,14 @@ const { t } = useI18n()
 const { visible, workspace, profile, profiles } = useActiveContext()
 
 const list = computed(() => profiles.data.value?.items ?? [])
-/** The chosen profile's photo, else the client's first profile's. */
+/** The chosen profile's photo, else the first one among the client's profiles, as the list. */
 const photo = computed(() => {
-  const shown = profile.value ?? list.value[0]
-  return shown ? profilePhoto(shown) : null
+  if (profile.value) return profilePhoto(profile.value)
+  for (const p of list.value) {
+    const found = profilePhoto(p)
+    if (found) return found
+  }
+  return workspace.value?.photoUrl ?? null
 })
 const pick = (slug: string | null, profileId: string | null = null) => {
   const query = { ...route.query }
@@ -39,7 +44,8 @@ const items = computed(() => [
     return [
       {
         label: w.name,
-        avatar: { src: current ? (photo.value ?? undefined) : undefined, alt: w.name },
+        // every client with its photo (D-14): the list gives the first profile's
+        avatar: { src: (current ? photo.value : w.photoUrl) ?? undefined, alt: w.name },
         type: 'checkbox' as const,
         // with one profile, the client and its profile are the same choice
         checked: current && (profile.value === null || list.value.length <= 1),

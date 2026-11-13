@@ -41,6 +41,7 @@ const accountColumns = {
   name: socialAccounts.name,
   username: socialAccounts.username,
   avatarUrl: socialAccounts.avatarUrl,
+  avatarKey: socialAccounts.avatarKey,
   pageId: socialAccounts.pageId,
   connectionId: socialAccounts.connectionId,
   active: socialAccounts.active,
@@ -229,6 +230,23 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
         )
         .returning({ id: socialAccounts.id })
       return rows.length > 0
+    },
+    async setAvatarKey(organizationId, id, avatarKey) {
+      const where = and(
+        eq(socialAccounts.organizationId, organizationId),
+        eq(socialAccounts.id, id),
+      )
+      const [current] = await db
+        .select({ avatarKey: socialAccounts.avatarKey })
+        .from(socialAccounts)
+        .where(where)
+        .for('update')
+      if (!current) return null
+      await db
+        .update(socialAccounts)
+        .set({ avatarKey, updatedAt: sql`now()` })
+        .where(where)
+      return { previous: current.avatarKey }
     },
     async setHealth(organizationId, connectionId, id, update) {
       const rows = await db

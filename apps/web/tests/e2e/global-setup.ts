@@ -30,6 +30,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.E2E_DATABASE_URL = tdb.runtimeUrl
   // the worker does not run here: tests that need a job run it on these files themselves
   process.env.E2E_MEDIA_ROOT = web.mediaRoot
+  // the account pictures' job downloads them from the fake Graph API, as the worker would
+  process.env.E2E_META_MOCK_URL = meta.url
   // only to sign "Non sono stato io" links as a security email would
   process.env.E2E_ENCRYPTION_KEY = encryptionKey
   return async () => {

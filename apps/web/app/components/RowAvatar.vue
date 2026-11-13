@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The picture at the start of a sidebar row: a client's Instagram or Page photo, round (the
- * agency's logo is `AgencyLogo`). Initials when there is no picture or it does not load (Meta's
- * addresses expire after some days).
+ * The picture at the start of a row: a client's Instagram or Page photo as Feedway keeps it,
+ * round (the agency's logo is `AgencyLogo`). Initials when there is no picture yet or it does not
+ * load.
  */
 const props = withDefaults(defineProps<{ name: string; src?: string | null }>(), { src: null })
 const initials = computed(() =>
@@ -13,6 +13,8 @@ const initials = computed(() =>
     .map((w) => Array.from(w)[0]?.toUpperCase() ?? '')
     .join(''),
 )
+/** Shown at 32 px: the 64 px copy is enough, also on a dense screen. */
+const small = computed(() => props.src?.replace('/avatar/256?', '/avatar/64?') ?? null)
 const failed = ref(false)
 watch(
   () => props.src,
@@ -24,8 +26,8 @@ watch(
 
 <template>
   <img
-    v-if="src && !failed"
-    :src="src"
+    v-if="small && !failed"
+    :src="small ?? undefined"
     alt=""
     class="size-8 shrink-0 rounded-full bg-(--app-surface-sunken) object-cover"
     width="32"

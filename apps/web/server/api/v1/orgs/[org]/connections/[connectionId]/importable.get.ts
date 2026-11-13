@@ -9,7 +9,7 @@ export default defineApiRoute(
     })
     return {
       connection: connectionDto(result.connection),
-      accounts: result.accounts.map(importableDto),
+      accounts: result.accounts.map(importableDto(params.org)),
     }
   },
   { rateLimit: CONNECTIONS_RATE_LIMIT },

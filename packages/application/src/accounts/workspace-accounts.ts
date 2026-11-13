@@ -33,7 +33,8 @@ export interface WorkspaceAccount {
   externalId: string
   name: string
   username: string | null
-  avatarUrl: string | null
+  /** Feedway's copy of the picture (plan 04 Task 4); null: none yet. */
+  avatarKey: string | null
   /** The key of the profile (§3). */
   pageId: string | null
   active: boolean
@@ -86,7 +87,7 @@ const workspaceAccountOf = (a: SocialAccountRecord): WorkspaceAccount => ({
   externalId: a.externalId,
   name: a.name,
   username: a.username,
-  avatarUrl: a.avatarUrl,
+  avatarKey: a.avatarKey,
   pageId: a.pageId,
   active: a.active,
   health: a.health,

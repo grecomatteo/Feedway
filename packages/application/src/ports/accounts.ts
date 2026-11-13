@@ -8,7 +8,14 @@ export interface SocialAccountRecord {
   externalId: string
   name: string
   username: string | null
+  /** As the platform gave it at the last sync: Meta's address expires after some days. */
   avatarUrl: string | null
+  /**
+   * The picture copied into Feedway's storage (`accounts.avatar`, plan 04 Task 4), without the
+   * extension: `<key>.webp` (256 px) and `<key>-64.webp`. null: none yet, the panel shows the
+   * initials.
+   */
+  avatarKey: string | null
   /** The key of the profile (§3); null for an account with no pair. */
   pageId: string | null
   /** The owning connection (plan 03, choice 2). */
@@ -112,6 +119,15 @@ export interface SocialAccountsRepository {
     id: string,
     update: PlatformAccountUpdate,
   ): Promise<boolean>
+  /**
+   * The stored picture of the account (null: none), whoever owns it; the row stays locked until
+   * the transaction ends. Returns the key it replaces, or null when there is no such account.
+   */
+  setAvatarKey(
+    organizationId: string,
+    id: string,
+    avatarKey: string | null,
+  ): Promise<{ previous: string | null } | null>
   /** Only an account `connectionId` still owns; false otherwise. */
   setHealth(
     organizationId: string,

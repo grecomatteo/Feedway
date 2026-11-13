@@ -3,7 +3,7 @@ import { connectSystemUserRoute } from '@app/contracts'
 
 export default defineApiRoute(
   connectSystemUserRoute,
-  async ({ actor, session, body, ip }) => {
+  async ({ actor, session, body, params, ip }) => {
     const result = await connectWithToken(
       connectionsDeps(useDeps()),
       actor,
@@ -15,7 +15,7 @@ export default defineApiRoute(
       outcome: result.outcome,
       permissions: result.permissions,
       connection: result.connection === null ? null : connectionDto(result.connection),
-      accounts: result.accounts.map(importableDto),
+      accounts: result.accounts.map(importableDto(params.org)),
     }
   },
   { rateLimit: CONNECTIONS_RATE_LIMIT },

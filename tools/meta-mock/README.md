@@ -20,6 +20,7 @@ In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 
 - Token in `Authorization: Bearer` o in `access_token`. `appsecret_proof` è obbligatorio, come con **Require App Secret** attivo; non serve nello scambio del codice né in `debug_token`, che usa il token dell'app (`docs/platforms/meta.md`).
 - Dialogo dell'accesso unificato su `<url>/<versione>/dialog/oauth`: controlla `client_id` e `config_id` e rimanda subito a `redirect_uri` con `code` e `state`. Il codice vale una volta sola e solo con lo stesso `redirect_uri`.
 - `GET /oauth/access_token` (scambio del codice) e `GET /debug_token`.
+- Le foto dei profili su `<url>/pictures/<nome>.jpg`, senza token, come le serve il CDN di Meta. Nelle fixture gli indirizzi iniziano con `{{mock}}`, che il mock sostituisce con il proprio indirizzo; le immagini stanno in `fixtures/pictures/`. Un nome che non c'è risponde 404, come un indirizzo di Meta scaduto.
 
 ## Dati iniziali
 
@@ -36,7 +37,7 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 
 ## Scenari
 
-`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted`, `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`. Le opzioni sono descritte in `src/scenarios.ts`; `token_expired` accetta anche `subcode` (458: il cliente ha tolto l'autorizzazione). Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
+`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted`, `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`, e per le foto `picture_changed` (un nodo cambia foto e indirizzo), `picture_not_image` e `picture_redirect`. Gli errori dell'infrastruttura raggiungono le foto solo se il loro `path` le nomina (`/pictures/forno.jpg`). Le opzioni sono descritte in `src/scenarios.ts`; `token_expired` accetta anche `subcode` (458: il cliente ha tolto l'autorizzazione). Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
 
 ## Fixture
 

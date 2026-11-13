@@ -7,7 +7,7 @@ export default defineApiRoute(workspaceProfilesRoute, async ({ actor, params }) 
     items: profiles.map((p) => ({
       key: p.key,
       id: p.id,
-      accounts: p.accounts.map(workspaceAccountDto),
+      accounts: p.accounts.map(workspaceAccountDto(params.org)),
     })),
   }
 })

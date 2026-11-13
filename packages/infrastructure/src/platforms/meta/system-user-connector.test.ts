@@ -138,6 +138,7 @@ const checkWith = (info: MetaTokenInfo) =>
       debugToken: () => Promise.resolve({ data: info, usage: USAGE }),
     } as unknown as MetaGraphClient,
     integrations: { credentials: () => Promise.resolve(null) },
+    pictures: () => Promise.reject(new Error('not used')),
   }).connectWithToken?.(APP, 'token-incollato')
 
 test('a valid system user token passes, and does not expire', async () => {

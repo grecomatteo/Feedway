@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { imageFixture, withScope } from '@app/infrastructure/testing'
+import { withScope } from '@app/infrastructure/testing'
+import { runAccountAvatarJobs } from './support/jobs.ts'
 import { assignAccount, connectedAgency } from './support/meta.ts'
 import {
   E2E_PASSWORD,
@@ -192,9 +193,15 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   }
 })
 
-test('client selector: the photo of its Instagram, initials when it does not load, no arrows', async ({
+test("client selector: Feedway's copy of each client's photo, initials without it, nothing from Meta", async ({
   page,
 }) => {
+  // the panel never asks Meta's CDN for a picture (and its CSP would refuse it)
+  const fromMeta: string[] = []
+  await page.route(/fbcdn\.net|cdninstagram\.com/, (route) => {
+    fromMeta.push(route.request().url())
+    return route.abort()
+  })
   const { org } = await agencyWithPublisher(page)
   await connectedAgency(page.request, org)
   const a = await workspaceId(org, 'Cliente A')
@@ -208,20 +215,21 @@ test('client selector: the photo of its Instagram, initials when it does not loa
   )
   await assignAccount(page.request, org, a, fb?.id ?? '')
   await assignAccount(page.request, org, a, ig?.id ?? '')
-  // the picture Meta gave at the import, served by its image host
-  const photo = 'https://scontent-fra5-1.xx.fbcdn.net/v/forno-luce.png'
-  await adminQuery('update social_accounts set avatar_url = $2 where id = $1', [ig?.id, photo])
-  await page.route('https://*.fbcdn.net/**', async (route) =>
-    route.fulfill({ contentType: 'image/png', body: await imageFixture('photo.png') }),
-  )
+  // what the worker does after the import: the pictures copied from the fake Graph API
+  await runAccountAvatarJobs(org)
+  const photo = `/api/v1/orgs/${org}/accounts/${ig?.id ?? ''}/avatar/256?v=`
 
   await page.goto(`/${org}/spazi`)
   const context = page.getByRole('button', { name: 'Contesto' }).first()
   // clean rows: no up and down arrows on the selectors
   await expect(page.locator('.iconify.i-lucide\\:chevrons-up-down')).toHaveCount(0)
   await context.click()
-  await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
-  const img = context.locator(`img[src="${photo}"]`)
+  // every client with its photo in the list, before it is chosen (D-14)
+  const itemA = page.getByRole('menuitemcheckbox', { name: 'Cliente A' })
+  await expect(itemA.locator(`img[src^="${photo}"]`)).toBeVisible()
+  await itemA.click()
+  // the row shows the 64 px copy
+  const img = context.locator(`img[src^="${photo.replace('/256?', '/64?')}"]`)
   await expect(img).toBeVisible()
   await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0)
   // one profile only: the menu does not list it under the client
@@ -232,15 +240,15 @@ test('client selector: the photo of its Instagram, initials when it does not loa
   await expect(context).toContainText('CB')
   await expect(context.locator('img')).toHaveCount(0)
 
-  // an address of Meta's that expired: the initials again
-  await page.unroute('https://*.fbcdn.net/**')
-  await page.route('https://*.fbcdn.net/**', (route) => route.fulfill({ status: 403 }))
-  const refused = page.waitForResponse((r) => r.url().includes('fbcdn.net'))
+  // a picture that does not load: the initials again
+  await page.route('**/accounts/*/avatar/**', (route) => route.fulfill({ status: 404 }))
+  const refused = page.waitForResponse((r) => r.url().includes('/avatar/64'))
   await page.goto(`/${org}/spazi?spazio=cliente-a`)
   await refused
   await expect(context.locator('img')).toHaveCount(0)
   await expect(context).toContainText('CA')
   expect((await axe(page)).violations).toEqual([])
+  expect(fromMeta).toEqual([])
 })
 
 test('a person in two agencies switches, and another agency address is not found', async ({

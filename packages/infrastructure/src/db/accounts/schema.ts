@@ -67,6 +67,8 @@ export const socialAccounts = pgTable(
     name: text('name').notNull(),
     username: text('username'),
     avatarUrl: text('avatar_url'),
+    // the picture copied into Feedway's storage (plan 04 Task 4): Meta's address expires
+    avatarKey: text('avatar_key'),
     // the key of the profile (§3): a Facebook Page's own id, the Page of an Instagram, or null
     pageId: text('page_id'),
     // the owner (choice 2): only this connection syncs the account or makes it inactive

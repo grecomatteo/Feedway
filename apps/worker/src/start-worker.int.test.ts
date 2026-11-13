@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { JobQueue, QueueName } from '@app/application'
-import { createLogger, createPgBossQueue } from '@app/infrastructure'
+import { createAvatarProcessor, createLogger, createPgBossQueue } from '@app/infrastructure'
 import { startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { startWorker } from './start-worker.js'
@@ -63,6 +63,7 @@ const services: WorkerDeps['services'] = {
     seal: () => Promise.reject(new Error('not used')),
     open: () => Promise.reject(new Error('not used')),
   },
+  images: createAvatarProcessor(),
 }
 
 const logger = createLogger({ service: 'worker', level: 'error' })

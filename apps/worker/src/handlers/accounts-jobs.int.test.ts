@@ -116,8 +116,15 @@ test('the sync refreshes names and closes what the owner no longer sees; another
   expect(Object.keys(after).sort()).toEqual(
     [pages.withInstagram, instagram.ofPage, instagram.clientOnly].sort(),
   )
-  // then the health check of the same connection, ids only
+  // then the copy of the picture of the account still there, and the health check of the
+  // same connection, ids only
+  const page = a.accounts[pages.withInstagram] ?? ''
   expect(queue.sent).toEqual([
+    {
+      name: 'accounts.avatar',
+      data: { organizationId: of.organizationId, accountId: page },
+      opts: { singletonKey: page },
+    },
     {
       name: 'accounts.health',
       data: { organizationId: of.organizationId, connectionId: a.id },

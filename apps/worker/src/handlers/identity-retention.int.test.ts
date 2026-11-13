@@ -15,6 +15,7 @@ import {
   type RetentionDeps,
 } from '@app/application'
 import {
+  createAvatarProcessor,
   createCredentialEraser,
   createMemoryMailer,
   createRuntime,
@@ -117,6 +118,7 @@ async function deliverNotices() {
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),
     },
+    images: createAvatarProcessor(),
   }
   for (const data of notices.splice(0))
     await identityAnonymizationNotice({ id: randomUUID(), data }, handlerDeps)
