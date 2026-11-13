@@ -39,14 +39,26 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
 
-  // the theme changes at once, stays open, and is kept in the profile
-  const html = page.locator('html')
-  await menu.getByRole('menuitemradio', { name: 'Scuro' }).click()
-  await expect(html).toHaveClass(/dark/)
-  await expect(menu.getByRole('menuitemradio', { name: 'Scuro' })).toHaveAttribute(
-    'aria-checked',
-    'true',
+  // the rarely used agency pages are in the menu, not in the sidebar
+  await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toHaveAttribute(
+    'href',
+    `/${owner.organizationSlug}/registro`,
   )
+  await expect(menu.getByRole('menuitem', { name: 'Privacy' })).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: 'Navigazione principale' }).getByRole('link', {
+      name: 'Registro attività',
+    }),
+  ).toHaveCount(0)
+
+  // the theme is one button beside «Esci»: it changes at once, stays open, and is kept
+  const html = page.locator('html')
+  // the projects start in light or dark: from light, say, once in dark
+  if (/\bdark\b/.test((await html.getAttribute('class')) ?? ''))
+    await menu.getByRole('menuitem', { name: 'Passa al tema chiaro' }).click()
+  await expect(html).not.toHaveClass(/dark/)
+  await menu.getByRole('menuitem', { name: 'Passa al tema scuro' }).click()
+  await expect(html).toHaveClass(/dark/)
   await expect(menu).toBeVisible()
   await expect
     .poll(async () => {
@@ -56,7 +68,7 @@ test('the user menu: who is signed in, the theme, and «Il mio account» with th
       return row?.theme
     })
     .toBe('dark')
-  await menu.getByRole('menuitemradio', { name: 'Chiaro' }).click()
+  await menu.getByRole('menuitem', { name: 'Passa al tema chiaro' }).click()
   await expect(html).not.toHaveClass(/dark/)
 
   // Esc closes it
@@ -122,11 +134,12 @@ test('the user menu works from the keyboard', async ({ page, isMobile }) => {
   const menu = await openUserMenu(page, 'Olga Tasti')
   await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitemradio', { name: 'Chiaro' })).toBeFocused()
-  await page.keyboard.press('ArrowRight')
-  await expect(menu.getByRole('menuitemradio', { name: 'Scuro' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toBeFocused()
   await page.keyboard.press('End')
+  await expect(menu.getByRole('menuitem', { name: /^Passa al tema/ })).toBeFocused()
+  await page.keyboard.press('ArrowLeft')
   await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeFocused()
+  await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowDown')
   await expect(menu.getByRole('menuitem', { name: 'Il mio account' })).toBeFocused()
 })

@@ -65,9 +65,11 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   // under load the first click can land before the page is interactive: click until it turns
   // (a click that did turn it is never repeated: a second one would turn it back)
   const turned = async () => wasDark !== /\bdark\b/.test((await html.getAttribute('class')) ?? '')
-  // the theme is in the user menu, next to the person's name
+  // the theme is in the user menu, beside «Esci»
   const menu = await openUserMenu(page, person.name)
-  await menu.getByRole('menuitemradio', { name: wasDark ? 'Chiaro' : 'Scuro' }).click()
+  await menu
+    .getByRole('menuitem', { name: wasDark ? 'Passa al tema chiaro' : 'Passa al tema scuro' })
+    .click()
   await expect.poll(turned).toBe(true)
   await page.keyboard.press('Escape')
   // the page may save the same choice once more when its own copy of the profile arrives later
