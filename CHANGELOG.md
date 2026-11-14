@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.9.1](https://github.com/grecomatteo/Feedway/compare/v0.9.0...v0.9.1) (2026-11-14)
+
+
+### Novità
+
+* **accounts:** clienti dai profili trovati, «Annulla» e «Sistemali» ([#192](https://github.com/grecomatteo/Feedway/issues/192)) ([aec48a1](https://github.com/grecomatteo/Feedway/commit/aec48a1b0a1898ec4834665f3f9ffa486781228e))
+* **accounts:** foto dei clienti conservate da Feedway ([#186](https://github.com/grecomatteo/Feedway/issues/186)) ([b92bd34](https://github.com/grecomatteo/Feedway/commit/b92bd342b14a327ab44729f03341d12863faece5))
+* **media:** ADR 021 sullo storage a oggetti e configurazione dei media ([#180](https://github.com/grecomatteo/Feedway/issues/180)) ([58063d8](https://github.com/grecomatteo/Feedway/commit/58063d88aeadc3cf5f966609e9f2394c7b399249))
+* **organizations:** logo dell'agenzia nelle impostazioni e nella barra ([#183](https://github.com/grecomatteo/Feedway/issues/183)) ([f2a7c8d](https://github.com/grecomatteo/Feedway/commit/f2a7c8dff4ddbb7e49078ca28c84b180d1d1b856))
+* **ui:** componenti condivisi dello stile unione ([#189](https://github.com/grecomatteo/Feedway/issues/189)) ([f5ad207](https://github.com/grecomatteo/Feedway/commit/f5ad20779d2405bd19b8e621beb36fb5cc53f67b))
+* **web:** una sola schermata «Impostazioni» per account e agenzia ([#182](https://github.com/grecomatteo/Feedway/issues/182)) ([ded7477](https://github.com/grecomatteo/Feedway/commit/ded7477a9ffa93bb74f123ce24bbebcc1c78d756))
+* **workspaces:** «Abbina ai clienti», «Nuovo cliente» dal profilo e «Sistemali» ([#193](https://github.com/grecomatteo/Feedway/issues/193)) ([64e13e4](https://github.com/grecomatteo/Feedway/commit/64e13e46eb7bea1edcf63c2d7e43037e2b0c377c))
+* **workspaces:** pagina Clienti con i profili e lo stato del collegamento ([#190](https://github.com/grecomatteo/Feedway/issues/190)) ([ae42ae6](https://github.com/grecomatteo/Feedway/commit/ae42ae63398471424e1d36c19235d02e5ab318cf))
+
+
+### Correzioni
+
+* **accounts:** l'attesa di «Sincronizza» resta ricaricando la pagina ([#184](https://github.com/grecomatteo/Feedway/issues/184)) ([870b413](https://github.com/grecomatteo/Feedway/commit/870b413286139be35df3cc2b47bf99cd5d182018))
+* **web:** logo di Feedway nella barra al posto del nome scritto ([#185](https://github.com/grecomatteo/Feedway/issues/185)) ([640e10c](https://github.com/grecomatteo/Feedway/commit/640e10c8305512b35432ee37a08b531e56e6745f))
+
+
+### Documentazione
+
+* **design:** clienti con i loro profili social (proposta P) ([#187](https://github.com/grecomatteo/Feedway/issues/187)) ([0d5b5e9](https://github.com/grecomatteo/Feedway/commit/0d5b5e92243ff3e75d8d7c66f715fe2b3d7704da))
+* **design:** pagina «Abbina ai clienti» dopo il collegamento ([#188](https://github.com/grecomatteo/Feedway/issues/188)) ([c4074eb](https://github.com/grecomatteo/Feedway/commit/c4074eb54a5847c46528d702fc34b2664a267cf8))
+* **design:** temi colore dell'interfaccia nella tappa 4 (Task 13b) ([#191](https://github.com/grecomatteo/Feedway/issues/191)) ([7030e7a](https://github.com/grecomatteo/Feedway/commit/7030e7a7c0159a539e3f1a94d35e353619163a8f))
+
 ## [0.9.0](https://github.com/grecomatteo/Feedway/compare/v0.8.0...v0.9.0) (2026-11-13)
 
 
