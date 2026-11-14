@@ -7,12 +7,19 @@ export default defineApiRoute(
     const result = await importAccounts(
       connectionsDeps(useDeps()),
       actor,
-      { connectionId: params.connectionId, externalIds: body.externalIds },
+      {
+        connectionId: params.connectionId,
+        externalIds: body.externalIds,
+        newWorkspaces: body.newWorkspaces ?? [],
+        assignTo: body.assignTo ?? [],
+      },
       { ip },
     )
     return {
       connection: connectionDto(result.connection),
       accounts: result.accounts.map(socialAccountDto(params.org)),
+      created: result.created.map((w) => ({ id: w.id, name: w.name, slug: w.slug })),
+      undo: result.undo,
     }
   },
   { rateLimit: CONNECTIONS_RATE_LIMIT },

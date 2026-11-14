@@ -1,5 +1,12 @@
 export {
+  MAX_CLIENT_ACCOUNTS,
+  addWorkspace,
   archiveWorkspace,
+  cannotManage,
+  managesWorkspaces,
+  recordWorkspace,
+  recordAssignment,
+  validName,
   assertActiveOrganization,
   createWorkspace,
   currentActor,

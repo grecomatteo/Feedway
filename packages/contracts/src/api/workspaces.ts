@@ -57,8 +57,14 @@ export const listWorkspacesRoute = defineContract({
 export const createWorkspaceRoute = defineContract({
   method: 'POST',
   path: '/api/v1/orgs/{org}/workspaces',
-  summary: 'Crea uno spazio di lavoro',
-  request: { params: OrgParams, body: WorkspaceName },
+  summary: 'Crea uno spazio di lavoro, anche dai profili già importati',
+  request: {
+    params: OrgParams,
+    body: WorkspaceName.extend({
+      /** The accounts of its profiles, already imported (spec §14.7, «Nuovo cliente»). */
+      accountIds: z.array(Id).max(20).optional(),
+    }),
+  },
   response: Workspace,
   auth: 'session',
   scope: 'organization',

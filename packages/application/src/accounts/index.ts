@@ -6,6 +6,10 @@ export {
   listImportable,
 } from './connections.js'
 export type {
+  ClientImportUndo,
+  ImportInput,
+  ImportResult,
+  NewClient,
   ConnectionView,
   ConnectionsDeps,
   ConnectOutcome,
@@ -50,3 +54,5 @@ export {
 } from './avatar.js'
 export type { AccountAvatarDeps, AccountAvatarJob, AccountAvatarOutcome } from './avatar.js'
 export type { MetaRemindersDeps } from './reminders.js'
+export { UNDO_WINDOW_MS, listProfilesWithoutClient, undoClientImport } from './clients.js'
+export type { ProfileWithoutClient } from './clients.js'
