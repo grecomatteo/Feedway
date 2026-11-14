@@ -678,7 +678,8 @@
       "users": "Utenti",
       "audit": "Registro attività",
       "privacy": "Privacy",
-      "accounts": "Account social"
+      "calendar": "Calendario",
+      "notifications": "Notifiche"
     }
   },
   "context": {
@@ -912,6 +913,11 @@
   },
   "metaIntegration": {
     "title": "Meta",
+    "connections": {
+      "title": "Account collegati",
+      "explain": "Qui colleghi, sincronizzi e ricolleghi gli account Meta dei clienti.",
+      "open": "Apri gli account collegati"
+    },
     "explain": "È l'app con cui Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
     "notConfigured": "Da configurare",
     "notVerified": "Da provare",
@@ -1212,7 +1218,8 @@
   },
   "userMenu": {
     "label": "Il tuo account",
-    "open": "Menu di {name}",
+    "tab": "Tu, menu di {name}",
+    "you": "Tu",
     "otherAgency": "Cambia agenzia",
     "toDark": "Passa al tema scuro",
     "toLight": "Passa al tema chiaro"

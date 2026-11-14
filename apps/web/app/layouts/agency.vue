@@ -65,7 +65,7 @@ watch(org.slug, refresh)
       </div>
     </aside>
 
-    <!-- telefono: barra in alto e menu in basso -->
+    <!-- phone: the selectors and the bell at the top, the person's menu in the bar at the bottom -->
     <header
       class="flex items-center gap-2 border-b border-(--app-border) bg-(--app-surface) px-4 py-2 md:hidden"
     >
@@ -73,7 +73,19 @@ watch(org.slug, refresh)
         <OrgSwitcher v-if="many || !org.active.value" />
         <ContextSwitcher v-if="org.active.value && inAgency" />
       </div>
-      <UserMenu variant="avatar" />
+      <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
+      <UButton
+        v-if="org.active.value"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-bell"
+        disabled
+        :aria-label="`${$t('agency.nav.notifications')} (${$t('client.soon')})`"
+        :title="$t('client.soon')"
+        class="size-11 shrink-0 justify-center"
+      />
+      <!-- a suspended agency has no bar at the bottom: «Tu» stays reachable at the top -->
+      <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
     </header>
 
     <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">

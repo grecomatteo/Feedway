@@ -96,6 +96,27 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
         />
       </section>
 
+      <!-- until the connections move here (plan 04 Task 6c), the way to them out of the menu -->
+      <section
+        v-if="org.may.value.manageAccounts"
+        aria-labelledby="meta-connections"
+        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+      >
+        <h2 id="meta-connections" class="text-lg">{{ $t('metaIntegration.connections.title') }}</h2>
+        <p class="text-sm text-(--app-text-muted)">
+          {{ $t('metaIntegration.connections.explain') }}
+        </p>
+        <UButton
+          :to="org.to('/account')"
+          class="min-h-11"
+          color="neutral"
+          variant="outline"
+          trailing-icon="i-lucide-arrow-right"
+        >
+          {{ $t('metaIntegration.connections.open') }}
+        </UButton>
+      </section>
+
       <section
         aria-labelledby="meta-guide"
         class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"

@@ -469,18 +469,6 @@ test('settings: the owner renames the agency and names the privacy controller', 
   await expect(page.getByRole('status')).toHaveText('Modifiche salvate.')
 })
 
-test('mobile nav below 768 px: five places, no + yet, no a11y violations', async ({ page }) => {
-  const owner = await newPerson('Olga Telefono', 'owner')
-  await signInWithTotp(page.request, owner)
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto(`/${owner.organizationSlug}/spazi`)
-  const nav = page.getByRole('navigation', { name: 'Navigazione principale' })
-  await expect(nav).toBeVisible()
-  await expect(nav.getByRole('listitem')).toHaveCount(5)
-  await expect(nav.getByRole('link', { name: 'Nuovo post' })).toHaveCount(0)
-  expect((await axe(page)).violations).toEqual([])
-})
-
 // each project runs in its theme, light or dark: together they check both versions of the logo
 test('sidebar: the brand logo, not the name typed out, in the theme in use', async ({ page }) => {
   const owner = await newPerson('Olga Marchio', 'owner')

@@ -24,6 +24,7 @@ const axe = (page: Page) =>
 
 test('the user menu: who is signed in, the theme, and «Impostazioni» with the sidebar', async ({
   page,
+  isMobile,
 }) => {
   const owner = await newPerson('Olga Menu', 'owner')
   await signInWithTotp(page.request, owner)
@@ -33,8 +34,10 @@ test('the user menu: who is signed in, the theme, and «Impostazioni» with the 
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toHaveCount(0)
 
   const menu = await openUserMenu(page, 'Olga Menu')
-  // the first entry takes the focus, on a phone too
-  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
+  // the first entry takes the focus, on a phone too, where Utenti leads (the sidebar's, §11.11)
+  await expect(
+    menu.getByRole('menuitem', { name: isMobile ? 'Utenti' : 'Impostazioni' }),
+  ).toBeFocused()
   // who is signed in heads the menu, outside its entries
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])

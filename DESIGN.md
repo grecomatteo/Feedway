@@ -80,7 +80,7 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
   - «Agenzia · <nome>»: Generali, Integrazioni, solo per Owner e Admin (`organization.settings.view`) dell'agenzia attiva o ricordata.
 - Computer (da 1024 px): i gruppi sono una colonna a sinistra da 12rem, la scheda attiva su `brand-soft`. Sotto i 1024 px i gruppi stanno sopra il contenuto, in riquadri `surface-sunken`; sul telefono le schede sono in due colonne, così nessuna va a capo da sola.
 - Gli indirizzi non cambiano (`/account/*`, `/<agenzia>/impostazioni/*`): i link delle email continuano a funzionare.
-- Sul telefono «Impostazioni» si apre dal menu «Tu» della barra in basso (14/11). Fino al Task 6b della tappa 4 il quinto posto della barra resta «Impostazioni» (ingranaggio).
+- Sul telefono «Impostazioni» si apre dal menu «Tu» della barra in basso (14/11). Dal Task 6b della tappa 4 il quinto posto della barra è «Tu».
 - La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil. Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
 
 ## Logo dell'agenzia (13 novembre 2026; tappa 4, Task 3)
@@ -131,6 +131,11 @@ Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Ac
 
 - Barra in basso: Home, Calendario, + (Nuovo post, al centro), Clienti, Tu. Calendario e + si vedono disattivati con «Presto» finché non esistono; un Viewer non vede il +.
 - «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti (per chi li gestisce), Impostazioni, Registro attività (per chi lo vede), Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
+- In alto a destra la campanella delle notifiche (Matteo, 14/11), disattivata con «Presto» fino al centro notifiche (tappa 8).
+- Fatto nella tappa 4, Task 6b: voci da 60 px, icona da 20 px ed etichetta da 12 px; la voce attiva in grassetto e `text`, le altre `text-muted`. Calendario a metà opacità con una pillola «Presto» sull'icona; il + è un cerchio arancio da 40 px con filetto `text`, a metà opacità con «Presto» sotto. «Tu» ha la foto da 24 px. Il nome per lo screen reader è «Tu, menu di <nome>»; le voci disattivate si leggono «Calendario (Presto)» e «Nuovo post (Presto)». La barra si nasconde quando la tastiera riduce la pagina sotto i tre quarti. In un'agenzia sospesa non c'è la barra: «Tu» sta in alto al posto della campanella.
+- Menu dell'agenzia su computer: Home, Clienti, Utenti (per chi li gestisce). Il menu dell'utente su computer resta com'era (Impostazioni, Registro, Privacy…); Utenti è nella barra laterale.
+- Fino al Task 6c gli account collegati si aprono da Impostazioni → Integrazioni → «Account collegati».
+- Schermate in `schermate/tappa-4-menu-telefono/` nella cartella del progetto.
 
 Le schermate di ogni pagina, chiare e scure, da computer e da telefono, vanno nella cartella del progetto prima della fusione. La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil.
 

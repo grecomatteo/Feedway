@@ -11,6 +11,8 @@ import type { RouteLocationRaw } from 'vue-router'
 defineProps<{
   me: Me
   links: { to: string; link: RouteLocationRaw; label: string; icon: string }[]
+  /** On a phone, the sidebar's pages that the bar at the bottom has no room for (Utenti). */
+  before?: { to: string; link: RouteLocationRaw; label: string; icon: string }[]
   dark: boolean
   otherAgencies: boolean
   leaving: boolean
@@ -35,6 +37,18 @@ const entry =
     <div role="separator" class="mx-1 mb-1 h-px bg-(--app-border)" />
 
     <div role="menu" :aria-label="$t('userMenu.label')" class="space-y-0.5">
+      <NuxtLink
+        v-for="item in before ?? []"
+        :key="item.to"
+        :to="item.link"
+        role="menuitem"
+        tabindex="-1"
+        :class="entry"
+        @click="emit('navigate')"
+      >
+        <UIcon :name="item.icon" class="size-4 text-(--app-text-muted)" aria-hidden="true" />
+        {{ $t(item.label) }}
+      </NuxtLink>
       <NuxtLink
         to="/account"
         role="menuitem"
