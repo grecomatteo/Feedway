@@ -123,6 +123,7 @@ async function created(clientName: string) {
 
 // ---- «Sistemali»
 const fixing = ref(false)
+const reload = () => Promise.all([refresh(), refreshWithoutClient()])
 async function added(message: string) {
   fixing.value = false
   done.value = message
@@ -148,11 +149,11 @@ async function undoImport() {
   try {
     await call('POST', org.api('/workspaces/import-undo'), last.undo)
     lastImport.value = null
-    done.value = t('clients.undo.undone')
+    done.value = last.created > 0 ? t('clients.undo.undone') : t('clients.undo.undoneAdded')
     await Promise.all([refresh(), refreshWithoutClient()])
   } catch (e) {
+    // the pill stays, so «Annulla» can be tried again
     problem.value = failure(e).message
-    lastImport.value = null
   } finally {
     undoing.value = false
   }
@@ -439,14 +440,21 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       :clients="active"
       @create="startAdding"
       @added="added"
+      @changed="reload"
     />
     <div
-      v-if="lastImport && lastImport.created > 0"
+      v-if="lastImport"
       role="status"
       class="fixed bottom-7 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-[10px] bg-(--app-text) px-4 py-2 text-sm text-(--app-bg) max-md:bottom-[76px] max-md:w-[calc(100%-2rem)]"
     >
       <span class="flex-1">{{
-        $t('clients.undo.created', { n: lastImport.created }, lastImport.created)
+        lastImport.created > 0
+          ? $t('clients.undo.created', { n: lastImport.created }, lastImport.created)
+          : $t(
+              'clients.undo.added',
+              { n: lastImport.undo.assignments.length },
+              lastImport.undo.assignments.length,
+            )
       }}</span>
       <UButton
         class="min-h-11 font-semibold text-(--app-bg) underline underline-offset-3"

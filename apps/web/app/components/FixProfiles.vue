@@ -7,13 +7,19 @@ import type { ProfileWithoutClient, WorkspaceView } from '~/composables/useOrgan
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ profiles: ProfileWithoutClient[]; clients: WorkspaceView[] }>()
-const emit = defineEmits<{ create: [key: string]; added: [message: string] }>()
+const emit = defineEmits<{
+  create: [key: string]
+  added: [message: string]
+  changed: []
+}>()
 const org = useOrganization()
 const { t } = useI18n()
 const { call, failure } = useApi()
 
 const placing = ref<ProfileWithoutClient | null>(null)
+const busy = ref(false)
 const problem = ref<string | null>(null)
+watch(placing, () => (problem.value = null))
 const handleOf = (a: ProfileWithoutClient['accounts'][number]) =>
   a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
 const PLATFORM_ICON: Record<string, string> = {
@@ -24,18 +30,26 @@ const activeClients = computed(() => props.clients.filter((w) => w.archivedAt ==
 
 async function placeIn(w: WorkspaceView) {
   const p = placing.value
-  if (!p) return
+  if (!p || busy.value) return
+  busy.value = true
   problem.value = null
+  let moved = 0
   try {
-    for (const a of p.accounts)
+    for (const a of p.accounts) {
       await call(
         'PUT',
         org.api(`/workspaces/${encodeURIComponent(w.id)}/accounts/${encodeURIComponent(a.id)}`),
       )
+      moved += 1
+    }
     placing.value = null
     emit('added', t('clients.fix.added', { name: p.name, client: w.name }))
   } catch (e) {
     problem.value = failure(e).message
+    // part of the profile may be in the client already: the lists must say so
+    if (moved > 0) emit('changed')
+  } finally {
+    busy.value = false
   }
 }
 </script>
@@ -94,7 +108,6 @@ async function placeIn(w: WorkspaceView) {
           </div>
         </li>
       </ul>
-      <p v-if="problem" role="alert" class="mt-3 text-(--app-danger)">{{ problem }}</p>
     </template>
   </USlideover>
 
@@ -108,7 +121,8 @@ async function placeIn(w: WorkspaceView) {
         <li v-for="w in activeClients" :key="w.id">
           <button
             type="button"
-            class="flex min-h-14 w-full items-center gap-3 px-4 text-left font-semibold"
+            class="flex min-h-14 w-full items-center gap-3 px-4 text-left font-semibold disabled:opacity-60"
+            :disabled="busy"
             @click="placeIn(w)"
           >
             <RowAvatar :name="w.name" :src="w.photoUrl ?? null" />
@@ -116,6 +130,7 @@ async function placeIn(w: WorkspaceView) {
           </button>
         </li>
       </ul>
+      <p v-if="problem" role="alert" class="mt-3 text-(--app-danger)">{{ problem }}</p>
     </template>
   </UModal>
 </template>

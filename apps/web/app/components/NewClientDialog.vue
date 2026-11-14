@@ -70,7 +70,11 @@ async function submit() {
             <li v-for="p in profiles" :key="p.key">
               <label
                 class="flex min-h-14 cursor-pointer items-center gap-3 px-4"
-                :class="choice === p.key ? 'bg-(--app-brand-soft)' : ''"
+                :class="
+                  choice === p.key
+                    ? 'bg-(--app-surface-sunken) shadow-[inset_3px_0_0_var(--app-brand)]'
+                    : ''
+                "
               >
                 <input
                   type="radio"
@@ -106,7 +110,11 @@ async function submit() {
             <li>
               <label
                 class="flex min-h-14 cursor-pointer items-center gap-3 px-4"
-                :class="choice === NONE ? 'bg-(--app-brand-soft)' : ''"
+                :class="
+                  choice === NONE
+                    ? 'bg-(--app-surface-sunken) shadow-[inset_3px_0_0_var(--app-brand)]'
+                    : ''
+                "
               >
                 <input
                   type="radio"

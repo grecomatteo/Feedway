@@ -1277,7 +1277,9 @@
     "undo": {
       "created": "{n} cliente creato | {n} clienti creati",
       "action": "Annulla",
-      "undone": "Fatto: i clienti sono tolti e i profili sono in «Sistemali»."
+      "undone": "Fatto: i clienti sono tolti e i profili sono in «Sistemali».",
+      "added": "{n} account aggiunto a un cliente | {n} account aggiunti ai clienti",
+      "undoneAdded": "Fatto: gli account sono tolti dai clienti e sono in «Sistemali»."
     },
     "fix": {
       "notice": "{n} profilo trovato non è in un cliente. | {n} profili trovati non sono in un cliente.",

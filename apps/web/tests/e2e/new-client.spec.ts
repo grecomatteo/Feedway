@@ -74,7 +74,9 @@ test('«Abbina ai clienti»: untick, rename, join two rows, «Crea N clienti» a
   await page.goto(`/${org}/account/aggiungi`)
   await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
   await page.getByRole('button', { name: 'Cerca nuovi account' }).click()
-  await expect(page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })).toBeVisible()
+  // the proposals come below the guide: the page takes the person to them
+  await expect(page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })).toBeFocused()
+  await expect(page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })).toBeInViewport()
   // Instagram and its Page on Meta are one row; an Instagram alone is a client of its own
   await expect(proposalOf(page, 'Forno Luce')).toBeVisible()
   await expect(proposalOf(page, 'Studio Rossi')).toBeVisible()
@@ -89,6 +91,13 @@ test('«Abbina ai clienti»: untick, rename, join two rows, «Crea N clienti» a
   await page.mouse.move(0, 0)
   expect((await axe(page)).violations).toEqual([])
 
+  if (!isPhone(page)) {
+    await proposalOf(page, 'Caffè Centrale')
+      .getByRole('button', { name: 'Azioni per Caffè Centrale' })
+      .click()
+    await page.getByRole('menuitem', { name: 'Rinomina' }).click()
+    await expect(proposalOf(page, 'Caffè Centrale').getByRole('textbox')).toBeFocused()
+  }
   // not a client: it stays in «Sistemali»
   const caffe = page.getByRole(isPhone(page) ? 'switch' : 'checkbox', {
     name: 'Crea il cliente Caffè Centrale',

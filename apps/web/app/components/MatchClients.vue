@@ -118,9 +118,25 @@ function placeIn(w: { id: string; name: string }) {
   placing.value = null
 }
 
+/** «Rinomina» moves to the name field once the menu has closed and handed the focus back. */
+function focusName(r: Row) {
+  const start = performance.now()
+  const step = () => {
+    if (document.querySelector('[role="menu"]') && performance.now() - start < 1000)
+      return requestAnimationFrame(step)
+    requestAnimationFrame(() => document.getElementById(`match-name-${r.key}`)?.focus())
+  }
+  requestAnimationFrame(step)
+}
+
 function actions(r: Row): DropdownMenuItem[][] {
   return [
     [
+      {
+        label: t('clients.match.rename'),
+        icon: 'i-lucide-pencil',
+        onSelect: () => focusName(r),
+      },
       {
         label: t('clients.match.merge'),
         icon: 'i-lucide-link',
@@ -167,13 +183,24 @@ function fromSheet(next: 'merge' | 'existing' | 'toggle') {
   }
 }
 
+// the found profiles come below the guide: bring them into view, and the focus with them
+const heading = ref<HTMLElement | null>(null)
+// open on a computer, only the count on a phone
+const alreadyOpen = ref(true)
+onMounted(() => {
+  alreadyOpen.value = window.matchMedia('(min-width: 768px)').matches
+  heading.value?.scrollIntoView({ block: 'start' })
+  heading.value?.focus({ preventScroll: true })
+})
+
 // ---- confirm
 const sending = ref<'create' | 'later' | null>(null)
 const problem = ref<string | null>(null)
 const ids = (r: { accounts: ImportableAccount[] }) => r.accounts.map((a) => a.externalId)
 
 async function submit(mode: 'create' | 'later') {
-  if (rows.value.length === 0) return
+  // one import at a time: «Decido dopo» and «Crea» are both on screen on a phone
+  if (rows.value.length === 0 || sending.value !== null) return
   sending.value = mode
   problem.value = null
   const chosen = mode === 'create'
@@ -237,7 +264,12 @@ const columns = computed<DataColumn[]>(() => [
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="text-[0.8125rem] font-semibold">{{ $t('clients.match.step') }}</p>
-        <h2 id="match-title" class="font-display mt-1 text-2xl md:text-[1.75rem]">
+        <h2
+          id="match-title"
+          ref="heading"
+          tabindex="-1"
+          class="font-display mt-1 scroll-mt-6 text-2xl outline-none md:text-[1.75rem]"
+        >
           {{ $t('clients.match.title', { n: total }, total) }}
         </h2>
         <p class="mt-1 text-(--app-text-muted) max-md:hidden">{{ $t('clients.match.intro') }}</p>
@@ -249,6 +281,7 @@ const columns = computed<DataColumn[]>(() => [
         color="neutral"
         variant="link"
         :loading="sending === 'later'"
+        :disabled="sending !== null"
         @click="submit('later')"
       >
         {{ $t('clients.match.later') }}
@@ -280,6 +313,7 @@ const columns = computed<DataColumn[]>(() => [
         <span class="flex min-w-0 items-center gap-3" :class="row.on ? '' : 'opacity-70'">
           <RowAvatar :name="row.name" :src="avatarOf(row)" />
           <UInput
+            :id="`match-name-${row.key}`"
             v-model="row.name"
             class="w-56"
             :aria-label="$t('clients.match.nameOf', { name: handleOf(row.accounts[0]!) })"
@@ -359,7 +393,7 @@ const columns = computed<DataColumn[]>(() => [
       v-if="already.length > 0"
       class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
     >
-      <details class="group md:open" :open="true">
+      <details class="group" :open="alreadyOpen">
         <summary
           class="flex min-h-14 cursor-pointer items-center gap-3 bg-(--app-surface-sunken) px-4 text-sm font-semibold text-(--app-text-muted)"
         >
@@ -415,6 +449,7 @@ const columns = computed<DataColumn[]>(() => [
         color="neutral"
         variant="ghost"
         :loading="sending === 'later'"
+        :disabled="sending !== null"
         @click="submit('later')"
       >
         {{ $t('clients.match.later') }}
@@ -428,6 +463,7 @@ const columns = computed<DataColumn[]>(() => [
         <UButton
           class="min-h-11 justify-center max-md:min-h-12 max-md:text-[0.9375rem]"
           :loading="sending === 'create'"
+          :disabled="sending !== null"
           @click="submit('create')"
         >
           {{ createLabel }}
