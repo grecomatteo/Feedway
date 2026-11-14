@@ -38,7 +38,7 @@ Nessuna delle tre va presa intera.
 1. **Guscio di B (Hallmark):** barra laterale com'è oggi, fondo carta, logo vero (in arrivo con 0.9.1), selettore a scanalatura e ricerca sopra gli elenchi.
 2. **Grammatica di C (Web Designer):** una superficie per elenco, righe con filetti, nessuna scatola dentro scatola; stato come punto più parola, colore solo dove serve agire; una frase di riepilogo con link al posto dei conteggi.
 3. **Regola di riga di A (Impeccable):** ogni riga è alta 64 px su telefono e 56 su computer, iniziali o foto da 32 px, il nome è il collegamento principale, una sola azione visibile solo se serve davvero, il resto in «⋯».
-4. **Telefono:** Home, Calendario, + (Nuovo post), Clienti, Tu. Utenti, Account social, Impostazioni, Registro e Privacy vanno nel menu «Tu», che sostituisce la foto in alto. Finché Calendario e Nuovo post non esistono, le due voci si vedono disattivate con «Presto».
+4. **Telefono:** Home, Calendario, + (Nuovo post), Clienti, Tu. (Con la proposta P «Account social» non c'è più: vedi `2026-11-13-clienti-e-profili.md`.) Utenti, Account social, Impostazioni, Registro e Privacy vanno nel menu «Tu», che sostituisce la foto in alto. Finché Calendario e Nuovo post non esistono, le due voci si vedono disattivate con «Presto».
 5. **Caricamento:** scheletri con la forma esatta della riga di quella pagina (componenti `ListSkeleton` e `TableSkeleton`), mai una scritta.
 
 ## Come realizzarlo (proposta)

@@ -113,16 +113,16 @@ Dopo la prova della 0.9.0 (critica e confronto in `design/reviews/2026-11-13-*.m
 
 Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Account social».
 
-- **Clienti:** ogni riga ha foto o iniziali, nome, i profili (icona della piattaforma più nome, «@uno +1» oltre il primo) e lo stato del collegamento solo se c'è da agire. In cima, quando serve, l'avviso «N profili trovati non sono in un cliente · Sistemali», su `brand-soft` come le cose che «aspettano te».
+- **Clienti:** ogni riga ha foto o iniziali, nome, i profili (icona della piattaforma più nome, «@uno +1» oltre il primo) e lo stato del collegamento solo se c'è da agire; il pulsante «Ricollega» solo per chi gestisce i collegamenti. In cima, quando serve, l'avviso «N profili trovati non sono in un cliente · Sistemali», su `brand-soft` come le cose che «aspettano te».
 - **Nuovo cliente:** una finestra che elenca i profili non ancora in un cliente, uno per riga con icona della piattaforma e nome; il nome del cliente si propone dal profilo. In fondo «Senza profilo, per ora».
-- **Pagina del cliente:** testata con foto, nome, i nomi dei profili e «Nuovo post»; schede Panoramica, Calendario, Libreria, Persone, con «Presto» su quelle non ancora costruite. Nella Panoramica i profili come righe dell'elenco, con «⋯» (Ricollega, Sostituisci, Togli dal cliente), e chi ci lavora.
+- **Pagina del cliente:** testata con foto, nome, i nomi dei profili e «Nuovo post»; schede Panoramica, Calendario, Libreria, Persone, con «Presto» su quelle non ancora costruite. Nella Panoramica i profili come righe dell'elenco, con «⋯» (Ricollega, Sostituisci profilo, Togli dal cliente) solo per Owner e Admin, e chi ci lavora.
 - **Collegamenti:** in Impostazioni → Agenzia → Integrazioni, una voce per piattaforma (oggi Meta).
 - **Nomi neutri:** «Profili», «Collegamento». Nessun testo dice «Instagram e Facebook» o «Meta» dove potrebbero stare altre piattaforme.
 
 ### Navigazione su telefono
 
 - Barra in basso: Home, Calendario, + (Nuovo post, al centro), Clienti, Tu. Calendario e + si vedono disattivati con «Presto» finché non esistono; un Viewer non vede il +.
-- «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti, Impostazioni, Registro attività, Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
+- «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti (per chi li gestisce), Impostazioni, Registro attività (per chi lo vede), Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
 
 Le schermate di ogni pagina, chiare e scure, da computer e da telefono, vanno nella cartella del progetto prima della fusione. La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil.
 

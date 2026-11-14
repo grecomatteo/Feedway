@@ -63,7 +63,7 @@ Se al passo 5 un collegamento diventa «token scaduto: va ricollegato», il toke
 
 Verificato il 2026-11-12: Meta invalida **subito** il secret vecchio, e i token degli utenti di sistema restano validi. Basta salvare il secret nuovo in Feedway.
 
-Finché il secret nuovo non è salvato, il pannello lo segnala: appena «Prova» o un controllo dei collegamenti riceve il rifiuto di Meta, l'integrazione diventa «Non funziona» e in «Account social» compare il promemoria «Meta non accetta più l'App ID o l'App Secret dell'agenzia». Gli account restano com'erano, perché il token non è colpa loro. Tutto torna verde con un salvataggio o una «Prova» riusciti.
+Finché il secret nuovo non è salvato, il pannello lo segnala: appena «Prova» o un controllo dei collegamenti riceve il rifiuto di Meta, l'integrazione diventa «Non funziona» e in Impostazioni → Integrazioni → Meta compare il promemoria (fino al Task 6c della tappa 4 in «Account social») «Meta non accetta più l'App ID o l'App Secret dell'agenzia». Gli account restano com'erano, perché il token non è colpa loro. Tutto torna verde con un salvataggio o una «Prova» riusciti.
 
 Il registro attività segna «ha cambiato l'integrazione Meta», senza il secret.
 

@@ -51,3 +51,12 @@ Matteo proverà ad aggiungere social oltre a Instagram e Facebook. Per questo ne
 - in Impostazioni → Integrazioni c'è una voce per piattaforma.
 
 Oggi il sistema conosce solo Meta: aggiungere altre piattaforme è un lavoro a parte (connettore e ADR), che questa organizzazione non blocca.
+
+## Risposte di Matteo (14 novembre 2026)
+
+- Proposta P approvata, con lo stile «unione».
+- Il collegamento va in **Impostazioni → Integrazioni**, una voce per piattaforma.
+- I profili trovati non diventano mai clienti da soli: si propongono già spuntati e si confermano con un clic.
+- Nei testi nomi neutri: «stato del collegamento» al posto di «stato Meta», «N profili trovati» al posto di «trovati su Meta».
+
+La decisione è riportata nella specifica §14.7 e nei Task 5 e 6 del piano 04.
