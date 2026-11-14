@@ -25,6 +25,8 @@ export {
   clientProfiles,
   listAccounts,
   listProfiles,
+  MAX_PROFILE_CHANGE,
+  replaceClientAccounts,
   unassignAccount,
 } from './workspace-accounts.js'
 export type {

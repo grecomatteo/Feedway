@@ -84,6 +84,11 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     externalIds: [META_MOCK.pages.withInstagram],
     assignTo: [{ workspaceId: ids.workspace, externalIds: [META_MOCK.pages.withInstagram] }],
   }),
+  // the case's client and account: the client of the other agency is not found
+  'POST /api/v1/orgs/{org}/workspaces/{id}/accounts/replace': (ids) => ({
+    remove: [ids.account],
+    add: [],
+  }),
   // the case's client and account: either one of the other agency is not found
   'POST /api/v1/orgs/{org}/workspaces/import-undo': (ids) => ({
     workspaceIds: [ids.workspace],

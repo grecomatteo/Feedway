@@ -21,6 +21,7 @@ import {
   assertActiveOrganization,
   currentActor,
   lockVisibleWorkspace,
+  recordAssignment,
   workspaceNotFound,
 } from '../workspaces/index.js'
 
@@ -253,6 +254,58 @@ export async function unassignAccount(
     'account.unassigned',
     request,
   )
+}
+
+/** At most this many accounts on each side of one change: a few profiles' worth. */
+export const MAX_PROFILE_CHANGE = 20
+
+/**
+ * The profiles of a client from its page (spec §14.7, plan 04 Task 6a): «Togli dal cliente»
+ * (only `remove`), «Sostituisci profilo» (both) and «Aggiungi profilo» (only `add`), all in one
+ * transaction, so a client is never left half changed. Owner and Admin only; an archived client
+ * refuses; an account to add must be active. What is already as asked changes and records
+ * nothing. The accounts taken out stay imported (they go back to «Sistemali» if in no client).
+ */
+export async function replaceClientAccounts(
+  deps: { uow: UnitOfWork },
+  actor: OrgActor,
+  input: { workspaceId: string; remove: string[]; add: string[] },
+  request: { ip: string | null },
+): Promise<{ removed: number; added: number }> {
+  const { organizationId } = actor
+  if (!can(actor, 'workspace.accounts.assign', { organizationId })) throw cannotAssign()
+  const remove = [...new Set(input.remove)]
+  const add = [...new Set(input.add)]
+  if (remove.length === 0 && add.length === 0) throw invalid('add')
+  if (remove.length > MAX_PROFILE_CHANGE || !remove.every(isUuid)) throw invalid('remove')
+  if (add.length > MAX_PROFILE_CHANGE || !add.every(isUuid)) throw invalid('add')
+  if (add.some((id) => remove.includes(id))) throw invalid('add')
+  if (!isUuid(input.workspaceId)) throw workspaceNotFound()
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const fresh = await currentActor(tx, actor)
+    if (!can(fresh, 'workspace.accounts.assign', { organizationId })) throw cannotAssign()
+    await assertActiveOrganization(tx, organizationId)
+    const { workspace, actor: current } = await lockVisibleWorkspace(tx, fresh, input.workspaceId)
+    if (workspace.archivedAt !== null) throw archivedConflict()
+    for (const id of [...remove, ...add]) {
+      const account = await tx.accounts.findById(organizationId, id)
+      if (account === null) throw accountNotFound()
+      if (add.includes(id) && !account.active) throw inactiveConflict()
+    }
+    let removed = 0
+    for (const id of remove)
+      if (await tx.workspaceAccounts.unassign(organizationId, workspace.id, id)) {
+        await recordAssignment(tx, current, 'account.unassigned', workspace.id, id, request.ip)
+        removed += 1
+      }
+    let added = 0
+    for (const id of add)
+      if (await tx.workspaceAccounts.assign(organizationId, workspace.id, id)) {
+        await recordAssignment(tx, current, 'account.assigned', workspace.id, id, request.ip)
+        added += 1
+      }
+    return { removed, added }
+  })
 }
 
 /**

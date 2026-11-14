@@ -11,6 +11,9 @@ export interface ProfileAccount {
   active: boolean
   health: 'ok' | 'warning' | 'error' | null
   healthMessage: string | null
+  /** What the platform lets it publish in a day; null: not read yet. */
+  quota?: { used: number; total: number; checkedAt: string } | null
+  lastSyncedAt?: string | null
 }
 export interface WorkspaceProfile {
   key: string
@@ -58,7 +61,7 @@ export function useActiveContext() {
     (data.value?.items ?? []).filter((w) => w.archivedAt === null),
   )
   const askedWorkspace = computed(() => {
-    const asked = route.query['spazio']
+    const asked = clientSlugOf(route) ?? route.query['spazio']
     return typeof asked === 'string' ? (visible.value.find((w) => w.slug === asked) ?? null) : null
   })
   const askedProfile = computed(() => {
@@ -95,13 +98,28 @@ export function useActiveContext() {
   return { visible, workspace, profile, profiles, profileMissing }
 }
 
-const contextOf = (query: ReturnType<typeof useRoute>['query']) => {
+type Route = ReturnType<typeof useRoute>
+
+/**
+ * The client of the client's page (`/<agenzia>/spazi/<slug>/…`, plan 04 Task 6a): there the
+ * address names the client, and it is the context (D-5) whatever `?spazio=` says.
+ */
+export const clientSlugOf = (route: Pick<Route, 'params'>) => {
+  const slug = route.params['slug']
+  return typeof slug === 'string' && slug !== '' ? slug : null
+}
+
+const contextOf = (route: Pick<Route, 'params' | 'query'>) => {
   const context: Record<string, string> = {}
   for (const key of ['spazio', 'profilo'] as const) {
-    const value = query[key]
+    const value = route.query[key]
     if (typeof value === 'string' && value !== '') context[key] = value
   }
-  return context
+  const client = clientSlugOf(route)
+  if (client === null) return context
+  // the client of the address, `spazio` first as the selector writes it
+  const { profilo } = context
+  return profilo === undefined ? { spazio: client } : { spazio: client, profilo }
 }
 
 /**
@@ -114,7 +132,7 @@ export function useContextQuery() {
   const org = useOrganization()
   const last = useLastContext()
   return computed(() => {
-    if (route.params['org']) return contextOf(route.query)
+    if (route.params['org']) return contextOf(route)
     return last.value.slug === org.slug.value ? last.value.context : {}
   })
 }
@@ -131,11 +149,11 @@ export function useRememberAgency() {
   const agency = useState<string>('agency-slug', () => '')
   const last = useLastContext()
   watch(
-    () => [route.params['org'], route.query] as const,
-    ([slug, query]) => {
+    () => [route.params['org'], route.params['slug'], route.query] as const,
+    ([slug]) => {
       if (!slug) return
       agency.value = String(slug)
-      last.value = { slug: String(slug), context: contextOf(query) }
+      last.value = { slug: String(slug), context: contextOf(route) }
     },
     { immediate: true },
   )

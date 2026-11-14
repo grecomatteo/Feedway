@@ -96,7 +96,7 @@ const columns = computed<DataColumn[]>(() => [
     class: 'w-px px-2 whitespace-nowrap',
   },
 ])
-const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}/account`)
+const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)
 /** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
 const canReconnect = (w: WorkspaceView) =>
   org.may.value.manageAccounts && w.archivedAt === null && linkOf(w) === 'reconnect'

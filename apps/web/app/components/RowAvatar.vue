@@ -4,7 +4,12 @@
  * round (the agency's logo is `AgencyLogo`). Initials when there is no picture yet or it does not
  * load.
  */
-const props = withDefaults(defineProps<{ name: string; src?: string | null }>(), { src: null })
+const props = withDefaults(
+  defineProps<{ name: string; src?: string | null; size?: 'row' | 'page' }>(),
+  { src: null, size: 'row' },
+)
+/** `page`: 56 px, at the top of the client's page, from the 256 px copy. */
+const big = computed(() => props.size === 'page')
 const initials = computed(() =>
   props.name
     .split(/\s+/)
@@ -13,8 +18,10 @@ const initials = computed(() =>
     .map((w) => Array.from(w)[0]?.toUpperCase() ?? '')
     .join(''),
 )
-/** Shown at 32 px: the 64 px copy is enough, also on a dense screen. */
-const small = computed(() => props.src?.replace('/avatar/256?', '/avatar/64?') ?? null)
+/** At 32 px the 64 px copy is enough, also on a dense screen. */
+const small = computed(() =>
+  big.value ? props.src : (props.src?.replace('/avatar/256?', '/avatar/64?') ?? null),
+)
 const failed = ref(false)
 watch(
   () => props.src,
@@ -29,16 +36,18 @@ watch(
     v-if="small && !failed"
     :src="small ?? undefined"
     alt=""
-    class="size-8 shrink-0 rounded-full bg-(--app-surface-sunken) object-cover"
-    width="32"
-    height="32"
+    class="shrink-0 rounded-full bg-(--app-surface-sunken) object-cover"
+    :class="big ? 'size-14' : 'size-8'"
+    :width="big ? 56 : 32"
+    :height="big ? 56 : 32"
     aria-hidden="true"
     referrerpolicy="no-referrer"
     @error="failed = true"
   />
   <span
     v-else
-    class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-(--app-brand-soft) text-xs font-semibold text-(--app-text)"
+    class="inline-flex shrink-0 items-center justify-center rounded-full bg-(--app-brand-soft) font-semibold text-(--app-text)"
+    :class="big ? 'size-14 text-lg' : 'size-8 text-xs'"
     aria-hidden="true"
   >
     {{ initials }}

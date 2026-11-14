@@ -128,7 +128,7 @@ test('a profile to reconnect: the summary links to the client, «Ricollega» for
   await expect(summary).toHaveText('3 clienti. Bottega ha un profilo da ricollegare.')
   await expect(summary.getByRole('link', { name: 'Bottega' })).toHaveAttribute(
     'href',
-    /\/spazi\/bottega[^/]*\/account$/,
+    /\/spazi\/bottega[^/]*$/,
   )
   await expect(rowOf(page, 'Forno Luce').getByText('Da ricollegare')).toBeVisible()
   await expect(rowOf(page, 'Studio Riva').locator('[data-tone]')).toHaveCount(0)

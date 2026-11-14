@@ -1300,5 +1300,53 @@
       "name": "Nome del nuovo cliente"
     },
     "created": "{name} creato."
+  },
+  "client": {
+    "title": "Cliente",
+    "backToClients": "Torna ai clienti",
+    "archived": "Archiviato",
+    "newPost": "Nuovo post",
+    "soon": "Presto",
+    "tabs": {
+      "label": "Sezioni del cliente",
+      "overview": "Panoramica",
+      "calendar": "Calendario",
+      "library": "Libreria",
+      "people": "Persone"
+    },
+    "profiles": "Profili",
+    "loading": "Carico i profili del cliente",
+    "column": {
+      "profile": "Profilo",
+      "state": "Collegamento",
+      "quota": "Pubblicati in 24 ore",
+      "synced": "Ultima sincronizzazione"
+    },
+    "linked": "Collegato",
+    "quota": "{used} su {total}",
+    "neverSynced": "Mai sincronizzato",
+    "noProfiles": "Questo cliente non ha ancora profili",
+    "noProfilesAdd": "Aggiungi uno dei profili trovati che non sono ancora in un cliente.",
+    "noProfilesNone": "Collega un nuovo profilo da Impostazioni → Integrazioni, poi aggiungilo qui.",
+    "add": "Aggiungi profilo",
+    "addTitle": "Aggiungi un profilo a {client}",
+    "addHelp": "Scegli tra i profili trovati che non sono in nessun cliente.",
+    "added": "{name} ora è in {client}.",
+    "replace": "Sostituisci profilo",
+    "replaceTitle": "Sostituisci {name} con…",
+    "replaceHelp": "Scegli tra i profili trovati che non sono in nessun cliente. Quello di prima resta in Feedway.",
+    "replaced": "{name} ha preso il posto di {old}.",
+    "remove": "Togli dal cliente",
+    "removeTitle": "Togliere {name} da {client}?",
+    "removeText": "Il profilo resta in Feedway: se non è in un altro cliente lo ritrovi in «Sistemali», nella pagina Clienti.",
+    "removed": "{name} non è più in {client}.",
+    "pickNone": "Non ci sono profili senza cliente.",
+    "pickNoneLink": "Collegane uno da Integrazioni",
+    "people": "Chi ci lavora",
+    "loadingPeople": "Carico le persone del cliente",
+    "noPeople": "Per ora ci lavorano solo Owner e Admin dell'agenzia, che vedono ogni cliente.",
+    "managePeople": "Gestisci le persone",
+    "syncedShort": "sincronizzato {when}",
+    "pickLegend": "Profili senza cliente"
   }
 }
