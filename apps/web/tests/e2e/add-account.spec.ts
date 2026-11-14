@@ -37,26 +37,28 @@ test('add account: the system user token, then the accounts to import', async ({
   await dialog.getByLabel("Token dell'utente di sistema").fill(META_MOCK.tokens.systemUser)
   await dialog.getByRole('button', { name: 'Verifica e salva' }).click()
 
-  const found = page.getByRole('group', { name: 'Account trovati' })
-  await expect(found.getByRole('checkbox')).not.toHaveCount(0)
+  // what the system user sees is proposed as clients, one per profile (spec §14.7)
+  const proposals = page
+    .getByRole('table', { name: 'Clienti da creare' })
+    .or(page.getByRole('list', { name: 'Clienti da creare' }))
+  await expect(page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })).toBeVisible()
 
   // back from Meta with nothing imported yet: the system user is still known
   await page.reload()
   await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
   await expect(page.getByRole('button', { name: "Collega l'utente di sistema" })).toHaveCount(0)
   await page.getByRole('button', { name: 'Cerca nuovi account' }).click()
-  await expect(found.getByRole('checkbox')).not.toHaveCount(0)
-  await found.getByRole('checkbox', { name: /Studio Rossi/ }).check()
-  await found.getByRole('checkbox', { name: /Bottega Verde/ }).check()
+  for (const name of ['Studio Rossi', 'Bottega Verde'])
+    await expect(
+      proposals.getByLabel(`Crea il cliente ${name}`).filter({ visible: true }),
+    ).toBeChecked()
+  await page.mouse.move(0, 0)
   expect((await axe(page)).violations).toEqual([])
-  await page.getByRole('button', { name: 'Importa 2 account' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Importati 2 account' })).toBeVisible()
+  await page.getByRole('button', { name: /^Crea \d+ clienti$/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
 
-  // a second search sees them as already there
-  await page.getByRole('button', { name: 'Cerca nuovi account' }).click()
-  await expect(found.getByText('Già importato')).toHaveCount(2)
-
-  await page.getByRole('link', { name: 'Torna agli account social' }).click()
+  // the accounts are in, each in its client
+  await page.goto(`/${org}/account`)
   const list = page.getByRole('list', { name: 'Account social' })
   await expect(list).toContainText('Studio Rossi')
   await expect(list).toContainText('Bottega Verde')
