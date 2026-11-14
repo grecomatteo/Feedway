@@ -226,6 +226,23 @@ export const unassignAccountRoute = defineContract({
   scope: 'organization',
 })
 
+export const replaceClientAccountsRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/accounts/replace',
+  summary:
+    'Pagina del cliente: toglie e aggiunge account in un colpo solo («Togli dal cliente», «Sostituisci profilo»; Owner e Admin)',
+  request: {
+    params: z.strictObject({ org: OrgSlug, id: Id }),
+    body: z.strictObject({
+      remove: z.array(Id).max(20),
+      add: z.array(Id).max(20),
+    }),
+  },
+  response: z.object({ removed: z.number().int(), added: z.number().int() }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const workspaceProfilesRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/workspaces/{id}/profiles',
@@ -336,6 +353,7 @@ export const accountRoutes = [
   metaRemindersRoute,
   assignAccountRoute,
   unassignAccountRoute,
+  replaceClientAccountsRoute,
   workspaceProfilesRoute,
   accountAvatarRoute,
   profilesWithoutClientRoute,

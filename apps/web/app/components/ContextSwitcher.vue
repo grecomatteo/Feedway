@@ -6,10 +6,12 @@ const ready = useHydrated()
  * kept in the address (`?spazio=`, `&profilo=`). What is unknown or not visible falls back to
  * "Tutti i clienti" (useActiveContext). A clean row like the agency's and the person's: the
  * client's photo (its Instagram's, else its Page's, as Feedway keeps it) or its initials, no
- * arrows.
+ * arrows. Choosing a client, or one of its profiles, opens the client's page (D-5); its profiles
+ * are listed only under the client chosen (D-6).
  */
 const route = useRoute()
 const router = useRouter()
+const org = useOrganization()
 const { t } = useI18n()
 const { visible, workspace, profile, profiles } = useActiveContext()
 
@@ -24,11 +26,21 @@ const photo = computed(() => {
   return workspace.value?.photoUrl ?? null
 })
 const pick = (slug: string | null, profileId: string | null = null) => {
+  if (slug !== null) {
+    void navigateTo({
+      path: org.to(`/spazi/${encodeURIComponent(slug)}`),
+      query: profileId === null ? {} : { profilo: profileId },
+    })
+    return
+  }
+  // «Tutti i clienti»: from a client's page back to the clients, elsewhere the same page
+  if (clientSlugOf(route) !== null) {
+    void navigateTo(org.to('/spazi'))
+    return
+  }
   const query = { ...route.query }
   delete query['profilo']
-  if (slug === null) delete query['spazio']
-  else query['spazio'] = slug
-  if (profileId !== null) query['profilo'] = profileId
+  delete query['spazio']
   void router.replace({ query })
 }
 const items = computed(() => [
