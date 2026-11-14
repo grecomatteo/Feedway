@@ -315,6 +315,14 @@ describe('test routes', () => {
     try {
       const page = await fetch(plain.url('/__test/fail'), { headers: { accept: 'text/html' } })
       expect(page.status).toBe(404)
+      // the components' trial page answers only in the tests, signed in or not
+      for (const path of ['/__test/componenti', '/__TEST/componenti', '/%5F%5Ftest/componenti']) {
+        const trial = await fetch(plain.url(path), {
+          headers: { accept: 'text/html' },
+          redirect: 'manual',
+        })
+        expect(trial.status, path).toBe(404)
+      }
       const api = await fetch(plain.url('/api/__test/orgs/qualsiasi/actor'))
       expect(api.status).toBe(404)
     } finally {

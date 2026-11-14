@@ -15,6 +15,9 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `surface-sunken` | `#F3F1EC` | `#1F1E1C` | Selettori, righe secondarie |
 | `nav-bg` | `#F3F1EC` | `#141312` | Barra laterale |
 | `nav-hover` | `#E9E6DF` | `#22211F` | Riga della barra al passaggio del mouse o con il menu aperto |
+| `paper` | `#F6F3EE` carta Hallmark | `#191817` | Fondo delle pagine in stile unione |
+| `card` | `#FFFDF9` cartoncino | `#242321` | Superficie di un elenco o di una tabella (stile unione) |
+| `groove` | `#EFEBE4` scanalatura | `#1F1E1C` | Fondo del filtro a scanalatura, blocchi degli scheletri |
 | `text` | `#242321` | `#F4F2EE` | Testo |
 | `text-muted` | `#5F5B55` | `#B9B4AC` | Metadati |
 | `border` / `border-strong` | `#E3DFD7` / `#CFCAC0` | `#3A3835` / `#55524D` | Bordi |
@@ -97,14 +100,16 @@ Dopo la prova della 0.9.0 (critica e confronto in `design/reviews/2026-11-13-*.m
 
 ### Elenchi e tabelle
 
+I valori di carta, cartoncino e scanalatura vengono dal riferimento visivo approvato (`clienti-profili.html`); nel tema scuro restano i fondi di oggi. I componenti sono in `apps/web/app/components/` (tappa 4, Task 5a) e si provano sulla pagina `/__test/componenti`, che esiste solo nei test.
+
 | Elemento | Regola |
 |---|---|
 | Testata (`PageHeader`) | Titolo, sotto la frase di riepilogo (per esempio «5 clienti. Pizzeria Da Gino ha un profilo da ricollegare.», con il nome che porta al problema), a destra l'azione principale. Niente numeri grandi o riquadri di conteggio |
 | Strumenti | Sopra l'elenco, su una riga: filtro a scanalatura (`SegmentedFilter`, per esempio «Attivi 5 · Archiviati 1») e ricerca (`SearchField`). Su telefono la ricerca va sotto il filtro, a tutta larghezza |
-| Superficie | Un solo cartoncino (`surface`, bordo `border`, raggio 12) per elenco. Righe separate da un filetto `border`; intestazione delle colonne in `text-muted` 13 px con una linea `border-strong` sotto |
+| Superficie | Un solo cartoncino (`card`, bordo `border`, raggio 12) per elenco. Righe separate da un filetto `border`; intestazione delle colonne in `text-muted` 13 px con una linea `border-strong` sotto |
 | Riga (`DataRow`) | 56 px su computer, 64 su telefono, tutte alte uguali. A sinistra foto o iniziali da 32 px (`RowAvatar`), poi il nome in 15 px, che è il collegamento; i dettagli in `text-muted`. Area di tocco di almeno 44 px |
 | Colonne (`DataTable`) | Solo dati che cambiano da riga a riga: una colonna uguale per tutti si toglie. Sotto i 768 px la tabella diventa righe a due livelli: nome sopra, dettagli sotto, stato solo se c'è da agire |
-| Stato (`StatusDot`) | Pallino da 8 px più una parola. Neutro (`text-muted`) quando va tutto bene, e spesso non si scrive nemmeno; colore di stato (tabella dei token) solo dove serve agire, sempre con la parola |
+| Stato (`StatusDot`) | Pallino da 8 px più una parola (con un alone tenue quando c'è da agire). Neutro (`text-muted`) quando va tutto bene, e spesso non si scrive nemmeno; colore di stato (tabella dei token) solo dove serve agire, sempre con la parola. Verde e blu, per un esito o un programmato da mostrare, colorano solo il pallino: la parola resta del colore del testo |
 | Azioni (`RowActions`) | «⋯» in fondo alla riga, raggiungibile da tastiera, con etichetta «Azioni per <nome>». Un pulsante visibile solo per l'azione che risolve un problema (per esempio «Ricollega») |
 | Caricamento | Scheletri con la forma esatta della riga di quella pagina (`ListSkeleton`, `TableSkeleton`), mai una scritta |
 | Vuoto ed errore | Vuoto: una frase e il primo passo. Errore: cosa è successo, cosa fare e «Riprova», dentro la stessa superficie |
