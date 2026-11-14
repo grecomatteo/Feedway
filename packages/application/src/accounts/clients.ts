@@ -1,6 +1,7 @@
 import { can, DomainError, profilesWithoutClient, proposedName, type OrgActor } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Clock } from '../ports/clock.js'
+import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import {
   assertActiveOrganization,
@@ -67,11 +68,43 @@ export async function listProfilesWithoutClient(
   })
 }
 
+/** «Annulla» works for this long after the import, and only for the person who made it. */
+export const UNDO_WINDOW_MS = 15 * 60 * 1000
+
+const undoExpired = () =>
+  new DomainError(
+    'CONFLICT',
+    'Non si può più annullare questa importazione: sistema i clienti dalla pagina Clienti',
+  )
+
 /**
- * «Annulla» after «Crea N clienti»: the clients that import created are archived with their
- * accounts taken out, and its assignments to existing clients are undone. A client with people
- * working in it already refuses, and nothing changes. The accounts stay imported and go back to
- * «Sistemali». What is already undone is skipped, so a repeat changes nothing.
+ * Whether the newest `action` on this entity of the workspace, since `since`, is the actor's: what
+ * «Annulla» takes back must be what the same person did moments ago, as the activity log says,
+ * not whatever the browser names.
+ */
+async function lastDoneBy(
+  tx: Tx,
+  q: { organizationId: string; workspaceId: string; entityId: string; actorId: string },
+  action: 'workspace.created' | 'account.assigned',
+  since: Date,
+): Promise<boolean> {
+  const entries = await tx.audit.listForOrganization({
+    organizationId: q.organizationId,
+    workspaceId: q.workspaceId,
+    action,
+    from: since,
+    limit: MAX_UNDO,
+  })
+  const newest = entries.find((e) => e.entityId === q.entityId)
+  return newest?.actorId === q.actorId
+}
+
+/**
+ * «Annulla» after «Crea N clienti» (spec §14.7): the assignments that import made are undone and
+ * the clients it created are archived. Only for the person who imported, within
+ * `UNDO_WINDOW_MS`, and only what the activity log shows as theirs: an account someone else put
+ * into one of those clients meanwhile stays, and a client with people working in it refuses.
+ * The accounts stay imported and go back to «Sistemali». A repeat changes nothing.
  */
 export async function undoClientImport(
   deps: { uow: UnitOfWork; clock: Clock },
@@ -88,6 +121,7 @@ export async function undoClientImport(
     (workspaceIds.length === 0 || managesWorkspaces(a))
   if (!can(actor, 'workspace.accounts.assign', { organizationId })) throw cannotAssign()
   if (!mayUndo(actor)) throw cannotManage()
+  const since = new Date(deps.clock.now().getTime() - UNDO_WINDOW_MS)
   await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const fresh = await currentActor(tx, actor)
     if (!mayUndo(fresh)) throw cannotAssign()
@@ -103,8 +137,20 @@ export async function undoClientImport(
     for (const { accountId } of input.assignments)
       if (!isUuid(accountId) || (await tx.accounts.findById(organizationId, accountId)) === null)
         throw new DomainError('NOT_FOUND', 'Account non trovato')
+    const mine = (
+      workspaceId: string,
+      entityId: string,
+      action: Parameters<typeof lastDoneBy>[2],
+    ) =>
+      lastDoneBy(
+        tx,
+        { organizationId, workspaceId, entityId, actorId: fresh.userId },
+        action,
+        since,
+      )
     for (const id of workspaceIds) {
       if (locked.get(id)?.archived) continue
+      if (!(await mine(id, id, 'workspace.created'))) throw undoExpired()
       if ((await tx.workspaceMembers.listForWorkspace(organizationId, id)).length > 0)
         throw new DomainError(
           'CONFLICT',
@@ -113,14 +159,12 @@ export async function undoClientImport(
     }
     for (const { workspaceId, accountId } of input.assignments) {
       if (locked.get(workspaceId)?.archived) continue
+      if (!(await mine(workspaceId, accountId, 'account.assigned'))) throw undoExpired()
       if (await tx.workspaceAccounts.unassign(organizationId, workspaceId, accountId))
         await recordAssignment(tx, fresh, 'account.unassigned', workspaceId, accountId, request.ip)
     }
     for (const id of workspaceIds) {
       if (locked.get(id)?.archived) continue
-      for (const accountId of await tx.workspaceAccounts.listForWorkspace(organizationId, id))
-        if (await tx.workspaceAccounts.unassign(organizationId, id, accountId))
-          await recordAssignment(tx, fresh, 'account.unassigned', id, accountId, request.ip)
       if (await tx.workspaces.archive(organizationId, id, deps.clock.now()))
         await recordWorkspace(tx, fresh, 'workspace.archived', id, request.ip)
     }

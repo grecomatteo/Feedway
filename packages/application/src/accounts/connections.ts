@@ -432,7 +432,7 @@ export interface ImportInput {
   assignTo?: readonly { workspaceId: string; externalIds: readonly string[] }[]
 }
 
-/** What «Annulla» takes back: the clients this import created and its other assignments. */
+/** What «Annulla» takes back: the clients this import created and every assignment it made. */
 export interface ClientImportUndo {
   workspaceIds: string[]
   assignments: { workspaceId: string; accountId: string }[]
@@ -651,6 +651,7 @@ export async function importAccounts(
       for (const accountId of idsOf(client.externalIds)) {
         await tx.workspaceAccounts.assign(organizationId, workspace.id, accountId)
         await recordAssignment(tx, current, 'account.assigned', workspace.id, accountId, request.ip)
+        undo.assignments.push({ workspaceId: workspace.id, accountId })
       }
     }
     return { connection: viewOf({ ...connection, status }), accounts: imported, created, undo }

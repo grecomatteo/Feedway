@@ -2,12 +2,14 @@ import { randomBytes } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import {
+  assignAccount,
   connectWithToken,
   createWorkspace,
   importAccounts,
   listImportable,
   listProfilesWithoutClient,
   undoClientImport,
+  UNDO_WINDOW_MS,
   type AuthSessionInfo,
   type ConnectionsDeps,
 } from '@app/application'
@@ -479,4 +481,63 @@ test('a Member neither sees «Sistemali» nor creates a client from a profile', 
   await expect(
     undoClientImport(deps, member, { workspaceIds: [], assignments: [] }, REQ),
   ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+})
+
+test('«Annulla» leaves what someone else did meanwhile, and only its author may use it', async () => {
+  const connectionId = await connect()
+  const { organizationId } = owner
+  const result = await importAccounts(
+    deps,
+    owner,
+    {
+      connectionId,
+      externalIds: [pages.withoutInstagram, instagram.agencyOnly],
+      newWorkspaces: [{ name: 'Studio', externalIds: [pages.withoutInstagram] }],
+    },
+    REQ,
+  )
+  const studio = result.undo.workspaceIds[0] ?? ''
+  // an Admin puts the agency's Instagram into the new client meanwhile
+  const adminId = await seed(tdb.runtimeUrl, async (s) => {
+    const user = await s.user()
+    await s.member(organizationId, user, 'admin')
+    return user
+  })
+  const admin2: OrgActor = { ...owner, userId: adminId, orgRole: 'admin' }
+  const agencyIg = result.accounts.find((a) => a.externalId === instagram.agencyOnly)?.id ?? ''
+  await createWorkspace(deps, admin2, { name: 'Altro' }, REQ)
+  await assignAccount(deps, admin2, { workspaceId: studio, accountId: agencyIg }, REQ)
+
+  // the Admin cannot undo the Owner's import, nor pass the Admin's own assignment as the import's
+  await expect(undoClientImport(deps, admin2, result.undo, REQ)).rejects.toMatchObject({
+    code: 'CONFLICT',
+  })
+  await expect(
+    undoClientImport(
+      deps,
+      owner,
+      { workspaceIds: [], assignments: [{ workspaceId: studio, accountId: agencyIg }] },
+      REQ,
+    ),
+  ).rejects.toMatchObject({ code: 'CONFLICT' })
+
+  await undoClientImport(deps, owner, result.undo, REQ)
+  expect(await assignmentsOf(organizationId)).toEqual([
+    { workspace_id: studio, external_id: instagram.agencyOnly },
+  ])
+  expect((await workspacesOf(organizationId)).find((w) => w.id === studio)?.archived).toBe(true)
+})
+
+test('«Annulla» refuses a client the import did not create, or created long ago', async () => {
+  const { organizationId } = owner
+  const old = await seed(tdb.runtimeUrl, (s) => s.workspace(organizationId, { name: 'Vecchio' }))
+  await expect(
+    undoClientImport(deps, owner, { workspaceIds: [old], assignments: [] }, REQ),
+  ).rejects.toMatchObject({ code: 'CONFLICT' })
+  const created = await createWorkspace(deps, owner, { name: 'Appena creato' }, REQ)
+  const later = { ...deps, clock: { now: () => new Date(Date.now() + UNDO_WINDOW_MS + 60_000) } }
+  await expect(
+    undoClientImport(later, owner, { workspaceIds: [created.id], assignments: [] }, REQ),
+  ).rejects.toMatchObject({ code: 'CONFLICT' })
+  expect((await workspacesOf(organizationId)).every((w) => !w.archived)).toBe(true)
 })

@@ -54,5 +54,5 @@ export {
 } from './avatar.js'
 export type { AccountAvatarDeps, AccountAvatarJob, AccountAvatarOutcome } from './avatar.js'
 export type { MetaRemindersDeps } from './reminders.js'
-export { listProfilesWithoutClient, undoClientImport } from './clients.js'
+export { UNDO_WINDOW_MS, listProfilesWithoutClient, undoClientImport } from './clients.js'
 export type { ProfileWithoutClient } from './clients.js'

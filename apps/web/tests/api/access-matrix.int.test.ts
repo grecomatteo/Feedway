@@ -276,14 +276,9 @@ const PREPARE: Record<
     await accountPicture(ids.account, ids.workspace)
     return {}
   },
-  // the case's client has people in it, which «Annulla» refuses: only its assignment here
-  'POST /api/v1/orgs/{org}/workspaces/import-undo': (ids) =>
-    Promise.resolve({
-      body: {
-        workspaceIds: [],
-        assignments: [{ workspaceId: ids.workspace, accountId: ids.account }],
-      },
-    }),
+  // «Annulla» takes back only the caller's own recent import: an empty one measures the permission
+  'POST /api/v1/orgs/{org}/workspaces/import-undo': () =>
+    Promise.resolve({ body: { workspaceIds: [], assignments: [] } }),
   'GET /api/v1/orgs/{org}/logo/{size}': async (ids) => {
     const confirmed = await fx.env.call(
       'POST',
