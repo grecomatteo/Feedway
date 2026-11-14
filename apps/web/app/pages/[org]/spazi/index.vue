@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ClientProfile } from '@app/contracts'
+import { PROFILE_LINKS, worstLink } from '@app/domain'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { DataColumn } from '~/components/DataTable.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
@@ -24,9 +25,7 @@ const archived = computed(() => all.value.filter((w) => w.archivedAt !== null))
 const canManageMembers = (w: WorkspaceView) => org.may.value.manageUsers || w.myRole === 'manager'
 
 // ---- the state of a client: the worst link among its profiles
-const ORDER: Link[] = ['reconnect', 'error', 'warning', 'ok']
-const linkOf = (w: WorkspaceView): Link =>
-  ORDER.find((l) => (w.profiles ?? []).some((p) => p.link === l)) ?? 'ok'
+const linkOf = (w: WorkspaceView): Link => worstLink((w.profiles ?? []).map((p) => p.link))
 const TONE: Record<Exclude<Link, 'ok'>, StatusTone> = {
   reconnect: 'warning',
   error: 'danger',
@@ -38,7 +37,7 @@ const stateOf = (w: WorkspaceView) => {
 }
 /** The first client that needs someone, for the sentence at the top. */
 const firstProblem = computed(() => {
-  for (const link of ORDER.slice(0, 3)) {
+  for (const link of PROFILE_LINKS.filter((l) => l !== 'ok')) {
     const w = active.value.find((c) => linkOf(c) === link)
     if (w) return { workspace: w, link }
   }
@@ -120,6 +119,7 @@ async function create() {
     await call('POST', org.api('/workspaces'), { name: name.value })
     adding.value = false
     filter.value = 'active'
+    query.value = ''
     await refresh()
   } catch (e) {
     createProblem.value = failure(e).message
@@ -189,6 +189,14 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       },
     ],
   ]
+  // on a phone the row has no room for the button: «Ricollega» comes first in «⋯»
+  if (canReconnect(w))
+    groups[0]?.unshift({
+      label: t('workspaces.reconnect'),
+      icon: 'i-lucide-link',
+      class: 'md:hidden',
+      onSelect: () => void navigateTo(integrations.value),
+    })
   if (canManageMembers(w))
     groups[0]?.push({
       label: t('workspaces.members'),
@@ -359,7 +367,10 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       <template #mobile="{ row }">
         <DataRow :name="row.name" :to="pageOf(row)" :src="row.photoUrl" :detail="profilesText(row)">
           <template v-if="stateOf(row)" #detail>
-            <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+            <span class="flex min-w-0 items-center gap-2">
+              <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+              <span class="truncate">{{ profilesText(row) }}</span>
+            </span>
           </template>
           <template #actions>
             <RowActions :name="row.name" :items="actions(row)" />

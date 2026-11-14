@@ -90,7 +90,13 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(clients(page).getByRole('link')).toHaveText(['Bottega'])
   await search.fill('nessuno')
   await expect(page.getByText('Nessun cliente trovato per «nessuno».')).toBeVisible()
-  await search.press('Escape')
+  // a client created during a search shows: the search empties
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
+  await dialog.getByLabel('Nome del nuovo cliente').fill('Ottica Bellavista')
+  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await expect(rowOf(page, 'Ottica Bellavista')).toBeVisible()
+  await expect(search).toHaveValue('')
 
   // «⋯» → Archivia: the client moves to «Archiviati»
   await rowOf(page, 'Studio Riva').getByRole('button', { name: 'Azioni per Studio Riva' }).click()
@@ -100,7 +106,7 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(
     page.getByRole('status').filter({ hasText: 'Studio Riva archiviato.' }),
   ).toBeVisible()
-  await expect(page.getByRole('main').locator('header p').first()).toHaveText('2 clienti.')
+  await expect(page.getByRole('main').locator('header p').first()).toHaveText('3 clienti.')
   const filter = page.getByRole('group', { name: 'Mostra' })
   await filter.getByRole('button', { name: 'Archiviati 1' }).click()
   await expect(clients(page).getByRole('link')).toHaveText(['Studio Riva'])
@@ -126,12 +132,24 @@ test('a profile to reconnect: the summary links to the client, «Ricollega» for
   )
   await expect(rowOf(page, 'Forno Luce').getByText('Da ricollegare')).toBeVisible()
   await expect(rowOf(page, 'Studio Riva').locator('[data-tone]')).toHaveCount(0)
-  if (!isPhone(page))
+  await fitsTheScreen(page)
+  expect((await axe(page)).violations).toEqual([])
+  // the state does not hide the profiles
+  await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
+  if (isPhone(page)) {
+    // no room for the button: «Ricollega» comes first in «⋯»
+    await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
+    await expect(page.getByRole('menuitem').first()).toHaveText('Ricollega')
+    await page.getByRole('menuitem', { name: 'Ricollega' }).click()
+    await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni$`))
+  } else {
     await expect(
       rowOf(page, 'Forno Luce').getByRole('link', { name: 'Ricollega i profili di Forno Luce' }),
     ).toHaveAttribute('href', `/${org}/impostazioni/integrazioni`)
-  await fitsTheScreen(page)
-  expect((await axe(page)).violations).toEqual([])
+    // the button is enough: the menu does not repeat it
+    await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Ricollega' })).toBeHidden()
+  }
 })
 
 test('a Member sees only their client and its state, without «Ricollega» or changes', async ({
