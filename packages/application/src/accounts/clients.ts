@@ -53,7 +53,9 @@ export async function listProfilesWithoutClient(
         )
       ).map((a) => a.accountId),
     )
-    return profilesWithoutClient(accounts, assigned).map((p) => ({
+    // an inactive account cannot go into a client: it waits for a sync that brings it back
+    const usable = accounts.filter((a) => a.active)
+    return profilesWithoutClient(usable, assigned).map((p) => ({
       key: p.key,
       name: proposedName(p.accounts),
       accounts: p.accounts.map((a) => ({

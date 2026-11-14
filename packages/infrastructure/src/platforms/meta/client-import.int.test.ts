@@ -585,6 +585,10 @@ test('«Sostituisci profilo» swaps the accounts in one go, or changes nothing',
   const studio = id(pages.withoutInstagram)
   // an inactive account to add: nothing moves, the old profile stays
   await admin.query('update social_accounts set active = false where id = $1', [studio])
+  // «Sistemali» and the page's picker do not offer it
+  expect(
+    (await listProfilesWithoutClient(deps, owner)).flatMap((p) => p.accounts.map((a) => a.id)),
+  ).not.toContain(studio)
   await expect(
     replaceClientAccounts(
       deps,
