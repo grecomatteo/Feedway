@@ -10,7 +10,8 @@ export default defineEventHandler((event) => {
     path = decodeURIComponent(raw).toLowerCase()
   } catch {
     // a path that does not decode reaches no page: no need to tell which
-    return assertTestRoutes()
+    assertTestRoutes()
+    return
   }
   if (path === '/__test' || path.startsWith('/__test/')) assertTestRoutes()
 })
