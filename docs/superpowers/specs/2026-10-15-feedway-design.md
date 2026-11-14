@@ -105,8 +105,8 @@ Esclusi: commenti liberi dei clienti fuori dall'approvazione, modifica della cap
 |---|---|
 | **Organizzazione** (nel pannello: **Agenzia**) | Il livello più alto: un'agenzia con i propri utenti, clienti, account Meta, integrazioni e brand. Nessun dato è condiviso tra organizzazioni. |
 | **Amministratore della piattaforma** | Chi gestisce l'installazione (tu): crea e sospende organizzazioni e ne vede l'uso, ma non i contenuti, se non è membro. |
-| **Spazio di lavoro** | Gruppo di account social di un'organizzazione, di norma un cliente. Un account può stare in più spazi della stessa organizzazione. |
-| **Profilo** | Nel pannello, un account Instagram insieme alla Pagina Facebook che Meta stessa gli collega (stesso `page_id`, §8.4 e §13), mai abbinati per nome. È solo un raggruppamento dell'interfaccia: nei dati restano due account e due destinazioni. Si forma **sempre dentro uno spazio** e solo con gli account assegnati a quello spazio: se l'altro account del collegamento non è nello spazio, o è inattivo, il profilo ha un solo account e dell'altro non si mostra né il nome né l'esistenza. |
+| **Spazio di lavoro** (nel pannello: **Cliente**) | Gruppo di account social di un'organizzazione, di norma un cliente. Nel pannello il cliente **contiene i suoi profili**: si crea scegliendo il profilo e i profili si vedono, si ricollegano e si tolgono dalla sua pagina (§14.7). Un account può stare in più spazi della stessa organizzazione. |
+| **Profilo** | Nel pannello, la presenza di un cliente su una piattaforma, mostrata con l'icona della piattaforma e il nome. Per Meta è un account Instagram insieme alla Pagina Facebook che Meta stessa gli collega (stesso `page_id`, §8.4 e §13), mai abbinati per nome. È solo un raggruppamento dell'interfaccia: nei dati restano due account e due destinazioni. Si forma **sempre dentro uno spazio** e solo con gli account assegnati a quello spazio: se l'altro account del collegamento non è nello spazio, o è inattivo, il profilo ha un solo account e dell'altro non si mostra né il nome né l'esistenza. Su una piattaforma senza abbinamenti (§18.6) il profilo è un account da solo. **Eccezione:** i profili degli account che non sono in nessuno spazio si formano, con la stessa regola della piattaforma, solo per chi può assegnare account (`workspace.accounts.assign`) e solo in importazione, «Nuovo cliente» e «Sistemali» (§14.7). |
 | **Contesto attivo** | Ciò che stai guardando nell'agenzia corrente: "Tutti i clienti", un cliente (spazio) o un singolo profilo. Restringe pannello e calendario a quella scelta (§14.6). |
 | **Contenuto pianificato** | Segnaposto sul calendario per un contenuto che non esiste ancora (giorno, tipo, titolo), creato nel **Piano editoriale** (§11.12). Diventa un post quando qualcuno lo prepara. |
 | **Destinazione** | Un post su un singolo account. Un post con 5 account ha 5 destinazioni, ognuna con il proprio stato. |
@@ -147,7 +147,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 ### Account social
 | Codice | Requisito |
 |---|---|
-| RF-20 | Sincronizzazione degli account dal token e assegnazione agli spazi. |
+| RF-20 | Sincronizzazione degli account dal token e assegnazione agli spazi. Un cliente si crea dal suo profilo, e i profili trovati che non sono in un cliente si sistemano da «Clienti» (§14.7). |
 | RF-21 | Stato di salute di ogni account (token, permessi, quota) e promemoria Meta. |
 
 ### Media e post
@@ -442,7 +442,7 @@ Le alternative valutate per ogni componente, con lo stato delle versioni al 2026
 
 ### 8.0 Modi di collegamento
 
-Ogni account ha un collegamento di un tipo (ADR 015). L'elenco «Account collegati» è unico; il tipo cambia solo come si accede e come si rinnova il token.
+Ogni account ha un collegamento di un tipo (ADR 015). L'elenco dei collegamenti è unico e sta in **Impostazioni → Agenzia → Integrazioni → Meta** (§8.3); il tipo cambia solo come si accede e come si rinnova il token.
 
 | Tipo | Per chi | Come si collega | Note |
 |---|---|---|---|
@@ -466,14 +466,14 @@ Ogni account ha un collegamento di un tipo (ADR 015). L'elenco «Account collega
 | 2. Crea l'utente di sistema | Business Settings → Utenti di sistema → Aggiungi → ruolo Admin → aggiungi l'app | |
 | 3. Assegna Pagine e Instagram | "Assegna asset" all'utente di sistema con controllo completo | |
 | 4. Genera e incolla il token | Elenco esatto dei permessi da spuntare; campo per il **token** | Ogni permesso mostrato in verde o rosso, con la correzione |
-| 5. Importa gli account | Pagine e IG trovati; scegli quali attivare e in quale spazio | Stato di salute di ogni account |
+| 5. Importa gli account | Profili trovati (IG con la sua Pagina, o un account da solo); per ognuno «Crea il cliente» con il nome proposto, già spuntato se nessuno dei suoi account è in un cliente, oppure lo lasci per dopo in «Sistemali» (§14.7) | Stato di salute di ogni account |
 
 **Permessi richiesti**: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`. Da verificare al primo collegamento se servono anche `ads_management`/`ads_read`; in quel caso il controllo del passo 4 lo segnala. Le versioni successive aggiungeranno permessi per commenti e statistiche (§18.2), con la stessa procedura.
 
 ### 8.2 Aggiungere un account
 
 Procedura "Aggiungi account", che parte da *l'account è già nel tuo Business Manager?*
-- **Sì**: assegna Pagina e Instagram all'utente di sistema, poi "Cerca nuovi account"; lo attivi e scegli lo spazio.
+- **Sì**: assegna Pagina e Instagram all'utente di sistema, poi "Cerca nuovi account"; lo attivi e crei il suo cliente o lo aggiungi a un cliente esistente (§14.7).
 - **No, è di un cliente con Business proprio**: guida per la richiesta di accesso come partner; il pannello prepara il messaggio con le istruzioni per il cliente.
 - **Instagram senza Pagina**: «Collega solo Instagram» (login Instagram, §8.0); l'account deve essere professionale.
 - **Instagram personale**: guida per convertirlo in professionale (gratuito, dall'app) e poi collegarlo.
@@ -482,8 +482,8 @@ Alla fine il pannello verifica che l'account sia pubblicabile (permessi, collega
 
 ### 8.3 Integrazioni e segreti
 
-**Impostazioni → Integrazioni** dell'organizzazione (solo Owner), ognuna con guida e pulsante "Prova". Telegram può usare il valore predefinito della piattaforma, che l'amministratore della piattaforma imposta in **Piattaforma → Integrazioni** (§14.4) insieme all'email e alla sorveglianza esterna:
-- **Meta**: App ID e App Secret dell'app; il token sta sul collegamento. "Sostituisci token" verifica il nuovo prima di salvarlo; il vecchio resta attivo finché il nuovo non risulta valido. App ID e `configId` dell'accesso unificato (ADR 020) stanno in `integrations.config` della riga `meta` dell'agenzia; l'App Secret, come JSON `{ appSecret }`, in `integrations.secret_enc`. Il token non sta qui ma sulla riga del collegamento (`account_connections.token_enc`, §13), uno per collegamento (ADR 019).
+**Impostazioni → Integrazioni** dell'organizzazione, una voce per piattaforma o servizio, ognuna con guida e pulsante "Prova". Le chiavi dell'app e i segreti li cambia solo l'Owner (l'Admin li vede in sola lettura); i collegamenti degli account li gestiscono Owner e Admin, come nella matrice di §10.2. Telegram può usare il valore predefinito della piattaforma, che l'amministratore della piattaforma imposta in **Piattaforma → Integrazioni** (§14.4) insieme all'email e alla sorveglianza esterna:
+- **Meta**: App ID e App Secret dell'app; sotto, i **collegamenti** (§8.0) con stato, «Sincronizza», «Ricollega», «Sostituisci token», i promemoria Meta (§8.4) e «Aggiungi account» (§8.2). Il token sta sul collegamento. "Sostituisci token" verifica il nuovo prima di salvarlo; il vecchio resta attivo finché il nuovo non risulta valido. App ID e `configId` dell'accesso unificato (ADR 020) stanno in `integrations.config` della riga `meta` dell'agenzia; l'App Secret, come JSON `{ appSecret }`, in `integrations.secret_enc`. Il token non sta qui ma sulla riga del collegamento (`account_connections.token_enc`, §13), uno per collegamento (ADR 019).
 - **Telegram**: guida @BotFather, token del bot, messaggio di prova.
 - **Email** (solo amministratore della piattaforma, sezione Piattaforma; ADR 017, decisione di Matteo del 30/10): un solo SMTP per tutta l'installazione, nessuna impostazione per le agenzie, tutte le email partono a nome di Feedway. Modelli per Gmail, Brevo e SMTP generico, email di prova.
 - **Sorveglianza esterna** (solo amministratore della piattaforma, sezione Piattaforma): URL del servizio (es. healthchecks.io), segnale di prova.
@@ -492,7 +492,7 @@ I segreti sono cifrati nel database (AES-256-GCM) con la chiave dati dell'organi
 
 ### 8.4 Sincronizzazione e salute degli account
 
-- **Sincronizzazione** (a richiesta e ogni giorno): `GET /me/accounts`, poi per ogni Pagina `GET /{page-id}?fields=name,picture,instagram_business_account{id,username,profile_picture_url}`. Gli account spariti diventano inattivi (mai cancellati); i nuovi restano fuori dagli spazi finché un Admin non li assegna.
+- **Sincronizzazione** (a richiesta e ogni giorno): `GET /me/accounts`, poi per ogni Pagina `GET /{page-id}?fields=name,picture,instagram_business_account{id,username,profile_picture_url}`. Gli account spariti diventano inattivi (mai cancellati); i nuovi restano fuori dagli spazi finché un Admin non crea il loro cliente o li aggiunge a uno esistente: fino ad allora li conta l'avviso «Sistemali» di Clienti (§14.7).
 - **Salute** (ogni giorno e prima di ogni pubblicazione): token valido (`/debug_token`), permessi, asset ancora assegnati, quota IG (`GET /{ig-id}/content_publishing_limit`). Gli account con problemi sono rossi e non selezionabili.
 - **Promemoria Meta**: versione della Graph API vicina al ritiro (avviso 90 giorni prima), Data Use Checkup annuale in scadenza, permessi revocati.
 - I token delle Pagine non si salvano con l'utente di sistema: il worker li ricava dal token di sistema e li tiene in memoria al massimo un'ora. Per i login Facebook e Instagram si salva il token di lunga durata della persona (cifrato, ADR 007), con rinnovo automatico e avviso prima della scadenza; se non si può rinnovare l'account diventa rosso.
@@ -724,15 +724,15 @@ Un utente può avere ruoli diversi in spazi diversi e in organizzazioni diverse.
 | Creare e revocare link cliente | ✓ | ✓ | ✓ | | | |
 | Registro attività dello spazio | ✓ | ✓ | ✓ | | | |
 | Creare spazi e assegnarvi account | ✓ | ✓ | | | | |
-| Aggiungere e sincronizzare account Meta | ✓ | ✓ | | | | |
+| Aggiungere e sincronizzare account (collegamenti) | ✓ | ✓ | | | | |
 | Invitare utenti nei propri spazi | ✓ | ✓ | ✓ ¹ | | | |
 | Disattivare utenti dell'organizzazione | ✓ | ✓ ² | | | | |
 | Registro attività completo | ✓ | ✓ | | | | |
-| Integrazioni, brand, impostazioni dell'organizzazione | ✓ | sola lettura | | | | |
+| Integrazioni, brand, impostazioni dell'organizzazione | ✓ | sola lettura ³ | | | | |
 
 Le due righe del piano editoriale (`plan.edit`, `plan.prepare`) e `plan.view`, che hanno tutti i ruoli che vedono il calendario, sono registrate dal modulo `plan` nella tappa 9 (§7.3), non dal nucleo della tappa 2. Un Member senza spazi si crea solo da Owner e Admin: un Manager che invita deve indicare almeno uno spazio. Un Member senza ruolo nello spazio non ha nessuna colonna: non vede lo spazio.
 
-¹ Solo ruoli inferiori al proprio (Publisher, Editor, Viewer). ² Un Admin non può modificare l'Owner né altri Admin; solo l'Owner nomina gli Admin.
+¹ Solo ruoli inferiori al proprio (Publisher, Editor, Viewer). ² Un Admin non può modificare l'Owner né altri Admin; solo l'Owner nomina gli Admin. ³ Tranne i collegamenti degli account in Impostazioni → Integrazioni, che segue la riga «Aggiungere e sincronizzare account» (§8.3).
 
 Un post appartiene a **uno** spazio e ha come destinazioni solo account di quello spazio.
 
@@ -885,7 +885,7 @@ Sicurezza: host pubblico senza cookie del pannello, miniature dedicate con token
 
 ### 11.11 Uso da telefono
 
-- **Barra di navigazione in basso** con cinque voci: Dashboard, Calendario, **+ Nuovo post al centro** (più grande, sempre raggiungibile col pollice), Notifiche, Menu (le altre sezioni e il contesto attivo). Chi non può creare post (Viewer, §10.2) non vede il +: la barra ha quattro voci. Sostituisce la navigazione laterale sotto i 768 px; quando si apre la tastiera la barra si nasconde. Le voci sono una proposta da confermare nel progetto in Pencil (§14.1).
+- **Barra di navigazione in basso** con cinque voci (Matteo, 14/11): Home, Calendario, **+ Nuovo post al centro** (più grande, sempre raggiungibile col pollice), Clienti, **Tu**. «Tu» mostra la foto della persona e apre dal basso il menu dell'utente con Utenti (per chi li gestisce), Impostazioni, Registro attività (Admin; Manager per il proprio spazio), Privacy, «Cambia agenzia», tema ed «Esci»; per questo in alto non c'è più la foto. Dove si aprono le notifiche sul telefono si decide con il centro notifiche (§12.3), con le schermate da approvare. Chi non può creare post (Viewer, §10.2) non vede il +: la barra ha quattro voci. Finché Calendario e Nuovo post non esistono, le due voci si vedono disattivate con «Presto». Sostituisce la navigazione laterale sotto i 768 px; quando si apre la tastiera la barra si nasconde.
 - **PWA**: "Aggiungi alla schermata Home" su iPhone e Android, apertura a schermo intero.
 - Upload da galleria e fotocamera; HEIC convertite in automatico.
 - Upload a pezzi con ripresa: se il telefono perde rete o blocca lo schermo, riprende al ritorno sul pannello (iPhone sospende le schede in background).
@@ -1167,11 +1167,11 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 | Programmazione in blocco | da Publisher | §11.6 |
 | Post | tutti | Elenco filtrabile, dettaglio per destinazione con tentativi, verifica e link |
 | Libreria | da Editor | §11.8 |
-| Spazi di lavoro | Admin; Manager per il proprio | Account, membri, orario predefinito, fasce, etichette, modelli, gruppi, link cliente |
-| Account social | Admin | Stato, quota, "Aggiungi account", assegnazione agli spazi |
+| Clienti | tutti, per i clienti che vedono; Admin per creare | Elenco dei clienti con i loro profili e lo stato del collegamento, «Nuovo cliente» dal profilo, avviso «Sistemali» per i profili senza cliente (§14.7) |
+| Pagina del cliente | chi vede il cliente; Admin per i profili, Manager per le persone | Schede Panoramica (profili con stato, quota e azioni; chi ci lavora), Calendario, Libreria, Persone; più avanti orario predefinito, fasce, etichette, modelli, gruppi, link cliente (§14.7) |
 | Utenti | Admin; Manager per inviti nei propri spazi | Inviti, ruoli, disattivazione nell'agenzia, reset (solo utenti della sola agenzia) |
 | Registro attività | Admin; Manager per il proprio spazio | Filtri per utente, azione, data, origine |
-| Impostazioni → Agenzia | Owner; Admin in sola lettura | Integrazioni, brand, 2FA obbligatoria, conservazione file dell'organizzazione |
+| Impostazioni → Agenzia | Owner; Admin in sola lettura, tranne i collegamenti | Integrazioni (una voce per piattaforma: per Meta app, collegamenti, «Aggiungi account» e promemoria, §8.3), brand, 2FA obbligatoria, conservazione file dell'organizzazione |
 | Piattaforma | Amministratore della piattaforma | Nella 1.0: sezione **Integrazioni** nel pannello (valori predefiniti di email e Telegram, sorveglianza esterna), visibile solo a lui; organizzazioni e limiti da comando. Nella 2.0: anche organizzazioni, limiti, uso e sospensione dal pannello |
 | Impostazioni → Il tuo account | tutti | Nome, soprannome, foto, email, passkey, password, 2FA, dispositivi collegati, Telegram, notifiche, tema, "Scarica i miei dati", "Elimina il mio account" (§10.5) |
 | Privacy | tutti, anche senza accesso | Informativa dell'agenzia (§15.7) |
@@ -1218,6 +1218,20 @@ Nella 2.0 si aggiungono prezzi, registrazione, termini di servizio, accordo sul 
 - **Selettore del contesto**, come su Meta Business Suite: "Tutti i clienti" per la visione d'insieme, poi un cliente (spazio) e, dentro il cliente, un singolo profilo. Mostra solo gli spazi a cui hai accesso. Dashboard, calendario, post, griglia e libreria si restringono alla scelta, che resta nell'indirizzo della pagina (così un link porta nello stesso contesto). Il contesto non è un permesso: i controlli restano quelli di §10.
 - **Nuovo post** parte dal contesto: dentro un profilo, con quel profilo già spuntato; dentro un cliente, con il cliente scelto; da "Tutti i clienti", chiede prima il cliente, perché si pubblica solo dentro uno spazio.
 - **Nell'indirizzo**: `?spazio=<slug>` per un cliente, `?spazio=<slug>&profilo=<id dell'account IG, o della Pagina se il profilo non ha IG>` per un profilo. Uno slug o un id sconosciuto, di uno spazio che non vedi o di un account fuori da quello spazio portano tutti allo stesso modo a "Tutti i clienti", con la stessa risposta e lo stesso tempo, senza rivelare se esiste.
+- **Menu dell'agenzia** (Matteo, 14/11): non c'è una voce per gli account social. I profili stanno dentro i clienti (§14.7), i collegamenti in Impostazioni → Integrazioni (§8.3).
+
+### 14.7 Clienti e profili
+
+Deciso da Matteo il 14/11 (proposta P, `design/reviews/2026-11-13-clienti-e-profili.md`). Quasi ogni cliente ha un solo Instagram e una sola Pagina: per questo il cliente contiene i suoi profili e non c'è una pagina separata per gli account. I testi usano nomi che non dipendono da Meta («Profili», «Collegamento»), perché arriveranno altre piattaforme (§18.6).
+
+- **Clienti**: una riga per cliente con foto o iniziali, nome (il collegamento alla sua pagina), i profili (icona della piattaforma e nome; con più profili «@uno +1») e lo stato del collegamento, scritto solo quando c'è da agire («Da ricollegare»). Il resto delle azioni sta in «⋯». In testa una frase di riepilogo al posto dei conteggi, filtro Attivi · Archiviati e ricerca.
+- **Nuovo cliente**: si sceglie il profilo tra quelli trovati e non ancora in un cliente; gli account del profilo arrivano insieme (per Meta Instagram e la Pagina) e il nome si propone dal profilo e si può cambiare. C'è anche «Senza profilo, per ora», per esempio un cliente del CRM dell'hub. Serve `workspace.create`, e per i profili `workspace.accounts.assign`.
+- **Sistemali**: se ci sono profili trovati che non sono in nessun cliente, in cima a Clienti un avviso «N profili trovati non sono in un cliente · Sistemali». Apre l'elenco di quei profili, ognuno con «Crea il cliente» (azione principale) e «Aggiungi a un cliente esistente». Lo vede solo chi può assegnare account. I profili non si creano mai da soli: dopo il primo collegamento l'elenco li propone tutti, e si conferma con un clic.
+- **Pagina del cliente** (è la «home del cliente» del selettore, §14.6): in testa foto, nome, i nomi dei profili e «Nuovo post»; poi le schede **Panoramica**, **Calendario**, **Libreria** e **Persone**. Le schede delle funzioni non ancora costruite si vedono con «Presto». Nella Panoramica i profili con stato, ultima sincronizzazione e «⋯» e chi ci lavora. Le azioni sui profili le vede solo chi le può fare (Owner e Admin, §10.2): **Ricollega** porta al collegamento giusto in Integrazioni; **Sostituisci profilo** sceglie un altro profilo tra quelli senza cliente al posto di questo; **Togli dal cliente** non cancella l'account, che torna in «Sistemali» se non è in nessun altro cliente.
+- **Schede dell'hub**: la scheda operativa e quella commerciale della pagina del cliente (specifica dell'hub §3.1) arrivano con la 1.5 come schede in più accanto a Panoramica, Calendario, Libreria e Persone.
+- **Casi meno comuni**: un cliente senza profili, un cliente con due Instagram (nella pagina tutte e due le righe), un profilo in due clienti (il modello lo permette, §13: l'avviso «Sistemali» conta solo i profili che non sono in nessun cliente).
+- **Il collegamento con la piattaforma** (app, token, sincronizzazione, aggiunta di account) si tocca di rado e sta in Impostazioni → Integrazioni (§8.3). Da Clienti «Ricollega» porta lì, al collegamento giusto, e si vede solo a chi gestisce i collegamenti; gli altri vedono solo lo stato «Da ricollegare».
+- **Dati**: nessuna tabella nuova. Il legame cliente ↔ account è `workspace_accounts` (§13); cambiano le letture (la riga del cliente porta i suoi profili e lo stato) e le schermate.
 
 ---
 
@@ -1562,6 +1576,7 @@ Obiettivo: aggiungere in futuro LinkedIn, TikTok, YouTube, Pinterest, X e altri 
 - Il resto non sa quale piattaforma c'è dietro: spazi, profili, post, destinazioni, calendario, coda, notifiche, link cliente e permessi lavorano solo con un account e la sua piattaforma.
 - Nel database `social_accounts.platform` e i tipi di destinazione si allargano con una migrazione per ogni nuova piattaforma.
 - La **caption per piattaforma** c'è già dalla 1.0 (§11.2, `posts.caption_by_platform`): ogni nuova piattaforma aggiunge la sua scheda nell'editor e i suoi limiti, senza migrazioni sul testo.
+- Nel pannello nessun testo nomina una piattaforma dove ne potrebbero stare altre: «Profili», «Collegamento», l'icona della piattaforma accanto a ogni profilo, una voce per piattaforma in Impostazioni → Integrazioni (§14.7).
 - Prima di costruire ogni piattaforma serve una ADR con API, permessi, revisione dell'app richiesta e limiti. Prima della tappa 3 una ADR fissa i confini del modulo piattaforma, costruito dalla tappa 3 con Meta come prima piattaforma, e i piani delle tappe 3–5 si adeguano (piano generale §8).
 
 ### 18.7 Approvazione del cliente (versione 1.1)
@@ -1647,6 +1662,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 | Landing | Titolo con il motto, CTA "Richiedi una demo", struttura in 11 sezioni (brief 04) | Matteo (2026-10-27/29) |
 | Canali di notifica dopo la 1.0 | Push della PWA; Slack, Discord e WhatsApp esclusi per ora | Matteo (2026-10-29) |
 | Versioni dell'hub | Fissate da chi scrive il piano, partendo dall'ordine di riferimento; quali funzioni fare resta una scelta di Matteo | Matteo (delega, 2026-10-29) |
+| Clienti e profili | Il cliente contiene i suoi profili; niente voce «Account social»; i collegamenti in Impostazioni → Integrazioni; barra in basso Home, Calendario, +, Clienti, Tu (§11.11, §14.7) | Matteo (2026-11-14) |
 
 ---
 

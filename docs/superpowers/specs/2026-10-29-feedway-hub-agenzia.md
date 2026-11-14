@@ -68,7 +68,7 @@ Aree del menu (proposta di struttura):
 | Report | Account, titolare | Statistiche, report per il cliente, "lavoro svolto" |
 | Agenzia | Owner, Admin | Team e ruoli, CRM, guide interne, impostazioni |
 
-Sul telefono restano le cinque voci in basso già previste (Oggi, Calendario, + Nuovo, Notifiche, Menu).
+Sul telefono restano le cinque voci in basso della specifica §11.11: Home, Calendario, +, Clienti, Tu (Matteo, 14/11).
 
 ## 3. Clienti, portale e CRM
 
