@@ -66,7 +66,7 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - In fondo alla barra laterale una riga sola: foto, nome e sotto, in piccolo, «Ruolo · Agenzia». Nessuna freccia: al passaggio del mouse la riga si scurisce appena (`nav-hover`).
 - Al clic un menu verso l'alto, largo quanto la barra: foto, nome ed email in testa; «Impostazioni»; le pagine dell'agenzia che si aprono di rado, «Registro attività» e «Privacy», tolte dalla barra; «Cambia agenzia» solo con più agenzie; separatore; in fondo, sulla stessa riga, «Esci» neutro con icona e a destra un solo pulsante con il sole o la luna che passa al tema chiaro o scuro.
 - Niente selettore a tre segmenti per il tema (Matteo, 13/11: «non mi piace proprio»). «Automatico» si sceglie in «Impostazioni» → Profilo e preferenze.
-- Sul telefono la foto in alto a destra apre lo stesso menu dal basso, a tutta larghezza.
+- Sul telefono lo stesso menu si apre dal basso, a tutta larghezza, dalla voce «Tu» della barra in basso (14/11, vedi «Navigazione su telefono»); la foto in alto a destra sparisce.
 - «Impostazioni» resta dentro la barra dell'agenzia.
 
 ## Impostazioni (13 novembre 2026, Matteo; tappa 4, Task 2)
@@ -77,7 +77,7 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
   - «Agenzia · <nome>»: Generali, Integrazioni, solo per Owner e Admin (`organization.settings.view`) dell'agenzia attiva o ricordata.
 - Computer (da 1024 px): i gruppi sono una colonna a sinistra da 12rem, la scheda attiva su `brand-soft`. Sotto i 1024 px i gruppi stanno sopra il contenuto, in riquadri `surface-sunken`; sul telefono le schede sono in due colonne, così nessuna va a capo da sola.
 - Gli indirizzi non cambiano (`/account/*`, `/<agenzia>/impostazioni/*`): i link delle email continuano a funzionare.
-- Sul telefono il quinto posto della barra in basso è «Impostazioni» (ingranaggio), acceso anche nelle schede dell'agenzia.
+- Sul telefono «Impostazioni» si apre dal menu «Tu» della barra in basso (14/11). Fino al Task 6b della tappa 4 il quinto posto della barra resta «Impostazioni» (ingranaggio).
 - La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil. Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
 
 ## Logo dell'agenzia (13 novembre 2026; tappa 4, Task 3)
@@ -86,6 +86,45 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Il logo non si ritaglia mai: si adatta intero dentro il quadrato, la trasparenza resta (`object-contain`, bordo `border` su `surface`, angoli `rounded-md` a 32 px e `rounded-xl` a 96 px).
 - Nella barra (`OrgSwitcher`) il logo prende il posto del quadratino scuro con le iniziali (`AgencyLogo`). Senza logo, o se non si carica, restano le iniziali. Sul telefono con una sola agenzia la barra in alto non mostra l'agenzia, come prima.
 - Schermate nella cartella del progetto, `schermate/tappa-4-logo/`. La tela in `design/feedway-ui.pen` non è aggiornata.
+
+## Stile unione (14 novembre 2026, Matteo)
+
+Dopo la prova della 0.9.0 (critica e confronto in `design/reviews/2026-11-13-*.md`) Matteo ha scelto una direzione sola, presa da tre. Il brand kit non cambia. Riferimento visivo: `design/esplorazioni/2026-11-13-revisione/clienti-profili.html` (`?p=clienti|cliente|nuovo`).
+
+- **Guscio Hallmark:** barra laterale com'è oggi, fondo carta, cartoncino per la superficie dell'elenco, filtro a scanalatura e ricerca sopra gli elenchi.
+- **Grammatica «Officina»:** una superficie per elenco, righe separate da filetti, nessuna scatola dentro una scatola; lo stato è un pallino più una parola; il colore va solo dove c'è da agire; una frase di riepilogo con link al posto dei conteggi.
+- **Regola di riga:** 56 px su computer e 64 su telefono; foto o iniziali da 32 px; il nome è il collegamento principale; al massimo un'azione visibile, solo se serve davvero; il resto in «⋯».
+
+### Elenchi e tabelle
+
+| Elemento | Regola |
+|---|---|
+| Testata (`PageHeader`) | Titolo, sotto la frase di riepilogo (per esempio «5 clienti. Pizzeria Da Gino ha un profilo da ricollegare.», con il nome che porta al problema), a destra l'azione principale. Niente numeri grandi o riquadri di conteggio |
+| Strumenti | Sopra l'elenco, su una riga: filtro a scanalatura (`SegmentedFilter`, per esempio «Attivi 5 · Archiviati 1») e ricerca (`SearchField`). Su telefono la ricerca va sotto il filtro, a tutta larghezza |
+| Superficie | Un solo cartoncino (`surface`, bordo `border`, raggio 12) per elenco. Righe separate da un filetto `border`; intestazione delle colonne in `text-muted` 13 px con una linea `border-strong` sotto |
+| Riga (`DataRow`) | 56 px su computer, 64 su telefono, tutte alte uguali. A sinistra foto o iniziali da 32 px (`RowAvatar`), poi il nome in 15 px, che è il collegamento; i dettagli in `text-muted`. Area di tocco di almeno 44 px |
+| Colonne (`DataTable`) | Solo dati che cambiano da riga a riga: una colonna uguale per tutti si toglie. Sotto i 768 px la tabella diventa righe a due livelli: nome sopra, dettagli sotto, stato solo se c'è da agire |
+| Stato (`StatusDot`) | Pallino da 8 px più una parola. Neutro (`text-muted`) quando va tutto bene, e spesso non si scrive nemmeno; colore di stato (tabella dei token) solo dove serve agire, sempre con la parola |
+| Azioni (`RowActions`) | «⋯» in fondo alla riga, raggiungibile da tastiera, con etichetta «Azioni per <nome>». Un pulsante visibile solo per l'azione che risolve un problema (per esempio «Ricollega») |
+| Caricamento | Scheletri con la forma esatta della riga di quella pagina (`ListSkeleton`, `TableSkeleton`), mai una scritta |
+| Vuoto ed errore | Vuoto: una frase e il primo passo. Errore: cosa è successo, cosa fare e «Riprova», dentro la stessa superficie |
+
+### Clienti e profili (proposta P)
+
+Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Account social».
+
+- **Clienti:** ogni riga ha foto o iniziali, nome, i profili (icona della piattaforma più nome, «@uno +1» oltre il primo) e lo stato del collegamento solo se c'è da agire. In cima, quando serve, l'avviso «N profili trovati non sono in un cliente · Sistemali», su `brand-soft` come le cose che «aspettano te».
+- **Nuovo cliente:** una finestra che elenca i profili non ancora in un cliente, uno per riga con icona della piattaforma e nome; il nome del cliente si propone dal profilo. In fondo «Senza profilo, per ora».
+- **Pagina del cliente:** testata con foto, nome, i nomi dei profili e «Nuovo post»; schede Panoramica, Calendario, Libreria, Persone, con «Presto» su quelle non ancora costruite. Nella Panoramica i profili come righe dell'elenco, con «⋯» (Ricollega, Sostituisci, Togli dal cliente), e chi ci lavora.
+- **Collegamenti:** in Impostazioni → Agenzia → Integrazioni, una voce per piattaforma (oggi Meta).
+- **Nomi neutri:** «Profili», «Collegamento». Nessun testo dice «Instagram e Facebook» o «Meta» dove potrebbero stare altre piattaforme.
+
+### Navigazione su telefono
+
+- Barra in basso: Home, Calendario, + (Nuovo post, al centro), Clienti, Tu. Calendario e + si vedono disattivati con «Presto» finché non esistono; un Viewer non vede il +.
+- «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti, Impostazioni, Registro attività, Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
+
+Le schermate di ogni pagina, chiare e scure, da computer e da telefono, vanno nella cartella del progetto prima della fusione. La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil.
 
 ## Email transazionali (26 ottobre 2026)
 
