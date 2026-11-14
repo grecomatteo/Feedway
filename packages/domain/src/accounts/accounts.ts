@@ -97,3 +97,27 @@ export function canTakeOver(
   if (owner.id === newcomer.id) return true
   return works(newcomer.status) && !works(owner.status)
 }
+
+/**
+ * What a profile's link asks of the agency (spec §14.7), worst first: `reconnect` when the
+ * connection of one of its accounts stopped working, then the accounts' own health. Never checked
+ * yet, or a connection still waiting for its first accounts, asks nothing.
+ */
+export const PROFILE_LINKS = ['reconnect', 'error', 'warning', 'ok'] as const
+export type ProfileLink = (typeof PROFILE_LINKS)[number]
+
+export function profileLink(
+  accounts: readonly { health: AccountHealth | null; connectionStatus: ConnectionStatus }[],
+): ProfileLink {
+  return worstLink(
+    accounts.map((a) => {
+      if (!works(a.connectionStatus)) return 'reconnect'
+      return a.health === 'error' || a.health === 'warning' ? a.health : 'ok'
+    }),
+  )
+}
+
+/** The link that asks the most, `ok` for none. */
+export function worstLink(links: readonly ProfileLink[]): ProfileLink {
+  return PROFILE_LINKS.find((l) => links.includes(l)) ?? 'ok'
+}

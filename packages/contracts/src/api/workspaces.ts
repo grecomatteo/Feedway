@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { defineContract } from './define.js'
+import { Platform } from './accounts.js'
 import { Id, OrgParams, OrgSlug, WorkspaceRole } from './common.js'
 
 export const Workspace = z.object({
@@ -9,6 +10,26 @@ export const Workspace = z.object({
   archivedAt: z.string().nullable(),
   myRole: z.enum(['owner', 'admin', 'manager', 'publisher', 'editor', 'viewer']),
 })
+
+/**
+ * A profile on the row of a client: the names and pictures of its accounts and what its link asks
+ * (`reconnect` when the connection stopped working), never anything of the connection itself.
+ */
+export const ClientProfile = z.object({
+  key: z.string(),
+  accounts: z.array(
+    z.object({
+      id: Id,
+      platform: Platform,
+      name: z.string(),
+      username: z.string().nullable(),
+      /** Feedway's copy of the picture, in the panel; null: the initials. */
+      avatarUrl: z.string().nullable(),
+    }),
+  ),
+  link: z.enum(['reconnect', 'error', 'warning', 'ok']),
+})
+export type ClientProfile = z.infer<typeof ClientProfile>
 
 const WorkspaceParams = z.strictObject({ org: OrgSlug, id: Id })
 const WorkspaceMemberParams = z.strictObject({ org: OrgSlug, id: Id, userId: Id })
@@ -24,6 +45,8 @@ export const listWorkspacesRoute = defineContract({
       Workspace.extend({
         /** The picture of its first profile, as Feedway keeps it; null: the initials. */
         photoUrl: z.string().nullable(),
+        /** Its profiles (spec §14.7), only from its active accounts; Instagram first. */
+        profiles: z.array(ClientProfile),
       }),
     ),
   }),

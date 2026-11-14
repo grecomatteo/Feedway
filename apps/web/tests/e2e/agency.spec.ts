@@ -25,10 +25,17 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
+/** The list of «Clienti»: a table on a computer, rows on a phone. */
+const clientList = (page: Page) =>
+  page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' }))
+
 async function createWorkspace(page: Page, name: string) {
-  await page.getByLabel('Nome del nuovo cliente').fill(name)
-  await page.getByRole('button', { name: 'Crea', exact: true }).click()
-  await expect(page.getByRole('list', { name: 'Clienti' }).getByText(name)).toBeVisible()
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
+  await dialog.getByLabel('Nome del nuovo cliente').fill(name)
+  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await expect(clientList(page).getByRole('link', { name, exact: true })).toBeVisible()
 }
 
 async function workspaceId(org: string, name: string): Promise<string> {
@@ -88,7 +95,7 @@ test('workspaces and invite: a publisher sees only their client and no users pag
     await ownAddress(p)
     await signIn(p.request, collab)
     await p.goto(`/${org}/spazi`)
-    const list = p.getByRole('list', { name: 'Clienti' })
+    const list = clientList(p)
     await expect(list.getByText('Cliente A')).toBeVisible()
     await expect(list.getByText('Cliente B')).toHaveCount(0)
     await expect(p.getByRole('link', { name: 'Utenti' })).toHaveCount(0)
@@ -115,10 +122,10 @@ test('context switcher: hidden and unknown client slugs fall back the same way',
       [org],
     )
     const hidden = await p.goto(`/${org}/spazi?spazio=${b?.slug ?? ''}`)
-    await expect(p.getByRole('list', { name: 'Clienti' })).toBeVisible()
+    await expect(clientList(p)).toBeVisible()
     const hiddenHtml = await p.getByRole('main').innerHTML()
     const unknown = await p.goto(`/${org}/spazi?spazio=non-esiste`)
-    await expect(p.getByRole('list', { name: 'Clienti' })).toBeVisible()
+    await expect(clientList(p)).toBeVisible()
     const unknownHtml = await p.getByRole('main').innerHTML()
     expect(hidden?.status()).toBe(unknown?.status())
     expect(hiddenHtml).toBe(unknownHtml)

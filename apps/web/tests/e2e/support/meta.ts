@@ -80,3 +80,15 @@ export async function assignAccount(
 ): Promise<void> {
   await send(request, 'PUT', `/api/v1/orgs/${org}/workspaces/${workspaceId}/accounts/${accountId}`)
 }
+
+/** A client created through the API of a signed-in Owner or Admin; its id. */
+export async function newWorkspace(
+  request: APIRequestContext,
+  org: string,
+  name: string,
+): Promise<{ id: string; slug: string }> {
+  return (await send(request, 'POST', `/api/v1/orgs/${org}/workspaces`, { name })) as {
+    id: string
+    slug: string
+  }
+}

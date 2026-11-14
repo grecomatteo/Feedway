@@ -116,6 +116,8 @@ I valori di carta, cartoncino e scanalatura vengono dal riferimento visivo appro
 
 ### Clienti e profili (proposta P)
 
+Pagina Clienti (tappa 4, Task 5b): tabella Cliente · Profili · Collegamento · «⋯» su computer, righe a due livelli su telefono; «Da ricollegare» in ambra, «Con problema» in rosso, «Attenzione» in ambra; schermate in `schermate/tappa-4-clienti/` nella cartella del progetto.
+
 Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Account social».
 
 - **Clienti:** ogni riga ha foto o iniziali, nome, i profili (icona della piattaforma più nome, «@uno +1» oltre il primo) e lo stato del collegamento solo se c'è da agire; il pulsante «Ricollega» solo per chi gestisce i collegamenti. In cima, quando serve, l'avviso «N profili trovati non sono in un cliente · Sistemali», su `brand-soft` come le cose che «aspettano te».

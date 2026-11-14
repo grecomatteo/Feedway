@@ -17,6 +17,19 @@ test.beforeEach(async ({ baseURL, page }) => {
   await ownAddress(page)
 })
 
+/** The list of «Clienti»: a table on a computer, rows on a phone. */
+const clientList = (page: Page) =>
+  page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' }))
+
+async function createClient(page: Page, name: string) {
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
+  await dialog.getByLabel('Nome del nuovo cliente').fill(name)
+  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await expect(clientList(page).getByRole('link', { name, exact: true })).toBeVisible()
+}
+
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
@@ -27,9 +40,8 @@ test('client accounts: the owner assigns a profile and takes one account out', a
   await connectedAgency(page.request, org)
 
   await page.goto(`/${org}/spazi`)
-  await page.getByLabel('Nome del nuovo cliente').fill('Forno Luce')
-  await page.getByRole('button', { name: 'Crea', exact: true }).click()
-  await page.getByRole('link', { name: 'Account di Forno Luce' }).click()
+  await createClient(page, 'Forno Luce')
+  await clientList(page).getByRole('link', { name: 'Forno Luce', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Forno Luce', level: 1 })).toBeVisible()
   await expect(page.getByText('Nessun account in questo cliente')).toBeVisible()
 
@@ -57,9 +69,7 @@ test('client accounts: a member of the client sees them and cannot change them',
   const org = owner.organizationSlug
   await connectedAgency(page.request, org)
   await page.goto(`/${org}/spazi`)
-  await page.getByLabel('Nome del nuovo cliente').fill('Bottega')
-  await page.getByRole('button', { name: 'Crea', exact: true }).click()
-  await expect(page.getByRole('list', { name: 'Clienti' }).getByText('Bottega')).toBeVisible()
+  await createClient(page, 'Bottega')
   const [ws] = await adminQuery<{ id: string; slug: string }>(
     "select id, slug from workspaces where organization_id = $1 and name = 'Bottega'",
     [org],

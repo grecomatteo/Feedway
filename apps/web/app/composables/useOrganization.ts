@@ -1,4 +1,4 @@
-import type { Me } from '@app/contracts'
+import type { ClientProfile, Me } from '@app/contracts'
 
 type MyOrganization = Me['organizations'][number]
 
@@ -10,6 +10,8 @@ export interface WorkspaceView {
   myRole: 'owner' | 'admin' | 'manager' | 'publisher' | 'editor' | 'viewer'
   /** Its first profile's picture, as Feedway keeps it (only in the list); null: the initials. */
   photoUrl?: string | null
+  /** Its profiles and the state of their link (only in the list). */
+  profiles?: ClientProfile[]
 }
 
 /**

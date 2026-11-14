@@ -18,11 +18,17 @@ export {
   MAX_ACCOUNTS_PAGE,
   accountsOfWorkspace,
   assignAccount,
+  clientProfiles,
   listAccounts,
   listProfiles,
   unassignAccount,
 } from './workspace-accounts.js'
-export type { AccountListItem, WorkspaceAccount, WorkspaceProfile } from './workspace-accounts.js'
+export type {
+  AccountListItem,
+  ClientProfile,
+  WorkspaceAccount,
+  WorkspaceProfile,
+} from './workspace-accounts.js'
 export {
   SYNC_REQUEST_LIMIT,
   checkConnectionHealth,
@@ -41,7 +47,6 @@ export {
   queueAccountAvatars,
   readAccountAvatar,
   refreshAccountAvatar,
-  workspacePhotos,
 } from './avatar.js'
 export type { AccountAvatarDeps, AccountAvatarJob, AccountAvatarOutcome } from './avatar.js'
 export type { MetaRemindersDeps } from './reminders.js'

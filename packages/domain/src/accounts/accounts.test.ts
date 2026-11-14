@@ -4,6 +4,8 @@ import {
   connectionNeedsRefresh,
   formProfiles,
   isSelectable,
+  profileLink,
+  worstLink,
   type ProfileAccount,
 } from './accounts.js'
 
@@ -107,4 +109,28 @@ test('the owner keeps its own account, and a broken newcomer takes nothing', () 
   expect(canTakeOver({ id: 'c1', status: 'expired' }, { id: 'c2', status: 'pending' })).toBe(true)
   expect(canTakeOver({ id: 'c1', status: 'expired' }, { id: 'c2', status: 'expired' })).toBe(false)
   expect(canTakeOver({ id: 'c1', status: 'revoked' }, { id: 'c2', status: 'revoked' })).toBe(false)
+})
+
+test("a profile's link asks for action only when one of its accounts needs it", () => {
+  const ok = { health: 'ok' as const, connectionStatus: 'active' as const }
+  expect(profileLink([ok, ok])).toBe('ok')
+  // never checked yet, or a connection still waiting: nothing to do
+  expect(profileLink([{ health: null, connectionStatus: 'pending' }])).toBe('ok')
+  expect(profileLink([ok, { ...ok, health: 'warning' }])).toBe('warning')
+  expect(
+    profileLink([
+      { ...ok, health: 'warning' },
+      { ...ok, health: 'error' },
+    ]),
+  ).toBe('error')
+  // a connection that stopped working says what to do, before the health it no longer checks
+  expect(profileLink([{ health: 'error', connectionStatus: 'expired' }])).toBe('reconnect')
+  expect(profileLink([ok, { ...ok, connectionStatus: 'revoked' }])).toBe('reconnect')
+  expect(profileLink([])).toBe('ok')
+})
+
+test('the worst link comes first', () => {
+  expect(worstLink(['ok', 'warning', 'reconnect', 'error'])).toBe('reconnect')
+  expect(worstLink(['ok', 'warning'])).toBe('warning')
+  expect(worstLink([])).toBe('ok')
 })
