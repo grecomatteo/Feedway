@@ -106,10 +106,10 @@ I valori di carta, cartoncino e scanalatura vengono dal riferimento visivo appro
 |---|---|
 | Testata (`PageHeader`) | Titolo, sotto la frase di riepilogo (per esempio «5 clienti. Pizzeria Da Gino ha un profilo da ricollegare.», con il nome che porta al problema), a destra l'azione principale. Niente numeri grandi o riquadri di conteggio |
 | Strumenti | Sopra l'elenco, su una riga: filtro a scanalatura (`SegmentedFilter`, per esempio «Attivi 5 · Archiviati 1») e ricerca (`SearchField`). Su telefono la ricerca va sotto il filtro, a tutta larghezza |
-| Superficie | Un solo cartoncino (`surface`, bordo `border`, raggio 12) per elenco. Righe separate da un filetto `border`; intestazione delle colonne in `text-muted` 13 px con una linea `border-strong` sotto |
+| Superficie | Un solo cartoncino (`card`, bordo `border`, raggio 12) per elenco. Righe separate da un filetto `border`; intestazione delle colonne in `text-muted` 13 px con una linea `border-strong` sotto |
 | Riga (`DataRow`) | 56 px su computer, 64 su telefono, tutte alte uguali. A sinistra foto o iniziali da 32 px (`RowAvatar`), poi il nome in 15 px, che è il collegamento; i dettagli in `text-muted`. Area di tocco di almeno 44 px |
 | Colonne (`DataTable`) | Solo dati che cambiano da riga a riga: una colonna uguale per tutti si toglie. Sotto i 768 px la tabella diventa righe a due livelli: nome sopra, dettagli sotto, stato solo se c'è da agire |
-| Stato (`StatusDot`) | Pallino da 8 px più una parola. Neutro (`text-muted`) quando va tutto bene, e spesso non si scrive nemmeno; colore di stato (tabella dei token) solo dove serve agire, sempre con la parola |
+| Stato (`StatusDot`) | Pallino da 8 px più una parola (con un alone tenue quando c'è da agire). Neutro (`text-muted`) quando va tutto bene, e spesso non si scrive nemmeno; colore di stato (tabella dei token) solo dove serve agire, sempre con la parola. Verde e blu, per un esito o un programmato da mostrare, colorano solo il pallino: la parola resta del colore del testo |
 | Azioni (`RowActions`) | «⋯» in fondo alla riga, raggiungibile da tastiera, con etichetta «Azioni per <nome>». Un pulsante visibile solo per l'azione che risolve un problema (per esempio «Ricollega») |
 | Caricamento | Scheletri con la forma esatta della riga di quella pagina (`ListSkeleton`, `TableSkeleton`), mai una scritta |
 | Vuoto ed errore | Vuoto: una frase e il primo passo. Errore: cosa è successo, cosa fare e «Riprova», dentro la stessa superficie |
