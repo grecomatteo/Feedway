@@ -1196,5 +1196,9 @@
       "mine": "Il tuo account",
       "agency": "Agenzia"
     }
+  },
+  "lists": {
+    "actionsFor": "Azioni per {name}",
+    "clearSearch": "Cancella la ricerca"
   }
 }

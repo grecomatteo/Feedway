@@ -12,7 +12,16 @@ test('contrast of a colour with itself is 1', () => {
 
 test.each(['light', 'dark'] as const)('%s theme meets WCAG AA', (theme) => {
   const t = themes[theme]
-  for (const bg of ['bg', 'surface', 'surface-sunken', 'nav-bg', 'nav-hover'] as const) {
+  for (const bg of [
+    'bg',
+    'surface',
+    'surface-sunken',
+    'nav-bg',
+    'nav-hover',
+    'paper',
+    'card',
+    'groove',
+  ] as const) {
     expect(contrastRatio(t.text, t[bg])).toBeGreaterThanOrEqual(4.5)
     expect(contrastRatio(t['text-muted'], t[bg])).toBeGreaterThanOrEqual(4.5)
     expect(contrastRatio(t.focus, t[bg])).toBeGreaterThanOrEqual(3)

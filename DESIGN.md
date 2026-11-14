@@ -15,6 +15,9 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `surface-sunken` | `#F3F1EC` | `#1F1E1C` | Selettori, righe secondarie |
 | `nav-bg` | `#F3F1EC` | `#141312` | Barra laterale |
 | `nav-hover` | `#E9E6DF` | `#22211F` | Riga della barra al passaggio del mouse o con il menu aperto |
+| `paper` | `#F6F3EE` carta Hallmark | `#191817` | Fondo delle pagine in stile unione |
+| `card` | `#FFFDF9` cartoncino | `#242321` | Superficie di un elenco o di una tabella (stile unione) |
+| `groove` | `#EFEBE4` scanalatura | `#1F1E1C` | Fondo del filtro a scanalatura, blocchi degli scheletri |
 | `text` | `#242321` | `#F4F2EE` | Testo |
 | `text-muted` | `#5F5B55` | `#B9B4AC` | Metadati |
 | `border` / `border-strong` | `#E3DFD7` / `#CFCAC0` | `#3A3835` / `#55524D` | Bordi |
@@ -96,6 +99,8 @@ Dopo la prova della 0.9.0 (critica e confronto in `design/reviews/2026-11-13-*.m
 - **Regola di riga:** 56 px su computer e 64 su telefono; foto o iniziali da 32 px; il nome è il collegamento principale; al massimo un'azione visibile, solo se serve davvero; il resto in «⋯».
 
 ### Elenchi e tabelle
+
+I valori di carta, cartoncino e scanalatura vengono dal riferimento visivo approvato (`clienti-profili.html`); nel tema scuro restano i fondi di oggi. I componenti sono in `apps/web/app/components/` (tappa 4, Task 5a) e si provano sulla pagina `/__test/componenti`, che esiste solo nei test.
 
 | Elemento | Regola |
 |---|---|
