@@ -1,11 +1,4 @@
-import {
-  ACCOUNT_AVATAR_MIN_SIDE,
-  DomainError,
-  formProfiles,
-  profilePhotoAccount,
-  seesAllWorkspaces,
-  type OrgActor,
-} from '@app/domain'
+import { ACCOUNT_AVATAR_MIN_SIDE, DomainError, seesAllWorkspaces, type OrgActor } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { AvatarProcessor } from '../ports/avatar-processor.js'
 import type { JobQueue } from '../ports/job-queue.js'
@@ -206,40 +199,4 @@ export async function readAccountAvatar(
   if (key === null) return null
   const object = await deps.storage.get(fileOf(key, input.size))
   return object ? { object, hash: key.slice(key.lastIndexOf('/') + 1) } : null
-}
-
-/**
- * The picture of each workspace the actor sees, for the switcher: that of its first profile
- * (§3) with one, as the profiles of the workspace list them, Instagram first. Workspaces without
- * a stored picture are left out.
- */
-export async function workspacePhotos(
-  deps: Pick<AccountAvatarDeps, 'uow'>,
-  actor: OrgActor,
-): Promise<Map<string, { accountId: string; avatarKey: string }>> {
-  const { organizationId } = actor
-  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const current = await currentActor(tx, actor)
-    const seesAll = seesAllWorkspaces(current)
-    const accounts = await tx.accounts.list(
-      organizationId,
-      seesAll ? {} : { workspaceIds: [...current.memberships.keys()] },
-    )
-    const byWorkspace = new Map<string, Set<string>>()
-    for (const { accountId, workspaceId } of await tx.workspaceAccounts.listForAccounts(
-      organizationId,
-      accounts.map((a) => a.id),
-    ))
-      if (seesAll || current.memberships.has(workspaceId))
-        byWorkspace.set(workspaceId, (byWorkspace.get(workspaceId) ?? new Set()).add(accountId))
-    const photos = new Map<string, { accountId: string; avatarKey: string }>()
-    for (const [workspaceId, ids] of byWorkspace) {
-      const photo = formProfiles(accounts.filter((a) => ids.has(a.id)))
-        .map((p) => profilePhotoAccount(p.accounts))
-        .find((a) => a !== null)
-      if (photo?.avatarKey != null)
-        photos.set(workspaceId, { accountId: photo.id, avatarKey: photo.avatarKey })
-    }
-    return photos
-  })
 }

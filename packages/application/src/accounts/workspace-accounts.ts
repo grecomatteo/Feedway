@@ -3,12 +3,14 @@ import {
   DomainError,
   formProfiles,
   isSelectable,
+  profileLink,
   seesAllWorkspaces,
   type AccountHealth,
   type ConnectionKind,
   type ConnectionStatus,
   type OrgActor,
   type Platform,
+  type ProfileLink,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { SocialAccountRecord } from '../ports/accounts.js'
@@ -276,5 +278,71 @@ export async function listProfiles(
       const [first] = p.accounts
       return first ? [{ key: p.key, id: first.id, accounts: p.accounts }] : []
     })
+  })
+}
+
+/** A profile as the row of a client shows it (spec §14.7): names, picture and its link. */
+export interface ClientProfile {
+  key: string
+  accounts: {
+    id: string
+    platform: Platform
+    name: string
+    username: string | null
+    avatarKey: string | null
+  }[]
+  link: ProfileLink
+}
+
+/**
+ * «Clienti»: the profiles of every workspace the actor sees, by workspace id, from its active
+ * accounts only (§3). Everyone sees the state of the link, nobody the connection itself; an
+ * account in no visible workspace is never named.
+ */
+export async function clientProfiles(
+  deps: { uow: UnitOfWork },
+  actor: OrgActor,
+): Promise<Map<string, ClientProfile[]>> {
+  const { organizationId } = actor
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const current = await currentActor(tx, actor)
+    const seesAll = seesAllWorkspaces(current)
+    const accounts = await tx.accounts.list(
+      organizationId,
+      seesAll ? {} : { workspaceIds: [...current.memberships.keys()] },
+    )
+    const byWorkspace = new Map<string, Set<string>>()
+    for (const { accountId, workspaceId } of await tx.workspaceAccounts.listForAccounts(
+      organizationId,
+      accounts.map((a) => a.id),
+    ))
+      if (seesAll || current.memberships.has(workspaceId))
+        byWorkspace.set(workspaceId, (byWorkspace.get(workspaceId) ?? new Set()).add(accountId))
+    const status = new Map(
+      (await tx.connections.list(organizationId)).map((c) => [c.id, c.status] as const),
+    )
+    const profiles = new Map<string, ClientProfile[]>()
+    for (const [workspaceId, ids] of byWorkspace)
+      profiles.set(
+        workspaceId,
+        formProfiles(accounts.filter((a) => ids.has(a.id))).map((p) => ({
+          key: p.key,
+          accounts: p.accounts.map((a) => ({
+            id: a.id,
+            platform: a.platform,
+            name: a.name,
+            username: a.username,
+            avatarKey: a.avatarKey,
+          })),
+          link: profileLink(
+            p.accounts.map((a) => ({
+              health: a.health,
+              // an account always has its connection (foreign key)
+              connectionStatus: status.get(a.connectionId) ?? 'revoked',
+            })),
+          ),
+        })),
+      )
+    return profiles
   })
 }

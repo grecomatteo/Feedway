@@ -1,27 +1,125 @@
 <script setup lang="ts">
+import type { ClientProfile } from '@app/contracts'
+import { PROFILE_LINKS, worstLink } from '@app/domain'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { DataColumn } from '~/components/DataTable.vue'
+import type { StatusTone } from '~/components/StatusDot.vue'
+
+// «Clienti» in the union style (plan 04 Task 5b, spec §14.7, DESIGN.md «Elenchi e tabelle»):
+// one row per client with its profiles, the state of the link only where someone has to act.
 definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
 const { t } = useI18n()
 const { call, failure } = useApi()
 const { data, status, error, refresh } = useWorkspaces()
+// the menus and the dialogs work once Vue runs the page
+const ready = useHydrated()
 
 useHead({ title: () => t('workspaces.title') })
 
-const active = computed(() => (data.value?.items ?? []).filter((w) => w.archivedAt === null))
-const archived = computed(() => (data.value?.items ?? []).filter((w) => w.archivedAt !== null))
+type Link = ClientProfile['link']
+const all = computed(() => data.value?.items ?? [])
+const active = computed(() => all.value.filter((w) => w.archivedAt === null))
+const archived = computed(() => all.value.filter((w) => w.archivedAt !== null))
 const canManageMembers = (w: WorkspaceView) => org.may.value.manageUsers || w.myRole === 'manager'
 
+// ---- the state of a client: the worst link among its profiles
+const linkOf = (w: WorkspaceView): Link => worstLink((w.profiles ?? []).map((p) => p.link))
+const TONE: Record<Exclude<Link, 'ok'>, StatusTone> = {
+  reconnect: 'warning',
+  error: 'danger',
+  warning: 'warning',
+}
+const stateOf = (w: WorkspaceView) => {
+  const link = linkOf(w)
+  return link === 'ok' ? null : { link, tone: TONE[link], label: t(`workspaces.link.${link}`) }
+}
+/** The first client that needs someone, for the sentence at the top. */
+const firstProblem = computed(() => {
+  for (const link of PROFILE_LINKS.filter((l) => l !== 'ok')) {
+    const w = active.value.find((c) => linkOf(c) === link)
+    if (w) return { workspace: w, link }
+  }
+  return null
+})
+
+// ---- profiles: the first one's accounts, then «+N» for the others
+const PLATFORM_ICON: Record<string, string> = {
+  instagram: 'i-lucide-instagram',
+  facebook: 'i-lucide-facebook',
+}
+const iconOf = (platform: string) => PLATFORM_ICON[platform] ?? 'i-lucide-at-sign'
+const handleOf = (a: ClientProfile['accounts'][number]) =>
+  a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
+const firstAccounts = (w: WorkspaceView) => w.profiles?.[0]?.accounts ?? []
+const moreProfiles = (w: WorkspaceView) => Math.max((w.profiles?.length ?? 0) - 1, 0)
+const profilesText = (w: WorkspaceView) => {
+  const names = firstAccounts(w).map(handleOf).join(' · ')
+  if (!names) return t('workspaces.noProfile')
+  const more = moreProfiles(w)
+  return more > 0 ? `${names} ${t('workspaces.moreProfiles', { n: more })}` : names
+}
+
+// ---- filter and search
+const filter = ref<'active' | 'archived'>('active')
+const query = ref('')
+const options = computed(() => [
+  { value: 'active' as const, label: t('workspaces.activeFilter'), count: active.value.length },
+  {
+    value: 'archived' as const,
+    label: t('workspaces.archivedFilter'),
+    count: archived.value.length,
+  },
+])
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+const visible = computed(() => {
+  const rows = filter.value === 'active' ? active.value : archived.value
+  const q = fold(query.value.trim())
+  if (!q) return rows
+  return rows.filter((w) =>
+    [w.name, ...(w.profiles ?? []).flatMap((p) => p.accounts.flatMap((a) => [a.name, a.username]))]
+      .filter((s): s is string => Boolean(s))
+      .some((s) => fold(s).includes(q.replace(/^@/, ''))),
+  )
+})
+
+const columns = computed<DataColumn[]>(() => [
+  { key: 'name', label: t('workspaces.column.client') },
+  { key: 'profiles', label: t('workspaces.column.profiles') },
+  { key: 'link', label: t('workspaces.column.link') },
+  {
+    key: 'actions',
+    label: t('workspaces.column.actions'),
+    hideLabel: true,
+    align: 'end',
+    class: 'w-px px-2 whitespace-nowrap',
+  },
+])
+const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}/account`)
+/** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
+const canReconnect = (w: WorkspaceView) =>
+  org.may.value.manageAccounts && w.archivedAt === null && linkOf(w) === 'reconnect'
+const integrations = computed(() => org.to('/impostazioni/integrazioni'))
+
 // ---- create
+const adding = ref(false)
 const name = ref('')
 const creating = ref(false)
 const createProblem = ref<string | null>(null)
+function startAdding() {
+  name.value = ''
+  createProblem.value = null
+  adding.value = true
+}
 async function create() {
   creating.value = true
   createProblem.value = null
   try {
     await call('POST', org.api('/workspaces'), { name: name.value })
-    name.value = ''
+    adding.value = false
+    filter.value = 'active'
+    query.value = ''
     await refresh()
   } catch (e) {
     createProblem.value = failure(e).message
@@ -31,23 +129,32 @@ async function create() {
 }
 
 // ---- rename and archive
-const editing = ref<string | null>(null)
-const newName = ref('')
-const rowProblem = ref<{ id: string; message: string } | null>(null)
 const done = ref<string | null>(null)
+const problem = ref<string | null>(null)
+const renaming = ref<WorkspaceView | null>(null)
+const newName = ref('')
+const renameProblem = ref<string | null>(null)
+const renameOpen = computed({
+  get: () => renaming.value !== null,
+  set: (v) => {
+    if (!v) renaming.value = null
+  },
+})
 function startRename(w: WorkspaceView) {
-  editing.value = w.id
+  renaming.value = w
   newName.value = w.name
-  rowProblem.value = null
+  renameProblem.value = null
 }
-async function rename(w: WorkspaceView) {
+async function rename() {
+  const w = renaming.value
+  if (!w) return
   try {
     await call('PATCH', org.api(`/workspaces/${encodeURIComponent(w.id)}`), { name: newName.value })
-    editing.value = null
+    renaming.value = null
     done.value = t('workspaces.renamed')
     await refresh()
   } catch (e) {
-    rowProblem.value = { id: w.id, message: failure(e).message }
+    renameProblem.value = failure(e).message
   }
 }
 const archiving = ref<WorkspaceView | null>(null)
@@ -60,140 +167,268 @@ const archiveOpen = computed({
 async function archive() {
   const w = archiving.value
   if (!w) return
+  problem.value = null
   try {
     await call('POST', org.api(`/workspaces/${encodeURIComponent(w.id)}/archive`))
     done.value = t('workspaces.archived', { name: w.name })
-    archiving.value = null
     await refresh()
   } catch (e) {
-    rowProblem.value = { id: w.id, message: failure(e).message }
+    problem.value = failure(e).message
+  } finally {
     archiving.value = null
   }
+}
+
+function actions(w: WorkspaceView): DropdownMenuItem[][] {
+  const groups: DropdownMenuItem[][] = [
+    [
+      {
+        label: t('workspaces.open'),
+        icon: 'i-lucide-arrow-right',
+        onSelect: () => void navigateTo(pageOf(w)),
+      },
+    ],
+  ]
+  // on a phone the row has no room for the button: «Ricollega» comes first in «⋯»
+  if (canReconnect(w))
+    groups[0]?.unshift({
+      label: t('workspaces.reconnect'),
+      icon: 'i-lucide-link',
+      class: 'md:hidden',
+      onSelect: () => void navigateTo(integrations.value),
+    })
+  if (canManageMembers(w))
+    groups[0]?.push({
+      label: t('workspaces.members'),
+      icon: 'i-lucide-users',
+      onSelect: () => void navigateTo(org.to(`/spazi/${w.slug}/membri`)),
+    })
+  if (org.may.value.createWorkspace && w.archivedAt === null)
+    groups.push([
+      { label: t('workspaces.rename'), icon: 'i-lucide-pencil', onSelect: () => startRename(w) },
+      {
+        label: t('workspaces.archive'),
+        icon: 'i-lucide-archive',
+        color: 'error',
+        onSelect: () => (archiving.value = w),
+      },
+    ])
+  return groups
 }
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('workspaces.title') }}</h1>
-      <p class="text-(--app-text-muted)">{{ $t('workspaces.explain') }}</p>
-    </header>
+  <div :data-ready="ready || undefined">
+    <PageHeader :title="$t('workspaces.title')">
+      <template v-if="status === 'success' && active.length > 0" #summary>
+        {{ $t('workspaces.count', { n: active.length }, active.length) }}
+        <i18n-t v-if="firstProblem" :keypath="`workspaces.problem.${firstProblem.link}`" tag="span">
+          <template #name>
+            <NuxtLink
+              :to="pageOf(firstProblem.workspace)"
+              class="text-(--app-text) underline underline-offset-3"
+              >{{ firstProblem.workspace.name }}</NuxtLink
+            >
+          </template>
+        </i18n-t>
+      </template>
+      <template v-if="org.may.value.createWorkspace" #actions>
+        <UButton
+          class="min-h-11"
+          icon="i-lucide-plus"
+          :aria-label="$t('workspaces.new')"
+          @click="startAdding"
+        >
+          <span class="max-md:hidden">{{ $t('workspaces.new') }}</span>
+        </UButton>
+      </template>
+    </PageHeader>
 
-    <form
-      v-if="org.may.value.createWorkspace"
-      class="flex flex-wrap items-end gap-3"
-      novalidate
-      @submit.prevent="create"
+    <p v-if="done" role="status" class="mb-4 text-sm text-(--app-success)">{{ done }}</p>
+    <p v-if="problem" role="alert" class="mb-4 text-sm text-(--app-danger)">{{ problem }}</p>
+
+    <div
+      v-if="status !== 'error' && all.length > 0"
+      class="mb-4 flex flex-col gap-3 md:flex-row md:items-center"
     >
-      <UFormField
-        :label="$t('workspaces.newName')"
-        name="workspace-name"
-        class="min-w-0 flex-1"
-        :error="createProblem ?? undefined"
-      >
-        <UInput v-model="name" class="w-full" size="xl" />
-      </UFormField>
-      <UButton type="submit" class="min-h-11" icon="i-lucide-plus" :loading="creating">
-        {{ $t('workspaces.create') }}
-      </UButton>
-    </form>
+      <SegmentedFilter
+        v-model="filter"
+        :label="$t('workspaces.show')"
+        :options="options"
+        class="self-start"
+      />
+      <SearchField v-model="query" :label="$t('workspaces.search')" />
+    </div>
 
-    <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
-
-    <p v-if="status === 'pending' || status === 'idle'" role="status">
-      {{ $t('account.loading') }}
-    </p>
-    <div v-else-if="error" role="alert" class="space-y-3">
-      <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
+    <TableSkeleton
+      v-if="status === 'pending' || status === 'idle'"
+      :label="$t('workspaces.loading')"
+      :columns="[
+        $t('workspaces.column.client'),
+        $t('workspaces.column.profiles'),
+        $t('workspaces.column.link'),
+      ]"
+      :rows="4"
+    />
+    <div
+      v-else-if="error"
+      role="alert"
+      class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
+    >
+      <p>{{ $t('workspaces.loadError') }}</p>
       <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
     <EmptyState
-      v-else-if="active.length === 0"
+      v-else-if="all.length === 0"
       :title="$t('workspaces.empty')"
       :text="
         org.may.value.createWorkspace ? $t('workspaces.emptyCreate') : $t('workspaces.emptyAsk')
       "
       icon="i-lucide-briefcase"
     />
-    <ul v-else class="space-y-2" :aria-label="$t('workspaces.title')">
-      <li
-        v-for="w in active"
-        :key="w.id"
-        class="space-y-2 rounded-xl border border-(--app-border) bg-(--app-surface) p-4"
-      >
-        <form
-          v-if="editing === w.id"
-          class="flex flex-wrap items-end gap-2"
-          novalidate
-          @submit.prevent="rename(w)"
+    <p
+      v-else-if="visible.length === 0"
+      class="rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+    >
+      {{
+        query.trim()
+          ? $t('workspaces.noMatch', { q: query.trim() })
+          : filter === 'archived'
+            ? $t('workspaces.noArchived')
+            : $t('workspaces.empty')
+      }}
+    </p>
+    <DataTable
+      v-else
+      :caption="$t('workspaces.title')"
+      :columns="columns"
+      :rows="visible"
+      :row-key="(w) => w.id"
+    >
+      <template #cell-name="{ row }">
+        <span class="flex min-w-0 items-center gap-3">
+          <RowAvatar :name="row.name" :src="row.photoUrl" />
+          <NuxtLink
+            :to="pageOf(row)"
+            class="truncate text-[0.9375rem] font-semibold underline-offset-3 hover:underline"
+            >{{ row.name }}</NuxtLink
+          >
+        </span>
+      </template>
+      <template #cell-profiles="{ row }">
+        <span
+          v-if="firstAccounts(row).length > 0"
+          class="flex items-center gap-x-3 text-(--app-text-muted)"
         >
-          <UFormField :label="$t('workspaces.rename')" name="rename" class="min-w-0 flex-1">
-            <UInput v-model="newName" class="w-full" size="xl" />
+          <span
+            v-for="a in firstAccounts(row)"
+            :key="a.id"
+            class="inline-flex min-w-0 items-center gap-1"
+          >
+            <UIcon
+              :name="iconOf(a.platform)"
+              class="size-[0.9375rem] shrink-0"
+              aria-hidden="true"
+            />
+            <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}:</span>
+            <span class="truncate">{{ handleOf(a) }}</span>
+          </span>
+          <span v-if="moreProfiles(row) > 0" class="tabular-nums">
+            <span aria-hidden="true">{{
+              $t('workspaces.moreProfiles', { n: moreProfiles(row) })
+            }}</span>
+            <span class="sr-only">{{
+              $t('workspaces.moreProfilesLabel', { n: moreProfiles(row) }, moreProfiles(row))
+            }}</span>
+          </span>
+        </span>
+        <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
+      </template>
+      <template #cell-link="{ row }">
+        <StatusDot v-if="stateOf(row)" :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+      </template>
+      <template #cell-actions="{ row }">
+        <span class="flex items-center justify-end gap-1">
+          <UButton
+            v-if="canReconnect(row)"
+            color="neutral"
+            variant="outline"
+            class="min-h-11"
+            :to="integrations"
+            :aria-label="$t('workspaces.reconnectOf', { name: row.name })"
+          >
+            {{ $t('workspaces.reconnect') }}
+          </UButton>
+          <RowActions :name="row.name" :items="actions(row)" />
+        </span>
+      </template>
+      <template #mobile="{ row }">
+        <DataRow :name="row.name" :to="pageOf(row)" :src="row.photoUrl" :detail="profilesText(row)">
+          <template v-if="stateOf(row)" #detail>
+            <span class="flex min-w-0 items-center gap-2">
+              <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+              <span class="truncate">{{ profilesText(row) }}</span>
+            </span>
+          </template>
+          <template #actions>
+            <RowActions :name="row.name" :items="actions(row)" />
+          </template>
+        </DataRow>
+      </template>
+    </DataTable>
+
+    <UModal v-model:open="adding" :title="$t('workspaces.new')">
+      <template #body>
+        <form id="new-client" novalidate @submit.prevent="create">
+          <UFormField
+            :label="$t('workspaces.newName')"
+            name="workspace-name"
+            :error="createProblem ?? undefined"
+          >
+            <UInput v-model="name" class="w-full" size="xl" autofocus />
           </UFormField>
-          <UButton type="submit" class="min-h-11">{{ $t('account.save') }}</UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="editing = null">
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex flex-wrap gap-3">
+          <UButton type="submit" form="new-client" class="min-h-11" :loading="creating">
+            {{ $t('workspaces.create') }}
+          </UButton>
+          <UButton class="min-h-11" color="neutral" variant="ghost" @click="adding = false">
             {{ $t('security.cancel') }}
           </UButton>
-        </form>
-        <div v-else class="flex flex-wrap items-center justify-between gap-2">
-          <span class="font-semibold">{{ w.name }}</span>
-          <div class="flex flex-wrap items-center gap-2">
-            <RoleBadge :role="w.myRole" />
-            <UButton
-              class="min-h-11"
-              color="neutral"
-              variant="outline"
-              :to="org.to(`/spazi/${w.slug}/account`)"
-              :aria-label="$t('workspaces.accountsOf', { name: w.name })"
-            >
-              {{ $t('workspaces.accounts') }}
-            </UButton>
-            <UButton
-              v-if="canManageMembers(w)"
-              class="min-h-11"
-              color="neutral"
-              variant="outline"
-              :to="org.to(`/spazi/${w.slug}/membri`)"
-              :aria-label="$t('workspaces.membersOf', { name: w.name })"
-            >
-              {{ $t('workspaces.members') }}
-            </UButton>
-            <template v-if="org.may.value.createWorkspace">
-              <UButton
-                class="min-h-11"
-                color="neutral"
-                variant="ghost"
-                :aria-label="$t('workspaces.renameOf', { name: w.name })"
-                @click="startRename(w)"
-              >
-                {{ $t('workspaces.rename') }}
-              </UButton>
-              <UButton
-                class="min-h-11"
-                color="neutral"
-                variant="ghost"
-                :aria-label="$t('workspaces.archiveOf', { name: w.name })"
-                @click="archiving = w"
-              >
-                {{ $t('workspaces.archive') }}
-              </UButton>
-            </template>
-          </div>
         </div>
-        <p v-if="rowProblem?.id === w.id" role="alert" class="text-sm text-(--app-danger)">
-          {{ rowProblem.message }}
-        </p>
-      </li>
-    </ul>
+      </template>
+    </UModal>
 
-    <section v-if="archived.length > 0" aria-labelledby="archived" class="space-y-2">
-      <h2 id="archived" class="text-lg">{{ $t('workspaces.archivedTitle') }}</h2>
-      <ul class="space-y-1 text-(--app-text-muted)">
-        <li v-for="w in archived" :key="w.id">{{ w.name }}</li>
-      </ul>
-    </section>
+    <UModal
+      v-model:open="renameOpen"
+      :title="$t('workspaces.renameTitle', { name: renaming?.name ?? '' })"
+    >
+      <template #body>
+        <form id="rename-client" novalidate @submit.prevent="rename">
+          <UFormField
+            :label="$t('workspaces.newNameOf')"
+            name="rename"
+            :error="renameProblem ?? undefined"
+          >
+            <UInput v-model="newName" class="w-full" size="xl" autofocus />
+          </UFormField>
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex flex-wrap gap-3">
+          <UButton type="submit" form="rename-client" class="min-h-11">
+            {{ $t('account.save') }}
+          </UButton>
+          <UButton class="min-h-11" color="neutral" variant="ghost" @click="renaming = null">
+            {{ $t('security.cancel') }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
 
     <UModal
       v-model:open="archiveOpen"

@@ -26,7 +26,8 @@ watch(org.slug, refresh)
 </script>
 
 <template>
-  <div class="min-h-dvh md:flex">
+  <div class="min-h-dvh bg-(--app-paper) md:flex">
+    <!-- the paper of the union style under every page of the agency (Matteo, 14/11) -->
     <a
       href="#main"
       class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-(--app-surface) focus:px-3 focus:py-2"
