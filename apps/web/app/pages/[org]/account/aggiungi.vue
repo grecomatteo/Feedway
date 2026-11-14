@@ -86,7 +86,6 @@ const systemUsersUrl = computed(() => metaBusinessUrl('system-users', businessId
 
 const found = ref<ImportableAccount[] | null>(null)
 const search = reactive({ sending: false, problem: '' })
-const imported = ref<number | null>(null)
 
 async function findAccounts() {
   const id = connectionId.value
@@ -109,7 +108,6 @@ async function findAccounts() {
 function chooseConnection(id: string) {
   chosenConnection.value = id
   found.value = null
-  imported.value = null
   search.problem = ''
 }
 
@@ -117,23 +115,16 @@ const tokenOpen = ref(false)
 async function tokenDone(_outcome: 'connected' | 'replaced', saved: TokenSaved) {
   await refreshConnections()
   chosenConnection.value = saved.connection.id
-  imported.value = null
   found.value = saved.accounts
 }
 
 function searchAgain() {
-  imported.value = null
   return findAccounts()
 }
 
-async function importedDone(count: number) {
-  imported.value = count
-  // what was just imported shows as such, and the list of the accounts page is fresh
-  await Promise.all([
-    findAccounts(),
-    refreshConnections(),
-    refreshNuxtData(`accounts-${org.slug.value}`),
-  ])
+/** «Abbina ai clienti» goes on to Clienti: the lists left behind are fresh when the person is back. */
+async function importedDone() {
+  await Promise.all([refreshConnections(), refreshNuxtData(`accounts-${org.slug.value}`)])
 }
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
@@ -329,14 +320,11 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
           <p v-if="search.problem" role="alert" class="text-(--app-danger)">{{ search.problem }}</p>
         </div>
 
-        <p v-if="imported !== null" role="status" class="text-(--app-success)">
-          {{ $t('addAccount.imported', { n: imported }, imported) }}
-        </p>
-        <ImportAccountsChooser
+        <MatchClients
           v-if="found !== null && connectionId !== null"
           :accounts="found"
           :path="org.api(`/connections/${connectionId}/import`)"
-          @imported="importedDone"
+          @done="importedDone"
         />
       </section>
 

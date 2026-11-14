@@ -50,6 +50,7 @@ export function useOrganization() {
     editSettings: role.value === 'owner',
     createWorkspace: isManager.value,
     manageAccounts: isManager.value,
+    assignAccounts: isManager.value,
     transferOwnership: role.value === 'owner',
   }))
   const active = computed(() => organization.value?.status === 'active')
@@ -70,5 +71,38 @@ export function useWorkspaces() {
     server: false,
     lazy: true,
     immediate: org.active.value,
+  })
+}
+
+/** What «Annulla» needs after «Crea N clienti», kept for the Clienti page that comes next. */
+export interface ClientImport {
+  created: number
+  undo: { workspaceIds: string[]; assignments: { workspaceId: string; accountId: string }[] }
+}
+
+export function useClientImport() {
+  return useState<ClientImport | null>('client-import', () => null)
+}
+
+/** «Sistemali»: the profiles in no client, for Owner and Admin only. */
+export interface ProfileWithoutClient {
+  key: string
+  name: string
+  accounts: {
+    id: string
+    platform: string
+    name: string
+    username: string | null
+    avatarUrl: string | null
+  }[]
+}
+
+export function useProfilesWithoutClient() {
+  const org = useOrganization()
+  return useFetch<{ items: ProfileWithoutClient[] }>(() => org.api('/accounts/without-client'), {
+    key: () => `without-client-${org.slug.value}`,
+    server: false,
+    lazy: true,
+    immediate: org.active.value && org.may.value.assignAccounts,
   })
 }

@@ -1227,5 +1227,76 @@
   "lists": {
     "actionsFor": "Azioni per {name}",
     "clearSearch": "Cancella la ricerca"
+  },
+  "clients": {
+    "match": {
+      "step": "Abbina ai clienti",
+      "title": "Abbiamo trovato {n} profilo | Abbiamo trovato {n} profili",
+      "intro": "Ti proponiamo un cliente per ogni profilo. Togli la spunta a quelli che non sono clienti e correggi i nomi, poi conferma. Quelli senza spunta restano in «Sistemali».",
+      "introPhone": "Tocca un cliente per cambiare nome o unirlo a un altro.",
+      "caption": "Clienti da creare",
+      "column": {
+        "choose": "Crea",
+        "client": "Cliente da creare",
+        "profiles": "Profili",
+        "why": "Perché insieme",
+        "actions": "Azioni"
+      },
+      "nameOf": "Nome del cliente per {name}",
+      "createOf": "Crea il cliente {name}",
+      "why": {
+        "paired": "Instagram e Pagina collegati su Meta",
+        "instagram_only": "Solo Instagram",
+        "facebook_only": "Solo Pagina Facebook",
+        "merged": "Uniti da te"
+      },
+      "notClient": "Non diventa un cliente",
+      "goesTo": "Va in {name}",
+      "already": "Già nei tuoi clienti, non cambia niente",
+      "alreadyCount": "{n} già nei tuoi clienti",
+      "blocked": "Non si possono importare",
+      "none": "Nessun profilo nuovo da abbinare.",
+      "later": "Decido dopo",
+      "create": "Importa i profili | Crea {n} cliente | Crea {n} clienti",
+      "rest": "{n} profilo resta in «Sistemali» | {n} profili restano in «Sistemali»",
+      "restOne": "{name} resta in «Sistemali»",
+      "merge": "Unisci con…",
+      "mergePhone": "Unisci con un altro profilo…",
+      "mergeTitle": "Unisci {name} con…",
+      "mergeHelp": "I due profili diventano un solo cliente.",
+      "existing": "Aggiungi a un cliente esistente…",
+      "existingTitle": "Aggiungi {name} a…",
+      "existingNone": "Non hai ancora clienti.",
+      "leaveExisting": "Crea un cliente nuovo",
+      "notAClient": "Non è un cliente",
+      "makeClient": "È un cliente",
+      "rename": "Rinomina",
+      "sheet": "Cliente {name}",
+      "done": "Fatto"
+    },
+    "undo": {
+      "created": "{n} cliente creato | {n} clienti creati",
+      "action": "Annulla",
+      "undone": "Fatto: i clienti sono tolti e i profili sono in «Sistemali»."
+    },
+    "fix": {
+      "notice": "{n} profilo trovato non è in un cliente. | {n} profili trovati non sono in un cliente.",
+      "open": "Sistemali",
+      "title": "Profili senza cliente",
+      "intro": "Crea il loro cliente o aggiungili a uno che c'è già.",
+      "create": "Crea il cliente",
+      "createOf": "Crea il cliente per {name}",
+      "existing": "Aggiungi a un cliente esistente",
+      "existingOf": "Aggiungi {name} a un cliente esistente",
+      "added": "{name} aggiunto a {client}.",
+      "empty": "Tutti i profili sono nei loro clienti."
+    },
+    "new": {
+      "profile": "Da quale profilo nasce?",
+      "none": "Senza profilo, per ora",
+      "noneHelp": "Per esempio un cliente che non ha ancora i social.",
+      "name": "Nome del nuovo cliente"
+    },
+    "created": "{name} creato."
   }
 }

@@ -102,29 +102,59 @@ const canReconnect = (w: WorkspaceView) =>
   org.may.value.manageAccounts && w.archivedAt === null && linkOf(w) === 'reconnect'
 const integrations = computed(() => org.to('/impostazioni/integrazioni'))
 
-// ---- create
+// ---- create, from a profile or without one (spec §14.7)
+const { data: withoutClient, refresh: refreshWithoutClient } = useProfilesWithoutClient()
+const orphans = computed(() =>
+  org.may.value.assignAccounts ? (withoutClient.value?.items ?? []) : [],
+)
 const adding = ref(false)
-const name = ref('')
-const creating = ref(false)
-const createProblem = ref<string | null>(null)
-function startAdding() {
-  name.value = ''
-  createProblem.value = null
+const preselect = ref<string | null>(null)
+function startAdding(key: string | null = null) {
+  preselect.value = key
+  fixing.value = false
   adding.value = true
 }
-async function create() {
-  creating.value = true
-  createProblem.value = null
+async function created(clientName: string) {
+  filter.value = 'active'
+  query.value = ''
+  done.value = t('clients.created', { name: clientName })
+  await Promise.all([refresh(), refreshWithoutClient()])
+}
+
+// ---- «Sistemali»
+const fixing = ref(false)
+async function added(message: string) {
+  fixing.value = false
+  done.value = message
+  await Promise.all([refresh(), refreshWithoutClient()])
+}
+
+// ---- «N clienti creati · Annulla», right after «Abbina ai clienti»
+const lastImport = useClientImport()
+const undoing = ref(false)
+let undoTimer: ReturnType<typeof setTimeout> | undefined
+onMounted(() => {
+  if (lastImport.value) undoTimer = setTimeout(() => (lastImport.value = null), 30_000)
+})
+onBeforeUnmount(() => {
+  clearTimeout(undoTimer)
+  lastImport.value = null
+})
+async function undoImport() {
+  const last = lastImport.value
+  if (!last) return
+  undoing.value = true
+  problem.value = null
   try {
-    await call('POST', org.api('/workspaces'), { name: name.value })
-    adding.value = false
-    filter.value = 'active'
-    query.value = ''
-    await refresh()
+    await call('POST', org.api('/workspaces/import-undo'), last.undo)
+    lastImport.value = null
+    done.value = t('clients.undo.undone')
+    await Promise.all([refresh(), refreshWithoutClient()])
   } catch (e) {
-    createProblem.value = failure(e).message
+    problem.value = failure(e).message
+    lastImport.value = null
   } finally {
-    creating.value = false
+    undoing.value = false
   }
 }
 
@@ -237,12 +267,30 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
           class="min-h-11"
           icon="i-lucide-plus"
           :aria-label="$t('workspaces.new')"
-          @click="startAdding"
+          @click="startAdding()"
         >
           <span class="max-md:hidden">{{ $t('workspaces.new') }}</span>
         </UButton>
       </template>
     </PageHeader>
+
+    <div
+      v-if="orphans.length > 0"
+      class="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] bg-(--app-brand-soft) px-4 py-3 text-sm"
+    >
+      <UIcon name="i-lucide-link" class="size-[1.125rem] shrink-0" aria-hidden="true" />
+      <span class="min-w-0 flex-1">{{
+        $t('clients.fix.notice', { n: orphans.length }, orphans.length)
+      }}</span>
+      <UButton
+        class="min-h-9 bg-(--app-surface)"
+        color="neutral"
+        variant="outline"
+        @click="fixing = true"
+      >
+        {{ $t('clients.fix.open') }}
+      </UButton>
+    </div>
 
     <p v-if="done" role="status" class="mb-4 text-sm text-(--app-success)">{{ done }}</p>
     <p v-if="problem" role="alert" class="mb-4 text-sm text-(--app-danger)">{{ problem }}</p>
@@ -379,29 +427,37 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       </template>
     </DataTable>
 
-    <UModal v-model:open="adding" :title="$t('workspaces.new')">
-      <template #body>
-        <form id="new-client" novalidate @submit.prevent="create">
-          <UFormField
-            :label="$t('workspaces.newName')"
-            name="workspace-name"
-            :error="createProblem ?? undefined"
-          >
-            <UInput v-model="name" class="w-full" size="xl" autofocus />
-          </UFormField>
-        </form>
-      </template>
-      <template #footer>
-        <div class="flex flex-wrap gap-3">
-          <UButton type="submit" form="new-client" class="min-h-11" :loading="creating">
-            {{ $t('workspaces.create') }}
-          </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="adding = false">
-            {{ $t('security.cancel') }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
+    <NewClientDialog
+      v-model:open="adding"
+      :profiles="orphans"
+      :preselect="preselect"
+      @created="created"
+    />
+    <FixProfiles
+      v-model:open="fixing"
+      :profiles="orphans"
+      :clients="active"
+      @create="startAdding"
+      @added="added"
+    />
+    <div
+      v-if="lastImport && lastImport.created > 0"
+      role="status"
+      class="fixed bottom-7 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-[10px] bg-(--app-text) px-4 py-2 text-sm text-(--app-bg) max-md:bottom-[76px] max-md:w-[calc(100%-2rem)]"
+    >
+      <span class="flex-1">{{
+        $t('clients.undo.created', { n: lastImport.created }, lastImport.created)
+      }}</span>
+      <UButton
+        class="min-h-11 font-semibold text-(--app-bg) underline underline-offset-3"
+        color="neutral"
+        variant="link"
+        :loading="undoing"
+        @click="undoImport"
+      >
+        {{ $t('clients.undo.action') }}
+      </UButton>
+    </div>
 
     <UModal
       v-model:open="renameOpen"
