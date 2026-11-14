@@ -8,6 +8,7 @@ import {
   importAccounts,
   listImportable,
   listProfilesWithoutClient,
+  replaceClientAccounts,
   undoClientImport,
   UNDO_WINDOW_MS,
   type AuthSessionInfo,
@@ -540,4 +541,117 @@ test('«Annulla» refuses a client the import did not create, or created long ag
     undoClientImport(later, owner, { workspaceIds: [created.id], assignments: [] }, REQ),
   ).rejects.toMatchObject({ code: 'CONFLICT' })
   expect((await workspacesOf(organizationId)).every((w) => !w.archived)).toBe(true)
+})
+
+/** A client with Forno Luce's profile (its Page and Instagram), and its account ids. */
+async function clientWithProfile() {
+  const connectionId = await connect()
+  const { accounts } = await importAccounts(deps, owner, { connectionId, externalIds: ALL }, REQ)
+  const id = (externalId: string) => accounts.find((a) => a.externalId === externalId)?.id ?? ''
+  const forno = [id(pages.withInstagram), id(instagram.ofPage)]
+  const client = await createWorkspace(deps, owner, { name: 'Forno Luce', accountIds: forno }, REQ)
+  return { client, forno, id }
+}
+
+test('«Togli dal cliente»: the profile leaves the client, stays imported and goes to «Sistemali»', async () => {
+  const { client, forno } = await clientWithProfile()
+  const { organizationId } = owner
+  const before = (await actions(organizationId)).length
+  expect(
+    await replaceClientAccounts(
+      deps,
+      owner,
+      { workspaceId: client.id, remove: forno, add: [] },
+      REQ,
+    ),
+  ).toEqual({ removed: 2, added: 0 })
+  expect(await assignmentsOf(organizationId)).toEqual([])
+  const log = (await actions(organizationId)).slice(before)
+  expect(log).toEqual(['account.unassigned', 'account.unassigned'])
+  const left = await listProfilesWithoutClient(deps, owner)
+  expect(left.map((p) => p.accounts.map((a) => a.externalId).sort())).toContainEqual(
+    [instagram.ofPage, pages.withInstagram].sort(),
+  )
+  const [count] = await rows<{ n: string }>(
+    'select count(*) as n from social_accounts where organization_id = $1',
+    [organizationId],
+  )
+  expect(Number(count?.n)).toBe(ALL.length)
+})
+
+test('«Sostituisci profilo» swaps the accounts in one go, or changes nothing', async () => {
+  const { client, forno, id } = await clientWithProfile()
+  const { organizationId } = owner
+  const studio = id(pages.withoutInstagram)
+  // an inactive account to add: nothing moves, the old profile stays
+  await admin.query('update social_accounts set active = false where id = $1', [studio])
+  await expect(
+    replaceClientAccounts(
+      deps,
+      owner,
+      { workspaceId: client.id, remove: forno, add: [studio] },
+      REQ,
+    ),
+  ).rejects.toMatchObject({ code: 'CONFLICT' })
+  expect((await assignmentsOf(organizationId)).map((a) => a.external_id).sort()).toEqual(
+    [instagram.ofPage, pages.withInstagram].sort(),
+  )
+  await admin.query('update social_accounts set active = true where id = $1', [studio])
+  expect(
+    await replaceClientAccounts(
+      deps,
+      owner,
+      { workspaceId: client.id, remove: forno, add: [studio] },
+      REQ,
+    ),
+  ).toEqual({ removed: 2, added: 1 })
+  expect(await assignmentsOf(organizationId)).toEqual([
+    { workspace_id: client.id, external_id: pages.withoutInstagram },
+  ])
+  // the same change again changes and records nothing
+  const before = (await actions(organizationId)).length
+  expect(
+    await replaceClientAccounts(
+      deps,
+      owner,
+      { workspaceId: client.id, remove: forno, add: [studio] },
+      REQ,
+    ),
+  ).toEqual({ removed: 0, added: 0 })
+  expect(await actions(organizationId)).toHaveLength(before)
+})
+
+test('profiles of a client: only Owner and Admin, never an archived client, nothing of another agency', async () => {
+  const { client, forno } = await clientWithProfile()
+  const input = { workspaceId: client.id, remove: forno, add: [] }
+  // a Manager of the client sees it, but does not change its profiles
+  const manager = await memberOf(owner.organizationId, client.id)
+  await expect(replaceClientAccounts(deps, manager, input, REQ)).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  // an account or a client of another agency is not found
+  const other = await agencyWithOwner()
+  await expect(replaceClientAccounts(deps, other, input, REQ)).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+  })
+  const elsewhere = await seed(tdb.runtimeUrl, (s) =>
+    s.workspace(other.organizationId, { name: 'Altro' }),
+  )
+  await expect(
+    replaceClientAccounts(deps, other, { workspaceId: elsewhere, remove: [], add: forno }, REQ),
+  ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  // an empty change, the same account on both sides, too many accounts: not valid
+  for (const bad of [
+    { remove: [], add: [] },
+    { remove: forno, add: forno.slice(0, 1) },
+    { remove: Array.from({ length: 21 }, () => crypto.randomUUID()), add: [] },
+  ])
+    await expect(
+      replaceClientAccounts(deps, owner, { workspaceId: client.id, ...bad }, REQ),
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+  await admin.query('update workspaces set archived_at = now() where id = $1', [client.id])
+  await expect(replaceClientAccounts(deps, owner, input, REQ)).rejects.toMatchObject({
+    code: 'CONFLICT',
+  })
+  expect(await assignmentsOf(owner.organizationId)).toHaveLength(2)
 })

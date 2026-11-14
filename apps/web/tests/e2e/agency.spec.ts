@@ -159,11 +159,14 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   const context = page.getByRole('button', { name: 'Contesto' }).first()
   await context.click()
   await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
+  // choosing a client opens its page (D-5)
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi/cliente-a$`))
+  await expect(page.getByRole('heading', { level: 1, name: 'Cliente A' })).toBeVisible()
   await expect(context).toHaveText(/Cliente A/)
   await context.click()
   await page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' }).click()
   await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
-  expect(page.url()).toMatch(/[?&]profilo=/)
+  expect(page.url()).toMatch(/\/spazi\/cliente-a\?profilo=/)
 
   // the menu keeps the context: the calendar of a later stage reads it from the address
   const nav = page
@@ -198,6 +201,18 @@ test('context switcher: a profile, its link, and profiles that are not there', a
     await page.goto(`/${org}/spazi?spazio=${slug}&profilo=${profile}`)
     await expect(context).toHaveText(/Tutti i clienti/)
   }
+
+  // «Tutti i clienti» from the client's page: back to the clients, and no profile listed (D-6)
+  await page.goto(`/${org}/spazi/${slug}`)
+  await expect(context).toHaveText(/Cliente A/)
+  await context.click()
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' })).toBeVisible()
+  await page.getByRole('menuitemcheckbox', { name: 'Tutti i clienti' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
+  await expect(context).toHaveText(/Tutti i clienti/)
+  await context.click()
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Cliente A' })).toBeVisible()
+  await expect(page.getByRole('menuitemcheckbox', { name: /^Profilo / })).toHaveCount(0)
 })
 
 test("client selector: Feedway's copy of each client's photo, initials without it, nothing from Meta", async ({

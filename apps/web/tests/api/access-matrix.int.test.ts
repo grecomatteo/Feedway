@@ -136,6 +136,10 @@ const RULES: Record<string, readonly Rule[]> = {
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}': [
     { permission: 'workspace.accounts.assign', level: 'organization' },
   ],
+  // the client's page: «Togli dal cliente», «Sostituisci profilo» (plan 04 Task 6a)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/accounts/replace': [
+    { permission: 'workspace.accounts.assign', level: 'organization' },
+  ],
   // «Sistemali» and the «Annulla» of «Crea N clienti» (spec §14.7)
   'GET /api/v1/orgs/{org}/accounts/without-client': [
     { permission: 'workspace.accounts.assign', level: 'organization' },

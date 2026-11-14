@@ -1,5 +1,6 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'agency' })
+// Persone, a tab of the client's page ([slug].vue holds its head): everyone who sees the client
+// reads who works in it; Owner, Admin and the client's Manager change it (spec §10.2).
 
 interface WorkspaceMember {
   userId: string
@@ -16,17 +17,21 @@ interface OrgMember {
 }
 
 const org = useOrganization()
-const route = useRoute()
 const { t } = useI18n()
 const { call, failure } = useApi()
 const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
-const { data: spaces, status: spacesStatus } = useWorkspaces()
-
-const workspace = computed(
-  () => spaces.value?.items.find((w) => w.slug === route.params['slug']) ?? null,
+const { client: workspace } = useClientPage()
+useHead({
+  title: () =>
+    workspace.value
+      ? t('workspaceMembers.titleOf', { name: workspace.value.name })
+      : t('workspaceMembers.title'),
+})
+const canManage = computed(
+  () =>
+    (org.may.value.manageUsers || workspace.value?.myRole === 'manager') &&
+    workspace.value?.archivedAt === null,
 )
-const missing = computed(() => spacesStatus.value === 'success' && workspace.value === null)
-useHead({ title: () => workspace.value?.name ?? t('workspaceMembers.title') })
 
 const path = computed(() =>
   workspace.value ? org.api(`/workspaces/${encodeURIComponent(workspace.value.id)}/members`) : '',
@@ -103,21 +108,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
 <template>
   <div class="space-y-6">
-    <header class="space-y-1">
-      <NuxtLink :to="org.to('/spazi')" class="text-sm text-(--app-text-muted) underline">
-        {{ $t('workspaces.title') }}
-      </NuxtLink>
-      <h1 class="text-3xl">
-        {{
-          workspace
-            ? $t('workspaceMembers.titleOf', { name: workspace.name })
-            : $t('workspaceMembers.title')
-        }}
-      </h1>
-    </header>
-
-    <p v-if="missing" role="alert">{{ $t('workspaceMembers.missing') }}</p>
-    <p v-else-if="!data && !error" role="status">{{ $t('account.loading') }}</p>
+    <h2 class="sr-only">{{ $t('client.tabs.people') }}</h2>
+    <ListSkeleton
+      v-if="!data && !error"
+      :label="$t('client.loadingPeople')"
+      :rows="2"
+      :action="false"
+    />
     <p v-else-if="error" role="alert" class="text-(--app-danger)">{{ failure(error).message }}</p>
 
     <template v-else-if="data">
@@ -142,7 +139,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               {{ $t('users.disabled') }}
             </UBadge>
           </span>
-          <span class="flex flex-wrap items-center gap-2">
+          <span v-if="canManage" class="flex flex-wrap items-center gap-2">
             <USelect
               :model-value="m.role"
               :items="roleItems"
@@ -163,11 +160,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               {{ $t('workspaceMembers.remove') }}
             </UButton>
           </span>
+          <span v-else class="text-sm text-(--app-text-muted)">{{ $t(`roles.${m.role}`) }}</span>
         </li>
       </ul>
 
       <section
-        v-if="org.may.value.manageUsers"
+        v-if="org.may.value.manageUsers && workspace?.archivedAt === null"
         aria-labelledby="add-member"
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
