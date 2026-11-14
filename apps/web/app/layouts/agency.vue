@@ -14,8 +14,6 @@ const inAgency = computed(() => Boolean(route.params['org']))
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()
 const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
-// the pages in the union style ask for the paper background (DESIGN.md «Stile unione»)
-const paper = computed(() => route.meta['paper'] === true)
 
 // A suspension made by the platform must show without a reload: ask again who the person is
 // when the tab comes back to the front and when they move to another agency.
@@ -28,7 +26,8 @@ watch(org.slug, refresh)
 </script>
 
 <template>
-  <div class="min-h-dvh md:flex" :class="paper ? 'bg-(--app-paper)' : undefined">
+  <div class="min-h-dvh bg-(--app-paper) md:flex">
+    <!-- the paper of the union style under every page of the agency (Matteo, 14/11) -->
     <a
       href="#main"
       class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-(--app-surface) focus:px-3 focus:py-2"

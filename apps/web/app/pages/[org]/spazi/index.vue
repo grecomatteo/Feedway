@@ -7,7 +7,7 @@ import type { StatusTone } from '~/components/StatusDot.vue'
 
 // «Clienti» in the union style (plan 04 Task 5b, spec §14.7, DESIGN.md «Elenchi e tabelle»):
 // one row per client with its profiles, the state of the link only where someone has to act.
-definePageMeta({ layout: 'agency', paper: true })
+definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
 const { t } = useI18n()

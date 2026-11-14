@@ -116,7 +116,7 @@ I valori di carta, cartoncino e scanalatura vengono dal riferimento visivo appro
 
 ### Clienti e profili (proposta P)
 
-Pagina Clienti (tappa 4, Task 5b): tabella Cliente · Profili · Collegamento · «⋯» su computer, righe a due livelli su telefono; «Da ricollegare» in ambra, «Con problema» in rosso, «Attenzione» in ambra; schermate in `schermate/tappa-4-clienti/` nella cartella del progetto.
+Pagina Clienti (tappa 4, Task 5b): tabella Cliente · Profili · Collegamento · «⋯» su computer, righe a due livelli su telefono; «Da ricollegare» in ambra, «Con problema» in rosso, «Attenzione» in ambra; schermate in `schermate/tappa-4-clienti/` nella cartella del progetto. Il fondo carta è nel layout dell'agenzia, sotto tutte le pagine (Matteo, 14/11).
 
 Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Account social».
 
