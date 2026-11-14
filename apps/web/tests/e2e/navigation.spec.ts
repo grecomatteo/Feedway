@@ -166,3 +166,25 @@ test('on a computer the user menu keeps Utenti in the sidebar, not in the menu',
   await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toBeVisible()
   await expect(menu.locator(`a[href^="/${org}/account"]`)).toHaveCount(0)
 })
+
+test('until the connections move to Integrazioni, it links to them, keeping the client', async ({
+  page,
+}) => {
+  const { org, client } = await ownerWithClient(page, 'Olga Integrazioni')
+  await page.goto(`/${org}/impostazioni/integrazioni?spazio=${client.slug}`)
+  const link = page.getByRole('link', { name: 'Apri gli account collegati' })
+  await expect(link).toHaveAttribute('href', `/${org}/account?spazio=${client.slug}`)
+  await link.click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/account\\?spazio=${client.slug}$`))
+  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+
+  // a Member has no connections to open
+  const member = await addPerson(org, 'Mara Member', 'member', [
+    { workspaceId: client.id, role: 'publisher' },
+  ])
+  await page.context().clearCookies()
+  await signIn(page.request, member)
+  await page.goto(`/${org}`)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Apri gli account collegati' })).toHaveCount(0)
+})

@@ -4,6 +4,7 @@ import type { MetaIntegration } from '@app/contracts'
 definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
+const context = useContextQuery()
 const { t } = useI18n()
 const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
 
@@ -107,7 +108,7 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
           {{ $t('metaIntegration.connections.explain') }}
         </p>
         <UButton
-          :to="org.to('/account')"
+          :to="{ path: org.to('/account'), query: context }"
           class="min-h-11"
           color="neutral"
           variant="outline"

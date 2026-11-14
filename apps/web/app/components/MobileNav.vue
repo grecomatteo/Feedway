@@ -22,7 +22,8 @@ const current = (to: string) => (to === org.to() ? route.path === to : under(to)
 const keyboard = ref(false)
 const onResize = () => {
   const view = window.visualViewport
-  keyboard.value = Boolean(view && view.height < window.innerHeight * 0.75)
+  // a pinch zoom shrinks the visual viewport too: that is not the keyboard
+  keyboard.value = Boolean(view && view.scale <= 1 && view.height < window.innerHeight * 0.75)
 }
 onMounted(() => window.visualViewport?.addEventListener('resize', onResize))
 onBeforeUnmount(() => window.visualViewport?.removeEventListener('resize', onResize))

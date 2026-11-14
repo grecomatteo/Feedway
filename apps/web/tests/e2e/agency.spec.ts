@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { withScope } from '@app/infrastructure/testing'
 import { runAccountAvatarJobs } from './support/jobs.ts'
+import { openUserMenu } from './support/menu.ts'
 import { assignAccount, connectedAgency } from './support/meta.ts'
 import {
   E2E_PASSWORD,
@@ -322,13 +323,21 @@ async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
 const switcher = (page: Page) =>
   page.getByRole('button', { name: /^Agenzia:/ }).locator('visible=true')
 
-test('a suspended agency hides the menu, and one click leaves it', async ({ page }) => {
+test('a suspended agency hides the menu, and one click leaves it', async ({ page, isMobile }) => {
   const { owner, second } = await ownerOfTwo(page, 'suspended')
   await page.goto(`/${second}`)
   await expect(page.getByRole('alert')).toHaveText(
     'Questa agenzia è sospesa: per ora non puoi lavorarci.',
   )
   await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toHaveCount(0)
+  if (isMobile) {
+    // no bar at the bottom: «Tu» stays at the top, with «Impostazioni» and «Esci»
+    const menu = await openUserMenu(page, 'Tu, menu di')
+    await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  }
   await expect(page.getByRole('link', { name: 'Clienti' })).toHaveCount(0)
   const [first] = await adminQuery<{ name: string }>(
     'select name from organizations where slug = $1',
