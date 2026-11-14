@@ -33,6 +33,16 @@ export const ImportableAccount = z.object({
   /** Why it cannot be imported: `role_missing`, no role on the page. */
   problem: z.enum(['role_missing']).nullable(),
   accountId: Id.nullable(),
+  /** Its account is in a client already: not proposed as a new one (§14.7). */
+  inClient: z.boolean(),
+})
+
+const ExternalIds = z.array(z.string().max(64)).max(100)
+
+/** What an import with clients did, for its «Annulla» (spec §14.7). */
+export const ClientImportUndo = z.strictObject({
+  workspaceIds: z.array(Id).max(100),
+  assignments: z.array(z.strictObject({ workspaceId: Id, accountId: Id })).max(100),
 })
 
 /** A social account of the agency. */
@@ -107,9 +117,28 @@ export const importAccountsRoute = defineContract({
   summary: 'Importa gli account scelti fra quelli che il collegamento vede',
   request: {
     params: ConnectionParams,
-    body: z.strictObject({ externalIds: z.array(z.string().max(64)).min(1).max(100) }),
+    body: z.strictObject({
+      externalIds: ExternalIds.min(1),
+      /** «Crea N clienti» (spec §14.7): a new client per entry, from accounts of this import. */
+      newWorkspaces: z
+        .array(z.strictObject({ name: z.string().max(400), externalIds: ExternalIds.min(1) }))
+        .max(100)
+        .optional(),
+      /** «Aggiungi a un cliente esistente». */
+      assignTo: z
+        .array(z.strictObject({ workspaceId: Id, externalIds: ExternalIds.min(1) }))
+        .max(100)
+        .optional(),
+    }),
   },
-  response: z.object({ connection: Connection, accounts: z.array(SocialAccount) }),
+  response: z.object({
+    connection: Connection,
+    accounts: z.array(SocialAccount),
+    /** The clients this import created. */
+    created: z.array(z.object({ id: Id, name: z.string(), slug: z.string() })),
+    /** What «Annulla» sends back to take them away. */
+    undo: ClientImportUndo,
+  }),
   auth: 'session',
   scope: 'organization',
 })
@@ -258,6 +287,45 @@ export const accountAvatarRoute = defineContract({
   scope: 'organization',
 })
 
+export const profilesWithoutClientRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/accounts/without-client',
+  summary:
+    '«Sistemali»: i profili trovati che non sono in nessun cliente, con il nome proposto (Owner e Admin)',
+  request: { params: OrgParams },
+  response: z.object({
+    items: z.array(
+      z.object({
+        key: z.string(),
+        name: z.string(),
+        accounts: z.array(
+          z.object({
+            id: Id,
+            platform: Platform,
+            name: z.string(),
+            username: z.string().nullable(),
+            /** Feedway's copy of the picture, in the panel; null: the initials. */
+            avatarUrl: z.string().nullable(),
+          }),
+        ),
+      }),
+    ),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const undoClientImportRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/import-undo',
+  summary:
+    '«Annulla» dopo «Crea N clienti»: archivia i clienti appena creati e toglie le assegnazioni di quella importazione',
+  request: { params: OrgParams, body: ClientImportUndo },
+  response: z.object({ undone: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const accountRoutes = [
   connectSystemUserRoute,
   listConnectionsRoute,
@@ -270,4 +338,6 @@ export const accountRoutes = [
   unassignAccountRoute,
   workspaceProfilesRoute,
   accountAvatarRoute,
+  profilesWithoutClientRoute,
+  undoClientImportRoute,
 ] as const

@@ -47,6 +47,7 @@ export const importableDto = (slug: string) => (a: ImportableAccount) => ({
   state: a.state,
   problem: a.problem,
   accountId: a.accountId,
+  inClient: a.inClient,
 })
 
 export const socialAccountDto = (slug: string) => (a: SocialAccountRecord) => ({

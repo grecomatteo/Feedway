@@ -10,7 +10,15 @@ import {
   type OrgActor,
 } from '@app/domain'
 import { assertRecentReauth, isUuid } from '../identity/index.js'
-import { assertActiveOrganization } from '../workspaces/index.js'
+import {
+  addWorkspace,
+  assertActiveOrganization,
+  currentActor,
+  lockVisibleWorkspace,
+  recordAssignment,
+  validName,
+  type WorkspaceDto,
+} from '../workspaces/index.js'
 import type { ConnectionRecord, SocialAccountRecord } from '../ports/accounts.js'
 import type { AuthSessionInfo } from '../ports/auth.js'
 import type { Clock } from '../ports/clock.js'
@@ -68,6 +76,8 @@ export interface ImportableAccount extends PlatformAccount {
   accountId: string | null
   /** Its picture as Feedway keeps it; null without an account, or before the first copy. */
   avatarKey: string | null
+  /** Its Feedway account is in at least one client (§14.7): not proposed as a new one. */
+  inClient: boolean
 }
 
 export type ConnectOutcome = 'connected' | 'replaced' | 'permissions_missing'
@@ -167,6 +177,14 @@ async function annotate(
     for (const record of await tx.accounts.findByExternalIds(organizationId, platform, ids))
       known.set(`${platform}:${record.externalId}`, record)
   }
+  const inClient = new Set(
+    (
+      await tx.workspaceAccounts.listForAccounts(
+        organizationId,
+        [...known.values()].map((r) => r.id),
+      )
+    ).map((a) => a.accountId),
+  )
   const owners = new Map<string, ConnectionRecord | null>()
   const ownerOf = async (id: string) => {
     if (!owners.has(id)) owners.set(id, await tx.connections.findById(organizationId, id))
@@ -189,6 +207,7 @@ async function annotate(
       state,
       accountId: record?.id ?? null,
       avatarKey: record?.avatarKey ?? null,
+      inClient: record !== undefined && inClient.has(record.id),
     })
   }
   return out
@@ -398,6 +417,76 @@ export async function listImportable(
   }))
 }
 
+/** A client to create from accounts of the same import, by their ids on the platform. */
+export interface NewClient {
+  name: string
+  externalIds: readonly string[]
+}
+
+export interface ImportInput {
+  connectionId: string
+  externalIds: readonly string[]
+  /** «Crea N clienti» (spec §14.7): one new client per entry. */
+  newWorkspaces?: readonly NewClient[]
+  /** «Aggiungi a un cliente esistente». */
+  assignTo?: readonly { workspaceId: string; externalIds: readonly string[] }[]
+}
+
+/** What «Annulla» takes back: the clients this import created and its other assignments. */
+export interface ClientImportUndo {
+  workspaceIds: string[]
+  assignments: { workspaceId: string; accountId: string }[]
+}
+
+export interface ImportResult {
+  connection: ConnectionView
+  accounts: SocialAccountRecord[]
+  created: WorkspaceDto[]
+  undo: ClientImportUndo
+}
+
+const cannotCreateClients = () =>
+  new DomainError(
+    'FORBIDDEN',
+    'Solo Owner e Admin possono creare i clienti e assegnare gli account',
+  )
+
+/**
+ * Every account named for a client is among those imported, and goes to one client only; each
+ * client takes at least one. Names are checked as for any workspace.
+ */
+function validClients(input: ImportInput, chosenIds: readonly string[]) {
+  const chosen = new Set(chosenIds)
+  const used = new Set<string>()
+  const take = (externalIds: readonly string[], field: string) => {
+    const ids = [...new Set(externalIds)]
+    if (ids.length === 0 || ids.some((id) => !chosen.has(id) || used.has(id)))
+      throw new DomainError(
+        'VALIDATION',
+        'Ogni cliente prende account di questa importazione, e ogni account va a un cliente solo',
+        { field },
+      )
+    for (const id of ids) used.add(id)
+    return ids
+  }
+  const newWorkspaces = (input.newWorkspaces ?? []).map((c) => ({
+    name: validName(c.name),
+    externalIds: take(c.externalIds, 'newWorkspaces'),
+  }))
+  const targets = new Map<string, string[]>()
+  for (const t of input.assignTo ?? []) {
+    if (!isUuid(t.workspaceId)) throw new DomainError('NOT_FOUND', 'Spazio non trovato')
+    targets.set(t.workspaceId, [
+      ...(targets.get(t.workspaceId) ?? []),
+      ...take(t.externalIds, 'assignTo'),
+    ])
+  }
+  return {
+    newWorkspaces,
+    assignTo: [...targets].map(([workspaceId, externalIds]) => ({ workspaceId, externalIds })),
+  }
+}
+
 /**
  * Step 5 of §8.1: imports the chosen accounts into the agency, out of every workspace until an
  * Admin assigns them. Only accounts the connection sees right now; an account of another
@@ -405,13 +494,18 @@ export async function listImportable(
  * agency's import lock, so two imports never both take the last slot. The connection becomes
  * `active` (choice 6). The first health check is queued once the import is saved: until it
  * runs a new account is "never checked" and cannot be chosen for a post.
+ *
+ * «Abbina ai clienti» (spec §14.7) comes in the same transaction: `newWorkspaces` creates clients
+ * (`workspace.create`, the `workspaces` limit) and `assignTo` fills existing ones, both with
+ * `workspace.accounts.assign`. Anything refused leaves nothing imported. `undo` is what
+ * `undoClientImport` takes back.
  */
 export async function importAccounts(
   deps: ConnectionsDeps,
   actor: OrgActor,
-  input: { connectionId: string; externalIds: readonly string[] },
+  input: ImportInput,
   request: { ip: string | null },
-): Promise<{ connection: ConnectionView; accounts: SocialAccountRecord[] }> {
+): Promise<ImportResult> {
   const chosenIds = [...new Set(input.externalIds)]
   if (chosenIds.length === 0 || chosenIds.length > MAX_IMPORT)
     throw new DomainError(
@@ -419,6 +513,13 @@ export async function importAccounts(
       `Scegli da 1 a ${String(MAX_IMPORT)} account da importare`,
       { field: 'externalIds' },
     )
+  const clients = validClients(input, chosenIds)
+  const { organizationId: org } = actor
+  const assigning = clients.newWorkspaces.length > 0 || clients.assignTo.length > 0
+  const mayAssign = (a: OrgActor) =>
+    (!assigning || can(a, 'workspace.accounts.assign', { organizationId: org })) &&
+    (clients.newWorkspaces.length === 0 || can(a, 'workspace.create', { organizationId: org }))
+  if (!mayAssign(actor)) throw cannotCreateClients()
   const opened = await openConnection(deps, actor, input.connectionId)
   const seen = await listLive(opened)
   const chosen = chosenIds.map((id) => seen.find((a) => a.externalId === id && a.problem === null))
@@ -433,6 +534,8 @@ export async function importAccounts(
 
   const result = await deps.uow.run({ organizationId, userId }, async (tx) => {
     await assertStillManages(tx, actor)
+    const current = await currentActor(tx, actor)
+    if (!mayAssign(current)) throw cannotCreateClients()
     await tx.accounts.lockImport(organizationId)
     const organization = await assertActiveOrganization(tx, organizationId)
     // read again and locked: it may have stopped working while the platform answered, and a
@@ -517,7 +620,40 @@ export async function importAccounts(
       ip: request.ip,
       data: { count: imported.length },
     })
-    return { connection: viewOf({ ...connection, status }), accounts: imported }
+    const byExternal = new Map(imported.map((a) => [a.externalId, a.id]))
+    const idsOf = (externalIds: readonly string[]) =>
+      externalIds.flatMap((e) => byExternal.get(e) ?? [])
+    const undo: ClientImportUndo = { workspaceIds: [], assignments: [] }
+    // existing clients first, locked in id order, then the new ones under the creation lock
+    const targets = [...clients.assignTo].sort((a, b) => a.workspaceId.localeCompare(b.workspaceId))
+    for (const target of targets) {
+      const { workspace } = await lockVisibleWorkspace(tx, current, target.workspaceId)
+      if (workspace.archivedAt !== null)
+        throw new DomainError('CONFLICT', 'Lo spazio è archiviato: non si può modificare')
+      for (const accountId of idsOf(target.externalIds))
+        if (await tx.workspaceAccounts.assign(organizationId, workspace.id, accountId)) {
+          await recordAssignment(
+            tx,
+            current,
+            'account.assigned',
+            workspace.id,
+            accountId,
+            request.ip,
+          )
+          undo.assignments.push({ workspaceId: workspace.id, accountId })
+        }
+    }
+    const created: WorkspaceDto[] = []
+    for (const client of clients.newWorkspaces) {
+      const workspace = await addWorkspace(tx, deps.ids, current, client.name, request)
+      created.push(workspace)
+      undo.workspaceIds.push(workspace.id)
+      for (const accountId of idsOf(client.externalIds)) {
+        await tx.workspaceAccounts.assign(organizationId, workspace.id, accountId)
+        await recordAssignment(tx, current, 'account.assigned', workspace.id, accountId, request.ip)
+      }
+    }
+    return { connection: viewOf({ ...connection, status }), accounts: imported, created, undo }
   })
   // after the commit, so the jobs find the accounts; if the queue fails the import stays: the
   // daily run checks them (Task 11), and its sync queues the pictures again

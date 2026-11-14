@@ -136,6 +136,13 @@ const RULES: Record<string, readonly Rule[]> = {
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/accounts/{accountId}': [
     { permission: 'workspace.accounts.assign', level: 'organization' },
   ],
+  // «Sistemali» and the «Annulla» of «Crea N clienti» (spec §14.7)
+  'GET /api/v1/orgs/{org}/accounts/without-client': [
+    { permission: 'workspace.accounts.assign', level: 'organization' },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/import-undo': [
+    { permission: 'workspace.accounts.assign', level: 'organization' },
+  ],
   'GET /api/v1/orgs/{org}/workspaces/{id}/profiles': [
     { permission: 'workspace.view', level: 'workspace' },
   ],
@@ -269,6 +276,14 @@ const PREPARE: Record<
     await accountPicture(ids.account, ids.workspace)
     return {}
   },
+  // the case's client has people in it, which «Annulla» refuses: only its assignment here
+  'POST /api/v1/orgs/{org}/workspaces/import-undo': (ids) =>
+    Promise.resolve({
+      body: {
+        workspaceIds: [],
+        assignments: [{ workspaceId: ids.workspace, accountId: ids.account }],
+      },
+    }),
   'GET /api/v1/orgs/{org}/logo/{size}': async (ids) => {
     const confirmed = await fx.env.call(
       'POST',

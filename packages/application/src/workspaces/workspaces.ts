@@ -34,7 +34,7 @@ export interface WorkspaceDto {
 }
 
 export const workspaceNotFound = () => new DomainError('NOT_FOUND', 'Spazio non trovato')
-const cannotManage = () =>
+export const cannotManage = () =>
   new DomainError('FORBIDDEN', 'Solo Owner e Admin possono creare e modificare gli spazi')
 const archivedConflict = () =>
   new DomainError('CONFLICT', 'Lo spazio è archiviato: non si può modificare')
@@ -98,7 +98,7 @@ export async function lockVisibleWorkspace(
   return { workspace, actor: current }
 }
 
-function validName(raw: string): string {
+export function validName(raw: string): string {
   // the same bounds as an agency name (spec §13)
   const checked = checkOrganizationName(raw)
   if (!checked.ok)
@@ -112,10 +112,10 @@ function validName(raw: string): string {
   return checked.value
 }
 
-const managesWorkspaces = (actor: OrgActor) =>
+export const managesWorkspaces = (actor: OrgActor) =>
   can(actor, 'workspace.create', { organizationId: actor.organizationId })
 
-function record(
+export function recordWorkspace(
   tx: Tx,
   actor: OrgActor,
   action: 'workspace.created' | 'workspace.renamed' | 'workspace.archived',
@@ -136,39 +136,103 @@ function record(
 }
 
 /**
- * Owner and Admin create workspaces (spec §10.2). The slug comes from the name and is unique in
- * the agency; the `workspaces` limit counts only the workspaces not archived. Creations of one
- * agency go one at a time, so neither the last slot nor a slug is taken twice.
+ * A new workspace inside the caller's transaction, for the actor read again in it: the creations
+ * of one agency go one at a time, so neither the last slot of the `workspaces` limit (only the
+ * workspaces not archived count) nor a slug is taken twice. The slug comes from the name and gets
+ * a suffix when it is taken.
+ */
+export async function addWorkspace(
+  tx: Tx,
+  ids: IdGenerator,
+  current: OrgActor,
+  name: string,
+  request: { ip: string | null },
+): Promise<WorkspaceDto> {
+  const { organizationId } = current
+  await tx.workspaces.lockCreation(organizationId)
+  const organization = await assertActiveOrganization(tx, organizationId)
+  const check = checkLimit(
+    parseLimits(organization.limits),
+    'workspaces',
+    await tx.workspaces.countActive(organizationId),
+  )
+  if (!check.ok)
+    throw new DomainError('LIMIT_REACHED', 'L’agenzia ha raggiunto il numero massimo di spazi', {
+      limit: check.limit,
+    })
+  const slug = await availableWorkspaceSlug(name, (s) =>
+    tx.workspaces.slugExists(organizationId, s),
+  )
+  const created = await tx.workspaces.create({ id: ids.newId(), organizationId, name, slug })
+  await recordWorkspace(tx, current, 'workspace.created', created.id, request.ip)
+  return toDto(created, current.orgRole === 'owner' ? 'owner' : 'admin')
+}
+
+/** At most this many profiles' accounts in one new client. */
+export const MAX_CLIENT_ACCOUNTS = 20
+
+const cannotAssign = () =>
+  new DomainError('FORBIDDEN', 'Solo Owner e Admin possono assegnare gli account agli spazi')
+
+/**
+ * Owner and Admin create workspaces (spec §10.2). With `accountIds` the client is born from
+ * profiles already imported (§14.7): each account of the agency, active, is assigned in the same
+ * transaction, which also needs `workspace.accounts.assign`.
  */
 export async function createWorkspace(
   deps: Pick<WorkspacesDeps, 'uow' | 'ids'>,
   actor: OrgActor,
-  input: { name: string },
+  input: { name: string; accountIds?: readonly string[] },
   request: { ip: string | null },
 ): Promise<WorkspaceDto> {
   if (!managesWorkspaces(actor)) throw cannotManage()
   const name = validName(input.name)
+  const accountIds = [...new Set(input.accountIds ?? [])]
+  if (accountIds.length > MAX_CLIENT_ACCOUNTS)
+    throw new DomainError('VALIDATION', 'Troppi account per un cliente', { field: 'accountIds' })
   const { organizationId } = actor
+  const assigns = (a: OrgActor) => can(a, 'workspace.accounts.assign', { organizationId })
+  if (accountIds.length > 0 && !assigns(actor)) throw cannotAssign()
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const current = await currentActor(tx, actor)
     if (!managesWorkspaces(current)) throw cannotManage()
-    await tx.workspaces.lockCreation(organizationId)
-    const organization = await assertActiveOrganization(tx, organizationId)
-    const check = checkLimit(
-      parseLimits(organization.limits),
-      'workspaces',
-      await tx.workspaces.countActive(organizationId),
-    )
-    if (!check.ok)
-      throw new DomainError('LIMIT_REACHED', 'L’agenzia ha raggiunto il numero massimo di spazi', {
-        limit: check.limit,
-      })
-    const slug = await availableWorkspaceSlug(name, (s) =>
-      tx.workspaces.slugExists(organizationId, s),
-    )
-    const created = await tx.workspaces.create({ id: deps.ids.newId(), organizationId, name, slug })
-    await record(tx, current, 'workspace.created', created.id, request.ip)
-    return toDto(created, current.orgRole === 'owner' ? 'owner' : 'admin')
+    if (accountIds.length > 0 && !assigns(current)) throw cannotAssign()
+    const created = await addWorkspace(tx, deps.ids, current, name, request)
+    for (const accountId of accountIds) {
+      const account = isUuid(accountId)
+        ? await tx.accounts.findById(organizationId, accountId)
+        : null
+      if (account === null) throw new DomainError('NOT_FOUND', 'Account non trovato')
+      if (!account.active)
+        throw new DomainError(
+          'CONFLICT',
+          'L’account non è più attivo su Meta: ricollegalo prima di assegnarlo a uno spazio',
+        )
+      if (await tx.workspaceAccounts.assign(organizationId, created.id, account.id))
+        await recordAssignment(tx, current, 'account.assigned', created.id, account.id, request.ip)
+    }
+    return created
+  })
+}
+
+/** One account into or out of a workspace, in the activity log. */
+export function recordAssignment(
+  tx: Tx,
+  actor: OrgActor,
+  action: 'account.assigned' | 'account.unassigned',
+  workspaceId: string,
+  accountId: string,
+  ip: string | null,
+) {
+  return tx.audit.record({
+    organizationId: actor.organizationId,
+    actorId: actor.userId,
+    source: 'panel',
+    action,
+    entity: 'account',
+    entityId: accountId,
+    workspaceId,
+    ip,
   })
 }
 
@@ -222,7 +286,7 @@ export async function renameWorkspace(
     const role = current.orgRole === 'owner' ? 'owner' : 'admin'
     if (workspace.name === name) return toDto(workspace, role)
     await tx.workspaces.rename(current.organizationId, workspaceId, name)
-    await record(tx, current, 'workspace.renamed', workspaceId, request.ip)
+    await recordWorkspace(tx, current, 'workspace.renamed', workspaceId, request.ip)
     return toDto({ ...workspace, name }, role)
   })
 }
@@ -240,6 +304,6 @@ export async function archiveWorkspace(
   await changeWorkspace(deps, actor, workspaceId, async (tx, current) => {
     if (!(await tx.workspaces.archive(current.organizationId, workspaceId, deps.clock.now())))
       return
-    await record(tx, current, 'workspace.archived', workspaceId, request.ip)
+    await recordWorkspace(tx, current, 'workspace.archived', workspaceId, request.ip)
   })
 }

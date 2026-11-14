@@ -78,8 +78,16 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     token: META_MOCK.tokens.systemUser,
   }),
   // a page the system user always sees (me/accounts), with or without the business id
-  'POST /api/v1/orgs/{org}/connections/{connectionId}/import': () => ({
+  // also into the case's client («Aggiungi a un cliente esistente»): a client of the other agency
+  // must not be found
+  'POST /api/v1/orgs/{org}/connections/{connectionId}/import': (ids) => ({
     externalIds: [META_MOCK.pages.withInstagram],
+    assignTo: [{ workspaceId: ids.workspace, externalIds: [META_MOCK.pages.withInstagram] }],
+  }),
+  // the case's client and account: either one of the other agency is not found
+  'POST /api/v1/orgs/{org}/workspaces/import-undo': (ids) => ({
+    workspaceIds: [ids.workspace],
+    assignments: [{ workspaceId: ids.workspace, accountId: ids.account }],
   }),
   'POST /api/v1/orgs/{org}/invites': (ids) => ({
     email: ids.email,
