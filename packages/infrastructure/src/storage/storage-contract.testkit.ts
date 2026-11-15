@@ -156,6 +156,15 @@ export function storageContract(
       })
     })
 
+    test('a folder emptied by delete can become an object', async () => {
+      const s = await fresh()
+      await s.put(`users/${u1}/a/b/c.bin`, bytes, webp)
+      await s.delete(`users/${u1}/a/b/c.bin`)
+      await s.put(`users/${u1}/a`, bytes, webp)
+      expect(await bytesOf(s, `users/${u1}/a`)).toEqual(bytes)
+      expect((await s.list(`users/${u1}/`)).map((o) => o.key)).toEqual([`users/${u1}/a`])
+    })
+
     test('concurrent puts to one key leave data and type of the same write', async () => {
       const s = await fresh()
       const key = `users/${u1}/race.bin`
@@ -192,6 +201,89 @@ export function storageContract(
       await expect(s.deletePrefix('users/')).rejects.toMatchObject({ code: 'VALIDATION' })
       await expect(s.list('')).rejects.toMatchObject({ code: 'VALIDATION' })
       await expect(s.deletePrefix(`users/${u1}/../`)).rejects.toMatchObject({ code: 'VALIDATION' })
+    })
+
+    test('getRange returns the bytes of a range, both ends included', async () => {
+      const s = await fresh()
+      const key = `org/${u1}/media/v.mp4`
+      await s.put(key, Buffer.from('0123456789'), { contentType: 'video/mp4' })
+      const found = await s.getRange(key, 2, 5)
+      expect(found).toMatchObject({
+        size: 10,
+        contentType: 'video/mp4',
+        range: { start: 2, end: 5 },
+      })
+      expect((await read(found?.body ?? [])).toString()).toBe('2345')
+      const first = await s.getRange(key, 0, 0)
+      expect((await read(first?.body ?? [])).toString()).toBe('0')
+    })
+
+    test('getRange stops at the last byte when the end is past it', async () => {
+      const s = await fresh()
+      const key = `org/${u1}/media/v.mp4`
+      await s.put(key, Buffer.from('0123456789'), { contentType: 'video/mp4' })
+      const found = await s.getRange(key, 7, 1_000_000)
+      expect(found).toMatchObject({ size: 10, range: { start: 7, end: 9 } })
+      expect((await read(found?.body ?? [])).toString()).toBe('789')
+    })
+
+    test('getRange past the end of the file has no range and an empty body', async () => {
+      const s = await fresh()
+      const key = `org/${u1}/media/v.mp4`
+      await s.put(key, Buffer.from('0123456789'), { contentType: 'video/mp4' })
+      for (const start of [10, 50]) {
+        const found = await s.getRange(key, start, start + 10)
+        expect(found).toMatchObject({ size: 10, contentType: 'video/mp4', range: null })
+        expect(await read(found?.body ?? [])).toHaveLength(0)
+      }
+      const emptyKey = `org/${u1}/media/empty.bin`
+      await s.put(emptyKey, Buffer.alloc(0), webp)
+      const empty = await s.getRange(emptyKey, 0, 0)
+      expect(empty).toMatchObject({ size: 0, range: null })
+      expect(await read(empty?.body ?? [])).toHaveLength(0)
+    })
+
+    test('getRange of a missing key returns null', async () => {
+      const s = await fresh()
+      expect(await s.getRange(`org/${u1}/media/none.mp4`, 0, 10)).toBeNull()
+      await s.put(`org/${u1}/media/a/b.mp4`, bytes, webp)
+      expect(await s.getRange(`org/${u1}/media/a`, 0, 10)).toBeNull()
+    })
+
+    test.each([
+      [-1, 3],
+      [4, 3],
+      [0.5, 3],
+      [0, Number.NaN],
+      [0, Number.POSITIVE_INFINITY],
+    ])('getRange rejects the offsets %s-%s', async (start, end) => {
+      const s = await fresh()
+      const key = `org/${u1}/media/v.mp4`
+      await s.put(key, bytes, webp)
+      await expect(s.getRange(key, start, end)).rejects.toMatchObject({ code: 'VALIDATION' })
+    })
+
+    test('getRange rejects a key outside the owner folders', async () => {
+      const s = await fresh()
+      await expect(s.getRange('../etc/passwd', 0, 1)).rejects.toMatchObject({
+        code: 'VALIDATION',
+      })
+    })
+
+    test('deletePrefix and list go past 1000 objects', async () => {
+      const s = await fresh()
+      const total = 1005
+      const names = Array.from(
+        { length: total },
+        (_, i) => `org/${u1}/many/${String(i).padStart(4, '0')}.bin`,
+      )
+      for (let i = 0; i < names.length; i += 50)
+        await Promise.all(names.slice(i, i + 50).map((key) => s.put(key, Buffer.from('x'), webp)))
+      await s.put(`org/${u2}/many/keep.bin`, bytes, webp)
+      expect((await s.list(`org/${u1}/`)).map((o) => o.key)).toEqual(names)
+      expect(await s.deletePrefix(`org/${u1}/`)).toBe(total)
+      expect(await s.list(`org/${u1}/`)).toEqual([])
+      expect(await exists(s, `org/${u2}/many/keep.bin`)).toBe(true)
     })
 
     test('a crash during put leaves no partial object', async () => {

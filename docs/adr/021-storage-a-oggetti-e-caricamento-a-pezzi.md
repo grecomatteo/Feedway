@@ -27,7 +27,7 @@ Fatti di partenza:
 ### Client S3
 - `@aws-sdk/client-s3` e `@aws-sdk/lib-storage`, versione esatta, solo in `packages/infrastructure`. Entrano nel Task 7 con l'adattatore, non prima.
 - Configurazione: `endpoint`, `bucket`, `region` (predefinita `auto`, come chiede R2), credenziali e `forcePathStyle` (predefinito vero: Garage lo richiede, R2 lo accetta). I checksum restano quelli predefiniti del client. Se R2 vera li rifiutasse, si aggiunge `requestChecksumCalculation: 'WHEN_REQUIRED'` con un test, senza cambiare questa ADR.
-- `put` di lunghezza ignota con `Upload` di `lib-storage`: pezzi da 20 MiB, al più 2 in memoria, e in caso di errore il multipart si annulla (`leavePartsOnError: false`), così non resta niente.
+- `put` di lunghezza ignota con `Upload` di `lib-storage`: pezzi da 20 MiB, al più 2 in memoria, e in caso di errore il multipart si annulla (`leavePartsOnError: false`), così non resta niente. Se invece il processo muore a metà, o fallisce l'annullamento stesso, le parti restano nel bucket: le toglie una regola di ciclo di vita del bucket (`AbortIncompleteMultipartUpload`), da impostare quando si passa a S3. Su R2 non è verificato (Task 7).
 - `get` e `getRange` restituiscono un flusso. `deletePrefix` e `list` paginano (1000 chiavi per pagina).
 
 ### Garage nei test

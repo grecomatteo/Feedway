@@ -6,6 +6,7 @@ export type {
   ConfigIssue,
   ConfigRole,
   MigrateConfig,
+  StorageConfig,
   WebConfig,
   WorkerConfig,
 } from './env.js'
