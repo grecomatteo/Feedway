@@ -47,8 +47,11 @@ export interface ApiContract<
    * (the route reads no more than that, plus the multipart framing). No JSON `body` then.
    */
   upload?: { maxBytes: number }
-  /** The answer is a file of this media type, not JSON: `response` is then `FileResponse`. */
-  download?: { contentType: string }
+  /**
+   * The answer is a file of this media type, not JSON: `response` is then `FileResponse`.
+   * `ranges`: the route answers HTTP `Range` (206), as a video player asks.
+   */
+  download?: { contentType: string; ranges?: true }
 }
 
 /** What a download route hands back: the bytes and how the client may keep them. */
@@ -60,6 +63,13 @@ export interface FileAnswer {
   cacheControl?: string
   /** Saved under this name (`Content-Disposition: attachment`) instead of shown. */
   filename?: string
+  /** This file's own type, instead of the route's. */
+  contentType?: string
+  /**
+   * Bytes `start` to `end` (both included) of a file of `total` bytes (HTTP 206); `range: null`:
+   * the range asked starts past the end of the file (HTTP 416, no body).
+   */
+  part?: { total: number; range: { start: number; end: number } | null }
 }
 
 export const FileResponse = z.custom<FileAnswer>(

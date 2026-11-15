@@ -18,6 +18,7 @@ test('every registered queue declares a scope', () => {
     ['accounts.health', 'organization'],
     ['accounts.daily', 'system'],
     ['accounts.avatar', 'organization'],
+    ['media.delete_files', 'organization'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -34,6 +35,7 @@ test('every registered queue declares a scope', () => {
     'accounts.health',
     'accounts.daily',
     'accounts.avatar',
+    'media.delete_files',
   ])
 })
 

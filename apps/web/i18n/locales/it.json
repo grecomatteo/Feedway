@@ -869,6 +869,7 @@
       "accounts_imported": "ha importato degli account social",
       "account_assigned": "ha assegnato un account social a un cliente",
       "account_unassigned": "ha tolto un account social da un cliente",
+      "media_deleted": "ha eliminato un file della libreria",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",

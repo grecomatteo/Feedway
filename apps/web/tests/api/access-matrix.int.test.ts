@@ -90,6 +90,8 @@ interface Rule {
    * does not exist (404), whatever their role in the workspace.
    */
   sentByManager?: true
+  /** Without the permission the resource does not exist for the person: 404, not 403. */
+  hiddenWithout?: true
 }
 
 const RULES: Record<string, readonly Rule[]> = {
@@ -224,6 +226,19 @@ const RULES: Record<string, readonly Rule[]> = {
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/members/{userId}': [
     { permission: 'workspace.members.manage', level: 'workspace' },
   ],
+  // the library: Editor and above; for a Viewer it does not exist (spec §10.2, plan 04 Task 8)
+  'GET /api/v1/orgs/{org}/workspaces/{id}/media': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/file/{variant}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },
@@ -304,7 +319,8 @@ function expectedStatus(rule: Rule, role: ActorRole, where: Where): number {
   const seesEveryWorkspace = role === 'owner' || role === 'admin'
   if (rule.level === 'workspace' && where === 'w2' && !seesEveryWorkspace) return 404
   if (rule.sentByManager && !seesEveryWorkspace && role !== 'manager') return 404
-  return cell && (!rule.ownerOnly || role === 'owner') ? 200 : 403
+  if (cell && (!rule.ownerOnly || role === 'owner')) return 200
+  return rule.hiddenWithout ? 404 : 403
 }
 
 interface AccessCase {
@@ -472,6 +488,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'accounts.imported': ['count'],
   'account.assigned': [],
   'account.unassigned': [],
+  'media.deleted': [],
 }
 
 /**
@@ -581,6 +598,7 @@ async function produceEveryAction() {
   })
   await ok('PUT', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
+  await ok('DELETE', `${org}/workspaces/${ids.workspace}/media/${ids.media}`)
   await ok('POST', `${org}/invites`, {
     email: `registro-${randomUUID().slice(0, 8)}@example.test`,
     orgRole: 'member',

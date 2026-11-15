@@ -11,6 +11,7 @@ export type {
   DataExportJobData,
   JobPayloads,
   JobQueue,
+  MediaDeleteFilesJobData,
   JobScheduler,
   PasswordResetEmailData,
   QueueName,
@@ -46,6 +47,7 @@ export type {
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
+export type { MediaRecord, MediaRepository, MediaVariantRecord } from './ports/media.js'
 export type { AvatarCrop, AvatarProcessor } from './ports/avatar-processor.js'
 export type { ZipEntry, ZipWriter } from './ports/zip-writer.js'
 export type { Auth, AuthSessionInfo, PasskeySummary } from './ports/auth.js'
@@ -100,6 +102,7 @@ export * from './organizations/index.js'
 export * from './platform/index.js'
 export * from './workspaces/index.js'
 export * from './accounts/index.js'
+export * from './media/index.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
 export type {

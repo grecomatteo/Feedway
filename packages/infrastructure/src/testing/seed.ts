@@ -20,6 +20,22 @@ export interface Seeder {
     userId: string,
     role: WorkspaceRole,
   ): Promise<void>
+  /**
+   * A file of the workspace, in its library, with its variants' rows (the files themselves are
+   * the test's to write, at the keys given).
+   */
+  media(
+    organizationId: string,
+    workspaceId: string,
+    opts: {
+      uploadedBy: string
+      kind?: 'image' | 'video'
+      status?: 'processing' | 'ready' | 'deleted'
+      storageKey?: string | null
+      sizeBytes?: number
+      variants?: { purpose: string; storageKey: string; mime: string; sizeBytes: number }[]
+    },
+  ): Promise<string>
 }
 
 function seederOf(c: pg.Client): Seeder {
@@ -62,6 +78,44 @@ function seederOf(c: pg.Client): Seeder {
         'insert into workspace_members (organization_id, workspace_id, user_id, role) values ($1, $2, $3, $4)',
         [organizationId, workspaceId, userId, role],
       )
+    },
+    async media(organizationId, workspaceId, opts) {
+      const id = randomUUID()
+      const kind = opts.kind ?? 'video'
+      const status = opts.status ?? 'ready'
+      await c.query(
+        `insert into media (id, organization_id, workspace_id, uploaded_by, kind, status,
+                            original_name, mime, size_bytes, storage_key, deleted_at)
+         values ($1, $2, $3, $4, $5, $6::text, $7, $8, $9, $10,
+                 case when $6::text = 'deleted' then now() end)`,
+        [
+          id,
+          organizationId,
+          workspaceId,
+          opts.uploadedBy,
+          kind,
+          status,
+          kind === 'video' ? 'clip.mov' : 'foto.heic',
+          kind === 'video' ? 'video/quicktime' : 'image/heic',
+          opts.sizeBytes ?? 1000,
+          opts.storageKey === undefined
+            ? `org/${organizationId}/media/${id}/original`
+            : opts.storageKey,
+        ],
+      )
+      if (status !== 'deleted')
+        await c.query(
+          'insert into library_items (organization_id, workspace_id, media_id) values ($1, $2, $3)',
+          [organizationId, workspaceId, id],
+        )
+      for (const v of opts.variants ?? [])
+        await c.query(
+          `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
+                                       size_bytes)
+           values ($1, $2, $3, $4, $5, $6, $7)`,
+          [randomUUID(), organizationId, id, v.purpose, v.storageKey, v.mime, v.sizeBytes],
+        )
+      return id
     },
   }
 }

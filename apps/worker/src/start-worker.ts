@@ -13,6 +13,7 @@ import { identityEmailChange } from './handlers/identity-email-change.js'
 import { identityAnonymizationNotice, identityRetention } from './handlers/identity-retention.js'
 import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
+import { mediaDeleteFiles } from './handlers/media-delete-files.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
@@ -57,6 +58,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.health': accountsHealth,
     'accounts.daily': accountsDaily,
     'accounts.avatar': accountsAvatar,
+    'media.delete_files': mediaDeleteFiles,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }

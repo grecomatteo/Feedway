@@ -7,6 +7,7 @@ import { authRoutes } from './auth.js'
 import { integrationRoutes } from './integrations.js'
 import { linkRoutes } from './links.js'
 import { meRoutes } from './me.js'
+import { mediaRoutes } from './media.js'
 import { logoRoutes } from './logo.js'
 import { organizationRoutes } from './organizations.js'
 import { platformRoutes } from './platform.js'
@@ -41,6 +42,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...accountRoutes,
   ...userRoutes,
   ...workspaceRoutes,
+  ...mediaRoutes,
   ...auditRoutes,
   ...platformRoutes,
   openApiRoute,
@@ -156,6 +158,10 @@ function operation(route: ApiContract): OpenApiOperation {
           : { 'application/json': { schema: jsonSchema(route.response, 'output') } },
       },
       ...(route.download && { '304': { description: 'Non modificato (If-None-Match)' } }),
+      ...(route.download?.ranges && {
+        '206': { description: 'Una parte del file (Range)' },
+        '416': { description: 'La parte chiesta comincia oltre la fine del file' },
+      }),
       default: { $ref: '#/components/responses/Error' },
     },
     security: route.auth === 'public' ? [] : [{ session: [] }],

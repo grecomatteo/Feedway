@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
+import { createLocalDiskStorage } from '@app/infrastructure'
 import { seed, transparentLogoPng } from '@app/infrastructure/testing'
 import { META_MOCK } from '@app/meta-mock'
 import { PASSWORD, startApiEnv } from '../identity-env.js'
@@ -43,10 +44,15 @@ export interface SampleIds {
   connection: string
   /** an active social account of the agency, of `connection`, in no workspace */
   account: string
+  /** a ready video of `workspace`, in its library, with its `preview` stored */
+  media: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
 const SAMPLE_UPLOAD = await transparentLogoPng(120, 40)
+
+/** The bytes of every case's video preview (not a real video: nothing decodes it). */
+export const SAMPLE_PREVIEW = Buffer.from('\0\0\0\x18ftypmp42anteprima della batteria')
 
 /** A multipart body with one file, as the panel sends it. */
 export function uploadForm(bytes: Buffer = SAMPLE_UPLOAD, name = 'logo.png'): FormData {
@@ -153,6 +159,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   invite: randomUUID(),
   connection: randomUUID(),
   account: randomUUID(),
+  media: randomUUID(),
 }
 
 /**
@@ -175,6 +182,7 @@ export const ID_KINDS = [
   'invite',
   'connection',
   'account',
+  'media',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -227,6 +235,8 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   inviteId: ids.invite,
   connectionId: ids.connection,
   accountId: ids.account,
+  mediaId: ids.media,
+  variant: 'preview',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case
   stagingId: PLACEHOLDER_STAGING,
@@ -272,6 +282,9 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   social_accounts: 'select * from social_accounts',
   workspace_accounts: 'select * from workspace_accounts',
   connection_attempts: 'select * from connection_attempts',
+  media: 'select * from media',
+  media_variants: 'select * from media_variants',
+  library_items: 'select * from library_items',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -378,6 +391,25 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** The bytes of every case's preview: what the file route must give back. */
+  const storage = createLocalDiskStorage({ root: env.web.mediaRoot })
+
+  /** A ready video of the workspace with its preview stored, written directly. */
+  async function libraryVideo(organizationId: string, workspaceId: string, uploadedBy: string) {
+    const id = await seed(env.tdb.runtimeUrl, (s) =>
+      s.media(organizationId, workspaceId, { uploadedBy }),
+    )
+    const key = `org/${organizationId}/media/${id}/preview.mp4`
+    const { size } = await storage.put(key, SAMPLE_PREVIEW, { contentType: 'video/mp4' })
+    await env.admin.pool.query(
+      `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
+                                   size_bytes)
+       values ($1, $2, $3, 'preview', $4, 'video/mp4', $5)`,
+      [randomUUID(), organizationId, id, key, size],
+    )
+    return id
+  }
+
   /** A fresh imported account of the connection, written directly: no Meta call per case. */
   async function socialAccount(organizationId: string, connectionId: string) {
     const id = randomUUID()
@@ -427,6 +459,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         invite: await openInvite(organizationId, ids.workspace, sender),
         connection: connectionOf[agency],
         account: await socialAccount(organizationId, connectionOf[agency]),
+        media: await libraryVideo(organizationId, ids.workspace, ids.target),
       }
     },
     async refreshReauth() {
@@ -460,6 +493,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           invite: await openInvite(agency.id, ids.workspace, owner.userId),
           connection,
           account: await socialAccount(agency.id, connection),
+          media: await libraryVideo(agency.id, ids.workspace, owner.userId),
         },
       }
     },
