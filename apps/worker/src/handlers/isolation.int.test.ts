@@ -9,6 +9,7 @@ import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
+import { mediaProcess } from './media-process.js'
 import {
   FORNO_LUCE,
   accountsRuntime,
@@ -104,11 +105,31 @@ async function mediaWorld(): Promise<World> {
   }
 }
 
+/** A file of each agency just uploaded, waiting for the worker. */
+async function processingWorld(): Promise<World> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const waiting = (of: Agency) =>
+    seed(tdb.runtimeUrl, async (s) => {
+      const workspace = await s.workspace(of.organizationId)
+      return s.media(of.organizationId, workspace, { uploadedBy: of.ownerId, status: 'processing' })
+    })
+  const ofA = await waiting(a)
+  const ofB = await waiting(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, mediaId: ofA },
+    crossing: { organizationId: a.organizationId, mediaId: ofB },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
   'accounts.avatar': { handler: accountsAvatar, world: picturesWorld },
   'media.delete_files': { handler: mediaDeleteFiles, world: mediaWorld },
+  'media.process': { handler: mediaProcess, world: processingWorld },
 }
 
 // every row an agency's job could touch, by agency

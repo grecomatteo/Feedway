@@ -14,6 +14,7 @@ import type {
   Storage,
   Translate,
   UnitOfWork,
+  UploadParts,
   ZipWriter,
 } from '@app/application'
 
@@ -27,6 +28,8 @@ export interface JobHandlerDeps {
   clock: Clock
   ids: IdGenerator
   storage: Storage
+  /** The pieces of the uploads (MEDIA_UPLOAD_DIR, on the media volume), for their clean-up. */
+  uploadParts: UploadParts
   /** Removes every credential of a person the retention anonymizes. */
   credentials: Pick<Auth, 'deleteAllCredentials'>
   /** Builds the "Scarica i miei dati" archive. */

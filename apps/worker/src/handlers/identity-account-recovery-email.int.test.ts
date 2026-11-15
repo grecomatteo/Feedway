@@ -63,6 +63,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger, at = ISSUED):
     clock: fixedClock(at),
     ids: runtime.ids,
     storage: runtime.storage,
+    uploadParts: runtime.uploadParts,
     credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used')) },
     zip: createZipWriter(),
     mailer,

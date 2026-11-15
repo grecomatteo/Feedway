@@ -12,6 +12,7 @@ export type {
   JobPayloads,
   JobQueue,
   MediaDeleteFilesJobData,
+  MediaProcessJobData,
   JobScheduler,
   PasswordResetEmailData,
   QueueName,
@@ -47,7 +48,13 @@ export type {
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
-export type { MediaRecord, MediaRepository, MediaVariantRecord } from './ports/media.js'
+export type { MediaRecord, MediaRepository, MediaVariantRecord, NewMedia } from './ports/media.js'
+export type {
+  ReceivedPart,
+  UploadParts,
+  UploadSessionRecord,
+  UploadSessionsRepository,
+} from './ports/uploads.js'
 export type { AvatarCrop, AvatarProcessor } from './ports/avatar-processor.js'
 export type { ZipEntry, ZipWriter } from './ports/zip-writer.js'
 export type { Auth, AuthSessionInfo, PasskeySummary } from './ports/auth.js'

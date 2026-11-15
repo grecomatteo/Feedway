@@ -59,6 +59,13 @@ export default defineNuxtConfig({
       ],
     },
   },
+  routeRules: {
+    // the pieces of an upload (plan 04 Task 9): up to 20 MiB each, read as a stream by their
+    // route, which checks each piece's exact size; the margin only covers a declared length
+    '/api/v1/orgs/*/workspaces/*/uploads/*/parts/*': {
+      security: { requestSizeLimiter: { maxRequestSizeInBytes: 20 * 1024 * 1024 + 64 * 1024 } },
+    },
+  },
   security: {
     nonce: true,
     // same origin only: no cross-origin reader is ever allowed (the default allowed the build

@@ -9,3 +9,17 @@ export {
 export type { ByteRange, DeleteMediaDeps, MediaDto, MediaFile, MediaVariantDto } from './library.js'
 export { deleteMediaFiles } from './delete-files.js'
 export type { MediaDeleteFilesJob } from './delete-files.js'
+export {
+  UPLOAD_RATE_LIMITS,
+  cancelUpload,
+  completeUpload,
+  getUpload,
+  listUploads,
+  receiveUploadPart,
+  startUpload,
+} from './uploads.js'
+export type { StartUploadInput, UploadDeps, UploadDto, UploadPartInput } from './uploads.js'
+export { ORPHAN_PARTS_MIN_AGE_MS, runMediaUploadsCleanup } from './uploads-cleanup.js'
+export type { UploadsCleanupDeps, UploadsCleanupReport } from './uploads-cleanup.js'
+export { markMediaQueued } from './process.js'
+export type { MediaProcessJob } from './process.js'

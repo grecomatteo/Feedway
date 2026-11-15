@@ -25,6 +25,7 @@ import {
 } from './organizations/repositories.js'
 import { drizzleIntegrations } from './integrations/repositories.js'
 import { drizzleMedia } from './media/repositories.js'
+import { drizzleUploadSessions } from './media/upload-sessions.js'
 import { drizzlePlatformSettings } from './platform/repositories.js'
 import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
@@ -59,6 +60,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     connectionAttempts: drizzleConnectionAttempts(db),
     workspaceAccounts: drizzleWorkspaceAccounts(db),
     media: drizzleMedia(db),
+    uploads: drizzleUploadSessions(db),
     audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })

@@ -34,6 +34,7 @@ async function main(): Promise<void> {
       clock,
       ids,
       storage,
+      uploadParts: runtime.uploadParts,
       credentials: { deleteAllCredentials: createCredentialEraser({ db: runtime.db }) },
       zip: createZipWriter(),
       mailer,

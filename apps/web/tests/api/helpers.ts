@@ -121,15 +121,23 @@ export function panelClient(web: RunningWeb, panel: string) {
   ): Promise<Response> {
     const headers: Record<string, string> = { origin: opts.origin ?? panel, ...opts.headers }
     if (!opts.omitAppHeader) headers['x-app-request'] = '1'
-    // a form carries its own multipart type and boundary
+    // a form carries its own multipart type and boundary; bytes go as they are
     const form = body instanceof FormData
-    if (body !== undefined && !form) headers['content-type'] ??= 'application/json'
+    const bytes = body instanceof Uint8Array
+    if (bytes) headers['content-type'] ??= 'application/octet-stream'
+    else if (body !== undefined && !form) headers['content-type'] ??= 'application/json'
     if (opts.cookie !== undefined) headers['cookie'] = opts.cookie
     return fetch(web.url(path), {
       method,
       headers,
       body:
-        body === undefined ? null : form || typeof body === 'string' ? body : JSON.stringify(body),
+        body === undefined
+          ? null
+          : bytes
+            ? new Uint8Array(body)
+            : form || typeof body === 'string'
+              ? body
+              : JSON.stringify(body),
       redirect: 'manual',
     })
   }

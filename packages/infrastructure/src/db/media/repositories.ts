@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { MediaRecord, MediaRepository, MediaVariantRecord } from '@app/application'
 import type { MediaKind, MediaProgress, MediaStatus, VariantPurpose } from '@app/domain'
 import type { DbExecutor } from '../client.js'
-import { libraryItems, media, mediaVariants } from './schema.js'
+import { libraryFolders, libraryItems, media, mediaVariants } from './schema.js'
 
 // Every query filters by organization in SQL as well: row level security is the second barrier.
 
@@ -68,6 +68,59 @@ const withLibrary = (db: DbExecutor) =>
 
 export function drizzleMedia(db: DbExecutor): MediaRepository {
   return {
+    async create(record) {
+      const { folderId, ...row } = record
+      await db.insert(media).values(row)
+      await db.insert(libraryItems).values({
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        mediaId: record.id,
+        folderId,
+      })
+    },
+    async folderExists(organizationId, workspaceId, folderId) {
+      const [row] = await db
+        .select({ id: libraryFolders.id })
+        .from(libraryFolders)
+        .where(
+          and(
+            eq(libraryFolders.organizationId, organizationId),
+            eq(libraryFolders.workspaceId, workspaceId),
+            eq(libraryFolders.id, folderId),
+          ),
+        )
+      return row !== undefined
+    },
+    async deletedWithFiles(organizationId) {
+      const rows = await db
+        .select({ id: media.id })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.status, 'deleted'),
+            sql`(${media.storageKey} is not null or exists (
+                  select 1 from ${mediaVariants} v
+                   where v.organization_id = ${media.organizationId} and v.media_id = ${media.id}))`,
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+      return rows.map((r) => r.id)
+    },
+    async setProgress(organizationId, mediaId, progress) {
+      const rows = await db
+        .update(media)
+        .set({ progress })
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.id, mediaId),
+            eq(media.status, 'processing'),
+          ),
+        )
+        .returning({ id: media.id })
+      return rows.length > 0
+    },
     async listForWorkspace(organizationId, workspaceId, page) {
       const rows = await withLibrary(db)
         .where(

@@ -18,6 +18,7 @@ import type {
   TokenService,
   Storage,
   UnitOfWork,
+  UploadParts,
 } from '@app/application'
 import type { StorageConfig, WebConfig } from '@app/config'
 import { tmpdir } from 'node:os'
@@ -37,6 +38,7 @@ import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
 import { createUnitOfWork } from './db/unit-of-work.js'
+import { createDiskUploadParts } from './storage/disk-upload-parts.js'
 import { createLocalDiskStorage } from './storage/local-disk-storage.js'
 import { createS3Storage } from './storage/s3-storage.js'
 import { createLogger } from './logging/logger.js'
@@ -55,6 +57,8 @@ export type RuntimeConfig = Pick<
   Partial<Pick<WebConfig, 'metaMode' | 'metaGraphVersion' | 'metaMockUrl' | 'metaRecordDir'>> & {
     /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
     mediaRoot?: string
+    /** MEDIA_UPLOAD_DIR; MEDIA_ROOT/uploads without it. */
+    media?: Pick<WebConfig['media'], 'uploadDir'>
     /** STORAGE_DRIVER and S3_*; the disk without it. */
     storage?: StorageConfig
     /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
@@ -79,6 +83,8 @@ export interface Runtime {
   keyRing: KeyRing
   rateLimiter: RateLimiter
   storage: Storage
+  /** The pieces of the uploads, on this machine's disk whatever the storage (ADR 021). */
+  uploadParts: UploadParts
   /** Security-lock links and device hashes, keyed from APP_ENCRYPTION_KEY. */
   signedTokens: SignedTokens
   /** Random single-use tokens of our links (invites, activation). */
@@ -200,6 +206,9 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       keyRing,
       rateLimiter,
       storage,
+      uploadParts: createDiskUploadParts({
+        dir: config.media?.uploadDir ?? join(config.mediaRoot ?? DEFAULT_MEDIA_ROOT, 'uploads'),
+      }),
       signedTokens,
       tokens: createTokenService(),
       integrations,

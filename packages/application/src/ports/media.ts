@@ -47,7 +47,38 @@ export interface MediaVariantRecord {
   height: number | null
 }
 
+/** A file as the completion of an upload writes it, with its library entry (§11.8). */
+export interface NewMedia {
+  id: string
+  organizationId: string
+  workspaceId: string
+  uploadedBy: string
+  kind: MediaKind
+  status: Extract<MediaStatus, 'processing' | 'failed'>
+  originalName: string
+  mime: string
+  sizeBytes: number
+  /** of the whole file; null when nothing was stored */
+  sha256: string | null
+  /** null: nothing was stored (a file of no type Feedway takes) */
+  storageKey: string | null
+  /** what the bytes said, when they said it already (`{ kind: 'unknown' }`) */
+  analysis: Record<string, unknown> | null
+  folderId: string | null
+}
+
 export interface MediaRepository {
+  /** Writes the file and puts it into the library of its workspace. */
+  create(media: NewMedia): Promise<void>
+  /** Whether the folder exists in the library of that workspace. */
+  folderExists(organizationId: string, workspaceId: string, folderId: string): Promise<boolean>
+  /**
+   * The deleted files of the agency that still have an original or a copy stored: their
+   * `media.delete_files` did not run, or did not finish.
+   */
+  deletedWithFiles(organizationId: string): Promise<string[]>
+  /** Sets the progress of a file still `processing`; false: no such file. */
+  setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
   /** The files of a workspace not deleted, newest first; `before`: the files after this one. */
   listForWorkspace(
     organizationId: string,

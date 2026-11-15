@@ -1,4 +1,11 @@
-import type { Auth, AvatarDeps, AvatarProcessor, LogoDeps, Translate } from '@app/application'
+import type {
+  Auth,
+  AvatarDeps,
+  AvatarProcessor,
+  LogoDeps,
+  Translate,
+  UploadDeps,
+} from '@app/application'
 import type { WebConfig } from '@app/config'
 import type { Runtime } from '@app/infrastructure'
 
@@ -52,5 +59,24 @@ export function logoDeps(): LogoDeps {
     images: deps.avatars,
     ids: deps.ids,
     clock: deps.clock,
+  }
+}
+
+/** The upload in pieces (plan 04 Task 9): the pieces on this machine's disk, the limits of config. */
+export function uploadDeps(): UploadDeps {
+  const deps = useDeps()
+  return {
+    uow: deps.uow,
+    clock: deps.clock,
+    ids: deps.ids,
+    storage: deps.storage,
+    uploadParts: deps.uploadParts,
+    queue: deps.queue,
+    logger: deps.logger,
+    rateLimiter: deps.rateLimiter,
+    limits: {
+      maxVideoBytes: deps.config.media.maxVideoBytes,
+      workspaceMaxBytes: deps.config.media.workspaceMaxBytes,
+    },
   }
 }

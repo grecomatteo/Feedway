@@ -205,6 +205,9 @@ export const uploadSessions = pgTable(
     // as declared: the type is read again from the bytes at completion
     mime: text('mime').notNull(),
     sizeBytes: bytes('size_bytes').notNull(),
+    // hex sha256 of the first piece, declared at the start: after a reload the panel tells the
+    // same file chosen again by name, size and this (ADR 021)
+    firstPartSha256: text('first_part_sha256').notNull(),
     // piece number → hex sha256 of the piece received
     parts: jsonb('parts')
       .notNull()
@@ -243,6 +246,7 @@ export const uploadSessions = pgTable(
     }),
     check('upload_sessions_size', sql`${t.sizeBytes} > 0`),
     check('upload_sessions_original_name', sql`char_length(${t.originalName}) between 1 and 255`),
+    check('upload_sessions_first_part_sha256', sql`${t.firstPartSha256} ~ '^[0-9a-f]{64}$'`),
     check('upload_sessions_completed', sql`(${t.completedAt} is null) = (${t.mediaId} is null)`),
   ],
 )
