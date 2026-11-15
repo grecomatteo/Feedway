@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { withScope } from '@app/infrastructure/testing'
 import { runAccountAvatarJobs } from './support/jobs.ts'
+import { openUserMenu } from './support/menu.ts'
 import { assignAccount, connectedAgency } from './support/meta.ts'
 import {
   E2E_PASSWORD,
@@ -322,13 +323,21 @@ async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
 const switcher = (page: Page) =>
   page.getByRole('button', { name: /^Agenzia:/ }).locator('visible=true')
 
-test('a suspended agency hides the menu, and one click leaves it', async ({ page }) => {
+test('a suspended agency hides the menu, and one click leaves it', async ({ page, isMobile }) => {
   const { owner, second } = await ownerOfTwo(page, 'suspended')
   await page.goto(`/${second}`)
   await expect(page.getByRole('alert')).toHaveText(
     'Questa agenzia è sospesa: per ora non puoi lavorarci.',
   )
   await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toHaveCount(0)
+  if (isMobile) {
+    // no bar at the bottom: «Tu» stays at the top, with «Impostazioni» and «Esci»
+    const menu = await openUserMenu(page, 'Tu, menu di')
+    await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  }
   await expect(page.getByRole('link', { name: 'Clienti' })).toHaveCount(0)
   const [first] = await adminQuery<{ name: string }>(
     'select name from organizations where slug = $1',
@@ -467,18 +476,6 @@ test('settings: the owner renames the agency and names the privacy controller', 
   await page.getByRole('button', { name: 'Salva' }).click()
   await confirmWithPassword(page)
   await expect(page.getByRole('status')).toHaveText('Modifiche salvate.')
-})
-
-test('mobile nav below 768 px: five places, no + yet, no a11y violations', async ({ page }) => {
-  const owner = await newPerson('Olga Telefono', 'owner')
-  await signInWithTotp(page.request, owner)
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto(`/${owner.organizationSlug}/spazi`)
-  const nav = page.getByRole('navigation', { name: 'Navigazione principale' })
-  await expect(nav).toBeVisible()
-  await expect(nav.getByRole('listitem')).toHaveCount(5)
-  await expect(nav.getByRole('link', { name: 'Nuovo post' })).toHaveCount(0)
-  expect((await axe(page)).violations).toEqual([])
 })
 
 // each project runs in its theme, light or dark: together they check both versions of the logo

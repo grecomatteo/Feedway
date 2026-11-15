@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** The profile photo, or initials on a colour picked from the name when there is none. */
 const props = withDefaults(
-  defineProps<{ name: string; src?: string | null; size?: 'sm' | 'md' | 'lg' }>(),
+  defineProps<{ name: string; src?: string | null; size?: 'xs' | 'sm' | 'md' | 'lg' }>(),
   { src: null, size: 'sm' },
 )
 const initials = computed(() =>
@@ -36,10 +36,10 @@ watch(photo, () => {
     alt=""
     :class="[
       'shrink-0 rounded-full bg-(--app-surface-sunken) object-cover',
-      { sm: 'size-8', md: 'size-10', lg: 'size-24' }[size],
+      { xs: 'size-6', sm: 'size-8', md: 'size-10', lg: 'size-24' }[size],
     ]"
-    :width="{ sm: 32, md: 40, lg: 96 }[size]"
-    :height="{ sm: 32, md: 40, lg: 96 }[size]"
+    :width="{ xs: 24, sm: 32, md: 40, lg: 96 }[size]"
+    :height="{ xs: 24, sm: 32, md: 40, lg: 96 }[size]"
     aria-hidden="true"
     @error="failed = true"
   />
@@ -47,7 +47,12 @@ watch(photo, () => {
     v-else
     :class="[
       'inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-[#242321]',
-      { sm: 'size-8 text-xs', md: 'size-10 text-sm', lg: 'size-24 text-2xl' }[size],
+      {
+        xs: 'size-6 text-[0.625rem]',
+        sm: 'size-8 text-xs',
+        md: 'size-10 text-sm',
+        lg: 'size-24 text-2xl',
+      }[size],
     ]"
     :style="{ backgroundColor: color }"
     aria-hidden="true"

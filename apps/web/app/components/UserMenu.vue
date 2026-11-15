@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * The signed-in person at the bottom of the sidebar (`row`) or as a photo in the phone's top bar
- * (`avatar`). One click opens their menu: «Impostazioni», the rarely used agency pages, the
- * other agencies, «Esci» and the theme.
- * On a phone it opens from the bottom, full width.
+ * The signed-in person at the bottom of the sidebar (`row`) or as «Tu» in the phone's bar at the
+ * bottom (`tab`, spec §11.11). One click opens their menu: «Impostazioni», the rarely used agency
+ * pages, the other agencies, «Esci» and the theme. On a phone it opens from the bottom, full
+ * width, and starts with the pages the sidebar holds on a computer (Utenti).
  */
-const props = withDefaults(defineProps<{ variant?: 'row' | 'avatar' }>(), { variant: 'row' })
+const props = withDefaults(defineProps<{ variant?: 'row' | 'tab' }>(), { variant: 'row' })
 
 const org = useOrganization()
 const session = useSession()
@@ -31,6 +31,9 @@ const otherAgencies = computed(
 // the agency pages opened rarely, only with an agency of the person's
 const nav = useAgencyNav()
 const links = computed(() => (org.active.value ? nav.value.filter((item) => item.inUserMenu) : []))
+const phoneLinks = computed(() =>
+  org.active.value ? nav.value.filter((item) => item.inPhoneMenu) : [],
+)
 const dark = computed(() => colorMode.value === 'dark')
 
 /** Light ↔ dark at once, without closing the menu; the profile keeps it. */
@@ -138,16 +141,18 @@ const close = () => (open.value = false)
         type="button"
         :disabled="!ready"
         aria-haspopup="menu"
-        :aria-label="$t('userMenu.open', { name: me.displayName })"
-        class="flex size-11 items-center justify-center rounded-full"
+        :aria-label="$t('userMenu.tab', { name: me.displayName })"
+        class="flex min-h-15 w-full flex-col items-center justify-center gap-0.5 text-xs text-(--app-text-muted) outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus) focus-visible:ring-inset aria-expanded:font-semibold aria-expanded:text-(--app-text)"
       >
-        <UserAvatar :name="me.displayName" :src="me.avatarUrl" />
+        <UserAvatar :name="me.displayName" :src="me.avatarUrl" size="xs" />
+        {{ $t('userMenu.you') }}
       </button>
       <template #body>
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
             :me="me"
             :links="links"
+            :before="phoneLinks"
             :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"
