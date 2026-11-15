@@ -41,7 +41,19 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
     .getByRole('navigation', { name: 'Impostazioni' })
     .getByRole('link', { name: 'Integrazioni' })
     .click()
+  // one entry per platform: Meta, not set up yet
+  const entry = page.getByRole('list', { name: 'Integrazioni' }).getByRole('link', { name: /Meta/ })
+  await expect(entry.getByTestId('meta-entry-state')).toHaveText('Da configurare')
+  expect((await axe(page)).violations).toEqual([])
+  await entry.click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta$`))
   await expect(page.getByRole('heading', { name: 'Meta', exact: true })).toBeVisible()
+  // Integrazioni → Meta is still the Integrazioni tab
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Impostazioni' })
+      .getByRole('link', { name: 'Integrazioni' }),
+  ).toHaveAttribute('aria-current', 'page')
   await expect(page.getByTestId('meta-integration-state')).toHaveText('Da configurare')
   await expect(page.getByText('Meta li aggiunge da solo')).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
@@ -76,19 +88,20 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await expect(page.getByTestId('meta-integration-state')).toHaveText('Non funziona')
   await expect(page.getByText("Meta l'ha rifiutata il")).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
-  await page.goto(`/${org}/account`)
+  await page.goto(`/${org}/impostazioni/integrazioni`)
+  await expect(page.getByTestId('meta-entry-state')).toHaveText('Non funziona')
+  await page.goto(`/${org}/impostazioni/integrazioni/meta`)
   await expect(page.getByRole('region', { name: 'Da sistemare su Meta' })).toContainText(
     "Meta non accetta più l'App ID o l'App Secret dell'agenzia",
   )
   // a test that works takes it away, and keeps what was typed and not saved yet
-  await page.goto(`/${org}/impostazioni/integrazioni`)
   await page.getByLabel('App Secret').fill('incollato-non-salvato')
   await page.getByRole('button', { name: 'Prova' }).click()
   await expect(page.getByRole('status')).toHaveText('Funziona: Meta accetta App ID e App Secret.')
   await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
   await expect(page.getByLabel('App Secret')).toHaveValue('incollato-non-salvato')
-  await page.goto(`/${org}/account`)
-  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+  await page.reload()
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
   await expect(page.getByText("Meta non accetta più l'App ID")).toHaveCount(0)
 
   const admin = await addPerson(org, 'Ada Admin', 'admin')
@@ -96,7 +109,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   const adminPage = await context.newPage()
   await ownAddress(adminPage)
   await signInWithTotp(adminPage.request, admin)
-  await adminPage.goto(`/${org}/impostazioni/integrazioni`)
+  await adminPage.goto(`/${org}/impostazioni/integrazioni/meta`)
   await expect(adminPage.getByLabel('App ID')).toHaveValue(META_MOCK.app.id)
   await expect(adminPage.getByLabel('App ID')).toBeDisabled()
   await expect(adminPage.getByText('impostato (non si rilegge mai)')).toBeVisible()
@@ -109,7 +122,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
 test('meta integration: an admin sees that the owner has not set it up yet', async ({ page }) => {
   const admin = await newPerson('Ada Senza Meta', 'admin')
   await signInWithTotp(page.request, admin)
-  await page.goto(`/${admin.organizationSlug}/impostazioni/integrazioni`)
+  await page.goto(`/${admin.organizationSlug}/impostazioni/integrazioni/meta`)
   await expect(page.getByText("L'app Meta non è ancora configurata")).toBeVisible()
   await expect(page.getByLabel('App ID')).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])

@@ -2,7 +2,7 @@
 
 Questo runbook serve all'Owner e agli Admin dell'agenzia: il token lo sostituiscono entrambi, l'App Secret solo l'Owner. Spiega come cambiare le due credenziali che Feedway usa per parlare con Meta, senza fermare le pubblicazioni:
 
-- il **token dell'utente di sistema**, che sta sul collegamento (Account social);
+- il **token dell'utente di sistema**, che sta sul collegamento (Impostazioni → Integrazioni → Meta);
 - l'**App Secret** dell'app Meta, che sta nell'integrazione (Impostazioni → Integrazioni → Meta).
 
 Feedway non mostra mai il token né il secret salvati: per cambiarli se ne incolla uno nuovo, che Feedway verifica con Meta **prima** di salvarlo. Finché la verifica non riesce resta valido quello di prima.
@@ -31,7 +31,7 @@ Nel Business Manager **«Revoca token» revoca tutti i token dell'utente di sist
 
 1. Nel Business Manager dell'agenzia: **Impostazioni del business → Utenti → Utenti di sistema** → l'utente di sistema di Feedway → **«Genera token»**.
 2. Scegli l'app Meta di Feedway, la scadenza **«Mai»** e i sei permessi: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
-3. Nel pannello: **Account social** → nel riquadro Collegamenti, sull'utente di sistema, premi **«Sostituisci token»** (oppure **«Ricollega»** se il collegamento è rosso). Conferma la password se te la chiede, incolla il token e premi **«Verifica e salva»**.
+3. Nel pannello: **Impostazioni → Integrazioni → Meta** → nel riquadro Collegamenti, sull'utente di sistema, premi **«Sostituisci token»** (oppure **«Ricollega»** se il collegamento è rosso). Conferma la password se te la chiede, incolla il token e premi **«Verifica e salva»**.
 4. Il risultato:
    - «Token sostituito: il collegamento funziona di nuovo»: fatto. Gli account restano quelli di prima, con i clienti a cui sono assegnati.
    - «Meta ha accettato il token, ma mancano dei permessi»: non è stato salvato niente. Rigenera il token spuntando quelli in rosso.
@@ -57,13 +57,13 @@ Il secret firma ogni chiamata di Feedway (`appsecret_proof`). Tra il momento in 
 2. Su Meta, accanto ad App Secret, premi **«Reimposta»** e conferma. Copia il secret nuovo.
 3. Nel pannello scrivi il secret nuovo nel campo App Secret, lascia il resto com'è e premi **«Salva e verifica»**. Conferma la password se te la chiede. Feedway salva solo se Meta accetta il secret: se risponde «Meta non accetta questo App ID con questo App Secret», ricopialo (spesso è uno spazio in più).
 4. Premi **Prova**: deve dire «Funziona».
-5. In **Account social** premi **Sincronizza** su ogni collegamento e controlla che gli account tornino «Attivo».
+5. In **Impostazioni → Integrazioni → Meta** premi **Sincronizza** su ogni collegamento e controlla che gli account tornino «Attivo».
 
 Se al passo 5 un collegamento diventa «token scaduto: va ricollegato», il token non vale più con il secret nuovo: sostituiscilo come sopra, con «Ricollega».
 
 Verificato il 2026-11-12: Meta invalida **subito** il secret vecchio, e i token degli utenti di sistema restano validi. Basta salvare il secret nuovo in Feedway.
 
-Finché il secret nuovo non è salvato, il pannello lo segnala: appena «Prova» o un controllo dei collegamenti riceve il rifiuto di Meta, l'integrazione diventa «Non funziona» e in Impostazioni → Integrazioni → Meta compare il promemoria (fino al Task 6c della tappa 4 in «Account social») «Meta non accetta più l'App ID o l'App Secret dell'agenzia». Gli account restano com'erano, perché il token non è colpa loro. Tutto torna verde con un salvataggio o una «Prova» riusciti.
+Finché il secret nuovo non è salvato, il pannello lo segnala: appena «Prova» o un controllo dei collegamenti riceve il rifiuto di Meta, l'integrazione diventa «Non funziona» e in Impostazioni → Integrazioni → Meta compare il promemoria «Meta non accetta più l'App ID o l'App Secret dell'agenzia». Gli account restano com'erano, perché il token non è colpa loro. Tutto torna verde con un salvataggio o una «Prova» riusciti.
 
 Il registro attività segna «ha cambiato l'integrazione Meta», senza il secret.
 

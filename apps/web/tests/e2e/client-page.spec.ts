@@ -97,6 +97,28 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   await expect(profiles(page).getByText('Forno Luce', { exact: true }).first()).toBeVisible()
 })
 
+test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ page }) => {
+  const { org, client } = await agencyWithClient(page)
+  await adminQuery(`update account_connections set status = 'expired' where organization_id = $1`, [
+    org,
+  ])
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  await profiles(page).getByRole('button', { name: 'Azioni per Forno Luce' }).click()
+  await page.getByRole('menuitem', { name: 'Ricollega' }).click()
+  await expect(page).toHaveURL(
+    new RegExp(`/${org}/impostazioni/integrazioni/meta\\?(.+&)?account=[^&]+$`),
+  )
+  // the connection of the profile, in view and with the focus, with «Ricollega» on it
+  const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('li[aria-current]')
+  await expect(connection).toBeFocused()
+  await expect(connection).toBeInViewport()
+  await expect(connection.getByRole('button', { name: 'Ricollega' })).toBeVisible()
+  // the pointer of the menu may rest on «Ricollega» after the scroll: no hover colours for axe
+  await page.mouse.move(0, 0)
+  expect((await axe(page)).violations).toEqual([])
+})
+
 test('«Togli dal cliente» sends the profile to «Sistemali»; «Sostituisci profilo» swaps it', async ({
   page,
 }) => {

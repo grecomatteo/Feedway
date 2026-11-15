@@ -173,11 +173,11 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             {{ $t('firstSetup.done.workspaces') }}
           </UButton>
           <UButton
-            :to="org.to('/account')"
+            :to="org.to('/impostazioni/integrazioni/meta')"
             class="min-h-11"
             color="neutral"
             variant="outline"
-            icon="i-lucide-at-sign"
+            icon="i-lucide-plug"
           >
             {{ $t('firstSetup.done.accounts') }}
           </UButton>
@@ -261,11 +261,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             {{ $t('addAccount.search') }}
           </UButton>
           <p v-if="search.problem" role="alert" class="text-(--app-danger)">{{ search.problem }}</p>
-          <ImportAccountsChooser
+          <MatchClients
             v-if="found !== null && setup.systemUser.value"
             :accounts="found"
             :path="org.api(`/connections/${setup.systemUser.value.id}/import`)"
-            @imported="imported"
+            stay
+            @done="imported"
           />
         </template>
       </section>

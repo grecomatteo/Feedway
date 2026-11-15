@@ -60,7 +60,7 @@ Nel Business Manager dell'agenzia, **Impostazioni del business → Utenti → Ut
 4. Premi **«Genera token»**, scegli l'app, la scadenza **«Mai»** e spunta questi sei permessi:
    `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
    Se Meta avvisa che alcune autorizzazioni «non sono aggiunte alla tua app», premi **Continua**: le aggiunge lui.
-5. Copia il token e **incollalo solo nel pannello**: Account social → Aggiungi account, rispondi alla domanda («Sì, è nel Business Manager dell'agenzia» oppure «No, è di un cliente…») e premi «Collega l'utente di sistema». Oppure usa il passo 4 della prima configurazione. Mai in una chat, un'email o un file.
+5. Copia il token e **incollalo solo nel pannello**: Impostazioni → Integrazioni → Meta → Aggiungi account, rispondi alla domanda («Sì, è nel Business Manager dell'agenzia» oppure «No, è di un cliente…») e premi «Collega l'utente di sistema». Oppure usa il passo 4 della prima configurazione. Mai in una chat, un'email o un file.
 
 Feedway controlla il token con Meta prima di salvarlo. Se mancano dei permessi li mostra in rosso e **non salva niente**: rigenera il token spuntandoli.
 
@@ -70,7 +70,7 @@ Il token dell'utente di sistema **non scade** (verificato il 2026-11-11: scadenz
 
 ## 4. Gli account
 
-Pannello → **Account social** → **Aggiungi account**. La pagina chiede dove sta l'account e mostra i passi giusti.
+Pannello → **Impostazioni → Integrazioni → Meta** → **Aggiungi account**. La pagina chiede dove sta l'account e mostra i passi giusti.
 
 ### L'account è nel Business Manager dell'agenzia
 Assegnalo all'utente di sistema (Utenti di sistema → l'utente → «Assegna risorse»), con il controllo completo. Vale anche per un profilo Instagram **senza Pagina** (verificato il 2026-11-11).
@@ -119,7 +119,7 @@ L'utente di sistema non ha bisogno di tester: i passi 1–4 funzionano anche in 
 
 ## Se un account è rosso
 
-Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno un testo che dice cosa fare. Feedway controlla ogni collegamento una volta al giorno, alle 4 di notte (ora italiana); **Sincronizza** sul collegamento rifà il controllo subito (al massimo una volta ogni 5 minuti).
+Pannello → **Impostazioni → Integrazioni → Meta**. Ogni account ha uno stato, e i problemi hanno un testo che dice cosa fare. Feedway controlla ogni collegamento una volta al giorno, alle 4 di notte (ora italiana); **Sincronizza** sul collegamento rifà il controllo subito (al massimo una volta ogni 5 minuti).
 
 | Stato | Messaggio | Cosa fare |
 |---|---|---|
@@ -135,7 +135,7 @@ Pannello → **Account social**. Ogni account ha uno stato, e i problemi hanno u
 
 **Se l'utente di sistema è stato eliminato**, un token di un altro utente di sistema non ripara il vecchio collegamento: con «Ricollega» Feedway crea un collegamento nuovo («Token salvato: è un nuovo collegamento, con un altro utente di sistema») e il vecchio resta rosso. Assegna Pagine e Instagram al nuovo utente di sistema su Meta, poi Aggiungi account → «Cerca nuovi account» → «Importa»: gli account passano al collegamento nuovo e restano assegnati ai loro clienti.
 
-In cima ad Account social, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «il token non vale più (revocato o scaduto): ricollega».
+In cima a Impostazioni → Integrazioni → Meta, il riquadro **«Da sistemare su Meta»** ricorda il Data Use Checkup in scadenza, la versione della Graph API vicina al ritiro, i token in scadenza e i collegamenti a cui un cliente ha tolto l'accesso. Un token che non vale più si vede solo dallo stato del collegamento, «il token non vale più (revocato o scaduto): ricollega».
 
 Un token revocato nel Business Manager fa diventare il collegamento «il token non vale più (revocato o scaduto): ricollega» e gli account «Da ricollegare», con «Il token del collegamento non vale più» (verificato il 2026-11-12). Le assegnazioni ai clienti restano: dopo «Ricollega» gli account tornano «Attivo» dove erano.
 

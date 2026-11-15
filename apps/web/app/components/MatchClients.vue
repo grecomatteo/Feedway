@@ -11,7 +11,17 @@ import { proposeClients } from '@app/domain'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { DataColumn } from '~/components/DataTable.vue'
 
-const props = defineProps<{ accounts: ImportableAccount[]; path: string }>()
+const props = withDefaults(
+  defineProps<{
+    accounts: ImportableAccount[]
+    path: string
+    /** Its title's level in the page that holds it. */
+    headingLevel?: 3 | 4
+    /** After the import, stay on the page (the first setup shows its last step) instead of Clienti. */
+    stay?: boolean
+  }>(),
+  { headingLevel: 3, stay: false },
+)
 const emit = defineEmits<{ done: [] }>()
 const { t } = useI18n()
 const { call, failure } = useApi()
@@ -225,7 +235,7 @@ async function submit(mode: 'create' | 'later') {
         : null
     await refreshNuxtData(`workspaces-${org.slug.value}`)
     emit('done')
-    await navigateTo(org.to('/spazi'))
+    if (!props.stay) await navigateTo(org.to('/spazi'))
   } catch (e) {
     problem.value = failure(e).message
   } finally {
@@ -264,14 +274,15 @@ const columns = computed<DataColumn[]>(() => [
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="text-[0.8125rem] font-semibold">{{ $t('clients.match.step') }}</p>
-        <h2
+        <component
+          :is="`h${headingLevel}`"
           id="match-title"
           ref="heading"
           tabindex="-1"
           class="font-display mt-1 scroll-mt-6 text-2xl outline-none md:text-[1.75rem]"
         >
           {{ $t('clients.match.title', { n: total }, total) }}
-        </h2>
+        </component>
         <p class="mt-1 text-(--app-text-muted) max-md:hidden">{{ $t('clients.match.intro') }}</p>
         <p class="mt-1 text-(--app-text-muted) md:hidden">{{ $t('clients.match.introPhone') }}</p>
       </div>

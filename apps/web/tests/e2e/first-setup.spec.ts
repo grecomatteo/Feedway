@@ -75,14 +75,21 @@ test('first setup: the five steps, interrupted and taken up again', async ({ pag
   await token.getByRole('button', { name: 'Verifica e salva' }).click()
   await expect(current(page)).toContainText('Importa gli account')
 
-  // step 5: the accounts
-  await page
-    .getByRole('group', { name: 'Account trovati' })
-    .getByRole('checkbox', { name: /Studio Rossi/ })
-    .check()
+  // step 5: the accounts, one proposed client per profile (the import of Clienti, plan 04 Task 5c)
+  await expect(page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })).toBeVisible()
+  await page.mouse.move(0, 0)
   expect((await axe(page)).violations).toEqual([])
-  await page.getByRole('button', { name: 'Importa 1 account' }).click()
+  await page.getByRole('button', { name: /^Crea \d+ clienti$/ }).click()
+  // the setup shows its end instead of going on to Clienti
   await expect(page.getByRole('heading', { name: 'Configurazione completata' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Vai ai collegamenti' })).toHaveAttribute(
+    'href',
+    `/${org}/impostazioni/integrazioni/meta`,
+  )
+  await page.getByRole('link', { name: 'Vai ai clienti' }).click()
+  await expect(
+    page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' })),
+  ).toContainText('Studio Rossi')
 
   await page.goto(`/${org}`)
   await expect(page.getByRole('link', { name: 'Riprendi la prima configurazione' })).toHaveCount(0)

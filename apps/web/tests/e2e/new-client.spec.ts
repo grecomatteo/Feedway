@@ -71,7 +71,7 @@ test('«Abbina ai clienti»: untick, rename, join two rows, «Crea N clienti» a
   const org = owner.organizationSlug
   await connectedAgency(page.request, org, { importAccounts: false })
 
-  await page.goto(`/${org}/account/aggiungi`)
+  await page.goto(`/${org}/impostazioni/integrazioni/meta/aggiungi`)
   await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
   await page.getByRole('button', { name: 'Cerca nuovi account' }).click()
   // the proposals come below the guide: the page takes the person to them

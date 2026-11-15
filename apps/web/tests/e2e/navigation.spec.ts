@@ -41,7 +41,8 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     `/${org}/privacy`,
     `/${org}/impostazioni`,
     `/${org}/impostazioni/integrazioni`,
-    `/${org}/account`,
+    `/${org}/impostazioni/integrazioni/meta`,
+    `/${org}/impostazioni/integrazioni/meta/aggiungi`,
     '/account',
   ]) {
     await page.goto(path)
@@ -167,24 +168,34 @@ test('on a computer the user menu keeps Utenti in the sidebar, not in the menu',
   await expect(menu.locator(`a[href^="/${org}/account"]`)).toHaveCount(0)
 })
 
-test('until the connections move to Integrazioni, it links to them, keeping the client', async ({
+test('the old addresses of the accounts land in Integrazioni → Meta, keeping the client', async ({
   page,
 }) => {
   const { org, client } = await ownerWithClient(page, 'Olga Integrazioni')
-  await page.goto(`/${org}/impostazioni/integrazioni?spazio=${client.slug}`)
-  const link = page.getByRole('link', { name: 'Apri gli account collegati' })
-  await expect(link).toHaveAttribute('href', `/${org}/account?spazio=${client.slug}`)
-  await link.click()
-  await expect(page).toHaveURL(new RegExp(`/${org}/account\\?spazio=${client.slug}$`))
-  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+  await page.goto(`/${org}/account?spazio=${client.slug}`)
+  await expect(page).toHaveURL(
+    new RegExp(`/${org}/impostazioni/integrazioni/meta\\?spazio=${client.slug}$`),
+  )
+  await expect(page.getByRole('heading', { name: 'Meta', level: 2 })).toBeVisible()
+  await page.goto(`/${org}/account/aggiungi`)
+  await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta/aggiungi$`))
+  await expect(page.getByRole('heading', { name: 'Aggiungi account', level: 2 })).toBeVisible()
+  // no bridge left in Integrazioni: the entry of the platform
+  await page.goto(`/${org}/impostazioni/integrazioni`)
+  await expect(page.getByRole('link', { name: 'Apri gli account collegati' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Meta/ })).toHaveAttribute(
+    'href',
+    `/${org}/impostazioni/integrazioni/meta`,
+  )
 
-  // a Member has no connections to open
+  // who does not manage the connections lands in Clienti
   const member = await addPerson(org, 'Mara Member', 'member', [
     { workspaceId: client.id, role: 'publisher' },
   ])
   await page.context().clearCookies()
   await signIn(page.request, member)
-  await page.goto(`/${org}`)
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Apri gli account collegati' })).toHaveCount(0)
+  await page.goto(`/${org}/account`)
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
+  await page.goto(`/${org}/account/aggiungi`)
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
 })

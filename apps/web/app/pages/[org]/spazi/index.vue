@@ -100,7 +100,7 @@ const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)
 /** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
 const canReconnect = (w: WorkspaceView) =>
   org.may.value.manageAccounts && w.archivedAt === null && linkOf(w) === 'reconnect'
-const integrations = computed(() => org.to('/impostazioni/integrazioni'))
+const integrations = computed(() => org.to('/impostazioni/integrazioni/meta'))
 
 // ---- create, from a profile or without one (spec §14.7)
 const { data: withoutClient, refresh: refreshWithoutClient } = useProfilesWithoutClient()

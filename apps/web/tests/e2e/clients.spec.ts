@@ -141,11 +141,11 @@ test('a profile to reconnect: the summary links to the client, «Ricollega» for
     await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
     await expect(page.getByRole('menuitem').first()).toHaveText('Ricollega')
     await page.getByRole('menuitem', { name: 'Ricollega' }).click()
-    await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni$`))
+    await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta$`))
   } else {
     await expect(
       rowOf(page, 'Forno Luce').getByRole('link', { name: 'Ricollega i profili di Forno Luce' }),
-    ).toHaveAttribute('href', `/${org}/impostazioni/integrazioni`)
+    ).toHaveAttribute('href', `/${org}/impostazioni/integrazioni/meta`)
     // the button is enough: the menu does not repeat it
     await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
     await expect(page.getByRole('menuitem', { name: 'Ricollega' })).toBeHidden()
