@@ -30,7 +30,7 @@ const { data, status, error, refresh } = useFetch<{ integration: MetaIntegration
 const integration = computed(() => data.value?.integration ?? null)
 
 // the reminders are a notice on top, for who manages the connections (§8.4)
-const { data: reminders } = useFetch<{ items: MetaReminder[] }>(
+const { data: reminders, status: remindersStatus } = useFetch<{ items: MetaReminder[] }>(
   () => org.api('/accounts/reminders'),
   {
     key: () => `meta-reminders-${org.slug.value}`,
@@ -38,6 +38,12 @@ const { data: reminders } = useFetch<{ items: MetaReminder[] }>(
     lazy: true,
     immediate: org.may.value.manageAccounts,
   },
+)
+
+/** What sits above the connections is in: a connection brought into view stays there. */
+const settled = (s: string) => s !== 'pending' && s !== 'idle'
+const aboveReady = computed(
+  () => settled(status.value) && (!org.may.value.manageAccounts || settled(remindersStatus.value)),
 )
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
@@ -149,7 +155,7 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
       <MetaConnections
         v-if="org.may.value.manageAccounts"
         :with-reauth="withReauth"
-        :focus-account="focusAccount"
+        :focus-account="aboveReady ? focusAccount : null"
       />
 
       <section

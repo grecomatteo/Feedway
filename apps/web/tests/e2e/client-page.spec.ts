@@ -112,6 +112,7 @@ test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ pag
   // the connection of the profile, in view and with the focus, with «Ricollega» on it
   const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('li[aria-current]')
   await expect(connection).toBeFocused()
+  await expect(connection).toBeInViewport()
   await expect(connection.getByRole('button', { name: 'Ricollega' })).toBeVisible()
   // the pointer of the menu may rest on «Ricollega» after the scroll: no hover colours for axe
   await page.mouse.move(0, 0)
