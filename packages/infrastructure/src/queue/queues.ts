@@ -88,6 +88,13 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'organization',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
+  // ids only; repeatable, so a job that runs twice for one file is harmless; one that waited a
+  // week is no longer kept
+  'media.delete_files': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

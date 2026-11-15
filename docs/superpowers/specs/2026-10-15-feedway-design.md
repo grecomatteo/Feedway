@@ -1049,12 +1049,19 @@ media               id, workspace_id, uploaded_by, kind (image|video),
                     status (uploading|processing|ready|failed|deleted),
                     original_name, mime, size_bytes, sha256, width, height,
                     duration_ms, fps, video_codec, audio_codec, analysis (jsonb),
-                    storage_key, deleted_at
+                    progress (jsonb: passo e percentuale del worker), storage_key, deleted_at
+                    -- storage_key: l'originale, vuoto quando è tolto; deleted: la riga resta,
+                    -- i file li toglie il lavoro media.delete_files (piano 04, Task 8)
 media_variants      id, media_id, purpose (ig_feed|fb_photo|reel|story|thumbnail|share|preview|cover),
-                    storage_key, public_token (unico, null per preview: mai servita da /m/*),
-                    mime, size_bytes, width, height
-library_folders     id, workspace_id, name, parent_id
-library_items       media_id, folder_id, tags
+                    storage_key, public_token (unico, 32 caratteri, null per preview: mai servita
+                    da /m/*), mime, size_bytes, width, height
+                    -- una sola variante per scopo
+library_folders     id, workspace_id, name, parent_id (cartella dello stesso spazio)
+library_items       workspace_id, media_id, folder_id, tags
+                    -- file e cartella dello stesso spazio (chiavi esterne composte)
+upload_sessions     id, workspace_id, user_id, folder_id, original_name, mime, size_bytes,
+                    parts (jsonb: numero del pezzo → sha256), expires_at, completed_at, media_id
+                    -- caricamento a pezzi con ripresa (piano 04 M3, ADR 021)
 
 -- Post e pubblicazione
 posts               id, workspace_id, type (photo|carousel|reel|story), caption,

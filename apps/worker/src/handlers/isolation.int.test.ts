@@ -2,12 +2,13 @@ import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { QueueName, QueueScopes } from '@app/application'
 import { QUEUES, type Runtime } from '@app/infrastructure'
-import { startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
+import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
 import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
 import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
 import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
+import { mediaDeleteFiles } from './media-delete-files.js'
 import {
   FORNO_LUCE,
   accountsRuntime,
@@ -74,10 +75,40 @@ async function picturesWorld(): Promise<World> {
   }
 }
 
+/** A deleted file of the agency, with its copy still stored. */
+async function deletedMedia(of: Agency): Promise<string> {
+  const mediaId = await seed(tdb.runtimeUrl, async (s) => {
+    const workspace = await s.workspace(of.organizationId)
+    return s.media(of.organizationId, workspace, { uploadedBy: of.ownerId, status: 'deleted' })
+  })
+  const key = `org/${of.organizationId}/media/${mediaId}/preview.mp4`
+  await runtime.storage.put(key, Buffer.from('ftyp'), { contentType: 'video/mp4' })
+  await admin.query(
+    `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime, size_bytes)
+     values (gen_random_uuid(), $1, $2, 'preview', $3, 'video/mp4', 4)`,
+    [of.organizationId, mediaId, key],
+  )
+  return mediaId
+}
+
+async function mediaWorld(): Promise<World> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const ofA = await deletedMedia(a)
+  const ofB = await deletedMedia(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, mediaId: ofA },
+    crossing: { organizationId: a.organizationId, mediaId: ofB },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
   'accounts.avatar': { handler: accountsAvatar, world: picturesWorld },
+  'media.delete_files': { handler: mediaDeleteFiles, world: mediaWorld },
 }
 
 // every row an agency's job could touch, by agency
@@ -85,6 +116,8 @@ const SNAPSHOT_QUERIES = [
   'select * from account_connections where organization_id = $1 order by id',
   'select * from social_accounts where organization_id = $1 order by id',
   'select * from workspace_accounts where organization_id = $1 order by account_id',
+  'select * from media where organization_id = $1 order by id',
+  'select * from media_variants where organization_id = $1 order by id',
   'select * from audit_log where organization_id = $1 order by id',
 ]
 

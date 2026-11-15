@@ -116,9 +116,17 @@ async function readUpload(event: H3Event, maxBytes: number): Promise<Buffer> {
   return part.data
 }
 
-/** A download route's answer: the bytes, or 304 when the client already holds this version. */
-async function sendFile(event: H3Event, contentType: string, answer: FileAnswer) {
-  setResponseHeader(event, 'content-type', contentType)
+/**
+ * A download route's answer: the bytes, part of them (206, 416) on a route that serves ranges,
+ * or 304 when the client already holds this version.
+ */
+async function sendFile(
+  event: H3Event,
+  download: NonNullable<ApiContract['download']>,
+  answer: FileAnswer,
+) {
+  setResponseHeader(event, 'content-type', answer.contentType ?? download.contentType)
+  if (download.ranges) setResponseHeader(event, 'accept-ranges', 'bytes')
   if (answer.cacheControl) setResponseHeader(event, 'cache-control', answer.cacheControl)
   if (answer.filename)
     setResponseHeader(
@@ -140,6 +148,21 @@ async function sendFile(event: H3Event, contentType: string, answer: FileAnswer)
       return null
     }
   }
+  if (answer.part && download.ranges) {
+    const { total, range } = answer.part
+    if (range === null) {
+      release()
+      setResponseHeader(event, 'content-range', `bytes */${String(total)}`)
+      setResponseStatus(event, 416)
+      return null
+    }
+    setResponseHeader(
+      event,
+      'content-range',
+      `bytes ${String(range.start)}-${String(range.end)}/${String(total)}`,
+    )
+    setResponseStatus(event, 206)
+  } else if (answer.part) throw new Error('a part of a file from a route that serves no ranges')
   setResponseHeader(event, 'content-length', answer.size)
   if (answer.body instanceof Uint8Array) return Buffer.from(answer.body)
   await sendStream(event, Readable.from(answer.body))
@@ -215,7 +238,7 @@ export function defineApiRoute<C extends ApiContract>(
       const answer = contract.response.safeParse(await handler(ctx))
       if (!answer.success) throw new Error('answer does not match the response contract')
       if (contract.download)
-        return await sendFile(event, contract.download.contentType, answer.data as FileAnswer)
+        return await sendFile(event, contract.download, answer.data as FileAnswer)
       return answer.data
     } catch (error) {
       return sendApiError(event, error)

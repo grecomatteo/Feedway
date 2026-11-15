@@ -5,7 +5,6 @@ import { MODULES, userAnonymizedHandlers } from './modules.js'
 
 // Permissions of modules not written yet (stages 3–7): listed so a new one is never forgotten.
 const FUTURE_PERMISSIONS = [
-  'media.upload',
   'post.draft',
   'post.publish',
   'post.manage_others',
@@ -29,6 +28,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'accounts.health': true,
   'accounts.daily': true,
   'accounts.avatar': true,
+  'media.delete_files': true,
 }
 
 test('each module has its own name', () => {

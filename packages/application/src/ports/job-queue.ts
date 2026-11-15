@@ -30,6 +30,12 @@ interface JobDefinitions {
   'accounts.health': { scope: 'organization'; data: ConnectionJobData }
   'accounts.daily': { scope: 'system'; data: object }
   'accounts.avatar': { scope: 'organization'; data: AccountAvatarJobData }
+  'media.delete_files': { scope: 'organization'; data: MediaDeleteFilesJobData }
+}
+
+/** The files of one deleted media (plan 04 Task 8): its id only. */
+export interface MediaDeleteFilesJobData {
+  mediaId: string
 }
 
 /** The picture of one social account (plan 04 Task 4): its id only. */

@@ -204,6 +204,7 @@ const noIds: SampleIds = {
   invite: '',
   connection: '',
   account: '',
+  media: '',
 }
 
 test('every personal route with a parameter has a case', () => {
