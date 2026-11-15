@@ -113,6 +113,8 @@ test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ pag
   const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('li[aria-current]')
   await expect(connection).toBeFocused()
   await expect(connection.getByRole('button', { name: 'Ricollega' })).toBeVisible()
+  // the pointer of the menu may rest on «Ricollega» after the scroll: no hover colours for axe
+  await page.mouse.move(0, 0)
   expect((await axe(page)).violations).toEqual([])
 })
 

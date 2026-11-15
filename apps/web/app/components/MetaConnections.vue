@@ -281,7 +281,7 @@ watch(
             :data-connection="c.id"
             :tabindex="focused === c.id ? -1 : undefined"
             :aria-current="focused === c.id ? 'true' : undefined"
-            class="-mx-2 flex flex-wrap items-center justify-between gap-3 rounded-lg px-2 py-3 aria-[current=true]:bg-(--app-brand-soft)"
+            class="-mx-2 flex flex-wrap items-center justify-between gap-3 rounded-lg px-2 py-3 aria-[current=true]:ring-2 aria-[current=true]:ring-(--app-brand)"
           >
             <div class="min-w-0 space-y-1">
               <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
