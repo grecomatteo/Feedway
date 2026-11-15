@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MetaReminder } from '@app/contracts'
 
-/** The red notice of «Account social» (spec §8.4, RF-21): until stage 8 it lives only here. */
+/** The red notice of Integrazioni → Meta (spec §8.4, RF-21): until stage 8 it lives only here. */
 const props = defineProps<{ items: MetaReminder[] }>()
 const { t } = useI18n()
 
@@ -47,10 +47,10 @@ const lines = computed(() =>
     aria-labelledby="meta-reminders"
     class="space-y-2 rounded-xl border border-(--app-danger) bg-(--app-surface) p-4"
   >
-    <h2 id="meta-reminders" class="flex items-center gap-2 text-lg text-(--app-danger)">
+    <h3 id="meta-reminders" class="flex items-center gap-2 text-lg text-(--app-danger)">
       <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
       {{ $t('metaReminders.title') }}
-    </h2>
+    </h3>
     <ul class="list-disc space-y-1 pl-5">
       <li v-for="(line, i) in lines" :key="i">{{ line }}</li>
     </ul>

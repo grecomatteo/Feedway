@@ -20,9 +20,9 @@ test('add account: the system user token, then the accounts to import', async ({
   const org = owner.organizationSlug
   await metaApp(page.request, org, { businessId: META_MOCK.businesses.agency })
 
-  await page.goto(`/${org}/account`)
+  await page.goto(`/${org}/impostazioni/integrazioni/meta`)
   await page.getByRole('link', { name: 'Aggiungi account' }).first().click()
-  await expect(page.getByRole('heading', { name: 'Aggiungi account', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Aggiungi account', level: 2 })).toBeVisible()
   await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
   // the guide opens the agency's own Business Manager
   await expect(page.getByRole('link', { name: /Utenti di sistema/ })).toHaveAttribute(
@@ -58,8 +58,8 @@ test('add account: the system user token, then the accounts to import', async ({
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
 
   // the accounts are in, each in its client
-  await page.goto(`/${org}/account`)
-  const list = page.getByRole('list', { name: 'Account social' })
+  await page.goto(`/${org}/impostazioni/integrazioni/meta`)
+  const list = page.getByRole('list', { name: 'Profili' })
   await expect(list).toContainText('Studio Rossi')
   await expect(list).toContainText('Bottega Verde')
 })
@@ -72,7 +72,7 @@ test('add account: a client with a Business Manager of its own gets a message', 
   const org = owner.organizationSlug
   await metaApp(page.request, org, { businessId: META_MOCK.businesses.agency })
 
-  await page.goto(`/${org}/account/aggiungi`)
+  await page.goto(`/${org}/impostazioni/integrazioni/meta/aggiungi`)
   await page.getByRole('radio', { name: /è di un cliente con un Business Manager suo/ }).check()
   const message = page.getByRole('textbox', { name: 'Messaggio per il cliente' })
   await expect(message).toHaveValue(new RegExp(META_MOCK.businesses.agency))
@@ -84,8 +84,11 @@ test('add account: a client with a Business Manager of its own gets a message', 
 test('add account: without the Meta app it says where to set it', async ({ page }) => {
   const owner = await newPerson('Olga Senza App', 'owner')
   await signInWithTotp(page.request, owner)
-  await page.goto(`/${owner.organizationSlug}/account/aggiungi`)
+  await page.goto(`/${owner.organizationSlug}/impostazioni/integrazioni/meta/aggiungi`)
   await expect(page.getByText("Prima serve l'app Meta dell'agenzia")).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Impostazioni → Integrazioni' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Integrazioni → Meta' })).toHaveAttribute(
+    'href',
+    `/${owner.organizationSlug}/impostazioni/integrazioni/meta`,
+  )
   await expect(page.getByRole('radio')).toHaveCount(0)
 })

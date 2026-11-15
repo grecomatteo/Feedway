@@ -115,7 +115,11 @@ const columns = computed<DataColumn[]>(() => [
 const done = ref<string | null>(null)
 const problem = ref<string | null>(null)
 const busy = ref(false)
-const integrations = computed(() => org.to('/impostazioni/integrazioni'))
+/** «Ricollega»: the connection of the profile, in the Integrazioni entry of its platform. */
+const reconnectTo = (p: WorkspaceProfile) => ({
+  path: org.to('/impostazioni/integrazioni/meta'),
+  query: p.accounts[0] ? { account: p.accounts[0].id } : {},
+})
 
 async function change(remove: string[], add: string[], message: string) {
   const c = client.value
@@ -189,7 +193,7 @@ function actions(p: WorkspaceProfile): DropdownMenuItem[][] {
       {
         label: t('workspaces.reconnect'),
         icon: 'i-lucide-link',
-        onSelect: () => void navigateTo(integrations.value),
+        onSelect: () => void navigateTo(reconnectTo(p)),
       },
     ])
   groups.push([
@@ -343,7 +347,7 @@ const canManageMembers = computed(
               color="neutral"
               variant="outline"
               class="min-h-11"
-              :to="integrations"
+              :to="reconnectTo(row)"
               :aria-label="$t('workspaces.reconnectOf', { name: name(row) })"
             >
               {{ $t('workspaces.reconnect') }}

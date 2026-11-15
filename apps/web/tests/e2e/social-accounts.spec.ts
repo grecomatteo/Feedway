@@ -1,8 +1,9 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
-import { connectedAgency } from './support/meta.ts'
+import { connectedAgency, metaApp } from './support/meta.ts'
 import {
+  E2E_PASSWORD,
   addPerson,
   adminQuery,
   newPerson,
@@ -21,6 +22,8 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
+const meta = (org: string) => `/${org}/impostazioni/integrazioni/meta`
+
 /** A calendar day `days` from now in the panel's time zone, where the reminder counts days. */
 const dayFromNow = (days: number) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(
@@ -30,9 +33,8 @@ const dayFromNow = (days: number) =>
 test('social accounts: empty before anything is connected', async ({ page }) => {
   const owner = await newPerson('Olga Vuota', 'owner')
   await signInWithTotp(page.request, owner)
-  // the bottom bar below 768 px has five fixed places: no link to this page there
-  await page.goto(`/${owner.organizationSlug}/account`)
-  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+  await page.goto(`/${owner.organizationSlug}/impostazioni/integrazioni/meta`)
+  await expect(page.getByRole('heading', { name: 'Meta', level: 2 })).toBeVisible()
   await expect(page.getByText('Nessun account collegato')).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
 })
@@ -43,11 +45,11 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   const org = owner.organizationSlug
   await connectedAgency(page.request, org, { dataUseCheckupDueOn: dayFromNow(10) })
 
-  await page.goto(`/${org}/account`)
-  const list = page.getByRole('list', { name: 'Account social' })
+  await page.goto(meta(org))
+  const list = page.getByRole('list', { name: 'Profili' })
   // the page with its Instagram is one profile; the accounts are not checked yet (no worker)
   const fornoLuce = list.getByRole('listitem').filter({ hasText: 'Forno Luce' }).first()
-  await expect(fornoLuce.getByRole('heading', { level: 2 })).toHaveText('Forno Luce')
+  await expect(fornoLuce.getByRole('heading', { level: 4 })).toHaveText('Forno Luce')
   await expect(fornoLuce.getByTestId(`account-${META_MOCK.pages.withInstagram}`)).toBeVisible()
   await expect(fornoLuce.getByTestId(`account-${META_MOCK.instagram.ofPage}`)).toContainText(
     'Da controllare',
@@ -63,7 +65,7 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   const sync = connections.getByRole('button', { name: 'Sincronizza' })
   // a second tab opened before the sync still offers it: the server says it is too soon
   const other = await page.context().newPage()
-  await other.goto(`/${org}/account`)
+  await other.goto(meta(org))
   const otherConnections = other.getByRole('region', { name: 'Collegamenti' })
   const otherSync = otherConnections.getByRole('button', { name: 'Sincronizza' })
   await expect(otherSync).toBeEnabled()
@@ -100,7 +102,7 @@ test('social accounts: a system user without accounts yet is listed as waiting',
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
   await connectedAgency(page.request, org, { importAccounts: false })
-  await page.goto(`/${org}/account`)
+  await page.goto(meta(org))
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   await expect(connections).toContainText('Utente di sistema Meta')
   await expect(connections).toContainText('in attesa dei primi account')
@@ -124,7 +126,7 @@ test('social accounts: an inactive account says why, and a dead token says it pl
     [org, META_MOCK.instagram.agencyOnly],
   )
 
-  await page.goto(`/${org}/account`)
+  await page.goto(meta(org))
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   // only the active accounts count; the inactive one is named apart
   await expect(connections).toContainText(`${String((total?.n ?? 0) - 1)} account, 1 inattivo`)
@@ -133,7 +135,7 @@ test('social accounts: an inactive account says why, and a dead token says it pl
   await expect(inactive).toContainText("Non è più assegnato all'utente di sistema su Meta")
   await expect(inactive.getByRole('link', { name: 'Cerca nuovi account' })).toHaveAttribute(
     'href',
-    `/${org}/account/aggiungi`,
+    `/${org}/impostazioni/integrazioni/meta/aggiungi`,
   )
 
   // a revoked token answers like an expired one (190): the text does not guess which
@@ -149,18 +151,53 @@ test('social accounts: an inactive account says why, and a dead token says it pl
   expect((await axe(page)).violations).toEqual([])
 })
 
-test('social accounts: an admin manages them, a member never sees them', async ({ page }) => {
-  const admin = await newPerson('Ada Account', 'admin')
+test('social accounts: an admin connects and syncs from Integrazioni, a member never sees them', async ({
+  page,
+}) => {
+  const owner = await newPerson('Olga Prepara', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await metaApp(page.request, org)
+  const admin = await addPerson(org, 'Ada Account', 'admin')
+  await page.context().clearCookies()
   await signInWithTotp(page.request, admin)
-  const org = admin.organizationSlug
-  await page.goto(`/${org}/account`)
-  await expect(page.getByRole('heading', { name: 'Account social', level: 1 })).toBeVisible()
+
+  await page.goto(`/${org}/impostazioni/integrazioni`)
+  await page.getByRole('link', { name: /Meta/ }).click()
+  await expect(page.getByRole('heading', { name: 'Profili', level: 3 })).toBeVisible()
+  await page.getByRole('link', { name: 'Aggiungi account' }).first().click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta/aggiungi$`))
+  await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
+  await page.getByRole('button', { name: "Collega l'utente di sistema" }).click()
+  const dialog = page.getByRole('dialog', { name: "Collega l'utente di sistema" })
+  await dialog.getByLabel("Token dell'utente di sistema").fill(META_MOCK.tokens.systemUser)
+  await dialog.getByRole('button', { name: 'Verifica e salva' }).click()
+  // a sign-in a moment ago may count as a recent confirmation
+  const reauth = page.getByRole('dialog', { name: 'Conferma che sei tu' })
+  const found = page.getByRole('heading', { name: /Abbiamo trovato \d+ profili/ })
+  await expect(found.or(reauth)).toBeVisible()
+  if (await reauth.isVisible()) {
+    await reauth.getByLabel('Password').fill(E2E_PASSWORD)
+    await reauth.getByRole('button', { name: 'Conferma' }).click()
+  }
+  await expect(found).toBeVisible()
+
+  await page.getByRole('link', { name: 'Torna a Meta' }).click()
+  const connections = page.getByRole('region', { name: 'Collegamenti' })
+  await expect(connections).toContainText('Utente di sistema Meta')
+  await connections.getByRole('button', { name: 'Sincronizza' }).click()
+  await expect(connections.getByRole('status')).toContainText('Sincronizzazione avviata')
+  // the app is the Owner's: the Admin reads it
+  await expect(page.getByLabel('App ID')).toBeDisabled()
+  expect((await axe(page)).violations).toEqual([])
 
   const member = await addPerson(org, 'Mario Membro', 'member')
   await page.context().clearCookies()
   await signIn(page.request, member)
   await page.goto(`/${org}`)
-  await expect(page.getByRole('link', { name: 'Account social' })).toHaveCount(0)
-  await page.goto(`/${org}/account`)
+  await expect(page.getByRole('link', { name: 'Integrazioni' })).toHaveCount(0)
+  await page.goto(meta(org))
+  await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
+  await page.goto(`${meta(org)}/aggiungi`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
 })

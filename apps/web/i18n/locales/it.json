@@ -911,13 +911,17 @@
       "integrations": "Integrazioni"
     }
   },
+  "integrations": {
+    "back": "Integrazioni",
+    "meta": {
+      "explain": "Pagine Facebook e profili Instagram"
+    },
+    "connections": "nessun collegamento | {n} collegamento | {n} collegamenti",
+    "reconnect": "{n} da ricollegare | {n} da ricollegare"
+  },
   "metaIntegration": {
     "title": "Meta",
-    "connections": {
-      "title": "Account collegati",
-      "explain": "Qui colleghi, sincronizzi e ricolleghi gli account Meta dei clienti.",
-      "open": "Apri gli account collegati"
-    },
+    "app": "App Meta",
     "explain": "È l'app con cui Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
     "notConfigured": "Da configurare",
     "notVerified": "Da provare",
@@ -954,9 +958,7 @@
     }
   },
   "socialAccounts": {
-    "title": "Account social",
-    "explain": "Le Pagine Facebook e i profili Instagram dell'agenzia, con il loro stato e i clienti a cui sono assegnati.",
-    "list": "Account social",
+    "list": "Profili",
     "connections": "Collegamenti",
     "kind": {
       "meta_system_user": "Utente di sistema Meta",
@@ -1009,12 +1011,12 @@
   "addAccount": {
     "title": "Aggiungi account",
     "explain": "Una Pagina Facebook o un profilo Instagram arriva in Feedway attraverso l'utente di sistema dell'agenzia: rispondi alla domanda e segui i passi.",
-    "back": "Torna agli account social",
+    "back": "Torna a Meta",
     "newTab": "(si apre in una nuova scheda)",
     "noApp": "Prima serve l'app Meta dell'agenzia",
     "noAppOwner": "Salva App ID e App Secret, poi torna qui ad aggiungere gli account.",
     "noAppAdmin": "La configura l'Owner dell'agenzia: quando è pronta, torna qui.",
-    "noAppLink": "Impostazioni → Integrazioni",
+    "noAppLink": "Integrazioni → Meta",
     "question": "L'account è già nel tuo Business Manager?",
     "answer": {
       "own": "Sì, è nel Business Manager dell'agenzia",
@@ -1059,16 +1061,11 @@
     "whichSystemUser": "Utente di sistema",
     "systemUserSince": "Collegato il {when}",
     "search": "Cerca nuovi account",
-    "found": "Account trovati",
-    "noneFound": "L'utente di sistema non vede ancora nessun account: controlla di avergli assegnato le risorse, poi cerca di nuovo.",
     "state": {
       "imported": "Già importato",
       "other_connection": "Arriva già da un altro collegamento",
       "not_importable": "Manca il controllo completo: assegnalo di nuovo all'utente di sistema"
-    },
-    "chooseSome": "Scegli gli account da importare",
-    "import": "Importa {n} account | Importa {n} account",
-    "imported": "Importato {n} account. Ora assegnalo a un cliente dalla pagina del cliente. | Importati {n} account. Ora assegnali ai clienti dalla pagina di ogni cliente."
+    }
   },
   "firstSetup": {
     "title": "Prima configurazione",
@@ -1093,7 +1090,7 @@
     },
     "step3": {
       "title": "Assegna Pagine e Instagram",
-      "clients": "Per le Pagine dei clienti che ti danno accesso come partner, lo stesso vale per le risorse condivise: puoi aggiungerle anche dopo, da Account social → Aggiungi account."
+      "clients": "Per le Pagine dei clienti che ti danno accesso come partner, lo stesso vale per le risorse condivise: puoi aggiungerle anche dopo, da Impostazioni → Integrazioni → Meta → Aggiungi account."
     },
     "step4": {
       "title": "Genera e incolla il token",
@@ -1103,13 +1100,13 @@
     },
     "step5": {
       "title": "Importa gli account",
-      "explain": "Cerca le Pagine e i profili Instagram che l'utente di sistema vede e scegli quali portare in Feedway."
+      "explain": "Cerca le Pagine e i profili Instagram che l'utente di sistema vede: ti proponiamo un cliente per ogni profilo, e scegli tu quali creare."
     },
     "done": {
       "title": "Configurazione completata",
-      "text": "Feedway è collegato a Meta. Ora assegna gli account ai clienti dalla pagina di ogni cliente.",
+      "text": "Feedway è collegato a Meta. Da Clienti sistemi i profili rimasti senza cliente e dai accesso alle persone.",
       "workspaces": "Vai ai clienti",
-      "accounts": "Vai agli account social"
+      "accounts": "Vai ai collegamenti"
     }
   },
   "metaToken": {

@@ -33,6 +33,16 @@ const groups = computed(() => {
     })
   return list
 })
+/** The tab of this page: the longest one it is under (Integrazioni → Meta is still Integrazioni). */
+const current = computed(() => {
+  const under = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
+  return (
+    groups.value
+      .flatMap((g) => g.tabs.map((tab) => tab.to))
+      .filter(under)
+      .sort((a, b) => b.length - a.length)[0] ?? null
+  )
+})
 const agencyName = computed(() => org.organization.value?.name ?? '')
 </script>
 
@@ -62,7 +72,7 @@ const agencyName = computed(() => org.organization.value?.name ?? '')
             <li v-for="tab in group.tabs" :key="tab.to">
               <NuxtLink
                 :to="tab.to"
-                :aria-current="route.path === tab.to ? 'page' : undefined"
+                :aria-current="current === tab.to ? 'page' : undefined"
                 class="flex min-h-11 items-center rounded-md px-3 text-sm text-(--app-text-muted) hover:text-(--app-text) aria-[current=page]:bg-(--app-surface) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text) lg:hover:bg-(--app-surface-sunken) lg:aria-[current=page]:bg-(--app-brand-soft)"
               >
                 {{ $t(tab.label) }}

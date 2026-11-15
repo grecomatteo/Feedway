@@ -44,7 +44,7 @@ const submit = () => {
         {{ $t('client.pickNone') }}
         <NuxtLink
           v-if="org.may.value.manageAccounts"
-          :to="org.to('/impostazioni/integrazioni')"
+          :to="org.to('/impostazioni/integrazioni/meta')"
           class="underline"
           >{{ $t('client.pickNoneLink') }}</NuxtLink
         >
