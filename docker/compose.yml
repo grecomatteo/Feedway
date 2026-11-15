@@ -73,8 +73,8 @@ services:
         META_RECORD_DIR: ${META_RECORD_DIR:-}
         TZ_DEFAULT: ${TZ_DEFAULT:-Europe/Rome}
         MEDIA_RETENTION_DAYS: ${MEDIA_RETENTION_DAYS:-7}
-        # empty means the default in packages/config (ADR 021); STORAGE_DRIVER and S3_* come with
-        # the S3 adapter (plan 04, Task 7), its keys as secrets
+        # empty means the default in packages/config (ADR 021); files stay on the media volume
+        # unless docker/compose.s3.yml is added (STORAGE_DRIVER and S3_*, keys as secrets)
         MEDIA_UPLOAD_DIR: ${MEDIA_UPLOAD_DIR:-}
         MEDIA_MAX_VIDEO_BYTES: ${MEDIA_MAX_VIDEO_BYTES:-}
         MEDIA_MAX_IMAGE_BYTES: ${MEDIA_MAX_IMAGE_BYTES:-}

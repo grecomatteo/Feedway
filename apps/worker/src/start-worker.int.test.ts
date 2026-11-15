@@ -21,6 +21,7 @@ const services: WorkerDeps['services'] = {
   storage: {
     put: () => Promise.reject(new Error('not used in this test')),
     get: () => Promise.reject(new Error('not used in this test')),
+    getRange: () => Promise.reject(new Error('not used in this test')),
     delete: () => Promise.reject(new Error('not used in this test')),
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),

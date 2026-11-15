@@ -32,3 +32,5 @@ export {
   transparentLogoPng,
 } from '../images/test-images.js'
 export type { ImageFixture } from '../images/test-images.js'
+export { startTestGarage } from './test-garage.js'
+export type { TestGarage } from './test-garage.js'

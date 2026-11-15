@@ -45,7 +45,7 @@ export type {
 } from './ports/integration-store.js'
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
-export type { Storage, StoredObject } from './ports/storage.js'
+export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
 export type { AvatarCrop, AvatarProcessor } from './ports/avatar-processor.js'
 export type { ZipEntry, ZipWriter } from './ports/zip-writer.js'
 export type { Auth, AuthSessionInfo, PasskeySummary } from './ports/auth.js'

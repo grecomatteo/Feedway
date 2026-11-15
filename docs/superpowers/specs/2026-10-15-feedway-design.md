@@ -372,7 +372,7 @@ feedway/
 │  │  ├─ db/              schema Drizzle, migrazioni, repository
 │  │  ├─ meta/            client Graph API (IG + FB)
 │  │  ├─ media/           ffprobe, ffmpeg, sharp
-│  │  ├─ storage/         interfaccia Storage + implementazione su disco
+│  │  ├─ storage/         interfaccia Storage + implementazioni su disco e S3
 │  │  ├─ queue/           pg-boss
 │  │  ├─ crypto/          cifratura dei segreti
 │  │  └─ notify/          canali: pannello, Telegram, email

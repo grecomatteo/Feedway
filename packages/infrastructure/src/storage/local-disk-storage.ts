@@ -5,24 +5,18 @@ import type { FileHandle } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import type { Storage } from '@app/application'
-import { DomainError } from '@app/domain'
+import type { Storage, StoredObject } from '@app/application'
+import {
+  byKey,
+  checkContentType,
+  checkRange,
+  invalid,
+  KEY,
+  LIST_PREFIX,
+  PREFIX,
+} from './storage-keys.js'
 
-const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-const OWNER = `(org|users)/${UUID}/`
-// Segments never start with a dot: temporary files live beside the objects and must not
-// be reachable as keys.
-const SEGMENT = '[a-z0-9_-][a-z0-9._-]*'
-const KEY = new RegExp(`^${OWNER}(${SEGMENT}/)*${SEGMENT}$`)
-const PREFIX = new RegExp(`^${OWNER}(${SEGMENT}/)*$`)
-// Listing may also cover every owner of a kind (the daily retention); removing never does.
-const LIST_PREFIX = new RegExp(`^(org|users)/$|${PREFIX.source}`)
-// Printable ASCII only, so the one-line JSON header stays well under HEADER_READ bytes.
-const CONTENT_TYPE = /^[\x20-\x7e]{1,200}$/
 const HEADER_READ = 1024
-
-const invalid = (what: string) =>
-  new DomainError('VALIDATION', `Percorso di archiviazione non valido: ${what}`)
 
 const errno = (error: unknown) =>
   typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : undefined
@@ -74,10 +68,47 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
     return { contentType: parsed.contentType, length: end + 1 }
   }
 
+  /**
+   * Opens an object and streams the bytes `window` picks (offsets in the file, header
+   * included); a null window streams nothing. `size` is the object's size without the header.
+   */
+  async function openObject(
+    path: string,
+    window: (header: number, size: number) => { start: number; end?: number } | null,
+  ): Promise<StoredObject | null> {
+    let file
+    try {
+      file = await open(path, 'r')
+    } catch (error) {
+      if (missing(error)) return null
+      throw error
+    }
+    try {
+      const info = await file.stat()
+      const header = info.isFile() ? await headerOf(file) : null
+      if (!header) {
+        await file.close()
+        return null
+      }
+      const size = info.size - header.length
+      const bytes = window(header.length, size)
+      if (!bytes) {
+        await file.close()
+        return { body: Readable.from([]), size, contentType: header.contentType }
+      }
+      // the caller must consume or destroy `body`; that closes the descriptor
+      const body = file.createReadStream(bytes)
+      return { body, size, contentType: header.contentType }
+    } catch (error) {
+      await file.close()
+      throw error
+    }
+  }
+
   const storage: Storage = {
     async put(key, body, { contentType }) {
       const path = pathOf(key, KEY)
-      if (!CONTENT_TYPE.test(contentType)) throw invalid(`tipo di contenuto «${contentType}»`)
+      checkContentType(contentType)
       const temp = tempNear(path)
       let size = 0
       async function* counted(): AsyncGenerator<Uint8Array> {
@@ -111,28 +142,19 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
     },
 
     async get(key) {
+      return openObject(pathOf(key, KEY), (header) => ({ start: header }))
+    },
+
+    async getRange(key, start, end) {
       const path = pathOf(key, KEY)
-      let file
-      try {
-        file = await open(path, 'r')
-      } catch (error) {
-        if (missing(error)) return null
-        throw error
-      }
-      try {
-        const info = await file.stat()
-        const header = info.isFile() ? await headerOf(file) : null
-        if (!header) {
-          await file.close()
-          return null
-        }
-        // the caller must consume or destroy `body`; that closes the descriptor
-        const body = file.createReadStream({ start: header.length })
-        return { body, size: info.size - header.length, contentType: header.contentType }
-      } catch (error) {
-        await file.close()
-        throw error
-      }
+      checkRange(start, end)
+      let range: { start: number; end: number } | null = null
+      const found = await openObject(path, (header, size) => {
+        if (start >= size) return null
+        range = { start, end: Math.min(end, size - 1) }
+        return { start: header + range.start, end: header + range.end }
+      })
+      return found && { ...found, range }
     },
 
     async delete(key) {
@@ -173,10 +195,7 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
           }
         }),
       )
-      // byte order, like S3: not locale-dependent
-      return listed
-        .filter((o) => o !== null)
-        .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+      return listed.filter((o) => o !== null).sort(byKey)
     },
   }
   return storage

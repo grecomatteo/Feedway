@@ -19,7 +19,7 @@ import type {
   Storage,
   UnitOfWork,
 } from '@app/application'
-import type { WebConfig } from '@app/config'
+import type { StorageConfig, WebConfig } from '@app/config'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createKeyRing } from './crypto/key-ring.js'
@@ -38,6 +38,7 @@ import type { Db, DbHandle } from './db/client.js'
 import { createPgRateLimiter } from './db/rate-limiter.js'
 import { createUnitOfWork } from './db/unit-of-work.js'
 import { createLocalDiskStorage } from './storage/local-disk-storage.js'
+import { createS3Storage } from './storage/s3-storage.js'
 import { createLogger } from './logging/logger.js'
 import { createPgBossQueue } from './queue/pg-boss-queue.js'
 import { systemClock } from './system/clock.js'
@@ -54,6 +55,8 @@ export type RuntimeConfig = Pick<
   Partial<Pick<WebConfig, 'metaMode' | 'metaGraphVersion' | 'metaMockUrl' | 'metaRecordDir'>> & {
     /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
     mediaRoot?: string
+    /** STORAGE_DRIVER and S3_*; the disk without it. */
+    storage?: StorageConfig
     /** The panel's address (EHLO name of the mailer); `feedway.invalid` without it. */
     panelUrl?: URL
   }
@@ -155,6 +158,13 @@ export function createMailer(nodeEnv: RuntimeConfig['nodeEnv'], deps: MailerDeps
       })
 }
 
+/** The disk under MEDIA_ROOT, or an S3 bucket with STORAGE_DRIVER=s3 (ADR 021). */
+export function createStorage(config: Pick<RuntimeConfig, 'mediaRoot' | 'storage'>): Storage {
+  const { storage } = config
+  if (storage?.driver === 's3') return createS3Storage(storage)
+  return createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
+}
+
 export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): Promise<Runtime> {
   const logger = createLogger({ service: role, level: config.logLevel })
   const clock = systemClock
@@ -165,7 +175,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const uow = createUnitOfWork({ db: handle.db, ids, logger })
     const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock })
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
-    const storage = createLocalDiskStorage({ root: config.mediaRoot ?? DEFAULT_MEDIA_ROOT })
+    const storage = createStorage(config)
     const signedTokens = createSignedTokens(config.encryptionKey)
     const integrations = createIntegrationStore({ keyRing })
     const mailer = createMailer(config.nodeEnv, {
