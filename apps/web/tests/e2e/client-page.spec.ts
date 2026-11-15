@@ -107,7 +107,7 @@ test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ pag
   await profiles(page).getByRole('button', { name: 'Azioni per Forno Luce' }).click()
   await page.getByRole('menuitem', { name: 'Ricollega' }).click()
   await expect(page).toHaveURL(
-    new RegExp(`/${org}/impostazioni/integrazioni/meta\\?account=[^&]+$`),
+    new RegExp(`/${org}/impostazioni/integrazioni/meta\\?(.+&)?account=[^&]+$`),
   )
   // the connection of the profile, in view and with the focus, with «Ricollega» on it
   const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('li[aria-current]')

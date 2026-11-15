@@ -19,6 +19,7 @@ interface Member {
 }
 
 const org = useOrganization()
+const context = useContextQuery()
 const { t, locale } = useI18n()
 const { call, failure } = useApi()
 const ready = useHydrated()
@@ -118,7 +119,7 @@ const busy = ref(false)
 /** «Ricollega»: the connection of the profile, in the Integrazioni entry of its platform. */
 const reconnectTo = (p: WorkspaceProfile) => ({
   path: org.to('/impostazioni/integrazioni/meta'),
-  query: p.accounts[0] ? { account: p.accounts[0].id } : {},
+  query: { ...context.value, ...(p.accounts[0] ? { account: p.accounts[0].id } : {}) },
 })
 
 async function change(remove: string[], add: string[], message: string) {

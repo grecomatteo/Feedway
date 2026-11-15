@@ -219,7 +219,13 @@ watch(
   [() => props.focusAccount, items, connectionList],
   async () => {
     if (focused.value !== null || !props.focusAccount || !connectionList.value) return
-    const id = items.value.find((a) => a.id === props.focusAccount)?.connection?.id
+    const account = items.value.find((a) => a.id === props.focusAccount)
+    // not in the pages loaded yet: the next one (the list is paged by 50)
+    if (!account && nextCursor.value !== null && !loadingMore.value && !moreProblem.value) {
+      await loadMore()
+      return
+    }
+    const id = account?.connection?.id
     if (!id) return
     focused.value = id
     await nextTick()
