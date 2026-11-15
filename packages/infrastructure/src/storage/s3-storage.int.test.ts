@@ -1,5 +1,9 @@
 import { ListMultipartUploadsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
-import { DeleteObjectsCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  AbortMultipartUploadCommand,
+  DeleteObjectsCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3'
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -44,6 +48,11 @@ async function emptyBucket(): Promise<void> {
     if (keys.length === 0) break
     await admin.send(new DeleteObjectsCommand({ Bucket: garage.bucket, Delete: { Objects: keys } }))
   }
+  const { Uploads = [] } = await admin.send(
+    new ListMultipartUploadsCommand({ Bucket: garage.bucket }),
+  )
+  for (const { Key, UploadId } of Uploads)
+    await admin.send(new AbortMultipartUploadCommand({ Bucket: garage.bucket, Key, UploadId }))
 }
 
 storageContract('S3 on Garage', async () => {

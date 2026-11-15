@@ -31,6 +31,9 @@ s3_region = "${REGION}"
 api_bind_addr = "0.0.0.0:3900"
 `
 
+// A local IP becomes a name, so the client cannot fall back to path style by itself.
+const hostName = (host: string) => (host === '127.0.0.1' || host === '::1' ? 'localhost' : host)
+
 async function garage(container: StartedTestContainer, ...args: string[]): Promise<string> {
   const result = await container.exec(['/garage', ...args])
   if (result.exitCode !== 0)
@@ -76,7 +79,7 @@ export async function startTestGarage(): Promise<TestGarage> {
       credentials.accessKeyId,
     )
     return {
-      endpoint: `http://localhost:${String(container.getMappedPort(3900))}`,
+      endpoint: `http://${hostName(container.getHost())}:${String(container.getMappedPort(3900))}`,
       bucket: BUCKET,
       region: REGION,
       credentials,

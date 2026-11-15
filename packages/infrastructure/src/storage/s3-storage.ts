@@ -44,6 +44,16 @@ const statusOf = (error: unknown): number | undefined =>
 
 const CONTENT_RANGE = /^bytes (\d+)-(\d+)\/(\d+)$/
 
+/** Stops a body that will not be read, so a file stream closes its descriptor. */
+function release(body: AsyncIterable<Uint8Array>): void {
+  if (body instanceof Readable) body.destroy()
+  else if ('return' in body && typeof body.return === 'function')
+    // an async generator that was never started: ending it runs its `finally` blocks
+    void Promise.resolve((body as AsyncGenerator<Uint8Array>).return(undefined)).catch(
+      () => undefined,
+    )
+}
+
 /**
  * Objects in one S3 bucket (Garage in the tests, R2 later), with the same keys and behaviour
  * as the disk: an object's key is never also a folder of other objects.
@@ -84,7 +94,11 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
     } while (token !== undefined)
   }
 
-  /** The disk cannot hold a file and a folder with one name: S3 is kept to the same rule. */
+  /**
+   * The disk cannot hold a file and a folder with one name: S3 is kept to the same rule, at
+   * best. The check comes before the write, so two concurrent puts of `a` and `a/b` can both
+   * pass; S3 has no operation that would make it atomic.
+   */
   async function refuseFolderClash(key: string): Promise<void> {
     const parts = key.split('/')
     // `org/<id>` is never an object: ancestors start one segment below the owner folder
@@ -112,9 +126,15 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
 
   const storage: Storage = {
     async put(key, body, { contentType }) {
-      checkKey(key)
-      checkContentType(contentType)
-      await refuseFolderClash(key)
+      try {
+        checkKey(key)
+        checkContentType(contentType)
+        await refuseFolderClash(key)
+      } catch (error) {
+        // the disk reads the body even when it then fails: release a stream the same way
+        if (!Buffer.isBuffer(body)) release(body)
+        throw error
+      }
       let size = 0
       async function* counted(source: AsyncIterable<Uint8Array>): AsyncGenerator<Uint8Array> {
         for await (const chunk of source) {
@@ -132,7 +152,8 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
         },
         partSize,
         queueSize: 2,
-        // a failed multipart upload is aborted, so no part is left behind (ADR 021)
+        // a failed multipart upload is aborted; a killed process still leaves its parts, which
+        // the bucket's lifecycle rule removes (ADR 021)
         leavePartsOnError: false,
       })
       await upload.done()
@@ -183,10 +204,10 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
       }
       // a server may answer 200 with the whole object when the range covers it all
       const size = found.ContentLength ?? 0
-      if (start !== 0 || size === 0) {
-        body.destroy()
-        throw new Error('S3: risposta senza Content-Range')
-      }
+      if (start !== 0 || size === 0) body.destroy()
+      if (start === 0 && size === 0)
+        return { body: Readable.from([]), size, contentType, range: null }
+      if (start !== 0) throw new Error('S3: risposta senza Content-Range')
       return { body, size, contentType, range: { start: 0, end: size - 1 } }
     },
 
@@ -197,11 +218,12 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
 
     async deletePrefix(prefix) {
       checkKey(prefix, PREFIX)
-      let count = 0
       // collected first: deleting while paging would move the continuation token
       const keys: string[] = []
       for await (const page of pages(prefix))
         for (const object of page) if (object.Key !== undefined) keys.push(object.Key)
+      // everything under the prefix goes, but only the keys `list` shows are counted, as on disk
+      const visible = keys.filter((key) => KEY.test(key)).length
       for (let i = 0; i < keys.length; i += PAGE) {
         const batch = keys.slice(i, i + PAGE)
         const result = await client.send(
@@ -214,9 +236,8 @@ export function createS3Storage(opts: S3StorageOptions): Storage {
           throw new Error(
             `S3: ${String(result.Errors.length)} oggetti non cancellati (${result.Errors[0]?.Code ?? '?'})`,
           )
-        count += batch.length
       }
-      return count
+      return visible
     },
 
     async list(prefix) {

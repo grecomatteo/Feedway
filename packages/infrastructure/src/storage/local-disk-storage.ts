@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
-import { mkdir, open, readdir, rename, rm } from 'node:fs/promises'
+import { mkdir, open, readdir, rename, rm, rmdir } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
@@ -105,6 +105,26 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
     }
   }
 
+  /**
+   * Folders left empty by a delete go too, up to the owner folder: like S3, where a folder is
+   * only the objects under it, a key can then become an object again.
+   */
+  async function removeEmptyParents(path: string): Promise<void> {
+    const ownerDepth = 2
+    for (
+      let dir = dirname(path);
+      relative(root, dir).split(sep).length > ownerDepth;
+      dir = dirname(dir)
+    ) {
+      try {
+        await rmdir(dir)
+      } catch (error) {
+        if (['ENOTEMPTY', 'EEXIST', 'ENOENT'].includes(errno(error) ?? '')) return
+        throw error
+      }
+    }
+  }
+
   const storage: Storage = {
     async put(key, body, { contentType }) {
       const path = pathOf(key, KEY)
@@ -163,8 +183,10 @@ export function createLocalDiskStorage(opts: { root: string }): Storage {
         await rm(path, { force: true })
       } catch (error) {
         // a key that names a folder is not an object: nothing to delete
-        if (!['EISDIR', 'ERR_FS_EISDIR'].includes(errno(error) ?? '')) throw error
+        if (['EISDIR', 'ERR_FS_EISDIR'].includes(errno(error) ?? '')) return
+        throw error
       }
+      await removeEmptyParents(path)
     },
 
     async deletePrefix(prefix) {

@@ -156,6 +156,15 @@ export function storageContract(
       })
     })
 
+    test('a folder emptied by delete can become an object', async () => {
+      const s = await fresh()
+      await s.put(`users/${u1}/a/b/c.bin`, bytes, webp)
+      await s.delete(`users/${u1}/a/b/c.bin`)
+      await s.put(`users/${u1}/a`, bytes, webp)
+      expect(await bytesOf(s, `users/${u1}/a`)).toEqual(bytes)
+      expect((await s.list(`users/${u1}/`)).map((o) => o.key)).toEqual([`users/${u1}/a`])
+    })
+
     test('concurrent puts to one key leave data and type of the same write', async () => {
       const s = await fresh()
       const key = `users/${u1}/race.bin`
