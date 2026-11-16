@@ -16,8 +16,12 @@ export interface FfmpegCommands {
 
 type VideoAnalysis = Extract<FileAnalysis, { kind: 'video' }>
 
-/** The input options: forced demuxer, local files only, no external references. */
-const input = (path: string) => [
+/**
+ * The input options: forced demuxer, local files only, no external references, and the
+ * decoder's own pixel limit: the header checked by §9.2 is only the first one, and a stream may
+ * switch to far larger frames later (security review of Task 10).
+ */
+const inputWith = (maxPixels: number | null) => (path: string) => [
   '-protocol_whitelist',
   'file',
   '-f',
@@ -26,6 +30,7 @@ const input = (path: string) => [
   '0',
   '-threads',
   '1',
+  ...(maxPixels === null ? [] : ['-max_pixels', String(maxPixels)]),
   '-i',
   `file:${path}`,
 ]
@@ -67,7 +72,10 @@ function quarterTurned(stream: ProbeStream): boolean {
 const refusal = (run: ToolRun) =>
   ({ ok: false, reason: run.outcome === 'exited' ? 'unreadable' : run.outcome }) as const
 
-export function createFfmpeg(commands: FfmpegCommands) {
+export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels: number }) {
+  const input = inputWith(limits.maxVideoPixels)
+  // ffprobe opens the decoder too: with the limit it would refuse what §9.2 must name
+  const header = inputWith(null)
   /** Header only: nothing is decoded, so an enormous duration or size costs nothing. */
   async function probeVideo(
     path: string,
@@ -80,7 +88,7 @@ export function createFfmpeg(commands: FfmpegCommands) {
         '-hide_banner',
         '-loglevel',
         'error',
-        ...input(path),
+        ...header(path),
         // whole sections: the names of single entries changed between ffmpeg versions
         '-show_streams',
         '-show_format',
@@ -207,6 +215,10 @@ export function createFfmpeg(commands: FfmpegCommands) {
           },
         },
       )
+      // at `-loglevel error` a clean file says nothing: frames the decoder refused (over the
+      // pixel limit, broken) leave a shorter copy and an exit code 0, so any error refuses it
+      if (run.outcome === 'exited' && run.code === 0 && run.stderr.trim() !== '')
+        return { ok: false, reason: 'unreadable' } as const
       return made(run, output, { mime: 'video/mp4', ...size })
     },
 
@@ -242,6 +254,9 @@ export function createFfmpeg(commands: FfmpegCommands) {
           '-1',
           '-map_chapters',
           '-1',
+          // H.264 SEI messages may carry a place or a time (drones, action cameras); HEVC's keep
+          // the HDR information, so they stay (not verified on real cameras)
+          ...(opts.videoCodec === 'h264' ? ['-bsf:v', 'filter_units=remove_types=6'] : []),
           ...(opts.videoCodec === 'hevc' ? ['-tag:v', 'hvc1'] : []),
           '-movflags',
           '+faststart',

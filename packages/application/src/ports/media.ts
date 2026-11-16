@@ -130,6 +130,11 @@ export interface MediaRepository {
    * turn. null: no such file any more.
    */
   claimProcessing(organizationId: string, mediaId: string, at: Date): Promise<MediaRecord | null>
+  /**
+   * Gives back the attempt of a claim that ended in a passing failure (thrown to be retried):
+   * only runs that never ended, a crash or the memory, count toward the cap.
+   */
+  releaseAttempt(organizationId: string, mediaId: string): Promise<void>
   /** Writes or replaces the copy of that purpose. */
   saveVariant(organizationId: string, mediaId: string, variant: NewMediaVariant): Promise<void>
   /** Removes the copies' rows; returns their keys, for the storage. */

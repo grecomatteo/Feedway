@@ -192,6 +192,12 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
       )
       return row ? mediaOf(row) : null
     },
+    async releaseAttempt(organizationId, mediaId) {
+      await db
+        .update(media)
+        .set({ processingAttempts: sql`greatest(${media.processingAttempts} - 1, 0)` })
+        .where(stillProcessing(organizationId, mediaId))
+    },
     async saveVariant(organizationId, mediaId, variant) {
       const { id, ...rest } = variant
       await db

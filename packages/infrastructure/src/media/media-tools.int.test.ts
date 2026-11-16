@@ -9,10 +9,12 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { imageFixture, jpegWithGps } from '../images/test-images.js'
 import { moovBeforeMdat } from './mp4-boxes.js'
 import { createMediaTools } from './media-tools.js'
+import { iccDescription } from './images.js'
 import {
   displayP3Png,
   hlsBehindFtyp,
   hlsPlaylist,
+  makeResolutionSwitch,
   makeVideo,
   pngBomb,
   probeFile,
@@ -291,7 +293,8 @@ describe('videos', () => {
     expect(after.streams.map((s) => s.codec_name)).toEqual(before.streams.map((s) => s.codec_name))
     expect(after.format.tags?.location).toBeUndefined()
     // the same encoded frames: a copy, not an encoding
-    expect(packetSizes(out)).toEqual(packetSizes(path))
+    // the same pictures, frame by frame: a copy, not an encoding
+    expect(frameHashes(out)).toEqual(frameHashes(path))
   })
 
   test('an HEVC remux keeps the hvc1 tag Apple and Meta read', async () => {
@@ -332,4 +335,42 @@ function ffprobeField(path: string, entries: string): string[] {
     .split('\n')
 }
 
-const packetSizes = (path: string) => ffprobeField(path, 'packet=size')
+/** The md5 of every decoded frame of the video. */
+const frameHashes = (path: string) =>
+  execFileSync('ffmpeg', ['-v', 'error', '-i', path, '-map', '0:v:0', '-f', 'framemd5', '-'], {
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .filter((line) => line !== '' && !line.startsWith('#'))
+    .map((line) => line.split(',').at(-1)?.trim())
+
+test('frames larger than the header said are refused by the decoder', async () => {
+  const path = makeResolutionSwitch(dir, '320x240', '640x480')
+  const limited = createMediaTools({ maxVideoPixels: 320 * 240 })
+  // the header shows only the first, small frames
+  expect(await limited.probe.analyze(path, {})).toMatchObject({
+    ok: true,
+    analysis: { width: 320, height: 240 },
+  })
+  expect(
+    await limited.transformer.videoPreview(path, join(dir, 'switch-preview.mp4'), {
+      width: 320,
+      height: 240,
+      durationMs: 2000,
+    }),
+  ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('a malformed ICC profile is no description, never an error', () => {
+  const icc = Buffer.alloc(200)
+  icc.writeUInt32BE(1, 128)
+  icc.write('desc', 132, 'latin1')
+  icc.writeUInt32BE(150, 136)
+  icc.writeUInt32BE(48, 140)
+  icc.write('mluc', 150, 'latin1')
+  // an odd length of UTF-16
+  icc.writeUInt32BE(7, 170)
+  icc.writeUInt32BE(28, 174)
+  expect(() => iccDescription(icc)).not.toThrow()
+  expect(iccDescription(Buffer.alloc(10))).toBeNull()
+})

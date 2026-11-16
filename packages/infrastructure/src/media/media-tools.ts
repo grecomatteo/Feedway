@@ -21,16 +21,21 @@ async function head(path: string): Promise<Buffer> {
 export interface MediaToolsOptions {
   /** `ffmpeg` and `ffprobe` from PATH by default */
   commands?: Partial<FfmpegCommands>
+  /** MEDIA_MAX_VIDEO_PIXELS: the decoder refuses larger frames, wherever they come in the stream */
+  maxVideoPixels?: number
 }
 
 export function createMediaTools(options: MediaToolsOptions = {}): {
   probe: MediaProbe
   transformer: MediaTransformer
 } {
-  const ffmpeg = createFfmpeg({
-    ffmpeg: options.commands?.ffmpeg ?? 'ffmpeg',
-    ffprobe: options.commands?.ffprobe ?? 'ffprobe',
-  })
+  const ffmpeg = createFfmpeg(
+    {
+      ffmpeg: options.commands?.ffmpeg ?? 'ffmpeg',
+      ffprobe: options.commands?.ffprobe ?? 'ffprobe',
+    },
+    { maxVideoPixels: options.maxVideoPixels ?? 4096 * 4096 },
+  )
   const images = createImageTools()
   const aborted = (signal?: AbortSignal) => signal?.aborted === true
 

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { crc32, deflateSync } from 'node:zlib'
 import sharp from 'sharp'
@@ -173,4 +174,52 @@ export async function firstPixel(bytes: Buffer): Promise<{ rgb: number[]; icc: b
   const meta = await sharp(bytes).metadata()
   const data = await sharp(bytes).raw().toBuffer()
   return { rgb: [...data.subarray(0, 3)], icc: meta.icc !== undefined }
+}
+
+/**
+ * An H.264 MP4 whose stream switches from `small` to `large` frames halfway: the header (the
+ * first SPS) says only `small`.
+ */
+export function makeResolutionSwitch(dir: string, small: string, large: string): string {
+  const part = (size: string, name: string) => {
+    const path = join(dir, name)
+    execFileSync(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-y',
+        '-f',
+        'lavfi',
+        '-i',
+        `testsrc=size=${size}:rate=10`,
+        '-t',
+        '1',
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-bsf:v',
+        'h264_mp4toannexb',
+        '-f',
+        'h264',
+        path,
+      ],
+      { stdio: ['ignore', 'ignore', 'inherit'] },
+    )
+    return path
+  }
+  const joined = join(dir, 'switch.h264')
+  writeFileSync(
+    joined,
+    Buffer.concat([readFileSync(part(small, 'a.h264')), readFileSync(part(large, 'b.h264'))]),
+  )
+  const out = join(dir, 'switch.mp4')
+  execFileSync(
+    'ffmpeg',
+    ['-hide_banner', '-loglevel', 'error', '-y', '-r', '10', '-i', joined, '-c', 'copy', out],
+    { stdio: ['ignore', 'ignore', 'inherit'] },
+  )
+  return out
 }

@@ -93,9 +93,9 @@ export async function processNextMedia(
 ): Promise<MediaProcessOutcome> {
   if (!isUuid(job.organizationId)) throw new Error('media process job without organizationId')
   if (!isUuid(job.mediaId)) throw new Error('media process job without mediaId')
-  const held = await deps.lock.tryRun(
-    MEDIA_PROCESS_LOCK,
-    async (): Promise<MediaProcessOutcome> => {
+  let processed = false
+  const held = await deps.lock
+    .tryRun(MEDIA_PROCESS_LOCK, async (): Promise<MediaProcessOutcome> => {
       try {
         await deps.scratch.sweep(SCRATCH_MAX_AGE_MS)
       } catch (error) {
@@ -103,16 +103,23 @@ export async function processNextMedia(
       }
       const turn = await nextMediaTurn(deps.uow)
       if (!turn) return { outcome: 'idle' }
+      processed = true
       const status = await processMedia(deps, turn, job.signal)
       return { outcome: 'processed', ...turn, status }
-    },
-  )
+    })
+    .finally(async () => {
+      // after the lock is free, even after a failure: a wake-up that came meanwhile found it
+      // taken and left, so the next file (of another agency, maybe) waits for this one
+      if (!processed) return
+      try {
+        const next = await nextMediaTurn(deps.uow)
+        if (next) await deps.queue.send('media.process', next, { dedupeKey: `after:${job.jobId}` })
+      } catch (error) {
+        // the hourly clean-up wakes files left waiting
+        deps.logger.error({ err: error }, 'next media wake-up not queued')
+      }
+    })
   if (!held.acquired) return { outcome: 'busy' }
-  // after the lock is free: a wake-up that came meanwhile found it taken and left
-  if (held.value.outcome === 'processed') {
-    const next = await nextMediaTurn(deps.uow)
-    if (next) await deps.queue.send('media.process', next, { dedupeKey: `after:${job.jobId}` })
-  }
   return held.value
 }
 
@@ -167,13 +174,24 @@ async function processMedia(
     return fail(deps, record, { code: 'processing_failed' }, null)
   const key = record.storageKey
   if (key === null) return fail(deps, record, { code: 'unreadable' }, null)
-  const folder = await deps.scratch.open()
   try {
-    const status = await processIn(deps, record, key, folder, signal)
-    log.info({ status }, 'media processed')
-    return status
-  } finally {
-    await folder.dispose()
+    const folder = await deps.scratch.open()
+    try {
+      const status = await processIn(deps, record, key, folder, signal)
+      log.info({ status }, 'media processed')
+      return status
+    } finally {
+      await folder.dispose()
+    }
+  } catch (error) {
+    // a passing failure (storage, database, disk, the job's expiry): retried by the queue, and
+    // not counted against the file
+    try {
+      await deps.uow.run(scope, (tx) => tx.media.releaseAttempt(organizationId, mediaId))
+    } catch (release) {
+      log.error({ err: release }, 'media attempt not given back')
+    }
+    throw error
   }
 }
 

@@ -287,6 +287,9 @@ test('an MP4 without faststart is remuxed without encoding again', async () => {
   // the index first now, the place gone, the same codecs
   expect(out.indexOf('moov')).toBeLessThan(out.indexOf('mdat'))
   expect(bytes.indexOf('moov')).toBeGreaterThan(bytes.indexOf('mdat'))
+  // the encoder's SEI message (where some cameras write a place) is gone from the stream
+  expect(bytes.includes('x264 - core')).toBe(true)
+  expect(out.includes('x264 - core')).toBe(false)
   const info = probeFile(join(dir, 'faststart.mp4'))
   expect(info.streams.map((s) => s.codec_name)).toEqual(['h264', 'aac'])
   expect(info.format.tags?.location).toBeUndefined()
@@ -477,4 +480,42 @@ test('a wake-up with nothing waiting does nothing', async () => {
   const d = deps()
   await wake(d, a, '00000000-0000-7000-8000-000000000000')
   expect(d.queue.sent).toEqual([])
+})
+
+test('an agency served a moment ago waits for one never served, whatever the age of its files', async () => {
+  const a = await agency()
+  const b = await agency()
+  const photo = await imageFixture('photo.png')
+  const older = await waiting(a, photo, 'png')
+  const newer = await waiting(b, photo, 'png')
+  // A had a file processed a moment ago
+  const done = await waiting(a, photo, 'png')
+  await admin.query(
+    `update media set status = 'ready', processing_started_at = now() where id = $1`,
+    [done],
+  )
+  await wake(deps(), a, older, 'served-1')
+  expect((await row(newer))?.status).toBe('ready')
+  expect((await row(older))?.status).toBe('processing')
+})
+
+test('a passing failure is retried and does not count against the file', async () => {
+  const a = await agency()
+  const id = await waiting(a, await imageFixture('photo.png'), 'png')
+  const d = deps()
+  const failing = {
+    ...runtime.storage,
+    put: () => Promise.reject(new Error('storage unreachable')),
+  }
+  await expect(
+    mediaProcess(
+      { id: 'flaky', data: { organizationId: a.org, mediaId: id } },
+      { ...d, storage: failing },
+    ),
+  ).rejects.toThrow('storage unreachable')
+  expect(await row(id)).toMatchObject({ status: 'processing', processing_attempts: 0 })
+  // the next file is still woken after the failure
+  expect(d.queue.sent.map((s) => s.data)).toEqual([{ organizationId: a.org, mediaId: id }])
+  await wake(d, a, id, 'retry')
+  expect(await row(id)).toMatchObject({ status: 'ready', processing_attempts: 1 })
 })

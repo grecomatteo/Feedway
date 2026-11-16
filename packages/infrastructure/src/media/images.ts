@@ -27,6 +27,15 @@ const TIMEOUT_SECONDS = PROBE_TIMEOUT_MS / 1000
  * «Display P3». null when it cannot be read.
  */
 export function iccDescription(icc: Buffer): string | null {
+  // the profile comes from the file: a malformed one is no description, never an error
+  try {
+    return readDescription(icc)
+  } catch {
+    return null
+  }
+}
+
+function readDescription(icc: Buffer): string | null {
   if (icc.length < 132) return null
   const count = icc.readUInt32BE(128)
   for (let i = 0; i < count && 132 + i * 12 + 12 <= icc.length; i += 1) {
@@ -45,8 +54,10 @@ export function iccDescription(icc: Buffer): string | null {
     if (type === 'mluc' && size >= 28) {
       const length = icc.readUInt32BE(offset + 20)
       const start = offset + icc.readUInt32BE(offset + 24)
-      const end = Math.min(start + length, offset + size)
-      const utf16 = Buffer.from(icc.subarray(start, end))
+      const end = Math.min(start + length, offset + size, icc.length)
+      if (start >= end) return null
+      // UTF-16: an even number of bytes
+      const utf16 = Buffer.from(icc.subarray(start, start + Math.floor((end - start) / 2) * 2))
       return utf16.swap16().toString('utf16le')
     }
     return null
@@ -57,6 +68,17 @@ export function iccDescription(icc: Buffer): string | null {
 function colorSpaceOf(meta: Metadata): ImageAnalysis['colorSpace'] {
   if (!meta.icc) return null
   return /srgb/i.test(iccDescription(meta.icc) ?? '') ? 'srgb' : 'other'
+}
+
+/**
+ * What a sharp error means: its timeout, a passing failure of the machine (a full disk: thrown,
+ * so the job is retried), or bytes the decoder refused.
+ */
+function refusalOf(error: unknown): 'timeout' | 'unreadable' {
+  if (error instanceof Error && 'code' in error && typeof error.code === 'string') throw error
+  if (error instanceof Error && /timeout/i.test(error.message)) return 'timeout'
+  if (error instanceof Error && /no space left|ENOSPC/i.test(error.message)) throw error
+  return 'unreadable'
 }
 
 export function createImageTools() {
@@ -141,8 +163,8 @@ export function createImageTools() {
           .timeout({ seconds: TIMEOUT_SECONDS })
           .png({ compressionLevel: 1 })
           .toBuffer()
-      } catch {
-        return { ok: false, reason: 'unreadable' }
+      } catch (error) {
+        return { ok: false, reason: refusalOf(error) }
       }
       for (const quality of QUALITIES) {
         const { data, info } = await sharp(resized)
@@ -185,8 +207,8 @@ export function createImageTools() {
             height: info.height,
           },
         }
-      } catch {
-        return { ok: false, reason: 'unreadable' }
+      } catch (error) {
+        return { ok: false, reason: refusalOf(error) }
       }
     },
   }

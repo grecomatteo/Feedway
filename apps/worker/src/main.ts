@@ -54,7 +54,7 @@ async function main(): Promise<void> {
       connectionTokens: runtime.connectionTokens,
       images: createAvatarProcessor(),
       media: {
-        ...createMediaTools(),
+        ...createMediaTools({ maxVideoPixels: config.media.maxVideoPixels }),
         lock: createAdvisoryLock(runtime.pool),
         // on the media volume, outside the storage keys: /tmp is memory in the container
         scratch: createMediaScratch({ dir: join(config.mediaRoot, 'work') }),
