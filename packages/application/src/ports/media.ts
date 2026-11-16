@@ -229,15 +229,21 @@ export interface MediaRepository {
     folderId: string,
     change: { name?: string; parentId?: string | null },
   ): Promise<'updated' | 'taken' | 'missing'>
-  /**
-   * Deletes a folder: its files and its folders go up into its parent first. `taken`: one of
-   * its folders has the name of a folder already there; `missing`: no such folder.
-   */
-  deleteFolder(
+  /** The files right inside these folders of the workspace's library, any status but deleted. */
+  mediaInFolders(
     organizationId: string,
     workspaceId: string,
-    folderId: string,
-  ): Promise<'deleted' | 'taken' | 'missing'>
+    folderIds: readonly string[],
+  ): Promise<string[]>
+  /**
+   * Deletes these folders of the workspace, which must hold no file any more (the caller marks
+   * them deleted first). An upload still open into one of them lands outside any folder.
+   */
+  deleteFolders(
+    organizationId: string,
+    workspaceId: string,
+    folderIds: readonly string[],
+  ): Promise<void>
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>

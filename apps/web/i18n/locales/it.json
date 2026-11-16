@@ -680,7 +680,7 @@
       "privacy": "Privacy",
       "calendar": "Calendario",
       "notifications": "Notifiche",
-      "media": "Media"
+      "library": "Libreria"
     }
   },
   "context": {
@@ -1398,11 +1398,15 @@
       "delete": "Elimina cartella",
       "deleteTitle": "Eliminare «{name}»?",
       "deleteEmpty": "La cartella è vuota.",
-      "deleteFull": "Dentro ci sono {files} file e {folders} cartelle: passano nella cartella sopra. Nessun file viene eliminato.",
+      "deleteFull": "Contiene {what}.",
+      "and": "e",
+      "deleteForever": "Vengono eliminati definitivamente insieme alla cartella: non si può annullare.",
+      "deleteAll": "Elimina tutto",
+      "subfolders": "nessuna sottocartella | {n} sottocartella | {n} sottocartelle",
       "deleted": "Cartella eliminata.",
       "actionsFor": "Azioni per la cartella {name}",
       "dropHere": "Rilascia qui per spostare in «{name}»",
-      "files": "{n} file | {n} file | {n} file"
+      "files": "nessun file | {n} file | {n} file"
     },
     "empty": "Ancora nessun file",
     "emptyText": "Le foto e i video caricati per questo cliente compaiono qui.",

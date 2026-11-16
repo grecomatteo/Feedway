@@ -4,7 +4,7 @@ import { seed } from '@app/infrastructure/testing'
 import { libraryFile } from './support/media.ts'
 import { addPerson, newPerson, ownAddress, signIn } from './support/people.ts'
 
-// The library (plan 04 Task 12, spec §11.8): «Media» in the sidebar from Editor up, the files of
+// The library (plan 04 Task 12, spec §11.8): «Libreria» in the sidebar from Editor up, the files of
 // the chosen client with folders and tags, move with «Sposta in…» and by dragging, the video
 // player on the preview, «Elimina». A Viewer finds no page. On a phone it opens from the client.
 
@@ -58,7 +58,7 @@ async function editorWithLibrary(page: Page) {
   return { org, client, editor }
 }
 
-test('from «Media», the client chosen, the library filters by tag, type and name', async ({
+test('from «Libreria», the client chosen, the library filters by tag, type and name', async ({
   page,
 }) => {
   test.skip(isPhone(page), 'on a phone the library opens from the client')
@@ -66,9 +66,9 @@ test('from «Media», the client chosen, the library filters by tag, type and na
   await page.goto(`/${org}`)
   await page
     .getByRole('navigation', { name: 'Navigazione principale' })
-    .getByRole('link', { name: 'Media' })
+    .getByRole('link', { name: 'Libreria' })
     .click()
-  await expect(page).toHaveURL(new RegExp(`/${org}/media`))
+  await expect(page).toHaveURL(new RegExp(`/${org}/libreria`))
   await expect(page.getByRole('heading', { level: 1, name: 'Libreria' })).toBeVisible()
   // no client chosen: the page asks for one
   await page
@@ -106,7 +106,7 @@ test('from «Media», the client chosen, the library filters by tag, type and na
 test('a file moves into a folder with «Sposta in…» and by dragging', async ({ page }) => {
   test.skip(isPhone(page), 'dragging is for a computer; the phone has «Sposta in…»')
   const { org, client } = await editorWithLibrary(page)
-  await page.goto(`/${org}/media?spazio=${client}`)
+  await page.goto(`/${org}/libreria?spazio=${client}`)
   await expect(grid(page).getByRole('listitem')).toHaveCount(3)
   const folders = page.getByRole('navigation', { name: 'Cartelle' })
 
@@ -133,14 +133,16 @@ test('a file moves into a folder with «Sposta in…» and by dragging', async (
   await expect(grid(page).getByRole('listitem')).toHaveCount(2)
   await expect(folders.getByRole('button', { name: /Natale 2026/ })).toContainText('2')
 
-  // a folder with files is deleted only with a confirmation, and its files go up
+  // a folder with files is deleted only with a confirmation, and its files go with it
   await page.getByRole('button', { name: 'Azioni per Natale 2026' }).click()
   await page.getByRole('menuitem', { name: 'Elimina cartella' }).click()
   const confirm = page.getByRole('dialog', { name: 'Eliminare «Natale 2026»?' })
-  await expect(confirm).toContainText('Nessun file viene eliminato')
-  await confirm.getByRole('button', { name: 'Elimina cartella' }).click()
+  await expect(confirm).toContainText('Contiene 2 file.')
+  await expect(confirm).toContainText('eliminati definitivamente')
+  await confirm.getByRole('button', { name: 'Elimina tutto' }).click()
   await expect(page.getByText('Cartella eliminata.')).toBeVisible()
-  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
+  await expect(tile(page, 'pane-01.jpg')).toHaveCount(0)
 })
 
 test('the detail plays the video, saves the tags and deletes the file', async ({ page }) => {
@@ -190,7 +192,7 @@ test('the detail plays the video, saves the tags and deletes the file', async ({
   await expect(grid(page).getByRole('listitem')).toHaveCount(2)
 })
 
-test('a Viewer sees no «Media» and the address gives «Pagina non trovata»', async ({ page }) => {
+test('a Viewer sees no «Libreria» and the address gives «Pagina non trovata»', async ({ page }) => {
   const owner = await newPerson('Olga Viewer', 'owner')
   const org = owner.organizationSlug
   const client = await seed(process.env.E2E_DATABASE_URL ?? '', (s) =>
@@ -205,7 +207,7 @@ test('a Viewer sees no «Media» and the address gives «Pagina non trovata»', 
   await expect(
     page.getByRole('navigation', { name: 'Sezioni del cliente' }).getByText('Libreria'),
   ).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Media' })).toHaveCount(0)
-  await page.goto(`/${org}/media`)
+  await expect(page.getByRole('link', { name: 'Libreria' })).toHaveCount(0)
+  await page.goto(`/${org}/libreria`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
 })

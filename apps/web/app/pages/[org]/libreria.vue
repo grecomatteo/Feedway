@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * «Media» (spec §11.8, plan 04 Task 12): the library of the client chosen in the selector
+ * «Libreria» (spec §11.8, plan 04 Task 12): the library of the client chosen in the selector
  * (`?spazio=`). Without a client it asks to choose one. Only for Editor and above (§10.2): for
  * whoever uses no library (a Viewer everywhere) the page does not exist.
  */
@@ -56,7 +56,7 @@ const used = ref(0)
           :key="w.id"
           :name="w.name"
           :src="w.photoUrl"
-          :to="{ path: org.to('/media'), query: { spazio: w.slug } }"
+          :to="{ path: org.to('/libreria'), query: { spazio: w.slug } }"
         />
       </DataList>
     </section>

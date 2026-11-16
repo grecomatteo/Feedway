@@ -37,7 +37,7 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     `/${org}/spazi/${client.slug}`,
     `/${org}/spazi/${client.slug}/membri`,
     `/${org}/spazi/${client.slug}/libreria`,
-    `/${org}/media`,
+    `/${org}/libreria`,
     `/${org}/utenti`,
     `/${org}/registro`,
     `/${org}/privacy`,
@@ -56,9 +56,14 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     await expect(nav.getByText('Account social'), path).toHaveCount(0)
   }
   if (!isMobile) {
-    // the sidebar: Home, Clienti, Media, Utenti, nothing else
+    // the sidebar: Home, Clienti, Libreria, Utenti, nothing else
     await page.goto(`/${org}`)
-    await expect(mainNav(page).getByRole('link')).toHaveText(['Home', 'Clienti', 'Media', 'Utenti'])
+    await expect(mainNav(page).getByRole('link')).toHaveText([
+      'Home',
+      'Clienti',
+      'Libreria',
+      'Utenti',
+    ])
   }
 })
 

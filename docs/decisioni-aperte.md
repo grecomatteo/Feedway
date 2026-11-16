@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: tappa 4, Task 12 (16 novembre 2026).
+Ultimo aggiornamento: tappa 4, Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -33,20 +33,11 @@ Ultimo aggiornamento: tappa 4, Task 12 (16 novembre 2026).
 - **Opzioni:** (a) toglierli, perdendo l'HDR; (b) toglierli solo se non c'è HDR; (c) lasciarli.
 - **Stato:** aperta.
 
-### D-05 · Cartella eliminata con dentro dei file
-- **Origine:** tappa 4, Task 12. Il piano dice «si cancella solo se è vuota, oppure con una conferma», senza dire cosa succede al contenuto.
-- **Opzioni:** (a) con la conferma, file e sottocartelle passano nella cartella sopra, nessun file si cancella; (b) con la conferma si cancellano anche i file.
-- **Stato:** scelta provvisoria (a), la più prudente.
-
-### D-06 · Libreria del cliente: scheda dentro la pagina del cliente
-- **Origine:** tappa 4, Task 12. Il piano dice che la scheda «Libreria» «apre questa pagina nel contesto del cliente».
-- **Opzioni:** (a) la scheda mostra la stessa libreria dentro la pagina del cliente, con le schede sopra (`/<agenzia>/spazi/<cliente>/libreria`); (b) la scheda porta a `/<agenzia>/media?spazio=<cliente>`.
-- **Stato:** scelta provvisoria (a): su telefono la libreria si apre solo da lì, e restare nella pagina del cliente evita di perdere le schede.
-
-### D-07 · Nome della voce: «Media» o «Libreria»
-- **Origine:** tappa 4, Task 12. Il piano chiama la voce del menu «Media»; la scheda del cliente e il titolo della pagina dicono «Libreria».
-- **Opzioni:** (a) «Media» nel menu e «Libreria» nella pagina, come nel piano; (b) «Libreria» ovunque.
-- **Stato:** scelta provvisoria (a), come nel piano.
+### D-18 · I file caricati in un post e la libreria
+- **Origine:** tappa 4, Task 12, domanda di Matteo (16 novembre 2026). La specifica (§11.8, §11.9) dice che i file caricati direttamente in un post non entrano in libreria e si cancellano `MEDIA_RETENTION_DAYS` (7) giorni dopo la pubblicazione, salvo «salvati in libreria».
+- **Decisione di Matteo:** finché il post è programmato i suoi file si vedono nella libreria del cliente; quando il programma ha verificato che la pubblicazione è andata a buon fine, si possono togliere. Resta il pulsante per tenerli («Salva in libreria»).
+- **Da precisare nella tappa 6:** se si tolgono subito dopo la verifica o dopo i 7 giorni di `MEDIA_RETENTION_DAYS`; come si distinguono in libreria dai file salvati (per esempio un'etichetta «Nel post del …»).
+- **Stato:** decisa, da fare nelle tappe 6 (post) e 7 (pubblicazione e verifica); la specifica §11.8 va aggiornata in quella PR.
 
 ## Host pubblico (`/m/*`)
 

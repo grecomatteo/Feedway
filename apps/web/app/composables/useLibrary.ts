@@ -146,9 +146,11 @@ export function useLibrary(workspaceId: Ref<string>) {
     await reloadFolders()
   }
   async function deleteFolder(folder: Folder) {
+    const gone = [folder.id, ...foldersBelow(folders.value, folder.id).map((f) => f.id)]
     await call('DELETE', `${base.value}/folders/${encodeURIComponent(folder.id)}?confirm=true`)
-    if (filter.folder === folder.id) filter.folder = folder.parentId
-    await load()
+    // the folder shown went with it: show the one above; the watch reloads, else load here
+    if (filter.folder !== null && gone.includes(filter.folder)) filter.folder = folder.parentId
+    else await load()
   }
 
   /** A copy of a file for the panel: the player asks the preview by ranges. */
@@ -173,6 +175,19 @@ export function useLibrary(workspaceId: Ref<string>) {
     deleteFolder,
     fileUrl,
   }
+}
+
+/** Every folder below this one, at any depth. */
+export function foldersBelow(folders: readonly Folder[], id: string): Folder[] {
+  const out: Folder[] = []
+  const ids = [id]
+  for (let i = 0; i < ids.length; i++)
+    for (const f of folders)
+      if (f.parentId === ids[i]) {
+        out.push(f)
+        ids.push(f.id)
+      }
+  return out
 }
 
 /** The folders as a tree, flattened in reading order, each with its depth. */

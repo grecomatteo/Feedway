@@ -4,7 +4,7 @@ import { startApiEnv } from './identity-env.js'
 import type { ApiEnv, Person } from './identity-env.js'
 
 // The library's folders and tags (plan 04 Task 12): nested folders of one workspace, a folder
-// with files deleted only with a confirmation (its content goes up, no file is deleted), tags
+// with files deleted only with a confirmation (and then with everything inside it), tags
 // normalised, the filters of the list. Other agencies and every role: the battery and the matrix.
 
 let env: ApiEnv
@@ -108,22 +108,40 @@ test('the folders of another workspace are not used', async () => {
   expect(listed.items).toEqual([])
 })
 
-test('a folder with files is not deleted without a confirmation; with it, its content goes up', async () => {
+test('a folder with files is not deleted without a confirmation; with it, everything inside goes', async () => {
   const parent = await folder(w1, 'Sopra')
   const doomed = await folder(w1, 'Da togliere', parent.id)
   const child = await folder(w1, 'Figlia', doomed.id)
-  const id = await file(w1)
-  await json(await call('PATCH', `${ws(w1)}/media/${id}`, { folderId: doomed.id }))
+  const inside = await file(w1)
+  const deeper = await file(w1)
+  const kept = await file(w1)
+  await json(await call('PATCH', `${ws(w1)}/media/${inside}`, { folderId: doomed.id }))
+  await json(await call('PATCH', `${ws(w1)}/media/${deeper}`, { folderId: child.id }))
+  await json(await call('PATCH', `${ws(w1)}/media/${kept}`, { folderId: parent.id }))
 
   const refused = await call('DELETE', `${ws(w1)}/folders/${doomed.id}`)
   expect(refused.status).toBe(409)
+  expect((await call('GET', `${ws(w1)}/media/${inside}`)).status).toBe(200)
 
   await json(await call('DELETE', `${ws(w1)}/folders/${doomed.id}?confirm=true`))
   const { items } = await json<{ items: Folder[] }>(await call('GET', `${ws(w1)}/folders`))
-  expect(items.some((f) => f.id === doomed.id)).toBe(false)
-  expect(items.find((f) => f.id === child.id)?.parentId).toBe(parent.id)
-  const moved = await json<Media>(await call('GET', `${ws(w1)}/media/${id}`))
-  expect(moved.folderId).toBe(parent.id)
+  expect(items.some((f) => f.id === doomed.id || f.id === child.id)).toBe(false)
+  expect(items.find((f) => f.id === parent.id)?.fileCount).toBe(1)
+  expect((await call('GET', `${ws(w1)}/media/${inside}`)).status).toBe(404)
+  expect((await call('GET', `${ws(w1)}/media/${deeper}`)).status).toBe(404)
+  expect((await json<Media>(await call('GET', `${ws(w1)}/media/${kept}`))).folderId).toBe(parent.id)
+  const { rows } = await env.admin.pool.query<{ status: string }>(
+    'select status from media where id = any($1)',
+    [[inside, deeper]],
+  )
+  expect(rows.map((r) => r.status)).toEqual(['deleted', 'deleted'])
+})
+
+test('a folder holding only an empty subfolder also asks for a confirmation', async () => {
+  const outer = await folder(w1, 'Esterna')
+  await folder(w1, 'Interna vuota', outer.id)
+  expect((await call('DELETE', `${ws(w1)}/folders/${outer.id}`)).status).toBe(409)
+  await json(await call('DELETE', `${ws(w1)}/folders/${outer.id}?confirm=true`))
 })
 
 test('an empty folder is deleted at once', async () => {

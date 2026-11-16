@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * «Libreria» of the client's page (plan 04 Task 12): the same library as «Media», in the client's
- * context. On a phone it is the only way in: the bar at the bottom has no room for «Media».
+ * «Libreria» of the client's page (plan 04 Task 12): the same library as the page «Libreria», in the client's
+ * context. On a phone it is the only way in: the bar at the bottom has no room for «Libreria».
  */
 const { t } = useI18n()
 const { client } = useClientPage()

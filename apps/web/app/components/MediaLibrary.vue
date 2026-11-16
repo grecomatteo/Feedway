@@ -6,7 +6,7 @@ import type { Folder, LibraryFile } from '~/composables/useLibrary'
  * The library of one client (spec §11.8, plan 04 Task 12; brief F03): folders on the left (a
  * menu on a phone), filters by type, tag and name, a grid of files by pages, the detail on the
  * side. A file moves into a folder by dragging it there or with «Sposta in…». Used by
- * `/<agenzia>/media` and by the client's «Libreria» tab. An archived client is read only.
+ * `/<agenzia>/libreria` and by the client's «Libreria» tab. An archived client is read only.
  */
 const props = defineProps<{ workspace: WorkspaceView }>()
 const { t } = useI18n()
@@ -24,6 +24,12 @@ const current = computed(() =>
   filter.folder && filter.folder !== 'none' ? folderById(filter.folder) : null,
 )
 const subfoldersOf = (id: string) => folders.value.filter((f) => f.parentId === id)
+/** What deleting a folder takes with it: the folders below it and every file in the lot. */
+const contentOf = (folder: Folder) => {
+  const below = foldersBelow(folders.value, folder.id)
+  const files = [folder, ...below].reduce((n, f) => n + f.fileCount, 0)
+  return { files, folders: below.length }
+}
 const filtering = computed(
   () => filter.kind !== 'all' || filter.tag !== null || filter.q.trim() !== '',
 )
@@ -268,6 +274,21 @@ const removeFolderOpen = computed({
   set: (v) => {
     if (!v) removingFolder.value = null
   },
+})
+const removingContent = computed(() => removingFolder.value && contentOf(removingFolder.value))
+const removingFull = computed(
+  () => !!removingContent.value && removingContent.value.files + removingContent.value.folders > 0,
+)
+const removingDescription = computed(() => {
+  const c = removingContent.value
+  if (!c || !removingFull.value) return t('library.folders.deleteEmpty')
+  const what = [
+    c.files > 0 ? t('library.folders.files', { n: c.files }, c.files) : null,
+    c.folders > 0 ? t('library.folders.subfolders', { n: c.folders }, c.folders) : null,
+  ]
+    .filter(Boolean)
+    .join(` ${t('library.folders.and')} `)
+  return `${t('library.folders.deleteFull', { what })} ${t('library.folders.deleteForever')}`
 })
 async function confirmRemoveFolder() {
   const folder = removingFolder.value
@@ -617,20 +638,12 @@ const isCurrent = (target: string | null) => (filter.folder ?? null) === target
     <UModal
       v-model:open="removeFolderOpen"
       :title="$t('library.folders.deleteTitle', { name: removingFolder?.name ?? '' })"
-      :description="
-        removingFolder &&
-        (removingFolder.fileCount > 0 || subfoldersOf(removingFolder.id).length > 0)
-          ? $t('library.folders.deleteFull', {
-              files: removingFolder.fileCount,
-              folders: subfoldersOf(removingFolder.id).length,
-            })
-          : $t('library.folders.deleteEmpty')
-      "
+      :description="removingDescription"
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
           <UButton class="min-h-11" color="error" @click="confirmRemoveFolder">
-            {{ $t('library.folders.delete') }}
+            {{ removingFull ? $t('library.folders.deleteAll') : $t('library.folders.delete') }}
           </UButton>
           <UButton class="min-h-11" color="neutral" variant="ghost" @click="removingFolder = null">
             {{ $t('security.cancel') }}

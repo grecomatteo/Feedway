@@ -4,7 +4,7 @@
  * current page. `inUserMenu` entries are opened rarely: they live in the user's menu, not in the
  * sidebar (Matteo, 13/11: activity log, privacy). `inPhoneMenu` entries are in the sidebar on a
  * computer and in the «Tu» menu on a phone, where the bar at the bottom has no room for them
- * (spec §11.11). The client holds its profiles (proposal P): no «Account social» entry. «Media»
+ * (spec §11.11). The client holds its profiles (proposal P): no «Account social» entry. «Libreria»
  * is only in the sidebar: on a phone the library opens from the client's page (plan 04 Task 12).
  */
 export function useAgencyNav() {
@@ -12,7 +12,7 @@ export function useAgencyNav() {
   const context = useContextQuery()
   // the list the selector already asks for (useWorkspaces), read without asking it again
   const payload = useNuxtApp().payload.data
-  // «Media» from Editor up (§10.2): Owner and Admin, or a role above Viewer in some client
+  // «Libreria» from Editor up (§10.2): Owner and Admin, or a role above Viewer in some client
   const usesAnyLibrary = computed(() => {
     if (org.may.value.manageUsers) return true
     const list = payload[`workspaces-${org.slug.value}`] as { items: WorkspaceView[] } | undefined
@@ -32,7 +32,7 @@ export function useAgencyNav() {
     ]
     // on a phone the library opens from the client's tab: the bar at the bottom has no room
     if (usesAnyLibrary.value)
-      list.push({ to: org.to('/media'), label: 'agency.nav.media', icon: 'i-lucide-images' })
+      list.push({ to: org.to('/libreria'), label: 'agency.nav.library', icon: 'i-lucide-images' })
     if (may.manageUsers)
       list.push({
         to: org.to('/utenti'),

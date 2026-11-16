@@ -401,68 +401,43 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         throw error
       }
     },
-    async deleteFolder(organizationId, workspaceId, folderId) {
-      const [folder] = await db
-        .select({ parentId: libraryFolders.parentId })
-        .from(libraryFolders)
+    async mediaInFolders(organizationId, workspaceId, folderIds) {
+      if (folderIds.length === 0) return []
+      const rows = await db
+        .select({ id: libraryItems.mediaId })
+        .from(libraryItems)
+        .where(
+          and(
+            eq(libraryItems.organizationId, organizationId),
+            eq(libraryItems.workspaceId, workspaceId),
+            inArray(libraryItems.folderId, [...folderIds]),
+          ),
+        )
+      return rows.map((r) => r.id)
+    },
+    async deleteFolders(organizationId, workspaceId, folderIds) {
+      if (folderIds.length === 0) return
+      const ids = [...folderIds]
+      await db
+        .update(uploadSessions)
+        .set({ folderId: null })
+        .where(
+          and(
+            eq(uploadSessions.organizationId, organizationId),
+            eq(uploadSessions.workspaceId, workspaceId),
+            inArray(uploadSessions.folderId, ids),
+          ),
+        )
+      // one statement: the parent key is checked at its end, so a folder and its subfolders go together
+      await db
+        .delete(libraryFolders)
         .where(
           and(
             eq(libraryFolders.organizationId, organizationId),
             eq(libraryFolders.workspaceId, workspaceId),
-            eq(libraryFolders.id, folderId),
+            inArray(libraryFolders.id, ids),
           ),
         )
-        .for('update')
-      if (!folder) return 'missing'
-      try {
-        await db.transaction(async (sp) => {
-          const up = { parentId: folder.parentId }
-          await sp
-            .update(libraryFolders)
-            .set({ ...up, updatedAt: new Date() })
-            .where(
-              and(
-                eq(libraryFolders.organizationId, organizationId),
-                eq(libraryFolders.workspaceId, workspaceId),
-                eq(libraryFolders.parentId, folderId),
-              ),
-            )
-          await sp
-            .update(libraryItems)
-            .set({ folderId: folder.parentId, updatedAt: new Date() })
-            .where(
-              and(
-                eq(libraryItems.organizationId, organizationId),
-                eq(libraryItems.workspaceId, workspaceId),
-                eq(libraryItems.folderId, folderId),
-              ),
-            )
-          // an upload still open into it lands in the parent
-          await sp
-            .update(uploadSessions)
-            .set({ folderId: folder.parentId })
-            .where(
-              and(
-                eq(uploadSessions.organizationId, organizationId),
-                eq(uploadSessions.workspaceId, workspaceId),
-                eq(uploadSessions.folderId, folderId),
-              ),
-            )
-          await sp
-            .delete(libraryFolders)
-            .where(
-              and(
-                eq(libraryFolders.organizationId, organizationId),
-                eq(libraryFolders.workspaceId, workspaceId),
-                eq(libraryFolders.id, folderId),
-              ),
-            )
-        })
-      } catch (error) {
-        if (isUniqueViolation(error)) return 'taken'
-        throw error
-      }
-      return 'deleted'
     },
     async findById(organizationId, mediaId) {
       const [row] = await withLibrary(db).where(

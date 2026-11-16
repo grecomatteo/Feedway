@@ -15,7 +15,7 @@ import type { LibraryFolderRecord } from '../ports/media.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { assertActiveOrganization } from '../workspaces/index.js'
-import { type MediaDto, liveMedia, openLibrary, toDto } from './library.js'
+import { type DeleteMediaDeps, type MediaDto, liveMedia, openLibrary, toDto } from './library.js'
 
 // The folders and the tags of a workspace's library (spec §11.8, plan 04 Task 12). Whoever may
 // use the library (`media.upload`, Editor and above) arranges it; for anyone else it does not
@@ -162,34 +162,64 @@ export async function updateFolder(
 
 /**
  * Deletes a folder. An empty one goes at once; one with files or folders inside only with
- * `confirm`, and what it holds goes up into its parent: no file is deleted (plan 04 Task 12).
+ * `confirm`, and then everything in it goes too: its subfolders and their files, each file
+ * deleted as from the panel (§11.9), its bytes removed by `media.delete_files` after the commit.
  */
 export async function deleteFolder(
-  deps: { uow: UnitOfWork },
+  deps: DeleteMediaDeps,
   actor: OrgActor,
   input: { workspaceId: string; folderId: string; confirm: boolean },
+  request: { ip: string | null },
 ): Promise<void> {
   const { organizationId } = actor
-  await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const { workspace } = await openFoldersForChanges(tx, actor, input.workspaceId)
+  const deleted = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const { workspace, current } = await openFoldersForChanges(tx, actor, input.workspaceId)
     const folders = await tx.media.listFolders(organizationId, workspace.id)
     const folder = knownFolder(folders, input.folderId)
     if (!folder) throw folderNotFound()
-    const subfolders = folders.filter((f) => f.parentId === folder.id).length
-    if (!input.confirm && (folder.fileCount > 0 || subfolders > 0))
+    const tree = folderAndBelow(folders, folder.id)
+    const files = await tx.media.mediaInFolders(organizationId, workspace.id, tree)
+    if (!input.confirm && (files.length > 0 || tree.length > 1))
       throw new DomainError(
         'CONFLICT',
-        'La cartella non è vuota: conferma, e quello che contiene passa nella cartella sopra',
-        { files: folder.fileCount, folders: subfolders },
+        'La cartella non è vuota: conferma, e si elimina con tutto quello che contiene',
+        { files: files.length, folders: tree.length - 1 },
       )
-    const result = await tx.media.deleteFolder(organizationId, workspace.id, folder.id)
-    if (result === 'missing') throw folderNotFound()
-    if (result === 'taken')
-      throw new DomainError(
-        'CONFLICT',
-        'Una sottocartella ha lo stesso nome di una cartella del posto sopra: rinominala prima',
-      )
+    const now = deps.clock.now()
+    const gone: string[] = []
+    for (const mediaId of files) {
+      if (!(await tx.media.markDeleted(organizationId, workspace.id, mediaId, now))) continue
+      gone.push(mediaId)
+      await tx.audit.record({
+        organizationId,
+        actorId: current.userId,
+        source: 'panel',
+        action: 'media.deleted',
+        entity: 'media',
+        entityId: mediaId,
+        workspaceId: workspace.id,
+        ip: request.ip,
+      })
+    }
+    await tx.media.deleteFolders(organizationId, workspace.id, tree)
+    return gone
   })
+  for (const mediaId of deleted) {
+    try {
+      await deps.queue.send('media.delete_files', { organizationId, mediaId })
+    } catch (error) {
+      // the file is gone from the panel; its bytes wait for the clean-up of plan 04 Task 9
+      deps.logger.error({ err: error, mediaId }, 'media files deletion not queued')
+    }
+  }
+}
+
+/** The folder and every folder below it. */
+function folderAndBelow(folders: readonly LibraryFolderRecord[], id: string): string[] {
+  const out = [id]
+  for (let i = 0; i < out.length; i++)
+    for (const f of folders) if (f.parentId === out[i]) out.push(f.id)
+  return out
 }
 
 /** Moves a file into a folder (null: out of any) and sets its tags. */
