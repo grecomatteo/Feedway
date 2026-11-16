@@ -74,7 +74,7 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
     'page',
   )
   await expect(tabs.getByText('Calendario')).toContainText('Presto')
-  await expect(tabs.getByText('Libreria')).toContainText('Presto')
+  await expect(tabs.getByRole('link', { name: 'Libreria' })).toBeVisible()
   await expect(tabs.getByRole('link', { name: 'Calendario' })).toHaveCount(0)
 
   // one row for the Page and its Instagram, linked

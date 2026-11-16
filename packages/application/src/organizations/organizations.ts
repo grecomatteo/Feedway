@@ -2,6 +2,7 @@ import {
   can,
   DomainError,
   logoUrl,
+  parseLimits,
   checkOrganizationName,
   checkPrivacySettings,
   storedPrivacySettings,
@@ -67,6 +68,8 @@ export interface OrganizationSettingsDto {
   platformRequire2fa: TwoFactorPolicy
   /** The controller data of the privacy notice; null until the Owner fills it in. */
   privacy: OrganizationPrivacySettings | null
+  /** The space its clients' files take (§11.1 point 7) and its `storage_bytes`; null: none. */
+  storage: { usedBytes: number; limitBytes: number | null }
 }
 
 const TWO_FACTOR_POLICIES: readonly TwoFactorPolicy[] = ['admins', 'all']
@@ -88,8 +91,12 @@ export async function getOrganizationSettings(
   const { organizationId } = actor
   if (!can(actor, 'organization.settings.view', { organizationId }))
     throw new DomainError('FORBIDDEN', 'Non hai i permessi per vedere le impostazioni')
-  const organization = await deps.uow.run({ organizationId, userId: actor.userId }, (tx) =>
-    tx.organizations.findById(organizationId),
+  const { organization, used } = await deps.uow.run(
+    { organizationId, userId: actor.userId },
+    async (tx) => ({
+      organization: await tx.organizations.findById(organizationId),
+      used: await tx.media.storageUsed(organizationId, null),
+    }),
   )
   if (!organization) throw notFound()
   return {
@@ -99,6 +106,10 @@ export async function getOrganizationSettings(
     require2fa: storedPolicy(organization.settings),
     platformRequire2fa: deps.config.require2fa,
     privacy: storedPrivacySettings(organization.settings),
+    storage: {
+      usedBytes: used.organization,
+      limitBytes: parseLimits(organization.limits).storage_bytes ?? null,
+    },
   }
 }
 

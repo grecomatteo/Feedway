@@ -111,6 +111,27 @@ export interface MediaFacts {
   audioCodec: string | null
 }
 
+/** A folder of a workspace's library (§11.8), with the files right inside it. */
+export interface LibraryFolderRecord {
+  id: string
+  parentId: string | null
+  name: string
+  createdAt: Date
+  /** files not deleted right inside it, not in its subfolders */
+  fileCount: number
+}
+
+/** What narrows the library's list (plan 04 Task 12); all of them at once. */
+export interface MediaFilter {
+  kind?: MediaKind
+  /** a folder's files, right inside it; `none`: the files in no folder */
+  folder?: string
+  /** files with this tag */
+  tag?: string
+  /** a part of the file's name, any case */
+  name?: string
+}
+
 /** The file the worker picks next: ids only, read across the agencies (ADR 021). */
 export interface MediaTurn {
   organizationId: string
@@ -165,12 +186,53 @@ export interface MediaRepository {
   ): Promise<boolean>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
-  /** The files of a workspace not deleted, newest first; `before`: the files after this one. */
+  /**
+   * The files of a workspace not deleted, newest first, narrowed by the filter; `before`: the
+   * files after this one.
+   */
   listForWorkspace(
     organizationId: string,
     workspaceId: string,
-    page: { before?: string; limit: number },
+    page: { before?: string; limit: number; filter?: MediaFilter },
   ): Promise<MediaRecord[]>
+  /** Every tag used in the library of the workspace, by name. */
+  tagsOf(organizationId: string, workspaceId: string): Promise<string[]>
+  /**
+   * Files the folder and the tags of a file of the workspace, putting it into the library if it
+   * was not. Only what is given changes.
+   */
+  setLibraryEntry(
+    organizationId: string,
+    workspaceId: string,
+    mediaId: string,
+    entry: { folderId?: string | null; tags?: string[] },
+  ): Promise<void>
+  /** The folders of the workspace's library, by name. */
+  listFolders(organizationId: string, workspaceId: string): Promise<LibraryFolderRecord[]>
+  /** `taken`: a folder beside it has the same name, whatever the case. */
+  createFolder(folder: {
+    id: string
+    organizationId: string
+    workspaceId: string
+    name: string
+    parentId: string | null
+  }): Promise<'created' | 'taken'>
+  /** Renames or moves a folder; `taken` as above; `missing`: no such folder. */
+  updateFolder(
+    organizationId: string,
+    workspaceId: string,
+    folderId: string,
+    change: { name?: string; parentId?: string | null },
+  ): Promise<'updated' | 'taken' | 'missing'>
+  /**
+   * Deletes a folder: its files and its folders go up into its parent first. `taken`: one of
+   * its folders has the name of a folder already there; `missing`: no such folder.
+   */
+  deleteFolder(
+    organizationId: string,
+    workspaceId: string,
+    folderId: string,
+  ): Promise<'deleted' | 'taken' | 'missing'>
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>
@@ -191,6 +253,9 @@ export interface MediaRepository {
   ): Promise<boolean>
   /** After the files are removed: the variants' rows go and the original's key is cleared. */
   forgetFiles(organizationId: string, mediaId: string): Promise<void>
-  /** Bytes still stored (originals and variants), in the agency and in one of its workspaces. */
-  storageUsed(organizationId: string, workspaceId: string): Promise<StorageUsed>
+  /**
+   * Bytes still stored (originals and variants), in the agency and in one of its workspaces
+   * (0 for the workspace when none is named).
+   */
+  storageUsed(organizationId: string, workspaceId: string | null): Promise<StorageUsed>
 }

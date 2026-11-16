@@ -3,7 +3,7 @@
  * The client's page (spec §14.7, plan 04 Task 6a): the «home» of a client, where the selector
  * leads (D-5). At the top its photo, name, the names of its profiles and «Nuovo post»; then the
  * tabs Panoramica, Calendario, Libreria and Persone, «Presto» on those not built yet. The tabs are
- * child pages: Panoramica is `index.vue`, Persone `membri.vue`.
+ * child pages: Panoramica is `index.vue`, Libreria `libreria.vue`, Persone `membri.vue`.
  */
 definePageMeta({ layout: 'agency' })
 
@@ -40,10 +40,13 @@ const keep = computed(() => {
   const profilo = route.query['profilo']
   return typeof profilo === 'string' && profilo !== '' ? { profilo } : {}
 })
+// the library from Editor up (§10.2): for a Viewer the tab is not there
 const tabs = computed(() => [
   { key: 'overview', to: base.value, label: t('client.tabs.overview') },
   { key: 'calendar', to: null, label: t('client.tabs.calendar') },
-  { key: 'library', to: null, label: t('client.tabs.library') },
+  ...(client.value && usesLibrary(client.value)
+    ? [{ key: 'library', to: `${base.value}/libreria`, label: t('client.tabs.library') }]
+    : []),
   { key: 'people', to: `${base.value}/membri`, label: t('client.tabs.people') },
 ])
 const current = (to: string) => route.path === to || route.path === `${to}/`

@@ -14,7 +14,7 @@ import { isUuid } from '../identity/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
-import type { MediaRecord, MediaVariantRecord } from '../ports/media.js'
+import type { MediaFilter, MediaRecord, MediaVariantRecord } from '../ports/media.js'
 import type { Storage, StoredObject, StoredRange } from '../ports/storage.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
@@ -60,7 +60,7 @@ export const mediaNotFound = () => new DomainError('NOT_FOUND', 'File non trovat
 
 const MAX_PAGE = 100
 
-function toDto(record: MediaRecord, variants: readonly MediaVariantRecord[]): MediaDto {
+export function toDto(record: MediaRecord, variants: readonly MediaVariantRecord[]): MediaDto {
   return {
     id: record.id,
     kind: record.kind,
@@ -110,21 +110,36 @@ export async function openLibrary(tx: Tx, actor: OrgActor, workspaceId: string) 
 }
 
 /** A file of the workspace not deleted, or NOT_FOUND. */
-async function liveMedia(tx: Tx, organizationId: string, workspaceId: string, mediaId: string) {
+export async function liveMedia(
+  tx: Tx,
+  organizationId: string,
+  workspaceId: string,
+  mediaId: string,
+) {
   if (!isUuid(mediaId)) throw mediaNotFound()
   const found = await tx.media.findById(organizationId, mediaId)
   if (found?.workspaceId !== workspaceId || found.status === 'deleted') throw mediaNotFound()
   return found
 }
 
+export interface MediaListFilter {
+  kind?: 'image' | 'video'
+  /** a folder's id, or `none` for the files in no folder */
+  folder?: string
+  tag?: string
+  /** a part of the file's name */
+  name?: string
+}
+
 export async function listMedia(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
-  input: { workspaceId: string; before?: string; limit?: number },
-): Promise<{ items: MediaDto[]; next: string | null; usedBytes: number }> {
+  input: { workspaceId: string; before?: string; limit?: number; filter?: MediaListFilter },
+): Promise<{ items: MediaDto[]; next: string | null; usedBytes: number; tags: string[] }> {
   const { organizationId } = actor
   if (input.before !== undefined && !isUuid(input.before))
     throw new DomainError('VALIDATION', 'Pagina non valida', { field: 'before' })
+  const filter = cleanFilter(input.filter)
   const limit = Math.min(Math.max(input.limit ?? 50, 1), MAX_PAGE)
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
@@ -132,6 +147,7 @@ export async function listMedia(
     const page = await tx.media.listForWorkspace(organizationId, workspace.id, {
       ...(input.before === undefined ? {} : { before: input.before }),
       limit: limit + 1,
+      filter,
     })
     const items = page.slice(0, limit)
     const variants = await tx.media.variantsOf(
@@ -143,8 +159,24 @@ export async function listMedia(
       items: items.map((m) => toDto(m, variants)),
       next: page.length > limit ? (items.at(-1)?.id ?? null) : null,
       usedBytes: used.workspace,
+      tags: await tx.media.tagsOf(organizationId, workspace.id),
     }
   })
+}
+
+/** The filter as the repository takes it: a folder that is not an id finds nothing. */
+function cleanFilter(filter: MediaListFilter | undefined): MediaFilter {
+  if (!filter) return {}
+  const name = filter.name?.trim()
+  const tag = filter.tag?.trim().toLocaleLowerCase('it')
+  if (filter.folder !== undefined && filter.folder !== 'none' && !isUuid(filter.folder))
+    throw new DomainError('VALIDATION', 'Cartella non valida', { field: 'folder' })
+  return {
+    ...(filter.kind === undefined ? {} : { kind: filter.kind }),
+    ...(filter.folder === undefined ? {} : { folder: filter.folder }),
+    ...(tag ? { tag } : {}),
+    ...(name ? { name } : {}),
+  }
 }
 
 export async function getMedia(

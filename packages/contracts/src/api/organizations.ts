@@ -15,6 +15,8 @@ export const OrganizationSettings = z.object({
       extraText: z.string().optional(),
     })
     .nullable(),
+  /** the space the clients' files take, copies included, and the agency's limit (null: none) */
+  storage: z.object({ usedBytes: z.number().int(), limitBytes: z.number().int().nullable() }),
 })
 
 export const organizationSettingsRoute = defineContract({

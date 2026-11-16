@@ -236,7 +236,23 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  // the library's folders (plan 04 Task 12): as the files
+  'GET /api/v1/orgs/{org}/workspaces/{id}/folders': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/folders': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
   'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/file/{variant}': [

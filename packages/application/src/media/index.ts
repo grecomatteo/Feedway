@@ -6,7 +6,23 @@ export {
   openLibrary,
   readMediaFile,
 } from './library.js'
-export type { ByteRange, DeleteMediaDeps, MediaDto, MediaFile, MediaVariantDto } from './library.js'
+export type {
+  ByteRange,
+  DeleteMediaDeps,
+  MediaDto,
+  MediaFile,
+  MediaListFilter,
+  MediaVariantDto,
+} from './library.js'
+export {
+  createFolder,
+  deleteFolder,
+  folderNotFound,
+  listFolders,
+  updateFolder,
+  updateMedia,
+} from './folders.js'
+export type { FolderDto } from './folders.js'
 export { readPublicMediaFile } from './public-file.js'
 export { deleteMediaFiles } from './delete-files.js'
 export type { MediaDeleteFilesJob } from './delete-files.js'

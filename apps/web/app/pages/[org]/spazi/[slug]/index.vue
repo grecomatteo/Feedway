@@ -372,6 +372,8 @@ const canManageMembers = computed(
       </DataTable>
     </section>
 
+    <RecentFiles v-if="client && usesLibrary(client)" :key="client.id" :workspace="client" />
+
     <section aria-labelledby="client-people" class="space-y-3">
       <div class="flex min-h-11 items-center justify-between gap-3">
         <h2 id="client-people" class="text-lg">{{ $t('client.people') }}</h2>
