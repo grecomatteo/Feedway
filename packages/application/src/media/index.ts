@@ -23,7 +23,7 @@ export {
   updateMedia,
 } from './folders.js'
 export type { FolderDto } from './folders.js'
-export { readPublicMediaFile } from './public-file.js'
+export { isPublicMediaName, readPublicMediaFile } from './public-file.js'
 export { deleteMediaFiles } from './delete-files.js'
 export type { MediaDeleteFilesJob } from './delete-files.js'
 export {

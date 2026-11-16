@@ -177,11 +177,53 @@ export async function firstPixel(bytes: Buffer): Promise<{ rgb: number[]; icc: b
 }
 
 /**
- * An H.264 MP4 whose stream switches from `small` to `large` frames halfway: the header (the
- * first SPS) says only `small`.
+ * A 4 s H.264 MP4 with a few bytes damaged halfway: the decoder complains of some blocks and
+ * hides them, every frame is still there (a phone video with a glitch).
  */
-export function makeResolutionSwitch(dir: string, small: string, large: string): string {
-  const part = (size: string, name: string) => {
+export function makeDamagedVideo(dir: string): string {
+  const path = join(dir, 'damaged.mp4')
+  execFileSync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc=size=320x240:rate=10',
+      '-t',
+      '4',
+      '-c:v',
+      'libx264',
+      '-g',
+      '10',
+      '-pix_fmt',
+      'yuv420p',
+      path,
+    ],
+    { stdio: ['ignore', 'ignore', 'inherit'] },
+  )
+  const bytes = readFileSync(path)
+  const at = Math.floor(bytes.length / 2)
+  for (let i = at; i < at + 200; i++) bytes[i] = (bytes[i] ?? 0) ^ 0x5a
+  writeFileSync(path, bytes)
+  return path
+}
+
+/**
+ * An H.264 MP4 whose stream switches from `small` to `large` frames halfway: the header (the
+ * first SPS) says only `small`. `then`: small frames again after the large ones; `audio`: a
+ * silent track as long as the whole video, so the container lasts the full time.
+ */
+export function makeResolutionSwitch(
+  dir: string,
+  small: string,
+  large: string,
+  opts: { then?: string; audio?: boolean; smallSeconds?: number; largeFrames?: number } = {},
+): string {
+  const part = (size: string, name: string, length: string[] = ['-t', '1']) => {
     const path = join(dir, name)
     execFileSync(
       'ffmpeg',
@@ -194,8 +236,7 @@ export function makeResolutionSwitch(dir: string, small: string, large: string):
         'lavfi',
         '-i',
         `testsrc=size=${size}:rate=10`,
-        '-t',
-        '1',
+        ...length,
         '-c:v',
         'libx264',
         '-pix_fmt',
@@ -210,15 +251,36 @@ export function makeResolutionSwitch(dir: string, small: string, large: string):
     )
     return path
   }
+  const smallLength = ['-t', String(opts.smallSeconds ?? 1)]
+  const largeLength = opts.largeFrames ? ['-frames:v', String(opts.largeFrames)] : ['-t', '1']
+  const parts = [part(small, 'a.h264', smallLength), part(large, 'b.h264', largeLength)]
+  if (opts.then) parts.push(part(opts.then, 'c.h264', smallLength))
   const joined = join(dir, 'switch.h264')
-  writeFileSync(
-    joined,
-    Buffer.concat([readFileSync(part(small, 'a.h264')), readFileSync(part(large, 'b.h264'))]),
-  )
-  const out = join(dir, 'switch.mp4')
+  writeFileSync(joined, Buffer.concat(parts.map((p) => readFileSync(p))))
+  const out = join(dir, opts.audio || opts.then ? 'switch-variant.mp4' : 'switch.mp4')
+  const seconds = String(parts.length * (opts.smallSeconds ?? 1))
+  const audio = opts.audio
+    ? ['-f', 'lavfi', '-t', seconds, '-i', 'anullsrc=r=48000:cl=mono', '-c:a', 'aac']
+    : []
   execFileSync(
     'ffmpeg',
-    ['-hide_banner', '-loglevel', 'error', '-y', '-r', '10', '-i', joined, '-c', 'copy', out],
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-y',
+      '-r',
+      '10',
+      '-i',
+      joined,
+      ...audio.slice(0, 6),
+      '-map',
+      '0:v',
+      ...(opts.audio ? ['-map', '1:a', ...audio.slice(6)] : []),
+      '-c:v',
+      'copy',
+      out,
+    ],
     { stdio: ['ignore', 'ignore', 'inherit'] },
   )
   return out

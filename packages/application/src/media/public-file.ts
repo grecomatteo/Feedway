@@ -13,6 +13,9 @@ const PUBLIC_TYPES: Readonly<Record<string, string>> = { jpg: 'image/jpeg', mp4:
 
 const PUBLIC_NAME = new RegExp(`^([A-Za-z0-9_-]{${String(PUBLIC_TOKEN_LENGTH)}})\\.(jpg|mp4)$`)
 
+/** Whether a name has the form of a public copy's: only those ask the database. */
+export const isPublicMediaName = (name: string) => PUBLIC_NAME.test(name)
+
 /**
  * The copy named `{token}.{jpg|mp4}`, whole or a byte range of it. null: not found, the same
  * answer for a name of the wrong form (the database is not asked), an unknown token, a file not
