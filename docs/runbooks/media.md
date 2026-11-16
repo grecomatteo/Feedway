@@ -27,7 +27,7 @@ La copia master di una foto è al massimo 4096 px sul lato lungo, senza EXIF né
 
 ## Dove stanno i file
 
-Con `STORAGE_DRIVER=local` (il default) tutto sta nel volume Docker `media`, montato in `/media` (`MEDIA_ROOT`) in web e worker:
+Con `STORAGE_DRIVER=disk` (il default) tutto sta nel volume Docker `media`, montato in `/media` (`MEDIA_ROOT`) in web e worker:
 
 - `org/<agenzia>/media/<file>/<copia>.<ext>`: originale e copie di ogni file della libreria (per esempio `ig_feed`, `master`, `thumbnail`, `preview`, `reel`);
 - `org/<agenzia>/logo/<impronta>.webp` e `-64.webp`: il logo dell'agenzia;
