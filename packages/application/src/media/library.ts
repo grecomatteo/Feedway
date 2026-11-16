@@ -168,7 +168,7 @@ export async function listMedia(
 function cleanFilter(filter: MediaListFilter | undefined): MediaFilter {
   if (!filter) return {}
   const name = filter.name?.trim()
-  const tag = filter.tag?.trim().toLocaleLowerCase('it')
+  const tag = filter.tag?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('it')
   if (filter.folder !== undefined && filter.folder !== 'none' && !isUuid(filter.folder))
     throw new DomainError('VALIDATION', 'Cartella non valida', { field: 'folder' })
   return {

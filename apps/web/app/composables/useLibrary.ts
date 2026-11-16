@@ -69,13 +69,19 @@ export function useLibrary(workspaceId: Ref<string>) {
       if (mine === asked) status.value = 'error'
     }
   }
-  async function more() {
-    if (!next.value) return
+  /** The next page; false when it could not be read. A page of a filter changed meanwhile goes. */
+  async function more(): Promise<boolean> {
+    if (!next.value) return true
+    const mine = asked
     loadingMore.value = true
     try {
       const page = await call<Page>('GET', `${base.value}/media?${query(next.value)}`)
+      if (mine !== asked) return true
       files.value = [...files.value, ...page.items]
       next.value = page.next
+      return true
+    } catch {
+      return false
     } finally {
       loadingMore.value = false
     }

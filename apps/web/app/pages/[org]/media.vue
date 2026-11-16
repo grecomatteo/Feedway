@@ -23,7 +23,9 @@ const client = computed(() =>
 // a Viewer everywhere, or a client whose library the person may not use: «Pagina non trovata»
 watchEffect(() => {
   if (status.value !== 'success') return
-  const nothing = usable.value.length === 0 && !org.may.value.manageUsers
+  // archived clients count: their library is read only, not gone
+  const any = (data.value?.items ?? []).some((w) => usesLibrary(w))
+  const nothing = !any && !org.may.value.manageUsers
   if (nothing || (workspace.value && !usesLibrary(workspace.value)))
     showError(createError({ statusCode: 404, statusMessage: 'Not Found' }))
 })

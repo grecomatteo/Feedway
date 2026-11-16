@@ -104,12 +104,37 @@ async function move(file: LibraryFile, folderId: string | null) {
         : t('library.moved', { name: file.originalName, folder: folderLabel(folderId) }),
     )
 }
+// the tags are saved one request at a time, the latest list last: answers never cross
+let pendingTags: { file: LibraryFile; tags: string[] } | null = null
+let savingTags = false
 async function saveTags(file: LibraryFile, tags: string[]) {
-  const ok = await attempt(async () => {
-    const updated = await lib.update(file, { tags })
-    if (selected.value?.id === file.id) selected.value = updated
-  })
-  if (ok) say(t('library.detail.tagsSaved'))
+  pendingTags = { file, tags }
+  if (savingTags) return
+  savingTags = true
+  try {
+    while (pendingTags) {
+      const job: { file: LibraryFile; tags: string[] } = pendingTags
+      pendingTags = null
+      const ok = await attempt(async () => {
+        const updated = await lib.update(job.file, { tags: job.tags })
+        if (selected.value?.id === job.file.id) selected.value = updated
+      })
+      if (!ok) {
+        // what is shown goes back to what is saved
+        pendingTags = null
+        const saved = files.value.find((f) => f.id === job.file.id) ?? job.file
+        if (selected.value?.id === job.file.id)
+          selected.value = { ...selected.value, tags: [...saved.tags] }
+        return
+      }
+    }
+    say(t('library.detail.tagsSaved'))
+  } finally {
+    savingTags = false
+  }
+}
+async function showMore() {
+  if (!(await lib.more())) problem.value = t('library.loadError')
 }
 const moving = ref<LibraryFile | null>(null)
 const moveTarget = ref('none')
@@ -424,7 +449,12 @@ const isCurrent = (target: string | null) => (filter.folder ?? null) === target
           >
             <UIcon name="i-lucide-folder" class="size-4" aria-hidden="true" />
             {{ sub.name }}
-            <span class="text-(--app-text-muted) tabular-nums">{{ sub.fileCount }}</span>
+            <span class="text-(--app-text-muted) tabular-nums">
+              <span aria-hidden="true">{{ sub.fileCount }}</span>
+              <span class="sr-only">{{
+                $t('library.folders.files', { n: sub.fileCount }, sub.fileCount)
+              }}</span>
+            </span>
           </button>
         </li>
       </ul>
@@ -501,7 +531,7 @@ const isCurrent = (target: string | null) => (filter.folder ?? null) === target
             color="neutral"
             variant="outline"
             :loading="lib.loadingMore.value"
-            @click="lib.more()"
+            @click="showMore"
           >
             {{ $t('library.more') }}
           </UButton>

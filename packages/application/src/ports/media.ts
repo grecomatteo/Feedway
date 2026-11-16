@@ -207,6 +207,11 @@ export interface MediaRepository {
     mediaId: string,
     entry: { folderId?: string | null; tags?: string[] },
   ): Promise<void>
+  /**
+   * Until the transaction ends, no other change to the folders of this workspace: the checks on
+   * loops, depth and count read the tree first.
+   */
+  lockFolders(organizationId: string, workspaceId: string): Promise<void>
   /** The folders of the workspace's library, by name. */
   listFolders(organizationId: string, workspaceId: string): Promise<LibraryFolderRecord[]>
   /** `taken`: a folder beside it has the same name, whatever the case. */

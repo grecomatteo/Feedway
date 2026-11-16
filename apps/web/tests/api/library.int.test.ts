@@ -180,3 +180,13 @@ test("the agency's settings show the space its files take", async () => {
   expect(settings.storage.usedBytes).toBeGreaterThanOrEqual(1000)
   expect(settings.storage.limitBytes).toBeNull()
 })
+
+test('two moves at once never make a loop', async () => {
+  const a = await folder(w2, 'Gara A')
+  const b = await folder(w2, 'Gara B')
+  const [one, two] = await Promise.all([
+    call('PATCH', `${ws(w2)}/folders/${a.id}`, { parentId: b.id }),
+    call('PATCH', `${ws(w2)}/folders/${b.id}`, { parentId: a.id }),
+  ])
+  expect([one.status, two.status].sort()).toEqual([200, 422])
+})

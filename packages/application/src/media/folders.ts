@@ -54,6 +54,13 @@ async function openForChanges(tx: Tx, actor: OrgActor, workspaceId: string) {
   return opened
 }
 
+/** As `openForChanges`, and the folders locked: two moves at once never make a loop. */
+async function openFoldersForChanges(tx: Tx, actor: OrgActor, workspaceId: string) {
+  const opened = await openForChanges(tx, actor, workspaceId)
+  await tx.media.lockFolders(actor.organizationId, opened.workspace.id)
+  return opened
+}
+
 /** A folder of the workspace as a parent or a target: null is the top of the library. */
 function knownFolder(folders: readonly LibraryFolderRecord[], id: string | null) {
   if (id === null) return null
@@ -91,7 +98,7 @@ export async function createFolder(
   const { organizationId } = actor
   const name = folderName(input.name)
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const { workspace } = await openForChanges(tx, actor, input.workspaceId)
+    const { workspace } = await openFoldersForChanges(tx, actor, input.workspaceId)
     const folders = await tx.media.listFolders(organizationId, workspace.id)
     knownFolder(folders, input.parentId)
     if (folders.length >= MAX_FOLDERS)
@@ -125,7 +132,7 @@ export async function updateFolder(
   const { organizationId } = actor
   const name = input.name === undefined ? undefined : folderName(input.name)
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const { workspace } = await openForChanges(tx, actor, input.workspaceId)
+    const { workspace } = await openFoldersForChanges(tx, actor, input.workspaceId)
     const folders = await tx.media.listFolders(organizationId, workspace.id)
     const folder = knownFolder(folders, input.folderId)
     if (!folder) throw folderNotFound()
@@ -164,7 +171,7 @@ export async function deleteFolder(
 ): Promise<void> {
   const { organizationId } = actor
   await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const { workspace } = await openForChanges(tx, actor, input.workspaceId)
+    const { workspace } = await openFoldersForChanges(tx, actor, input.workspaceId)
     const folders = await tx.media.listFolders(organizationId, workspace.id)
     const folder = knownFolder(folders, input.folderId)
     if (!folder) throw folderNotFound()

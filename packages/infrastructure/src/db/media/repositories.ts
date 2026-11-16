@@ -344,6 +344,11 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           set: { ...change, updatedAt: new Date() },
         })
     },
+    async lockFolders(organizationId, workspaceId) {
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`library_folders:${organizationId}:${workspaceId}`}))`,
+      )
+    },
     async listFolders(organizationId, workspaceId): Promise<LibraryFolderRecord[]> {
       const rows = await db
         .select({
