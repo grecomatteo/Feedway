@@ -171,6 +171,15 @@ test('the profile pictures point to the mock itself, which serves them as JPEG',
   expect((await fetch(`${mock.url}/pictures/unknown.jpg`)).status).toBe(404)
 })
 
+test('a field with its modifiers, as Meta takes it: the Page picture 256 px wide', async () => {
+  const token = META_MOCK.tokens.systemUser
+  const page = await graph(`/${META_MOCK.pages.withInstagram}`, token, {
+    fields: 'id,picture.width(256).height(256){url}',
+  })
+  const picture = (page.body as unknown as { picture?: { data: { url: string } } }).picture
+  expect(picture?.data.url).toMatch(/^http/)
+})
+
 test('the picture scenarios: a new picture, bytes that are no image, a redirect, a CDN error', async () => {
   const token = META_MOCK.tokens.systemUser
   mock.scenario('picture_changed', { id: META_MOCK.pages.withInstagram })

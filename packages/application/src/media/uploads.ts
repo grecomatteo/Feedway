@@ -203,6 +203,8 @@ export async function startUpload(
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
     await assertWritable(tx, organizationId, workspace.archivedAt)
+    // a folder deleted meanwhile is seen as gone, never a broken reference (P12)
+    if (folderId !== null) await tx.media.lockFolders(organizationId, workspace.id)
     if (folderId !== null && !(await tx.media.folderExists(organizationId, workspace.id, folderId)))
       throw new DomainError('VALIDATION', 'Cartella non trovata', { field: 'folderId' })
     await tx.uploads.lockReservations(organizationId)
@@ -447,6 +449,9 @@ export async function completeUpload(
       // access again: the person, the agency or the workspace may have changed meanwhile
       const { workspace } = await openLibrary(tx, actor, input.workspaceId)
       await assertWritable(tx, organizationId, workspace.archivedAt)
+      // a folder deleted while the pieces were joined took the upload out of it (deleteFolders):
+      // the file then goes to the top of the library (P12)
+      await tx.media.lockFolders(organizationId, workspace.id)
       // the file takes the space its upload reserved: no creation reads the two in between
       await tx.uploads.lockReservations(organizationId)
       const locked = await tx.uploads.findById(organizationId, session.id, { forUpdate: true })

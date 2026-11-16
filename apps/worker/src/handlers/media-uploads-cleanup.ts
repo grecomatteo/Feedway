@@ -9,6 +9,7 @@ export const mediaUploadsCleanup: JobHandler<'media.uploads_cleanup'> = async (_
     clock: deps.clock,
     queue: deps.queue,
     uploadParts: deps.uploadParts,
+    storage: deps.storage,
     logger: deps.logger,
   })
 }

@@ -140,7 +140,8 @@ const DEFAULT_LIMIT = 50
 const NEVER_EXPIRING_TYPES = new Set(['SYSTEM_USER'])
 
 const igAccountFields = 'id,username,name,profile_picture_url'
-const pageFields = `id,name,picture{url},instagram_business_account{${igAccountFields}}`
+// without a size Meta gives a picture of about 50 px, blurred everywhere in the panel
+const pageFields = `id,name,picture.width(256).height(256){url},instagram_business_account{${igAccountFields}}`
 
 const igAccountSchema = z.object({
   id: z.string(),
