@@ -461,6 +461,7 @@ export async function completeUpload(
         storageKey: stored?.key ?? null,
         // what the worker would say of it (FileAnalysis): no type Feedway takes
         analysis: found ? null : { kind: 'unknown', sizeBytes: locked.sizeBytes },
+        failure: found ? null : { code: 'unsupported_type' },
         folderId: locked.folderId,
       })
       await tx.uploads.complete(organizationId, session.id, mediaId, now)

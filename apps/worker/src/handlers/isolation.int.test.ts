@@ -2,7 +2,12 @@ import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { QueueName, QueueScopes } from '@app/application'
 import { QUEUES, type Runtime } from '@app/infrastructure'
-import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
+import {
+  imageFixture,
+  seed,
+  startTestDatabase,
+  type TestDatabase,
+} from '@app/infrastructure/testing'
 import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
 import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
 import { accountsAvatar } from './accounts-avatar.js'
@@ -105,17 +110,30 @@ async function mediaWorld(): Promise<World> {
   }
 }
 
-/** A file of each agency just uploaded, waiting for the worker. */
+/**
+ * A file of A waiting for the worker, and one of B already processed. `media.process` is a
+ * wake-up that picks the next waiting file of any agency (ADR 021, approved exception): B's
+ * file is not waiting, so a job of A naming it must leave it alone, and A's file is processed in
+ * A's scope.
+ */
 async function processingWorld(): Promise<World> {
   const a = await agency(tdb, runtime)
   const b = await agency(tdb, runtime)
-  const waiting = (of: Agency) =>
+  const photo = await imageFixture('photo.png')
+  const file = (of: Agency, status: 'processing' | 'ready') =>
     seed(tdb.runtimeUrl, async (s) => {
       const workspace = await s.workspace(of.organizationId)
-      return s.media(of.organizationId, workspace, { uploadedBy: of.ownerId, status: 'processing' })
+      return s.media(of.organizationId, workspace, {
+        uploadedBy: of.ownerId,
+        kind: 'image',
+        status,
+      })
     })
-  const ofA = await waiting(a)
-  const ofB = await waiting(b)
+  const ofA = await file(a, 'processing')
+  await runtime.storage.put(`org/${a.organizationId}/media/${ofA}/original`, photo, {
+    contentType: 'image/png',
+  })
+  const ofB = await file(b, 'ready')
   return {
     a,
     b,

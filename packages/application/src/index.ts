@@ -48,7 +48,26 @@ export type {
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
-export type { MediaRecord, MediaRepository, MediaVariantRecord, NewMedia } from './ports/media.js'
+export type {
+  MediaFacts,
+  MediaRecord,
+  MediaRepository,
+  MediaTurn,
+  MediaVariantRecord,
+  NewMedia,
+  NewMediaVariant,
+} from './ports/media.js'
+export type {
+  ExclusiveLock,
+  MadeFile,
+  MediaProbe,
+  MediaScratch,
+  MediaTransformer,
+  ScratchFolder,
+  ToolOptions,
+  ToolRefusal,
+  ToolResult,
+} from './ports/media-processing.js'
 export type {
   ReceivedPart,
   UploadParts,

@@ -181,7 +181,8 @@ export interface JobQueue {
   ): Promise<string | null>
   work<N extends QueueName>(
     name: N,
-    handler: (job: { id: string; data: JobPayloads[N] }) => Promise<void>,
+    /** `signal` aborts when pg-boss expires the job (its `expireInSeconds`) or stops. */
+    handler: (job: { id: string; data: JobPayloads[N]; signal?: AbortSignal }) => Promise<void>,
     opts?: { concurrency?: number },
   ): Promise<void>
   ping(): Promise<void>

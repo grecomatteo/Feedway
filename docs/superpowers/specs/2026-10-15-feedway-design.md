@@ -1049,7 +1049,11 @@ media               id, workspace_id, uploaded_by, kind (image|video),
                     status (uploading|processing|ready|failed|deleted),
                     original_name, mime, size_bytes, sha256, width, height,
                     duration_ms, fps, video_codec, audio_codec, analysis (jsonb),
-                    progress (jsonb: passo e percentuale del worker), storage_key, deleted_at
+                    progress (jsonb: passo e percentuale del worker), failure (jsonb: perché è
+                    failed), checks (jsonb: correzioni fatte e avvisi), processing_attempts,
+                    processing_started_at, storage_key, deleted_at
+                    -- processing_*: i turni del worker (piano 04 Task 10); l'ultimo inizio dei file
+                    -- di un'agenzia dice quando è stata servita, per la scelta a turno (ADR 021)
                     -- storage_key: l'originale, vuoto quando è tolto; deleted: la riga resta,
                     -- i file li toglie il lavoro media.delete_files (piano 04, Task 8)
 media_variants      id, media_id, purpose (ig_feed|fb_photo|reel|story|thumbnail|share|preview|cover),

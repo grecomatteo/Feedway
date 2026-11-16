@@ -2,6 +2,8 @@ import {
   DomainError,
   VARIANT_PURPOSES,
   can,
+  type MediaChecks,
+  type MediaFailure,
   type MediaKind,
   type MediaProgress,
   type MediaStatus,
@@ -45,6 +47,8 @@ export interface MediaDto {
   videoCodec: string | null
   audioCodec: string | null
   progress: MediaProgress | null
+  failure: MediaFailure | null
+  checks: MediaChecks | null
   uploadedBy: string
   createdAt: string
   folderId: string | null
@@ -71,6 +75,8 @@ function toDto(record: MediaRecord, variants: readonly MediaVariantRecord[]): Me
     videoCodec: record.videoCodec,
     audioCodec: record.audioCodec,
     progress: record.progress,
+    failure: record.failure,
+    checks: record.checks,
     uploadedBy: record.uploadedBy,
     createdAt: record.createdAt.toISOString(),
     folderId: record.folderId,

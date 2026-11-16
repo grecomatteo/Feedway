@@ -52,6 +52,13 @@ export const media = pgTable(
     analysis: jsonb('analysis'),
     // the worker's step and percentage (plan 04 M4)
     progress: jsonb('progress'),
+    // why the file is failed (MediaFailure), and what the worker corrected or proposes
+    failure: jsonb('failure'),
+    checks: jsonb('checks'),
+    // the worker's turns (plan 04 Task 10): how many times it picked the file, and when last;
+    // the latest start of an agency's files is when the agency was last served
+    processingAttempts: integer('processing_attempts').notNull().default(0),
+    processingStartedAt: tz('processing_started_at'),
     // the original file; null once removed (a photo's, as soon as its variant is ready)
     storageKey: text('storage_key'),
     deletedAt: tz('deleted_at'),
@@ -64,6 +71,11 @@ export const media = pgTable(
     unique('media_workspace_id').on(t.organizationId, t.workspaceId, t.id),
     // the library, newest first
     index('media_workspace_created_idx').on(t.organizationId, t.workspaceId, t.createdAt, t.id),
+    // the files waiting for the worker, and the turn of each agency
+    index('media_processing_idx')
+      .on(t.organizationId, t.createdAt, t.id)
+      .where(sql`${t.status} = 'processing'`),
+    index('media_processing_started_idx').on(t.organizationId, t.processingStartedAt),
     foreignKey({
       name: 'media_workspace_fk',
       columns: [t.organizationId, t.workspaceId],
@@ -75,6 +87,9 @@ export const media = pgTable(
     check('media_size', sql`${t.sizeBytes} >= 0`),
     check('media_sha256', sql`${t.sha256} is null or ${t.sha256} ~ '^[0-9a-f]{64}$'`),
     check('media_original_name', sql`char_length(${t.originalName}) between 1 and 255`),
+    // a deleted file keeps the reason it failed
+    check('media_failure', sql`${t.status} <> 'failed' or ${t.failure} is not null`),
+    check('media_processing_attempts', sql`${t.processingAttempts} >= 0`),
   ],
 )
 

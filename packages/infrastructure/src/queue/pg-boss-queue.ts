@@ -47,7 +47,8 @@ export async function createPgBossQueue(
     },
     async work(name, handler, workOpts) {
       await boss.work(name, { localConcurrency: workOpts?.concurrency ?? 1 }, async (jobs) => {
-        for (const job of jobs) await handler({ id: job.id, data: job.data as never })
+        for (const job of jobs)
+          await handler({ id: job.id, data: job.data as never, signal: job.signal })
       })
     },
     async schedule(name, cron, data, scheduleOpts) {

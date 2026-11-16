@@ -56,3 +56,24 @@ test('migrations are idempotent', async () => {
     }),
   ).resolves.toBeUndefined()
 })
+
+test('a queue that exists takes the options of its definition again (ADR 021)', async () => {
+  const expiry = () =>
+    withClient(tdb.migratorUrl, async (c) => {
+      const res = await c.query<{ expire_seconds: number }>(
+        `select expire_seconds from pgboss.queue where name = 'media.process'`,
+      )
+      return res.rows[0]?.expire_seconds
+    })
+  expect(await expiry()).toBe(2 * 3600 + 15 * 60)
+  // as a queue created before the option was there
+  await withClient(tdb.migratorUrl, (c) =>
+    c.query(`update pgboss.queue set expire_seconds = 900 where name = 'media.process'`),
+  )
+  await runMigrations({
+    migratorUrl: tdb.migratorUrl,
+    runtimeRole: 'app_runtime',
+    logger: createLogger({ service: 'migrate', level: 'error' }),
+  })
+  expect(await expiry()).toBe(2 * 3600 + 15 * 60)
+})

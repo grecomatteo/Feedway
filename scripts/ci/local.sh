@@ -45,6 +45,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 step "integration"
+# The media tests need ffmpeg: CI runs the image's (scripts/ci/media-tools.sh), here the machine's.
 # The API tests build the web app when it is missing; build it once so parallel test files do not race.
 pnpm --filter @app/web exec nuxt build
 pnpm test:int

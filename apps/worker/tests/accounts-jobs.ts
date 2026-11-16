@@ -1,3 +1,4 @@
+import { mediaToolsFor } from './media-tools.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -73,6 +74,7 @@ export function handlerDeps(
     connectors: { meta_system_user: connector, meta_business_login: connector },
     connectionTokens: runtime.connectionTokens,
     images: createAvatarProcessor(),
+    media: mediaToolsFor(runtime),
   }
 }
 

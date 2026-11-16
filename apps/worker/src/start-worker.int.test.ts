@@ -1,3 +1,4 @@
+import { unusedMediaTools } from '../tests/media-tools.js'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -76,6 +77,7 @@ const services: WorkerDeps['services'] = {
     open: () => Promise.reject(new Error('not used')),
   },
   images: createAvatarProcessor(),
+  media: unusedMediaTools,
 }
 
 const logger = createLogger({ service: 'worker', level: 'error' })

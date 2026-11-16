@@ -34,3 +34,13 @@ export {
 export type { ImageFixture } from '../images/test-images.js'
 export { startTestGarage } from './test-garage.js'
 export type { TestGarage } from './test-garage.js'
+export {
+  displayP3Png,
+  firstPixel,
+  hlsBehindFtyp,
+  hlsPlaylist,
+  makeVideo,
+  pngBomb,
+  probeFile,
+} from '../media/test-media.js'
+export type { VideoFixture } from '../media/test-media.js'

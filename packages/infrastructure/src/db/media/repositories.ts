@@ -1,6 +1,13 @@
 import { and, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm'
-import type { MediaRecord, MediaRepository, MediaVariantRecord } from '@app/application'
-import type { MediaKind, MediaProgress, MediaStatus, VariantPurpose } from '@app/domain'
+import type { MediaFacts, MediaRecord, MediaRepository, MediaVariantRecord } from '@app/application'
+import type {
+  MediaChecks,
+  MediaFailure,
+  MediaKind,
+  MediaProgress,
+  MediaStatus,
+  VariantPurpose,
+} from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { libraryFolders, libraryItems, media, mediaVariants } from './schema.js'
 
@@ -24,6 +31,9 @@ const mediaColumns = {
   videoCodec: media.videoCodec,
   audioCodec: media.audioCodec,
   progress: media.progress,
+  failure: media.failure,
+  checks: media.checks,
+  processingAttempts: media.processingAttempts,
   storageKey: media.storageKey,
   deletedAt: media.deletedAt,
   createdAt: media.createdAt,
@@ -37,9 +47,11 @@ type MediaRow = {
   kind: string
   status: string
   progress: unknown
+  failure: unknown
+  checks: unknown
   tags: string[] | null
   libraryMediaId: string | null
-} & Omit<MediaRecord, 'kind' | 'status' | 'progress' | 'tags' | 'inLibrary'>
+} & Omit<MediaRecord, 'kind' | 'status' | 'progress' | 'failure' | 'checks' | 'tags' | 'inLibrary'>
 
 // the check constraints keep the values inside the lists
 function mediaOf(row: MediaRow): MediaRecord {
@@ -49,6 +61,8 @@ function mediaOf(row: MediaRow): MediaRecord {
     kind: row.kind as MediaKind,
     status: row.status as MediaStatus,
     progress: (row.progress ?? null) as MediaProgress | null,
+    failure: (row.failure ?? null) as MediaFailure | null,
+    checks: (row.checks ?? null) as MediaChecks | null,
     tags: row.tags ?? [],
     inLibrary: libraryMediaId !== null,
   }
@@ -66,7 +80,23 @@ const withLibrary = (db: DbExecutor) =>
       ),
     )
 
+const factsColumns = (facts: MediaFacts) => ({
+  analysis: facts.analysis,
+  width: facts.width,
+  height: facts.height,
+  durationMs: facts.durationMs,
+  fps: facts.fps,
+  videoCodec: facts.videoCodec,
+  audioCodec: facts.audioCodec,
+})
+
 export function drizzleMedia(db: DbExecutor): MediaRepository {
+  const stillProcessing = (organizationId: string, mediaId: string) =>
+    and(
+      eq(media.organizationId, organizationId),
+      eq(media.id, mediaId),
+      eq(media.status, 'processing'),
+    )
   return {
     async create(record) {
       const { folderId, ...row } = record
@@ -120,6 +150,106 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         )
         .orderBy(media.createdAt, media.id)
       return rows.map((r) => r.id)
+    },
+    async nextToProcess() {
+      // the agencies with a file waiting, the one served least recently first (never served:
+      // before any), then its oldest file; runs in the system scope, ids only
+      const result = await db.execute<{ organization_id: string; id: string }>(sql`
+        with waiting as (
+          select distinct organization_id from ${media} where status = 'processing'
+        ), turns as (
+          select w.organization_id,
+                 (select max(m.processing_started_at) from ${media} m
+                   where m.organization_id = w.organization_id) as served_at
+            from waiting w
+        )
+        select t.organization_id, f.id
+          from turns t
+          cross join lateral (
+            select m.id from ${media} m
+             where m.organization_id = t.organization_id and m.status = 'processing'
+             order by m.created_at, m.id
+             limit 1
+          ) f
+         order by t.served_at asc nulls first, t.organization_id
+         limit 1`)
+      const [row] = result.rows
+      return row ? { organizationId: row.organization_id, mediaId: row.id } : null
+    },
+    async claimProcessing(organizationId, mediaId, at) {
+      const claimed = await db
+        .update(media)
+        .set({
+          processingAttempts: sql`${media.processingAttempts} + 1`,
+          processingStartedAt: at,
+          progress: { step: 'analysis', percent: 0 },
+        })
+        .where(stillProcessing(organizationId, mediaId))
+        .returning({ id: media.id })
+      if (claimed.length === 0) return null
+      const [row] = await withLibrary(db).where(
+        and(eq(media.organizationId, organizationId), eq(media.id, mediaId)),
+      )
+      return row ? mediaOf(row) : null
+    },
+    async releaseAttempt(organizationId, mediaId) {
+      await db
+        .update(media)
+        .set({ processingAttempts: sql`greatest(${media.processingAttempts} - 1, 0)` })
+        .where(stillProcessing(organizationId, mediaId))
+    },
+    async saveVariant(organizationId, mediaId, variant) {
+      const { id, ...rest } = variant
+      await db
+        .insert(mediaVariants)
+        .values({ id, organizationId, mediaId, ...rest })
+        .onConflictDoUpdate({
+          target: [mediaVariants.organizationId, mediaVariants.mediaId, mediaVariants.purpose],
+          set: {
+            storageKey: rest.storageKey,
+            publicToken: rest.publicToken,
+            mime: rest.mime,
+            sizeBytes: rest.sizeBytes,
+            width: rest.width,
+            height: rest.height,
+          },
+        })
+    },
+    async dropVariants(organizationId, mediaId) {
+      const rows = await db
+        .delete(mediaVariants)
+        .where(
+          and(eq(mediaVariants.organizationId, organizationId), eq(mediaVariants.mediaId, mediaId)),
+        )
+        .returning({ key: mediaVariants.storageKey })
+      return rows.map((r) => r.key)
+    },
+    async markReady(organizationId, mediaId, ready) {
+      const rows = await db
+        .update(media)
+        .set({
+          ...factsColumns(ready),
+          status: 'ready',
+          checks: ready.checks,
+          progress: { step: 'ready', percent: 100 },
+          ...(ready.forgetOriginal && { storageKey: null }),
+        })
+        .where(stillProcessing(organizationId, mediaId))
+        .returning({ id: media.id })
+      return rows.length > 0
+    },
+    async markFailed(organizationId, mediaId, failed) {
+      const rows = await db
+        .update(media)
+        .set({
+          ...(failed.facts && factsColumns(failed.facts)),
+          status: 'failed',
+          failure: failed.failure,
+          progress: null,
+        })
+        .where(stillProcessing(organizationId, mediaId))
+        .returning({ id: media.id })
+      return rows.length > 0
     },
     async setProgress(organizationId, mediaId, progress) {
       const rows = await db

@@ -3,6 +3,7 @@ import type {
   AvatarProcessor,
   Clock,
   ConnectionTokens,
+  MediaProcessDeps,
   IdGenerator,
   JobQueue,
   JobPayloads,
@@ -44,10 +45,16 @@ export interface JobHandlerDeps {
   connectionTokens: ConnectionTokens
   /** sharp, for the pictures of the social accounts (plan 04 Task 4). */
   images: AvatarProcessor
+  /** ffmpeg, ffprobe and sharp for the files of the library, one at a time (plan 04 Task 10). */
+  media: Pick<
+    MediaProcessDeps,
+    'lock' | 'scratch' | 'probe' | 'transformer' | 'newPublicToken' | 'limits'
+  >
 }
 
 export type JobHandler<N extends QueueName> = (
-  job: { id: string; data: JobPayloads[N] },
+  /** `signal`: aborted when the job expires (ADR 021); absent in tests */
+  job: { id: string; data: JobPayloads[N]; signal?: AbortSignal },
   deps: JobHandlerDeps,
 ) => Promise<void>
 

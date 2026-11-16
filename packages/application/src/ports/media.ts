@@ -1,4 +1,7 @@
 import type {
+  FileAnalysis,
+  MediaChecks,
+  MediaFailure,
   MediaKind,
   MediaProgress,
   MediaStatus,
@@ -25,6 +28,12 @@ export interface MediaRecord {
   videoCodec: string | null
   audioCodec: string | null
   progress: MediaProgress | null
+  /** why the file is `failed`; null otherwise */
+  failure: MediaFailure | null
+  /** what the worker corrected and what it proposes, once `ready` */
+  checks: MediaChecks | null
+  /** how many times the worker picked the file (plan 04 Task 10) */
+  processingAttempts: number
   /** the original file; null once removed */
   storageKey: string | null
   deletedAt: Date | null
@@ -64,7 +73,39 @@ export interface NewMedia {
   storageKey: string | null
   /** what the bytes said, when they said it already (`{ kind: 'unknown' }`) */
   analysis: Record<string, unknown> | null
+  /** `failed` at once: why */
+  failure: MediaFailure | null
   folderId: string | null
+}
+
+/** A copy the worker made, as it is stored. */
+export interface NewMediaVariant {
+  id: string
+  purpose: VariantPurpose
+  storageKey: string
+  /** only the copy to publish has one (plan 04, Scelta 6); never the preview */
+  publicToken: string | null
+  mime: string
+  sizeBytes: number
+  width: number
+  height: number
+}
+
+/** What the analysis read, into the columns of the file (spec §13). */
+export interface MediaFacts {
+  analysis: FileAnalysis
+  width: number | null
+  height: number | null
+  durationMs: number | null
+  fps: number | null
+  videoCodec: string | null
+  audioCodec: string | null
+}
+
+/** The file the worker picks next: ids only, read across the agencies (ADR 021). */
+export interface MediaTurn {
+  organizationId: string
+  mediaId: string
 }
 
 export interface MediaRepository {
@@ -79,6 +120,40 @@ export interface MediaRepository {
   deletedWithFiles(organizationId: string): Promise<string[]>
   /** The files still `processing` not changed since `before`: their wake-up may be lost. */
   processingSince(organizationId: string, before: Date): Promise<string[]>
+  /**
+   * SYSTEM scope only: the next file `processing` of the installation, from the agency served
+   * least recently (the latest `processing_started_at` of its files), the oldest file first.
+   */
+  nextToProcess(): Promise<MediaTurn | null>
+  /**
+   * The worker takes a file still `processing`: one more attempt, and its start is the agency's
+   * turn. null: no such file any more.
+   */
+  claimProcessing(organizationId: string, mediaId: string, at: Date): Promise<MediaRecord | null>
+  /**
+   * Gives back the attempt of a claim that ended in a passing failure (thrown to be retried):
+   * only runs that never ended, a crash or the memory, count toward the cap.
+   */
+  releaseAttempt(organizationId: string, mediaId: string): Promise<void>
+  /** Writes or replaces the copy of that purpose. */
+  saveVariant(organizationId: string, mediaId: string, variant: NewMediaVariant): Promise<void>
+  /** Removes the copies' rows; returns their keys, for the storage. */
+  dropVariants(organizationId: string, mediaId: string): Promise<string[]>
+  /**
+   * A file still `processing` becomes `ready`, with what the analysis read; `forgetOriginal`
+   * clears its key (a photo's original goes). false: it is no longer `processing` (deleted).
+   */
+  markReady(
+    organizationId: string,
+    mediaId: string,
+    ready: MediaFacts & { checks: MediaChecks; forgetOriginal: boolean },
+  ): Promise<boolean>
+  /** A file still `processing` becomes `failed` with its reason. false: no longer `processing`. */
+  markFailed(
+    organizationId: string,
+    mediaId: string,
+    failed: { failure: MediaFailure; facts: MediaFacts | null },
+  ): Promise<boolean>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
   /** The files of a workspace not deleted, newest first; `before`: the files after this one. */

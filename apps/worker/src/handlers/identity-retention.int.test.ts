@@ -1,3 +1,4 @@
+import { unusedMediaTools } from '../../tests/media-tools.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -120,6 +121,7 @@ async function deliverNotices() {
       open: () => Promise.reject(new Error('not used')),
     },
     images: createAvatarProcessor(),
+    media: unusedMediaTools,
   }
   for (const data of notices.splice(0))
     await identityAnonymizationNotice({ id: randomUUID(), data }, handlerDeps)
