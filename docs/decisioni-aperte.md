@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 (tela Pencil da riallineare all'inizio della tappa 6). Prima, revisione della tappa 4 (16 novembre 2026): chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo, fatta nella stessa PR). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -18,6 +18,7 @@ Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 
 ### D-02 · Decodifica delle foto e delle HEIC dentro il processo del worker
 - **Origine:** tappa 4, Task 10, revisione di sicurezza.
 - **Il problema:** un file costruito ad arte può far superare il limite di memoria del contenitore. Il worker si riavvia; dopo 3 tentativi il file va in `processing_failed`.
+- **Legata alla revisione della tappa 4 (P2):** dalla 0.10.0 un riavvio pulito (aggiornamento, `restart`) non consuma tentativi e la conversione riparte appena il worker torna; un crash vero sì, ed è voluto, così un file che uccide il worker si ferma dopo 3 volte.
 - **Opzioni:** (a) decodifica in un processo figlio con limite di memoria; (b) lasciare così.
 - **Stato:** aperta.
 
@@ -64,6 +65,19 @@ Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 
 - **Opzioni:** (a) pezzi più piccoli, per esempio 8 MiB (cambia il protocollo dell'ADR 021, quindi serve una nuova ADR); (b) alzare il limite del server del pannello (Nitro non lo permette in modo pulito); (c) lasciare così, con l'avviso.
 - **Stato:** scelta provvisoria (c), da misurare nella prova sulla VPS (Task 14) con un invio su 4G debole.
 
+### D-29 · Video con un errore di decodifica
+- **Origine:** revisione finale della tappa 4 (P6).
+- **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
+- **Cosa fa ora il worker:** dopo un errore conta i fotogrammi: la copia d'anteprima deve averli tutti, come il file (contati senza decodificare). Un fotogramma oltre il limite di pixel rifiuta sempre il video, perché la copia da pubblicare prende i fotogrammi così come sono (revisione di sicurezza).
+- **Opzioni:** (a) tutti i fotogrammi, nessun margine; (b) un piccolo margine fisso (per esempio 2 fotogrammi), mai una percentuale; (c) un elenco di messaggi ammessi.
+- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14). Se un video vero viene rifiutato per pochi fotogrammi persi, (b).
+
+### D-30 · iPhone in modalità «Più compatibile»
+- **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
+- **Il problema:** con «Formati → Più compatibile» l'iPhone salva foto JPEG e video H.264, e quando li manda può convertire una HEIC in JPEG da sé. Quello che arriva a Feedway non è allora il file della fotocamera. Nella prova va scelto «Attuale» nel selettore di iOS, e il codec va controllato nel dettaglio del file.
+- **Opzioni:** (a) scriverlo nella guida per le agenzie; (b) non fare niente, perché Feedway converte comunque.
+- **Stato:** aperta, da guardare nella prova (Task 14).
+
 ## Host pubblico (`/m/*`)
 
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico
@@ -97,18 +111,28 @@ Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 
 - **Opzioni:** (a) un ETag dall'impronta del file; (b) lasciare così.
 - **Stato:** aperta.
 
-## Rilascio 0.10.0
+## Lavoro rimandato ad altre tappe
 
-### D-13 · `secrets/ts_public_authkey` prima dell'aggiornamento
-- **Origine:** tappa 4, Task 11.
-- **Il problema:** lo `update.sh` delle versioni precedenti rifiuta la 0.10.0 se manca `secrets/ts_public_authkey`.
-- **Cosa fare:** prima dell'aggiornamento sulla VPS, `(umask 077 && printf non-usata > secrets/ts_public_authkey)`. Va nelle note di rilascio e nella guida della prova.
-- **Stato:** decisa, da fare nel Task 14.
+### D-31 · Tela Pencil ferma al 10 novembre
+- **Origine:** revisione finale della tappa 4 (P8). La revisione UI è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`), ma Pencil non era disponibile in quella sessione.
+- **Il problema:** `design/feedway-ui.pen` non ha ancora Libreria, caricamento, dettaglio del file, temi colore e logo.
+- **Stato:** decisa, da fare all'inizio della tappa 6, dopo la revisione UI della tappa 4 (la tappa 6 ridisegna parte di queste schermate).
 
-### D-14 · Guida completa della prova della 0.10.0
-- **Origine:** richiesta di Matteo, 16 novembre.
-- **Cosa fare:** una guida passo passo con tutto quello che va fatto sulla VPS (D-13, policy e chiave di Tailscale, Funnel, aggiornamento, controlli) e ogni passo della prova.
-- **Stato:** decisa, da fare nel Task 14.
+### D-32 · I file di un'agenzia eliminata
+- **Origine:** revisione finale della tappa 4 (P13).
+- **Il problema:** l'eliminazione di un'agenzia non esiste ancora. Quando arriverà, dovrà cancellare anche `org/<id>/` dall'archivio dei file (libreria, logo, foto dei clienti) oltre alle righe del database.
+- **Stato:** decisa, da fare nella tappa che introduce l'eliminazione delle agenzie.
+
+### D-33 · Nessun backup dei file della libreria fino alla tappa 11
+- **Origine:** revisione finale della tappa 4 (P9), specifica §16.4.
+- **Il problema:** il backup di oggi copre il database, non i file. Finché la tappa 11 non c'è, la libreria non va usata come unica copia del materiale dei clienti. Scritto nel runbook dei media.
+- **Stato:** decisa, da fare nella tappa 11.
+
+### D-34 · Foto delle Pagine a 256 px e scaricamenti in modalità di prova
+- **Origine:** revisione finale della tappa 4 (P13).
+- **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
+- **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
+- **Stato:** da verificare nella prova (Task 14).
 
 ## Clienti e profili
 
@@ -149,11 +173,3 @@ Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 
 - **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
 - **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
 - **Stato:** aperta.
-
-## Design
-
-### D-27 · Tela Pencil ferma al 10 novembre
-- **Origine:** revisione finale della tappa 4 (P8) e revisione UI della tappa 4 (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`).
-- **Il problema:** `design/feedway-ui.pen` non ha Libreria, caricamenti, dettaglio del file, temi colore e logo nella barra. Pencil non era disponibile nella sessione della revisione.
-- **Opzioni:** (a) riallineare la tela all'inizio della tappa 6, quando editor e post ridisegnano parte di queste schermate; (b) riallinearla subito, sapendo che una parte va rifatta.
-- **Stato:** scelta provvisoria (a), come consigliato nella revisione finale.

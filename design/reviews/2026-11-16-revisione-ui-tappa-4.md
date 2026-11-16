@@ -5,7 +5,7 @@
 - Data: 16 novembre 2026. Revisione secondo `design/brief-feedway/06-PROMPT-REVISIONE.md`, chiesta dal punto P8 della revisione finale della tappa 4 (manca la revisione dei Task 6 e 12).
 - Schermate: Libreria (computer e telefono), cartelle, dettaglio del file, sposta, caricamenti e caricamenti rimasti a metà, Impostazioni → Colori, pagina d'errore (404 e 500).
 - Prove nel browser: build di produzione con `tools/meta-mock`, Playwright Chromium, 1280×720 e Pixel 7 (412 px), chiaro e scuro, temi Feedway e Blu, nome di cliente lungo («Panificio Forno Luce di Via Garibaldi e Figli»), nome di file e tag lunghi, file non riuscito, zoom 200 % simulato con la finestra a metà larghezza. Rivisti anche gli screenshot dei Task 12, 13 e 13b in `schermate/tappa-4-*`.
-- **Pencil non era disponibile** in questa sessione: nessuna osservazione sulla tela e nessun aggiornamento a `design/feedway-ui.pen` (D-27).
+- **Pencil non era disponibile** in questa sessione: nessuna osservazione sulla tela e nessun aggiornamento a `design/feedway-ui.pen` (D-31).
 
 ## Prove nel browser
 
@@ -30,11 +30,11 @@
 
 ## Verifiche non eseguite
 
-- Tela Pencil (strumento non disponibile): D-27.
+- Tela Pencil (strumento non disponibile): D-31.
 - Safari e iPhone veri: nella prova della 0.10.0.
 - Zoom vero del browser (simulato con la larghezza della finestra).
 
 ## Prossime azioni
 
-- Riallineare la tela all'inizio della tappa 6 (D-27).
+- Riallineare la tela all'inizio della tappa 6 (D-31).
 - Barra in basso: rivederla quando calendario ed editor sostituiscono le voci «Presto».
