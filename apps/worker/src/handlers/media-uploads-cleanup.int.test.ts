@@ -219,6 +219,9 @@ test('a file processing for too long wakes the worker again; a recent one does n
       (j.data as { organizationId: string }).organizationId === a.organizationId,
   )
   expect(woken.map((j) => (j.data as { mediaId: string }).mediaId)).toEqual([stale])
-  expect((woken[0]?.opts as { dedupeKey?: string }).dedupeKey).toMatch(/^cleanup:.+:/)
+  // once every ten minutes at most: the run is every ten minutes
+  expect((woken[0]?.opts as { dedupeKey?: string }).dedupeKey).toMatch(
+    /^cleanup:\d{4}-\d{2}-\d{2}T\d{2}:\d:/,
+  )
   expect(woken.map((j) => j.data)).not.toContainEqual(expect.objectContaining({ mediaId: recent }))
 })

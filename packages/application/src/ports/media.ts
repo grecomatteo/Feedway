@@ -165,7 +165,7 @@ export interface MediaRepository {
    * only runs that never ended, a crash or the memory, count toward the cap.
    */
   releaseAttempt(organizationId: string, mediaId: string): Promise<void>
-  /** Writes or replaces the copy of that purpose. */
+  /** Writes or replaces the copy of that purpose; a replaced copy takes the new id. */
   saveVariant(organizationId: string, mediaId: string, variant: NewMediaVariant): Promise<void>
   /** Removes the copies' rows; returns their keys, for the storage. */
   dropVariants(organizationId: string, mediaId: string): Promise<string[]>
@@ -178,11 +178,14 @@ export interface MediaRepository {
     mediaId: string,
     ready: MediaFacts & { checks: MediaChecks; forgetOriginal: boolean },
   ): Promise<boolean>
-  /** A file still `processing` becomes `failed` with its reason. false: no longer `processing`. */
+  /**
+   * A file still `processing` becomes `failed` with its reason; `forgetOriginal` clears its key
+   * (a final refusal). false: no longer `processing`.
+   */
   markFailed(
     organizationId: string,
     mediaId: string,
-    failed: { failure: MediaFailure; facts: MediaFacts | null },
+    failed: { failure: MediaFailure; facts: MediaFacts | null; forgetOriginal: boolean },
   ): Promise<boolean>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
