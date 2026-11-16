@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27, D-29, D-30 e le voci rimandate D-31…D-34; aggiornate D-02 e D-08; D-26 chiusa con la copia master. Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
