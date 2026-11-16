@@ -32,6 +32,9 @@ test('security headers are present', async () => {
   // images: only ours; the clients' pictures are Feedway's copies, never Meta's addresses
   expect(csp).toMatch(/img-src 'self' data: blob:(;|$)/)
   expect(csp).not.toMatch(/fbcdn|cdninstagram/)
+  // a video chosen for upload plays from the computer; the pieces' sha-256 is counted in a worker
+  expect(csp).toMatch(/media-src 'self' blob:(;|$)/)
+  expect(csp).toMatch(/worker-src 'self' blob:(;|$)/)
   expect(r.headers.get('x-content-type-options')).toBe('nosniff')
   expect(r.headers.get('referrer-policy')).toBe('same-origin')
   expect(r.headers.get('permissions-policy')).toContain('camera=()')

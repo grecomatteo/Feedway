@@ -24,6 +24,8 @@ export const UploadDto = z.object({
   mediaId: Id.nullable(),
 })
 
+export type UploadDto = z.infer<typeof UploadDto>
+
 const WorkspaceParams = z.strictObject({ org: OrgSlug, id: Id })
 const UploadParams = z.strictObject({ org: OrgSlug, id: Id, uploadId: Id })
 
@@ -52,9 +54,14 @@ export const startUploadRoute = defineContract({
 export const listUploadsRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/workspaces/{id}/uploads',
-  summary: 'I tuoi caricamenti rimasti a metà in questo spazio, da riprendere',
+  summary:
+    'I tuoi caricamenti rimasti a metà in questo spazio, da riprendere, e i limiti di peso dei file',
   request: { params: WorkspaceParams },
-  response: z.object({ items: z.array(UploadDto) }),
+  response: z.object({
+    items: z.array(UploadDto),
+    // the panel refuses a file over its kind's limit at once, without starting it
+    limits: z.object({ maxImageBytes: z.number().int(), maxVideoBytes: z.number().int() }),
+  }),
   auth: 'session',
   scope: 'organization',
 })

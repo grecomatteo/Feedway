@@ -31,6 +31,7 @@ watchEffect(() => {
 })
 
 const used = ref(0)
+const library = ref<{ chooseFiles: () => void } | null>(null)
 </script>
 
 <template>
@@ -42,9 +43,21 @@ const used = ref(0)
       <template v-else-if="status === 'success'" #summary>
         {{ $t('library.chooseClientText') }}
       </template>
+      <template v-if="client && client.archivedAt === null" #actions>
+        <UButton icon="i-lucide-upload" class="min-h-11" @click="library?.chooseFiles()">
+          {{ $t('upload.choose') }}
+        </UButton>
+      </template>
     </PageHeader>
 
-    <MediaLibrary v-if="client" :key="client.id" :workspace="client" @usage="used = $event" />
+    <MediaLibrary
+      v-if="client"
+      ref="library"
+      :key="client.id"
+      :workspace="client"
+      upload-in-header
+      @usage="used = $event"
+    />
     <ListSkeleton v-else-if="status !== 'success'" :label="$t('library.loading')" :rows="3" />
     <section v-else-if="usable.length > 0" aria-labelledby="choose-client">
       <h2 id="choose-client" class="mb-3 text-lg font-semibold">

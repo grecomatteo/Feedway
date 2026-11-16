@@ -64,6 +64,9 @@ export default defineNuxtConfig({
     // the panel is never indexed (spec §16.1), static files and error pages included; the
     // public host sets its own (server/public-host)
     '/**': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    // a Web Worker started by a page with COEP needs the same policy on its script, or Chrome
+    // refuses to run it (the sha-256 of the upload, plan 04 Task 13)
+    '/_nuxt/**': { headers: { 'cross-origin-embedder-policy': 'credentialless' } },
     // the pieces of an upload (plan 04 Task 9): up to 20 MiB each, read as a stream by their
     // route, which checks each piece's exact size; the margin only covers a declared length
     '/api/v1/orgs/*/workspaces/*/uploads/*/parts/*': {
@@ -87,6 +90,10 @@ export default defineNuxtConfig({
         'style-src': ["'self'", "'unsafe-inline'"],
         // nothing from Meta: the clients' pictures are Feedway's own copies (plan 04 Task 4)
         'img-src': ["'self'", 'data:', 'blob:'],
+        // a video chosen for upload plays from the computer before it is sent (spec §11.1, §15.3)
+        'media-src': ["'self'", 'blob:'],
+        // the sha-256 of the pieces is counted in a worker of ours (plan 04 Task 13)
+        'worker-src': ["'self'", 'blob:'],
         'connect-src': ["'self'"],
         'font-src': ["'self'"],
         'frame-ancestors': ["'none'"],

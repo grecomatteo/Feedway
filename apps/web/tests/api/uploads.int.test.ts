@@ -444,4 +444,10 @@ test('only photos and videos up to the video limit start; the name is shown clea
   expect(((await r.json()) as { name: string }).name).toBe('../../etc/passwd.mp4')
   // a folder that is not of this workspace
   expect((await post({ folderId: '0190aaaa-0000-7000-8000-000000000009' })).status).toBe(422)
+  // the panel reads the limits of each kind with the uploads to resume, to refuse at once
+  const listed = await env.call('GET', base(), undefined, { cookie: cookies.editor })
+  expect(((await listed.json()) as { limits: unknown }).limits).toEqual({
+    maxImageBytes: 50_000_000,
+    maxVideoBytes: 300_000_000,
+  })
 })
