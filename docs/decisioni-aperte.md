@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -83,8 +83,9 @@ Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novemb
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico
 - **Origine:** tappa 4, Task 11 (§15.3).
 - **Il problema:** ogni nome ben formato apre una transazione di sistema sul pool del web.
-- **Opzioni:** (a) limite per IP sull'ingresso pubblico; (b) cache in memoria dei token non trovati; (c) lasciare così finché non serve.
-- **Stato:** aperta.
+- **Fatto con la revisione della tappa 4 (P3):** al massimo 3 letture insieme dall'ingresso pubblico; oltre, la risposta è 503 con `Retry-After: 5`, che Meta riprova. Il pannello non resta più senza connessioni.
+- **Opzioni rimaste:** (a) limite per IP sull'ingresso pubblico (dietro Funnel l'IP del client non è affidabile, da verificare); (b) cache in memoria dei token non trovati; (c) lasciare così.
+- **Stato:** scelta provvisoria (c), da rivedere nella tappa 7, quando Meta scarica davvero.
 
 ### D-09 · File di agenzie sospese o di clienti archiviati
 - **Origine:** tappa 4, Task 11.

@@ -96,6 +96,9 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - Gli scopi serviti sono una lista ammessa: `ig_feed`, `fb_photo`, `reel`, `story`, `cover`.
 - `PUBLIC_PORT` è una variabile tecnica come `PORT`: il compose la fissa a 3001 e serve ai test, che aprono più server.
 
+### Copia master delle foto (aggiunto con la revisione della tappa 4)
+- Per ogni foto il worker tiene anche la variante `master`: JPEG sRGB, lato lungo fino a 4096 px (`MASTER_MAX_SIDE`), senza metadati. Non ha `public_token`, quindi l'host pubblico non la serve, e conta nello spazio usato come le altre copie. Decisione di Matteo del 16/11/2026 (D-26), aggiorna la Scelta 6 del piano 04.
+
 ### Risorse (§16.6)
 - Nel compose il worker ha 2 GB e 1,0 CPU, il web 0,5 CPU.
 - Il web resta a 1536 MB e si corregge la specifica, che diceva 768 MB. Il motivo viene dalla prova sulla VPS della v0.2.1, non da una misura nuova di questo task: con il web a 512 MiB, una foto profilo HEIC fino a 40 megapixel decodificata nel web faceva uccidere il processo (difetto 1 della prova v0.2.1). Con PR #117 il web è passato a 1536 MiB, con una foto alla volta e senza la cache di libvips. Foto profilo e logo restano elaborati nel web (piano 04, Regole), quindi il margine serve ancora. Il totale passa da circa 4 a circa 5 GB, sempre dentro i 12 GB della VPS.

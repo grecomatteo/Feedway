@@ -61,6 +61,19 @@ test('the exit code, stdout and the end of stderr come back', async () => {
   expect(run.stderr.trimEnd().endsWith('end')).toBe(true)
 })
 
+test('a pattern in stderr is seen even when later errors push it out of the tail', async () => {
+  const script = [
+    'process.stderr.write("max pi")',
+    'setTimeout(() => { process.stderr.write("xels!\\n" + "y".repeat(20000)) }, 50)',
+  ].join(';')
+  const run = await runTool(process.execPath, ['-e', script], {
+    timeoutMs: 10_000,
+    watchStderr: /max pixels!/,
+  })
+  expect(run.stderr).not.toContain('max pixels!')
+  expect(run.stderrMatched).toBe(true)
+})
+
 test('stdout lines reach the caller as they come', async () => {
   const lines: string[] = []
   await runTool(process.execPath, ['-e', 'console.log("a=1\\nb=2")'], {

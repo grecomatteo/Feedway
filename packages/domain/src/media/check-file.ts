@@ -70,6 +70,11 @@ export interface FileCheck {
 export const INSTAGRAM_PHOTO_MAX_BYTES = 8_000_000
 export const FACEBOOK_PHOTO_MAX_BYTES = 4_000_000
 export const PHOTO_MAX_WIDTH = 1440
+/**
+ * The long side of the photo kept for the editor (D-26, plan 04 Scelta 6): a 9:16 story cut
+ * from a landscape photo still has 1080 px or more.
+ */
+export const MASTER_MAX_SIDE = 4096
 const VIDEO_CODECS = ['h264', 'hevc']
 const AUDIO_CODECS = ['aac']
 const FPS_RANGE = { min: 23, max: 60, proposed: 30 }
