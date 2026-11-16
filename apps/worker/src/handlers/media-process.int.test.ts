@@ -359,6 +359,23 @@ test('a file blocked before decoding loses its original too', async () => {
   expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toEqual([])
 })
 
+test('a conversion over its time keeps the original: a slow server is not the file', async () => {
+  const a = await agency()
+  const id = await waiting(a, await imageFixture('photo.png'), 'png')
+  const real = tools()
+  const slow = {
+    ...real,
+    transformer: {
+      ...real.transformer,
+      photo: () => Promise.resolve({ ok: false as const, reason: 'timeout' as const }),
+    },
+  }
+  await wake(deps(slow), a, id)
+  expect(await row(id)).toMatchObject({ status: 'failed', failure: { code: 'timeout' } })
+  expect((await row(id))?.storage_key).not.toBeNull()
+  expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toHaveLength(1)
+})
+
 test('a copy made again gets a new id, so browsers and Meta do not keep the old one', async () => {
   const a = await agency()
   const id = await waiting(a, await video('hevc.mov'), 'mov')

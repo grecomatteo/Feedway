@@ -115,7 +115,7 @@ export async function processNextMedia(
         const next = await nextMediaTurn(deps.uow)
         if (next) await deps.queue.send('media.process', next, { dedupeKey: `after:${job.jobId}` })
       } catch (error) {
-        // the hourly clean-up wakes files left waiting
+        // the clean-up, every ten minutes, wakes files left waiting
         deps.logger.error({ err: error }, 'next media wake-up not queued')
       }
     })
@@ -428,8 +428,11 @@ async function removeKeys(deps: MediaProcessDeps, keys: readonly string[]) {
 /**
  * `failed` with its reason, never retried; its copies go (the preview too). `extra`: copies
  * stored without a row yet. The refusals are final, so the original goes as well, with its GPS
- * (§15.7): only `processing_failed`, where the fault may be ours, keeps it to try again one day.
+ * (§15.7). `processing_failed` and `timeout`, where the fault may be ours (a worker that keeps
+ * falling, a slow server), keep it to try again one day.
  */
+const KEEPS_ORIGINAL: ReadonlySet<MediaFailure['code']> = new Set(['processing_failed', 'timeout'])
+
 async function fail(
   deps: MediaProcessDeps,
   record: MediaRecord,
@@ -438,7 +441,7 @@ async function fail(
   extra: readonly string[] = [],
 ): Promise<'failed' | 'gone'> {
   const { organizationId } = record
-  const forgetOriginal = failure.code !== 'processing_failed'
+  const forgetOriginal = !KEEPS_ORIGINAL.has(failure.code)
   const dropped = await deps.uow.run({ organizationId, userId: null }, async (tx) => {
     if (!(await tx.media.markFailed(organizationId, record.id, { failure, facts, forgetOriginal })))
       return null
