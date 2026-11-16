@@ -115,12 +115,29 @@ export async function processNextMedia(
         const next = await nextMediaTurn(deps.uow)
         if (next) await deps.queue.send('media.process', next, { dedupeKey: `after:${job.jobId}` })
       } catch (error) {
-        // the hourly clean-up wakes files left waiting
+        // the clean-up, every ten minutes, wakes files left waiting
         deps.logger.error({ err: error }, 'next media wake-up not queued')
       }
     })
   if (!held.acquired) return { outcome: 'busy' }
   return held.value
+}
+
+/**
+ * At the worker's start: the lock died with the worker before, so the file it left `processing`
+ * (or the next at its turn) goes on at once instead of waiting for the clean-up. A file the
+ * worker stopped on keeps its attempt: three of them and it fails (D-02).
+ */
+export async function wakeMediaProcessing(
+  deps: Pick<MediaProcessDeps, 'uow' | 'queue' | 'logger'>,
+): Promise<void> {
+  try {
+    const next = await nextMediaTurn(deps.uow)
+    if (next) await deps.queue.send('media.process', next)
+  } catch (error) {
+    // the clean-up wakes files left waiting
+    deps.logger.error({ err: error }, 'media wake-up at start not queued')
+  }
 }
 
 class FileGone extends Error {}
@@ -410,8 +427,12 @@ async function removeKeys(deps: MediaProcessDeps, keys: readonly string[]) {
 
 /**
  * `failed` with its reason, never retried; its copies go (the preview too). `extra`: copies
- * stored without a row yet.
+ * stored without a row yet. The refusals are final, so the original goes as well, with its GPS
+ * (§15.7). `processing_failed` and `timeout`, where the fault may be ours (a worker that keeps
+ * falling, a slow server), keep it to try again one day.
  */
+const KEEPS_ORIGINAL: ReadonlySet<MediaFailure['code']> = new Set(['processing_failed', 'timeout'])
+
 async function fail(
   deps: MediaProcessDeps,
   record: MediaRecord,
@@ -420,11 +441,16 @@ async function fail(
   extra: readonly string[] = [],
 ): Promise<'failed' | 'gone'> {
   const { organizationId } = record
+  const forgetOriginal = !KEEPS_ORIGINAL.has(failure.code)
   const dropped = await deps.uow.run({ organizationId, userId: null }, async (tx) => {
-    if (!(await tx.media.markFailed(organizationId, record.id, { failure, facts }))) return null
+    if (!(await tx.media.markFailed(organizationId, record.id, { failure, facts, forgetOriginal })))
+      return null
     return tx.media.dropVariants(organizationId, record.id)
   })
-  await removeKeys(deps, [...new Set([...(dropped ?? []), ...extra])])
+  const original = forgetOriginal && dropped !== null ? record.storageKey : null
+  await removeKeys(deps, [
+    ...new Set([...(dropped ?? []), ...extra, ...(original ? [original] : [])]),
+  ])
   deps.logger.info({ mediaId: record.id, failure }, 'media failed')
   return dropped === null ? 'gone' : 'failed'
 }

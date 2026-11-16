@@ -213,7 +213,78 @@ test('the worker that consumes the accounts run schedules it every day at 04:00 
   await w.stop()
 })
 
-test('the worker that consumes the uploads clean-up schedules it every hour', async () => {
+test('the worker that consumes the media conversions wakes them at once when it starts', async () => {
+  const sent: { name: string; data: unknown }[] = []
+  const turn = {
+    organizationId: '00000000-0000-7000-8000-000000000001',
+    mediaId: '00000000-0000-7000-8000-000000000002',
+  }
+  const w = await startWorker({
+    queue: {
+      ...fakeQueue().queue,
+      send(name, data) {
+        sent.push({ name, data })
+        return Promise.resolve('j')
+      },
+    },
+    logger: silentLogger,
+    // a file left `processing` by the worker that stopped: the next at its turn
+    services: {
+      ...services,
+      uow: { ...services.uow, runAsSystem: () => Promise.resolve(turn) as never },
+    },
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['media.process'],
+  })
+  expect(sent).toEqual([{ name: 'media.process', data: turn }])
+  await w.stop()
+})
+
+test('stopping interrupts a running conversion first, so it gives its attempt back in time', async () => {
+  let registered: ((job: { id: string; data: unknown }) => Promise<void>) | undefined
+  const q = fakeQueue()
+  let seen: AbortSignal | undefined
+  let running: Promise<void> = Promise.resolve()
+  const w = await startWorker({
+    queue: {
+      ...q.queue,
+      work(_name, handler) {
+        registered = handler as typeof registered
+        return Promise.resolve()
+      },
+      stop(opts) {
+        // the conversion was told before the queue waits for it
+        expect(seen?.aborted).toBe(true)
+        return q.queue.stop(opts)
+      },
+    },
+    logger: silentLogger,
+    services: {
+      ...services,
+      uow: { ...services.uow, runAsSystem: () => Promise.resolve(null) as never },
+    },
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['media.process'],
+    handlers: {
+      'media.process': (job) => {
+        seen = job.signal
+        return new Promise<void>((resolve) => {
+          job.signal?.addEventListener('abort', () => {
+            resolve()
+          })
+        })
+      },
+    },
+  })
+  running = registered?.({ id: 'j1', data: {} }) ?? running
+  await w.stop()
+  await running
+  expect(q.stops).toEqual([{ graceful: true, timeoutMs: 30_000 }])
+})
+
+test('the worker that consumes the uploads clean-up schedules it every ten minutes', async () => {
   const q = fakeQueue()
   const w = await startWorker({
     queue: q.queue,
@@ -224,7 +295,7 @@ test('the worker that consumes the uploads clean-up schedules it every hour', as
     queues: ['media.uploads_cleanup'],
   })
   expect(q.schedules).toEqual([
-    { name: 'media.uploads_cleanup', cron: '17 * * * *', tz: 'Europe/Rome' },
+    { name: 'media.uploads_cleanup', cron: '7-59/10 * * * *', tz: 'Europe/Rome' },
   ])
   await w.stop()
 })

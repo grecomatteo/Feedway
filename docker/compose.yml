@@ -117,6 +117,9 @@ services:
     <<: *hardened
     image: *image
     command: [worker]
+    # the worker waits up to 30 s for its jobs (STOP_TIMEOUT_MS); Docker's default 10 s would
+    # kill a conversion before it gives its attempt back (revisione tappa 4, P2)
+    stop_grace_period: 45s
     environment:
       <<: *app-env
       WORKER_QUEUES: ${WORKER_QUEUES:-all}

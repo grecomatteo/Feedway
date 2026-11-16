@@ -4,7 +4,7 @@ import type { Logger } from '../ports/logger.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { UploadParts } from '../ports/uploads.js'
 
-// `media.uploads_cleanup` (plan 04 Task 9), every hour: the system job of the media module. The
+// `media.uploads_cleanup` (plan 04 Task 9), every ten minutes: the system job of the media module. The
 // system scope only lists the agencies; each agency's clean-up runs in its own scope, so a
 // mistake here cannot touch another agency's rows.
 
@@ -53,6 +53,8 @@ export async function runMediaUploadsCleanup(
 ): Promise<UploadsCleanupReport> {
   const now = deps.clock.now()
   const hour = now.toISOString().slice(0, 13)
+  // the run is every ten minutes: `2026-11-16T19:2`
+  const tenMinutes = now.toISOString().slice(0, 15)
   // suspended agencies too: their expired uploads hold space, their deleted files bytes
   const organizations = await deps.uow.runAsSystem('media.uploads_cleanup: agencies', (tx) =>
     tx.organizations.listAll(),
@@ -99,7 +101,7 @@ export async function runMediaUploadsCleanup(
         const id = await deps.queue.send(
           'media.process',
           { organizationId, mediaId },
-          { dedupeKey: `cleanup:${hour}:${mediaId}` },
+          { dedupeKey: `cleanup:${tenMinutes}:${mediaId}` },
         )
         if (id !== null) report.woken += 1
       }
