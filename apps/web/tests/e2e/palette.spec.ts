@@ -2,7 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { contrastRatio, palettes } from '@app/ui'
 import type { PaletteId } from '@app/ui'
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { adminQuery, newMember, signIn } from './support/people.ts'
+import { openUserMenu } from './support/menu.ts'
+import { adminQuery, newMember, signIn, signInFromPage } from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -114,7 +115,7 @@ test('a palette chosen in Impostazioni applies at once, comes back on reload, an
   await expect.poll(saved).toBe('blu')
 })
 
-for (const id of ['blu', 'viola', 'grafite'] as const satisfies readonly PaletteId[]) {
+for (const id of ['blu', 'verde', 'viola', 'grafite'] as const satisfies readonly PaletteId[]) {
   test(`${id}: the pages pass axe and the primary button keeps its contrast on hover`, async ({
     page,
   }) => {
@@ -153,4 +154,41 @@ test('Feedway: the orange button keeps its contrast on hover, in light and dark'
     .getByRole('region', { name: 'Preferenze' })
     .getByRole('button', { name: 'Salva' })
   await keepsContrastWhenPointed(page, save, '#FF8F52')
+})
+
+test('quick choices end on the last one, and the next person in the same browser gets their own', async ({
+  page,
+}) => {
+  const person = await newMember('Paola Palette')
+  const next = await newMember('Nino Nuovo')
+  await signIn(page.request, person)
+  await page.goto('/account')
+  const feedway = page
+    .getByRole('group', { name: 'Colori' })
+    .getByRole('radio', { name: /Feedway/ })
+  await feedway.focus()
+  // one after the other, without waiting: the saves go in order and the last one stays
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'viola')
+  await expect(page.getByRole('group', { name: 'Colori' }).getByRole('status')).toHaveText(
+    'Colori salvati',
+  )
+  const saved = async () =>
+    (
+      await adminQuery<{ palette: string }>('select palette from users where id = $1', [
+        person.userId,
+      ])
+    )[0]?.palette
+  expect(await saved()).toBe('viola')
+
+  // «Esci» from the menu, then someone else signs in without reloading the panel
+  const menu = await openUserMenu(page, 'Paola Palette')
+  await menu.getByRole('menuitem', { name: 'Esci' }).click()
+  await expect(page).toHaveURL(/\/accedi/)
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette')
+  await signInFromPage(page, next)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette')
 })

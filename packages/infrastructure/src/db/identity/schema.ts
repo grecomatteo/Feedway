@@ -2,6 +2,7 @@
 // usePlural) adapted to our conventions, plus our personal data. The object keys are the model
 // names the Drizzle adapter looks up with `usePlural: true`. No organization_id and no RLS here:
 // these rows belong to a person, not to an agency.
+import { PALETTES } from '@app/domain'
 import { sql } from 'drizzle-orm'
 import {
   bigint,
@@ -68,7 +69,7 @@ export const users = pgTable(
     check('users_platform_role', inList('platform_role', ['admin'])),
     check('users_status', inList('status', ['active', 'disabled'])),
     check('users_theme', inList('theme', ['light', 'dark', 'system'])),
-    check('users_palette', inList('palette', ['feedway', 'blu', 'verde', 'viola', 'grafite'])),
+    check('users_palette', inList('palette', PALETTES)),
   ],
 )
 

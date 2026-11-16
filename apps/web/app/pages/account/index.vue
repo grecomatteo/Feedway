@@ -235,7 +235,7 @@ async function changeEmail() {
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <h2 id="account-preferences" class="text-lg">{{ $t('account.preferences.title') }}</h2>
-        <PalettePicker @saved="(value) => (me = value)" />
+        <PalettePicker />
         <form class="space-y-4" novalidate @submit.prevent="savePreferences">
           <UFormField :label="$t('theme.label')" name="theme">
             <URadioGroup

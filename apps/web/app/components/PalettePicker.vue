@@ -7,34 +7,44 @@ import type { Theme } from '@app/ui'
  * The colour palettes, each previewed by day and by night. A choice applies at once and is saved
  * in the profile, so it follows the person on every device.
  */
-const emit = defineEmits<{ saved: [me: Me] }>()
-
 const { t } = useI18n()
 const { call } = useApi()
 const palette = usePalette()
 const session = useSession()
 
 const result = ref<'saved' | 'failed' | null>(null)
-/** Each choice counts: only the answer to the latest one is kept. */
-let saves = 0
+/** What the server holds: a failed save comes back to it. */
+let confirmed: Palette = palette.value
+/** One save at a time, in order: while one is out, only the latest choice waits for its turn. */
+let sending = false
+let waiting: Palette | null = null
 
 async function choose(next: Palette) {
-  if (next === palette.value) return
-  const previous = palette.value
-  const mine = ++saves
   palette.value = next
   result.value = null
-  try {
-    const me = await call<Me>('PATCH', '/api/v1/me', { palette: next })
-    if (mine !== saves) return
-    if (session.view.value.state === 'active') session.view.value = { state: 'active', me }
-    result.value = 'saved'
-    emit('saved', me)
-  } catch {
-    if (mine !== saves) return
-    palette.value = previous
-    result.value = 'failed'
+  waiting = next
+  if (sending) return
+  sending = true
+  while (waiting !== null) {
+    const value: Palette = waiting
+    waiting = null
+    if (value === confirmed) {
+      if (waiting === null) result.value = 'saved'
+      continue
+    }
+    try {
+      const me = await call<Me>('PATCH', '/api/v1/me', { palette: value })
+      confirmed = me.palette
+      if (session.view.value.state === 'active') session.view.value = { state: 'active', me }
+      if (waiting === null) result.value = 'saved'
+    } catch {
+      if (waiting === null) {
+        palette.value = confirmed
+        result.value = 'failed'
+      }
+    }
   }
+  sending = false
 }
 
 // the swatches of a preview: the palette's own colours, whatever palette the page is in now
@@ -108,7 +118,8 @@ const previews = computed(() =>
         </span>
       </label>
     </div>
-    <p role="status" class="text-sm text-(--app-success) empty:hidden">
+    <!-- always there, so screen readers hear what appears in it -->
+    <p role="status" class="min-h-5 text-sm text-(--app-success)">
       <template v-if="result === 'saved'">{{ $t('palette.saved') }}</template>
     </p>
     <p v-if="result === 'failed'" role="alert" class="text-sm text-(--app-danger)">
