@@ -86,10 +86,17 @@ test('one completion at a time, and its upload keeps its space until it ends', a
   const later = new Date(at.getTime() + 10 * 60 * 1000)
   expect((await reserved(wsB, later)).workspace).toBe(57)
   // given back, another call may complete it at once
-  await uow.run({ organizationId: org, userId: user }, (tx) =>
-    tx.uploads.releaseCompletion(org, id),
-  )
+  const release = (hold: Date) =>
+    uow.run({ organizationId: org, userId: user }, (tx) =>
+      tx.uploads.releaseCompletion(org, id, hold),
+    )
+  await release(until)
   expect(await claim(at, until)).toBe(true)
+  // a call whose hold ran out gives back nothing: the hold is another call's now
+  const taken = new Date(until.getTime() + HOUR)
+  await release(taken)
+  await release(new Date(at.getTime() + 1))
+  expect(await claim(at, until)).toBe(false)
   // a hold that ran out can be taken again
   const long = await open(wsB, 1, 24 * HOUR)
   const minute = 60 * 1000

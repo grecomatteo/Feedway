@@ -51,8 +51,11 @@ export interface UploadSessionsRepository {
     now: Date,
     until: Date,
   ): Promise<boolean>
-  /** Gives the completion back after a failure: the next call may try again at once. */
-  releaseCompletion(organizationId: string, uploadId: string): Promise<void>
+  /**
+   * Gives the completion back after a failure, if it is still the one held `until`: the next
+   * call may try again at once, and a hold taken by another call stays.
+   */
+  releaseCompletion(organizationId: string, uploadId: string, until: Date): Promise<void>
   delete(organizationId: string, uploadId: string): Promise<void>
   /**
    * The space the uploads neither completed nor expired keep for their files: in the agency and

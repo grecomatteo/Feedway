@@ -217,7 +217,9 @@
     "INTERNAL": "Si è verificato un errore. Riprova; se continua, comunica questo codice."
   },
   "errorReasons": {
-    "use_existing_factor": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella."
+    "use_existing_factor": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella.",
+    "upload_completing": "Il file si sta già completando: riprova tra poco",
+    "upload_parts_missing": "Mancano dei pezzi del file"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -1511,8 +1513,10 @@
       "type": "Non caricato: si caricano solo foto (JPEG, PNG, WEBP, HEIC) e video (MP4, MOV).",
       "empty": "Non caricato: il file è vuoto.",
       "sizeImage": "Non caricato: pesa {size}, le foto al massimo {limit}.",
-      "sizeVideo": "Non caricato: pesa {size}, i video al massimo {limit}."
+      "sizeVideo": "Non caricato: pesa {size}, i video al massimo {limit}.",
+      "insecure": "Non caricato: il caricamento funziona solo con una connessione sicura. Apri il pannello dal suo indirizzo https://."
     },
+    "tooSlow": "La rete è troppo lenta per questo file: continuo a provare. Se puoi, passa a una rete più veloce.",
     "expired": "Il caricamento è scaduto. «Riprova» lo ricomincia da capo.",
     "notSame": "Non è il file rimasto a metà: scegli «{name}».",
     "chooseAgainNeeded": "Mancano dei pezzi: scegli di nuovo il file per finire.",

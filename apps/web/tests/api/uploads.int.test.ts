@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, readdirSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { createLocalDiskStorage } from '@app/infrastructure'
@@ -78,6 +79,62 @@ const put = (
     cookie: opts.cookie ?? cookies.editor,
     headers: { 'content-digest': opts.digest ?? digestOf(bytes) },
   })
+
+/**
+ * A piece the server refuses before reading it all. The server answers and closes while bytes
+ * are still on their way, so writing may fail (EPIPE, ECONNRESET) after the answer: only the
+ * answer counts. Sending stops as soon as it comes; a write that fails before it is tried again.
+ */
+async function refusedPut(
+  upload: Upload,
+  chunks: () => Iterable<Uint8Array>,
+  headers: Record<string, string>,
+): Promise<{ status: number; written: number }> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        // set by the events: a plain `let` would read as always false here
+        const sent = { answered: false, written: 0 }
+        const req = httpRequest(env.web.url(`${base()}/${upload.id}/parts/1`), {
+          method: 'PUT',
+          headers: {
+            origin: 'https://pannello.example.ts.net',
+            'x-app-request': '1',
+            'x-forwarded-for': '10.99.0.1',
+            'content-type': 'application/octet-stream',
+            cookie: cookies.editor,
+            ...headers,
+          },
+        })
+        req.on('response', (res) => {
+          sent.answered = true
+          res.resume()
+          resolve({ status: res.statusCode ?? 0, written: sent.written })
+          req.destroy()
+        })
+        req.on('error', (error) => {
+          if (!sent.answered) reject(error)
+        })
+        req.flushHeaders()
+        void (async () => {
+          for (const chunk of chunks()) {
+            if (sent.answered || req.destroyed) return
+            sent.written += 1
+            if (!req.write(chunk))
+              await new Promise<void>((r) => {
+                req.once('drain', r)
+                req.once('close', r)
+              })
+          }
+          if (!sent.answered && !req.destroyed) req.end()
+        })()
+      })
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (attempt >= 3 || (code !== 'EPIPE' && code !== 'ECONNRESET')) throw error
+    }
+  }
+}
 
 const complete = (upload: Upload, cookie = cookies.editor) =>
   env.call('POST', `${base()}/${upload.id}/complete`, undefined, { cookie })
@@ -248,36 +305,31 @@ test('a piece refused before its route (no session) closes the connection', asyn
 test('a piece larger than declared is refused without reading it all', async () => {
   const file = mp4Like(1000)
   const upload = await start(file)
+  const once = (bytes: Uint8Array) => () => [bytes]
   // a declared length over the piece: refused before any byte is read
-  const declared = await put(upload, 1, Buffer.concat([file, Buffer.alloc(1)]))
+  const longer = Buffer.concat([file, Buffer.alloc(1)])
+  const declared = await refusedPut(upload, once(longer), {
+    'content-length': String(longer.length),
+    'content-digest': digestOf(longer),
+  })
   expect(declared.status).toBe(413)
   // over the 20 MiB of any piece
-  const huge = await put(upload, 1, Buffer.alloc(PART + 1))
+  const big = Buffer.alloc(PART + 1)
+  const huge = await refusedPut(upload, once(big), {
+    'content-length': String(big.length),
+    'content-digest': digestOf(big),
+  })
   expect(huge.status).toBe(413)
   // in chunks, with no length: the server stops reading past the piece's size
-  let sent = 0
-  const endless = new ReadableStream<Uint8Array>({
-    pull(controller) {
-      sent += 1
-      if (sent > 10_000) controller.close()
-      else controller.enqueue(new Uint8Array(64 * 1024))
-    },
+  const endless = function* () {
+    for (let i = 0; i < 10_000; i++) yield new Uint8Array(64 * 1024)
+  }
+  const r = await refusedPut(upload, endless, {
+    'transfer-encoding': 'chunked',
+    'content-digest': digestOf(file),
   })
-  const r = await fetch(env.web.url(`${base()}/${upload.id}/parts/1`), {
-    method: 'PUT',
-    headers: {
-      origin: 'https://pannello.example.ts.net',
-      'x-app-request': '1',
-      'x-forwarded-for': '10.99.0.1',
-      'content-type': 'application/octet-stream',
-      'content-digest': digestOf(file),
-      cookie: cookies.editor,
-    },
-    body: endless,
-    duplex: 'half',
-  } as RequestInit)
   expect(r.status).toBe(413)
-  expect(sent).toBeLessThan(10_000)
+  expect(r.written).toBeLessThan(10_000)
   expect(piecesOnDisk(upload)).toEqual([])
   expect((await state(upload)).body.received).toEqual([])
 })
@@ -344,13 +396,69 @@ test('complete twice gives one file; a call while it is being made waits its tur
   )
   const busy = await complete(other)
   expect(busy.status).toBe(409)
-  expect(await errorCodeOf(busy)).toBe('CONFLICT')
+  // the panel waits for this conflict, and only for it and for the missing pieces
+  expect(((await busy.json()) as { error: { code: string; reason?: string } }).error).toMatchObject(
+    { code: 'CONFLICT', reason: 'upload_completing' },
+  )
   expect((await state(other)).body.mediaId).toBeNull()
   await env.admin.pool.query(
     `update upload_sessions set completing_until = now() - interval '1 second' where id = $1`,
     [other.id],
   )
   expect((await complete(other)).status).toBe(200)
+})
+
+test('a client archived while a piece arrives: the piece is not kept, and complete stops at once', async () => {
+  const ws = await seed(env.tdb.runtimeUrl, async (s) => {
+    const w = await s.workspace(org.id)
+    await s.workspaceMember(org.id, w, editor.userId, 'editor')
+    return w
+  })
+  const file = mp4Like(4000)
+  const upload = await start(file, { ws })
+  let archived: () => void = () => undefined
+  const archivedNow = new Promise<void>((resolve) => {
+    archived = resolve
+  })
+  let half = false
+  const slow = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (!half) {
+        half = true
+        controller.enqueue(file.subarray(0, 2000))
+        return
+      }
+      await archivedNow
+      controller.enqueue(file.subarray(2000))
+      controller.close()
+    },
+  })
+  const sent = fetch(env.web.url(`${base(org.slug, ws)}/${upload.id}/parts/1`), {
+    method: 'PUT',
+    headers: {
+      origin: 'https://pannello.example.ts.net',
+      'x-app-request': '1',
+      'x-forwarded-for': '10.99.0.1',
+      'content-type': 'application/octet-stream',
+      'content-digest': digestOf(file),
+      cookie: cookies.editor,
+    },
+    body: slow,
+    duplex: 'half',
+  } as RequestInit)
+  // the first bytes are on their way: the access was checked already
+  await new Promise((r) => setTimeout(r, 300))
+  await env.admin.pool.query('update workspaces set archived_at = now() where id = $1', [ws])
+  archived()
+  const r = await sent
+  expect(r.status).toBe(409)
+  const at = `${base(org.slug, ws)}/${upload.id}`
+  const now = await env.call('GET', at, undefined, { cookie: cookies.editor })
+  expect(((await now.json()) as Upload).received).toEqual([])
+  const done = await env.call('POST', `${at}/complete`, undefined, { cookie: cookies.editor })
+  expect(done.status).toBe(409)
+  // no reason: a conflict the panel does not wait for
+  expect(((await done.json()) as { error: { reason?: string } }).error.reason).toBeUndefined()
 })
 
 test("two uploads at once cannot take more than the agency's space together", async () => {
