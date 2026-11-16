@@ -4,6 +4,7 @@ import { pipeline } from 'node:stream/promises'
 import { readPublicMediaFile } from '@app/application'
 import type { MediaFile } from '@app/application'
 import { parseByteRange } from '../utils/byte-range'
+import { pathForLog } from '../utils/log-path'
 import type { Deps } from '../utils/deps'
 
 /**
@@ -102,7 +103,7 @@ export function publicHostListener(deps: Deps) {
     const path = (req.url ?? '/').split('?')[0] ?? '/'
     const media = MEDIA_PATH.exec(path)
     // never the token in the log: whoever reads the log could fetch the file
-    const logged = media ? '/m/…' : path.slice(0, 200)
+    const logged = pathForLog(req.url ?? '/')
     res.once('close', () => {
       deps.logger.info(
         {

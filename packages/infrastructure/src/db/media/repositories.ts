@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, ne, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm'
 import type {
   MediaFacts,
   MediaRecord,
@@ -316,8 +316,9 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           and(
             eq(mediaVariants.publicToken, token),
             eq(media.status, 'ready'),
-            // the panel's own copies, never public even if one had a token (§11.1 point 7)
-            notInArray(mediaVariants.purpose, ['preview', 'thumbnail']),
+            // only the copies made to be published: never the panel's own (`preview`,
+            // `thumbnail`, §11.1 point 7), nor a purpose added later, even with a token
+            inArray(mediaVariants.purpose, ['ig_feed', 'fb_photo', 'reel', 'story', 'cover']),
           ),
         )
         .limit(1)

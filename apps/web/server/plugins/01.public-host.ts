@@ -15,7 +15,16 @@ export default defineNitroPlugin((nitroApp) => {
       const deps = useDeps()
       const { publicUrl, publicPort } = deps.config
       if (publicUrl === null) return
-      server = createServer(publicHostListener(deps))
+      server = createServer(
+        // internet reaches this port: a client that stops reading or sending lets go of its
+        // socket, and of the file it holds open, after a minute
+        { headersTimeout: 20_000, requestTimeout: 30_000 },
+        publicHostListener(deps),
+      )
+      server.setTimeout(60_000, (socket) => {
+        socket.destroy()
+      })
+      server.maxConnections = 200
       server.once('error', (error: NodeJS.ErrnoException) => {
         // the container restarts; the cause is in the log
         console.error('public host failed to start', error.code ?? error.message)

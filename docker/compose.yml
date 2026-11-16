@@ -106,7 +106,7 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
-    networks: [internal, edge]
+    networks: [internal, edge, public]
     # spec §16.6: above the spec's 768 MB because the profile photo and the logo (HEIC up to
     # 40 MP) are decoded here (#117, ADR 021)
     mem_limit: 1536m
@@ -157,9 +157,10 @@ services:
     mem_limit: 256m
 
   # The public host (spec §16.1, ADR 005): a second node with its own name, which Tailscale
-  # Funnel opens to internet only for /m/ and /share/, towards the web's public entry (port
-  # 3001). It never reaches the panel's port. Off unless COMPOSE_PROFILES has `public`
-  # (install.sh asks).
+  # Funnel opens to internet only for /m/, /share/ and /robots.txt, towards the web's public
+  # entry (port 3001, docker/tailscale-public/serve.json). It shares only the `public` network
+  # with the web, never `edge`; the web's panel port still listens there, so serve.json is what
+  # keeps the panel out. Off unless COMPOSE_PROFILES has `public` (install.sh asks).
   tailscale-public:
     image: tailscale/tailscale@sha256:b11583ad2e93e4671128538c88cf11f460444a5d7e449311dd1933a400ab849d
     profiles: [public]
@@ -174,7 +175,7 @@ services:
     volumes:
       - tailscale-public-state:/var/lib/tailscale
       - ./docker/tailscale-public:/config:ro
-    networks: [edge]
+    networks: [public]
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -185,6 +186,8 @@ networks:
     internal: true
   edge: {}
   egress: {}
+  # the public host's node and the web only (plan 04 Task 11)
+  public: {}
 
 volumes:
   pgdata: {}

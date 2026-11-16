@@ -45,7 +45,7 @@ setup() {
   STUB_RULESET_ID=42 run "$repo_root/scripts/github/apply-rulesets.sh" grecomatteo/Feedway
   [ "$status" -eq 0 ]
   grep -q 'api --method PUT repos/grecomatteo/Feedway/rulesets/42' "$STUB_LOG"
-  ! grep -q -- '--method POST' "$STUB_LOG"
+  ! grep -q -- '--method POST' "$STUB_LOG" || false
 }
 
 @test "apply needs the repository name" {

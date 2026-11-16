@@ -4,7 +4,8 @@ import type { Storage } from '../ports/storage.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { readPublicMediaFile } from './public-file.js'
 
-const TOKEN = 'AbCdEfGhIjKlMnOpQrStUvWxYz012-_9'
+// low entropy on purpose: a made-up token, not a secret for the leak scanner
+const TOKEN = `${'a'.repeat(16)}${'B'.repeat(15)}-`
 
 const photo: PublicVariantRecord = {
   id: '019a8c2e-1d4f-7a3b-9c5d-2e6f8a1b3c4d',

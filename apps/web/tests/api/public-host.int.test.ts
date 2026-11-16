@@ -329,6 +329,19 @@ describe('what the public entry never serves', () => {
   })
 })
 
+test('no token reaches the log, from either entry, however the path is written', async () => {
+  const copy = photoCopy()
+  await file([copy])
+  const token = String(copy.token)
+  for (const path of [`/m/${token}.jpg`, `/m/${token}.jpg/`, `/M/${token}.jpg`, `/share/${token}`])
+    await pub(path)
+  await env.call('GET', `/m/${token}.jpg`, undefined, { cookie })
+  // the log line of a request is written when its answer closes
+  await new Promise((r) => setTimeout(r, 200))
+  expect(env.web.output()).toContain('"entry":"public"')
+  expect(env.web.output()).not.toContain(token)
+})
+
 describe('the panel entry', () => {
   test('/m/ and /share/ are not found there, even for a token that exists', async () => {
     const copy = photoCopy()

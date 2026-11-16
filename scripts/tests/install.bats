@@ -71,10 +71,10 @@ teardown() {
 
 @test "env file contains no secret values" {
   run_install_noninteractive
-  ! grep -qF "$(cat secrets/db_runtime_password)" .env
-  ! grep -qF "$(cat secrets/app_encryption_key)" .env
-  ! grep -qF "tskey-auth-not-real" .env
-  ! grep -q "AGE-SECRET-KEY" .env
+  ! grep -qF "$(cat secrets/db_runtime_password)" .env || false
+  ! grep -qF "$(cat secrets/app_encryption_key)" .env || false
+  ! grep -qF "tskey-auth-not-real" .env || false
+  ! grep -q "AGE-SECRET-KEY" .env || false
 }
 
 @test "panel url comes from the tailscale dns name" {
@@ -102,7 +102,7 @@ teardown() {
   INSTALL_SKIP_TAILSCALE=1 run_install_noninteractive
   grep -q '^PANEL_URL=http://localhost:3000$' .env
   grep -q '^COMPOSE_FILE=docker/compose.yml:docker/compose.ci.yml$' .env
-  ! grep -q 'tailscale status' "$STUB_LOG"
+  ! grep -q 'tailscale status' "$STUB_LOG" || false
 }
 
 @test "install never prints secrets" {
@@ -145,7 +145,7 @@ teardown() {
   INSTALL_ORGANIZATION_NAME='  A  ' run run_install_noninteractive
   [ "$status" -ne 0 ]
   [[ "$output" == *"da 2 a 80 caratteri"* ]]
-  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env 2>/dev/null
+  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env 2>/dev/null || false
 }
 
 @test "install trims the agency name and counts accented letters once" {
@@ -174,9 +174,9 @@ run_install_public() {
 @test "the public host is off unless asked" {
   run_install_noninteractive
   [ "$(cat secrets/ts_public_authkey)" = "non-usata" ]
-  ! grep -q '^COMPOSE_PROFILES=.*public' .env
-  ! grep -q '^PUBLIC_URL=.' .env
-  ! grep -q 'tailscale-public' "$STUB_LOG"
+  ! grep -q '^COMPOSE_PROFILES=.*public' .env || false
+  ! grep -q '^PUBLIC_URL=.' .env || false
+  ! grep -q 'tailscale-public' "$STUB_LOG" || false
 }
 
 @test "the public host gets its own node, key and address" {
@@ -188,7 +188,7 @@ run_install_public() {
   grep -q '^TS_PUBLIC_HOSTNAME=feedway-media$' .env
   grep -q '^PUBLIC_URL=https://feedway-media.tail1234.ts.net$' .env
   grep -q '^PANEL_URL=https://pannello.tail1234.ts.net$' .env
-  ! grep -qF "tskey-auth-public-not-real" .env
+  ! grep -qF "tskey-auth-public-not-real" .env || false
   # its node is up before the web, which reads PUBLIC_URL when it starts
   node="$(grep -n 'up -d --wait tailscale-public' "$STUB_LOG" | head -1 | cut -d: -f1)"
   web="$(grep -n 'up -d --wait web worker' "$STUB_LOG" | head -1 | cut -d: -f1)"

@@ -17,14 +17,15 @@ Nella fase iniziale l'host pubblico è un **secondo nodo Tailscale** (`tailscale
 
 Prima, nella console di Tailscale:
 
-1. **Chiave di autenticazione** per il secondo nodo: Settings → Keys → Generate auth key. Basta una chiave monouso.
-2. **Funnel permesso** al nodo: nella policy del tailnet (Access controls) serve l'attributo `funnel`, per esempio:
+1. **Un tag per il nodo**, così Funnel vale solo per lui e la sua chiave non scade. Nella policy del tailnet (Access controls):
 
    ```json
-   "nodeAttrs": [{ "target": ["autogroup:member"], "attr": ["funnel"] }]
+   "tagOwners": { "tag:feedway-media": ["autogroup:admin"] },
+   "nodeAttrs": [{ "target": ["tag:feedway-media"], "attr": ["funnel"] }]
    ```
 
-   Se usi i tag per i nodi del server, metti il tag del nodo in `target`. HTTPS deve essere attivo nella rete, come per il pannello.
+   Non dare `funnel` a `autogroup:member`: lo avrebbe ogni dispositivo della rete. HTTPS deve essere attivo nella rete, come per il pannello.
+2. **Chiave di autenticazione** per il secondo nodo: Settings → Keys → Generate auth key, con il tag `tag:feedway-media`. Basta una chiave monouso. Un nodo con tag non scade; senza tag la chiave del nodo scade dopo 180 giorni e `/m/` smette di rispondere senza avvisi: in quel caso, nella pagina Machines, scegli «Disable key expiry» per il nodo.
 
 Poi, sulla VPS, rilancia l'installazione: non riscrive i segreti che esistono già.
 
@@ -36,6 +37,8 @@ cd /opt/feedway
 Alla domanda «Attivare l'host pubblico dei media con Tailscale Funnel?» rispondi `s`, poi indica il nome del nodo (`feedway-media`) e incolla la chiave del punto 1 (non viene mostrata). Lo script avvia il nodo, scrive `PUBLIC_URL` in `.env` (del tipo `https://feedway-media.<rete>.ts.net`) e riavvia il web.
 
 Per spegnerlo, rilancia lo script e rispondi `n`: il nodo si ferma e `PUBLIC_URL` si svuota.
+
+**Installazioni fatte prima della 0.10.0:** il compose nuovo nomina il segreto `ts_public_authkey`, e lo `update.sh` delle versioni precedenti rifiuta l'aggiornamento se manca. Prima del primo aggiornamento alla 0.10.0, dalla cartella dell'installazione: `(umask 077 && printf non-usata > secrets/ts_public_authkey)`. Dalla 0.10.0 lo fa `update.sh` da solo.
 
 ## Controllare che funzioni
 

@@ -89,6 +89,9 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - **Lettura del token nell'ambito di sistema.** Il token da solo nomina la copia, in qualsiasi agenzia. `readPublicMediaFile` (`media/public-file.ts`, nella regola ESLint di `runAsSystem`) controlla la forma del nome prima di toccare il database, poi legge solo la copia: deve avere quel token, il file deve essere `ready` e lo scopo non deve essere `preview` o `thumbnail`. Il tipo deve corrispondere all'estensione (`image/jpeg` per `.jpg`, `video/mp4` per `.mp4`). Il log della richiesta non scrive mai il token.
 - **Tailscale Funnel** (`docker/tailscale-public/serve.json`): monta `/m/`, `/share/` e `/robots.txt` verso `web:3001`. Dal sorgente di Tailscale (`ipn/ipnlocal/serve.go`, ramo principale, letto il 16/11): il proxy toglie il punto di montaggio dal percorso, quindi la destinazione ripete `/m`, e **conserva l'intestazione `Host`** del client, aggiungendo `X-Forwarded-Host`. Non è verificato sulla versione fissata nel compose.
 - Il nodo pubblico è nel profilo `public` del compose. `install.sh` lo attiva (`COMPOSE_PROFILES=public`) e scrive `PUBLIC_URL` dal suo nome DNS. Spento, il segreto `ts_public_authkey` vale `non-usata`.
+- Il nodo pubblico condivide con il web solo la rete Docker `public`, mai `edge`. La porta del pannello ascolta anche lì: a tenerlo fuori è `serve.json`, che manda solo alla porta 3001.
+- L'ingresso pubblico chiude i socket fermi (intestazioni 20 s, richiesta 30 s, inattività 60 s) e accetta al più 200 connessioni. Nessun token va nei log, da nessuno dei due ingressi (`pathForLog`).
+- Gli scopi serviti sono una lista ammessa: `ig_feed`, `fb_photo`, `reel`, `story`, `cover`.
 - `PUBLIC_PORT` è una variabile tecnica come `PORT`: il compose la fissa a 3001 e serve ai test, che aprono più server.
 
 ### Risorse (§16.6)
@@ -112,5 +115,6 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - Da tenere d'occhio:
   - i timeout di ffmpeg, misurati nel Task 10;
   - la memoria del web con la foto profilo e il logo, nella prova di Matteo (Task 14);
-  - checksum e `forcePathStyle` su R2 vera, al passaggio a R2.
+  - checksum e `forcePathStyle` su R2 vera, al passaggio a R2;
+  - l'ingresso pubblico non ha un limite di frequenza: ogni nome ben formato apre una transazione di sistema sul pool del web (Task 11, da decidere).
 - Si riapre se R2 o un altro storage chiede un client diverso, se il caricamento a flusso nel web consuma troppa memoria o se le conversioni una alla volta non bastano.
