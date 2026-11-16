@@ -72,7 +72,7 @@ Stampa gli ultimi 10 file pronti, di tutte le agenzie, con data, nome e indirizz
 - `./scripts/compose.sh logs --tail 100 tailscale-public` dice se il nodo è entrato nella rete e se Funnel è stato rifiutato dalla policy.
 - `./scripts/compose.sh exec tailscale-public tailscale funnel status` mostra cosa è aperto a internet: devono comparire solo `/m/`, `/share/` e `/robots.txt`.
 - Nel log del web le richieste dell'host pubblico hanno `"entry":"public"` e il percorso `/m/…`, senza token.
-- **503 con `Retry-After: 5`** su un indirizzo `/m/` ben formato: il web non è riuscito a leggere il database o il file dopo tre tentativi (database fermo o lento, bucket S3 irraggiungibile). Meta riprova da sola. Se dura, guarda `./scripts/compose.sh ps` e il log di `postgres` e del web. Un indirizzo malformato o un file cancellato danno invece 404, subito.
+- **503 con `Retry-After: 5`** su un indirizzo `/m/` ben formato: l'host pubblico ha già 3 letture in corso (una raffica di richieste, o un database lento che le tiene occupate) e chiede di riprovare; Meta riprova da sola. Un errore del database o del file dà invece **500**, con una riga `public request failed` nel log del web: in quel caso guarda `./scripts/compose.sh ps` e il log di `postgres`. Un indirizzo malformato o un file cancellato danno 404, subito.
 
 ## Un file fermo in «In preparazione»
 
@@ -99,7 +99,8 @@ Quindi un file fermo da meno di mezz'ora di solito si sblocca da sé. Se resta f
 3. Riavvia il worker: `./scripts/compose.sh restart worker`. Al riavvio riprende ogni file della lista.
 4. Se il file finisce in «Non riuscito»:
    - con «La preparazione non è riuscita dopo vari tentativi», o con un tempo scaduto, il problema può essere della macchina (spazio su disco finito, ffmpeg interrotto, server lento): l'originale resta salvato, ma il pannello non sa ancora rifare la preparazione. Correggi la causa e ricarica il file;
-   - con un motivo definitivo (formato non valido, troppo lungo, troppo grande) l'originale è già cancellato: va esportato in un formato accettato e ricaricato.
+   - con un motivo definitivo (formato non valido, troppo lungo, troppo grande) l'originale è già cancellato: va esportato in un formato accettato e ricaricato;
+   - con lo spazio pieno anche l'originale è cancellato: libera spazio nel cliente (o alza `MEDIA_WORKSPACE_MAX_BYTES`) e ricarica il file.
 
 Non cambiare `status` a mano nel database: copie, originale e spazio contato non tornerebbero più d'accordo.
 
