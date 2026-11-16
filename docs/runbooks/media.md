@@ -98,7 +98,7 @@ Quindi un file fermo da meno di mezz'ora di solito si sblocca da sé. Se resta f
 
 3. Riavvia il worker: `./scripts/compose.sh restart worker`. Al riavvio riprende ogni file della lista.
 4. Se il file finisce in «Non riuscito»:
-   - con «La preparazione non è riuscita dopo vari tentativi» il problema era della macchina (spazio su disco finito, ffmpeg interrotto): l'originale resta salvato, ma il pannello non sa ancora rifare la preparazione. Correggi la causa e ricarica il file;
+   - con «La preparazione non è riuscita dopo vari tentativi», o con un tempo scaduto, il problema può essere della macchina (spazio su disco finito, ffmpeg interrotto, server lento): l'originale resta salvato, ma il pannello non sa ancora rifare la preparazione. Correggi la causa e ricarica il file;
    - con un motivo definitivo (formato non valido, troppo lungo, troppo grande) l'originale è già cancellato: va esportato in un formato accettato e ricaricato.
 
 Non cambiare `status` a mano nel database: copie, originale e spazio contato non tornerebbero più d'accordo.

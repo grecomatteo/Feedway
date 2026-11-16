@@ -68,9 +68,9 @@ Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover
 ### D-29 · Video con un errore di decodifica
 - **Origine:** revisione finale della tappa 4 (P6).
 - **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
-- **Cosa fa ora il worker:** dopo un errore controlla la copia d'anteprima e la rifiuta solo se dura meno del 97% di quanto dichiara il file. Il blocco dei flussi che cambiano risoluzione a metà resta, perché lì la copia viene più corta.
-- **Opzioni:** (a) lasciare il 97%; (b) una soglia diversa; (c) un elenco di messaggi ammessi.
-- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14).
+- **Cosa fa ora il worker:** dopo un errore conta i fotogrammi: la copia d'anteprima deve averli tutti, come il file (contati senza decodificare). Un fotogramma oltre il limite di pixel rifiuta sempre il video, perché la copia da pubblicare prende i fotogrammi così come sono (revisione di sicurezza).
+- **Opzioni:** (a) tutti i fotogrammi, nessun margine; (b) un piccolo margine fisso (per esempio 2 fotogrammi), mai una percentuale; (c) un elenco di messaggi ammessi.
+- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14). Se un video vero viene rifiutato per pochi fotogrammi persi, (b).
 
 ### D-30 · iPhone in modalità «Più compatibile»
 - **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
