@@ -1,0 +1,2 @@
+ALTER TABLE "media_variants" DROP CONSTRAINT "media_variants_purpose";--> statement-breakpoint
+ALTER TABLE "media_variants" ADD CONSTRAINT "media_variants_purpose" CHECK (purpose in ('ig_feed', 'fb_photo', 'reel', 'story', 'thumbnail', 'share', 'preview', 'cover', 'master'));

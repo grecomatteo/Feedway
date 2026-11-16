@@ -65,6 +65,19 @@ export interface MediaTransformer {
       maxPixels: number
     },
   ): Promise<ToolResult<{ file: MadeFile }>>
+  /**
+   * The photo kept for the editor: JPEG in sRGB, upright, no metadata (no GPS), at most
+   * `maxSide` on its long side. Decoding it whole validates it, as `photo` does.
+   */
+  master(
+    input: string,
+    output: string,
+    opts: ToolOptions & {
+      format: 'jpeg' | 'png' | 'webp' | 'heic'
+      maxSide: number
+      maxPixels: number
+    },
+  ): Promise<ToolResult<{ file: MadeFile }>>
   /** A small JPEG of a JPEG the transformer made. */
   thumbnail(
     input: string,

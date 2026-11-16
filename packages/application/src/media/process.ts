@@ -1,5 +1,6 @@
 import {
   INSTAGRAM_PHOTO_MAX_BYTES,
+  MASTER_MAX_SIDE,
   MEDIA_PROCESS_MAX_ATTEMPTS,
   PHOTO_MAX_WIDTH,
   checkFile,
@@ -285,10 +286,19 @@ async function processIn(
     if (!frame.ok) return refused(frame.reason, facts)
     made.push({ purpose: 'thumbnail', file: frame.file, publicToken: null })
   } else {
-    // decoding the whole photo validates it: this is where broken bytes show
-    const photo = await deps.transformer.photo(input, folder.path('ig_feed.jpg'), {
+    // decoding the whole photo validates it: this is where broken bytes show. The photo kept
+    // (D-26) is decoded once, and the copy to publish is made from it
+    const master = await deps.transformer.master(input, folder.path('master.jpg'), {
       signal,
       format: analysis.format,
+      maxSide: MASTER_MAX_SIDE,
+      maxPixels: deps.limits.maxImagePixels,
+    })
+    if (!master.ok) return refused(master.reason, facts)
+    progress.set('conversion', 40, true)
+    const photo = await deps.transformer.photo(master.file.path, folder.path('ig_feed.jpg'), {
+      signal,
+      format: 'jpeg',
       maxWidth: PHOTO_MAX_WIDTH,
       maxBytes: INSTAGRAM_PHOTO_MAX_BYTES,
       maxPixels: deps.limits.maxImagePixels,
@@ -301,6 +311,7 @@ async function processIn(
     if (!thumb.ok) return refused(thumb.reason, facts)
     made.push(
       { purpose: 'ig_feed', file: photo.file, publicToken: deps.newPublicToken() },
+      { purpose: 'master', file: master.file, publicToken: null },
       { purpose: 'thumbnail', file: thumb.file, publicToken: null },
     )
   }

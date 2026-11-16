@@ -10,7 +10,10 @@ export type MediaKind = (typeof MEDIA_KINDS)[number]
 export const MEDIA_STATUSES = ['uploading', 'processing', 'ready', 'failed', 'deleted'] as const
 export type MediaStatus = (typeof MEDIA_STATUSES)[number]
 
-/** What a variant is for; `preview` is the panel's own copy and never public (§11.1 point 7). */
+/**
+ * What a variant is for; `preview` is the panel's own copy and never public (§11.1 point 7),
+ * nor is `master`, the photo kept up to 4096 px for the editor's crops (D-26).
+ */
 export const VARIANT_PURPOSES = [
   'ig_feed',
   'fb_photo',
@@ -20,6 +23,7 @@ export const VARIANT_PURPOSES = [
   'share',
   'preview',
   'cover',
+  'master',
 ] as const
 export type VariantPurpose = (typeof VARIANT_PURPOSES)[number]
 

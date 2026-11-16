@@ -19,6 +19,7 @@ const SHARP_FORMAT: Record<ImageFormat, string> = {
   heic: 'heif',
 }
 const QUALITIES = [88, 80, 72, 64, 56, 48]
+const MASTER_QUALITY = 85
 const WHITE = { r: 255, g: 255, b: 255 }
 const TIMEOUT_SECONDS = PROBE_TIMEOUT_MS / 1000
 
@@ -185,6 +186,37 @@ export function createImageTools() {
         }
       }
       return { ok: false, reason: 'unreadable' }
+    },
+
+    /** JPEG in sRGB, upright, without metadata, at most `maxSide` on its long side (D-26). */
+    async master(
+      path: string,
+      output: string,
+      opts: { format: ImageFormat; maxSide: number; maxPixels: number },
+    ): Promise<ToolResult<{ file: MadeFile }>> {
+      const src = await source(path, opts.format, opts.maxPixels)
+      if (!src.ok) return src
+      try {
+        const info = await src.image
+          .resize(opts.maxSide, opts.maxSide, { fit: 'inside', withoutEnlargement: true })
+          .flatten({ background: WHITE })
+          .toColourspace('srgb')
+          .timeout({ seconds: TIMEOUT_SECONDS })
+          .jpeg({ quality: MASTER_QUALITY, mozjpeg: true })
+          .toFile(output)
+        return {
+          ok: true,
+          file: {
+            path: output,
+            mime: 'image/jpeg',
+            sizeBytes: info.size,
+            width: info.width,
+            height: info.height,
+          },
+        }
+      } catch (error) {
+        return { ok: false, reason: refusalOf(error) }
+      }
     },
 
     /** A small JPEG of a JPEG made above. */

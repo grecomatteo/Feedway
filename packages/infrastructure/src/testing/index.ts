@@ -27,6 +27,7 @@ export {
   alphaAt,
   imageFixture,
   imageInfo,
+  jpegOfSizeWithGps,
   jpegWithGps,
   pngOfSize,
   transparentLogoPng,
