@@ -177,6 +177,42 @@ export async function firstPixel(bytes: Buffer): Promise<{ rgb: number[]; icc: b
 }
 
 /**
+ * A 4 s H.264 MP4 with a few bytes damaged halfway: the decoder complains of some blocks and
+ * hides them, every frame is still there (a phone video with a glitch).
+ */
+export function makeDamagedVideo(dir: string): string {
+  const path = join(dir, 'damaged.mp4')
+  execFileSync(
+    'ffmpeg',
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc=size=320x240:rate=10',
+      '-t',
+      '4',
+      '-c:v',
+      'libx264',
+      '-g',
+      '10',
+      '-pix_fmt',
+      'yuv420p',
+      path,
+    ],
+    { stdio: ['ignore', 'ignore', 'inherit'] },
+  )
+  const bytes = readFileSync(path)
+  const at = Math.floor(bytes.length / 2)
+  for (let i = at; i < at + 200; i++) bytes[i] = (bytes[i] ?? 0) ^ 0x5a
+  writeFileSync(path, bytes)
+  return path
+}
+
+/**
  * An H.264 MP4 whose stream switches from `small` to `large` frames halfway: the header (the
  * first SPS) says only `small`.
  */

@@ -14,6 +14,7 @@ import {
   displayP3Png,
   hlsBehindFtyp,
   hlsPlaylist,
+  makeDamagedVideo,
   makeResolutionSwitch,
   makeVideo,
   pngBomb,
@@ -359,6 +360,20 @@ test('frames larger than the header said are refused by the decoder', async () =
       durationMs: 2000,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('a video with a glitch the decoder hides is kept: every frame is still there', async () => {
+  const path = makeDamagedVideo(dir)
+  const tools = createMediaTools()
+  const probed = await tools.probe.analyze(path, {})
+  expect(probed).toMatchObject({ ok: true, analysis: { kind: 'video' } })
+  const preview = await tools.transformer.videoPreview(path, join(dir, 'damaged-preview.mp4'), {
+    width: 320,
+    height: 240,
+    durationMs: 4000,
+  })
+  expect(preview).toMatchObject({ ok: true })
+  expect(Number(probeFile(join(dir, 'damaged-preview.mp4')).format.duration)).toBeCloseTo(4, 0)
 })
 
 test('a malformed ICC profile is no description, never an error', () => {

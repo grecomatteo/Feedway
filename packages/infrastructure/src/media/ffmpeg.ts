@@ -35,6 +35,8 @@ const inputWith = (maxPixels: number | null) => (path: string) => [
   `file:${path}`,
 ]
 
+/** After a decoding error, the share of the declared duration the copy must keep. */
+const DECODED_SHARE = 0.97
 const GLOBAL = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1']
 
 interface ProbeStream {
@@ -215,10 +217,14 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           },
         },
       )
-      // at `-loglevel error` a clean file says nothing: frames the decoder refused (over the
-      // pixel limit, broken) leave a shorter copy and an exit code 0, so any error refuses it
-      if (run.outcome === 'exited' && run.code === 0 && run.stderr.trim() !== '')
-        return { ok: false, reason: 'unreadable' } as const
+      // at `-loglevel error` a clean file says nothing. Frames the decoder refused (over the
+      // pixel limit, broken) leave a shorter copy with an exit code 0; a glitch it hid leaves
+      // them all. So after an error the copy must last as long as the file says (P6)
+      if (run.outcome === 'exited' && run.code === 0 && run.stderr.trim() !== '') {
+        const copy = await probeVideo(output, 'mp4', opts.signal)
+        if (!copy.ok || copy.analysis.durationMs < opts.durationMs * DECODED_SHARE)
+          return { ok: false, reason: 'unreadable' } as const
+      }
       return made(run, output, { mime: 'video/mp4', ...size })
     },
 
