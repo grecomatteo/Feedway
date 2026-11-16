@@ -156,7 +156,8 @@ async function variants(id: string) {
     storage_key: string
     public_token: string | null
     mime: string
-    size_bytes: number
+    /** bigint: pg gives it as text */
+    size_bytes: string
   }>('select * from media_variants where media_id = $1 order by purpose', [id])
   return res.rows
 }
