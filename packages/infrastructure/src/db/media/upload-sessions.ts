@@ -91,11 +91,17 @@ export function drizzleUploadSessions(db: DbExecutor): UploadSessionsRepository 
         .returning({ id: uploadSessions.id })
       return rows.length > 0
     },
-    async releaseCompletion(organizationId, uploadId) {
+    async releaseCompletion(organizationId, uploadId, until) {
       await db
         .update(uploadSessions)
         .set({ completingUntil: null })
-        .where(and(one(organizationId, uploadId), isNull(uploadSessions.completedAt)))
+        .where(
+          and(
+            one(organizationId, uploadId),
+            isNull(uploadSessions.completedAt),
+            eq(uploadSessions.completingUntil, until),
+          ),
+        )
     },
     async delete(organizationId, uploadId) {
       await db.delete(uploadSessions).where(one(organizationId, uploadId))

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import {
   checkUploadFile,
   contentDigest,
@@ -9,6 +9,8 @@ import {
   pastedFileName,
   rateMeter,
   sameFile,
+  slowPieces,
+  stallTimer,
 } from '../app/utils/upload-file.ts'
 
 const limits = { maxImageBytes: 50_000_000, maxVideoBytes: 300_000_000 }
@@ -110,4 +112,61 @@ test('the speed is the bytes of the last seconds, not since the start', () => {
   expect(meter.rate()).toBe(1_000)
   meter.reset()
   expect(meter.rate()).toBeNull()
+})
+
+describe('stallTimer', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+  test('fires once when nothing moves for the whole wait', () => {
+    vi.useFakeTimers()
+    const stalled = vi.fn()
+    stallTimer(45_000, stalled)
+    vi.advanceTimersByTime(44_999)
+    expect(stalled).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(stalled).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(100_000)
+    expect(stalled).toHaveBeenCalledTimes(1)
+  })
+  test('every sign of progress gives the whole wait again', () => {
+    vi.useFakeTimers()
+    const stalled = vi.fn()
+    const timer = stallTimer(45_000, stalled)
+    for (let i = 0; i < 10; i++) {
+      vi.advanceTimersByTime(40_000)
+      timer.poke()
+    }
+    expect(stalled).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(45_000)
+    expect(stalled).toHaveBeenCalledTimes(1)
+  })
+  test('stopped, it never fires', () => {
+    vi.useFakeTimers()
+    const stalled = vi.fn()
+    const timer = stallTimer(45_000, stalled)
+    timer.stop()
+    timer.poke()
+    vi.advanceTimersByTime(100_000)
+    expect(stalled).not.toHaveBeenCalled()
+  })
+})
+
+describe('slowPieces', () => {
+  test('the same piece falling twice after minutes of sending: the network is too slow', () => {
+    const slow = slowPieces(240_000)
+    expect(slow.failed(3, 250_000)).toBe(false)
+    expect(slow.failed(3, 260_000)).toBe(true)
+  })
+  test('quick falls, another piece or a piece that arrived start the count again', () => {
+    const slow = slowPieces(240_000)
+    expect(slow.failed(3, 250_000)).toBe(false)
+    // a fall of a few seconds is a network that comes and goes, not a slow one
+    expect(slow.failed(3, 5_000)).toBe(false)
+    expect(slow.failed(3, 250_000)).toBe(false)
+    expect(slow.failed(4, 250_000)).toBe(false)
+    slow.arrived()
+    expect(slow.failed(4, 250_000)).toBe(false)
+    expect(slow.failed(4, 250_000)).toBe(true)
+  })
 })

@@ -122,6 +122,22 @@ describe('toErrorResponse', () => {
     })
   })
 
+  test('a domain conflict carries a known reason, never an unknown one', () => {
+    const r = toErrorResponse(
+      new DomainError('CONFLICT', 'Il file si sta già completando', {
+        reason: 'upload_completing',
+      }),
+      REQUEST_ID,
+    )
+    expect(r.status).toBe(409)
+    expect(r.body.error).toMatchObject({ reason: 'upload_completing' })
+    const unknown = toErrorResponse(
+      new DomainError('CONFLICT', 'Altro', { reason: 'select * from users' }),
+      REQUEST_ID,
+    )
+    expect(unknown.body.error).not.toHaveProperty('reason')
+  })
+
   test('anything unknown is a generic 500 with the request id only', () => {
     const secret = new Error('insert into accounts values ($1) params: cavallo-batteria-graffetta')
     const r = toErrorResponse(secret, REQUEST_ID)
