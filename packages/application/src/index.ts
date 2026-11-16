@@ -56,6 +56,7 @@ export type {
   MediaVariantRecord,
   NewMedia,
   NewMediaVariant,
+  PublicVariantRecord,
 } from './ports/media.js'
 export type {
   ExclusiveLock,

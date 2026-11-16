@@ -83,6 +83,14 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - Nel compose entrano ora le variabili `MEDIA_*`. `STORAGE_DRIVER` e `S3_*` entrano con l'adattatore nel Task 7, e le chiavi come segreti.
 - Le code nuove (`media.process`, `media.delete_files`, `accounts.avatar`, `media.uploads_cleanup`) entrano in `KNOWN_QUEUES` insieme alla loro definizione e al registro del worker, nel task che le introduce. `KNOWN_QUEUES` deve restare uguale a `QUEUE_NAMES`: lo controlla `known-queues.test.ts`.
 
+### Host pubblico (aggiunto con il Task 11)
+- **L'ingresso si riconosce dalla porta.** Con `PUBLIC_URL` il web apre un secondo ascoltatore su `PUBLIC_PORT` (3001), accanto a quello del pannello (3000). Il nodo `tailscale-public` raggiunge solo quella porta. Il secondo ascoltatore non è l'app del pannello con un filtro davanti: è un gestore a parte (`apps/web/server/public-host/listener.ts`), senza pagine, API, file statici, sessione e cookie. Così un `Host` falsificato, che Tailscale inoltra com'è, non può arrivare al pannello. Nitro mette i file statici prima di ogni middleware, quindi un middleware sul primo ascoltatore non sarebbe bastato.
+- Sull'ingresso pubblico rispondono solo `GET` e `HEAD` di `/m/{token}.{jpg|mp4}` e `/robots.txt`. Tutto il resto, `/share/*` compreso fino alla tappa 10, dà 404 in testo semplice. Sull'ingresso del pannello il middleware `01.public-paths` dà 404 a `/m/*` e `/share/*`.
+- **Lettura del token nell'ambito di sistema.** Il token da solo nomina la copia, in qualsiasi agenzia. `readPublicMediaFile` (`media/public-file.ts`, nella regola ESLint di `runAsSystem`) controlla la forma del nome prima di toccare il database, poi legge solo la copia: deve avere quel token, il file deve essere `ready` e lo scopo non deve essere `preview` o `thumbnail`. Il tipo deve corrispondere all'estensione (`image/jpeg` per `.jpg`, `video/mp4` per `.mp4`). Il log della richiesta non scrive mai il token.
+- **Tailscale Funnel** (`docker/tailscale-public/serve.json`): monta `/m/`, `/share/` e `/robots.txt` verso `web:3001`. Dal sorgente di Tailscale (`ipn/ipnlocal/serve.go`, ramo principale, letto il 16/11): il proxy toglie il punto di montaggio dal percorso, quindi la destinazione ripete `/m`, e **conserva l'intestazione `Host`** del client, aggiungendo `X-Forwarded-Host`. Non è verificato sulla versione fissata nel compose.
+- Il nodo pubblico è nel profilo `public` del compose. `install.sh` lo attiva (`COMPOSE_PROFILES=public`) e scrive `PUBLIC_URL` dal suo nome DNS. Spento, il segreto `ts_public_authkey` vale `non-usata`.
+- `PUBLIC_PORT` è una variabile tecnica come `PORT`: il compose la fissa a 3001 e serve ai test, che aprono più server.
+
 ### Risorse (§16.6)
 - Nel compose il worker ha 2 GB e 1,0 CPU, il web 0,5 CPU.
 - Il web resta a 1536 MB e si corregge la specifica, che diceva 768 MB. Il motivo viene dalla prova sulla VPS della v0.2.1, non da una misura nuova di questo task: con il web a 512 MiB, una foto profilo HEIC fino a 40 megapixel decodificata nel web faceva uccidere il processo (difetto 1 della prova v0.2.1). Con PR #117 il web è passato a 1536 MiB, con una foto alla volta e senza la cache di libvips. Foto profilo e logo restano elaborati nel web (piano 04, Regole), quindi il margine serve ancora. Il totale passa da circa 4 a circa 5 GB, sempre dentro i 12 GB della VPS.
@@ -100,7 +108,7 @@ Le rotte esatte si fissano nel Task 9. Il protocollo è questo:
 - Due dipendenze nuove in `packages/infrastructure` (circa 23 MB in `node_modules` insieme, misurati nella cartella di prova). Il worker le impacchetta con esbuild (ADR 014).
 - Il web deve ricevere i pezzi a flusso: la rotta dei pezzi esce dal limite di 1 MB e da `defineApiRoute` che tiene il corpo in memoria (Task 9). Il limite di nuxt-security va alzato solo per quella rotta.
 - Il volume `media` deve avere spazio libero per almeno un video da 300 MB in arrivo più la sua copia nello `Storage`.
-- La lettura di sistema per la scelta a turno allarga di un modulo la regola ESLint di `runAsSystem`.
+- La lettura di sistema per la scelta a turno allarga di un modulo la regola ESLint di `runAsSystem`. La lettura del token dell'host pubblico ne aggiunge un altro (Task 11).
 - Da tenere d'occhio:
   - i timeout di ffmpeg, misurati nel Task 10;
   - la memoria del web con la foto profilo e il logo, nella prova di Matteo (Task 14);

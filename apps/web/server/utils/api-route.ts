@@ -183,8 +183,12 @@ async function sendFile(
       `attachment; filename="${answer.filename.replace(/[^\w.-]/g, '_')}"`,
     )
   const release = () => {
-    // a stored file stays open until its body is read or abandoned
-    if (!(answer.body instanceof Uint8Array)) void answer.body[Symbol.asyncIterator]().return?.()
+    // a stored file stays open until its body is read or abandoned; a stream is destroyed, as
+    // the `return` of an iterator that never started would not close it
+    if (answer.body instanceof Uint8Array) return
+    const body = answer.body as AsyncIterable<Uint8Array> & { destroy?: () => void }
+    if (typeof body.destroy === 'function') body.destroy()
+    else void body[Symbol.asyncIterator]().return?.()
   }
   if (answer.etag !== undefined) {
     const tag = `"${answer.etag}"`

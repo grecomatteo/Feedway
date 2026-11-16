@@ -35,6 +35,7 @@ case "$1" in
         ;;
       exec)
         case "$*" in
+          *"tailscale-public tailscale status"*) echo '{ "Self": { "DNSName": "feedway-media.tail1234.ts.net." } }' ;;
           *"tailscale status"*) echo '{ "Self": { "DNSName": "pannello.tail1234.ts.net." } }' ;;
         esac
         ;;

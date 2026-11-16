@@ -34,11 +34,26 @@ env_default() {
   [ -n "$(env_get "$1")" ] || env_set "$1" "$2"
 }
 
-# dc ARGS...: docker compose for this repository. COMPOSE_FILE from .env wins over the default.
+# dc ARGS...: docker compose for this repository. COMPOSE_FILE from .env wins over the default;
+# COMPOSE_PROFILES (the public host's `public`) comes from .env too.
 dc() {
-  local files
+  local files profiles
   files="${COMPOSE_FILE:-$(env_get COMPOSE_FILE)}"
-  COMPOSE_FILE="${files:-docker/compose.yml}" docker compose --project-directory . "$@"
+  profiles="${COMPOSE_PROFILES:-$(env_get COMPOSE_PROFILES)}"
+  COMPOSE_FILE="${files:-docker/compose.yml}" COMPOSE_PROFILES="$profiles" \
+    docker compose --project-directory . "$@"
+}
+
+# tailscale_dns_name SERVICE: the node's name in the tailnet, with the final dot; empty after 2 min.
+tailscale_dns_name() {
+  local name=""
+  for _ in $(seq 1 60); do
+    name="$(dc exec -T "$1" tailscale status --json --peers=false 2>/dev/null |
+      sed -n 's/.*"DNSName": *"\([^"]*\)".*/\1/p' | head -n 1)" || name=""
+    [ -z "$name" ] || break
+    sleep 2
+  done
+  printf '%s' "$name"
 }
 
 require_docker() {

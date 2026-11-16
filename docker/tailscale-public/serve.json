@@ -1,0 +1,13 @@
+{
+  "TCP": { "443": { "HTTPS": true } },
+  "Web": {
+    "${TS_CERT_DOMAIN}:443": {
+      "Handlers": {
+        "/m/": { "Proxy": "http://web:3001/m" },
+        "/share/": { "Proxy": "http://web:3001/share" },
+        "/robots.txt": { "Proxy": "http://web:3001/robots.txt" }
+      }
+    }
+  },
+  "AllowFunnel": { "${TS_CERT_DOMAIN}:443": true }
+}

@@ -24,7 +24,7 @@ git checkout vX.Y.Z                      # quella stampata sopra, o la versione 
 ./scripts/install.sh
 ```
 
-Le domande sono quattro: il nome host Tailscale (di solito `pannello`), la chiave di autenticazione Tailscale (non viene mostrata), l'email dell'Owner e il nome della tua agenzia. Il primo accesso è spiegato in [primo accesso e nuova agenzia](primo-accesso-e-nuova-agenzia.md). Alla fine lo script stampa l'indirizzo del pannello, del tipo `https://pannello.<rete>.ts.net`, raggiungibile solo dai dispositivi della tua rete Tailscale.
+Le domande sono quattro: il nome host Tailscale (di solito `pannello`), la chiave di autenticazione Tailscale (non viene mostrata), l'email dell'Owner e il nome della tua agenzia. Poi lo script chiede se attivare l'host pubblico dei media: serve dalla tappa 4 per pubblicare su Meta, e si può accendere anche dopo, rilanciando lo script ([media](media.md)). Il primo accesso è spiegato in [primo accesso e nuova agenzia](primo-accesso-e-nuova-agenzia.md). Alla fine lo script stampa l'indirizzo del pannello, del tipo `https://pannello.<rete>.ts.net`, raggiungibile solo dai dispositivi della tua rete Tailscale.
 
 Lo script mostra **una sola volta** la chiave privata dei backup. Salvala subito nel gestore di password: senza di lei i backup non si possono aprire. Non viene scritta da nessuna parte sul server.
 
@@ -32,7 +32,7 @@ Si può rilanciare senza rischi: i segreti e le chiavi che esistono già non ven
 
 ## Dove sono i segreti
 
-- `secrets/` (permessi `700`, file `600`): password di Postgres, URL del database, chiave di cifratura dei dati, chiave di Tailscale. **Non vanno persi né pubblicati.** Se perdi `app_encryption_key`, i dati cifrati nel database (per esempio i token) non si possono più leggere.
+- `secrets/` (permessi `700`, file `600`): password di Postgres, URL del database, chiave di cifratura dei dati, chiavi di Tailscale (pannello e host pubblico). **Non vanno persi né pubblicati.** Se perdi `app_encryption_key`, i dati cifrati nel database (per esempio i token) non si possono più leggere.
 - `.env`: solo impostazioni senza segreti (immagine, versione, indirizzo del pannello, email dell'Owner, chiave pubblica dei backup).
 - Fai una copia di `secrets/` in un posto sicuro fuori dalla VPS (per esempio nei backup cifrati). È l'unica copia della chiave dei dati: senza di lei non si leggono più. Tieni la chiave privata dei backup separata dal backup stesso.
 

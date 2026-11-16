@@ -1347,6 +1347,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `BACKUP_AGE_RECIPIENT` | `age1…` | | Chiave pubblica con cui si cifrano i backup; la privata resta fuori dalla VPS |
 | `PANEL_URL` | `https://feedway.tuo-tailnet.ts.net` | | |
 | `PUBLIC_URL` | `https://pub.tuodominio.it` | | Host pubblico. `PUBLIC_HOST` non è una variabile: è l'host di `PUBLIC_URL`, che deve essere diverso da quello di `PANEL_URL`. Senza `PUBLIC_URL` l'host pubblico è spento (ADR 021) |
+| `PUBLIC_PORT` | `3001` | | Porta del web per l'ingresso pubblico, fissata nel compose: il nodo dell'host pubblico raggiunge solo questa (ADR 021) |
 | `SITE_URL` | `https://tuodominio.it` | | Facoltativa: collegamento al sito dalla pagina di accesso |
 | `META_GRAPH_VERSION` | `v25.0` | | Aggiornata con PR e test ([docs/platforms/meta.md](../../platforms/meta.md)) |
 | `META_GRAPH_VERSION_SUNSET` | `2028-07-29` | | Data di ritiro della versione; predefinita per le versioni note, obbligatoria per le altre. Avviso 90 giorni prima (§8.4) |
