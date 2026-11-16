@@ -352,9 +352,13 @@ export async function receiveUploadPart(
         },
       )
     return await deps.uow.run(scope, async (tx) => {
+      // access again: the person, the agency or the client may have changed while it arrived
+      const { workspace } = await openLibrary(tx, actor, input.workspaceId)
+      await assertWritable(tx, organizationId, workspace.archivedAt)
       // one piece at a time per upload: two tabs sending the same piece meet here
       const locked = await tx.uploads.findById(organizationId, session.id, { forUpdate: true })
-      if (!locked) throw uploadNotFound()
+      if (locked?.userId !== actor.userId || locked.workspaceId !== workspace.id)
+        throw uploadNotFound()
       if (locked.completedAt !== null)
         throw new DomainError('CONFLICT', 'Il caricamento è già completato')
       const current = locked.parts[String(input.n)]
@@ -400,15 +404,20 @@ export async function completeUpload(
     const found = await ownUpload(tx, actor, workspace.id, input.uploadId, now, {
       forUpdate: true,
     })
-    if (found.mediaId !== null) return found
+    if (found.mediaId !== null) return { ...found, hold: null }
     await assertWritable(tx, organizationId, workspace.archivedAt)
     const missing = missingUploadParts(found.sizeBytes, Object.keys(found.parts).map(Number))
     if (missing.length > 0)
-      throw new DomainError('CONFLICT', 'Mancano dei pezzi del file', { missing })
+      throw new DomainError('CONFLICT', 'Mancano dei pezzi del file', {
+        missing,
+        reason: 'upload_parts_missing',
+      })
     const until = new Date(now.getTime() + UPLOAD_COMPLETION_HOLD_MS)
     if (!(await tx.uploads.claimCompletion(organizationId, found.id, now, until)))
-      throw new DomainError('CONFLICT', 'Il file si sta già completando: riprova tra poco')
-    return found
+      throw new DomainError('CONFLICT', 'Il file si sta già completando: riprova tra poco', {
+        reason: 'upload_completing',
+      })
+    return { ...found, hold: until }
   })
   if (session.mediaId !== null) return media(session.mediaId)
 
@@ -470,7 +479,12 @@ export async function completeUpload(
   } catch (error) {
     await forget()
     try {
-      await deps.uow.run(scope, (tx) => tx.uploads.releaseCompletion(organizationId, session.id))
+      // only its own hold: one that ran out may belong to another call by now
+      const { hold } = session
+      if (hold)
+        await deps.uow.run(scope, (tx) =>
+          tx.uploads.releaseCompletion(organizationId, session.id, hold),
+        )
     } catch (release) {
       // the hold ends by itself
       deps.logger.error({ err: release, uploadId: session.id }, 'upload completion not released')

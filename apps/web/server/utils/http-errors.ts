@@ -133,8 +133,9 @@ function build(
 /**
  * The answer for any error. Domain errors keep their Italian message (written by the use
  * cases for the person in front of the screen) and only the details listed here: `field`
- * becomes an issue, `retryAfterSeconds` the Retry-After header. Everything else is a generic
- * 500 with the request id: no message, stack, SQL or parameter ever reaches the client.
+ * becomes an issue, `retryAfterSeconds` the Retry-After header, a known `reason` the reason.
+ * Everything else is a generic 500 with the request id: no message, stack, SQL or parameter
+ * ever reaches the client.
  */
 export function toErrorResponse(error: unknown, requestId: string): ErrorResponse {
   if (error instanceof HttpProblem)
@@ -148,7 +149,10 @@ export function toErrorResponse(error: unknown, requestId: string): ErrorRespons
     const message = error.message.trim() === '' ? MESSAGES[error.code] : error.message
     const field = error.details?.['field']
     const retry = error.details?.['retryAfterSeconds']
+    const reason = error.details?.['reason']
     return build(error.code, message, requestId, {
+      // only a reason the panel knows: a detail never leaks by this way
+      ...(typeof reason === 'string' && Object.hasOwn(REASONS, reason) && { reason }),
       ...(error.code === 'VALIDATION' &&
         typeof field === 'string' && { issues: [{ path: [field], message }] }),
       ...(typeof retry === 'number' && Number.isFinite(retry) && { retryAfter: retry }),

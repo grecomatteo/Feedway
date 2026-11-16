@@ -46,6 +46,13 @@ export type Leftover = UploadDto
 const MAX_ACTIVE = 2
 const RUNNING: readonly UploadState[] = ['hashing', 'uploading', 'completing']
 const PREVIEWABLE_IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+/** A piece that sends no byte for this long hangs: it is given up and the upload resumes. */
+const STALL_MS = 45_000
+/** The short calls (start, state); `complete` joins up to 300 MB, so it has longer. */
+const CALL_MS = 30_000
+const COMPLETE_MS = 120_000
+/** A piece falling twice after this long tells a network too slow for it (P1 bis). */
+const SLOW_PIECE_MS = 240_000
 
 /** A request of ours that did not answer 2xx, with what the server said. */
 class HttpFailure extends Error {
@@ -72,6 +79,9 @@ interface Side {
   tries: number
   timer: ReturnType<typeof setTimeout> | undefined
   meter: ReturnType<typeof rateMeter>
+  slow: ReturnType<typeof slowPieces>
+  /** the piece on its way and since when; null: none */
+  sending: { n: number; since: number } | null
   watching: boolean
 }
 
@@ -118,18 +128,37 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     })
   }
 
-  const request = <T>(
+  /**
+   * A call of ours, given up after `ms`: a request that hangs after a change of network would
+   * otherwise keep the upload waiting with no error.
+   */
+  async function request<T>(
     method: 'GET' | 'POST' | 'DELETE',
     path: string,
     body?: unknown,
     signal?: AbortSignal,
-  ) =>
-    $fetch<T>(path, {
-      method,
-      headers: { 'x-app-request': '1' },
-      ...(body === undefined ? {} : { body }),
-      ...(signal ? { signal } : {}),
-    })
+    ms = CALL_MS,
+  ): Promise<T> {
+    const own = new AbortController()
+    const timer = setTimeout(() => {
+      own.abort()
+    }, ms)
+    const stop = () => {
+      own.abort()
+    }
+    signal?.addEventListener('abort', stop, { once: true })
+    try {
+      return await $fetch<T>(path, {
+        method,
+        headers: { 'x-app-request': '1' },
+        ...(body === undefined ? {} : { body }),
+        signal: own.signal,
+      })
+    } finally {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', stop)
+    }
+  }
 
   /** An error of $fetch, with or without an answer. */
   const isFetchFailure = (error: unknown) => error instanceof Error && error.name === 'FetchError'
@@ -149,7 +178,11 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     }
   }
 
-  /** A piece, with XHR: fetch tells nothing of the bytes sent. */
+  /**
+   * A piece, with XHR: fetch tells nothing of the bytes sent. One that sends nothing for
+   * STALL_MS is given up as a fall of the network, and the upload resumes from what the server
+   * has.
+   */
   function putPart(
     url: string,
     blob: Blob,
@@ -164,8 +197,21 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
       xhr.setRequestHeader('content-type', 'application/octet-stream')
       xhr.setRequestHeader('content-digest', contentDigest(digest))
       xhr.setRequestHeader('x-app-request', '1')
+      let stalled = false
+      const watch = stallTimer(STALL_MS, () => {
+        stalled = true
+        xhr.abort()
+      })
       xhr.upload.onprogress = (e) => {
+        watch.poke()
         progress(e.loaded)
+      }
+      // all sent: the server checks the piece, and its answer has the same time to come
+      xhr.upload.onload = () => {
+        watch.poke()
+      }
+      xhr.onloadend = () => {
+        watch.stop()
       }
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response as UploadDto)
@@ -187,7 +233,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         reject(new HttpFailure(0, null))
       }
       xhr.onabort = () => {
-        reject(new Stopped())
+        reject(stalled ? new HttpFailure(0, null) : new Stopped())
       }
       signal.addEventListener(
         'abort',
@@ -301,6 +347,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
             const sha = n === 1 && s.first ? s.first : await digest(blob)
             check()
             const before = item.sent
+            s.sending = { n, since: Date.now() }
             const answer = await putPart(
               `${at}/parts/${String(n)}`,
               blob,
@@ -314,6 +361,8 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
                 now.rate = s.meter.rate()
               },
             )
+            s.sending = null
+            s.slow.arrived()
             check()
             s.upload = answer
             item.sent = confirmedBytes(answer)
@@ -347,10 +396,12 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   async function completeOnce(at: string, signal: AbortSignal): Promise<MediaDto | 'missing'> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await request<MediaDto>('POST', `${at}/complete`, undefined, signal)
+        return await request<MediaDto>('POST', `${at}/complete`, undefined, signal, COMPLETE_MS)
       } catch (error) {
         const f = failureOf(error)
-        if (f.status !== 409 || attempt >= 60) throw error
+        // only these two wait: any other conflict (the client archived meanwhile) is final
+        const waits = f.reason === 'upload_completing' || f.reason === 'upload_parts_missing'
+        if (f.status !== 409 || !waits || attempt >= 60) throw error
         const fresh = await request<UploadDto>('GET', at, undefined, signal)
         if (missingParts(fresh.partCount, fresh.received).length > 0) return 'missing'
         await sleep(Math.min(1000 * 2 ** attempt, 5000), signal)
@@ -373,8 +424,17 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     }
     // no answer, the server busy or slowing us down: wait and go on by ourselves
     if (f.status === 0 || f.status >= 500 || f.status === 429 || f.status === 408) {
+      const piece = s.sending
+      s.sending = null
+      const slow =
+        piece !== null &&
+        (f.status === 0 || f.status === 408) &&
+        s.slow.failed(piece.n, Date.now() - piece.since)
+      const tooSlow = t('upload.tooSlow')
       item.state = 'offline'
-      item.message = null
+      // it still tries again, as the network may get faster; a fall while asking the state
+      // keeps what the pieces said
+      item.message = slow || (piece === null && item.message === tooSlow) ? tooSlow : null
       const wait = f.retryAfter ?? Math.min(2 ** s.tries * 2, 30)
       s.tries += 1
       clearTimeout(s.timer)
@@ -477,6 +537,19 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   const wakeAll = () => {
     for (const item of items.value) if (item.state === 'offline') wake(item.key)
   }
+  /**
+   * The network came back: a request on its way may hang on the connection that went (Wi-Fi to
+   * 4G), so the uploads on the network start again from what the server has.
+   */
+  function restartAll() {
+    for (const item of items.value)
+      if (item.state === 'uploading' || item.state === 'completing') {
+        stop(item)
+        item.state = 'queued'
+      }
+    wakeAll()
+    pump()
+  }
 
   function newItem(file: File | null, name: string, size: number): UploadItem {
     const key = `u${String(++keys)}`
@@ -492,6 +565,8 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
       tries: 0,
       timer: undefined,
       meter: rateMeter(8000),
+      slow: slowPieces(SLOW_PIECE_MS),
+      sending: null,
       watching: false,
     })
     return {
@@ -524,10 +599,19 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     await loading
     let started = 0
     const added: UploadItem[] = []
+    // the pieces' sha-256 needs a secure page (HTTPS): without it nothing could be sent
+    const secure = (globalThis.crypto.subtle as SubtleCrypto | undefined) !== undefined
     for (const file of files) {
       const item = newItem(file, file.name, file.size)
       const s = sides.get(item.key)
       if (!s) continue
+      if (!secure) {
+        item.state = 'rejected'
+        item.message = t('upload.refused.insecure')
+        announce(t('upload.announce.refused', { name: file.name, reason: item.message }))
+        added.push(item)
+        continue
+      }
       const check = checkUploadFile(
         file,
         limits.value ?? { maxImageBytes: Infinity, maxVideoBytes: Infinity },
@@ -603,6 +687,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     s.abort = null
     clearTimeout(s.timer)
     s.meter.reset()
+    s.sending = null
     item.rate = null
   }
 
@@ -688,7 +773,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   })
 
   function online() {
-    wakeAll()
+    restartAll()
   }
   function visible() {
     if (document.visibilityState === 'visible') wakeAll()
