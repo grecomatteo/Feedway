@@ -17,6 +17,7 @@ export type SessionView =
 export function useSession() {
   const view = useState<SessionView>('session', () => ({ state: 'unknown' }))
   const colorMode = useColorMode()
+  const palette = usePalette()
   // on the server, the browser's cookie goes with the request
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
 
@@ -74,6 +75,7 @@ export function useSession() {
           ? { state: 'active', me }
           : { state: 'second_factor', me, useExisting: false }
       applyTheme(me)
+      palette.value = me.palette
     } catch (e) {
       // read here, not with useApi: this also runs in the route middleware, outside a component
       const fetchError = e as FetchError<{ error?: { code?: string; reason?: string } }>
@@ -85,7 +87,10 @@ export function useSession() {
           me: null,
           useExisting: body.reason === 'use_existing_factor',
         }
-      else if (status === 401) view.value = { state: 'signed_out' }
+      else if (status === 401) {
+        view.value = { state: 'signed_out' }
+        palette.value = 'feedway'
+      }
       // anything else is a real failure, not "signed out"
       else throw e
     }
@@ -128,6 +133,7 @@ export function useSession() {
       if ((fetchError.statusCode ?? fetchError.response?.status) !== 401) throw e
     }
     view.value = { state: 'signed_out' }
+    palette.value = 'feedway'
     forgetAgency()
     const keep = opts.stay?.keep
     if (keep === undefined) {
@@ -139,6 +145,7 @@ export function useSession() {
   /** The server already closed the session (account deleted): forget it here too. */
   function forget() {
     view.value = { state: 'signed_out' }
+    palette.value = 'feedway'
     forgetAgency()
     clearNuxtData()
   }

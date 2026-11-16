@@ -5,6 +5,7 @@ import {
   requiresSecondFactor,
   sessionSatisfiesSecondFactor,
   type OrgRole,
+  type Palette,
 } from '@app/domain'
 import type { AuthSessionInfo } from '../ports/auth.js'
 import type { IdentityDeps } from './identity-deps.js'
@@ -18,6 +19,7 @@ export interface SessionUser {
   platformRole: 'admin' | null
   avatarUrl: string | null
   theme: 'light' | 'dark' | 'system'
+  palette: Palette
   locale: string
   timezone: string | null
   lastOrganizationSlug: string | null
@@ -118,6 +120,7 @@ export async function resolveSessionUser(
       platformRole: user.platformRole,
       avatarUrl: avatarUrl(user.id, user.avatarKey),
       theme: user.theme,
+      palette: user.palette,
       locale: user.locale,
       timezone: user.timezone,
       lastOrganizationSlug: last?.slug ?? null,

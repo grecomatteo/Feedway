@@ -36,6 +36,7 @@ test('me answers the person and the session state, with nothing else', async () 
       'name',
       'nickname',
       'organizations',
+      'palette',
       'platformRole',
       'secondFactor',
       'sessionState',
@@ -51,6 +52,8 @@ test('me answers the person and the session state, with nothing else', async () 
     organizations: [{ id: agency.id, slug: agency.slug, role: 'member', status: 'active' }],
     secondFactor: { required: false, totpEnabled: false, passkeys: 0 },
     hasPassword: true,
+    // nobody chose a palette yet: the Feedway colours
+    palette: 'feedway',
     // the test server writes emails to a mailbox: security notices go out
     emailNotices: true,
   })

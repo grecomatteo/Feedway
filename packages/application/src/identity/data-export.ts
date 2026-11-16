@@ -402,6 +402,7 @@ async function collect(deps: DataExportJobDeps, userId: string): Promise<ZipEntr
         email: user.email,
         ruoloPiattaforma: user.platformRole === 'admin' ? 'amministratore' : null,
         tema: user.theme,
+        colori: user.palette,
         lingua: user.locale,
         fusoOrario: user.timezone,
         fotoProfilo: user.avatarKey !== null,

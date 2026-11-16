@@ -3,6 +3,7 @@ import type {
   OrganizationLimits,
   OrgActor,
   OrgRole,
+  Palette,
   TwoFactorPolicy,
   WorkspaceRole,
 } from '@app/domain'
@@ -21,6 +22,7 @@ export interface UserRecord {
   status: 'active' | 'disabled'
   twoFactorEnabled: boolean
   theme: 'light' | 'dark' | 'system'
+  palette: Palette
   locale: string
   timezone: string | null
   lastOrganizationId: string | null
@@ -120,6 +122,7 @@ export interface ProfileFields {
   name?: string
   nickname?: string | null
   theme?: 'light' | 'dark' | 'system'
+  palette?: Palette
   timezone?: string | null
 }
 

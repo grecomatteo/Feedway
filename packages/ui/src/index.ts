@@ -1,4 +1,11 @@
-export { contrastRatio } from './contrast.js'
+export { contrastRatio, perceptualDistance } from './contrast.js'
 export { generateTokensCss } from './generate-css.js'
-export { statusTokens, themes, tokenNames } from './tokens.js'
-export type { Theme, TokenName } from './tokens.js'
+export {
+  DEFAULT_PALETTE,
+  paletteIds,
+  palettes,
+  statusTokens,
+  themes,
+  tokenNames,
+} from './tokens.js'
+export type { PaletteId, Theme, TokenName } from './tokens.js'

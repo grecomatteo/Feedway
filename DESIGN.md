@@ -21,8 +21,10 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `text` | `#242321` | `#F4F2EE` | Testo |
 | `text-muted` | `#5F5B55` | `#B9B4AC` | Metadati |
 | `border` / `border-strong` | `#E3DFD7` / `#CFCAC0` | `#3A3835` / `#55524D` | Bordi |
+| `field-border` | `#7F7B74` | `#83807A` | Bordo di campi, tendine e pulsanti con contorno (≥ 3:1, WCAG 1.4.11) |
 | `brand` | `#FF762E` | uguale | Azioni principali, selezioni |
 | `on-brand` | `#242321` | uguale | Etichette sui pulsanti arancioni |
+| `brand-hover` | `#FF8F52` | uguale | Pulsante principale sotto il puntatore o premuto (etichetta ≥ 4,5:1) |
 | `brand-soft` | `#FFE8DA` | `#3D2A1F` | Voce di navigazione attiva, scelta selezionata |
 | `focus` | `#242321` | `#FF762E` | Anello di focus 2 px |
 | `success` / `-soft` | `#17693F` / `#E3F3EA` | `#6FD39C` / `#173326` | Confermato |
@@ -31,6 +33,15 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `info` / `-soft` | `#1F5AA6` / `#E7EFFA` | `#8CB8F2` / `#18273B` | Programmato, in verifica |
 
 I colori di stato hanno significato indipendente dal marchio e sono sempre accompagnati da icona e testo. Raggi: 8 per i controlli, 12 per le schede. Spaziatura 4/8/12/16/24/32.
+
+## Temi colore (16 novembre 2026; tappa 4, Task 13b)
+
+- Ogni persona sceglie i colori del pannello in Impostazioni → Profilo e preferenze → «Colori»: **Feedway** (predefinito, la tabella sopra), **Blu**, **Verde**, **Viola**, **Grafite**. Ognuno ha giorno e notte. I valori sono in `packages/ui/src/tokens.ts`.
+- Un tema ridefinisce solo i token (`data-palette` su `<html>`): pagine e componenti non cambiano, e un colore scritto a mano in una pagina è un difetto. I colori di stato restano gli stessi in ogni tema.
+- Gli altri temi tengono la luminosità di ogni superficie di Feedway e la tingono della propria tinta. L'accento è chiaro con l'etichetta scura di giorno e scuro con l'etichetta bianca di notte, al contrario dei colori di stato: così il verde di Verde non si confonde con «confermato», né il blu di Blu con «programmato». Grafite non ha tinta: l'accento è il colore del testo.
+- Logo, landing, email e calendario del cliente restano sempre con i colori di Feedway.
+- Un test controlla ogni tema: testo e metadati ≥ 4,5:1 su tutti i fondi, etichetta del pulsante ≥ 4,5:1 anche in hover, bordi dei campi e focus ≥ 3:1, stati lontani dall'accento (distanza OKLab ≥ 0,075).
+- La scelta: un gruppo di schede con l'anteprima di giorno e di notte affiancate; la scheda scelta ha il bordo `focus` e la spunta. Il clic applica e salva. Schermate in `schermate/tappa-4-temi/` nella cartella del progetto.
 
 ## Tipografia
 

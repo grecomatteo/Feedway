@@ -6,6 +6,10 @@ export const AVATAR_SIZES = [256, 64] as const
 export const AVATAR_MIN_CROP = 64
 export type AvatarSourceType = 'jpeg' | 'png' | 'heic' | 'webp'
 
+/** The colour palettes of the panel, a personal preference (their colours: packages/ui). */
+export const PALETTES = ['feedway', 'blu', 'verde', 'viola', 'grafite'] as const
+export type Palette = (typeof PALETTES)[number]
+
 const graphemes = (text: string): string[] =>
   Array.from(new Intl.Segmenter('it', { granularity: 'grapheme' }).segment(text), (s) => s.segment)
 

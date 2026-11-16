@@ -1,4 +1,5 @@
-import { displayName, DomainError, isValidTimeZone, validateNickname } from '@app/domain'
+import { displayName, DomainError, isValidTimeZone, PALETTES, validateNickname } from '@app/domain'
+import type { Palette } from '@app/domain'
 import type { ProfileFields } from '../ports/repositories.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { NAME_MAX_LENGTH } from './activation.js'
@@ -9,11 +10,13 @@ export interface ProfileInput {
   /** null or an empty string removes it. */
   nickname?: string | null
   theme?: 'light' | 'dark' | 'system'
+  palette?: Palette
   /** null: the agency's time zone, or the installation's. */
   timezone?: string | null
 }
 
 const THEMES: ReadonlySet<string> = new Set(['light', 'dark', 'system'])
+const PALETTE_IDS: ReadonlySet<string> = new Set(PALETTES)
 
 function checked(input: ProfileInput): ProfileFields {
   const fields: ProfileFields = {}
@@ -42,6 +45,11 @@ function checked(input: ProfileInput): ProfileFields {
       throw new DomainError('VALIDATION', 'Tema non valido', { field: 'theme' })
     fields.theme = input.theme
   }
+  if (input.palette !== undefined) {
+    if (!PALETTE_IDS.has(input.palette))
+      throw new DomainError('VALIDATION', 'Colori non validi', { field: 'palette' })
+    fields.palette = input.palette
+  }
   if (input.timezone !== undefined) {
     if (input.timezone !== null && !isValidTimeZone(input.timezone))
       throw new DomainError('VALIDATION', 'Scegli un fuso orario dall’elenco', {
@@ -53,8 +61,8 @@ function checked(input: ProfileInput): ProfileFields {
 }
 
 /**
- * The personal settings ("Impostazioni"): name, nickname, theme and time zone. Only what changed is written; the
- * personal activity log names the fields, never their values.
+ * The personal settings ("Impostazioni"): name, nickname, theme, palette and time zone. Only what
+ * changed is written; the personal activity log names the fields, never their values.
  */
 export async function updateProfile(
   deps: { uow: UnitOfWork },

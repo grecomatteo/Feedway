@@ -61,6 +61,7 @@ test('findByEmail ignores case and never returns secrets', async () => {
     platformRole: null,
     twoFactorEnabled: false,
     theme: 'system',
+    palette: 'feedway',
     locale: 'it',
   })
   expect(Object.keys(user ?? {})).not.toContain('password')

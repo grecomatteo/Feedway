@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -115,6 +115,29 @@ Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19, D-20 e D-
 - **Il problema:** «Ricollega» evidenzia il collegamento del primo account del profilo, anche se il secondo viene da un altro.
 - **Stato:** aperta.
 
-### D-17 · Contrasto dell'hover del pulsante principale in tema scuro
-- **Origine:** tappa 4, Task 6c.
-- **Stato:** aperta, da guardare con il Task 13b (temi colore).
+## Temi colore (Task 13b)
+
+### D-22 · Quali temi e con quali colori
+- **Origine:** tappa 4, Task 13b.
+- **La scelta:** cinque temi: Feedway (i colori di oggi, predefinito), Blu, Verde, Viola, Grafite (senza tinta, l'accento è il colore del testo). Ognuno tinge carta, superfici e filetti della sua tinta con la stessa luminosità di Feedway. Nei temi colorati l'accento è chiaro con l'etichetta scura di giorno e scuro con l'etichetta bianca di notte: così non si confonde con i colori di stato (verde «confermato», blu «programmato»), che di giorno sono scuri e di notte chiari. Schermate in `schermate/tappa-4-temi/`.
+- **Opzioni:** (a) tenere questi; (b) cambiare tinte o aggiungerne (per esempio un rosa, che però va tenuto lontano dal rosso di «con problema»); (c) togliere Grafite.
+- **Stato:** scelta provvisoria, aspetta lo sguardo di Matteo sulle schermate.
+
+### D-23 · Bordi dei campi più scuri anche in Feedway
+- **Origine:** tappa 4, Task 13b (il piano chiede bordi dei campi di almeno 3:1).
+- **Il problema:** il bordo dei campi era `border-strong` (#CFCAC0 su bianco, circa 1,6:1). Per il criterio 1.4.11 delle WCAG il bordo di un campo che si riconosce solo da lì deve avere 3:1.
+- **La scelta:** un token nuovo, `field-border` (#7F7B74 di giorno, #83807A di notte in Feedway), per i campi, le tendine e i pulsanti con il contorno (`--ui-border-accented`). È l'unico cambio visibile per chi resta su Feedway: i campi hanno un bordo più deciso.
+- **Opzioni:** (a) tenere; (b) un grigio intermedio, sempre ≥ 3:1.
+- **Stato:** scelta provvisoria.
+
+### D-24 · Il colore si salva subito, il tema chiaro/scuro con «Salva»
+- **Origine:** tappa 4, Task 13b.
+- **Il problema:** il piano chiede che il cambio di colori si veda subito: la scelta dei colori si salva al clic, mentre chiaro/scuro/automatico e il fuso restano nel modulo con «Salva».
+- **Opzioni:** (a) lasciare così; (b) anche chiaro/scuro al clic, come il pulsante sole/luna del menu, e «Salva» solo per il fuso.
+- **Stato:** scelta provvisoria (a).
+
+### D-25 · Arancio e rosso di «con problema» nel tema scuro di Feedway
+- **Origine:** tappa 4, Task 13b (test «gli stati non si confondono con l'accento»).
+- **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
+- **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
+- **Stato:** aperta.

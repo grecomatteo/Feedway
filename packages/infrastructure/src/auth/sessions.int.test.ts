@@ -234,6 +234,7 @@ test('the session user carries the profile, the agencies and the last one opened
     platformRole: null,
     avatarUrl: null,
     theme: 'system',
+    palette: 'feedway',
     lastOrganizationSlug: a,
   })
   expect(r?.user.organizations).toHaveLength(2)

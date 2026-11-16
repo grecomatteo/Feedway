@@ -77,7 +77,7 @@ const place =
           :class="place"
         >
           <span
-            class="flex size-10 items-center justify-center rounded-full border-[1.5px] border-(--app-text) bg-(--app-brand) text-(--app-text) opacity-45 dark:text-[#242321]"
+            class="flex size-10 items-center justify-center rounded-full border-[1.5px] border-(--app-text) bg-(--app-brand) text-(--app-on-brand) opacity-45"
             aria-hidden="true"
           >
             <UIcon name="i-lucide-plus" class="size-5" />
