@@ -202,6 +202,7 @@ test('the error page keeps the chosen palette, opened in the panel or on its own
   await page.goto('/account')
   await expect(page.locator('html')).toHaveAttribute('data-palette', 'blu')
   // a link inside the panel to a page that does not exist: the router moves without a reload
+  await page.waitForFunction(() => '__vue_app__' in (document.querySelector('#__nuxt') ?? {}))
   await page.evaluate(async () => {
     const root = document.querySelector('#__nuxt') as unknown as {
       __vue_app__: { config: { globalProperties: { $router: { push: (to: string) => unknown } } } }
