@@ -29,6 +29,7 @@ export const unusedMediaTools: JobHandlerDeps['media'] = {
   probe: { analyze: unused },
   transformer: {
     photo: unused,
+    master: unused,
     thumbnail: unused,
     videoPreview: unused,
     videoRemux: unused,

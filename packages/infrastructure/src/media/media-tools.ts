@@ -58,6 +58,10 @@ export function createMediaTools(options: MediaToolsOptions = {}): {
         if (aborted(opts.signal)) return { ok: false, reason: 'aborted' }
         return images.photo(input, output, opts)
       },
+      async master(input, output, opts) {
+        if (aborted(opts.signal)) return { ok: false, reason: 'aborted' }
+        return images.master(input, output, opts)
+      },
       async thumbnail(input, output, opts) {
         if (aborted(opts.signal)) return { ok: false, reason: 'aborted' }
         return images.thumbnail(input, output)

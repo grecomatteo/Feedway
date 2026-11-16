@@ -14,6 +14,7 @@ const VariantPurpose = z.enum([
   'share',
   'preview',
   'cover',
+  'master',
 ])
 
 /** Never a storage key nor a public token. */

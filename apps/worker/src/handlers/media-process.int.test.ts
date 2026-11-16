@@ -21,6 +21,7 @@ import {
   hlsBehindFtyp,
   hlsPlaylist,
   imageFixture,
+  jpegOfSizeWithGps,
   makeVideo,
   pngBomb,
   probeFile,
@@ -228,12 +229,39 @@ test('a HEIC becomes a JPEG without GPS, and the original is gone', async () => 
     expect.arrayContaining(['convert_to_jpeg', 'strip_metadata']),
   )
   expect(await runtime.storage.get(`org/${a.org}/media/${id}/original.heic`)).toBeNull()
-  const [feed, thumb] = await variants(id)
+  const [feed, master, thumb] = await variants(id)
   expect(feed).toMatchObject({ purpose: 'ig_feed', mime: 'image/jpeg' })
   expect(feed?.public_token).toMatch(/^[A-Za-z0-9_-]{32}$/)
+  // the photo kept whole, for the crops of the editor: never public
+  expect(master).toMatchObject({ purpose: 'master', mime: 'image/jpeg', public_token: null })
   expect(thumb).toMatchObject({ purpose: 'thumbnail', mime: 'image/jpeg', public_token: null })
   const info = await imageInfo(await readFile(await local(feed?.storage_key ?? '', 'feed.jpg')))
   expect(info).toMatchObject({ format: 'jpeg', exif: false })
+  const kept = await imageInfo(await readFile(await local(master?.storage_key ?? '', 'master.jpg')))
+  expect(kept).toMatchObject({ format: 'jpeg', exif: false, width: 480, height: 320 })
+})
+
+test('a large photo: 1440 px to publish, up to 4096 px kept without GPS, all counted', async () => {
+  const a = await agency()
+  const big = await jpegOfSizeWithGps(6000, 4000)
+  const id = await waiting(a, big, 'jpg')
+  await wake(deps(), a, id)
+  expect(await row(id)).toMatchObject({ status: 'ready', storage_key: null })
+  const all = await variants(id)
+  const by = (purpose: string) => all.find((v) => v.purpose === purpose)
+  const feed = await imageInfo(
+    await readFile(await local(by('ig_feed')?.storage_key ?? '', 'f.jpg')),
+  )
+  expect(feed).toMatchObject({ width: 1440, height: 960 })
+  const master = by('master')
+  const kept = await imageInfo(await readFile(await local(master?.storage_key ?? '', 'm.jpg')))
+  expect(kept).toMatchObject({ format: 'jpeg', exif: false, width: 4096, height: 2731 })
+  expect(master?.public_token).toBeNull()
+  // the space counts the copy kept as any other
+  const used = await runtime.uow.run({ organizationId: a.org, userId: null }, (tx) =>
+    tx.media.storageUsed(a.org, a.workspace),
+  )
+  expect(used.workspace).toBe(all.reduce((n, v) => n + Number(v.size_bytes), 0))
 })
 
 test('a PNG in Display P3 becomes sRGB', async () => {

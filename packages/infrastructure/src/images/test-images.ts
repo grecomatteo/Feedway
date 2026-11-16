@@ -27,6 +27,14 @@ export function jpegWithGps(opts: { orientation?: number } = {}): Promise<Buffer
     .toBuffer()
 }
 
+/** A JPEG of the given size with a GPS position in its EXIF: a phone's photo, larger. */
+export function jpegOfSizeWithGps(width: number, height: number): Promise<Buffer> {
+  return sharp({ create: { width, height, channels: 3, background: '#808080' } })
+    .jpeg({ quality: 90 })
+    .withExif({ IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '45/1 27/1 0/1' } })
+    .toBuffer()
+}
+
 /** A PNG of the given size, cheap to make whatever the size (one colour compresses well). */
 export function pngOfSize(width: number, height: number): Promise<Buffer> {
   return sharp({ create: { width, height, channels: 3, background: '#808080' } })
