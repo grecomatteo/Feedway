@@ -1,6 +1,9 @@
-import { and, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import type {
+  LibraryFolderRecord,
   MediaFacts,
+  MediaFilter,
   MediaRecord,
   MediaRepository,
   MediaVariantRecord,
@@ -15,7 +18,7 @@ import type {
   VariantPurpose,
 } from '@app/domain'
 import type { DbExecutor } from '../client.js'
-import { libraryFolders, libraryItems, media, mediaVariants } from './schema.js'
+import { libraryFolders, libraryItems, media, mediaVariants, uploadSessions } from './schema.js'
 
 // Every query filters by organization in SQL as well: row level security is the second barrier.
 
@@ -85,6 +88,34 @@ const withLibrary = (db: DbExecutor) =>
         eq(libraryItems.mediaId, media.id),
       ),
     )
+
+/** A unique index said no: two folders side by side with one name. */
+function isUniqueViolation(error: unknown): boolean {
+  const e = error as { code?: unknown; cause?: { code?: unknown } }
+  return e.code === '23505' || e.cause?.code === '23505'
+}
+
+/** `%`, `_` and `\` taken literally in ILIKE. */
+const likeLiteral = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`)
+
+function filterOf(filter: MediaFilter | undefined): (SQL | undefined)[] {
+  if (!filter) return []
+  return [
+    filter.kind === undefined ? undefined : eq(media.kind, filter.kind),
+    filter.folder === undefined
+      ? undefined
+      : filter.folder === 'none'
+        ? isNull(libraryItems.folderId)
+        : eq(libraryItems.folderId, filter.folder),
+    // `@>` uses the GIN index of the tags
+    filter.tag === undefined
+      ? undefined
+      : sql`${libraryItems.tags} @> array[${filter.tag}]::text[]`,
+    filter.name === undefined
+      ? undefined
+      : ilike(media.originalName, `%${likeLiteral(filter.name)}%`),
+  ]
+}
 
 const factsColumns = (facts: MediaFacts) => ({
   analysis: facts.analysis,
@@ -278,6 +309,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             eq(media.organizationId, organizationId),
             eq(media.workspaceId, workspaceId),
             ne(media.status, 'deleted'),
+            ...filterOf(page.filter),
             page.before === undefined
               ? undefined
               : sql`(${media.createdAt}, ${media.id}) < (select b.created_at, b.id from ${media} b
@@ -287,6 +319,125 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .orderBy(desc(media.createdAt), desc(media.id))
         .limit(page.limit)
       return rows.map(mediaOf)
+    },
+    async tagsOf(organizationId, workspaceId) {
+      const result = await db.execute<{ tag: string }>(sql`
+        select distinct t.tag
+          from ${libraryItems} i
+          join ${media} m on m.organization_id = i.organization_id and m.id = i.media_id
+          cross join lateral unnest(i.tags) as t(tag)
+         where i.organization_id = ${organizationId} and i.workspace_id = ${workspaceId}
+           and m.status <> 'deleted'
+         order by t.tag`)
+      return result.rows.map((r) => r.tag)
+    },
+    async setLibraryEntry(organizationId, workspaceId, mediaId, entry) {
+      const change = {
+        ...(entry.folderId === undefined ? {} : { folderId: entry.folderId }),
+        ...(entry.tags === undefined ? {} : { tags: entry.tags }),
+      }
+      await db
+        .insert(libraryItems)
+        .values({ organizationId, workspaceId, mediaId, ...change })
+        .onConflictDoUpdate({
+          target: [libraryItems.organizationId, libraryItems.mediaId],
+          set: { ...change, updatedAt: new Date() },
+        })
+    },
+    async lockFolders(organizationId, workspaceId) {
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`library_folders:${organizationId}:${workspaceId}`}))`,
+      )
+    },
+    async listFolders(organizationId, workspaceId): Promise<LibraryFolderRecord[]> {
+      const rows = await db
+        .select({
+          id: libraryFolders.id,
+          parentId: libraryFolders.parentId,
+          name: libraryFolders.name,
+          createdAt: libraryFolders.createdAt,
+          fileCount: sql<number>`(select count(*)::int from ${libraryItems} i
+             join ${media} m on m.organization_id = i.organization_id and m.id = i.media_id
+            where i.organization_id = "library_folders"."organization_id"
+              and i.folder_id = "library_folders"."id" and m.status <> 'deleted')`,
+        })
+        .from(libraryFolders)
+        .where(
+          and(
+            eq(libraryFolders.organizationId, organizationId),
+            eq(libraryFolders.workspaceId, workspaceId),
+          ),
+        )
+        .orderBy(asc(sql`lower(${libraryFolders.name})`), asc(libraryFolders.id))
+      return rows
+    },
+    async createFolder(folder) {
+      try {
+        await db.transaction((sp) => sp.insert(libraryFolders).values(folder))
+      } catch (error) {
+        if (isUniqueViolation(error)) return 'taken'
+        throw error
+      }
+      return 'created'
+    },
+    async updateFolder(organizationId, workspaceId, folderId, change) {
+      try {
+        const rows = await db.transaction((sp) =>
+          sp
+            .update(libraryFolders)
+            .set({ ...change, updatedAt: new Date() })
+            .where(
+              and(
+                eq(libraryFolders.organizationId, organizationId),
+                eq(libraryFolders.workspaceId, workspaceId),
+                eq(libraryFolders.id, folderId),
+              ),
+            )
+            .returning({ id: libraryFolders.id }),
+        )
+        return rows.length === 0 ? 'missing' : 'updated'
+      } catch (error) {
+        if (isUniqueViolation(error)) return 'taken'
+        throw error
+      }
+    },
+    async mediaInFolders(organizationId, workspaceId, folderIds) {
+      if (folderIds.length === 0) return []
+      const rows = await db
+        .select({ id: libraryItems.mediaId })
+        .from(libraryItems)
+        .where(
+          and(
+            eq(libraryItems.organizationId, organizationId),
+            eq(libraryItems.workspaceId, workspaceId),
+            inArray(libraryItems.folderId, [...folderIds]),
+          ),
+        )
+      return rows.map((r) => r.id)
+    },
+    async deleteFolders(organizationId, workspaceId, folderIds) {
+      if (folderIds.length === 0) return
+      const ids = [...folderIds]
+      await db
+        .update(uploadSessions)
+        .set({ folderId: null })
+        .where(
+          and(
+            eq(uploadSessions.organizationId, organizationId),
+            eq(uploadSessions.workspaceId, workspaceId),
+            inArray(uploadSessions.folderId, ids),
+          ),
+        )
+      // one statement: the parent key is checked at its end, so a folder and its subfolders go together
+      await db
+        .delete(libraryFolders)
+        .where(
+          and(
+            eq(libraryFolders.organizationId, organizationId),
+            eq(libraryFolders.workspaceId, workspaceId),
+            inArray(libraryFolders.id, ids),
+          ),
+        )
     },
     async findById(organizationId, mediaId) {
       const [row] = await withLibrary(db).where(

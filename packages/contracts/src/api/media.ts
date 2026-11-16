@@ -68,6 +68,8 @@ export const MediaDto = z.object({
   ),
 })
 
+export type MediaDto = z.infer<typeof MediaDto>
+
 const WorkspaceParams = z.strictObject({ org: OrgSlug, id: Id })
 const MediaParams = z.strictObject({ org: OrgSlug, id: Id, mediaId: Id })
 
@@ -81,12 +83,20 @@ export const listMediaRoute = defineContract({
     query: z.strictObject({
       before: Id.optional(),
       limit: z.coerce.number().int().min(1).max(100).optional(),
+      kind: z.enum(['image', 'video']).optional(),
+      /** a folder's files, right inside it; `none`: the files in no folder */
+      folder: z.union([Id, z.literal('none')]).optional(),
+      tag: z.string().max(100).optional(),
+      /** a part of the file's name */
+      q: z.string().max(200).optional(),
     }),
   },
   response: z.object({
     items: z.array(MediaDto),
     next: Id.nullable(),
     usedBytes: z.number().int(),
+    /** every tag of the library, by name: what the tag filter offers */
+    tags: z.array(z.string()),
   }),
   auth: 'session',
   scope: 'organization',
@@ -127,9 +137,97 @@ export const mediaFileRoute = defineContract({
   scope: 'organization',
 })
 
+export const updateMediaRoute = defineContract({
+  method: 'PATCH',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}',
+  summary: 'Sposta un file in una cartella (null: fuori da tutte) e ne cambia i tag',
+  request: {
+    params: MediaParams,
+    body: z.strictObject({
+      folderId: Id.nullable().optional(),
+      tags: z.array(z.string().max(100)).max(50).optional(),
+    }),
+  },
+  response: MediaDto,
+  auth: 'session',
+  scope: 'organization',
+})
+
+/** A folder of the library (§11.8). */
+export const LibraryFolder = z.object({
+  id: Id,
+  name: z.string(),
+  parentId: Id.nullable(),
+  /** files right inside it */
+  fileCount: z.number().int(),
+  createdAt: Timestamp,
+})
+
+export type LibraryFolder = z.infer<typeof LibraryFolder>
+
+const FolderParams = z.strictObject({ org: OrgSlug, id: Id, folderId: Id })
+
+export const listFoldersRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/folders',
+  summary: 'Le cartelle della libreria dello spazio, per nome',
+  request: { params: WorkspaceParams },
+  response: z.object({ items: z.array(LibraryFolder) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const createFolderRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/folders',
+  summary: 'Crea una cartella, in cima o dentro un’altra',
+  request: {
+    params: WorkspaceParams,
+    body: z.strictObject({ name: z.string().max(200), parentId: Id.nullable() }),
+  },
+  response: LibraryFolder,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const updateFolderRoute = defineContract({
+  method: 'PATCH',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}',
+  summary: 'Rinomina una cartella o la sposta dentro un’altra (null: in cima)',
+  request: {
+    params: FolderParams,
+    body: z.strictObject({
+      name: z.string().max(200).optional(),
+      parentId: Id.nullable().optional(),
+    }),
+  },
+  response: LibraryFolder,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const deleteFolderRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}',
+  summary:
+    'Elimina una cartella: vuota subito, altrimenti con confirm=true, e quello che contiene passa nella cartella sopra',
+  request: {
+    params: FolderParams,
+    query: z.strictObject({ confirm: z.enum(['true', 'false']).optional() }),
+  },
+  response: z.object({ deleted: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const mediaRoutes = [
   listMediaRoute,
   getMediaRoute,
+  updateMediaRoute,
   deleteMediaRoute,
   mediaFileRoute,
+  listFoldersRoute,
+  createFolderRoute,
+  updateFolderRoute,
+  deleteFolderRoute,
 ] as const

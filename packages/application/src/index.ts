@@ -49,7 +49,9 @@ export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
 export type {
+  LibraryFolderRecord,
   MediaFacts,
+  MediaFilter,
   MediaRecord,
   MediaRepository,
   MediaTurn,

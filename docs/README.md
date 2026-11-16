@@ -10,6 +10,7 @@
 | `design/` (alla radice) | Progetto grafico in Pencil, branding (`design/brand/`) e guida al design | Quando Matteo manda nuovo materiale (specifica §14.1) |
 | [Stack](stack.md) | Ogni componente con le alternative valutate e lo stato delle versioni | A ogni cambio di componente e a ogni revisione periodica |
 | [ADR](adr/README.md) | Decisioni architetturali con le alternative scartate | Una nuova scheda per ogni decisione importante |
+| [Decisioni aperte](decisioni-aperte.md) | Le scelte che aspettano Matteo, con origine, opzioni e stato | A ogni PR che apre, cambia o chiude una scelta |
 | [Flusso Git](flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci | Quando cambia il modo di lavorare |
 | [Convenzioni](convenzioni.md) | Lingua, TypeScript, nomi, errori, tempo, database, interfaccia | Quando nasce una regola nuova |
 | [Meta](platforms/meta.md) | Cosa dice la documentazione di Meta: versione, accessi, permessi, salute, errori, con fonte e data | A ogni cambio di versione della Graph API e dopo ogni prova su Meta vera |

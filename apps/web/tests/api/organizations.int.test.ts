@@ -28,6 +28,7 @@ test('Owner and Admin read the settings; a Member and a stranger do not', async 
     require2fa: null,
     platformRequire2fa: 'admins',
     privacy: null,
+    storage: { usedBytes: 0, limitBytes: null },
   })
   const memberCookie = await env.signIn(member)
   expect(

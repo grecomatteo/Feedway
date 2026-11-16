@@ -6,5 +6,11 @@ export default defineApiRoute(listMediaRoute, ({ actor, params, query }) =>
     workspaceId: params.id,
     ...(query.before === undefined ? {} : { before: query.before }),
     ...(query.limit === undefined ? {} : { limit: query.limit }),
+    filter: {
+      ...(query.kind === undefined ? {} : { kind: query.kind }),
+      ...(query.folder === undefined ? {} : { folder: query.folder }),
+      ...(query.tag === undefined ? {} : { tag: query.tag }),
+      ...(query.q === undefined ? {} : { name: query.q }),
+    },
   }),
 )

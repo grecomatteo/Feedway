@@ -8,6 +8,7 @@ interface Settings {
   require2fa: 'admins' | 'all' | null
   platformRequire2fa: 'admins' | 'all'
   privacy: { controllerName: string; contactEmail: string; extraText?: string } | null
+  storage: { usedBytes: number; limitBytes: number | null }
 }
 
 const org = useOrganization()
@@ -218,6 +219,33 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         </div>
       </fieldset>
     </form>
+    <section
+      v-if="data"
+      aria-labelledby="agency-storage"
+      class="space-y-2 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+    >
+      <h2 id="agency-storage" class="text-lg font-semibold">
+        {{ $t('orgSettings.storage.title') }}
+      </h2>
+      <p class="text-(--app-text-muted)">{{ $t('orgSettings.storage.text') }}</p>
+      <p class="font-semibold tabular-nums">
+        {{
+          data.storage.limitBytes === null
+            ? $t('orgSettings.storage.used', { used: formatBytes(data.storage.usedBytes) })
+            : $t('orgSettings.storage.usedOf', {
+                used: formatBytes(data.storage.usedBytes),
+                limit: formatBytes(data.storage.limitBytes),
+              })
+        }}
+      </p>
+      <UProgress
+        v-if="data.storage.limitBytes"
+        :model-value="Math.min(100, (data.storage.usedBytes / data.storage.limitBytes) * 100)"
+        :aria-label="$t('orgSettings.storage.title')"
+        size="sm"
+      />
+      <p v-else class="text-sm text-(--app-text-muted)">{{ $t('orgSettings.storage.noLimit') }}</p>
+    </section>
     <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
   </SettingsShell>
 </template>

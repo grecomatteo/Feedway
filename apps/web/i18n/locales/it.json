@@ -679,7 +679,8 @@
       "audit": "Registro attività",
       "privacy": "Privacy",
       "calendar": "Calendario",
-      "notifications": "Notifiche"
+      "notifications": "Notifiche",
+      "library": "Libreria"
     }
   },
   "context": {
@@ -910,6 +911,13 @@
     "tabs": {
       "general": "Generali",
       "integrations": "Integrazioni"
+    },
+    "storage": {
+      "title": "Spazio occupato",
+      "text": "Foto e video di tutti i clienti, copie e miniature comprese.",
+      "used": "{used} occupati",
+      "usedOf": "{used} occupati di {limit}",
+      "noLimit": "Nessun limite per questa agenzia."
     }
   },
   "integrations": {
@@ -1353,5 +1361,125 @@
     "managePeople": "Gestisci le persone",
     "syncedShort": "sincronizzato {when}",
     "pickLegend": "Profili senza cliente"
+  },
+  "library": {
+    "title": "Libreria",
+    "summary": "{n} file · {used} occupati | {n} file · {used} occupati | {n} file · {used} occupati",
+    "summaryEmpty": "Nessun file · {used} occupati",
+    "chooseClient": "Scegli un cliente",
+    "chooseClientText": "La libreria è di ogni cliente: scegli di chi vuoi vedere foto e video.",
+    "noClients": "Non lavori in nessun cliente che ha una libreria.",
+    "loading": "Carico la libreria",
+    "loadError": "Non siamo riusciti a caricare la libreria.",
+    "kind": {
+      "label": "Tipo di file",
+      "all": "Tutti",
+      "image": "Foto",
+      "video": "Video"
+    },
+    "search": "Cerca per nome",
+    "tag": {
+      "label": "Tag",
+      "all": "Tutti i tag"
+    },
+    "folders": {
+      "label": "Cartelle",
+      "all": "Tutti i file",
+      "none": "Senza cartella",
+      "choose": "Cartella",
+      "new": "Nuova cartella",
+      "newInside": "Nuova cartella dentro «{name}»",
+      "name": "Nome della cartella",
+      "create": "Crea",
+      "created": "Cartella «{name}» creata.",
+      "rename": "Rinomina",
+      "renameTitle": "Rinomina «{name}»",
+      "renamed": "Cartella rinominata.",
+      "delete": "Elimina cartella",
+      "deleteTitle": "Eliminare «{name}»?",
+      "deleteEmpty": "La cartella è vuota.",
+      "deleteFull": "Contiene {what}.",
+      "and": "e",
+      "deleteForever": "Vengono eliminati definitivamente insieme alla cartella: non si può annullare.",
+      "deleteAll": "Elimina tutto",
+      "subfolders": "nessuna sottocartella | {n} sottocartella | {n} sottocartelle",
+      "deleted": "Cartella eliminata.",
+      "actionsFor": "Azioni per la cartella {name}",
+      "dropHere": "Rilascia qui per spostare in «{name}»",
+      "files": "nessun file | {n} file | {n} file"
+    },
+    "empty": "Ancora nessun file",
+    "emptyText": "Le foto e i video caricati per questo cliente compaiono qui.",
+    "emptyFolder": "Questa cartella è vuota",
+    "emptyFolderText": "Trascina qui un file, oppure usa «Sposta in…» dal file.",
+    "noMatch": "Nessun file corrisponde ai filtri.",
+    "clearFilters": "Togli i filtri",
+    "more": "Mostra altri file",
+    "status": {
+      "uploading": "In caricamento",
+      "processing": "In preparazione",
+      "ready": "Pronto",
+      "failed": "Non riuscito"
+    },
+    "open": "Apri",
+    "openFile": "Apri {name}",
+    "moveTo": "Sposta in…",
+    "moveTitle": "Sposta «{name}»",
+    "move": "Sposta",
+    "moved": "«{name}» spostato in «{folder}».",
+    "movedOut": "«{name}» tolto dalle cartelle.",
+    "delete": "Elimina",
+    "deleteTitle": "Eliminare «{name}»?",
+    "deleteText": "Il file sparisce dalla libreria e le sue copie vengono cancellate. Non si può annullare.",
+    "deleted": "«{name}» eliminato.",
+    "detail": {
+      "title": "Dettagli del file",
+      "facts": "Il file",
+      "kind": "Tipo",
+      "dimensions": "Dimensioni",
+      "duration": "Durata",
+      "size": "Peso",
+      "codec": "Codec",
+      "fps": "Fotogrammi al secondo",
+      "uploaded": "Caricato",
+      "folder": "Cartella",
+      "tags": "Tag",
+      "tagsHint": "Scrivi un tag e premi Invio. Al massimo 20.",
+      "tagsSaved": "Tag salvati.",
+      "fixes": "Correzioni fatte",
+      "warnings": "Da sapere",
+      "noFixes": "Nessuna correzione: il file andava già bene.",
+      "failure": "Perché non è riuscito",
+      "noPreview": "Anteprima non disponibile",
+      "preparing": "Anteprima in preparazione",
+      "close": "Chiudi"
+    },
+    "fix": {
+      "convert_to_jpeg": "Convertito in JPEG",
+      "convert_to_srgb": "Colori portati in sRGB",
+      "strip_metadata": "Tolti i dati nascosti (luogo, ora, dispositivo)",
+      "recompress": "Compresso per stare nei limiti di {platform}",
+      "resize": "Ridotto a {width} px di larghezza",
+      "faststart": "Preparato per partire subito in riproduzione"
+    },
+    "warning": {
+      "convert_codec": "Il codec andrà convertito prima di pubblicarlo",
+      "convert_fps": "I fotogrammi al secondo andranno portati a {fps}"
+    },
+    "failure": {
+      "unsupported_type": "Tipo di file non ammesso: carica foto JPEG, PNG, HEIC, WEBP o video MP4 e MOV.",
+      "too_large": "Il file pesa troppo.",
+      "too_many_pixels": "La foto ha troppi pixel.",
+      "too_long": "Il video è troppo lungo.",
+      "unreadable": "Il file non si legge: forse è rovinato.",
+      "timeout": "La preparazione ha richiesto troppo tempo.",
+      "storage_full": "Lo spazio del cliente o dell'agenzia è pieno.",
+      "processing_failed": "La preparazione non è riuscita dopo vari tentativi."
+    },
+    "usage": "Spazio occupato",
+    "usageOf": "{used} di {limit}",
+    "recent": "Ultimi file",
+    "openLibrary": "Apri la libreria",
+    "noRecent": "Ancora nessun file nella libreria."
   }
 }

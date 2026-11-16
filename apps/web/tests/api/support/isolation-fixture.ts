@@ -48,6 +48,8 @@ export interface SampleIds {
   media: string
   /** an open upload into `workspace` of the agency's Owner, nothing received yet */
   upload: string
+  /** an empty folder of `workspace`'s library */
+  folder: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -143,6 +145,19 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   }),
   'POST /api/v1/platform/mail-settings/test': () => ({ to: 'prova@feedway.test' }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/uploads': sampleUploadStart,
+  // inside the case's folder: a folder of the other agency must not be found
+  'POST /api/v1/orgs/{org}/workspaces/{id}/folders': (ids) => ({
+    name: `Cartella ${randomUUID().slice(0, 8)}`,
+    parentId: ids.folder,
+  }),
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}': () => ({
+    name: `Rinominata ${randomUUID().slice(0, 8)}`,
+  }),
+  // into the case's folder: a folder of the other agency must not be found
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': (ids) => ({
+    folderId: ids.folder,
+    tags: ['batteria'],
+  }),
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
@@ -184,6 +199,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   account: randomUUID(),
   media: randomUUID(),
   upload: randomUUID(),
+  folder: randomUUID(),
 }
 
 /**
@@ -208,6 +224,7 @@ export const ID_KINDS = [
   'account',
   'media',
   'upload',
+  'folder',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -263,6 +280,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   mediaId: ids.media,
   variant: 'preview',
   uploadId: ids.upload,
+  folderId: ids.folder,
   n: '1',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case
@@ -311,6 +329,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   connection_attempts: 'select * from connection_attempts',
   media: 'select * from media',
   media_variants: 'select * from media_variants',
+  library_folders: 'select * from library_folders',
   library_items: 'select * from library_items',
   upload_sessions: 'select * from upload_sessions',
 }
@@ -438,6 +457,17 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** An empty folder of the workspace's library, written directly. */
+  async function libraryFolder(organizationId: string, workspaceId: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into library_folders (id, organization_id, workspace_id, name)
+       values ($1, $2, $3, $4)`,
+      [id, organizationId, workspaceId, `Cartella della batteria ${id.slice(0, 8)}`],
+    )
+    return id
+  }
+
   /** An open upload of `userId` into the workspace, written directly. */
   async function openUpload(organizationId: string, workspaceId: string, userId: string) {
     const id = randomUUID()
@@ -506,6 +536,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           ids.workspace,
           agency === 'a' ? people.owner.userId : ownerOfB.userId,
         ),
+        folder: await libraryFolder(organizationId, ids.workspace),
       }
     },
     async refreshReauth() {
@@ -541,6 +572,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           account: await socialAccount(agency.id, connection),
           media: await libraryVideo(agency.id, ids.workspace, owner.userId),
           upload: await openUpload(agency.id, ids.workspace, owner.userId),
+          folder: await libraryFolder(agency.id, ids.workspace),
         },
       }
     },

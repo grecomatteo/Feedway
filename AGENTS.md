@@ -17,6 +17,7 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 - **Un solo agente per task** scrive codice e test (vale anche dove l'intestazione dei piani 01 e 02 consiglia subagent-driven-development). Poi c'è l'agente revisore della PR e, solo nei casi elencati nel [flusso Git](docs/flusso-git.md) §Revisione, la revisione di sicurezza dedicata. Non dividere il task tra altri sottoagenti (implementatore, revisore della specifica, revisore della qualità): è lavoro doppio.
 - **E2E durante il lavoro**: solo le schermate che il task tocca (`pnpm --filter @app/web test:e2e <file>`, nel cloud con `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`). La suite completa resta in `pnpm verify:ci`, una volta sola prima del push.
 - **Prima di dire "fatto"**: `pnpm verify` verde, test pertinenti verdi, diff riletto. Se qualcosa non è verificato, dillo.
+- **Decisioni aperte**: ogni scelta che aspetta Matteo, o che hai fatto in modo provvisorio, va in [docs/decisioni-aperte.md](docs/decisioni-aperte.md) nella stessa PR, con origine, opzioni e stato. Togli la voce con la PR che la chiude.
 - **Mai**: disattivare o saltare test, usare `--no-verify`, fare push su `main`, riscrivere la storia di rami altrui, aggiungere dipendenze non previste dal piano senza una ADR.
 
 ## Segreti e Meta

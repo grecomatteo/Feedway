@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "library_folders_sibling_name" ON "library_folders" USING btree ("organization_id","workspace_id",coalesce("parent_id", '00000000-0000-0000-0000-000000000000'::uuid),lower("name"));--> statement-breakpoint
+CREATE INDEX "library_items_tags_idx" ON "library_items" USING gin ("tags");

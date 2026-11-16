@@ -12,6 +12,7 @@ import {
   primaryKey,
   text,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { createdAt, inList, tz, updatedAt } from '../columns.js'
@@ -162,6 +163,13 @@ export const libraryFolders = pgTable(
       columns: [t.organizationId, t.workspaceId, t.parentId],
       foreignColumns: [t.organizationId, t.workspaceId, t.id],
     }),
+    // two folders side by side never share a name, whatever the case (plan 04 Task 12)
+    uniqueIndex('library_folders_sibling_name').on(
+      t.organizationId,
+      t.workspaceId,
+      sql`coalesce(${t.parentId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+      sql`lower(${t.name})`,
+    ),
     check('library_folders_name', sql`char_length(${t.name}) between 1 and 80`),
     check('library_folders_not_own_parent', sql`${t.parentId} is distinct from ${t.id}`),
   ],
@@ -186,6 +194,7 @@ export const libraryItems = pgTable(
   (t) => [
     primaryKey({ columns: [t.organizationId, t.mediaId] }),
     index('library_items_folder_idx').on(t.organizationId, t.workspaceId, t.folderId),
+    index('library_items_tags_idx').using('gin', t.tags),
     // the file and the folder are of the same workspace
     foreignKey({
       name: 'library_items_media_fk',
