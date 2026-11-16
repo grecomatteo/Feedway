@@ -69,6 +69,22 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 | Conservazione | Finché l'account resta nell'agenzia. Una foto nuova sostituisce la vecchia, che si cancella subito; una foto che Meta non dà più si cancella alla sincronizzazione successiva. Si cancellerà con l'agenzia (la cancellazione dell'agenzia non c'è ancora) |
 | Chi la vede | Owner e Admin dell'agenzia; gli altri solo per gli account dei propri spazi. Mai dall'host pubblico |
 
+### 4 ter. Materiale dei clienti nella libreria
+
+| | |
+|---|---|
+| Finalità | Conservare e preparare foto e video che l'agenzia pubblica per i clienti su Instagram e Facebook |
+| Ruolo | Feedway tratta questi file per conto dell'agenzia, che li carica per incarico dei suoi clienti: l'agenzia è titolare o responsabile verso il cliente, Feedway è responsabile (art. 28) o sub-responsabile ✎ (accordo con le agenzie da scrivere) |
+| Base giuridica | Il contratto tra agenzia e cliente (art. 6.1.b), per conto del quale l'agenzia lavora; il consenso delle persone ritratte lo raccoglie il cliente o l'agenzia, non Feedway |
+| Interessati | Persone ritratte nelle foto e nei video (volti, voci), persone nominate nei nomi dei file |
+| Dati | Il file come caricato, le copie fatte da Feedway (copia per il feed, copia master fino a 4096 px, miniatura, anteprima e copia del video), il nome originale del file, chi l'ha caricato e quando |
+| Cosa si toglie | Alle foto, nelle copie: EXIF, posizione GPS, dati della fotocamera e profili colore (convertite in sRGB). Ai video, nelle copie: i metadati del contenitore, compresa la posizione. L'originale di una foto si cancella appena la copia è pronta; l'originale di un video resta, perché la copia si rifà da lì |
+| Esposizione pubblica | Solo le copie da pubblicare, all'indirizzo `/m/<token>` dell'host pubblico, perché Meta le scarica senza accesso. Il token è casuale e non si ricava dal file; l'host pubblico non elenca nulla e chiede ai motori di ricerca di non indicizzare (`robots.txt`). Un file cancellato sparisce subito da `/m/`; una CDN davanti può tenerlo al più un'ora |
+| Dove stanno | Sul disco della VPS (`STORAGE_DRIVER=local`) o in un bucket S3 compatibile ✎ (fornitore e regione, se scelto) |
+| Conservazione | Finché l'agenzia non cancella il file o la cartella: allora file e copie si cancellano subito. File non in libreria, dopo la pubblicazione: `MEDIA_RETENTION_DAYS` (7 giorni), resta la miniatura (dalla tappa 7). Caricamenti interrotti: 24 ore. Si cancellerà con l'agenzia (la cancellazione dell'agenzia non c'è ancora) |
+| Copie di sicurezza | **Nessuna** fino alla tappa 11: il backup del database non contiene i file. Fino ad allora la libreria non deve tenere l'unica copia del materiale di un cliente |
+| Chi la vede | Le persone dell'agenzia con accesso allo spazio del cliente; Meta, per le copie pubblicate |
+
 ### 5. Registro attività
 
 | | |
@@ -92,7 +108,7 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 |---|---|
 | Finalità | Ripristinare il servizio dopo un guasto |
 | Base giuridica | Legittimo interesse alla continuità (art. 6.1.f; art. 32.1.c) |
-| Dati | Copia del database e dei file |
+| Dati | Copia del database. I file della libreria non ci sono ancora: arrivano con la tappa 11 (§4 ter) |
 | Misure | Cifrati con `age` sulla VPS; la chiave privata non sta sul server ✎ (dove è custodita) |
 | Conservazione ✎ | Secondo la rotazione dei backup scelta |
 | Destinatari ✎ | Fornitore dello spazio dove finiscono i backup |
