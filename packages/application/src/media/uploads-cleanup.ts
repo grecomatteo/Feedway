@@ -1,6 +1,7 @@
 import type { Clock } from '../ports/clock.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
+import type { Storage } from '../ports/storage.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { UploadParts } from '../ports/uploads.js'
 
@@ -13,6 +14,7 @@ export interface UploadsCleanupDeps {
   clock: Clock
   queue: Pick<JobQueue, 'send'>
   uploadParts: UploadParts
+  storage: Pick<Storage, 'list' | 'delete'>
   logger: Logger
 }
 
@@ -26,6 +28,8 @@ export interface UploadsCleanupReport {
   requeued: number
   /** files still `processing` long after their last change, whose worker is woken again */
   woken: number
+  /** logo previews never confirmed, past a day */
+  logoPreviews: number
   /** agencies whose step failed: logged, and the job fails at the end to be retried */
   failed: number
 }
@@ -41,6 +45,9 @@ export const ORPHAN_PARTS_MIN_AGE_MS = 60 * 60 * 1000
  * was down at completion): the worker is woken for it again.
  */
 export const PROCESSING_STALE_MS = 15 * 60 * 1000
+
+/** A logo preview (`org/<id>/logo/staging/`) not confirmed in this long is left behind. */
+export const LOGO_STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 /**
  * For every agency: removes the uploads past their expiry with their pieces (their space is
@@ -65,6 +72,7 @@ export async function runMediaUploadsCleanup(
     orphans: 0,
     requeued: 0,
     woken: 0,
+    logoPreviews: 0,
     failed: 0,
   }
   for (const { id: organizationId } of organizations) {
@@ -105,6 +113,11 @@ export async function runMediaUploadsCleanup(
         )
         if (id !== null) report.woken += 1
       }
+      for (const file of await deps.storage.list(`org/${organizationId}/logo/staging/`))
+        if (now.getTime() - file.modifiedAt.getTime() >= LOGO_STAGING_MAX_AGE_MS) {
+          await deps.storage.delete(file.key)
+          report.logoPreviews += 1
+        }
     } catch (err) {
       report.failed += 1
       deps.logger.error({ organizationId, err }, 'media uploads clean-up step failed')

@@ -49,7 +49,9 @@ export function renderObject(
 ): Record<string, unknown> {
   const wanted = fields ?? DEFAULT_FIELDS
   const out: Record<string, unknown> = object.id === undefined ? {} : { id: object.id }
-  for (const [name, sub] of wanted) {
+  for (const [asked, sub] of wanted) {
+    // `picture.width(256).height(256)`: the modifiers change the size, not the field
+    const name = asked.split('.')[0] ?? asked
     const value = object[name]
     if (value === undefined) continue
     if (isRef(value)) {

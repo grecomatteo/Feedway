@@ -4,7 +4,7 @@ import { request as httpRequest } from 'node:http'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { createLocalDiskStorage } from '@app/infrastructure'
-import { seed, withScope } from '@app/infrastructure/testing'
+import { seed, waitForLockWaiter, withScope } from '@app/infrastructure/testing'
 import { errorCodeOf, startApiEnv } from './identity-env.js'
 import type { ApiEnv, Person } from './identity-env.js'
 
@@ -459,6 +459,69 @@ test('a client archived while a piece arrives: the piece is not kept, and comple
   expect(done.status).toBe(409)
   // no reason: a conflict the panel does not wait for
   expect(((await done.json()) as { error: { reason?: string } }).error.reason).toBeUndefined()
+})
+
+test('a folder deleted while a file arrives in it: the file goes to the top of the library', async () => {
+  const wsBase = `/api/v1/orgs/${org.slug}/workspaces/${workspace}`
+  const newFolder = async () => {
+    const made = await env.call(
+      'POST',
+      `${wsBase}/folders`,
+      { name: `Da eliminare ${randomBytes(3).toString('hex')}`, parentId: null },
+      { cookie: cookies.editor },
+    )
+    expect(made.status).toBe(200)
+    return ((await made.json()) as { id: string }).id
+  }
+  const file = mp4Like(3000)
+  const begin = (folderId: string) =>
+    env.call(
+      'POST',
+      base(),
+      {
+        name: 'in cartella.mp4',
+        type: 'video/mp4',
+        sizeBytes: file.length,
+        firstPartSha256: sha256(file),
+        folderId,
+      },
+      { cookie: cookies.editor },
+    )
+  /** The folder deleted as `deleteFolder` does, holding the folders' lock until `then`. */
+  async function deletingWhile(folderId: string, then: () => Promise<Response>) {
+    const client = await env.admin.pool.connect()
+    try {
+      await client.query('begin')
+      await client.query('select pg_advisory_xact_lock(hashtext($1))', [
+        `library_folders:${org.id}:${workspace}`,
+      ])
+      const answer = then()
+      // the call waits for the lock instead of reading the folder before it goes
+      await waitForLockWaiter(env.tdb.adminUrl, 'web')
+      await client.query('update upload_sessions set folder_id = null where folder_id = $1', [
+        folderId,
+      ])
+      await client.query('delete from library_folders where id = $1', [folderId])
+      await client.query('commit')
+      return await answer
+    } finally {
+      client.release()
+    }
+  }
+
+  const folder = await newFolder()
+  const started = await begin(folder)
+  expect(started.status).toBe(200)
+  const upload = (await started.json()) as Upload
+  expect((await put(upload, 1, file)).status).toBe(200)
+  const done = await deletingWhile(folder, () => complete(upload))
+  expect(done.status).toBe(200)
+  expect(((await done.json()) as { folderId: string | null }).folderId).toBeNull()
+
+  // an upload starting in it meanwhile is refused, not a 500
+  const other = await newFolder()
+  const late = await deletingWhile(other, () => begin(other))
+  expect(late.status).toBe(422)
 })
 
 test("two uploads at once cannot take more than the agency's space together", async () => {

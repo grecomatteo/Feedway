@@ -8,6 +8,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
   createDb,
   createDiskUploadParts,
+  createLocalDiskStorage,
   createLogger,
   createUnitOfWork,
   systemClock,
@@ -27,6 +28,8 @@ let tdb: TestDatabase
 let handle: DbHandle
 let admin: pg.Client
 let dir: string
+let storageRoot: string
+let storage: ReturnType<typeof createLocalDiskStorage>
 let queue: ReturnType<typeof recordingQueue>
 let deps: JobHandlerDeps
 
@@ -96,6 +99,8 @@ beforeAll(async () => {
   admin = new pg.Client({ connectionString: tdb.adminUrl })
   await admin.connect()
   dir = await mkdtemp(join(tmpdir(), 'uploads-cleanup-'))
+  storageRoot = await mkdtemp(join(tmpdir(), 'uploads-cleanup-storage-'))
+  storage = createLocalDiskStorage({ root: storageRoot })
   const logger = createLogger({ service: 'worker', level: 'error' })
   queue = recordingQueue()
   deps = {
@@ -103,6 +108,7 @@ beforeAll(async () => {
     queue,
     clock: systemClock,
     uploadParts: createDiskUploadParts({ dir }),
+    storage,
     uow: createUnitOfWork({ db: handle.db, ids: uuidV7Generator, logger }),
   } as unknown as JobHandlerDeps
 }, 120_000)
@@ -136,6 +142,22 @@ test('expired uploads go with their pieces, in every agency; open ones stay', as
     a.organizationId,
   ])
   expect(rows).toHaveLength(2)
+})
+
+test('logo previews never confirmed go after a day; the logo and a recent preview stay', async () => {
+  const a = await agency()
+  const key = (name: string) => `org/${a.organizationId}/logo/${name}`
+  const age = async (k: string, ms: number) => {
+    const at = new Date(Date.now() - ms)
+    await utimes(join(storageRoot, k), at, at)
+  }
+  for (const k of [key('staging/vecchia.webp'), key('staging/nuova.webp'), key('abc.webp')])
+    await storage.put(k, Buffer.from('webp'), { contentType: 'image/webp' })
+  await age(key('staging/vecchia.webp'), 25 * HOUR)
+  await age(key('abc.webp'), 25 * HOUR)
+  await run()
+  const left = (await storage.list(`org/${a.organizationId}/logo/`)).map((f) => f.key).sort()
+  expect(left).toEqual([key('abc.webp'), key('staging/nuova.webp')])
 })
 
 test('pieces no upload knows go after an hour, not before', async () => {
