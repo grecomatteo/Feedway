@@ -243,6 +243,8 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .onConflictDoUpdate({
           target: [mediaVariants.organizationId, mediaVariants.mediaId, mediaVariants.purpose],
           set: {
+            // a copy made again is another copy: its id is the ETag the browsers and Meta keep
+            id,
             storageKey: rest.storageKey,
             publicToken: rest.publicToken,
             mime: rest.mime,
@@ -283,6 +285,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           status: 'failed',
           failure: failed.failure,
           progress: null,
+          ...(failed.forgetOriginal && { storageKey: null }),
         })
         .where(stillProcessing(organizationId, mediaId))
         .returning({ id: media.id })

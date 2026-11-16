@@ -150,6 +150,7 @@ async function row(id: string) {
 
 async function variants(id: string) {
   const res = await admin.query<{
+    id: string
     purpose: string
     storage_key: string
     public_token: string | null
@@ -340,12 +341,36 @@ test('a broken HEIC is failed with its reason, and leaves nothing', async () => 
   const heic = await imageFixture('photo.heic')
   const id = await waiting(a, heic.subarray(0, Math.floor(heic.length * 0.6)), 'heic')
   await wake(deps(), a, id)
-  expect(await row(id)).toMatchObject({ status: 'failed', failure: { code: 'unreadable' } })
+  expect(await row(id)).toMatchObject({
+    status: 'failed',
+    failure: { code: 'unreadable' },
+    storage_key: null,
+  })
   expect(await variants(id)).toEqual([])
-  // the original stays for the person to see what failed, until the file is deleted
-  expect((await runtime.storage.list(`org/${a.org}/media/${id}/`)).map((f) => f.key)).toEqual([
-    `org/${a.org}/media/${id}/original.heic`,
-  ])
+  // a refusal is final: the original goes, with its GPS, and frees its space (§15.7)
+  expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toEqual([])
+})
+
+test('a file blocked before decoding loses its original too', async () => {
+  const a = await agency()
+  const id = await waiting(a, pngBomb(100_000, 100_000), 'png')
+  await wake(deps(), a, id)
+  expect(await row(id)).toMatchObject({ status: 'failed', storage_key: null })
+  expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toEqual([])
+})
+
+test('a copy made again gets a new id, so browsers and Meta do not keep the old one', async () => {
+  const a = await agency()
+  const id = await waiting(a, await video('hevc.mov'), 'mov')
+  await wake(deps(), a, id)
+  const first = await variants(id)
+  expect(first.length).toBeGreaterThan(0)
+  // made again, as after a worker stopped halfway
+  await admin.query(`update media set status = 'processing' where id = $1`, [id])
+  await wake(deps(), a, id, 'again')
+  const again = await variants(id)
+  expect(again.map((v) => v.purpose)).toEqual(first.map((v) => v.purpose))
+  for (const v of again) expect(first.map((f) => f.id)).not.toContain(v.id)
 })
 
 test('two agencies: the second does not wait for all the files of the first', async () => {
@@ -442,8 +467,8 @@ test('copies over the space left: failed with the reason, the copies go', async 
     failure: { code: 'storage_full', scope: 'organization', limit: bytes.length + 10 },
   })
   expect(await variants(id)).toEqual([])
-  const left = await runtime.storage.list(`org/${a.org}/media/${id}/`)
-  expect(left.map((f) => f.key)).toEqual([`org/${a.org}/media/${id}/original.mov`])
+  expect(await row(id)).toMatchObject({ storage_key: null })
+  expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toEqual([])
 })
 
 test('a file deleted while it is processed leaves no copy behind', async () => {
@@ -473,6 +498,9 @@ test('a file the worker keeps stopping on is failed after three attempts', async
     failure: { code: 'processing_failed' },
     processing_attempts: 4,
   })
+  // the fault may be ours: the original stays, to try again one day
+  expect((await row(id))?.storage_key).not.toBeNull()
+  expect(await runtime.storage.list(`org/${a.org}/media/${id}/`)).toHaveLength(1)
 })
 
 test('a wake-up with nothing waiting does nothing', async () => {

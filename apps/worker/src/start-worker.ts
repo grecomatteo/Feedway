@@ -1,3 +1,4 @@
+import { wakeMediaProcessing } from '@app/application'
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import { accountsAvatar } from './handlers/accounts-avatar.js'
 import { accountsDaily } from './handlers/accounts-daily.js'
@@ -42,12 +43,26 @@ export const RETENTION_TZ = 'Europe/Rome'
 /** Every day at 04:00, Italian time: syncs and clean-up of the accounts (plan 03 Task 11). */
 export const ACCOUNTS_DAILY_CRON = '0 4 * * *'
 export const ACCOUNTS_DAILY_TZ = 'Europe/Rome'
-/** Every hour, at 17 past: expired uploads and the bytes of deleted files (plan 04 Task 9). */
-export const MEDIA_UPLOADS_CLEANUP_CRON = '17 * * * *'
+/**
+ * Every ten minutes, from 7 past: expired uploads, the bytes of deleted files (plan 04 Task 9)
+ * and the files left `processing` by a worker stuck or gone (revisione tappa 4, P2).
+ */
+export const MEDIA_UPLOADS_CLEANUP_CRON = '7-59/10 * * * *'
 export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
+  // on stop, a conversion is interrupted at once: it gives its attempt back and is retried by
+  // the next worker, instead of being killed by Docker halfway (revisione tappa 4, P2)
+  const stopping = new AbortController()
+  const mediaProcessOnStop: JobHandler<'media.process'> = (job, d) =>
+    (deps.handlers?.['media.process'] ?? mediaProcess)(
+      {
+        ...job,
+        signal: job.signal ? AbortSignal.any([job.signal, stopping.signal]) : stopping.signal,
+      },
+      d,
+    )
   const handlers: JobHandlers = {
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
@@ -64,9 +79,9 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.daily': accountsDaily,
     'accounts.avatar': accountsAvatar,
     'media.delete_files': mediaDeleteFiles,
-    'media.process': mediaProcess,
     'media.uploads_cleanup': mediaUploadsCleanup,
     ...deps.handlers,
+    'media.process': mediaProcessOnStop,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
 
@@ -92,10 +107,13 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
         tz: MEDIA_UPLOADS_CLEANUP_TZ,
       },
     )
+  if (queues.includes('media.process'))
+    await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {
     async stop() {
+      stopping.abort()
       stopHeartbeat()
       // lets running jobs finish; whatever is still active afterwards is retried after expiry
       await queue.stop({ graceful: true, timeoutMs: STOP_TIMEOUT_MS })
