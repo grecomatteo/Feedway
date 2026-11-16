@@ -55,6 +55,7 @@ const userColumns = {
   status: users.status,
   twoFactorEnabled: users.twoFactorEnabled,
   theme: users.theme,
+  palette: users.palette,
   locale: users.locale,
   timezone: users.timezone,
   lastOrganizationId: users.lastOrganizationId,
@@ -80,6 +81,7 @@ const toUser = (row: UserRow): UserRecord => ({
   status: row.status as UserRecord['status'],
   twoFactorEnabled: row.twoFactorEnabled === true,
   theme: row.theme as UserRecord['theme'],
+  palette: row.palette as UserRecord['palette'],
   locale: row.locale,
   timezone: row.timezone,
   lastOrganizationId: row.lastOrganizationId,
@@ -236,6 +238,7 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
       if (fields.name !== undefined) set.name = fields.name
       if (fields.nickname !== undefined) set.nickname = fields.nickname
       if (fields.theme !== undefined) set.theme = fields.theme
+      if (fields.palette !== undefined) set.palette = fields.palette
       if (fields.timezone !== undefined) set.timezone = fields.timezone
       if (Object.keys(set).length === 0) return
       await db

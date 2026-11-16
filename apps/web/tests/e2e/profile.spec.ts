@@ -28,7 +28,7 @@ test('profile edits are saved and theme follows the user to a new device', async
   const preferences = page.getByRole('region', { name: 'Preferenze' })
   await preferences.getByRole('radio', { name: 'Scuro' }).check()
   await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.getByRole('status')).toHaveText('Modifiche salvate.')
+  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
   await expect(page.locator('html')).toHaveClass(/dark/)
 
   // another browser, signed in from scratch: the theme comes with the profile
@@ -146,10 +146,10 @@ test('after a light or dark choice, «Automatico» in the preferences sticks', a
   const preferences = page.getByRole('region', { name: 'Preferenze' })
   await preferences.getByRole('radio', { name: 'Scuro' }).check()
   await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.getByRole('status')).toHaveText('Modifiche salvate.')
+  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
   await preferences.getByRole('radio', { name: 'Automatico' }).check()
   await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.getByRole('status')).toHaveText('Modifiche salvate.')
+  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
   const theme = async () =>
     (
       await adminQuery<{ theme: string }>('select theme from users where id = $1', [person.userId])

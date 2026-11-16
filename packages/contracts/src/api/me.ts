@@ -2,6 +2,10 @@ import { z } from 'zod'
 import { defineContract } from './define.js'
 import { Id, OrgRole, Timestamp } from './common.js'
 
+/** The colour palettes of the panel (`packages/ui`): Feedway is the default. */
+export const Palette = z.enum(['feedway', 'blu', 'verde', 'viola', 'grafite'])
+export type Palette = z.infer<typeof Palette>
+
 const MyOrganization = z.object({
   id: z.string(),
   slug: z.string(),
@@ -22,6 +26,7 @@ export const Me = z.object({
   platformRole: z.literal('admin').nullable(),
   avatarUrl: z.string().nullable(),
   theme: z.enum(['light', 'dark', 'system']),
+  palette: Palette,
   locale: z.string(),
   timezone: z.string().nullable(),
   lastOrganizationSlug: z.string().nullable(),
@@ -55,12 +60,13 @@ export const meRoute = defineContract({
 export const updateMeRoute = defineContract({
   method: 'PATCH',
   path: '/api/v1/me',
-  summary: 'Cambia nome, soprannome, tema o fuso orario della persona collegata',
+  summary: 'Cambia nome, soprannome, tema, colori o fuso orario della persona collegata',
   request: {
     body: z.strictObject({
       name: z.string().max(200).optional(),
       nickname: z.string().max(200).nullable().optional(),
       theme: z.enum(['light', 'dark', 'system']).optional(),
+      palette: Palette.optional(),
       timezone: z.string().max(64).nullable().optional(),
     }),
   },

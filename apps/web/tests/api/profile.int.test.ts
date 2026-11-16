@@ -47,6 +47,35 @@ test('the profile changes through PATCH /api/v1/me and the answer is the new me'
   expect((await env.call('PATCH', '/api/v1/me', { theme: 'light' })).status).toBe(401)
 })
 
+test('the colour palette belongs to the person: saved, read on another device, unknown refused', async () => {
+  const agency = await env.agency()
+  const person = await env.person(agency.id, 'member')
+  const other = await env.person(agency.id, 'member')
+  const cookie = await env.signIn(person)
+  const otherCookie = await env.signIn(other)
+
+  const chosen = await env.call('PATCH', '/api/v1/me', { palette: 'verde' }, { cookie })
+  expect(chosen.status).toBe(200)
+  expect(await chosen.json()).toMatchObject({ palette: 'verde', theme: 'system' })
+  const elsewhere = await env.signIn(person)
+  expect(
+    await (await env.call('GET', '/api/v1/me', undefined, { cookie: elsewhere })).json(),
+  ).toMatchObject({ palette: 'verde' })
+  // a colleague in the same agency keeps the default
+  expect(
+    await (await env.call('GET', '/api/v1/me', undefined, { cookie: otherCookie })).json(),
+  ).toMatchObject({ palette: 'feedway' })
+
+  for (const palette of ['arancio', 'FEEDWAY', '', null, 3]) {
+    const wrong = await env.call('PATCH', '/api/v1/me', { palette }, { cookie })
+    expect(wrong.status, String(palette)).toBe(422)
+  }
+  expect((await env.call('PATCH', '/api/v1/me', { palette: 'blu' })).status).toBe(401)
+
+  const back = await env.call('PATCH', '/api/v1/me', { palette: 'feedway' }, { cookie })
+  expect(await back.json()).toMatchObject({ palette: 'feedway' })
+})
+
 /** The confirmation link queued for the worker (the web tests run no worker). */
 async function queuedConfirmToken(userId: string): Promise<string> {
   const { rows } = await env.admin.pool.query<{ data: { url: string } }>(

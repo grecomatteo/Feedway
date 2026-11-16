@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "palette" text DEFAULT 'feedway' NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_palette" CHECK (palette in ('feedway', 'blu', 'verde', 'viola', 'grafite'));

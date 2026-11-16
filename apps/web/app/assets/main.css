@@ -6,7 +6,8 @@
   --font-sans: system-ui, sans-serif;
   --font-display: Sora, system-ui, sans-serif;
 
-  /* scale around the brand orange #FF762E (500) */
+  /* scale around the brand orange #FF762E (500): the landing and the logo; the panel uses the
+     --app-* tokens, which follow the chosen palette */
   --color-brand-50: #fff4ed;
   --color-brand-100: #ffe8da;
   --color-brand-200: #ffcdb0;
@@ -28,7 +29,8 @@
   --ui-bg-accented: var(--app-surface-sunken);
   --ui-border: var(--app-border);
   --ui-border-muted: var(--app-border);
-  --ui-border-accented: var(--app-border-strong);
+  /* the outline of inputs, selects and outline buttons: 3:1 on every surface */
+  --ui-border-accented: var(--app-field-border);
   --ui-text: var(--app-text);
   --ui-text-muted: var(--app-text-muted);
   --ui-text-dimmed: var(--app-text-muted);
