@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -110,19 +110,6 @@ Ultimo aggiornamento: correzioni della revisione finale della tappa 4 (16 novemb
 - **Il problema:** l'id è un UUID v7 e rivela l'ora di creazione della copia.
 - **Opzioni:** (a) un ETag dall'impronta del file; (b) lasciare così.
 - **Stato:** aperta.
-
-## Rilascio 0.10.0
-
-### D-13 · `secrets/ts_public_authkey` prima dell'aggiornamento
-- **Origine:** tappa 4, Task 11.
-- **Il problema:** lo `update.sh` delle versioni precedenti rifiuta la 0.10.0 se manca `secrets/ts_public_authkey`.
-- **Cosa fare:** prima dell'aggiornamento sulla VPS, `(umask 077 && printf non-usata > secrets/ts_public_authkey)`. Va nelle note di rilascio e nella guida della prova.
-- **Stato:** decisa, da fare nel Task 14.
-
-### D-14 · Guida completa della prova della 0.10.0
-- **Origine:** richiesta di Matteo, 16 novembre.
-- **Cosa fare:** una guida passo passo con tutto quello che va fatto sulla VPS (D-13, policy e chiave di Tailscale, Funnel, aggiornamento, controlli) e ogni passo della prova.
-- **Stato:** decisa, da fare nel Task 14.
 
 ## Lavoro rimandato ad altre tappe
 

@@ -1,6 +1,43 @@
 # Media
 
-Come si accende l'host pubblico dei media, come si legge l'indirizzo pubblico di un file, cosa fare con un file fermo in elaborazione e cosa manca ancora (le copie di sicurezza dei file). Limiti e cartelle dei file arrivano con il Task 14 della tappa 4.
+I limiti dei file, dove stanno, come si accende l'host pubblico dei media, come si legge l'indirizzo pubblico di un file, cosa fare con un file fermo in elaborazione e cosa manca ancora (le copie di sicurezza dei file).
+
+## Limiti
+
+Si cambiano in `.env` (poi `./scripts/compose.sh up -d web worker`); vuoti valgono i valori di `packages/config` (ADR 021).
+
+| Cosa | Valore | Variabile |
+|---|---|---|
+| Tipi ammessi | foto JPEG, PNG, WebP, HEIC/HEIF; video MP4 e MOV. Decidono i byte, non il nome | — |
+| Peso di una foto | 50 MB | `MEDIA_MAX_IMAGE_BYTES` |
+| Pixel di una foto | 50 milioni | `MEDIA_MAX_IMAGE_PIXELS` |
+| Peso di un video | 300 MB | `MEDIA_MAX_VIDEO_BYTES` |
+| Durata di un video | 15 minuti | `MEDIA_MAX_VIDEO_SECONDS` |
+| Pixel di un fotogramma | 4096 × 4096 | `MEDIA_MAX_VIDEO_PIXELS` |
+| Spazio di un cliente | nessun limite | `MEDIA_WORKSPACE_MAX_BYTES` (byte) |
+| Conversioni alla volta per agenzia | 1 | `MEDIA_CONVERSIONS_PER_ORG` |
+| Pezzi del caricamento | 20 MiB; il server del pannello dà 300 s a ogni richiesta | — |
+| Caricamento non finito | si cancella dopo 24 ore | — |
+| Tempo di una conversione video | 2 minuti più 4 volte la durata, al massimo 60 minuti (un reel di 60 s: 6 minuti) | — |
+| Tentativi di una conversione | 3; un riavvio pulito del worker non ne consuma | — |
+| Letture alla volta sull'host pubblico | 3 per processo, poi 503 con `Retry-After: 5` | — |
+| Memoria dei contenitori | worker 2 GB, web 1536 MB | `docker/compose.yml` |
+
+La copia master di una foto è al massimo 4096 px sul lato lungo, senza EXIF né GPS; l'originale di una foto si cancella appena le copie sono pronte. L'originale di un video resta, perché le copie si rifanno da lì.
+
+## Dove stanno i file
+
+Con `STORAGE_DRIVER=local` (il default) tutto sta nel volume Docker `media`, montato in `/media` (`MEDIA_ROOT`) in web e worker:
+
+- `org/<agenzia>/media/<file>/<copia>.<ext>`: originale e copie di ogni file della libreria (per esempio `ig_feed`, `master`, `thumbnail`, `preview`, `reel`);
+- `org/<agenzia>/logo/<impronta>.webp` e `-64.webp`: il logo dell'agenzia;
+- `org/<agenzia>/accounts/<account>/avatar/<impronta>.webp`: le foto dei profili dei clienti;
+- `users/<persona>/…`: le foto profilo delle persone;
+- `uploads/` (`MEDIA_UPLOAD_DIR`): i pezzi dei caricamenti in corso, fuori dalle chiavi qui sopra.
+
+Lo spazio occupato: `./scripts/compose.sh exec worker du -sh /media/org /media/uploads`. Con S3 (`docker/compose.s3.yml`) le stesse chiavi sono oggetti del bucket; i pezzi dei caricamenti restano sul disco del web.
+
+Il nome di agenzia e file nelle cartelle è un id: per sapere a quale file corrisponde una cartella, `select original_name, status from media where id = '<file>'` con la `psql` di sotto.
 
 ## Cos'è
 
