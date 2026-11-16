@@ -35,7 +35,7 @@ const inputWith = (maxPixels: number | null) => (path: string) => [
   `file:${path}`,
 ]
 
-/** After a decoding error, the share of the declared duration the copy must keep. */
+/** After a decoding error, the share of the file's video frames the copy must keep. */
 const DECODED_SHARE = 0.97
 const GLOBAL = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1']
 
@@ -48,6 +48,10 @@ interface ProbeStream {
   r_frame_rate?: string
   tags?: { rotate?: string }
   side_data_list?: { rotation?: number }[]
+}
+
+interface CountOutput {
+  streams?: { nb_read_packets?: string }[]
 }
 
 interface ProbeOutput {
@@ -137,6 +141,36 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
     }
   }
 
+  /**
+   * The video frames the file holds, counted from its packets (nothing decoded): a sound track or
+   * a header cannot stretch this number, unlike the container's duration.
+   */
+  async function videoPackets(path: string, signal?: AbortSignal): Promise<number | null> {
+    const run = await runTool(
+      commands.ffprobe,
+      [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        ...header(path),
+        '-select_streams',
+        'v:0',
+        '-count_packets',
+        '-show_streams',
+        '-of',
+        'json',
+      ],
+      { timeoutMs: PROBE_TIMEOUT_MS, signal },
+    )
+    if (run.outcome !== 'exited' || run.code !== 0) return null
+    try {
+      const packets = Number((JSON.parse(run.stdout) as CountOutput).streams?.[0]?.nb_read_packets)
+      return Number.isFinite(packets) && packets > 0 ? packets : null
+    } catch {
+      return null
+    }
+  }
+
   async function made(
     run: ToolRun,
     output: string,
@@ -166,6 +200,8 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
       },
     ) {
       const size = previewSize(opts.width, opts.height)
+      // from `-progress`: frames written, and those of them the encoder repeated to fill a gap
+      const progress = { frame: 0, dup: 0 }
       const run = await runTool(
         commands.ffmpeg,
         [
@@ -211,6 +247,8 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           timeoutMs: ffmpegTimeoutMs(opts.durationMs),
           signal: opts.signal,
           onLine: (line) => {
+            const count = /^(frame|dup_frames)=(\d+)$/.exec(line)
+            if (count?.[2]) progress[count[1] === 'frame' ? 'frame' : 'dup'] = Number(count[2])
             const match = /^out_time_us=(\d+)$/.exec(line)
             if (match?.[1] && opts.onProgress && opts.durationMs > 0)
               opts.onProgress(Math.min(1, Number(match[1]) / 1000 / opts.durationMs))
@@ -218,11 +256,12 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
         },
       )
       // at `-loglevel error` a clean file says nothing. Frames the decoder refused (over the
-      // pixel limit, broken) leave a shorter copy with an exit code 0; a glitch it hid leaves
-      // them all. So after an error the copy must last as long as the file says (P6)
+      // pixel limit, broken) are missing from the copy, with an exit code 0; a glitch it hid
+      // leaves them all. So after an error the copy must hold the file's frames (P6). Frames,
+      // not duration: a sound track or a repeated frame keeps the length of a copy with holes
       if (run.outcome === 'exited' && run.code === 0 && run.stderr.trim() !== '') {
-        const copy = await probeVideo(output, 'mp4', opts.signal)
-        if (!copy.ok || copy.analysis.durationMs < opts.durationMs * DECODED_SHARE)
+        const frames = await videoPackets(path, opts.signal)
+        if (frames === null || progress.frame - progress.dup < frames * DECODED_SHARE)
           return { ok: false, reason: 'unreadable' } as const
       }
       return made(run, output, { mime: 'video/mp4', ...size })

@@ -3,9 +3,9 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { isPublicMediaName, readPublicMediaFile } from '@app/application'
 import type { MediaFile } from '@app/application'
-import { parseByteRange } from '../utils/byte-range'
-import { pathForLog } from '../utils/log-path'
-import type { Deps } from '../utils/deps'
+import { parseByteRange } from '../utils/byte-range.js'
+import { pathForLog } from '../utils/log-path.js'
+import type { Deps } from '../utils/deps.js'
 
 /**
  * The public host (spec §16.1, ADR 005, plan 04 Task 11): a listener of its own on PUBLIC_PORT,

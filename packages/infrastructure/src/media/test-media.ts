@@ -214,9 +214,15 @@ export function makeDamagedVideo(dir: string): string {
 
 /**
  * An H.264 MP4 whose stream switches from `small` to `large` frames halfway: the header (the
- * first SPS) says only `small`.
+ * first SPS) says only `small`. `then`: small frames again after the large ones; `audio`: a
+ * silent track as long as the whole video, so the container lasts the full time.
  */
-export function makeResolutionSwitch(dir: string, small: string, large: string): string {
+export function makeResolutionSwitch(
+  dir: string,
+  small: string,
+  large: string,
+  opts: { then?: string; audio?: boolean } = {},
+): string {
   const part = (size: string, name: string) => {
     const path = join(dir, name)
     execFileSync(
@@ -246,15 +252,34 @@ export function makeResolutionSwitch(dir: string, small: string, large: string):
     )
     return path
   }
+  const parts = [part(small, 'a.h264'), part(large, 'b.h264')]
+  if (opts.then) parts.push(part(opts.then, 'c.h264'))
   const joined = join(dir, 'switch.h264')
-  writeFileSync(
-    joined,
-    Buffer.concat([readFileSync(part(small, 'a.h264')), readFileSync(part(large, 'b.h264'))]),
-  )
-  const out = join(dir, 'switch.mp4')
+  writeFileSync(joined, Buffer.concat(parts.map((p) => readFileSync(p))))
+  const out = join(dir, opts.audio || opts.then ? 'switch-variant.mp4' : 'switch.mp4')
+  const seconds = String(parts.length)
+  const audio = opts.audio
+    ? ['-f', 'lavfi', '-t', seconds, '-i', 'anullsrc=r=48000:cl=mono', '-c:a', 'aac']
+    : []
   execFileSync(
     'ffmpeg',
-    ['-hide_banner', '-loglevel', 'error', '-y', '-r', '10', '-i', joined, '-c', 'copy', out],
+    [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-y',
+      '-r',
+      '10',
+      '-i',
+      joined,
+      ...audio.slice(0, 6),
+      '-map',
+      '0:v',
+      ...(opts.audio ? ['-map', '1:a', ...audio.slice(6)] : []),
+      '-c:v',
+      'copy',
+      out,
+    ],
     { stdio: ['ignore', 'ignore', 'inherit'] },
   )
   return out
