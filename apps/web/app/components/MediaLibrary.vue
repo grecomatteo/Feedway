@@ -499,9 +499,10 @@ function filesDrop(event: DragEvent) {
               v-model="folderValue"
               :items="folderItems"
               :aria-label="$t('library.folders.choose')"
-              class="min-w-0 flex-1"
+              class="min-w-0 flex-1 text-sm"
               size="xl"
               icon="i-lucide-folder"
+              :ui="{ leadingIcon: 'size-[1.125rem]' }"
             />
             <UButton
               v-if="!readOnly"
@@ -520,8 +521,9 @@ function filesDrop(event: DragEvent) {
             :items="tagItems"
             :aria-label="$t('library.tag.label')"
             icon="i-lucide-tag"
-            class="min-w-40 max-md:flex-1"
+            class="min-w-40 text-sm max-md:flex-1"
             size="xl"
+            :ui="{ leadingIcon: 'size-[1.125rem]' }"
           />
         </div>
       </div>

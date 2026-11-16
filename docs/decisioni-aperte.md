@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: revisione della tappa 4 (16 novembre 2026): chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo, fatta nella stessa PR). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): nuova D-27 (tela Pencil da riallineare all'inizio della tappa 6). Prima, revisione della tappa 4 (16 novembre 2026): chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo, fatta nella stessa PR). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -149,3 +149,11 @@ Ultimo aggiornamento: revisione della tappa 4 (16 novembre 2026): chiusa D-26 (c
 - **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
 - **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
 - **Stato:** aperta.
+
+## Design
+
+### D-27 · Tela Pencil ferma al 10 novembre
+- **Origine:** revisione finale della tappa 4 (P8) e revisione UI della tappa 4 (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`).
+- **Il problema:** `design/feedway-ui.pen` non ha Libreria, caricamenti, dettaglio del file, temi colore e logo nella barra. Pencil non era disponibile nella sessione della revisione.
+- **Opzioni:** (a) riallineare la tela all'inizio della tappa 6, quando editor e post ridisegnano parte di queste schermate; (b) riallinearla subito, sapendo che una parte va rifatta.
+- **Stato:** scelta provvisoria (a), come consigliato nella revisione finale.

@@ -192,3 +192,27 @@ test('quick choices end on the last one, and the next person in the same browser
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page.locator('html')).not.toHaveAttribute('data-palette')
 })
+
+test('the error page keeps the chosen palette, opened in the panel or on its own', async ({
+  page,
+}) => {
+  const person = await newMember('Elena Errore')
+  await adminQuery('update users set palette = $1 where id = $2', ['blu', person.userId])
+  await signIn(page.request, person)
+  await page.goto('/account')
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'blu')
+  // a link inside the panel to a page that does not exist: the router moves without a reload
+  await page.evaluate(async () => {
+    const root = document.querySelector('#__nuxt') as unknown as {
+      __vue_app__: { config: { globalProperties: { $router: { push: (to: string) => unknown } } } }
+    }
+    await root.__vue_app__.config.globalProperties.$router.push('/pagina/inesistente')
+  })
+  await expect(page.getByRole('heading', { level: 1, name: 'Pagina non trovata' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'blu')
+  // the same page loaded on its own
+  await page.goto('/pagina/inesistente')
+  await expect(page.getByRole('heading', { level: 1, name: 'Pagina non trovata' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'blu')
+  expect((await axe(page)).violations).toEqual([])
+})
