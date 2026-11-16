@@ -198,3 +198,27 @@ test('a deleted file with bytes still stored is queued again to media.delete_fil
       ),
     )
 })
+
+test('a file processing for too long wakes the worker again; a recent one does not', async () => {
+  const a = await agency()
+  const [stale, recent] = await seed(tdb.runtimeUrl, async (s) => {
+    const by = { uploadedBy: a.ownerId, status: 'processing' as const }
+    return [
+      await s.media(a.organizationId, a.workspaceId, by),
+      await s.media(a.organizationId, a.workspaceId, by),
+    ]
+  })
+  await admin.query(`update media set updated_at = now() - interval '1 hour' where id = $1`, [
+    stale,
+  ])
+  queue.sent.length = 0
+  await run()
+  const woken = queue.sent.filter(
+    (j) =>
+      j.name === 'media.process' &&
+      (j.data as { organizationId: string }).organizationId === a.organizationId,
+  )
+  expect(woken.map((j) => (j.data as { mediaId: string }).mediaId)).toEqual([stale])
+  expect((woken[0]?.opts as { dedupeKey?: string }).dedupeKey).toMatch(/^cleanup:.+:/)
+  expect(woken.map((j) => j.data)).not.toContainEqual(expect.objectContaining({ mediaId: recent }))
+})

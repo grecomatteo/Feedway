@@ -1061,12 +1061,13 @@ library_items       workspace_id, media_id, folder_id, tags
                     -- file e cartella dello stesso spazio (chiavi esterne composte)
 upload_sessions     id, workspace_id, user_id, folder_id, original_name, mime, size_bytes,
                     first_part_sha256, parts (jsonb: numero del pezzo → sha256), expires_at,
-                    completed_at, media_id
+                    completed_at, completing_until, media_id
                     -- caricamento a pezzi con ripresa (piano 04 M3, ADR 021): pezzi da 20 MiB
                     -- su disco del web (MEDIA_UPLOAD_DIR); lo spazio dichiarato è prenotato
                     -- finché il caricamento è aperto; dopo 24 ore lo toglie media.uploads_cleanup
                     -- first_part_sha256: dichiarato all'inizio, riconosce lo stesso file
                     -- scelto di nuovo dopo un ricaricamento (con nome e dimensione)
+                    -- completing_until: un complete sta unendo i pezzi; gli altri aspettano
 
 -- Post e pubblicazione
 posts               id, workspace_id, type (photo|carousel|reel|story), caption,

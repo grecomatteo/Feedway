@@ -24,6 +24,8 @@ export interface UploadsCleanupReport {
   orphans: number
   /** deleted files whose bytes were still there, queued again to `media.delete_files` */
   requeued: number
+  /** files still `processing` long after their last change, whose worker is woken again */
+  woken: number
   /** agencies whose step failed: logged, and the job fails at the end to be retried */
   failed: number
 }
@@ -35,10 +37,16 @@ export interface UploadsCleanupReport {
 export const ORPHAN_PARTS_MIN_AGE_MS = 60 * 60 * 1000
 
 /**
+ * A file `processing` with no change for this long may have lost its `media.process` (the queue
+ * was down at completion): the worker is woken for it again.
+ */
+export const PROCESSING_STALE_MS = 15 * 60 * 1000
+
+/**
  * For every agency: removes the uploads past their expiry with their pieces (their space is
  * free again) and the pieces no upload knows; then queues `media.delete_files` again for every
  * deleted file that still has bytes stored, which covers a queueing that failed after
- * `deleteMedia` committed.
+ * `deleteMedia` committed, and `media.process` for every file `processing` for too long.
  */
 export async function runMediaUploadsCleanup(
   deps: UploadsCleanupDeps,
@@ -54,6 +62,7 @@ export async function runMediaUploadsCleanup(
     expired: 0,
     orphans: 0,
     requeued: 0,
+    woken: 0,
     failed: 0,
   }
   for (const { id: organizationId } of organizations) {
@@ -62,6 +71,10 @@ export async function runMediaUploadsCleanup(
         expired: await tx.uploads.deleteExpired(organizationId, now),
         known: new Set(await tx.uploads.listIds(organizationId)),
         deleted: await tx.media.deletedWithFiles(organizationId),
+        stale: await tx.media.processingSince(
+          organizationId,
+          new Date(now.getTime() - PROCESSING_STALE_MS),
+        ),
       }))
       for (const uploadId of found.expired) await deps.uploadParts.remove(organizationId, uploadId)
       report.expired += found.expired.length
@@ -81,6 +94,14 @@ export async function runMediaUploadsCleanup(
           { dedupeKey: `cleanup:${hour}:${mediaId}` },
         )
         if (id !== null) report.requeued += 1
+      }
+      for (const mediaId of found.stale) {
+        const id = await deps.queue.send(
+          'media.process',
+          { organizationId, mediaId },
+          { dedupeKey: `cleanup:${hour}:${mediaId}` },
+        )
+        if (id !== null) report.woken += 1
       }
     } catch (err) {
       report.failed += 1

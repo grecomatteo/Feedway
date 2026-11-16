@@ -236,6 +236,15 @@ test('a piece with the wrong sha256, or not the declared first one, is refused a
   expect(piecesOnDisk(upload)).toEqual([])
 }, 60_000)
 
+test('a piece refused before its route (no session) closes the connection', async () => {
+  const file = mp4Like(1000)
+  const upload = await start(file)
+  const r = await put(upload, 1, file, { cookie: '' })
+  expect(r.status).toBe(401)
+  // the body is not drained without a limit: the socket closes after the answer
+  expect(r.headers.get('connection')).toBe('close')
+})
+
 test('a piece larger than declared is refused without reading it all', async () => {
   const file = mp4Like(1000)
   const upload = await start(file)
@@ -297,31 +306,51 @@ test('bytes that are no photo nor video make a failed file, and nothing is store
   expect(jobs.rowCount).toBe(0)
 })
 
-test('complete twice, even at once, gives one file', async () => {
+test('complete twice gives one file; a call while it is being made waits its turn', async () => {
   const file = mp4Like(4000)
   const upload = await start(file)
   expect((await put(upload, 1, file)).status).toBe(200)
-  const [first, second] = await Promise.all([complete(upload), complete(upload)])
-  expect(first.status).toBe(200)
-  expect(second.status).toBe(200)
-  const a = (await first.json()) as { id: string }
-  const b = (await second.json()) as { id: string }
-  expect(a.id).toBe(b.id)
+  // at once: one makes the file, the other either finds it or is told to retry
+  const answers = await Promise.all([complete(upload), complete(upload)])
+  const made = answers.filter((r) => r.status === 200)
+  expect(made.length).toBeGreaterThan(0)
+  for (const r of answers.filter((x) => x.status !== 200)) {
+    expect(r.status).toBe(409)
+    expect(await errorCodeOf(r)).toBe('CONFLICT')
+  }
+  const ids = await Promise.all(made.map(async (r) => ((await r.json()) as { id: string }).id))
   const third = (await (await complete(upload)).json()) as { id: string }
-  expect(third.id).toBe(a.id)
+  for (const id of ids) expect(id).toBe(third.id)
   const { rows } = await env.admin.pool.query<{ n: string }>(
     `select count(*)::text as n from media where organization_id = $1 and sha256 = $2`,
     [org.id, sha256(file)],
   )
   expect(rows[0]?.n).toBe('1')
-  // only the winner's folder is left in the storage
+  // only that file's folder is in the storage
   const folders = readdirSync(join(env.web.mediaRoot, 'org', org.id, 'media'))
-  expect(folders).toContain(a.id)
+  expect(folders).toContain(third.id)
   const { rows: all } = await env.admin.pool.query<{ id: string }>(
     'select id from media where organization_id = $1',
     [org.id],
   )
   for (const folder of folders) expect(all.map((m) => m.id)).toContain(folder)
+
+  // a completion in progress elsewhere: no copy is made until its hold ends
+  const other = await start(file)
+  expect((await put(other, 1, file)).status).toBe(200)
+  await env.admin.pool.query(
+    `update upload_sessions set completing_until = now() + interval '10 minutes' where id = $1`,
+    [other.id],
+  )
+  const busy = await complete(other)
+  expect(busy.status).toBe(409)
+  expect(await errorCodeOf(busy)).toBe('CONFLICT')
+  expect((await state(other)).body.mediaId).toBeNull()
+  await env.admin.pool.query(
+    `update upload_sessions set completing_until = now() - interval '1 second' where id = $1`,
+    [other.id],
+  )
+  expect((await complete(other)).status).toBe(200)
 })
 
 test("two uploads at once cannot take more than the agency's space together", async () => {

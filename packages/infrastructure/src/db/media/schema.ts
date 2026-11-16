@@ -214,6 +214,8 @@ export const uploadSessions = pgTable(
       .default(sql`'{}'::jsonb`),
     expiresAt: tz('expires_at').notNull(),
     completedAt: tz('completed_at'),
+    // while a completion joins the pieces: a second one waits instead of copying them again
+    completingUntil: tz('completing_until'),
     mediaId: uuid('media_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

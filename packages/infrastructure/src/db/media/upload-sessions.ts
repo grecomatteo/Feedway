@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, lte, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm'
 import type { UploadSessionRecord, UploadSessionsRepository } from '@app/application'
 import type { DbExecutor } from '../client.js'
 import { uploadSessions } from './schema.js'
@@ -72,6 +72,30 @@ export function drizzleUploadSessions(db: DbExecutor): UploadSessionsRepository 
         .update(uploadSessions)
         .set({ completedAt: at, mediaId })
         .where(one(organizationId, uploadId))
+    },
+    async claimCompletion(organizationId, uploadId, now, until) {
+      const rows = await db
+        .update(uploadSessions)
+        .set({
+          completingUntil: until,
+          expiresAt: sql`greatest(${uploadSessions.expiresAt}, ${until})`,
+        })
+        .where(
+          and(
+            one(organizationId, uploadId),
+            isNull(uploadSessions.completedAt),
+            gt(uploadSessions.expiresAt, now),
+            or(isNull(uploadSessions.completingUntil), lte(uploadSessions.completingUntil, now)),
+          ),
+        )
+        .returning({ id: uploadSessions.id })
+      return rows.length > 0
+    },
+    async releaseCompletion(organizationId, uploadId) {
+      await db
+        .update(uploadSessions)
+        .set({ completingUntil: null })
+        .where(and(one(organizationId, uploadId), isNull(uploadSessions.completedAt)))
     },
     async delete(organizationId, uploadId) {
       await db.delete(uploadSessions).where(one(organizationId, uploadId))

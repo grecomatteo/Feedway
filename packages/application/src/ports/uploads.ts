@@ -40,6 +40,19 @@ export interface UploadSessionsRepository {
   ): Promise<UploadSessionRecord[]>
   recordPart(organizationId: string, uploadId: string, n: number, sha256: string): Promise<void>
   complete(organizationId: string, uploadId: string, mediaId: string, at: Date): Promise<void>
+  /**
+   * Takes the completion of an upload not complete until `until`, unless another one holds it:
+   * false then. Its space stays reserved at least as long (the expiry moves to `until` if
+   * earlier), so an upload expiring while its pieces are joined does not free it.
+   */
+  claimCompletion(
+    organizationId: string,
+    uploadId: string,
+    now: Date,
+    until: Date,
+  ): Promise<boolean>
+  /** Gives the completion back after a failure: the next call may try again at once. */
+  releaseCompletion(organizationId: string, uploadId: string): Promise<void>
   delete(organizationId: string, uploadId: string): Promise<void>
   /**
    * The space the uploads neither completed nor expired keep for their files: in the agency and

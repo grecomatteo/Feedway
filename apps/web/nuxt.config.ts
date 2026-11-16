@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { UPLOAD_PART_MAX_BYTES } from '@app/contracts'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
@@ -63,7 +64,9 @@ export default defineNuxtConfig({
     // the pieces of an upload (plan 04 Task 9): up to 20 MiB each, read as a stream by their
     // route, which checks each piece's exact size; the margin only covers a declared length
     '/api/v1/orgs/*/workspaces/*/uploads/*/parts/*': {
-      security: { requestSizeLimiter: { maxRequestSizeInBytes: 20 * 1024 * 1024 + 64 * 1024 } },
+      security: {
+        requestSizeLimiter: { maxRequestSizeInBytes: UPLOAD_PART_MAX_BYTES + 64 * 1024 },
+      },
     },
   },
   security: {

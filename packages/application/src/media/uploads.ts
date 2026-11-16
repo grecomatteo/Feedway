@@ -16,6 +16,7 @@ import {
   uploadPartCount,
   uploadPartSize,
   type OrgActor,
+  type SniffedMedia,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Clock } from '../ports/clock.js'
@@ -112,10 +113,16 @@ async function limitUploads(deps: Pick<UploadDeps, 'rateLimiter'>, actor: OrgAct
   }
 }
 
-/** The name as shown: no control or direction characters, which could fake another name. */
-function displayName(name: string): string {
-  // eslint-disable-next-line no-control-regex -- removing them is the point
-  const clean = name.replace(/[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]/g, '').trim()
+/**
+ * Control, zero-width and direction characters: invisible, they could make a name look like
+ * another one (`fattura<U+202E>gpj.exe` reads `fatturaexe.jpg`).
+ */
+// eslint-disable-next-line no-control-regex -- removing them is the point
+const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]/g
+
+/** The name as shown, without invisible characters. */
+export function displayName(name: string): string {
+  const clean = name.replace(INVISIBLE, '').trim()
   if (clean.length === 0 || clean.length > 255)
     throw new DomainError('VALIDATION', 'Nome del file non valido', { field: 'name' })
   return clean
@@ -269,6 +276,12 @@ export async function getUpload(
   })
 }
 
+/** The pieces' folder went while a piece was arriving: the upload was cancelled meanwhile. */
+function cancelledMeanwhile(error: unknown): never {
+  if ((error as { code?: unknown } | null)?.code === 'ENOENT') throw uploadNotFound()
+  throw error
+}
+
 export interface UploadPartInput {
   workspaceId: string
   uploadId: string
@@ -323,7 +336,9 @@ export async function receiveUploadPart(
       field: 'Content-Digest',
     })
 
-  const received = await deps.uploadParts.receive(organizationId, session.id, input.body, expected)
+  const received = await deps.uploadParts
+    .receive(organizationId, session.id, input.body, expected)
+    .catch(cancelledMeanwhile)
   if (received === 'too_large') throw tooLarge()
   try {
     if (received.size !== expected)
@@ -346,7 +361,9 @@ export async function receiveUploadPart(
       if (current !== undefined && current !== digest)
         throw new DomainError('CONFLICT', 'Questo pezzo è già arrivato con un contenuto diverso')
       if (current === undefined) {
-        await deps.uploadParts.keep(organizationId, session.id, input.n, received.pending)
+        await deps.uploadParts
+          .keep(organizationId, session.id, input.n, received.pending)
+          .catch(cancelledMeanwhile)
         await tx.uploads.recordPart(organizationId, session.id, input.n, digest)
       }
       return toDto({ ...locked, parts: { ...locked.parts, [String(input.n)]: digest } })
@@ -357,11 +374,15 @@ export async function receiveUploadPart(
   }
 }
 
+/** How long a completion keeps the upload for itself: enough to join 300 MB to the storage. */
+export const UPLOAD_COMPLETION_HOLD_MS = 30 * 60 * 1000
+
 /**
  * Joins the pieces into one stream to the storage, with the sha256 of the whole file, and makes
  * the file: `processing` in the library, with a wake-up for the worker (`media.process`). A
  * file whose first bytes are no type Feedway takes is `failed` at once and nothing is stored.
- * Idempotent: a second call, even a concurrent one, answers with the same file.
+ * Idempotent: a second call answers with the same file; one arriving while the pieces are
+ * being joined is a CONFLICT to retry, so the file is never copied twice at once.
  */
 export async function completeUpload(
   deps: UploadDeps,
@@ -375,66 +396,87 @@ export async function completeUpload(
     getMedia(deps, actor, { workspaceId: input.workspaceId, mediaId })
   const session = await deps.uow.run(scope, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
-    const found = await ownUpload(tx, actor, workspace.id, input.uploadId, deps.clock.now())
-    if (found.mediaId === null) await assertWritable(tx, organizationId, workspace.archivedAt)
+    const now = deps.clock.now()
+    const found = await ownUpload(tx, actor, workspace.id, input.uploadId, now, {
+      forUpdate: true,
+    })
+    if (found.mediaId !== null) return found
+    await assertWritable(tx, organizationId, workspace.archivedAt)
+    const missing = missingUploadParts(found.sizeBytes, Object.keys(found.parts).map(Number))
+    if (missing.length > 0)
+      throw new DomainError('CONFLICT', 'Mancano dei pezzi del file', { missing })
+    const until = new Date(now.getTime() + UPLOAD_COMPLETION_HOLD_MS)
+    if (!(await tx.uploads.claimCompletion(organizationId, found.id, now, until)))
+      throw new DomainError('CONFLICT', 'Il file si sta già completando: riprova tra poco')
     return found
   })
   if (session.mediaId !== null) return media(session.mediaId)
-  const missing = missingUploadParts(session.sizeBytes, Object.keys(session.parts).map(Number))
-  if (missing.length > 0)
-    throw new DomainError('CONFLICT', 'Mancano dei pezzi del file', { missing })
 
   const mediaId = deps.ids.newId()
-  const sniffed = sniffMedia(await deps.uploadParts.head(organizationId, session.id, SNIFF_BYTES))
   let stored: { key: string; sha256: string } | null = null
-  if (sniffed) {
-    const key = mediaVariantKey(organizationId, mediaId, 'original', sniffed.extension)
-    const assembled = deps.uploadParts.assemble(
-      organizationId,
-      session.id,
-      uploadPartCount(session.sizeBytes),
-    )
-    const { size } = await deps.storage.put(key, assembled.body, { contentType: sniffed.mime })
-    stored = { key, sha256: assembled.sha256() }
-    if (size !== session.sizeBytes) {
-      await deps.storage.deletePrefix(mediaPrefix(organizationId, mediaId))
-      throw new Error('the pieces of an upload do not add up to its size')
-    }
-  }
   const forget = async () => {
     if (stored) await deps.storage.deletePrefix(mediaPrefix(organizationId, mediaId))
   }
+  let sniffed: SniffedMedia | null
   let winner: { id: string; created: boolean }
   try {
+    sniffed = sniffMedia(await deps.uploadParts.head(organizationId, session.id, SNIFF_BYTES))
+    if (sniffed) {
+      const key = mediaVariantKey(organizationId, mediaId, 'original', sniffed.extension)
+      const assembled = deps.uploadParts.assemble(
+        organizationId,
+        session.id,
+        uploadPartCount(session.sizeBytes),
+      )
+      const { size } = await deps.storage.put(key, assembled.body, { contentType: sniffed.mime })
+      stored = { key, sha256: assembled.sha256() }
+      if (size !== session.sizeBytes)
+        throw new Error('the pieces of an upload do not add up to its size')
+    }
+    const found = sniffed
     winner = await deps.uow.run(scope, async (tx) => {
+      // access again: the person, the agency or the workspace may have changed meanwhile
+      const { workspace } = await openLibrary(tx, actor, input.workspaceId)
+      await assertWritable(tx, organizationId, workspace.archivedAt)
+      // the file takes the space its upload reserved: no creation reads the two in between
+      await tx.uploads.lockReservations(organizationId)
       const locked = await tx.uploads.findById(organizationId, session.id, { forUpdate: true })
-      if (locked?.userId !== actor.userId) throw uploadNotFound()
+      const now = deps.clock.now()
+      if (locked?.userId !== actor.userId || locked.workspaceId !== workspace.id)
+        throw uploadNotFound()
+      // a completion whose hold ran out made the file first: that file is the one
       if (locked.mediaId !== null) return { id: locked.mediaId, created: false }
+      if (locked.expiresAt <= now) throw uploadNotFound()
       await tx.media.create({
         id: mediaId,
         organizationId,
         workspaceId: locked.workspaceId,
         uploadedBy: actor.userId,
-        kind: sniffed?.kind ?? declaredKindOf(locked.mime),
-        status: sniffed ? 'processing' : 'failed',
+        kind: found?.kind ?? declaredKindOf(locked.mime),
+        status: found ? 'processing' : 'failed',
         originalName: locked.originalName,
-        mime: sniffed?.mime ?? 'application/octet-stream',
+        mime: found?.mime ?? 'application/octet-stream',
         sizeBytes: locked.sizeBytes,
         sha256: stored?.sha256 ?? null,
         storageKey: stored?.key ?? null,
         // what the worker would say of it (FileAnalysis): no type Feedway takes
-        analysis: sniffed ? null : { kind: 'unknown', sizeBytes: locked.sizeBytes },
+        analysis: found ? null : { kind: 'unknown', sizeBytes: locked.sizeBytes },
         folderId: locked.folderId,
       })
-      await tx.uploads.complete(organizationId, session.id, mediaId, deps.clock.now())
+      await tx.uploads.complete(organizationId, session.id, mediaId, now)
       return { id: mediaId, created: true }
     })
   } catch (error) {
     await forget()
+    try {
+      await deps.uow.run(scope, (tx) => tx.uploads.releaseCompletion(organizationId, session.id))
+    } catch (release) {
+      // the hold ends by itself
+      deps.logger.error({ err: release, uploadId: session.id }, 'upload completion not released')
+    }
     throw error
   }
   if (!winner.created) {
-    // another call completed it first: its file is the one
     await forget()
     return media(winner.id)
   }
@@ -448,7 +490,7 @@ export async function completeUpload(
     try {
       await deps.queue.send('media.process', { organizationId, mediaId })
     } catch (error) {
-      // the file waits as `processing`: the next wake-up of the worker picks it (ADR 021)
+      // the file waits as `processing`: the hourly clean-up wakes the worker for it
       deps.logger.error({ err: error, mediaId }, 'media processing not queued')
     }
   return media(mediaId)

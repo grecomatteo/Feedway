@@ -1,5 +1,5 @@
 {
-  "id": "735d425a-4c1c-474a-aad8-25520043572c",
+  "id": "f1d89e9b-4153-4407-b6a9-e8ac90909be7",
   "prevId": "3a18d29a-fce9-4d2e-9da2-9d3c3f9a26b9",
   "version": "7",
   "dialect": "postgresql",
@@ -3369,6 +3369,12 @@
         },
         "completed_at": {
           "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completing_until": {
+          "name": "completing_until",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

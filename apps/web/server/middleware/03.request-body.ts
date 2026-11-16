@@ -58,7 +58,12 @@ function readCapped(req: IncomingMessage, max: number): Promise<Buffer | null | 
 export default defineEventHandler(async (event) => {
   if (!PAYLOAD_METHODS.has(event.method)) return
   const path = event.path.split('?')[0] ?? ''
-  if (STREAMED.some((r) => r.method === event.method && r.path.test(path))) return
+  if (STREAMED.some((r) => r.method === event.method && r.path.test(path))) {
+    // whoever answers before the route reads it (a missing session, a bad origin) leaves the
+    // body unread: the socket closes after the answer instead of draining it without a limit
+    setResponseHeader(event, 'connection', 'close')
+    return
+  }
   // the media type itself: `application/json; x=multipart/form-data` is not an upload
   const mediaType = (getRequestHeader(event, 'content-type') ?? '').split(';')[0] ?? ''
   const multipart = mediaType.trim().toLowerCase() === 'multipart/form-data'

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm'
 import type { MediaRecord, MediaRepository, MediaVariantRecord } from '@app/application'
 import type { MediaKind, MediaProgress, MediaStatus, VariantPurpose } from '@app/domain'
 import type { DbExecutor } from '../client.js'
@@ -102,6 +102,20 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             sql`(${media.storageKey} is not null or exists (
                   select 1 from ${mediaVariants} v
                    where v.organization_id = ${media.organizationId} and v.media_id = ${media.id}))`,
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+      return rows.map((r) => r.id)
+    },
+    async processingSince(organizationId, before) {
+      const rows = await db
+        .select({ id: media.id })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.status, 'processing'),
+            lt(media.updatedAt, before),
           ),
         )
         .orderBy(media.createdAt, media.id)

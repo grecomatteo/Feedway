@@ -77,6 +77,8 @@ export interface MediaRepository {
    * `media.delete_files` did not run, or did not finish.
    */
   deletedWithFiles(organizationId: string): Promise<string[]>
+  /** The files still `processing` not changed since `before`: their wake-up may be lost. */
+  processingSince(organizationId: string, before: Date): Promise<string[]>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
   /** The files of a workspace not deleted, newest first; `before`: the files after this one. */
