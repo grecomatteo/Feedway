@@ -221,9 +221,9 @@ export function makeResolutionSwitch(
   dir: string,
   small: string,
   large: string,
-  opts: { then?: string; audio?: boolean } = {},
+  opts: { then?: string; audio?: boolean; smallSeconds?: number; largeFrames?: number } = {},
 ): string {
-  const part = (size: string, name: string) => {
+  const part = (size: string, name: string, length: string[] = ['-t', '1']) => {
     const path = join(dir, name)
     execFileSync(
       'ffmpeg',
@@ -236,8 +236,7 @@ export function makeResolutionSwitch(
         'lavfi',
         '-i',
         `testsrc=size=${size}:rate=10`,
-        '-t',
-        '1',
+        ...length,
         '-c:v',
         'libx264',
         '-pix_fmt',
@@ -252,12 +251,14 @@ export function makeResolutionSwitch(
     )
     return path
   }
-  const parts = [part(small, 'a.h264'), part(large, 'b.h264')]
-  if (opts.then) parts.push(part(opts.then, 'c.h264'))
+  const smallLength = ['-t', String(opts.smallSeconds ?? 1)]
+  const largeLength = opts.largeFrames ? ['-frames:v', String(opts.largeFrames)] : ['-t', '1']
+  const parts = [part(small, 'a.h264', smallLength), part(large, 'b.h264', largeLength)]
+  if (opts.then) parts.push(part(opts.then, 'c.h264', smallLength))
   const joined = join(dir, 'switch.h264')
   writeFileSync(joined, Buffer.concat(parts.map((p) => readFileSync(p))))
   const out = join(dir, opts.audio || opts.then ? 'switch-variant.mp4' : 'switch.mp4')
-  const seconds = String(parts.length)
+  const seconds = String(parts.length * (opts.smallSeconds ?? 1))
   const audio = opts.audio
     ? ['-f', 'lavfi', '-t', seconds, '-i', 'anullsrc=r=48000:cl=mono', '-c:a', 'aac']
     : []

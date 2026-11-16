@@ -386,6 +386,22 @@ test('frames over the limit in the middle are refused', async () => {
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
 
+test('one frame over the limit among a hundred is refused: no share of them is allowed', async () => {
+  const path = makeResolutionSwitch(dir, '320x240', '640x480', {
+    then: '320x240',
+    smallSeconds: 5,
+    largeFrames: 1,
+  })
+  const limited = createMediaTools({ maxVideoPixels: 320 * 240 })
+  expect(
+    await limited.transformer.videoPreview(path, join(dir, 'switch-few-preview.mp4'), {
+      width: 320,
+      height: 240,
+      durationMs: 10_100,
+    }),
+  ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
 test('a video with a glitch the decoder hides is kept: every frame is still there', async () => {
   const path = makeDamagedVideo(dir)
   const tools = createMediaTools()

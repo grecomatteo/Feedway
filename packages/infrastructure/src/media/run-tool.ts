@@ -12,11 +12,15 @@ export interface ToolRun {
   stdout: string
   /** the last 8 KiB: the error, for the logs only */
   stderr: string
+  /** `watchStderr` was seen anywhere in stderr, not only in its last 8 KiB */
+  stderrMatched: boolean
 }
 
 export interface RunToolOptions {
   timeoutMs: number
   signal?: AbortSignal | undefined
+  /** looked for in the whole of stderr as it comes (a short pattern, under 256 characters) */
+  watchStderr?: RegExp
   /** each complete line of stdout (ffmpeg's `-progress pipe:1`) */
   onLine?: (line: string) => void
   /** between SIGTERM and SIGKILL */
@@ -32,13 +36,22 @@ const NICENESS = 10
 
 export function runTool(command: string, args: string[], opts: RunToolOptions): Promise<ToolRun> {
   if (opts.signal?.aborted)
-    return Promise.resolve({ outcome: 'aborted', code: null, stdout: '', stderr: '' })
+    return Promise.resolve({
+      outcome: 'aborted',
+      code: null,
+      stdout: '',
+      stderr: '',
+      stderrMatched: false,
+    })
   const maxStdout = opts.maxStdoutBytes ?? 4 * 1024 * 1024
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: false })
     let outcome: ToolRun['outcome'] = 'exited'
     let stdout = ''
     let stderr = ''
+    let stderrMatched = false
+    // the end of the previous chunk, so a match split between two chunks is still seen
+    let stderrCarry = ''
     let partial = ''
     let killTimer: NodeJS.Timeout | undefined
     const stop = (why: 'timeout' | 'aborted') => {
@@ -82,6 +95,10 @@ export function runTool(command: string, args: string[], opts: RunToolOptions): 
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', (chunk: string) => {
       stderr = (stderr + chunk).slice(-STDERR_TAIL)
+      if (!opts.watchStderr || stderrMatched) return
+      const window = stderrCarry + chunk
+      stderrMatched = opts.watchStderr.test(window)
+      stderrCarry = window.slice(-256)
     })
     child.once('error', (error) => {
       done()
@@ -90,7 +107,7 @@ export function runTool(command: string, args: string[], opts: RunToolOptions): 
     child.once('close', (code) => {
       done()
       if (partial && opts.onLine) opts.onLine(partial)
-      resolve({ outcome, code, stdout, stderr })
+      resolve({ outcome, code, stdout, stderr, stderrMatched })
     })
   })
 }

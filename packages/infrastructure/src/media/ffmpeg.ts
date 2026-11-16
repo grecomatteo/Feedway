@@ -35,8 +35,12 @@ const inputWith = (maxPixels: number | null) => (path: string) => [
   `file:${path}`,
 ]
 
-/** After a decoding error, the share of the file's video frames the copy must keep. */
-const DECODED_SHARE = 0.97
+/**
+ * The decoder's refusal of a frame over `-max_pixels` (libavutil `av_image_check_size2`): such a
+ * file is always refused, whatever else the copy holds, since the copy to publish takes its
+ * frames as they are.
+ */
+const OVER_MAX_PIXELS = /exceeds specified max pixel count/
 const GLOBAL = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1']
 
 interface ProbeStream {
@@ -246,6 +250,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
         {
           timeoutMs: ffmpegTimeoutMs(opts.durationMs),
           signal: opts.signal,
+          watchStderr: OVER_MAX_PIXELS,
           onLine: (line) => {
             const count = /^(frame|dup_frames)=(\d+)$/.exec(line)
             if (count?.[2]) progress[count[1] === 'frame' ? 'frame' : 'dup'] = Number(count[2])
@@ -255,13 +260,14 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           },
         },
       )
-      // at `-loglevel error` a clean file says nothing. Frames the decoder refused (over the
-      // pixel limit, broken) are missing from the copy, with an exit code 0; a glitch it hid
-      // leaves them all. So after an error the copy must hold the file's frames (P6). Frames,
-      // not duration: a sound track or a repeated frame keeps the length of a copy with holes
+      // at `-loglevel error` a clean file says nothing. A frame over the pixel limit refuses the
+      // file. After any other error the copy must hold every frame of the file, counted (P6): a
+      // glitch the decoder hid leaves them all, a broken stretch does not. Frames, not duration:
+      // a sound track or a repeated frame keeps the length of a copy with holes
       if (run.outcome === 'exited' && run.code === 0 && run.stderr.trim() !== '') {
+        if (run.stderrMatched) return { ok: false, reason: 'unreadable' } as const
         const frames = await videoPackets(path, opts.signal)
-        if (frames === null || progress.frame - progress.dup < frames * DECODED_SHARE)
+        if (frames === null || progress.frame - progress.dup < frames)
           return { ok: false, reason: 'unreadable' } as const
       }
       return made(run, output, { mime: 'video/mp4', ...size })
