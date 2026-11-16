@@ -57,6 +57,13 @@ Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover
 - **Opzioni:** (a) chiedere conferma anche prima di cambiare pagina; (b) tenere i caricamenti vivi in tutto il pannello, con un piccolo indicatore fisso (serve anche all'editor del post, tappa 6); (c) lasciare così.
 - **Stato:** scelta provvisoria (c); (b) è la proposta per la tappa 6.
 
+### D-27 · Un pezzo deve arrivare entro 300 secondi
+- **Origine:** revisione finale della tappa 4 (P1 bis).
+- **Il problema:** il server del pannello è quello di Nitro, che lascia il limite di Node: una richiesta deve arrivare tutta in 300 secondi. Con pezzi da 20 MiB, sotto circa 70 KB/s in invio (0,56 Mbit/s) un pezzo non arriva mai, e il pannello lo riprova.
+- **Cosa fa oggi il pannello:** se lo stesso pezzo cade due volte di fila dopo almeno 4 minuti di invio, scrive «La rete è troppo lenta per questo file» e continua a provare.
+- **Opzioni:** (a) pezzi più piccoli, per esempio 8 MiB (cambia il protocollo dell'ADR 021, quindi serve una nuova ADR); (b) alzare il limite del server del pannello (Nitro non lo permette in modo pulito); (c) lasciare così, con l'avviso.
+- **Stato:** scelta provvisoria (c), da misurare nella prova sulla VPS (Task 14) con un invio su 4G debole.
+
 ## Host pubblico (`/m/*`)
 
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico

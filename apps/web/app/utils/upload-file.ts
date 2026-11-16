@@ -140,3 +140,58 @@ export function rateMeter(windowMs: number) {
     },
   }
 }
+
+/**
+ * Calls `stalled` once when `poke` has not come for `ms`: a request that hangs with no error
+ * (the network changed, the tab was suspended) is given up instead of waited for ever.
+ */
+export function stallTimer(ms: number, stalled: () => void) {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let stopped = false
+  const arm = () => {
+    clearTimeout(timer)
+    if (stopped) return
+    timer = setTimeout(() => {
+      stopped = true
+      stalled()
+    }, ms)
+  }
+  arm()
+  return {
+    poke: arm,
+    stop() {
+      stopped = true
+      clearTimeout(timer)
+    },
+  }
+}
+
+/**
+ * Tells a network too slow for a piece: the same piece fell twice in a row after sending for at
+ * least `slowMs` (the panel's server gives a request 300 s, plan 04 P1 bis). A quick fall is a
+ * network that comes and goes, and starts the count again.
+ */
+export function slowPieces(slowMs: number) {
+  let piece: number | null = null
+  let falls = 0
+  return {
+    /** A fall of piece `n` after `elapsedMs` of sending: true when the network is too slow. */
+    failed(n: number, elapsedMs: number): boolean {
+      if (elapsedMs < slowMs) {
+        piece = null
+        falls = 0
+        return false
+      }
+      if (piece !== n) {
+        piece = n
+        falls = 0
+      }
+      falls += 1
+      return falls >= 2
+    },
+    arrived() {
+      piece = null
+      falls = 0
+    },
+  }
+}

@@ -127,6 +127,87 @@ test('a fall of the network halfway: the upload waits, then goes on by itself', 
   expect(falls).toBe(2)
 })
 
+/** The pieces: the first is held with no answer for ever, the others go through. */
+async function hangFirstPiece(page: Page) {
+  const seen = { pieces: 0 }
+  await page.route(PARTS, async (route) => {
+    if (seen.pieces++ === 0) return
+    await route.continue()
+  })
+  return seen
+}
+
+test('a piece that hangs with no error is given up, and the upload goes on by itself', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await page.clock.install()
+  await editorOnLibrary(page)
+  const seen = await hangFirstPiece(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect.poll(() => seen.pieces).toBe(1)
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'uploading')
+  // 45 seconds without a byte: the piece is given up and the upload resumes
+  await page.clock.fastForward('00:46')
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'offline')
+  await page.clock.fastForward('00:05')
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  expect(seen.pieces).toBe(2)
+})
+
+test('the network comes back: a piece that hangs on the old one starts again at once', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await editorOnLibrary(page)
+  const seen = await hangFirstPiece(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect.poll(() => seen.pieces).toBe(1)
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  expect(seen.pieces).toBe(2)
+})
+
+test('a conflict that is no wait (the client archived meanwhile) stops «complete» at once', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+  await editorOnLibrary(page)
+  let calls = 0
+  await page.route('**/uploads/*/complete', async (route) => {
+    calls += 1
+    await route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: {
+          code: 'CONFLICT',
+          message: 'Il cliente è archiviato: i suoi file non si modificano',
+          requestId: 'x',
+        },
+      }),
+    })
+  })
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'error', { timeout: 10_000 })
+  await expect(row(page, 'frame.jpg')).toContainText('archiviato')
+  expect(calls).toBe(1)
+})
+
+test('without a secure page (no HTTPS) the files are refused with the reason', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Crypto.prototype, 'subtle', { get: () => undefined })
+  })
+  await editorOnLibrary(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'rejected')
+  await expect(row(page, 'frame.jpg')).toContainText('connessione sicura')
+})
+
 test('pause, resume and cancel, all from the keyboard', async ({ page }) => {
   test.setTimeout(90_000)
   await editorOnLibrary(page)
