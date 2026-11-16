@@ -26,6 +26,17 @@ const services: WorkerDeps['services'] = {
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),
   },
+  uploadParts: {
+    receive: () => Promise.reject(new Error('not used in this test')),
+    keep: () => Promise.reject(new Error('not used in this test')),
+    discard: () => Promise.reject(new Error('not used in this test')),
+    head: () => Promise.reject(new Error('not used in this test')),
+    assemble: () => {
+      throw new Error('not used in this test')
+    },
+    remove: () => Promise.reject(new Error('not used in this test')),
+    list: () => Promise.reject(new Error('not used in this test')),
+  },
   credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used in this test')) },
   zip: {
     create: () => {

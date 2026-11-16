@@ -95,6 +95,19 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'organization',
     retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
+  // ids only, a wake-up (ADR 021): the files waiting are in the media table, so a job lost or
+  // dropped after a week loses no file; the handler and its expiry come with plan 04 Task 10
+  'media.process': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
+  // every hour, one run at a time; a run that waited a day is replaced by the next ones
+  'media.uploads_cleanup': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

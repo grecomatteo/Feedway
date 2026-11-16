@@ -66,8 +66,9 @@ beforeAll(async () => {
     )
     await c.query(
       `insert into upload_sessions (id, organization_id, workspace_id, user_id, original_name, mime,
-                                    size_bytes, expires_at)
-       values ($1, $2, $3, $4, 'clip.mov', 'video/quicktime', 100, now() + interval '1 day')`,
+                                    size_bytes, first_part_sha256, expires_at)
+       values ($1, $2, $3, $4, 'clip.mov', 'video/quicktime', 100, repeat('a', 64),
+               now() + interval '1 day')`,
       [randomUUID(), orgA, wsA, userA],
     )
   })

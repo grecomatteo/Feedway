@@ -42,7 +42,10 @@ import {
   pathValues,
   routeByKey,
   routeKey,
+  SAMPLE_PART,
+  SAMPLE_PART_HEADERS,
   sampleBody,
+  sampleUploadStart,
   sampleQuery,
   secretsIn,
   startIsolationFixture,
@@ -239,6 +242,25 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/file/{variant}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
+  // an upload is its person's only: the case's own upload is started by the caller (PREPARE)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/uploads': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/uploads': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'PUT /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/parts/{n}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/complete': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },
@@ -281,10 +303,48 @@ async function accountPicture(accountId: string, workspaceId: string): Promise<v
  * Routes whose success needs something there first: the logo's preview, or the logo itself.
  * They run for every role, so a refusal is measured on the same request as the success.
  */
+/**
+ * An upload of the caller into the case's workspace, with its piece sent if asked. Who may not
+ * upload there gets the Owner's upload of the case, which does not exist for them either.
+ */
+async function ownUpload(
+  ids: SampleIds,
+  cookie: string,
+  opts: { withPiece?: boolean } = {},
+): Promise<{ values: Record<string, string>; headers: Record<string, string> }> {
+  const at = `/api/v1/orgs/${ids.org}/workspaces/${ids.workspace}/uploads`
+  const started = await fx.env.call('POST', at, sampleUploadStart(), { cookie })
+  if (started.status !== 200) return { values: {}, headers: SAMPLE_PART_HEADERS }
+  const { id } = (await started.json()) as { id: string }
+  if (opts.withPiece) {
+    const sent = await fx.env.call('PUT', `${at}/${id}/parts/1`, SAMPLE_PART, {
+      cookie,
+      headers: SAMPLE_PART_HEADERS,
+    })
+    expect(sent.status, await sent.clone().text()).toBe(200)
+  }
+  return { values: { uploadId: id }, headers: SAMPLE_PART_HEADERS }
+}
+
 const PREPARE: Record<
   string,
-  (ids: SampleIds) => Promise<{ values?: Record<string, string>; body?: unknown }>
+  (
+    ids: SampleIds,
+    cookie: string,
+  ) => Promise<{
+    values?: Record<string, string>
+    body?: unknown
+    headers?: Record<string, string>
+  }>
 > = {
+  'GET /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': (ids, cookie) =>
+    ownUpload(ids, cookie),
+  'PUT /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/parts/{n}': (ids, cookie) =>
+    ownUpload(ids, cookie),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/complete': (ids, cookie) =>
+    ownUpload(ids, cookie, { withPiece: true }),
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': (ids, cookie) =>
+    ownUpload(ids, cookie),
   'GET /api/v1/orgs/{org}/logo/staging/{stagingId}': async (ids) => ({
     values: { stagingId: await logoPreview(ids.org) },
   }),
@@ -369,12 +429,15 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   }
   const query = c.rule.query ? sampleQuery(route, ids) : undefined
   if (c.rule.query && query === undefined) throw new Error(`no sample query for ${c.key}`)
-  const prepared = (await PREPARE[c.key]?.(ids)) ?? {}
+  const prepared = (await PREPARE[c.key]?.(ids, cookie)) ?? {}
   const path =
     fill(route.path, { ...pathValues(ids), ...prepared.values }) +
     (query === undefined ? '' : `?${query}`)
   const body = 'body' in prepared ? prepared.body : sampleBody(route, ids)
-  const r = await fx.env.call(route.method, path, body, { cookie })
+  const r = await fx.env.call(route.method, path, body, {
+    cookie,
+    ...(prepared.headers && { headers: prepared.headers }),
+  })
   const text = await r.text()
   expect(r.status, text).toBe(c.status)
   const code = CODE_OF[c.status]

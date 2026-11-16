@@ -42,6 +42,8 @@ export const KNOWN_QUEUES = [
   'accounts.daily',
   'accounts.avatar',
   'media.delete_files',
+  'media.process',
+  'media.uploads_cleanup',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

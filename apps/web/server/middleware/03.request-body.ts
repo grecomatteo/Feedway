@@ -1,10 +1,21 @@
 import type { IncomingMessage } from 'node:http'
+import { apiRoutes } from '@app/contracts'
 
 const PAYLOAD_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 /** JSON and forms; a route can accept less (defineApiRoute, 16 KiB by default). */
 const MAX_BODY_BYTES = 1024 * 1024
 /** As nuxt-security's upload limit, which only covers POST, PUT and DELETE. */
 const MAX_MULTIPART_BYTES = 8_000_000
+/**
+ * The routes that take a raw body as a stream (contract `binary`, the pieces of an upload):
+ * their route bounds it while reading and never holds it whole, so it is not read here.
+ */
+const STREAMED = apiRoutes
+  .filter((r) => r.binary)
+  .map((r) => ({
+    method: r.method,
+    path: new RegExp(`^${r.path.replace(/\{\w+\}/g, '[^/]+')}$`),
+  }))
 // where h3 caches the body it read: readBody, readRawBody and toWebRequest all use it
 const RAW_BODY = Symbol.for('h3RawBody')
 
@@ -46,6 +57,13 @@ function readCapped(req: IncomingMessage, max: number): Promise<Buffer | null | 
  */
 export default defineEventHandler(async (event) => {
   if (!PAYLOAD_METHODS.has(event.method)) return
+  const path = event.path.split('?')[0] ?? ''
+  if (STREAMED.some((r) => r.method === event.method && r.path.test(path))) {
+    // whoever answers before the route reads it (a missing session, a bad origin) leaves the
+    // body unread: the socket closes after the answer instead of draining it without a limit
+    setResponseHeader(event, 'connection', 'close')
+    return
+  }
   // the media type itself: `application/json; x=multipart/form-data` is not an upload
   const mediaType = (getRequestHeader(event, 'content-type') ?? '').split(';')[0] ?? ''
   const multipart = mediaType.trim().toLowerCase() === 'multipart/form-data'

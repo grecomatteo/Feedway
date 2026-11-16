@@ -29,6 +29,8 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'accounts.daily': true,
   'accounts.avatar': true,
   'media.delete_files': true,
+  'media.process': true,
+  'media.uploads_cleanup': true,
 }
 
 test('each module has its own name', () => {

@@ -19,6 +19,8 @@ test('every registered queue declares a scope', () => {
     ['accounts.daily', 'system'],
     ['accounts.avatar', 'organization'],
     ['media.delete_files', 'organization'],
+    ['media.process', 'organization'],
+    ['media.uploads_cleanup', 'system'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -36,6 +38,8 @@ test('every registered queue declares a scope', () => {
     'accounts.daily',
     'accounts.avatar',
     'media.delete_files',
+    'media.process',
+    'media.uploads_cleanup',
   ])
 })
 

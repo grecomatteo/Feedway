@@ -8,6 +8,7 @@ import { integrationRoutes } from './integrations.js'
 import { linkRoutes } from './links.js'
 import { meRoutes } from './me.js'
 import { mediaRoutes } from './media.js'
+import { uploadRoutes } from './uploads.js'
 import { logoRoutes } from './logo.js'
 import { organizationRoutes } from './organizations.js'
 import { platformRoutes } from './platform.js'
@@ -43,6 +44,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...userRoutes,
   ...workspaceRoutes,
   ...mediaRoutes,
+  ...uploadRoutes,
   ...auditRoutes,
   ...platformRoutes,
   openApiRoute,
@@ -104,6 +106,17 @@ function operation(route: ApiContract): OpenApiOperation {
   const parameters = [
     ...parametersOf(route.request.params, 'path'),
     ...parametersOf(route.request.query, 'query'),
+    ...(route.binary
+      ? [
+          {
+            name: 'Content-Digest',
+            in: 'header' as const,
+            required: true,
+            schema: { type: 'string', pattern: '^sha-256=:[A-Za-z0-9+/]{43}=:$' },
+            description: 'L’impronta sha-256 del corpo (RFC 9530), verificata dal server',
+          },
+        ]
+      : []),
     ...(route.method === 'GET'
       ? []
       : [
@@ -141,6 +154,20 @@ function operation(route: ApiContract): OpenApiOperation {
                   maxLength: route.upload.maxBytes,
                 },
               },
+            },
+          },
+        },
+      },
+    }),
+    ...(route.binary && {
+      requestBody: {
+        required: true as const,
+        content: {
+          'application/octet-stream': {
+            schema: {
+              type: 'string',
+              contentMediaType: 'application/octet-stream',
+              maxLength: route.binary.maxBytes,
             },
           },
         },

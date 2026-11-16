@@ -31,6 +31,16 @@ interface JobDefinitions {
   'accounts.daily': { scope: 'system'; data: object }
   'accounts.avatar': { scope: 'organization'; data: AccountAvatarJobData }
   'media.delete_files': { scope: 'organization'; data: MediaDeleteFilesJobData }
+  'media.process': { scope: 'organization'; data: MediaProcessJobData }
+  'media.uploads_cleanup': { scope: 'system'; data: object }
+}
+
+/**
+ * A wake-up for the processing of the files (ADR 021): the media just uploaded. The handler
+ * may pick another file of the queue, at its turn among the agencies (Task 10).
+ */
+export interface MediaProcessJobData {
+  mediaId: string
 }
 
 /** The files of one deleted media (plan 04 Task 8): its id only. */

@@ -1,4 +1,5 @@
 import { STATUS_CODES } from 'node:http'
+import type { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
@@ -21,6 +22,12 @@ export interface ApiContext<C extends ApiContract> {
   body: Out<C['request']['body']>
   /** The uploaded file of an `upload` route, already within its limit. */
   file: C['upload'] extends { maxBytes: number } ? Buffer : undefined
+  /**
+   * The raw body of a `binary` route (undefined on any other), never read before the handler:
+   * it reads it as it arrives and may stop early (the rest is then discarded and the connection
+   * closed). Not narrowed by the contract: `defineContract` does not keep `binary` literal.
+   */
+  stream: StreamedBody | undefined
   /** null only on a public route without a session */
   session: C['auth'] extends 'public' ? ResolvedSession | null : ResolvedSession
   actor: C['scope'] extends 'organization'
@@ -31,6 +38,14 @@ export interface ApiContext<C extends ApiContract> {
   /** written by our proxy middleware (05.client-ip), never by the client */
   ip: string | null
   userAgent: string | null
+}
+
+export interface StreamedBody {
+  body: AsyncIterable<Uint8Array>
+  /** the declared `Content-Length`; null: sent in chunks */
+  length: number | null
+  /** the request's `Content-Digest`, as sent */
+  digest: string | null
 }
 
 export interface ApiRouteOptions {
@@ -114,6 +129,39 @@ async function readUpload(event: H3Event, maxBytes: number): Promise<Buffer> {
   if (part?.name !== 'file' || part.filename === undefined) throw noFile()
   if (part.data.length > maxBytes) throw tooLarge()
   return part.data
+}
+
+/**
+ * The body of a `binary` route as a stream. A declared length over the limit is refused before
+ * anything is read; past the limit while reading, the handler stops (StreamedBody).
+ */
+function streamedBody(event: H3Event, maxBytes: number): StreamedBody {
+  const mediaType = (getRequestHeader(event, 'content-type') ?? '').split(';')[0] ?? ''
+  if (mediaType.trim().toLowerCase() !== 'application/octet-stream')
+    throw new HttpProblem('UNSUPPORTED_MEDIA_TYPE')
+  const declared = getRequestHeader(event, 'content-length')
+  const length = declared === undefined ? null : Number(declared)
+  if (length !== null && !(Number.isSafeInteger(length) && length >= 0))
+    throw new HttpProblem('BAD_REQUEST')
+  if (length !== null && length > maxBytes) {
+    setResponseHeader(event, 'connection', 'close')
+    throw new HttpProblem('REQUEST_TOO_LARGE')
+  }
+  const req = event.node.req as IncomingMessage
+  return {
+    // stopping early must not destroy the socket: the answer still has to go out
+    body: req.iterator({ destroyOnReturn: false }),
+    length,
+    digest: getRequestHeader(event, 'content-digest') ?? null,
+  }
+}
+
+/** A body the handler left unread is discarded, and the connection closes after the answer. */
+function dropUnreadBody(event: H3Event) {
+  const req = event.node.req as IncomingMessage
+  if (req.complete || req.readableEnded) return
+  setResponseHeader(event, 'connection', 'close')
+  req.resume()
 }
 
 /**
@@ -230,17 +278,20 @@ export function defineApiRoute<C extends ApiContract>(
           ? parse(body, await readJsonBody(event, contract.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES))
           : undefined,
         file: contract.upload ? await readUpload(event, contract.upload.maxBytes) : undefined,
+        stream: contract.binary ? streamedBody(event, contract.binary.maxBytes) : undefined,
         session,
         actor,
         ip: getRequestHeader(event, 'x-app-client-ip') ?? null,
         userAgent: getRequestHeader(event, 'user-agent') ?? null,
       } as ApiContext<C>
       const answer = contract.response.safeParse(await handler(ctx))
+      if (contract.binary) dropUnreadBody(event)
       if (!answer.success) throw new Error('answer does not match the response contract')
       if (contract.download)
         return await sendFile(event, contract.download, answer.data as FileAnswer)
       return answer.data
     } catch (error) {
+      if (contract.binary) dropUnreadBody(event)
       return sendApiError(event, error)
     }
   })

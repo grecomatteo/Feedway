@@ -23,6 +23,17 @@ const services: WorkerDeps['services'] = {
     deletePrefix: () => Promise.reject(new Error('not used in this test')),
     list: () => Promise.reject(new Error('not used in this test')),
   },
+  uploadParts: {
+    receive: () => Promise.reject(new Error('not used in this test')),
+    keep: () => Promise.reject(new Error('not used in this test')),
+    discard: () => Promise.reject(new Error('not used in this test')),
+    head: () => Promise.reject(new Error('not used in this test')),
+    assemble: () => {
+      throw new Error('not used in this test')
+    },
+    remove: () => Promise.reject(new Error('not used in this test')),
+    list: () => Promise.reject(new Error('not used in this test')),
+  },
   credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used in this test')) },
   zip: {
     create: () => {
@@ -197,5 +208,21 @@ test('the worker that consumes the accounts run schedules it every day at 04:00 
     queues: ['accounts.daily'],
   })
   expect(q.schedules).toEqual([{ name: 'accounts.daily', cron: '0 4 * * *', tz: 'Europe/Rome' }])
+  await w.stop()
+})
+
+test('the worker that consumes the uploads clean-up schedules it every hour', async () => {
+  const q = fakeQueue()
+  const w = await startWorker({
+    queue: q.queue,
+    logger: silentLogger,
+    services,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['media.uploads_cleanup'],
+  })
+  expect(q.schedules).toEqual([
+    { name: 'media.uploads_cleanup', cron: '17 * * * *', tz: 'Europe/Rome' },
+  ])
   await w.stop()
 })

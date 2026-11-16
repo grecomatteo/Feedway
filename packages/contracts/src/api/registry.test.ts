@@ -52,11 +52,13 @@ describe.each(apiRoutes.map((r) => [`${r.method} ${r.path}`, r] as const))('%s',
     if (route.method === 'GET') {
       expect(route.request.body).toBeUndefined()
       expect(route.upload).toBeUndefined()
+      expect(route.binary).toBeUndefined()
     }
   })
 
   test('an upload has no JSON body, a download answers a file and only from GET', () => {
     if (route.upload) expect(route.request.body).toBeUndefined()
+    if (route.binary) expect(route.request.body ?? route.upload).toBeUndefined()
     expect(route.download === undefined || route.method === 'GET').toBe(true)
     expect(route.response === FileResponse).toBe(route.download !== undefined)
   })

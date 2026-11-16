@@ -1,7 +1,8 @@
 # Files in an S3 bucket (R2, Garage) instead of the media volume (ADR 021). Not used in
 # production yet: add it to COMPOSE_FILE in .env, after docker/compose.yml, and write the keys
 # in secrets/s3_access_key_id and secrets/s3_secret_access_key (readable by uid 10001).
-# The pieces of uploads in progress stay on the web's disk, in the media volume.
+# The pieces of uploads in progress stay on the web's disk, in the media volume: the worker keeps
+# that volume too, because its hourly clean-up removes the pieces (ADR 021, Scelta 4).
 x-s3-env: &s3-env
   STORAGE_DRIVER: s3
   S3_ENDPOINT: ${S3_ENDPOINT:-}

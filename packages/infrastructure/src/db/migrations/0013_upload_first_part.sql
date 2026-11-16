@@ -1,0 +1,3 @@
+ALTER TABLE "upload_sessions" ADD COLUMN "first_part_sha256" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "upload_sessions" ADD COLUMN "completing_until" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "upload_sessions" ADD CONSTRAINT "upload_sessions_first_part_sha256" CHECK ("upload_sessions"."first_part_sha256" ~ '^[0-9a-f]{64}$');

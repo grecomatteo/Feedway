@@ -48,6 +48,12 @@ export interface ApiContract<
    */
   upload?: { maxBytes: number }
   /**
+   * The body is raw `application/octet-stream`, at most `maxBytes`, with its sha-256 in
+   * `Content-Digest` (RFC 9530). The route never holds it in memory: the handler reads it as a
+   * stream. No JSON `body` then.
+   */
+  binary?: { maxBytes: number }
+  /**
    * The answer is a file of this media type, not JSON: `response` is then `FileResponse`.
    * `ranges`: the route answers HTTP `Range` (206), as a video player asks.
    */

@@ -14,6 +14,8 @@ import { identityAnonymizationNotice, identityRetention } from './handlers/ident
 import { identityPasswordResetEmail } from './handlers/identity-password-reset-email.js'
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { mediaDeleteFiles } from './handlers/media-delete-files.js'
+import { mediaProcess } from './handlers/media-process.js'
+import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
@@ -40,6 +42,9 @@ export const RETENTION_TZ = 'Europe/Rome'
 /** Every day at 04:00, Italian time: syncs and clean-up of the accounts (plan 03 Task 11). */
 export const ACCOUNTS_DAILY_CRON = '0 4 * * *'
 export const ACCOUNTS_DAILY_TZ = 'Europe/Rome'
+/** Every hour, at 17 past: expired uploads and the bytes of deleted files (plan 04 Task 9). */
+export const MEDIA_UPLOADS_CLEANUP_CRON = '17 * * * *'
+export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
@@ -59,6 +64,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.daily': accountsDaily,
     'accounts.avatar': accountsAvatar,
     'media.delete_files': mediaDeleteFiles,
+    'media.process': mediaProcess,
+    'media.uploads_cleanup': mediaUploadsCleanup,
     ...deps.handlers,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
@@ -76,6 +83,15 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     await queue.schedule('identity.retention', RETENTION_CRON, {}, { tz: RETENTION_TZ })
   if (queues.includes('accounts.daily'))
     await queue.schedule('accounts.daily', ACCOUNTS_DAILY_CRON, {}, { tz: ACCOUNTS_DAILY_TZ })
+  if (queues.includes('media.uploads_cleanup'))
+    await queue.schedule(
+      'media.uploads_cleanup',
+      MEDIA_UPLOADS_CLEANUP_CRON,
+      {},
+      {
+        tz: MEDIA_UPLOADS_CLEANUP_TZ,
+      },
+    )
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 
   return {

@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import { apiRoutes } from '@app/contracts'
 import type { ApiContract } from '@app/contracts'
@@ -46,6 +46,8 @@ export interface SampleIds {
   account: string
   /** a ready video of `workspace`, in its library, with its `preview` stored */
   media: string
+  /** an open upload into `workspace` of the agency's Owner, nothing received yet */
+  upload: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -53,6 +55,24 @@ const SAMPLE_UPLOAD = await transparentLogoPng(120, 40)
 
 /** The bytes of every case's video preview (not a real video: nothing decodes it). */
 export const SAMPLE_PREVIEW = Buffer.from('\0\0\0\x18ftypmp42anteprima della batteria')
+
+/** The one piece of every upload of the battery: the start of an MP4, so it is taken. */
+export const SAMPLE_PART = Buffer.from('\0\0\0\x18ftypmp42\0\0\0\0mp42isompezzo della batteria')
+const SAMPLE_PART_SHA256 = createHash('sha256').update(SAMPLE_PART).digest('hex')
+
+/** The headers a piece goes with: its sha-256 (RFC 9530). */
+export const SAMPLE_PART_HEADERS = {
+  'content-digest': `sha-256=:${createHash('sha256').update(SAMPLE_PART).digest('base64')}:`,
+}
+
+/** The body that starts an upload of SAMPLE_PART. */
+export const sampleUploadStart = () => ({
+  name: 'video della batteria.mp4',
+  type: 'video/mp4',
+  sizeBytes: SAMPLE_PART.length,
+  firstPartSha256: SAMPLE_PART_SHA256,
+  folderId: null,
+})
 
 /** A multipart body with one file, as the panel sends it. */
 export function uploadForm(bytes: Buffer = SAMPLE_UPLOAD, name = 'logo.png'): FormData {
@@ -122,11 +142,14 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     password: 'parola-della-batteria',
   }),
   'POST /api/v1/platform/mail-settings/test': () => ({ to: 'prova@feedway.test' }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/uploads': sampleUploadStart,
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
   // a new form each time: a sent body cannot be read again
   if (route.upload) return uploadForm()
+  // the matrix sends it with SAMPLE_PART_HEADERS where the piece must be taken
+  if (route.binary) return SAMPLE_PART
   const schema = route.request.body
   if (!schema) return undefined
   const sample = SAMPLE_BODIES[routeKey(route)]
@@ -160,6 +183,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   connection: randomUUID(),
   account: randomUUID(),
   media: randomUUID(),
+  upload: randomUUID(),
 }
 
 /**
@@ -183,6 +207,7 @@ export const ID_KINDS = [
   'connection',
   'account',
   'media',
+  'upload',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -237,6 +262,8 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   accountId: ids.account,
   mediaId: ids.media,
   variant: 'preview',
+  uploadId: ids.upload,
+  n: '1',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case
   stagingId: PLACEHOLDER_STAGING,
@@ -285,6 +312,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   media: 'select * from media',
   media_variants: 'select * from media_variants',
   library_items: 'select * from library_items',
+  upload_sessions: 'select * from upload_sessions',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -410,6 +438,19 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** An open upload of `userId` into the workspace, written directly. */
+  async function openUpload(organizationId: string, workspaceId: string, userId: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into upload_sessions (id, organization_id, workspace_id, user_id, original_name,
+                                    mime, size_bytes, first_part_sha256, expires_at)
+       values ($1, $2, $3, $4, 'video della batteria.mp4', 'video/mp4', $5, $6,
+               now() + interval '24 hours')`,
+      [id, organizationId, workspaceId, userId, SAMPLE_PART.length, SAMPLE_PART_SHA256],
+    )
+    return id
+  }
+
   /** A fresh imported account of the connection, written directly: no Meta call per case. */
   async function socialAccount(organizationId: string, connectionId: string) {
     const id = randomUUID()
@@ -460,6 +501,11 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         connection: connectionOf[agency],
         account: await socialAccount(organizationId, connectionOf[agency]),
         media: await libraryVideo(organizationId, ids.workspace, ids.target),
+        upload: await openUpload(
+          organizationId,
+          ids.workspace,
+          agency === 'a' ? people.owner.userId : ownerOfB.userId,
+        ),
       }
     },
     async refreshReauth() {
@@ -494,6 +540,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           connection,
           account: await socialAccount(agency.id, connection),
           media: await libraryVideo(agency.id, ids.workspace, owner.userId),
+          upload: await openUpload(agency.id, ids.workspace, owner.userId),
         },
       }
     },
