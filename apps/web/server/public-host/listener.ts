@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { readPublicMediaFile } from '@app/application'
+import { isPublicMediaName, readPublicMediaFile } from '@app/application'
 import type { MediaFile } from '@app/application'
-import { parseByteRange } from '../utils/byte-range'
-import { pathForLog } from '../utils/log-path'
-import type { Deps } from '../utils/deps'
+import { parseByteRange } from '../utils/byte-range.js'
+import { pathForLog } from '../utils/log-path.js'
+import type { Deps } from '../utils/deps.js'
 
 /**
  * The public host (spec §16.1, ADR 005, plan 04 Task 11): a listener of its own on PUBLIC_PORT,
@@ -16,6 +16,13 @@ import type { Deps } from '../utils/deps'
  */
 
 const MEDIA_PATH = /^\/m\/([^/]+)$/
+/**
+ * Lookups at once: each is a transaction on the pool the panel uses, so a burst of addresses
+ * (the host is public and its name is in the certificate logs) cannot take it (P3, D-08). Meta
+ * retries a 503.
+ */
+const MAX_LOOKUPS = 3
+const RETRY_AFTER_SECONDS = '5'
 const ROBOTS = 'User-agent: *\nDisallow: /\n'
 
 /** On every answer, errors included: nothing to run, sniff, frame or index. */
@@ -93,6 +100,7 @@ async function sendMedia(
 /** The request listener of the public entry. */
 export function publicHostListener(deps: Deps) {
   const hsts = deps.config.publicUrl?.protocol === 'https:'
+  let lookups = 0
   return (req: IncomingMessage, res: ServerResponse): void => {
     const started = Date.now()
     const requestId = deps.ids.newId()
@@ -128,11 +136,23 @@ export function publicHostListener(deps: Deps) {
           text(res, 200, ROBOTS, head)
           return
         }
+        const name = media[1] ?? ''
+        if (isPublicMediaName(name) && lookups >= MAX_LOOKUPS) {
+          res.setHeader('retry-after', RETRY_AFTER_SECONDS)
+          text(res, 503, 'Service Unavailable', head)
+          return
+        }
         const header = req.headers.range
-        const file = await readPublicMediaFile(deps, {
-          name: media[1] ?? '',
-          range: parseByteRange(Array.isArray(header) ? undefined : header),
-        })
+        lookups += 1
+        let file: MediaFile | null
+        try {
+          file = await readPublicMediaFile(deps, {
+            name,
+            range: parseByteRange(Array.isArray(header) ? undefined : header),
+          })
+        } finally {
+          lookups -= 1
+        }
         if (!file) {
           text(res, 404, 'Not Found', head)
           return

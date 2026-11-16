@@ -69,8 +69,9 @@ Ultimo aggiornamento: revisione della tappa 4 (16 novembre 2026): chiusa D-26 (c
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico
 - **Origine:** tappa 4, Task 11 (§15.3).
 - **Il problema:** ogni nome ben formato apre una transazione di sistema sul pool del web.
-- **Opzioni:** (a) limite per IP sull'ingresso pubblico; (b) cache in memoria dei token non trovati; (c) lasciare così finché non serve.
-- **Stato:** aperta.
+- **Fatto con la revisione della tappa 4 (P3):** al massimo 3 letture insieme dall'ingresso pubblico; oltre, la risposta è 503 con `Retry-After: 5`, che Meta riprova. Il pannello non resta più senza connessioni.
+- **Opzioni rimaste:** (a) limite per IP sull'ingresso pubblico (dietro Funnel l'IP del client non è affidabile, da verificare); (b) cache in memoria dei token non trovati; (c) lasciare così.
+- **Stato:** scelta provvisoria (c), da rivedere nella tappa 7, quando Meta scarica davvero.
 
 ### D-09 · File di agenzie sospese o di clienti archiviati
 - **Origine:** tappa 4, Task 11.

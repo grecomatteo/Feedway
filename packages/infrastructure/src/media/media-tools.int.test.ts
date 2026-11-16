@@ -14,6 +14,7 @@ import {
   displayP3Png,
   hlsBehindFtyp,
   hlsPlaylist,
+  makeDamagedVideo,
   makeResolutionSwitch,
   makeVideo,
   pngBomb,
@@ -359,6 +360,60 @@ test('frames larger than the header said are refused by the decoder', async () =
       durationMs: 2000,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('frames over the limit are refused even when a sound track keeps the full length', async () => {
+  const path = makeResolutionSwitch(dir, '320x240', '640x480', { audio: true })
+  const limited = createMediaTools({ maxVideoPixels: 320 * 240 })
+  expect(
+    await limited.transformer.videoPreview(path, join(dir, 'switch-audio-preview.mp4'), {
+      width: 320,
+      height: 240,
+      durationMs: 2000,
+    }),
+  ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('frames over the limit in the middle are refused', async () => {
+  const path = makeResolutionSwitch(dir, '320x240', '640x480', { then: '320x240' })
+  const limited = createMediaTools({ maxVideoPixels: 320 * 240 })
+  expect(
+    await limited.transformer.videoPreview(path, join(dir, 'switch-middle-preview.mp4'), {
+      width: 320,
+      height: 240,
+      durationMs: 3000,
+    }),
+  ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('one frame over the limit among a hundred is refused: no share of them is allowed', async () => {
+  const path = makeResolutionSwitch(dir, '320x240', '640x480', {
+    then: '320x240',
+    smallSeconds: 5,
+    largeFrames: 1,
+  })
+  const limited = createMediaTools({ maxVideoPixels: 320 * 240 })
+  expect(
+    await limited.transformer.videoPreview(path, join(dir, 'switch-few-preview.mp4'), {
+      width: 320,
+      height: 240,
+      durationMs: 10_100,
+    }),
+  ).toEqual({ ok: false, reason: 'unreadable' })
+})
+
+test('a video with a glitch the decoder hides is kept: every frame is still there', async () => {
+  const path = makeDamagedVideo(dir)
+  const tools = createMediaTools()
+  const probed = await tools.probe.analyze(path, {})
+  expect(probed).toMatchObject({ ok: true, analysis: { kind: 'video' } })
+  const preview = await tools.transformer.videoPreview(path, join(dir, 'damaged-preview.mp4'), {
+    width: 320,
+    height: 240,
+    durationMs: 4000,
+  })
+  expect(preview).toMatchObject({ ok: true })
+  expect(Number(probeFile(join(dir, 'damaged-preview.mp4')).format.duration)).toBeCloseTo(4, 0)
 })
 
 test('a malformed ICC profile is no description, never an error', () => {
