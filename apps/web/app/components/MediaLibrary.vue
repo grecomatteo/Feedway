@@ -8,7 +8,11 @@ import type { Folder, LibraryFile } from '~/composables/useLibrary'
  * side. A file moves into a folder by dragging it there or with «Sposta in…». Used by
  * `/<agenzia>/libreria` and by the client's «Libreria» tab. An archived client is read only.
  */
-const props = defineProps<{ workspace: WorkspaceView }>()
+const props = defineProps<{
+  workspace: WorkspaceView
+  /** the page puts «Carica file» in its head (`chooseFiles`) */
+  uploadInHeader?: boolean
+}>()
 const { t } = useI18n()
 const { failure } = useApi()
 const ready = useHydrated()
@@ -327,10 +331,75 @@ const folderClass = (target: string) => [
     : 'hover:bg-(--app-surface-sunken)',
 ]
 const isCurrent = (target: string | null) => (filter.folder ?? null) === target
+
+// ---- upload (plan 04 Task 13): into the folder shown, by button, drop or paste
+const uploader = ref<{
+  choose: () => void
+  add: (files: readonly File[]) => void
+  limitsText: string
+} | null>(null)
+const uploadFolder = computed(() =>
+  filter.folder && filter.folder !== 'none' ? filter.folder : null,
+)
+function chooseFiles() {
+  uploader.value?.choose()
+}
+defineExpose({ chooseFiles })
+// files from the computer, not a file of the grid dragged onto a folder
+const dropping = ref(false)
+let depth = 0
+const carriesFiles = (event: DragEvent) =>
+  !readOnly.value &&
+  !!event.dataTransfer?.types.includes('Files') &&
+  !event.dataTransfer.types.includes(DRAG_TYPE)
+function filesEnter(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  event.preventDefault()
+  depth += 1
+  dropping.value = true
+}
+function filesOver(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+function filesLeave(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  depth = Math.max(0, depth - 1)
+  if (depth === 0) dropping.value = false
+}
+function filesDrop(event: DragEvent) {
+  if (!carriesFiles(event)) return
+  event.preventDefault()
+  depth = 0
+  dropping.value = false
+  uploader.value?.add(Array.from(event.dataTransfer?.files ?? []))
+}
 </script>
 
 <template>
-  <div :data-ready="ready || undefined" class="md:grid md:grid-cols-[13.5rem_1fr] md:gap-6">
+  <div
+    :data-ready="ready || undefined"
+    class="relative md:grid md:grid-cols-[13.5rem_1fr] md:gap-6"
+    @dragenter="filesEnter"
+    @dragover="filesOver"
+    @dragleave="filesLeave"
+    @drop="filesDrop"
+  >
+    <div
+      v-if="dropping"
+      class="pointer-events-none absolute -inset-2 z-20 rounded-2xl border-2 border-dashed border-(--app-brand) bg-(--app-surface)/90 p-6"
+      data-drop-zone
+    >
+      <!-- in view however long the library is -->
+      <div
+        class="sticky top-[35vh] mx-auto flex w-fit max-w-full flex-col items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-card) px-6 py-5 text-center shadow-lg"
+      >
+        <UIcon name="i-lucide-upload" class="size-7 text-(--app-brand)" aria-hidden="true" />
+        <p class="text-lg font-semibold">{{ $t('upload.dropHere') }}</p>
+        <p class="text-sm text-(--app-text-muted)">{{ uploader?.limitsText }}</p>
+      </div>
+    </div>
     <!-- folders: on a computer a column, on a phone a menu above the grid -->
     <nav :aria-label="$t('library.folders.label')" class="max-md:hidden">
       <div class="mb-2 flex items-center justify-between">
@@ -408,12 +477,22 @@ const isCurrent = (target: string | null) => (filter.folder ?? null) === target
 
     <div class="min-w-0">
       <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <SegmentedFilter
-          v-model="filter.kind"
-          :label="$t('library.kind.label')"
-          :options="kindOptions"
-          class="self-start"
-        />
+        <div class="flex items-center justify-between gap-3 lg:contents">
+          <SegmentedFilter
+            v-model="filter.kind"
+            :label="$t('library.kind.label')"
+            :options="kindOptions"
+            class="self-start"
+          />
+          <UButton
+            v-if="!readOnly && !uploadInHeader"
+            icon="i-lucide-upload"
+            class="min-h-11 shrink-0 lg:order-last"
+            @click="chooseFiles"
+          >
+            {{ $t('upload.choose') }}
+          </UButton>
+        </div>
         <div class="flex flex-1 flex-wrap gap-3">
           <div class="flex w-full gap-2 md:hidden">
             <USelect
@@ -479,6 +558,14 @@ const isCurrent = (target: string | null) => (filter.folder ?? null) === target
           </button>
         </li>
       </ul>
+
+      <MediaUploader
+        v-if="!readOnly"
+        ref="uploader"
+        :workspace="workspace"
+        :folder-id="uploadFolder"
+        @changed="lib.load()"
+      />
 
       <p v-if="done" role="status" class="mb-3 text-sm text-(--app-success)">{{ done }}</p>
       <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>

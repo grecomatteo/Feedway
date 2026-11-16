@@ -158,6 +158,9 @@ jobs:
             echo "::warning::apt non raggiunge i mirror di Ubuntu: installo solo Chromium"
             pnpm --filter @app/web exec playwright install chromium
           }
+      # the upload tests prepare the files as the worker does (plan 04 Task 13)
+      - if: steps.changes.outputs.code != 'false'
+        run: scripts/ci/media-tools.sh
       - if: steps.changes.outputs.code != 'false'
         run: pnpm test:e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

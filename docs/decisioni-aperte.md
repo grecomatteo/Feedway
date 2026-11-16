@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: tappa 4, Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -38,6 +38,24 @@ Ultimo aggiornamento: tappa 4, Task 12 (16 novembre 2026). Chiuse nel Task 12 su
 - **Decisione di Matteo:** finché il post è programmato i suoi file si vedono nella libreria del cliente; quando il programma ha verificato che la pubblicazione è andata a buon fine, si possono togliere. Resta il pulsante per tenerli («Salva in libreria»).
 - **Da precisare nella tappa 6:** se si tolgono subito dopo la verifica o dopo i 7 giorni di `MEDIA_RETENTION_DAYS`; come si distinguono in libreria dai file salvati (per esempio un'etichetta «Nel post del …»).
 - **Stato:** decisa, da fare nelle tappe 6 (post) e 7 (pubblicazione e verifica); la specifica §11.8 va aggiornata in quella PR.
+
+### D-19 · Il limite delle foto si controlla solo nel pannello e nel worker
+- **Origine:** tappa 4, Task 13.
+- **Il problema:** all'inizio di un caricamento il server controlla solo `MEDIA_MAX_VIDEO_BYTES` (300 MB), il limite più alto, come dice l'ADR 021. Il pannello rifiuta subito una foto oltre `MEDIA_MAX_IMAGE_BYTES` (50 MB), ma chi chiama l'API direttamente può caricarla: il worker poi la segna «Non riuscito».
+- **Opzioni:** (a) controllare anche il limite delle foto al `POST`, dal tipo dichiarato; (b) lasciare così, perché il worker la blocca comunque.
+- **Stato:** scelta provvisoria (b).
+
+### D-20 · Quanti file si caricano insieme
+- **Origine:** tappa 4, Task 13.
+- **Il problema:** il pannello manda due file alla volta, un pezzo per file. Con più file insieme la connessione si divide e nessuno finisce prima.
+- **Opzioni:** (a) due alla volta; (b) uno alla volta; (c) tre o più.
+- **Stato:** scelta provvisoria (a), da rivedere con la prova sulla VPS (Task 14).
+
+### D-21 · Caricamenti in corso e cambio di pagina nel pannello
+- **Origine:** tappa 4, Task 13, revisione della PR.
+- **Il problema:** i caricamenti vivono nella pagina della libreria. Se si va su un'altra pagina del pannello (o si cambia cliente) si fermano e diventano «rimasti a metà»: si riprendono scegliendo di nuovo il file. Chiudere o ricaricare la scheda chiede invece conferma al browser.
+- **Opzioni:** (a) chiedere conferma anche prima di cambiare pagina; (b) tenere i caricamenti vivi in tutto il pannello, con un piccolo indicatore fisso (serve anche all'editor del post, tappa 6); (c) lasciare così.
+- **Stato:** scelta provvisoria (c); (b) è la proposta per la tappa 6.
 
 ## Host pubblico (`/m/*`)
 

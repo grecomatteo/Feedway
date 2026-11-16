@@ -1,6 +1,16 @@
-import { buildDataExport, refreshAccountAvatar, type Logger } from '@app/application'
+import { join } from 'node:path'
 import {
+  buildDataExport,
+  processNextMedia,
+  refreshAccountAvatar,
+  type Logger,
+} from '@app/application'
+import {
+  createAdvisoryLock,
   createAvatarProcessor,
+  createMediaScratch,
+  createMediaTools,
+  newPublicToken,
   createDb,
   createRuntime,
   createLocalDiskStorage,
@@ -88,5 +98,64 @@ export async function runAccountAvatarJobs(organizationId: string): Promise<void
     await runtime.queue.stop({ graceful: false, timeoutMs: 1000 }).catch(() => undefined)
     await runtime.close()
     await admin.close()
+  }
+}
+
+/**
+ * Does what the worker would after an upload (`media.process`, plan 04 Task 10): prepares every
+ * file waiting, one at a time, with ffmpeg and sharp of this machine.
+ */
+export async function runMediaProcessJobs(): Promise<void> {
+  const runtimeUrl = process.env.E2E_DATABASE_URL
+  const mediaRoot = process.env.E2E_MEDIA_ROOT
+  const key = process.env.E2E_ENCRYPTION_KEY
+  if (!runtimeUrl || !mediaRoot || !key) throw new Error('e2e environment not available')
+  const runtime = await createRuntime(
+    {
+      nodeEnv: 'production',
+      databaseUrl: runtimeUrl,
+      encryptionKey: Buffer.from(key, 'base64'),
+      logLevel: 'error',
+      mediaRoot,
+      metaMode: 'mock',
+      metaGraphVersion: 'v25.0',
+      metaMockUrl: process.env.E2E_META_MOCK_URL ?? 'http://127.0.0.1:9',
+    },
+    'worker',
+  )
+  const limits = {
+    maxImageBytes: 50_000_000,
+    maxImagePixels: 50_000_000,
+    maxVideoBytes: 300_000_000,
+    maxVideoSeconds: 900,
+    maxVideoPixels: 4096 * 4096,
+    workspaceMaxBytes: null,
+  }
+  try {
+    const deps = {
+      ...createMediaTools({ maxVideoPixels: limits.maxVideoPixels }),
+      uow: runtime.uow,
+      clock: systemClock,
+      ids: uuidV7Generator,
+      storage: runtime.storage,
+      // the next wake-up is this loop
+      queue: { send: () => Promise.resolve(null) },
+      logger: quiet,
+      lock: createAdvisoryLock(runtime.pool),
+      scratch: createMediaScratch({ dir: join(mediaRoot, 'work') }),
+      newPublicToken,
+      limits,
+    }
+    for (let i = 0; i < 10; i++) {
+      const done = await processNextMedia(deps, {
+        organizationId: '00000000-0000-7000-8000-000000000000',
+        mediaId: '00000000-0000-7000-8000-000000000000',
+        jobId: `e2e-${String(i)}`,
+      })
+      if (done.outcome !== 'processed') return
+    }
+  } finally {
+    await runtime.queue.stop({ graceful: false, timeoutMs: 1000 }).catch(() => undefined)
+    await runtime.close()
   }
 }

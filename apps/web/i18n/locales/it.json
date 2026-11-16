@@ -1409,9 +1409,9 @@
       "files": "nessun file | {n} file | {n} file"
     },
     "empty": "Ancora nessun file",
-    "emptyText": "Le foto e i video caricati per questo cliente compaiono qui.",
+    "emptyText": "Le foto e i video di questo cliente compaiono qui. Usa «Carica file», trascinali qui o incolla un'immagine.",
     "emptyFolder": "Questa cartella è vuota",
-    "emptyFolderText": "Trascina qui un file, oppure usa «Sposta in…» dal file.",
+    "emptyFolderText": "Carica qui dei file, oppure sposta un file con «Sposta in…».",
     "noMatch": "Nessun file corrisponde ai filtri.",
     "clearFilters": "Togli i filtri",
     "more": "Mostra altri file",
@@ -1481,5 +1481,70 @@
     "recent": "Ultimi file",
     "openLibrary": "Apri la libreria",
     "noRecent": "Ancora nessun file nella libreria."
+  },
+  "upload": {
+    "choose": "Carica file",
+    "dropHere": "Rilascia qui",
+    "limits": "Foto JPEG, PNG, WEBP o HEIC fino a {image}, video MP4 o MOV fino a {video}",
+    "limitsUnknown": "Foto JPEG, PNG, WEBP o HEIC, video MP4 o MOV",
+    "title": "Caricamenti",
+    "overall": "{done} di {n} file caricati | {done} di {n} file caricati | {done} di {n} file caricati",
+    "amount": "{sent} di {total} · {percent}%",
+    "amountShort": "{sent} di {total}",
+    "eta": "mancano {eta}",
+    "state": {
+      "queued": "In attesa",
+      "hashing": "Preparo il caricamento",
+      "paused": "In pausa",
+      "offline": "Connessione interrotta: riprende da solo appena torna",
+      "completing": "Caricato, lo metto in libreria",
+      "processing": "In preparazione",
+      "ready": "Pronto",
+      "failed": "Non riuscito",
+      "failedWhy": "Non riuscito: {reason}"
+    },
+    "step": {
+      "analysis": "Analisi",
+      "conversion": "Conversione"
+    },
+    "refused": {
+      "type": "Non caricato: si caricano solo foto (JPEG, PNG, WEBP, HEIC) e video (MP4, MOV).",
+      "empty": "Non caricato: il file è vuoto.",
+      "sizeImage": "Non caricato: pesa {size}, le foto al massimo {limit}.",
+      "sizeVideo": "Non caricato: pesa {size}, i video al massimo {limit}."
+    },
+    "expired": "Il caricamento è scaduto. «Riprova» lo ricomincia da capo.",
+    "notSame": "Non è il file rimasto a metà: scegli «{name}».",
+    "chooseAgainNeeded": "Mancano dei pezzi: scegli di nuovo il file per finire.",
+    "pauseFor": "Metti in pausa {name}",
+    "resumeFor": "Riprendi {name}",
+    "retry": "Riprova",
+    "retryNow": "Riprova ora",
+    "retryFor": "Riprova a caricare {name}",
+    "cancel": "Annulla",
+    "cancelFor": "Annulla il caricamento di {name}",
+    "dismissFor": "Togli {name} dall'elenco",
+    "clear": "Togli i finiti",
+    "progressLabel": "Avanzamento di {name}",
+    "overallLabel": "Avanzamento di tutti i file",
+    "leftovers": {
+      "title": "Caricamenti rimasti a metà",
+      "text": "Si sono fermati, per esempio perché la pagina è stata ricaricata. Scegli di nuovo lo stesso file: riparte da dove era arrivato.",
+      "progress": "{percent}% di {total} già arrivato · si può riprendere fino al {when}",
+      "chooseAgain": "Scegli di nuovo il file",
+      "chooseAgainFor": "Scegli di nuovo il file {name}",
+      "complete": "Completa"
+    },
+    "announce": {
+      "started": "Nessun file in caricamento | Caricamento di un file iniziato | Caricamento di {n} file iniziato",
+      "uploaded": "{name} caricato, ora si prepara.",
+      "ready": "{name} è pronto.",
+      "failed": "{name} non è riuscito. {reason}",
+      "allDone": "Caricamenti finiti.",
+      "refused": "{name}. {reason}",
+      "error": "{name}: {reason}",
+      "paused": "{name} in pausa.",
+      "canceled": "Caricamento di {name} annullato."
+    }
   }
 }
