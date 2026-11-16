@@ -5,6 +5,14 @@ import { PRODUCT_NAME } from '@app/config/product'
 const props = defineProps<{ error: NuxtError }>()
 const { t } = useI18n()
 
+useHtmlPalette()
+// a missing page loaded on its own skips the route middleware, so the session (and with it the
+// person's palette and theme) is read here; signed out or failing, the page stays in Feedway
+if (import.meta.server)
+  await useSession()
+    .current()
+    .catch(() => null)
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type Kind = 'notFound' | 'forbidden' | 'unauthenticated' | 'rateLimited' | 'generic'
