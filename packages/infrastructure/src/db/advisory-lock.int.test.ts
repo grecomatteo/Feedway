@@ -24,17 +24,19 @@ test('one holder at a time across processes, free again afterwards', async () =>
   const a = createAdvisoryLock(one.pool)
   const b = createAdvisoryLock(two.pool)
   let release!: () => void
+  let started!: () => void
   const held = new Promise<void>((resolve) => (release = resolve))
+  const running = new Promise<void>((resolve) => (started = resolve))
   const first = a.tryRun('test', async () => {
+    started()
     await held
     return 'first'
   })
-  // the first holds it: the second does not run
-  await expect
-    .poll(() => b.tryRun('test', () => Promise.resolve('second')))
-    .toEqual({
-      acquired: false,
-    })
+  // only once the first holds it: a try from the second before then could win the lock itself
+  await running
+  await expect(b.tryRun('test', () => Promise.resolve('second'))).resolves.toEqual({
+    acquired: false,
+  })
   release()
   await expect(first).resolves.toEqual({ acquired: true, value: 'first' })
   await expect(b.tryRun('test', () => Promise.resolve('second'))).resolves.toEqual({
