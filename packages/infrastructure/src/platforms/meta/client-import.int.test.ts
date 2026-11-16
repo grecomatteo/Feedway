@@ -374,6 +374,29 @@ test('«Annulla» leaves a client that has people working in it', async () => {
   expect((await workspacesOf(owner.organizationId)).map((w) => w.archived)).toEqual([false])
 })
 
+test('«Annulla» leaves a client that already has files in its library', async () => {
+  const connectionId = await connect()
+  const result = await importAccounts(
+    deps,
+    owner,
+    {
+      connectionId,
+      externalIds: [pages.withoutInstagram],
+      newWorkspaces: [{ name: 'Studio', externalIds: [pages.withoutInstagram] }],
+    },
+    REQ,
+  )
+  const id = result.undo.workspaceIds[0] ?? ''
+  await seed(tdb.runtimeUrl, (s) =>
+    s.media(owner.organizationId, id, { uploadedBy: owner.userId, kind: 'image', status: 'ready' }),
+  )
+  await expect(undoClientImport(deps, owner, result.undo, REQ)).rejects.toMatchObject({
+    code: 'CONFLICT',
+    message: expect.stringContaining('file') as unknown,
+  })
+  expect((await workspacesOf(owner.organizationId)).map((w) => w.archived)).toEqual([false])
+})
+
 test('a client from a profile already imported', async () => {
   const connectionId = await connect()
   const { accounts } = await importAccounts(

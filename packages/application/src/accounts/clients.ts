@@ -158,6 +158,12 @@ export async function undoClientImport(
           'CONFLICT',
           'Qualcuno lavora già in uno dei clienti creati: archivialo dalla pagina Clienti',
         )
+      // its library would vanish from sight with the client (plan 04, revisione P10)
+      if (await tx.media.hasFiles(organizationId, id))
+        throw new DomainError(
+          'CONFLICT',
+          'Uno dei clienti creati ha già dei file nella libreria: archivialo dalla pagina Clienti',
+        )
     }
     for (const { workspaceId, accountId } of input.assignments) {
       if (locked.get(workspaceId)?.archived) continue

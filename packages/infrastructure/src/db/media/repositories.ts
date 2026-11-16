@@ -145,6 +145,20 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         folderId,
       })
     },
+    async hasFiles(organizationId, workspaceId) {
+      const [row] = await db
+        .select({ id: media.id })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.workspaceId, workspaceId),
+            ne(media.status, 'deleted'),
+          ),
+        )
+        .limit(1)
+      return row !== undefined
+    },
     async folderExists(organizationId, workspaceId, folderId) {
       const [row] = await db
         .select({ id: libraryFolders.id })

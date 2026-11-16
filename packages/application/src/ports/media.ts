@@ -143,6 +143,8 @@ export interface MediaRepository {
   create(media: NewMedia): Promise<void>
   /** Whether the folder exists in the library of that workspace. */
   folderExists(organizationId: string, workspaceId: string, folderId: string): Promise<boolean>
+  /** Whether the workspace has a file not deleted, in any state. */
+  hasFiles(organizationId: string, workspaceId: string): Promise<boolean>
   /**
    * The deleted files of the agency that still have an original or a copy stored: their
    * `media.delete_files` did not run, or did not finish.
