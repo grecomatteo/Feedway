@@ -250,6 +250,9 @@ test('a file too large or of another type is refused at once, the others go on',
   await expect(row(page, 'enorme.jpg')).toHaveAttribute('data-state', 'rejected')
   await expect(row(page, 'enorme.jpg')).toContainText('pesa 60 MB, le foto al massimo 50 MB')
   await expect(row(page, 'animazione.gif')).toContainText('si caricano solo foto')
+  // the refusals are read together with the start, not covered by it
+  await expect(announcer(page)).toContainText('animazione.gif')
+  await expect(announcer(page)).toContainText('Caricamento di un file iniziato')
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
     timeout: 20_000,
   })

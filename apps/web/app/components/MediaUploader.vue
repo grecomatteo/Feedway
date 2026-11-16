@@ -202,6 +202,9 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
     >
       <h2 id="upload-leftovers" class="font-semibold">{{ $t('upload.leftovers.title') }}</h2>
       <p class="mt-1 text-sm text-(--app-text-muted)">{{ $t('upload.leftovers.text') }}</p>
+      <p v-if="uploads.leftoverProblem.value" role="alert" class="mt-2 text-sm text-(--app-danger)">
+        {{ uploads.leftoverProblem.value }}
+      </p>
       <ul class="mt-3 divide-y divide-(--app-border)">
         <li
           v-for="u in leftovers"
@@ -350,7 +353,9 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
               :aria-label="$t('upload.progressLabel', { name: i.name })"
               aria-valuemin="0"
               aria-valuemax="100"
-              :aria-valuenow="barPercent(i)"
+              :aria-valuenow="
+                i.state === 'processing' && workPercent(i) === null ? undefined : barPercent(i)
+              "
               :aria-valuetext="line(i)"
               class="mt-2 h-1.5 overflow-hidden rounded-full bg-(--app-surface-sunken)"
             >

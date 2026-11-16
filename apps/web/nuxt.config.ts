@@ -93,7 +93,7 @@ export default defineNuxtConfig({
         // a video chosen for upload plays from the computer before it is sent (spec §11.1, §15.3)
         'media-src': ["'self'", 'blob:'],
         // the sha-256 of the pieces is counted in a worker of ours (plan 04 Task 13)
-        'worker-src': ["'self'", 'blob:'],
+        'worker-src': ["'self'"],
         'connect-src': ["'self'"],
         'font-src': ["'self'"],
         'frame-ancestors': ["'none'"],

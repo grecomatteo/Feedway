@@ -105,10 +105,17 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   /** The reactive copy of an item, the one the page draws. */
   const live = (key: string) => items.value.find((i) => i.key === key)
 
+  // what is said in one tick is read together: a refusal is not covered by «N started»
+  let said: string[] = []
   function announce(text: string) {
+    said.push(text)
+    if (said.length > 1) return
     // the same text twice is read twice
     announcement.value = ''
-    void nextTick(() => (announcement.value = text))
+    void nextTick(() => {
+      announcement.value = said.join(' ')
+      said = []
+    })
   }
 
   const request = <T>(
@@ -123,6 +130,9 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
       ...(body === undefined ? {} : { body }),
       ...(signal ? { signal } : {}),
     })
+
+  /** An error of $fetch, with or without an answer. */
+  const isFetchFailure = (error: unknown) => error instanceof Error && error.name === 'FetchError'
 
   function failureOf(error: unknown): ApiFailure {
     if (!(error instanceof HttpFailure)) return failure(error)
@@ -238,6 +248,9 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         if (s.expect && !sameFile(s.expect, file, first)) {
           item.state = 'error'
           item.message = t('upload.notSame', { name: s.expect.name })
+          // the upload left halfway is still there, for the right file
+          leftovers.value = [s.expect, ...leftovers.value]
+          s.expect = null
           return
         }
         const left =
@@ -350,6 +363,14 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     const f = failureOf(error)
     item.rate = null
     s.meter.reset()
+    // a file that can no longer be read (changed or removed after it was chosen) is no fall
+    // of the network: it waits for the person, not for the connection
+    if (!(error instanceof HttpFailure) && !isFetchFailure(error)) {
+      item.state = 'error'
+      item.message = t('upload.chooseAgainNeeded')
+      announce(t('upload.announce.error', { name: item.name, reason: item.message }))
+      return
+    }
     // no answer, the server busy or slowing us down: wait and go on by ourselves
     if (f.status === 0 || f.status >= 500 || f.status === 429 || f.status === 408) {
       item.state = 'offline'
@@ -420,7 +441,8 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         } catch (error) {
           // deleted meanwhile: nothing left to wait for
           if (failure(error).status === 404) {
-            items.value = items.value.filter((i) => i.key !== key)
+            const gone = live(key)
+            if (gone) forget(gone)
             return
           }
         }
@@ -545,6 +567,8 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         return
       }
       s.expect = left
+      // off the list at once: no second choice nor «Annulla» while the file is checked
+      leftovers.value = leftovers.value.filter((u) => u.id !== left.id)
       if (item.kind === 'video' || PREVIEWABLE_IMAGES.has(left.type))
         item.preview = { url: URL.createObjectURL(file), kind: item.kind }
     } else {
@@ -556,8 +580,18 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     pump()
   }
 
+  const leftoverProblem = ref<string | null>(null)
   async function cancelLeftover(left: Leftover) {
-    await request('DELETE', `${base.value}/${encodeURIComponent(left.id)}`)
+    leftoverProblem.value = null
+    try {
+      await request('DELETE', `${base.value}/${encodeURIComponent(left.id)}`)
+    } catch (error) {
+      // already gone (expired) is what was asked
+      if (failure(error).status !== 404) {
+        leftoverProblem.value = failure(error).message
+        return
+      }
+    }
     leftovers.value = leftovers.value.filter((u) => u.id !== left.id)
     announce(t('upload.announce.canceled', { name: left.name }))
   }
@@ -584,9 +618,14 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     const s = side(item)
     clearTimeout(s.timer)
     s.tries = 0
+    if (!s.file && !item.uploadId) {
+      // nothing to send and no upload left to finish: only the file chosen again helps
+      item.state = 'error'
+      item.message = t('upload.chooseAgainNeeded')
+      return
+    }
     item.message = null
     item.state = 'queued'
-    if (!s.file && !item.uploadId) return
     pump()
   }
   function forget(item: UploadItem) {
@@ -679,6 +718,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   return {
     items,
     leftovers,
+    leftoverProblem,
     limits,
     announcement,
     hasherMode,

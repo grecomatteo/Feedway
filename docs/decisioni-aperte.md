@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19 e D-20. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -50,6 +50,12 @@ Ultimo aggiornamento: tappa 4, Task 13 (16 novembre 2026): nuove D-19 e D-20. Pr
 - **Il problema:** il pannello manda due file alla volta, un pezzo per file. Con più file insieme la connessione si divide e nessuno finisce prima.
 - **Opzioni:** (a) due alla volta; (b) uno alla volta; (c) tre o più.
 - **Stato:** scelta provvisoria (a), da rivedere con la prova sulla VPS (Task 14).
+
+### D-21 · Caricamenti in corso e cambio di pagina nel pannello
+- **Origine:** tappa 4, Task 13, revisione della PR.
+- **Il problema:** i caricamenti vivono nella pagina della libreria. Se si va su un'altra pagina del pannello (o si cambia cliente) si fermano e diventano «rimasti a metà»: si riprendono scegliendo di nuovo il file. Chiudere o ricaricare la scheda chiede invece conferma al browser.
+- **Opzioni:** (a) chiedere conferma anche prima di cambiare pagina; (b) tenere i caricamenti vivi in tutto il pannello, con un piccolo indicatore fisso (serve anche all'editor del post, tappa 6); (c) lasciare così.
+- **Stato:** scelta provvisoria (c); (b) è la proposta per la tappa 6.
 
 ## Host pubblico (`/m/*`)
 

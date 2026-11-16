@@ -34,7 +34,7 @@ test('security headers are present', async () => {
   expect(csp).not.toMatch(/fbcdn|cdninstagram/)
   // a video chosen for upload plays from the computer; the pieces' sha-256 is counted in a worker
   expect(csp).toMatch(/media-src 'self' blob:(;|$)/)
-  expect(csp).toMatch(/worker-src 'self' blob:(;|$)/)
+  expect(csp).toMatch(/worker-src 'self'(;|$)/)
   expect(r.headers.get('x-content-type-options')).toBe('nosniff')
   expect(r.headers.get('referrer-policy')).toBe('same-origin')
   expect(r.headers.get('permissions-policy')).toContain('camera=()')
