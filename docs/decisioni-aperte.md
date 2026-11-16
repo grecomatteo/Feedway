@@ -18,6 +18,7 @@ Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover
 ### D-02 · Decodifica delle foto e delle HEIC dentro il processo del worker
 - **Origine:** tappa 4, Task 10, revisione di sicurezza.
 - **Il problema:** un file costruito ad arte può far superare il limite di memoria del contenitore. Il worker si riavvia; dopo 3 tentativi il file va in `processing_failed`.
+- **Legata alla revisione della tappa 4 (P2):** dalla 0.10.0 un riavvio pulito (aggiornamento, `restart`) non consuma tentativi e la conversione riparte appena il worker torna; un crash vero sì, ed è voluto, così un file che uccide il worker si ferma dopo 3 volte.
 - **Opzioni:** (a) decodifica in un processo figlio con limite di memoria; (b) lasciare così.
 - **Stato:** aperta.
 
@@ -64,6 +65,19 @@ Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover
 - **Opzioni:** (a) pezzi più piccoli, per esempio 8 MiB (cambia il protocollo dell'ADR 021, quindi serve una nuova ADR); (b) alzare il limite del server del pannello (Nitro non lo permette in modo pulito); (c) lasciare così, con l'avviso.
 - **Stato:** scelta provvisoria (c), da misurare nella prova sulla VPS (Task 14) con un invio su 4G debole.
 
+### D-29 · Video con un errore di decodifica
+- **Origine:** revisione finale della tappa 4 (P6).
+- **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
+- **Cosa fa ora il worker:** dopo un errore controlla la copia d'anteprima e la rifiuta solo se dura meno del 97% di quanto dichiara il file. Il blocco dei flussi che cambiano risoluzione a metà resta, perché lì la copia viene più corta.
+- **Opzioni:** (a) lasciare il 97%; (b) una soglia diversa; (c) un elenco di messaggi ammessi.
+- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14).
+
+### D-30 · iPhone in modalità «Più compatibile»
+- **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
+- **Il problema:** con «Formati → Più compatibile» l'iPhone salva foto JPEG e video H.264, e quando li manda può convertire una HEIC in JPEG da sé. Quello che arriva a Feedway non è allora il file della fotocamera. Nella prova va scelto «Attuale» nel selettore di iOS, e il codec va controllato nel dettaglio del file.
+- **Opzioni:** (a) scriverlo nella guida per le agenzie; (b) non fare niente, perché Feedway converte comunque.
+- **Stato:** aperta, da guardare nella prova (Task 14).
+
 ## Host pubblico (`/m/*`)
 
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico
@@ -108,6 +122,29 @@ Ultimo aggiornamento: tappa 4, Task 13b (16 novembre 2026): chiusa D-17 (l'hover
 - **Origine:** richiesta di Matteo, 16 novembre.
 - **Cosa fare:** una guida passo passo con tutto quello che va fatto sulla VPS (D-13, policy e chiave di Tailscale, Funnel, aggiornamento, controlli) e ogni passo della prova.
 - **Stato:** decisa, da fare nel Task 14.
+
+## Lavoro rimandato ad altre tappe
+
+### D-31 · Tela Pencil ferma al 10 novembre
+- **Origine:** revisione finale della tappa 4 (P8).
+- **Il problema:** `design/feedway-ui.pen` non ha ancora Libreria, caricamento, dettaglio del file, temi colore e logo.
+- **Stato:** decisa, da fare all'inizio della tappa 6, dopo la revisione UI della tappa 4 (la tappa 6 ridisegna parte di queste schermate).
+
+### D-32 · I file di un'agenzia eliminata
+- **Origine:** revisione finale della tappa 4 (P13).
+- **Il problema:** l'eliminazione di un'agenzia non esiste ancora. Quando arriverà, dovrà cancellare anche `org/<id>/` dall'archivio dei file (libreria, logo, foto dei clienti) oltre alle righe del database.
+- **Stato:** decisa, da fare nella tappa che introduce l'eliminazione delle agenzie.
+
+### D-33 · Nessun backup dei file della libreria fino alla tappa 11
+- **Origine:** revisione finale della tappa 4 (P9), specifica §16.4.
+- **Il problema:** il backup di oggi copre il database, non i file. Finché la tappa 11 non c'è, la libreria non va usata come unica copia del materiale dei clienti. Scritto nel runbook dei media.
+- **Stato:** decisa, da fare nella tappa 11.
+
+### D-34 · Foto delle Pagine a 256 px e scaricamenti in modalità di prova
+- **Origine:** revisione finale della tappa 4 (P13).
+- **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
+- **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
+- **Stato:** da verificare nella prova (Task 14).
 
 ## Clienti e profili
 

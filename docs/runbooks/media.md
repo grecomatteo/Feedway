@@ -1,6 +1,6 @@
-# Media: host pubblico
+# Media
 
-Come si accende l'host pubblico dei media e come si legge l'indirizzo pubblico di un file. Il resto del runbook dei media (limiti, dove stanno i file, video fermi in elaborazione) arriva con il Task 14 della tappa 4.
+Come si accende l'host pubblico dei media, come si legge l'indirizzo pubblico di un file, cosa fare con un file fermo in elaborazione e cosa manca ancora (le copie di sicurezza dei file). Limiti e cartelle dei file arrivano con il Task 14 della tappa 4.
 
 ## Cos'è
 
@@ -72,3 +72,43 @@ Stampa gli ultimi 10 file pronti, di tutte le agenzie, con data, nome e indirizz
 - `./scripts/compose.sh logs --tail 100 tailscale-public` dice se il nodo è entrato nella rete e se Funnel è stato rifiutato dalla policy.
 - `./scripts/compose.sh exec tailscale-public tailscale funnel status` mostra cosa è aperto a internet: devono comparire solo `/m/`, `/share/` e `/robots.txt`.
 - Nel log del web le richieste dell'host pubblico hanno `"entry":"public"` e il percorso `/m/…`, senza token.
+- **503 con `Retry-After: 5`** su un indirizzo `/m/` ben formato: il web non è riuscito a leggere il database o il file dopo tre tentativi (database fermo o lento, bucket S3 irraggiungibile). Meta riprova da sola. Se dura, guarda `./scripts/compose.sh ps` e il log di `postgres` e del web. Un indirizzo malformato o un file cancellato danno invece 404, subito.
+
+## Un file fermo in «In preparazione»
+
+Le copie le fa il worker, una conversione alla volta per agenzia (`MEDIA_CONVERSIONS_PER_ORG`). Un video lungo può impiegare qualche minuto: non è un guasto.
+
+Cosa succede da solo:
+
+- **Riavvio del worker** (`./scripts/compose.sh restart worker`, un aggiornamento, un guasto): il worker interrompe la conversione in corso, si ferma entro 45 secondi e, quando riparte, riprende i file rimasti in elaborazione. La copia si rifà da capo.
+- **Lavoro perso dalla coda**: ogni 10 minuti la pulizia rimette in coda i file in elaborazione senza cambiamenti da più di 15 minuti.
+
+Quindi un file fermo da meno di mezz'ora di solito si sblocca da sé. Se resta fermo:
+
+1. Guarda il log del worker: `./scripts/compose.sh logs --tail 200 worker | grep -i media`. Una riga `media.process` con un errore dice perché.
+2. Elenca i file fermi, di tutte le agenzie:
+
+   ```bash
+   ./scripts/compose.sh exec -T postgres psql -U postgres -d app -At -F ' · ' -c "
+     select organization_id, id, updated_at, mime
+       from media
+      where status = 'processing' and updated_at < now() - interval '30 minutes'
+      order by updated_at"
+   ```
+
+3. Riavvia il worker: `./scripts/compose.sh restart worker`. Al riavvio riprende ogni file della lista.
+4. Se il file finisce in «Non riuscito»:
+   - con «La preparazione non è riuscita dopo vari tentativi» il problema era della macchina (spazio su disco finito, ffmpeg interrotto): l'originale resta salvato, ma il pannello non sa ancora rifare la preparazione. Correggi la causa e ricarica il file;
+   - con un motivo definitivo (formato non valido, troppo lungo, troppo grande) l'originale è già cancellato: va esportato in un formato accettato e ricaricato.
+
+Non cambiare `status` a mano nel database: copie, originale e spazio contato non tornerebbero più d'accordo.
+
+## Copie di sicurezza dei file: non ci sono ancora
+
+Il backup cifrato di oggi copia **solo il database**. Foto e video della libreria (la cartella `MEDIA_ROOT`, o il bucket S3) non hanno copie di sicurezza fino alla tappa 11 (specifica §16.4).
+
+Fino ad allora:
+
+- non usare Feedway come unico posto dove sta il materiale di un cliente: l'originale deve restare anche altrove (il telefono, il disco dell'agenzia, il cloud del cliente);
+- se il disco della VPS si guasta, i file della libreria vanno ricaricati: il database ripristinato li elenca ancora, ma i loro byte non ci sono più;
+- con S3 vale ciò che garantisce il fornitore del bucket, non Feedway.
