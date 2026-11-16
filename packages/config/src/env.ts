@@ -62,6 +62,7 @@ const RESOLVABLE = [
   'BETTER_AUTH_SECRETS',
   'PANEL_URL',
   'PUBLIC_URL',
+  'PUBLIC_PORT',
   'META_GRAPH_VERSION',
   'META_GRAPH_VERSION_SUNSET',
   'META_MODE',
@@ -172,6 +173,11 @@ const appSchema = z
     BETTER_AUTH_SECRETS: optional(z.string()),
     PANEL_URL: z.string({ error: 'obbligatoria' }).pipe(url),
     PUBLIC_URL: optional(url),
+    // the web's own entry for the public host (plan 04 Task 11); fixed in the compose file
+    PUBLIC_PORT: withDefault(
+      positiveInt.max(65_535, { error: 'deve essere una porta tra 1 e 65535' }),
+      3001,
+    ),
     META_GRAPH_VERSION: withDefault(
       z.string().regex(/^v\d+\.\d+$/, { error: 'deve avere la forma v25.0' }),
       'v25.0',
@@ -296,6 +302,11 @@ export interface AppConfig {
    * PUBLIC_URL: the public host is off. Requests are routed by entry point, never by `Host`.
    */
   publicHost: string | null
+  /**
+   * The port of the public entry, a listener of its own next to the panel's: Tailscale Funnel
+   * (or the tunnel) reaches only this one. Used only when `publicUrl` is set.
+   */
+  publicPort: number
   metaGraphVersion: string
   /** Retirement date of `metaGraphVersion` (YYYY-MM-DD): the panel warns 90 days before. */
   metaGraphVersionSunset: string
@@ -483,6 +494,7 @@ export function loadConfig(
     panelUrl: new URL(v.PANEL_URL),
     publicUrl: v.PUBLIC_URL ? new URL(v.PUBLIC_URL) : null,
     publicHost: v.PUBLIC_URL ? new URL(v.PUBLIC_URL).hostname : null,
+    publicPort: v.PUBLIC_PORT,
     metaGraphVersion: v.META_GRAPH_VERSION,
     metaGraphVersionSunset,
     metaMode: v.META_MODE,

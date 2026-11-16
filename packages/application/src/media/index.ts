@@ -7,6 +7,7 @@ export {
   readMediaFile,
 } from './library.js'
 export type { ByteRange, DeleteMediaDeps, MediaDto, MediaFile, MediaVariantDto } from './library.js'
+export { readPublicMediaFile } from './public-file.js'
 export { deleteMediaFiles } from './delete-files.js'
 export type { MediaDeleteFilesJob } from './delete-files.js'
 export {

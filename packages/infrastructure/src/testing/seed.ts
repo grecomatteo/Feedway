@@ -33,7 +33,13 @@ export interface Seeder {
       status?: 'processing' | 'ready' | 'deleted'
       storageKey?: string | null
       sizeBytes?: number
-      variants?: { purpose: string; storageKey: string; mime: string; sizeBytes: number }[]
+      variants?: {
+        purpose: string
+        storageKey: string
+        mime: string
+        sizeBytes: number
+        publicToken?: string | null
+      }[]
     },
   ): Promise<string>
 }
@@ -111,9 +117,18 @@ function seederOf(c: pg.Client): Seeder {
       for (const v of opts.variants ?? [])
         await c.query(
           `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
-                                       size_bytes)
-           values ($1, $2, $3, $4, $5, $6, $7)`,
-          [randomUUID(), organizationId, id, v.purpose, v.storageKey, v.mime, v.sizeBytes],
+                                       size_bytes, public_token)
+           values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            randomUUID(),
+            organizationId,
+            id,
+            v.purpose,
+            v.storageKey,
+            v.mime,
+            v.sizeBytes,
+            v.publicToken ?? null,
+          ],
         )
       return id
     },

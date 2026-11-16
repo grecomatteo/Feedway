@@ -11,3 +11,5 @@ ad65cfff9553fcf0d04dbf6e1f3cd75cf1ad429d:design/feedway-ui.pen:generic-api-key:2
 b9e65b9d992db46cd780e7781fdde5db2af00c77:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:147
 8ca99fbf16cbc0b29b2ba456bfdfb552c3e0913e:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:457
 8ca99fbf16cbc0b29b2ba456bfdfb552c3e0913e:docs/superpowers/plans/2026-10-15-02-identita.md:generic-api-key:458
+# A made-up public token in a unit test of the first commit of PR #201 (replaced in the second)
+467cecb2a4f866af312b000ce19944de40c9b2b8:packages/application/src/media/public-file.test.ts:generic-api-key:7

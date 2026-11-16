@@ -71,10 +71,10 @@ teardown() {
 
 @test "env file contains no secret values" {
   run_install_noninteractive
-  ! grep -qF "$(cat secrets/db_runtime_password)" .env
-  ! grep -qF "$(cat secrets/app_encryption_key)" .env
-  ! grep -qF "tskey-auth-not-real" .env
-  ! grep -q "AGE-SECRET-KEY" .env
+  ! grep -qF "$(cat secrets/db_runtime_password)" .env || false
+  ! grep -qF "$(cat secrets/app_encryption_key)" .env || false
+  ! grep -qF "tskey-auth-not-real" .env || false
+  ! grep -q "AGE-SECRET-KEY" .env || false
 }
 
 @test "panel url comes from the tailscale dns name" {
@@ -102,7 +102,7 @@ teardown() {
   INSTALL_SKIP_TAILSCALE=1 run_install_noninteractive
   grep -q '^PANEL_URL=http://localhost:3000$' .env
   grep -q '^COMPOSE_FILE=docker/compose.yml:docker/compose.ci.yml$' .env
-  ! grep -q 'tailscale status' "$STUB_LOG"
+  ! grep -q 'tailscale status' "$STUB_LOG" || false
 }
 
 @test "install never prints secrets" {
@@ -145,7 +145,7 @@ teardown() {
   INSTALL_ORGANIZATION_NAME='  A  ' run run_install_noninteractive
   [ "$status" -ne 0 ]
   [[ "$output" == *"da 2 a 80 caratteri"* ]]
-  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env 2>/dev/null
+  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env 2>/dev/null || false
 }
 
 @test "install trims the agency name and counts accented letters once" {
@@ -161,4 +161,72 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" != *"/attiva/"* ]]
   [[ "$output" != *"Attenzione"* ]]
+}
+
+prepare_public_authkey() {
+  printf 'tskey-auth-public-not-real' >"$work/../public-authkey-$$"
+}
+
+run_install_public() {
+  INSTALL_PUBLIC=1 INSTALL_TS_PUBLIC_AUTHKEY_FILE="$work/../public-authkey-$$" run_install_noninteractive
+}
+
+@test "the public host is off unless asked" {
+  run_install_noninteractive
+  [ "$(cat secrets/ts_public_authkey)" = "non-usata" ]
+  ! grep -q '^COMPOSE_PROFILES=.*public' .env || false
+  ! grep -q '^PUBLIC_URL=.' .env || false
+  ! grep -q 'tailscale-public' "$STUB_LOG" || false
+}
+
+@test "the public host gets its own node, key and address" {
+  prepare_public_authkey
+  run_install_public
+  [ "$(cat secrets/ts_public_authkey)" = "tskey-auth-public-not-real" ]
+  [ "$(stat -c %a secrets/ts_public_authkey)" = "600" ]
+  grep -q '^COMPOSE_PROFILES=public$' .env
+  grep -q '^TS_PUBLIC_HOSTNAME=feedway-media$' .env
+  grep -q '^PUBLIC_URL=https://feedway-media.tail1234.ts.net$' .env
+  grep -q '^PANEL_URL=https://pannello.tail1234.ts.net$' .env
+  ! grep -qF "tskey-auth-public-not-real" .env || false
+  # its node is up before the web, which reads PUBLIC_URL when it starts
+  node="$(grep -n 'up -d --wait tailscale-public' "$STUB_LOG" | head -1 | cut -d: -f1)"
+  web="$(grep -n 'up -d --wait web worker' "$STUB_LOG" | head -1 | cut -d: -f1)"
+  [ "$node" -lt "$web" ]
+}
+
+@test "the public host can be turned on later, with a real key" {
+  prepare_public_authkey
+  run_install_noninteractive
+  [ "$(cat secrets/ts_public_authkey)" = "non-usata" ]
+  run_install_public
+  [ "$(cat secrets/ts_public_authkey)" = "tskey-auth-public-not-real" ]
+  # a rerun keeps it on, and keeps its key
+  printf 'tskey-auth-other' >"$work/../public-authkey-$$"
+  run_install_noninteractive
+  grep -q '^COMPOSE_PROFILES=public$' .env
+  [ "$(cat secrets/ts_public_authkey)" = "tskey-auth-public-not-real" ]
+}
+
+@test "the public host can be turned off again" {
+  prepare_public_authkey
+  run_install_public
+  INSTALL_PUBLIC=0 run_install_noninteractive
+  grep -q '^COMPOSE_PROFILES=$' .env
+  grep -q '^PUBLIC_URL=$' .env
+  grep -q 'rm -s -f tailscale-public' "$STUB_LOG"
+}
+
+@test "the public node needs a name other than the panel's" {
+  prepare_public_authkey
+  INSTALL_TS_PUBLIC_HOSTNAME=pannello run run_install_public
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"diverso da quello del pannello"* ]]
+}
+
+@test "the public host is never turned on without tailscale" {
+  prepare_public_authkey
+  INSTALL_SKIP_TAILSCALE=1 run run_install_public
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"senza Tailscale"* ]]
 }

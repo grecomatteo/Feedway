@@ -321,7 +321,7 @@ Piattaforma (installazione, amministratore della piattaforma)
 1. **Applicazione**: ogni richiesta e ogni lavoro portano l'organizzazione; `can()` e i repository filtrano sempre su di essa.
 2. **Database**: ogni tabella con dati di un'organizzazione ha la colonna `organization_id` e una regola Row Level Security; la transazione imposta l'organizzazione corrente e Postgres nasconde tutto il resto. Se un giorno una query dimentica il filtro, restituisce zero righe invece dei dati di un'altra agenzia.
 3. Le chiavi esterne includono `organization_id`, così un post non può puntare a un account di un'altra organizzazione.
-4. Le poche operazioni che attraversano le organizzazioni (accesso e sessioni, primo avvio, riconciliatore, pulizia, lavori di sistema come battito e bot, amministrazione della piattaforma) passano da un'unica funzione esplicita, `runAsSystem`, registrata e limitata per regola di lint a quei moduli.
+4. Le poche operazioni che attraversano le organizzazioni (accesso e sessioni, primo avvio, riconciliatore, pulizia, lavori di sistema come battito e bot, amministrazione della piattaforma, lettura per token delle copie dell'host pubblico) passano da un'unica funzione esplicita, `runAsSystem`, registrata e limitata per regola di lint a quei moduli.
 5. Una batteria di test dedicata crea due organizzazioni e verifica che ogni rotta e ogni lavoro non vedano mai i dati dell'altra.
 
 **Utenti**: identità unica per email. Un utente può essere membro di più organizzazioni con ruoli diversi (per esempio un freelance che lavora per due agenzie) e passa dall'una all'altra dal selettore in alto. L'organizzazione è nell'indirizzo del pannello (`/<agenzia>/calendario`), così due schede possono stare su agenzie diverse e i link nelle notifiche aprono quella giusta.
@@ -1347,6 +1347,7 @@ Solo queste variabili, **scritte da `install.sh`**; validate all'avvio con Zod (
 | `BACKUP_AGE_RECIPIENT` | `age1…` | | Chiave pubblica con cui si cifrano i backup; la privata resta fuori dalla VPS |
 | `PANEL_URL` | `https://feedway.tuo-tailnet.ts.net` | | |
 | `PUBLIC_URL` | `https://pub.tuodominio.it` | | Host pubblico. `PUBLIC_HOST` non è una variabile: è l'host di `PUBLIC_URL`, che deve essere diverso da quello di `PANEL_URL`. Senza `PUBLIC_URL` l'host pubblico è spento (ADR 021) |
+| `PUBLIC_PORT` | `3001` | | Porta del web per l'ingresso pubblico, fissata nel compose: il nodo dell'host pubblico raggiunge solo questa (ADR 021) |
 | `SITE_URL` | `https://tuodominio.it` | | Facoltativa: collegamento al sito dalla pagina di accesso |
 | `META_GRAPH_VERSION` | `v25.0` | | Aggiornata con PR e test ([docs/platforms/meta.md](../../platforms/meta.md)) |
 | `META_GRAPH_VERSION_SUNSET` | `2028-07-29` | | Data di ritiro della versione; predefinita per le versioni note, obbligatoria per le altre. Avviso 90 giorni prima (§8.4) |

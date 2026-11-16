@@ -325,6 +325,15 @@ test('the public host comes from PUBLIC_URL', () => {
   expect(c.publicHost).toBe('pub.example.it')
 })
 
+test('the public entry listens on its own port, 3001 unless PUBLIC_PORT says otherwise', () => {
+  expect(loadConfig('web', validWebEnv).publicPort).toBe(3001)
+  expect(loadConfig('web', { ...validWebEnv, PUBLIC_PORT: '4001' }).publicPort).toBe(4001)
+  for (const port of ['0', '70000', 'tremila'])
+    expect(issuesOf({ ...validWebEnv, PUBLIC_PORT: port })).toContainEqual(
+      expect.objectContaining({ variable: 'PUBLIC_PORT' }),
+    )
+})
+
 // cookies ignore the port: a public host on the panel's name would receive the panel's cookies
 test.each(['http://localhost:3000', 'http://LOCALHOST:3001'])(
   'rejects a PUBLIC_URL on the same host as PANEL_URL (%s)',

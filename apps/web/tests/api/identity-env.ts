@@ -59,7 +59,10 @@ export interface ApiEnv {
   stop(): Promise<void>
 }
 
-export async function startApiEnv(name: string): Promise<ApiEnv> {
+export async function startApiEnv(
+  name: string,
+  options: { publicUrl?: string } = {},
+): Promise<ApiEnv> {
   const tdb = await startTestDatabase()
   const admin = createDb(tdb.adminUrl, { max: 2, applicationName: `${name}-web-test` })
   const runtimeDb = createDb(tdb.runtimeUrl, { max: 2, applicationName: `${name}-keys` })
@@ -78,6 +81,7 @@ export async function startApiEnv(name: string): Promise<ApiEnv> {
     PANEL_URL: PANEL,
     META_MODE: 'mock',
     META_MOCK_URL: meta.url,
+    ...(options.publicUrl === undefined ? {} : { PUBLIC_URL: options.publicUrl }),
   })
   const panel = panelClient(web, PANEL)
   const hasher = createPasswordHasher()

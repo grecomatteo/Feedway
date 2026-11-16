@@ -16,6 +16,7 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/accounts/daily.ts',
   'packages/application/src/media/uploads-cleanup.ts',
   'packages/application/src/media/process-turn.ts',
+  'packages/application/src/media/public-file.ts',
 ]
 
 export default tseslint.config(

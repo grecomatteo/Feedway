@@ -86,6 +86,13 @@ teardown() {
   ./scripts/update.sh v0.2.0 >/dev/null
 }
 
+@test "an installation older than the public host still updates" {
+  rm secrets/ts_public_authkey
+  ./scripts/update.sh v0.2.0 >/dev/null
+  [ "$(cat secrets/ts_public_authkey)" = "non-usata" ]
+  [ "$(stat -c %a secrets/ts_public_authkey)" = "600" ]
+}
+
 @test "update refuses a release whose compose file cannot be read" {
   git checkout -q -b broken v0.2.0
   git rm -q docker/compose.yml && git commit -q -m "release 0.4.0" && git tag v0.4.0
@@ -142,7 +149,7 @@ teardown() {
 
 @test "update without a terminal does not ask the agency name" {
   ./scripts/update.sh v0.2.0 </dev/null >/dev/null
-  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env
+  ! grep -q '^BOOTSTRAP_ORGANIZATION_NAME=' .env || false
 }
 
 @test "update survives the checkout replacing the script while it runs" {

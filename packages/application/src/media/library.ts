@@ -242,15 +242,23 @@ export async function readMediaFile(
     return variants.find((v) => v.purpose === purpose) ?? null
   })
   if (!variant || !SERVED_TYPES.includes(variant.mime)) return null
+  return readCopy(deps.storage, variant, input.range)
+}
+
+/** A stored copy, whole or the byte range asked; null when its file is gone from the storage. */
+export async function readCopy(
+  storage: Storage,
+  variant: { id: string; storageKey: string; mime: string; sizeBytes: number },
+  range: ByteRange | null,
+): Promise<MediaFile | null> {
   const head = { etag: variant.id, contentType: variant.mime }
-  const { range } = input
   if (range === null) {
-    const object = await deps.storage.get(variant.storageKey)
+    const object = await storage.get(variant.storageKey)
     return object && { ...head, kind: 'whole', object }
   }
   // a suffix counts from the size the database knows; the answer carries the stored one
   const start = 'suffix' in range ? Math.max(variant.sizeBytes - range.suffix, 0) : range.start
   const end = 'suffix' in range || range.end === null ? Number.MAX_SAFE_INTEGER : range.end
-  const object = await deps.storage.getRange(variant.storageKey, start, end)
+  const object = await storage.getRange(variant.storageKey, start, end)
   return object && { ...head, kind: 'part', object }
 }

@@ -103,7 +103,8 @@ export default defineNitroPlugin((nitroApp) => {
             {
               requestId: event.context.requestId,
               method: event.method,
-              path: event.path.split('?')[0],
+              // a public token asked of the panel stays out of the log too
+              path: pathForLog(event.path),
               status: event.node.res.statusCode,
               durationMs,
               ...(resolved ? { userId: resolved.user.id, sessionId: resolved.session.id } : {}),

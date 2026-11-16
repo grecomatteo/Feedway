@@ -35,6 +35,8 @@ export function freePort(): Promise<number> {
 
 export interface RunningWeb {
   url(path: string): string
+  /** On the public entry (its own port, plan 04 Task 11); only with PUBLIC_URL. */
+  publicUrl(path: string): string
   /** The server's MEDIA_ROOT: where its stored files land. */
   mediaRoot: string
   /** Everything the server wrote so far (its log lines), also echoed to this process. */
@@ -56,6 +58,8 @@ export async function startWeb(
 ): Promise<RunningWeb> {
   buildWebOnce()
   const port = opts.port ?? (await freePort())
+  // the public entry listens only with PUBLIC_URL, on a port of its own
+  const publicPort = env['PUBLIC_URL'] ? (env['PUBLIC_PORT'] ?? String(await freePort())) : null
   // each server its own folder: /media is the container's volume
   const mediaRoot = mkdtempSync(join(tmpdir(), 'web-media-'))
   const child: ChildProcess = spawn('node', [`${webDir}.output/server/index.mjs`], {
@@ -68,6 +72,7 @@ export async function startWeb(
       PORT: String(port),
       HOST: '127.0.0.1',
       ...env,
+      ...(publicPort === null ? {} : { PUBLIC_PORT: publicPort }),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -81,16 +86,20 @@ export async function startWeb(
     process.stderr.write(chunk)
   })
   const base = `http://127.0.0.1:${String(port)}`
-  await waitFor(
-    () =>
-      fetch(`${base}/api/health`).then(
-        (r) => r.ok,
-        () => false,
-      ),
-    60_000,
-  )
+  const publicBase = publicPort === null ? null : `http://127.0.0.1:${publicPort}`
+  const answers = (url: string) =>
+    fetch(url).then(
+      (r) => r.ok,
+      () => false,
+    )
+  await waitFor(() => answers(`${base}/api/health`), 60_000)
+  if (publicBase !== null) await waitFor(() => answers(`${publicBase}/robots.txt`), 60_000)
   return {
     url: (path) => `${base}${path}`,
+    publicUrl(path) {
+      if (publicBase === null) throw new Error('started without PUBLIC_URL')
+      return `${publicBase}${path}`
+    },
     mediaRoot,
     output: () => output,
     stop() {

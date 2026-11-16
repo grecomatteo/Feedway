@@ -39,6 +39,11 @@ compose="$(git show "$target:docker/compose.yml")" ||
   die "Non riesco a leggere docker/compose.yml della versione '$target'. Non ho cambiato nulla."
 required="$(printf '%s\n' "$compose" | grep -oE '\./secrets/[A-Za-z0-9_.-]+' | sort -u)" ||
   die "Il docker/compose.yml di '$target' non nomina nessun segreto: non è normale. Non ho cambiato nulla."
+# The public host's key is a placeholder until install.sh turns it on: written as install.sh
+# writes it, so an installation made before the public host existed still updates.
+if [ ! -e secrets/ts_public_authkey ]; then
+  (umask 077 && printf 'non-usata' >secrets/ts_public_authkey)
+fi
 missing=""
 for secret in $required; do
   [ -s "$secret" ] || missing="$missing ${secret#./secrets/}"

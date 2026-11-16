@@ -61,6 +61,9 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    // the panel is never indexed (spec §16.1), static files and error pages included; the
+    // public host sets its own (server/public-host)
+    '/**': { headers: { 'x-robots-tag': 'noindex, nofollow' } },
     // the pieces of an upload (plan 04 Task 9): up to 20 MiB each, read as a stream by their
     // route, which checks each piece's exact size; the margin only covers a declared length
     '/api/v1/orgs/*/workspaces/*/uploads/*/parts/*': {

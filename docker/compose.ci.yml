@@ -5,3 +5,5 @@ services:
   web:
     ports:
       - '127.0.0.1:3000:3000'
+      # the public entry (PUBLIC_URL set by the smoke test)
+      - '127.0.0.1:3001:3001'

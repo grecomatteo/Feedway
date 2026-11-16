@@ -66,6 +66,8 @@ services:
         APP_ENCRYPTION_KEY_FILE: /run/secrets/app_encryption_key
         PANEL_URL: ${PANEL_URL:?PANEL_URL manca (vedi .env.example)}
         PUBLIC_URL: ${PUBLIC_URL:-}
+        # the web's public entry, the only port tailscale-public reaches (plan 04 Task 11)
+        PUBLIC_PORT: 3001
         META_MODE: ${META_MODE:-live}
         META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v25.0}
         META_GRAPH_VERSION_SUNSET: ${META_GRAPH_VERSION_SUNSET:-}
@@ -104,7 +106,7 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
-    networks: [internal, edge]
+    networks: [internal, edge, public]
     # spec §16.6: above the spec's 768 MB because the profile photo and the logo (HEIC up to
     # 40 MP) are decoded here (#117, ADR 021)
     mem_limit: 1536m
@@ -154,16 +156,44 @@ services:
     restart: unless-stopped
     mem_limit: 256m
 
+  # The public host (spec §16.1, ADR 005): a second node with its own name, which Tailscale
+  # Funnel opens to internet only for /m/, /share/ and /robots.txt, towards the web's public
+  # entry (port 3001, docker/tailscale-public/serve.json). It shares only the `public` network
+  # with the web, never `edge`; the web's panel port still listens there, so serve.json is what
+  # keeps the panel out. Off unless COMPOSE_PROFILES has `public` (install.sh asks).
+  tailscale-public:
+    image: tailscale/tailscale@sha256:b11583ad2e93e4671128538c88cf11f460444a5d7e449311dd1933a400ab849d
+    profiles: [public]
+    hostname: ${TS_PUBLIC_HOSTNAME:-feedway-media}
+    environment:
+      TS_HOSTNAME: ${TS_PUBLIC_HOSTNAME:-feedway-media}
+      TS_AUTHKEY: file:/run/secrets/ts_public_authkey
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_USERSPACE: 'true'
+    secrets: [ts_public_authkey]
+    volumes:
+      - tailscale-public-state:/var/lib/tailscale
+      - ./docker/tailscale-public:/config:ro
+    networks: [public]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    mem_limit: 256m
+
 networks:
   internal:
     internal: true
   edge: {}
   egress: {}
+  # the public host's node and the web only (plan 04 Task 11)
+  public: {}
 
 volumes:
   pgdata: {}
   media: {}
   tailscale-state: {}
+  tailscale-public-state: {}
 
 secrets:
   postgres_password:
@@ -182,3 +212,5 @@ secrets:
     file: ./secrets/better_auth_secret
   ts_authkey:
     file: ./secrets/ts_authkey
+  ts_public_authkey:
+    file: ./secrets/ts_public_authkey

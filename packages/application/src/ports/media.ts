@@ -56,6 +56,15 @@ export interface MediaVariantRecord {
   height: number | null
 }
 
+/** The copy behind a public token (`/m/*`, spec §16.1): what the public host needs to serve it. */
+export interface PublicVariantRecord {
+  id: string
+  organizationId: string
+  storageKey: string
+  mime: string
+  sizeBytes: number
+}
+
 /** A file as the completion of an upload writes it, with its library entry (§11.8). */
 export interface NewMedia {
   id: string
@@ -165,6 +174,11 @@ export interface MediaRepository {
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>
+  /**
+   * The copy with this public token, if its file is `ready`; read in the system scope, by the
+   * public host only (ADR 021). null: no such token, or its file is not ready (deleted included).
+   */
+  findPublicVariant(token: string): Promise<PublicVariantRecord | null>
   /**
    * Marks the file of the workspace deleted and takes it out of the library. false: there is no
    * such file, or it was deleted already.

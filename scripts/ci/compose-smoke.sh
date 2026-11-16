@@ -8,6 +8,8 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 work="$(mktemp -d)"
 project="feedway-smoke"
 export IMAGE="${IMAGE:-app}" IMAGE_TAG="${IMAGE_TAG:-ci}" PANEL_URL="http://localhost:3000" META_MODE=mock
+# the public host's entry (plan 04 Task 11), published by compose.ci.yml on 127.0.0.1:3001
+export PUBLIC_URL="http://media.localhost:3001"
 
 failed=0
 pass() { echo "PASS $1"; }
@@ -42,6 +44,7 @@ printf 'postgres://app_migrator:%s@postgres:5432/app' "$migrator_pw" >"$work/sec
 openssl rand -base64 32 | tr -d '\n' >"$work/secrets/app_encryption_key"
 openssl rand -base64 32 | tr -d '\n' >"$work/secrets/better_auth_secret"
 printf 'tskey-not-used-in-ci' >"$work/secrets/ts_authkey"
+printf 'non-usata' >"$work/secrets/ts_public_authkey"
 chmod 644 "$work"/secrets/*
 
 ready() { [ "$(curl -fsS http://127.0.0.1:3000/api/ready 2>/dev/null)" = '{"db":"ok","queue":"ok"}' ]; }
@@ -75,6 +78,16 @@ media_writable() {
   done
 }
 check "media volume is writable by the app user" media_writable
+
+# On its own port only robots.txt and /m/ answer, whatever Host says; the panel answers no /m/.
+public_entry() {
+  [ "$(curl -fsS http://127.0.0.1:3001/robots.txt)" = "$(printf 'User-agent: *\nDisallow: /')" ] &&
+    [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: localhost:3000' http://127.0.0.1:3001/api/ready)" = 404 ] &&
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3001/m/$(printf 'a%.0s' $(seq 1 32)).jpg")" = 404 ] &&
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/m/$(printf 'a%.0s' $(seq 1 32)).jpg")" = 404 ] &&
+    curl -fsS -D - -o /dev/null http://127.0.0.1:3000/api/health | grep -qi '^x-robots-tag: noindex'
+}
+check "public entry serves only the public host" public_entry
 
 edge_net="${project}_edge"
 no_postgres_from_edge() {
