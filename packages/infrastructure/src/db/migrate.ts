@@ -42,8 +42,16 @@ export async function runMigrations(opts: RunMigrationsOptions): Promise<void> {
   })
   try {
     await boss.start()
-    for (const { name, policy, retention } of QUEUES) {
-      await boss.createQueue(name, { policy, ...QUEUE_DEFAULTS, ...retention })
+    for (const { name, policy, retention, expireInSeconds } of QUEUES) {
+      const options = {
+        ...QUEUE_DEFAULTS,
+        ...retention,
+        ...(expireInSeconds !== undefined && { expireInSeconds }),
+      }
+      await boss.createQueue(name, { policy, ...options })
+      // createQueue leaves a queue that exists as it is: a change after the first release must
+      // reach it too (ADR 021); the policy cannot change
+      await boss.updateQueue(name, options)
     }
   } finally {
     await boss.stop({ graceful: false })

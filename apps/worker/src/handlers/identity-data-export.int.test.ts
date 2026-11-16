@@ -1,3 +1,4 @@
+import { unusedMediaTools } from '../../tests/media-tools.js'
 import { randomBytes } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -67,6 +68,7 @@ const deps = (): JobHandlerDeps => ({
     open: () => Promise.reject(new Error('not used')),
   },
   images: createAvatarProcessor(),
+  media: unusedMediaTools,
 })
 
 test('the job writes the archive and marks the export ready', async () => {

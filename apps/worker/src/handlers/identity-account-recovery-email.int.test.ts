@@ -1,3 +1,4 @@
+import { unusedMediaTools } from '../../tests/media-tools.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -77,6 +78,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger, at = ISSUED):
       open: () => Promise.reject(new Error('not used')),
     },
     images: createAvatarProcessor(),
+    media: unusedMediaTools,
   }
 }
 

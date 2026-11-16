@@ -90,3 +90,7 @@ test('a queue definition cannot declare a scope other than its payload scope', (
   }
   expect(wrong.scope).toBe('user')
 })
+
+test('media.process outlives its two long ffmpeg commands (ADR 021)', () => {
+  expect(QUEUES.find((q) => q.name === 'media.process')?.expireInSeconds).toBe(2 * 3600 + 15 * 60)
+})

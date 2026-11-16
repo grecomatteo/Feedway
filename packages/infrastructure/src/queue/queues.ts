@@ -1,4 +1,5 @@
 import type { QueueName, QueueScopes } from '@app/application'
+import { MEDIA_PROCESS_EXPIRE_SECONDS } from '@app/domain'
 
 export interface QueueDefinition<N extends QueueName = QueueName> {
   name: N
@@ -11,6 +12,11 @@ export interface QueueDefinition<N extends QueueName = QueueName> {
    * (`deleteAfterSeconds`). Unset: the pg-boss defaults (14 and 7 days).
    */
   retention?: { retentionSeconds: number; deleteAfterSeconds: number }
+  /**
+   * How long a job may stay active before pg-boss aborts its signal and retries it. Unset: the
+   * pg-boss default, 15 minutes (ADR 021).
+   */
+  expireInSeconds?: number
 }
 
 const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
@@ -96,11 +102,12 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
   // ids only, a wake-up (ADR 021): the files waiting are in the media table, so a job lost or
-  // dropped after a week loses no file; the handler and its expiry come with plan 04 Task 10
+  // dropped after a week loses no file; it may run two long ffmpeg commands
   'media.process': {
     policy: 'standard',
     scope: 'organization',
     retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
+    expireInSeconds: MEDIA_PROCESS_EXPIRE_SECONDS,
   },
   // every hour, one run at a time; a run that waited a day is replaced by the next ones
   'media.uploads_cleanup': {

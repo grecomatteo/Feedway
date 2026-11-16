@@ -125,6 +125,9 @@ jobs:
           cache: pnpm
       - if: steps.changes.outputs.code != 'false'
         run: pnpm install --frozen-lockfile
+      # ffmpeg and ffprobe of the image (plan 04 Task 10): the media tests run the worker's version
+      - if: steps.changes.outputs.code != 'false'
+        run: scripts/ci/media-tools.sh
       - if: steps.changes.outputs.code != 'false'
         run: pnpm test:int
 

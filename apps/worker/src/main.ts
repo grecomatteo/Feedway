@@ -1,6 +1,11 @@
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
+import { join } from 'node:path'
 import {
+  createAdvisoryLock,
   createAvatarProcessor,
+  createMediaScratch,
+  createMediaTools,
+  newPublicToken,
   createCredentialEraser,
   createRuntime,
   createZipWriter,
@@ -48,6 +53,14 @@ async function main(): Promise<void> {
       connectors: runtime.connectors,
       connectionTokens: runtime.connectionTokens,
       images: createAvatarProcessor(),
+      media: {
+        ...createMediaTools(),
+        lock: createAdvisoryLock(runtime.pool),
+        // on the media volume, outside the storage keys: /tmp is memory in the container
+        scratch: createMediaScratch({ dir: join(config.mediaRoot, 'work') }),
+        newPublicToken,
+        limits: config.media,
+      },
     },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,

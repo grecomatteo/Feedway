@@ -21,15 +21,19 @@ RUN pnpm exec turbo run build --filter=@app/web --filter=@app/worker
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @app/worker --config.node-linker=hoisted deploy --prod --legacy /out/worker
 
-# 3) runtime
-FROM ${NODE_IMAGE} AS runtime
-ARG APP_VERSION=0.0.0-dev
-ENV NODE_ENV=production APP_VERSION=${APP_VERSION} HOST=0.0.0.0 PORT=3000
+# 3) ffmpeg of the image: the CI runs the media integration tests with this same stage
+#    (scripts/ci/media-tools.sh), so they test the version the worker uses (plan 04 Task 10)
+FROM ${NODE_IMAGE} AS media-tools
 RUN apt-get update \
     && apt-get upgrade --yes \
     && apt-get install --no-install-recommends --yes ffmpeg \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    && rm -rf /var/lib/apt/lists/*
+
+# 4) runtime
+FROM media-tools AS runtime
+ARG APP_VERSION=0.0.0-dev
+ENV NODE_ENV=production APP_VERSION=${APP_VERSION} HOST=0.0.0.0 PORT=3000
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
        /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-* \
     && groupadd --gid 10001 app \

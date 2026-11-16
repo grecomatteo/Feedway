@@ -31,6 +31,28 @@ export const MediaDto = z.object({
   videoCodec: z.string().nullable(),
   audioCodec: z.string().nullable(),
   progress: z.object({ step: z.string(), percent: z.number() }).nullable(),
+  /** why the file is `failed` (a block of §9.2 or what the worker found), with its details */
+  failure: z
+    .looseObject({
+      code: z.enum([
+        'unsupported_type',
+        'too_large',
+        'too_many_pixels',
+        'too_long',
+        'unreadable',
+        'timeout',
+        'storage_full',
+        'processing_failed',
+      ]),
+    })
+    .nullable(),
+  /** once `ready`: what the worker corrected and what it proposes (§9.2) */
+  checks: z
+    .object({
+      fixes: z.array(z.looseObject({ code: z.string() })),
+      warnings: z.array(z.looseObject({ code: z.string() })),
+    })
+    .nullable(),
   uploadedBy: Id,
   createdAt: Timestamp,
   folderId: Id.nullable(),
