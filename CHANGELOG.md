@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.10.0](https://github.com/grecomatteo/Feedway/compare/v0.9.0...v0.10.0) (2026-11-16)
+
+
+### Novità
+
+* **accounts:** clienti dai profili trovati, «Annulla» e «Sistemali» ([#192](https://github.com/grecomatteo/Feedway/issues/192)) ([aec48a1](https://github.com/grecomatteo/Feedway/commit/aec48a1b0a1898ec4834665f3f9ffa486781228e))
+* **accounts:** foto dei clienti conservate da Feedway ([#186](https://github.com/grecomatteo/Feedway/issues/186)) ([b92bd34](https://github.com/grecomatteo/Feedway/commit/b92bd342b14a327ab44729f03341d12863faece5))
+* **media:** adattatore S3 e batteria della porta contro Garage ([#197](https://github.com/grecomatteo/Feedway/issues/197)) ([8a0d8f2](https://github.com/grecomatteo/Feedway/commit/8a0d8f20f40faa1cfb5ef5d860ec693bdf35d61a))
+* **media:** ADR 021 sullo storage a oggetti e configurazione dei media ([#180](https://github.com/grecomatteo/Feedway/issues/180)) ([58063d8](https://github.com/grecomatteo/Feedway/commit/58063d88aeadc3cf5f966609e9f2394c7b399249))
+* **media:** analisi ed elaborazione dei file nel worker ([#200](https://github.com/grecomatteo/Feedway/issues/200)) ([2350a62](https://github.com/grecomatteo/Feedway/commit/2350a6260fb23a8e543e34bb268432734ff41947))
+* **media:** caricamento a pezzi con ripresa ([#199](https://github.com/grecomatteo/Feedway/issues/199)) ([0ebbfa4](https://github.com/grecomatteo/Feedway/commit/0ebbfa4faec1c997d5f2ea28487294e3361af644))
+* **media:** caricamento nel pannello con barre, pausa e ripresa ([#203](https://github.com/grecomatteo/Feedway/issues/203)) ([3e9deba](https://github.com/grecomatteo/Feedway/commit/3e9deba0922214968eb6cfd9998461ca4effcd43))
+* **media:** copia master delle foto fino a 4096 px, senza gps ([#209](https://github.com/grecomatteo/Feedway/issues/209)) ([d98041c](https://github.com/grecomatteo/Feedway/commit/d98041c58e2b77329e4e58163275fc4d4b5a3337))
+* **media:** host pubblico /m/* e secondo nodo Tailscale ([#201](https://github.com/grecomatteo/Feedway/issues/201)) ([3e06dc4](https://github.com/grecomatteo/Feedway/commit/3e06dc4c35490a396aeccc696da50459cda8f851))
+* **media:** libreria con cartelle, tag, filtri e dettaglio del file ([#202](https://github.com/grecomatteo/Feedway/issues/202)) ([3315d89](https://github.com/grecomatteo/Feedway/commit/3315d89c26d435cef2d4444b529c0223f19613b7))
+* **media:** tabelle dei media, libreria di base e rotta dei file con Range ([#198](https://github.com/grecomatteo/Feedway/issues/198)) ([56f96f7](https://github.com/grecomatteo/Feedway/commit/56f96f7dc5a7277f2160ccc49af746060781f113))
+* **organizations:** logo dell'agenzia nelle impostazioni e nella barra ([#183](https://github.com/grecomatteo/Feedway/issues/183)) ([f2a7c8d](https://github.com/grecomatteo/Feedway/commit/f2a7c8dff4ddbb7e49078ca28c84b180d1d1b856))
+* **ui:** collegamenti in Impostazioni → Integrazioni → Meta ([#196](https://github.com/grecomatteo/Feedway/issues/196)) ([9a246a6](https://github.com/grecomatteo/Feedway/commit/9a246a6c42fade97b18479913d290f9ab58481ae))
+* **ui:** componenti condivisi dello stile unione ([#189](https://github.com/grecomatteo/Feedway/issues/189)) ([f5ad207](https://github.com/grecomatteo/Feedway/commit/f5ad20779d2405bd19b8e621beb36fb5cc53f67b))
+* **ui:** menu senza «Account social», barra in basso e menu «Tu» su telefono ([#195](https://github.com/grecomatteo/Feedway/issues/195)) ([3c03bf6](https://github.com/grecomatteo/Feedway/commit/3c03bf6ec2ce901343b4c295d15d284226fff3d5))
+* **ui:** temi colore dell'interfaccia, chiari e scuri ([#204](https://github.com/grecomatteo/Feedway/issues/204)) ([a7cb40e](https://github.com/grecomatteo/Feedway/commit/a7cb40e8e207a34d156d582e62a5fd197f6fde88))
+* **web:** una sola schermata «Impostazioni» per account e agenzia ([#182](https://github.com/grecomatteo/Feedway/issues/182)) ([ded7477](https://github.com/grecomatteo/Feedway/commit/ded7477a9ffa93bb74f123ce24bbebcc1c78d756))
+* **workspaces:** «Abbina ai clienti», «Nuovo cliente» dal profilo e «Sistemali» ([#193](https://github.com/grecomatteo/Feedway/issues/193)) ([64e13e4](https://github.com/grecomatteo/Feedway/commit/64e13e46eb7bea1edcf63c2d7e43037e2b0c377c))
+* **workspaces:** pagina Clienti con i profili e lo stato del collegamento ([#190](https://github.com/grecomatteo/Feedway/issues/190)) ([ae42ae6](https://github.com/grecomatteo/Feedway/commit/ae42ae63398471424e1d36c19235d02e5ab318cf))
+* **workspaces:** pagina del cliente con Panoramica, schede e selettore che la apre ([#194](https://github.com/grecomatteo/Feedway/issues/194)) ([e07e53e](https://github.com/grecomatteo/Feedway/commit/e07e53e660a4b446779a5541e646e377cbb3dc81))
+
+
+### Correzioni
+
+* **accounts:** l'attesa di «Sincronizza» resta ricaricando la pagina ([#184](https://github.com/grecomatteo/Feedway/issues/184)) ([870b413](https://github.com/grecomatteo/Feedway/commit/870b413286139be35df3cc2b47bf99cd5d182018))
+* **media:** cartelle durante i caricamenti, annullamento dell'import e foto delle pagine ([#207](https://github.com/grecomatteo/Feedway/issues/207)) ([0c2a7b2](https://github.com/grecomatteo/Feedway/commit/0c2a7b23ef04f4f71652da54b48f12a7182d42e2))
+* **media:** il caricamento riprende da solo dopo un pezzo appeso ([#205](https://github.com/grecomatteo/Feedway/issues/205)) ([df84c15](https://github.com/grecomatteo/Feedway/commit/df84c1508740b835783c99a7c98419725eb3a881))
+* **media:** video con errori innocui e host pubblico sotto carico ([#208](https://github.com/grecomatteo/Feedway/issues/208)) ([a18a758](https://github.com/grecomatteo/Feedway/commit/a18a75859fd3bc5c54411f0c94503181ebc1d4cf))
+* **ui:** la pagina d'errore tiene i colori scelti, filtri della Libreria allineati ([#212](https://github.com/grecomatteo/Feedway/issues/212)) ([04a1468](https://github.com/grecomatteo/Feedway/commit/04a1468b01ab3460e637b5889e05d9dc6f10799a))
+* **web:** logo di Feedway nella barra al posto del nome scritto ([#185](https://github.com/grecomatteo/Feedway/issues/185)) ([640e10c](https://github.com/grecomatteo/Feedway/commit/640e10c8305512b35432ee37a08b531e56e6745f))
+* **worker:** le conversioni riprendono subito dopo un riavvio ([#206](https://github.com/grecomatteo/Feedway/issues/206)) ([4f7c0e4](https://github.com/grecomatteo/Feedway/commit/4f7c0e4916aae533f1d3208ce98d716cc777a6b3))
+
+
+### Documentazione
+
+* **design:** clienti con i loro profili social (proposta P) ([#187](https://github.com/grecomatteo/Feedway/issues/187)) ([0d5b5e9](https://github.com/grecomatteo/Feedway/commit/0d5b5e92243ff3e75d8d7c66f715fe2b3d7704da))
+* **design:** pagina «Abbina ai clienti» dopo il collegamento ([#188](https://github.com/grecomatteo/Feedway/issues/188)) ([c4074eb](https://github.com/grecomatteo/Feedway/commit/c4074eb54a5847c46528d702fc34b2664a267cf8))
+* **design:** temi colore dell'interfaccia nella tappa 4 (Task 13b) ([#191](https://github.com/grecomatteo/Feedway/issues/191)) ([7030e7a](https://github.com/grecomatteo/Feedway/commit/7030e7a7c0159a539e3f1a94d35e353619163a8f))
+* **media:** limiti e cartelle nel runbook, chiusura della tappa 4 ([#211](https://github.com/grecomatteo/Feedway/issues/211)) ([8521f90](https://github.com/grecomatteo/Feedway/commit/8521f904f4681303c295b301f9f98aecfe4540dd))
+
 ## [0.9.0](https://github.com/grecomatteo/Feedway/compare/v0.8.0...v0.9.0) (2026-11-13)
 
 
