@@ -11,6 +11,7 @@ import type {
   Mailer,
   PlatformConnectors,
   QueueName,
+  RateLimiter,
   SignedTokens,
   Storage,
   Translate,
@@ -33,6 +34,8 @@ export interface JobHandlerDeps {
   uploadParts: UploadParts
   /** Removes every credential of a person the retention anonymizes. */
   credentials: Pick<Auth, 'deleteAllCredentials'>
+  /** The retention deletes the idle counters of the rate limits. */
+  rateLimiter: Pick<RateLimiter, 'deleteIdleBefore'>
   /** Builds the "Scarica i miei dati" archive. */
   zip: ZipWriter
   mailer: Mailer

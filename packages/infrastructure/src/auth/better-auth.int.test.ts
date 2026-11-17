@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { createDb, type Db } from '../db/client.js'
 import { accounts, sessions, users } from '../db/identity/schema.js'
+import { rateLimitCounters } from '../db/platform/schema.js'
 import { createPasswordHasher } from '../crypto/password-hasher.js'
 import { createPgRateLimiter } from '../db/rate-limiter.js'
 import { createLogger } from '../logging/logger.js'
@@ -14,6 +15,7 @@ import { resolveSessionUser } from '@app/application'
 import { createUnitOfWork } from '../db/unit-of-work.js'
 import { createAuthAdapter } from './auth-adapter.js'
 import { createBetterAuth, type BetterAuthInstance } from './better-auth.js'
+import { loginKey } from './auth-hooks.js'
 
 const PANEL = 'https://app.feedway.test'
 const PASSWORD = 'una-password-molto-lunga-1'
@@ -242,6 +244,20 @@ describe('limits', () => {
     const retryAfter = Number(res.headers.get('retry-after'))
     expect(retryAfter).toBeGreaterThan(25)
     expect(retryAfter).toBeLessThanOrEqual(30)
+  })
+
+  test('failures a day old are forgotten: one more mistake does not bring the wait back', async () => {
+    const { email } = await newUser()
+    for (let i = 0; i < 6; i++)
+      await signIn(email, 'sbagliata-123456', `198.51.100.${String(30 + i)}`)
+    await db
+      .update(rateLimitCounters)
+      .set({ updatedAt: new Date(Date.now() - 86_400_000 - 60_000) })
+      .where(eq(rateLimitCounters.key, `failures:${loginKey(email)}`))
+    const wrong = await signIn(email, 'sbagliata-123456', '198.51.100.98')
+    expect(wrong.res.status).toBe(401)
+    const { res } = await signIn(email, PASSWORD, '198.51.100.99')
+    expect(res.status).toBe(200)
   })
 
   test('trustDevice is refused', async () => {

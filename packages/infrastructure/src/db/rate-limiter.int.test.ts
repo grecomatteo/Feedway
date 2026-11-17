@@ -10,6 +10,7 @@ let a: DbHandle
 let b: DbHandle
 const clock = fixedClock(new Date('2026-10-18T10:00:00Z'))
 const limiterOn = (h: DbHandle) => createPgRateLimiter({ db: h.db, clock })
+const DAY = 86_400_000
 
 beforeAll(async () => {
   tdb = await startTestDatabase()
@@ -71,20 +72,20 @@ test('concurrent hits are all counted', async () => {
 
 test('failures are counted and reset', async () => {
   const limiter = limiterOn(a)
-  expect(await limiter.failures('login:x')).toEqual({ count: 0, lastAt: null })
-  for (let i = 0; i < 3; i++) await limiter.recordFailure('login:x')
-  expect(await limiter.failures('login:x')).toEqual({ count: 3, lastAt: clock.now() })
+  expect(await limiter.failures('login:x', DAY)).toEqual({ count: 0, lastAt: null })
+  for (let i = 0; i < 3; i++) await limiter.recordFailure('login:x', DAY)
+  expect(await limiter.failures('login:x', DAY)).toEqual({ count: 3, lastAt: clock.now() })
   await limiter.hit('login:x', 5, 60_000)
   await limiter.reset('login:x')
-  expect((await limiter.failures('login:x')).count).toBe(0)
+  expect((await limiter.failures('login:x', DAY)).count).toBe(0)
   expect(await rawKeys('login:x')).toEqual([])
 })
 
 test('a hit key never meets a failure key', async () => {
   const limiter = limiterOn(a)
-  await limiter.recordFailure('login:y')
+  await limiter.recordFailure('login:y', DAY)
   await limiter.hit('failures:login:y', 5, 60_000)
-  expect((await limiter.failures('login:y')).count).toBe(1)
+  expect((await limiter.failures('login:y', DAY)).count).toBe(1)
 })
 
 test('a limit of zero blocks the first hit for the whole window', async () => {
@@ -112,4 +113,28 @@ test('peek tells whether a hit would pass, without counting', async () => {
   expect(await limiter.peek('peek:1', 2, 60_000)).toEqual({ allowed: false, retryAfterMs: 60_000 })
   clock.advance(60_000)
   expect((await limiter.peek('peek:1', 2, 60_000)).allowed).toBe(true)
+})
+
+test('failures older than the memory are forgotten, and a new one starts again from one', async () => {
+  const limiter = limiterOn(a)
+  for (let i = 0; i < 6; i++) await limiter.recordFailure('login:old', DAY)
+  clock.advance(DAY - 1)
+  expect((await limiter.failures('login:old', DAY)).count).toBe(6)
+  clock.advance(1)
+  expect(await limiter.failures('login:old', DAY)).toEqual({ count: 0, lastAt: null })
+  await limiter.recordFailure('login:old', DAY)
+  expect(await limiter.failures('login:old', DAY)).toEqual({ count: 1, lastAt: clock.now() })
+})
+
+test('deleteIdleBefore removes the counters nobody touched since, and only those', async () => {
+  const limiter = limiterOn(a)
+  await limiter.hit('ip:idle', 5, 60_000)
+  await limiter.recordFailure('login:idle', DAY)
+  clock.advance(3 * DAY)
+  await limiter.hit('ip:busy', 5, 60_000)
+  const cutoff = new Date(clock.now().getTime() - 2 * DAY)
+  expect(await limiter.deleteIdleBefore(cutoff)).toBeGreaterThanOrEqual(2)
+  expect(await rawKeys(':idle')).toEqual([])
+  expect(await rawKeys('ip:busy')).toEqual(['hits:ip:busy'])
+  expect(await limiter.deleteIdleBefore(cutoff)).toBe(0)
 })

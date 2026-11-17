@@ -22,6 +22,15 @@ skip_tailscale="${INSTALL_SKIP_TAILSCALE:-0}"
 require_docker
 command -v openssl >/dev/null 2>&1 || die "Manca openssl."
 command -v age-keygen >/dev/null 2>&1 || die "Manca age (pacchetto 'age'): serve per la chiave dei backup."
+# the image runs a release, never `latest` (spec §16.1): found before anything is written
+image_tag="${INSTALL_IMAGE_TAG:-$(env_get IMAGE_TAG)}"
+if [ -z "$image_tag" ]; then
+  image_tag="$(git describe --tags --exact-match --match 'v*' 2>/dev/null)" ||
+    die "Non trovo la versione da installare. Scarica Feedway con 'git clone' e scegli una release con 'git checkout vX.Y.Z', poi rilancia."
+fi
+# INSTALL_IMAGE_TAG is the tests' own image (`ci`): everything else must be a release
+[ -n "${INSTALL_IMAGE_TAG:-}" ] || [[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+  die "La versione '$image_tag' non è una release (vX.Y.Z): correggi IMAGE_TAG in .env, poi rilancia."
 
 # 2) answers
 ask() { # ask VAR "question" default
@@ -174,9 +183,8 @@ if [ -z "$(env_get BACKUP_AGE_RECIPIENT)" ]; then
 fi
 
 # 5) configuration (no secrets in .env)
-default_tag="$(git describe --tags --abbrev=0 2>/dev/null || echo latest)"
 env_default IMAGE "${INSTALL_IMAGE:-ghcr.io/grecomatteo/feedway}"
-env_default IMAGE_TAG "${INSTALL_IMAGE_TAG:-$default_tag}"
+env_default IMAGE_TAG "$image_tag"
 env_set TS_HOSTNAME "$ts_hostname"
 env_set BOOTSTRAP_OWNER_EMAIL "$owner_email"
 env_set BOOTSTRAP_ORGANIZATION_NAME "$organization_name"

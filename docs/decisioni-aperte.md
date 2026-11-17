@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -133,6 +133,31 @@ Ultimo aggiornamento: revisione UI della tappa 4 (16 novembre 2026): D-31 aggior
 - **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
 - **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
 - **Stato:** da verificare nella prova (Task 14).
+
+### D-35 · Cambiare la chiave di cifratura e il segreto di Better Auth senza perdere dati
+- **Origine:** revisione retroattiva delle tappe 1–3 (A3), specifica §15, ADR 007 e 012.
+- **Il problema:** il portachiavi conosce una sola versione della chiave di cifratura (`PLATFORM_KEY_VERSION = 1`): cambiarla rende illeggibili token Meta, App Secret e password SMTP. `BETTER_AUTH_SECRETS` (`2:nuovo,1:vecchio`, provata nel contratto V1b) non arriva al container, quindi cambiare il segreto chiude le sessioni e rende illeggibile la 2FA. Oggi il runbook [cambiare i segreti](runbooks/rotazione-segreti.md) dice come limitare i danni.
+- **Opzioni:** (a) `APP_ENCRYPTION_KEYS` con più versioni e un comando `fw` che ricifra le chiavi delle agenzie e i segreti della piattaforma con la nuova, più un file segreto facoltativo per `BETTER_AUTH_SECRETS` nel compose (con il segnaposto in `update.sh`, come per `ts_public_authkey`); (b) lasciare così e cambiare i segreti solo con la procedura d'emergenza del runbook.
+- **Stato:** scelta provvisoria (a), da fare nella tappa 11 (sicurezza e operazioni); Matteo può cambiarla.
+
+### D-36 · Versione della Graph API predefinita
+- **Origine:** revisione retroattiva delle tappe 1–3 (A8).
+- **Il problema:** `META_GRAPH_VERSION` vale `v25.0` se non è impostata, mentre l'app Meta della prova risulta abilitata a v26 e v27: probabilmente Meta porta le chiamate alla versione minima dell'app senza dirlo, e le risposte possono non essere quelle che simula `tools/meta-mock`. Le date di ritiro note (`META_GRAPH_SUNSETS`) sono solo di v24 e v25, quindi per le versioni nuove l'avviso di ritiro (§8.4) parte solo se si imposta `META_GRAPH_VERSION_SUNSET`. **Non verificato su Meta vera.**
+- **Opzioni:** (a) alla prossima prova su Meta vera, leggere la versione che Meta usa davvero e portare il valore predefinito e le date di ritiro a quella; (b) lasciare v25.0 e impostare la versione solo da `.env`.
+- **Stato:** aperta, da verificare nella prossima prova su Meta vera.
+
+### D-37 · Per quanto restano i contatori dei limiti e gli errori di accesso
+- **Origine:** revisione retroattiva delle tappe 1–3 (A4).
+- **Cosa è stato scelto:** i contatori fermi da **2 giorni** si cancellano nella conservazione notturna (il doppio della finestra più lunga in uso, 24 ore per gli inviti); gli accessi sbagliati si dimenticano dopo **24 ore** senza nuovi errori. Scritto nella specifica §15.7, nel registro dei trattamenti e nell'informativa.
+- **Da sapere:** un limite nuovo con una finestra più lunga di 2 giorni verrebbe accorciato in silenzio dalla pulizia: va alzato anche `RETENTION.rateLimitCountersMs`.
+- **Opzioni:** (a) 2 giorni e 24 ore; (b) valori diversi, scelti da Matteo.
+- **Stato:** scelta provvisoria (a).
+
+### D-38 · Rafforzamenti trovati dalla revisione di sicurezza, rimandati
+- **Origine:** revisione di sicurezza della PR delle correzioni delle tappe 1–3.
+- **I punti:** (1) il ritardo degli accessi sbagliati legge il contatore e poi lo aggiorna in due passi: N tentativi in parallelo da IP diversi passano insieme nella stessa finestra (il limite per IP resta 10 al minuto); (2) il rilascio unisce le immagini amd64 e arm64 per tag e non per digest, e `update.sh` non controlla la firma dei tag; (3) l'immagine pubblicata con `docker push` non ha più l'attestazione di provenienza che aggiungeva `build-push-action`.
+- **Opzioni:** (a) farli nella tappa 11 (sicurezza e operazioni): prenotazione atomica del tentativo con un solo `UPDATE … RETURNING`, manifest per digest con `actions/attest-build-provenance`, verifica dei tag; (b) prima, se Matteo lo chiede.
+- **Stato:** scelta provvisoria (a).
 
 ## Clienti e profili
 

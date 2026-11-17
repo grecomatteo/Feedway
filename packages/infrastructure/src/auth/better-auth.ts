@@ -20,6 +20,7 @@ import type { SessionUserResolver } from './auth-hooks.js'
 import type { Db } from '../db/client.js'
 import * as schema from '../db/identity/schema.js'
 import { COOKIE_NAMES, TWO_FACTOR_COOKIE_MAX_AGE_SECONDS } from './cookie-names.js'
+import { libraryLog } from './library-log.js'
 import {
   authMethodForPath,
   createAfterHook,
@@ -141,6 +142,7 @@ export function createBetterAuth(deps: BetterAuthDeps) {
     secrets: deps.config.secrets,
     trustedOrigins: [origin],
     telemetry: { enabled: false },
+    logger: { level: 'warn', log: libraryLog(deps.logger) },
     disabledPaths: ['/sign-up/email', '/update-user', '/delete-user'],
     // The library checks the session, the address and whether another account has it (then it
     // answers the same, sending nothing); the link and its confirmation are ours.

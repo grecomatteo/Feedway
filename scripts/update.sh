@@ -35,7 +35,7 @@ git rev-parse --verify --quiet "refs/tags/$target" >/dev/null || die "La version
 
 # Checked before anything changes: a missing secret would only show up as a container that
 # never starts, after the old version is already gone.
-compose="$(git show "$target:docker/compose.yml")" ||
+compose="$(git show "refs/tags/$target:docker/compose.yml")" ||
   die "Non riesco a leggere docker/compose.yml della versione '$target'. Non ho cambiato nulla."
 required="$(printf '%s\n' "$compose" | grep -oE '\./secrets/[A-Za-z0-9_.-]+' | sort -u)" ||
   die "Il docker/compose.yml di '$target' non nomina nessun segreto: non è normale. Non ho cambiato nulla."
@@ -63,11 +63,13 @@ if [ "${1:-}" != "--rollback" ] && [ -z "$(env_get BOOTSTRAP_ORGANIZATION_NAME)"
 fi
 
 mkdir -p .state
+recorded="$(cat "$state_file" 2>/dev/null || true)"
+checked_out="$(git rev-parse HEAD)"
 if [ "$target" != "$current" ]; then
   printf '%s\n' "$current" >"$state_file"
 fi
 
-git checkout --quiet "$target"
+git checkout --quiet "refs/tags/$target"
 env_set IMAGE_TAG "$target"
 
 show_failure() {
@@ -77,11 +79,27 @@ show_failure() {
   exit 1
 }
 
+# Before the services restart nothing running has changed: the files go back to the version in
+# use, so a reboot or a later command never starts the new version on an old schema.
+put_back() {
+  warn "L'aggiornamento a $target non è riuscito: l'errore è nelle righe qui sopra."
+  # each step on its own: one that fails must not skip the others
+  git checkout --quiet "$checked_out" || warn "Non riesco a tornare al codice di $current: lancia 'git checkout $current'."
+  env_set IMAGE_TAG "$current" || warn "Non riesco a rimettere IMAGE_TAG=$current in .env: correggilo a mano."
+  if [ -n "$recorded" ]; then
+    printf '%s\n' "$recorded" >"$state_file" || warn "Non riesco a scrivere $state_file."
+  else
+    rm -f "$state_file"
+  fi
+  warn "Resta in funzione $current: i servizi non sono stati toccati."
+  exit 1
+}
+
 log "Scarico le immagini di $target…"
-dc pull || show_failure
+dc pull || put_back
 # The migration runs alone first: if it fails, the running web and worker are left untouched.
 log "Migrazione del database…"
-dc run --rm --no-deps migrate || show_failure
+dc run --rm --no-deps migrate || put_back
 log "Riavvio dei servizi…"
 dc up -d --wait || show_failure
 

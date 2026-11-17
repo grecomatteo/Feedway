@@ -20,11 +20,13 @@ Settings → General → Pull Requests: lasciare **solo "Allow squash merging"**
 
 ## 3. Sicurezza
 
-Settings → Code security:
+Settings → Advanced Security (in alcune versioni «Code security»):
 
 - attivare **Private vulnerability reporting**;
-- Secret scanning, Push protection e Code scanning richiedono un repository pubblico o GitHub Advanced Security: finché il repository è privato li copre gitleaks in CI;
-- se il repository diventa pubblico, reintrodurre il workflow CodeQL.
+- **Secret Protection** e **Push protection**: attive finché il repository è pubblico (attivate il 17/11/2026). Con il repository privato richiedono GitHub Advanced Security e si spengono: resta gitleaks in CI e nei ganci locali;
+- **CodeQL analysis** (configurazione predefinita) resta **spenta**: l'analisi gira dal workflow `.github/workflows/codeql.yml`, e le due configurazioni insieme vanno in conflitto.
+
+Il workflow CodeQL analizza JavaScript/TypeScript e i workflow di GitHub Actions a ogni PR e ogni lunedì, con le regole `security-extended`. Non è un controllo obbligatorio e non entra in `pnpm verify:ci`, perché gira solo su GitHub. Con il repository privato il job controlla la visibilità e non fa nulla, quindi non serve toglierlo. I risultati sono in Security → Code scanning: un avviso nuovo su una PR si guarda prima del merge, e se è un falso positivo si chiude con il motivo.
 
 ## 4. Pubblicazione dell'immagine (GHCR)
 

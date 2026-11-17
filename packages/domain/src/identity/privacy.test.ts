@@ -13,6 +13,7 @@ describe('retention', () => {
     expect(c.anonymizationNoticeBefore).toEqual(at('2026-09-15T03:30:00Z'))
     expect(c.dataExportBefore).toEqual(at('2026-10-14T03:30:00Z'))
     expect(c.avatarStagingBefore).toEqual(at('2026-10-15T02:30:00Z'))
+    expect(c.rateLimitCountersBefore).toEqual(at('2026-10-13T03:30:00Z'))
   })
 
   test('every retention entry has a cutoff', () => {

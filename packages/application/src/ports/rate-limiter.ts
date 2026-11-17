@@ -18,9 +18,14 @@ export interface RateLimiter {
     limit: number,
     windowMs: number,
   ): Promise<{ allowed: boolean; retryAfterMs: number }>
-  /** For the growing wait on an account (`loginDelayMs`). */
-  failures(key: string): Promise<{ count: number; lastAt: Date | null }>
-  recordFailure(key: string): Promise<void>
+  /**
+   * For the growing wait on an account (`loginDelayMs`). Failures whose last one is older than
+   * `forgetAfterMs` count as none, and the next one starts again from one.
+   */
+  failures(key: string, forgetAfterMs: number): Promise<{ count: number; lastAt: Date | null }>
+  recordFailure(key: string, forgetAfterMs: number): Promise<void>
   /** Clears both the hits and the failures of the key. */
   reset(key: string): Promise<void>
+  /** Deletes every counter not touched since `before` (retention): how many went. */
+  deleteIdleBefore(before: Date): Promise<number>
 }

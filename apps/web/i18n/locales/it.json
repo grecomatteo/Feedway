@@ -1206,6 +1206,7 @@
       "auditIp": "Indirizzi IP nel registro attività: abbreviati dopo {period}.",
       "exports": "Archivio «Scarica i miei dati»: scaricabile per {period}, poi cancellato.",
       "avatarStaging": "Foto caricate e non ritagliate: cancellate dopo {period}.",
+      "rateLimits": "Contatori contro i tentativi ripetuti (indirizzo IP e impronta dell'email): cancellati se non usati per {period}.",
       "disabled": "Account disattivati dalla piattaforma: dati personali anonimizzati dopo {period}, con un avviso all'agenzia almeno {notice} prima."
     },
     "days": "{n} giorno | {n} giorni",

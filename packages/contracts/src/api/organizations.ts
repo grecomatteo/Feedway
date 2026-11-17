@@ -69,6 +69,7 @@ export const PrivacyNotice = z.object({
     anonymizationNoticeMs: z.number(),
     dataExportMs: z.number(),
     avatarStagingMs: z.number(),
+    rateLimitCountersMs: z.number(),
   }),
   cookies: z.array(
     z.object({

@@ -52,6 +52,31 @@ teardown() {
   grep -q 'logs --tail 50 migrate web worker' "$STUB_LOG"
 }
 
+@test "a failed pull or migration puts the old version back and touches nothing running" {
+  for failing in STUB_PULL_FAILS STUB_MIGRATE_FAILS; do
+    env "$failing=1" ./scripts/update.sh v0.2.0 >/dev/null 2>&1 && return 1
+    grep -q '^IMAGE_TAG=v0.1.0$' .env
+    [ "$(git describe --tags --exact-match)" = "v0.1.0" ]
+    [ ! -e .state/previous_tag ]
+    run grep -q 'up -d --wait' "$STUB_LOG"
+    [ "$status" -ne 0 ]
+  done
+  ./scripts/update.sh v0.2.0 >/dev/null
+  [ "$(cat .state/previous_tag)" = "v0.1.0" ]
+}
+
+@test "a failed migration keeps the version recorded for a later rollback" {
+  ./scripts/update.sh v0.2.0 >/dev/null
+  git checkout -q -b next v0.2.0
+  echo "0.3.0" >VERSION && git commit -q -am "release 0.3.0" && git tag v0.3.0
+  git checkout -q v0.2.0
+  STUB_MIGRATE_FAILS=1 run ./scripts/update.sh v0.3.0
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"v0.2.0"* ]]
+  grep -q '^IMAGE_TAG=v0.2.0$' .env
+  [ "$(cat .state/previous_tag)" = "v0.1.0" ]
+}
+
 @test "rollback after a failed update returns to the previous tag" {
   STUB_COMPOSE_UP_FAILS=1 run ./scripts/update.sh v0.2.0
   ./scripts/update.sh --rollback >/dev/null

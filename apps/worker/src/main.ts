@@ -41,6 +41,7 @@ async function main(): Promise<void> {
       storage,
       uploadParts: runtime.uploadParts,
       credentials: { deleteAllCredentials: createCredentialEraser({ db: runtime.db }) },
+      rateLimiter: runtime.rateLimiter,
       zip: createZipWriter(),
       mailer,
       signedTokens,

@@ -34,7 +34,9 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    # spec §16.6: a heavy query never takes the panel's CPU
     mem_limit: 1g
+    cpus: 0.5
     pids_limit: 200
 
   migrate:

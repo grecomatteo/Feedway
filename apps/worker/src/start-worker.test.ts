@@ -36,6 +36,7 @@ const services: WorkerDeps['services'] = {
     list: () => Promise.reject(new Error('not used in this test')),
   },
   credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used in this test')) },
+  rateLimiter: { deleteIdleBefore: () => Promise.reject(new Error('not used in this test')) },
   zip: {
     create: () => {
       throw new Error('not used in this test')
