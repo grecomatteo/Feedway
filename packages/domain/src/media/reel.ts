@@ -2,7 +2,8 @@
 // converted. Limits read on 2026-11-17 in Meta's documentation: Instagram «IG User Media, Reel
 // Specifications» (at most 1920 columns, VBR at most 25 Mbit/s, 23–60 fps, 4:2:0, AAC at most
 // 48 kHz in mono or stereo) and Facebook «Reels Publishing API» (1080×1920 recommended, 24–60
-// fps, fixed frame rate). Not yet tried on a real account (stage 7).
+// fps, fixed frame rate). Not yet tried on a real account (stage 7), nor are the edit lists
+// ffmpeg may write in the MP4 (Instagram asks for none): D-40.
 
 export const REEL_MAX_LONG_SIDE = 1920
 export const REEL_MAX_SHORT_SIDE = 1080

@@ -278,9 +278,12 @@ async function processIn(
         },
       })
       if (!reel.ok) return refused(reel.reason, facts)
-      if (reel.plan.video.mode === 'encode')
+      if (reel.plan.video.mode === 'encode') {
         check.fixes.push({ code: 'convert_for_reels', width: reel.file.width })
-      else if (reel.plan.audio === 'encode') check.fixes.push({ code: 'convert_audio_for_reels' })
+        // over 60 fps the copy to publish is already at 60: nothing is left to propose
+        if (reel.plan.reasons.includes('frame_rate'))
+          check.warnings = check.warnings.filter((w) => w.code !== 'convert_fps')
+      } else if (reel.plan.audio === 'encode') check.fixes.push({ code: 'convert_audio_for_reels' })
       made.push({ purpose: 'reel', file: reel.file, publicToken: deps.newPublicToken() })
     }
     const frame = await deps.transformer.videoFrame(

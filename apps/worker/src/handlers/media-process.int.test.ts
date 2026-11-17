@@ -341,6 +341,15 @@ test('a 4K video gets a copy to publish converted inside the limits of Reels, an
   })
 })
 
+test('a video at 120 fps: the copy to publish is at 60, nothing more is proposed', async () => {
+  const a = await agency()
+  const id = await waiting(a, await video('fps-120.mp4'), 'mp4')
+  await wake(deps(), a, id)
+  const media = await row(id)
+  expect(media?.checks?.fixes).toContainEqual({ code: 'convert_for_reels', width: 320 })
+  expect(media?.checks?.warnings.map((w) => w.code)).not.toContain('convert_fps')
+})
+
 test.each([
   ['a video of 1000 s in its header', 'long.mp4', 'too_long'],
   ['a video of 4200×4200 in its header', 'huge.mp4', 'too_many_pixels'],

@@ -24,6 +24,8 @@ export type VideoFixture =
   | 'audio-96k.mp4'
   /** 60 frames a second, then 20: a frame rate that is not fixed */
   | 'vfr.mp4'
+  /** 120 frames a second, as a slow motion: over the 60 of Reels */
+  | 'fps-120.mp4'
 
 const SOURCES: Record<VideoFixture, string[]> = {
   'h264-moov-end.mp4': [
@@ -155,6 +157,18 @@ const SOURCES: Record<VideoFixture, string[]> = {
     '-ac',
     '6',
     '-shortest',
+  ],
+  'fps-120.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=320x240:rate=120',
+    '-t',
+    '0.5',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
   ],
   'vfr.mp4': [
     '-f',
