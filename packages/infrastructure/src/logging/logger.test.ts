@@ -50,6 +50,18 @@ test('the token of an activation link never reaches the log', () => {
   expect(out).toContain('/api/v1/links/[REDACTED]/activate')
 })
 
+test('the token of a password reset link never reaches the log', () => {
+  const out = captureLog((l) => {
+    // Better Auth's own reset tokens are 24 letters and digits: shorter than pathForLog cuts
+    l.info({ path: '/api/auth/reset-password/Ab3dEf6hIj9kLm2nOp5qRs8t' }, 'request')
+    l.warn({}, 'opened https://pannello.example/reimposta?token=Zy8xWv7uTs6rQp5oNm4lKj3i&x=1')
+  })
+  for (const v of ['Ab3dEf6hIj9kLm2nOp5qRs8t', 'Zy8xWv7uTs6rQp5oNm4lKj3i']) {
+    expect(out).not.toContain(v)
+  }
+  expect(out).toContain('/api/auth/reset-password/[REDACTED]')
+})
+
 test('scrubs secrets from the message', () => {
   const out = captureLog((l) => {
     l.info({}, 'calling with Bearer abc.def.ghi')
