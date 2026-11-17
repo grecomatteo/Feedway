@@ -13,8 +13,8 @@ import { runTool, type ToolRun } from './run-tool.js'
 // ffprobe and ffmpeg, armoured (plan 04, «ffmpeg blindato»): the container is already confirmed
 // from the bytes (`ftyp`), the demuxer is forced to mov/mp4 and only the `file` protocol is
 // allowed, so a playlist dressed as `.mp4` reads neither local files nor the network. Low
-// priority and a timeout (ADR 021). The decoding commands take `threads` (one, as spec §16.6
-// asks, unless Matteo gives the worker more CPU: D-39); the headers and the remux keep one.
+// priority and a timeout (ADR 021). The decoding commands take `threads` (two, with the
+// worker's 1.5 CPU: spec §16.6, D-39); the headers and the remux keep one.
 
 export interface FfmpegCommands {
   ffmpeg: string
