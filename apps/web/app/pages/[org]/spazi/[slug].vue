@@ -116,9 +116,11 @@ const current = (to: string) => route.path === to || route.path === `${to}/`
         </div>
       </header>
 
+      <!-- the line under the tabs is a shadow, not a border the tabs overlap: with overflow-x the
+           overlap made a vertical scrollbar appear beside them (R-10) -->
       <nav
         :aria-label="$t('client.tabs.label')"
-        class="-mx-4 mb-6 overflow-x-auto border-b border-(--app-border) px-4 sm:mx-0 sm:px-0"
+        class="-mx-4 mb-6 overflow-x-auto overflow-y-hidden px-4 shadow-[inset_0_-1px_0_var(--app-border)] sm:mx-0 sm:px-0"
       >
         <ul class="flex min-w-max gap-1">
           <li v-for="tab in tabs" :key="tab.key">
@@ -126,14 +128,14 @@ const current = (to: string) => route.path === to || route.path === `${to}/`
               v-if="tab.to"
               :to="{ path: tab.to, query: keep }"
               :aria-current="current(tab.to) ? 'page' : undefined"
-              class="-mb-px flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm max-sm:px-2.5 text-(--app-text-muted) hover:text-(--app-text) aria-[current=page]:border-(--app-brand) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
+              class="flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm max-sm:px-2.5 text-(--app-text-muted) hover:text-(--app-text) aria-[current=page]:border-(--app-brand) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
             >
               {{ tab.label }}
             </NuxtLink>
             <span
               v-else
               aria-disabled="true"
-              class="-mb-px flex min-h-11 cursor-default items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-(--app-text-muted) max-sm:px-2.5 max-sm:opacity-70"
+              class="flex min-h-11 cursor-default items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-(--app-text-muted) max-sm:px-2.5 max-sm:opacity-70"
             >
               {{ tab.label }}
               <span

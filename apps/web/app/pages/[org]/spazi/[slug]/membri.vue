@@ -72,7 +72,7 @@ const roleItems = computed(() =>
 const add = reactive({ userId: '', role: 'editor' as WorkspaceMember['role'] })
 const sending = ref(false)
 const problem = ref<string | null>(null)
-const done = ref<string | null>(null)
+const done = useFlash()
 async function run(action: () => Promise<void>, message: string) {
   sending.value = true
   problem.value = null

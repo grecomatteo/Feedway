@@ -19,7 +19,7 @@ const passkey = usePasskey()
 
 const sending = ref<string | null>(null)
 const problem = ref<string | null>(null)
-const done = ref<string | null>(null)
+const done = useFlash()
 const renaming = ref<string | null>(null)
 const newName = ref('')
 

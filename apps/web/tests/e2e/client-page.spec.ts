@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { libraryFile } from './support/media.ts'
 import { assignAccount, connectedAgency, newWorkspace } from './support/meta.ts'
 import {
   addPerson,
@@ -76,6 +77,8 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   await expect(tabs.getByText('Calendario')).toContainText('Presto')
   await expect(tabs.getByRole('link', { name: 'Libreria' })).toBeVisible()
   await expect(tabs.getByRole('link', { name: 'Calendario' })).toHaveCount(0)
+  // the tabs scroll sideways on a narrow screen, never up and down (prova 0.10.0, R-10)
+  expect(await tabs.evaluate((n) => n.scrollHeight - n.clientHeight)).toBe(0)
 
   // one row for the Page and its Instagram, linked
   const list = profiles(page)
@@ -191,4 +194,23 @@ test('who is not Owner or Admin sees the profiles and the people, without the ac
   await page.goto(`/${org}/spazi/non-esiste`)
   await expect(page.getByRole('alert')).toContainText('Questo cliente non esiste o non lo vedi.')
   expect(await page.getByRole('main').innerText()).toBe(hidden)
+})
+
+test('in Panoramica a file that did not succeed is marked in red, with its word', async ({
+  page,
+}) => {
+  const { owner, org, client } = await agencyWithClient(page)
+  await libraryFile(org, client.id, owner.userId, { kind: 'image', name: 'pane.jpg' })
+  await libraryFile(org, client.id, owner.userId, {
+    kind: 'video',
+    name: 'IMG_0233.mov',
+    status: 'failed',
+  })
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  const recent = page.getByRole('list', { name: 'Ultimi file' })
+  await expect(recent.getByRole('listitem')).toHaveCount(2)
+  const failed = recent.getByRole('link', { name: 'IMG_0233.mov, Non riuscito' })
+  await expect(failed).toBeVisible()
+  await expect(failed.locator('[data-failed]')).toContainText('Non riuscito')
+  expect((await axe(page)).violations).toEqual([])
 })

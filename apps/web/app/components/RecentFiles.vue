@@ -65,10 +65,25 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
       <li v-for="f in page.items" :key="f.id" class="min-w-0">
         <NuxtLink
           :to="libraryPage"
-          class="block overflow-hidden rounded-lg border border-(--app-border) bg-(--app-surface-sunken)"
-          :title="f.originalName"
+          class="relative block overflow-hidden rounded-lg border"
+          :class="
+            f.status === 'failed'
+              ? 'border-(--app-danger) bg-(--app-danger-soft)'
+              : 'border-(--app-border) bg-(--app-surface-sunken)'
+          "
+          :title="
+            f.status === 'failed'
+              ? `${f.originalName} · ${$t('library.status.failed')}`
+              : f.originalName
+          "
         >
-          <span class="sr-only">{{ f.originalName }}</span>
+          <span class="sr-only"
+            >{{ f.originalName
+            }}<template v-if="f.status === 'failed'">, {{ $t('library.status.failed') }}</template
+            ><template v-else-if="f.status !== 'ready'"
+              >, {{ $t(`library.status.${f.status}`) }}</template
+            ></span
+          >
           <img
             v-if="thumb(f)"
             :src="thumb(f)!"
@@ -76,12 +91,25 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
             loading="lazy"
             class="aspect-square w-full object-cover"
           />
+          <!-- a file not ready says so: a failed one in red, with its word (R-9) -->
+          <span
+            v-else-if="f.status === 'failed'"
+            class="flex aspect-square flex-col items-center justify-center gap-1.5 p-1 text-center text-(--app-danger)"
+            aria-hidden="true"
+            data-failed
+          >
+            <UIcon name="i-lucide-file-x" class="size-6" />
+            <span class="text-xs font-semibold">{{ $t('library.status.failed') }}</span>
+          </span>
           <span
             v-else
-            class="flex aspect-square items-center justify-center text-(--app-text-muted)"
+            class="flex aspect-square flex-col items-center justify-center gap-1.5 p-1 text-center text-(--app-text-muted)"
             aria-hidden="true"
           >
             <UIcon :name="f.kind === 'video' ? 'i-lucide-film' : 'i-lucide-image'" class="size-6" />
+            <span v-if="f.status !== 'ready'" class="text-xs">{{
+              $t(`library.status.${f.status}`)
+            }}</span>
           </span>
         </NuxtLink>
       </li>
