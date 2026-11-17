@@ -65,6 +65,10 @@ describe('PostCheckRequest', () => {
     refused({ ...ok(), caption: { common: '', instagram: long } })
     refused({ ...ok(), caption: { common: '', facebook: long } })
     refused({ ...ok(), caption: { common: '', tiktok: 'altro' } })
+    // characters are code points, as the rules count them: 70,000 emoji pass, one more does not
+    const emoji = '😀'.repeat(POST_CHECK_LIMITS.captionCharacters)
+    expect(PostCheckRequest.safeParse({ ...ok(), caption: { common: emoji } }).success).toBe(true)
+    refused({ ...ok(), caption: { common: `${emoji}😀` } })
   })
 
   test('choices: at most 50, of known options, with a key', () => {

@@ -27,7 +27,7 @@ let tdb: TestDatabase
 let admin: pg.Client
 let deps: CheckPostDeps
 let org: string, other: string
-let forno: string, gino: string, elsewhere: string
+let forno: string, gino: string, elsewhere: string, archived: string
 const people: Record<'editor' | 'viewer' | 'outsider', string> = {
   editor: '',
   viewer: '',
@@ -36,6 +36,7 @@ const people: Record<'editor' | 'viewer' | 'outsider', string> = {
 let ig: string, fb: string, red: string, nearlyFull: string, full: string
 let notAssigned: string, ofOther: string
 let video: string, processing: string, corrected: string, inGino: string, inOther: string
+let deleted: string, failed: string
 
 const actor = (userId: string): OrgActor => ({
   userId,
@@ -134,12 +135,13 @@ beforeAll(async () => {
     platformRules: PLATFORM_RULES,
     publishingHistory: emptyPublishingHistory,
   }
-  ;({ org, other, forno, gino, elsewhere } = await seed(tdb.runtimeUrl, async (s) => {
+  ;({ org, other, forno, gino, elsewhere, archived } = await seed(tdb.runtimeUrl, async (s) => {
     const o = await s.organization()
     const x = await s.organization()
     const f = await s.workspace(o, { name: 'Forno Luce' })
     const g = await s.workspace(o, { name: 'Pizzeria Da Gino' })
     const e = await s.workspace(x, { name: 'Bottega di un’altra agenzia' })
+    const a = await s.workspace(o, { name: 'Vecchio cliente', archived: true })
     const roles: [keyof typeof people, WorkspaceRole | null][] = [
       ['editor', 'editor'],
       ['viewer', 'viewer'],
@@ -149,9 +151,10 @@ beforeAll(async () => {
       const user = await s.user()
       await s.member(o, user, 'member')
       if (role) await s.workspaceMember(o, f, user, role)
+      if (role) await s.workspaceMember(o, a, user, role)
       people[key] = user
     }
-    return { org: o, other: x, forno: f, gino: g, elsewhere: e }
+    return { org: o, other: x, forno: f, gino: g, elsewhere: e, archived: a }
   }))
   const otherOwner = await seed(tdb.runtimeUrl, async (s) => {
     const user = await s.user()
@@ -208,6 +211,26 @@ beforeAll(async () => {
   })
   await processed(inGino, {})
   await processed(inOther, {})
+  deleted = await seed(tdb.runtimeUrl, (s) =>
+    s.media(org, forno, { uploadedBy: people.editor, kind: 'image', status: 'deleted' }),
+  )
+  failed = await seed(tdb.runtimeUrl, (s) => s.media(org, forno, { uploadedBy: people.editor }))
+  await admin.query(
+    `update media set status = 'failed', failure = '{"code":"unreadable"}' where id = $1`,
+    [failed],
+  )
+  // a tall photo: were it read, the feed's proportions would say its size
+  await processed(deleted, {
+    analysis: {
+      kind: 'image',
+      format: 'jpeg',
+      sizeBytes: 2_000_000,
+      width: 1080,
+      height: 1920,
+      colorSpace: 'srgb',
+      hasMetadata: false,
+    },
+  })
 }, 300_000)
 
 afterAll(async () => {
@@ -251,6 +274,12 @@ describe('who may check', () => {
     )
   })
 
+  test('an archived client takes no post', async () => {
+    await expect(
+      checkPost(deps, actor(people.editor), reel({ workspaceId: archived })),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
   test('a workspace id that is not one is not found either', async () => {
     await expect(
       checkPost(deps, actor(people.editor), reel({ workspaceId: 'forno' })),
@@ -267,6 +296,16 @@ describe('what is not the workspace’s', () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [id()] }))
     expect(codes(report)).toEqual(['block media_unavailable media_unavailable:media:0'])
     expect(JSON.stringify(report)).not.toContain(id())
+  })
+
+  test('a file deleted from this workspace says no more than one of another agency', async () => {
+    const report = await checkPost(
+      deps,
+      actor(people.editor),
+      reel({ type: 'photo', mediaIds: [deleted], destinations: [{ accountId: ig }] }),
+    )
+    expect(codes(report)).toEqual(['block media_unavailable media_unavailable:media:0'])
+    expect(JSON.stringify(report)).not.toContain('1920')
   })
 
   test('an account of another workspace or agency: the same block, no platform nor name', async () => {
@@ -330,6 +369,22 @@ describe('the accounts', () => {
 })
 
 describe('the files', () => {
+  test('a failed file blocks, with its reason', async () => {
+    const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [failed] }))
+    expect(codes(report)).toEqual(['block media_failed media_failed:media:0'])
+    expect(report.outcomes[0]?.params).toEqual({ reason: 'unreadable' })
+  })
+
+  test('a cover photo of another agency is «non disponibile», with nothing of it', async () => {
+    const report = await checkPost(
+      deps,
+      actor(people.editor),
+      reel({ cover: { source: 'image', mediaId: inOther }, destinations: [{ accountId: ig }] }),
+    )
+    expect(codes(report)).toEqual(['block media_unavailable media_unavailable:cover'])
+    expect(JSON.stringify(report)).not.toContain(inOther)
+  })
+
   test('a file still being prepared blocks', async () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [processing] }))
     expect(codes(report)).toEqual(['block media_processing media_processing:media:0'])

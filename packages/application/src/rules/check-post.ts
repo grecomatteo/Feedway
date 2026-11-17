@@ -1,4 +1,5 @@
 import {
+  DomainError,
   can,
   evaluatePost,
   resolveWhen,
@@ -91,6 +92,9 @@ export async function checkPost(
       !can(current, 'post.draft', { organizationId, workspaceId: input.workspaceId })
     )
       throw workspaceNotFound()
+    // nothing goes out of an archived client: the worker of stage 7 checks again with this
+    if (workspace.archivedAt !== null)
+      throw new DomainError('CONFLICT', 'Il cliente è archiviato: non si programmano post')
     const scope = { organizationId, workspaceId: workspace.id }
     const media = await getMediaForRules(tx, scope, [
       ...input.mediaIds,
@@ -106,7 +110,11 @@ export async function checkPost(
   })
 
   const fileKind: MediaKind = input.type === 'reel' ? 'video' : 'image'
-  const fileOf = (id: string, kind: MediaKind) => read.media.get(id) ?? unavailable(id, kind)
+  // a file deleted from this workspace says no more than one of another agency
+  const fileOf = (id: string, kind: MediaKind) => {
+    const found = read.media.get(id)
+    return found && found.status !== 'deleted' ? found : unavailable(id, kind)
+  }
   const draft: PostDraft = {
     type: input.type,
     media: input.mediaIds.map((id) => fileOf(id, fileKind)),

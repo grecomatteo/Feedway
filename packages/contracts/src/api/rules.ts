@@ -34,7 +34,16 @@ export const POST_CHECK_LIMITS = {
   choices: 50,
 } as const
 
-const Caption = z.string().max(POST_CHECK_LIMITS.captionCharacters)
+/**
+ * Counted in code points, as the rules count (D-46): an emoji is one character, not two. The
+ * bound in UTF-16 units comes first, so a huge string is refused before it is walked.
+ */
+const Caption = z
+  .string()
+  .max(POST_CHECK_LIMITS.captionCharacters * 2)
+  .refine((text) => Array.from(text).length <= POST_CHECK_LIMITS.captionCharacters, {
+    message: `at most ${String(POST_CHECK_LIMITS.captionCharacters)} characters`,
+  })
 
 /** A whole day of the calendar and a time of it, as Rome's clock shows them. */
 const LocalDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)

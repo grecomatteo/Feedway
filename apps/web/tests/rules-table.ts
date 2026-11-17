@@ -80,8 +80,8 @@ function limitValue(l: MetaLimit): string {
   }
 }
 
-/** Nothing in a cell may end it: pipes and line breaks. */
-const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ')
+/** Nothing in a cell may end it: backslashes first, then pipes, and line breaks. */
+const cell = (text: string) => text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ')
 
 function outcomeLine(o: Pick<RuleOutcome, 'code' | 'params' | 'platform' | 'level'>) {
   const m = ruleMessage(o, translate)

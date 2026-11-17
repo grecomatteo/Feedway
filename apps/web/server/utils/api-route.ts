@@ -331,6 +331,12 @@ export const MAIL_TEST_RATE_LIMIT_ROUTE = { name: 'mail-test', limit: 5, windowM
 /** Each reset link takes over an account if it leaks. */
 export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs: 60_000 }
 
+/**
+ * The checks of a post (plan 05 Task 2): the editor calls them while the post is written, and
+ * each one reads up to 1 MiB of text.
+ */
+export const POST_CHECKS_RATE_LIMIT = { name: 'post-checks', limit: 120, windowMs: 60_000 }
+
 /** Each photo is decoded and resized: a stolen session must not keep the server busy. */
 export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }
 /** The agency logo: decoded and resized as a photo, by the Owner only. */

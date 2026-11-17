@@ -1639,7 +1639,7 @@
       "ignore_caption": "Ignora il testo",
       "accept": "Va bene",
       "photos_only": "Solo le foto su {platform}",
-      "first_files": "Solo le prime {limit} su {platform}",
+      "first_files": "Solo le prime {limit} foto su {platform}",
       "publish_as_video": "Come video normale su {platform}",
       "skip_platform": "Non pubblicare su {platform}"
     },
@@ -1649,7 +1649,7 @@
     },
     "account_unavailable": {
       "title": "Account non disponibile in questo cliente",
-      "text": "Questo account non è collegato a questo cliente, o non esiste più. Toglilo dalle destinazioni o scegline un altro."
+      "text": "L'account non è collegato a questo cliente, o non esiste più. Toglilo dalle destinazioni o scegline un altro."
     },
     "platform_unsupported": {
       "title": "{platform} non è ancora gestito",
@@ -1681,7 +1681,7 @@
     },
     "media_unavailable": {
       "title": "File non disponibile",
-      "text": "Il file non è più nella libreria di questo cliente. Toglilo dal post o scegline un altro."
+      "text": "Questo file non è nella libreria di questo cliente, oppure è stato eliminato. Toglilo dal post o scegline un altro."
     },
     "scheduled_in_past": {
       "title": "Data già passata",
@@ -1773,7 +1773,7 @@
     },
     "reel_too_long_for_facebook": {
       "title": "Reel troppo lungo per {platform}",
-      "text": "Su {platform} un reel dura al massimo {limit} secondi, e questo dura {found}. Puoi pubblicarlo su {platform} come video normale, o non pubblicarlo su {platform}."
+      "text": "Su {platform} un reel dura al massimo {limit} secondi, e questo ne dura {found}. Puoi pubblicarlo su {platform} come video normale, o non pubblicarlo su {platform}."
     },
     "reel_resolution_low_for_facebook": {
       "title": "Video piccolo per un reel di {platform}",
@@ -1793,7 +1793,7 @@
     },
     "quota_low": {
       "title": "Pochi post rimasti su {platform}",
-      "text": "A quell'ora questo account potrà pubblicare ancora {left} post dei {total} che {platform} permette in 24 ore. Va bene, se non ne programmi altri lì vicino."
+      "text": "A quell'ora questo account potrà pubblicare ancora {left} post dei {total} che {platform} permette in 24 ore. Puoi programmarlo, ma evita di programmarne altri nelle stesse ore."
     },
     "duplicate_post": {
       "title": "Post uguale a uno recente",
