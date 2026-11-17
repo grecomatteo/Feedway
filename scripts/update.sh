@@ -63,6 +63,8 @@ if [ "${1:-}" != "--rollback" ] && [ -z "$(env_get BOOTSTRAP_ORGANIZATION_NAME)"
 fi
 
 mkdir -p .state
+recorded="$(cat "$state_file" 2>/dev/null || true)"
+checked_out="$(git rev-parse HEAD)"
 if [ "$target" != "$current" ]; then
   printf '%s\n' "$current" >"$state_file"
 fi
@@ -77,11 +79,23 @@ show_failure() {
   exit 1
 }
 
+# Before the services restart nothing running has changed: the files go back to the version in
+# use, so a reboot or a later command never starts the new version on an old schema.
+put_back() {
+  warn "L'aggiornamento a $target non è riuscito. Ultime righe dei log:"
+  dc logs --tail 50 migrate >&2 || true
+  git checkout --quiet "$checked_out"
+  env_set IMAGE_TAG "$current"
+  if [ -n "$recorded" ]; then printf '%s\n' "$recorded" >"$state_file"; else rm -f "$state_file"; fi
+  warn "Resta in funzione $current: i servizi non sono stati toccati."
+  exit 1
+}
+
 log "Scarico le immagini di $target…"
-dc pull || show_failure
+dc pull || put_back
 # The migration runs alone first: if it fails, the running web and worker are left untouched.
 log "Migrazione del database…"
-dc run --rm --no-deps migrate || show_failure
+dc run --rm --no-deps migrate || put_back
 log "Riavvio dei servizi…"
 dc up -d --wait || show_failure
 

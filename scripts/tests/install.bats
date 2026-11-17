@@ -28,6 +28,20 @@ teardown() {
   done
 }
 
+@test "install never falls back to latest: without a release tag it stops before any change" {
+  git tag -d v0.1.0 v0.2.0 >/dev/null
+  run run_install_noninteractive
+  [ "$status" -ne 0 ]
+  [ ! -e secrets/app_encryption_key ]
+  run grep -q 'IMAGE_TAG=latest' .env
+  [ "$status" -ne 0 ]
+}
+
+@test "install uses the release it was checked out at" {
+  run_install_noninteractive
+  grep -q '^IMAGE_TAG=v0.1.0$' .env
+}
+
 @test "install keeps existing secrets on rerun" {
   run_install_noninteractive
   cp -r secrets before
