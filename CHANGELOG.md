@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.11.0](https://github.com/grecomatteo/Feedway/compare/v0.10.0...v0.11.0) (2026-11-17)
+
+
+### Novità
+
+* **media:** «Riprova» per i file non riusciti per tempo ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **media:** avviso del file già nella libreria ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **media:** i file non riusciti si cancellano dopo 24 ore ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **posts:** controllo dei post sui dati veri dello spazio ([#223](https://github.com/grecomatteo/Feedway/issues/223)) ([bf80f18](https://github.com/grecomatteo/Feedway/commit/bf80f18b0d0abf6ae4877adfe7f3fbecd168e6b8))
+* **posts:** motore delle regole prima di programmare ([#222](https://github.com/grecomatteo/Feedway/issues/222)) ([8b4dc46](https://github.com/grecomatteo/Feedway/commit/8b4dc46ae281cb0902189bae2c07fc31da3e0296))
+
+
+### Correzioni
+
+* **identity:** i contatori dei limiti si cancellano e gli errori di accesso scadono ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **infra:** aggiornamenti e installazioni più sicuri ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **infra:** i messaggi di Better Auth passano dal logger che toglie i segreti ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **infra:** il token di reimpostazione password non finisce nei log ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **media:** copia per le Reels convertita a 15 Mbit/s ([#221](https://github.com/grecomatteo/Feedway/issues/221)) ([c2c88f4](https://github.com/grecomatteo/Feedway/commit/c2c88f4f65e3b235a779c8e59e05dd419c878a3a))
+* **media:** copia per le Reels dentro i limiti di Meta ([#218](https://github.com/grecomatteo/Feedway/issues/218)) ([704e227](https://github.com/grecomatteo/Feedway/commit/704e227ec7d0d9da5a06a1b49112968a11a4eab3))
+* **media:** le foto HEIC in Display P3 si convertono in sRGB ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **media:** timeout dei video 4K in base a pixel e fps, preset più veloce e consiglio nel pannello ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **media:** un pezzo fermo riparte dopo 30 s e al cambio di rete, ECONNRESET come avviso ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+* **posts:** correzioni della revisione della tappa 5 ([#224](https://github.com/grecomatteo/Feedway/issues/224)) ([f752e81](https://github.com/grecomatteo/Feedway/commit/f752e818c57c472a071f09ee46a0847865a5e1e4))
+* **ui:** l'informativa privacy dice quanto restano i contatori dei tentativi ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **ui:** ritocchi del pannello dopo la prova della 0.10.0 ([#219](https://github.com/grecomatteo/Feedway/issues/219)) ([67d309c](https://github.com/grecomatteo/Feedway/commit/67d309c14b044167f96d8293d694517dc57f0d24))
+
+
+### Prestazioni
+
+* **media:** worker a 1,5 CPU e anteprima su due thread ([d574f12](https://github.com/grecomatteo/Feedway/commit/d574f12da4fea42c8924303e2c1908449f66be64))
+
+
+### Documentazione
+
+* **accounts:** D-44 chiusa, avatar_url resta com'è ([#220](https://github.com/grecomatteo/Feedway/issues/220)) ([3f1b158](https://github.com/grecomatteo/Feedway/commit/3f1b158e8105b4ee24e87395b814798ee1bdc9ae))
+* come cambiare i segreti, scadenza della chiave Tailscale, D-35…D-38 ([0446085](https://github.com/grecomatteo/Feedway/commit/04460858f0d4dd5f515e6d2dec1d8f44f28a7646))
+* **media:** esiti della prova della 0.10.0 e voci aperte ([#215](https://github.com/grecomatteo/Feedway/issues/215)) ([dc1da80](https://github.com/grecomatteo/Feedway/commit/dc1da80d3ff67d71e49485db127c06c755072bf3))
+* **posts:** piano della tappa 5, i controlli prima di programmare ([#216](https://github.com/grecomatteo/Feedway/issues/216)) ([5f90831](https://github.com/grecomatteo/Feedway/commit/5f908317d2787aa307642f9c2cecb601b7229ed6))
+
 ## [0.10.0](https://github.com/grecomatteo/Feedway/compare/v0.9.0...v0.10.0) (2026-11-16)
 
 
