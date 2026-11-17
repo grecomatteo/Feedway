@@ -146,7 +146,8 @@ export async function runMediaProcessJobs(): Promise<void> {
       newPublicToken,
       limits,
     }
-    for (let i = 0; i < 10; i++) {
+    // the files other tests left waiting go too, by turn: a bound only against a loop for ever
+    for (let i = 0; i < 100; i++) {
       const done = await processNextMedia(deps, {
         organizationId: '00000000-0000-7000-8000-000000000000',
         mediaId: '00000000-0000-7000-8000-000000000000',

@@ -4,6 +4,7 @@ import {
   contentDigest,
   declaredTypeOf,
   formatEta,
+  onNetworkChange,
   missingParts,
   partSlice,
   pastedFileName,
@@ -112,6 +113,29 @@ test('the speed is the bytes of the last seconds, not since the start', () => {
   expect(meter.rate()).toBe(1_000)
   meter.reset()
   expect(meter.rate()).toBeNull()
+})
+
+describe('onNetworkChange', () => {
+  test('a change of connection (Wi-Fi to 5G) counts, not only coming back online (D-41)', () => {
+    const win = new EventTarget()
+    const connection = new EventTarget()
+    const changed = vi.fn()
+    const off = onNetworkChange(changed, { win, connection })
+    win.dispatchEvent(new Event('online'))
+    connection.dispatchEvent(new Event('change'))
+    expect(changed).toHaveBeenCalledTimes(2)
+    off()
+    win.dispatchEvent(new Event('online'))
+    connection.dispatchEvent(new Event('change'))
+    expect(changed).toHaveBeenCalledTimes(2)
+  })
+  test('a browser without the Network Information API (Safari) still hears «online»', () => {
+    const win = new EventTarget()
+    const changed = vi.fn()
+    onNetworkChange(changed, { win, connection: undefined })
+    win.dispatchEvent(new Event('online'))
+    expect(changed).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('stallTimer', () => {

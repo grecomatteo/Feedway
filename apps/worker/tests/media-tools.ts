@@ -32,7 +32,7 @@ export const unusedMediaTools: JobHandlerDeps['media'] = {
     master: unused,
     thumbnail: unused,
     videoPreview: unused,
-    videoRemux: unused,
+    videoReel: unused,
     videoFrame: unused,
   },
   newPublicToken,

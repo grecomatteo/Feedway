@@ -247,3 +247,69 @@ test('a file processing for too long wakes the worker again; a recent one does n
   )
   expect(woken.map((j) => j.data)).not.toContainEqual(expect.objectContaining({ mediaId: recent }))
 })
+
+test('a failed file goes after 24 hours, with its bytes; a recent one stays (D-43)', async () => {
+  const a = await agency()
+  const [old, recent] = await seed(tdb.runtimeUrl, async (s) => {
+    const by = { uploadedBy: a.ownerId, status: 'processing' as const }
+    return [
+      await s.media(a.organizationId, a.workspaceId, by),
+      await s.media(a.organizationId, a.workspaceId, by),
+    ]
+  })
+  await admin.query(
+    `update media set status = 'failed', failure = '{"code":"timeout"}' where id = any($1)`,
+    [[old, recent]],
+  )
+  await admin.query(`update media set updated_at = now() - interval '25 hours' where id = $1`, [
+    old,
+  ])
+  queue.sent.length = 0
+  await run()
+  const { rows } = await admin.query<{ id: string; status: string }>(
+    'select id, status from media where id = any($1)',
+    [[old, recent]],
+  )
+  expect(Object.fromEntries(rows.map((r) => [r.id, r.status]))).toEqual({
+    [old]: 'deleted',
+    [recent]: 'failed',
+  })
+  const library = await admin.query('select media_id from library_items where media_id = $1', [old])
+  expect(library.rows).toEqual([])
+  // its original goes with `media.delete_files`, which frees the space
+  const deletions = queue.sent.filter((j) => j.name === 'media.delete_files')
+  expect(deletions.map((j) => j.data)).toContainEqual({
+    organizationId: a.organizationId,
+    mediaId: old,
+  })
+  expect(deletions.map((j) => j.data)).not.toContainEqual(
+    expect.objectContaining({ mediaId: recent }),
+  )
+})
+
+test('a failed file tried again since the clean-up read it is not deleted (D-43)', async () => {
+  const a = await agency()
+  const id = await seed(tdb.runtimeUrl, (s) =>
+    s.media(a.organizationId, a.workspaceId, { uploadedBy: a.ownerId, status: 'processing' }),
+  )
+  // «Riprova» between the read and the deletion: processing again, just changed
+  const repo = createUnitOfWork({
+    db: handle.db,
+    ids: uuidV7Generator,
+    logger: createLogger({ service: 'worker', level: 'error' }),
+  })
+  const marked = await repo.run({ organizationId: a.organizationId, userId: null }, (tx) =>
+    tx.media.markDeleted(
+      a.organizationId,
+      a.workspaceId,
+      id,
+      new Date(),
+      new Date(Date.now() - 24 * HOUR),
+    ),
+  )
+  expect(marked).toBe(false)
+  const { rows } = await admin.query<{ status: string }>('select status from media where id = $1', [
+    id,
+  ])
+  expect(rows[0]?.status).toBe('processing')
+})

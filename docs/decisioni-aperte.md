@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 (conteggio della caption, limite della caption di Facebook, foto del post multi-foto di Facebook, ora legale, doppioni). Prima, correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 (conteggio della caption, limite della caption di Facebook, foto del post multi-foto di Facebook, ora legale, doppioni). Prima, correzioni media dopo la prova della 0.10.0 (17 novembre 2026): chiuse D-03 (le HEIC in Display P3 si convertono in sRGB), D-41 (un pezzo fermo riparte dopo 30 s e al cambio di rete; `ECONNRESET` come avviso), D-42 (avviso del file doppio con l'impronta sha256) e D-43 (i file «Non riuscito» si cancellano dopo 24 ore); aggiornata D-39 (timeout da pixel al secondo, preset più veloce, consiglio nel pannello, worker a 1,5 CPU, «Riprova»); D-44 con una proposta. Prima, ritocchi del pannello dopo la prova della 0.10.0 (17 novembre 2026): chiuse D-25 (rosso degli errori cremisi freddo, lontano da ogni accento) e D-45 (libreria a griglia o elenco con miniature regolabili, conferme che spariscono dopo 5 s, schede del cliente senza barra verticale, pagina accanto alla barra laterale, «Non riuscito» in rosso nella Panoramica). Prima, copia per le Reels dentro i limiti di Meta (17 novembre 2026): D-40 fatta, restano le verifiche con Meta vera alla tappa 7. Prima, esiti della prova della 0.10.0 sulla VPS (17 novembre 2026, esiti nelle consegne della tappa 4, punti R-n ed E-n): decise D-03 (conversione in sRGB) e D-25 (rosso più freddo); aggiornate D-27, D-29, D-30, D-34; nuove D-39…D-45. Prima, correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -20,12 +20,6 @@ Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 
 - **Il problema:** un file costruito ad arte può far superare il limite di memoria del contenitore. Il worker si riavvia; dopo 3 tentativi il file va in `processing_failed`.
 - **Legata alla revisione della tappa 4 (P2):** dalla 0.10.0 un riavvio pulito (aggiornamento, `restart`) non consuma tentativi e la conversione riparte appena il worker torna; un crash vero sì, ed è voluto, così un file che uccide il worker si ferma dopo 3 volte.
 - **Opzioni:** (a) decodifica in un processo figlio con limite di memoria; (b) lasciare così.
-- **Stato:** aperta.
-
-### D-03 · Profilo Display P3 delle HEIC
-- **Origine:** tappa 4, Task 10.
-- **Il problema:** libheif-js non espone il profilo colore: una HEIC P3 esce convertita come se fosse sRGB, con colori un po' spenti.
-- **Opzioni:** (a) cambiare decodificatore; (b) accettarlo e scriverlo come limite noto.
 - **Stato:** aperta.
 
 ### D-04 · SEI dei video HEVC
@@ -63,20 +57,23 @@ Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 
 - **Il problema:** il server del pannello è quello di Nitro, che lascia il limite di Node: una richiesta deve arrivare tutta in 300 secondi. Con pezzi da 20 MiB, sotto circa 70 KB/s in invio (0,56 Mbit/s) un pezzo non arriva mai, e il pannello lo riprova.
 - **Cosa fa oggi il pannello:** se lo stesso pezzo cade due volte di fila dopo almeno 4 minuti di invio, scrive «La rete è troppo lenta per questo file» e continua a provare.
 - **Opzioni:** (a) pezzi più piccoli, per esempio 8 MiB (cambia il protocollo dell'ADR 021, quindi serve una nuova ADR); (b) alzare il limite del server del pannello (Nitro non lo permette in modo pulito); (c) lasciare così, con l'avviso.
-- **Stato:** scelta provvisoria (c), da misurare nella prova sulla VPS (Task 14) con un invio su 4G debole.
+- **Prova della 0.10.0:** il 4G debole non è stato provato. In un passaggio Wi-Fi → 5G su tre il caricamento non è ripartito da solo e serviva «Riprendi» (R-5, D-41).
+- **Stato:** scelta provvisoria (c), da misurare su 4G debole in una prova successiva.
 
 ### D-29 · Video con un errore di decodifica
 - **Origine:** revisione finale della tappa 4 (P6).
 - **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
 - **Cosa fa ora il worker:** dopo un errore conta i fotogrammi: la copia d'anteprima deve averli tutti, come il file (contati senza decodificare). Un fotogramma oltre il limite di pixel rifiuta sempre il video, perché la copia da pubblicare prende i fotogrammi così come sono (revisione di sicurezza).
 - **Opzioni:** (a) tutti i fotogrammi, nessun margine; (b) un piccolo margine fisso (per esempio 2 fotogrammi), mai una percentuale; (c) un elenco di messaggi ammessi.
-- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14). Se un video vero viene rifiutato per pochi fotogrammi persi, (b).
+- **Prova della 0.10.0:** 6 video veri dall'iPhone (4K30, 4K60, 1440p60), nessuno rifiutato. Android non provato.
+- **Stato:** scelta provvisoria (a). Se un video vero, anche Android, viene rifiutato per pochi fotogrammi persi, (b).
 
 ### D-30 · iPhone in modalità «Più compatibile»
 - **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
 - **Il problema:** con «Formati → Più compatibile» l'iPhone salva foto JPEG e video H.264, e quando li manda può convertire una HEIC in JPEG da sé. Quello che arriva a Feedway non è allora il file della fotocamera. Nella prova va scelto «Attuale» nel selettore di iOS, e il codec va controllato nel dettaglio del file.
 - **Opzioni:** (a) scriverlo nella guida per le agenzie; (b) non fare niente, perché Feedway converte comunque.
-- **Stato:** aperta, da guardare nella prova (Task 14).
+- **Prova della 0.10.0:** con «Attuale» arriva il file della fotocamera (HEVC 4K, non ricompresso).
+- **Stato:** aperta: resta da scegliere se scriverlo nella guida per le agenzie.
 
 ## Host pubblico (`/m/*`)
 
@@ -132,7 +129,8 @@ Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 
 - **Origine:** revisione finale della tappa 4 (P13).
 - **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
 - **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
-- **Stato:** da verificare nella prova (Task 14).
+- **Prova della 0.10.0:** le foto degli account Instagram sono vere e nitide (WebP 256×256). La Pagina Facebook di prova non ha foto (salvata l'immagine predefinita).
+- **Stato:** da verificare con una Pagina Facebook vera con la sua foto.
 
 ### D-35 · Cambiare la chiave di cifratura e il segreto di Better Auth senza perdere dati
 - **Origine:** revisione retroattiva delle tappe 1–3 (A3), specifica §15, ADR 007 e 012.
@@ -159,6 +157,34 @@ Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 
 - **Opzioni:** (a) farli nella tappa 11 (sicurezza e operazioni): prenotazione atomica del tentativo con un solo `UPDATE … RETURNING`, manifest per digest con `actions/attest-build-provenance`, verifica dei tag; (b) prima, se Matteo lo chiede.
 - **Stato:** scelta provvisoria (a).
 
+## Dalla prova della 0.10.0
+
+### D-39 · Video 4K a 60 fps oltre il tempo di conversione
+- **Origine:** prova della 0.10.0 (R-1, alta).
+- **Il problema:** il timeout di ffmpeg è 2 minuti più 4 volte la durata, ma un 4K60 HEVC richiede circa 26 s di lavoro per secondo di video con `-threads 1`. IMG_0233.mov (23 s) è finito in «Non riuscito» al 46% dopo 213 s. Un 1080p richiede circa 2,5 s per secondo e rientra.
+- **Opzioni:** (a) usare tutte le CPU del contenitore per l'anteprima; (b) timeout proporzionale a pixel e fps, non solo alla durata; (c) anteprima e copia da pubblicare in un solo passaggio; (d) preset più veloce per l'anteprima; (e) nuovo tentativo automatico con impostazioni rapide; (f) nel pannello «Riprova» e il consiglio «esportalo in 1080p o a 30 fps». Si possono combinare.
+
+- **Fatto (PR delle correzioni media):** (b) timeout dell'anteprima da 2 minuti più la durata per max(4, pixel al secondo / 10 milioni), al massimo 60 minuti: per il file della prova circa 21 minuti invece di 212 s; (d) preset `superfast`; (f) il consiglio «esportalo in 1080p o a 30 fps» nel motivo del timeout e il pulsante «Riprova» nel dettaglio del file, per `timeout` e `processing_failed` (gli unici che tengono l'originale). Misurato in locale su un 4K60 HEVC a 10 bit: due core dimezzano il tempo, il preset conta meno del 5%.
+- **Decisa (a), Matteo, 17 novembre:** worker a 1,5 CPU e 2 thread per l'anteprima, per non bloccare il pannello con 2 CPU; §16.6 aggiornata. Da controllare nella prossima prova: il pannello resta fluido mentre converte un 4K.
+- **Stato:** fatta, da verificare nella prossima prova; (c) anteprima e copia in un passaggio, (e) nuovo tentativo automatico con impostazioni rapide, solo se la prossima prova mostra che non basta. Da controllare nella prova: il 4K60 di 23 s arriva a «Pronto» e il pannello resta fluido mentre converte.
+
+### D-40 · Copia per le Reels oltre i limiti di Meta
+- **Origine:** prova della 0.10.0 (R-2, alta prima della pubblicazione vera).
+- **Il problema:** la copia `reel` era un remux dell'originale: un 4K iPhone restava HEVC 3840×2160 a circa 36 Mbit/s, oltre i limiti delle Reels via API. Da Funnel, a circa 21 Mbit/s, non si guardava fluido.
+- **Limiti di Meta ricontrollati il 17 novembre 2026:** Instagram («IG User Media», Reel Specifications): MOV o MP4 senza edit list e con moov all'inizio; HEVC o H.264, progressivo, GOP chiuso, 4:2:0; 23–60 fps; al massimo 1920 colonne (pixel in orizzontale); VBR al massimo 25 Mbit/s; AAC al massimo 48 kHz, mono o stereo, 128 kbit/s; 3 s–15 min; 300 MB. Facebook («Reels Publishing API»): 1080×1920 consigliato, minimo 540×960; 24–60 fps a **frequenza fissa**; GOP chiuso di 2–5 s; 4:2:0; H.264 o H.265; AAC LC 48 kHz stereo, 128 kbit/s o più; 3–90 s.
+- **Fatto (opzione a):** il worker copia i flussi così come sono se il lato lungo è al massimo 1920, il bitrate del file al massimo 25 Mbit/s, gli fps al massimo 60 e fissi (media e dichiarati entro il 2%), i pixel in 4:2:0 a 8 o 10 bit e l'audio al massimo 48 kHz in 2 canali. Altrimenti converte: H.264 High 4.2, dentro 1080×1920 nei due versi, 10 Mbit/s con tetto a 12, GOP di 2 s, fps fissi uguali all'originale fino a 60, HDR (PQ o HLG) portato in SDR BT.709, `faststart`, senza metadati. Se fuori limite è solo l'audio, si ricodifica solo l'audio (AAC 128 kbit/s, 48 kHz stereo). Il pannello lo dice tra le correzioni fatte; sopra i 60 fps toglie l'avviso «andranno portati a 30», perché la copia da pubblicare è già a 60.
+- **(b) non serve:** l'originale del video resta nella libreria, quindi la qualità piena non si perde.
+- **Costo:** misurato nel cloud con un thread su 3 s di 4K60 HEVC 10 bit, la copia convertita costa circa 1,3 volte l'anteprima, 1,7 volte con l'HDR. Sulla VPS (circa 26 s di lavoro per secondo di 4K60 per l'anteprima) un 4K60 di 23 s richiede circa 15 minuti in più. Il timeout lo fissa D-39; anteprima e copia in un solo passaggio (D-39 c) dimezzerebbe la decodifica.
+- **Non verificato su Meta vera (tappa 7):** che Meta prenda un HDR 1080p copiato così com'è; le edit list che ffmpeg scrive nel remux (Instagram dice «no edit lists»); il GOP dei video copiati; che la soglia del 2% riconosca bene i video a frequenza variabile dell'iPhone.
+- **Stato:** fatta (a); resta aperta solo per le verifiche con Meta vera alla tappa 7.
+
+### D-44 · `avatar_url` di Meta che resta accanto alla copia
+- **Origine:** prova della 0.10.0 (R-11).
+- **Il problema:** in `social_accounts` resta `avatar_url`, il link di Meta che scade, anche dove c'è la copia `avatar_key`.
+- **Cosa si è visto (correzioni media):** il link non esce mai dal server: le API danno solo l'indirizzo della copia di Feedway (`avatarUrl` nei contratti è la copia, o null). La colonna serve alla sincronizzazione per capire se la foto è cambiata (un link nuovo, o una foto mai copiata) e al lavoro `accounts.avatar` per scaricarla.
+- **Opzioni:** (a) svuotarla dopo la copia: ogni sincronizzazione riscaricherebbe tutte le foto da Meta, perché non saprebbe più se sono cambiate; (b) sostituirla con l'impronta sha256 del link (una colonna nuova e una migrazione in due rilasci); (c) lasciarla così, è un dato interno di una foto pubblica.
+- **Proposta:** (c), oppure (b) insieme alla prossima migrazione di `social_accounts`. Non fatto niente nel codice.
+- **Stato:** aperta, aspetta Matteo.
 ## Clienti e profili
 
 ### D-15 · Profilo già in un altro cliente
@@ -192,13 +218,6 @@ Ultimo aggiornamento: piano della tappa 5 (17 novembre 2026): nuove D-46…D-50 
 - **Il problema:** il piano chiede che il cambio di colori si veda subito: la scelta dei colori si salva al clic, mentre chiaro/scuro/automatico e il fuso restano nel modulo con «Salva».
 - **Opzioni:** (a) lasciare così; (b) anche chiaro/scuro al clic, come il pulsante sole/luna del menu, e «Salva» solo per il fuso.
 - **Stato:** scelta provvisoria (a).
-
-### D-25 · Arancio e rosso di «con problema» nel tema scuro di Feedway
-- **Origine:** tappa 4, Task 13b (test «gli stati non si confondono con l'accento»).
-- **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
-- **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
-- **Stato:** aperta.
-
 ## Regole (tappa 5)
 
 Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.md`, «Scelte di questa tappa»), 17 novembre 2026.

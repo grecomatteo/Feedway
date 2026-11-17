@@ -2,6 +2,7 @@ import type { Clock } from '../ports/clock.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
 import type { Storage } from '../ports/storage.js'
+import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { UploadParts } from '../ports/uploads.js'
 
@@ -28,6 +29,8 @@ export interface UploadsCleanupReport {
   requeued: number
   /** files still `processing` long after their last change, whose worker is woken again */
   woken: number
+  /** files `failed` for a day, deleted with their bytes (D-43) */
+  failedRemoved: number
   /** logo previews never confirmed, past a day */
   logoPreviews: number
   /** agencies whose step failed: logged, and the job fails at the end to be retried */
@@ -46,8 +49,37 @@ export const ORPHAN_PARTS_MIN_AGE_MS = 60 * 60 * 1000
  */
 export const PROCESSING_STALE_MS = 15 * 60 * 1000
 
+/**
+ * A file `failed` this long is deleted, original included: a `timeout` keeps it (ADR 021, P5),
+ * and a 4K video holds hundreds of MB (D-43). A day leaves time to read why it failed.
+ */
+export const FAILED_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
 /** A logo preview (`org/<id>/logo/staging/`) not confirmed in this long is left behind. */
 export const LOGO_STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+/** The files `failed` for a day: deleted like from the panel, with a line in the audit. */
+async function removeFailed(tx: Tx, organizationId: string, now: Date): Promise<string[]> {
+  const removed: string[] = []
+  const before = new Date(now.getTime() - FAILED_MAX_AGE_MS)
+  for (const file of await tx.media.failedSince(organizationId, before)) {
+    // checked again on the row: a «Riprova» since the read keeps the file
+    if (!(await tx.media.markDeleted(organizationId, file.workspaceId, file.id, now, before)))
+      continue
+    await tx.audit.record({
+      organizationId,
+      actorId: null,
+      source: 'system',
+      action: 'media.deleted',
+      entity: 'media',
+      entityId: file.id,
+      workspaceId: file.workspaceId,
+      ip: null,
+    })
+    removed.push(file.id)
+  }
+  return removed
+}
 
 /**
  * For every agency: removes the uploads past their expiry with their pieces (their space is
@@ -72,6 +104,7 @@ export async function runMediaUploadsCleanup(
     orphans: 0,
     requeued: 0,
     woken: 0,
+    failedRemoved: 0,
     logoPreviews: 0,
     failed: 0,
   }
@@ -85,6 +118,7 @@ export async function runMediaUploadsCleanup(
           organizationId,
           new Date(now.getTime() - PROCESSING_STALE_MS),
         ),
+        failed: await removeFailed(tx, organizationId, now),
       }))
       for (const uploadId of found.expired) await deps.uploadParts.remove(organizationId, uploadId)
       report.expired += found.expired.length
@@ -96,14 +130,16 @@ export async function runMediaUploadsCleanup(
           await deps.uploadParts.remove(organizationId, folder.uploadId)
           report.orphans += 1
         }
-      for (const mediaId of found.deleted) {
+      report.failedRemoved += found.failed.length
+      // the files deleted just now: their bytes go now, not at the next hour
+      for (const mediaId of [...found.failed, ...found.deleted]) {
         // once an hour at most: a job still waiting is not doubled every run
         const id = await deps.queue.send(
           'media.delete_files',
           { organizationId, mediaId },
           { dedupeKey: `cleanup:${hour}:${mediaId}` },
         )
-        if (id !== null) report.requeued += 1
+        if (id !== null && !found.failed.includes(mediaId)) report.requeued += 1
       }
       for (const mediaId of found.stale) {
         const id = await deps.queue.send(

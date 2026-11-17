@@ -23,8 +23,8 @@
   --app-success-soft: #E3F3EA;
   --app-warning: #8A5200;
   --app-warning-soft: #FFF1D2;
-  --app-danger: #B3261E;
-  --app-danger-soft: #FCE9E7;
+  --app-danger: #B5174B;
+  --app-danger-soft: #FCE8EC;
   --app-info: #1F5AA6;
   --app-info-soft: #E7EFFA;
   --app-status-draft: #7A756D;
@@ -32,7 +32,7 @@
   --app-status-publishing: #2F57C2;
   --app-status-verifying: #1B7A9E;
   --app-status-confirmed: #17693F;
-  --app-status-problem: #B3261E;
+  --app-status-problem: #B5174B;
   --app-status-paused: #8A5200;
 }
 
@@ -59,8 +59,8 @@
   --app-success-soft: #173326;
   --app-warning: #F2B860;
   --app-warning-soft: #3A2C12;
-  --app-danger: #FF8A80;
-  --app-danger-soft: #3D1C1A;
+  --app-danger: #FF94AE;
+  --app-danger-soft: #3D1A24;
   --app-info: #8CB8F2;
   --app-info-soft: #18273B;
   --app-status-draft: #9B958B;
@@ -68,7 +68,7 @@
   --app-status-publishing: #7FA5F5;
   --app-status-verifying: #6CC4E0;
   --app-status-confirmed: #6FD39C;
-  --app-status-problem: #FF8A80;
+  --app-status-problem: #FF94AE;
   --app-status-paused: #F2B860;
 }
 
@@ -95,8 +95,8 @@
   --app-success-soft: #E3F3EA;
   --app-warning: #8A5200;
   --app-warning-soft: #FFF1D2;
-  --app-danger: #B3261E;
-  --app-danger-soft: #FCE9E7;
+  --app-danger: #B5174B;
+  --app-danger-soft: #FCE8EC;
   --app-info: #1F5AA6;
   --app-info-soft: #E7EFFA;
   --app-status-draft: #7A756D;
@@ -104,7 +104,7 @@
   --app-status-publishing: #2F57C2;
   --app-status-verifying: #1B7A9E;
   --app-status-confirmed: #17693F;
-  --app-status-problem: #B3261E;
+  --app-status-problem: #B5174B;
   --app-status-paused: #8A5200;
 }
 
@@ -131,8 +131,8 @@
   --app-success-soft: #173326;
   --app-warning: #F2B860;
   --app-warning-soft: #3A2C12;
-  --app-danger: #FF8A80;
-  --app-danger-soft: #3D1C1A;
+  --app-danger: #FF94AE;
+  --app-danger-soft: #3D1A24;
   --app-info: #8CB8F2;
   --app-info-soft: #18273B;
   --app-status-draft: #9B958B;
@@ -140,7 +140,7 @@
   --app-status-publishing: #7FA5F5;
   --app-status-verifying: #6CC4E0;
   --app-status-confirmed: #6FD39C;
-  --app-status-problem: #FF8A80;
+  --app-status-problem: #FF94AE;
   --app-status-paused: #F2B860;
 }
 
@@ -167,8 +167,8 @@
   --app-success-soft: #E3F3EA;
   --app-warning: #8A5200;
   --app-warning-soft: #FFF1D2;
-  --app-danger: #B3261E;
-  --app-danger-soft: #FCE9E7;
+  --app-danger: #B5174B;
+  --app-danger-soft: #FCE8EC;
   --app-info: #1F5AA6;
   --app-info-soft: #E7EFFA;
   --app-status-draft: #7A756D;
@@ -176,7 +176,7 @@
   --app-status-publishing: #2F57C2;
   --app-status-verifying: #1B7A9E;
   --app-status-confirmed: #17693F;
-  --app-status-problem: #B3261E;
+  --app-status-problem: #B5174B;
   --app-status-paused: #8A5200;
 }
 
@@ -203,8 +203,8 @@
   --app-success-soft: #173326;
   --app-warning: #F2B860;
   --app-warning-soft: #3A2C12;
-  --app-danger: #FF8A80;
-  --app-danger-soft: #3D1C1A;
+  --app-danger: #FF94AE;
+  --app-danger-soft: #3D1A24;
   --app-info: #8CB8F2;
   --app-info-soft: #18273B;
   --app-status-draft: #9B958B;
@@ -212,7 +212,7 @@
   --app-status-publishing: #7FA5F5;
   --app-status-verifying: #6CC4E0;
   --app-status-confirmed: #6FD39C;
-  --app-status-problem: #FF8A80;
+  --app-status-problem: #FF94AE;
   --app-status-paused: #F2B860;
 }
 
@@ -239,8 +239,8 @@
   --app-success-soft: #E3F3EA;
   --app-warning: #8A5200;
   --app-warning-soft: #FFF1D2;
-  --app-danger: #B3261E;
-  --app-danger-soft: #FCE9E7;
+  --app-danger: #B5174B;
+  --app-danger-soft: #FCE8EC;
   --app-info: #1F5AA6;
   --app-info-soft: #E7EFFA;
   --app-status-draft: #7A756D;
@@ -248,7 +248,7 @@
   --app-status-publishing: #2F57C2;
   --app-status-verifying: #1B7A9E;
   --app-status-confirmed: #17693F;
-  --app-status-problem: #B3261E;
+  --app-status-problem: #B5174B;
   --app-status-paused: #8A5200;
 }
 
@@ -275,8 +275,8 @@
   --app-success-soft: #173326;
   --app-warning: #F2B860;
   --app-warning-soft: #3A2C12;
-  --app-danger: #FF8A80;
-  --app-danger-soft: #3D1C1A;
+  --app-danger: #FF94AE;
+  --app-danger-soft: #3D1A24;
   --app-info: #8CB8F2;
   --app-info-soft: #18273B;
   --app-status-draft: #9B958B;
@@ -284,7 +284,7 @@
   --app-status-publishing: #7FA5F5;
   --app-status-verifying: #6CC4E0;
   --app-status-confirmed: #6FD39C;
-  --app-status-problem: #FF8A80;
+  --app-status-problem: #FF94AE;
   --app-status-paused: #F2B860;
 }
 
@@ -311,8 +311,8 @@
   --app-success-soft: #E3F3EA;
   --app-warning: #8A5200;
   --app-warning-soft: #FFF1D2;
-  --app-danger: #B3261E;
-  --app-danger-soft: #FCE9E7;
+  --app-danger: #B5174B;
+  --app-danger-soft: #FCE8EC;
   --app-info: #1F5AA6;
   --app-info-soft: #E7EFFA;
   --app-status-draft: #7A756D;
@@ -320,7 +320,7 @@
   --app-status-publishing: #2F57C2;
   --app-status-verifying: #1B7A9E;
   --app-status-confirmed: #17693F;
-  --app-status-problem: #B3261E;
+  --app-status-problem: #B5174B;
   --app-status-paused: #8A5200;
 }
 
@@ -347,8 +347,8 @@
   --app-success-soft: #173326;
   --app-warning: #F2B860;
   --app-warning-soft: #3A2C12;
-  --app-danger: #FF8A80;
-  --app-danger-soft: #3D1C1A;
+  --app-danger: #FF94AE;
+  --app-danger-soft: #3D1A24;
   --app-info: #8CB8F2;
   --app-info-soft: #18273B;
   --app-status-draft: #9B958B;
@@ -356,6 +356,6 @@
   --app-status-publishing: #7FA5F5;
   --app-status-verifying: #6CC4E0;
   --app-status-confirmed: #6FD39C;
-  --app-status-problem: #FF8A80;
+  --app-status-problem: #FF94AE;
   --app-status-paused: #F2B860;
 }

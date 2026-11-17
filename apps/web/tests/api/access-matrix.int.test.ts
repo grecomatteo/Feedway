@@ -242,6 +242,10 @@ const RULES: Record<string, readonly Rule[]> = {
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
+  // «Riprova»: the case's file is a `failed` one with its original (PREPARE)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/retry': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
   // the library's folders (plan 04 Task 12): as the files
   'GET /api/v1/orgs/{org}/workspaces/{id}/folders': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
@@ -315,6 +319,16 @@ async function accountPicture(accountId: string, workspaceId: string): Promise<v
   )
 }
 
+/** A file of the case's workspace that failed for its time, with its original: one to retry. */
+async function failedMedia(ids: SampleIds): Promise<string> {
+  const { rowCount } = await fx.env.admin.pool.query(
+    `update media set status = 'failed', failure = '{"code":"timeout"}' where id = $1`,
+    [ids.media],
+  )
+  if (rowCount !== 1) throw new Error('the case has no file')
+  return ids.media
+}
+
 /**
  * Routes whose success needs something there first: the logo's preview, or the logo itself.
  * They run for every role, so a refusal is measured on the same request as the success.
@@ -361,6 +375,9 @@ const PREPARE: Record<
     ownUpload(ids, cookie, { withPiece: true }),
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': (ids, cookie) =>
     ownUpload(ids, cookie),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/retry': async (ids) => ({
+    values: { mediaId: await failedMedia(ids) },
+  }),
   'GET /api/v1/orgs/{org}/logo/staging/{stagingId}': async (ids) => ({
     values: { stagingId: await logoPreview(ids.org) },
   }),
@@ -568,6 +585,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'account.assigned': [],
   'account.unassigned': [],
   'media.deleted': [],
+  'media.retried': [],
 }
 
 /**

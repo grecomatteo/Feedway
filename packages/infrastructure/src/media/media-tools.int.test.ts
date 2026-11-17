@@ -140,7 +140,12 @@ describe('analysis', () => {
     expect(await probe.analyze(dressed, {})).toEqual({ ok: false, reason: 'unreadable' })
     const out = join(dir, 'dressed-preview.mp4')
     expect(
-      await transformer.videoPreview(dressed, out, { width: 320, height: 240, durationMs: 1000 }),
+      await transformer.videoPreview(dressed, out, {
+        width: 320,
+        height: 240,
+        durationMs: 1000,
+        fps: 25,
+      }),
     ).toEqual({ ok: false, reason: 'unreadable' })
     expect(hits).toBe(0)
   })
@@ -190,6 +195,33 @@ describe('photos', () => {
     expect(Math.abs((pixel[0] ?? 0) - 200)).toBeLessThanOrEqual(4)
     expect(Math.abs((pixel[1] ?? 0) - 80)).toBeLessThanOrEqual(4)
     expect(Math.abs((pixel[2] ?? 0) - 60)).toBeLessThanOrEqual(4)
+  })
+
+  test('a HEIC in Display P3 becomes sRGB, the master too (D-03)', async () => {
+    // an iPhone photo: P3 values for sRGB 200/80/60, with the profile in the container
+    const path = await file('p3.heic', await imageFixture('photo-p3.heic'))
+    for (const make of ['photo', 'master'] as const) {
+      const out = join(dir, `p3-heic-${make}.jpg`)
+      const made =
+        make === 'photo'
+          ? await transformer.photo(path, out, {
+              format: 'heic',
+              maxWidth: 1440,
+              maxBytes: 8_000_000,
+              maxPixels: 50_000_000,
+            })
+          : await transformer.master(path, out, {
+              format: 'heic',
+              maxSide: 4096,
+              maxPixels: 50_000_000,
+            })
+      expect(made.ok).toBe(true)
+      expect((await sharp(out).metadata()).icc).toBeUndefined()
+      const pixel = await sharp(out).raw().toBuffer()
+      expect(Math.abs((pixel[0] ?? 0) - 200)).toBeLessThanOrEqual(5)
+      expect(Math.abs((pixel[1] ?? 0) - 80)).toBeLessThanOrEqual(5)
+      expect(Math.abs((pixel[2] ?? 0) - 60)).toBeLessThanOrEqual(5)
+    }
   })
 
   test('a JPEG turned by its EXIF stays turned once the EXIF is gone', async () => {
@@ -263,6 +295,7 @@ describe('videos', () => {
       width: 320,
       height: 240,
       durationMs: 1000,
+      fps: 25,
       onProgress: (f) => fractions.push(f),
     })
     expect(made).toMatchObject({ ok: true, file: { mime: 'video/mp4', width: 320, height: 240 } })
@@ -277,47 +310,102 @@ describe('videos', () => {
     expect(fractions.length).toBeGreaterThan(0)
   })
 
-  test('an MP4 without faststart is remuxed without encoding again, and loses its place', async () => {
-    const path = makeVideo(dir, 'h264-moov-end.mp4')
-    expect(probeFile(path).format.tags?.location).toBeDefined()
-    const out = join(dir, 'reel.mp4')
-    const made = await transformer.videoRemux(path, out, {
-      videoCodec: 'h264',
-      durationMs: 2000,
-      width: 320,
-      height: 240,
+  /** The reel of a fixture, with what the analysis says of it. */
+  async function reelOf(name: Parameters<typeof makeVideo>[1], out: string) {
+    const path = makeVideo(dir, name)
+    const probed = await probe.analyze(path, {})
+    if (!probed.ok || probed.analysis.kind !== 'video') throw new Error(`${name} not a video`)
+    const { analysis } = probed
+    const fractions: number[] = []
+    const made = await transformer.videoReel(path, join(dir, out), {
+      videoCodec: analysis.videoCodec,
+      durationMs: analysis.durationMs,
+      sizeBytes: analysis.sizeBytes,
+      width: analysis.width,
+      height: analysis.height,
+      fps: analysis.fps,
+      onProgress: (f) => fractions.push(f),
     })
-    expect(made.ok).toBe(true)
+    return { path, out: join(dir, out), made, fractions }
+  }
+
+  test('an MP4 without faststart is remuxed without encoding again, and loses its place', async () => {
+    expect(probeFile(makeVideo(dir, 'h264-moov-end.mp4')).format.tags?.location).toBeDefined()
+    const { path, out, made } = await reelOf('h264-moov-end.mp4', 'reel.mp4')
+    expect(made).toMatchObject({
+      ok: true,
+      file: { width: 320, height: 240 },
+      plan: { video: { mode: 'copy' }, audio: 'copy', reasons: [] },
+    })
     expect(await moovBeforeMdat(out)).toBe(true)
     const before = probeFile(path)
     const after = probeFile(out)
     expect(after.streams.map((s) => s.codec_name)).toEqual(before.streams.map((s) => s.codec_name))
     expect(after.format.tags?.location).toBeUndefined()
-    // the same encoded frames: a copy, not an encoding
     // the same pictures, frame by frame: a copy, not an encoding
     expect(frameHashes(out)).toEqual(frameHashes(path))
   })
 
   test('an HEVC remux keeps the hvc1 tag Apple and Meta read', async () => {
-    const path = makeVideo(dir, 'hevc.mov')
-    const out = join(dir, 'reel-hevc.mp4')
-    expect(
-      (
-        await transformer.videoRemux(path, out, {
-          videoCodec: 'hevc',
-          durationMs: 1000,
-          width: 320,
-          height: 240,
-        })
-      ).ok,
-    ).toBe(true)
+    const { out, made } = await reelOf('hevc.mov', 'reel-hevc.mp4')
+    expect(made).toMatchObject({ ok: true, plan: { video: { mode: 'copy' } } })
     expect(ffprobeField(out, 'stream=codec_tag_string')).toEqual(['hvc1'])
+  })
+
+  test('a 4K video becomes 1080×1920 H.264 High inside the limits of Reels (D-40)', async () => {
+    const { out, made, fractions } = await reelOf('4k-portrait.mp4', 'reel-4k.mp4')
+    expect(made).toMatchObject({
+      ok: true,
+      file: { mime: 'video/mp4', width: 1080, height: 1920 },
+      plan: { video: { mode: 'encode', width: 1080, height: 1920, fps: 30 }, audio: 'copy' },
+    })
+    expect(ffprobeField(out, 'stream=codec_name,profile,width,height,pix_fmt')).toEqual([
+      'h264,High,1080,1920,yuv420p',
+    ])
+    expect(ffprobeField(out, 'stream=r_frame_rate,avg_frame_rate')).toEqual(['30/1,30/1'])
+    expect(audioField(out, 'stream=codec_name,sample_rate')).toEqual(['aac,48000'])
+    expect(await moovBeforeMdat(out)).toBe(true)
+    expect(fractions.length).toBeGreaterThan(0)
+  })
+
+  test('an HDR video converted for Reels comes out SDR, so its colours are not washed out', async () => {
+    const { out, made } = await reelOf('hdr-hlg.mov', 'reel-hdr.mp4')
+    expect(made).toMatchObject({ ok: true, plan: { video: { mode: 'encode', toneMap: true } } })
+    expect(ffprobeField(out, 'stream=codec_name,pix_fmt,color_transfer,color_primaries')).toEqual([
+      'h264,yuv420p,bt709,bt709',
+    ])
+  })
+
+  test('sound at 96 kHz in 6 channels is encoded again, the pictures are copied', async () => {
+    const { path, out, made } = await reelOf('audio-96k.mp4', 'reel-96k.mp4')
+    expect(made).toMatchObject({
+      ok: true,
+      plan: { video: { mode: 'copy' }, audio: 'encode', reasons: ['audio'] },
+    })
+    expect(audioField(out, 'stream=codec_name,sample_rate,channels')).toEqual(['aac,48000,2'])
+    expect(frameHashes(out)).toEqual(frameHashes(path))
+  })
+
+  test('a frame rate that is not fixed is made fixed, as Facebook asks', async () => {
+    const { out, made } = await reelOf('vfr.mp4', 'reel-vfr.mp4')
+    expect(made).toMatchObject({
+      ok: true,
+      plan: { video: { mode: 'encode' }, reasons: ['frame_rate'] },
+    })
+    const [rates] = ffprobeField(out, 'stream=r_frame_rate,avg_frame_rate')
+    const [r, avg] = (rates ?? '').split(',')
+    expect(r).toBe(avg)
   })
 
   test('a frame of the preview becomes the thumbnail', async () => {
     const path = makeVideo(dir, 'hevc.mov')
     const preview = join(dir, 'frame-preview.mp4')
-    await transformer.videoPreview(path, preview, { width: 320, height: 240, durationMs: 1000 })
+    await transformer.videoPreview(path, preview, {
+      width: 320,
+      height: 240,
+      durationMs: 1000,
+      fps: 25,
+    })
     const out = join(dir, 'frame.jpg')
     const made = await transformer.videoFrame(preview, out, { atMs: 500, width: 240, height: 180 })
     expect(made).toMatchObject({ ok: true, file: { mime: 'image/jpeg', width: 240, height: 180 } })
@@ -330,6 +418,17 @@ function ffprobeField(path: string, entries: string): string[] {
   return execFileSync(
     'ffprobe',
     ['-v', 'error', '-select_streams', 'v:0', '-show_entries', entries, '-of', 'csv=p=0', path],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')
+}
+
+/** One field of the sound stream, per line of ffprobe's output. */
+function audioField(path: string, entries: string): string[] {
+  return execFileSync(
+    'ffprobe',
+    ['-v', 'error', '-select_streams', 'a:0', '-show_entries', entries, '-of', 'csv=p=0', path],
     { encoding: 'utf8' },
   )
     .trim()
@@ -358,6 +457,7 @@ test('frames larger than the header said are refused by the decoder', async () =
       width: 320,
       height: 240,
       durationMs: 2000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -370,6 +470,7 @@ test('frames over the limit are refused even when a sound track keeps the full l
       width: 320,
       height: 240,
       durationMs: 2000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -382,6 +483,7 @@ test('frames over the limit in the middle are refused', async () => {
       width: 320,
       height: 240,
       durationMs: 3000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -398,6 +500,7 @@ test('one frame over the limit among a hundred is refused: no share of them is a
       width: 320,
       height: 240,
       durationMs: 10_100,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -411,6 +514,7 @@ test('a video with a glitch the decoder hides is kept: every frame is still ther
     width: 320,
     height: 240,
     durationMs: 4000,
+    fps: 25,
   })
   expect(preview).toMatchObject({ ok: true })
   expect(Number(probeFile(join(dir, 'damaged-preview.mp4')).format.duration)).toBeCloseTo(4, 0)

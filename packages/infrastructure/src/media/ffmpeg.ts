@@ -1,13 +1,24 @@
 import { stat } from 'node:fs/promises'
 import type { MadeFile, ToolResult } from '@app/application'
-import { PROBE_TIMEOUT_MS, ffmpegTimeoutMs, previewSize, type FileAnalysis } from '@app/domain'
+import {
+  PROBE_TIMEOUT_MS,
+  REEL_ENCODE,
+  ffmpegTimeoutMs,
+  previewSize,
+  reelPlan,
+  videoWorkTimeoutMs,
+  type FileAnalysis,
+  type ReelPlan,
+  type ReelSource,
+} from '@app/domain'
 import { moovBeforeMdat } from './mp4-boxes.js'
 import { runTool, type ToolRun } from './run-tool.js'
 
 // ffprobe and ffmpeg, armoured (plan 04, «ffmpeg blindato»): the container is already confirmed
 // from the bytes (`ftyp`), the demuxer is forced to mov/mp4 and only the `file` protocol is
-// allowed, so a playlist dressed as `.mp4` reads neither local files nor the network. One
-// thread, low priority, a timeout in proportion to the duration (ADR 021).
+// allowed, so a playlist dressed as `.mp4` reads neither local files nor the network. Low
+// priority and a timeout (ADR 021). The decoding commands take `threads` (two, with the
+// worker's 1.5 CPU: spec §16.6, D-39); the headers and the remux keep one.
 
 export interface FfmpegCommands {
   ffmpeg: string
@@ -21,19 +32,21 @@ type VideoAnalysis = Extract<FileAnalysis, { kind: 'video' }>
  * decoder's own pixel limit: the header checked by §9.2 is only the first one, and a stream may
  * switch to far larger frames later (security review of Task 10).
  */
-const inputWith = (maxPixels: number | null) => (path: string) => [
-  '-protocol_whitelist',
-  'file',
-  '-f',
-  'mov',
-  '-enable_drefs',
-  '0',
-  '-threads',
-  '1',
-  ...(maxPixels === null ? [] : ['-max_pixels', String(maxPixels)]),
-  '-i',
-  `file:${path}`,
-]
+const inputWith =
+  (maxPixels: number | null, threads = 1) =>
+  (path: string) => [
+    '-protocol_whitelist',
+    'file',
+    '-f',
+    'mov',
+    '-enable_drefs',
+    '0',
+    '-threads',
+    String(threads),
+    ...(maxPixels === null ? [] : ['-max_pixels', String(maxPixels)]),
+    '-i',
+    `file:${path}`,
+  ]
 
 /**
  * The decoder's refusal of a frame over `-max_pixels` (libavutil `av_image_check_size2`): such a
@@ -41,7 +54,15 @@ const inputWith = (maxPixels: number | null) => (path: string) => [
  * frames as they are.
  */
 const OVER_MAX_PIXELS = /exceeds specified max pixel count/
-const GLOBAL = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1']
+const global = (threads = 1) => [
+  '-nostdin',
+  '-hide_banner',
+  '-loglevel',
+  'error',
+  '-filter_threads',
+  String(threads),
+]
+const GLOBAL = global()
 
 interface ProbeStream {
   codec_type?: string
@@ -53,6 +74,29 @@ interface ProbeStream {
   tags?: { rotate?: string }
   side_data_list?: { rotation?: number }[]
 }
+
+interface ReelProbeOutput {
+  streams?: (ProbeStream & {
+    pix_fmt?: string
+    color_transfer?: string
+    sample_rate?: string
+    channels?: number
+  })[]
+}
+
+/** PQ and HLG: the transfers of HDR video. */
+const HDR_TRANSFERS = new Set(['smpte2084', 'arib-std-b67'])
+/** Average and declared frame rate this close: a fixed frame rate, as phones film it. */
+const CONSTANT_RATE_TOLERANCE = 0.02
+
+/** HDR to SDR in BT.709, after the scaling so it works on the small picture. */
+const TONE_MAP = [
+  'zscale=t=linear:npl=100',
+  'format=gbrpf32le',
+  'zscale=p=bt709',
+  'tonemap=tonemap=hable:desat=0',
+  'zscale=t=bt709:m=bt709:r=tv',
+]
 
 interface CountOutput {
   streams?: { nb_read_packets?: string }[]
@@ -82,8 +126,14 @@ function quarterTurned(stream: ProbeStream): boolean {
 const refusal = (run: ToolRun) =>
   ({ ok: false, reason: run.outcome === 'exited' ? 'unreadable' : run.outcome }) as const
 
-export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels: number }) {
+export function createFfmpeg(
+  commands: FfmpegCommands,
+  limits: { maxVideoPixels: number; threads: number },
+) {
   const input = inputWith(limits.maxVideoPixels)
+  // the decoding commands: the preview decodes every frame of the original
+  const decodeInput = inputWith(limits.maxVideoPixels, limits.threads)
+  const threads = String(limits.threads)
   // ffprobe opens the decoder too: with the limit it would refuse what §9.2 must name
   const header = inputWith(null)
   /** Header only: nothing is decoded, so an enormous duration or size costs nothing. */
@@ -175,6 +225,53 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
     }
   }
 
+  /** What `reelPlan` reads of the video: the stream header only, nothing decoded. */
+  async function reelSource(
+    path: string,
+    opts: {
+      width: number
+      height: number
+      durationMs: number
+      sizeBytes: number
+      fps: number
+      signal?: AbortSignal | undefined
+    },
+  ): Promise<ToolResult<{ source: ReelSource }>> {
+    const run = await runTool(
+      commands.ffprobe,
+      ['-hide_banner', '-loglevel', 'error', ...header(path), '-show_streams', '-of', 'json'],
+      { timeoutMs: PROBE_TIMEOUT_MS, signal: opts.signal },
+    )
+    if (run.outcome !== 'exited' || run.code !== 0) return refusal(run)
+    let out: ReelProbeOutput
+    try {
+      out = JSON.parse(run.stdout) as ReelProbeOutput
+    } catch {
+      return { ok: false, reason: 'unreadable' }
+    }
+    const video = out.streams?.find((s) => s.codec_type === 'video')
+    const audio = out.streams?.find((s) => s.codec_type === 'audio')
+    if (!video?.pix_fmt) return { ok: false, reason: 'unreadable' }
+    const declared = rate(video.r_frame_rate)
+    return {
+      ok: true,
+      source: {
+        width: opts.width,
+        height: opts.height,
+        durationMs: opts.durationMs,
+        sizeBytes: opts.sizeBytes,
+        fps: opts.fps,
+        constantFrameRate:
+          declared === null || Math.abs(declared - opts.fps) / declared <= CONSTANT_RATE_TOLERANCE,
+        pixelFormat: video.pix_fmt,
+        hdr: HDR_TRANSFERS.has(video.color_transfer ?? ''),
+        audio: audio
+          ? { sampleRate: Number(audio.sample_rate) || 0, channels: audio.channels ?? 0 }
+          : null,
+      },
+    }
+  }
+
   async function made(
     run: ToolRun,
     output: string,
@@ -199,6 +296,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
         width: number
         height: number
         durationMs: number
+        fps: number
         signal?: AbortSignal | undefined
         onProgress?: ((fraction: number) => void) | undefined
       },
@@ -209,8 +307,8 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
       const run = await runTool(
         commands.ffmpeg,
         [
-          ...GLOBAL,
-          ...input(path),
+          ...global(limits.threads),
+          ...decodeInput(path),
           '-map',
           '0:v:0',
           '-map',
@@ -223,8 +321,10 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           `scale=${String(size.width)}:${String(size.height)},format=yuv420p`,
           '-c:v',
           'libx264',
+          // the encoding at 720p costs little next to the decoding: the fastest preset that keeps
+          // B-frames and CABAC
           '-preset',
-          'veryfast',
+          'superfast',
           '-crf',
           '26',
           '-profile:v',
@@ -236,7 +336,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           '-ac',
           '2',
           '-threads',
-          '1',
+          threads,
           '-movflags',
           '+faststart',
           '-progress',
@@ -248,7 +348,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           `file:${output}`,
         ],
         {
-          timeoutMs: ffmpegTimeoutMs(opts.durationMs),
+          timeoutMs: videoWorkTimeoutMs(opts),
           signal: opts.signal,
           watchStderr: OVER_MAX_PIXELS,
           onLine: (line) => {
@@ -273,8 +373,12 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
       return made(run, output, { mime: 'video/mp4', ...size })
     },
 
-    /** The same streams in MP4 with `faststart`, no metadata: no encoding (§16.6). */
-    async remux(
+    /**
+     * The video to publish as a reel (D-40): the same streams in MP4 with `faststart`, no
+     * metadata, when Meta takes them (§16.6, no encoding); otherwise H.264 High inside 1080×1920
+     * and 12 Mbit/s, at a fixed frame rate up to 60, and AAC at 48 kHz in stereo.
+     */
+    async reel(
       path: string,
       output: string,
       opts: {
@@ -282,20 +386,80 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
         width: number
         height: number
         durationMs: number
+        sizeBytes: number
+        fps: number
         signal?: AbortSignal | undefined
+        onProgress?: ((fraction: number) => void) | undefined
       },
-    ) {
+    ): Promise<ToolResult<{ file: MadeFile; plan: ReelPlan }>> {
+      const source = await reelSource(path, opts)
+      if (!source.ok) return source
+      const plan = reelPlan(source.source)
+      const video = plan.video
+      const videoArgs =
+        video.mode === 'copy'
+          ? [
+              '-c:v',
+              'copy',
+              // H.264 SEI messages may carry a place or a time (drones, action cameras); HEVC's
+              // keep the HDR information, so they stay (not verified on real cameras)
+              ...(opts.videoCodec === 'h264' ? ['-bsf:v', 'filter_units=remove_types=6'] : []),
+              ...(opts.videoCodec === 'hevc' ? ['-tag:v', 'hvc1'] : []),
+            ]
+          : [
+              '-vf',
+              [
+                `fps=${String(video.fps)}`,
+                `scale=${String(video.width)}:${String(video.height)}`,
+                ...(video.toneMap ? TONE_MAP : []),
+                'format=yuv420p',
+              ].join(','),
+              '-c:v',
+              'libx264',
+              '-preset',
+              'veryfast',
+              '-profile:v',
+              'high',
+              '-level:v',
+              '4.2',
+              '-b:v',
+              String(REEL_ENCODE.videoBitrate),
+              '-maxrate',
+              String(REEL_ENCODE.maxBitrate),
+              '-bufsize',
+              String(2 * REEL_ENCODE.maxBitrate),
+              '-g',
+              String(Math.max(1, Math.round(video.fps * REEL_ENCODE.gopSeconds))),
+              ...(video.toneMap
+                ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
+                : []),
+              '-threads',
+              threads,
+            ]
+      const audioArgs =
+        plan.audio === 'encode'
+          ? [
+              '-c:a',
+              'aac',
+              '-b:a',
+              String(REEL_ENCODE.audioBitrate),
+              '-ar',
+              String(REEL_ENCODE.sampleRate),
+              '-ac',
+              '2',
+            ]
+          : ['-c:a', 'copy']
+      const encoding = video.mode === 'encode' || plan.audio === 'encode'
       const run = await runTool(
         commands.ffmpeg,
         [
-          ...GLOBAL,
-          ...input(path),
+          // a video encoded again is decoded whole, as for the preview (D-39)
+          ...(video.mode === 'encode' ? global(limits.threads) : GLOBAL),
+          ...(video.mode === 'encode' ? decodeInput(path) : input(path)),
           '-map',
           '0:v:0',
           '-map',
           '0:a:0?',
-          '-c',
-          'copy',
           // the place, the device and the dates go; the turn of the picture stays
           '-map_metadata',
           '-1',
@@ -305,20 +469,33 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           '-1',
           '-map_chapters',
           '-1',
-          // H.264 SEI messages may carry a place or a time (drones, action cameras); HEVC's keep
-          // the HDR information, so they stay (not verified on real cameras)
-          ...(opts.videoCodec === 'h264' ? ['-bsf:v', 'filter_units=remove_types=6'] : []),
-          ...(opts.videoCodec === 'hevc' ? ['-tag:v', 'hvc1'] : []),
+          ...videoArgs,
+          ...audioArgs,
           '-movflags',
           '+faststart',
+          ...(encoding ? ['-progress', 'pipe:1', '-nostats'] : []),
           '-f',
           'mp4',
           '-y',
           `file:${output}`,
         ],
-        { timeoutMs: ffmpegTimeoutMs(opts.durationMs), signal: opts.signal },
+        {
+          timeoutMs:
+            video.mode === 'encode' ? videoWorkTimeoutMs(opts) : ffmpegTimeoutMs(opts.durationMs),
+          signal: opts.signal,
+          onLine: (line) => {
+            const match = /^out_time_us=(\d+)$/.exec(line)
+            if (match?.[1] && opts.onProgress && opts.durationMs > 0)
+              opts.onProgress(Math.min(1, Number(match[1]) / 1000 / opts.durationMs))
+          },
+        },
       )
-      return made(run, output, { mime: 'video/mp4', width: opts.width, height: opts.height })
+      const size =
+        video.mode === 'copy'
+          ? { width: opts.width, height: opts.height }
+          : { width: video.width, height: video.height }
+      const file = await made(run, output, { mime: 'video/mp4', ...size })
+      return file.ok ? { ...file, plan } : file
     },
 
     /** One frame as a JPEG, from a video ffmpeg made. */

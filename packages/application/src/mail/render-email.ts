@@ -36,7 +36,7 @@ const C = {
   info: '#E7EFFA',
   infoLine: '#1F5AA6',
   primary: '#FF762E',
-  danger: '#B3261E',
+  danger: '#B5174B',
   onDanger: '#FFFFFF',
 }
 const BODY_FONT =

@@ -54,11 +54,20 @@ export function transparentLogoPng(width = 600, height = 200): Promise<Buffer> {
 }
 
 export type ImageFixture =
-  'photo.jpg' | 'photo.png' | 'photo.webp' | 'photo.heic' | 'anim.gif' | 'image.svg' | 'doc.pdf'
+  | 'photo.jpg'
+  | 'photo.png'
+  | 'photo.webp'
+  | 'photo.heic'
+  | 'photo-p3.heic'
+  | 'anim.gif'
+  | 'image.svg'
+  | 'doc.pdf'
 
 /**
  * Test images. The HEIC (made for the tests from a drawing, with a fake GPS position in its
- * EXIF), the GIF, the SVG and the PDF are files; the others are drawn here.
+ * EXIF), the HEIC in Display P3 (64×48 of one colour, P3 186/88/67 for sRGB 200/80/60, with the
+ * profile in the container: pillow-heif, D-03), the GIF, the SVG and the PDF are files; the
+ * others are drawn here.
  */
 export async function imageFixture(name: ImageFixture): Promise<Buffer> {
   switch (name) {

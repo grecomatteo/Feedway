@@ -240,6 +240,23 @@ export function failureForLog(error: unknown): { type: string; code?: string; fr
   return { type: innermost.name, ...(code !== undefined && { code }), frames }
 }
 
+const CLIENT_GONE = new Set(['ECONNRESET', 'ECONNABORTED', 'EPIPE', 'ERR_STREAM_PREMATURE_CLOSE'])
+
+/**
+ * The client went away while its request was read or answered (a phone losing the network
+ * during a piece): a warning, not an unexpected failure (D-41). The request must be closed too:
+ * a database or storage socket fails with the same codes while the client is still there.
+ */
+export function isClientGone(error: unknown, requestClosed: boolean): boolean {
+  if (!requestClosed) return false
+  for (let e: unknown = error, depth = 0; e instanceof Error && depth < 10; depth++) {
+    const code = (e as { code?: unknown }).code
+    if (typeof code === 'string' && CLIENT_GONE.has(code)) return true
+    e = e.cause
+  }
+  return false
+}
+
 /**
  * The log entry of an unexpected failure. The path is scrubbed here, not only by the logger,
  * because before startup finishes the entry goes to the console.

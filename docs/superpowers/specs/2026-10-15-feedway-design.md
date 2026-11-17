@@ -1421,11 +1421,11 @@ Il vincolo vero sono i 2 core condivisi: Feedway non deve mai occuparli entrambi
 |---|---|---|
 | postgres (`shared_buffers` 256 MB) | 1 GB | 0,5 |
 | web | 1,5 GB (foto profilo e logo HEIC decodificati qui, ADR 021) | 0,5 |
-| worker (con ffmpeg) | 2 GB | 1,0 |
+| worker (con ffmpeg) | 2 GB | 1,5 (D-39) |
 | backup | 256 MB | 0,25 |
 | **Totale** | **circa 5 GB** (a riposo 600–800 MB) | |
 
-Conversioni video: una alla volta, `nice`, ffmpeg su un thread; prima la strada senza ricodifica (`faststart`, cambio contenitore), ricodifica solo se serve, con preset veloce; sempre subito dopo l'upload, mai all'orario di pubblicazione. Stima da verificare: qualche minuto per un reel di 60 s in 1080p.
+Conversioni video: una alla volta, `nice`, ffmpeg su due thread per l'anteprima (un core e mezzo al worker: con uno solo un 4K a 60 fps richiedeva circa 26 s per secondo di video; decisione di Matteo dopo la prova della 0.10.0, D-39; la priorità bassa lascia la precedenza a pannello e database); prima la strada senza ricodifica (`faststart`, cambio contenitore), ricodifica solo se serve, con preset veloce; sempre subito dopo l'upload, mai all'orario di pubblicazione. Stima da verificare: qualche minuto per un reel di 60 s in 1080p.
 
 ### 16.7 Monitoraggio
 

@@ -207,3 +207,65 @@ test('a deleted file leaves the library at once, and its copies are queued for r
   )
   expect(jobs.rows.map((j) => j.data)).toContainEqual({ organizationId: org.id, mediaId: id })
 })
+
+/** A file of the workspace `failed` with this reason; `keepsOriginal`: its original stored. */
+async function failedFile(workspaceId: string, code: string, keepsOriginal: boolean) {
+  const id = await seed(env.tdb.runtimeUrl, (s) =>
+    s.media(org.id, workspaceId, {
+      uploadedBy: editor.userId,
+      status: 'processing',
+      ...(keepsOriginal ? {} : { storageKey: null }),
+    }),
+  )
+  await env.admin.pool.query(
+    `update media set status = 'failed', failure = $2, processing_attempts = 3 where id = $1`,
+    [id, JSON.stringify({ code })],
+  )
+  return id
+}
+
+test('«Riprova» prepares again a file that failed with its original kept (D-39)', async () => {
+  const id = await failedFile(w1, 'timeout', true)
+  const r = await env.call('POST', `${base(w1)}/${id}/retry`, undefined, {
+    cookie: cookies.editor,
+  })
+  expect(r.status, await r.clone().text()).toBe(200)
+  expect(await r.json()).toMatchObject({ id, status: 'processing', failure: null })
+  const { rows } = await env.admin.pool.query<{ processing_attempts: number }>(
+    'select processing_attempts from media where id = $1',
+    [id],
+  )
+  // the attempts start again: the cap is for runs that never end
+  expect(rows[0]?.processing_attempts).toBe(0)
+  const jobs = await env.admin.pool.query<{ data: unknown }>(
+    `select data from pgboss.job where name = 'media.process'`,
+  )
+  expect(jobs.rows.map((j) => j.data)).toContainEqual({ organizationId: org.id, mediaId: id })
+  // once: it is no longer failed
+  const again = await env.call('POST', `${base(w1)}/${id}/retry`, undefined, {
+    cookie: cookies.editor,
+  })
+  expect(again.status).toBe(409)
+})
+
+test('a file refused for good, or not failed, cannot be tried again', async () => {
+  const unreadable = await failedFile(w1, 'unreadable', false)
+  const ready = await video(w1)
+  for (const id of [unreadable, ready]) {
+    const r = await env.call('POST', `${base(w1)}/${id}/retry`, undefined, {
+      cookie: cookies.editor,
+    })
+    expect(r.status, id).toBe(409)
+  }
+  // through another workspace, or for a Viewer: not there
+  const inW2 = await failedFile(w2, 'timeout', true)
+  expect(
+    (await env.call('POST', `${base(w1)}/${inW2}/retry`, undefined, { cookie: cookies.editor }))
+      .status,
+  ).toBe(404)
+  const own = await failedFile(w1, 'timeout', true)
+  expect(
+    (await env.call('POST', `${base(w1)}/${own}/retry`, undefined, { cookie: cookies.viewer }))
+      .status,
+  ).toBe(404)
+})

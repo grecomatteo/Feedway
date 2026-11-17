@@ -383,6 +383,9 @@ export async function receiveUploadPart(
 /** How long a completion keeps the upload for itself: enough to join 300 MB to the storage. */
 export const UPLOAD_COMPLETION_HOLD_MS = 30 * 60 * 1000
 
+/** The file made, and one with the same content already in the library (D-42). */
+export type CompletedUpload = MediaDto & { duplicateOf: { id: string; name: string } | null }
+
 /**
  * Joins the pieces into one stream to the storage, with the sha256 of the whole file, and makes
  * the file: `processing` in the library, with a wake-up for the worker (`media.process`). A
@@ -394,12 +397,19 @@ export async function completeUpload(
   deps: UploadDeps,
   actor: OrgActor,
   input: { workspaceId: string; uploadId: string },
-): Promise<MediaDto> {
+): Promise<CompletedUpload> {
   await limitUploads(deps, actor)
   const { organizationId } = actor
   const scope = { organizationId, userId: actor.userId }
-  const media = (mediaId: string) =>
-    getMedia(deps, actor, { workspaceId: input.workspaceId, mediaId })
+  const media = async (mediaId: string): Promise<CompletedUpload> => {
+    const made = await getMedia(deps, actor, { workspaceId: input.workspaceId, mediaId })
+    const same = await deps.uow.run(scope, async (tx) => {
+      const row = await tx.media.findById(organizationId, mediaId)
+      if (!row?.sha256) return null
+      return tx.media.sameContent(organizationId, row.workspaceId, row.sha256, mediaId)
+    })
+    return { ...made, duplicateOf: same && { id: same.id, name: same.originalName } }
+  }
   const session = await deps.uow.run(scope, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
     const now = deps.clock.now()

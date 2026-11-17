@@ -873,6 +873,7 @@
       "account_assigned": "ha assegnato un account social a un cliente",
       "account_unassigned": "ha tolto un account social da un cliente",
       "media_deleted": "ha eliminato un file della libreria",
+      "media_retried": "ha preparato di nuovo un file della libreria",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",
@@ -1431,6 +1432,7 @@
     "move": "Sposta",
     "moved": "«{name}» spostato in «{folder}».",
     "movedOut": "«{name}» tolto dalle cartelle.",
+    "retried": "«{name}» si prepara di nuovo.",
     "delete": "Elimina",
     "deleteTitle": "Eliminare «{name}»?",
     "deleteText": "Il file sparisce dalla libreria e le sue copie vengono cancellate. Non si può annullare.",
@@ -1453,6 +1455,8 @@
       "warnings": "Da sapere",
       "noFixes": "Nessuna correzione: il file andava già bene.",
       "failure": "Perché non è riuscito",
+      "failureRemoved": "Feedway lo cancella da solo dopo 24 ore, per liberare lo spazio.",
+      "retry": "Riprova",
       "noPreview": "Anteprima non disponibile",
       "preparing": "Anteprima in preparazione",
       "close": "Chiudi"
@@ -1463,7 +1467,9 @@
       "strip_metadata": "Tolti i dati nascosti (luogo, ora, dispositivo)",
       "recompress": "Compresso per stare nei limiti di {platform}",
       "resize": "Ridotto a {width} px di larghezza",
-      "faststart": "Preparato per partire subito in riproduzione"
+      "faststart": "Preparato per partire subito in riproduzione",
+      "convert_for_reels": "Per pubblicarlo su Meta ne è stata fatta una copia più leggera, {width} px di larghezza in H.264",
+      "convert_audio_for_reels": "Per pubblicarlo su Meta l'audio è stato portato a 48 kHz stereo"
     },
     "warning": {
       "convert_codec": "Il codec andrà convertito prima di pubblicarlo",
@@ -1475,7 +1481,7 @@
       "too_many_pixels": "La foto ha troppi pixel.",
       "too_long": "Il video è troppo lungo.",
       "unreadable": "Il file non si legge: forse è rovinato.",
-      "timeout": "La preparazione ha richiesto troppo tempo.",
+      "timeout": "La preparazione ha richiesto troppo tempo. Se è un video in 4K o a 60 fps, esportalo in 1080p o a 30 fps e caricalo di nuovo.",
       "storage_full": "Lo spazio del cliente o dell'agenzia è pieno.",
       "processing_failed": "La preparazione non è riuscita dopo vari tentativi."
     },
@@ -1483,10 +1489,23 @@
     "usageOf": "{used} di {limit}",
     "recent": "Ultimi file",
     "openLibrary": "Apri la libreria",
-    "noRecent": "Ancora nessun file nella libreria."
+    "noRecent": "Ancora nessun file nella libreria.",
+    "view": {
+      "label": "Vista",
+      "grid": "Griglia",
+      "list": "Elenco",
+      "size": "Dimensione delle miniature",
+      "sizes": {
+        "0": "Piccole",
+        "1": "Medie",
+        "2": "Grandi",
+        "3": "Molto grandi"
+      }
+    }
   },
   "upload": {
     "choose": "Carica file",
+    "duplicate": "Uguale a «{name}», già nella libreria. Se non ti serve, eliminalo.",
     "dropHere": "Rilascia qui",
     "limits": "Foto JPEG, PNG, WEBP o HEIC fino a {image}, video MP4 o MOV fino a {video}",
     "limitsUnknown": "Foto JPEG, PNG, WEBP o HEIC, video MP4 o MOV",
@@ -1543,6 +1562,7 @@
     "announce": {
       "started": "Nessun file in caricamento | Caricamento di un file iniziato | Caricamento di {n} file iniziato",
       "uploaded": "{name} caricato, ora si prepara.",
+      "duplicate": "{name} è uguale a {other}, già nella libreria.",
       "ready": "{name} è pronto.",
       "failed": "{name} non è riuscito. {reason}",
       "allDone": "Caricamenti finiti.",

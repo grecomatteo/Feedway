@@ -239,6 +239,50 @@ export async function deleteMedia(
   }
 }
 
+/**
+ * «Riprova» (D-39): a file `failed` whose original was kept (`timeout`, `processing_failed`:
+ * the fault may be the machine's) is `processing` again and the worker is woken. Any other file
+ * is a CONFLICT: a final refusal has no original left, and is uploaded again.
+ */
+export async function retryMedia(
+  deps: DeleteMediaDeps,
+  actor: OrgActor,
+  input: { workspaceId: string; mediaId: string },
+  request: { ip: string | null },
+): Promise<MediaDto> {
+  const { organizationId } = actor
+  const mediaId = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const { current, workspace } = await openLibrary(tx, actor, input.workspaceId)
+    await assertActiveOrganization(tx, organizationId)
+    if (workspace.archivedAt !== null)
+      throw new DomainError('CONFLICT', 'Il cliente è archiviato: i suoi file non si modificano')
+    const found = await liveMedia(tx, organizationId, workspace.id, input.mediaId)
+    if (!(await tx.media.markRetried(organizationId, found.id)))
+      throw new DomainError(
+        'CONFLICT',
+        'Questo file non si può preparare di nuovo: caricalo un’altra volta',
+      )
+    await tx.audit.record({
+      organizationId,
+      actorId: current.userId,
+      source: 'panel',
+      action: 'media.retried',
+      entity: 'media',
+      entityId: found.id,
+      workspaceId: workspace.id,
+      ip: request.ip,
+    })
+    return found.id
+  })
+  try {
+    await deps.queue.send('media.process', { organizationId, mediaId })
+  } catch (error) {
+    // the file waits as `processing`: the clean-up wakes the worker for it
+    deps.logger.error({ err: error, mediaId }, 'media processing not queued')
+  }
+  return getMedia(deps, actor, { workspaceId: input.workspaceId, mediaId })
+}
+
 /** `bytes=a-b`, `bytes=a-` or `bytes=-n` of HTTP `Range`, already parsed. */
 export type ByteRange = { start: number; end: number | null } | { suffix: number }
 
