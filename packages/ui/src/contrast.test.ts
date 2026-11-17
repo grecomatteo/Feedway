@@ -28,6 +28,11 @@ const BACKGROUNDS = [
 
 /** OKLab distance below which the accent could pass for a state (the closest pair today: 0.078). */
 const DISTINCT_FROM_ACCENT = 0.075
+/**
+ * The red of an error stays well apart from the accent (prova 0.10.0, R-9 / D-25): Feedway's
+ * orange and the old dark red were 0.078 apart and looked the same at a glance.
+ */
+const DANGER_FROM_ACCENT = 0.12
 
 const cases = paletteIds.flatMap((id) =>
   (['light', 'dark'] as const).map((mode) => [id, mode] as const),
@@ -62,6 +67,15 @@ test.each(cases)('%s palette, %s mode: states do not pass for the accent', (id, 
   for (const s of [...statusTokens, 'success', 'warning', 'danger', 'info'] as const) {
     expect(perceptualDistance(t.brand, t[s]), `brand and ${s}`).toBeGreaterThanOrEqual(
       DISTINCT_FROM_ACCENT,
+    )
+  }
+})
+
+test.each(cases)('%s palette, %s mode: the error red is far from the accent', (id, mode) => {
+  const t = palettes[id][mode]
+  for (const s of ['danger', 'status-problem'] as const) {
+    expect(perceptualDistance(t.brand, t[s]), `brand and ${s}`).toBeGreaterThanOrEqual(
+      DANGER_FROM_ACCENT,
     )
   }
 })

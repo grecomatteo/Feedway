@@ -88,7 +88,12 @@ watch(org.slug, refresh)
       <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
     </header>
 
-    <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">
+    <!-- next to the sidebar, not centred in what is left: on a wide screen a centred page left a
+         gap between the sidebar and the page's own menu (R-12) -->
+    <main
+      id="main"
+      class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:mx-0 md:px-8 md:pb-10"
+    >
       <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
            the layout reads only once a page has loaded, so without it the first link out of a
            suspended agency would change the address and nothing else. -->

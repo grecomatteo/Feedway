@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { LibraryFile } from '~/composables/useLibrary'
+import type { LibraryLayout } from '~/composables/useLibraryView'
 
 /**
- * A file in the library's grid (plan 04 Task 12, brief F03): a square that never changes size
- * while the image arrives, its name, and for a video its length; a file not ready says why. The
- * whole card opens the detail; it can be dragged onto a folder, and «⋯» moves or deletes it
- * without dragging.
+ * A file in the library (plan 04 Task 12, brief F03): in the grid a square that never changes size
+ * while the image arrives, its name on up to two lines, and for a video its length; in the list
+ * (prova 0.10.0, E-1) a row with a small thumbnail, the whole name, weight and date. A file not
+ * ready says why, a failed one in red. The whole card opens the detail; it can be dragged onto a
+ * folder, and «⋯» moves or deletes it without dragging.
  */
-const props = defineProps<{
-  file: LibraryFile
-  src: string | null
-  actions: DropdownMenuItem[][]
-}>()
+const props = withDefaults(
+  defineProps<{
+    file: LibraryFile
+    src: string | null
+    actions: DropdownMenuItem[][]
+    layout?: LibraryLayout
+  }>(),
+  { layout: 'grid' },
+)
 const emit = defineEmits<{ open: [] }>()
 const { t } = useI18n()
 
@@ -37,6 +43,17 @@ const detail = computed(() => {
       : `${t('library.kind.video')} ${formatDuration(f.durationMs)}`
   return t('library.kind.image')
 })
+/** In the list: weight and day of the upload, after the kind. */
+const facts = computed(() =>
+  [formatBytes(props.file.sizeBytes), formatDate(props.file.createdAt)].join(' · '),
+)
+const icon = computed(() =>
+  props.file.status === 'failed'
+    ? 'i-lucide-file-x'
+    : props.file.kind === 'video'
+      ? 'i-lucide-film'
+      : 'i-lucide-image',
+)
 const failedImage = ref(false)
 watch(
   () => props.src,
@@ -52,13 +69,21 @@ function dragStart(event: DragEvent) {
 
 <template>
   <li
-    class="group relative flex min-w-0 flex-col rounded-xl border border-(--app-border) bg-(--app-card) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
+    class="group relative flex min-w-0 rounded-xl border border-(--app-border) bg-(--app-card) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
+    :class="layout === 'list' ? 'items-center gap-3' : 'flex-col'"
     draggable="true"
     :data-media-id="file.id"
+    :data-layout="layout"
     @dragstart="dragStart"
   >
     <div
-      class="relative aspect-square overflow-hidden rounded-lg bg-(--app-surface-sunken)"
+      class="relative shrink-0 overflow-hidden rounded-lg"
+      :class="[
+        layout === 'list' ? 'size-14' : 'aspect-square',
+        file.status === 'failed'
+          ? 'bg-(--app-danger-soft) text-(--app-danger)'
+          : 'bg-(--app-surface-sunken) text-(--app-text-muted)',
+      ]"
       aria-hidden="true"
     >
       <img
@@ -71,21 +96,13 @@ function dragStart(event: DragEvent) {
         class="size-full object-cover"
         @error="failedImage = true"
       />
-      <span v-else class="flex size-full items-center justify-center text-(--app-text-muted)">
-        <UIcon
-          :name="
-            file.status === 'failed'
-              ? 'i-lucide-file-x'
-              : file.kind === 'video'
-                ? 'i-lucide-film'
-                : 'i-lucide-image'
-          "
-          class="size-7"
-        />
+      <span v-else class="flex size-full items-center justify-center">
+        <UIcon :name="icon" :class="layout === 'list' ? 'size-5' : 'size-7'" />
       </span>
       <span
         v-if="percent !== null"
-        class="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-(--app-border)"
+        class="absolute h-1 overflow-hidden rounded-full bg-(--app-border)"
+        :class="layout === 'list' ? 'inset-x-1.5 bottom-1.5' : 'inset-x-2 bottom-2'"
       >
         <span
           class="block h-full rounded-full bg-(--app-brand)"
@@ -93,36 +110,39 @@ function dragStart(event: DragEvent) {
         />
       </span>
       <span
-        v-if="file.kind === 'video' && file.status === 'ready'"
+        v-if="layout === 'grid' && file.kind === 'video' && file.status === 'ready'"
         class="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/65 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums"
       >
         <UIcon name="i-lucide-play" class="size-3" />
         {{ file.durationMs === null ? '' : formatDuration(file.durationMs) }}
       </span>
     </div>
-    <div class="mt-2 flex min-w-0 items-start gap-1">
+    <div class="flex min-w-0 flex-1 items-start gap-1" :class="layout === 'grid' ? 'mt-2' : ''">
       <div class="min-w-0 flex-1 px-0.5">
-        <!-- the name is the card's button: the whole card is its target -->
+        <!-- the name is the card's button: the whole card is its target; two lines in the grid,
+             so «IMG_0221.HEIC» and «IMG_0222.HEIC» are not both «IMG_022…» -->
         <button
           type="button"
-          class="block w-full truncate text-left text-sm font-semibold after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+          class="block w-full text-left text-sm font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+          :class="layout === 'grid' ? 'line-clamp-2' : ''"
           :title="file.originalName"
           @click="emit('open')"
         >
           <span class="sr-only">{{ $t('library.openFile', { name: '' }) }}</span
           >{{ file.originalName }}
         </button>
-        <p v-if="state?.tone === 'danger'" class="mt-0.5 text-[0.8125rem]">
-          <StatusDot :tone="state.tone" :label="state.label" />
-        </p>
-        <p v-else-if="state" class="mt-0.5 truncate text-[0.8125rem] text-(--app-text-muted)">
-          {{ state.label }}<template v-if="percent !== null"> · {{ percent }}%</template>
-        </p>
-        <p v-else class="mt-0.5 truncate text-[0.8125rem] text-(--app-text-muted)">
-          {{ detail }}
+        <p
+          class="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-[0.8125rem] text-(--app-text-muted)"
+        >
+          <StatusDot v-if="state?.tone === 'danger'" :tone="state.tone" :label="state.label" />
+          <span v-else-if="state" :class="layout === 'list' ? 'truncate' : ''"
+            >{{ state.label }}<template v-if="percent !== null"> · {{ percent }}%</template></span
+          >
+          <span v-else class="truncate">{{ detail }}</span>
+          <span v-if="layout === 'list'" class="truncate">{{ facts }}</span>
         </p>
       </div>
-      <div class="relative z-10 -mt-1.5 -mr-1.5 shrink-0">
+      <div class="relative z-10 shrink-0" :class="layout === 'grid' ? '-mt-1.5 -mr-1.5' : ''">
         <RowActions :name="file.originalName" :items="actions" />
       </div>
     </div>

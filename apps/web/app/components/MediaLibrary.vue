@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Folder, LibraryFile } from '~/composables/useLibrary'
+import { THUMB_SIZES } from '~/composables/useLibraryView'
 
 /**
  * The library of one client (spec §11.8, plan 04 Task 12; brief F03): folders on the left (a
@@ -38,7 +39,7 @@ const filtering = computed(
   () => filter.kind !== 'all' || filter.tag !== null || filter.q.trim() !== '',
 )
 
-const done = ref<string | null>(null)
+const done = useFlash()
 const problem = ref<string | null>(null)
 function say(message: string) {
   problem.value = null
@@ -82,6 +83,17 @@ const folderValue = computed({
   get: () => filter.folder ?? 'all',
   set: (v: string) => (filter.folder = v === 'all' ? null : v),
 })
+// ---- grid or list, and the size of the thumbnails (E-1)
+const { view, columns } = useLibraryView()
+const layoutOptions = computed(() => [
+  { value: 'grid' as const, icon: 'i-lucide-layout-grid', label: t('library.view.grid') },
+  { value: 'list' as const, icon: 'i-lucide-list', label: t('library.view.list') },
+])
+const sizeText = computed(() => t(`library.view.sizes.${view.size}`))
+const gridStyle = computed(() =>
+  view.layout === 'grid' ? { gridTemplateColumns: columns.value } : undefined,
+)
+
 function clearFilters() {
   Object.assign(filter, { kind: 'all', tag: null, q: '' })
 }
@@ -638,9 +650,54 @@ function filesDrop(event: DragEvent) {
         />
       </template>
       <template v-else>
+        <div class="mb-3 flex items-center justify-end gap-3" data-view-controls>
+          <div
+            v-if="view.layout === 'grid'"
+            class="flex min-h-11 items-center gap-2 text-(--app-text-muted)"
+            data-thumb-size
+          >
+            <UIcon name="i-lucide-image" class="size-3.5 shrink-0" aria-hidden="true" />
+            <USlider
+              v-model="view.size"
+              :min="0"
+              :max="THUMB_SIZES.length - 1"
+              :step="1"
+              class="w-24"
+              :ui="{ root: 'max-md:h-11', track: 'bg-(--app-border-strong)' }"
+              :aria-label="$t('library.view.size')"
+              :aria-valuetext="sizeText"
+            />
+            <UIcon name="i-lucide-image" class="size-5 shrink-0" aria-hidden="true" />
+          </div>
+          <div
+            role="group"
+            :aria-label="$t('library.view.label')"
+            class="inline-flex shrink-0 rounded-[0.625rem] border border-(--app-border) bg-(--app-groove) p-[3px]"
+          >
+            <button
+              v-for="o in layoutOptions"
+              :key="o.value"
+              type="button"
+              :aria-pressed="view.layout === o.value"
+              :aria-label="o.label"
+              :title="o.label"
+              class="flex size-11 items-center justify-center rounded-[0.4375rem] transition-colors md:size-9"
+              :class="
+                view.layout === o.value
+                  ? 'bg-(--app-card) text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.15)]'
+                  : 'text-(--app-text-muted) hover:text-(--app-text)'
+              "
+              @click="view.layout = o.value"
+            >
+              <UIcon :name="o.icon" class="size-[1.125rem]" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
         <ul
           :aria-label="$t('library.title')"
-          class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
+          :class="view.layout === 'grid' ? 'grid gap-3' : 'space-y-2'"
+          :style="gridStyle"
+          :data-layout="view.layout"
         >
           <MediaTile
             v-for="f in files"
@@ -648,6 +705,7 @@ function filesDrop(event: DragEvent) {
             :file="f"
             :src="thumb(f)"
             :actions="fileActions(f)"
+            :layout="view.layout"
             @open="selected = f"
           />
         </ul>

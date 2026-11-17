@@ -1,5 +1,6 @@
 // Values come from DESIGN.md. Status colours carry their meaning independently of the palette and
-// are always paired with an icon and text in the UI.
+// are always paired with an icon and text in the UI. The error red is a cool crimson, so it never
+// passes for an orange accent (D-25).
 
 export const statusTokens = [
   'status-draft',
@@ -57,8 +58,8 @@ const states = {
     'success-soft': '#E3F3EA',
     warning: '#8A5200',
     'warning-soft': '#FFF1D2',
-    danger: '#B3261E',
-    'danger-soft': '#FCE9E7',
+    danger: '#B5174B',
+    'danger-soft': '#FCE8EC',
     info: '#1F5AA6',
     'info-soft': '#E7EFFA',
     'status-draft': '#7A756D',
@@ -66,7 +67,7 @@ const states = {
     'status-publishing': '#2F57C2',
     'status-verifying': '#1B7A9E',
     'status-confirmed': '#17693F',
-    'status-problem': '#B3261E',
+    'status-problem': '#B5174B',
     'status-paused': '#8A5200',
   },
   dark: {
@@ -74,8 +75,8 @@ const states = {
     'success-soft': '#173326',
     warning: '#F2B860',
     'warning-soft': '#3A2C12',
-    danger: '#FF8A80',
-    'danger-soft': '#3D1C1A',
+    danger: '#FF94AE',
+    'danger-soft': '#3D1A24',
     info: '#8CB8F2',
     'info-soft': '#18273B',
     'status-draft': '#9B958B',
@@ -83,7 +84,7 @@ const states = {
     'status-publishing': '#7FA5F5',
     'status-verifying': '#6CC4E0',
     'status-confirmed': '#6FD39C',
-    'status-problem': '#FF8A80',
+    'status-problem': '#FF94AE',
     'status-paused': '#F2B860',
   },
 } as const

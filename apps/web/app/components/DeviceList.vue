@@ -16,7 +16,7 @@ const { call, failure } = useApi()
 
 const sending = ref<string | null>(null)
 const problem = ref<string | null>(null)
-const done = ref<string | null>(null)
+const done = useFlash()
 const confirmOpen = ref(false)
 
 const deviceLabel = (s: MySession) =>

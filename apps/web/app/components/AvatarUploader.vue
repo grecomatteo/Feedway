@@ -50,7 +50,7 @@ const uploading = ref(false)
 const saving = ref(false)
 const removing = ref(false)
 const problem = ref<string | null>(null)
-const done = ref<string | null>(null)
+const done = useFlash()
 const dragging = ref(false)
 
 /** The uploaded preview and the square on it, in the preview's own pixels. */

@@ -113,7 +113,7 @@ const columns = computed<DataColumn[]>(() => [
 ])
 
 // ---- the actions
-const done = ref<string | null>(null)
+const done = useFlash()
 const problem = ref<string | null>(null)
 const busy = ref(false)
 /** «Ricollega»: the connection of the profile, in the Integrazioni entry of its platform. */

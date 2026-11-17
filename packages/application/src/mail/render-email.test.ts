@@ -82,7 +82,7 @@ describe('html', () => {
       ...base,
       blocks: [{ kind: 'button', label: 'Blocca', url: 'https://x.test/b', tone: 'danger' }],
     })
-    expect(html).toContain('bgcolor="#B3261E"')
+    expect(html).toContain('bgcolor="#B5174B"')
     expect(html).toMatch(/color:#FFFFFF[^>]*>Blocca</)
   })
 
