@@ -21,6 +21,7 @@ const retention = computed(() => {
     t('privacyNotice.retention.auditIp', { period: period(r.auditIpMs) }),
     t('privacyNotice.retention.exports', { period: period(r.dataExportMs) }),
     t('privacyNotice.retention.avatarStaging', { period: period(r.avatarStagingMs) }),
+    t('privacyNotice.retention.rateLimits', { period: period(r.rateLimitCountersMs) }),
     t('privacyNotice.retention.disabled', {
       period: period(r.disabledUserMs),
       notice: period(r.anonymizationNoticeMs),
