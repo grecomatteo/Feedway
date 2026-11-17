@@ -108,7 +108,7 @@ export function useLibrary(workspaceId: Ref<string>) {
   })
   onMounted(() => void load())
   onBeforeUnmount(() => {
-    alive = false
+    life.alive = false
     clearTimeout(typing)
   })
 
@@ -150,12 +150,13 @@ export function useLibrary(workspaceId: Ref<string>) {
   const replace = (file: LibraryFile) => {
     files.value = files.value.map((f) => (f.id === file.id ? file : f))
   }
-  let alive = true
+  const life = { alive: true }
+  const alive = () => life.alive
   /** Every few seconds while the worker prepares it; a 4K video may take many minutes. */
   async function follow(id: string) {
-    for (let i = 0; alive && i < 1440; i++) {
+    for (let i = 0; alive() && i < 1440; i++) {
       await new Promise((resolve) => setTimeout(resolve, 5000))
-      if (!alive || !files.value.some((f) => f.id === id)) return
+      if (!alive() || !files.value.some((f) => f.id === id)) return
       try {
         const now = await call<LibraryFile>('GET', `${base.value}/media/${encodeURIComponent(id)}`)
         replace(now)
