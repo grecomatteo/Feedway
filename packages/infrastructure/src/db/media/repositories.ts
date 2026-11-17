@@ -202,6 +202,19 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .orderBy(media.createdAt, media.id)
       return rows.map((r) => r.id)
     },
+    async failedSince(organizationId, before) {
+      return db
+        .select({ id: media.id, workspaceId: media.workspaceId })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.status, 'failed'),
+            lt(media.updatedAt, before),
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+    },
     async nextToProcess() {
       // the agencies with a file waiting, the one served least recently first (never served:
       // before any), then its oldest file; runs in the system scope, ids only

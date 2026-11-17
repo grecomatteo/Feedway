@@ -152,6 +152,8 @@ export interface MediaRepository {
   deletedWithFiles(organizationId: string): Promise<string[]>
   /** The files still `processing` not changed since `before`: their wake-up may be lost. */
   processingSince(organizationId: string, before: Date): Promise<string[]>
+  /** The files `failed` not changed since `before`, with their workspace (D-43). */
+  failedSince(organizationId: string, before: Date): Promise<{ id: string; workspaceId: string }[]>
   /**
    * SYSTEM scope only: the next file `processing` of the installation, from the agency served
    * least recently (the latest `processing_started_at` of its files), the oldest file first.

@@ -1,4 +1,5 @@
 import { readFile, stat, writeFile } from 'node:fs/promises'
+import { crc32, deflateSync } from 'node:zlib'
 import type { MadeFile, ToolResult } from '@app/application'
 import { PROBE_TIMEOUT_MS, THUMBNAIL_LONG_SIDE, type FileAnalysis } from '@app/domain'
 import sharp, { type Metadata, type Sharp } from 'sharp'
@@ -66,6 +67,31 @@ function readDescription(icc: Buffer): string | null {
   return null
 }
 
+/** A PNG chunk: length, type, data and the CRC of type and data. */
+function pngChunk(type: string, data: Buffer): Buffer {
+  const length = Buffer.alloc(4)
+  length.writeUInt32BE(data.length)
+  const body = Buffer.concat([Buffer.from(type, 'latin1'), data])
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(body))
+  return Buffer.concat([length, body, crc])
+}
+
+/** The 8 bytes of the signature and the 25 of `IHDR`: `iCCP` must come before the pixels. */
+const PNG_HEAD = 33
+
+/**
+ * The PNG with `icc` as its profile (`iCCP`): the pixels are said to be in that colour space,
+ * so the pipeline converts them to sRGB instead of reading them as sRGB.
+ */
+export function pngWithIcc(png: Buffer, icc: Buffer): Buffer {
+  const chunk = pngChunk(
+    'iCCP',
+    Buffer.concat([Buffer.from('icc\0\0', 'latin1'), deflateSync(icc)]),
+  )
+  return Buffer.concat([png.subarray(0, PNG_HEAD), chunk, png.subarray(PNG_HEAD)])
+}
+
 function colorSpaceOf(meta: Metadata): ImageAnalysis['colorSpace'] {
   if (!meta.icc) return null
   return /srgb/i.test(iccDescription(meta.icc) ?? '') ? 'srgb' : 'other'
@@ -129,10 +155,23 @@ export function createImageTools() {
       })
       if (!heic.ok)
         return { ok: false, reason: heic.reason === 'timeout' ? 'timeout' : 'unreadable' }
-      return {
-        ok: true,
-        image: sharp(heic.data, { raw: { width: heic.width, height: heic.height, channels: 4 } }),
+      const pixels = sharp(heic.data, {
+        raw: { width: heic.width, height: heic.height, channels: 4 },
+      })
+      // libheif-js gives the pixels without their profile: an iPhone's Display P3 read as sRGB
+      // comes out dull (D-03). The profile is in the container, read without decoding
+      const icc = await sharp(path, { limitInputPixels: false })
+        .metadata()
+        .then((meta) => meta.icc)
+        .catch(() => undefined)
+      if (!icc || /srgb/i.test(iccDescription(icc) ?? '')) return { ok: true, image: pixels }
+      let png: Buffer
+      try {
+        png = await pixels.png({ compressionLevel: 0 }).toBuffer()
+      } catch (error) {
+        return { ok: false, reason: refusalOf(error) }
       }
+      return { ok: true, image: sharp(pngWithIcc(png, icc), { limitInputPixels: maxPixels }) }
     }
     return {
       ok: true,

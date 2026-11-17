@@ -3,6 +3,7 @@ import {
   FFMPEG_TIMEOUT_MAX_MS,
   MEDIA_PROCESS_EXPIRE_SECONDS,
   ffmpegTimeoutMs,
+  videoWorkTimeoutMs,
   isPublishableVideo,
   previewSize,
   thumbnailSize,
@@ -14,6 +15,24 @@ test('the ffmpeg timeout is 2 minutes plus 4 times the duration, at most 60 minu
   // a reel of 15 minutes reaches the cap (ADR 021)
   expect(ffmpegTimeoutMs(15 * 60_000)).toBe(FFMPEG_TIMEOUT_MAX_MS)
   expect(ffmpegTimeoutMs(10 * 3_600_000)).toBe(FFMPEG_TIMEOUT_MAX_MS)
+})
+
+test('a decoded video has a timeout in proportion to its pixels per second (D-39)', () => {
+  // the file of the 0.10.0 test: 4K at 60 fps, 23 s, needed about 10 minutes on one core
+  const k4p60 = videoWorkTimeoutMs({ durationMs: 23_000, width: 2160, height: 3840, fps: 60 })
+  expect(k4p60).toBeGreaterThan(15 * 60_000)
+  // 1080p at 30 fps keeps at least the timeout by duration
+  const hd = { durationMs: 60_000, width: 1080, height: 1920, fps: 30 }
+  expect(videoWorkTimeoutMs(hd)).toBeGreaterThanOrEqual(ffmpegTimeoutMs(60_000))
+  expect(videoWorkTimeoutMs({ ...hd, fps: 60 })).toBeGreaterThan(videoWorkTimeoutMs(hd))
+  // a small video never goes under the timeout by duration
+  expect(videoWorkTimeoutMs({ durationMs: 60_000, width: 640, height: 360, fps: 30 })).toBe(
+    ffmpegTimeoutMs(60_000),
+  )
+  // the cap stays: the job's expiry is reckoned on it
+  expect(videoWorkTimeoutMs({ durationMs: 900_000, width: 2160, height: 3840, fps: 60 })).toBe(
+    FFMPEG_TIMEOUT_MAX_MS,
+  )
 })
 
 test('the job outlives the two long commands of a media', () => {

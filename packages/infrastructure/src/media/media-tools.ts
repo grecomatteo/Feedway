@@ -23,6 +23,8 @@ export interface MediaToolsOptions {
   commands?: Partial<FfmpegCommands>
   /** MEDIA_MAX_VIDEO_PIXELS: the decoder refuses larger frames, wherever they come in the stream */
   maxVideoPixels?: number
+  /** ffmpeg's threads for the commands that decode a video; 1 by default, as spec §16.6 asks (D-39) */
+  threads?: number
 }
 
 export function createMediaTools(options: MediaToolsOptions = {}): {
@@ -34,7 +36,7 @@ export function createMediaTools(options: MediaToolsOptions = {}): {
       ffmpeg: options.commands?.ffmpeg ?? 'ffmpeg',
       ffprobe: options.commands?.ffprobe ?? 'ffprobe',
     },
-    { maxVideoPixels: options.maxVideoPixels ?? 4096 * 4096 },
+    { maxVideoPixels: options.maxVideoPixels ?? 4096 * 4096, threads: options.threads ?? 1 },
   )
   const images = createImageTools()
   const aborted = (signal?: AbortSignal) => signal?.aborted === true

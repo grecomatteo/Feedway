@@ -137,6 +137,7 @@ const folderValue = computed({
         >
           <p class="font-semibold text-(--app-danger)">{{ $t('library.detail.failure') }}</p>
           <p class="mt-1">{{ $t(`library.failure.${file.failure.code}`) }}</p>
+          <p class="mt-1 text-(--app-text-muted)">{{ $t('library.detail.failureRemoved') }}</p>
         </div>
 
         <section>

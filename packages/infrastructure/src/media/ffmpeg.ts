@@ -1,13 +1,20 @@
 import { stat } from 'node:fs/promises'
 import type { MadeFile, ToolResult } from '@app/application'
-import { PROBE_TIMEOUT_MS, ffmpegTimeoutMs, previewSize, type FileAnalysis } from '@app/domain'
+import {
+  PROBE_TIMEOUT_MS,
+  ffmpegTimeoutMs,
+  previewSize,
+  videoWorkTimeoutMs,
+  type FileAnalysis,
+} from '@app/domain'
 import { moovBeforeMdat } from './mp4-boxes.js'
 import { runTool, type ToolRun } from './run-tool.js'
 
 // ffprobe and ffmpeg, armoured (plan 04, «ffmpeg blindato»): the container is already confirmed
 // from the bytes (`ftyp`), the demuxer is forced to mov/mp4 and only the `file` protocol is
-// allowed, so a playlist dressed as `.mp4` reads neither local files nor the network. One
-// thread, low priority, a timeout in proportion to the duration (ADR 021).
+// allowed, so a playlist dressed as `.mp4` reads neither local files nor the network. Low
+// priority and a timeout (ADR 021). The decoding commands take `threads` (one, as spec §16.6
+// asks, unless Matteo gives the worker more CPU: D-39); the headers and the remux keep one.
 
 export interface FfmpegCommands {
   ffmpeg: string
@@ -21,19 +28,21 @@ type VideoAnalysis = Extract<FileAnalysis, { kind: 'video' }>
  * decoder's own pixel limit: the header checked by §9.2 is only the first one, and a stream may
  * switch to far larger frames later (security review of Task 10).
  */
-const inputWith = (maxPixels: number | null) => (path: string) => [
-  '-protocol_whitelist',
-  'file',
-  '-f',
-  'mov',
-  '-enable_drefs',
-  '0',
-  '-threads',
-  '1',
-  ...(maxPixels === null ? [] : ['-max_pixels', String(maxPixels)]),
-  '-i',
-  `file:${path}`,
-]
+const inputWith =
+  (maxPixels: number | null, threads = 1) =>
+  (path: string) => [
+    '-protocol_whitelist',
+    'file',
+    '-f',
+    'mov',
+    '-enable_drefs',
+    '0',
+    '-threads',
+    String(threads),
+    ...(maxPixels === null ? [] : ['-max_pixels', String(maxPixels)]),
+    '-i',
+    `file:${path}`,
+  ]
 
 /**
  * The decoder's refusal of a frame over `-max_pixels` (libavutil `av_image_check_size2`): such a
@@ -41,7 +50,15 @@ const inputWith = (maxPixels: number | null) => (path: string) => [
  * frames as they are.
  */
 const OVER_MAX_PIXELS = /exceeds specified max pixel count/
-const GLOBAL = ['-nostdin', '-hide_banner', '-loglevel', 'error', '-filter_threads', '1']
+const global = (threads = 1) => [
+  '-nostdin',
+  '-hide_banner',
+  '-loglevel',
+  'error',
+  '-filter_threads',
+  String(threads),
+]
+const GLOBAL = global()
 
 interface ProbeStream {
   codec_type?: string
@@ -82,8 +99,14 @@ function quarterTurned(stream: ProbeStream): boolean {
 const refusal = (run: ToolRun) =>
   ({ ok: false, reason: run.outcome === 'exited' ? 'unreadable' : run.outcome }) as const
 
-export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels: number }) {
+export function createFfmpeg(
+  commands: FfmpegCommands,
+  limits: { maxVideoPixels: number; threads: number },
+) {
   const input = inputWith(limits.maxVideoPixels)
+  // the decoding commands: the preview decodes every frame of the original
+  const decodeInput = inputWith(limits.maxVideoPixels, limits.threads)
+  const threads = String(limits.threads)
   // ffprobe opens the decoder too: with the limit it would refuse what §9.2 must name
   const header = inputWith(null)
   /** Header only: nothing is decoded, so an enormous duration or size costs nothing. */
@@ -199,6 +222,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
         width: number
         height: number
         durationMs: number
+        fps: number
         signal?: AbortSignal | undefined
         onProgress?: ((fraction: number) => void) | undefined
       },
@@ -209,8 +233,8 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
       const run = await runTool(
         commands.ffmpeg,
         [
-          ...GLOBAL,
-          ...input(path),
+          ...global(limits.threads),
+          ...decodeInput(path),
           '-map',
           '0:v:0',
           '-map',
@@ -223,8 +247,10 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           `scale=${String(size.width)}:${String(size.height)},format=yuv420p`,
           '-c:v',
           'libx264',
+          // the encoding at 720p costs little next to the decoding: the fastest preset that keeps
+          // B-frames and CABAC
           '-preset',
-          'veryfast',
+          'superfast',
           '-crf',
           '26',
           '-profile:v',
@@ -236,7 +262,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           '-ac',
           '2',
           '-threads',
-          '1',
+          threads,
           '-movflags',
           '+faststart',
           '-progress',
@@ -248,7 +274,7 @@ export function createFfmpeg(commands: FfmpegCommands, limits: { maxVideoPixels:
           `file:${output}`,
         ],
         {
-          timeoutMs: ffmpegTimeoutMs(opts.durationMs),
+          timeoutMs: videoWorkTimeoutMs(opts),
           signal: opts.signal,
           watchStderr: OVER_MAX_PIXELS,
           onLine: (line) => {

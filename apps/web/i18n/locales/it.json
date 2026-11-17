@@ -1453,6 +1453,7 @@
       "warnings": "Da sapere",
       "noFixes": "Nessuna correzione: il file andava già bene.",
       "failure": "Perché non è riuscito",
+      "failureRemoved": "Feedway lo cancella da solo dopo 24 ore, per liberare lo spazio.",
       "noPreview": "Anteprima non disponibile",
       "preparing": "Anteprima in preparazione",
       "close": "Chiudi"
@@ -1475,7 +1476,7 @@
       "too_many_pixels": "La foto ha troppi pixel.",
       "too_long": "Il video è troppo lungo.",
       "unreadable": "Il file non si legge: forse è rovinato.",
-      "timeout": "La preparazione ha richiesto troppo tempo.",
+      "timeout": "La preparazione ha richiesto troppo tempo. Se è un video in 4K o a 60 fps, esportalo in 1080p o a 30 fps e caricalo di nuovo.",
       "storage_full": "Lo spazio del cliente o dell'agenzia è pieno.",
       "processing_failed": "La preparazione non è riuscita dopo vari tentativi."
     },
