@@ -16,6 +16,8 @@ test.each([
   ['meta-client-outside-platform', 'meta-only-inside-platform'],
   ['meta-in-infrastructure-index', 'infrastructure-index-hides-meta'],
   ['accounts-imports-platforms', 'accounts-knows-no-platform'],
+  ['rules-imports-platforms', 'rules-and-media-know-no-platform'],
+  ['media-imports-platforms', 'rules-and-media-know-no-platform'],
 ])('fixture %s violates rule %s', (fixture, rule) => {
   const result = runDepcruise(`tools/arch-fixtures/${fixture}`)
   expect(result.exitCode).not.toBe(0)

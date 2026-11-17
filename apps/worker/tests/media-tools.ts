@@ -7,8 +7,10 @@ import {
   createMediaScratch,
   createMediaTools,
   newPublicToken,
+  PLATFORM_RULES,
   type Runtime,
 } from '@app/infrastructure'
+import { photoMaxBytesOf } from '@app/domain'
 
 /** The limits of the installation by default (ADR 021). */
 export const MEDIA_LIMITS: JobHandlerDeps['media']['limits'] = {
@@ -18,6 +20,7 @@ export const MEDIA_LIMITS: JobHandlerDeps['media']['limits'] = {
   maxVideoSeconds: 900,
   maxVideoPixels: 4096 * 4096,
   workspaceMaxBytes: null,
+  photoMaxBytes: photoMaxBytesOf(PLATFORM_RULES),
 }
 
 const unused = () => Promise.reject(new Error('media tools not used in this test'))

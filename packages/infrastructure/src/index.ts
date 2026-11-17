@@ -22,7 +22,13 @@ export { createAdvisoryLock } from './db/advisory-lock.js'
 export type { AvatarProcessorOptions } from './images/avatar-processor.js'
 export { sniffImageType } from './images/sniff.js'
 export { createZipWriter } from './export/zip-writer.js'
-export { createMailer, createRuntime, createStorage, TEST_MAIL_DIR } from './runtime.js'
+export {
+  createMailer,
+  createRuntime,
+  createStorage,
+  PLATFORM_RULES,
+  TEST_MAIL_DIR,
+} from './runtime.js'
 export type { MailerDeps, Runtime, RuntimeConfig, RuntimeRole } from './runtime.js'
 export { createIntegrationStore } from './db/integrations/integration-store.js'
 export { createPasswordHasher } from './crypto/password-hasher.js'

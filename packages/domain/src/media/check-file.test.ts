@@ -10,6 +10,7 @@ const LIMITS: FileLimits = {
   maxVideoBytes: 300_000_000,
   maxVideoSeconds: 900,
   maxVideoPixels: 4096 * 4096,
+  photoMaxBytes: { instagram: 8_000_000, facebook: 4_000_000 },
 }
 
 /** A JPEG that needs nothing: sRGB, no metadata, 1080 px wide, 2 MB. */

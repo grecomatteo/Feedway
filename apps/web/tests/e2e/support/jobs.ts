@@ -11,6 +11,7 @@ import {
   createMediaScratch,
   createMediaTools,
   newPublicToken,
+  PLATFORM_RULES,
   createDb,
   createRuntime,
   createLocalDiskStorage,
@@ -19,6 +20,7 @@ import {
   systemClock,
   uuidV7Generator,
 } from '@app/infrastructure'
+import { photoMaxBytesOf } from '@app/domain'
 
 const quiet: Logger = {
   debug: () => undefined,
@@ -130,6 +132,7 @@ export async function runMediaProcessJobs(): Promise<void> {
     maxVideoSeconds: 900,
     maxVideoPixels: 4096 * 4096,
     workspaceMaxBytes: null,
+    photoMaxBytes: photoMaxBytesOf(PLATFORM_RULES),
   }
   try {
     const deps = {
