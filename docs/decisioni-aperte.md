@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: esiti della prova della 0.10.0 sulla VPS (17 novembre 2026, esiti nelle consegne della tappa 4, punti R-n ed E-n): decise D-03 (conversione in sRGB) e D-25 (rosso più freddo); aggiornate D-27, D-29, D-30, D-34; nuove D-39…D-45. Prima, correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -26,7 +26,8 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **Origine:** tappa 4, Task 10.
 - **Il problema:** libheif-js non espone il profilo colore: una HEIC P3 esce convertita come se fosse sRGB, con colori un po' spenti.
 - **Opzioni:** (a) cambiare decodificatore; (b) accettarlo e scriverlo come limite noto.
-- **Stato:** aperta.
+- **Prova della 0.10.0 (R-3):** la copia master non ha profilo ICC e i colori delle foto iPhone si spengono. Matteo chiede la conversione vera da Display P3 a sRGB.
+- **Stato:** decisa (a), da fare con le correzioni dopo la prova.
 
 ### D-04 · SEI dei video HEVC
 - **Origine:** tappa 4, Task 10.
@@ -63,20 +64,23 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **Il problema:** il server del pannello è quello di Nitro, che lascia il limite di Node: una richiesta deve arrivare tutta in 300 secondi. Con pezzi da 20 MiB, sotto circa 70 KB/s in invio (0,56 Mbit/s) un pezzo non arriva mai, e il pannello lo riprova.
 - **Cosa fa oggi il pannello:** se lo stesso pezzo cade due volte di fila dopo almeno 4 minuti di invio, scrive «La rete è troppo lenta per questo file» e continua a provare.
 - **Opzioni:** (a) pezzi più piccoli, per esempio 8 MiB (cambia il protocollo dell'ADR 021, quindi serve una nuova ADR); (b) alzare il limite del server del pannello (Nitro non lo permette in modo pulito); (c) lasciare così, con l'avviso.
-- **Stato:** scelta provvisoria (c), da misurare nella prova sulla VPS (Task 14) con un invio su 4G debole.
+- **Prova della 0.10.0:** il 4G debole non è stato provato. In un passaggio Wi-Fi → 5G su tre il caricamento non è ripartito da solo e serviva «Riprendi» (R-5, D-41).
+- **Stato:** scelta provvisoria (c), da misurare su 4G debole in una prova successiva.
 
 ### D-29 · Video con un errore di decodifica
 - **Origine:** revisione finale della tappa 4 (P6).
 - **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
 - **Cosa fa ora il worker:** dopo un errore conta i fotogrammi: la copia d'anteprima deve averli tutti, come il file (contati senza decodificare). Un fotogramma oltre il limite di pixel rifiuta sempre il video, perché la copia da pubblicare prende i fotogrammi così come sono (revisione di sicurezza).
 - **Opzioni:** (a) tutti i fotogrammi, nessun margine; (b) un piccolo margine fisso (per esempio 2 fotogrammi), mai una percentuale; (c) un elenco di messaggi ammessi.
-- **Stato:** scelta provvisoria (a), da provare con almeno 5 video veri da iPhone e Android (Task 14). Se un video vero viene rifiutato per pochi fotogrammi persi, (b).
+- **Prova della 0.10.0:** 6 video veri dall'iPhone (4K30, 4K60, 1440p60), nessuno rifiutato. Android non provato.
+- **Stato:** scelta provvisoria (a). Se un video vero, anche Android, viene rifiutato per pochi fotogrammi persi, (b).
 
 ### D-30 · iPhone in modalità «Più compatibile»
 - **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
 - **Il problema:** con «Formati → Più compatibile» l'iPhone salva foto JPEG e video H.264, e quando li manda può convertire una HEIC in JPEG da sé. Quello che arriva a Feedway non è allora il file della fotocamera. Nella prova va scelto «Attuale» nel selettore di iOS, e il codec va controllato nel dettaglio del file.
 - **Opzioni:** (a) scriverlo nella guida per le agenzie; (b) non fare niente, perché Feedway converte comunque.
-- **Stato:** aperta, da guardare nella prova (Task 14).
+- **Prova della 0.10.0:** con «Attuale» arriva il file della fotocamera (HEVC 4K, non ricompresso).
+- **Stato:** aperta: resta da scegliere se scriverlo nella guida per le agenzie.
 
 ## Host pubblico (`/m/*`)
 
@@ -132,7 +136,8 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **Origine:** revisione finale della tappa 4 (P13).
 - **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
 - **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
-- **Stato:** da verificare nella prova (Task 14).
+- **Prova della 0.10.0:** le foto degli account Instagram sono vere e nitide (WebP 256×256). La Pagina Facebook di prova non ha foto (salvata l'immagine predefinita).
+- **Stato:** da verificare con una Pagina Facebook vera con la sua foto.
 
 ### D-35 · Cambiare la chiave di cifratura e il segreto di Better Auth senza perdere dati
 - **Origine:** revisione retroattiva delle tappe 1–3 (A3), specifica §15, ADR 007 e 012.
@@ -158,6 +163,50 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **I punti:** (1) il ritardo degli accessi sbagliati legge il contatore e poi lo aggiorna in due passi: N tentativi in parallelo da IP diversi passano insieme nella stessa finestra (il limite per IP resta 10 al minuto); (2) il rilascio unisce le immagini amd64 e arm64 per tag e non per digest, e `update.sh` non controlla la firma dei tag; (3) l'immagine pubblicata con `docker push` non ha più l'attestazione di provenienza che aggiungeva `build-push-action`.
 - **Opzioni:** (a) farli nella tappa 11 (sicurezza e operazioni): prenotazione atomica del tentativo con un solo `UPDATE … RETURNING`, manifest per digest con `actions/attest-build-provenance`, verifica dei tag; (b) prima, se Matteo lo chiede.
 - **Stato:** scelta provvisoria (a).
+
+## Dalla prova della 0.10.0
+
+### D-39 · Video 4K a 60 fps oltre il tempo di conversione
+- **Origine:** prova della 0.10.0 (R-1, alta).
+- **Il problema:** il timeout di ffmpeg è 2 minuti più 4 volte la durata, ma un 4K60 HEVC richiede circa 26 s di lavoro per secondo di video con `-threads 1`. IMG_0233.mov (23 s) è finito in «Non riuscito» al 46% dopo 213 s. Un 1080p richiede circa 2,5 s per secondo e rientra.
+- **Opzioni:** (a) usare tutte le CPU del contenitore per l'anteprima; (b) timeout proporzionale a pixel e fps, non solo alla durata; (c) anteprima e copia da pubblicare in un solo passaggio; (d) preset più veloce per l'anteprima; (e) nuovo tentativo automatico con impostazioni rapide; (f) nel pannello «Riprova» e il consiglio «esportalo in 1080p o a 30 fps». Si possono combinare.
+- **Proposta:** (a) + (b) + (d) + (f) subito; (c) ed (e) solo se non bastano. Con (a) la conversione resta una alla volta, ma durante un video il web ha meno CPU.
+- **Stato:** aperta, da decidere con Matteo nelle correzioni dopo la prova.
+
+### D-40 · Copia per le Reels oltre i limiti di Meta
+- **Origine:** prova della 0.10.0 (R-2, alta prima della pubblicazione vera).
+- **Il problema:** la copia `reel` è un remux dell'originale: un 4K iPhone resterebbe HEVC 3840×2160 a circa 36 Mbit/s, oltre i limiti delle Reels via API (larghezza massima 1920, bitrate massimo circa 25 Mbit/s, **da ricontrollare sulla documentazione Meta**). Da Funnel, a circa 21 Mbit/s, non si guarda fluido.
+- **Opzioni:** (a) remux se dentro i limiti, altrimenti conversione a 1080×1920, H.264 High, 8–12 Mbit/s, fps originali fino a 60, AAC 48 kHz, faststart; (b) come (a), più una copia ad alta qualità tenuta da parte; (c) conversione sempre.
+- **Stato:** scelta provvisoria (a), proposta da Matteo; da fare prima della tappa 7 (pubblicazione). Resta da decidere (b).
+
+### D-41 · Ripresa del caricamento dopo un cambio di rete
+- **Origine:** prova della 0.10.0 (R-5, R-6).
+- **Il problema:** un passaggio Wi-Fi → 5G non è ripartito da solo: il pezzo in volo restava appeso. Sul server l'`ECONNRESET` del telefono è registrato come errore non gestito, livello 50.
+- **Opzioni:** (a) tempo massimo senza avanzamento per ogni pezzo (30–60 s), poi nuovo tentativo automatico; (b) lasciare «Riprendi».
+- **Stato:** decisa (a), con il log dell'`ECONNRESET` come avviso; da fare nelle correzioni dopo la prova.
+
+### D-42 · Lo stesso file caricato due volte
+- **Origine:** prova della 0.10.0 (R-7).
+- **Il problema:** un file identico a uno già nella libreria viene accettato senza avviso.
+- **Opzioni:** (a) avvisare usando l'impronta sha256 già calcolata, lasciando scegliere; (b) rifiutarlo; (c) lasciare così.
+- **Stato:** scelta provvisoria (a).
+
+### D-43 · File «Non riuscito» che occupano spazio
+- **Origine:** prova della 0.10.0 (E-2).
+- **Il problema:** dopo `timeout` o `processing_failed` l'originale resta (ADR 021, P5) e occupa spazio: IMG_0233.mov 238 MB.
+- **Cosa vuole Matteo:** cancellarli da soli dopo 24 ore.
+- **Stato:** decisa, da fare nelle correzioni dopo la prova (lavoro di pulizia esistente, ADR 021 da aggiornare).
+
+### D-44 · `avatar_url` di Meta che resta accanto alla copia
+- **Origine:** prova della 0.10.0 (R-11).
+- **Il problema:** in `social_accounts` resta `avatar_url`, il link di Meta che scade, anche dove c'è la copia `avatar_key`.
+- **Opzioni:** (a) svuotarlo quando la copia è salvata, e toglierlo dalla risposta; (b) togliere la colonna con una migrazione in due rilasci.
+- **Stato:** aperta.
+
+### D-45 · Ritocchi del pannello dalla prova
+- **Origine:** prova della 0.10.0 (R-9, R-10, R-12, E-1, E-3).
+- **Cosa:** libreria con vista griglia/elenco e miniature regolabili, nomi meno tagliati (E-1); messaggi che spariscono da soli dopo 4–5 s (E-3); barra di scorrimento verticale accanto alle schede del cliente anche con spazio (R-10); spazio vuoto tra la barra e il menu delle impostazioni (R-12); stato d'errore visibile in Panoramica (R-9).
+- **Stato:** decisa, da fare con la revisione grafica dopo la prova.
 
 ## Clienti e profili
 
@@ -197,4 +246,5 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **Origine:** tappa 4, Task 13b (test «gli stati non si confondono con l'accento»).
 - **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
 - **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
-- **Stato:** aperta.
+- **Prova della 0.10.0 (R-9):** Matteo trova il rosso di «Non riuscito» troppo vicino all'arancio, e in Panoramica un file non riuscito è un riquadro grigio senza segno d'errore.
+- **Stato:** decisa (b), oppure un badge con sfondo rosso; da fare con la revisione grafica dopo la prova.

@@ -35,6 +35,8 @@ Con `STORAGE_DRIVER=disk` (il default) tutto sta nel volume Docker `media`, mont
 - `users/<persona>/…`: le foto profilo delle persone;
 - `uploads/` (`MEDIA_UPLOAD_DIR`): i pezzi dei caricamenti in corso, fuori dalle chiavi qui sopra.
 
+Con il disco, ogni file comincia con una riga JSON (`{"contentType":"image/jpeg"}` e un a capo) prima dei byte veri: per aprirlo con altri strumenti, `tail -n +2 <file> > copia`.
+
 Lo spazio occupato: `./scripts/compose.sh exec worker du -sh /media/org /media/uploads`. Con S3 (`docker/compose.s3.yml`) le stesse chiavi sono oggetti del bucket; i pezzi dei caricamenti restano sul disco del web.
 
 Il nome di agenzia e file nelle cartelle è un id: per sapere a quale file corrisponde una cartella, `select original_name, status from media where id = '<file>'` con la `psql` di sotto.
