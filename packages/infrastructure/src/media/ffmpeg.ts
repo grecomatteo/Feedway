@@ -376,7 +376,7 @@ export function createFfmpeg(
     /**
      * The video to publish as a reel (D-40): the same streams in MP4 with `faststart`, no
      * metadata, when Meta takes them (§16.6, no encoding); otherwise H.264 High inside 1080×1920
-     * and 12 Mbit/s, at a fixed frame rate up to 60, and AAC at 48 kHz in stereo.
+     * and 18 Mbit/s, at a fixed frame rate up to 60, and AAC at 48 kHz in stereo.
      */
     async reel(
       path: string,
