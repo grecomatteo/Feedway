@@ -108,6 +108,67 @@ export interface RuleContext {
 
 export type RuleLevel = 'block' | 'warning' | 'fix'
 
+/**
+ * Every code an outcome can have: the panel's texts are `rules.<code>` (it.json), and a test
+ * fails when a code has no text, or a text no code. A rule giving a code not listed here does
+ * not compile.
+ */
+export const RULE_CODES = [
+  // blocks
+  'no_destinations',
+  'account_unavailable',
+  'platform_unsupported',
+  'account_unhealthy',
+  'no_media',
+  'carousel_too_few',
+  'media_not_matching_type',
+  'media_processing',
+  'media_failed',
+  'media_unavailable',
+  'scheduled_in_past',
+  'type_not_supported',
+  'caption_too_long',
+  'too_many_hashtags',
+  'too_many_mentions',
+  'carousel_too_many',
+  'reel_too_short',
+  'reel_too_long',
+  'story_too_short',
+  'quota_exhausted',
+  'facebook_reels_limit',
+  // warnings
+  'time_skipped',
+  'time_ambiguous',
+  'story_caption_ignored',
+  'file_convert_codec',
+  'file_convert_fps',
+  'photo_aspect_ratio',
+  'carousel_mixed_ratios',
+  'reel_aspect_ratio',
+  'story_too_long',
+  'cover_aspect_ratio',
+  'cover_on_facebook',
+  'reel_too_long_for_facebook',
+  'reel_resolution_low_for_facebook',
+  'carousel_mixed_with_facebook',
+  'facebook_too_many_photos',
+  'carousel_videos_with_facebook',
+  'quota_low',
+  'duplicate_post',
+  // fixes
+  'file_convert_to_jpeg',
+  'file_convert_to_srgb',
+  'file_strip_metadata',
+  'file_recompress',
+  'file_resize',
+  'file_faststart',
+  'file_convert_for_reels',
+  'file_convert_audio_for_reels',
+  'story_recompressed',
+  'cover_converted',
+] as const
+export type RuleCode = (typeof RULE_CODES)[number]
+
 /** Whom an outcome is about (plan 05, «Ogni esito sa di chi è»). */
 export type RuleSubject =
   | { kind: 'post' }
@@ -121,7 +182,7 @@ export type RuleParams = Record<string, string | number>
 export interface RuleOutcome {
   level: RuleLevel
   /** stable, in English: the panel's text is `rules.<code>` (plan 05, «Codici, non testi») */
-  code: string
+  code: RuleCode
   params: RuleParams
   subject: RuleSubject
   /** set when only that platform's destinations are concerned */
@@ -146,7 +207,7 @@ export type PostEffect =
 /** What a rule finds: an outcome without its key, and what each option does to the post. */
 export interface RuleFinding {
   level: RuleLevel
-  code: string
+  code: RuleCode
   params?: RuleParams
   subject: RuleSubject
   platform?: Platform

@@ -52,6 +52,7 @@ export type {
   LibraryFolderRecord,
   MediaFacts,
   MediaFilter,
+  MediaForRules,
   MediaRecord,
   MediaRepository,
   MediaTurn,
@@ -132,6 +133,8 @@ export * from './platform/index.js'
 export * from './workspaces/index.js'
 export * from './accounts/index.js'
 export * from './media/index.js'
+export * from './rules/index.js'
+export type { PublishingHistory } from './ports/publishing-history.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
 export type {

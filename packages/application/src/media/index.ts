@@ -47,3 +47,4 @@ export { ORPHAN_PARTS_MIN_AGE_MS, runMediaUploadsCleanup } from './uploads-clean
 export type { UploadsCleanupDeps, UploadsCleanupReport } from './uploads-cleanup.js'
 export { MEDIA_PROCESS_LOCK, processNextMedia, wakeMediaProcessing } from './process.js'
 export type { MediaProcessDeps, MediaProcessJob, MediaProcessOutcome } from './process.js'
+export { getMediaForRules } from './rules.js'

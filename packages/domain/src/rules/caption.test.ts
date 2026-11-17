@@ -38,3 +38,13 @@ test('a platform with its own text publishes it, the others the common text', ()
 test('a story publishes no text', () => {
   expect(publishedCaption({ type: 'story', caption }, 'instagram')).toBe('')
 })
+
+test('an empty or blank text of a platform is no text of its own: the common one goes out', () => {
+  for (const blank of ['', '   ', '\n\t'])
+    expect(
+      publishedCaption(
+        { type: 'photo', caption: { common: 'Comune', instagram: blank } },
+        'instagram',
+      ),
+    ).toBe('Comune')
+})

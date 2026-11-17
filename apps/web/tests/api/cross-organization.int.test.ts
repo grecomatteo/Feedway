@@ -6,6 +6,7 @@ import type { ErrorJson } from './identity-env.js'
 import {
   PLACEHOLDER_IDS,
   fill,
+  routeKey,
   idKindsIn,
   pathValues,
   sampleBody,
@@ -13,7 +14,7 @@ import {
   secretsIn,
   startIsolationFixture,
 } from './support/isolation-fixture.js'
-import type { IsolationFixture, SampleIds } from './support/isolation-fixture.js'
+import type { IdKind, IsolationFixture, SampleIds } from './support/isolation-fixture.js'
 
 let fx: IsolationFixture
 
@@ -79,11 +80,22 @@ test.each(orgRequests)('member of B cannot reach A via $method $path', async (r)
 })
 
 /**
+ * Routes whose body ids of the other agency are not a 404 but an outcome: the checks before
+ * scheduling say «non disponibile in questo cliente» for a file or an account that is not the
+ * workspace's, whoever owns it (plan 05 Task 2). Their own case is below.
+ */
+const BODY_IDS_AS_OUTCOMES: Record<string, readonly IdKind[]> = {
+  'POST /api/v1/orgs/{org}/workspaces/{id}/post-checks': ['media', 'account'],
+}
+
+/**
  * One id of the other agency at a time, the others of the agency in the path: a workspace of A
  * with a person of B, a workspace of B with a person of A, and so on, in both directions.
  */
 const foreignIdCases = orgRequests.flatMap((r) =>
-  idKindsIn(r.route, r.withQuery).map((kind) => ({ ...r, kind })),
+  idKindsIn(r.route, r.withQuery)
+    .filter((kind) => !BODY_IDS_AS_OUTCOMES[routeKey(r.route)]?.includes(kind))
+    .map((kind) => ({ ...r, kind })),
 )
 
 test('every id a request carries gets its own case', () => {
@@ -174,4 +186,52 @@ test('disabled in B, a person keeps A', async () => {
     fx.env.call('GET', `/api/v1/orgs/${slug}/workspaces`, undefined, { cookie })
   expect((await workspaces(fx.a.slug)).status).toBe(200)
   expect((await workspaces(fx.b.slug)).status).toBe(404)
+})
+
+test('a file and an account of B in the checks of a post of A: blocked, with nothing of B', async () => {
+  const idsOfA = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
+  const idsOfB = await fx.caseIds({ agency: 'b', actorsInWorkspace: true })
+  const before = await fx.snapshot()
+  const r = await fx.env.call(
+    'POST',
+    `/api/v1/orgs/${idsOfA.org}/workspaces/${idsOfA.workspace}/post-checks`,
+    {
+      type: 'reel',
+      mediaIds: [idsOfB.media],
+      caption: { common: 'Il pane di oggi' },
+      destinations: [{ accountId: idsOfB.account }],
+      when: { mode: 'now' },
+      choices: [],
+    },
+    { cookie: fx.cookies.owner },
+  )
+  const text = await r.text()
+  expect(r.status, text).toBe(200)
+  const report = JSON.parse(text) as {
+    outcomes: { code: string }[]
+    destinations: { accountId: string; platform: string | null; format: string | null }[]
+    canSchedule: boolean
+  }
+  expect(report.outcomes.map((o) => o.code).sort()).toEqual([
+    'account_unavailable',
+    'media_unavailable',
+  ])
+  expect(report.destinations).toEqual([
+    expect.objectContaining({ accountId: idsOfB.account, platform: null, format: null }),
+  ])
+  expect(report.canSchedule).toBe(false)
+  // nothing of B's rows: no name, no platform, no file
+  const ofB = await withScope(fx.env.tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query<{ name: string; original_name: string }>(
+      `select a.name, m.original_name from social_accounts a, media m
+        where a.id = $1 and m.id = $2`,
+      [idsOfB.account, idsOfB.media],
+    ),
+  )
+  for (const row of ofB.rows) {
+    expect(text).not.toContain(row.name)
+    expect(text).not.toContain(row.original_name)
+  }
+  expect(text).not.toMatch(/instagram|facebook/)
+  expect(await fx.snapshot()).toEqual(before)
 })

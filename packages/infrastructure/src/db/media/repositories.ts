@@ -4,12 +4,14 @@ import type {
   LibraryFolderRecord,
   MediaFacts,
   MediaFilter,
+  MediaForRules,
   MediaRecord,
   MediaRepository,
   MediaVariantRecord,
   PublicVariantRecord,
 } from '@app/application'
 import type {
+  FileAnalysis,
   MediaChecks,
   MediaFailure,
   MediaKind,
@@ -500,6 +502,37 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             inArray(libraryFolders.id, ids),
           ),
         )
+    },
+    async forRules(organizationId, workspaceId, mediaIds): Promise<MediaForRules[]> {
+      if (mediaIds.length === 0) return []
+      const rows = await db
+        .select({
+          id: media.id,
+          kind: media.kind,
+          status: media.status,
+          analysis: media.analysis,
+          checks: media.checks,
+          failure: media.failure,
+          sha256: media.sha256,
+        })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.workspaceId, workspaceId),
+            inArray(media.id, [...mediaIds]),
+          ),
+        )
+      // the check constraints keep kind and status inside their lists; the worker wrote the rest
+      return rows.map((r) => ({
+        id: r.id,
+        kind: r.kind as MediaKind,
+        status: r.status as MediaStatus,
+        analysis: (r.analysis ?? null) as FileAnalysis | null,
+        checks: (r.checks ?? null) as MediaChecks | null,
+        failure: (r.failure ?? null) as MediaFailure | null,
+        sha256: r.sha256,
+      }))
     },
     async findById(organizationId, mediaId) {
       const [row] = await withLibrary(db).where(

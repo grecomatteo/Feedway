@@ -1,4 +1,4 @@
-import { META_RULES } from '../platforms/meta/rules/index.js'
+import { INSTAGRAM_RULES, META_RULES } from '../platforms/meta/rules/index.js'
 import type { FileAnalysis } from '../media/check-file.js'
 import { postFingerprint } from './evaluate-post.js'
 import { platformRulesMap } from './platform-rules.js'
@@ -347,6 +347,49 @@ export const RULE_CASES: RuleCase[] = [
       warning('file_convert_fps', 'media:0'),
     ],
   ),
+  c(
+    'file-reel-copy',
+    'file',
+    'Video 4K a 25 Mbit/s con audio a 44,1 kHz mono per un reel',
+    reel(
+      20_000,
+      { width: 2160, height: 3840 },
+      {
+        media: [
+          video(
+            20_000,
+            { width: 2160, height: 3840 },
+            {
+              checks: {
+                fixes: [{ code: 'convert_for_reels', width: 1080 }],
+                warnings: [],
+              },
+            },
+          ),
+        ],
+      },
+    ),
+    [fix('file_convert_for_reels', 'media:0')],
+  ),
+  c(
+    'file-reel-audio',
+    'file',
+    'Video di un reel con l’audio a 44,1 kHz mono e il video già nei limiti',
+    reel(
+      20_000,
+      {},
+      {
+        media: [
+          video(
+            20_000,
+            {},
+            { checks: { fixes: [{ code: 'convert_audio_for_reels' }], warnings: [] } },
+          ),
+        ],
+      },
+    ),
+    [fix('file_convert_audio_for_reels', 'media:0')],
+  ),
 
   // — Proporzioni e durata (§9.2)
   c(
@@ -476,6 +519,13 @@ export const RULE_CASES: RuleCase[] = [
     [block('caption_too_long', 'post', 'instagram')],
   ),
   c(
+    'caption-ig-empty',
+    'post',
+    'Testo per Instagram lasciato vuoto: vale il testo comune, e si controlla quello',
+    draft({ caption: { common: chars(2201), instagram: '' } }),
+    [block('caption_too_long', 'post', 'instagram')],
+  ),
+  c(
     'hashtags-31',
     'post',
     'Caption con 31 hashtag',
@@ -567,6 +617,14 @@ export const RULE_CASES: RuleCase[] = [
     'Account che non esiste o di un’altra agenzia: lo stesso esito',
     draft({ destinations: [{ accountId: 'acc-unknown' }] }),
     [block('account_unavailable', 'destination:acc-unknown')],
+  ),
+  c(
+    'platform-without-rules',
+    'post',
+    'Account di una piattaforma di cui l’installazione non ha le regole (qui Facebook)',
+    draft(),
+    [block('platform_unsupported', `destination:${FB}`)],
+    { ...ctx, platforms: platformRulesMap([INSTAGRAM_RULES]) },
   ),
   c(
     'account-red',

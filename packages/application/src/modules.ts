@@ -5,6 +5,7 @@ import { mediaModule } from './media/module.js'
 import type { ModuleDefinition, UserAnonymizedHandler } from './module-definition.js'
 import { organizationsModule } from './organizations/module.js'
 import { platformModule } from './platform/module.js'
+import { rulesModule } from './rules/module.js'
 import { workspacesModule } from './workspaces/module.js'
 
 /** Every module of the application: the only central list (docs/moduli.md). */
@@ -15,6 +16,7 @@ export const MODULES: readonly ModuleDefinition[] = [
   workspacesModule,
   accountsModule,
   mediaModule,
+  rulesModule,
   auditModule,
 ]
 

@@ -153,6 +153,17 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/folders/{folderId}': () => ({
     name: `Rinominata ${randomUUID().slice(0, 8)}`,
   }),
+  // the case's file and account (the account is in no workspace: «non disponibile»). Ids of
+  // the other agency in the body are not a 404 but the same block, with nothing of theirs
+  // (cross-organization.int.test.ts, BODY_IDS_AS_OUTCOMES)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/post-checks': (ids) => ({
+    type: 'reel',
+    mediaIds: [ids.media],
+    caption: { common: 'Il pane di oggi' },
+    destinations: [{ accountId: ids.account }],
+    when: { mode: 'now' },
+    choices: [],
+  }),
   // into the case's folder: a folder of the other agency must not be found
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}': (ids) => ({
     folderId: ids.folder,
