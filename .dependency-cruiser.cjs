@@ -142,6 +142,18 @@ module.exports = {
       from: { path: '(^|/)packages/(domain|application)/src/accounts/' },
       to: { path: '(^|/)packages/(domain|application)/src/platforms/' },
     },
+    {
+      name: 'rules-and-media-know-no-platform',
+      comment:
+        'ADR 019, plan 05: the rules engine and the media module get the platforms from the composition root, never import them',
+      severity: 'error',
+      from: {
+        path: '(^|/)packages/(domain|application)/src/(rules|media)/',
+        // the cases of the checks are test data, built with Meta's rules (plan 05)
+        pathNot: [TEST, '(^|/)packages/domain/src/rules/cases\\.ts$'],
+      },
+      to: { path: '(^|/)packages/(domain|application)/src/platforms/' },
+    },
     { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
     {
       name: 'no-orphans',

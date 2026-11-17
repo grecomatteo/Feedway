@@ -1,5 +1,4 @@
 import {
-  INSTAGRAM_PHOTO_MAX_BYTES,
   MASTER_MAX_SIDE,
   MEDIA_PROCESS_MAX_ATTEMPTS,
   PHOTO_MAX_WIDTH,
@@ -59,7 +58,7 @@ export interface MediaProcessDeps {
   transformer: MediaTransformer
   /** 32 characters, for the copy to publish (spec §16.1) */
   newPublicToken: () => string
-  /** MEDIA_MAX_* and MEDIA_WORKSPACE_MAX_BYTES */
+  /** MEDIA_MAX_*, MEDIA_WORKSPACE_MAX_BYTES and the platforms' photo limits */
   limits: FileLimits & { workspaceMaxBytes: number | null }
 }
 
@@ -313,7 +312,7 @@ async function processIn(
       signal,
       format: 'jpeg',
       maxWidth: PHOTO_MAX_WIDTH,
-      maxBytes: INSTAGRAM_PHOTO_MAX_BYTES,
+      maxBytes: deps.limits.photoMaxBytes.instagram,
       maxPixels: deps.limits.maxImagePixels,
     })
     if (!photo.ok) return refused(photo.reason, facts)

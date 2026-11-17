@@ -561,7 +561,11 @@ Ogni passo salva gli ID ricevuti prima del successivo, così si riprende dal pun
 
 Tre livelli: **Blocco** (non si programma), **Avviso con scelta** (si prosegue scegliendo; la scelta si salva), **Correzione automatica** (la facciamo noi e lo diciamo).
 
-Le regole stanno in `packages/domain/rules` e valgono ovunque: il pannello le usa per avvisare, l'API le riapplica al salvataggio, il worker prima di pubblicare.
+Le regole valgono ovunque: il pannello le usa per avvisare, l'API le riapplica al salvataggio, il worker prima di pubblicare. Sono una sola funzione pura, `evaluatePost(draft, context)`: il motore e i controlli comuni stanno in `packages/domain/src/rules/`, i tipi di contenuto, i limiti e i controlli propri di Meta in `packages/domain/src/platforms/meta/rules/` (ADR 019, §18.6). Il motore riceve le regole delle piattaforme in `context.platforms`, una mappa `piattaforma → regole` costruita nella radice di composizione: una piattaforma nuova aggiunge le sue regole senza toccare il motore (piano della tappa 5, R1 e R2).
+
+Le regole non rianalizzano i file: leggono l'analisi e i controlli che il worker ha salvato con il file (`media.analysis`, `media.checks`, `media.failure`). Un file non ancora pronto è un blocco («ancora in elaborazione»), un file non riuscito è un blocco con il suo motivo (R5).
+
+I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/rules/limits.ts`, ognuno con la pagina della documentazione da cui viene, la data del controllo (17 novembre 2026) e lo stato «non verificato su Meta vera» finché la tappa 7 non lo prova. Dove la documentazione e questa specifica non concordano resta il valore della specifica, e D-51 in `docs/decisioni-aperte.md` dice perché: il carosello di Instagram resta a 10 elementi (la pagina «Content Publishing» dice 10, «IG User Media» dice 20) e la foto per Facebook a 4 MB (la documentazione delle foto dice «meno di 10 MB»: la foto è solo ricompressa di più).
 
 **File**
 | Controllo | Livello | Azione |
@@ -586,6 +590,7 @@ Le regole stanno in `packages/domain/rules` e valgono ovunque: il pannello le us
 | Reel non 9:16 | Avviso | Pubblica così / adatta con bande / ritaglia |
 | Reel sotto 3 s o sopra 15 min | Blocco | |
 | Reel 90 s–15 min con FB scelto | Avviso | FB come video normale / salta FB |
+| Storia video sotto 3 s | Blocco | (§9.1: storia video 3–60 s) |
 | Storia video sopra 60 s | Avviso | Taglia ai primi 60 s / annulla |
 | Storia video oltre 100 MB | Correzione | Ricompressa |
 | Video sotto 540×960 per reel FB | Avviso | Qualità bassa, FB potrebbe rifiutarlo |

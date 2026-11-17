@@ -21,6 +21,8 @@ import type {
   UploadParts,
 } from '@app/application'
 import type { StorageConfig, WebConfig } from '@app/config'
+import { platformRulesMap, type Platform, type PlatformRules } from '@app/domain'
+import { META_RULES } from '@app/domain/platforms/meta'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createKeyRing } from './crypto/key-ring.js'
@@ -97,11 +99,16 @@ export interface Runtime {
   meta: Pick<PlatformConnector<MetaAppCredentials>, 'verifyApp'>
   /** The registry of the platforms (ADR 019): `connection kind → PlatformConnector`. */
   connectors: PlatformConnectors
+  /** The rules of the platforms (ADR 019, plan 05 R2): `platform → PlatformRules`. */
+  platformRules: ReadonlyMap<Platform, PlatformRules>
   /** Seals and opens the tokens of the connections with the agency's data key. */
   connectionTokens: ConnectionTokens
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
+
+/** Like the connectors, the platforms' rules are gathered here only (ADR 019). */
+export const PLATFORM_RULES = platformRulesMap(META_RULES)
 
 const POOL_SIZE: Record<RuntimeRole, number> = { web: 10, worker: 5 }
 
@@ -214,6 +221,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       integrations,
       mailer,
       ...createMeta(config, { clock, logger, integrations }),
+      platformRules: PLATFORM_RULES,
       connectionTokens: createConnectionTokens({ keyRing }),
       close: () => handle.close(),
     }

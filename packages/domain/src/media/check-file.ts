@@ -32,13 +32,19 @@ export type FileAnalysis =
       faststart: boolean
     }
 
-/** The upload limits of the installation (MEDIA_MAX_*). */
+/** The upload limits of the installation (MEDIA_MAX_*), and the platforms' photo limits. */
 export interface FileLimits {
   maxImageBytes: number
   maxImagePixels: number
   maxVideoBytes: number
   maxVideoSeconds: number
   maxVideoPixels: number
+  /**
+   * The most a photo may weigh on each platform: Meta's limits live with Meta's rules
+   * (`platforms/meta/rules/limits.ts`, ADR 019), and the worker passes them from the
+   * composition root (`photoMaxBytesOf`).
+   */
+  photoMaxBytes: { instagram: number; facebook: number }
 }
 
 export type FileBlock =
@@ -70,9 +76,6 @@ export interface FileCheck {
   warnings: FileWarning[]
 }
 
-/** Meta's limits for a photo (§9.2), in decimal megabytes: the lower reading of "8 MB". */
-export const INSTAGRAM_PHOTO_MAX_BYTES = 8_000_000
-export const FACEBOOK_PHOTO_MAX_BYTES = 4_000_000
 export const PHOTO_MAX_WIDTH = 1440
 /**
  * The long side of the photo kept for the editor (D-26, plan 04 Scelta 6): a 9:16 story cut
@@ -104,10 +107,10 @@ export function checkFile(analysis: FileAnalysis, limits: FileLimits): FileCheck
     if (analysis.format !== 'jpeg') fixes.push({ code: 'convert_to_jpeg' })
     if (analysis.colorSpace === 'other') fixes.push({ code: 'convert_to_srgb' })
     if (analysis.hasMetadata) fixes.push({ code: 'strip_metadata' })
-    if (analysis.sizeBytes > INSTAGRAM_PHOTO_MAX_BYTES)
-      fixes.push({ code: 'recompress', platform: 'instagram', limit: INSTAGRAM_PHOTO_MAX_BYTES })
-    if (analysis.sizeBytes > FACEBOOK_PHOTO_MAX_BYTES)
-      fixes.push({ code: 'recompress', platform: 'facebook', limit: FACEBOOK_PHOTO_MAX_BYTES })
+    for (const platform of ['instagram', 'facebook'] as const) {
+      const limit = limits.photoMaxBytes[platform]
+      if (analysis.sizeBytes > limit) fixes.push({ code: 'recompress', platform, limit })
+    }
     if (analysis.width > PHOTO_MAX_WIDTH) fixes.push({ code: 'resize', width: PHOTO_MAX_WIDTH })
   } else {
     const audioOk = analysis.audioCodec === null || AUDIO_CODECS.includes(analysis.audioCodec)

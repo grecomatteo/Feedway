@@ -1,4 +1,5 @@
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
+import { photoMaxBytesOf } from '@app/domain'
 import { join } from 'node:path'
 import {
   createAdvisoryLock,
@@ -60,7 +61,7 @@ async function main(): Promise<void> {
         // on the media volume, outside the storage keys: /tmp is memory in the container
         scratch: createMediaScratch({ dir: join(config.mediaRoot, 'work') }),
         newPublicToken,
-        limits: config.media,
+        limits: { ...config.media, photoMaxBytes: photoMaxBytesOf(runtime.platformRules) },
       },
     },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
