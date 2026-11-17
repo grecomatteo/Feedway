@@ -287,7 +287,7 @@ test('an HEVC MOV: the H.264 preview first, then the copy to publish', async () 
   await wake(deps(tools({ calls })), a, id)
 
   expect(calls.names[0]).toBe('videoPreview')
-  expect(calls.names).toEqual(['videoPreview', 'videoRemux', 'videoFrame'])
+  expect(calls.names).toEqual(['videoPreview', 'videoReel', 'videoFrame'])
   const media = await row(id)
   expect(media).toMatchObject({ status: 'ready', video_codec: 'hevc', duration_ms: 1000 })
   // a video keeps its original, never served by /m/*
@@ -323,6 +323,31 @@ test('an MP4 without faststart is remuxed without encoding again', async () => {
   const info = probeFile(join(dir, 'faststart.mp4'))
   expect(info.streams.map((s) => s.codec_name)).toEqual(['h264', 'aac'])
   expect(info.format.tags?.location).toBeUndefined()
+})
+
+test('a 4K video gets a copy to publish converted inside the limits of Reels, and says so', async () => {
+  const a = await agency()
+  const id = await waiting(a, await video('4k-portrait.mp4'), 'mp4')
+  await wake(deps(), a, id)
+  const media = await row(id)
+  expect(media).toMatchObject({ status: 'ready', width: 2160, height: 3840 })
+  expect(media?.checks?.fixes).toContainEqual({ code: 'convert_for_reels', width: 1080 })
+  const reel = (await variants(id)).find((v) => v.purpose === 'reel')
+  const info = probeFile(await local(reel?.storage_key ?? '', 'reel-4k.mp4'))
+  expect(info.streams.find((s) => s.codec_type === 'video')).toMatchObject({
+    codec_name: 'h264',
+    width: 1080,
+    height: 1920,
+  })
+})
+
+test('a video at 120 fps: the copy to publish is at 60, nothing more is proposed', async () => {
+  const a = await agency()
+  const id = await waiting(a, await video('fps-120.mp4'), 'mp4')
+  await wake(deps(), a, id)
+  const media = await row(id)
+  expect(media?.checks?.fixes).toContainEqual({ code: 'convert_for_reels', width: 320 })
+  expect(media?.checks?.warnings.map((w) => w.code)).not.toContain('convert_fps')
 })
 
 test.each([
@@ -521,7 +546,7 @@ test('a file deleted while it is processed leaves no copy behind', async () => {
   const a = await agency()
   const id = await waiting(a, await video('hevc.mov'), 'mov')
   const around = async (name: string) => {
-    if (name === 'videoRemux')
+    if (name === 'videoReel')
       await admin.query(`update media set status = 'deleted', deleted_at = now() where id = $1`, [
         id,
       ])

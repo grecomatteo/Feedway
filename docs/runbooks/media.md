@@ -19,6 +19,7 @@ Si cambiano in `.env` (poi `./scripts/compose.sh up -d web worker`); vuoti valgo
 | Pezzi del caricamento | 20 MiB; il server del pannello dà 300 s a ogni richiesta | — |
 | Caricamento non finito | si cancella dopo 24 ore | — |
 | Tempo di una conversione video | 2 minuti più 4 volte la durata, al massimo 60 minuti (un reel di 60 s: 6 minuti) | — |
+| Copia `reel` di un video | copiata così com'è se rientra nei limiti delle Reels (lato lungo fino a 1920, fino a 25 Mbit/s, fino a 60 fps fissi, audio fino a 48 kHz stereo); altrimenti convertita in H.264 dentro 1080×1920 a circa 10 Mbit/s (D-40) | — |
 | Tentativi di una conversione | 3; un riavvio pulito del worker non ne consuma | — |
 | Letture alla volta sull'host pubblico | 3 per processo, poi 503 con `Retry-After: 5` | — |
 | Memoria dei contenitori | worker 2 GB, web 1536 MB | `docker/compose.yml` |
