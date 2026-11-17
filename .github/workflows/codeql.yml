@@ -1,0 +1,56 @@
+name: CodeQL
+
+# GitHub's code scanning (spec §15.8). Free only while the repository is public: on a private
+# repository without Advanced Security the upload is refused, so the job checks the visibility
+# first and does nothing there (docs/runbooks/impostazioni-github.md). Not a required check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    # Monday 05:17 UTC: new queries run on code that did not change
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - id: visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" >> "$GITHUB_OUTPUT"
+      - if: steps.visibility.outputs.private == 'true'
+        run: echo "::notice::Private repository, CodeQL needs Advanced Security. Analysis skipped."
+      - if: steps.visibility.outputs.private != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: steps.visibility.outputs.private != 'true'
+        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - design/**
+              - docs/**
+      - if: steps.visibility.outputs.private != 'true'
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          category: /language:${{ matrix.language }}
