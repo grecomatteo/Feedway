@@ -147,8 +147,8 @@ test('a piece that hangs with no error is given up, and the upload goes on by it
   await input(page).setInputFiles(fixture('frame.jpg'))
   await expect.poll(() => seen.pieces).toBe(1)
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'uploading')
-  // 45 seconds without a byte: the piece is given up and the upload resumes
-  await page.clock.fastForward('00:46')
+  // 30 seconds without a byte (D-41): the piece is given up and the upload resumes
+  await page.clock.fastForward('00:31')
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'offline')
   await page.clock.fastForward('00:05')
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {

@@ -8,6 +8,7 @@ import {
   HttpProblem,
   failureEntry,
   failureForLog,
+  isClientGone,
   issuesFromZod,
   toErrorResponse,
 } from '../server/utils/http-errors.ts'
@@ -227,4 +228,21 @@ test('the logged entry of a failure hides link tokens and drops the query', () =
   expect(entry).toMatchObject({ requestId: REQUEST_ID, method: 'POST' })
   expect(entry.path).toBe('/api/v1/links/[REDACTED]/activate')
   expect(JSON.stringify(entry)).not.toMatch(/cavallo|batteria|boom/)
+})
+
+describe('isClientGone', () => {
+  const coded = (code: string, cause?: unknown) =>
+    Object.assign(new Error('socket', cause === undefined ? {} : { cause }), { code })
+  test('a phone that loses the network during a piece is the client going away (D-41)', () => {
+    expect(isClientGone(coded('ECONNRESET'))).toBe(true)
+    expect(isClientGone(coded('ERR_STREAM_PREMATURE_CLOSE'))).toBe(true)
+    expect(isClientGone(coded('ECONNABORTED'))).toBe(true)
+    // wrapped by the code that read the body
+    expect(isClientGone(new Error('piece not written', { cause: coded('ECONNRESET') }))).toBe(true)
+  })
+  test('anything else stays an unexpected failure', () => {
+    expect(isClientGone(new Error('boom'))).toBe(false)
+    expect(isClientGone(coded('ENOSPC'))).toBe(false)
+    expect(isClientGone('ECONNRESET')).toBe(false)
+  })
 })

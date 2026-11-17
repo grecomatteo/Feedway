@@ -47,7 +47,7 @@ const MAX_ACTIVE = 2
 const RUNNING: readonly UploadState[] = ['hashing', 'uploading', 'completing']
 const PREVIEWABLE_IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 /** A piece that sends no byte for this long hangs: it is given up and the upload resumes. */
-const STALL_MS = 45_000
+const STALL_MS = 30_000
 /** The short calls (start, state); `complete` joins up to 300 MB, so it has longer. */
 const CALL_MS = 30_000
 const COMPLETE_MS = 120_000
@@ -772,9 +772,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     }
   })
 
-  function online() {
-    restartAll()
-  }
+  let offNetwork: (() => void) | null = null
   function visible() {
     if (document.visibilityState === 'visible') wakeAll()
   }
@@ -782,14 +780,14 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     if (totals.value.active) event.preventDefault()
   }
   onMounted(() => {
-    window.addEventListener('online', online)
+    offNetwork = onNetworkChange(restartAll)
     document.addEventListener('visibilitychange', visible)
     window.addEventListener('beforeunload', leaving)
     loading = load()
   })
   onBeforeUnmount(() => {
     alive = false
-    window.removeEventListener('online', online)
+    offNetwork?.()
     document.removeEventListener('visibilitychange', visible)
     window.removeEventListener('beforeunload', leaving)
     for (const item of items.value) {

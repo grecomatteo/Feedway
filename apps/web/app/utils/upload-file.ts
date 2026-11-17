@@ -142,6 +142,29 @@ export function rateMeter(windowMs: number) {
 }
 
 /**
+ * Calls `changed` when the network comes back (`online`) or changes under the page (Wi-Fi to 5G,
+ * which `online` does not tell: the Network Information API, where the browser has it). A request
+ * on the old connection may hang with no error, so the uploads start again (D-41).
+ */
+export function onNetworkChange(
+  changed: () => void,
+  on: {
+    win: EventTarget
+    connection: EventTarget | undefined
+  } = {
+    win: window,
+    connection: (navigator as Navigator & { connection?: EventTarget }).connection,
+  },
+): () => void {
+  on.win.addEventListener('online', changed)
+  on.connection?.addEventListener('change', changed)
+  return () => {
+    on.win.removeEventListener('online', changed)
+    on.connection?.removeEventListener('change', changed)
+  }
+}
+
+/**
  * Calls `stalled` once when `poke` has not come for `ms`: a request that hangs with no error
  * (the network changed, the tab was suspended) is given up instead of waited for ever.
  */
