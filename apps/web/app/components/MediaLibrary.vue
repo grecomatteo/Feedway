@@ -647,7 +647,7 @@ function filesDrop(event: DragEvent) {
               :max="THUMB_SIZES.length - 1"
               :step="1"
               class="w-24"
-              :ui="{ track: 'bg-(--app-border-strong)' }"
+              :ui="{ root: 'max-md:h-11', track: 'bg-(--app-border-strong)' }"
               :aria-label="$t('library.view.size')"
               :aria-valuetext="sizeText"
             />

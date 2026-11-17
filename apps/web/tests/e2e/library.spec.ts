@@ -213,7 +213,7 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
     const button = tile(page, name)
       .getByRole('button', { name: new RegExp(name) })
       .first()
-    expect(await button.evaluate((b) => b.scrollWidth <= b.clientWidth)).toBe(true)
+    expect(await button.evaluate((b) => b.scrollHeight <= b.clientHeight)).toBe(true)
   }
   // the failed file says so in red
   await expect(tile(page, 'IMG_0233.mov')).toContainText('Non riuscito')
@@ -224,6 +224,11 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
   const before = await columns()
   const size = page.getByRole('slider', { name: 'Dimensione delle miniature' })
   await expect(size).toHaveAttribute('aria-valuetext', 'Medie')
+  if (isPhone(page)) {
+    // a target of 44 px on a phone
+    const box = await page.locator('[data-thumb-size] [data-slot="root"]').boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+  }
   await size.focus()
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowRight')

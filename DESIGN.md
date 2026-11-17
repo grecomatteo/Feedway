@@ -194,7 +194,7 @@ E5b è l'«avviso inviato anche al vecchio indirizzo»: parte insieme a E5, al m
 
 - Link a blocco «bulletproof» (tabella con cella colorata più `<a>` con padding; VML per Outlook se serve), altezza **48 px**, padding orizzontale 28, raggio 8, testo **16 px peso 600**.
 - Principale: fondo `#FF762E`, bordo 2 px `#242321`, testo `#242321` (5,89:1).
-- Sicurezza («Non sono stato io»): fondo `#B3261E`, bordo uguale, testo `#FFFFFF` (6,54:1).
+- Sicurezza («Non sono stato io»): fondo `#B5174B`, bordo uguale, testo `#FFFFFF` (6,3:1; il rosso cremisi di D-25).
 - A 600 px largo quanto il testo, a sinistra; sotto i 480 px a tutta larghezza.
 - Sotto ogni pulsante, a 16 px: «Se il pulsante non funziona, copia questo indirizzo nel browser:» e l'URL completo in chiaro.
 

@@ -101,8 +101,8 @@ function dragStart(event: DragEvent) {
       </span>
       <span
         v-if="percent !== null"
-        class="absolute bottom-2 h-1 overflow-hidden rounded-full bg-(--app-border)"
-        :class="layout === 'list' ? 'inset-x-1.5 bottom-1.5' : 'inset-x-2'"
+        class="absolute h-1 overflow-hidden rounded-full bg-(--app-border)"
+        :class="layout === 'list' ? 'inset-x-1.5 bottom-1.5' : 'inset-x-2 bottom-2'"
       >
         <span
           class="block h-full rounded-full bg-(--app-brand)"
