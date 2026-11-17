@@ -319,14 +319,14 @@ describe('what is not the workspace’s', () => {
         .map((id) => `block account_unavailable account_unavailable:destination:${id}`)
         .sort(),
     )
-    expect(report.destinations.map((d) => ({ ...d, outcomes: [] }))).toEqual([
+    expect(report.destinations).toEqual([
       {
         accountId: notAssigned,
         platform: null,
         format: null,
         caption: '',
         media: [],
-        outcomes: [],
+        outcomeKeys: [`account_unavailable:destination:${notAssigned}`],
       },
       {
         accountId: ofOther,
@@ -334,7 +334,7 @@ describe('what is not the workspace’s', () => {
         format: null,
         caption: '',
         media: [],
-        outcomes: [],
+        outcomeKeys: [`account_unavailable:destination:${ofOther}`],
       },
     ])
     const text = JSON.stringify(report)
@@ -385,6 +385,15 @@ describe('the files', () => {
     expect(JSON.stringify(report)).not.toContain(inOther)
   })
 
+  test('a video of the workspace as the cover photo blocks, and nothing else of it is said', async () => {
+    const report = await checkPost(
+      deps,
+      actor(people.editor),
+      reel({ cover: { source: 'image', mediaId: corrected }, destinations: [{ accountId: ig }] }),
+    )
+    expect(codes(report)).toEqual(['block cover_not_image cover_not_image:cover'])
+  })
+
   test('a file still being prepared blocks', async () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [processing] }))
     expect(codes(report)).toEqual(['block media_processing media_processing:media:0'])
@@ -430,6 +439,17 @@ describe('the history of the accounts', () => {
       { accountIds: [ig, fb].sort(), at: new Date('2026-11-18T17:00:00Z') },
     ])
   })
+})
+
+test('a saved choice its warning no longer offers is left out, not an error (D-54)', async () => {
+  const key = 'file_convert_fps:media:0'
+  const report = await checkPost(
+    deps,
+    actor(people.editor),
+    reel({ mediaIds: [corrected], choices: [{ key, option: 'skip_platform' }] }),
+  )
+  expect(report.invalidChoices).toEqual([{ key, option: 'skip_platform' }])
+  expect(report.unresolved).toEqual([key])
 })
 
 test('a check writes nothing, not even the activity log', async () => {

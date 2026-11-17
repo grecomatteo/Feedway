@@ -4,6 +4,7 @@ import { FB, IG, RULE_CASES, context, draft, photo, video } from './cases.js'
 import { evaluatePost, outcomeKey, postFingerprint } from './evaluate-post.js'
 import { platformRulesMap } from './platform-rules.js'
 import { INSTAGRAM_RULES } from '../platforms/meta/rules/index.js'
+import type { MediaFailure } from '../media/processing.js'
 import type { PlatformRules, RuleOutcome, RuleReport } from './types.js'
 
 const short = (o: RuleOutcome) => {
@@ -36,6 +37,27 @@ describe('the cases of §9.1–9.2', () => {
       ).toEqual(c.destinations)
   })
 
+  test('every reason a file fails has a case of its own (§9.2 «File»)', () => {
+    const reasons: Record<MediaFailure['code'], true> = {
+      unsupported_type: true,
+      too_large: true,
+      too_many_pixels: true,
+      too_long: true,
+      unreadable: true,
+      timeout: true,
+      storage_full: true,
+      processing_failed: true,
+    }
+    const covered = new Set(
+      RULE_CASES.flatMap((c) =>
+        c.expected.some((e) => e.code === 'media_failed')
+          ? c.draft.media.flatMap((m) => (m.failure ? [m.failure.code] : []))
+          : [],
+      ),
+    )
+    expect([...covered].sort()).toEqual(Object.keys(reasons).sort())
+  })
+
   test('the ids are unique', () => {
     const ids = RULE_CASES.map((c) => c.id)
     expect(new Set(ids).size).toBe(ids.length)
@@ -47,6 +69,10 @@ const destination = (report: RuleReport, accountId: string) => {
   if (!found) throw new Error(`no destination ${accountId}`)
   return found
 }
+
+/** The codes of the outcomes a destination lists by key, in its order. */
+const codesOf = (report: RuleReport, keys: readonly string[]) =>
+  keys.map((k) => report.outcomes.find((o) => o.key === k)?.code)
 
 const keyOf = (report: RuleReport, code: string) => {
   const found = report.outcomes.find((o) => o.code === code)
@@ -91,12 +117,26 @@ describe('choices', () => {
     expect(() => evaluatePost(d, context())).toThrow(DomainError)
   })
 
-  test('an option the warning does not offer is refused', () => {
+  test('an option the warning does not offer is left out, and the warning is open again (D-54)', () => {
+    const key = 'photo_aspect_ratio:media:0:instagram'
     const d = draft({
       media: [photo({ width: 1080, height: 1920 })],
-      choices: [{ key: 'photo_aspect_ratio:media:0:instagram', option: 'skip_platform' }],
+      choices: [{ key, option: 'skip_platform' }],
     })
-    expect(() => evaluatePost(d, context())).toThrow(DomainError)
+    const report = evaluatePost(d, context())
+    expect(report.invalidChoices).toEqual([{ key, option: 'skip_platform' }])
+    expect(report.unresolved).toEqual([key])
+    expect(report.outcomes[0]?.chosen).toBeUndefined()
+    expect(report.canSchedule).toBe(false)
+  })
+
+  test('a valid choice says no invalid choice', () => {
+    const key = 'photo_aspect_ratio:media:0:instagram'
+    const d = draft({
+      media: [photo({ width: 1080, height: 1920 })],
+      choices: [{ key, option: 'pad' }],
+    })
+    expect(evaluatePost(d, context()).invalidChoices).toEqual([])
   })
 
   test('a choice for a warning that is no longer there does nothing', () => {
@@ -123,10 +163,10 @@ describe('choices', () => {
       choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'photos_only' }],
     })
     const report = evaluatePost(d, context())
-    expect(destination(report, FB).outcomes.map((o) => o.code)).toEqual([
+    expect(codesOf(report, destination(report, FB).outcomeKeys)).toEqual([
       'carousel_mixed_with_facebook',
     ])
-    expect(destination(report, IG).outcomes.map((o) => o.code)).toEqual(['file_convert_codec'])
+    expect(codesOf(report, destination(report, IG).outcomeKeys)).toEqual(['file_convert_codec'])
   })
 
   test('skipping the only platform leaves no destination', () => {
@@ -201,12 +241,12 @@ describe('the report', () => {
       format: 'feed_photo',
       caption: 'a'.repeat(2201),
     })
-    expect(ig.outcomes.map((o) => o.code)).toEqual(['caption_too_long'])
+    expect(codesOf(report, ig.outcomeKeys)).toEqual(['caption_too_long'])
     expect(fb).toMatchObject({
       platform: 'facebook',
       format: 'photo',
       caption: 'Comune',
-      outcomes: [],
+      outcomeKeys: [],
     })
   })
 
@@ -222,9 +262,61 @@ describe('the report', () => {
         format: null,
         caption: '',
         media: [],
-        outcomes: [expect.objectContaining({ code: 'account_unavailable' })],
+        outcomeKeys: ['account_unavailable:destination:acc-other-workspace'],
       },
     ])
+  })
+
+  test('each outcome is said once: destinations and post list it by key', () => {
+    const report = evaluatePost(
+      draft({
+        media: [photo({}, { checks: { fixes: [{ code: 'strip_metadata' }], warnings: [] } })],
+        caption: { common: 'a'.repeat(2201) },
+      }),
+      context(),
+    )
+    expect(report.outcomes.map((o) => o.key).sort()).toEqual([
+      'caption_too_long:post:instagram',
+      'file_strip_metadata:media:0',
+    ])
+    expect(report.postKeys.sort()).toEqual(report.outcomes.map((o) => o.key).sort())
+    expect(destination(report, IG).outcomeKeys.sort()).toEqual([
+      'caption_too_long:post:instagram',
+      'file_strip_metadata:media:0',
+    ])
+    expect(destination(report, FB).outcomeKeys).toEqual(['file_strip_metadata:media:0'])
+  })
+
+  test('the seconds next to a limit are rounded towards its wrong side (P3)', () => {
+    const short = evaluatePost(draft({ type: 'reel', media: [video(2_960)] }), context())
+    expect(short.outcomes[0]).toMatchObject({
+      code: 'reel_too_short',
+      params: { limit: 3, found: 2.9 },
+    })
+    const long = evaluatePost(draft({ type: 'reel', media: [video(90_040)] }), context())
+    expect(long.outcomes[0]).toMatchObject({
+      code: 'reel_too_long_for_facebook',
+      params: { limit: 90, found: 90.1 },
+    })
+  })
+
+  test('a frame after the end of the video blocks, with both times (P2)', () => {
+    const report = evaluatePost(
+      draft({
+        type: 'reel',
+        media: [video(10_000)],
+        destinations: [{ accountId: IG }],
+        cover: { source: 'frame', offsetMs: 600_000 },
+      }),
+      context(),
+    )
+    expect(report.outcomes).toEqual([
+      expect.objectContaining({
+        code: 'cover_frame_out_of_range',
+        params: { found: 600, limit: 10 },
+      }),
+    ])
+    expect(report.canSchedule).toBe(false)
   })
 
   test('the same account twice is one destination', () => {
@@ -273,7 +365,7 @@ describe('platforms', () => {
     expect(report.outcomes.map((o) => [o.code, o.platform])).toEqual([
       ['type_not_supported', 'facebook'],
     ])
-    expect(destination(report, IG).outcomes).toEqual([])
+    expect(destination(report, IG).outcomeKeys).toEqual([])
   })
 
   test('an account of a platform with no rules is blocked', () => {

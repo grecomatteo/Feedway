@@ -217,6 +217,58 @@ const duplicateSeen = postFingerprint(
   duplicate.caption.common,
 )
 
+const failed = (base: DraftMedia, failure: NonNullable<DraftMedia['failure']>): DraftMedia => ({
+  ...base,
+  status: 'failed',
+  analysis: null,
+  checks: null,
+  failure,
+})
+
+/** One case for every reason a file fails (§9.2 «File»): the table shows each text. */
+const FAILED_FILES: [string, string, DraftMedia][] = [
+  [
+    'file-failed-type',
+    'File che non è una foto né un video (tipo letto dai byte, non dal nome)',
+    failed(photo(), { code: 'unsupported_type' }),
+  ],
+  [
+    'file-failed-pixels',
+    'Foto oltre 50 megapixel',
+    failed(photo(), { code: 'too_many_pixels', limit: 50_000_000 }),
+  ],
+  [
+    'file-failed-video-large',
+    'Video oltre 300 MB',
+    failed(video(20_000), { code: 'too_large', limit: 300_000_000 }),
+  ],
+  [
+    'file-failed-video-long',
+    'Video oltre la durata massima di caricamento',
+    failed(video(20_000), { code: 'too_long', limitSeconds: 900 }),
+  ],
+  [
+    'file-failed-unreadable',
+    'File rovinato, che non si legge',
+    failed(photo(), { code: 'unreadable' }),
+  ],
+  [
+    'file-failed-timeout',
+    'Video 4K a 60 fps la cui preparazione è durata troppo',
+    failed(video(20_000), { code: 'timeout' }),
+  ],
+  [
+    'file-failed-storage',
+    'Spazio del cliente pieno durante la preparazione',
+    failed(photo(), { code: 'storage_full', scope: 'workspace', limit: 10_000_000_000 }),
+  ],
+  [
+    'file-failed-attempts',
+    'Preparazione non riuscita dopo vari tentativi',
+    failed(photo(), { code: 'processing_failed' }),
+  ],
+]
+
 export const RULE_CASES: RuleCase[] = [
   // — File (§9.2): the worker's analysis and checks, read again (R5)
   c('ok-photo', 'post', 'Foto 4:5 su Instagram e Facebook, tutto in regola', draft(), []),
@@ -233,6 +285,15 @@ export const RULE_CASES: RuleCase[] = [
       ],
     }),
     [block('media_failed', 'media:0')],
+  ),
+  ...FAILED_FILES.map(([id, scenario, media]) =>
+    c(
+      id,
+      'file',
+      scenario,
+      draft({ type: media.kind === 'video' ? 'reel' : 'photo', media: [media] }),
+      [block('media_failed', 'media:0')],
+    ),
   ),
   c(
     'file-processing',
@@ -421,6 +482,9 @@ export const RULE_CASES: RuleCase[] = [
   c('reel-too-short', 'proportions', 'Reel di 2,9 secondi', reel(2_900), [
     block('reel_too_short', 'media:0'),
   ]),
+  c('reel-2-96s', 'proportions', 'Reel di 2,96 secondi: il testo dice 2,9, non 3', reel(2_960), [
+    block('reel_too_short', 'media:0'),
+  ]),
   c('reel-3s', 'proportions', 'Reel di esattamente 3 secondi', reel(3_000), []),
   c(
     'reel-15min',
@@ -487,6 +551,27 @@ export const RULE_CASES: RuleCase[] = [
       },
     ),
     [fix('cover_converted', 'cover', 'instagram')],
+  ),
+  c(
+    'cover-not-image',
+    'proportions',
+    'Copertina del reel caricata, ma è un video, solo Instagram',
+    reel(20_000, {}, { destinations: onlyIg, cover: { source: 'image', media: video(5_000) } }),
+    [block('cover_not_image', 'cover')],
+  ),
+  c(
+    'cover-frame-end',
+    'proportions',
+    'Fotogramma della copertina all’ultimo istante di un reel di 20 secondi, solo Instagram',
+    reel(20_000, {}, { destinations: onlyIg, cover: { source: 'frame', offsetMs: 20_000 } }),
+    [],
+  ),
+  c(
+    'cover-frame-out',
+    'proportions',
+    'Fotogramma della copertina a 25 secondi in un reel di 20, solo Instagram',
+    reel(20_000, {}, { destinations: onlyIg, cover: { source: 'frame', offsetMs: 25_000 } }),
+    [block('cover_frame_out_of_range', 'cover')],
   ),
   c(
     'cover-fb',

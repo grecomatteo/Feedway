@@ -63,6 +63,8 @@ export const outcomeKey = (f: Pick<RuleFinding, 'code' | 'subject' | 'platform'>
 
 interface Pass {
   outcomes: RuleOutcome[]
+  /** choices with an option their warning does not offer: not applied */
+  invalid: RuleChoice[]
   effects: Map<string, Partial<Record<RuleOption, PostEffect>>>
   destinations: DestinationSummary[]
 }
@@ -177,16 +179,16 @@ function runPass(
 
   // the rules Instagram and Facebook share give the same key: one is kept
   const outcomes = new Map<string, RuleOutcome>()
+  const invalid: RuleChoice[] = []
   const effectsByKey = new Map<string, Partial<Record<RuleOption, PostEffect>>>()
   for (const f of findings) {
     const key = outcomeKey(f)
     if (outcomes.has(key)) continue
-    const chosen = choices.get(key)
-    if (chosen !== undefined && !f.options?.includes(chosen))
-      throw new DomainError('VALIDATION', 'option not allowed for this warning', {
-        key,
-        option: chosen,
-      })
+    const given = choices.get(key)
+    // an orphan choice (D-54): the warning stays to be answered, and the report says why
+    const valid = given !== undefined && f.options?.includes(given) === true
+    if (given !== undefined && !valid) invalid.push({ key, option: given })
+    const chosen = valid ? given : undefined
     const { effects: fx, ...rest } = f
     outcomes.set(key, { ...rest, params: f.params ?? {}, key, ...(chosen ? { chosen } : {}) })
     if (fx) effectsByKey.set(key, fx)
@@ -195,6 +197,7 @@ function runPass(
   const list = [...outcomes.values()]
   return {
     outcomes: list,
+    invalid,
     effects: effectsByKey,
     destinations: destinations.map((d) => {
       const view = d.account ? views.get(d.account.platform) : undefined
@@ -204,7 +207,7 @@ function runPass(
         format: view?.format ?? null,
         caption: view?.caption ?? '',
         media: view?.media.map((m) => m.index) ?? [],
-        outcomes: [],
+        outcomeKeys: [],
       }
     }),
   }
@@ -242,10 +245,12 @@ export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
     outcomes,
     destinations: pass.destinations.map((d) => ({
       ...d,
-      outcomes: outcomes.filter((o) => touches(o, d)),
+      outcomeKeys: outcomes.filter((o) => touches(o, d)).map((o) => o.key),
     })),
-    post: outcomes.filter((o) => o.subject.kind !== 'destination'),
+    postKeys: outcomes.filter((o) => o.subject.kind !== 'destination').map((o) => o.key),
     unresolved,
+    // of the last pass: a warning a choice took away says nothing of its own choices
+    invalidChoices: pass.invalid,
     canSchedule: unresolved.length === 0 && !outcomes.some((o) => o.level === 'block'),
     scheduledAt: when.scheduled ? when.instant : null,
     adjustment: when.adjustment,

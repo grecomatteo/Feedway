@@ -231,7 +231,8 @@
       "tooSmall": "Valore troppo piccolo.",
       "tooBig": "Valore troppo grande.",
       "unknownKey": "Campo non previsto.",
-      "missingBody": "Manca il corpo della richiesta."
+      "missingBody": "Manca il corpo della richiesta.",
+      "invalidChoice": "Questa risposta non è tra quelle dell'avviso."
     }
   },
   "errorPage": {
@@ -1667,6 +1668,14 @@
       "title": "Carosello con un file solo",
       "text": "Un carosello ha almeno {limit} file e qui ce n'è {found}. Aggiungi altri file, o pubblicalo come post con una foto."
     },
+    "cover_not_image": {
+      "title": "La copertina deve essere una foto",
+      "text": "Per la copertina del reel hai scelto un video. Scegli una foto, o un fotogramma del video."
+    },
+    "cover_frame_out_of_range": {
+      "title": "Il fotogramma scelto è oltre la fine del video",
+      "text": "Il fotogramma della copertina è a {found} secondi, e il video ne dura {limit}. Scegli un fotogramma dentro il video."
+    },
     "media_not_matching_type": {
       "title": "I file non vanno bene per «{type}»",
       "text": "Un post con una foto ha una foto sola, un reel un video solo, una storia un file solo. Cambia i file o il tipo di post."
@@ -1797,7 +1806,7 @@
     },
     "duplicate_post": {
       "title": "Post uguale a uno recente",
-      "text": "Negli ultimi 7 giorni questo account ha già un post con gli stessi file e lo stesso testo, e {platform} potrebbe mostrarlo meno. Va bene, oppure cambia qualcosa."
+      "text": "Negli ultimi 7 giorni questo account ha già un post con gli stessi file e lo stesso testo, e {platform} potrebbe rifiutarlo o mostrarlo meno. Va bene, oppure cambia qualcosa."
     },
     "file_convert_to_jpeg": {
       "title": "Foto convertita in JPEG",
@@ -1824,12 +1833,12 @@
       "text": "Il video viene sistemato perché parta subito, senza aspettare che sia scaricato tutto."
     },
     "file_convert_for_reels": {
-      "title": "Video convertito per i reel",
-      "text": "Il video supera i limiti dei reel: la copia da pubblicare viene convertita a {width} pixel di larghezza."
+      "title": "Video convertito nei limiti di Instagram e Facebook",
+      "text": "Il video supera i limiti di Instagram e Facebook: la copia da pubblicare viene convertita a {width} pixel di larghezza."
     },
     "file_convert_audio_for_reels": {
-      "title": "Audio convertito per i reel",
-      "text": "L'audio del video viene convertito nel formato che i reel accettano; le immagini restano come sono."
+      "title": "Audio convertito nei limiti di Instagram e Facebook",
+      "text": "L'audio del video viene convertito nel formato che Instagram e Facebook accettano; le immagini restano come sono."
     },
     "story_recompressed": {
       "title": "Video alleggerito per la storia",
