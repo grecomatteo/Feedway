@@ -30,10 +30,13 @@ Lo script mostra **una sola volta** la chiave privata dei backup. Salvala subito
 
 Si può rilanciare senza rischi: i segreti e le chiavi che esistono già non vengono mai riscritti.
 
+**Subito dopo: la scadenza della chiave di Tailscale.** Tailscale fa scadere dopo 180 giorni la chiave di un dispositivo entrato con una chiave di autenticazione normale: quel giorno il pannello smette di aprirsi, senza preavviso. In [login.tailscale.com](https://login.tailscale.com/admin/machines) → Machines apri il nodo del pannello (il nome host scelto sopra), poi **… → Disable key expiry**: sotto il nome compare «Expiry disabled». Se anche il nodo dell'host pubblico mostra una data di scadenza, fai lo stesso.
+
 ## Dove sono i segreti
 
 - `secrets/` (permessi `700`, file `600`): password di Postgres, URL del database, chiave di cifratura dei dati, chiavi di Tailscale (pannello e host pubblico). **Non vanno persi né pubblicati.** Se perdi `app_encryption_key`, i dati cifrati nel database (per esempio i token) non si possono più leggere.
 - `.env`: solo impostazioni senza segreti (immagine, versione, indirizzo del pannello, email dell'Owner, chiave pubblica dei backup).
+- Se un segreto è stato esposto: [cambiare i segreti](rotazione-segreti.md).
 - Fai una copia di `secrets/` in un posto sicuro fuori dalla VPS (per esempio nei backup cifrati). È l'unica copia della chiave dei dati: senza di lei non si leggono più. Tieni la chiave privata dei backup separata dal backup stesso.
 
 ## Email di sistema e filtro in uscita

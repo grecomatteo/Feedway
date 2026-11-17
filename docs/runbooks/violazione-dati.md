@@ -9,7 +9,7 @@ Il GDPR (art. 33) chiede di **avvisare il Garante entro 72 ore** da quando te ne
 1. **Chiudi l'accesso.**
    - Account rubato: dal pannello della piattaforma, oppure, da `/opt/feedway`, `./scripts/fw.sh disable-user <email>` (chiude tutte le sessioni). La persona stessa può usare «Non sono stato io» dall'email di sicurezza.
    - VPS compromessa: togli il nodo dalla rete Tailscale dalla console di Tailscale; non spegnere la VPS se puoi evitarlo (servono i log).
-2. **Cambia i segreti esposti**: password di Postgres, chiave di Tailscale, token Meta (dalla tappa 3). Mai incollarli in chat o in un ticket.
+2. **Cambia i segreti esposti**: password di Postgres, chiavi di Tailscale, token e App Secret di Meta, password SMTP; per il segreto di Better Auth e la chiave di cifratura leggi prima cosa comporta. Come fare, segreto per segreto: [cambiare i segreti](rotazione-segreti.md). Mai incollarli in chat o in un ticket.
 3. **Annota l'ora** in cui te ne sei accorto: da lì partono le 72 ore.
 
 ## Prime ore: capisci chi, cosa e quando
