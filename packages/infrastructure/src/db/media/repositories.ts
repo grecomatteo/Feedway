@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, lt, ne, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import type {
   LibraryFolderRecord,
@@ -202,6 +202,36 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .orderBy(media.createdAt, media.id)
       return rows.map((r) => r.id)
     },
+    async sameContent(organizationId, workspaceId, sha256, exceptId) {
+      const [row] = await db
+        .select({ id: media.id, originalName: media.originalName })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.workspaceId, workspaceId),
+            eq(media.sha256, sha256),
+            ne(media.status, 'deleted'),
+            ne(media.id, exceptId),
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+        .limit(1)
+      return row ?? null
+    },
+    async failedSince(organizationId, before) {
+      return db
+        .select({ id: media.id, workspaceId: media.workspaceId })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.status, 'failed'),
+            lt(media.updatedAt, before),
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+    },
     async nextToProcess() {
       // the agencies with a file waiting, the one served least recently first (never served:
       // before any), then its oldest file; runs in the system scope, ids only
@@ -302,6 +332,21 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           ...(failed.forgetOriginal && { storageKey: null }),
         })
         .where(stillProcessing(organizationId, mediaId))
+        .returning({ id: media.id })
+      return rows.length > 0
+    },
+    async markRetried(organizationId, mediaId) {
+      const rows = await db
+        .update(media)
+        .set({ status: 'processing', failure: null, progress: null, processingAttempts: 0 })
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.id, mediaId),
+            eq(media.status, 'failed'),
+            isNotNull(media.storageKey),
+          ),
+        )
         .returning({ id: media.id })
       return rows.length > 0
     },
@@ -515,7 +560,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .orderBy(mediaVariants.mediaId, mediaVariants.purpose)
       return rows.map((r): MediaVariantRecord => ({ ...r, purpose: r.purpose as VariantPurpose }))
     },
-    async markDeleted(organizationId, workspaceId, mediaId, at) {
+    async markDeleted(organizationId, workspaceId, mediaId, at, failedBefore) {
       const marked = await db
         .update(media)
         .set({ status: 'deleted', deletedAt: at })
@@ -525,6 +570,9 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             eq(media.workspaceId, workspaceId),
             eq(media.id, mediaId),
             ne(media.status, 'deleted'),
+            ...(failedBefore
+              ? [eq(media.status, 'failed'), lt(media.updatedAt, failedBefore)]
+              : []),
           ),
         )
         .returning({ id: media.id })

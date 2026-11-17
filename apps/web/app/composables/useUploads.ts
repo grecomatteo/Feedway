@@ -1,4 +1,4 @@
-import type { MediaDto, UploadDto } from '@app/contracts'
+import type { CompletedUploadDto, MediaDto, UploadDto } from '@app/contracts'
 import type { ApiFailure } from './useApi'
 
 /**
@@ -36,6 +36,8 @@ export interface UploadItem {
   message: string | null
   uploadId: string | null
   media: MediaDto | null
+  /** a file of the library with the same content (sha256): said, the choice left (D-42) */
+  duplicateOf: { id: string; name: string } | null
   /** a `blob:` of the file, when the browser can show it before the upload */
   preview: { url: string; kind: UploadKind } | null
 }
@@ -47,7 +49,7 @@ const MAX_ACTIVE = 2
 const RUNNING: readonly UploadState[] = ['hashing', 'uploading', 'completing']
 const PREVIEWABLE_IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 /** A piece that sends no byte for this long hangs: it is given up and the upload resumes. */
-const STALL_MS = 45_000
+const STALL_MS = 30_000
 /** The short calls (start, state); `complete` joins up to 300 MB, so it has longer. */
 const CALL_MS = 30_000
 const COMPLETE_MS = 120_000
@@ -374,7 +376,11 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         const media = await completeOnce(at, abort.signal)
         check()
         if (media === 'missing') continue
-        item.media = media
+        const { duplicateOf, ...made } = media
+        item.media = made
+        item.duplicateOf = duplicateOf
+        if (duplicateOf)
+          announce(t('upload.announce.duplicate', { name: item.name, other: duplicateOf.name }))
         item.sent = item.size
         settled(item, media)
         options.onChange()
@@ -393,10 +399,19 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
    * `complete`, again while another call joins the pieces (409, ADR 021). A 409 with pieces
    * still missing sends them first.
    */
-  async function completeOnce(at: string, signal: AbortSignal): Promise<MediaDto | 'missing'> {
+  async function completeOnce(
+    at: string,
+    signal: AbortSignal,
+  ): Promise<CompletedUploadDto | 'missing'> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await request<MediaDto>('POST', `${at}/complete`, undefined, signal, COMPLETE_MS)
+        return await request<CompletedUploadDto>(
+          'POST',
+          `${at}/complete`,
+          undefined,
+          signal,
+          COMPLETE_MS,
+        )
       } catch (error) {
         const f = failureOf(error)
         // only these two wait: any other conflict (the client archived meanwhile) is final
@@ -580,6 +595,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
       message: null,
       uploadId: null,
       media: null,
+      duplicateOf: null,
       preview: null,
     }
   }
@@ -772,9 +788,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     }
   })
 
-  function online() {
-    restartAll()
-  }
+  let offNetwork: (() => void) | null = null
   function visible() {
     if (document.visibilityState === 'visible') wakeAll()
   }
@@ -782,14 +796,14 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     if (totals.value.active) event.preventDefault()
   }
   onMounted(() => {
-    window.addEventListener('online', online)
+    offNetwork = onNetworkChange(restartAll)
     document.addEventListener('visibilitychange', visible)
     window.addEventListener('beforeunload', leaving)
     loading = load()
   })
   onBeforeUnmount(() => {
     alive = false
-    window.removeEventListener('online', online)
+    offNetwork?.()
     document.removeEventListener('visibilitychange', visible)
     window.removeEventListener('beforeunload', leaving)
     for (const item of items.value) {

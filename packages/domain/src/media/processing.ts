@@ -36,6 +36,30 @@ export const ffmpegTimeoutMs = (durationMs: number) =>
   Math.min(FFMPEG_TIMEOUT_BASE_MS + 4 * Math.max(0, durationMs), FFMPEG_TIMEOUT_MAX_MS)
 
 /**
+ * Seconds of work allowed for each second of video, per pixel per second: 4K at 60 fps (about
+ * 500 million pixels a second) gets 50 s per second, twice what one core of the VPS needed in
+ * the 0.10.0 test (D-39). Never less than the 4 of `ffmpegTimeoutMs`.
+ */
+const WORK_SECONDS_PER_PIXEL = 1 / 10_000_000
+
+/**
+ * The timeout of a command that decodes the video (the preview): 2 minutes plus the duration
+ * times its pixels per second, at most 60 minutes like `ffmpegTimeoutMs`.
+ */
+export function videoWorkTimeoutMs(v: {
+  durationMs: number
+  width: number
+  height: number
+  fps: number
+}): number {
+  const factor = Math.max(4, v.width * v.height * v.fps * WORK_SECONDS_PER_PIXEL)
+  return Math.min(
+    FFMPEG_TIMEOUT_BASE_MS + factor * Math.max(0, v.durationMs),
+    FFMPEG_TIMEOUT_MAX_MS,
+  )
+}
+
+/**
  * pg-boss's expiry of `media.process`: longer than the two long commands of a media, the
  * preview and the copy to publish, at their longest (ADR 021: 2 hours and 15 minutes).
  */

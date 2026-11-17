@@ -153,6 +153,18 @@ export interface MediaRepository {
   /** The files still `processing` not changed since `before`: their wake-up may be lost. */
   processingSince(organizationId: string, before: Date): Promise<string[]>
   /**
+   * The oldest file of the workspace, not deleted and other than `exceptId`, with this sha256:
+   * the same content uploaded again (D-42).
+   */
+  sameContent(
+    organizationId: string,
+    workspaceId: string,
+    sha256: string,
+    exceptId: string,
+  ): Promise<{ id: string; originalName: string } | null>
+  /** The files `failed` not changed since `before`, with their workspace (D-43). */
+  failedSince(organizationId: string, before: Date): Promise<{ id: string; workspaceId: string }[]>
+  /**
    * SYSTEM scope only: the next file `processing` of the installation, from the agency served
    * least recently (the latest `processing_started_at` of its files), the oldest file first.
    */
@@ -189,6 +201,11 @@ export interface MediaRepository {
     mediaId: string,
     failed: { failure: MediaFailure; facts: MediaFacts | null; forgetOriginal: boolean },
   ): Promise<boolean>
+  /**
+   * A file `failed` with its original still stored is `processing` again, its attempts and its
+   * failure cleared («Riprova», D-39). false: not such a file.
+   */
+  markRetried(organizationId: string, mediaId: string): Promise<boolean>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
   /**
@@ -259,13 +276,15 @@ export interface MediaRepository {
   findPublicVariant(token: string): Promise<PublicVariantRecord | null>
   /**
    * Marks the file of the workspace deleted and takes it out of the library. false: there is no
-   * such file, or it was deleted already.
+   * such file, or it was deleted already. `failedBefore`: only if still `failed` and unchanged
+   * since then (the clean-up, D-43: a file tried again meanwhile stays).
    */
   markDeleted(
     organizationId: string,
     workspaceId: string,
     mediaId: string,
     at: Date,
+    failedBefore?: Date,
   ): Promise<boolean>
   /** After the files are removed: the variants' rows go and the original's key is cleared. */
   forgetFiles(organizationId: string, mediaId: string): Promise<void>

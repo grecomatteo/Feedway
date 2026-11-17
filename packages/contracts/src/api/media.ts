@@ -123,6 +123,17 @@ export const deleteMediaRoute = defineContract({
   scope: 'organization',
 })
 
+export const retryMediaRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/retry',
+  summary:
+    'Prepara di nuovo un file non riuscito che ha ancora l’originale (tempo scaduto, tentativi finiti)',
+  request: { params: MediaParams },
+  response: MediaDto,
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const mediaFileRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/file/{variant}',
@@ -226,6 +237,7 @@ export const mediaRoutes = [
   getMediaRoute,
   updateMediaRoute,
   deleteMediaRoute,
+  retryMediaRoute,
   mediaFileRoute,
   listFoldersRoute,
   createFolderRoute,

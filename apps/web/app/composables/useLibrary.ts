@@ -108,6 +108,7 @@ export function useLibrary(workspaceId: Ref<string>) {
   })
   onMounted(() => void load())
   onBeforeUnmount(() => {
+    life.alive = false
     clearTimeout(typing)
   })
 
@@ -135,6 +136,36 @@ export function useLibrary(workspaceId: Ref<string>) {
     await call('DELETE', `${base.value}/media/${encodeURIComponent(file.id)}`)
     files.value = files.value.filter((f) => f.id !== file.id)
     await reloadFolders()
+  }
+  /** «Riprova» (D-39): the file is `processing` again, followed until it is done. */
+  async function retry(file: LibraryFile) {
+    const again = await call<LibraryFile>(
+      'POST',
+      `${base.value}/media/${encodeURIComponent(file.id)}/retry`,
+    )
+    replace(again)
+    void follow(again.id)
+    return again
+  }
+  const replace = (file: LibraryFile) => {
+    files.value = files.value.map((f) => (f.id === file.id ? file : f))
+  }
+  const life = { alive: true }
+  const alive = () => life.alive
+  /** Every few seconds while the worker prepares it; a 4K video may take many minutes. */
+  async function follow(id: string) {
+    for (let i = 0; alive() && i < 1440; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      if (!alive() || !files.value.some((f) => f.id === id)) return
+      try {
+        const now = await call<LibraryFile>('GET', `${base.value}/media/${encodeURIComponent(id)}`)
+        replace(now)
+        if (now.status !== 'processing') return
+      } catch {
+        // the network or the file went: the next load says how it is
+        return
+      }
+    }
   }
   async function createFolder(name: string, parentId: string | null) {
     const folder = await call<Folder>('POST', `${base.value}/folders`, { name, parentId })
@@ -170,6 +201,7 @@ export function useLibrary(workspaceId: Ref<string>) {
     more,
     update,
     remove,
+    retry,
     createFolder,
     renameFolder,
     deleteFolder,

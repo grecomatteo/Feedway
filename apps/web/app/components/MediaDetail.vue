@@ -17,7 +17,17 @@ const emit = defineEmits<{
   tags: [file: LibraryFile, tags: string[]]
   move: [file: LibraryFile, folderId: string | null]
   delete: [file: LibraryFile]
+  retry: [file: LibraryFile]
 }>()
+
+/** The failures that keep the original: the fault may be the machine's, so it can be tried again. */
+const RETRYABLE = new Set(['timeout', 'processing_failed'])
+const retryable = computed(
+  () =>
+    !props.readOnly &&
+    props.file?.status === 'failed' &&
+    RETRYABLE.has(props.file.failure?.code ?? ''),
+)
 const { t } = useI18n()
 
 const has = (purpose: string) => props.file?.variants.some((v) => v.purpose === purpose) ?? false
@@ -137,6 +147,17 @@ const folderValue = computed({
         >
           <p class="font-semibold text-(--app-danger)">{{ $t('library.detail.failure') }}</p>
           <p class="mt-1">{{ $t(`library.failure.${file.failure.code}`) }}</p>
+          <p class="mt-1 text-(--app-text-muted)">{{ $t('library.detail.failureRemoved') }}</p>
+          <UButton
+            v-if="retryable"
+            class="mt-3"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-rotate-ccw"
+            :label="$t('library.detail.retry')"
+            data-testid="media-retry"
+            @click="emit('retry', file)"
+          />
         </div>
 
         <section>

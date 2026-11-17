@@ -95,6 +95,8 @@ export interface MediaTransformer {
       width: number
       height: number
       durationMs: number
+      /** with the size, sets the timeout (D-39) */
+      fps: number
       onProgress?: (fraction: number) => void
     },
   ): Promise<ToolResult<{ file: MadeFile }>>

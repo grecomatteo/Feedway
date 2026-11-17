@@ -1,5 +1,6 @@
 export {
   deleteMedia,
+  retryMedia,
   getMedia,
   listMedia,
   mediaNotFound,
@@ -35,7 +36,13 @@ export {
   receiveUploadPart,
   startUpload,
 } from './uploads.js'
-export type { StartUploadInput, UploadDeps, UploadDto, UploadPartInput } from './uploads.js'
+export type {
+  CompletedUpload,
+  StartUploadInput,
+  UploadDeps,
+  UploadDto,
+  UploadPartInput,
+} from './uploads.js'
 export { ORPHAN_PARTS_MIN_AGE_MS, runMediaUploadsCleanup } from './uploads-cleanup.js'
 export type { UploadsCleanupDeps, UploadsCleanupReport } from './uploads-cleanup.js'
 export { MEDIA_PROCESS_LOCK, processNextMedia, wakeMediaProcessing } from './process.js'

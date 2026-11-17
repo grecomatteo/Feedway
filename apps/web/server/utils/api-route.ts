@@ -6,7 +6,13 @@ import type { z } from 'zod'
 import type { ApiContract, FileAnswer } from '@app/contracts'
 import type { ResolvedSession } from '@app/application'
 import type { OrgActor, PlatformActor } from '@app/domain'
-import { HttpProblem, failureEntry, issuesFromZod, toErrorResponse } from './http-errors'
+import {
+  HttpProblem,
+  failureEntry,
+  isClientGone,
+  issuesFromZod,
+  toErrorResponse,
+} from './http-errors'
 
 const DEFAULT_MAX_BODY_BYTES = 16 * 1024
 const JSON_TYPE = /^application\/json\s*(;|$)/i
@@ -70,7 +76,9 @@ export function logFailure(event: H3Event, error: unknown): void {
     error,
   )
   try {
-    useDeps().logger.error(entry, 'unhandled error')
+    if (isClientGone(error, event.node.req.destroyed || event.node.req.socket.destroyed))
+      useDeps().logger.warn(entry, 'request aborted by the client')
+    else useDeps().logger.error(entry, 'unhandled error')
   } catch {
     console.error('unhandled error before startup finished', JSON.stringify(entry))
   }

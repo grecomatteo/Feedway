@@ -256,6 +256,30 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
   )
 })
 
+test('a video that ran out of time says what to do, and «Riprova» prepares it again', async ({
+  page,
+}) => {
+  const { org, client, editor } = await editorWithLibrary(page)
+  await libraryFile(org, client, editor.userId, {
+    kind: 'video',
+    name: 'IMG_0233.mov',
+    status: 'failed',
+    failure: 'timeout',
+  })
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await tile(page, 'IMG_0233.mov')
+    .getByRole('button', { name: /IMG_0233\.mov/ })
+    .first()
+    .click()
+  const detail = page.getByRole('dialog', { name: 'IMG_0233.mov' })
+  await expect(detail.getByText(/esportalo in 1080p o a 30 fps/)).toBeVisible()
+  await expect(detail.getByText(/cancella da solo dopo 24 ore/)).toBeVisible()
+  await detail.getByRole('button', { name: 'Riprova' }).click()
+  await expect(page.getByText('«IMG_0233.mov» si prepara di nuovo.')).toBeVisible()
+  await expect(detail.getByRole('button', { name: 'Riprova' })).toHaveCount(0)
+  await expect(detail.getByText('Anteprima in preparazione')).toBeVisible()
+})
+
 test('a Viewer sees no «Libreria» and the address gives «Pagina non trovata»', async ({ page }) => {
   const owner = await newPerson('Olga Viewer', 'owner')
   const org = owner.organizationSlug

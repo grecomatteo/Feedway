@@ -140,7 +140,12 @@ describe('analysis', () => {
     expect(await probe.analyze(dressed, {})).toEqual({ ok: false, reason: 'unreadable' })
     const out = join(dir, 'dressed-preview.mp4')
     expect(
-      await transformer.videoPreview(dressed, out, { width: 320, height: 240, durationMs: 1000 }),
+      await transformer.videoPreview(dressed, out, {
+        width: 320,
+        height: 240,
+        durationMs: 1000,
+        fps: 25,
+      }),
     ).toEqual({ ok: false, reason: 'unreadable' })
     expect(hits).toBe(0)
   })
@@ -190,6 +195,33 @@ describe('photos', () => {
     expect(Math.abs((pixel[0] ?? 0) - 200)).toBeLessThanOrEqual(4)
     expect(Math.abs((pixel[1] ?? 0) - 80)).toBeLessThanOrEqual(4)
     expect(Math.abs((pixel[2] ?? 0) - 60)).toBeLessThanOrEqual(4)
+  })
+
+  test('a HEIC in Display P3 becomes sRGB, the master too (D-03)', async () => {
+    // an iPhone photo: P3 values for sRGB 200/80/60, with the profile in the container
+    const path = await file('p3.heic', await imageFixture('photo-p3.heic'))
+    for (const make of ['photo', 'master'] as const) {
+      const out = join(dir, `p3-heic-${make}.jpg`)
+      const made =
+        make === 'photo'
+          ? await transformer.photo(path, out, {
+              format: 'heic',
+              maxWidth: 1440,
+              maxBytes: 8_000_000,
+              maxPixels: 50_000_000,
+            })
+          : await transformer.master(path, out, {
+              format: 'heic',
+              maxSide: 4096,
+              maxPixels: 50_000_000,
+            })
+      expect(made.ok).toBe(true)
+      expect((await sharp(out).metadata()).icc).toBeUndefined()
+      const pixel = await sharp(out).raw().toBuffer()
+      expect(Math.abs((pixel[0] ?? 0) - 200)).toBeLessThanOrEqual(5)
+      expect(Math.abs((pixel[1] ?? 0) - 80)).toBeLessThanOrEqual(5)
+      expect(Math.abs((pixel[2] ?? 0) - 60)).toBeLessThanOrEqual(5)
+    }
   })
 
   test('a JPEG turned by its EXIF stays turned once the EXIF is gone', async () => {
@@ -263,6 +295,7 @@ describe('videos', () => {
       width: 320,
       height: 240,
       durationMs: 1000,
+      fps: 25,
       onProgress: (f) => fractions.push(f),
     })
     expect(made).toMatchObject({ ok: true, file: { mime: 'video/mp4', width: 320, height: 240 } })
@@ -367,7 +400,12 @@ describe('videos', () => {
   test('a frame of the preview becomes the thumbnail', async () => {
     const path = makeVideo(dir, 'hevc.mov')
     const preview = join(dir, 'frame-preview.mp4')
-    await transformer.videoPreview(path, preview, { width: 320, height: 240, durationMs: 1000 })
+    await transformer.videoPreview(path, preview, {
+      width: 320,
+      height: 240,
+      durationMs: 1000,
+      fps: 25,
+    })
     const out = join(dir, 'frame.jpg')
     const made = await transformer.videoFrame(preview, out, { atMs: 500, width: 240, height: 180 })
     expect(made).toMatchObject({ ok: true, file: { mime: 'image/jpeg', width: 240, height: 180 } })
@@ -419,6 +457,7 @@ test('frames larger than the header said are refused by the decoder', async () =
       width: 320,
       height: 240,
       durationMs: 2000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -431,6 +470,7 @@ test('frames over the limit are refused even when a sound track keeps the full l
       width: 320,
       height: 240,
       durationMs: 2000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -443,6 +483,7 @@ test('frames over the limit in the middle are refused', async () => {
       width: 320,
       height: 240,
       durationMs: 3000,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -459,6 +500,7 @@ test('one frame over the limit among a hundred is refused: no share of them is a
       width: 320,
       height: 240,
       durationMs: 10_100,
+      fps: 25,
     }),
   ).toEqual({ ok: false, reason: 'unreadable' })
 })
@@ -472,6 +514,7 @@ test('a video with a glitch the decoder hides is kept: every frame is still ther
     width: 320,
     height: 240,
     durationMs: 4000,
+    fps: 25,
   })
   expect(preview).toMatchObject({ ok: true })
   expect(Number(probeFile(join(dir, 'damaged-preview.mp4')).format.duration)).toBeCloseTo(4, 0)

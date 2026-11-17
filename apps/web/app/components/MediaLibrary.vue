@@ -100,6 +100,15 @@ function clearFilters() {
 
 // ---- the detail
 const selected = ref<LibraryFile | null>(null)
+// a file the worker prepares again («Riprova»): the detail follows the list
+watch(
+  () => lib.files.value,
+  (files) => {
+    const shown = selected.value
+    const fresh = shown && files.find((f) => f.id === shown.id)
+    if (fresh && fresh !== shown && fresh.status !== shown.status) selected.value = fresh
+  },
+)
 const detailOpen = computed({
   get: () => selected.value !== null,
   set: (v) => {
@@ -113,6 +122,13 @@ const thumb = (f: LibraryFile) => {
 
 // ---- move, by dragging or with «Sposta in…»
 const folderLabel = (id: string | null) => folderById(id)?.name ?? t('library.folders.none')
+async function retry(file: LibraryFile) {
+  const ok = await attempt(async () => {
+    const again = await lib.retry(file)
+    if (selected.value?.id === file.id) selected.value = again
+  })
+  if (ok) say(t('library.retried', { name: file.originalName }))
+}
 async function move(file: LibraryFile, folderId: string | null) {
   if (file.folderId === folderId) return
   const ok = await attempt(async () => {
@@ -716,6 +732,7 @@ function filesDrop(event: DragEvent) {
       @tags="saveTags"
       @move="move"
       @delete="(f) => (deleting = f)"
+      @retry="retry"
     />
 
     <UModal

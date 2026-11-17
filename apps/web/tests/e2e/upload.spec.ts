@@ -147,8 +147,8 @@ test('a piece that hangs with no error is given up, and the upload goes on by it
   await input(page).setInputFiles(fixture('frame.jpg'))
   await expect.poll(() => seen.pieces).toBe(1)
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'uploading')
-  // 45 seconds without a byte: the piece is given up and the upload resumes
-  await page.clock.fastForward('00:46')
+  // 30 seconds without a byte (D-41): the piece is given up and the upload resumes
+  await page.clock.fastForward('00:31')
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'offline')
   await page.clock.fastForward('00:05')
   await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
@@ -338,4 +338,26 @@ test('a file too large or of another type is refused at once, the others go on',
     timeout: 20_000,
   })
   expect((await axe(page)).violations).toEqual([])
+})
+
+test('the same file uploaded again is taken, and its row says it is already there', async ({
+  page,
+}) => {
+  await editorOnLibrary(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  await input(page).setInputFiles({
+    name: 'frame copia.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(fixture('frame.jpg')),
+  })
+  await expect(row(page, 'frame copia.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  await expect(row(page, 'frame copia.jpg').locator('[data-upload-duplicate]')).toHaveText(
+    'Uguale a «frame.jpg», già nella libreria. Se non ti serve, eliminalo.',
+  )
+  await expect(row(page, 'frame.jpg').locator('[data-upload-duplicate]')).toHaveCount(0)
 })

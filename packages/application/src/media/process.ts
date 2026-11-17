@@ -250,6 +250,7 @@ async function processIn(
       width: analysis.width,
       height: analysis.height,
       durationMs: analysis.durationMs,
+      fps: analysis.fps,
       onProgress: (fraction) => {
         progress.set('conversion', 10 + Math.round(fraction * 60))
       },

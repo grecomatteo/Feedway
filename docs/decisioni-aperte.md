@@ -5,7 +5,7 @@ Un solo elenco delle scelte che aspettano Matteo, perché nessuna vada persa tra
 Per ogni voce: **origine** (il task o la revisione che l'ha sollevata), **opzioni**, **stato**.
 Stati: **aperta** (da decidere), **scelta provvisoria** (fatta una scelta prudente, Matteo può cambiarla), **decisa** (resta qui finché non è fatta; poi si toglie con la PR che la chiude).
 
-Ultimo aggiornamento: ritocchi del pannello dopo la prova della 0.10.0 (17 novembre 2026): chiuse D-25 (rosso degli errori cremisi freddo, lontano da ogni accento) e D-45 (libreria a griglia o elenco con miniature regolabili, conferme che spariscono dopo 5 s, schede del cliente senza barra verticale, pagina accanto alla barra laterale, «Non riuscito» in rosso nella Panoramica). Prima, copia per le Reels dentro i limiti di Meta (17 novembre 2026): D-40 fatta, restano le verifiche con Meta vera alla tappa 7. Prima, esiti della prova della 0.10.0 sulla VPS (17 novembre 2026, esiti nelle consegne della tappa 4, punti R-n ed E-n): decise D-03 (conversione in sRGB) e D-25 (rosso più freddo); aggiornate D-27, D-29, D-30, D-34; nuove D-39…D-45. Prima, correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
+Ultimo aggiornamento: correzioni media dopo la prova della 0.10.0 (17 novembre 2026): chiuse D-03 (le HEIC in Display P3 si convertono in sRGB), D-41 (un pezzo fermo riparte dopo 30 s e al cambio di rete; `ECONNRESET` come avviso), D-42 (avviso del file doppio con l'impronta sha256) e D-43 (i file «Non riuscito» si cancellano dopo 24 ore); aggiornata D-39 (timeout da pixel al secondo, preset più veloce, consiglio nel pannello, worker a 1,5 CPU, «Riprova»); D-44 con una proposta. Prima, ritocchi del pannello dopo la prova della 0.10.0 (17 novembre 2026): chiuse D-25 (rosso degli errori cremisi freddo, lontano da ogni accento) e D-45 (libreria a griglia o elenco con miniature regolabili, conferme che spariscono dopo 5 s, schede del cliente senza barra verticale, pagina accanto alla barra laterale, «Non riuscito» in rosso nella Panoramica). Prima, copia per le Reels dentro i limiti di Meta (17 novembre 2026): D-40 fatta, restano le verifiche con Meta vera alla tappa 7. Prima, esiti della prova della 0.10.0 sulla VPS (17 novembre 2026, esiti nelle consegne della tappa 4, punti R-n ed E-n): decise D-03 (conversione in sRGB) e D-25 (rosso più freddo); aggiornate D-27, D-29, D-30, D-34; nuove D-39…D-45. Prima, correzioni della revisione retroattiva delle tappe 1–3 (17 novembre 2026): nuove D-35 (rotazione della chiave di cifratura e del segreto di Better Auth, tappa 11), D-36 (versione Graph predefinita), D-37 (conservazione dei contatori) e D-38 (rafforzamenti rimandati alla tappa 11). Prima, revisione UI della tappa 4 (16 novembre 2026): D-31 aggiornata, la revisione è fatta (`design/reviews/2026-11-16-revisione-ui-tappa-4.md`) e resta solo la tela. Prima, rilascio della 0.10.0 (Task 14, 16 novembre 2026): chiuse D-13 (il segnaposto `secrets/ts_public_authkey` è nella guida della prova e, dalla 0.10.0, in `update.sh`) e D-14 (guida completa della prova scritta). Prima, nelle correzioni della revisione finale della tappa 4 (16 novembre 2026): nuove D-27 (caricamento), D-29 e D-30, voci rimandate D-31…D-34; aggiornate D-02 (riavvio del worker) e D-08 (limite di letture dell'host pubblico, con la PR dei video); chiusa D-26 (copia `master` delle foto fino a 4096 px, senza GPS, scelta B di Matteo). Prima, nel Task 13b (16 novembre 2026): chiusa D-17 (l'hover del pulsante principale ha ora un colore suo, `brand-hover`, con 4,5:1 in ogni tema); nuove D-22, D-23, D-24 e D-25. Prima, nel Task 13 (16 novembre 2026): nuove D-19, D-20 e D-21. Prima, nel Task 12 (16 novembre 2026). Chiuse nel Task 12 su indicazione di Matteo: D-05 (una cartella piena si elimina con tutto il contenuto, dopo la conferma), D-06 (la scheda «Libreria» resta dentro la pagina del cliente), D-07 («Libreria» ovunque, anche nel menu e nell'indirizzo).
 
 ## Media e caricamento
 
@@ -21,13 +21,6 @@ Ultimo aggiornamento: ritocchi del pannello dopo la prova della 0.10.0 (17 novem
 - **Legata alla revisione della tappa 4 (P2):** dalla 0.10.0 un riavvio pulito (aggiornamento, `restart`) non consuma tentativi e la conversione riparte appena il worker torna; un crash vero sì, ed è voluto, così un file che uccide il worker si ferma dopo 3 volte.
 - **Opzioni:** (a) decodifica in un processo figlio con limite di memoria; (b) lasciare così.
 - **Stato:** aperta.
-
-### D-03 · Profilo Display P3 delle HEIC
-- **Origine:** tappa 4, Task 10.
-- **Il problema:** libheif-js non espone il profilo colore: una HEIC P3 esce convertita come se fosse sRGB, con colori un po' spenti.
-- **Opzioni:** (a) cambiare decodificatore; (b) accettarlo e scriverlo come limite noto.
-- **Prova della 0.10.0 (R-3):** la copia master non ha profilo ICC e i colori delle foto iPhone si spengono. Matteo chiede la conversione vera da Display P3 a sRGB.
-- **Stato:** decisa (a), da fare con le correzioni dopo la prova.
 
 ### D-04 · SEI dei video HEVC
 - **Origine:** tappa 4, Task 10.
@@ -170,8 +163,10 @@ Ultimo aggiornamento: ritocchi del pannello dopo la prova della 0.10.0 (17 novem
 - **Origine:** prova della 0.10.0 (R-1, alta).
 - **Il problema:** il timeout di ffmpeg è 2 minuti più 4 volte la durata, ma un 4K60 HEVC richiede circa 26 s di lavoro per secondo di video con `-threads 1`. IMG_0233.mov (23 s) è finito in «Non riuscito» al 46% dopo 213 s. Un 1080p richiede circa 2,5 s per secondo e rientra.
 - **Opzioni:** (a) usare tutte le CPU del contenitore per l'anteprima; (b) timeout proporzionale a pixel e fps, non solo alla durata; (c) anteprima e copia da pubblicare in un solo passaggio; (d) preset più veloce per l'anteprima; (e) nuovo tentativo automatico con impostazioni rapide; (f) nel pannello «Riprova» e il consiglio «esportalo in 1080p o a 30 fps». Si possono combinare.
-- **Proposta:** (a) + (b) + (d) + (f) subito; (c) ed (e) solo se non bastano. Con (a) la conversione resta una alla volta, ma durante un video il web ha meno CPU.
-- **Stato:** aperta, da decidere con Matteo nelle correzioni dopo la prova.
+
+- **Fatto (PR delle correzioni media):** (b) timeout dell'anteprima da 2 minuti più la durata per max(4, pixel al secondo / 10 milioni), al massimo 60 minuti: per il file della prova circa 21 minuti invece di 212 s; (d) preset `superfast`; (f) il consiglio «esportalo in 1080p o a 30 fps» nel motivo del timeout e il pulsante «Riprova» nel dettaglio del file, per `timeout` e `processing_failed` (gli unici che tengono l'originale). Misurato in locale su un 4K60 HEVC a 10 bit: due core dimezzano il tempo, il preset conta meno del 5%.
+- **Decisa (a), Matteo, 17 novembre:** worker a 1,5 CPU e 2 thread per l'anteprima, per non bloccare il pannello con 2 CPU; §16.6 aggiornata. Da controllare nella prossima prova: il pannello resta fluido mentre converte un 4K.
+- **Stato:** fatta, da verificare nella prossima prova; (c) anteprima e copia in un passaggio, (e) nuovo tentativo automatico con impostazioni rapide, solo se la prossima prova mostra che non basta. Da controllare nella prova: il 4K60 di 23 s arriva a «Pronto» e il pannello resta fluido mentre converte.
 
 ### D-40 · Copia per le Reels oltre i limiti di Meta
 - **Origine:** prova della 0.10.0 (R-2, alta prima della pubblicazione vera).
@@ -183,30 +178,13 @@ Ultimo aggiornamento: ritocchi del pannello dopo la prova della 0.10.0 (17 novem
 - **Non verificato su Meta vera (tappa 7):** che Meta prenda un HDR 1080p copiato così com'è; le edit list che ffmpeg scrive nel remux (Instagram dice «no edit lists»); il GOP dei video copiati; che la soglia del 2% riconosca bene i video a frequenza variabile dell'iPhone.
 - **Stato:** fatta (a); resta aperta solo per le verifiche con Meta vera alla tappa 7.
 
-### D-41 · Ripresa del caricamento dopo un cambio di rete
-- **Origine:** prova della 0.10.0 (R-5, R-6).
-- **Il problema:** un passaggio Wi-Fi → 5G non è ripartito da solo: il pezzo in volo restava appeso. Sul server l'`ECONNRESET` del telefono è registrato come errore non gestito, livello 50.
-- **Opzioni:** (a) tempo massimo senza avanzamento per ogni pezzo (30–60 s), poi nuovo tentativo automatico; (b) lasciare «Riprendi».
-- **Stato:** decisa (a), con il log dell'`ECONNRESET` come avviso; da fare nelle correzioni dopo la prova.
-
-### D-42 · Lo stesso file caricato due volte
-- **Origine:** prova della 0.10.0 (R-7).
-- **Il problema:** un file identico a uno già nella libreria viene accettato senza avviso.
-- **Opzioni:** (a) avvisare usando l'impronta sha256 già calcolata, lasciando scegliere; (b) rifiutarlo; (c) lasciare così.
-- **Stato:** scelta provvisoria (a).
-
-### D-43 · File «Non riuscito» che occupano spazio
-- **Origine:** prova della 0.10.0 (E-2).
-- **Il problema:** dopo `timeout` o `processing_failed` l'originale resta (ADR 021, P5) e occupa spazio: IMG_0233.mov 238 MB.
-- **Cosa vuole Matteo:** cancellarli da soli dopo 24 ore.
-- **Stato:** decisa, da fare nelle correzioni dopo la prova (lavoro di pulizia esistente, ADR 021 da aggiornare).
-
 ### D-44 · `avatar_url` di Meta che resta accanto alla copia
 - **Origine:** prova della 0.10.0 (R-11).
 - **Il problema:** in `social_accounts` resta `avatar_url`, il link di Meta che scade, anche dove c'è la copia `avatar_key`.
-- **Opzioni:** (a) svuotarlo quando la copia è salvata, e toglierlo dalla risposta; (b) togliere la colonna con una migrazione in due rilasci.
-- **Stato:** aperta.
-
+- **Cosa si è visto (correzioni media):** il link non esce mai dal server: le API danno solo l'indirizzo della copia di Feedway (`avatarUrl` nei contratti è la copia, o null). La colonna serve alla sincronizzazione per capire se la foto è cambiata (un link nuovo, o una foto mai copiata) e al lavoro `accounts.avatar` per scaricarla.
+- **Opzioni:** (a) svuotarla dopo la copia: ogni sincronizzazione riscaricherebbe tutte le foto da Meta, perché non saprebbe più se sono cambiate; (b) sostituirla con l'impronta sha256 del link (una colonna nuova e una migrazione in due rilasci); (c) lasciarla così, è un dato interno di una foto pubblica.
+- **Proposta:** (c), oppure (b) insieme alla prossima migrazione di `social_accounts`. Non fatto niente nel codice.
+- **Stato:** aperta, aspetta Matteo.
 ## Clienti e profili
 
 ### D-15 · Profilo già in un altro cliente
