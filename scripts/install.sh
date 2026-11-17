@@ -28,7 +28,8 @@ if [ -z "$image_tag" ]; then
   image_tag="$(git describe --tags --exact-match --match 'v*' 2>/dev/null)" ||
     die "Non trovo la versione da installare. Scarica Feedway con 'git clone' e scegli una release con 'git checkout vX.Y.Z', poi rilancia."
 fi
-[[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+# INSTALL_IMAGE_TAG is the tests' own image (`ci`): everything else must be a release
+[ -n "${INSTALL_IMAGE_TAG:-}" ] || [[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
   die "La versione '$image_tag' non è una release (vX.Y.Z): correggi IMAGE_TAG in .env, poi rilancia."
 
 # 2) answers
