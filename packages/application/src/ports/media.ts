@@ -111,6 +111,18 @@ export interface MediaFacts {
   audioCodec: string | null
 }
 
+/** What the checks before scheduling read of a file (plan 05 R5): the worker's results. */
+export interface MediaForRules {
+  id: string
+  kind: MediaKind
+  status: MediaStatus
+  /** what the worker read of the bytes; null until then */
+  analysis: FileAnalysis | null
+  checks: MediaChecks | null
+  failure: MediaFailure | null
+  sha256: string | null
+}
+
 /** A folder of a workspace's library (§11.8), with the files right inside it. */
 export interface LibraryFolderRecord {
   id: string
@@ -266,6 +278,12 @@ export interface MediaRepository {
     workspaceId: string,
     folderIds: readonly string[],
   ): Promise<void>
+  /** These files of the workspace, any status, deleted included; the others are left out. */
+  forRules(
+    organizationId: string,
+    workspaceId: string,
+    mediaIds: readonly string[],
+  ): Promise<MediaForRules[]>
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>

@@ -554,7 +554,7 @@ Ogni passo salva gli ID ricevuti prima del successivo, così si riprende dal pun
 | **Storia foto** | `STORIES` | Storia foto |
 | **Storia video 3–60 s** | `STORIES` | Storia video |
 
-- Caption comune a tutte le destinazioni, con un testo diverso facoltativo per piattaforma (§11.2): ogni destinazione usa il testo della sua piattaforma, altrimenti quello comune. I controlli di §9.2 sulla caption valgono per il testo che ogni destinazione pubblicherà. Le storie non hanno caption: se ne scrivi una, un avviso dice che verrà ignorata.
+- Caption comune a tutte le destinazioni, con un testo diverso facoltativo per piattaforma (§11.2): ogni destinazione usa il testo della sua piattaforma, altrimenti quello comune; un testo di piattaforma vuoto o di soli spazi vale come assente, ed esce il testo comune (come `caption_by_platform` di §13, D-53). I controlli di §9.2 sulla caption valgono per il testo che ogni destinazione pubblicherà. Le storie non hanno caption: se ne scrivi una, un avviso dice che verrà ignorata.
 - **Reel nel feed**: di default il reel compare nella scheda Reels, nella griglia del profilo e nel feed dei follower (`share_to_feed=true`, come dall'app); disattivabile per post.
 
 ### 9.2 Controlli
@@ -562,6 +562,8 @@ Ogni passo salva gli ID ricevuti prima del successivo, così si riprende dal pun
 Tre livelli: **Blocco** (non si programma), **Avviso con scelta** (si prosegue scegliendo; la scelta si salva), **Correzione automatica** (la facciamo noi e lo diciamo).
 
 Le regole valgono ovunque: il pannello le usa per avvisare, l'API le riapplica al salvataggio, il worker prima di pubblicare. Sono una sola funzione pura, `evaluatePost(draft, context)`: il motore e i controlli comuni stanno in `packages/domain/src/rules/`, i tipi di contenuto, i limiti e i controlli propri di Meta in `packages/domain/src/platforms/meta/rules/` (ADR 019, §18.6). Il motore riceve le regole delle piattaforme in `context.platforms`, una mappa `piattaforma → regole` costruita nella radice di composizione: una piattaforma nuova aggiunge le sue regole senza toccare il motore (piano della tappa 5, R1 e R2).
+
+Sui dati veri di uno spazio le applica un solo caso d'uso, `checkPost` (modulo `rules`, `packages/application/src/rules/`), che il pannello chiama con la rotta `POST /api/v1/orgs/{org}/workspaces/{id}/post-checks` (Editor in su, §10.2; non salva nulla e non scrive nel registro attività) e che il salvataggio del post (tappa 6) e il worker (tappa 7) richiamano. Un file o un account che non è dello spazio (non assegnato, di un altro spazio o di un'altra agenzia) dà lo stesso blocco «non disponibile in questo cliente», senza nessun suo dato. I post già pubblicati o programmati (doppioni, reel del giorno, quota a quell'ora) arrivano da una porta `PublishingHistory`, che fino alle tappe 6–7 risponde «nessun post» (piano della tappa 5, R3 e R4). I messaggi sono in `apps/web/i18n/locales/it.json` sotto `rules.*`, e `docs/regole/casi-dei-controlli.md` li mostra caso per caso.
 
 Le regole non rianalizzano i file: leggono l'analisi e i controlli che il worker ha salvato con il file (`media.analysis`, `media.checks`, `media.failure`). Un file non ancora pronto è un blocco («ancora in elaborazione»), un file non riuscito è un blocco con il suo motivo (R5).
 

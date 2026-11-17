@@ -1585,5 +1585,259 @@
       "viola": "Viola",
       "grafite": "Grafite"
     }
+  },
+  "rules": {
+    "levels": {
+      "block": "Blocco",
+      "warning": "Avviso",
+      "fix": "Correzione"
+    },
+    "platforms": {
+      "instagram": "Instagram",
+      "facebook": "Facebook"
+    },
+    "types": {
+      "photo": "Post con una foto",
+      "carousel": "Carosello",
+      "reel": "Reel",
+      "story": "Storia"
+    },
+    "zones": {
+      "summer": "ora legale",
+      "winter": "ora solare"
+    },
+    "formats": {
+      "instagram": {
+        "feed_photo": "Post con foto",
+        "carousel": "Carosello",
+        "reel": "Reel",
+        "story_photo": "Storia con foto",
+        "story_video": "Storia con video"
+      },
+      "facebook": {
+        "photo": "Post con foto",
+        "multi_photo": "Post con più foto",
+        "reel": "Reel",
+        "video": "Video",
+        "story_photo": "Storia con foto",
+        "story_video": "Storia con video"
+      }
+    },
+    "reasons": {
+      "account_unhealthy": {
+        "inactive": "L'account non risulta più tra quelli collegati a Feedway.",
+        "unchecked": "Feedway non ha ancora controllato l'account: di solito basta aspettare qualche minuto.",
+        "error": "L'account ha un problema di collegamento."
+      }
+    },
+    "options": {
+      "keep": "Usa così",
+      "crop_center": "Ritaglia al centro",
+      "pad": "Aggiungi le bande",
+      "convert": "Converti",
+      "trim_to_60": "Taglia ai primi 60 secondi",
+      "ignore_caption": "Ignora il testo",
+      "accept": "Va bene",
+      "photos_only": "Solo le foto su {platform}",
+      "first_files": "Solo le prime {limit} foto su {platform}",
+      "publish_as_video": "Come video normale su {platform}",
+      "skip_platform": "Non pubblicare su {platform}"
+    },
+    "no_destinations": {
+      "title": "Nessun account scelto",
+      "text": "Scegli almeno un account su cui pubblicare il post."
+    },
+    "account_unavailable": {
+      "title": "Account non disponibile in questo cliente",
+      "text": "L'account non è collegato a questo cliente, o non esiste più. Toglilo dalle destinazioni o scegline un altro."
+    },
+    "platform_unsupported": {
+      "title": "{platform} non è ancora gestito",
+      "text": "Feedway non sa ancora pubblicare su {platform}. Togli questo account dalle destinazioni."
+    },
+    "account_unhealthy": {
+      "title": "Account da sistemare",
+      "text": "{reason} Finché non è a posto il post non può uscire qui: controllalo in «Account social» o toglilo dalle destinazioni."
+    },
+    "no_media": {
+      "title": "Nessun file",
+      "text": "Aggiungi almeno una foto o un video."
+    },
+    "carousel_too_few": {
+      "title": "Carosello con un file solo",
+      "text": "Un carosello ha almeno {limit} file e qui ce n'è {found}. Aggiungi altri file, o pubblicalo come post con una foto."
+    },
+    "media_not_matching_type": {
+      "title": "I file non vanno bene per «{type}»",
+      "text": "Un post con una foto ha una foto sola, un reel un video solo, una storia un file solo. Cambia i file o il tipo di post."
+    },
+    "media_processing": {
+      "title": "File ancora in preparazione",
+      "text": "Feedway sta ancora preparando questo file. Quando nella libreria è «Pronto», controlla di nuovo."
+    },
+    "media_failed": {
+      "title": "File non riuscito",
+      "text": "{reason} Toglilo dal post, oppure caricalo di nuovo."
+    },
+    "media_unavailable": {
+      "title": "File non disponibile",
+      "text": "Questo file non è nella libreria di questo cliente, oppure è stato eliminato. Toglilo dal post o scegline un altro."
+    },
+    "scheduled_in_past": {
+      "title": "Data già passata",
+      "text": "Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica ora»."
+    },
+    "type_not_supported": {
+      "title": "{platform} non ha questo tipo di post",
+      "text": "Su {platform} non si può pubblicare «{type}». Togli gli account di {platform}, o cambia il tipo di post."
+    },
+    "caption_too_long": {
+      "title": "Testo troppo lungo per {platform}",
+      "text": "Su {platform} il testo ha al massimo {limit} caratteri, e questo ne ha {found}. Accorcialo, o scrivi un testo diverso solo per {platform}."
+    },
+    "too_many_hashtags": {
+      "title": "Troppi hashtag per {platform}",
+      "text": "{platform} accetta al massimo {limit} hashtag, e qui ce ne sono {found}. Togline qualcuno."
+    },
+    "too_many_mentions": {
+      "title": "Troppe menzioni per {platform}",
+      "text": "{platform} accetta al massimo {limit} menzioni di altri account, e qui ce ne sono {found}. Togline qualcuna."
+    },
+    "carousel_too_many": {
+      "title": "Troppi file nel carosello",
+      "text": "Un carosello di {platform} ha al massimo {limit} file, e qui ce ne sono {found}. Togli quelli in più, o dividili in due post."
+    },
+    "reel_too_short": {
+      "title": "Video troppo corto per un reel",
+      "text": "Un reel dura almeno {limit} secondi, e questo video ne dura {found}. Scegli un video più lungo."
+    },
+    "reel_too_long": {
+      "title": "Video troppo lungo per un reel",
+      "text": "Un reel dura al massimo {limit} minuti, e questo video è più lungo ({found} secondi). Taglialo, o scegli un altro video."
+    },
+    "story_too_short": {
+      "title": "Video troppo corto per una storia",
+      "text": "Un video nelle storie dura almeno {limit} secondi, e questo ne dura {found}. Scegli un video più lungo, o una foto."
+    },
+    "quota_exhausted": {
+      "title": "Post esauriti su {platform}",
+      "text": "A quell'ora questo account ha già usato tutti i {total} post che {platform} permette in 24 ore. Scegli un'ora più tardi."
+    },
+    "facebook_reels_limit": {
+      "title": "Troppi reel su {platform}",
+      "text": "Una Pagina {platform} pubblica al massimo {limit} reel in 24 ore, e a quell'ora questa li ha già raggiunti. Scegli un'ora più tardi."
+    },
+    "time_skipped": {
+      "title": "Ora che quel giorno non esiste",
+      "text": "Quella notte alle 2 gli orologi vanno avanti di un'ora, quindi l'ora scelta non esiste. Il post uscirà alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+    },
+    "time_ambiguous": {
+      "title": "Ora che quel giorno capita due volte",
+      "text": "Quella notte alle 3 gli orologi tornano indietro di un'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+    },
+    "story_caption_ignored": {
+      "title": "Le storie non hanno testo",
+      "text": "Instagram e Facebook non pubblicano il testo nelle storie: quello che hai scritto non uscirà. Ignoralo, oppure toglilo."
+    },
+    "file_convert_codec": {
+      "title": "Video da convertire",
+      "text": "Il video è in un formato che Instagram e Facebook potrebbero rifiutare. Feedway può convertirlo, oppure puoi provarlo così com'è."
+    },
+    "file_convert_fps": {
+      "title": "Fotogrammi da convertire",
+      "text": "Il video ha un numero di fotogrammi al secondo che Instagram e Facebook non accettano. Feedway può convertirlo a {fps} fotogrammi al secondo, oppure puoi provarlo così com'è."
+    },
+    "photo_aspect_ratio": {
+      "title": "Foto troppo alta o troppo larga per il feed",
+      "text": "Nel feed di {platform} una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è {width}×{height}. Scegli se ritagliarla al centro o aggiungere delle bande."
+    },
+    "carousel_mixed_ratios": {
+      "title": "File di forme diverse nel carosello",
+      "text": "{platform} taglia tutti i file del carosello sulla forma del primo: le parti che escono non si vedranno."
+    },
+    "reel_aspect_ratio": {
+      "title": "Video non verticale per un reel",
+      "text": "Un reel è verticale (9:16), e questo video è {width}×{height}. Puoi pubblicarlo così, con delle bande o ritagliato al centro."
+    },
+    "story_too_long": {
+      "title": "Video troppo lungo per una storia",
+      "text": "Una storia dura al massimo {limit} secondi, e questo video ne dura {found}. Feedway può tagliarlo ai primi {limit} secondi."
+    },
+    "cover_aspect_ratio": {
+      "title": "Copertina non verticale",
+      "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla al centro o usarla così."
+    },
+    "cover_on_facebook": {
+      "title": "Copertina non ancora provata su {platform}",
+      "text": "Non abbiamo ancora verificato che {platform} usi la copertina scelta per i reel: potrebbe mostrarne un'altra."
+    },
+    "reel_too_long_for_facebook": {
+      "title": "Reel troppo lungo per {platform}",
+      "text": "Su {platform} un reel dura al massimo {limit} secondi, e questo ne dura {found}. Puoi pubblicarlo su {platform} come video normale, o non pubblicarlo su {platform}."
+    },
+    "reel_resolution_low_for_facebook": {
+      "title": "Video piccolo per un reel di {platform}",
+      "text": "{platform} chiede almeno {minWidth}×{minHeight} pixel per un reel, e questo video è {width}×{height}. Puoi provarlo così, o non pubblicarlo su {platform}."
+    },
+    "carousel_mixed_with_facebook": {
+      "title": "Foto e video insieme non vanno su {platform}",
+      "text": "Su {platform} un post con più file può avere solo foto. Puoi pubblicare su {platform} solo le foto ({photos}), o non pubblicarlo su {platform}."
+    },
+    "facebook_too_many_photos": {
+      "title": "Troppe foto per {platform}",
+      "text": "Un post di {platform} ha al massimo {limit} foto, e qui ce ne sono {found}. Puoi pubblicare su {platform} solo le prime {limit}, o non pubblicarlo su {platform}."
+    },
+    "carousel_videos_with_facebook": {
+      "title": "Un carosello di soli video non va su {platform}",
+      "text": "{platform} non ha post con più video: il carosello può uscire solo sugli altri account."
+    },
+    "quota_low": {
+      "title": "Pochi post rimasti su {platform}",
+      "text": "A quell'ora questo account potrà pubblicare ancora {left} post dei {total} che {platform} permette in 24 ore. Puoi programmarlo, ma evita di programmarne altri nelle stesse ore."
+    },
+    "duplicate_post": {
+      "title": "Post uguale a uno recente",
+      "text": "Negli ultimi 7 giorni questo account ha già un post con gli stessi file e lo stesso testo, e {platform} potrebbe mostrarlo meno. Va bene, oppure cambia qualcosa."
+    },
+    "file_convert_to_jpeg": {
+      "title": "Foto convertita in JPEG",
+      "text": "La foto viene convertita in JPEG, il formato che Instagram e Facebook accettano."
+    },
+    "file_convert_to_srgb": {
+      "title": "Colori convertiti",
+      "text": "I colori della foto vengono convertiti nel profilo standard (sRGB), così appaiono uguali su ogni telefono."
+    },
+    "file_strip_metadata": {
+      "title": "Dati nascosti tolti",
+      "text": "Dalla foto vengono tolti i dati nascosti, come il luogo dello scatto."
+    },
+    "file_recompress": {
+      "title": "Foto alleggerita per {platform}",
+      "text": "La foto pesa più di {limit}, il massimo che {platform} accetta: per {platform} esce una copia alleggerita."
+    },
+    "file_resize": {
+      "title": "Foto ridimensionata",
+      "text": "La foto viene ridotta a {width} pixel di larghezza, la misura più grande che serve."
+    },
+    "file_faststart": {
+      "title": "Video sistemato per partire subito",
+      "text": "Il video viene sistemato perché parta subito, senza aspettare che sia scaricato tutto."
+    },
+    "file_convert_for_reels": {
+      "title": "Video convertito per i reel",
+      "text": "Il video supera i limiti dei reel: la copia da pubblicare viene convertita a {width} pixel di larghezza."
+    },
+    "file_convert_audio_for_reels": {
+      "title": "Audio convertito per i reel",
+      "text": "L'audio del video viene convertito nel formato che i reel accettano; le immagini restano come sono."
+    },
+    "story_recompressed": {
+      "title": "Video alleggerito per la storia",
+      "text": "Il video pesa più di {limit}, il massimo di una storia: esce una copia alleggerita."
+    },
+    "cover_converted": {
+      "title": "Copertina convertita",
+      "text": "La copertina viene convertita in JPEG, con i colori standard e un peso entro {limit}."
+    }
   }
 }

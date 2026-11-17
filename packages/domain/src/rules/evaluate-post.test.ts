@@ -246,11 +246,15 @@ describe('the report', () => {
 
   test('the key of an outcome is its code, subject and platform', () => {
     expect(
-      outcomeKey({ code: 'x', subject: { kind: 'media', index: 2 }, platform: 'facebook' }),
-    ).toBe('x:media:2:facebook')
-    expect(outcomeKey({ code: 'y', subject: { kind: 'destination', accountId: 'a' } })).toBe(
-      'y:destination:a',
-    )
+      outcomeKey({
+        code: 'photo_aspect_ratio',
+        subject: { kind: 'media', index: 2 },
+        platform: 'facebook',
+      }),
+    ).toBe('photo_aspect_ratio:media:2:facebook')
+    expect(
+      outcomeKey({ code: 'quota_low', subject: { kind: 'destination', accountId: 'a' } }),
+    ).toBe('quota_low:destination:a')
   })
 })
 

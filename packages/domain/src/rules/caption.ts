@@ -25,11 +25,16 @@ export function captionStats(text: string): CaptionStats {
   }
 }
 
-/** The text a destination of that platform publishes (§9.1): none for a story. */
+/**
+ * The text a destination of that platform publishes (§9.1): none for a story. A platform's own
+ * text left empty or blank is no text of its own, and the common one goes out (D-53): a post
+ * never leaves without its text because a field was emptied.
+ */
 export function publishedCaption(
   draft: { type: PostType; caption: PostCaption },
   platform: Platform,
 ): string {
   if (draft.type === 'story') return ''
-  return draft.caption[platform] ?? draft.caption.common
+  const own = draft.caption[platform]
+  return own === undefined || own.trim() === '' ? draft.caption.common : own
 }

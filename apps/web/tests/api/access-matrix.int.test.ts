@@ -95,6 +95,11 @@ interface Rule {
   sentByManager?: true
   /** Without the permission the resource does not exist for the person: 404, not 403. */
   hiddenWithout?: true
+  /**
+   * Nothing of anyone is reached (a draft checked, not saved): a role that holds the
+   * permission on its own resources only (`own`) holds it here.
+   */
+  ownIsEnough?: true
 }
 
 const RULES: Record<string, readonly Rule[]> = {
@@ -281,6 +286,10 @@ const RULES: Record<string, readonly Rule[]> = {
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
+  // the checks before scheduling (plan 05 Task 2): Editor and above, a read of a draft not saved
+  'POST /api/v1/orgs/{org}/workspaces/{id}/post-checks': [
+    { permission: 'post.draft', level: 'workspace', hiddenWithout: true, ownIsEnough: true },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },
@@ -408,7 +417,8 @@ type Where = 'w1' | 'w2' | null
 
 function expectedStatus(rule: Rule, role: ActorRole, where: Where): number {
   const cell = MATRIX[rule.permission][role]
-  if (cell === 'own') throw new Error(`${rule.permission}: "own" needs a resource of the actor`)
+  if (cell === 'own' && !rule.ownIsEnough)
+    throw new Error(`${rule.permission}: "own" needs a resource of the actor`)
   const seesEveryWorkspace = role === 'owner' || role === 'admin'
   if (rule.level === 'workspace' && where === 'w2' && !seesEveryWorkspace) return 404
   if (rule.sentByManager && !seesEveryWorkspace && role !== 'manager') return 404
