@@ -61,11 +61,11 @@ export const LOGO_STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 /** The files `failed` for a day: deleted like from the panel, with a line in the audit. */
 async function removeFailed(tx: Tx, organizationId: string, now: Date): Promise<string[]> {
   const removed: string[] = []
-  for (const file of await tx.media.failedSince(
-    organizationId,
-    new Date(now.getTime() - FAILED_MAX_AGE_MS),
-  )) {
-    if (!(await tx.media.markDeleted(organizationId, file.workspaceId, file.id, now))) continue
+  const before = new Date(now.getTime() - FAILED_MAX_AGE_MS)
+  for (const file of await tx.media.failedSince(organizationId, before)) {
+    // checked again on the row: a «Riprova» since the read keeps the file
+    if (!(await tx.media.markDeleted(organizationId, file.workspaceId, file.id, now, before)))
+      continue
     await tx.audit.record({
       organizationId,
       actorId: null,

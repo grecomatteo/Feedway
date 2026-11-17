@@ -560,7 +560,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .orderBy(mediaVariants.mediaId, mediaVariants.purpose)
       return rows.map((r): MediaVariantRecord => ({ ...r, purpose: r.purpose as VariantPurpose }))
     },
-    async markDeleted(organizationId, workspaceId, mediaId, at) {
+    async markDeleted(organizationId, workspaceId, mediaId, at, failedBefore) {
       const marked = await db
         .update(media)
         .set({ status: 'deleted', deletedAt: at })
@@ -570,6 +570,9 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             eq(media.workspaceId, workspaceId),
             eq(media.id, mediaId),
             ne(media.status, 'deleted'),
+            ...(failedBefore
+              ? [eq(media.status, 'failed'), lt(media.updatedAt, failedBefore)]
+              : []),
           ),
         )
         .returning({ id: media.id })

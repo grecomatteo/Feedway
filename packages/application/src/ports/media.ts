@@ -276,13 +276,15 @@ export interface MediaRepository {
   findPublicVariant(token: string): Promise<PublicVariantRecord | null>
   /**
    * Marks the file of the workspace deleted and takes it out of the library. false: there is no
-   * such file, or it was deleted already.
+   * such file, or it was deleted already. `failedBefore`: only if still `failed` and unchanged
+   * since then (the clean-up, D-43: a file tried again meanwhile stays).
    */
   markDeleted(
     organizationId: string,
     workspaceId: string,
     mediaId: string,
     at: Date,
+    failedBefore?: Date,
   ): Promise<boolean>
   /** After the files are removed: the variants' rows go and the original's key is cleared. */
   forgetFiles(organizationId: string, mediaId: string): Promise<void>

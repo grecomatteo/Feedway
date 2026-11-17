@@ -286,3 +286,30 @@ test('a failed file goes after 24 hours, with its bytes; a recent one stays (D-4
     expect.objectContaining({ mediaId: recent }),
   )
 })
+
+test('a failed file tried again since the clean-up read it is not deleted (D-43)', async () => {
+  const a = await agency()
+  const id = await seed(tdb.runtimeUrl, (s) =>
+    s.media(a.organizationId, a.workspaceId, { uploadedBy: a.ownerId, status: 'processing' }),
+  )
+  // «Riprova» between the read and the deletion: processing again, just changed
+  const repo = createUnitOfWork({
+    db: handle.db,
+    ids: uuidV7Generator,
+    logger: createLogger({ service: 'worker', level: 'error' }),
+  })
+  const marked = await repo.run({ organizationId: a.organizationId, userId: null }, (tx) =>
+    tx.media.markDeleted(
+      a.organizationId,
+      a.workspaceId,
+      id,
+      new Date(),
+      new Date(Date.now() - 24 * HOUR),
+    ),
+  )
+  expect(marked).toBe(false)
+  const { rows } = await admin.query<{ status: string }>('select status from media where id = $1', [
+    id,
+  ])
+  expect(rows[0]?.status).toBe('processing')
+})

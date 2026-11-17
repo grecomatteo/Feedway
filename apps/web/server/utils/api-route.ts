@@ -76,7 +76,8 @@ export function logFailure(event: H3Event, error: unknown): void {
     error,
   )
   try {
-    if (isClientGone(error)) useDeps().logger.warn(entry, 'request aborted by the client')
+    if (isClientGone(error, event.node.req.destroyed || event.node.req.socket.destroyed))
+      useDeps().logger.warn(entry, 'request aborted by the client')
     else useDeps().logger.error(entry, 'unhandled error')
   } catch {
     console.error('unhandled error before startup finished', JSON.stringify(entry))
