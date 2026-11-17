@@ -72,8 +72,8 @@ export function createPgRateLimiter(deps: { db: DbExecutor; clock: Clock }): Rat
       await db.delete(t).where(inArray(t.key, [hitKey(key), failureKey(key)]))
     },
     async deleteIdleBefore(before) {
-      const gone = await db.delete(t).where(lt(t.updatedAt, before)).returning({ key: t.key })
-      return gone.length
+      const result = await db.delete(t).where(lt(t.updatedAt, before))
+      return result.rowCount ?? 0
     },
   }
 }

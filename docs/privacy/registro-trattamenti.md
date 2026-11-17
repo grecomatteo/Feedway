@@ -34,7 +34,7 @@ I periodi di conservazione sono quelli che il codice applica (`RETENTION` in `pa
 |---|---|
 | Finalità | Autenticare le persone e tenere il pannello sicuro |
 | Base giuridica | Legittimo interesse alla sicurezza (art. 6.1.f; art. 32) |
-| Dati | Password (solo l'impronta Argon2id), passkey (chiave pubblica), segreto TOTP cifrato, codici di riserva (impronte), sessioni con IP e browser, contatori dei limiti di frequenza (IP e impronta dell'email) |
+| Dati | Password (solo l'impronta Argon2id), passkey (chiave pubblica), segreto TOTP cifrato, codici di riserva (impronte), sessioni con IP e browser, contatori dei limiti di frequenza (IP, impronta dell'email, identificativi di persone, agenzie e collegamenti) |
 | Conservazione | Sessioni: cancellate 30 giorni dopo la scadenza (scadono dopo 12 ore senza uso e al più dopo 30 giorni). Valori di verifica (link, codici): cancellati alla scadenza. Contatori dei limiti di frequenza: cancellati dopo 2 giorni senza uso; i tentativi di accesso sbagliati si dimenticano dopo 24 ore senza nuovi errori |
 | Destinatari | Fornitore della VPS ✎; fornitore email per gli avvisi di sicurezza (dalla tappa 3) ✎ |
 
