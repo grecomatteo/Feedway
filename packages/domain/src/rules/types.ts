@@ -186,6 +186,8 @@ export interface PlatformRules {
     view: PlatformView,
     account: RuleAccount & { id: string },
     history: PublishingHistoryFacts,
+    /** when the post goes out: the quotas count the 24 hours before it */
+    at: Date,
   ): RuleFinding[]
   /** The most a photo may weigh here: `checkFile` gets it in `FileLimits` (ADR 019). */
   readonly photoMaxBytes: number

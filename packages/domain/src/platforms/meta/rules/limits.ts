@@ -73,7 +73,7 @@ export const META_LIMITS = {
     unit: 'count',
     label: 'Elementi massimi di un carosello di Instagram',
     source: `${IG_PUBLISHING}: «Carousels are limited to 10 images, videos, or a mix of the two»`,
-    note: '«IG User Media» dice invece fino a 20: resta 10, D-51.',
+    note: '«IG User Media» dice invece fino a 20: resta 10, come in Meta Business Suite (D-51, deciso).',
   }),
   instagramPhotoMaxBytes: limit({
     value: 8_000_000,
@@ -214,7 +214,7 @@ export const META_LIMITS = {
     unit: 'bytes',
     label: 'Peso di una foto per Facebook',
     source: `Specifica §9.2; ${FB_PHOTOS} dice «less than 10MB»`,
-    note: 'Resta 4 MB: la foto è solo ricompressa di più, D-51.',
+    note: 'Vale solo per la copia di Facebook: la copia di Instagram resta com’è fino a 8 MB (D-51, «prima Instagram»).',
   }),
 } as const satisfies Record<string, MetaLimit>
 

@@ -13,7 +13,13 @@ const short = (o: RuleOutcome) => {
       : o.subject.kind === 'destination'
         ? `destination:${o.subject.accountId}`
         : o.subject.kind
-  return { level: o.level, code: o.code, subject, ...(o.platform ? { platform: o.platform } : {}) }
+  return {
+    level: o.level,
+    code: o.code,
+    subject,
+    ...(o.platform ? { platform: o.platform } : {}),
+    ...(o.chosen ? { chosen: o.chosen } : {}),
+  }
 }
 const sortKey = (x: { code: string; subject: string; platform?: string }) =>
   `${x.code} ${x.subject} ${x.platform ?? ''}`
@@ -24,6 +30,10 @@ describe('the cases of §9.1–9.2', () => {
   it.each(RULE_CASES.map((c) => [c.id, c] as const))('%s', (_id, c) => {
     const report = evaluatePost(c.draft, c.context)
     expect(report.outcomes.map(short).sort(byKey)).toEqual([...c.expected].sort(byKey))
+    if (c.destinations)
+      expect(
+        report.destinations.map(({ accountId, format, media }) => ({ accountId, format, media })),
+      ).toEqual(c.destinations)
   })
 
   test('the ids are unique', () => {
@@ -97,26 +107,26 @@ describe('choices', () => {
     expect(report.canSchedule).toBe(true)
   })
 
-  test('«salta Facebook» removes the Facebook destination and evaluates again', () => {
-    const d = mixed()
-    const key = keyOf(evaluatePost(d, context()), 'carousel_mixed_with_facebook')
-    const report = evaluatePost({ ...d, choices: [{ key, option: 'skip_platform' }] }, context())
-    expect(report.destinations.map((x) => x.accountId)).toEqual([IG])
-    expect(report.post).toEqual([
-      expect.objectContaining({ code: 'carousel_mixed_with_facebook', chosen: 'skip_platform' }),
+  test('a destination says the choice that shaped it, not the files it leaves out', () => {
+    // the video (index 1) needs converting; Facebook publishes only the photos
+    const d = draft({
+      type: 'carousel',
+      media: [
+        photo(),
+        video(
+          10_000,
+          { width: 1080, height: 1350 },
+          { checks: { fixes: [], warnings: [{ code: 'convert_codec' }] } },
+        ),
+        photo(),
+      ],
+      choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'photos_only' }],
+    })
+    const report = evaluatePost(d, context())
+    expect(destination(report, FB).outcomes.map((o) => o.code)).toEqual([
+      'carousel_mixed_with_facebook',
     ])
-    expect(report.canSchedule).toBe(true)
-  })
-
-  test('«solo le foto» leaves Facebook the photos, and Instagram everything', () => {
-    const d = mixed()
-    const key = keyOf(evaluatePost(d, context()), 'carousel_mixed_with_facebook')
-    const report = evaluatePost({ ...d, choices: [{ key, option: 'photos_only' }] }, context())
-    const fb = destination(report, FB)
-    const ig = destination(report, IG)
-    expect(fb).toMatchObject({ format: 'multi_photo', media: [0, 2] })
-    expect(ig).toMatchObject({ format: 'carousel', media: [0, 1, 2] })
-    expect(report.canSchedule).toBe(true)
+    expect(destination(report, IG).outcomes.map((o) => o.code)).toEqual(['file_convert_codec'])
   })
 
   test('skipping the only platform leaves no destination', () => {
@@ -125,26 +135,6 @@ describe('choices', () => {
     const report = evaluatePost({ ...d, choices: [{ key, option: 'skip_platform' }] }, context())
     expect(report.outcomes.map((o) => o.code)).toContain('no_destinations')
     expect(report.canSchedule).toBe(false)
-  })
-
-  test('a long reel goes to Facebook as a video once chosen', () => {
-    const d = draft({ type: 'reel', media: [video(120_000)] })
-    const key = keyOf(evaluatePost(d, context()), 'reel_too_long_for_facebook')
-    const report = evaluatePost({ ...d, choices: [{ key, option: 'publish_as_video' }] }, context())
-    expect(report.destinations.find((x) => x.accountId === FB)?.format).toBe('video')
-    expect(report.canSchedule).toBe(true)
-  })
-
-  test('the first 10 photos go to Facebook once chosen', () => {
-    const d = draft({
-      type: 'carousel',
-      media: Array.from({ length: 12 }, () => photo()),
-      destinations: [{ accountId: FB }],
-    })
-    const key = keyOf(evaluatePost(d, context()), 'facebook_too_many_photos')
-    const report = evaluatePost({ ...d, choices: [{ key, option: 'first_files' }] }, context())
-    expect(report.destinations[0]?.media).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(report.canSchedule).toBe(true)
   })
 
   test('a choice that changes the post changes its fingerprint too', () => {
@@ -287,4 +277,14 @@ describe('platforms', () => {
     const report = evaluatePost(draft(), ctx)
     expect(report.outcomes.map((o) => o.code)).toEqual(['platform_unsupported'])
   })
+})
+
+test('the fingerprint ignores the spaces at the ends and how the lines are broken (D-50)', () => {
+  const same = postFingerprint('a', ['s1'], 'Il pane\n\n di oggi')
+  expect(postFingerprint('a', ['s1'], '  Il pane di oggi \n')).toBe(same)
+  expect(postFingerprint('a', ['s1'], 'Il pane\r\ndi oggi')).toBe(same)
+  expect(postFingerprint('a', ['s1'], 'Il pane di ieri')).not.toBe(same)
+  expect(postFingerprint('a', ['s2', 's1'], 'Il pane di oggi')).not.toBe(
+    postFingerprint('a', ['s1', 's2'], 'Il pane di oggi'),
+  )
 })

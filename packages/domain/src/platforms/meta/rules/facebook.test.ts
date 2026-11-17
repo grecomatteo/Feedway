@@ -38,6 +38,12 @@ test('a reel over 15 minutes is blocked, not sent to Facebook as a video', () =>
   expect(codes(view('reel', [video(901_000)]))).toEqual(['reel_too_long'])
 })
 
+test('a carousel of videos only can go out only without Facebook', () => {
+  expect(codes(view('carousel', [video(10_000), video(10_000)]))).toEqual([
+    'carousel_videos_with_facebook',
+  ])
+})
+
 test('a carousel left with one photo is a photo post', () => {
   expect(FACEBOOK_RULES.format('carousel', [photo()])).toBe('photo')
 })
@@ -56,8 +62,12 @@ test('the 30 reels of a day count only for reels', () => {
     inWorkspace: true,
     quota: null,
   }
-  expect(FACEBOOK_RULES.checkAccount(view('photo', [photo()]), account, history)).toEqual([])
   expect(
-    FACEBOOK_RULES.checkAccount(view('reel', [video(10_000)]), account, history).map((f) => f.code),
+    FACEBOOK_RULES.checkAccount(view('photo', [photo()]), account, history, new Date()),
+  ).toEqual([])
+  expect(
+    FACEBOOK_RULES.checkAccount(view('reel', [video(10_000)]), account, history, new Date()).map(
+      (f) => f.code,
+    ),
   ).toEqual(['facebook_reels_limit'])
 })

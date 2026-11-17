@@ -14,7 +14,21 @@ function checkCarousel(view: PlatformView): RuleFinding[] {
   if (view.type !== 'carousel') return []
   const photos = view.media.filter((m) => m.media.kind === 'image').map((m) => m.index)
   const findings: RuleFinding[] = []
-  if (photos.length > 0 && photos.length < view.media.length)
+  // a Page has no carousel of videos: the only way on is without Facebook
+  if (photos.length === 0)
+    return [
+      {
+        level: 'warning',
+        code: 'carousel_videos_with_facebook',
+        subject: { kind: 'post' },
+        platform,
+        params: { platform },
+        options: ['skip_platform'],
+        recommended: 'skip_platform',
+        effects: { skip_platform: skip },
+      },
+    ]
+  if (photos.length < view.media.length)
     findings.push({
       level: 'warning',
       code: 'carousel_mixed_with_facebook',
@@ -119,6 +133,7 @@ export const FACEBOOK_RULES: PlatformRules = {
       })
     return [...findings, ...checkCarousel(view), ...checkReel(view), ...checkReelAndStory(view)]
   },
+  // the 30 reels are counted around the instant by `history.reelsLast24h`
   checkAccount(view, account, history) {
     if (view.format !== 'reel') return []
     const reels = history.reelsLast24h.get(account.id) ?? 0

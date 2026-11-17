@@ -8,6 +8,7 @@ import { checkReelAndStory, imageOf, isNineSixteen } from './shared.js'
 // publishing quota.
 
 const platform = 'instagram' as const
+const DAY_MS = 24 * 3_600_000
 
 function checkCaption(view: PlatformView): RuleFinding[] {
   if (view.type === 'story') return []
@@ -110,10 +111,13 @@ export const INSTAGRAM_RULES: PlatformRules = {
       })
     return [...findings, ...checkReelAndStory(view)]
   },
-  checkAccount(_view, account, history) {
+  checkAccount(_view, account, history, at) {
     if (!account.quota) return []
     const scheduled = history.scheduledNear.get(account.id) ?? 0
-    const left = account.quota.total - account.quota.used - scheduled
+    // the posts Meta counted have left the window 24 hours after it counted them
+    const stillCounted = at.getTime() - account.quota.checkedAt.getTime() < DAY_MS
+    const used = stillCounted ? account.quota.used : 0
+    const left = account.quota.total - used - scheduled
     const subject = { kind: 'destination', accountId: account.id } as const
     if (left <= 0)
       return [

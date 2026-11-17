@@ -9,6 +9,7 @@ import type {
   RuleAccount,
   RuleContext,
   RuleLevel,
+  RuleOption,
 } from './types.js'
 
 // The cases of the checks (plan 05, `rules/cases.ts`): data for the tests, never production
@@ -143,6 +144,15 @@ export interface ExpectedOutcome {
   /** `post`, `cover`, `media:<index>`, `destination:<account id>` */
   subject: string
   platform?: 'instagram' | 'facebook'
+  /** the option taken, for a warning answered in `draft.choices` */
+  chosen?: RuleOption
+}
+
+/** What a destination will publish, for the cases where a choice changes it. */
+export interface ExpectedDestination {
+  accountId: string
+  format: string | null
+  media: number[]
 }
 
 export interface RuleCase {
@@ -154,6 +164,8 @@ export interface RuleCase {
   context: RuleContext
   /** every outcome, none left out */
   expected: ExpectedOutcome[]
+  /** every destination that goes out, when the case is about a choice */
+  destinations?: ExpectedDestination[]
 }
 
 const o =
@@ -176,7 +188,19 @@ const c = (
   d: PostDraft,
   expected: ExpectedOutcome[],
   cx: RuleContext = ctx,
-): RuleCase => ({ id, section, scenario, draft: d, context: cx, expected })
+  destinations?: ExpectedDestination[],
+): RuleCase => ({
+  id,
+  section,
+  scenario,
+  draft: d,
+  context: cx,
+  expected,
+  ...(destinations ? { destinations } : {}),
+})
+
+const chose = (e: ExpectedOutcome, chosen: RuleOption): ExpectedOutcome => ({ ...e, chosen })
+const TODAY_EVENING = { mode: 'at', localDate: '2026-11-17', localTime: '18:00' } as const
 
 const reel = (durationMs: number, over: Partial<Video> = {}, rest: Partial<PostDraft> = {}) =>
   draft({ type: 'reel', media: [video(durationMs, over)], ...rest })
@@ -601,7 +625,7 @@ export const RULE_CASES: RuleCase[] = [
     'quota-low',
     'post',
     'Quota di Instagram: 96 post su 100 nelle 24 ore',
-    draft({ destinations: onlyIg }),
+    draft({ destinations: onlyIg, when: TODAY_EVENING }),
     [warning('quota_low', `destination:${IG}`, 'instagram')],
     context({
       accounts: {
@@ -613,7 +637,7 @@ export const RULE_CASES: RuleCase[] = [
     'quota-scheduled',
     'post',
     'Quota di Instagram: 90 usati e 6 già programmati in quelle 24 ore',
-    draft({ destinations: onlyIg }),
+    draft({ destinations: onlyIg, when: TODAY_EVENING }),
     [warning('quota_low', `destination:${IG}`, 'instagram')],
     context({
       accounts: {
@@ -626,7 +650,7 @@ export const RULE_CASES: RuleCase[] = [
     'quota-exhausted',
     'post',
     'Quota di Instagram esaurita: 100 su 100',
-    draft({ destinations: onlyIg }),
+    draft({ destinations: onlyIg, when: TODAY_EVENING }),
     [block('quota_exhausted', `destination:${IG}`, 'instagram')],
     context({
       accounts: {
@@ -671,5 +695,86 @@ export const RULE_CASES: RuleCase[] = [
     duplicate,
     [warning('duplicate_post', `destination:${FB}`, 'facebook')],
     context({ history: { recentFingerprints: new Map([[FB, new Set([duplicateSeen])]]) } }),
+  ),
+  c(
+    'quota-full-today-later',
+    'post',
+    'Quota di Instagram piena oggi, post fra 3 giorni: quei post non contano più',
+    draft({
+      destinations: onlyIg,
+      when: { mode: 'at', localDate: '2026-11-20', localTime: '18:00' },
+    }),
+    [],
+    context({
+      accounts: {
+        [IG]: account({ platform: 'instagram', quota: { used: 100, total: 100, checkedAt: NOW } }),
+      },
+    }),
+  ),
+  c(
+    'carousel-videos-fb',
+    'post',
+    'Carosello di soli video, anche su Facebook',
+    carousel([video(10_000), video(10_000)]),
+    [warning('carousel_videos_with_facebook', 'post', 'facebook')],
+  ),
+
+  // — Choices that change the post (plan 05, «Avvisi con scelta»)
+  c(
+    'choice-photos-only',
+    'post',
+    'Carosello con foto e video: «solo le foto» su Facebook',
+    carousel([photo(), video(10_000, { width: 1080, height: 1350 }), photo()], {
+      choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'photos_only' }],
+    }),
+    [chose(warning('carousel_mixed_with_facebook', 'post', 'facebook'), 'photos_only')],
+    ctx,
+    [
+      { accountId: IG, format: 'carousel', media: [0, 1, 2] },
+      { accountId: FB, format: 'multi_photo', media: [0, 2] },
+    ],
+  ),
+  c(
+    'choice-skip-facebook',
+    'post',
+    'Carosello con foto e video: «salta Facebook»',
+    carousel([photo(), video(10_000, { width: 1080, height: 1350 })], {
+      choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'skip_platform' }],
+    }),
+    [chose(warning('carousel_mixed_with_facebook', 'post', 'facebook'), 'skip_platform')],
+    ctx,
+    [{ accountId: IG, format: 'carousel', media: [0, 1] }],
+  ),
+  c(
+    'choice-first-10',
+    'post',
+    'Post di 12 foto su Facebook: «solo le prime 10»',
+    carousel(photos(12), {
+      destinations: onlyFb,
+      choices: [{ key: 'facebook_too_many_photos:post:facebook', option: 'first_files' }],
+    }),
+    [chose(warning('facebook_too_many_photos', 'post', 'facebook'), 'first_files')],
+    ctx,
+    [{ accountId: FB, format: 'multi_photo', media: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }],
+  ),
+  c(
+    'choice-fb-video',
+    'post',
+    'Reel di 2 minuti: su Facebook «come video normale»',
+    reel(
+      120_000,
+      {},
+      {
+        choices: [
+          { key: 'reel_too_long_for_facebook:media:0:facebook', option: 'publish_as_video' },
+        ],
+      },
+    ),
+    [chose(warning('reel_too_long_for_facebook', 'media:0', 'facebook'), 'publish_as_video')],
+    ctx,
+    [
+      { accountId: IG, format: 'reel', media: [0] },
+      { accountId: FB, format: 'video', media: [0] },
+    ],
   ),
 ]

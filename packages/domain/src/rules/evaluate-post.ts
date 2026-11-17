@@ -37,7 +37,12 @@ export function resolveWhen(when: PostWhen, now: Date, timeZone: string): Resolv
  * text, but for the spaces at its ends and how its lines are broken.
  */
 export function postFingerprint(accountId: string, sha256s: readonly string[], caption: string) {
-  const text = caption.trim().replace(/\s*\n\s*/g, ' ')
+  // split, not a regex: the text comes from the request (CodeQL, polynomial regex)
+  const text = caption
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+    .join(' ')
   return JSON.stringify([accountId, sha256s, text])
 }
 
@@ -151,7 +156,9 @@ function runPass(
     const view = d.account ? views.get(d.account.platform) : undefined
     const rules = d.account ? rulesOf.get(d.account.platform) : undefined
     if (!d.account || !view || !rules) continue
-    findings.push(...rules.checkAccount(view, { ...d.account, id: d.accountId }, ctx.history))
+    findings.push(
+      ...rules.checkAccount(view, { ...d.account, id: d.accountId }, ctx.history, when.instant),
+    )
     const sha256s = view.media.map((m) => m.media.sha256)
     if (sha256s.every((s) => s !== null)) {
       const fingerprint = postFingerprint(d.accountId, sha256s, view.caption)
@@ -191,21 +198,25 @@ function runPass(
     effects: effectsByKey,
     destinations: destinations.map((d) => {
       const view = d.account ? views.get(d.account.platform) : undefined
-      const platform = d.account?.platform ?? null
       return {
         accountId: d.accountId,
-        platform,
+        platform: d.account?.platform ?? null,
         format: view?.format ?? null,
         caption: view?.caption ?? '',
         media: view?.media.map((m) => m.index) ?? [],
-        outcomes: list.filter((o) =>
-          o.subject.kind === 'destination'
-            ? o.subject.accountId === d.accountId
-            : platform !== null && (o.platform === undefined || o.platform === platform),
-        ),
+        outcomes: [],
       }
     }),
   }
+}
+
+/** What touches a destination: its own outcomes, its platform's, and those of its files. */
+function touches(o: RuleOutcome, d: DestinationSummary): boolean {
+  if (o.subject.kind === 'destination') return o.subject.accountId === d.accountId
+  if (d.platform === null) return false
+  if (o.platform !== undefined && o.platform !== d.platform) return false
+  // a file this destination does not publish (left out by a choice) is not its concern
+  return o.subject.kind !== 'media' || d.media.includes(o.subject.index)
 }
 
 export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
@@ -229,7 +240,10 @@ export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
   const unresolved = outcomes.filter((o) => o.level === 'warning' && !o.chosen).map((o) => o.key)
   return {
     outcomes,
-    destinations: pass.destinations,
+    destinations: pass.destinations.map((d) => ({
+      ...d,
+      outcomes: outcomes.filter((o) => touches(o, d)),
+    })),
     post: outcomes.filter((o) => o.subject.kind !== 'destination'),
     unresolved,
     canSchedule: unresolved.length === 0 && !outcomes.some((o) => o.level === 'block'),
