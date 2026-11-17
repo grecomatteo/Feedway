@@ -262,17 +262,29 @@ async function processIn(
       tx.media.saveVariant(record.organizationId, record.id, variantRow(deps, record, previewMade)),
     )
     progress.set('conversion', 75, true)
-    // the copy to publish, without encoding again (§16.6); a codec Meta does not take is a
-    // choice for the editor (stage 6), so the file has no copy to publish yet
+    // the copy to publish: copied as it is when Meta takes it (§16.6), otherwise converted
+    // (D-40); a codec Meta does not take is a choice for the editor (stage 6), so the file has
+    // no copy to publish yet
     if (isPublishableVideo(analysis)) {
-      const reel = await deps.transformer.videoRemux(input, folder.path('reel.mp4'), {
+      const reel = await deps.transformer.videoReel(input, folder.path('reel.mp4'), {
         signal,
         videoCodec: analysis.videoCodec,
         durationMs: analysis.durationMs,
+        sizeBytes: analysis.sizeBytes,
         width: analysis.width,
         height: analysis.height,
+        fps: analysis.fps,
+        onProgress: (fraction) => {
+          progress.set('conversion', 75 + Math.round(fraction * 20))
+        },
       })
       if (!reel.ok) return refused(reel.reason, facts)
+      if (reel.plan.video.mode === 'encode') {
+        check.fixes.push({ code: 'convert_for_reels', width: reel.file.width })
+        // over 60 fps the copy to publish is already at 60: nothing is left to propose
+        if (reel.plan.reasons.includes('frame_rate'))
+          check.warnings = check.warnings.filter((w) => w.code !== 'convert_fps')
+      } else if (reel.plan.audio === 'encode') check.fixes.push({ code: 'convert_audio_for_reels' })
       made.push({ purpose: 'reel', file: reel.file, publicToken: deps.newPublicToken() })
     }
     const frame = await deps.transformer.videoFrame(

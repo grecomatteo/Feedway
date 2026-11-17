@@ -69,7 +69,7 @@ export function createMediaTools(options: MediaToolsOptions = {}): {
         return images.thumbnail(input, output)
       },
       videoPreview: (input, output, opts) => ffmpeg.preview(input, output, opts),
-      videoRemux: (input, output, opts) => ffmpeg.remux(input, output, opts),
+      videoReel: (input, output, opts) => ffmpeg.reel(input, output, opts),
       videoFrame: (input, output, opts) => ffmpeg.frame(input, output, opts),
     },
   }
