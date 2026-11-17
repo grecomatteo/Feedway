@@ -56,14 +56,22 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Caso | Esiti e messaggi | Scelte |
 |---|---|---|
 | File non riuscito (oltre i limiti di caricamento) | **Blocco**: **File non riuscito**. Il file pesa troppo. Toglilo dal post, oppure caricalo di nuovo. | — |
+| File che non è una foto né un video (tipo letto dai byte, non dal nome) | **Blocco**: **File non riuscito**. Tipo di file non ammesso: carica foto JPEG, PNG, HEIC, WEBP o video MP4 e MOV. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Foto oltre 50 megapixel | **Blocco**: **File non riuscito**. La foto ha troppi pixel. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Video oltre 300 MB | **Blocco**: **File non riuscito**. Il file pesa troppo. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Video oltre la durata massima di caricamento | **Blocco**: **File non riuscito**. Il video è troppo lungo. Toglilo dal post, oppure caricalo di nuovo. | — |
+| File rovinato, che non si legge | **Blocco**: **File non riuscito**. Il file non si legge: forse è rovinato. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Video 4K a 60 fps la cui preparazione è durata troppo | **Blocco**: **File non riuscito**. La preparazione ha richiesto troppo tempo. Se è un video in 4K o a 60 fps, esportalo in 1080p o a 30 fps e caricalo di nuovo. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Spazio del cliente pieno durante la preparazione | **Blocco**: **File non riuscito**. Lo spazio del cliente o dell'agenzia è pieno. Toglilo dal post, oppure caricalo di nuovo. | — |
+| Preparazione non riuscita dopo vari tentativi | **Blocco**: **File non riuscito**. La preparazione non è riuscita dopo vari tentativi. Toglilo dal post, oppure caricalo di nuovo. | — |
 | File ancora in elaborazione | **Blocco**: **File ancora in preparazione**. Feedway sta ancora preparando questo file. Quando nella libreria è «Pronto», controlla di nuovo. | — |
 | File eliminato dalla libreria | **Blocco**: **File non disponibile**. Questo file non è nella libreria di questo cliente, oppure è stato eliminato. Toglilo dal post o scegline un altro. | — |
 | Foto HEIC con profilo colore non sRGB, metadati e 6000 px di larghezza | **Correzione**: **Foto convertita in JPEG**. La foto viene convertita in JPEG, il formato che Instagram e Facebook accettano.<br>**Correzione**: **Colori convertiti**. I colori della foto vengono convertiti nel profilo standard (sRGB), così appaiono uguali su ogni telefono.<br>**Correzione**: **Dati nascosti tolti**. Dalla foto vengono tolti i dati nascosti, come il luogo dello scatto.<br>**Correzione**: **Foto ridimensionata**. La foto viene ridotta a 1440 pixel di larghezza, la misura più grande che serve. | — |
 | Foto di 9 MB su Instagram e Facebook | **Correzione** · Instagram: **Foto alleggerita per Instagram**. La foto pesa più di 8 MB, il massimo che Instagram accetta: per Instagram esce una copia alleggerita.<br>**Correzione** · Facebook: **Foto alleggerita per Facebook**. La foto pesa più di 4 MB, il massimo che Facebook accetta: per Facebook esce una copia alleggerita. | — |
 | Foto di 5 MB solo su Instagram: la ricompressione per Facebook non si dice | Nessun esito: si può programmare. | — |
 | Video in VP9 a 120 fps, con i dati non all’inizio del file | **Correzione**: **Video sistemato per partire subito**. Il video viene sistemato perché parta subito, senza aspettare che sia scaricato tutto.<br>**Avviso**: **Video da convertire**. Il video è in un formato che Instagram e Facebook potrebbero rifiutare. Feedway può convertirlo, oppure puoi provarlo così com'è.<br>**Avviso**: **Fotogrammi da convertire**. Il video ha un numero di fotogrammi al secondo che Instagram e Facebook non accettano. Feedway può convertirlo a 30 fotogrammi al secondo, oppure puoi provarlo così com'è. | Converti (consigliata) · Usa così<br>Converti (consigliata) · Usa così |
-| Video 4K a 25 Mbit/s con audio a 44,1 kHz mono per un reel | **Correzione**: **Video convertito per i reel**. Il video supera i limiti dei reel: la copia da pubblicare viene convertita a 1080 pixel di larghezza. | — |
-| Video di un reel con l’audio a 44,1 kHz mono e il video già nei limiti | **Correzione**: **Audio convertito per i reel**. L'audio del video viene convertito nel formato che i reel accettano; le immagini restano come sono. | — |
+| Video 4K a 25 Mbit/s con audio a 44,1 kHz mono per un reel | **Correzione**: **Video convertito nei limiti di Instagram e Facebook**. Il video supera i limiti di Instagram e Facebook: la copia da pubblicare viene convertita a 1080 pixel di larghezza. | — |
+| Video di un reel con l’audio a 44,1 kHz mono e il video già nei limiti | **Correzione**: **Audio convertito nei limiti di Instagram e Facebook**. L'audio del video viene convertito nel formato che Instagram e Facebook accettano; le immagini restano come sono. | — |
 
 ## Proporzioni e durata
 
@@ -74,6 +82,7 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Carosello con una foto 4:5 e una quadrata | **Avviso** · Instagram: **File di forme diverse nel carosello**. Instagram taglia tutti i file del carosello sulla forma del primo: le parti che escono non si vedranno. | Va bene (consigliata) |
 | Reel quadrato | **Avviso**: **Video non verticale per un reel**. Un reel è verticale (9:16), e questo video è 1080×1080. Puoi pubblicarlo così, con delle bande o ritagliato al centro. | Usa così (consigliata) · Aggiungi le bande · Ritaglia al centro |
 | Reel di 2,9 secondi | **Blocco**: **Video troppo corto per un reel**. Un reel dura almeno 3 secondi, e questo video ne dura 2,9. Scegli un video più lungo. | — |
+| Reel di 2,96 secondi: il testo dice 2,9, non 3 | **Blocco**: **Video troppo corto per un reel**. Un reel dura almeno 3 secondi, e questo video ne dura 2,9. Scegli un video più lungo. | — |
 | Reel di esattamente 3 secondi | Nessun esito: si può programmare. | — |
 | Reel di esattamente 15 minuti, solo su Instagram | Nessun esito: si può programmare. | — |
 | Reel di 15 minuti e 1 secondo | **Blocco**: **Video troppo lungo per un reel**. Un reel dura al massimo 15 minuti, e questo video è più lungo (901 secondi). Taglialo, o scegli un altro video. | — |
@@ -86,6 +95,9 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Reel 480×854 con Facebook (sotto 540×960) | **Avviso** · Facebook: **Video piccolo per un reel di Facebook**. Facebook chiede almeno 540×960 pixel per un reel, e questo video è 480×854. Puoi provarlo così, o non pubblicarlo su Facebook. | Usa così (consigliata) · Non pubblicare su Facebook |
 | Copertina del reel quadrata, solo Instagram | **Avviso** · Instagram: **Copertina non verticale**. La copertina di un reel è verticale (9:16), e questa foto è 1080×1080. Puoi ritagliarla al centro o usarla così. | Ritaglia al centro (consigliata) · Usa così |
 | Copertina del reel in PNG 9:16 di 9 MB, solo Instagram | **Correzione** · Instagram: **Copertina convertita**. La copertina viene convertita in JPEG, con i colori standard e un peso entro 8 MB. | — |
+| Copertina del reel caricata, ma è un video, solo Instagram | **Blocco**: **La copertina deve essere una foto**. Per la copertina del reel hai scelto un video. Scegli una foto, o un fotogramma del video. | — |
+| Fotogramma della copertina all’ultimo istante di un reel di 20 secondi, solo Instagram | Nessun esito: si può programmare. | — |
+| Fotogramma della copertina a 25 secondi in un reel di 20, solo Instagram | **Blocco**: **Il fotogramma scelto è oltre la fine del video**. Il fotogramma della copertina è a 25 secondi, e il video ne dura 20. Scegli un fotogramma dentro il video. | — |
 | Reel con un fotogramma scelto come copertina, anche su Facebook | **Avviso** · Facebook: **Copertina non ancora provata su Facebook**. Non abbiamo ancora verificato che Facebook usi la copertina scelta per i reel: potrebbe mostrarne un'altra. | Va bene (consigliata) |
 
 ## Post
@@ -127,7 +139,7 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Pagina Facebook con 29 reel nelle 24 ore | Nessun esito: si può programmare. | — |
 | Storia con una caption | **Avviso**: **Le storie non hanno testo**. Instagram e Facebook non pubblicano il testo nelle storie: quello che hai scritto non uscirà. Ignoralo, oppure toglilo. | Ignora il testo (consigliata) |
 | Storia con una caption di 3.000 caratteri: i caratteri non si contano | **Avviso**: **Le storie non hanno testo**. Instagram e Facebook non pubblicano il testo nelle storie: quello che hai scritto non uscirà. Ignoralo, oppure toglilo. | Ignora il testo (consigliata) |
-| Stessa foto e stesso testo sulla stessa Pagina negli ultimi 7 giorni | **Avviso** · Facebook: **Post uguale a uno recente**. Negli ultimi 7 giorni questo account ha già un post con gli stessi file e lo stesso testo, e Facebook potrebbe mostrarlo meno. Va bene, oppure cambia qualcosa. | Va bene (consigliata) |
+| Stessa foto e stesso testo sulla stessa Pagina negli ultimi 7 giorni | **Avviso** · Facebook: **Post uguale a uno recente**. Negli ultimi 7 giorni questo account ha già un post con gli stessi file e lo stesso testo, e Facebook potrebbe rifiutarlo o mostrarlo meno. Va bene, oppure cambia qualcosa. | Va bene (consigliata) |
 | Quota di Instagram piena oggi, post fra 3 giorni: quei post non contano più | Nessun esito: si può programmare. | — |
 | Carosello di soli video, anche su Facebook | **Avviso** · Facebook: **Un carosello di soli video non va su Facebook**. Facebook non ha post con più video: il carosello può uscire solo sugli altri account. | Non pubblicare su Facebook (consigliata) |
 | Carosello con foto e video: «solo le foto» su Facebook<br>Esce: Instagram: Carosello, file 1, 2, 3; Facebook: Post con più foto, file 1, 3. | **Avviso** · Facebook: **Foto e video insieme non vanno su Facebook**. Su Facebook un post con più file può avere solo foto. Puoi pubblicare su Facebook solo le foto (2), o non pubblicarlo su Facebook. | Solo le foto su Facebook (consigliata, scelta nel caso) · Non pubblicare su Facebook |

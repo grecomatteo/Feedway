@@ -2,6 +2,7 @@ import type { Platform } from '../accounts/accounts.js'
 import { isSelectable } from '../accounts/accounts.js'
 import type { FileFix, FileWarning } from '../media/check-file.js'
 import { instantToZoned, type ZonedAdjustment } from '../time/zoned.js'
+import { secondsDown, secondsUp } from './seconds.js'
 import type {
   DraftMedia,
   PostDraft,
@@ -12,7 +13,8 @@ import type {
   RuleSubject,
 } from './types.js'
 
-// The rules every platform shares (§9.2): destinations, accounts, date, files, story caption.
+// The rules every platform shares (§9.2): destinations, accounts, date, files, reel cover,
+// story caption.
 
 export interface ResolvedWhen {
   instant: Date
@@ -142,6 +144,31 @@ function fileRules(
   return [...fixes, ...warnings]
 }
 
+/**
+ * A reel's cover (§9.2): a photo of the library, or a frame inside the video. A cover that is
+ * not a photo blocks, and its own checks are not said: they are about a file that cannot be
+ * a cover (P2 of the stage 5 review).
+ */
+function coverRules(draft: PostDraft, platforms: ReadonlySet<Platform>): RuleFinding[] {
+  if (draft.type !== 'reel' || !draft.cover) return []
+  const subject = { kind: 'cover' } as const
+  if (draft.cover.source === 'image') {
+    const media = draft.cover.media
+    if (media.kind !== 'image') return [{ level: 'block', code: 'cover_not_image', subject }]
+    return fileRules(media, subject, platforms)
+  }
+  const video = draft.media[0]?.analysis
+  if (video?.kind !== 'video' || draft.cover.offsetMs <= video.durationMs) return []
+  return [
+    {
+      level: 'block',
+      code: 'cover_frame_out_of_range',
+      subject,
+      params: { found: secondsUp(draft.cover.offsetMs), limit: secondsDown(video.durationMs) },
+    },
+  ]
+}
+
 function whenRules(when: ResolvedWhen, ctx: RuleContext): RuleFinding[] {
   if (!when.scheduled) return []
   const post = { kind: 'post' } as const
@@ -184,12 +211,11 @@ export function commonRules(
   destinations: readonly ResolvedDestination[],
   platforms: ReadonlySet<Platform>,
 ): RuleFinding[] {
-  const cover = draft.type === 'reel' && draft.cover?.source === 'image' ? draft.cover.media : null
   return [
     ...destinationRules(destinations),
     ...mediaCountRules(draft),
     ...draft.media.flatMap((m, index) => fileRules(m, { kind: 'media', index }, platforms)),
-    ...(cover ? fileRules(cover, { kind: 'cover' }, platforms) : []),
+    ...coverRules(draft, platforms),
     ...whenRules(when, ctx),
     ...storyCaptionRule(draft),
   ]

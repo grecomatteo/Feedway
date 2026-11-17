@@ -2,7 +2,8 @@ import { captionStats } from '../../../rules/caption.js'
 import type { PlatformRules, PlatformView, RuleFinding } from '../../../rules/types.js'
 import { facebookFormat } from './content-types.js'
 import { META_LIMITS as L } from './limits.js'
-import { checkReelAndStory, seconds, videoOf } from './shared.js'
+import { secondsUp } from '../../../rules/seconds.js'
+import { checkReelAndStory, videoOf } from './shared.js'
 
 // A Facebook Page's rules (§9.1–9.2): no photos and videos together, the photos of a
 // multi-photo post (D-48), reels up to 90 s and 30 a day, the cover not yet verified.
@@ -74,7 +75,7 @@ function checkReel(view: PlatformView): RuleFinding[] {
         code: 'reel_too_long_for_facebook',
         subject,
         platform,
-        params: { platform, limit: seconds(max), found: seconds(video.durationMs) },
+        params: { platform, limit: max / 1000, found: secondsUp(video.durationMs) },
         options: ['publish_as_video', 'skip_platform'],
         recommended: 'publish_as_video',
         effects: {

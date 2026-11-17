@@ -21,6 +21,10 @@ auditConfig:
     # deepmerge (prototype poisoning of the merged object): no fixed version yet. Only
     # @rollup/plugin-node-resolve uses it, while building, on its own options.
     - GHSA-gcqx-w48m-w2h4
+    # picomatch (ReDoS through repeated extglobs, 17/11/2026): no fixed version yet. Only Nuxt's
+    # build, dev server and file watchers use it, on patterns from their own configuration; no
+    # code of Feedway passes it a pattern from a request. Ignored by Matteo's choice (17/11).
+    - GHSA-fc5q-39xc-vjpf
 
 # Better Auth lists vitest, vue and drizzle-kit as optional peers. pnpm would link the workspace's own dev tools
 # as those peers, and `pnpm deploy --prod` would then ship them (and esbuild's Go binary) in the image.

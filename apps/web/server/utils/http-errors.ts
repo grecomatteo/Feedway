@@ -48,6 +48,9 @@ const ISSUE_TEXT = it.errorDetails.issues
 /** What a request that fails the CSRF check is told: nothing about which check failed. */
 export const CSRF_MESSAGE = it.errorDetails.csrf
 
+/** A choice of `post-checks` whose option its warning does not offer (D-54). */
+export const INVALID_CHOICE_MESSAGE = ISSUE_TEXT.invalidChoice
+
 /** Seconds a client waits when a limit gives no figure. */
 const DEFAULT_RETRY_AFTER_SECONDS = 60
 const MAX_ISSUES = 20

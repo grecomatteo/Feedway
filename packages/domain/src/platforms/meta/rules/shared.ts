@@ -1,5 +1,6 @@
 import type { FileAnalysis } from '../../../media/check-file.js'
 import type { PlatformView, RuleFinding, ViewMedia } from '../../../rules/types.js'
+import { secondsDown, secondsUp } from '../../../rules/seconds.js'
 import { META_LIMITS as L } from './limits.js'
 
 // The checks Instagram and Facebook share (§9.2 «Proporzioni e durata»). Both platforms run
@@ -18,14 +19,11 @@ const NINE_SIXTEEN = 9 / 16
 export const isNineSixteen = (width: number, height: number) =>
   Math.abs(width / height - NINE_SIXTEEN) <= NINE_SIXTEEN * 0.01
 
-export const seconds = (ms: number) => Math.round(ms / 100) / 10
-
 export function checkReelAndStory(view: PlatformView): RuleFinding[] {
   const first = view.media[0]
   const video = videoOf(first)
   if (!first || !video) return []
   const subject = { kind: 'media', index: first.index } as const
-  const found = seconds(video.durationMs)
   const findings: RuleFinding[] = []
   if (view.type === 'reel') {
     if (video.durationMs < L.reelMinMs.value)
@@ -33,14 +31,14 @@ export function checkReelAndStory(view: PlatformView): RuleFinding[] {
         level: 'block',
         code: 'reel_too_short',
         subject,
-        params: { limit: seconds(L.reelMinMs.value), found },
+        params: { limit: L.reelMinMs.value / 1000, found: secondsDown(video.durationMs) },
       })
     if (video.durationMs > L.reelMaxMs.value)
       findings.push({
         level: 'block',
         code: 'reel_too_long',
         subject,
-        params: { limit: seconds(L.reelMaxMs.value) / 60, found },
+        params: { limit: L.reelMaxMs.value / 60_000, found: secondsUp(video.durationMs) },
       })
     if (!isNineSixteen(video.width, video.height))
       findings.push({
@@ -58,14 +56,14 @@ export function checkReelAndStory(view: PlatformView): RuleFinding[] {
         level: 'block',
         code: 'story_too_short',
         subject,
-        params: { limit: seconds(L.storyVideoMinMs.value), found },
+        params: { limit: L.storyVideoMinMs.value / 1000, found: secondsDown(video.durationMs) },
       })
     if (video.durationMs > L.storyVideoMaxMs.value)
       findings.push({
         level: 'warning',
         code: 'story_too_long',
         subject,
-        params: { limit: seconds(L.storyVideoMaxMs.value), found },
+        params: { limit: L.storyVideoMaxMs.value / 1000, found: secondsUp(video.durationMs) },
         options: ['trim_to_60'],
         recommended: 'trim_to_60',
       })

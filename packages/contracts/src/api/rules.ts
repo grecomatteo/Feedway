@@ -126,15 +126,16 @@ export const DestinationSummary = z.object({
   caption: z.string(),
   /** the files it will publish, as indices of `mediaIds` */
   media: z.array(z.number().int()),
-  outcomes: z.array(RuleOutcome),
+  /** the keys of the outcomes that touch it: each outcome is once, in `outcomes` */
+  outcomeKeys: z.array(z.string()),
 })
 
 export const PostCheckResponse = z.object({
   outcomes: z.array(RuleOutcome),
   /** the destinations that will go out, after the choices */
   destinations: z.array(DestinationSummary),
-  /** the outcomes of the post as a whole */
-  post: z.array(RuleOutcome),
+  /** the keys of the outcomes of the post as a whole (not of one destination) */
+  postKeys: z.array(z.string()),
   /** the keys of the warnings with no choice yet */
   unresolved: z.array(z.string()),
   /** no block, and a choice for every warning */

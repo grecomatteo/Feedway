@@ -235,3 +235,29 @@ test('a file and an account of B in the checks of a post of A: blocked, with not
   expect(text).not.toMatch(/instagram|facebook/)
   expect(await fx.snapshot()).toEqual(before)
 })
+
+// Not about isolation: this file is the only test of `post-checks` over HTTP, and the 422 comes
+// from the route, not from `checkPost`.
+test('a choice its warning does not offer is a wrong body: 422 (D-54)', async () => {
+  const idsOfA = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
+  const body = (option: string) => ({
+    type: 'reel',
+    mediaIds: [idsOfA.media],
+    caption: { common: 'Il pane di oggi' },
+    destinations: [{ accountId: idsOfA.account }],
+    // the hour the clocks skip: a warning that offers «accept» only
+    when: { mode: 'at', localDate: '2027-03-28', localTime: '02:30' },
+    choices: [{ key: 'time_skipped:post', option }],
+  })
+  const path = `/api/v1/orgs/${idsOfA.org}/workspaces/${idsOfA.workspace}/post-checks`
+  const wrong = await fx.env.call('POST', path, body('skip_platform'), {
+    cookie: fx.cookies.owner,
+  })
+  const text = await wrong.text()
+  expect(wrong.status, text).toBe(422)
+  expect(JSON.parse(text)).toMatchObject({
+    error: { issues: [{ path: ['choices', 0] }] },
+  })
+  const right = await fx.env.call('POST', path, body('accept'), { cookie: fx.cookies.owner })
+  expect(right.status).toBe(200)
+})

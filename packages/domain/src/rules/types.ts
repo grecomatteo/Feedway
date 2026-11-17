@@ -125,6 +125,8 @@ export const RULE_CODES = [
   'media_processing',
   'media_failed',
   'media_unavailable',
+  'cover_not_image',
+  'cover_frame_out_of_range',
   'scheduled_in_past',
   'type_not_supported',
   'caption_too_long',
@@ -264,18 +266,24 @@ export interface DestinationSummary {
   caption: string
   /** the files it will publish, as indices of `draft.media` */
   media: number[]
-  /** the outcomes that touch it */
-  outcomes: RuleOutcome[]
+  /** the keys of the outcomes that touch it: each outcome is once, in `RuleReport.outcomes` */
+  outcomeKeys: string[]
 }
 
 export interface RuleReport {
   outcomes: RuleOutcome[]
   /** the destinations that will go out, after the choices */
   destinations: DestinationSummary[]
-  /** the outcomes of the post as a whole (not of one destination) */
-  post: RuleOutcome[]
+  /** the keys of the outcomes of the post as a whole (not of one destination) */
+  postKeys: string[]
   /** keys of the warnings with no choice */
   unresolved: string[]
+  /**
+   * Choices whose option the warning does not offer (D-54): left out, so their warning is to
+   * be answered again. A choice saved with a post can stop being valid when a file or a
+   * release changes the options; the route refuses a request that has one (422).
+   */
+  invalidChoices: RuleChoice[]
   /** no block, and a choice for every warning (§11.2 point 8) */
   canSchedule: boolean
   /** null for «Pubblica ora» */
