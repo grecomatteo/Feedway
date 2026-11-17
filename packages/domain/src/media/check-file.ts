@@ -54,6 +54,10 @@ export type FileFix =
   | { code: 'recompress'; platform: 'instagram' | 'facebook'; limit: number }
   | { code: 'resize'; width: number }
   | { code: 'faststart' }
+  /** the copy to publish as a reel was over Meta's limits: converted to this width (D-40) */
+  | { code: 'convert_for_reels'; width: number }
+  /** only the sound of the copy to publish was converted, to 48 kHz stereo (D-40) */
+  | { code: 'convert_audio_for_reels' }
 
 export type FileWarning = { code: 'convert_codec' } | { code: 'convert_fps'; fps: number }
 

@@ -1463,7 +1463,9 @@
       "strip_metadata": "Tolti i dati nascosti (luogo, ora, dispositivo)",
       "recompress": "Compresso per stare nei limiti di {platform}",
       "resize": "Ridotto a {width} px di larghezza",
-      "faststart": "Preparato per partire subito in riproduzione"
+      "faststart": "Preparato per partire subito in riproduzione",
+      "convert_for_reels": "Per pubblicarlo su Meta ne è stata fatta una copia più leggera, {width} px di larghezza in H.264",
+      "convert_audio_for_reels": "Per pubblicarlo su Meta l'audio è stato portato a 48 kHz stereo"
     },
     "warning": {
       "convert_codec": "Il codec andrà convertito prima di pubblicarlo",

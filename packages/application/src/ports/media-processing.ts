@@ -1,4 +1,4 @@
-import type { FileAnalysis } from '@app/domain'
+import type { FileAnalysis, ReelPlan } from '@app/domain'
 
 // The worker's tools for the files (plan 04 Task 10). Paths are opaque: they come from
 // `MediaScratch` and go back to the tools, never from input. A file the tools refuse is an
@@ -98,12 +98,24 @@ export interface MediaTransformer {
       onProgress?: (fraction: number) => void
     },
   ): Promise<ToolResult<{ file: MadeFile }>>
-  /** The video to publish, without encoding again: MP4 with `faststart`, no metadata. */
-  videoRemux(
+  /**
+   * The video to publish as a reel (D-40): MP4 with `faststart`, no metadata. The streams Meta
+   * takes are copied as they are; the others are converted (`plan` says which and why).
+   * `onProgress` gets 0–1 while a conversion runs.
+   */
+  videoReel(
     input: string,
     output: string,
-    opts: ToolOptions & { videoCodec: string; durationMs: number; width: number; height: number },
-  ): Promise<ToolResult<{ file: MadeFile }>>
+    opts: ToolOptions & {
+      videoCodec: string
+      durationMs: number
+      sizeBytes: number
+      width: number
+      height: number
+      fps: number
+      onProgress?: (fraction: number) => void
+    },
+  ): Promise<ToolResult<{ file: MadeFile; plan: ReelPlan }>>
   /** A JPEG of one frame, at `atMs`, of a video the transformer made. */
   videoFrame(
     input: string,
