@@ -344,6 +344,16 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
             <p class="text-sm tabular-nums" :class="tone(i)" data-upload-line>
               {{ line(i) }}
             </p>
+            <p
+              v-if="i.duplicateOf"
+              class="flex items-start gap-1.5 text-sm text-(--app-warning)"
+              data-upload-duplicate
+            >
+              <UIcon name="i-lucide-copy" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span class="min-w-0 break-words">{{
+                $t('upload.duplicate', { name: i.duplicateOf.name })
+              }}</span>
+            </p>
             <p v-if="waitsPreview(i)" class="text-sm text-(--app-text-muted)">
               {{ $t('library.detail.preparing') }}
             </p>

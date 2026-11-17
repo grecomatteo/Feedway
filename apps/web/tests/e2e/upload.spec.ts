@@ -339,3 +339,25 @@ test('a file too large or of another type is refused at once, the others go on',
   })
   expect((await axe(page)).violations).toEqual([])
 })
+
+test('the same file uploaded again is taken, and its row says it is already there', async ({
+  page,
+}) => {
+  await editorOnLibrary(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect(row(page, 'frame.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  await input(page).setInputFiles({
+    name: 'frame copia.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(fixture('frame.jpg')),
+  })
+  await expect(row(page, 'frame copia.jpg')).toHaveAttribute('data-state', 'processing', {
+    timeout: 20_000,
+  })
+  await expect(row(page, 'frame copia.jpg').locator('[data-upload-duplicate]')).toHaveText(
+    'Uguale a «frame.jpg», già nella libreria. Se non ti serve, eliminalo.',
+  )
+  await expect(row(page, 'frame.jpg').locator('[data-upload-duplicate]')).toHaveCount(0)
+})

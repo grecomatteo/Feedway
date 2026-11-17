@@ -1,4 +1,4 @@
-import type { MediaDto, UploadDto } from '@app/contracts'
+import type { CompletedUploadDto, MediaDto, UploadDto } from '@app/contracts'
 import type { ApiFailure } from './useApi'
 
 /**
@@ -36,6 +36,8 @@ export interface UploadItem {
   message: string | null
   uploadId: string | null
   media: MediaDto | null
+  /** a file of the library with the same content (sha256): said, the choice left (D-42) */
+  duplicateOf: { id: string; name: string } | null
   /** a `blob:` of the file, when the browser can show it before the upload */
   preview: { url: string; kind: UploadKind } | null
 }
@@ -374,7 +376,11 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
         const media = await completeOnce(at, abort.signal)
         check()
         if (media === 'missing') continue
-        item.media = media
+        const { duplicateOf, ...made } = media
+        item.media = made
+        item.duplicateOf = duplicateOf
+        if (duplicateOf)
+          announce(t('upload.announce.duplicate', { name: item.name, other: duplicateOf.name }))
         item.sent = item.size
         settled(item, media)
         options.onChange()
@@ -393,10 +399,19 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
    * `complete`, again while another call joins the pieces (409, ADR 021). A 409 with pieces
    * still missing sends them first.
    */
-  async function completeOnce(at: string, signal: AbortSignal): Promise<MediaDto | 'missing'> {
+  async function completeOnce(
+    at: string,
+    signal: AbortSignal,
+  ): Promise<CompletedUploadDto | 'missing'> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await request<MediaDto>('POST', `${at}/complete`, undefined, signal, COMPLETE_MS)
+        return await request<CompletedUploadDto>(
+          'POST',
+          `${at}/complete`,
+          undefined,
+          signal,
+          COMPLETE_MS,
+        )
       } catch (error) {
         const f = failureOf(error)
         // only these two wait: any other conflict (the client archived meanwhile) is final
@@ -580,6 +595,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
       message: null,
       uploadId: null,
       media: null,
+      duplicateOf: null,
       preview: null,
     }
   }

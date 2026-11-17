@@ -622,3 +622,32 @@ test('only photos and videos up to the video limit start; the name is shown clea
     maxVideoBytes: 300_000_000,
   })
 })
+
+test('the same file uploaded again is taken, and the answer names the one already there (D-42)', async () => {
+  const file = mp4Like(3000)
+  const upload = async (name: string) => {
+    const u = await start(file, { name })
+    expect((await put(u, 1, file)).status).toBe(200)
+    const r = await complete(u)
+    expect(r.status).toBe(200)
+    return (await r.json()) as { id: string; duplicateOf: { id: string; name: string } | null }
+  }
+  const first = await upload('IMG_0221.mov')
+  expect(first.duplicateOf).toBeNull()
+  const second = await upload('IMG_0221 copia.mov')
+  expect(second.id).not.toBe(first.id)
+  expect(second.duplicateOf).toEqual({ id: first.id, name: 'IMG_0221.mov' })
+  // a deleted one no longer counts
+  expect(
+    (
+      await env.call(
+        'DELETE',
+        `/api/v1/orgs/${org.slug}/workspaces/${workspace}/media/${first.id}`,
+        undefined,
+        { cookie: cookies.editor },
+      )
+    ).status,
+  ).toBe(200)
+  const third = await upload('IMG_0221 ancora.mov')
+  expect(third.duplicateOf).toEqual({ id: second.id, name: 'IMG_0221 copia.mov' })
+}, 120_000)

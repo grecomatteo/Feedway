@@ -873,6 +873,7 @@
       "account_assigned": "ha assegnato un account social a un cliente",
       "account_unassigned": "ha tolto un account social da un cliente",
       "media_deleted": "ha eliminato un file della libreria",
+      "media_retried": "ha preparato di nuovo un file della libreria",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",
@@ -1431,6 +1432,7 @@
     "move": "Sposta",
     "moved": "«{name}» spostato in «{folder}».",
     "movedOut": "«{name}» tolto dalle cartelle.",
+    "retried": "«{name}» si prepara di nuovo.",
     "delete": "Elimina",
     "deleteTitle": "Eliminare «{name}»?",
     "deleteText": "Il file sparisce dalla libreria e le sue copie vengono cancellate. Non si può annullare.",
@@ -1454,6 +1456,7 @@
       "noFixes": "Nessuna correzione: il file andava già bene.",
       "failure": "Perché non è riuscito",
       "failureRemoved": "Feedway lo cancella da solo dopo 24 ore, per liberare lo spazio.",
+      "retry": "Riprova",
       "noPreview": "Anteprima non disponibile",
       "preparing": "Anteprima in preparazione",
       "close": "Chiudi"
@@ -1488,6 +1491,7 @@
   },
   "upload": {
     "choose": "Carica file",
+    "duplicate": "Uguale a «{name}», già nella libreria. Se non ti serve, eliminalo.",
     "dropHere": "Rilascia qui",
     "limits": "Foto JPEG, PNG, WEBP o HEIC fino a {image}, video MP4 o MOV fino a {video}",
     "limitsUnknown": "Foto JPEG, PNG, WEBP o HEIC, video MP4 o MOV",
@@ -1544,6 +1548,7 @@
     "announce": {
       "started": "Nessun file in caricamento | Caricamento di un file iniziato | Caricamento di {n} file iniziato",
       "uploaded": "{name} caricato, ora si prepara.",
+      "duplicate": "{name} è uguale a {other}, già nella libreria.",
       "ready": "{name} è pronto.",
       "failed": "{name} non è riuscito. {reason}",
       "allDone": "Caricamenti finiti.",

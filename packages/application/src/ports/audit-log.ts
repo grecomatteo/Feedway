@@ -57,6 +57,7 @@ export const AUDIT_ACTIONS = [
   'account.assigned',
   'account.unassigned',
   'media.deleted',
+  'media.retried',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

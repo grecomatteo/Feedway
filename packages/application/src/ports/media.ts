@@ -152,6 +152,16 @@ export interface MediaRepository {
   deletedWithFiles(organizationId: string): Promise<string[]>
   /** The files still `processing` not changed since `before`: their wake-up may be lost. */
   processingSince(organizationId: string, before: Date): Promise<string[]>
+  /**
+   * The oldest file of the workspace, not deleted and other than `exceptId`, with this sha256:
+   * the same content uploaded again (D-42).
+   */
+  sameContent(
+    organizationId: string,
+    workspaceId: string,
+    sha256: string,
+    exceptId: string,
+  ): Promise<{ id: string; originalName: string } | null>
   /** The files `failed` not changed since `before`, with their workspace (D-43). */
   failedSince(organizationId: string, before: Date): Promise<{ id: string; workspaceId: string }[]>
   /**
@@ -191,6 +201,11 @@ export interface MediaRepository {
     mediaId: string,
     failed: { failure: MediaFailure; facts: MediaFacts | null; forgetOriginal: boolean },
   ): Promise<boolean>
+  /**
+   * A file `failed` with its original still stored is `processing` again, its attempts and its
+   * failure cleared («Riprova», D-39). false: not such a file.
+   */
+  markRetried(organizationId: string, mediaId: string): Promise<boolean>
   /** Sets the progress of a file still `processing`; false: no such file. */
   setProgress(organizationId: string, mediaId: string, progress: MediaProgress): Promise<boolean>
   /**

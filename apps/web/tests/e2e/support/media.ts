@@ -17,6 +17,8 @@ export interface LibraryFileSeed {
   status?: 'ready' | 'processing' | 'failed'
   /** the JPEG of its thumbnail (and photo copy); default: a test card */
   image?: Buffer
+  /** why a `failed` file failed; default: unreadable (no original kept) */
+  failure?: 'unreadable' | 'timeout'
 }
 
 export async function libraryFile(
@@ -62,7 +64,7 @@ export async function libraryFile(
                 },
           )
         : null,
-      status === 'failed' ? JSON.stringify({ code: 'unreadable' }) : null,
+      status === 'failed' ? JSON.stringify({ code: file.failure ?? 'unreadable' }) : null,
       status === 'processing' ? JSON.stringify({ step: 'conversion', percent: 40 }) : null,
     ],
   )
@@ -71,6 +73,12 @@ export async function libraryFile(
      values ($1, $2, $3, $4, $5)`,
     [organizationId, workspaceId, id, file.folderId ?? null, file.tags ?? []],
   )
+  // a timeout keeps the original (ADR 021, P5): «Riprova» needs it
+  if (status === 'failed' && file.failure === 'timeout') {
+    const key = `org/${organizationId}/media/${id}/original.mov`
+    await storage.put(key, await fixture('clip.mp4'), { contentType: 'video/quicktime' })
+    await adminQuery('update media set storage_key = $2 where id = $1', [id, key])
+  }
   if (status !== 'ready') return id
   const image = file.image ?? (await fixture('frame.jpg'))
   const copies = [
