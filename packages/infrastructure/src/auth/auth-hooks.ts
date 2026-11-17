@@ -17,6 +17,7 @@ import {
   checkPassword,
   hasRecentReauth,
   isBeyondAbsoluteLifetime,
+  LOGIN_FAILURE_MEMORY_MS,
   loginDelayMs,
   type AuthMethod,
   sessionSatisfiesSecondFactor,
@@ -258,7 +259,10 @@ type HookContext = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0]
 
 /** Growing wait per account after five consecutive failures (`loginDelayMs`). */
 async function enforceLoginDelay(deps: HookDeps, email: string): Promise<void> {
-  const { count, lastAt } = await deps.rateLimiter.failures(loginKey(email))
+  const { count, lastAt } = await deps.rateLimiter.failures(
+    loginKey(email),
+    LOGIN_FAILURE_MEMORY_MS,
+  )
   const delay = loginDelayMs(count)
   if (delay === 0 || lastAt === null) return
   const waitedMs = deps.clock.now().getTime() - lastAt.getTime()
@@ -815,7 +819,7 @@ export function createAfterHook(deps: HookDeps) {
       await deps.rateLimiter.reset(key)
       return
     }
-    await deps.rateLimiter.recordFailure(key)
+    await deps.rateLimiter.recordFailure(key, LOGIN_FAILURE_MEMORY_MS)
     // A refused session (disabled or anonymized account) answers like a wrong password.
     const code = returned.body?.code
     if (code === 'FAILED_TO_CREATE_SESSION' || code === 'INVALID_EMAIL_OR_PASSWORD')

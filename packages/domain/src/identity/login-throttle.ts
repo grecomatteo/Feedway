@@ -1,4 +1,7 @@
 const FREE_ATTEMPTS = 5
+
+/** A day without new failures and the account's count starts again from zero. */
+export const LOGIN_FAILURE_MEMORY_MS = 24 * 3600_000
 const BASE_DELAY_MS = 30_000
 const MAX_DELAY_MS = 900_000
 

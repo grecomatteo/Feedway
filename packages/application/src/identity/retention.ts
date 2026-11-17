@@ -4,6 +4,7 @@ import type { Clock } from '../ports/clock.js'
 import type { AnonymizationNoticeData, JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
 import type { Mailer } from '../ports/mailer.js'
+import type { RateLimiter } from '../ports/rate-limiter.js'
 import type { Storage } from '../ports/storage.js'
 import type { Translate } from '../ports/translator.js'
 import type { Tx } from '../ports/tx.js'
@@ -21,6 +22,8 @@ export interface RetentionDeps {
   /** One `identity.anonymization_notice` job per Owner to tell. */
   queue: Pick<JobQueue, 'send'>
   auth: Pick<Auth, 'deleteAllCredentials'>
+  /** Its counters keep IPs and hashed emails: kept no longer than they limit anything. */
+  rateLimiter: Pick<RateLimiter, 'deleteIdleBefore'>
   onUserAnonymized: readonly UserAnonymizedHandler[]
 }
 
@@ -30,6 +33,7 @@ export interface RetentionReport {
   devices: number
   auditIps: number
   verifications: number
+  rateLimitCounters: number
   exportsExpired: number
   exportsFailed: number
   avatarPreviews: number
@@ -66,6 +70,7 @@ export async function runRetention(deps: RetentionDeps): Promise<RetentionReport
   const verifications = await system('expired verifications', (tx) =>
     tx.credentials.deleteExpiredVerifications(now),
   )
+  const rateLimitCounters = await deps.rateLimiter.deleteIdleBefore(cut.rateLimitCountersBefore)
 
   // the file goes first: a row marked expired with its file still there would never be retried
   let failed = 0
@@ -112,6 +117,7 @@ export async function runRetention(deps: RetentionDeps): Promise<RetentionReport
     devices,
     auditIps,
     verifications,
+    rateLimitCounters,
     exportsExpired,
     exportsFailed,
     avatarPreviews,

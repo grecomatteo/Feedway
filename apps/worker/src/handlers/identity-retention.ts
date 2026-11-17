@@ -9,6 +9,7 @@ export const identityRetention: JobHandler<'identity.retention'> = async (_job, 
     logger: deps.logger,
     queue: deps.queue,
     auth: deps.credentials,
+    rateLimiter: deps.rateLimiter,
     onUserAnonymized: userAnonymizedHandlers(),
   })
 }

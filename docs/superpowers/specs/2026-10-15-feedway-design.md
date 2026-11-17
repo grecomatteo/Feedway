@@ -1005,7 +1005,7 @@ two_factors         id, user_id, secret, backup_codes, verified,
 passkeys            id, user_id, name, public_key, credential_id, counter, device_type,
                     backed_up, transports, aaguid, created_at
 rate_limits         tabella di Better Auth (i suoi limiti per IP)
-rate_limit_counters limiti e fallimenti nostri, condivisi tra i processi (Better Auth ripulisce la sua tabella)
+rate_limit_counters limiti e fallimenti nostri, condivisi tra i processi (la conservazione li cancella dopo 2 giorni senza uso; Better Auth ripulisce la sua tabella)
 known_devices       user_id, device_hash, first_seen_at, last_seen_at
 data_exports        id, user_id, status, storage_key, expires_at   (file cancellato dopo 24 ore)
 invites             id, organization_id, purpose (bootstrap|invite|organization_owner), email,
@@ -1302,7 +1302,7 @@ Deciso da Matteo il 14/11 (proposta P, `design/reviews/2026-11-13-clienti-e-prof
 - Solo cookie tecnici (sessione, cookie temporanei di Better Auth per 2FA e passkey, tema, identificativo casuale del dispositivo `__Host-device` per riconoscere un accesso da un dispositivo nuovo, senza dati personali; la protezione CSRF usa un'intestazione, non un cookie): nessun banner; informativa compilabile per agenzia nella pagina Privacy e nella pagina di accesso.
 - **Accesso e portabilità**: "Scarica i miei dati" nel profilo, ZIP con JSON leggibile e foto, link valido 24 ore.
 - **Cancellazione**: "Elimina il mio account" con riconferma, oppure su richiesta all'amministratore della piattaforma (l'identità è unica tra le agenzie). Foto, passkey, 2FA, sessioni, dispositivi e collegamenti Telegram si cancellano subito; nome, email e soprannome diventano "Utente rimosso". Un Owner deve prima passare la proprietà a un Admin (§10.4).
-- **Conservazione automatica**: sessioni scadute 30 giorni; dispositivi noti 12 mesi dall'ultimo uso; IP nel registro abbreviati dopo 90 giorni; account disattivati da più di 24 mesi anonimizzati, con avviso all'Owner 30 giorni prima.
+- **Conservazione automatica**: sessioni scadute 30 giorni; dispositivi noti 12 mesi dall'ultimo uso; IP nel registro abbreviati dopo 90 giorni; contatori dei limiti di frequenza cancellati dopo 2 giorni senza uso (i tentativi di accesso sbagliati si dimenticano dopo 24 ore senza nuovi errori); account disattivati da più di 24 mesi anonimizzati, con avviso all'Owner 30 giorni prima.
 - Registro dei trattamenti (`docs/privacy/registro-trattamenti.md`) e procedura per le violazioni entro 72 ore (`docs/runbooks/violazione-dati.md`).
 - Esportazione e cancellazione di un'intera organizzazione nella 2.0 (resa semplice da `organization_id` ovunque e dai file con prefisso per organizzazione).
 - Registro attività conservato 24 mesi, poi riassunto.

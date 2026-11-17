@@ -95,6 +95,7 @@ const deps = (): RetentionDeps => ({
   logger,
   queue: recording,
   auth: { deleteAllCredentials: createCredentialEraser({ db: runtime.db }) },
+  rateLimiter: runtime.rateLimiter,
   onUserAnonymized: userAnonymizedHandlers(),
 })
 
@@ -109,6 +110,7 @@ async function deliverNotices() {
     storage: runtime.storage,
     uploadParts: runtime.uploadParts,
     credentials: { deleteAllCredentials: () => Promise.reject(new Error('not used')) },
+    rateLimiter: { deleteIdleBefore: () => Promise.reject(new Error('not used')) },
     zip: createZipWriter(),
     mailer,
     signedTokens: runtime.signedTokens,
@@ -181,6 +183,21 @@ test('expired sessions older than 30 days are removed, newer ones stay', async (
     [userId],
   )
   expect(rows.map((r) => r.token)).toEqual([`recent-${userId}`])
+})
+
+test('rate limit counters idle for two days are removed, with their IPs and email hashes', async () => {
+  await admin.query(
+    `insert into rate_limit_counters (key, count, started_at, updated_at)
+     values ('hits:ip:retention-old', 3, $1, $1), ('failures:login:retention-old', 7, $1, $1),
+            ('hits:ip:retention-new', 1, $2, $2)`,
+    [new Date(clock.now().getTime() - days(2) - 60_000), new Date(clock.now().getTime() - days(1))],
+  )
+  const report = await runRetention(deps())
+  expect(report.rateLimitCounters).toBeGreaterThanOrEqual(2)
+  const { rows } = await admin.query<{ key: string }>(
+    `select key from rate_limit_counters where key like '%retention-%' order by key`,
+  )
+  expect(rows.map((r) => r.key)).toEqual(['hits:ip:retention-new'])
 })
 
 test('known devices unused for 12 months are removed', async () => {
@@ -383,6 +400,7 @@ test('running twice the same day changes nothing more', async () => {
     devices: 0,
     auditIps: 0,
     verifications: 0,
+    rateLimitCounters: 0,
     exportsExpired: 0,
     exportsFailed: 0,
     avatarPreviews: 0,

@@ -9,6 +9,8 @@ export const RETENTION = {
   anonymizationNoticeMs: 30 * DAY_MS,
   dataExportMs: 24 * HOUR_MS,
   avatarStagingMs: HOUR_MS,
+  // twice the longest window in use (24 h): an older counter no longer limits anything
+  rateLimitCountersMs: 2 * DAY_MS,
 } as const
 
 export interface RetentionCutoffs {
@@ -19,6 +21,7 @@ export interface RetentionCutoffs {
   anonymizationNoticeBefore: Date
   dataExportBefore: Date
   avatarStagingBefore: Date
+  rateLimitCountersBefore: Date
 }
 
 export function retentionCutoffs(now: Date): RetentionCutoffs {
@@ -31,6 +34,7 @@ export function retentionCutoffs(now: Date): RetentionCutoffs {
     anonymizationNoticeBefore: before(RETENTION.anonymizationNoticeMs),
     dataExportBefore: before(RETENTION.dataExportMs),
     avatarStagingBefore: before(RETENTION.avatarStagingMs),
+    rateLimitCountersBefore: before(RETENTION.rateLimitCountersMs),
   }
 }
 

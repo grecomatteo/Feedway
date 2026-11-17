@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm'
+import { eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Clock, RateLimiter } from '@app/application'
 import type { DbExecutor } from './client.js'
 import { rateLimitCounters } from './platform/schema.js'
@@ -45,22 +45,35 @@ export function createPgRateLimiter(deps: { db: DbExecutor; clock: Clock }): Rat
       if (!row || left <= 0 || row.count < limit) return { allowed: true, retryAfterMs: 0 }
       return { allowed: false, retryAfterMs: Math.min(windowMs, left) }
     },
-    async failures(key) {
+    async failures(key, forgetAfterMs) {
       const [row] = await db
         .select({ count: t.count, lastAt: t.updatedAt })
         .from(t)
         .where(eq(t.key, failureKey(key)))
-      return row ?? { count: 0, lastAt: null }
+      const forgotten = row && clock.now().getTime() - row.lastAt.getTime() >= forgetAfterMs
+      return row && !forgotten ? row : { count: 0, lastAt: null }
     },
-    async recordFailure(key) {
+    async recordFailure(key, forgetAfterMs) {
       const now = clock.now()
+      const forgotten = sql`${t.updatedAt} <= ${new Date(now.getTime() - forgetAfterMs)}`
       await db
         .insert(t)
         .values({ key: failureKey(key), count: 1, startedAt: now, updatedAt: now })
-        .onConflictDoUpdate({ target: t.key, set: { count: sql`${t.count} + 1`, updatedAt: now } })
+        .onConflictDoUpdate({
+          target: t.key,
+          set: {
+            count: sql`case when ${forgotten} then 1 else ${t.count} + 1 end`,
+            startedAt: sql`case when ${forgotten} then ${now} else ${t.startedAt} end`,
+            updatedAt: now,
+          },
+        })
     },
     async reset(key) {
       await db.delete(t).where(inArray(t.key, [hitKey(key), failureKey(key)]))
+    },
+    async deleteIdleBefore(before) {
+      const gone = await db.delete(t).where(lt(t.updatedAt, before)).returning({ key: t.key })
+      return gone.length
     },
   }
 }
