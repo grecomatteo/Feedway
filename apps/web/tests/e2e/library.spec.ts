@@ -190,6 +190,70 @@ test('the detail plays the video, saves the tags and deletes the file', async ({
   await confirm.getByRole('button', { name: 'Elimina' }).click()
   await expect(page.getByText('«laboratorio.mov» eliminato.')).toBeVisible()
   await expect(grid(page).getByRole('listitem')).toHaveCount(2)
+  // the confirmation goes away by itself after a few seconds (prova 0.10.0, E-3)
+  await expect(page.getByText('«laboratorio.mov» eliminato.')).toBeHidden({ timeout: 8_000 })
+})
+
+test('the library shows a grid with thumbnails of the chosen size, or a list, and remembers it', async ({
+  page,
+}) => {
+  const { org, client, editor } = await editorWithLibrary(page)
+  await libraryFile(org, client, editor.userId, { kind: 'image', name: 'IMG_0221.HEIC' })
+  await libraryFile(org, client, editor.userId, { kind: 'image', name: 'IMG_0222.HEIC' })
+  await libraryFile(org, client, editor.userId, {
+    kind: 'video',
+    name: 'IMG_0233.mov',
+    status: 'failed',
+  })
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(6)
+  await fitsTheScreen(page)
+  // two names alike are not cut to the same «IMG_022…»
+  for (const name of ['IMG_0221.HEIC', 'IMG_0222.HEIC']) {
+    const button = tile(page, name)
+      .getByRole('button', { name: new RegExp(name) })
+      .first()
+    expect(await button.evaluate((b) => b.scrollHeight <= b.clientHeight)).toBe(true)
+  }
+  // the failed file says so in red
+  await expect(tile(page, 'IMG_0233.mov')).toContainText('Non riuscito')
+
+  const view = page.getByRole('group', { name: 'Vista' })
+  const columns = () =>
+    grid(page).evaluate((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length)
+  const before = await columns()
+  const size = page.getByRole('slider', { name: 'Dimensione delle miniature' })
+  await expect(size).toHaveAttribute('aria-valuetext', 'Medie')
+  if (isPhone(page)) {
+    // a target of 44 px on a phone
+    const box = await page.locator('[data-thumb-size] [data-slot="root"]').boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+  }
+  await size.focus()
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(size).toHaveAttribute('aria-valuetext', 'Molto grandi')
+  await expect.poll(columns).toBeLessThan(before)
+
+  await view.getByRole('button', { name: 'Elenco' }).click()
+  await expect(view.getByRole('button', { name: 'Elenco' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(size).toHaveCount(0)
+  await expect(grid(page)).toHaveAttribute('data-layout', 'list')
+  // the list gives the whole name, the weight and the day
+  await expect(tile(page, 'IMG_0221.HEIC')).toContainText('IMG_0221.HEIC')
+  await expect(tile(page, 'IMG_0221.HEIC')).toContainText(/MB · \d+ \w+ \d{4}/)
+  await fitsTheScreen(page)
+  const results = await axe(page)
+  expect(results.violations).toEqual([])
+
+  // the choice stays in this browser
+  await page.reload()
+  await expect(grid(page)).toHaveAttribute('data-layout', 'list')
+  await view.getByRole('button', { name: 'Griglia' }).click()
+  await expect(page.getByRole('slider', { name: 'Dimensione delle miniature' })).toHaveAttribute(
+    'aria-valuetext',
+    'Molto grandi',
+  )
 })
 
 test('a Viewer sees no «Libreria» and the address gives «Pagina non trovata»', async ({ page }) => {

@@ -69,6 +69,22 @@ test('an Owner opens «Impostazioni» from the user menu and finds both groups',
   expect((await axe(page)).violations).toEqual([])
 })
 
+test('on a wide screen the settings start next to the sidebar, with no gap', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) < 768, 'the sidebar is on a computer')
+  await page.setViewportSize({ width: 1920, height: 1000 })
+  const owner = await newPerson('Olga Impostazioni Larghe', 'owner')
+  await signInWithTotp(page.request, owner)
+  await page.goto(`/${owner.organizationSlug}/impostazioni`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
+  // prova 0.10.0, R-12: a centred page left some 340 px empty between the two menus
+  const sidebar = await page
+    .getByRole('navigation', { name: 'Navigazione principale' })
+    .boundingBox()
+  const menu = await settingsNav(page).boundingBox()
+  if (!sidebar || !menu) throw new Error('menus not on screen')
+  expect(menu.x - (sidebar.x + sidebar.width)).toBeLessThan(64)
+})
+
 test('a Member sees only «Il tuo account»', async ({ page }) => {
   const member = await newMember('Mara Impostazioni')
   await signIn(page.request, member)

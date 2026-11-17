@@ -138,7 +138,7 @@ test('security email goes to the user with a working lock link', async () => {
   expect(mail?.html).toMatch(
     /<a href="https:\/\/pannello\.example\.test\/sicurezza\/non-sono-stato-io\?t=/,
   )
-  expect(mail?.html).toContain('bgcolor="#B3261E"')
+  expect(mail?.html).toContain('bgcolor="#B5174B"')
 
   const token = tokenFrom(mail?.text ?? '')
   const deps = {
