@@ -236,6 +236,8 @@ test('a file and an account of B in the checks of a post of A: blocked, with not
   expect(await fx.snapshot()).toEqual(before)
 })
 
+// Not about isolation: this file is the only test of `post-checks` over HTTP, and the 422 comes
+// from the route, not from `checkPost`.
 test('a choice its warning does not offer is a wrong body: 422 (D-54)', async () => {
   const idsOfA = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const body = (option: string) => ({

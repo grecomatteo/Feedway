@@ -300,6 +300,20 @@ describe('the report', () => {
     })
   })
 
+  test('the seconds of a story are rounded the same way (P3)', () => {
+    const story = (ms: number) =>
+      evaluatePost(draft({ type: 'story', media: [video(ms)], caption: { common: '' } }), context())
+        .outcomes[0]
+    expect(story(2_960)).toMatchObject({
+      code: 'story_too_short',
+      params: { limit: 3, found: 2.9 },
+    })
+    expect(story(60_040)).toMatchObject({
+      code: 'story_too_long',
+      params: { limit: 60, found: 60.1 },
+    })
+  })
+
   test('a frame after the end of the video blocks, with both times (P2)', () => {
     const report = evaluatePost(
       draft({
