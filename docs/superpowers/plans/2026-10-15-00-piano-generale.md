@@ -21,7 +21,8 @@
 | `02-identita.md` | Tappa 2, eseguibile | Pronto |
 | `03-meta.md` | Tappa 3, formato leggero | Pronto (approvato da Matteo il 2026-11-03) |
 | `04-media.md` | Tappa 4, formato leggero | Approvato da Matteo il 2026-11-13 |
-| `05-regole.md` … `12-produzione.md` | Tappe 5–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
+| `05-regole.md` | Tappa 5, formato leggero, task più grandi (Matteo, 17/11) | Scritto il 2026-11-17, da approvare |
+| `06-post.md` … `12-produzione.md` | Tappe 6–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
@@ -98,7 +99,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Matteo prova:** carica da telefono un HEIC, un `.mov` HEVC e un video lungo su rete instabile, e li rivede nel pannello da Chrome; il file da `PUBLIC_URL/m/...` si apre da internet, il pannello no.
 - **Serve da Matteo:** Tailscale Funnel attivo sulla VPS.
 
-### Tappa 5 · Regole
+### Tappa 5 · Regole (piano `05-regole.md`)
 - **Costruisce:** tutti i controlli di §9.1–9.2 come funzioni pure, valutati sul testo che ogni destinazione pubblica (comune o della sua piattaforma) con i limiti della sua piattaforma, con livelli blocco/avviso/correzione e riepilogo per destinazione. RF-32, RF-33, CS2.
 - **Introduce:** `evaluatePost(draft, context): RuleReport`, usata identica da pannello, API e worker.
 - **Matteo prova:** legge la tabella dei casi di test (generata dai test) e conferma che i messaggi sono chiari.
