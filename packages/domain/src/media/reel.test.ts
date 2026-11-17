@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { reelPlan, reelSize, type ReelSource } from './reel.js'
+import { REEL_ENCODE, REEL_MAX_BITRATE, reelPlan, reelSize, type ReelSource } from './reel.js'
 
 // A 1080p iPhone clip that Meta takes as it is.
 const fine: ReelSource = {
@@ -95,4 +95,10 @@ test('the converted size fits 1080×1920 either way, even, never enlarged', () =
   expect(reelSize(721, 1281)).toEqual({ width: 720, height: 1280 })
   // a very tall picture is bound by its long side
   expect(reelSize(1000, 4000)).toEqual({ width: 480, height: 1920 })
+})
+
+test('the conversion aims at 15 Mbit/s (Matteo), with a ceiling under the 25 of Instagram', () => {
+  expect(REEL_ENCODE.videoBitrate).toBe(15_000_000)
+  expect(REEL_ENCODE.maxBitrate).toBe(18_000_000)
+  expect(REEL_ENCODE.maxBitrate + REEL_ENCODE.audioBitrate).toBeLessThan(REEL_MAX_BITRATE)
 })
