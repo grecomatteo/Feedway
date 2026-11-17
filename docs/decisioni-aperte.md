@@ -198,3 +198,32 @@ Ultimo aggiornamento: correzioni della revisione retroattiva delle tappe 1–3 (
 - **Il problema:** nel tema scuro di Feedway l'arancio #FF762E e il rosso chiaro di «con problema» #FF8A80 sono la coppia più vicina di tutti i temi (distanza OKLab 0,078; la soglia del test è 0,075). Lo stato ha sempre icona e parola, ma i due colori si somigliano.
 - **Opzioni:** (a) lasciare così; (b) un rosso più freddo per gli errori di notte (per esempio verso il rosa), cambiando un colore del brand kit scuro.
 - **Stato:** aperta.
+
+## Regole (tappa 5)
+
+Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.md`, «Scelte di questa tappa»), 17 novembre 2026.
+
+### D-46 · Come si contano caratteri, hashtag e menzioni della caption
+- **Origine:** piano della tappa 5, Scelta 1. Meta parla di «caratteri» senza dire quali.
+- **Opzioni:** (a) punti di codice Unicode, hashtag ripetuti contati ogni volta; (b) grafemi (un'emoji composta conta 1); (c) unità UTF-16, come la lunghezza delle stringhe in JavaScript.
+- **Stato:** scelta provvisoria (a), la più prudente tra (a) e (b); da verificare su Meta vera nella tappa 7.
+
+### D-47 · Limite della caption di Facebook
+- **Origine:** piano della tappa 5, Scelta 2; la specifica §9.2 lo lascia «da verificare».
+- **Opzioni:** (a) 63.206 caratteri, il valore della documentazione delle Pagine; (b) un valore più basso per prudenza.
+- **Stato:** scelta provvisoria (a), da verificare su Meta vera nella tappa 7.
+
+### D-48 · Foto per un post multi-foto di Facebook
+- **Origine:** piano della tappa 5, Scelta 3; la specifica §9.2 lo lascia «da verificare».
+- **Opzioni:** (a) 10, come il carosello di Instagram, con avviso oltre («solo le prime 10 su Facebook» o «salta Facebook»); (b) nessun limite finché Meta non rifiuta.
+- **Stato:** scelta provvisoria (a), da verificare su Meta vera nella tappa 7.
+
+### D-49 · Ora inesistente e ora doppia del cambio d'ora
+- **Origine:** piano della tappa 5, Scelta 4 (§9.2, piano generale §8 punto 2).
+- **Opzioni:** (a) l'ora inesistente slitta avanti di un'ora (02:30 → 03:30), quella doppia prende la prima delle due (ora legale); (b) bloccare le due ore e chiedere un'altra ora.
+- **Stato:** scelta provvisoria (a), con l'avviso che mostra l'ora risultante; la tappa 9 usa la stessa funzione.
+
+### D-50 · Quando due post sono «lo stesso»
+- **Origine:** piano della tappa 5, Scelta 5 (§9.2, «Stessi media e caption… ultimi 7 giorni»).
+- **Opzioni:** (a) stesso account, stessi file nello stesso ordine (sha256 dell'originale) e stesso testo pubblicato a meno di spazi ai bordi e a capo, programmati o pubblicati negli ultimi 7 giorni; (b) come (a) ma con i file in qualunque ordine; (c) solo il testo.
+- **Stato:** scelta provvisoria (a); i dati arrivano con le tappe 6 e 7.
