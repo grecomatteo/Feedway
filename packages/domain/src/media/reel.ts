@@ -15,10 +15,10 @@ export const REEL_AUDIO_MAX_CHANNELS = 2
 /** 4:2:0, in 8 or 10 bit: what phones film and Meta lists. */
 const REEL_PIXEL_FORMATS = new Set(['yuv420p', 'yuvj420p', 'yuv420p10le'])
 
-/** The conversion: H.264 High, around 10 Mbit/s and never over 12, AAC at 128 kbit/s. */
+/** The conversion: H.264 High, around 15 Mbit/s (Matteo) and never over 18, AAC at 128 kbit/s. */
 export const REEL_ENCODE = {
-  videoBitrate: 10_000_000,
-  maxBitrate: 12_000_000,
+  videoBitrate: 15_000_000,
+  maxBitrate: 18_000_000,
   audioBitrate: 128_000,
   sampleRate: 48_000,
   /** a closed GOP every 2 seconds: Facebook asks for 2 to 5 */
