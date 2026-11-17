@@ -16,6 +16,16 @@ export type VideoFixture =
   | 'long.mp4'
   /** one frame of 4200×4200: over the 4096×4096 limit */
   | 'huge.mp4'
+  /** 2160×3840, as an iPhone films in 4K, 1 s, with sound: over the 1920 of Reels (D-40) */
+  | '4k-portrait.mp4'
+  /** HEVC in 10 bit HLG, as iPhones film in HDR, 1080×2000: over the 1920 of Reels */
+  | 'hdr-hlg.mov'
+  /** small H.264 with sound at 96 kHz and 6 channels: Reels take 48 kHz in stereo at most */
+  | 'audio-96k.mp4'
+  /** 60 frames a second, then 20: a frame rate that is not fixed */
+  | 'vfr.mp4'
+  /** 120 frames a second, as a slow motion: over the 60 of Reels */
+  | 'fps-120.mp4'
 
 const SOURCES: Record<VideoFixture, string[]> = {
   'h264-moov-end.mp4': [
@@ -79,6 +89,100 @@ const SOURCES: Record<VideoFixture, string[]> = {
     'libx264',
     '-preset',
     'ultrafast',
+    '-pix_fmt',
+    'yuv420p',
+  ],
+  '4k-portrait.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=2160x3840:rate=30',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440:sample_rate=48000',
+    '-t',
+    '1',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'ultrafast',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-shortest',
+  ],
+  'hdr-hlg.mov': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=1080x2000:rate=30',
+    '-t',
+    '0.5',
+    '-c:v',
+    'libx265',
+    '-preset',
+    'ultrafast',
+    '-x265-params',
+    'log-level=error',
+    '-pix_fmt',
+    'yuv420p10le',
+    '-color_primaries',
+    'bt2020',
+    '-color_trc',
+    'arib-std-b67',
+    '-colorspace',
+    'bt2020nc',
+    '-tag:v',
+    'hvc1',
+  ],
+  'audio-96k.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=320x240:rate=30',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440:sample_rate=96000',
+    '-t',
+    '1',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-ac',
+    '6',
+    '-shortest',
+  ],
+  'fps-120.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=320x240:rate=120',
+    '-t',
+    '0.5',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+  ],
+  'vfr.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=320x240:rate=60',
+    '-t',
+    '2',
+    '-vf',
+    "setpts='if(lt(N,60),N/60,1+(N-60)/20)/TB'",
+    '-fps_mode',
+    'vfr',
+    '-c:v',
+    'libx264',
     '-pix_fmt',
     'yuv420p',
   ],
