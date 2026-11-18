@@ -202,6 +202,8 @@ test('a warning to answer: the choice is saved, then the post can be scheduled',
   await warning.getByRole('radio', { name: /Aggiungi le bande/ }).check()
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  // the address follows the draft right after its first save
+  await expect(page).not.toHaveURL(/\/post\/nuovo/)
   await page.reload()
   await expect(
     page
