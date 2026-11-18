@@ -167,6 +167,60 @@ describe('labels, templates and groups', () => {
     await ok(call('manager', 'DELETE', `${ws()}/account-groups/${group.id}`))
   })
 
+  test('every change goes in the activity log, with what was done and nothing of its text (D-76.3)', async () => {
+    const made = await label()
+    await ok(call('manager', 'PATCH', `${ws()}/labels/${made.id}`, { color: 'blu' }))
+    await ok(call('manager', 'DELETE', `${ws()}/labels/${made.id}`))
+    const template = await ok<{ id: string }>(
+      call('manager', 'POST', `${ws()}/caption-templates`, {
+        kind: 'signature',
+        name: 'Firma segreta',
+        body: 'Testo da non registrare',
+      }),
+    )
+    const group = await ok<Group>(
+      call('manager', 'POST', `${ws()}/account-groups`, { name: 'Gruppo', accountIds: [ig] }),
+    )
+    const { rows } = await env.admin.pool.query<{
+      action: string
+      entity: string
+      entity_id: string
+      actor_id: string
+      workspace_id: string
+      data: Record<string, unknown>
+    }>(
+      `select action, entity, entity_id, actor_id, workspace_id, data from audit_log
+        where entity_id = any($1) order by created_at`,
+      [[made.id, template.id, group.id]],
+    )
+    expect(rows).toEqual(
+      [
+        ['label', made.id, 'created'],
+        ['label', made.id, 'updated'],
+        ['label', made.id, 'deleted'],
+        ['caption_template', template.id, 'created'],
+        ['account_group', group.id, 'created'],
+      ].map(([entity, id, change]) => ({
+        action: 'workspace.settings_changed',
+        entity,
+        entity_id: id,
+        actor_id: people.manager.userId,
+        workspace_id: forno,
+        data: { change },
+      })),
+    )
+    // a note writes nothing (Matteo 18/11): everyday work, like the autosave
+    const before = await env.admin.pool.query('select count(*)::int as n from audit_log')
+    const { id: postId } = await ok<{ id: string }>(
+      call('editor', 'POST', `${ws()}/posts`, { type: 'photo' }),
+    )
+    const after = await env.admin.pool.query('select count(*)::int as n from audit_log')
+    await ok(call('editor', 'POST', `${ws()}/posts/${postId}/notes`, { body: 'Una nota' }))
+    const withNote = await env.admin.pool.query('select count(*)::int as n from audit_log')
+    expect(withNote.rows[0]).toEqual(after.rows[0])
+    expect(before.rows.length).toBe(1)
+  })
+
   test('a label name is the client’s once, whatever the case; a bad template is refused', async () => {
     const name = unique('Prodotti')
     await ok(call('manager', 'POST', `${ws()}/labels`, { name, color: 'blu' }))

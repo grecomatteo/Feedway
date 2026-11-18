@@ -290,6 +290,57 @@ test('the network falls during the save: «Non salvata: riprova», never «Salva
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
 })
 
+// P1 of the stage 6 review: «Esci lo stesso» leaves, and the post stays as it was
+test('a scheduled post changed: «Esci lo stesso» leaves, and the post stays as it was', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['pane.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del lunedì')
+  await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
+  await scheduleButton(page).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
+  const postUrl = page.url()
+
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Una modifica da buttare')
+  await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Uscire senza salvare?' })
+  await expect(dialog).toBeVisible()
+  // «Resta qui» first: the page and the change are still there
+  await dialog.getByRole('button', { name: 'Resta qui' }).click()
+  await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
+    'Una modifica da buttare',
+  )
+  await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
+  await dialog.getByRole('button', { name: 'Esci lo stesso' }).click()
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+
+  await page.goto(postUrl)
+  await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
+    'Il pane del lunedì',
+  )
+})
+
+test('a draft that cannot be saved (no network): «Esci lo stesso» leaves', async ({ page }) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Prima della rete')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await page.route('**/posts/*', (route) =>
+    route.request().method() === 'PATCH' ? route.abort('internetdisconnected') : route.continue(),
+  )
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Senza rete')
+  await expect(saveState(page)).toContainText('Non salvata: riprova', { timeout: 10_000 })
+  await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
+  await page
+    .getByRole('dialog', { name: 'Uscire senza salvare?' })
+    .getByRole('button', { name: 'Esci lo stesso' })
+    .click()
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await page.unroute('**/posts/*')
+})
+
 test('leaving a new post while a file uploads: the page changes, the upload goes on in the corner', async ({
   page,
 }) => {
@@ -304,6 +355,62 @@ test('leaving a new post while a file uploads: the page changes, the upload goes
   await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
   await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
   await expect(page.getByTestId('uploads-dock')).toContainText('clip.mp4')
+})
+
+// P6 of the stage 6 review: a file that finishes after the editor closed goes into its draft
+test.describe('a file that finishes after leaving the editor goes into the post', () => {
+  const filesOf = async (where: string, value: string) =>
+    adminQuery<{ post_id: string; name: string }>(
+      `select pm.post_id, m.original_name as name from post_media pm
+         join media m on m.organization_id = pm.organization_id and m.id = pm.media_id
+        where ${where} = $1 order by pm.position`,
+      [value],
+    )
+
+  async function leaveWhileUploading(page: Page, slug: string) {
+    // the pieces wait at a gate until the person has left; a piece the client gave up on
+    // and sent again waits there too
+    let open: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => (open = resolve))
+    let held = 0
+    await page.route('**/uploads/*/parts/*', async (route) => {
+      held++
+      await gate
+      await route.continue().catch(() => undefined)
+    })
+    await page
+      .locator('[data-post-input]')
+      .setInputFiles(new URL('./fixtures/clip.mp4', import.meta.url).pathname)
+    await expect.poll(() => held).toBeGreaterThan(0)
+    await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
+    await expect(page).toHaveURL(new RegExp(`/spazi/${slug}/post$`))
+    open()
+  }
+
+  test('into the draft it was on', async ({ page }) => {
+    const { org, client } = await clientWithFiles(page)
+    await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+    await pickFromLibrary(page, ['pane.jpg'])
+    await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+    const postId = page.url().split('/').pop() ?? ''
+    await leaveWhileUploading(page, client.slug)
+    await expect
+      .poll(async () => (await filesOf('pm.post_id', postId)).map((f) => f.name), {
+        timeout: 20_000,
+      })
+      .toEqual(['pane.jpg', 'clip.mp4'])
+  })
+
+  test('a new post with only that file: the draft is made with it, once', async ({ page }) => {
+    const { org, client } = await clientWithFiles(page)
+    await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+    await leaveWhileUploading(page, client.slug)
+    await expect
+      .poll(async () => (await filesOf('pm.workspace_id', client.id)).map((f) => f.name), {
+        timeout: 20_000,
+      })
+      .toEqual(['clip.mp4'])
+  })
 })
 
 test('a Viewer reads a post: no actions, no library, no thumbnails', async ({ page, browser }) => {

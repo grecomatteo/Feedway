@@ -111,6 +111,11 @@ export interface PostRepository {
   /** false: no such post. */
   delete(scope: PostScope, postId: string): Promise<boolean>
   /**
+   * Every scheduled post of the workspace back to draft, with its destinations and without
+   * their fingerprints (D-70: archiving a client); the ids of the posts moved.
+   */
+  unscheduleAll(scope: PostScope, updatedBy: string): Promise<string[]>
+  /**
    * Takes the agency's scheduling lock until the transaction ends: scheduling, the posts of a
    * day and the deletion of a file of a scheduled post go one at a time.
    */

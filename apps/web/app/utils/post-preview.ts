@@ -166,12 +166,14 @@ export function shortCaption(
 
 /**
  * Where the app's buttons and names cover a reel or a story, in fractions of the 9:16 frame:
- * Meta's guidance for its vertical formats as guides report it (top 14%, bottom 35% and 6% on
- * each side for reels; top and bottom 14% for stories). Not measured on the apps (D-75).
+ * for reels, Meta's guidance as guides report it (top 14%, bottom 35%, 6% on each side); for
+ * stories, the guides Matteo uses (about 13% at the top and at the bottom, 6% a side). Not
+ * measured on the apps (D-75).
  */
 export const SAFE_ZONES = {
   reel: { top: 0.14, bottom: 0.35, sides: 0.06 },
-  story: { top: 0.14, bottom: 0.14, sides: 0 },
+  // 250 px at the top and at the bottom and 65 px a side, on 1080×1920
+  story: { top: 250 / 1920, bottom: 250 / 1920, sides: 65 / 1080 },
 } as const
 
 /** A warning on a file's proportions that the preview applies: the frame's answer. */

@@ -189,6 +189,37 @@ async function rename() {
   }
 }
 const archiving = ref<WorkspaceView | null>(null)
+/** its scheduled posts, which archiving takes back to draft (D-70); null while unknown */
+const scheduledCount = ref<{ n: number; more: boolean } | 'unknown' | null>(null)
+watch(archiving, async (w) => {
+  scheduledCount.value = null
+  if (!w) return
+  try {
+    const page = await call<{ items: unknown[]; next: string | null }>(
+      'GET',
+      org.api(`/workspaces/${encodeURIComponent(w.id)}/posts?status=scheduled&limit=100`),
+    )
+    if (archiving.value?.id === w.id)
+      scheduledCount.value = { n: page.items.length, more: page.next !== null }
+  } catch {
+    // the dialog says it in general words
+    if (archiving.value?.id === w.id) scheduledCount.value = 'unknown'
+  }
+})
+const archiveText = computed(() => {
+  const c = scheduledCount.value
+  const posts =
+    c === null
+      ? ''
+      : c === 'unknown'
+        ? t('workspaces.archivePostsUnknown')
+        : c.more
+          ? t('workspaces.archivePostsMany', { n: c.n })
+          : c.n === 0
+            ? ''
+            : t('workspaces.archivePosts', { n: c.n }, c.n)
+  return [t('workspaces.archiveText'), posts].filter(Boolean).join(' ')
+})
 const archiveOpen = computed({
   get: () => archiving.value !== null,
   set: (v) => {
@@ -510,7 +541,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
     <UModal
       v-model:open="archiveOpen"
       :title="$t('workspaces.archiveTitle', { name: archiving?.name ?? '' })"
-      :description="$t('workspaces.archiveText')"
+      :description="archiveText"
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">

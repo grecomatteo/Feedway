@@ -118,15 +118,22 @@ async function confirmed() {
 }
 
 // leaving: a draft saves first; if it cannot (no network, conflict) or a scheduled post has
-// changes, the person is asked
-onBeforeRouteLeave(async (_to, _from, next) => {
+// changes, the person is asked. «Esci lo stesso» goes again where the person was going, and
+// this time the guard lets it pass (P1 of the stage 6 review, option (a)): from the browser's
+// «Indietro» that adds an entry to the history.
+let allowLeave = false
+onBeforeRouteLeave(async (to, _from, next) => {
   e.leaving(true)
+  if (allowLeave) return next()
   if (e.status.value === 'draft' && e.editable.value) await e.flush()
   const s = e.save.value
   const lost =
     s.dirty && (s.status === 'failed' || s.status === 'conflict' || e.status.value !== 'draft')
   if (!lost || !e.editable.value) return next()
-  leaveTo = () => next()
+  leaveTo = () => {
+    allowLeave = true
+    void navigateTo(to.fullPath)
+  }
   confirm.value = 'leave'
   e.leaving(false)
   next(false)

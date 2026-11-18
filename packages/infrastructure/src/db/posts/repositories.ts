@@ -259,6 +259,26 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         sql`select pg_advisory_xact_lock(hashtext(${`posts_schedule:${organizationId}`}))`,
       )
     },
+    async unscheduleAll(scope, updatedBy) {
+      const moved = await db
+        .update(posts)
+        .set({ status: 'draft', updatedBy, version: sql`${posts.version} + 1` })
+        .where(and(inScope(scope), eq(posts.status, 'scheduled')))
+        .returning({ id: posts.id })
+      const postIds = moved.map((r) => r.id)
+      if (postIds.length === 0) return []
+      await db
+        .update(postTargets)
+        .set({ status: 'draft', fingerprint: null, updatedAt: sql`now()` })
+        .where(
+          and(
+            eq(postTargets.organizationId, scope.organizationId),
+            eq(postTargets.workspaceId, scope.workspaceId),
+            inArray(postTargets.postId, postIds),
+          ),
+        )
+      return postIds
+    },
     async countScheduled(organizationId, { from, to }, excludePostId) {
       const [row] = await db
         .select({ n: sql<number>`count(*)::int` })
@@ -316,6 +336,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             eq(postTargets.organizationId, organizationId),
             inArray(postTargets.accountId, [...accountIds]),
             eq(postTargets.status, 'scheduled'),
+            // as `countScheduled`: an archived client's posts never go out (D-70)
+            sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
+                  and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
             excludePostId === undefined ? undefined : ne(postTargets.postId, excludePostId),
             gte(posts.scheduledAt, weekBefore),
             lte(posts.scheduledAt, weekAfter),

@@ -37,3 +37,30 @@ export const tooMany = (what: string) =>
     'CONFLICT',
     `Un cliente può avere al massimo ${String(CONTENT_SETTINGS_MAX)} ${what}`,
   )
+
+/**
+ * A change to the client's labels, templates or groups in its activity log (D-76.3, Matteo
+ * 18/11): `workspace.settings_changed` with the item as the entity and only what was done,
+ * never its name or text. Notes are everyday work and write nothing, as the autosave.
+ */
+export function recordContentSetting(
+  tx: Tx,
+  actor: OrgActor,
+  scope: PostScope,
+  entity: 'label' | 'caption_template' | 'account_group',
+  entityId: string,
+  change: 'created' | 'updated' | 'deleted',
+  ip: string | null,
+) {
+  return tx.audit.record({
+    organizationId: scope.organizationId,
+    actorId: actor.userId,
+    source: 'panel',
+    action: 'workspace.settings_changed',
+    entity,
+    entityId,
+    workspaceId: scope.workspaceId,
+    ip,
+    data: { change },
+  })
+}

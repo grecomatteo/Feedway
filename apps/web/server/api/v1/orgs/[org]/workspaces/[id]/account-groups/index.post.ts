@@ -3,7 +3,7 @@ import { createAccountGroupRoute } from '@app/contracts'
 
 export default defineApiRoute(
   createAccountGroupRoute,
-  ({ actor, params, body }) =>
-    createAccountGroup(useDeps(), actor, { workspaceId: params.id, ...body }),
+  ({ actor, params, body, ip }) =>
+    createAccountGroup(useDeps(), actor, { workspaceId: params.id, ...body }, { ip }),
   { rateLimit: POST_WRITES_RATE_LIMIT },
 )

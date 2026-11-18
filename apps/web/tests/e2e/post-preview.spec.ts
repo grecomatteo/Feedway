@@ -354,3 +354,47 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma 0 s')
   await expect(frame).toHaveAttribute('aria-valuetext', /fotogramma 1 di 539/)
 })
+
+test('a cover cropped, then changed: the box of the old photo does nothing, the checks stay true (P2 of the review)', async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  for (const [name, width, height] of [
+    ['alta.jpg', 1080, 1350],
+    ['quadra.jpg', 1080, 1080],
+  ] as const) {
+    const id = await libraryFile(org, client.id, owner.userId, { kind: 'image', name })
+    await analysed(id, 'image', width, height)
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['impasto.mov'])
+  const section = page.locator('[data-cover]')
+  async function pickCover(name: string) {
+    await section.getByRole('button', { name: 'Dalla libreria' }).click()
+    const library = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+    await library.getByRole('button', { name }).click()
+    await library.getByRole('button', { name: /^Aggiungi/ }).click()
+    await expect(library).toHaveCount(0)
+  }
+  const warning = page.locator('[data-outcome="cover_aspect_ratio"]')
+  const cropOption = warning.getByRole('radio', { name: /Ritaglia/ })
+  const dialog = page.getByRole('dialog', { name: 'Ritaglia la copertina del reel' })
+  const failed = page.getByText('Controlli non riusciti')
+
+  await pickCover('alta.jpg')
+  await cropOption.check()
+  await expect(dialog).toContainText('1080×1350')
+  await dialog.getByRole('button', { name: 'Usa questo ritaglio' }).click()
+  await expect(cropOption).toBeChecked()
+
+  // another photo: the warning is about it, to answer again, and the checks did not fail
+  await pickCover('quadra.jpg')
+  await expect(cropOption).not.toBeChecked()
+  await expect(failed).toHaveCount(0)
+  await cropOption.check()
+  await expect(dialog).toContainText('1080×1080')
+  await dialog.getByRole('button', { name: 'Usa questo ritaglio' }).click()
+  await expect(cropOption).toBeChecked()
+  await expect(failed).toHaveCount(0)
+})

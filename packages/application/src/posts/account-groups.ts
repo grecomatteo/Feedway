@@ -10,7 +10,13 @@ import type { IdGenerator } from '../ports/id-generator.js'
 import type { PostScope } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { CONTENT_SETTINGS_MAX, knownId, openContentSettings, tooMany } from './content-settings.js'
+import {
+  CONTENT_SETTINGS_MAX,
+  knownId,
+  openContentSettings,
+  recordContentSetting,
+  tooMany,
+} from './content-settings.js'
 
 // The account groups of a workspace (spec §11.7, plan 06 Task 7): accounts saved together, to
 // pick them with one tap in «Dove pubblicare». A group is saved with accounts of the workspace
@@ -95,17 +101,21 @@ export async function createAccountGroup(
   deps: { uow: UnitOfWork; ids: IdGenerator },
   actor: OrgActor,
   input: { workspaceId: string; name: string; accountIds: readonly string[] },
+  request: { ip: string | null } = { ip: null },
 ): Promise<AccountGroupDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const name = checkedName(input.name)
       if ((await tx.contentSettings.countGroups(scope)) >= CONTENT_SETTINGS_MAX)
         throw tooMany('gruppi')
       const accountIds = await checkedAccounts(tx, scope, input.accountIds)
       const id = deps.ids.newId()
       await tx.contentSettings.insertGroup(scope, { id, name, accountIds })
+      await recordContentSetting(tx, who, scope, 'account_group', id, 'created', request.ip)
       const [dto] = await toDtos(tx, scope, [await readGroup(tx, scope, id)])
       if (!dto) throw groupNotFound()
       return dto
@@ -117,11 +127,14 @@ export async function updateAccountGroup(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; groupId: string; name?: string; accountIds?: readonly string[] },
+  request: { ip: string | null } = { ip: null },
 ): Promise<AccountGroupDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const name = input.name === undefined ? undefined : checkedName(input.name)
       const groupId = knownId(input.groupId, groupNotFound)
       await readGroup(tx, scope, groupId)
@@ -134,6 +147,7 @@ export async function updateAccountGroup(
         ...(accountIds === undefined ? {} : { accountIds }),
       })
       if (!changed) throw groupNotFound()
+      await recordContentSetting(tx, who, scope, 'account_group', groupId, 'updated', request.ip)
       const [dto] = await toDtos(tx, scope, [await readGroup(tx, scope, groupId)])
       if (!dto) throw groupNotFound()
       return dto
@@ -145,10 +159,14 @@ export async function deleteAccountGroup(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; groupId: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<void> {
   await deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
-    const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+    const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+      write: true,
+    })
     const groupId = knownId(input.groupId, groupNotFound)
     if (!(await tx.contentSettings.deleteGroup(scope, groupId))) throw groupNotFound()
+    await recordContentSetting(tx, who, scope, 'account_group', groupId, 'deleted', request.ip)
   })
 }

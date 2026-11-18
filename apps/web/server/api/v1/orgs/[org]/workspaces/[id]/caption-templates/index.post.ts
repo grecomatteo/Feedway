@@ -3,7 +3,7 @@ import { createCaptionTemplateRoute } from '@app/contracts'
 
 export default defineApiRoute(
   createCaptionTemplateRoute,
-  ({ actor, params, body }) =>
-    createCaptionTemplate(useDeps(), actor, { workspaceId: params.id, ...body }),
+  ({ actor, params, body, ip }) =>
+    createCaptionTemplate(useDeps(), actor, { workspaceId: params.id, ...body }, { ip }),
   { rateLimit: POST_WRITES_RATE_LIMIT },
 )

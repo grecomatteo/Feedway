@@ -7,7 +7,13 @@ import {
 import type { CaptionTemplateRecord } from '../ports/content-settings.js'
 import type { IdGenerator } from '../ports/id-generator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { CONTENT_SETTINGS_MAX, knownId, openContentSettings, tooMany } from './content-settings.js'
+import {
+  CONTENT_SETTINGS_MAX,
+  knownId,
+  openContentSettings,
+  recordContentSetting,
+  tooMany,
+} from './content-settings.js'
 
 // The caption templates of a workspace (spec §11.7, plan 06 Task 7): a text, a signature or a
 // set of hashtags that «Inserisci» puts where the cursor is.
@@ -61,11 +67,14 @@ export async function createCaptionTemplate(
   deps: { uow: UnitOfWork; ids: IdGenerator },
   actor: OrgActor,
   input: { workspaceId: string; kind: string; name: string; body: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<CaptionTemplateDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const value = checked(input)
       if ((await tx.contentSettings.countTemplates(scope)) >= CONTENT_SETTINGS_MAX)
         throw tooMany('modelli')
@@ -73,6 +82,7 @@ export async function createCaptionTemplate(
       await tx.contentSettings.insertTemplate(scope, { id, ...value })
       const created = (await tx.contentSettings.listTemplates(scope)).find((t) => t.id === id)
       if (!created) throw templateNotFound()
+      await recordContentSetting(tx, who, scope, 'caption_template', id, 'created', request.ip)
       return toDto(created)
     },
   )
@@ -82,11 +92,14 @@ export async function updateCaptionTemplate(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; templateId: string; kind?: string; name?: string; body?: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<CaptionTemplateDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const templateId = knownId(input.templateId, templateNotFound)
       const all = await tx.contentSettings.listTemplates(scope)
       const current = all.find((t) => t.id === templateId)
@@ -102,6 +115,15 @@ export async function updateCaptionTemplate(
         (t) => t.id === templateId,
       )
       if (!updated) throw templateNotFound()
+      await recordContentSetting(
+        tx,
+        who,
+        scope,
+        'caption_template',
+        templateId,
+        'updated',
+        request.ip,
+      )
       return toDto(updated)
     },
   )
@@ -111,10 +133,22 @@ export async function deleteCaptionTemplate(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; templateId: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<void> {
   await deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
-    const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+    const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+      write: true,
+    })
     const templateId = knownId(input.templateId, templateNotFound)
     if (!(await tx.contentSettings.deleteTemplate(scope, templateId))) throw templateNotFound()
+    await recordContentSetting(
+      tx,
+      who,
+      scope,
+      'caption_template',
+      templateId,
+      'deleted',
+      request.ip,
+    )
   })
 }

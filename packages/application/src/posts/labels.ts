@@ -2,7 +2,13 @@ import { DomainError, validateLabel, type LabelColor, type OrgActor } from '@app
 import type { IdGenerator } from '../ports/id-generator.js'
 import type { LabelRecord } from '../ports/content-settings.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { CONTENT_SETTINGS_MAX, knownId, openContentSettings, tooMany } from './content-settings.js'
+import {
+  CONTENT_SETTINGS_MAX,
+  knownId,
+  openContentSettings,
+  recordContentSetting,
+  tooMany,
+} from './content-settings.js'
 
 // The coloured labels of a workspace (spec §11.7, plan 06 Task 7). A post carries them with
 // `labelIds`; deleting a label takes it off every post.
@@ -60,17 +66,21 @@ export async function createLabel(
   deps: { uow: UnitOfWork; ids: IdGenerator },
   actor: OrgActor,
   input: { workspaceId: string; name: string; color: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<LabelDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const value = checked(input)
       const existing = await tx.contentSettings.listLabels(scope)
       if (existing.length >= CONTENT_SETTINGS_MAX) throw tooMany('etichette')
       const id = deps.ids.newId()
       if ((await tx.contentSettings.insertLabel(scope, { id, ...value })) === 'taken')
         throw nameTaken()
+      await recordContentSetting(tx, who, scope, 'label', id, 'created', request.ip)
       return { id, ...value, postCount: 0 }
     },
   )
@@ -80,11 +90,14 @@ export async function updateLabel(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; labelId: string; name?: string; color?: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<LabelDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+        write: true,
+      })
       const labelId = knownId(input.labelId, labelNotFound)
       const current = (await tx.contentSettings.listLabels(scope)).find((l) => l.id === labelId)
       if (!current) throw labelNotFound()
@@ -95,6 +108,7 @@ export async function updateLabel(
       const result = await tx.contentSettings.updateLabel(scope, labelId, value)
       if (result === 'missing') throw labelNotFound()
       if (result === 'taken') throw nameTaken()
+      await recordContentSetting(tx, who, scope, 'label', labelId, 'updated', request.ip)
       return toDto({ ...current, ...value })
     },
   )
@@ -104,10 +118,14 @@ export async function deleteLabel(
   deps: { uow: UnitOfWork },
   actor: OrgActor,
   input: { workspaceId: string; labelId: string },
+  request: { ip: string | null } = { ip: null },
 ): Promise<void> {
   await deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
-    const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+    const { current: who, scope } = await openContentSettings(tx, actor, input.workspaceId, {
+      write: true,
+    })
     const labelId = knownId(input.labelId, labelNotFound)
     if (!(await tx.contentSettings.deleteLabel(scope, labelId))) throw labelNotFound()
+    await recordContentSetting(tx, who, scope, 'label', labelId, 'deleted', request.ip)
   })
 }

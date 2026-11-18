@@ -344,5 +344,19 @@ export async function archiveWorkspace(
     if (!(await tx.workspaces.archive(current.organizationId, workspaceId, deps.clock.now())))
       return
     await recordWorkspace(tx, current, 'workspace.archived', workspaceId, request.ip)
+    // its scheduled posts go back to draft (D-70, Matteo 18/11): an archived client publishes
+    // nothing, and restored, its drafts can be scheduled again
+    const scope = { organizationId: current.organizationId, workspaceId }
+    for (const postId of await tx.posts.unscheduleAll(scope, current.userId))
+      await tx.audit.record({
+        organizationId: current.organizationId,
+        actorId: current.userId,
+        source: 'panel',
+        action: 'post.unscheduled',
+        entity: 'post',
+        entityId: postId,
+        workspaceId,
+        ip: request.ip,
+      })
   })
 }

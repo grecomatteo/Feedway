@@ -276,6 +276,9 @@ export function usePostEditor(opts: {
       checkProblem.value = null
     },
     onError: (e) => {
+      // the report of an older body is not shown as if it were still true (P2 of the review)
+      report.value = null
+      reportMedia.value = []
       checkProblem.value = failure(e).message
     },
     onBusy: (b) => (checking.value = b),
@@ -684,8 +687,9 @@ export function usePostEditor(opts: {
     alive = false
     document.removeEventListener('visibilitychange', hidden)
     checks.stop()
-    // what is left goes with the leaving (the page asked first if it could not)
-    if (status.value === 'draft') void autosave.flush()
+    // what is left goes with the leaving (the page asked first if it could not); a file that
+    // finishes later waits for this save, so it finds the draft it made (P6 of the review)
+    if (status.value === 'draft') later = later.then(() => autosave.flush()).catch(() => undefined)
   })
 
   return {

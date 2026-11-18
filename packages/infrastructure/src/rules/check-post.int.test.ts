@@ -404,14 +404,15 @@ describe('the files', () => {
     expect(report.outcomes[0]?.params).toEqual({ reason: 'unreadable' })
   })
 
-  test('a cover photo of another agency is «non disponibile», with nothing of it', async () => {
+  test('a cover photo of another agency is «non disponibile», with nothing more than its id', async () => {
     const report = await checkPost(
       deps,
       actor(people.editor),
       reel({ cover: { source: 'image', mediaId: inOther }, destinations: [{ accountId: ig }] }),
     )
-    expect(codes(report)).toEqual(['block media_unavailable media_unavailable:cover'])
-    expect(JSON.stringify(report)).not.toContain(inOther)
+    // the key says back the id the request gave (P2 of the stage 6 review), and nothing else
+    expect(codes(report)).toEqual([`block media_unavailable media_unavailable:cover:${inOther}`])
+    expect(report.outcomes[0]?.params).toEqual({})
   })
 
   test('a video of the workspace as the cover photo blocks, and nothing else of it is said', async () => {
@@ -420,7 +421,7 @@ describe('the files', () => {
       actor(people.editor),
       reel({ cover: { source: 'image', mediaId: corrected }, destinations: [{ accountId: ig }] }),
     )
-    expect(codes(report)).toEqual(['block cover_not_image cover_not_image:cover'])
+    expect(codes(report)).toEqual([`block cover_not_image cover_not_image:cover:${corrected}`])
   })
 
   test('a file still being prepared blocks', async () => {
