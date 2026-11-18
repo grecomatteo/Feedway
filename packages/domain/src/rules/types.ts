@@ -160,6 +160,8 @@ export const RULE_CODES = [
   'story_too_short',
   'quota_exhausted',
   'facebook_reels_limit',
+  /** a file no destination publishes after the choices (D-56) */
+  'media_unused',
   // warnings
   'time_skipped',
   'time_ambiguous',
@@ -190,8 +192,6 @@ export const RULE_CODES = [
   'file_convert_audio_for_reels',
   'story_recompressed',
   'cover_converted',
-  /** a file no destination publishes after the choices (D-56) */
-  'media_unused',
 ] as const
 export type RuleCode = (typeof RULE_CODES)[number]
 

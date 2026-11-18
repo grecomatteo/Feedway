@@ -930,11 +930,11 @@ export const RULE_CASES: RuleCase[] = [
       destinations: onlyFb,
       choices: [{ key: 'facebook_too_many_photos:post:facebook', option: 'first_files' }],
     }),
-    // D-56: the two photos nobody publishes only say so
+    // D-56: the two photos nobody publishes block, to be taken out
     [
       chose(warning('facebook_too_many_photos', 'post', 'facebook'), 'first_files'),
-      fix('media_unused', 'media:10'),
-      fix('media_unused', 'media:11'),
+      block('media_unused', 'media:10'),
+      block('media_unused', 'media:11'),
     ],
     ctx,
     [{ accountId: FB, format: 'multi_photo', media: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }],
@@ -968,7 +968,7 @@ export const RULE_CASES: RuleCase[] = [
   c(
     'media-unused',
     'post',
-    'Carosello con un video non riuscito, solo su Facebook con «solo le foto»: il video non esce (D-56)',
+    'Carosello con un video non riuscito, solo su Facebook con «solo le foto»: il video blocca lo stesso (D-56)',
     carousel(
       [
         photo(),
@@ -986,7 +986,8 @@ export const RULE_CASES: RuleCase[] = [
     ),
     [
       chose(warning('carousel_mixed_with_facebook', 'post', 'facebook'), 'photos_only'),
-      fix('media_unused', 'media:1'),
+      block('media_failed', 'media:1'),
+      block('media_unused', 'media:1'),
     ],
     ctx,
     [{ accountId: FB, format: 'multi_photo', media: [0, 2] }],

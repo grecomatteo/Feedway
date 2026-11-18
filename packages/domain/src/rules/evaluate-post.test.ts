@@ -500,7 +500,7 @@ describe('plan 06: keys by file, crops, unused files, purpose', () => {
     expect(isValidCrop({ x: 0.5, y: 0, width: 0.5625, height: 1 }, target)).toBe(false)
   })
 
-  test('a file no destination publishes only says so (D-56)', () => {
+  test('a file no destination publishes blocks, with its own problems (D-56)', () => {
     const failed = video(
       10_000,
       { width: 1080, height: 1350 },
@@ -518,8 +518,14 @@ describe('plan 06: keys by file, crops, unused files, purpose', () => {
     const aboutVideo = report.outcomes.filter(
       (o) => o.subject.kind === 'media' && o.subject.index === 1,
     )
-    expect(aboutVideo.map((o) => [o.level, o.code])).toEqual([['fix', 'media_unused']])
-    expect(aboutVideo[0]?.key).toBe('media_unused:media:v')
+    expect(aboutVideo.map((o) => [o.level, o.code])).toEqual([
+      ['block', 'media_failed'],
+      ['block', 'media_unused'],
+    ])
+    expect(aboutVideo[1]?.key).toBe('media_unused:media:v')
+    expect(report.canSchedule).toBe(false)
+    // the Facebook destination is not touched by a file it does not publish
+    expect(report.destinations[0]?.outcomeKeys).not.toContain('media_unused:media:v')
   })
 
   test('the worker checks a post whose time is past without the block (D-54)', () => {

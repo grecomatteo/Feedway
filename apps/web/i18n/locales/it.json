@@ -1867,8 +1867,8 @@
       "text": "La copertina viene convertita in JPEG, con i colori standard e un peso entro {limit}."
     },
     "media_unused": {
-      "title": "File che non esce",
-      "text": "Questo file non esce da nessuna parte: puoi toglierlo."
+      "title": "File che non esce su nessun account",
+      "text": "Con le scelte fatte questo file non esce su nessun account. Toglilo dal post o cambia le scelte, così il post esce come l'hai pensato."
     }
   }
 }
