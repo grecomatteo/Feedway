@@ -165,7 +165,7 @@ Ultimo aggiornamento: esiti della prova della 0.11.0 (18 novembre 2026): chiusa 
 - **Limiti di Meta ricontrollati il 17 novembre 2026:** Instagram («IG User Media», Reel Specifications): MOV o MP4 senza edit list e con moov all'inizio; HEVC o H.264, progressivo, GOP chiuso, 4:2:0; 23–60 fps; al massimo 1920 colonne (pixel in orizzontale); VBR al massimo 25 Mbit/s; AAC al massimo 48 kHz, mono o stereo, 128 kbit/s; 3 s–15 min; 300 MB. Facebook («Reels Publishing API»): 1080×1920 consigliato, minimo 540×960; 24–60 fps a **frequenza fissa**; GOP chiuso di 2–5 s; 4:2:0; H.264 o H.265; AAC LC 48 kHz stereo, 128 kbit/s o più; 3–90 s.
 - **Fatto (opzione a):** il worker copia i flussi così come sono se il lato lungo è al massimo 1920, il bitrate del file al massimo 25 Mbit/s, gli fps al massimo 60 e fissi (media e dichiarati entro il 2%), i pixel in 4:2:0 a 8 o 10 bit e l'audio al massimo 48 kHz in 2 canali. Altrimenti converte: H.264 High 4.2, dentro 1080×1920 nei due versi, 15 Mbit/s (scelta di Matteo, 17 novembre) con tetto a 18, GOP di 2 s, fps fissi uguali all'originale fino a 60, HDR (PQ o HLG) portato in SDR BT.709, `faststart`, senza metadati. Se fuori limite è solo l'audio, si ricodifica solo l'audio (AAC 128 kbit/s, 48 kHz stereo). Il pannello lo dice tra le correzioni fatte; sopra i 60 fps toglie l'avviso «andranno portati a 30», perché la copia da pubblicare è già a 60.
 - **(b) non serve:** l'originale del video resta nella libreria, quindi la qualità piena non si perde.
-- **Costo:** misurato nel cloud con un thread su 3 s di 4K60 HEVC 10 bit, la copia convertita costa circa 1,3 volte l'anteprima, 1,7 volte con l'HDR. Sulla VPS (circa 26 s di lavoro per secondo di 4K60 per l'anteprima) un 4K60 di 23 s richiede circa 15 minuti in più. Il timeout lo fissa D-39; anteprima e copia in un solo passaggio (D-39 c) dimezzerebbe la decodifica.
+- **Costo:** misurato nel cloud con un thread su 3 s di 4K60 HEVC 10 bit, la copia convertita costa circa 1,3 volte l'anteprima, 1,7 volte con l'HDR. Il timeout è quello del runbook media (D-39, chiusa con la prova della 0.11.0: il 4K60 di 23 s è pronto in 499 s, anteprima e copia comprese). Anteprima e copia in un solo passaggio dimezzerebbero la decodifica; non servono finché i tempi restano questi.
 - **Non verificato su Meta vera (tappa 7):** che Meta prenda un HDR 1080p copiato così com'è; le edit list che ffmpeg scrive nel remux (Instagram dice «no edit lists»); il GOP dei video copiati; che la soglia del 2% riconosca bene i video a frequenza variabile dell'iPhone.
 - **Stato:** fatta (a); resta aperta solo per le verifiche con Meta vera alla tappa 7.
 
@@ -300,12 +300,13 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Origine:** prova della 0.11.0, richiesta di Matteo. Riguarda D-52 e RF-34.
 - **Cosa vuole Matteo:** quando una foto non rientra nel formato (feed fuori da 4:5–1,91:1, copertina del reel non 9:16), la persona sposta e regola il riquadro da sola, con l'anteprima del risultato. Il ritaglio al centro è solo il punto di partenza. Si può riusare il ritaglio trascinabile della foto del profilo.
 - **Cosa cambia:** l'opzione `crop_center` dei controlli diventa «ritaglia» con un riquadro salvato con il post (tappa 6, editor e anteprima); le copie da pubblicare lo applicano (tappa 7). La specifica §9.2 lo dice già.
-- **Stato:** decisa da Matteo il 18/11, da scrivere nel piano della tappa 6.
+- **Da chiedere a Matteo:** se il riquadro spostabile vale anche per il video del reel non 9:16 (avviso `reel_aspect_ratio`, opzione «ritaglia»), o solo per le foto e la copertina.
+- **Stato:** decisa da Matteo il 18/11 per la foto del feed e la copertina, da scrivere nel piano della tappa 6; aperta per il video del reel.
 
 ### D-62 · Foto 3:4 nel feed di Instagram
-- **Origine:** prova della 0.11.0. L'app di Instagram oggi accetta le foto 3:4, la documentazione delle API dice da 4:5 a 1,91:1.
+- **Origine:** prova della 0.11.0. Secondo Matteo l'app di Instagram oggi accetta le foto 3:4 (non verificato dall'API); la documentazione delle API dice da 4:5 a 1,91:1.
 - **Opzioni:** (a) restare a 4:5 (oggi); (b) accettare 3:4 se Meta vera le prende dall'API.
-- **Stato:** (a) per ora, scelta di Matteo; da provare su Meta vera nella tappa 7.
+- **Stato:** decisa (a) da Matteo il 18/11, per ora; (b) da provare su Meta vera nella tappa 7.
 
 ### D-63 · Ritocchi di design di tutto il pannello
 - **Origine:** prova della 0.11.0, richieste di Matteo.
@@ -314,16 +315,16 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
   - la larghezza piena su **tutte** le pagine, con testi lunghi e campi dei moduli limitati per leggibilità;
   - senza i sottotitoli superflui;
   - i nomi dei file nelle miniature al massimo su 2 righe, poi i puntini.
-- **Stato:** decisa da Matteo il 18/11, da fare in un lavoro di design a parte (prima o insieme all'editor della tappa 6).
+- **Stato:** decisa da Matteo il 18/11. Quando farla: scelta provvisoria, in un lavoro di design a parte, prima o insieme all'editor della tappa 6.
 
 ### D-64 · Caricamento: altro dispositivo, peso della copia, conferma doppia
 - **Origine:** prova della 0.11.0, osservazioni della chat della VPS.
 - **I punti:**
   1. sul computer, un caricamento ancora in corso dal telefono compare come «Caricamenti rimasti a metà»: meglio «in corso su un altro dispositivo», o nasconderlo finché la sessione è attiva;
   2. il dettaglio del file mostra solo il peso dell'originale (249 MB): utile anche il peso della copia da pubblicare (la copia reel, 42,5 MB);
-  3. con la rete persa durante il primo pezzo il client cancella la sessione e ne apre una nuova (DELETE e POST): non si perde nulla, va solo detto che è voluto;
+  3. con la rete persa durante il primo pezzo il client ha cancellato la sessione e ne ha aperta una nuova (DELETE e POST): non si perde nulla, ma **non verificato** che sia voluto (in `useUploads.ts` il DELETE c'è solo in `cancel` e `cancelLeftover`); da controllare nel client e, se voluto, scriverlo nel runbook media;
   4. in un caso la conferma di fine caricamento (`POST …/complete`) è partita due volte, entrambe 200 senza doppioni: innocuo, da controllare che il client non la ripeta senza motivo.
-- **Stato:** aperta; (1), (2) e (4) da valutare con le correzioni del pannello, (3) da scrivere nel runbook media.
+- **Stato:** aperta; da valutare con le correzioni del pannello; (3) prima da controllare nel client.
 
 ### D-65 · Tetto CPU del web e profilo sRGB incorporato
 - **Origine:** prova della 0.11.0.

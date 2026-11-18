@@ -587,7 +587,7 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 **Proporzioni e durata**
 | Controllo | Livello | Azione |
 |---|---|---|
-| Foto feed IG fuori da 4:5 – 1.91:1 | Avviso | Ritaglio con il riquadro spostabile (parte dal centro) / bande / annulla, con anteprima (D-61) |
+| Foto feed IG fuori da 4:5 – 1.91:1 | Avviso | Ritaglio con il riquadro spostabile (parte dal centro) / bande, con anteprima (D-61); «annulla» è il pulsante dell'editor (D-52) |
 | Carosello con proporzioni diverse | Avviso | IG ritaglia sulla prima foto; anteprima del risultato |
 | Reel non 9:16 | Avviso | Pubblica così / adatta con bande / ritaglia |
 | Reel sotto 3 s o sopra 15 min | Blocco | |
