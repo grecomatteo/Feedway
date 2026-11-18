@@ -587,7 +587,7 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 **Proporzioni e durata**
 | Controllo | Livello | Azione |
 |---|---|---|
-| Foto feed IG fuori da 4:5 – 1.91:1 | Avviso | Ritaglio al centro / bande / annulla, con anteprima |
+| Foto feed IG fuori da 4:5 – 1.91:1 | Avviso | Ritaglio con il riquadro spostabile (parte dal centro) / bande / annulla, con anteprima (D-61) |
 | Carosello con proporzioni diverse | Avviso | IG ritaglia sulla prima foto; anteprima del risultato |
 | Reel non 9:16 | Avviso | Pubblica così / adatta con bande / ritaglia |
 | Reel sotto 3 s o sopra 15 min | Blocco | |
@@ -597,7 +597,7 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 | Storia video oltre 100 MB | Correzione | Ricompressa |
 | Video sotto 540×960 per reel FB | Avviso | Qualità bassa, FB potrebbe rifiutarlo |
 | Copertina del reel non è una foto, o fotogramma oltre la fine del video | Blocco | La copertina caricata è sempre una foto; il fotogramma sta dentro la durata del video |
-| Copertina del reel non 9:16 | Avviso | Ritaglio al centro, con anteprima / usa così |
+| Copertina del reel non 9:16 | Avviso | Ritaglio con il riquadro spostabile (parte dal centro), con anteprima / usa così (D-61) |
 | Copertina del reel non JPEG, non sRGB o oltre 8 MB | Correzione | Convertita in JPEG sRGB e ricompressa |
 | Copertina scelta con FB nelle destinazioni | Avviso | Su Facebook la copertina potrebbe non essere applicata (finché non è verificato) |
 
