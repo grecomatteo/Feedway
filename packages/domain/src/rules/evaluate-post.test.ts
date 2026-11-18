@@ -1,7 +1,13 @@
 import { describe, expect, it, test } from 'vitest'
 import { DomainError } from '../errors.js'
 import { FB, IG, RULE_CASES, context, draft, photo, video } from './cases.js'
-import { evaluatePost, outcomeKey, postFingerprint } from './evaluate-post.js'
+import {
+  evaluatePost,
+  isValidCrop,
+  mediaKeys,
+  outcomeKey,
+  postFingerprint,
+} from './evaluate-post.js'
 import { platformRulesMap } from './platform-rules.js'
 import { INSTAGRAM_RULES } from '../platforms/meta/rules/index.js'
 import type { MediaFailure } from '../media/processing.js'
@@ -88,17 +94,21 @@ const mixed = () =>
 
 describe('choices', () => {
   test('a valid choice resolves its warning and lets the post be scheduled', () => {
-    const d = draft({ media: [photo({ width: 1080, height: 1920 })] })
+    const d = draft({ media: [photo({ width: 1080, height: 1920 }, { mediaId: 'p1' })] })
     const before = evaluatePost(d, context())
     expect(before.canSchedule).toBe(false)
-    expect(before.unresolved).toEqual(['photo_aspect_ratio:media:0:instagram'])
+    expect(before.unresolved).toEqual(['photo_aspect_ratio:media:p1:instagram'])
     const after = evaluatePost(
-      { ...d, choices: [{ key: before.unresolved[0] ?? '', option: 'crop_center' }] },
+      { ...d, choices: [{ key: before.unresolved[0] ?? '', option: 'crop' }] },
       context(),
     )
     expect(after.unresolved).toEqual([])
     expect(after.canSchedule).toBe(true)
-    expect(after.outcomes[0]).toMatchObject({ code: 'photo_aspect_ratio', chosen: 'crop_center' })
+    expect(after.outcomes[0]).toMatchObject({
+      code: 'photo_aspect_ratio',
+      chosen: 'crop',
+      cropRatio: 0.8,
+    })
   })
 
   test('an option the engine does not know is refused', () => {
@@ -107,20 +117,20 @@ describe('choices', () => {
   })
 
   test('two choices for the same warning are refused', () => {
-    const key = 'photo_aspect_ratio:media:0:instagram'
+    const key = 'photo_aspect_ratio:media:p1:instagram'
     const d = draft({
       choices: [
         { key, option: 'pad' },
-        { key, option: 'crop_center' },
+        { key, option: 'crop' },
       ],
     })
     expect(() => evaluatePost(d, context())).toThrow(DomainError)
   })
 
   test('an option the warning does not offer is left out, and the warning is open again (D-54)', () => {
-    const key = 'photo_aspect_ratio:media:0:instagram'
+    const key = 'photo_aspect_ratio:media:p1:instagram'
     const d = draft({
-      media: [photo({ width: 1080, height: 1920 })],
+      media: [photo({ width: 1080, height: 1920 }, { mediaId: 'p1' })],
       choices: [{ key, option: 'skip_platform' }],
     })
     const report = evaluatePost(d, context())
@@ -131,9 +141,9 @@ describe('choices', () => {
   })
 
   test('a valid choice says no invalid choice', () => {
-    const key = 'photo_aspect_ratio:media:0:instagram'
+    const key = 'photo_aspect_ratio:media:p1:instagram'
     const d = draft({
-      media: [photo({ width: 1080, height: 1920 })],
+      media: [photo({ width: 1080, height: 1920 }, { mediaId: 'p1' })],
       choices: [{ key, option: 'pad' }],
     })
     expect(evaluatePost(d, context()).invalidChoices).toEqual([])
@@ -141,7 +151,10 @@ describe('choices', () => {
 
   test('a choice for a warning that is no longer there does nothing', () => {
     // the photo was replaced by one in 4:5: its old choice is ignored
-    const d = draft({ choices: [{ key: 'photo_aspect_ratio:media:0:instagram', option: 'pad' }] })
+    const d = draft({
+      media: [photo({}, { mediaId: 'p1' })],
+      choices: [{ key: 'photo_aspect_ratio:media:p1:instagram', option: 'pad' }],
+    })
     const report = evaluatePost(d, context())
     expect(report.outcomes).toEqual([])
     expect(report.canSchedule).toBe(true)
@@ -271,21 +284,26 @@ describe('the report', () => {
   test('each outcome is said once: destinations and post list it by key', () => {
     const report = evaluatePost(
       draft({
-        media: [photo({}, { checks: { fixes: [{ code: 'strip_metadata' }], warnings: [] } })],
+        media: [
+          photo(
+            {},
+            { mediaId: 'p1', checks: { fixes: [{ code: 'strip_metadata' }], warnings: [] } },
+          ),
+        ],
         caption: { common: 'a'.repeat(2201) },
       }),
       context(),
     )
     expect(report.outcomes.map((o) => o.key).sort()).toEqual([
       'caption_too_long:post:instagram',
-      'file_strip_metadata:media:0',
+      'file_strip_metadata:media:p1',
     ])
     expect(report.postKeys.sort()).toEqual(report.outcomes.map((o) => o.key).sort())
     expect(destination(report, IG).outcomeKeys.sort()).toEqual([
       'caption_too_long:post:instagram',
-      'file_strip_metadata:media:0',
+      'file_strip_metadata:media:p1',
     ])
-    expect(destination(report, FB).outcomeKeys).toEqual(['file_strip_metadata:media:0'])
+    expect(destination(report, FB).outcomeKeys).toEqual(['file_strip_metadata:media:p1'])
   })
 
   test('the seconds next to a limit are rounded towards its wrong side (P3)', () => {
@@ -406,4 +424,118 @@ test('each destination carries the fingerprint of what it publishes, as hex sha2
   for (const d of report.destinations) {
     expect(d.fingerprint).toMatch(/^[0-9a-f]{64}$/)
   }
+})
+
+describe('plan 06: keys by file, crops, unused files, purpose', () => {
+  // 3:2, wider than 1.91:1? no: 1.5 is inside Instagram's range; 1:2 is taller than 4:5
+  const tall = (mediaId: string) => photo({ width: 1000, height: 2000 }, { mediaId })
+  // a 4:5 box of the 1000×2000 photo: 1000×1250 pixels
+  const box = (y: number) => ({ x: 0, y, width: 1, height: 0.625 })
+  const keyOf = (mediaId: string) => `photo_aspect_ratio:media:${mediaId}:instagram`
+
+  test('the same file twice has two keys; a file keeps its key when the files move', () => {
+    expect(mediaKeys([{ mediaId: 'a' }, { mediaId: 'b' }, { mediaId: 'a' }])).toEqual([
+      'a',
+      'b',
+      'a:2',
+    ])
+    const first = evaluatePost(
+      draft({ type: 'carousel', media: [tall('a'), photo({}, { mediaId: 'b' })] }),
+      context(),
+    )
+    const moved = evaluatePost(
+      draft({ type: 'carousel', media: [photo({}, { mediaId: 'b' }), tall('a')] }),
+      context(),
+    )
+    expect(first.unresolved).toContain(keyOf('a'))
+    // only the first file of a carousel is judged for its proportions: now it is b, in 4:5
+    expect(moved.unresolved).not.toContain(keyOf('a'))
+  })
+
+  test('two tall photos with different boxes, swapped, keep each its own box', () => {
+    const choices = [
+      { key: keyOf('a'), option: 'crop' as const, crop: box(0) },
+      { key: keyOf('b'), option: 'crop' as const, crop: box(0.375) },
+    ]
+    for (const media of [
+      [tall('a'), tall('b')],
+      [tall('b'), tall('a')],
+    ]) {
+      const report = evaluatePost(
+        draft({ type: 'photo', media: [media[0] ?? tall('x')], choices }),
+        context(),
+      )
+      expect(report.invalidChoices).toEqual([])
+      expect(report.outcomes.find((o) => o.code === 'photo_aspect_ratio')).toMatchObject({
+        key: keyOf(media[0]?.mediaId ?? ''),
+        chosen: 'crop',
+      })
+    }
+  })
+
+  test.each([
+    ['inside the photo, in 4:5', box(0.2), true],
+    ['without a box: the centre', undefined, true],
+    ['out of the photo', box(0.5), false],
+    ['with the wrong proportions', { x: 0, y: 0, width: 1, height: 0.5 }, false],
+    ['shorter than 320 pixels', { x: 0, y: 0, width: 0.3, height: 0.1875 }, false],
+    ['with a negative corner', { x: -0.1, y: 0, width: 1, height: 0.625 }, false],
+  ])('a crop %s is %s', (_name, crop, valid) => {
+    const choice = { key: keyOf('a'), option: 'crop' as const, ...(crop ? { crop } : {}) }
+    const report = evaluatePost(draft({ media: [tall('a')], choices: [choice] }), context())
+    expect(report.invalidChoices).toEqual(valid ? [] : [choice])
+    expect(report.unresolved).toEqual(valid ? [] : [keyOf('a')])
+  })
+
+  test('a box on another option is not a choice: the warning stays to answer', () => {
+    const choice = { key: keyOf('a'), option: 'pad' as const, crop: box(0.2) }
+    const report = evaluatePost(draft({ media: [tall('a')], choices: [choice] }), context())
+    expect(report.invalidChoices).toEqual([choice])
+    expect(report.unresolved).toEqual([keyOf('a')])
+  })
+
+  test('isValidCrop checks the box against the format', () => {
+    const target = { ratio: 9 / 16, width: 1080, height: 1080 }
+    expect(isValidCrop({ x: 0.2, y: 0, width: 0.5625, height: 1 }, target)).toBe(true)
+    expect(isValidCrop({ x: 0.5, y: 0, width: 0.5625, height: 1 }, target)).toBe(false)
+  })
+
+  test('a file no destination publishes only says so (D-56)', () => {
+    const failed = video(
+      10_000,
+      { width: 1080, height: 1350 },
+      { mediaId: 'v', status: 'failed', failure: { code: 'unreadable' } as MediaFailure },
+    )
+    const d = draft({ type: 'carousel', media: [photo(), failed, photo()] })
+    const report = evaluatePost(
+      {
+        ...d,
+        destinations: [{ accountId: FB }],
+        choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'photos_only' }],
+      },
+      context(),
+    )
+    const aboutVideo = report.outcomes.filter(
+      (o) => o.subject.kind === 'media' && o.subject.index === 1,
+    )
+    expect(aboutVideo.map((o) => [o.level, o.code])).toEqual([['fix', 'media_unused']])
+    expect(aboutVideo[0]?.key).toBe('media_unused:media:v')
+  })
+
+  test('the worker checks a post whose time is past without the block (D-54)', () => {
+    const past = draft({ when: { mode: 'at', localDate: '2026-11-01', localTime: '18:00' } })
+    expect(evaluatePost(past, context()).outcomes.map((o) => o.code)).toContain('scheduled_in_past')
+    expect(
+      evaluatePost(past, context({ purpose: 'publish' })).outcomes.map((o) => o.code),
+    ).not.toContain('scheduled_in_past')
+  })
+
+  test('a time the clock change skips says the zone of the post (D-58)', () => {
+    const skipped = draft({ when: { mode: 'at', localDate: '2027-03-14', localTime: '02:30' } })
+    const report = evaluatePost(skipped, context({ timeZone: 'America/New_York' }))
+    expect(report.outcomes.find((o) => o.code === 'time_skipped')?.params).toMatchObject({
+      time: '03:30',
+      timeZone: 'America/New_York',
+    })
+  })
 })

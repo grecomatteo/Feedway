@@ -37,6 +37,7 @@ let ig: string, fb: string, red: string, nearlyFull: string, full: string
 let notAssigned: string, ofOther: string
 let video: string, processing: string, corrected: string, inGino: string, inOther: string
 let deleted: string, failed: string
+let ownPost: string, othersPost: string, otherAgencyPost: string
 
 const actor = (userId: string): OrgActor => ({
   userId,
@@ -161,6 +162,24 @@ beforeAll(async () => {
     await s.member(other, user, 'owner')
     return user
   })
+  const post = async (
+    organizationId: string,
+    workspaceId: string,
+    by: string,
+    timezone = 'Europe/Rome',
+  ) => {
+    const id = randomUUID()
+    await admin.query(
+      `insert into posts (id, organization_id, workspace_id, type, options, timezone,
+                          created_by, updated_by)
+       values ($1, $2, $3, 'reel', '{"shareToFeed":true,"choices":[]}', $4, $5, $5)`,
+      [id, organizationId, workspaceId, timezone, by],
+    )
+    return id
+  }
+  ownPost = await post(org, forno, people.editor, 'America/New_York')
+  othersPost = await post(org, forno, people.viewer)
+  otherAgencyPost = await post(other, elsewhere, otherOwner)
   const conn = await connection(org, people.editor)
   ig = await account(org, conn, { platform: 'instagram', name: 'forno.luce', workspace: forno })
   fb = await account(org, conn, { platform: 'facebook', name: 'Forno Luce', workspace: forno })
@@ -293,9 +312,15 @@ describe('what is not the workspace’s', () => {
     ['of another agency', () => inOther],
     ['that does not exist', () => randomUUID()],
   ])('a file %s is «non disponibile», with nothing of it', async (_where, id) => {
-    const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [id()] }))
-    expect(codes(report)).toEqual(['block media_unavailable media_unavailable:media:0'])
-    expect(JSON.stringify(report)).not.toContain(id())
+    const asked = id()
+    const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [asked] }))
+    expect(codes(report)).toEqual([`block media_unavailable media_unavailable:media:${asked}`])
+    // the key repeats the id the caller sent, and nothing else tells it from a missing file
+    const missing = randomUUID()
+    const unknown = await checkPost(deps, actor(people.editor), reel({ mediaIds: [missing] }))
+    expect(JSON.stringify(report).replaceAll(asked, '?')).toBe(
+      JSON.stringify(unknown).replaceAll(missing, '?'),
+    )
   })
 
   test('a file deleted from this workspace says no more than one of another agency', async () => {
@@ -304,7 +329,7 @@ describe('what is not the workspace’s', () => {
       actor(people.editor),
       reel({ type: 'photo', mediaIds: [deleted], destinations: [{ accountId: ig }] }),
     )
-    expect(codes(report)).toEqual(['block media_unavailable media_unavailable:media:0'])
+    expect(codes(report)).toEqual([`block media_unavailable media_unavailable:media:${deleted}`])
     expect(JSON.stringify(report)).not.toContain('1920')
   })
 
@@ -373,7 +398,7 @@ describe('the accounts', () => {
 describe('the files', () => {
   test('a failed file blocks, with its reason', async () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [failed] }))
-    expect(codes(report)).toEqual(['block media_failed media_failed:media:0'])
+    expect(codes(report)).toEqual([`block media_failed media_failed:media:${failed}`])
     expect(report.outcomes[0]?.params).toEqual({ reason: 'unreadable' })
   })
 
@@ -398,14 +423,14 @@ describe('the files', () => {
 
   test('a file still being prepared blocks', async () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [processing] }))
-    expect(codes(report)).toEqual(['block media_processing media_processing:media:0'])
+    expect(codes(report)).toEqual([`block media_processing media_processing:media:${processing}`])
   })
 
   test('the worker’s corrections and warnings of a ready file are reported', async () => {
     const report = await checkPost(deps, actor(people.editor), reel({ mediaIds: [corrected] }))
     expect(codes(report)).toEqual([
-      'fix file_faststart file_faststart:media:0',
-      'warning file_convert_fps file_convert_fps:media:0',
+      `fix file_faststart file_faststart:media:${corrected}`,
+      `warning file_convert_fps file_convert_fps:media:${corrected}`,
     ])
   })
 })
@@ -444,7 +469,7 @@ describe('the history of the accounts', () => {
 })
 
 test('a saved choice its warning no longer offers is left out, not an error (D-54)', async () => {
-  const key = 'file_convert_fps:media:0'
+  const key = `file_convert_fps:media:${corrected}`
   const report = await checkPost(
     deps,
     actor(people.editor),
@@ -460,4 +485,53 @@ test('a check writes nothing, not even the activity log', async () => {
   const before = await count()
   await checkPost(deps, actor(people.editor), reel())
   expect(await count()).toBe(before)
+})
+
+describe('a saved post (plan 06 Task 4)', () => {
+  test('an Editor may not check the draft of another person (403)', async () => {
+    await expect(
+      checkPost(deps, actor(people.editor), reel({ postId: othersPost })),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
+  test.each([
+    ['of another agency', () => otherAgencyPost],
+    ['that does not exist', () => randomUUID()],
+    ['whose id is not one', () => 'post'],
+  ])('a post %s is not found (404)', async (_what, id) => {
+    await expect(
+      checkPost(deps, actor(people.editor), reel({ postId: id() })),
+    ).rejects.toMatchObject(new DomainError('NOT_FOUND', 'Post non trovato'))
+  })
+
+  test('its own post: its time zone, and left out of its own history', async () => {
+    const asked: (string | undefined)[] = []
+    const history: PublishingHistory = {
+      forDestinations: (tx, query) => {
+        asked.push(query.excludePostId)
+        return emptyPublishingHistory.forDestinations(tx, query)
+      },
+    }
+    const report = await checkPost(
+      { ...deps, publishingHistory: history },
+      actor(people.editor),
+      reel({ postId: ownPost }),
+    )
+    // 18:00 in New York, not in Rome
+    expect(report.scheduledAt?.toISOString()).toBe('2026-11-18T23:00:00.000Z')
+    expect(asked).toEqual([ownPost])
+  })
+
+  test('a past date blocks the editor, not the worker that publishes (purpose publish)', async () => {
+    const past = { mode: 'at', localDate: '2026-11-16', localTime: '18:00' } as const
+    const forEditor = await checkPost(deps, actor(people.editor), reel({ when: past }))
+    expect(forEditor.outcomes.map((o) => o.code)).toContain('scheduled_in_past')
+    const forWorker = await checkPost(
+      deps,
+      actor(people.editor),
+      reel({ when: past, purpose: 'publish', postId: ownPost }),
+    )
+    expect(forWorker.outcomes.map((o) => o.code)).not.toContain('scheduled_in_past')
+    expect(forWorker.canSchedule).toBe(true)
+  })
 })

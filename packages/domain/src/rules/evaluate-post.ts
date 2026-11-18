@@ -6,6 +6,7 @@ import { sha256Hex } from './sha256.js'
 import { commonRules, type ResolvedDestination, type ResolvedWhen } from './post-rules.js'
 import {
   RULE_OPTIONS,
+  type CropRect,
   type DestinationSummary,
   type PlatformRules,
   type PlatformView,
@@ -54,7 +55,21 @@ function fingerprintOf(accountId: string, view: PlatformView): string | null {
   return sha256s.every((s) => s !== null) ? postFingerprint(accountId, sha256s, view.caption) : null
 }
 
-function subjectKey(s: RuleSubject): string {
+/**
+ * The key of each file of the post (Scelta 1 of plan 06): its id, with `:<n>` from the second
+ * time the same file comes (D-59). Moving or taking out a file does not move a choice, nor the
+ * box of a crop, onto another photo.
+ */
+export function mediaKeys(media: readonly { mediaId: string }[]): string[] {
+  const seen = new Map<string, number>()
+  return media.map(({ mediaId }) => {
+    const n = (seen.get(mediaId) ?? 0) + 1
+    seen.set(mediaId, n)
+    return n === 1 ? mediaId : `${mediaId}:${String(n)}`
+  })
+}
+
+function subjectKey(s: RuleSubject, keys: readonly string[]): string {
   switch (s.kind) {
     case 'post':
     case 'cover':
@@ -62,12 +77,35 @@ function subjectKey(s: RuleSubject): string {
     case 'destination':
       return `destination:${s.accountId}`
     case 'media':
-      return `media:${String(s.index)}`
+      return `media:${keys[s.index] ?? String(s.index)}`
   }
 }
 
-export const outcomeKey = (f: Pick<RuleFinding, 'code' | 'subject' | 'platform'>) =>
-  [f.code, subjectKey(f.subject), ...(f.platform ? [f.platform] : [])].join(':')
+/** `keys`: `mediaKeys(draft.media)`, for an outcome about a file. */
+export const outcomeKey = (
+  f: Pick<RuleFinding, 'code' | 'subject' | 'platform'>,
+  keys: readonly string[] = [],
+) => [f.code, subjectKey(f.subject, keys), ...(f.platform ? [f.platform] : [])].join(':')
+
+/** The shortest side a box may have, in pixels of the original (D-61). */
+export const CROP_MIN_SIDE = 320
+
+/**
+ * A box the warning can take (D-61): inside the photo, with the format's proportions (1% of
+ * slack for the rounding of the panel), its shortest side at least 320 pixels of the original.
+ */
+export function isValidCrop(
+  crop: CropRect,
+  target: { ratio: number; width: number; height: number },
+): boolean {
+  const { x, y, width, height } = crop
+  if (![x, y, width, height].every((v) => Number.isFinite(v) && v >= 0 && v <= 1)) return false
+  if (width <= 0 || height <= 0 || x + width > 1 + 1e-9 || y + height > 1 + 1e-9) return false
+  const w = width * target.width
+  const h = height * target.height
+  if (Math.min(w, h) < CROP_MIN_SIDE) return false
+  return Math.abs(w / h - target.ratio) <= target.ratio * 0.01
+}
 
 interface Pass {
   outcomes: RuleOutcome[]
@@ -77,14 +115,14 @@ interface Pass {
   destinations: DestinationSummary[]
 }
 
-function validateChoices(choices: readonly RuleChoice[]): Map<string, RuleOption> {
-  const byKey = new Map<string, RuleOption>()
+function validateChoices(choices: readonly RuleChoice[]): Map<string, RuleChoice> {
+  const byKey = new Map<string, RuleChoice>()
   for (const c of choices) {
     if (!(RULE_OPTIONS as readonly string[]).includes(c.option))
       throw new DomainError('VALIDATION', 'unknown option', { key: c.key, option: c.option })
     if (byKey.has(c.key))
       throw new DomainError('VALIDATION', 'two choices for one warning', { key: c.key })
-    byKey.set(c.key, c.option)
+    byKey.set(c.key, c)
   }
   return byKey
 }
@@ -124,7 +162,7 @@ function runPass(
   draft: PostDraft,
   ctx: RuleContext,
   when: ResolvedWhen,
-  choices: ReadonlyMap<string, RuleOption>,
+  choices: ReadonlyMap<string, RuleChoice>,
   effects: readonly PostEffect[],
 ): Pass {
   const skipped = new Set(effects.flatMap((e) => (e.kind === 'skip_platform' ? [e.platform] : [])))
@@ -191,16 +229,29 @@ function runPass(
   const outcomes = new Map<string, RuleOutcome>()
   const invalid: RuleChoice[] = []
   const effectsByKey = new Map<string, Partial<Record<RuleOption, PostEffect>>>()
+  const keys = mediaKeys(draft.media)
   for (const f of findings) {
-    const key = outcomeKey(f)
+    const key = outcomeKey(f, keys)
     if (outcomes.has(key)) continue
     const given = choices.get(key)
-    // an orphan choice (D-54): the warning stays to be answered, and the report says why
-    const valid = given !== undefined && f.options?.includes(given) === true
-    if (given !== undefined && !valid) invalid.push({ key, option: given })
-    const chosen = valid ? given : undefined
-    const { effects: fx, ...rest } = f
-    outcomes.set(key, { ...rest, params: f.params ?? {}, key, ...(chosen ? { chosen } : {}) })
+    // an orphan choice (D-54), a box the format does not take or a box on another option
+    // (D-61): the warning stays to be answered, and the report says why
+    const valid =
+      given !== undefined &&
+      f.options?.includes(given.option) === true &&
+      (given.option === 'crop'
+        ? given.crop === undefined || (f.crop !== undefined && isValidCrop(given.crop, f.crop))
+        : given.crop === undefined)
+    if (given !== undefined && !valid) invalid.push(given)
+    const chosen = valid ? given.option : undefined
+    const { effects: fx, crop, ...rest } = f
+    outcomes.set(key, {
+      ...rest,
+      params: f.params ?? {},
+      key,
+      ...(crop ? { cropRatio: crop.ratio } : {}),
+      ...(chosen ? { chosen } : {}),
+    })
     if (fx) effectsByKey.set(key, fx)
   }
 
@@ -233,6 +284,32 @@ function touches(o: RuleOutcome, d: DestinationSummary): boolean {
   return o.subject.kind !== 'media' || d.media.includes(o.subject.index)
 }
 
+/**
+ * D-56: a file no destination publishes after the choices says nothing of its own, only that
+ * it does not go out (an information, as the other fixes). Only when some destination goes out:
+ * with none, the block of the destinations says it.
+ */
+function withoutUnusedMedia(
+  draft: PostDraft,
+  outcomes: RuleOutcome[],
+  destinations: readonly DestinationSummary[],
+): RuleOutcome[] {
+  const going = destinations.filter((d) => d.format !== null)
+  if (going.length === 0) return outcomes
+  const used = new Set(going.flatMap((d) => d.media))
+  const unused = draft.media.flatMap((_, index) => (used.has(index) ? [] : [index]))
+  if (unused.length === 0) return outcomes
+  const keys = mediaKeys(draft.media)
+  const kept = outcomes.filter((o) => o.subject.kind !== 'media' || used.has(o.subject.index))
+  return [
+    ...kept,
+    ...unused.map((index): RuleOutcome => {
+      const finding = { code: 'media_unused', subject: { kind: 'media', index } } as const
+      return { level: 'fix', ...finding, params: {}, key: outcomeKey(finding, keys) }
+    }),
+  ]
+}
+
 export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
   const choices = validateChoices(draft.choices)
   const when = resolveWhen(draft.when, ctx.now, ctx.timeZone)
@@ -249,7 +326,11 @@ export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
   const pass = effects.length > 0 ? runPass(draft, ctx, when, choices, effects) : first
   // a warning whose choice changed the post stays in the report, with its choice
   const keys = new Set(pass.outcomes.map((o) => o.key))
-  const outcomes = [...pass.outcomes, ...applied.filter((o) => !keys.has(o.key))]
+  const outcomes = withoutUnusedMedia(
+    draft,
+    [...pass.outcomes, ...applied.filter((o) => !keys.has(o.key))],
+    pass.destinations,
+  )
 
   const unresolved = outcomes.filter((o) => o.level === 'warning' && !o.chosen).map((o) => o.key)
   return {

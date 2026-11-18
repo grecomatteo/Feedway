@@ -611,11 +611,14 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 | Post multi-foto FB oltre il limite di foto (da verificare) | Avviso |
 | Nessun account, o account fuori dallo spazio | Blocco |
 | Account non sano | Blocco |
-| Data nel passato | Blocco ("Pubblica ora") |
-| Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante |
+| Data nel passato | Blocco ("Pubblica ora"); non per il worker all'ora di pubblicazione (scopo `publish`, D-54) |
+| Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante, nel fuso del post (D-58) |
 | Quota IG: meno di 5 post rimasti nelle 24 h a quell'ora | Avviso |
 | Quota IG esaurita / più di 30 reel FB nelle 24 h | Blocco |
-| Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati) |
+| Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati); il post salvato non è mai doppione di sé stesso |
+| File che nessuna destinazione pubblica dopo le scelte (per esempio un video con «solo le foto» su Facebook) | Informazione «questo file non esce da nessuna parte», al posto dei suoi esiti (D-56) |
+
+Le scelte sugli avvisi di un file sono legate al file e non alla sua posizione: spostare o togliere un file non porta una scelta, né il riquadro di un ritaglio, su un'altra foto (piano 06, Scelta 1). Il riquadro di «Ritaglia» (D-61) ha le proporzioni del formato, sta dentro la foto e ha il lato corto di almeno 320 px dell'originale; un riquadro che non va lascia l'avviso da risolvere. Gli stessi controlli girano mentre si scrive (`draft`), al salvataggio (`save`) e nel worker prima di pubblicare (`publish`); con un post salvato valgono il suo fuso e i permessi su chi l'ha creato.
 
 **Nel worker, prima di pubblicare**
 - Il file è raggiungibile dall'URL pubblico; altrimenti "Meta non riesce a scaricare il file: controlla tunnel e dominio".

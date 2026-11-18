@@ -1632,6 +1632,7 @@
     },
     "options": {
       "keep": "Usa così",
+      "crop": "Ritaglia",
       "crop_center": "Ritaglia al centro",
       "pad": "Aggiungi le bande",
       "convert": "Converti",
@@ -1737,11 +1738,11 @@
     },
     "time_skipped": {
       "title": "Ora che quel giorno non esiste",
-      "text": "Quella notte alle 2 gli orologi vanno avanti di un'ora, quindi l'ora scelta non esiste. Il post uscirà alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+      "text": "Quella notte gli orologi vanno avanti di un'ora per il cambio dell'ora, quindi l'ora scelta non esiste. Il post uscirà alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
     },
     "time_ambiguous": {
       "title": "Ora che quel giorno capita due volte",
-      "text": "Quella notte alle 3 gli orologi tornano indietro di un'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+      "text": "Quella notte gli orologi tornano indietro di un'ora per il cambio dell'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
     },
     "story_caption_ignored": {
       "title": "Le storie non hanno testo",
@@ -1757,7 +1758,7 @@
     },
     "photo_aspect_ratio": {
       "title": "Foto troppo alta o troppo larga per il feed",
-      "text": "Nel feed di {platform} una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è {width}×{height}. Scegli se ritagliarla al centro o aggiungere delle bande."
+      "text": "Nel feed di {platform} una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è {width}×{height}. Scegli se ritagliarla, spostando il riquadro dove vuoi, o aggiungere delle bande."
     },
     "carousel_mixed_ratios": {
       "title": "File di forme diverse nel carosello",
@@ -1773,7 +1774,7 @@
     },
     "cover_aspect_ratio": {
       "title": "Copertina non verticale",
-      "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla al centro o usarla così."
+      "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla, spostando il riquadro dove vuoi, o usarla così."
     },
     "cover_on_facebook": {
       "title": "Copertina non ancora provata su {platform}",
@@ -1846,6 +1847,10 @@
     "cover_converted": {
       "title": "Copertina convertita",
       "text": "La copertina viene convertita in JPEG, con i colori standard e un peso entro {limit}."
+    },
+    "media_unused": {
+      "title": "File che non esce",
+      "text": "Questo file non esce da nessuna parte: puoi toglierlo."
     }
   }
 }
