@@ -80,6 +80,7 @@ async function confirmed() {
 // leaving: a draft saves first; if it cannot (no network, conflict) or a scheduled post has
 // changes, the person is asked
 onBeforeRouteLeave(async (_to, _from, next) => {
+  e.leaving(true)
   if (e.status.value === 'draft' && e.editable.value) await e.flush()
   const s = e.save.value
   const lost =
@@ -87,6 +88,7 @@ onBeforeRouteLeave(async (_to, _from, next) => {
   if (!lost || !e.editable.value) return next()
   leaveTo = () => next()
   confirm.value = 'leave'
+  e.leaving(false)
   next(false)
 })
 function beforeUnload(event: BeforeUnloadEvent) {

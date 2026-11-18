@@ -278,3 +278,19 @@ test('the network falls during the save: «Non salvata: riprova», never «Salva
   await page.getByRole('button', { name: 'Riprova' }).click()
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
 })
+
+test('leaving a new post while a file uploads: the page changes, the upload goes on in the corner', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  // the pieces wait: the file is still uploading when the person leaves
+  await page.route('**/uploads/*/parts/*', () => undefined)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await page
+    .locator('[data-post-input]')
+    .setInputFiles(new URL('./fixtures/clip.mp4', import.meta.url).pathname)
+  await expect(page.getByRole('group', { name: /clip\.mp4/ })).toBeVisible()
+  await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page.getByTestId('uploads-dock')).toContainText('clip.mp4')
+})

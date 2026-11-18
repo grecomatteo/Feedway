@@ -218,7 +218,8 @@ export function usePostEditor(opts: {
     onState: (s) => {
       save.value = s
       // the address follows the draft once it exists, without a new page
-      if (s.postId && !opts.postId && !replaced) {
+      // not while the person leaves: the new address would cancel where they are going
+      if (s.postId && !opts.postId && !replaced && !leaving) {
         replaced = true
         keepEditorKey(s.postId, 'nuovo')
         void navigateTo(
@@ -233,6 +234,7 @@ export function usePostEditor(opts: {
     },
   })
   let replaced = false
+  let leaving = false
 
   /** Something the person changed: save (a draft) and check again. */
   function touched() {
@@ -604,6 +606,10 @@ export function usePostEditor(opts: {
     choose,
     touched,
     flush: () => autosave.flush(),
+    /** The person leaves the page (or stays after all): the address no longer follows the draft. */
+    leaving: (yes: boolean) => {
+      leaving = yes
+    },
     reload,
     schedule: () => act('schedule'),
     unschedule: () => act('unschedule'),
