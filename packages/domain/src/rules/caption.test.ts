@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { captionStats, publishedCaption } from './caption.js'
+import { captionParts, captionStats, publishedCaption } from './caption.js'
 
 test('characters are Unicode code points (D-46)', () => {
   expect(captionStats('a'.repeat(2200)).characters).toBe(2200)
@@ -47,4 +47,19 @@ test('an empty or blank text of a platform is no text of its own: the common one
         'instagram',
       ),
     ).toBe('Comune')
+})
+
+test('captionParts cuts the text where the hashtags and the mentions are, as captionStats reads them', () => {
+  const text = 'Pane #segale con @forno.luce, scrivi a info@forno.it #Bologna!'
+  const parts = captionParts(text)
+  expect(parts.map((p) => p.text).join('')).toBe(text)
+  expect(parts.filter((p) => p.kind === 'hashtag').map((p) => p.text)).toEqual([
+    '#segale',
+    '#Bologna',
+  ])
+  expect(parts.filter((p) => p.kind === 'mention').map((p) => p.text)).toEqual(['@forno.luce'])
+  const stats = captionStats(text)
+  expect(parts.filter((p) => p.kind === 'hashtag')).toHaveLength(stats.hashtags)
+  expect(parts.filter((p) => p.kind === 'mention')).toHaveLength(stats.mentions)
+  expect(captionParts('')).toEqual([])
 })

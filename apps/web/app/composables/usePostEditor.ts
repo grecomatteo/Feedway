@@ -145,6 +145,8 @@ export function usePostEditor(opts: {
     error: null,
   })
   const report = ref<PostCheckResponse | null>(null)
+  /** the files the report was made on: its indices point into these (the preview, Task 6) */
+  const reportMedia = ref<string[]>([])
   const checking = ref(false)
   const checkProblem = ref<string | null>(null)
   /** the answer of a «Programma» or «Salva modifiche» the server refused */
@@ -253,10 +255,17 @@ export function usePostEditor(opts: {
   }
 
   // ---- checks ----
-  const checks = createCheckRunner<Record<string, unknown>, PostCheckResponse>({
-    run: (b) => call<PostCheckResponse>('POST', `${base}/post-checks`, b),
+  const checks = createCheckRunner<
+    { mediaIds: string[] } & Record<string, unknown>,
+    { report: PostCheckResponse; mediaIds: string[] }
+  >({
+    run: async (b) => ({
+      report: await call<PostCheckResponse>('POST', `${base}/post-checks`, b),
+      mediaIds: b.mediaIds,
+    }),
     onReport: (r) => {
-      report.value = r
+      report.value = r.report
+      reportMedia.value = r.mediaIds
       checkProblem.value = null
     },
     onError: (e) => {
@@ -495,7 +504,10 @@ export function usePostEditor(opts: {
   }
 
   // ---- actions ----
+  /** the files of the post when an action left: a refusal's report points into these */
+  let sent: string[] | null = null
   async function act(what: 'schedule' | 'unschedule' | 'cancel'): Promise<PostResponse | null> {
+    sent = null
     actionProblem.value = null
     acting.value = what
     try {
@@ -506,6 +518,7 @@ export function usePostEditor(opts: {
       const id = save.value.postId
       const version = save.value.version
       if (!id || version === null) return null
+      sent = files.value.map((f) => f.id)
       // back to draft keeps what was changed and not saved yet: it is saved on the draft
       const keep = what === 'unschedule' && save.value.dirty
       const p = await call<PostResponse>(
@@ -532,6 +545,7 @@ export function usePostEditor(opts: {
 
   /** «Salva modifiche» of a scheduled post: saved only if the checks pass. */
   async function saveScheduled() {
+    sent = null
     actionProblem.value = null
     acting.value = 'saveScheduled'
     autosave.pause(false)
@@ -562,7 +576,10 @@ export function usePostEditor(opts: {
 
   function failed(e: unknown) {
     const b = bodyOf(e)
-    if (b?.report) report.value = b.report
+    if (b?.report) {
+      report.value = b.report
+      reportMedia.value = sent ?? files.value.map((f) => f.id)
+    }
     if (isConflict(e)) save.value = { ...save.value, status: 'conflict' }
     actionProblem.value =
       b?.reason === 'post_not_schedulable' ? t('posts.actions.notSchedulable') : failure(e).message
@@ -607,6 +624,7 @@ export function usePostEditor(opts: {
     timeZone,
     save,
     report,
+    reportMedia,
     checking,
     checkProblem,
     actionProblem,
