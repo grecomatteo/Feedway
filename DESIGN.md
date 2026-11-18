@@ -274,6 +274,10 @@ Matteo: «mi piace, seguire le linee guida di Hallmark con più gerarchia di col
 
 Gli stati usano sempre colore, icona e testo, con fondo tenue. Per schermata: un solo grande blocco arancio (sulla landing è la scritta del footer; la sezione del portale passa a pesca). Logo arancio in testata, barra laterale e footer: scelta di Matteo, la guida del marchio preferirebbe il carbone sul chiaro.
 
+## Caricamenti nell'angolo (18 novembre 2026; tappa 6, Task 5, D-21)
+
+Matteo, 18/11: i caricamenti continuano mentre si gira nel pannello, con un riquadro in basso a destra come su Drive. `UploadsDock` (nel layout dell'agenzia) mostra i file di ogni cliente che nessuna pagina aperta sta già mostrando: la libreria e l'editor hanno il loro elenco, e lì il riquadro non c'è. Testata con «Caricamento di N file · 45%», «Riduci» e «Chiudi» (chiudere toglie i finiti e nasconde quelli in corso, che vanno avanti); per ogni file nome su due righe, riga di stato, barra, pausa o ripresa e annulla; il nome del cliente con «Apri la libreria». Sul telefono sta sopra la barra in basso, largo quanto lo schermo meno 8 px per lato; da computer è largo 384 px, a 16 px dagli angoli.
+
 ## Editor dei post (tappa 6, Task 2) · approvato
 
 Disegno del 18 novembre 2026, **approvato da Matteo il 18 novembre 2026** (tutte le tavole, con le cinque risposte qui sotto e «Pubblica subito»): il Task 5 può partire. Tela `design/feedway-ui.pen`, sezione «Editor dei post · tappa 6 · approvata (18/11)», tavole `[Approvata · da costruire]` (a destra del pannello, x ≥ 8000); tavole esportate in `design/tavole/2026-11-18-editor/`; revisione in `design/reviews/2026-11-18-disegno-editor.md`. Esempio fittizio: Forno Luce, con @fornoluce, la Pagina Forno Luce e il profilo Forno Luce Bistrot (Pagina da ricollegare).

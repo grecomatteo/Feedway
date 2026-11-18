@@ -591,6 +591,7 @@ function filesDrop(event: DragEvent) {
 
       <MediaUploader
         v-if="!readOnly"
+        :key="workspace.id"
         ref="uploader"
         :workspace="workspace"
         :folder-id="uploadFolder"

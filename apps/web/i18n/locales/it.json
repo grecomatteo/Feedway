@@ -1560,6 +1560,15 @@
     "clear": "Togli i finiti",
     "progressLabel": "Avanzamento di {name}",
     "overallLabel": "Avanzamento di tutti i file",
+    "dock": {
+      "uploading": "Nessun file in caricamento | Caricamento di un file | Caricamento di {n} file",
+      "done": "Nessun file caricato | Un file caricato | {n} file caricati",
+      "collapse": "Riduci i caricamenti",
+      "expand": "Mostra i caricamenti",
+      "hide": "Nascondi i caricamenti: continuano lo stesso",
+      "close": "Chiudi i caricamenti",
+      "openLibrary": "Apri la libreria"
+    },
     "leftovers": {
       "title": "Caricamenti rimasti a metà",
       "text": "Si sono fermati, per esempio perché la pagina è stata ricaricata. Scegli di nuovo lo stesso file: riparte da dove era arrivato.",

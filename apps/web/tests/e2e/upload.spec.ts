@@ -361,3 +361,34 @@ test('the same file uploaded again is taken, and its row says it is already ther
   )
   await expect(row(page, 'frame.jpg').locator('[data-upload-duplicate]')).toHaveCount(0)
 })
+
+test('an upload goes on while the person moves around the panel, in the corner (D-21)', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await editorOnLibrary(page)
+  const gate = await holdPieces(page)
+  await input(page).setInputFiles(fixture('frame.jpg'))
+  await expect.poll(() => gate.held.length).toBeGreaterThan(0)
+  const dock = page.getByTestId('uploads-dock')
+  // the library draws its uploads itself: nothing in the corner
+  await expect(dock).toHaveCount(0)
+
+  await page.getByRole('link', { name: 'Panoramica' }).click()
+  await expect(page).not.toHaveURL(/libreria/)
+  await expect(dock).toBeVisible()
+  await expect(dock).toContainText('Caricamento di un file')
+  await expect(dock).toContainText('frame.jpg')
+  expect((await axe(page)).violations).toEqual([])
+
+  await gate.release()
+  await expect(dock).toContainText(/In preparazione|Analisi|Conversione/, { timeout: 20_000 })
+  await runMediaProcessJobs()
+  await expect(dock).toContainText('Pronto', { timeout: 20_000 })
+  await expect(dock).toContainText('Un file caricato')
+
+  // back in the library the file is there, and the corner is empty again
+  await dock.getByRole('link', { name: 'Apri la libreria' }).click()
+  await expect(page.getByRole('list', { name: 'Libreria' }).getByRole('listitem')).toHaveCount(1)
+  await expect(dock).toHaveCount(0)
+})
