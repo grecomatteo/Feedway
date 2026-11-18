@@ -119,12 +119,12 @@ function dragStart(event: DragEvent) {
     </div>
     <div class="flex min-w-0 flex-1 items-start gap-1" :class="layout === 'grid' ? 'mt-2' : ''">
       <div class="min-w-0 flex-1 px-0.5">
-        <!-- the name is the card's button: the whole card is its target; two lines in the grid,
-             so «IMG_0221.HEIC» and «IMG_0222.HEIC» are not both «IMG_022…» -->
+        <!-- the name is the card's button: the whole card is its target; at most two lines, then
+             the dots (D-63), so «IMG_0221.HEIC» and «IMG_0222.HEIC» are not both «IMG_022…»; the
+             whole name stays in the tooltip and for the screen reader -->
         <button
           type="button"
-          class="block w-full text-left text-sm font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
-          :class="layout === 'grid' ? 'line-clamp-2' : ''"
+          class="line-clamp-2 w-full text-left text-sm font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
           :title="file.originalName"
           @click="emit('open')"
         >

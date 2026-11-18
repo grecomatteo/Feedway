@@ -47,15 +47,16 @@ const agencyName = computed(() => org.organization.value?.name ?? '')
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('settings.title') }}</h1>
-      <!-- whose settings these are, or what the person may change -->
-      <slot name="intro" />
-    </header>
+  <PageShell>
+    <template #head>
+      <PageHeader :title="$t('settings.title')">
+        <!-- only what the person may change, when it is not everything -->
+        <template v-if="$slots.intro" #summary><slot name="intro" /></template>
+      </PageHeader>
+    </template>
 
     <div
-      class="space-y-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:space-y-0"
+      class="flex flex-col gap-header lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-x-8"
     >
       <nav :aria-label="$t('settings.title')" class="space-y-4 lg:sticky lg:top-6">
         <div v-for="group in groups" :key="group.id" class="space-y-1.5">
@@ -82,9 +83,9 @@ const agencyName = computed(() => org.organization.value?.name ?? '')
         </div>
       </nav>
 
-      <div class="min-w-0 space-y-6">
+      <div class="flex min-w-0 flex-col gap-section">
         <slot />
       </div>
     </div>
-  </div>
+  </PageShell>
 </template>

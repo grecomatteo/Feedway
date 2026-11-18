@@ -13,13 +13,6 @@ const signedOut = computed(() => error.value?.statusCode === 401)
 
 <template>
   <SettingsShell>
-    <template #intro>
-      <p v-if="me" class="text-(--app-text-muted)">
-        <span :title="me.name">{{ me.displayName }}</span
-        >, {{ me.email }}
-      </p>
-    </template>
-
     <p v-if="signedOut" role="alert" class="flex items-center gap-2 text-(--app-danger)">
       <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
       {{ $t('account.signedOut') }}

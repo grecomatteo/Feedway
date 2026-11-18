@@ -44,7 +44,29 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 | `danger` / `-soft` | `#B5174B` / `#FCE8EC` | `#FF94AE` / `#3D1A24` | Con problema, blocco (cremisi freddo, lontano da ogni accento: D-25) |
 | `info` / `-soft` | `#1F5AA6` / `#E7EFFA` | `#8CB8F2` / `#18273B` | Programmato, in verifica |
 
-I colori di stato hanno significato indipendente dal marchio e sono sempre accompagnati da icona e testo. Raggi: 8 per i controlli, 12 per le schede. Spaziatura 4/8/12/16/24/32.
+I colori di stato hanno significato indipendente dal marchio e sono sempre accompagnati da icona e testo. Raggi: 8 per i controlli, 12 per le schede. Spaziatura 4/8/12/16/24/32/40/48, con i ruoli della pagina in «Struttura delle pagine».
+
+## Struttura delle pagine (18 novembre 2026; tappa 6, Task 1, D-63)
+
+Matteo, dopo la prova della 0.11.0: una struttura sola, con margini e spaziature uguali in tutte le pagine, la larghezza piena, meno sottotitoli e i nomi dei file su due righe al massimo.
+
+- **Scala:** 4, 8, 12, 16, 24, 32, 40, 48 px. I ruoli della pagina sono token in `apps/web/app/assets/main.css` e diventano classi Tailwind:
+
+| Token | Classe | Telefono | Da 640 px | Da 768 px | Uso |
+|---|---|---|---|---|---|
+| `--spacing-gutter` | `px-gutter` | 16 | 24 | 32 | Margine laterale della pagina (anche la barra in alto del telefono) |
+| `--spacing-page-top` | `pt-page-top` | 24 | 24 | 32 | Sopra il titolo |
+| `--spacing-header` | `gap-header` | 24 | 24 | 24 | Dalla testata al contenuto |
+| `--spacing-section` | `gap-section` | 32 | 32 | 40 | Tra le sezioni di una pagina |
+| `--spacing-block` | `gap-block` | 16 | 16 | 16 | Dentro una sezione: strumenti, elenco, messaggi |
+| `--container-form` | `max-w-form` | 40 rem | | | Campi di un modulo |
+
+- **Componenti:** `PageShell` (testata, poi le sezioni con `gap-section`) e `PageHeader` (titolo 26/30 px, una frase di riepilogo solo se dice qualcosa che il titolo non dice, azione principale a destra). `SettingsShell` usa gli stessi. Il layout dell'agenzia dà il margine; nessuna pagina mette a mano `max-w-*`, `px-*` o `py-*` attorno al contenuto.
+- **Larghezza piena:** la pagina occupa tutto lo spazio accanto alla barra laterale. Restano più stretti solo i campi dei moduli (`max-w-form`) e i paragrafi (al massimo 75 caratteri, regola in `main.css`; i testi lunghi come l'informativa usano `max-w-prose`). Elenchi, tabelle, la griglia della libreria e le schede delle impostazioni si allargano.
+- **Elenchi:** la testata e poi un solo blocco con strumenti, avvisi ed elenco a `gap-block`, così il filtro resta attaccato all'elenco che filtra.
+- **Sottotitoli:** via quelli che ripetono il titolo o dicono l'ovvio («Il tuo ruolo: Owner. Da qui raggiungi le pagine dell'agenzia.», «Chi ha fatto cosa e quando, dal più recente.», nome ed email sotto «Impostazioni» nelle schede Sicurezza, Dispositivi e Privacy). Restano quelli che riassumono o spiegano una conseguenza: il riepilogo di Clienti e Utenti, «Solo l'Owner può cambiarle.», la prima configurazione, l'email di sistema, nome ed email in «Profilo e preferenze» (dove si sceglie il soprannome: al passaggio del mouse c'è il nome intero).
+- **Nomi dei file:** al massimo due righe, poi i puntini (`line-clamp-2`), in griglia, in elenco e nei caricamenti; il nome intero resta nel `title` e per lo screen reader.
+- Prova: `apps/web/tests/e2e/page-layout.spec.ts` (stessi margini e larghezza piena su otto pagine, nei progetti Playwright a 1280 px e da telefono a 412 px; la fascia da 640 a 767 px, con il margine di 24 px, non ha ancora una prova). Le caselle che prendono il posto di un elenco vuoto («Nessun cliente trovato») hanno `max-w-none`: sono larghe come l'elenco. Revisione e schermate in `design/reviews/2026-11-18-ritocchi-d63.md`.
 
 ## Temi colore (16 novembre 2026; tappa 4, Task 13b)
 

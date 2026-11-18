@@ -106,10 +106,8 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
 <template>
   <SettingsShell>
-    <template #intro>
-      <p v-if="!org.may.value.editSettings" class="text-(--app-text-muted)">
-        {{ $t('orgSettings.ownerOnly') }}
-      </p>
+    <template v-if="!org.may.value.editSettings" #intro>
+      {{ $t('orgSettings.ownerOnly') }}
     </template>
 
     <AvatarUploader
@@ -137,7 +135,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
       novalidate
       @submit.prevent="save"
     >
-      <fieldset :disabled="!org.may.value.editSettings" class="min-w-0 space-y-4">
+      <fieldset :disabled="!org.may.value.editSettings" class="max-w-form min-w-0 space-y-4">
         <UFormField
           :label="$t('orgSettings.name')"
           name="name"

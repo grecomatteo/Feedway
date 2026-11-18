@@ -121,12 +121,7 @@ async function sendTest() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('systemEmail.title') }}</h1>
-      <p class="text-(--app-text-muted)">{{ $t('systemEmail.explain') }}</p>
-    </header>
-
+  <PageShell :title="$t('systemEmail.title')" :summary="$t('systemEmail.explain')">
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>
@@ -143,7 +138,7 @@ async function sendTest() {
     <template v-else>
       <section
         aria-labelledby="system-email-settings"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+        class="max-w-form space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="system-email-settings" class="text-lg">{{ $t('systemEmail.settings') }}</h2>
@@ -157,7 +152,7 @@ async function sendTest() {
             {{ $t('systemEmail.verifiedAt', { when: formatDate(settings.verifiedAt, true) }) }}
           </template>
         </p>
-        <form class="space-y-4" novalidate @submit.prevent="submit">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="submit">
           <UFormField
             :label="$t('systemEmail.host')"
             name="host"
@@ -224,11 +219,11 @@ async function sendTest() {
 
       <section
         aria-labelledby="system-email-test"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+        class="max-w-form space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <h2 id="system-email-test" class="text-lg">{{ $t('systemEmail.testTitle') }}</h2>
         <p class="text-sm text-(--app-text-muted)">{{ $t('systemEmail.testExplain') }}</p>
-        <form class="space-y-4" novalidate @submit.prevent="sendTest">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="sendTest">
           <UFormField
             :label="$t('systemEmail.testTo')"
             name="test-to"
@@ -263,5 +258,5 @@ async function sendTest() {
 
       <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
     </template>
-  </div>
+  </PageShell>
 </template>

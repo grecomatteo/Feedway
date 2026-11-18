@@ -19,6 +19,30 @@
   --color-brand-800: #9b3a14;
   --color-brand-900: #7d3213;
   --color-brand-950: #431707;
+
+  /* Page layout (D-63, DESIGN.md «Struttura delle pagine»): one scale, read by PageShell,
+     SettingsShell and the layouts, so every page has the same margins and rhythm.
+     Steps of the scale: 4, 8, 12, 16, 24, 32, 40, 48. */
+  --spacing-gutter: 1rem; /* side margin of the page: 16 phone, 24 tablet, 32 computer */
+  --spacing-page-top: 1.5rem; /* above the title: 24 phone, 32 computer */
+  --spacing-header: 1.5rem; /* from the page head to its content */
+  --spacing-section: 2rem; /* between the sections of a page: 32 phone, 40 computer */
+  --spacing-block: 1rem; /* inside a section: its title to its content, between blocks */
+  /* the only limited widths: a form (fields as wide as what they hold) and long text */
+  --container-form: 40rem;
+}
+
+@media (width >= 40rem) {
+  :root {
+    --spacing-gutter: 1.5rem;
+  }
+}
+@media (width >= 48rem) {
+  :root {
+    --spacing-gutter: 2rem;
+    --spacing-page-top: 2rem;
+    --spacing-section: 2.5rem;
+  }
 }
 
 :root,
@@ -87,4 +111,10 @@ h3 {
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+}
+
+/* long text stays readable on a full-width page (D-63): no paragraph of the panel runs past about
+   75 characters; zero specificity, so a page can still widen one with a utility */
+:where(#main) :where(p) {
+  max-width: 75ch;
 }

@@ -11,25 +11,19 @@ useHead({ title: () => org.organization.value?.name ?? t('agencyHome.title') })
 </script>
 
 <template>
-  <div v-if="org.organization.value" class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ org.organization.value.name }}</h1>
-      <p class="text-(--app-text-muted)">
-        {{ $t('agencyHome.welcome', { role: $t(`roles.${org.organization.value.role}`) }) }}
-      </p>
-    </header>
+  <PageShell v-if="org.organization.value" :title="org.organization.value.name">
     <section
       v-if="setup.step.value !== null && setup.step.value !== 6"
       aria-labelledby="first-setup"
       class="space-y-3 rounded-xl border border-(--app-brand) bg-(--app-brand-soft) p-4 sm:p-6"
     >
       <h2 id="first-setup" class="text-lg">{{ $t('firstSetup.title') }}</h2>
-      <p>{{ $t('firstSetup.home', { n: setup.step.value }) }}</p>
+      <p class="max-w-prose">{{ $t('firstSetup.home', { n: setup.step.value }) }}</p>
       <UButton :to="org.to('/configurazione')" class="min-h-11" icon="i-lucide-arrow-right">
         {{ $t('firstSetup.resume') }}
       </UButton>
     </section>
-    <ul class="grid gap-3 sm:grid-cols-2">
+    <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       <li v-for="item in nav.slice(1)" :key="item.to">
         <NuxtLink
           :to="item.link"
@@ -40,5 +34,5 @@ useHead({ title: () => org.organization.value?.name ?? t('agencyHome.title') })
         </NuxtLink>
       </li>
     </ul>
-  </div>
+  </PageShell>
 </template>

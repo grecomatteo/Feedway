@@ -241,7 +241,7 @@ const canManageMembers = computed(
 </script>
 
 <template>
-  <div class="space-y-8" :data-ready="ready || undefined">
+  <div class="flex flex-col gap-section" :data-ready="ready || undefined">
     <p v-if="done" role="status" class="text-sm text-(--app-success)">{{ done }}</p>
     <p v-if="problem && !pickOpen" role="alert" class="text-sm text-(--app-danger)">
       {{ problem }}
@@ -399,7 +399,7 @@ const canManageMembers = computed(
       </p>
       <p
         v-else-if="members && members.items.length === 0"
-        class="rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+        class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
       >
         {{ $t('client.noPeople') }}
       </p>
