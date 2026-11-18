@@ -27,8 +27,25 @@ const BYTE_PARAMS: Readonly<Record<string, readonly string[]>> = {
   cover_converted: ['limit'],
 }
 
-/** Rome's two offsets (the posts' time zone): «ora legale» and «ora solare». */
+/** Rome's two offsets, when the outcome does not say its zone: «ora legale» and «ora solare». */
 const ZONES: Readonly<Record<string, string>> = { '+02:00': 'summer', '+01:00': 'winter' }
+
+/**
+ * The long name of the post's zone at that instant (D-58), as Italian says it: «ora legale
+ * dell’Europa centrale», «ora legale orientale USA». null: the runtime does not know it.
+ */
+function zoneName(timeZone: string, at: string): string | null {
+  try {
+    const parts = new Intl.DateTimeFormat('it-IT', {
+      timeZone,
+      timeZoneName: 'long',
+    }).formatToParts(new Date(at))
+    const name = parts.find((p) => p.type === 'timeZoneName')?.value
+    return name ? name.charAt(0).toLowerCase() + name.slice(1) : null
+  } catch {
+    return null
+  }
+}
 
 /** Counts with their thousands (2.200 caratteri); sizes in pixels and frames without (1080×1920). */
 const COUNT = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1, useGrouping: 'always' })
@@ -50,9 +67,14 @@ export function ruleValues(outcome: RuleMessageInput, t: Translate): Record<stri
           ? t(`library.failure.${String(value)}`)
           : t(`rules.reasons.${outcome.code}.${String(value)}`)
     else if (name === 'offset') {
+      const named =
+        typeof params.timeZone === 'string' && typeof params.at === 'string'
+          ? zoneName(params.timeZone, params.at)
+          : null
       const zone = ZONES[String(value)]
-      values.zone = zone === undefined ? `UTC${String(value)}` : t(`rules.zones.${zone}`)
-    } else if (typeof value === 'number')
+      values.zone = named ?? (zone === undefined ? `UTC${String(value)}` : t(`rules.zones.${zone}`))
+    } else if (name === 'timeZone' || name === 'at') continue
+    else if (typeof value === 'number')
       values[name] = BYTE_PARAMS[outcome.code]?.includes(name)
         ? formatBytes(value)
         : (COUNTS.has(name) ? COUNT : PLAIN).format(value)

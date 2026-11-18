@@ -4,12 +4,14 @@ import { postCheckRoute } from '@app/contracts'
 export default defineApiRoute(
   postCheckRoute,
   async ({ actor, params, body }) => {
-    const { shareToFeed, cover, caption, ...rest } = body
+    const { shareToFeed, cover, caption, postId, choices, ...rest } = body
     const { invalidChoices, ...report } = await checkPost(useDeps(), actor, {
       ...rest,
       workspaceId: params.id,
       // `exactOptionalPropertyTypes`: an absent field stays absent
       ...(cover === undefined ? {} : { cover }),
+      ...(postId === undefined ? {} : { postId }),
+      choices: choices.map(({ crop, ...c }) => (crop === undefined ? c : { ...c, crop })),
       caption: {
         common: caption.common,
         ...(caption.instagram === undefined ? {} : { instagram: caption.instagram }),
@@ -27,5 +29,5 @@ export default defineApiRoute(
       })
     return { ...report, scheduledAt: report.scheduledAt?.toISOString() ?? null }
   },
-  { rateLimit: POST_CHECKS_RATE_LIMIT },
+  { rateLimit: { ...POST_CHECKS_RATE_LIMIT, by: 'user' } },
 )
