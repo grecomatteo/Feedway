@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.12.0](https://github.com/grecomatteo/Feedway/compare/v0.11.0...v0.12.0) (2026-11-18)
+
+
+### Novità
+
+* **design:** una sola tela con pannello, email, landing, hub e bozze ([#229](https://github.com/grecomatteo/Feedway/issues/229)) ([41bd0b1](https://github.com/grecomatteo/Feedway/commit/41bd0b1d1958a8e6d80e745b2ea17f6c575828a2))
+* **posts:** anteprima come su Instagram e Facebook ([#240](https://github.com/grecomatteo/Feedway/issues/240)) ([9f734ca](https://github.com/grecomatteo/Feedway/commit/9f734cabc01c92a678fcb376a8390db55e196581))
+* **posts:** casi d'uso e API dei post ([#234](https://github.com/grecomatteo/Feedway/issues/234)) ([0663eee](https://github.com/grecomatteo/Feedway/commit/0663eeeee543927e2df0e3bf13193978b42b20e4))
+* **posts:** controlli per il salvataggio e il worker, ritaglio spostabile ([#233](https://github.com/grecomatteo/Feedway/issues/233)) ([362e52e](https://github.com/grecomatteo/Feedway/commit/362e52e82d50ddc83a97d6657dc05809df4d7beb))
+* **posts:** copertina del reel, ritaglio spostabile e anteprima senza telefono ([#241](https://github.com/grecomatteo/Feedway/issues/241)) ([c19b182](https://github.com/grecomatteo/Feedway/commit/c19b182f83313cc70d1dfab3b0793d6cebd65ac9))
+* **posts:** etichette, modelli, gruppi di account e note interne lato server ([#242](https://github.com/grecomatteo/Feedway/issues/242)) ([afaab7e](https://github.com/grecomatteo/Feedway/commit/afaab7e2ae026ac72afd45b5ecd927c086a0bc03))
+* **posts:** impostazioni dei contenuti, etichette e note nell'editor ([#244](https://github.com/grecomatteo/Feedway/issues/244)) ([9bd8e83](https://github.com/grecomatteo/Feedway/commit/9bd8e83349d48867e0f958ef1410e66c414c7842))
+* **posts:** tabelle dei post, storico delle pubblicazioni, fuso e orario predefinito ([#231](https://github.com/grecomatteo/Feedway/issues/231)) ([26d40b9](https://github.com/grecomatteo/Feedway/commit/26d40b9d72c79210bad3dc61462f172ba058a323))
+* **posts:** voci di audit per etichette, modelli e gruppi ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **web:** editor dei post, scheda «Post» del cliente e file dei post in libreria ([#238](https://github.com/grecomatteo/Feedway/issues/238)) ([582cd4f](https://github.com/grecomatteo/Feedway/commit/582cd4fd07e7b269ee68b971ee465d8844276341))
+* **web:** i caricamenti continuano in tutto il pannello (D-21) ([#237](https://github.com/grecomatteo/Feedway/issues/237)) ([b0d634c](https://github.com/grecomatteo/Feedway/commit/b0d634cb8af7b2d8c6379073534b24928d4dda04))
+* **workspaces:** archiviare un cliente riporta in bozza i suoi post programmati ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+
+
+### Correzioni
+
+* **posts:** «Esci lo stesso» fa uscire davvero dall'editor ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **posts:** conferma prima di togliere una nota ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **posts:** un file che nessun account pubblica blocca il post (D-56) ([#235](https://github.com/grecomatteo/Feedway/issues/235)) ([46205c1](https://github.com/grecomatteo/Feedway/commit/46205c12e414389dba8008c91e3f2bfeb0ce179b))
+* **posts:** un file finito a editor chiuso aspetta il salvataggio in corso ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **posts:** zone coperte della storia come le guide verificate ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **rules:** la chiave della copertina immagine contiene il suo file; un errore dei controlli non lascia il report vecchio ([bbdd4a7](https://github.com/grecomatteo/Feedway/commit/bbdd4a7c3486f34b6bd562ebfd80f3bbeaaf922f))
+* **web:** una struttura sola per le pagine del pannello (D-63) ([#230](https://github.com/grecomatteo/Feedway/issues/230)) ([d40d790](https://github.com/grecomatteo/Feedway/commit/d40d7902f5c09b99cffb77627777db631119c9df))
+
+
+### Documentazione
+
+* chiuse D-71 e D-72 con le scelte di Matteo ([#239](https://github.com/grecomatteo/Feedway/issues/239)) ([e583609](https://github.com/grecomatteo/Feedway/commit/e583609bff96d898abe34b552e8f6b2789fe0fe7))
+* **design:** anteprima squadrata sulla tela, come nell'app (tavola E4) ([#243](https://github.com/grecomatteo/Feedway/issues/243)) ([b2a80bd](https://github.com/grecomatteo/Feedway/commit/b2a80bdcd1a00af028b6beea9270cc638300601a))
+* **design:** disegno dell'editor, dell'anteprima e del ritaglio ([#232](https://github.com/grecomatteo/Feedway/issues/232)) ([1f0baa5](https://github.com/grecomatteo/Feedway/commit/1f0baa56310a4109596979d118b1e8fa1f23d377))
+* **posts:** esiti della prova della 0.11.0 e voci aperte ([#225](https://github.com/grecomatteo/Feedway/issues/225)) ([5fe39ce](https://github.com/grecomatteo/Feedway/commit/5fe39ced6e7f3cc39fee9d19e608167eadae2e59))
+* **posts:** piano della tappa 6, l'editor dei post ([#228](https://github.com/grecomatteo/Feedway/issues/228)) ([82257ca](https://github.com/grecomatteo/Feedway/commit/82257ca44d77dfbb05b7c9cea7924aa021c9b4c0))
+* **posts:** scelte della tappa 6 riviste da Matteo ([#236](https://github.com/grecomatteo/Feedway/issues/236)) ([c99c1d6](https://github.com/grecomatteo/Feedway/commit/c99c1d606da7ed6da0f34a4695a0296aea7bbcc3))
+
 ## [0.11.0](https://github.com/grecomatteo/Feedway/compare/v0.10.0...v0.11.0) (2026-11-17)
 
 
