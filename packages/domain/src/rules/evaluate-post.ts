@@ -234,14 +234,14 @@ function runPass(
     const key = outcomeKey(f, keys)
     if (outcomes.has(key)) continue
     const given = choices.get(key)
-    // an orphan choice (D-54), or a box the format does not take (D-61): the warning stays
-    // to be answered, and the report says why
+    // an orphan choice (D-54), a box the format does not take or a box on another option
+    // (D-61): the warning stays to be answered, and the report says why
     const valid =
       given !== undefined &&
       f.options?.includes(given.option) === true &&
-      (given.option !== 'crop' ||
-        given.crop === undefined ||
-        (f.crop !== undefined && isValidCrop(given.crop, f.crop)))
+      (given.option === 'crop'
+        ? given.crop === undefined || (f.crop !== undefined && isValidCrop(given.crop, f.crop))
+        : given.crop === undefined)
     if (given !== undefined && !valid) invalid.push(given)
     const chosen = valid ? given.option : undefined
     const { effects: fx, crop, ...rest } = f

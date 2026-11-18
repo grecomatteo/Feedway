@@ -62,13 +62,13 @@ export interface PostCheckInput {
   postId?: string
 }
 
+const postNotFound = () => new DomainError('NOT_FOUND', 'Post non trovato')
+
 /**
  * A file that is not the workspace's (deleted, of another workspace or agency, or no such
  * id): the rules say «non disponibile» and nothing else of it. Its kind is the one the post
  * expects, so no other block follows from a kind nobody knows.
  */
-const postNotFound = () => new DomainError('NOT_FOUND', 'Post non trovato')
-
 const unavailable = (mediaId: string, kind: MediaKind): DraftMedia => ({
   mediaId,
   status: 'deleted',

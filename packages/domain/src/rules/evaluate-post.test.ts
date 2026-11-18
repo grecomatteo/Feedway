@@ -487,6 +487,13 @@ describe('plan 06: keys by file, crops, unused files, purpose', () => {
     expect(report.unresolved).toEqual(valid ? [] : [keyOf('a')])
   })
 
+  test('a box on another option is not a choice: the warning stays to answer', () => {
+    const choice = { key: keyOf('a'), option: 'pad' as const, crop: box(0.2) }
+    const report = evaluatePost(draft({ media: [tall('a')], choices: [choice] }), context())
+    expect(report.invalidChoices).toEqual([choice])
+    expect(report.unresolved).toEqual([keyOf('a')])
+  })
+
   test('isValidCrop checks the box against the format', () => {
     const target = { ratio: 9 / 16, width: 1080, height: 1080 }
     expect(isValidCrop({ x: 0.2, y: 0, width: 0.5625, height: 1 }, target)).toBe(true)
