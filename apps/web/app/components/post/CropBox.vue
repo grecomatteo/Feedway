@@ -114,7 +114,7 @@ function apply() {
       <div class="flex flex-col gap-6 md:flex-row">
         <div
           ref="area"
-          class="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-[#1c1b19] p-4"
+          class="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg bg-[#1c1b19] p-4"
         >
           <div class="relative touch-none select-none" :style="frameStyle" data-crop-frame>
             <img
