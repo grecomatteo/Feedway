@@ -327,6 +327,7 @@ test('a draft that cannot be saved (no network): «Esci lo stesso» leaves', asy
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Prima della rete')
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  const draftUrl = page.url()
   await page.route('**/posts/*', (route) =>
     route.request().method() === 'PATCH' ? route.abort('internetdisconnected') : route.continue(),
   )
@@ -339,6 +340,9 @@ test('a draft that cannot be saved (no network): «Esci lo stesso» leaves', asy
     .click()
   await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
   await page.unroute('**/posts/*')
+  // the change left behind was not saved
+  await page.goto(draftUrl)
+  await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue('Prima della rete')
 })
 
 test('leaving a new post while a file uploads: the page changes, the upload goes on in the corner', async ({

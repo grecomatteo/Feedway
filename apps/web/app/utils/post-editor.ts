@@ -288,6 +288,8 @@ export function createCheckRunner<B, R>(o: {
           },
           (error: unknown) => {
             if (mine !== seq) return
+            // an older answer that comes after this failure is not shown as current
+            shown = mine
             o.onBusy?.(false)
             // the same body asked again checks again
             lastSent = null

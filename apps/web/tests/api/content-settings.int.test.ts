@@ -178,9 +178,15 @@ describe('labels, templates and groups', () => {
         body: 'Testo da non registrare',
       }),
     )
+    await ok(
+      call('manager', 'PATCH', `${ws()}/caption-templates/${template.id}`, { name: 'Altra' }),
+    )
+    await ok(call('manager', 'DELETE', `${ws()}/caption-templates/${template.id}`))
     const group = await ok<Group>(
       call('manager', 'POST', `${ws()}/account-groups`, { name: 'Gruppo', accountIds: [ig] }),
     )
+    await ok(call('manager', 'PATCH', `${ws()}/account-groups/${group.id}`, { name: 'Gruppo 2' }))
+    await ok(call('manager', 'DELETE', `${ws()}/account-groups/${group.id}`))
     const { rows } = await env.admin.pool.query<{
       action: string
       entity: string
@@ -199,7 +205,11 @@ describe('labels, templates and groups', () => {
         ['label', made.id, 'updated'],
         ['label', made.id, 'deleted'],
         ['caption_template', template.id, 'created'],
+        ['caption_template', template.id, 'updated'],
+        ['caption_template', template.id, 'deleted'],
         ['account_group', group.id, 'created'],
+        ['account_group', group.id, 'updated'],
+        ['account_group', group.id, 'deleted'],
       ].map(([entity, id, change]) => ({
         action: 'workspace.settings_changed',
         entity,
@@ -210,7 +220,6 @@ describe('labels, templates and groups', () => {
       })),
     )
     // a note writes nothing (Matteo 18/11): everyday work, like the autosave
-    const before = await env.admin.pool.query('select count(*)::int as n from audit_log')
     const { id: postId } = await ok<{ id: string }>(
       call('editor', 'POST', `${ws()}/posts`, { type: 'photo' }),
     )
@@ -218,7 +227,6 @@ describe('labels, templates and groups', () => {
     await ok(call('editor', 'POST', `${ws()}/posts/${postId}/notes`, { body: 'Una nota' }))
     const withNote = await env.admin.pool.query('select count(*)::int as n from audit_log')
     expect(withNote.rows[0]).toEqual(after.rows[0])
-    expect(before.rows.length).toBe(1)
   })
 
   test('a label name is the client’s once, whatever the case; a bad template is refused', async () => {

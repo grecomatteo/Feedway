@@ -110,6 +110,9 @@ async function remove(n: PostNoteDto) {
       `${props.base}/posts/${encodeURIComponent(postId.value)}/notes/${encodeURIComponent(n.id)}`,
     )
     notes.value = (notes.value ?? []).filter((x) => x.id !== n.id)
+    // its button is gone: the focus goes to the field of a new note
+    await nextTick()
+    document.getElementById('post-note')?.focus()
   } catch (err) {
     problem.value = failure(err).message
   }

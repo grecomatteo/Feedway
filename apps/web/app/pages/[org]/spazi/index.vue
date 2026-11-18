@@ -545,7 +545,12 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton class="min-h-11" color="error" @click="archive">
+          <UButton
+            class="min-h-11"
+            color="error"
+            :loading="scheduledCount === null"
+            @click="archive"
+          >
             {{ $t('workspaces.archive') }}
           </UButton>
           <UButton class="min-h-11" color="neutral" variant="ghost" @click="archiving = null">

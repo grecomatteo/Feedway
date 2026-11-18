@@ -132,7 +132,8 @@ onBeforeRouteLeave(async (to, _from, next) => {
   if (!lost || !e.editable.value) return next()
   leaveTo = () => {
     allowLeave = true
-    void navigateTo(to.fullPath)
+    // a navigation stopped elsewhere leaves the editor asking again next time
+    void navigateTo(to.fullPath).finally(() => (allowLeave = false))
   }
   confirm.value = 'leave'
   e.leaving(false)
