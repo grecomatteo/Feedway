@@ -116,6 +116,12 @@ function filterOf(filter: MediaFilter | undefined): (SQL | undefined)[] {
     filter.name === undefined
       ? undefined
       : ilike(media.originalName, `%${likeLiteral(filter.name)}%`),
+    // post_media belongs to the posts module: read here by its table, as the RLS allows
+    filter.inPosts
+      ? sql`exists (select 1 from post_media pm
+          where pm.organization_id = ${media.organizationId}
+            and (pm.media_id = ${media.id} or pm.cover_media_id = ${media.id}))`
+      : undefined,
   ]
 }
 
