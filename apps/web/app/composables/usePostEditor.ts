@@ -139,6 +139,7 @@ export function usePostEditor(opts: {
   const shareToFeed = ref(true)
   const choices = ref<ChoiceBody[]>([])
   const cover = ref<DraftBody['cover']>(null)
+  const labelIds = ref<string[]>([])
   const timeZone = ref('Europe/Rome')
 
   const save = ref<SaveState>({
@@ -204,6 +205,7 @@ export function usePostEditor(opts: {
       choices: choices.value,
       // a reel's cover stays only while there are files (handoff B2)
       cover: files.value.length > 0 ? cover.value : null,
+      labelIds: labelIds.value,
     }
   }
 
@@ -441,6 +443,11 @@ export function usePostEditor(opts: {
     cover.value = next
     touched()
   }
+  /** The labels of the post, all of them (§11.7). */
+  function setLabels(ids: string[]) {
+    labelIds.value = ids
+    touched()
+  }
   function setShareToFeed(on: boolean) {
     shareToFeed.value = on
     touched()
@@ -544,6 +551,7 @@ export function usePostEditor(opts: {
     shareToFeed.value = p.shareToFeed
     choices.value = p.choices.map((c) => ({ ...c }))
     cover.value = p.cover
+    labelIds.value = [...p.labelIds]
     autosave.adopt({ id: p.id, version: p.version })
     autosave.pause(p.status !== 'draft')
   }
@@ -700,6 +708,8 @@ export function usePostEditor(opts: {
     shareToFeed,
     choices,
     cover,
+    labelIds,
+    setLabels,
     timeZone,
     save,
     report,

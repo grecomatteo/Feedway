@@ -930,7 +930,9 @@
       "used": "{used} occupati",
       "usedOf": "{used} occupati di {limit}",
       "noLimit": "Nessun limite per questa agenzia."
-    }
+    },
+    "timezone": "Fuso orario dei post",
+    "timezoneHelp": "Vale per i post nuovi di tutti i clienti; quelli già scritti tengono il loro. Se è Roma, l'editor non lo scrive accanto all'ora."
   },
   "integrations": {
     "back": "Integrazioni",
@@ -1339,7 +1341,8 @@
       "calendar": "Calendario",
       "library": "Libreria",
       "people": "Persone",
-      "posts": "Post"
+      "posts": "Post",
+      "content": "Impostazioni dei contenuti"
     },
     "profiles": "Profili",
     "loading": "Carico i profili del cliente",
@@ -1937,7 +1940,10 @@
       "backToCommon": "Torna al testo comune",
       "backDone": "Il testo per {platform} è tornato quello comune.",
       "undo": "Annulla",
-      "splitHint": "Le schede partono da una copia del testo comune; poi ognuna va per conto suo."
+      "splitHint": "Le schede partono da una copia del testo comune; poi ognuna va per conto suo.",
+      "insert": "Inserisci",
+      "noTemplates": "Nessun modello per questo cliente",
+      "manageTemplates": "Gestisci i modelli del cliente"
     },
     "destinations": {
       "title": "Dove pubblicare",
@@ -1953,6 +1959,15 @@
       "kind": {
         "instagram": "Instagram",
         "facebook": "Pagina Facebook"
+      },
+      "groups": {
+        "button": "Gruppi",
+        "none": "Nessun gruppo per questo cliente",
+        "gone": "un account non più del cliente",
+        "ticks": "Non spunta nessun account | Spunta 1 account | Spunta {n} account",
+        "ticksSkipping": "Spunta {n} account; salta {skipped}",
+        "done": "«{name}»: nessun account da spuntare. | «{name}»: spuntato 1 account. | «{name}»: spuntati {n} account.",
+        "doneSkipped": "«{name}»: spuntati {n} account; saltato {skipped}, che non si può scegliere."
       }
     },
     "when": {
@@ -2176,6 +2191,114 @@
       "grid": "Griglia · 3:4",
       "shareToFeed": "Mostra anche nel feed",
       "shareToFeedHelp": "Il reel compare anche nella griglia del profilo, oltre che tra i Reels."
+    },
+    "labels": {
+      "title": "Etichette e note",
+      "agencyOnly": "Solo per chi lavora nell'agenzia",
+      "chosen": "Etichette del post",
+      "add": "Etichetta",
+      "remove": "Togli l'etichetta {name}",
+      "none": "Nessuna etichetta per questo cliente",
+      "manage": "Gestisci le etichette del cliente",
+      "noneOnPost": "Nessuna etichetta."
+    },
+    "notes": {
+      "label": "Nuova nota per il team",
+      "placeholder": "Scrivi una nota per il team…",
+      "beforeDraft": "Le note si aggiungono quando la bozza è salvata",
+      "add": "Aggiungi",
+      "remove": "Togli la nota",
+      "empty": "Nessuna nota.",
+      "you": "Tu",
+      "today": "oggi alle {time}",
+      "on": "{day} alle {time}",
+      "loadError": "Le note non si sono caricate."
+    }
+  },
+  "contentSettings": {
+    "title": "Impostazioni dei contenuti",
+    "titleOf": "Impostazioni dei contenuti · {name}",
+    "readOnly": "Le cambia chi gestisce questo cliente: tu puoi leggerle.",
+    "archived": "Il cliente è archiviato: le sue impostazioni non si cambiano.",
+    "loadError": "Etichette, modelli e gruppi non si sono caricati.",
+    "save": "Salva",
+    "savedShort": "Salvato",
+    "savedOne": "«{name}» salvato.",
+    "removed": "«{name}» eliminato.",
+    "edit": "Modifica",
+    "remove": "Elimina",
+    "colors": {
+      "feedway": "Arancio",
+      "blu": "Blu",
+      "verde": "Verde",
+      "viola": "Viola",
+      "grafite": "Grafite"
+    },
+    "time": {
+      "title": "Orario predefinito",
+      "text": "I post nuovi di {name} partono da quest'ora; si cambia nel post.",
+      "label": "Ora dei post nuovi",
+      "rome": "ora di Roma · il fuso lo sceglie l'Owner in Impostazioni → Agenzia",
+      "zone": "fuso {zone} · lo sceglie l'Owner in Impostazioni → Agenzia",
+      "clear": "Togli l'orario",
+      "none": "Nessun orario scelto: i post nuovi partono dalle 18:00."
+    },
+    "labels": {
+      "title": "Etichette",
+      "text": "Per riconoscere a colpo d'occhio campagne, rubriche e promozioni.",
+      "count": "Nessuna etichetta | 1 etichetta, usata in {posts} post. | {n} etichette, usate in {posts} post.",
+      "posts": "In nessun post | 1 post | {n} post",
+      "new": "Nuova etichetta",
+      "edit": "Modifica etichetta",
+      "create": "Crea etichetta",
+      "name": "Nome",
+      "color": "Colore",
+      "empty": "Ancora nessuna etichetta",
+      "emptyText": "Crea la prima per ritrovare i post di una campagna o di una rubrica.",
+      "removeTitle": "Eliminare «{name}»?",
+      "removeText": "Nessun post la usa. | Il post che la usa la perde; il post resta com'è. | I {n} post che la usano la perdono; i post restano come sono."
+    },
+    "templates": {
+      "title": "Modelli",
+      "text": "Testi da inserire nel post con «Inserisci».",
+      "new": "Nuovo modello",
+      "edit": "Modifica modello",
+      "create": "Crea modello",
+      "kindLabel": "Tipo",
+      "kind": {
+        "caption": "Testo",
+        "signature": "Firma",
+        "hashtags": "Hashtag"
+      },
+      "kinds": {
+        "caption": "Testi",
+        "signature": "Firme",
+        "hashtags": "Hashtag"
+      },
+      "name": "Nome",
+      "body": "Testo del modello",
+      "bodyHelp": "Fino a 2.200 caratteri. «Inserisci» lo mette dove c'è il cursore.",
+      "empty": "Ancora nessun modello",
+      "emptyText": "Una firma, gli hashtag del cliente o un testo che torna spesso.",
+      "removeTitle": "Eliminare «{name}»?",
+      "removeText": "I post dove l'hai già inserito restano come sono."
+    },
+    "groups": {
+      "title": "Gruppi di account",
+      "text": "Per scegliere più account con un tocco in «Dove pubblicare».",
+      "new": "Nuovo gruppo",
+      "edit": "Modifica gruppo",
+      "create": "Crea gruppo",
+      "name": "Nome",
+      "accounts": "Account",
+      "noAccounts": "Il cliente non ha ancora account: collegali dalla Panoramica.",
+      "empty": "Ancora nessun gruppo",
+      "emptyText": "Per esempio «Solo Instagram» o «Tutto il forno».",
+      "gone": "1 account non è più del cliente | {n} account non sono più del cliente",
+      "goneInDialog": "1 account del gruppo non è più del cliente: salvando, esce dal gruppo. | {n} account del gruppo non sono più del cliente: salvando, escono dal gruppo.",
+      "reconnect": "1 account da ricollegare | {n} account da ricollegare",
+      "removeTitle": "Eliminare «{name}»?",
+      "removeText": "Gli account restano dove sono: sparisce solo il gruppo."
     }
   }
 }

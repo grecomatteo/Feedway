@@ -9,6 +9,8 @@ interface Settings {
   platformRequire2fa: 'admins' | 'all'
   privacy: { controllerName: string; contactEmail: string; extraText?: string } | null
   storage: { usedBytes: number; limitBytes: number | null }
+  /** IANA: the zone of the new posts (D-58), Rome while never chosen */
+  timezone: string
 }
 
 const org = useOrganization()
@@ -27,6 +29,7 @@ const { data, status, error, refresh } = useFetch<Settings>(() => org.api('/sett
 const form = reactive({
   name: '',
   require2fa: 'admins' as 'admins' | 'all',
+  timezone: 'Europe/Rome',
   controllerName: '',
   contactEmail: '',
   extraText: '',
@@ -37,12 +40,26 @@ watch(
     if (!s) return
     form.name = s.name
     form.require2fa = s.require2fa ?? s.platformRequire2fa
+    form.timezone = s.timezone
     form.controllerName = s.privacy?.controllerName ?? ''
     form.contactEmail = s.privacy?.contactEmail ?? ''
     form.extraText = s.privacy?.extraText ?? ''
   },
   { immediate: true },
 )
+// every zone of the browser, with its long name: «Europe/Rome · ora standard dell'Europa centrale»
+const zoneItems = computed(() =>
+  Intl.supportedValuesOf('timeZone').map((zone) => ({
+    value: zone,
+    label: `${zone.replaceAll('_', ' ')} · ${zoneName(zone)}`,
+  })),
+)
+function zoneName(zone: string) {
+  const part = new Intl.DateTimeFormat('it-IT', { timeZone: zone, timeZoneName: 'long' })
+    .formatToParts(new Date())
+    .find((p) => p.type === 'timeZoneName')
+  return part?.value ?? zone
+}
 const policyItems = computed(() => [
   {
     value: 'admins',
@@ -73,6 +90,7 @@ async function save() {
       data.value = await call<Settings>('PATCH', org.api('/settings'), {
         name: form.name,
         require2fa: form.require2fa,
+        ...(form.timezone === data.value?.timezone ? {} : { timezone: form.timezone }),
         ...(privacy === undefined ? {} : { privacy }),
       })
     })
@@ -145,6 +163,21 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
           <UInput v-model="form.name" class="w-full" size="xl" />
         </UFormField>
         <UFormField
+          :label="$t('orgSettings.timezone')"
+          :help="$t('orgSettings.timezoneHelp')"
+          name="timezone"
+          :error="fieldError('timezone')"
+        >
+          <USelectMenu
+            v-model="form.timezone"
+            :items="zoneItems"
+            value-key="value"
+            class="w-full"
+            size="xl"
+            :search-input="{ placeholder: $t('account.preferences.searchZone') }"
+          />
+        </UFormField>
+        <UFormField
           :label="$t('orgSettings.require2fa')"
           :help="data.platformRequire2fa === 'all' ? $t('orgSettings.platformAll') : undefined"
           name="require2fa"
@@ -197,6 +230,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             state.problem &&
             ![
               'name',
+              'timezone',
               'privacy.controllerName',
               'privacy.contactEmail',
               'privacy.extraText',

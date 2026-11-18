@@ -25,6 +25,16 @@ const editor = usePostEditor({
 })
 const e = editor
 
+// the client's labels, templates and groups (§11.7, plan 06 Task 7)
+const settings = useContentSettings(computed(() => props.client.id))
+const org = useOrganization()
+/** «Gestisci…» leads to the client's content settings, for who manages them */
+const manageTo = computed(() =>
+  ['owner', 'admin', 'manager'].includes(props.client.myRole) && !props.client.archivedAt
+    ? org.to(`/spazi/${encodeURIComponent(props.client.slug)}/contenuti`)
+    : null,
+)
+
 const accounts = computed(
   () => new Map(props.profiles.flatMap((p) => p.accounts.map((a) => [a.id, a] as const))),
 )
@@ -210,8 +220,18 @@ const confirmText = computed(() => {
           />
           <PostMediaList :editor="editor" :client="client" />
           <PostCoverPicker v-if="e.type.value === 'reel'" :editor="editor" :client="client" />
-          <PostCaptionEditor :editor="editor" :platforms="platforms" />
-          <PostDestinationPicker :editor="editor" :profiles="profiles" :loading="profilesLoading" />
+          <PostCaptionEditor
+            :editor="editor"
+            :platforms="platforms"
+            :templates="settings.templates.value"
+            :manage-to="manageTo"
+          />
+          <PostDestinationPicker
+            :editor="editor"
+            :profiles="profiles"
+            :loading="profilesLoading"
+            :groups="settings.groups.value"
+          />
           <PostWhenPicker :editor="editor" :client="client" />
           <p
             v-if="!e.may.value.publish && e.editable.value"
@@ -219,6 +239,13 @@ const confirmText = computed(() => {
           >
             {{ $t('posts.editor.editorOnly') }}
           </p>
+          <PostLabelsAndNotes
+            :editor="editor"
+            :labels="settings.labels.value"
+            :base="settings.base.value"
+            :manage-to="manageTo"
+            :archived="client.archivedAt !== null"
+          />
           <PostDestinationSummary
             :editor="editor"
             :accounts="accounts"

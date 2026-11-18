@@ -3,7 +3,8 @@
  * The client's page (spec §14.7, plan 04 Task 6a): the «home» of a client, where the selector
  * leads (D-5). At the top its photo, name, the names of its profiles and «Nuovo post»; then the
  * tabs Panoramica, Post, Libreria and Persone. The tabs are child pages: Panoramica is `index.vue`,
- * Post `post/index.vue` (its editor `post/[postId].vue`), Libreria `libreria.vue`, Persone `membri.vue`.
+ * Post `post/index.vue` (its editor `post/[postId].vue`), Libreria `libreria.vue`, Persone `membri.vue`,
+ * Impostazioni dei contenuti `contenuti.vue`.
  */
 definePageMeta({ layout: 'agency' })
 
@@ -49,6 +50,10 @@ const tabs = computed(() => [
     ? [{ key: 'library', to: `${base.value}/libreria`, label: t('client.tabs.library') }]
     : []),
   { key: 'people', to: `${base.value}/membri`, label: t('client.tabs.people') },
+  // labels, templates, groups and the default time: who manages the client (plan 06 Task 7)
+  ...(client.value && ['owner', 'admin', 'manager'].includes(client.value.myRole)
+    ? [{ key: 'content', to: `${base.value}/contenuti`, label: t('client.tabs.content') }]
+    : []),
 ])
 const current = (to: string) => route.path === to || route.path === `${to}/`
 // the editor of a post is a page of its own, with no head nor tabs of the client (design E1)

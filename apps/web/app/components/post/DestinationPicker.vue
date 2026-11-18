@@ -1,12 +1,21 @@
 <script setup lang="ts">
+import type { AccountGroupDto } from '@app/contracts'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import { selectable, type PostEditor } from '~/composables/usePostEditor'
 
 /**
  * «Dove pubblicare» (§11.2 point 5; design E1): the client's profiles with their accounts under
  * them, a search, «Seleziona tutti» of the accounts that can be chosen. An account to reconnect
- * is off, with the reason under its name.
+ * is off, with the reason under its name. «Gruppi» ticks the accounts of a saved group that can
+ * be chosen and says which ones it skips (§11.7, design E8c).
  */
-const props = defineProps<{ editor: PostEditor; profiles: WorkspaceProfile[]; loading: boolean }>()
+const props = defineProps<{
+  editor: PostEditor
+  profiles: WorkspaceProfile[]
+  loading: boolean
+  /** the client's account groups; null while they load */
+  groups: AccountGroupDto[] | null
+}>()
 const { t } = useI18n()
 const e = props.editor
 const q = ref('')
@@ -47,6 +56,60 @@ const stateOf = (p: WorkspaceProfile): boolean | 'indeterminate' => {
 const allPicked = computed(
   () => all.value.length > 0 && all.value.every((a) => e.destinations.value.includes(a.id)),
 )
+// ---- «Gruppi»
+const byId = computed(
+  () => new Map(props.profiles.flatMap((p) => p.accounts.map((a) => [a.id, a] as const))),
+)
+/** The accounts of the group that can be ticked now, and the ones it skips. */
+function split(g: AccountGroupDto) {
+  const ok: ProfileAccount[] = []
+  const skipped: string[] = []
+  for (const id of g.accountIds) {
+    const a = byId.value.get(id)
+    if (a && selectable(a)) ok.push(a)
+    else skipped.push(a ? handleOf(a) : t('posts.destinations.groups.gone'))
+  }
+  return { ok, skipped }
+}
+const groupNote = ref<string | null>(null)
+function applyGroup(g: AccountGroupDto) {
+  const { ok, skipped } = split(g)
+  set(
+    ok.map((a) => a.id),
+    true,
+  )
+  groupNote.value =
+    skipped.length === 0
+      ? t('posts.destinations.groups.done', { n: ok.length, name: g.name }, ok.length)
+      : t('posts.destinations.groups.doneSkipped', {
+          n: ok.length,
+          name: g.name,
+          skipped: skipped.join(', '),
+        })
+}
+const groupItems = computed<DropdownMenuItem[][]>(() => {
+  const list = props.groups ?? []
+  if (list.length === 0) return [[{ label: t('posts.destinations.groups.none'), disabled: true }]]
+  return [
+    list.map((g) => {
+      const { ok, skipped } = split(g)
+      return {
+        label: g.name,
+        icon: 'i-lucide-users',
+        description:
+          skipped.length === 0
+            ? t('posts.destinations.groups.ticks', { n: ok.length }, ok.length)
+            : t('posts.destinations.groups.ticksSkipping', {
+                n: ok.length,
+                skipped: skipped.join(', '),
+              }),
+        disabled: ok.length === 0,
+        onSelect: () => applyGroup(g),
+      }
+    }),
+  ]
+})
+
 const whyOff = (a: ProfileAccount) =>
   !a.active ? t('posts.destinations.inactive') : t('posts.destinations.reconnect')
 </script>
@@ -66,6 +129,22 @@ const whyOff = (a: ProfileAccount) =>
     <template v-else>
       <div class="flex flex-wrap items-center gap-3">
         <SearchField v-model="q" :label="$t('posts.destinations.search')" class="flex-1" />
+        <UDropdownMenu
+          v-if="e.editable.value"
+          :items="groupItems"
+          :content="{ align: 'end' }"
+          :ui="{ content: 'w-80 max-w-[calc(100vw-2rem)]', itemDescription: 'whitespace-normal' }"
+        >
+          <UButton
+            color="neutral"
+            variant="outline"
+            class="min-h-11"
+            icon="i-lucide-users"
+            :loading="groups === null"
+          >
+            {{ $t('posts.destinations.groups.button') }}
+          </UButton>
+        </UDropdownMenu>
         <UButton
           v-if="e.editable.value"
           color="neutral"
@@ -84,6 +163,9 @@ const whyOff = (a: ProfileAccount) =>
           {{ allPicked ? $t('posts.destinations.none_') : $t('posts.destinations.all') }}
         </UButton>
       </div>
+      <p v-if="groupNote" role="status" class="text-sm text-(--app-text-muted)">
+        {{ groupNote }}
+      </p>
       <ul
         class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
       >
