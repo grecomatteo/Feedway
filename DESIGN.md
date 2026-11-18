@@ -2,6 +2,18 @@
 
 Riferimento visivo: la tela Pencil `design/feedway-ui.pen` (tavole esportate in `design/tavole/`). Il brand kit prevale su qualsiasi preferenza generica delle skill. Questo file registra le scelte adottate; le alternative ancora da decidere sono in fondo.
 
+## Tela unica (18 novembre 2026)
+
+Da oggi c'è un solo file di design, `design/feedway-ui.pen`, solo con l'ultima versione di ogni cosa: marchio, variabili, componenti, pannello, email, landing, direzione hub e bozze delle funzioni future. Ha assorbito `design/feedway-ui-hallmark.pen`; le versioni superate (prima tela del 15/10, coppie Prima/Dopo del 26/10, landing e tavole hub superate dal codice) sono state tolte, con le loro esportazioni, e restano nella storia di Git (Matteo, 18/11). Tavole esportate in `design/tavole/2026-11-18-tela-unica/`.
+
+- **Sezioni, dall'alto:** Leggimi; Brand e sistema; Pannello com'è nel codice (0.11.0); Email transazionali; Landing giro 3; Direzione hub giro 3; Bozze · funzioni future. Ogni sezione ha una fascia con il titolo e lo stato.
+- **Stato nel nome di ogni tavola:** `[Nel codice]` (la tela copia il codice), `[Approvata · da costruire]` (scelta di Matteo, codice ancora da fare), `[Bozza · futura]` (funzione delle tappe future, da rifare con i componenti quando arriva la sua tappa). Una versione superata si toglie dalla tela, non si archivia.
+- **Fonte di verità:** il codice per le pagine fatte, questo file per quelle da fare. Il pannello sulla tela è ricostruito dal codice e dalle schermate delle tappe 4 e 5; gli esempi (Studio Riva, Forno Luce…) sono fittizi.
+- **Variabili**, raggruppate per prefisso: `fw-*` colori del marchio (non cambiano mai) e `logo-ink`; i token di `packages/ui/src/tokens.ts` con gli stessi nomi del CSS e due assi di tema, `mode` (light, dark) e `palette` (feedway, blu, verde, viola, grafite), più `overlay` per il velo sotto pannelli e menu; `font-*`; spazi `sp-1`…`sp-12` (4, 8, 12, 16, 24, 32, 48), `page-pad` 32 e `page-pad-phone` 16, `r-control` 8, `r-card` 12, `row-h` 56 e `row-h-phone` 64, `nav-width` 256, `content-max` 960 (la misura di oggi: D-63 la cambierà), `email-pad`; `hm-*` solo per landing e hub Hallmark. Il tema si sceglie sul frame della tavola.
+- **Componenti** (tavola «Componenti del pannello»), nominati «Gruppo / Variante»: Marchio (logo orizzontale, simbolo); Pulsante (Principale, Contorno, Pericolo, Testo); Campo (Ricerca, Con etichetta, Tendina); Filtro / Scanalatura; Identità (Avatar, Logo agenzia); Stato (Pallino, Etichetta, Presto); Navigazione (Voce, Voce attiva, Schede del cliente, Barra laterale, Telefono in alto, Telefono in basso); Pagina / Testata; Tabella (Intestazione, Riga); Libreria / Miniatura; Avviso (Da sistemare, Aspetta te); Email (Intestazione, Pulsante, Riquadro, Piè di pagina, Modello).
+- **Varianti di tema:** Clienti in scuro e nelle palette, e Clienti da telefono in scuro, sono istanze della tavola originale con un altro tema: si aggiornano da sole.
+- **Limiti di Pencil:** Sora si vede a 600 invece di 650; il corpo è Inter al posto di `system-ui`; le variabili numeriche funzionano su raggi, spazi e padding, non sulle larghezze.
+
 ## Direzione
 
 Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, struttura e controlli regolari. Una sola grammatica per app e landing; la landing ha più libertà compositiva (campiture arancio e carbone), l'app resta su fondi chiari.
@@ -71,7 +83,9 @@ Matteo, dopo la prova della 0.11.0: una struttura sola, con margini e spaziature
 - Corpo: `system-ui` nel codice; sulla tela Inter come sostituto provvisorio dichiarato (Pencil non offre `system-ui`).
 - Testo operativo 13–16 px, titoli di pagina 24–28 px, hero landing 56 px.
 
-## Componenti condivisi (tela, pagina «00 · Sistema condiviso»)
+## Componenti condivisi (prima tela, 15 ottobre)
+
+Dal 18/11 i componenti di riferimento sono nella tavola «Componenti del pannello» (vedi «Tela unica»); la pagina «00 · Sistema condiviso» del 15/10 è stata tolta. Aveva:
 
 Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (arancio, etichetta e bordo carbone), secondario, focus visibile, disabilitato, etichette di stato (bozza, programmato, in preparazione, in verifica, da accertare, con problema, in pausa, confermato), scheda post, riga account (attivo / da ricollegare), barra laterale app.
 
@@ -114,14 +128,14 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Computer (da 1024 px): i gruppi sono una colonna a sinistra da 12rem, la scheda attiva su `brand-soft`. Sotto i 1024 px i gruppi stanno sopra il contenuto, in riquadri `surface-sunken`; sul telefono le schede sono in due colonne, così nessuna va a capo da sola.
 - Gli indirizzi non cambiano (`/account/*`, `/<agenzia>/impostazioni/*`): i link delle email continuano a funzionare.
 - Sul telefono «Impostazioni» si apre dal menu «Tu» della barra in basso (14/11). Dal Task 6b della tappa 4 il quinto posto della barra è «Tu».
-- La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil. Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
+- Sulla tela: «Impostazioni · Profilo e preferenze» e «Impostazioni · Integrazioni · Meta» (18/11). Schermate di riferimento nella cartella del progetto, `schermate/tappa-4-impostazioni/`.
 
 ## Logo dell'agenzia (13 novembre 2026; tappa 4, Task 3)
 
 - In «Impostazioni → Agenzia → Generali», sopra il modulo, un riquadro «Logo dell'agenzia», solo per l'Owner. Lo stesso componente della foto profilo (`AvatarUploader`, forma `square`): scegli o trascina, poi una finestra «Controlla il logo» con le due misure, senza ritaglio.
 - Il logo non si ritaglia mai: si adatta intero dentro il quadrato, la trasparenza resta (`object-contain`, bordo `border` su `surface`, angoli `rounded-md` a 32 px e `rounded-xl` a 96 px).
 - Nella barra (`OrgSwitcher`) il logo prende il posto del quadratino scuro con le iniziali (`AgencyLogo`). Senza logo, o se non si carica, restano le iniziali. Sul telefono con una sola agenzia la barra in alto non mostra l'agenzia, come prima.
-- Schermate nella cartella del progetto, `schermate/tappa-4-logo/`. La tela in `design/feedway-ui.pen` non è aggiornata.
+- Schermate nella cartella del progetto, `schermate/tappa-4-logo/`. Sulla tela il logo dell'agenzia è il componente «Logo agenzia · Iniziali» nella barra laterale.
 
 ## Stile unione (14 novembre 2026, Matteo)
 
@@ -177,7 +191,7 @@ Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Ac
 - Menu dell'agenzia su computer: Home, Clienti, Utenti (per chi li gestisce). Il menu dell'utente su computer resta com'era (Impostazioni, Registro, Privacy…); Utenti è nella barra laterale.
 - Schermate in `schermate/tappa-4-menu-telefono/` nella cartella del progetto.
 
-Le schermate di ogni pagina, chiare e scure, da computer e da telefono, vanno nella cartella del progetto prima della fusione. La tela in `design/feedway-ui.pen` non è aggiornata: in questo ambiente non c'è Pencil.
+Le schermate di ogni pagina, chiare e scure, da computer e da telefono, vanno nella cartella del progetto prima della fusione. La tela in `design/feedway-ui.pen` è allineata al codice della 0.11.0 (18/11): chi cambia una pagina aggiorna anche la sua tavola.
 
 ## Email transazionali (26 ottobre 2026)
 
@@ -242,7 +256,7 @@ Tutte le coppie superano AA: testo 15,7:1 su bianco, testo secondario 6,74:1 su 
 
 ## Direzione Hallmark per l'hub (29 ottobre 2026)
 
-Matteo: «mi piace, seguire le linee guida di Hallmark con più gerarchia di colore; non tutto arancione». Tavole in `design/feedway-ui-hallmark.pen` (giro 3) ed esportazioni in `design/feedway-ui-hallmark-assets/app/` (app) e `hub/` (landing). Ancora da riportare nella tela principale e nel codice.
+Matteo: «mi piace, seguire le linee guida di Hallmark con più gerarchia di colore; non tutto arancione». Tavole in `design/feedway-ui.pen`, sezioni «Landing · più colore, giro 3» e «Direzione hub · giro 3» (fino al 18/11 erano in `design/feedway-ui-hallmark.pen`); esportazioni in `design/feedway-ui-hallmark-assets/app/` (app) e `hub/` (landing). Ancora da costruire nel codice.
 
 **Tema.** Hallmark Coral adattato al marchio: carta e scrivania calde, cartoncino con una luce da sinistra e ombra a destra, scelte in una scanalatura, orari e numeri in colonna in Geist Mono. Restano Sora per i titoli e il corpo di sistema.
 
