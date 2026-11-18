@@ -70819,7 +70819,7 @@
       "id": "MLrzX",
       "x": 9560,
       "y": 1269,
-      "name": "[Da approvare] E2 · Nuovo post · computer 1280 · testo comune",
+      "name": "[Da approvare] E2 · Nuovo post · computer 1280 · testo comune · anteprima sempre presente",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -70937,21 +70937,6 @@
                           "fontWeight": "600"
                         }
                       ]
-                    },
-                    {
-                      "id": "HNOqd",
-                      "type": "ref",
-                      "ref": "YLdZz",
-                      "name": "Nascondi anteprima",
-                      "descendants": {
-                        "zQyQS": {
-                          "icon": "panel-right-close"
-                        },
-                        "G9IOR": {
-                          "content": "Nascondi anteprima",
-                          "fontSize": 14
-                        }
-                      }
                     }
                   ]
                 },

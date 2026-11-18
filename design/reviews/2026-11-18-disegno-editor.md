@@ -18,7 +18,7 @@ Sezione «Editor dei post · tappa 6 · da approvare» della tela, PNG a scala 1
 |---|---|
 | E0 | Componenti nuovi: cornici dell'anteprima (IG feed, Reel, Storia, FB post), con le zone coperte già pronte da accendere |
 | E1 | Nuovo post a 1440: carosello di 3 foto su 3 account, testo diverso per piattaforma, 1 avviso da scegliere, «Programma» spento con il motivo |
-| E2 | Nuovo post a 1280: editor 600, anteprima 320, testo comune con i contatori di entrambe le piattaforme, «Nascondi anteprima» |
+| E2 | Nuovo post a 1280: editor 600, anteprima 320 sempre presente (scelta di Matteo, 18/11), testo comune con i contatori di entrambe le piattaforme |
 | E3, E3b, E3c | Telefono 390: pagina intera, anteprima a tutta pagina, tastiera aperta con la barra sopra |
 | E4 | Le sei schede dell'anteprima, i controlli sopra la cornice, le zone coperte e la copertina in 9:16 e nella griglia 3:4 |
 | E5a–E5e | Ritaglio di una foto più alta (4:5), di una più larga (1,91:1), della copertina (9:16), con il dito sul telefono; copertina del reel e video non verticale senza riquadro |

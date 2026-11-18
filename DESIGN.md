@@ -282,7 +282,7 @@ Disegno del 18 novembre 2026, in attesa dell'approvazione di Matteo (senza appro
 
 ### Scelte proposte
 
-- **Pagina dedicata** (`…/spazi/<cliente>/post/nuovo`), con «← Forno Luce» sopra il titolo. A 1440: editor 720 e anteprima 360 (40 tra le due); l'anteprima resta ferma mentre il modulo scorre. A 1280: editor 600 e anteprima 320, con «Nascondi anteprima» nella testata per dare tutta la larghezza al modulo.
+- **Pagina dedicata** (`…/spazi/<cliente>/post/nuovo`), con «← Forno Luce» sopra il titolo. A 1440: editor 720 e anteprima 360 (40 tra le due); l'anteprima resta ferma mentre il modulo scorre. A 1280: editor 600 e anteprima 320; l'anteprima è sempre presente, non si nasconde (Matteo, 18/11).
 - **Ordine dei blocchi:** cliente (solo da «Tutti i clienti»: finché manca, il resto è spento), Tipo, File, Copertina (solo reel), Testo, Dove pubblicare, Quando, Etichette e note, Riepilogo delle destinazioni. Ogni blocco ha un titolo Sora 18 e niente riquadro intorno, salvo le superfici che sono elenchi (profili, note, destinazioni).
 - **Tipo:** quattro pulsanti alti 48 (Foto, Carosello, Reel, Storia); lo scelto ha fondo `brand-soft`, bordo `text` da 2 e la spunta; gli spenti sono a metà opacità con il motivo scritto sotto, sempre visibile (non solo al passaggio del mouse).
 - **File:** miniature 128×160 (4:5) con il numero in alto a sinistra e la maniglia in alto a destra; il file con il focus mostra «Sposta prima», «Sposta dopo», «Togli» (pulsanti da 40; da 44 sul telefono, dove stanno sotto la fila, per il file scelto). A destra «Trascina qui», «Carica» e «Dalla libreria». Un file da ritagliare ha l'etichetta ambra «Da ritagliare». Nome su due righe al massimo.
@@ -300,12 +300,12 @@ Disegno del 18 novembre 2026, in attesa dell'approvazione di Matteo (senza appro
 - **Impostazioni dei contenuti:** nuova scheda del cliente con Orario predefinito, Etichette, Modelli (firma, hashtag, testo) e Gruppi di account, ognuno un elenco in stile unione con «Nuova…» a destra. Nell'editor «Inserisci» apre i modelli raggruppati per tipo; «Gruppi» dice quanti account spunta e quali salta.
 - **Tema scuro:** l'editor e l'anteprima da telefono sono istanze delle tavole chiare con `mode: dark`.
 
-### Domande aperte per Matteo
+### Domande per Matteo (tutte decise il 18/11)
 
 Anche in `docs/decisioni-aperte.md`, D-68.
 
 1. **Nome del primo tipo:** deciso da Matteo il 18/11: «Foto» (specifica §11.2).
 2. **Dove sta il riepilogo delle destinazioni:** deciso da Matteo il 18/11: in fondo al modulo, con «Scegli cosa fare per 1 avviso» nella barra che porta lì.
-3. **A 1280 px:** anteprima stretta a 320 con «Nascondi anteprima» (scelto) o modulo e anteprima alternati con due schede? Consiglio la prima: si vede l'effetto di ogni modifica senza cambiare vista.
-4. **Filtro della scheda «Post»:** «Tutti» in più, predefinito (scelto), o solo Bozze · Programmati · Annullati? Consiglio «Tutti»: senza, la colonna «Quando» non mostrerebbe mai insieme date e «Bozza».
-5. **Dove stanno etichette, modelli, gruppi e orario predefinito:** nuova scheda del cliente «Impostazioni dei contenuti» (scelta), una sezione in fondo alla Panoramica o una pagina dell'agenzia con il cliente da scegliere? Consiglio la scheda: sono del cliente e chi li gestisce li cerca lì.
+3. **A 1280 px:** deciso da Matteo il 18/11: modulo e anteprima affiancati, con l'anteprima a 320 e **sempre presente** (niente «Nascondi anteprima», niente alternanza); sul telefono due colonne non ci stanno e l'anteprima resta raggiungibile con il pulsante «Anteprima».
+4. **Filtro della scheda «Post»:** deciso da Matteo il 18/11: «Tutti» in più, predefinito, poi Bozze · Programmati · Annullati.
+5. **Dove stanno etichette, modelli, gruppi e orario predefinito:** deciso da Matteo il 18/11: nuova scheda del cliente «Impostazioni dei contenuti».
