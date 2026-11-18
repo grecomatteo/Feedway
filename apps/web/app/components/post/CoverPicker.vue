@@ -65,7 +65,12 @@ async function useFile(file: File | undefined) {
   problem.value = null
   if (!file) return
   if (!isImage(file)) {
-    problem.value = t('posts.cover.onlyImages', { name: file.name })
+    problem.value = t(
+      file.type.startsWith('video/') ? 'posts.cover.onlyImages' : 'posts.cover.notImage',
+      {
+        name: file.name,
+      },
+    )
     return
   }
   const item = await e.uploadCover(file)
@@ -102,6 +107,20 @@ const uploading = computed(() => {
   const key = e.coverUpload.value
   return key ? e.uploads.items.value.find((i) => i.key === key) : undefined
 })
+// an upload that stops before the library has the file says so, and is no longer waited for
+watch(
+  () => uploading.value?.state,
+  (state) => {
+    const item = uploading.value
+    if (!item || !state || !['failed', 'error', 'rejected'].includes(state)) return
+    problem.value = item.message ?? t('posts.cover.failed')
+    e.coverUpload.value = null
+  },
+)
+watch(uploading, (item) => {
+  // a cancelled upload leaves the list
+  if (!item && e.coverUpload.value) e.coverUpload.value = null
+})
 
 // ---- what the cover looks like
 const showFiles = computed(() => props.client.myRole !== 'viewer')
@@ -110,9 +129,7 @@ const videoSrc = computed(() =>
     ? e.fileUrl(video.value.id, 'preview')
     : null,
 )
-const imageSrc = computed(() =>
-  image.value && showFiles.value ? e.fileUrl(image.value, 'ig_feed') : null,
-)
+const imageSrc = computed(() => (showFiles.value ? e.coverSrc.value : null))
 const big = ref<HTMLVideoElement | null>(null)
 const small = ref<HTMLVideoElement | null>(null)
 watch(offset, (ms) => {

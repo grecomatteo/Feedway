@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CROP_MIN_SIDE } from '~/utils/crop-box'
 import type { CropRect } from '~/utils/post-preview'
 
 /**
@@ -23,13 +24,11 @@ const props = defineProps<{
 const emit = defineEmits<{ apply: [crop: CropRect]; close: [] }>()
 const { t } = useI18n()
 
-/** The shortest side a box may have, as the rules check it (D-61). */
-const MIN_SIDE = 320
 const spec = computed(() => ({
   width: props.width,
   height: props.height,
   ratio: props.ratio,
-  minSide: MIN_SIDE,
+  minSide: CROP_MIN_SIDE,
 }))
 
 const area = ref<HTMLElement | null>(null)
@@ -51,11 +50,17 @@ watch(
     if (props.initial) cropper.setFractions(props.initial)
     else cropper.reset()
     await nextTick()
-    const el = area.value
-    if (el) room.value = { width: el.clientWidth - 32, height: Math.min(420, el.clientWidth) }
+    measure()
   },
   { immediate: true },
 )
+/** The photo fits the dark area: measured on opening and when the window changes (a phone turned). */
+function measure() {
+  const el = area.value
+  if (el) room.value = { width: el.clientWidth - 32, height: Math.min(420, el.clientWidth) }
+}
+onMounted(() => window.addEventListener('resize', measure))
+onBeforeUnmount(() => window.removeEventListener('resize', measure))
 
 const px = (n: number) => `${String(n * scale.value)}px`
 const frameStyle = computed(() => ({ width: px(props.width), height: px(props.height) }))
@@ -66,11 +71,15 @@ const boxStyle = computed(() => ({
   height: px(box.value.height),
 }))
 const pct = (n: number) => Math.round(n * 100)
+/** the box's width as a share of the largest box */
+const size = computed(() =>
+  pct(box.value.width / Math.min(props.width, props.height * props.ratio)),
+)
 const valueText = computed(() =>
   t('posts.crop.value', {
     x: pct(box.value.x / props.width),
     y: pct(box.value.y / props.height),
-    size: pct(box.value.width / Math.min(props.width, props.height * props.ratio)),
+    size: size.value,
   }),
 )
 /** The result: the box shown at the width of its panel. */
@@ -129,10 +138,10 @@ function apply() {
               tabindex="0"
               :aria-label="t('posts.crop.area', { ratio: ratioLabel })"
               :aria-valuetext="valueText"
-              :aria-valuenow="pct(box.width / width)"
+              :aria-valuenow="size"
               aria-valuemin="0"
               aria-valuemax="100"
-              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft + -"
+              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft Shift+ArrowRight Shift+ArrowUp Shift+ArrowDown + -"
               class="absolute cursor-move border-2 border-white shadow-[0_0_0_9999px_rgb(0_0_0/0.55)] outline-3 outline-offset-2 outline-transparent focus-visible:outline-(--app-brand)"
               :style="boxStyle"
               data-crop-box
@@ -164,7 +173,7 @@ function apply() {
           </div>
         </div>
         <div class="flex w-full shrink-0 flex-col gap-4 md:w-60">
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-2 max-md:hidden">
             <h3 class="text-sm font-semibold">
               {{ t('posts.crop.result', { ratio: ratioLabel }) }}
             </h3>

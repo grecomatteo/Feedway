@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import {
+  canCrop,
   centerBox,
   dragCorner,
   fromFractions,
@@ -90,4 +91,22 @@ test('the profile photo: whole pixels, the square zoomed around its centre', () 
   // a photo smaller than the minimum: the whole short side
   const small: CropSpec = { width: 50, height: 40, ratio: 1, minSide: 64, round: true }
   expect(placeBox(centerBox(small), 0, 0, 1, small).width).toBe(40)
+})
+
+test('a box at the minimum passes the server check for every size of photo (D-61)', () => {
+  // isValidCrop of the domain: the shortest side, recomputed from the fractions, at least 320
+  for (const ratio of [0.8, 1.91, 9 / 16])
+    for (let width = 320; width <= 6000; width++) {
+      const spec: CropSpec = { width, height: Math.round(width * 1.7), ratio, minSide: 320 }
+      if (!canCrop(spec)) continue
+      const box = placeBox(centerBox(spec), 0, 0, 1, spec)
+      const f = toFractions(box, spec)
+      expect(Math.min(f.width * spec.width, f.height * spec.height)).toBeGreaterThanOrEqual(320)
+    }
+})
+
+test('a photo too small for a box of 320 pixels has no box to move', () => {
+  expect(canCrop({ width: 1080, height: 540, ratio: 9 / 16, minSide: 320 })).toBe(false)
+  expect(canCrop({ width: 1080, height: 1920, ratio: 9 / 16, minSide: 320 })).toBe(true)
+  expect(canCrop({ width: 300, height: 900, ratio: 0.8, minSide: 320 })).toBe(false)
 })

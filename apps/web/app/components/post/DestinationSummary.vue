@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PostCheckResponse } from '@app/contracts'
 import type { PostEditor } from '~/composables/usePostEditor'
+import { CROP_MIN_SIDE, canCrop } from '~/utils/crop-box'
 import { missingFiles, properType, type PostType } from '~/utils/post-editor'
 
 /**
@@ -131,8 +132,17 @@ const switchTo = (type: PostType) => e.chooseType(type)
 
 // ---- «Ritaglia»: the box, moved by the person (D-61)
 const cropping = ref<Outcome | null>(null)
+/** The photo holds a box to move (D-61); a smaller one is cut in the middle, with no box. */
+const movable = (o: Outcome) =>
+  !!o.cropRatio &&
+  canCrop({
+    width: Number(o.params.width),
+    height: Number(o.params.height),
+    ratio: o.cropRatio,
+    minSide: CROP_MIN_SIDE,
+  })
 function pick(o: Outcome, option: string) {
-  if (option === 'crop' && o.cropRatio) {
+  if (option === 'crop' && movable(o)) {
     openCrop(o)
     return
   }
@@ -170,12 +180,18 @@ const crop = computed(() => {
     name =
       e.files.value.find((f) => f.id === id)?.name ??
       t('posts.summary.file', { n: o.subject.index + 1 })
-  } else if (e.cover.value?.source === 'image') id = e.cover.value.mediaId
+  }
   const label = ratioLabel(o.cropRatio)
   return {
     title: t(o.subject.kind === 'cover' ? 'posts.crop.titleCover' : 'posts.crop.titleFeed'),
     subtitle: [name, `${String(width)}×${String(height)}`, subject(o)].filter(Boolean).join(' · '),
-    src: id && props.showFiles ? e.fileUrl(id, 'ig_feed') : null,
+    src: !props.showFiles
+      ? null
+      : o.subject.kind === 'cover'
+        ? e.coverSrc.value
+        : id
+          ? e.fileUrl(id, 'ig_feed')
+          : null,
     width,
     height,
     ratio: o.cropRatio,
@@ -252,7 +268,7 @@ const crop = computed(() => {
         </div>
         <div v-if="o.chosen && e.editable.value" class="flex flex-wrap gap-2">
           <UButton
-            v-if="o.chosen === 'crop' && o.cropRatio"
+            v-if="o.chosen === 'crop' && movable(o)"
             color="neutral"
             variant="outline"
             icon="i-lucide-crop"

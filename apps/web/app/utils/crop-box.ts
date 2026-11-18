@@ -2,6 +2,9 @@
 // photo's square and the post's photo or cover. Pixels of the original; the box never leaves
 // the photo, keeps its proportions and its shortest side never goes under the minimum.
 
+/** The shortest side a post's box may have, as the rules check it (`CROP_MIN_SIDE`, D-61). */
+export const CROP_MIN_SIDE = 320
+
 export interface Box {
   x: number
   y: number
@@ -30,7 +33,15 @@ export function maxWidth(spec: CropSpec): number {
 
 /** The narrowest box allowed: its shortest side at the minimum, or the largest box if smaller. */
 export function minWidth(spec: CropSpec): number {
-  return Math.min(spec.minSide * Math.max(1, spec.ratio), maxWidth(spec))
+  // a hair over the minimum: the server's `width × W` must not come out at 319.999…
+  const margin = spec.round ? 1 : 1 + 1e-6
+  return Math.min(spec.minSide * Math.max(1, spec.ratio) * margin, maxWidth(spec))
+}
+
+/** The photo holds a box of the proportions with its shortest side at the minimum. */
+export function canCrop(spec: CropSpec): boolean {
+  const w = maxWidth(spec)
+  return Math.min(w, w / spec.ratio) >= spec.minSide * (1 + 1e-6)
 }
 
 function sized(width: number, spec: CropSpec) {

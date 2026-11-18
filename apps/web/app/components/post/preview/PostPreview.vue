@@ -110,11 +110,7 @@ const feedRatio = computed(() => {
   return feedFrameRatio(file, first === undefined ? null : (answers.value.get(first) ?? null))
 })
 /** a reel's cover chosen as an image: the video starts from it (D-60) */
-const coverImage = computed(() =>
-  e.cover.value?.source === 'image' && props.showFiles
-    ? e.fileUrl(e.cover.value.mediaId, 'ig_feed')
-    : null,
-)
+const coverImage = computed(() => (props.showFiles ? e.coverSrc.value : null))
 const items = computed(() =>
   vertical.value
     ? indices.value.slice(0, 1).map((i) => {

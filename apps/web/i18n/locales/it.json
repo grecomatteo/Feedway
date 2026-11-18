@@ -2169,6 +2169,7 @@
       "restore": "Ripristina",
       "rule": "Solo immagini: un video trascinato qui viene rifiutato subito.",
       "onlyImages": "{name} è un video: la copertina può essere solo un'immagine.",
+      "notImage": "{name} non è un'immagine: la copertina può essere solo un'immagine.",
       "failed": "La copertina non si è caricata: riprova.",
       "uploading": "Carico {name}…",
       "reelTab": "Scheda Reels · 9:16",
