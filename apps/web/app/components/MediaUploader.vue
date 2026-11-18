@@ -11,10 +11,8 @@ const props = defineProps<{ workspace: WorkspaceView; folderId: string | null }>
 const emit = defineEmits<{ changed: [] }>()
 const { t } = useI18n()
 
-const uploads = useUploads(
-  computed(() => props.workspace.id),
-  { onChange: () => emit('changed') },
-)
+// the workspace is fixed for the life of the component (the library keys it by the workspace)
+const uploads = useUploads(props.workspace.id, { onChange: () => emit('changed'), shown: true })
 const { items, leftovers, totals, limits } = uploads
 
 const picker = ref<HTMLInputElement | null>(null)
@@ -75,65 +73,7 @@ const limitsText = computed(() =>
 
 defineExpose({ choose, add, limitsText })
 
-const percentOf = (i: UploadItem) =>
-  i.size > 0 ? Math.min(100, Math.floor((Math.min(i.sent, i.size) / i.size) * 100)) : 0
-const workPercent = (i: UploadItem) =>
-  i.media?.progress ? Math.min(100, Math.max(0, Math.round(i.media.progress.percent))) : null
-const remaining = (i: UploadItem) =>
-  i.rate && i.rate > 0 ? formatEta((i.size - i.sent) / i.rate) : null
-
-/** One line under the name, what is happening now. */
-function line(i: UploadItem): string {
-  const amount = t('upload.amount', {
-    sent: formatBytes(Math.min(i.sent, i.size)),
-    total: formatBytes(i.size),
-    percent: percentOf(i),
-  })
-  switch (i.state) {
-    case 'queued':
-      return t('upload.state.queued')
-    case 'hashing':
-      return i.sent > 0 ? amount : t('upload.state.hashing')
-    case 'uploading': {
-      const eta = remaining(i)
-      return eta ? `${amount} · ${t('upload.eta', { eta })}` : amount
-    }
-    case 'paused':
-      return `${t('upload.state.paused')} · ${amount}`
-    case 'offline':
-      return t('upload.state.offline')
-    case 'completing':
-      return t('upload.state.completing')
-    case 'processing': {
-      const step = i.media?.progress?.step
-      const pct = workPercent(i)
-      const what =
-        step === 'analysis' || step === 'conversion'
-          ? t(`upload.step.${step}`)
-          : t('upload.state.processing')
-      return pct === null ? what : `${what} · ${String(pct)}%`
-    }
-    case 'ready':
-      return t('upload.state.ready')
-    case 'failed':
-      return i.media?.failure
-        ? t('upload.state.failedWhy', { reason: t(`library.failure.${i.media.failure.code}`) })
-        : t('upload.state.failed')
-    default:
-      return i.message ?? ''
-  }
-}
-const tone = (i: UploadItem) =>
-  i.state === 'rejected' || i.state === 'error' || i.state === 'failed'
-    ? 'text-(--app-danger)'
-    : i.state === 'ready'
-      ? 'text-(--app-success)'
-      : 'text-(--app-text-muted)'
-const showsBar = (i: UploadItem) =>
-  ['hashing', 'uploading', 'paused', 'offline', 'completing', 'processing'].includes(i.state)
-/** While the worker prepares the file the bar is its progress, not the upload's. */
-const barPercent = (i: UploadItem) =>
-  i.state === 'processing' ? (workPercent(i) ?? 0) : i.state === 'completing' ? 100 : percentOf(i)
+const { line, tone, showsBar, barPercent, workPercent, uploadSummary } = useUploadLine()
 
 const org = useOrganization()
 const thumbOf = (i: UploadItem) => {
@@ -154,15 +94,7 @@ const markUnplayable = (key: string) => (unplayable.value = new Set([...unplayab
 const finished = computed(() =>
   items.value.some((i) => ['ready', 'failed', 'rejected'].includes(i.state)),
 )
-const summary = computed(() => {
-  const x = totals.value
-  const parts = [
-    t('upload.overall', { done: x.uploaded, n: x.files }, x.files),
-    t('upload.amountShort', { sent: formatBytes(x.sent), total: formatBytes(x.size) }),
-  ]
-  if (x.seconds !== null) parts.push(t('upload.eta', { eta: formatEta(x.seconds) }))
-  return parts.join(' · ')
-})
+const summary = computed(() => uploadSummary(totals.value))
 const leftoverPercent = (u: Leftover) =>
   u.partCount > 0 ? Math.floor((u.received.length / u.partCount) * 100) : 0
 const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount

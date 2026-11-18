@@ -108,5 +108,7 @@ watch(org.slug, refresh)
       </section>
     </main>
     <MobileNav v-if="org.active.value" />
+    <!-- the uploads go on from page to page (D-21) -->
+    <ClientOnly><UploadsDock v-if="inAgency" /></ClientOnly>
   </div>
 </template>
