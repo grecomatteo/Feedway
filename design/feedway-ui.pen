@@ -66297,14 +66297,14 @@
       "id": "n4WxmK",
       "x": 8000,
       "y": 949,
-      "name": "Sezione · Editor dei post · tappa 6 · da approvare",
+      "name": "Sezione · Editor dei post · tappa 6 · approvata (18/11)",
       "theme": {
         "mode": "light",
         "palette": "feedway"
       },
       "width": 9600,
       "height": 200,
-      "fill": "$warning-soft",
+      "fill": "$success-soft",
       "cornerRadius": 16,
       "layout": "vertical",
       "gap": 12,
@@ -66325,7 +66325,7 @@
               "id": "H9H7RI",
               "name": "Titolo",
               "fill": "#242321",
-              "content": "Editor dei post · tappa 6 · da approvare",
+              "content": "Editor dei post · tappa 6 · approvata il 18/11",
               "fontFamily": "Sora",
               "fontSize": 40,
               "fontWeight": "600"
@@ -66336,7 +66336,7 @@
               "name": "Stato",
               "fill": "#FFFFFF",
               "cornerRadius": 999,
-              "stroke": "$warning",
+              "stroke": "$success",
               "strokeWidth": 2,
               "padding": [
                 6,
@@ -66347,8 +66347,8 @@
                   "type": "text",
                   "id": "HQhZ4",
                   "name": "Etichetta",
-                  "fill": "$warning",
-                  "content": "Da approvare",
+                  "fill": "$success",
+                  "content": "Approvata · da costruire",
                   "fontFamily": "Inter",
                   "fontSize": 18,
                   "fontWeight": "600"
@@ -66376,7 +66376,7 @@
       "id": "s7jZiT",
       "x": 8000,
       "y": 1269,
-      "name": "[Da approvare] E1 · Nuovo post · computer 1440",
+      "name": "[Approvata · da costruire] E1 · Nuovo post · computer 1440",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -69663,7 +69663,7 @@
       "id": "nvRm8",
       "x": 11120,
       "y": 1269,
-      "name": "[Da approvare] E0 · Componenti dell'editor e dell'anteprima",
+      "name": "[Approvata · da costruire] E0 · Componenti dell'editor e dell'anteprima",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -70919,7 +70919,7 @@
       "id": "MLrzX",
       "x": 9560,
       "y": 1269,
-      "name": "[Da approvare] E2 · Nuovo post · computer 1280 · testo comune · anteprima sempre presente",
+      "name": "[Approvata · da costruire] E2 · Nuovo post · computer 1280 · testo comune · anteprima sempre presente",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -74290,7 +74290,7 @@
       "id": "vaUoe",
       "x": 8000,
       "y": 3909,
-      "name": "[Da approvare] E3 · Nuovo post · telefono 390 · pagina intera",
+      "name": "[Approvata · da costruire] E3 · Nuovo post · telefono 390 · pagina intera",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -77647,7 +77647,7 @@
       "id": "UVvjt",
       "x": 8510,
       "y": 3909,
-      "name": "[Da approvare] E3b · Nuovo post · telefono 390 · anteprima",
+      "name": "[Approvata · da costruire] E3b · Nuovo post · telefono 390 · anteprima",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -77924,7 +77924,7 @@
       "id": "c0y8Q2",
       "x": 9020,
       "y": 3909,
-      "name": "[Da approvare] E3c · Nuovo post · telefono 390 · tastiera aperta",
+      "name": "[Approvata · da costruire] E3c · Nuovo post · telefono 390 · tastiera aperta",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -79333,7 +79333,7 @@
       "id": "WRa4z",
       "x": 8000,
       "y": 7029,
-      "name": "[Da approvare] E4 · Anteprima · le sei schede, zone sicure e copertina",
+      "name": "[Approvata · da costruire] E4 · Anteprima · le sei schede, zone sicure e copertina",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -80117,7 +80117,7 @@
       "id": "KI27b",
       "x": 8000,
       "y": 8169,
-      "name": "[Da approvare] E5a · Ritaglio · foto più alta di 4:5",
+      "name": "[Approvata · da costruire] E5a · Ritaglio · foto più alta di 4:5",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -80708,7 +80708,7 @@
       "id": "U2DoQ",
       "x": 9560,
       "y": 8169,
-      "name": "[Da approvare] E5b · Ritaglio · foto più larga di 1,91:1",
+      "name": "[Approvata · da costruire] E5b · Ritaglio · foto più larga di 1,91:1",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -81299,7 +81299,7 @@
       "id": "VHlPP",
       "x": 11120,
       "y": 8169,
-      "name": "[Da approvare] E5c · Ritaglio · copertina del reel 9:16",
+      "name": "[Approvata · da costruire] E5c · Ritaglio · copertina del reel 9:16",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -81890,7 +81890,7 @@
       "id": "e1KAmY",
       "x": 12680,
       "y": 8169,
-      "name": "[Da approvare] E5d · Ritaglio · telefono 390 · con il dito",
+      "name": "[Approvata · da costruire] E5d · Ritaglio · telefono 390 · con il dito",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -82171,7 +82171,7 @@
       "id": "FQuxA",
       "x": 13190,
       "y": 8169,
-      "name": "[Da approvare] E5e · Editor · copertina e video del reel",
+      "name": "[Approvata · da costruire] E5e · Editor · copertina e video del reel",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -82725,7 +82725,7 @@
       "id": "Ap2us",
       "x": 8000,
       "y": 9189,
-      "name": "[Da approvare] E6a · Bozza vuota da «Tutti i clienti»",
+      "name": "[Approvata · da costruire] E6a · Bozza vuota da «Tutti i clienti»",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -83140,7 +83140,7 @@
       "id": "vf3E5",
       "x": 8880,
       "y": 9189,
-      "name": "[Da approvare] E6b · File in caricamento",
+      "name": "[Approvata · da costruire] E6b · File in caricamento",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -83590,7 +83590,7 @@
       "id": "LWzhV",
       "x": 9760,
       "y": 9189,
-      "name": "[Da approvare] E6c · File non riuscito",
+      "name": "[Approvata · da costruire] E6c · File non riuscito",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -83896,7 +83896,7 @@
       "id": "XV9wB",
       "x": 10640,
       "y": 9189,
-      "name": "[Da approvare] E6d · Blocchi",
+      "name": "[Approvata · da costruire] E6d · Blocchi",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -84328,7 +84328,7 @@
       "id": "J6TKP4",
       "x": 11520,
       "y": 9189,
-      "name": "[Da approvare] E6e · Tutto pronto",
+      "name": "[Approvata · da costruire] E6e · Tutto pronto",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -84753,7 +84753,7 @@
       "id": "IIggT",
       "x": 12400,
       "y": 9189,
-      "name": "[Da approvare] E6f · Avvisi da scegliere",
+      "name": "[Approvata · da costruire] E6f · Avvisi da scegliere",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -85133,7 +85133,7 @@
       "id": "LRKh6",
       "x": 13280,
       "y": 9189,
-      "name": "[Da approvare] E6g · Editor: solo «Salva bozza»",
+      "name": "[Approvata · da costruire] E6g · Editor: solo «Salva bozza»",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -85519,7 +85519,7 @@
       "id": "H3GFj",
       "x": 14160,
       "y": 9189,
-      "name": "[Da approvare] E6h · Conflitto di versione",
+      "name": "[Approvata · da costruire] E6h · Conflitto di versione",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -85766,7 +85766,7 @@
       "id": "W5hPK",
       "x": 15040,
       "y": 9189,
-      "name": "[Da approvare] E6i · Salvataggio non riuscito",
+      "name": "[Approvata · da costruire] E6i · Salvataggio non riuscito",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -86022,7 +86022,7 @@
       "id": "ZOEYV",
       "x": 15920,
       "y": 9189,
-      "name": "[Da approvare] E6j · Post programmato in modifica",
+      "name": "[Approvata · da costruire] E6j · Post programmato in modifica",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -86265,7 +86265,7 @@
       "id": "BnjKo",
       "x": 16800,
       "y": 9189,
-      "name": "[Da approvare] E6k · Post annullato",
+      "name": "[Approvata · da costruire] E6k · Post annullato",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -86503,7 +86503,7 @@
       "id": "E7kMb",
       "x": 8000,
       "y": 9949,
-      "name": "[Da approvare] E7 · Pagina del cliente · scheda Post",
+      "name": "[Approvata · da costruire] E7 · Pagina del cliente · scheda Post",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -88247,7 +88247,7 @@
       "id": "oVus5",
       "x": 9560,
       "y": 9949,
-      "name": "[Da approvare] E7b · Telefono · Pagina del cliente · scheda Post",
+      "name": "[Approvata · da costruire] E7b · Telefono · Pagina del cliente · scheda Post",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -88888,7 +88888,7 @@
       "id": "Bme1s",
       "x": 10070,
       "y": 9949,
-      "name": "[Da approvare] E8 · Pagina del cliente · Impostazioni dei contenuti (etichette, modelli, gruppi)",
+      "name": "[Approvata · da costruire] E8 · Pagina del cliente · Impostazioni dei contenuti (etichette, modelli, gruppi)",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -90341,7 +90341,7 @@
       "id": "hKyIi",
       "x": 11590,
       "y": 9949,
-      "name": "[Da approvare] E8c · Editor · «Inserisci» e «Gruppi» aperti",
+      "name": "[Approvata · da costruire] E8c · Editor · «Inserisci» e «Gruppi» aperti",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -90853,7 +90853,7 @@
       "id": "gbnUk",
       "type": "ref",
       "ref": "s7jZiT",
-      "name": "[Da approvare] E9 · Nuovo post · computer 1440 · tema scuro",
+      "name": "[Approvata · da costruire] E9 · Nuovo post · computer 1440 · tema scuro",
       "x": 8000,
       "y": 11649,
       "theme": {
@@ -90865,7 +90865,7 @@
       "id": "HU1Hj",
       "type": "ref",
       "ref": "UVvjt",
-      "name": "[Da approvare] E9b · Nuovo post · telefono 390 · anteprima · tema scuro",
+      "name": "[Approvata · da costruire] E9b · Nuovo post · telefono 390 · anteprima · tema scuro",
       "x": 9560,
       "y": 11649,
       "theme": {
@@ -90878,7 +90878,7 @@
       "id": "b2npM",
       "x": 8000,
       "y": 14333,
-      "name": "[Da approvare] E1b · Nuovo post 1440 · Pubblica subito (tappa 7)",
+      "name": "[Approvata · da costruire] E1b · Nuovo post 1440 · Pubblica subito (tappa 7)",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -94032,7 +94032,7 @@
       "id": "tgIYo",
       "x": 9560,
       "y": 14333,
-      "name": "[Da approvare] E1c · Conferma pubblicazione (tappa 7)",
+      "name": "[Approvata · da costruire] E1c · Conferma pubblicazione (tappa 7)",
       "width": 1440,
       "height": 900,
       "fill": "$overlay",
@@ -94288,7 +94288,7 @@
       "id": "QBM0U",
       "x": 11120,
       "y": 14333,
-      "name": "[Da approvare] E3d · Telefono · Pubblica subito (tappa 7)",
+      "name": "[Approvata · da costruire] E3d · Telefono · Pubblica subito (tappa 7)",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -97489,9 +97489,9 @@
       "y": 14333,
       "name": "Nota · Pubblica subito",
       "width": 560,
-      "fill": "$warning-soft",
+      "fill": "$success-soft",
       "cornerRadius": 16,
-      "stroke": "$warning",
+      "stroke": "$success",
       "strokeWidth": 1,
       "layout": "vertical",
       "gap": 12,

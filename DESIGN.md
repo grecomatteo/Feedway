@@ -274,13 +274,13 @@ Matteo: «mi piace, seguire le linee guida di Hallmark con più gerarchia di col
 
 Gli stati usano sempre colore, icona e testo, con fondo tenue. Per schermata: un solo grande blocco arancio (sulla landing è la scritta del footer; la sezione del portale passa a pesca). Logo arancio in testata, barra laterale e footer: scelta di Matteo, la guida del marchio preferirebbe il carbone sul chiaro.
 
-## Editor dei post (tappa 6, Task 2) · da approvare
+## Editor dei post (tappa 6, Task 2) · approvato
 
-Disegno del 18 novembre 2026, in attesa dell'approvazione di Matteo (senza approvazione il Task 5 non parte). Tela `design/feedway-ui.pen`, sezione «Editor dei post · tappa 6 · da approvare» (a destra del pannello, x ≥ 8000); tavole esportate in `design/tavole/2026-11-18-editor/`; revisione in `design/reviews/2026-11-18-disegno-editor.md`. Esempio fittizio: Forno Luce, con @fornoluce, la Pagina Forno Luce e il profilo Forno Luce Bistrot (Pagina da ricollegare).
+Disegno del 18 novembre 2026, **approvato da Matteo il 18 novembre 2026** (tutte le tavole, con le cinque risposte qui sotto e «Pubblica subito»): il Task 5 può partire. Tela `design/feedway-ui.pen`, sezione «Editor dei post · tappa 6 · approvata (18/11)», tavole `[Approvata · da costruire]` (a destra del pannello, x ≥ 8000); tavole esportate in `design/tavole/2026-11-18-editor/`; revisione in `design/reviews/2026-11-18-disegno-editor.md`. Esempio fittizio: Forno Luce, con @fornoluce, la Pagina Forno Luce e il profilo Forno Luce Bistrot (Pagina da ricollegare).
 
 **Variabili D-63 sulla tela:** `page-pad` 32, `page-pad-tablet` 24, `page-pad-phone` 16, `page-top` 32 / `page-top-phone` 24, `gap-header` 24, `gap-section` 40 / `gap-section-phone` 32, `gap-block` 16, `form-max` 640, `sp-10` 40. `content-max` non vale più per le pagine.
 
-### Scelte proposte
+### Scelte adottate
 
 - **Pagina dedicata** (`…/spazi/<cliente>/post/nuovo`), con «← Forno Luce» sopra il titolo. A 1440: editor 720 e anteprima 360 (40 tra le due); l'anteprima resta ferma mentre il modulo scorre. A 1280: editor 600 e anteprima 320; l'anteprima è sempre presente, non si nasconde (Matteo, 18/11).
 - **Ordine dei blocchi:** cliente (solo da «Tutti i clienti»: finché manca, il resto è spento), Tipo, File, Copertina (solo reel), Testo, Dove pubblicare, Quando, Etichette e note, Riepilogo delle destinazioni. Ogni blocco ha un titolo Sora 18 e niente riquadro intorno, salvo le superfici che sono elenchi (profili, note, destinazioni).
@@ -307,7 +307,7 @@ Disegno del 18 novembre 2026, in attesa dell'approvazione di Matteo (senza appro
 
 ### Domande per Matteo (tutte decise il 18/11)
 
-Anche in `docs/decisioni-aperte.md`, D-68.
+Erano la voce D-68 di `docs/decisioni-aperte.md`, chiusa con l'approvazione.
 
 1. **Nome del primo tipo:** deciso da Matteo il 18/11: «Foto» (specifica §11.2).
 2. **Dove sta il riepilogo delle destinazioni:** deciso da Matteo il 18/11: in fondo al modulo, con «Scegli cosa fare per 1 avviso» nella barra che porta lì.

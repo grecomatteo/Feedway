@@ -1,6 +1,6 @@
 # Disegno dell'editor dei post · revisione (18 novembre 2026)
 
-Tappa 6, Task 2. Disegno in Pencil dell'editor, dell'anteprima e del ritaglio, da approvare da Matteo prima del Task 5. Scelte e domande in `DESIGN.md` «Editor dei post (tappa 6, Task 2) · da approvare»; domande anche in `docs/decisioni-aperte.md` D-68.
+Tappa 6, Task 2. Disegno in Pencil dell'editor, dell'anteprima e del ritaglio, approvato da Matteo il 18/11. Scelte e domande in `DESIGN.md` «Editor dei post (tappa 6, Task 2) · da approvare»; domande anche in `docs/decisioni-aperte.md` D-68.
 
 ## Fonti lette
 
@@ -12,7 +12,7 @@ Tappa 6, Task 2. Disegno in Pencil dell'editor, dell'anteprima e del ritaglio, d
 
 ## Tavole
 
-Sezione «Editor dei post · tappa 6 · da approvare» della tela, PNG a scala 1× in `design/tavole/2026-11-18-editor/`.
+Sezione «Editor dei post · tappa 6 · approvata (18/11)» della tela, PNG a scala 1× in `design/tavole/2026-11-18-editor/`.
 
 | Tavola | Cosa mostra |
 |---|---|
@@ -50,8 +50,6 @@ Sezione «Editor dei post · tappa 6 · da approvare» della tela, PNG a scala 1
 - Il trascinamento di un file sull'anteprima e il riordino dall'anteprima (§11.2 punto 3) sono comportamenti: non hanno una tavola, si provano nel Task 6.
 - Un post annullato ha solo «Elimina post», come nel piano; «Duplica come bozza» non è previsto e andrebbe chiesto a parte.
 
-## Prossime azioni
+## Esito
 
-1. Matteo approva o chiede modifiche (le domande sono in `DESIGN.md` e in D-68); le modifiche si fanno nello stesso thread.
-2. Con l'approvazione: stato delle tavole da `[Da approvare]` ad `[Approvata · da costruire]`, data in `DESIGN.md`, D-68 chiusa.
-3. Task 5 parte dalle tavole E1–E3 ed E6; Task 6 da E4 ed E5; Task 7 da E8.
+Matteo ha approvato tutto il disegno il 18 novembre 2026, con le risposte alle cinque domande («Foto»; riepilogo in fondo; anteprima sempre presente; «Tutti» nel filtro della scheda «Post»; scheda «Impostazioni dei contenuti») e con «Pubblica subito» (E1b, E1c, E3d). Le tavole sono `[Approvata · da costruire]`; il Task 5 parte da E1–E3 ed E6, il Task 6 da E4 ed E5, il Task 7 da E8.
