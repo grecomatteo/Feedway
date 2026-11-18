@@ -55,8 +55,11 @@ export interface StreamedBody {
 }
 
 export interface ApiRouteOptions {
-  /** Requests per client address, shared by every route with the same name. */
-  rateLimit?: { name: string; limit: number; windowMs: number }
+  /**
+   * Requests per client address, shared by every route with the same name; with `by: 'user'`,
+   * per person signed in (D-57): the people of an agency behind one network do not share it.
+   */
+  rateLimit?: { name: string; limit: number; windowMs: number; by?: 'ip' | 'user' }
 }
 
 /** Logs an unexpected failure without its message (failureForLog) and answers it. */
@@ -229,9 +232,16 @@ async function sendFile(
   return null
 }
 
-async function limit(event: H3Event, rule: NonNullable<ApiRouteOptions['rateLimit']>) {
-  const ip = getRequestHeader(event, 'x-app-client-ip') ?? 'unknown'
-  const hit = await useDeps().rateLimiter.hit(`ip:${rule.name}:${ip}`, rule.limit, rule.windowMs)
+async function limit(
+  event: H3Event,
+  rule: NonNullable<ApiRouteOptions['rateLimit']>,
+  session: ResolvedSession | null,
+) {
+  const key =
+    rule.by === 'user' && session
+      ? `user:${rule.name}:${session.user.id}`
+      : `ip:${rule.name}:${getRequestHeader(event, 'x-app-client-ip') ?? 'unknown'}`
+  const hit = await useDeps().rateLimiter.hit(key, rule.limit, rule.windowMs)
   if (!hit.allowed)
     throw new HttpProblem('RATE_LIMITED', { retryAfterSeconds: Math.ceil(hit.retryAfterMs / 1000) })
 }
@@ -274,12 +284,12 @@ export function defineApiRoute<C extends ApiContract>(
       // a public route counts every caller; any other only callers with a session, so an
       // anonymous flood cannot use up the allowance of people behind the same address
       const isPublic = contract.auth === 'public'
-      if (options.rateLimit && isPublic) await limit(event, options.rateLimit)
+      if (options.rateLimit && isPublic) await limit(event, options.rateLimit, null)
       const session = await authorize(event, contract.auth)
       // before the limit: someone else behind the administrator's address must not use up
       // their allowance, nor learn from a 429 that the route exists
       const platformActor = contract.scope === 'platform' ? platformActorOf(session) : null
-      if (options.rateLimit && !isPublic) await limit(event, options.rateLimit)
+      if (options.rateLimit && !isPublic) await limit(event, options.rateLimit, session)
       const actor = contract.scope === 'organization' ? await requireOrgActor(event) : platformActor
       const { params, query, body } = contract.request
       const ctx = {
@@ -336,6 +346,17 @@ export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs
  * each one reads up to 1 MiB of text.
  */
 export const POST_CHECKS_RATE_LIMIT = { name: 'post-checks', limit: 120, windowMs: 60_000 }
+
+/**
+ * The writes of the posts, for each person: the autosave sends one every 1.5 s at most, and
+ * scheduling runs the checks under the agency's scheduling lock.
+ */
+export const POST_WRITES_RATE_LIMIT = {
+  name: 'post-writes',
+  limit: 120,
+  windowMs: 60_000,
+  by: 'user',
+} as const
 
 /** Each photo is decoded and resized: a stolen session must not keep the server busy. */
 export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }

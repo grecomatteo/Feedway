@@ -13,6 +13,7 @@ import {
   listWorkspaces,
   removeWorkspaceMember,
   renameWorkspace,
+  setDefaultPostTime,
   resolveOrgActor,
   resolveSessionUser,
   type Auth,
@@ -239,6 +240,7 @@ describe('workspaces', () => {
       slug: 'caffe-roma',
       archivedAt: null,
       myRole: 'owner',
+      defaultPostTime: null,
     })
     expect((await createWorkspace(deps, ownerA, { name: 'Caffè  Roma' }, REQ)).slug).toBe(
       'caffe-roma-2',
@@ -356,7 +358,14 @@ describe('workspaces', () => {
     const w = await world()
     const editor = await actorOf(w.editor.id, w.orgA)
     expect(await listWorkspaces(deps, editor)).toEqual([
-      { id: w.w1, name: 'Alfa', slug: w.w1, archivedAt: null, myRole: 'editor' },
+      {
+        id: w.w1,
+        name: 'Alfa',
+        slug: w.w1,
+        archivedAt: null,
+        myRole: 'editor',
+        defaultPostTime: null,
+      },
     ])
     const loose = await actorOf(w.loose.id, w.orgA)
     expect(await listWorkspaces(deps, loose)).toEqual([])
@@ -422,6 +431,44 @@ describe('workspaces', () => {
     )
     const editor = await actorOf(w.editor.id, w.orgA)
     expect((await listWorkspaces(deps, editor))[0]).toMatchObject({ id: w.w1, name: 'Alfa Due' })
+  })
+
+  test('the default time of the posts: Manager and above, HH:MM or null, recorded once', async () => {
+    const w = await world()
+    const manager = await actorOf(w.manager.id, w.orgA)
+    const editor = await actorOf(w.editor.id, w.orgA)
+    const owner = await actorOf(w.owner.id, w.orgA)
+    await expect(setDefaultPostTime(deps, editor, w.w1, '18:00', REQ)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    // a manager of another workspace does not see this one
+    await expect(setDefaultPostTime(deps, manager, w.w2, '18:00', REQ)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+    for (const bad of ['25:00', '18', '18:00:00'])
+      await expect(setDefaultPostTime(deps, manager, w.w1, bad, REQ)).rejects.toMatchObject({
+        code: 'VALIDATION',
+      })
+    expect(await setDefaultPostTime(deps, manager, w.w1, '18:30', REQ)).toMatchObject({
+      id: w.w1,
+      defaultPostTime: '18:30',
+      myRole: 'manager',
+    })
+    expect((await listWorkspaces(deps, editor))[0]).toMatchObject({ defaultPostTime: '18:30' })
+    expect((await auditOf(w.orgA))[0]).toMatchObject({
+      action: 'workspace.settings_changed',
+      workspace_id: w.w1,
+    })
+    const before = (await auditOf(w.orgA)).length
+    await setDefaultPostTime(deps, owner, w.w1, '18:30', REQ)
+    expect((await auditOf(w.orgA)).length).toBe(before)
+    expect(await setDefaultPostTime(deps, owner, w.w1, null, REQ)).toMatchObject({
+      defaultPostTime: null,
+    })
+    await archiveWorkspace(deps, owner, w.w1, REQ)
+    await expect(setDefaultPostTime(deps, owner, w.w1, '09:00', REQ)).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
   })
 
   test('a suspended agency changes nothing', async () => {

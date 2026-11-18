@@ -1,6 +1,6 @@
 # Disegno dell'editor dei post · revisione (18 novembre 2026)
 
-Tappa 6, Task 2. Disegno in Pencil dell'editor, dell'anteprima e del ritaglio, approvato da Matteo il 18/11. Scelte e risposte in `DESIGN.md` «Editor dei post (tappa 6, Task 2) · approvato» (la voce D-68 di `docs/decisioni-aperte.md` è chiusa).
+Tappa 6, Task 2. Disegno in Pencil dell'editor, dell'anteprima e del ritaglio, approvato da Matteo il 18/11. Scelte e risposte in `DESIGN.md` «Editor dei post (tappa 6, Task 2) · approvato» (la voce D-73 di `docs/decisioni-aperte.md` è chiusa).
 
 ## Fonti lette
 

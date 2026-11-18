@@ -139,6 +139,59 @@ describe('toErrorResponse', () => {
     expect(unknown.body.error).not.toHaveProperty('reason')
   })
 
+  test('a post that cannot be scheduled carries its checks, as post-checks answers them', () => {
+    const report = {
+      outcomes: [
+        {
+          level: 'block',
+          code: 'no_destinations',
+          params: {},
+          subject: { kind: 'post' },
+          key: 'no_destinations:post',
+        },
+      ],
+      destinations: [
+        {
+          accountId: 'a1',
+          platform: 'instagram',
+          format: 'reel',
+          caption: 'x',
+          media: [0],
+          fingerprint: 'f'.repeat(64),
+          outcomeKeys: [],
+        },
+      ],
+      postKeys: ['no_destinations:post'],
+      unresolved: [],
+      invalidChoices: [{ key: 'k', option: 'accept' }],
+      canSchedule: false,
+      scheduledAt: new Date('2027-06-10T16:00:00Z'),
+      adjustment: 'none',
+    }
+    const r = toErrorResponse(
+      new DomainError('VALIDATION', 'Il post ha dei problemi', {
+        reason: 'post_not_schedulable',
+        report,
+      }),
+      REQUEST_ID,
+    )
+    expect(r.status).toBe(422)
+    expect(ApiErrorBody.parse(r.body)).toEqual(r.body)
+    expect(r.body.error.report).toMatchObject({
+      canSchedule: false,
+      scheduledAt: '2027-06-10T16:00:00.000Z',
+      outcomes: [{ code: 'no_destinations' }],
+    })
+    // nothing of the history, no orphan choice
+    expect(JSON.stringify(r.body)).not.toMatch(/fingerprint|invalidChoices/)
+    // a report under any other reason never leaves
+    const other = toErrorResponse(
+      new DomainError('VALIDATION', 'Altro', { reason: 'upload_completing', report }),
+      REQUEST_ID,
+    )
+    expect(other.body.error).not.toHaveProperty('report')
+  })
+
   test('anything unknown is a generic 500 with the request id only', () => {
     const secret = new Error('insert into accounts values ($1) params: cavallo-batteria-graffetta')
     const r = toErrorResponse(secret, REQUEST_ID)

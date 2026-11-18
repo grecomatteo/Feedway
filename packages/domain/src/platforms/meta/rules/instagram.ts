@@ -46,8 +46,17 @@ function checkFeedProportions(view: PlatformView): RuleFinding[] {
         subject: { kind: 'media', index: first.index },
         platform,
         params: { width: photo.width, height: photo.height },
-        options: ['crop_center', 'pad'],
-        recommended: 'crop_center',
+        options: ['crop', 'pad'],
+        recommended: 'crop',
+        // taller than 4:5 is cut to 4:5, wider than 1.91:1 to 1.91:1
+        crop: {
+          ratio:
+            ratio < L.instagramFeedMinRatio.value
+              ? L.instagramFeedMinRatio.value
+              : L.instagramFeedMaxRatio.value,
+          width: photo.width,
+          height: photo.height,
+        },
       })
   }
   if (view.type === 'carousel') {
@@ -81,8 +90,9 @@ function checkCover(view: PlatformView): RuleFinding[] {
       subject: { kind: 'cover' },
       platform,
       params: { width: a.width, height: a.height },
-      options: ['crop_center', 'keep'],
-      recommended: 'crop_center',
+      options: ['crop', 'keep'],
+      recommended: 'crop',
+      crop: { ratio: 9 / 16, width: a.width, height: a.height },
     })
   if (a.format !== 'jpeg' || a.colorSpace === 'other' || a.sizeBytes > L.coverMaxBytes.value)
     findings.push({

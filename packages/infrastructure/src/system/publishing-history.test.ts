@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import type { Tx } from '@app/application'
 import { emptyPublishingHistory } from './publishing-history.js'
 
-test('until stages 6–7 there is no post on any account', async () => {
+test('the empty history has no post on any account', async () => {
   const facts = await emptyPublishingHistory.forDestinations({} as Tx, {
     organizationId: 'org',
     accountIds: ['a', 'b'],

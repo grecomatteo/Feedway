@@ -111,11 +111,14 @@ export function context(
   over: {
     accounts?: Record<string, RuleAccount>
     history?: Partial<PublishingHistoryFacts>
+    purpose?: RuleContext['purpose']
+    timeZone?: string
   } = {},
 ): RuleContext {
   return {
+    purpose: over.purpose ?? 'draft',
     now: NOW,
-    timeZone: 'Europe/Rome',
+    timeZone: over.timeZone ?? 'Europe/Rome',
     workspaceId: 'workspace-1',
     accounts: new Map(
       Object.entries({
@@ -209,6 +212,29 @@ const story = (media: DraftMedia, rest: Partial<PostDraft> = {}) =>
 const carousel = (media: DraftMedia[], rest: Partial<PostDraft> = {}) =>
   draft({ type: 'carousel', media, ...rest })
 const photos = (n: number) => Array.from({ length: n }, () => photo())
+
+// a choice is keyed by the file's id (plan 06, Scelta 1)
+const longReelVideo = video(120_000)
+const longReel = draft({
+  type: 'reel',
+  media: [longReelVideo],
+  choices: [
+    {
+      key: `reel_too_long_for_facebook:media:${longReelVideo.mediaId}:facebook`,
+      option: 'publish_as_video',
+    },
+  ],
+})
+
+/** A 1000×2000 photo on Instagram only, its proportions answered with a crop box. */
+function cropped(crop: { x: number; y: number; width: number; height: number }) {
+  const tall = photo({ width: 1000, height: 2000 })
+  return draft({
+    media: [tall],
+    destinations: onlyIg,
+    choices: [{ key: `photo_aspect_ratio:media:${tall.mediaId}:instagram`, option: 'crop', crop }],
+  })
+}
 
 const duplicate = draft({ destinations: onlyFb })
 const duplicateSeen = postFingerprint(
@@ -735,6 +761,14 @@ export const RULE_CASES: RuleCase[] = [
     [block('scheduled_in_past', 'post')],
   ),
   c(
+    'past-publish',
+    'post',
+    'Data nel passato controllata dal worker al momento di pubblicare (D-54)',
+    draft({ when: { mode: 'at', localDate: '2026-11-16', localTime: '18:00' } }),
+    [],
+    context({ purpose: 'publish' }),
+  ),
+  c(
     'past-this-minute',
     'post',
     'Programmato per il minuto in corso (11:00 a Roma alle 11:00:30)',
@@ -896,7 +930,12 @@ export const RULE_CASES: RuleCase[] = [
       destinations: onlyFb,
       choices: [{ key: 'facebook_too_many_photos:post:facebook', option: 'first_files' }],
     }),
-    [chose(warning('facebook_too_many_photos', 'post', 'facebook'), 'first_files')],
+    // D-56: the two photos nobody publishes only say so
+    [
+      chose(warning('facebook_too_many_photos', 'post', 'facebook'), 'first_files'),
+      fix('media_unused', 'media:10'),
+      fix('media_unused', 'media:11'),
+    ],
     ctx,
     [{ accountId: FB, format: 'multi_photo', media: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }],
   ),
@@ -904,20 +943,52 @@ export const RULE_CASES: RuleCase[] = [
     'choice-fb-video',
     'post',
     'Reel di 2 minuti: su Facebook «come video normale»',
-    reel(
-      120_000,
-      {},
-      {
-        choices: [
-          { key: 'reel_too_long_for_facebook:media:0:facebook', option: 'publish_as_video' },
-        ],
-      },
-    ),
+    longReel,
     [chose(warning('reel_too_long_for_facebook', 'media:0', 'facebook'), 'publish_as_video')],
     ctx,
     [
       { accountId: IG, format: 'reel', media: [0] },
       { accountId: FB, format: 'video', media: [0] },
     ],
+  ),
+  c(
+    'choice-crop-box',
+    'proportions',
+    'Foto 1:2 su Instagram ritagliata a 4:5 spostando il riquadro (D-61)',
+    cropped({ x: 0, y: 0.2, width: 1, height: 0.625 }),
+    [chose(warning('photo_aspect_ratio', 'media:0', 'instagram'), 'crop')],
+  ),
+  c(
+    'choice-crop-outside',
+    'proportions',
+    'Foto 1:2 con il riquadro fuori dalla foto: la scelta non vale e l’avviso resta (D-61)',
+    cropped({ x: 0, y: 0.5, width: 1, height: 0.625 }),
+    [warning('photo_aspect_ratio', 'media:0', 'instagram')],
+  ),
+  c(
+    'media-unused',
+    'post',
+    'Carosello con un video non riuscito, solo su Facebook con «solo le foto»: il video non esce (D-56)',
+    carousel(
+      [
+        photo(),
+        video(
+          10_000,
+          { width: 1080, height: 1350 },
+          { status: 'failed', failure: { code: 'unreadable' } as never },
+        ),
+        photo(),
+      ],
+      {
+        destinations: onlyFb,
+        choices: [{ key: 'carousel_mixed_with_facebook:post:facebook', option: 'photos_only' }],
+      },
+    ),
+    [
+      chose(warning('carousel_mixed_with_facebook', 'post', 'facebook'), 'photos_only'),
+      fix('media_unused', 'media:1'),
+    ],
+    ctx,
+    [{ accountId: FB, format: 'multi_photo', media: [0, 2] }],
   ),
 ]

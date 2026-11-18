@@ -611,11 +611,14 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 | Post multi-foto FB oltre il limite di foto (da verificare) | Avviso |
 | Nessun account, o account fuori dallo spazio | Blocco |
 | Account non sano | Blocco |
-| Data nel passato | Blocco ("Pubblica ora") |
-| Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante |
+| Data nel passato | Blocco ("Pubblica ora"); non per il worker all'ora di pubblicazione (scopo `publish`, D-54) |
+| Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante, nel fuso del post (D-58) |
 | Quota IG: meno di 5 post rimasti nelle 24 h a quell'ora | Avviso |
 | Quota IG esaurita / più di 30 reel FB nelle 24 h | Blocco |
-| Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati) |
+| Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati); il post salvato non è mai doppione di sé stesso |
+| File che nessuna destinazione pubblica dopo le scelte (per esempio un video con «solo le foto» su Facebook) | Informazione «questo file non esce da nessuna parte», al posto dei suoi esiti (D-56) |
+
+Le scelte sugli avvisi di un file sono legate al file e non alla sua posizione: spostare o togliere un file non porta una scelta, né il riquadro di un ritaglio, su un'altra foto (piano 06, Scelta 1). Il riquadro di «Ritaglia» (D-61) ha le proporzioni del formato, sta dentro la foto e ha il lato corto di almeno 320 px dell'originale; un riquadro che non va lascia l'avviso da risolvere. Gli stessi controlli girano mentre si scrive (`draft`), al salvataggio (`save`) e nel worker prima di pubblicare (`publish`); con un post salvato valgono il suo fuso e i permessi su chi l'ha creato.
 
 **Nel worker, prima di pubblicare**
 - Il file è raggiungibile dall'URL pubblico; altrimenti "Meta non riesce a scaricare il file: controlla tunnel e dominio".
@@ -638,6 +641,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 - Ogni transizione in transazione con `SELECT … FOR UPDATE`.
 - Lo stato del post deriva dalle destinazioni (tutte confermate → Confermato; alcune fallite o con problema → Parziale).
 - Etichette e colori nel pannello: Bozza (grigio chiaro), Programmato (grigio), In pubblicazione (blu), In verifica (azzurro), Confermato (verde), Con problema / Fallito (rosso), In pausa (giallo).
+- **Riporta in bozza** (piano 06, P7): da `scheduled` si torna anche a `draft`, per chi ha `post.publish`, finché nessuna destinazione è in `preparing`; il post esce dal programma senza perdere nulla. Nella tappa 6 il modulo `posts` conosce solo `draft`, `scheduled` e `cancelled` (`domain/src/posts/transitions.ts`): una bozza si elimina, non si annulla; un post annullato si elimina e non si programma di nuovo.
 
 ### 9.4 Lavori in coda
 
@@ -812,6 +816,8 @@ Una sola pagina, su una colonna da telefono e su due da computer:
 
 Le bozze si salvano da sole. L'Editor può solo salvare bozze.
 
+**Salvataggio e programmazione** (piano 06, Task 4). Ogni azione dell'editor è una rotta (`…/workspaces/{id}/posts`, ADR 006). Una bozza si salva con qualunque problema, anche senza file, account o data. «Programma» e «Salva modifiche» di un post programmato rifanno i controlli di §9.2 sul post salvato (`purpose: 'save'`) nella stessa transazione che lo scrive, e rifiutano con 422 e l'esito dei controlli se resta un blocco o un avviso senza scelta: il pannello non è la sola difesa. Programmare, riportare in bozza e annullare chiedono `post.publish`, che il Publisher ha su tutti i post del cliente (`scheduled_by` dice chi l'ha fatto); cambiare il contenuto del post di un altro chiede `post.manage_others`; cambiare un post programmato chiede tutti e due. Ogni membro del cliente vede i post, il Viewer compreso; un post che si vede ma non si può toccare dà 403, uno di un altro cliente o di un'altra agenzia 404, come un file o un account di un altro cliente dentro un post. Il limite `posts_per_day` dell'agenzia si conta sul giorno locale nel fuso dell'agenzia. Il registro attività tiene la creazione, la programmazione, il ritorno in bozza, l'annullamento e l'eliminazione, non ogni salvataggio automatico.
+
 ### 11.3 Anteprima come su Meta
 
 Accanto al modulo, aggiornata mentre scrivi:
@@ -863,11 +869,13 @@ I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre ve
 
 Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinandoli su una cartella. I file **salvati in libreria** restano disponibili per il riuso; tutti gli altri vengono cancellati dopo la pubblicazione (§11.9). Lo spazio occupato è visibile per spazio.
 
+**I file dei post** (D-18, piano 06 P8): i file caricati dall'editor entrano nella libreria del cliente come gli altri. Ogni file dice il post che lo usa (`usedIn`, prima quello programmato), per l'etichetta «Nel post del …» o «In una bozza». Un file di un post programmato non si cancella (409 con il giorno del post), né la cartella che lo contiene; un file di una bozza sì, e la bozza lo mostra «non disponibile». Quando togliere i file dopo la pubblicazione si decide nella tappa 7.
+
 ### 11.9 Modifica, annullamento e pulizia
 
 - Un post programmato si modifica o annulla finché nessuna destinazione è in `preparing`; poi si annullano solo le destinazioni non ancora pubblicate.
 - Un post pubblicato non si modifica dal pannello; resta il link al post.
-- **Modifiche concorrenti**: se due persone modificano lo stesso post, il secondo salvataggio riceve "modificato da un altro utente, ricarica".
+- **Modifiche concorrenti**: se due persone modificano lo stesso post, il secondo salvataggio riceve "modificato da un altro utente, ricarica". Ogni scrittura porta la `version` letta; se è cambiata la risposta è 409 con il motivo `post_version_conflict` e il testo «Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova» (piano 06, Task 4).
 - File non in libreria cancellati `MEDIA_RETENTION_DAYS` (default 7) dopo che tutte le destinazioni sono concluse; resta una miniatura. Bozze abbandonate: 30 giorni.
 - Le anteprime dei post programmati restano fino alla pubblicazione, per calendario e link cliente.
 
@@ -992,6 +1000,8 @@ ID UUID v7. Tutte le tabelle hanno `created_at` e `updated_at` (`timestamptz`). 
 -- Piattaforma e organizzazioni
 organizations       id, name, slug (unico), status (active|suspended), limits (jsonb),
                     settings (jsonb), suspended_at
+                    -- settings: require2fa, privacy e timezone (IANA, fuso dei post nuovi;
+                    -- assente = Europe/Rome; lo cambia l'Owner, D-58, piano 06 P4)
 organization_members organization_id, user_id, role (owner|admin|member),
                     status (active|disabled)
 organization_keys   organization_id, version, key_enc, created_at, retired_at
@@ -1086,14 +1096,21 @@ posts               id, workspace_id, type (photo|carousel|reel|story), caption,
                     caption_by_platform (jsonb: testo per piattaforma, es. instagram, facebook; vuoto = testo comune),
                     scheduled_at, timezone, status (derivato), options (jsonb),
                     created_by, scheduled_by, updated_by, version
+                    -- timezone: copiato da organizations.settings.timezone alla creazione (D-58)
+                    -- options: { shareToFeed, choices } (piano 06 P5)
 post_media          post_id, media_id, position,
                     cover_media_id, cover_offset_ms   -- solo reel: immagine caricata o fotogramma
-post_targets        id, post_id, account_id, variant, status, step, meta_ids (jsonb),
+post_targets        id, post_id, account_id, variant, status, step, fingerprint, meta_ids (jsonb),
                     external_post_id, permalink, attempts, next_attempt_at,
                     last_error_code, last_error_message, published_at,
                     verified_at, verification (jsonb)
+                    -- fingerprint: sha256 esadecimale di postFingerprint dopo le scelte, scritto
+                    -- alla programmazione; i doppioni si leggono con un indice (piano 06 P3)
+                    -- account_id: chiave composta verso social_accounts dell'agenzia, non verso
+                    -- workspace_accounts: un account tolto dal cliente non cancella le bozze
 target_attempts     id, target_id, step, outcome, meta_error_code, duration_ms, created_at
-labels              id, workspace_id, name, color
+labels              id, workspace_id, name (1–40, unico nel cliente),
+                    color (uno dei temi: feedway|blu|verde|viola|grafite)
 post_labels         post_id, label_id
 post_notes          id, post_id, author_id, body
 caption_templates   id, workspace_id, kind (caption|signature|hashtags), name, body

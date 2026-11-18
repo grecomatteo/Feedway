@@ -3,6 +3,7 @@ import {
   checkOrganizationName,
   checkPrivacySettings,
   mergeSettings,
+  storedTimeZone,
   organizationName,
 } from './settings.js'
 
@@ -94,4 +95,13 @@ test('the privacy controller data is checked and trimmed', () => {
   expect(refused({ controllerName: 'Rossi', contactEmail: 'a@b.it', extraText: 'a‮b' })).toBe(
     'privacy.extraText',
   )
+})
+
+test('storedTimeZone is Rome until the agency chooses another, and for a value this runtime does not know', () => {
+  expect(storedTimeZone({})).toBe('Europe/Rome')
+  expect(storedTimeZone({ timezone: 'Mars/Olympus' })).toBe('Europe/Rome')
+  expect(storedTimeZone({ timezone: 42 })).toBe('Europe/Rome')
+  expect(storedTimeZone({ timezone: '+01:00' })).toBe('Europe/Rome')
+  expect(storedTimeZone({ timezone: 'UTC' })).toBe('UTC')
+  expect(storedTimeZone({ timezone: 'America/New_York' })).toBe('America/New_York')
 })

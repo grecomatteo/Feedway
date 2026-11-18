@@ -307,7 +307,7 @@ Disegno del 18 novembre 2026, **approvato da Matteo il 18 novembre 2026** (tutte
 
 ### Domande per Matteo (tutte decise il 18/11)
 
-Erano la voce D-68 di `docs/decisioni-aperte.md`, chiusa con l'approvazione.
+Erano la voce D-73 di `docs/decisioni-aperte.md`, chiusa con l'approvazione.
 
 1. **Nome del primo tipo:** deciso da Matteo il 18/11: «Foto» (specifica §11.2).
 2. **Dove sta il riepilogo delle destinazioni:** deciso da Matteo il 18/11: in fondo al modulo, con «Scegli cosa fare per 1 avviso» nella barra che porta lì.

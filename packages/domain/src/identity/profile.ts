@@ -64,6 +64,17 @@ export function validateCrop(
 }
 
 /** A time zone the runtime knows by its IANA name (`Europe/Rome`); `Europe/Roma` is not one. */
+/**
+ * A time zone of the IANA list as this runtime names it (`Intl.supportedValuesOf`), or UTC:
+ * never an offset (`+01:00`) nor a spelling of another case, so a stored value is canonical.
+ */
+export function isListedTimeZone(value: string): boolean {
+  return value === 'UTC' || listedTimeZones().has(value)
+}
+
+let listed: ReadonlySet<string> | undefined
+const listedTimeZones = () => (listed ??= new Set(Intl.supportedValuesOf('timeZone')))
+
 export function isValidTimeZone(value: string): boolean {
   if (value === '' || value.length > 64) return false
   try {

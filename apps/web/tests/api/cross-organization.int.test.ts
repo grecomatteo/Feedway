@@ -102,7 +102,7 @@ test('every id a request carries gets its own case', () => {
   // a request that names a workspace or a person and has no case would be skipped in silence
   for (const r of orgRequests)
     if (
-      /\{(id|userId|inviteId|connectionId|accountId|mediaId|uploadId|folderId)\}/.test(
+      /\{(id|userId|inviteId|connectionId|accountId|mediaId|uploadId|folderId|postId)\}/.test(
         r.route.path,
       ) ||
       r.withQuery
@@ -260,4 +260,25 @@ test('a choice its warning does not offer is a wrong body: 422 (D-54)', async ()
   })
   const right = await fx.env.call('POST', path, body('accept'), { cookie: fx.cookies.owner })
   expect(right.status).toBe(200)
+})
+
+// Last in this file: the person who spends the allowance has none left for a minute.
+test('two people behind one address have each their own 120 checks a minute (D-57)', async () => {
+  const idsOfA = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
+  const path = `/api/v1/orgs/${idsOfA.org}/workspaces/${idsOfA.workspace}/post-checks`
+  const body = {
+    type: 'reel',
+    mediaIds: [idsOfA.media],
+    caption: { common: 'Il pane di oggi' },
+    destinations: [{ accountId: idsOfA.account }],
+    when: { mode: 'now' },
+    choices: [],
+  }
+  const headers = { 'x-forwarded-for': '6.6.6.42' }
+  const check = (cookie: string) => fx.env.call('POST', path, body, { cookie, headers })
+  const statuses: number[] = []
+  for (let n = 0; n < 121; n++) statuses.push((await check(fx.cookies.admin)).status)
+  expect(statuses.slice(0, 120).every((s) => s === 200)).toBe(true)
+  expect(statuses[120]).toBe(429)
+  expect((await check(fx.cookies.editor)).status).toBe(200)
 })

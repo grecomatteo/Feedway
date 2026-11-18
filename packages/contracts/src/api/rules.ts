@@ -10,6 +10,7 @@ import { defineContract } from './define.js'
 export const POST_CHECK_TYPES = ['photo', 'carousel', 'reel', 'story'] as const
 export const POST_CHECK_OPTIONS = [
   'keep',
+  'crop',
   'crop_center',
   'pad',
   'convert',
@@ -38,7 +39,7 @@ export const POST_CHECK_LIMITS = {
  * Counted in code points, as the rules count (D-46): an emoji is one character, not two. The
  * bound in UTF-16 units comes first, so a huge string is refused before it is walked.
  */
-const Caption = z
+export const Caption = z
   .string()
   .max(POST_CHECK_LIMITS.captionCharacters * 2)
   .refine((text) => Array.from(text).length <= POST_CHECK_LIMITS.captionCharacters, {
@@ -46,36 +47,53 @@ const Caption = z
   })
 
 /** A whole day of the calendar and a time of it, as Rome's clock shows them. */
-const LocalDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-const LocalTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+/** Years 2000 to 2099: a far year would give an instant JSON cannot write (+010000-…). */
+export const LocalDate = z.string().regex(/^20\d{2}-\d{2}-\d{2}$/)
+export const LocalTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+
+const Fraction = z.number().min(0).max(1)
+
+/** The answer to a warning; with `crop`, the box on the original, in fractions (D-61). */
+export const RuleChoiceBody = z.strictObject({
+  key: z.string().min(1).max(300),
+  option: z.enum(POST_CHECK_OPTIONS),
+  crop: z.strictObject({ x: Fraction, y: Fraction, width: Fraction, height: Fraction }).optional(),
+})
+
+/** A reel's cover: a frame of the video (its offset) or a photo of the library. */
+export const PostCoverBody = z.discriminatedUnion('source', [
+  z.strictObject({
+    source: z.literal('frame'),
+    offsetMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(15 * 60_000),
+  }),
+  z.strictObject({ source: z.literal('image'), mediaId: Id }),
+])
+
+/**
+ * The common text, and the text of a platform that has its own. A platform's text left empty
+ * or blank is no text of its own: the common one goes out there (D-53).
+ */
+export const PostCaptionBody = z.strictObject({
+  common: Caption,
+  instagram: Caption.optional(),
+  facebook: Caption.optional(),
+})
 
 export const PostCheckRequest = z.strictObject({
   type: z.enum(POST_CHECK_TYPES),
   /** the files of the post, in its order */
   mediaIds: z.array(Id).max(POST_CHECK_LIMITS.media),
   /** a reel's cover: a frame of the video (its offset) or a photo of the library */
-  cover: z
-    .discriminatedUnion('source', [
-      z.strictObject({
-        source: z.literal('frame'),
-        offsetMs: z
-          .number()
-          .int()
-          .min(0)
-          .max(15 * 60_000),
-      }),
-      z.strictObject({ source: z.literal('image'), mediaId: Id }),
-    ])
-    .optional(),
+  cover: PostCoverBody.optional(),
   /**
    * The common text, and the text of a platform that has its own. A platform's text left
    * empty or blank is no text of its own: the common one goes out there (D-53).
    */
-  caption: z.strictObject({
-    common: Caption,
-    instagram: Caption.optional(),
-    facebook: Caption.optional(),
-  }),
+  caption: PostCaptionBody,
   destinations: z.array(z.strictObject({ accountId: Id })).max(POST_CHECK_LIMITS.destinations),
   /** «Pubblica ora», or a day and a time in Rome */
   when: z.discriminatedUnion('mode', [
@@ -85,9 +103,12 @@ export const PostCheckRequest = z.strictObject({
   /** a reel also in the feed; true when left out */
   shareToFeed: z.boolean().optional(),
   /** the answers to the warnings, by their key */
-  choices: z
-    .array(z.strictObject({ key: z.string().min(1).max(300), option: z.enum(POST_CHECK_OPTIONS) }))
-    .max(POST_CHECK_LIMITS.choices),
+  choices: z.array(RuleChoiceBody).max(POST_CHECK_LIMITS.choices),
+  /**
+   * The saved post this is (D-54): never a duplicate of itself, and only its author or someone
+   * who may change it checks it.
+   */
+  postId: Id.optional(),
 })
 
 export type PostCheckRequest = z.infer<typeof PostCheckRequest>
@@ -114,6 +135,8 @@ export const RuleOutcome = z.object({
   chosen: z.enum(POST_CHECK_OPTIONS).optional(),
   /** an action of the editor that removes the block */
   action: z.literal('publish_now').optional(),
+  /** with the option `crop`: the box's proportions, width over height (D-61) */
+  cropRatio: z.number().optional(),
 })
 
 export const DestinationSummary = z.object({

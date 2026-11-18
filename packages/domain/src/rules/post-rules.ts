@@ -173,7 +173,8 @@ function whenRules(when: ResolvedWhen, ctx: RuleContext): RuleFinding[] {
   if (!when.scheduled) return []
   const post = { kind: 'post' } as const
   // the time is HH:MM: a post for the minute in progress is already past
-  if (when.instant.getTime() <= ctx.now.getTime())
+  // the worker publishes a post at its time, or a little after it (D-54)
+  if (ctx.purpose !== 'publish' && when.instant.getTime() <= ctx.now.getTime())
     return [{ level: 'block', code: 'scheduled_in_past', subject: post, action: 'publish_now' }]
   if (when.adjustment === 'none') return []
   const { localTime, offset } = instantToZoned(when.instant, ctx.timeZone)
@@ -182,7 +183,8 @@ function whenRules(when: ResolvedWhen, ctx: RuleContext): RuleFinding[] {
       level: 'warning',
       code: when.adjustment === 'skipped_forward' ? 'time_skipped' : 'time_ambiguous',
       subject: post,
-      params: { time: localTime, offset },
+      // the panel names the zone from these (D-58): «ora legale dell'Europa centrale»
+      params: { time: localTime, offset, timeZone: ctx.timeZone, at: when.instant.toISOString() },
       options: ['accept'],
       recommended: 'accept',
     },

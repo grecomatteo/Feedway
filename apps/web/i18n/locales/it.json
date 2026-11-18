@@ -219,7 +219,10 @@
   "errorReasons": {
     "use_existing_factor": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella.",
     "upload_completing": "Il file si sta già completando: riprova tra poco",
-    "upload_parts_missing": "Mancano dei pezzi del file"
+    "upload_parts_missing": "Mancano dei pezzi del file",
+    "post_version_conflict": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova",
+    "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
+    "media_in_scheduled_post": "Questo file è in un post programmato: toglilo dal post o annulla il post prima di eliminarlo"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -873,6 +876,12 @@
       "account_unassigned": "ha tolto un account social da un cliente",
       "media_deleted": "ha eliminato un file della libreria",
       "media_retried": "ha preparato di nuovo un file della libreria",
+      "post_created": "ha creato un post",
+      "post_updated": "ha modificato un post programmato",
+      "post_scheduled": "ha programmato un post",
+      "post_unscheduled": "ha riportato in bozza un post",
+      "post_cancelled": "ha annullato un post",
+      "post_deleted": "ha eliminato un post",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",
@@ -885,6 +894,7 @@
       "user_role_changed": "ha cambiato un ruolo",
       "workspace_created": "ha creato un cliente",
       "workspace_renamed": "ha rinominato un cliente",
+      "workspace_settings_changed": "ha cambiato le impostazioni dei contenuti di un cliente",
       "workspace_archived": "ha archiviato un cliente",
       "workspace_member_added": "ha aggiunto una persona a un cliente",
       "workspace_member_removed": "ha tolto una persona da un cliente",
@@ -1631,6 +1641,7 @@
     },
     "options": {
       "keep": "Usa così",
+      "crop": "Ritaglia",
       "crop_center": "Ritaglia al centro",
       "pad": "Aggiungi le bande",
       "convert": "Converti",
@@ -1736,11 +1747,11 @@
     },
     "time_skipped": {
       "title": "Ora che quel giorno non esiste",
-      "text": "Quella notte alle 2 gli orologi vanno avanti di un'ora, quindi l'ora scelta non esiste. Il post uscirà alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+      "text": "Quella notte gli orologi vanno avanti di un'ora per il cambio dell'ora, quindi l'ora scelta non esiste. Il post uscirà alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
     },
     "time_ambiguous": {
       "title": "Ora che quel giorno capita due volte",
-      "text": "Quella notte alle 3 gli orologi tornano indietro di un'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
+      "text": "Quella notte gli orologi tornano indietro di un'ora per il cambio dell'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle {time} ({zone}). Va bene, oppure scegli un'altra ora."
     },
     "story_caption_ignored": {
       "title": "Le storie non hanno testo",
@@ -1756,7 +1767,7 @@
     },
     "photo_aspect_ratio": {
       "title": "Foto troppo alta o troppo larga per il feed",
-      "text": "Nel feed di {platform} una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è {width}×{height}. Scegli se ritagliarla al centro o aggiungere delle bande."
+      "text": "Nel feed di {platform} una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è {width}×{height}. Scegli se ritagliarla, spostando il riquadro dove vuoi, o aggiungere delle bande."
     },
     "carousel_mixed_ratios": {
       "title": "File di forme diverse nel carosello",
@@ -1772,7 +1783,7 @@
     },
     "cover_aspect_ratio": {
       "title": "Copertina non verticale",
-      "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla al centro o usarla così."
+      "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla, spostando il riquadro dove vuoi, o usarla così."
     },
     "cover_on_facebook": {
       "title": "Copertina non ancora provata su {platform}",
@@ -1845,6 +1856,10 @@
     "cover_converted": {
       "title": "Copertina convertita",
       "text": "La copertina viene convertita in JPEG, con i colori standard e un peso entro {limit}."
+    },
+    "media_unused": {
+      "title": "File che non esce",
+      "text": "Questo file non esce da nessuna parte: puoi toglierlo."
     }
   }
 }

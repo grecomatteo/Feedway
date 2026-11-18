@@ -36,6 +36,9 @@ export type PostWhen = { mode: 'now' } | { mode: 'at'; localDate: string; localT
 export const RULE_OPTIONS = [
   /** take the photo or video as it is */
   'keep',
+  /** a photo or a cover cut to the format: the box of the choice (D-61), or the centre */
+  'crop',
+  /** a reel's video cut at the centre */
   'crop_center',
   /** fit it with bands */
   'pad',
@@ -56,11 +59,28 @@ export const RULE_OPTIONS = [
 ] as const
 export type RuleOption = (typeof RULE_OPTIONS)[number]
 
+/**
+ * A box on the original, in fractions from 0 to 1 of its width and height (D-61): it does not
+ * depend on the copies.
+ */
+export interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 /** The answer to a warning, by its stable key (`RuleOutcome.key`). Saved with the post in stage 6. */
 export interface RuleChoice {
   key: string
   option: RuleOption
+  /** with `crop`: where to cut; missing, the centre */
+  crop?: CropRect
 }
+
+/** Who checks (D-54): the editor while writing, a save that schedules, the worker before it publishes. */
+export const CHECK_PURPOSES = ['draft', 'save', 'publish'] as const
+export type CheckPurpose = (typeof CHECK_PURPOSES)[number]
 
 export interface PostDraft {
   type: PostType
@@ -87,15 +107,17 @@ export interface RuleAccount {
 
 /** What is already published or scheduled (R4: empty until stages 6–7). */
 export interface PublishingHistoryFacts {
-  /** `postFingerprint` of the posts of the last 7 days, by account */
+  /** `postFingerprint` of the posts within 7 days of the instant, by account */
   recentFingerprints: ReadonlyMap<string, ReadonlySet<string>>
-  /** reels in the 24 hours around the instant, by account */
+  /** reels in the 24 hours before the instant, the instant included, by account (D-69) */
   reelsLast24h: ReadonlyMap<string, number>
-  /** posts scheduled in the 24 hours before the instant, by account */
+  /** posts scheduled in the 24 hours before the instant, the instant included, by account (D-69) */
   scheduledNear: ReadonlyMap<string, number>
 }
 
 export interface RuleContext {
+  /** with `publish` a date already past is no block: the worker publishes at the post's time */
+  purpose: CheckPurpose
   now: Date
   timeZone: string
   workspaceId: string
@@ -168,6 +190,8 @@ export const RULE_CODES = [
   'file_convert_audio_for_reels',
   'story_recompressed',
   'cover_converted',
+  /** a file no destination publishes after the choices (D-56) */
+  'media_unused',
 ] as const
 export type RuleCode = (typeof RULE_CODES)[number]
 
@@ -175,7 +199,11 @@ export type RuleCode = (typeof RULE_CODES)[number]
 export type RuleSubject =
   | { kind: 'post' }
   | { kind: 'destination'; accountId: string }
-  /** the file at that index of `draft.media` */
+  /**
+   * The file at that index of `draft.media`. Its key is the file's id (`media:<id>`, with
+   * `:<n>` from the second time the same file comes): a choice follows its file when the
+   * files move.
+   */
   | { kind: 'media'; index: number }
   | { kind: 'cover' }
 
@@ -197,6 +225,8 @@ export interface RuleOutcome {
   chosen?: RuleOption
   /** an action of the editor that removes the block, e.g. «Pubblica ora» */
   action?: 'publish_now'
+  /** with the option `crop`: the proportions of the box, width over height (D-61) */
+  cropRatio?: number
 }
 
 /** How a choice changes the post on one platform (plan 05: applied, then evaluated again). */
@@ -217,6 +247,8 @@ export interface RuleFinding {
   recommended?: RuleOption
   action?: 'publish_now'
   effects?: Partial<Record<RuleOption, PostEffect>>
+  /** with the option `crop`: the box's proportions and the original's size, to check a box */
+  crop?: { ratio: number; width: number; height: number }
 }
 
 /** A file of the post as one platform will take it, with its index in `draft.media`. */
@@ -266,6 +298,8 @@ export interface DestinationSummary {
   caption: string
   /** the files it will publish, as indices of `draft.media` */
   media: number[]
+  /** `postFingerprint` of what it publishes (P3); null while a file's sha256 is unknown */
+  fingerprint: string | null
   /** the keys of the outcomes that touch it: each outcome is once, in `RuleReport.outcomes` */
   outcomeKeys: string[]
 }

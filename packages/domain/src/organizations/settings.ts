@@ -1,5 +1,6 @@
 import { isPlainDisplayName } from '../identity/display-name.js'
 import { normalizeEmail } from '../identity/email.js'
+import { isListedTimeZone } from '../identity/profile.js'
 import type { TwoFactorPolicy } from '../identity/second-factor-policy.js'
 
 export interface OrganizationPrivacySettings {
@@ -11,6 +12,17 @@ export interface OrganizationPrivacySettings {
 export interface OrganizationSettings {
   require2fa?: TwoFactorPolicy
   privacy?: OrganizationPrivacySettings
+  /** IANA: the time zone of the agency's new posts (D-58); missing = Europe/Rome */
+  timezone?: string
+}
+
+/** The time zone of an agency's posts until its Owner chooses another (D-58). */
+export const DEFAULT_POST_TIME_ZONE = 'Europe/Rome'
+
+/** What an agency stored, if it is a time zone this runtime knows; Rome otherwise. */
+export function storedTimeZone(settings: Record<string, unknown>): string {
+  const value = settings.timezone
+  return typeof value === 'string' && isListedTimeZone(value) ? value : DEFAULT_POST_TIME_ZONE
 }
 
 // Keys present in the patch replace the current value; `privacy` is replaced as a whole.

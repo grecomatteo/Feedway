@@ -110,6 +110,11 @@ export const ApiErrorBody = z.object({
     requestId: z.string(),
     issues: z.array(ApiIssue).optional(),
     reason: z.string().optional(),
+    /**
+     * With the reason `post_not_schedulable` (422): the checks of the saved post, as
+     * `post-checks` answers them (`PostCheckResponse`), so the editor shows what to fix.
+     */
+    report: z.record(z.string(), z.unknown()).optional(),
   }),
 })
 export type ApiErrorBody = z.infer<typeof ApiErrorBody>

@@ -7,6 +7,7 @@ import type {
 import type { AuditLog } from './audit-log.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
+import type { PostRepository } from './posts.js'
 import type { UploadSessionsRepository } from './uploads.js'
 import type {
   BrandingRepository,
@@ -56,5 +57,6 @@ export interface Tx {
   workspaceAccounts: WorkspaceAccountsRepository
   media: MediaRepository
   uploads: UploadSessionsRepository
+  posts: PostRepository
   audit: AuditLog
 }

@@ -13,6 +13,7 @@ export {
   listWorkspaces,
   lockVisibleWorkspace,
   renameWorkspace,
+  setDefaultPostTime,
   workspaceNotFound,
 } from './workspaces.js'
 export type { WorkspaceDto, WorkspacesDeps } from './workspaces.js'

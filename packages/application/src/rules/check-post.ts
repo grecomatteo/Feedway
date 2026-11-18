@@ -1,6 +1,9 @@
 import {
+  DEFAULT_POST_TIME_ZONE,
   DomainError,
   can,
+  storedTimeZone,
+  type CheckPurpose,
   evaluatePost,
   resolveWhen,
   type DraftMedia,
@@ -20,6 +23,7 @@ import { isUuid } from '../identity/index.js'
 import { getMediaForRules } from '../media/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { PublishingHistory } from '../ports/publishing-history.js'
+import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { currentActor, workspaceNotFound } from '../workspaces/index.js'
 
@@ -27,8 +31,8 @@ import { currentActor, workspaceNotFound } from '../workspaces/index.js'
 // writes nothing and leaves nothing in the activity log. The editor of stage 6 calls it while
 // the post is written and when it is saved, the worker of stage 7 before it publishes.
 
-/** The time zone of the posts (general plan §4): every date of a post is Rome's. */
-export const POST_TIME_ZONE = 'Europe/Rome'
+/** The time zone of a post until its agency chooses another (D-58): the column's default. */
+export const POST_TIME_ZONE = DEFAULT_POST_TIME_ZONE
 
 export interface CheckPostDeps {
   uow: UnitOfWork
@@ -50,7 +54,16 @@ export interface PostCheckInput {
   /** a reel also in the feed (§9.1) */
   shareToFeed: boolean
   choices: readonly RuleChoice[]
+  /** who checks (D-54); the editor's `draft` when left out */
+  purpose?: CheckPurpose
+  /**
+   * The saved post this is: left out of the history (never a duplicate of itself), its own
+   * time zone, and only who may change or schedule it checks it.
+   */
+  postId?: string
 }
+
+const postNotFound = () => new DomainError('NOT_FOUND', 'Post non trovato')
 
 /**
  * A file that is not the workspace's (deleted, of another workspace or agency, or no such
@@ -76,39 +89,90 @@ export async function checkPost(
   actor: OrgActor,
   input: PostCheckInput,
 ): Promise<RuleReport> {
-  const { organizationId } = actor
   if (!isUuid(input.workspaceId)) throw workspaceNotFound()
+  if (input.postId !== undefined && !isUuid(input.postId)) throw postNotFound()
   const now = deps.clock.now()
-  // an impossible date (30 February) is refused before anything is read
-  const at = resolveWhen(input.when, now, POST_TIME_ZONE).instant
+  const read = await deps.uow.run(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    (tx) => readForCheck(tx, deps, actor, input, now),
+  )
+  return evaluate(deps, input, read, now)
+}
+
+/**
+ * The same checks inside the caller's transaction: the posts module saves what it checked
+ * (plan 06 Task 4), with the post locked from the check to the write.
+ */
+export async function checkPostInTx(
+  tx: Tx,
+  deps: Omit<CheckPostDeps, 'uow'>,
+  actor: OrgActor,
+  input: PostCheckInput,
+): Promise<RuleReport> {
+  if (!isUuid(input.workspaceId)) throw workspaceNotFound()
+  if (input.postId !== undefined && !isUuid(input.postId)) throw postNotFound()
+  const now = deps.clock.now()
+  return evaluate(deps, input, await readForCheck(tx, deps, actor, input, now), now)
+}
+
+async function readForCheck(
+  tx: Tx,
+  deps: Pick<CheckPostDeps, 'publishingHistory'>,
+  actor: OrgActor,
+  input: PostCheckInput,
+  now: Date,
+) {
+  const { organizationId } = actor
   const accountIds = input.destinations.map((d) => d.accountId)
   const coverId = input.cover?.source === 'image' ? input.cover.mediaId : null
-
-  const read = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const current = await currentActor(tx, actor)
-    const workspace = await tx.workspaces.findVisibleById(current, input.workspaceId)
+  const current = await currentActor(tx, actor)
+  const workspace = await tx.workspaces.findVisibleById(current, input.workspaceId)
+  if (!workspace || !can(current, 'post.draft', { organizationId, workspaceId: input.workspaceId }))
+    throw workspaceNotFound()
+  // nothing goes out of an archived client: the worker of stage 7 checks again with this
+  if (workspace.archivedAt !== null)
+    throw new DomainError('CONFLICT', 'Il cliente è archiviato: non si programmano post')
+  const scope = { organizationId, workspaceId: workspace.id }
+  let timeZone: string
+  if (input.postId === undefined) {
+    const organization = await tx.organizations.findById(organizationId)
+    timeZone = organization ? storedTimeZone(organization.settings) : POST_TIME_ZONE
+  } else {
+    const post = await tx.posts.find(scope, input.postId)
+    if (!post) throw postNotFound()
+    const resource = { ...scope, ownerId: post.createdBy }
+    // every member sees the post (§10.2): one they may not touch is 403, not 404
     if (
-      !workspace ||
-      !can(current, 'post.draft', { organizationId, workspaceId: input.workspaceId })
+      !can(current, 'post.draft', resource) &&
+      !can(current, 'post.manage_others', resource) &&
+      !can(current, 'post.publish', resource)
     )
-      throw workspaceNotFound()
-    // nothing goes out of an archived client: the worker of stage 7 checks again with this
-    if (workspace.archivedAt !== null)
-      throw new DomainError('CONFLICT', 'Il cliente è archiviato: non si programmano post')
-    const scope = { organizationId, workspaceId: workspace.id }
-    const media = await getMediaForRules(tx, scope, [
-      ...input.mediaIds,
-      ...(coverId ? [coverId] : []),
-    ])
-    const accounts = await getAccountsForRules(tx, scope, accountIds)
-    const history = await deps.publishingHistory.forDestinations(tx, {
-      organizationId,
-      accountIds: [...accounts.keys()],
-      at,
-    })
-    return { workspaceId: workspace.id, media, accounts, history }
+      throw new DomainError('FORBIDDEN', 'Questo post è di un’altra persona: non puoi controllarlo')
+    timeZone = post.timezone
+  }
+  // an impossible date (30 February) is refused before anything else is read
+  const at = resolveWhen(input.when, now, timeZone).instant
+  const media = await getMediaForRules(tx, scope, [
+    ...input.mediaIds,
+    ...(coverId ? [coverId] : []),
+  ])
+  const accounts = await getAccountsForRules(tx, scope, accountIds)
+  const history = await deps.publishingHistory.forDestinations(tx, {
+    organizationId,
+    accountIds: [...accounts.keys()],
+    at,
+    ...(input.postId === undefined ? {} : { excludePostId: input.postId }),
   })
+  return { workspaceId: workspace.id, media, accounts, history, timeZone }
+}
 
+function evaluate(
+  deps: Pick<CheckPostDeps, 'platformRules'>,
+  input: PostCheckInput,
+  read: Awaited<ReturnType<typeof readForCheck>>,
+  now: Date,
+): RuleReport {
+  const purpose = input.purpose ?? 'draft'
   const fileKind: MediaKind = input.type === 'reel' ? 'video' : 'image'
   // a file deleted from this workspace says no more than one of another agency
   const fileOf = (id: string, kind: MediaKind) => {
@@ -133,8 +197,9 @@ export async function checkPost(
     choices: [...input.choices],
   }
   return evaluatePost(draft, {
+    purpose,
     now,
-    timeZone: POST_TIME_ZONE,
+    timeZone: read.timeZone,
     workspaceId: read.workspaceId,
     accounts: read.accounts,
     history: read.history,

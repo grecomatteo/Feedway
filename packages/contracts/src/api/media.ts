@@ -58,6 +58,17 @@ export const MediaDto = z.object({
   createdAt: Timestamp,
   folderId: Id.nullable(),
   tags: z.array(z.string()),
+  /**
+   * A post that uses the file (D-18), the scheduled one first: the library's «Nel post del …».
+   * A file of a scheduled post is not deleted (409).
+   */
+  usedIn: z
+    .object({
+      postId: Id,
+      status: z.enum(['draft', 'scheduled', 'cancelled']),
+      scheduledAt: Timestamp.nullable(),
+    })
+    .nullable(),
   variants: z.array(
     z.object({
       purpose: VariantPurpose,

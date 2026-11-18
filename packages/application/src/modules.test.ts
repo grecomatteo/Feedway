@@ -3,14 +3,8 @@ import { expect, test } from 'vitest'
 import type { QueueName } from './ports/job-queue.js'
 import { MODULES, userAnonymizedHandlers } from './modules.js'
 
-// Permissions of modules not written yet (stages 3–7): listed so a new one is never forgotten.
-const FUTURE_PERMISSIONS = [
-  'post.draft',
-  'post.publish',
-  'post.manage_others',
-  'post.retry',
-  'share_link.manage',
-]
+// Permissions of modules not written yet (stages 7–8): listed so a new one is never forgotten.
+const FUTURE_PERMISSIONS = ['post.retry', 'share_link.manage']
 
 // Every queue: the Record type fails to compile when a queue is added without an entry here.
 const ALL_QUEUES: Record<QueueName, true> = {

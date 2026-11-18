@@ -31,7 +31,14 @@ test('Owner creates, lists, renames and archives workspaces', async () => {
   const created = await env.call('POST', base, { name: 'Clienti Nord' }, { cookie })
   expect(created.status).toBe(200)
   const ws = (await created.json()) as WorkspaceJson
-  expect(Object.keys(ws).sort()).toEqual(['archivedAt', 'id', 'myRole', 'name', 'slug'])
+  expect(Object.keys(ws).sort()).toEqual([
+    'archivedAt',
+    'defaultPostTime',
+    'id',
+    'myRole',
+    'name',
+    'slug',
+  ])
   expect(ws).toMatchObject({ name: 'Clienti Nord', archivedAt: null, myRole: 'owner' })
   expect(
     (await env.call('POST', base, { name: 'X', organizationId: randomUUID() }, { cookie })).status,

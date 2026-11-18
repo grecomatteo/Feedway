@@ -8,6 +8,7 @@ import {
   type MediaProgress,
   type MediaStatus,
   type OrgActor,
+  type PostStatus,
   type VariantPurpose,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
@@ -54,14 +55,42 @@ export interface MediaDto {
   folderId: string | null
   tags: string[]
   variants: MediaVariantDto[]
+  /** a post that uses the file, the scheduled one first (D-18): «Nel post del …» */
+  usedIn: { postId: string; status: PostStatus; scheduledAt: string | null } | null
+}
+
+type MediaUse = Awaited<ReturnType<Tx['posts']['usingMedia']>>[number]
+
+/** The first post that uses each file: the repository gives the scheduled ones first. */
+async function usesOf(
+  tx: Tx,
+  organizationId: string,
+  mediaIds: readonly string[],
+): Promise<Map<string, MediaUse>> {
+  const uses = new Map<string, MediaUse>()
+  for (const use of await tx.posts.usingMedia(organizationId, mediaIds))
+    if (!uses.has(use.mediaId)) uses.set(use.mediaId, use)
+  return uses
 }
 
 export const mediaNotFound = () => new DomainError('NOT_FOUND', 'File non trovato')
 
 const MAX_PAGE = 100
 
-export function toDto(record: MediaRecord, variants: readonly MediaVariantRecord[]): MediaDto {
+export function toDto(
+  record: MediaRecord,
+  variants: readonly MediaVariantRecord[],
+  uses: ReadonlyMap<string, MediaUse>,
+): MediaDto {
+  const use = uses.get(record.id)
   return {
+    usedIn: use
+      ? {
+          postId: use.postId,
+          status: use.status,
+          scheduledAt: use.scheduledAt === null ? null : use.scheduledAt.toISOString(),
+        }
+      : null,
     id: record.id,
     kind: record.kind,
     status: record.status,
@@ -155,8 +184,13 @@ export async function listMedia(
       items.map((m) => m.id),
     )
     const used = await tx.media.storageUsed(organizationId, workspace.id)
+    const uses = await usesOf(
+      tx,
+      organizationId,
+      items.map((m) => m.id),
+    )
     return {
-      items: items.map((m) => toDto(m, variants)),
+      items: items.map((m) => toDto(m, variants, uses)),
       next: page.length > limit ? (items.at(-1)?.id ?? null) : null,
       usedBytes: used.workspace,
       tags: await tx.media.tagsOf(organizationId, workspace.id),
@@ -188,8 +222,17 @@ export async function getMedia(
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
     const found = await liveMedia(tx, organizationId, workspace.id, input.mediaId)
-    return toDto(found, await tx.media.variantsOf(organizationId, [found.id]))
+    return mediaDto(tx, organizationId, found)
   })
+}
+
+/** One file as the panel sees it, with its copies and the post that uses it. */
+export async function mediaDto(tx: Tx, organizationId: string, record: MediaRecord) {
+  return toDto(
+    record,
+    await tx.media.variantsOf(organizationId, [record.id]),
+    await usesOf(tx, organizationId, [record.id]),
+  )
 }
 
 export interface DeleteMediaDeps {
@@ -216,6 +259,17 @@ export async function deleteMedia(
     if (workspace.archivedAt !== null)
       throw new DomainError('CONFLICT', 'Il cliente è archiviato: i suoi file non si modificano')
     const found = await liveMedia(tx, organizationId, workspace.id, input.mediaId)
+    // the same lock as scheduling: a post is not scheduled with a file deleted meanwhile
+    await tx.posts.lockSchedule(organizationId)
+    const scheduled = (await tx.posts.usingMedia(organizationId, [found.id])).find(
+      (use) => use.status === 'scheduled',
+    )
+    if (scheduled)
+      throw new DomainError(
+        'CONFLICT',
+        `Questo file è nel post programmato del ${dayOf(scheduled.scheduledAt, scheduled.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`,
+        { reason: 'media_in_scheduled_post' },
+      )
     if (!(await tx.media.markDeleted(organizationId, workspace.id, found.id, deps.clock.now())))
       throw mediaNotFound()
     // no file name: it can be a person's
@@ -237,6 +291,16 @@ export async function deleteMedia(
     // the file is gone from the panel; its bytes wait for the clean-up of plan 04 Task 9
     deps.logger.error({ err: error, mediaId }, 'media files deletion not queued')
   }
+}
+
+/** The day of a post for a message, in the post's time zone. */
+function dayOf(at: Date | null, timeZone: string): string {
+  if (at === null) return '—'
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'numeric',
+    timeZone,
+  }).format(at)
 }
 
 /**
