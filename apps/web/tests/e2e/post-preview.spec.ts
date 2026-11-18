@@ -184,3 +184,144 @@ test('a file dropped on the preview joins the post; on a phone the preview opens
   await full.getByRole('button', { name: 'Modifica' }).click()
   await expect(full).toHaveCount(0)
 })
+
+// ---- the crop (D-61) and the reel's cover (D-60): plan 06 Task 6, 6b
+
+const cropBox = (page: Page) => page.getByRole('slider', { name: /Riquadro del ritaglio/ })
+
+test('a photo too tall for the feed cropped to 4:5 with the keyboard: the same box after a reload, and on the preview', async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const tall = await libraryFile(org, client.id, owner.userId, { kind: 'image', name: 'alta.jpg' })
+  await analysed(tall, 'image', 1000, 2000)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['alta.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il bancone')
+  const warning = page.locator('[data-outcome="photo_aspect_ratio"]')
+  await expect(warning).toBeVisible()
+  await warning.getByRole('radio', { name: /Ritaglia/ }).check()
+  const dialog = page.getByRole('dialog', { name: 'Ritaglia la foto per il feed' })
+  await expect(dialog).toBeVisible()
+  // the largest 4:5 box in the middle: full width, from 18,75% of the height
+  await expect(cropBox(page)).toHaveAttribute('aria-valuetext', /A 0% da sinistra e 19% dall'alto/)
+  await cropBox(page).focus()
+  await page.keyboard.press('Shift+ArrowUp')
+  await page.keyboard.press('ArrowDown')
+  await expect(cropBox(page)).toHaveAttribute('aria-valuetext', /A 0% da sinistra e 10% dall'alto/)
+  expect((await axe(page)).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Usa questo ritaglio' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(warning.getByRole('radio', { name: /Ritaglia/ })).toBeChecked()
+  // the preview shows only the box
+  await expect(
+    preview(page).locator('[data-view="instagram_feed"] [data-framing="crop"]'),
+  ).toBeVisible()
+
+  await expect(page.locator('[data-save-state]')).toContainText('Bozza salvata alle', {
+    timeout: 10_000,
+  })
+  await expect(page.locator('[data-save-state]')).not.toContainText('Salvataggio')
+  await page.reload()
+  await page.getByRole('button', { name: 'Modifica il ritaglio' }).click()
+  await expect(cropBox(page)).toHaveAttribute('aria-valuetext', /A 0% da sinistra e 10% dall'alto/)
+  // «Annulla» leaves the box saved as it was
+  await page.getByRole('dialog').getByRole('button', { name: 'Annulla' }).click()
+  await expect(warning.getByRole('radio', { name: /Ritaglia/ })).toBeChecked()
+})
+
+test('two cropped photos swapped in a carousel: each keeps its own box', async ({ page }) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const add = async (name: string) => {
+    const id = await libraryFile(org, client.id, owner.userId, { kind: 'image', name })
+    await analysed(id, 'image', 1000, 2000)
+    return id
+  }
+  await add('alta-1.jpg')
+  await add('alta-2.jpg')
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['alta-1.jpg', 'alta-2.jpg'])
+  const warning = page.locator('[data-outcome="photo_aspect_ratio"]')
+  // Instagram judges the first file of a carousel: crop it at the top
+  async function cropTop(times: number) {
+    await warning.getByRole('radio', { name: /Ritaglia/ }).check()
+    await cropBox(page).focus()
+    for (let i = 0; i < times; i++) await page.keyboard.press('Shift+ArrowUp')
+    await page.getByRole('button', { name: 'Usa questo ritaglio' }).click()
+    await expect(warning.getByRole('radio', { name: /Ritaglia/ })).toBeChecked()
+  }
+  await cropTop(1)
+  await expect(warning).toContainText('File 1')
+  // the second first: its own warning, with no answer yet
+  await page.locator('[data-entry]').first().focus()
+  await page.getByRole('button', { name: 'Sposta dopo alta-1.jpg' }).click()
+  await expect(page.locator('[data-entry]').first()).toHaveAccessibleName(/alta-2\.jpg/)
+  await expect(warning.getByRole('radio', { name: /Ritaglia/ })).not.toBeChecked()
+  await cropTop(2)
+  // back: the first photo finds its box again
+  await page.locator('[data-entry]').first().focus()
+  await page.getByRole('button', { name: 'Sposta dopo alta-2.jpg' }).click()
+  await expect(warning.getByRole('radio', { name: /Ritaglia/ })).toBeChecked()
+  await page.getByRole('button', { name: 'Modifica il ritaglio' }).click()
+  await expect(cropBox(page)).toHaveAttribute('aria-valuetext', /e 9% dall'alto/)
+})
+
+test("a reel's cover: a frame with the keyboard, an image dropped, a video refused, back to the first frame", async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const cover = await libraryFile(org, client.id, owner.userId, { kind: 'image', name: 'cop.jpg' })
+  await analysed(cover, 'image', 1080, 1920)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['impasto.mov'])
+  const section = page.locator('[data-cover]')
+  await expect(section.getByRole('heading', { name: 'Copertina del reel' })).toBeVisible()
+  const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })
+  // 18 s at 30 fps: the cursor stops on the last true frame
+  await expect(frame).toHaveAttribute('max', '17966')
+  await frame.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(frame).toHaveAttribute('aria-valuetext', /fotogramma 2 di 539/)
+  await page.keyboard.press('Shift+ArrowRight')
+  await expect(frame).toHaveAttribute(
+    'aria-valuetext',
+    /1,0 s · fotogramma 32 di 539|1 s · fotogramma 32 di 539/,
+  )
+  await expect(section.locator('[data-cover-state]')).toHaveText(/Fotogramma 1(,0)? s/)
+  // «Mostra anche nel feed» on by default
+  await expect(section.getByRole('switch', { name: 'Mostra anche nel feed' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  expect((await axe(page)).violations).toEqual([])
+
+  // a video dropped on the cover is refused at once
+  const drop = async (name: string, type: string) => {
+    const data = await page.evaluateHandle(
+      ([n, t]) => {
+        const d = new DataTransfer()
+        d.items.add(new File([new Uint8Array([0, 0, 0, 24])], n, { type: t }))
+        return d
+      },
+      [name, type],
+    )
+    await section.locator('[data-cover-drop]').dispatchEvent('drop', { dataTransfer: data })
+  }
+  await drop('altro.mov', 'video/quicktime')
+  await expect(section.getByRole('alert')).toHaveText(
+    "altro.mov è un video: la copertina può essere solo un'immagine.",
+  )
+
+  // an image from the library becomes the cover
+  await section.getByRole('button', { name: 'Dalla libreria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  await dialog.getByRole('button', { name: 'cop.jpg' }).click()
+  await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
+  await expect(section.locator('[data-cover-state]')).toHaveText('Immagine caricata')
+  await section.getByRole('button', { name: 'Ripristina' }).click()
+  await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma 0 s')
+  await expect(frame).toHaveAttribute('aria-valuetext', /fotogramma 1 di 539/)
+})

@@ -109,9 +109,20 @@ const feedRatio = computed(() => {
   const file = id ? byId.value.get(id) : undefined
   return feedFrameRatio(file, first === undefined ? null : (answers.value.get(first) ?? null))
 })
+/** a reel's cover chosen as an image: the video starts from it (D-60) */
+const coverImage = computed(() =>
+  e.cover.value?.source === 'image' && props.showFiles
+    ? e.fileUrl(e.cover.value.mediaId, 'ig_feed')
+    : null,
+)
 const items = computed(() =>
   vertical.value
-    ? indices.value.slice(0, 1).map((i) => itemOf(i, 9 / 16, 'contain'))
+    ? indices.value.slice(0, 1).map((i) => {
+        const item = itemOf(i, 9 / 16, 'contain')
+        return coverImage.value && view.value?.endsWith('_reel')
+          ? { ...item, poster: coverImage.value }
+          : item
+      })
     : indices.value.map((i) =>
         itemOf(i, view.value === 'instagram_feed' ? feedRatio.value : 1, 'fill'),
       ),

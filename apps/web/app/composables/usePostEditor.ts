@@ -1,4 +1,5 @@
 import type { MediaDto, PostCheckResponse, PostResponse } from '@app/contracts'
+import { publishedFps } from '@app/domain'
 import type { FetchError } from 'ofetch'
 import type { UploadItem } from './useUploads'
 import {
@@ -27,6 +28,8 @@ export interface EditorFile {
   width: number | null
   height: number | null
   durationMs: number | null
+  /** of the copy that is published: the reel's cover frames (D-60) */
+  fps: number | null
   variants: string[]
 }
 
@@ -50,6 +53,7 @@ export const fromMedia = (m: MediaDto): EditorFile => ({
   width: m.width,
   height: m.height,
   durationMs: m.durationMs,
+  fps: publishedFps(m.fps, m.checks?.warnings ?? []),
   variants: m.variants.map((v) => v.purpose),
 })
 
@@ -61,6 +65,7 @@ const fromPostMedia = (m: PostResponse['media'][number]): EditorFile => ({
   width: m.width,
   height: m.height,
   durationMs: m.durationMs,
+  fps: m.fps,
   variants: m.variants,
 })
 
@@ -421,11 +426,38 @@ export function usePostEditor(opts: {
   }
 
   // ---- choices of the warnings ----
-  function choose(key: string, option: string | null) {
+  /** `crop`: the box of a «Ritaglia», in fractions of the original (D-61). */
+  function choose(key: string, option: string | null, crop?: ChoiceBody['crop']) {
     const rest = choices.value.filter((c) => c.key !== key)
-    choices.value = option === null ? rest : [...rest, { key, option }]
+    choices.value =
+      option === null ? rest : [...rest, crop ? { key, option, crop } : { key, option }]
     touched()
   }
+
+  // ---- the reel: its cover and the feed (D-60, §9.1) ----
+  function setCover(next: DraftBody['cover']) {
+    cover.value = next
+    touched()
+  }
+  function setShareToFeed(on: boolean) {
+    shareToFeed.value = on
+    touched()
+  }
+  /** A cover uploaded from the editor: it becomes the cover once in the library. */
+  const coverUpload = ref<string | null>(null)
+  async function uploadCover(file: File) {
+    if (!editable.value) return
+    const [item] = await uploads.add([file], null, (media) => {
+      if (!alive || coverUpload.value !== item?.key) return
+      coverUpload.value = null
+      coverFile.value = fromMedia(media)
+      setCover({ source: 'image', mediaId: media.id })
+    })
+    coverUpload.value = item && item.state !== 'rejected' ? item.key : null
+    return item
+  }
+  /** The cover's image as the library has it, when one was chosen in this editor. */
+  const coverFile = ref<EditorFile | null>(null)
 
   // ---- loading ----
   async function load() {
@@ -640,6 +672,11 @@ export function usePostEditor(opts: {
     removeEntry,
     setSplit,
     choose,
+    setCover,
+    setShareToFeed,
+    uploadCover,
+    coverUpload,
+    coverFile,
     touched,
     flush: () => autosave.flush(),
     /** The person leaves the page (or stays after all): the address no longer follows the draft. */

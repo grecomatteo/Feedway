@@ -1,4 +1,4 @@
-import type { MediaKind, MediaStatus } from '@app/domain'
+import { publishedFps, type MediaKind, type MediaStatus } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Tx } from '../ports/tx.js'
 
@@ -11,6 +11,8 @@ export interface PostMediaView {
   width: number | null
   height: number | null
   durationMs: number | null
+  /** of the copy that is published (D-60): the reel's cover is a frame of it */
+  fps: number | null
   /** the copies the panel can ask for */
   variants: string[]
 }
@@ -43,6 +45,7 @@ export async function getMediaForPosts(
         width: m.width,
         height: m.height,
         durationMs: m.durationMs,
+        fps: publishedFps(m.fps, m.checks?.warnings ?? []),
         variants: variants.filter((v) => v.mediaId === m.id).map((v) => v.purpose),
       },
     ]),
