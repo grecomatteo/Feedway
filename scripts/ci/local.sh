@@ -55,7 +55,15 @@ step "e2e"
 if [ -z "${PLAYWRIGHT_CHROMIUM_PATH:-}" ]; then
   pnpm --filter @app/web exec playwright install chromium
 fi
-pnpm test:e2e
+# Two of the four projects, crossed: the phone in light and the computer in dark cover both
+# sizes and both themes in half the time. CI runs all four before any merge (Matteo, 18/11);
+# VERIFY_CI_E2E_ALL=1 runs all four here too.
+if [ "${VERIFY_CI_E2E_ALL:-}" = 1 ]; then
+  pnpm test:e2e
+else
+  pnpm --filter @app/web test:e2e --project mobile-light --project desktop-dark
+  not_verified+=("e2e desktop-light e mobile-dark (li esegue la CI)")
+fi
 
 step "security"
 optional gitleaks "gitleaks" gitleaks git --redact --no-banner
