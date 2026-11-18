@@ -100,6 +100,81 @@ interface Rule {
    * permission on its own resources only (`own`) holds it here.
    */
   ownIsEnough?: true
+  /** What the case needs there first, instead of the route's own PREPARE. */
+  prepare?: Prepare
+  /** Tells two rules of one route apart in the case's name. */
+  label?: string
+}
+
+type Prepare = (
+  ids: SampleIds,
+  cookie: string,
+) => Promise<{
+  values?: Record<string, string>
+  body?: unknown
+  headers?: Record<string, string>
+}>
+
+/** A reel of the case ready to go out: its file read by the worker, its account checked. */
+async function schedulable(ids: SampleIds, status: 'draft' | 'scheduled' = 'draft') {
+  const { pool } = fx.env.admin
+  const { rows } = await pool.query<{ organization_id: string }>(
+    'select organization_id from posts where id = $1',
+    [ids.post],
+  )
+  const organizationId = rows[0]?.organization_id ?? ''
+  await pool.query('update media set analysis = $2, checks = $3, sha256 = $4 where id = $1', [
+    ids.media,
+    JSON.stringify({
+      kind: 'video',
+      format: 'mp4',
+      sizeBytes: 40_000_000,
+      width: 1080,
+      height: 1920,
+      durationMs: 20_000,
+      fps: 30,
+      videoCodec: 'h264',
+      audioCodec: 'aac',
+      faststart: true,
+    }),
+    JSON.stringify({ fixes: [], warnings: [] }),
+    randomBytes(32).toString('hex'),
+  ])
+  await pool.query("update social_accounts set health = 'ok' where id = $1", [ids.account])
+  await pool.query(
+    'insert into workspace_accounts (organization_id, workspace_id, account_id) values ($1, $2, $3)',
+    [organizationId, ids.workspace, ids.account],
+  )
+  await pool.query(
+    `update posts set scheduled_at = now() + interval '30 days', status = $2 where id = $1`,
+    [ids.post, status],
+  )
+  await pool.query(
+    `insert into post_media (organization_id, workspace_id, post_id, position, media_id)
+     values ($1, $2, $3, 0, $4)`,
+    [organizationId, ids.workspace, ids.post, ids.media],
+  )
+  await pool.query(
+    `insert into post_targets (id, organization_id, workspace_id, post_id, account_id, status)
+     values ($1, $2, $3, $4, $5, $6)`,
+    [randomUUID(), organizationId, ids.workspace, ids.post, ids.account, status],
+  )
+  return {}
+}
+
+/**
+ * A draft of the caller in the case's workspace, made through the route; who may not write
+ * there gets the case's draft, which is someone else's.
+ */
+const callersDraft: Prepare = async (ids, cookie) => {
+  const r = await fx.env.call(
+    'POST',
+    `/api/v1/orgs/${ids.org}/workspaces/${ids.workspace}/posts`,
+    { type: 'photo' },
+    { cookie },
+  )
+  if (r.status !== 200) return {}
+  return { values: { postId: ((await r.json()) as { id: string }).id } }
 }
 
 const RULES: Record<string, readonly Rule[]> = {
@@ -290,6 +365,55 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/workspaces/{id}/post-checks': [
     { permission: 'post.draft', level: 'workspace', hiddenWithout: true, ownIsEnough: true },
   ],
+  // the posts (plan 06 Task 4): every member reads them, the Viewer included; a post that is
+  // seen but not to be touched is 403. The case's post is a draft of someone else (`target`).
+  'GET /api/v1/orgs/{org}/workspaces/{id}/posts': [
+    { permission: 'workspace.view', level: 'workspace' },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': [
+    { permission: 'workspace.view', level: 'workspace' },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts': [
+    { permission: 'post.draft', level: 'workspace', ownIsEnough: true },
+  ],
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': [
+    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersDraft,
+      label: 'own',
+    },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': [
+    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersDraft,
+      label: 'own',
+    },
+  ],
+  // the Publisher schedules anyone's post; an Editor, not even their own
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/schedule': [
+    { permission: 'post.publish', level: 'workspace', prepare: (ids) => schedulable(ids) },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': [
+    {
+      permission: 'post.publish',
+      level: 'workspace',
+      prepare: (ids) => schedulable(ids, 'scheduled'),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel': [
+    {
+      permission: 'post.publish',
+      level: 'workspace',
+      prepare: (ids) => schedulable(ids, 'scheduled'),
+    },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },
@@ -365,17 +489,7 @@ async function ownUpload(
   return { values: { uploadId: id }, headers: SAMPLE_PART_HEADERS }
 }
 
-const PREPARE: Record<
-  string,
-  (
-    ids: SampleIds,
-    cookie: string,
-  ) => Promise<{
-    values?: Record<string, string>
-    body?: unknown
-    headers?: Record<string, string>
-  }>
-> = {
+const PREPARE: Record<string, Prepare> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': (ids, cookie) =>
     ownUpload(ids, cookie),
   'PUT /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/parts/{n}': (ids, cookie) =>
@@ -442,7 +556,10 @@ const accessCases: AccessCase[] = orgRoutes.flatMap((route) =>
       ACTOR_ROLES.map((role) => ({
         role,
         method: route.method,
-        path: route.path + (rule.query ? ' ?query' : ''),
+        path:
+          route.path +
+          (rule.query ? ' ?query' : '') +
+          (rule.label === undefined ? '' : ` (${rule.label})`),
         key: routeKey(route),
         rule,
         where,
@@ -472,7 +589,7 @@ test.each(accessCases)('$role $method $path ($where) → $status', async (c) => 
   }
   const query = c.rule.query ? sampleQuery(route, ids) : undefined
   if (c.rule.query && query === undefined) throw new Error(`no sample query for ${c.key}`)
-  const prepared = (await PREPARE[c.key]?.(ids, cookie)) ?? {}
+  const prepared = (await (c.rule.prepare ?? PREPARE[c.key])?.(ids, cookie)) ?? {}
   const path =
     fill(route.path, { ...pathValues(ids), ...prepared.values }) +
     (query === undefined ? '' : `?${query}`)
@@ -597,6 +714,12 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'account.unassigned': [],
   'media.deleted': [],
   'media.retried': [],
+  'post.created': [],
+  'post.updated': [],
+  'post.scheduled': [],
+  'post.unscheduled': [],
+  'post.cancelled': [],
+  'post.deleted': [],
 }
 
 /**
@@ -705,6 +828,21 @@ async function produceEveryAction() {
     externalIds: [META_MOCK.pages.withInstagram],
   })
   await ok('PUT', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
+  // a post through its life: created, scheduled, back to draft, scheduled, cancelled, deleted
+  await env.admin.pool.query('delete from workspace_accounts where account_id = $1', [ids.account])
+  await schedulable(ids)
+  const posts = `${org}/workspaces/${ids.workspace}/posts`
+  const ownDraft = JSON.parse(await ok('POST', posts, { type: 'photo' })) as { id: string }
+  await ok('DELETE', `${posts}/${ownDraft.id}`)
+  await ok('POST', `${posts}/${ids.post}/schedule`, { version: 1 })
+  await ok('PATCH', `${posts}/${ids.post}`, {
+    version: 2,
+    caption: { common: 'Il pane di domani' },
+  })
+  await ok('POST', `${posts}/${ids.post}/unschedule`, { version: 3 })
+  await ok('POST', `${posts}/${ids.post}/schedule`, { version: 4 })
+  await ok('POST', `${posts}/${ids.post}/cancel`, { version: 5 })
+  await ok('DELETE', `${posts}/${ids.post}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/media/${ids.media}`)
   await ok('POST', `${org}/invites`, {

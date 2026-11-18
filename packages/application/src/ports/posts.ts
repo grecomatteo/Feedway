@@ -35,10 +35,9 @@ export interface PostRecord extends Post {
   labelIds: string[]
 }
 
-/** What a new post stores; it starts as a draft, at version 1. */
-export type NewPost = Pick<
+/** What a new post stores; it starts as a draft, at version 1. No id: the repository gives one. */
+export type NewPost = { id?: string } & Pick<
   Post,
-  | 'id'
   | 'organizationId'
   | 'workspaceId'
   | 'type'
@@ -70,7 +69,8 @@ export interface NewPostTarget {
 }
 
 export interface PostRepository {
-  insert(post: NewPost): Promise<void>
+  /** The new post's id. */
+  insert(post: NewPost): Promise<string>
   find(scope: PostScope, postId: string): Promise<PostRecord | null>
   /** Same, and locks the post until the transaction ends: its writes go one at a time. */
   findForUpdate(scope: PostScope, postId: string): Promise<PostRecord | null>
@@ -101,6 +101,17 @@ export interface PostRepository {
   replaceLabels(scope: PostScope, postId: string, labelIds: readonly string[]): Promise<void>
   /** false: no such post. */
   delete(scope: PostScope, postId: string): Promise<boolean>
+  /**
+   * Takes the agency's scheduling lock until the transaction ends: scheduling, the posts of a
+   * day and the deletion of a file of a scheduled post go one at a time.
+   */
+  lockSchedule(organizationId: string): Promise<void>
+  /** The scheduled posts of the agency in `[from, to)`, but `excludePostId` (`posts_per_day`). */
+  countScheduled(
+    organizationId: string,
+    range: { from: Date; to: Date },
+    excludePostId?: string,
+  ): Promise<number>
   /** The state of each post of the agency found, in one query (plan 06, for stage 9). */
   statuses(organizationId: string, postIds: readonly string[]): Promise<Map<string, PostStatus>>
   /** What `PublishingHistory` answers, read from the scheduled destinations. */
@@ -112,5 +123,14 @@ export interface PostRepository {
   usingMedia(
     organizationId: string,
     mediaIds: readonly string[],
-  ): Promise<{ mediaId: string; postId: string; status: PostStatus; scheduledAt: Date | null }[]>
+  ): Promise<
+    {
+      mediaId: string
+      postId: string
+      status: PostStatus
+      scheduledAt: Date | null
+      /** the post's own (D-58), for the day a message names */
+      timezone: string
+    }[]
+  >
 }

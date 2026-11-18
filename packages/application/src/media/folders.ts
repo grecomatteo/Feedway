@@ -15,7 +15,7 @@ import type { LibraryFolderRecord } from '../ports/media.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { assertActiveOrganization } from '../workspaces/index.js'
-import { type DeleteMediaDeps, type MediaDto, liveMedia, openLibrary, toDto } from './library.js'
+import { type DeleteMediaDeps, type MediaDto, liveMedia, mediaDto, openLibrary } from './library.js'
 
 // The folders and the tags of a workspace's library (spec §11.8, plan 04 Task 12). Whoever may
 // use the library (`media.upload`, Editor and above) arranges it; for anyone else it does not
@@ -179,6 +179,21 @@ export async function deleteFolder(
     if (!folder) throw folderNotFound()
     const tree = folderAndBelow(folders, folder.id)
     const files = await tx.media.mediaInFolders(organizationId, workspace.id, tree)
+    // as deleting one file: never a file of a scheduled post (D-18), one at a time with scheduling
+    await tx.posts.lockSchedule(organizationId)
+    const scheduled = new Set(
+      (await tx.posts.usingMedia(organizationId, files))
+        .filter((use) => use.status === 'scheduled')
+        .map((use) => use.mediaId),
+    )
+    if (scheduled.size > 0)
+      throw new DomainError(
+        'CONFLICT',
+        scheduled.size === 1
+          ? 'La cartella ha un file in un post programmato: toglilo dal post o annulla il post prima di eliminarla'
+          : `La cartella ha ${String(scheduled.size)} file in post programmati: toglili dai post o annulla i post prima di eliminarla`,
+        { reason: 'media_in_scheduled_post' },
+      )
     if (!input.confirm && (files.length > 0 || tree.length > 1))
       throw new DomainError(
         'CONFLICT',
@@ -245,6 +260,6 @@ export async function updateMedia(
       ...(tags === undefined ? {} : { tags }),
     })
     const updated = await liveMedia(tx, organizationId, workspace.id, found.id)
-    return toDto(updated, await tx.media.variantsOf(organizationId, [found.id]))
+    return mediaDto(tx, organizationId, updated)
   })
 }

@@ -219,7 +219,10 @@
   "errorReasons": {
     "use_existing_factor": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella.",
     "upload_completing": "Il file si sta già completando: riprova tra poco",
-    "upload_parts_missing": "Mancano dei pezzi del file"
+    "upload_parts_missing": "Mancano dei pezzi del file",
+    "post_version_conflict": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova",
+    "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
+    "media_in_scheduled_post": "Questo file è in un post programmato: toglilo dal post o annulla il post prima di eliminarlo"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -873,6 +876,12 @@
       "account_unassigned": "ha tolto un account social da un cliente",
       "media_deleted": "ha eliminato un file della libreria",
       "media_retried": "ha preparato di nuovo un file della libreria",
+      "post_created": "ha creato un post",
+      "post_updated": "ha modificato un post programmato",
+      "post_scheduled": "ha programmato un post",
+      "post_unscheduled": "ha riportato in bozza un post",
+      "post_cancelled": "ha annullato un post",
+      "post_deleted": "ha eliminato un post",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",

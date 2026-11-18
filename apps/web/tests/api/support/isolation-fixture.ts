@@ -50,6 +50,8 @@ export interface SampleIds {
   upload: string
   /** an empty folder of `workspace`'s library */
   folder: string
+  /** a draft of `workspace` written by `target`, with nothing in it yet, at version 1 */
+  post: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -169,6 +171,20 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     folderId: ids.folder,
     tags: ['batteria'],
   }),
+  // the case's file: a file of the other agency must not be found
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts': (ids) => ({
+    type: 'reel',
+    mediaIds: [ids.media],
+    caption: { common: 'Il pane di oggi' },
+  }),
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': (ids) => ({
+    version: 1,
+    mediaIds: [ids.media],
+    caption: { common: 'Il pane di domani' },
+  }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/schedule': () => ({ version: 1 }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': () => ({ version: 1 }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel': () => ({ version: 1 }),
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
@@ -211,6 +227,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   media: randomUUID(),
   upload: randomUUID(),
   folder: randomUUID(),
+  post: randomUUID(),
 }
 
 /**
@@ -236,6 +253,7 @@ export const ID_KINDS = [
   'media',
   'upload',
   'folder',
+  'post',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -292,6 +310,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   variant: 'preview',
   uploadId: ids.upload,
   folderId: ids.folder,
+  postId: ids.post,
   n: '1',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case
@@ -343,6 +362,9 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   library_folders: 'select * from library_folders',
   library_items: 'select * from library_items',
   upload_sessions: 'select * from upload_sessions',
+  posts: 'select * from posts',
+  post_media: 'select * from post_media',
+  post_targets: 'select * from post_targets',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -492,6 +514,17 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** An empty draft of the workspace by `createdBy`, written directly. */
+  async function draftPost(organizationId: string, workspaceId: string, createdBy: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into posts (id, organization_id, workspace_id, type, options, created_by, updated_by)
+       values ($1, $2, $3, 'reel', '{"shareToFeed":true,"choices":[]}', $4, $4)`,
+      [id, organizationId, workspaceId, createdBy],
+    )
+    return id
+  }
+
   /** A fresh imported account of the connection, written directly: no Meta call per case. */
   async function socialAccount(organizationId: string, connectionId: string) {
     const id = randomUUID()
@@ -548,6 +581,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           agency === 'a' ? people.owner.userId : ownerOfB.userId,
         ),
         folder: await libraryFolder(organizationId, ids.workspace),
+        post: await draftPost(organizationId, ids.workspace, ids.target),
       }
     },
     async refreshReauth() {
@@ -584,6 +618,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           media: await libraryVideo(agency.id, ids.workspace, owner.userId),
           upload: await openUpload(agency.id, ids.workspace, owner.userId),
           folder: await libraryFolder(agency.id, ids.workspace),
+          post: await draftPost(agency.id, ids.workspace, ids.target),
         },
       }
     },

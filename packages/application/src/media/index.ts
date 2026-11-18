@@ -48,3 +48,5 @@ export type { UploadsCleanupDeps, UploadsCleanupReport } from './uploads-cleanup
 export { MEDIA_PROCESS_LOCK, processNextMedia, wakeMediaProcessing } from './process.js'
 export type { MediaProcessDeps, MediaProcessJob, MediaProcessOutcome } from './process.js'
 export { getMediaForRules } from './rules.js'
+export { getMediaForPosts } from './for-posts.js'
+export type { PostMediaView } from './for-posts.js'

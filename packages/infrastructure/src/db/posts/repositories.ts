@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 import type {
   IdGenerator,
   PostRecord,
@@ -131,7 +131,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
   }
   return {
     async insert(post) {
-      await db.insert(posts).values({ ...post, updatedBy: post.createdBy })
+      const id = post.id ?? ids.newId()
+      await db.insert(posts).values({ ...post, id, updatedBy: post.createdBy })
+      return id
     },
     find: (scope, postId) => findOne(scope, postId, false),
     findForUpdate: (scope, postId) => findOne(scope, postId, true),
@@ -237,6 +239,29 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .returning({ id: posts.id })
       return deleted.length > 0
     },
+    async lockSchedule(organizationId) {
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`posts_schedule:${organizationId}`}))`,
+      )
+    },
+    async countScheduled(organizationId, { from, to }, excludePostId) {
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            // an archived client's posts never go out (D-70): they take no place of the day
+            sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
+                  and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            eq(posts.status, 'scheduled'),
+            gte(posts.scheduledAt, from),
+            lt(posts.scheduledAt, to),
+            excludePostId === undefined ? undefined : ne(posts.id, excludePostId),
+          ),
+        )
+      return row?.n ?? 0
+    },
     async statuses(organizationId, postIds) {
       if (postIds.length === 0) return new Map()
       const rows = await db
@@ -306,6 +331,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           postId: posts.id,
           status: posts.status,
           scheduledAt: posts.scheduledAt,
+          timezone: posts.timezone,
         })
         .from(postMedia)
         .innerJoin(
@@ -320,7 +346,13 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         )
       const uses = new Map<
         string,
-        { mediaId: string; postId: string; status: PostStatus; scheduledAt: Date | null }
+        {
+          mediaId: string
+          postId: string
+          status: PostStatus
+          scheduledAt: Date | null
+          timezone: string
+        }
       >()
       for (const r of rows)
         for (const mediaId of [r.mediaId, r.coverMediaId])
@@ -330,6 +362,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               postId: r.postId,
               status: r.status as PostStatus,
               scheduledAt: r.scheduledAt,
+              timezone: r.timezone,
             })
       return [...uses.values()].sort(
         (a, b) => Number(b.status === 'scheduled') - Number(a.status === 'scheduled'),

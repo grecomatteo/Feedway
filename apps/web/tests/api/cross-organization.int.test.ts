@@ -102,7 +102,7 @@ test('every id a request carries gets its own case', () => {
   // a request that names a workspace or a person and has no case would be skipped in silence
   for (const r of orgRequests)
     if (
-      /\{(id|userId|inviteId|connectionId|accountId|mediaId|uploadId|folderId)\}/.test(
+      /\{(id|userId|inviteId|connectionId|accountId|mediaId|uploadId|folderId|postId)\}/.test(
         r.route.path,
       ) ||
       r.withQuery

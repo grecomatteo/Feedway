@@ -37,3 +37,4 @@ export type { OpenApiDocument, OpenApiOperation, OpenApiParameter } from './api/
 export * from './api/media.js'
 export * from './api/uploads.js'
 export * from './api/rules.js'
+export * from './api/posts.js'

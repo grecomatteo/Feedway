@@ -347,6 +347,17 @@ export const RESET_LINKS_RATE_LIMIT = { name: 'reset-links', limit: 10, windowMs
  */
 export const POST_CHECKS_RATE_LIMIT = { name: 'post-checks', limit: 120, windowMs: 60_000 }
 
+/**
+ * The writes of the posts, for each person: the autosave sends one every 1.5 s at most, and
+ * scheduling runs the checks under the agency's scheduling lock.
+ */
+export const POST_WRITES_RATE_LIMIT = {
+  name: 'post-writes',
+  limit: 120,
+  windowMs: 60_000,
+  by: 'user',
+} as const
+
 /** Each photo is decoded and resized: a stolen session must not keep the server busy. */
 export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }
 /** The agency logo: decoded and resized as a photo, by the Owner only. */

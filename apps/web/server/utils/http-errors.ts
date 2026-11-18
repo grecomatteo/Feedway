@@ -1,7 +1,7 @@
 // The one place where errors become HTTP answers (docs/convenzioni.md, "Errori"). Pure: no h3,
 // so the mapping is unit-tested without a server.
 import { DomainError, type DomainErrorCode } from '@app/domain'
-import type { ApiErrorBody, ApiIssue } from '@app/contracts'
+import { PostCheckResponse, type ApiErrorBody, type ApiIssue } from '@app/contracts'
 import { scrubSecrets } from '@app/infrastructure'
 import type { z } from 'zod'
 import it from '../../i18n/locales/it.json' with { type: 'json' }
@@ -110,7 +110,12 @@ function build(
   code: ErrorCode,
   message: string,
   requestId: string,
-  extra: { issues?: ApiIssue[] | undefined; reason?: string | undefined; retryAfter?: number },
+  extra: {
+    issues?: ApiIssue[] | undefined
+    reason?: string | undefined
+    retryAfter?: number
+    report?: Record<string, unknown>
+  },
 ): ErrorResponse {
   const headers: Record<string, string> = {}
   if (code === 'RATE_LIMITED')
@@ -128,6 +133,7 @@ function build(
         requestId,
         ...(extra.issues && extra.issues.length > 0 && { issues: extra.issues }),
         ...(extra.reason !== undefined && { reason: extra.reason }),
+        ...(extra.report !== undefined && { report: extra.report }),
       },
     },
   }
@@ -153,9 +159,11 @@ export function toErrorResponse(error: unknown, requestId: string): ErrorRespons
     const field = error.details?.['field']
     const retry = error.details?.['retryAfterSeconds']
     const reason = error.details?.['reason']
+    const report = reason === 'post_not_schedulable' ? reportBody(error.details?.['report']) : null
     return build(error.code, message, requestId, {
       // only a reason the panel knows: a detail never leaks by this way
       ...(typeof reason === 'string' && Object.hasOwn(REASONS, reason) && { reason }),
+      ...(report !== null && { report }),
       ...(error.code === 'VALIDATION' &&
         typeof field === 'string' && { issues: [{ path: [field], message }] }),
       ...(typeof retry === 'number' && Number.isFinite(retry) && { retryAfter: retry }),
@@ -168,6 +176,20 @@ export function toErrorResponse(error: unknown, requestId: string): ErrorRespons
     return { ...build(code, MESSAGES[code], requestId, {}), status }
   }
   return build('INTERNAL', MESSAGES.INTERNAL, requestId, {})
+}
+
+/**
+ * The checks of a post that cannot be scheduled, as `post-checks` answers them: parsed with
+ * its contract, so only the listed fields leave (no fingerprint, no orphan choice).
+ */
+export function reportBody(report: unknown): Record<string, unknown> | null {
+  if (typeof report !== 'object' || report === null) return null
+  const at = (report as { scheduledAt?: unknown }).scheduledAt
+  const parsed = PostCheckResponse.safeParse({
+    ...report,
+    scheduledAt: at instanceof Date ? at.toISOString() : null,
+  })
+  return parsed.success ? parsed.data : null
 }
 
 function issueMessage(issue: z.core.$ZodIssue): string {
