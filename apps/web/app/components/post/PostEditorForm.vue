@@ -37,6 +37,21 @@ const platforms = computed(() => {
   return (['instagram', 'facebook'] as const).filter((p) => set.has(p))
 })
 
+const previewOpen = ref(false)
+/** One preview at a time: the column from 1024 px, the full screen below (design E3b). */
+const wide = ref(false)
+let wideQuery: MediaQueryList | null = null
+const onWide = () => {
+  wide.value = wideQuery?.matches ?? false
+  if (wide.value) previewOpen.value = false
+}
+onMounted(() => {
+  wideQuery = window.matchMedia('(min-width: 1024px)')
+  onWide()
+  wideQuery.addEventListener('change', onWide)
+})
+onBeforeUnmount(() => wideQuery?.removeEventListener('change', onWide))
+
 const title = computed(() => {
   if (!props.postId && !e.save.value.postId) return t('posts.editor.newTitle')
   if (e.status.value === 'scheduled') return t('posts.editor.scheduledTitle')
@@ -134,7 +149,19 @@ const confirmText = computed(() => {
         <UIcon name="i-lucide-arrow-left" class="size-4" aria-hidden="true" />
         {{ client.name }}
       </NuxtLink>
-      <h1 class="text-[1.625rem] leading-tight md:text-[1.875rem]">{{ title }}</h1>
+      <div class="flex items-center justify-between gap-3">
+        <h1 class="text-[1.625rem] leading-tight md:text-[1.875rem]">{{ title }}</h1>
+        <UButton
+          v-if="e.loadState.value === 'ready'"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-smartphone"
+          class="min-h-11 lg:hidden"
+          @click="previewOpen = true"
+        >
+          {{ $t('posts.preview.open') }}
+        </UButton>
+      </div>
     </header>
 
     <p v-if="e.loadState.value === 'loading'" class="sr-only" role="status">
@@ -193,17 +220,18 @@ const confirmText = computed(() => {
           </p>
           <PostDestinationSummary :editor="editor" :accounts="accounts" @goto="goto" />
         </div>
-        <!-- the preview, as on Meta: Task 6 -->
+        <!-- the preview, as on Meta (§11.3, Task 6): always beside the form from 1024 px -->
         <aside
           :aria-label="$t('posts.preview.title')"
           class="sticky top-6 hidden w-80 shrink-0 flex-col gap-3 self-start lg:flex 2xl:w-90"
         >
           <h2 class="text-lg">{{ $t('posts.preview.title') }}</h2>
-          <div
-            class="flex aspect-[9/16] w-full items-center justify-center rounded-[2rem] border-4 border-(--app-text) bg-(--app-surface-sunken) p-6 text-center text-sm text-(--app-text-muted)"
-          >
-            {{ $t('posts.preview.soon') }}
-          </div>
+          <PostPreview
+            v-if="wide"
+            :editor="editor"
+            :accounts="accounts"
+            :show-files="client.myRole !== 'viewer'"
+          />
         </aside>
       </div>
       <PostActionBar
@@ -215,6 +243,34 @@ const confirmText = computed(() => {
         @goto="goto"
       />
     </template>
+
+    <!-- on a phone the preview takes the whole screen, with «← Modifica» (design E3b) -->
+    <UModal
+      v-model:open="previewOpen"
+      fullscreen
+      :title="$t('posts.preview.title')"
+      :description="$t('posts.preview.approximate')"
+      :ui="{ header: 'hidden', body: 'p-4 sm:p-6' }"
+    >
+      <template #body>
+        <div class="mx-auto flex w-full max-w-90 flex-col gap-3">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-arrow-left"
+            class="min-h-11 self-start"
+            @click="previewOpen = false"
+          >
+            {{ $t('posts.preview.back') }}
+          </UButton>
+          <PostPreview
+            :editor="editor"
+            :accounts="accounts"
+            :show-files="client.myRole !== 'viewer'"
+          />
+        </div>
+      </template>
+    </UModal>
 
     <UModal
       :open="confirm !== null"

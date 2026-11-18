@@ -145,6 +145,8 @@ export function usePostEditor(opts: {
     error: null,
   })
   const report = ref<PostCheckResponse | null>(null)
+  /** the files the report was made on: its indices point into these (the preview, Task 6) */
+  const reportMedia = ref<string[]>([])
   const checking = ref(false)
   const checkProblem = ref<string | null>(null)
   /** the answer of a «Programma» or «Salva modifiche» the server refused */
@@ -253,10 +255,17 @@ export function usePostEditor(opts: {
   }
 
   // ---- checks ----
-  const checks = createCheckRunner<Record<string, unknown>, PostCheckResponse>({
-    run: (b) => call<PostCheckResponse>('POST', `${base}/post-checks`, b),
+  const checks = createCheckRunner<
+    { mediaIds: string[] } & Record<string, unknown>,
+    { report: PostCheckResponse; mediaIds: string[] }
+  >({
+    run: async (b) => ({
+      report: await call<PostCheckResponse>('POST', `${base}/post-checks`, b),
+      mediaIds: b.mediaIds,
+    }),
     onReport: (r) => {
-      report.value = r
+      report.value = r.report
+      reportMedia.value = r.mediaIds
       checkProblem.value = null
     },
     onError: (e) => {
@@ -562,7 +571,10 @@ export function usePostEditor(opts: {
 
   function failed(e: unknown) {
     const b = bodyOf(e)
-    if (b?.report) report.value = b.report
+    if (b?.report) {
+      report.value = b.report
+      reportMedia.value = files.value.map((f) => f.id)
+    }
     if (isConflict(e)) save.value = { ...save.value, status: 'conflict' }
     actionProblem.value =
       b?.reason === 'post_not_schedulable' ? t('posts.actions.notSchedulable') : failure(e).message
@@ -607,6 +619,7 @@ export function usePostEditor(opts: {
     timeZone,
     save,
     report,
+    reportMedia,
     checking,
     checkProblem,
     actionProblem,

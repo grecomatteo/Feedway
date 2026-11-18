@@ -38,3 +38,30 @@ export function publishedCaption(
   const own = draft.caption[platform]
   return own === undefined || own.trim() === '' ? draft.caption.common : own
 }
+
+/** A piece of a caption as the apps colour it: plain text, a hashtag or a mention. */
+export interface CaptionPart {
+  kind: 'text' | 'hashtag' | 'mention'
+  text: string
+}
+
+/**
+ * The caption cut where the apps colour it (the editor's preview, plan 06 Task 6), read as
+ * `captionStats` counts: the same hashtags and mentions.
+ */
+export function captionParts(text: string): CaptionPart[] {
+  const marks = [
+    ...[...text.matchAll(HASHTAG)].map((m) => ({ kind: 'hashtag' as const, m })),
+    ...[...text.matchAll(MENTION)].map((m) => ({ kind: 'mention' as const, m })),
+  ].sort((a, b) => a.m.index - b.m.index)
+  const parts: CaptionPart[] = []
+  let at = 0
+  for (const { kind, m } of marks) {
+    if (m.index < at) continue
+    if (m.index > at) parts.push({ kind: 'text', text: text.slice(at, m.index) })
+    parts.push({ kind, text: m[0] })
+    at = m.index + m[0].length
+  }
+  if (at < text.length) parts.push({ kind: 'text', text: text.slice(at) })
+  return parts
+}

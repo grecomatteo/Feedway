@@ -1,5 +1,11 @@
 export * from './types.js'
-export { captionStats, publishedCaption, type CaptionStats } from './caption.js'
+export {
+  captionParts,
+  captionStats,
+  publishedCaption,
+  type CaptionPart,
+  type CaptionStats,
+} from './caption.js'
 export {
   CROP_MIN_SIDE,
   evaluatePost,
