@@ -8,6 +8,7 @@ import { integrationRoutes } from './integrations.js'
 import { linkRoutes } from './links.js'
 import { meRoutes } from './me.js'
 import { mediaRoutes } from './media.js'
+import { postRoutes } from './posts.js'
 import { rulesRoutes } from './rules.js'
 import { uploadRoutes } from './uploads.js'
 import { logoRoutes } from './logo.js'
@@ -47,6 +48,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...mediaRoutes,
   ...uploadRoutes,
   ...rulesRoutes,
+  ...postRoutes,
   ...auditRoutes,
   ...platformRoutes,
   openApiRoute,

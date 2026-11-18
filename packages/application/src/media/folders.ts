@@ -15,7 +15,7 @@ import type { LibraryFolderRecord } from '../ports/media.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { assertActiveOrganization } from '../workspaces/index.js'
-import { type DeleteMediaDeps, type MediaDto, liveMedia, openLibrary, toDto } from './library.js'
+import { type DeleteMediaDeps, type MediaDto, liveMedia, mediaDto, openLibrary } from './library.js'
 
 // The folders and the tags of a workspace's library (spec §11.8, plan 04 Task 12). Whoever may
 // use the library (`media.upload`, Editor and above) arranges it; for anyone else it does not
@@ -245,6 +245,6 @@ export async function updateMedia(
       ...(tags === undefined ? {} : { tags }),
     })
     const updated = await liveMedia(tx, organizationId, workspace.id, found.id)
-    return toDto(updated, await tx.media.variantsOf(organizationId, [found.id]))
+    return mediaDto(tx, organizationId, updated)
   })
 }

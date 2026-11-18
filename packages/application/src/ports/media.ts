@@ -284,6 +284,12 @@ export interface MediaRepository {
     workspaceId: string,
     mediaIds: readonly string[],
   ): Promise<MediaForRules[]>
+  /** The files of the workspace among these ids, any status, deleted included. */
+  findManyInWorkspace(
+    organizationId: string,
+    workspaceId: string,
+    mediaIds: readonly string[],
+  ): Promise<MediaRecord[]>
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>

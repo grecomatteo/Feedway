@@ -534,6 +534,17 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         sha256: r.sha256,
       }))
     },
+    async findManyInWorkspace(organizationId, workspaceId, mediaIds) {
+      if (mediaIds.length === 0) return []
+      const rows = await withLibrary(db).where(
+        and(
+          eq(media.organizationId, organizationId),
+          eq(media.workspaceId, workspaceId),
+          inArray(media.id, [...mediaIds]),
+        ),
+      )
+      return rows.map(mediaOf)
+    },
     async findById(organizationId, mediaId) {
       const [row] = await withLibrary(db).where(
         and(eq(media.organizationId, organizationId), eq(media.id, mediaId)),

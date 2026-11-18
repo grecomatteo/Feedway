@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 import type {
   IdGenerator,
   PostRecord,
@@ -131,7 +131,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
   }
   return {
     async insert(post) {
-      await db.insert(posts).values({ ...post, updatedBy: post.createdBy })
+      const id = post.id ?? ids.newId()
+      await db.insert(posts).values({ ...post, id, updatedBy: post.createdBy })
+      return id
     },
     find: (scope, postId) => findOne(scope, postId, false),
     findForUpdate: (scope, postId) => findOne(scope, postId, true),
@@ -236,6 +238,26 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .where(and(inScope(scope), eq(posts.id, postId)))
         .returning({ id: posts.id })
       return deleted.length > 0
+    },
+    async lockSchedule(organizationId) {
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`posts_schedule:${organizationId}`}))`,
+      )
+    },
+    async countScheduled(organizationId, { from, to }, excludePostId) {
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            eq(posts.status, 'scheduled'),
+            gte(posts.scheduledAt, from),
+            lt(posts.scheduledAt, to),
+            excludePostId === undefined ? undefined : ne(posts.id, excludePostId),
+          ),
+        )
+      return row?.n ?? 0
     },
     async statuses(organizationId, postIds) {
       if (postIds.length === 0) return new Map()
