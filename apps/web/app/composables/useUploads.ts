@@ -809,6 +809,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   }
 
   return {
+    orgSlug,
     workspaceId,
     shown,
     listeners,

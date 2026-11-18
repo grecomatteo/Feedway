@@ -13,7 +13,9 @@ const { data: workspaces } = useWorkspaces()
 const { line, tone, showsBar, barPercent, workPercent } = useUploadLine()
 
 const visible = computed(() =>
-  uploadStores().filter((s) => s.shown.value === 0 && s.items.value.length > 0),
+  uploadStores().filter(
+    (s) => s.orgSlug === org.slug.value && s.shown.value === 0 && s.items.value.length > 0,
+  ),
 )
 const items = computed(() => visible.value.flatMap((s) => s.items.value))
 const active = computed(() => visible.value.some((s) => s.totals.value.active))
