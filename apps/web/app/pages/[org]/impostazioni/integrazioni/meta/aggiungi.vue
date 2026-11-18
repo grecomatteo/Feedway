@@ -137,7 +137,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
 <template>
   <SettingsShell>
-    <div class="space-y-6">
+    <div class="flex flex-col gap-section">
       <div class="space-y-3">
         <NuxtLink :to="metaPage" class="inline-flex min-h-11 items-center gap-1 text-sm underline">
           <UIcon name="i-lucide-arrow-left" aria-hidden="true" />

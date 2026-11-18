@@ -29,13 +29,6 @@ const allSignedOut = ref(false)
 
 <template>
   <SettingsShell>
-    <template #intro>
-      <p v-if="me && !allSignedOut" class="text-(--app-text-muted)">
-        <span :title="me.name">{{ me.displayName }}</span
-        >, {{ me.email }}
-      </p>
-    </template>
-
     <p v-if="allSignedOut" role="status" class="flex items-center gap-2 text-(--app-success)">
       <UIcon name="i-lucide-circle-check" aria-hidden="true" />
       {{ $t('devices.allSignedOut') }}

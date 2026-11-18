@@ -241,7 +241,7 @@ const canManageMembers = computed(
 </script>
 
 <template>
-  <div class="space-y-8" :data-ready="ready || undefined">
+  <div class="flex flex-col gap-section" :data-ready="ready || undefined">
     <p v-if="done" role="status" class="text-sm text-(--app-success)">{{ done }}</p>
     <p v-if="problem && !pickOpen" role="alert" class="text-sm text-(--app-danger)">
       {{ problem }}

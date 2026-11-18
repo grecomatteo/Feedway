@@ -9,8 +9,7 @@ const organizations = computed(() =>
 </script>
 
 <template>
-  <div class="space-y-6">
-    <h1 class="text-3xl">{{ $t('agencies.title') }}</h1>
+  <PageShell :title="$t('agencies.title')">
     <EmptyState v-if="organizations.length === 0" :title="$t('agencies.empty')" />
     <ul v-else class="space-y-2" :aria-label="$t('agencies.title')">
       <li v-for="o in organizations" :key="o.id">
@@ -28,5 +27,5 @@ const organizations = computed(() =>
         </NuxtLink>
       </li>
     </ul>
-  </div>
+  </PageShell>
 </template>

@@ -86,7 +86,7 @@ onMounted(() => {
       <p>{{ $t('totpEnrollment.explain') }}</p>
       <form
         v-if="props.password === undefined"
-        class="space-y-4"
+        class="max-w-form space-y-4"
         novalidate
         @submit.prevent="start"
       >
@@ -127,7 +127,7 @@ onMounted(() => {
       <UButton v-if="link" :to="link" external class="min-h-11" color="neutral" variant="outline">
         {{ $t('security.totp.openApp') }}
       </UButton>
-      <form class="space-y-4" novalidate @submit.prevent="verify">
+      <form class="max-w-form space-y-4" novalidate @submit.prevent="verify">
         <UFormField
           :label="$t('security.totp.code')"
           name="totp-code"

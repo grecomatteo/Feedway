@@ -15,8 +15,7 @@ const { data, status, error, refresh } = useFetch<PrivacyNotice>(() => org.api('
 </script>
 
 <template>
-  <div class="max-w-3xl space-y-6">
-    <h1 class="text-3xl">{{ $t('privacyNotice.title') }}</h1>
+  <PageShell :title="$t('privacyNotice.title')">
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>
@@ -26,6 +25,6 @@ const { data, status, error, refresh } = useFetch<PrivacyNotice>(() => org.api('
         {{ $t('account.retry') }}
       </UButton>
     </div>
-    <PrivacyNoticeView v-else-if="data" :notice="data" />
-  </div>
+    <PrivacyNoticeView v-else-if="data" :notice="data" class="max-w-prose" />
+  </PageShell>
 </template>

@@ -35,20 +35,22 @@ const library = ref<{ chooseFiles: () => void } | null>(null)
 </script>
 
 <template>
-  <div>
-    <PageHeader :title="$t('library.title')">
-      <template v-if="client" #summary>
-        {{ client.name }} · {{ $t('library.usage') }}: {{ formatBytes(used) }}
-      </template>
-      <template v-else-if="status === 'success'" #summary>
-        {{ $t('library.chooseClientText') }}
-      </template>
-      <template v-if="client && client.archivedAt === null" #actions>
-        <UButton icon="i-lucide-upload" class="min-h-11" @click="library?.chooseFiles()">
-          {{ $t('upload.choose') }}
-        </UButton>
-      </template>
-    </PageHeader>
+  <PageShell>
+    <template #head>
+      <PageHeader :title="$t('library.title')">
+        <template v-if="client" #summary>
+          {{ client.name }} · {{ $t('library.usage') }}: {{ formatBytes(used) }}
+        </template>
+        <template v-else-if="status === 'success'" #summary>
+          {{ $t('library.chooseClientText') }}
+        </template>
+        <template v-if="client && client.archivedAt === null" #actions>
+          <UButton icon="i-lucide-upload" class="min-h-11" @click="library?.chooseFiles()">
+            {{ $t('upload.choose') }}
+          </UButton>
+        </template>
+      </PageHeader>
+    </template>
 
     <MediaLibrary
       v-if="client"
@@ -74,5 +76,5 @@ const library = ref<{ chooseFiles: () => void } | null>(null)
       </DataList>
     </section>
     <EmptyState v-else :title="$t('library.noClients')" icon="i-lucide-images" />
-  </div>
+  </PageShell>
 </template>
