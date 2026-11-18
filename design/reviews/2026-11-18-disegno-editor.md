@@ -18,6 +18,7 @@ Sezione «Editor dei post · tappa 6 · da approvare» della tela, PNG a scala 1
 |---|---|
 | E0 | Componenti nuovi: cornici dell'anteprima (IG feed, Reel, Storia, FB post), con le zone coperte già pronte da accendere |
 | E1 | Nuovo post a 1440: carosello di 3 foto su 3 account, testo diverso per piattaforma, 1 avviso da scegliere, «Programma» spento con il motivo |
+| E1b, E1c, E3d | «Pubblica subito» (tappa 7): editor a 1440 con il segmento attivo, conferma «Pubblicare adesso?», telefono |
 | E2 | Nuovo post a 1280: editor 600, anteprima 320 sempre presente (scelta di Matteo, 18/11), testo comune con i contatori di entrambe le piattaforme |
 | E3, E3b, E3c | Telefono 390: pagina intera, anteprima a tutta pagina, tastiera aperta con la barra sopra |
 | E4 | Le sei schede dell'anteprima, i controlli sopra la cornice, le zone coperte e la copertina in 9:16 e nella griglia 3:4 |
@@ -45,7 +46,7 @@ Sezione «Editor dei post · tappa 6 · da approvare» della tela, PNG a scala 1
 
 ## Fuori da questo disegno
 
-- «Pubblica ora» (tappa 7) e «Prossima fascia libera» (tappa 9): P1.
+- P1: «Prossima fascia libera» resta della tappa 9. «Pubblica subito» invece è disegnato (richiesta di Matteo del 18/11): selettore «Pubblica subito» · «Programma» in cima a «Quando», tavole E1b, E1c ed E3d; nella 0.12 il segmento è spento con «Presto» e si accende con la tappa 7. Solo per chi ha `post.publish`; il post aspetta da solo la fine della conversione.
 - Il trascinamento di un file sull'anteprima e il riordino dall'anteprima (§11.2 punto 3) sono comportamenti: non hanno una tavola, si provano nel Task 6.
 - Un post annullato ha solo «Elimina post», come nel piano; «Duplica come bozza» non è previsto e andrebbe chiesto a parte.
 
