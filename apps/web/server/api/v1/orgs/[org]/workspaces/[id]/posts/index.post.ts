@@ -7,7 +7,7 @@ export default defineApiRoute(
     createPost(
       useDeps(),
       actor,
-      { workspaceId: params.id, ...postContent(body), type: body.type },
+      { workspaceId: params.id, ...postContent(body), ...postLabels(body), type: body.type },
       { ip },
     ),
   { rateLimit: POST_WRITES_RATE_LIMIT },

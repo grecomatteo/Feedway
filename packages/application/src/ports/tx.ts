@@ -7,6 +7,7 @@ import type {
 import type { AuditLog } from './audit-log.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
+import type { ContentSettingsRepository } from './content-settings.js'
 import type { PostRepository } from './posts.js'
 import type { UploadSessionsRepository } from './uploads.js'
 import type {
@@ -58,5 +59,6 @@ export interface Tx {
   media: MediaRepository
   uploads: UploadSessionsRepository
   posts: PostRepository
+  contentSettings: ContentSettingsRepository
   audit: AuditLog
 }

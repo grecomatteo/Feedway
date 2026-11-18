@@ -24,3 +24,7 @@ export function postContent(body: Omit<UpdatePostRequest, 'version'>): Partial<P
     out.choices = choices.map(({ crop, ...c }) => (crop === undefined ? c : { ...c, crop }))
   return out
 }
+
+/** The labels of a post's body, when it sends them: all of them, the others come off. */
+export const postLabels = (body: Pick<UpdatePostRequest, 'labelIds'>) =>
+  body.labelIds === undefined ? {} : { labelIds: body.labelIds }

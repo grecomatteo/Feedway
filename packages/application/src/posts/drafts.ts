@@ -13,6 +13,7 @@ import {
   recordPost,
   scheduledAtOf,
   versionConflict,
+  writeLabels,
   writeParts,
   wrongState,
   type PostContent,
@@ -41,6 +42,7 @@ export type CreateDraftInput = { workspaceId: string } & Pick<PostContent, 'type
   Partial<Omit<PostContent, 'type'>> & {
     /** for the activity log */
     ip?: string | null
+    labelIds?: readonly string[]
   }
 
 /**
@@ -80,6 +82,7 @@ export async function createDraft(
     createdBy: current.userId,
   })
   await writeParts(tx, scope, postId, content, 'draft')
+  if (input.labelIds !== undefined) await writeLabels(tx, scope, postId, input.labelIds)
   await recordPost(
     tx,
     current,
@@ -137,6 +140,7 @@ export async function updatePost(
       if (post.status === 'scheduled') {
         if (!organization) throw postNotFound()
         await saveScheduled(tx, deps, current, organization, post, content)
+        if (input.labelIds !== undefined) await writeLabels(tx, scope, post.id, input.labelIds)
         // what goes out changes: unlike a draft's autosave, the log keeps it
         await recordPost(tx, current, 'post.updated', post, request.ip)
         return readPost(tx, current, scope, post.id)
@@ -150,6 +154,7 @@ export async function updatePost(
       )
       if (version === null) throw versionConflict()
       await writeParts(tx, scope, post.id, content, 'draft')
+      if (input.labelIds !== undefined) await writeLabels(tx, scope, post.id, input.labelIds)
       return readPost(tx, current, scope, post.id)
     },
   )

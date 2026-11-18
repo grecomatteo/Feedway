@@ -8,7 +8,7 @@ import type {
 } from '@app/application'
 import type { Platform, PostCover, PostOptions, PostStatus, PostType } from '@app/domain'
 import type { DbExecutor } from '../client.js'
-import { postLabels, postMedia, posts, postTargets } from './schema.js'
+import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
 
 // Every query filters by agency and workspace in SQL as well: row level security is the second
 // barrier.
@@ -48,6 +48,21 @@ type PostRow = Omit<
   captionByPlatform: unknown
   options: unknown
 }
+
+const noteColumns = {
+  id: postNotes.id,
+  postId: postNotes.postId,
+  authorId: postNotes.authorId,
+  body: postNotes.body,
+  createdAt: postNotes.createdAt,
+}
+
+const notesOf = (scope: PostScope, postId: string) =>
+  and(
+    eq(postNotes.organizationId, scope.organizationId),
+    eq(postNotes.workspaceId, scope.workspaceId),
+    eq(postNotes.postId, postId),
+  )
 
 const inScope = (scope: PostScope) =>
   and(eq(posts.organizationId, scope.organizationId), eq(posts.workspaceId, scope.workspaceId))
@@ -367,6 +382,35 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       return [...uses.values()].sort(
         (a, b) => Number(b.status === 'scheduled') - Number(a.status === 'scheduled'),
       )
+    },
+    listNotes(scope, postId) {
+      return db
+        .select(noteColumns)
+        .from(postNotes)
+        .where(notesOf(scope, postId))
+        .orderBy(asc(postNotes.createdAt), asc(postNotes.id))
+    },
+    async insertNote(scope, note) {
+      const [row] = await db
+        .insert(postNotes)
+        .values({ ...scope, ...note })
+        .returning(noteColumns)
+      if (!row) throw new Error('the note was not written')
+      return row
+    },
+    async findNote(scope, postId, noteId) {
+      const [row] = await db
+        .select(noteColumns)
+        .from(postNotes)
+        .where(and(notesOf(scope, postId), eq(postNotes.id, noteId)))
+      return row ?? null
+    },
+    async deleteNote(scope, postId, noteId) {
+      const rows = await db
+        .delete(postNotes)
+        .where(and(notesOf(scope, postId), eq(postNotes.id, noteId)))
+        .returning({ id: postNotes.id })
+      return rows.length > 0
     },
   }
 }

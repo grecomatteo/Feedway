@@ -257,7 +257,27 @@ export interface PostsDeps {
 }
 
 /** A save: the version read, and the fields that change. */
-export type UpdatePostInput = { workspaceId: string; version: number } & Partial<PostContent>
+export type UpdatePostInput = { workspaceId: string; version: number } & Partial<PostContent> & {
+    /** the labels of the post, all of them (§11.7) */
+    labelIds?: readonly string[]
+  }
+
+/**
+ * The labels given, each once, all of the workspace: a label of another workspace or agency is
+ * «non trovata» (Review Focus 5).
+ */
+export async function writeLabels(
+  tx: Tx,
+  scope: PostScope,
+  postId: string,
+  labelIds: readonly string[],
+): Promise<void> {
+  const wanted = [...new Set(labelIds)]
+  const found = await tx.contentSettings.existingLabels(scope, wanted.filter(isUuid))
+  if (wanted.some((id) => !found.has(id)))
+    throw new DomainError('NOT_FOUND', 'Etichetta non trovata')
+  await tx.posts.replaceLabels(scope, postId, wanted)
+}
 
 const whenOf = (post: PostRecord): PostWhenInput => {
   if (post.scheduledAt === null) return null
