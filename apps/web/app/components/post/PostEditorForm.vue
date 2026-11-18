@@ -273,6 +273,7 @@ const confirmText = computed(() => {
             :editor="editor"
             :accounts="accounts"
             :show-files="client.myRole !== 'viewer'"
+            reserve="15rem"
           />
         </div>
       </template>

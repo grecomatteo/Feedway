@@ -127,6 +127,19 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
   await preview(page).getByRole('button', { name: 'Sposta prima' }).click()
   await expect(page.locator('[data-entry]').first()).toHaveAccessibleName(/File 1: impasto\.mov/)
   await expect(feed.getByText('1/3')).toBeVisible()
+  await expect(feed.locator('[data-preview-file]')).toHaveAttribute('data-preview-file', '0')
+  await expect(feed.locator('video')).toHaveCount(1)
+
+  // on the last file, a file taken out while another tab shows: back on the feed, the first
+  await feed.getByRole('button', { name: 'File successivo' }).click()
+  await feed.getByRole('button', { name: 'File successivo' }).click()
+  await expect(feed.getByText('3/3')).toBeVisible()
+  await tab(page, 'Facebook · post').click()
+  await page.locator('[data-entry]').last().focus()
+  await page.getByRole('button', { name: 'Togli focaccia.jpg dal post' }).click()
+  await tab(page, 'Instagram · feed').click()
+  await expect(feed.getByText('1/2')).toBeVisible()
+  await expect(feed.locator('[data-preview-file]')).toHaveCount(1)
 })
 
 test('a story shows no text and the zones the app covers; a reel the same, and the zones go away', async ({
@@ -149,6 +162,14 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   const bar = await page.locator('[data-action-bar]').boundingBox()
   expect(frame && Math.abs(frame.height / frame.width - 16 / 9)).toBeLessThan(0.02)
   expect(frame && bar && frame.y + frame.height).toBeLessThanOrEqual(bar?.y ?? 0)
+  // on a shorter screen the frame narrows to stay whole, under the column's 320 px
+  await page.setViewportSize({ width: 1440, height: 760 })
+  const short = await preview(page).locator('[data-preview-frame]').boundingBox()
+  const shortBar = await page.locator('[data-action-bar]').boundingBox()
+  expect(short?.width).toBeLessThan(300)
+  expect(short && Math.abs(short.height / short.width - 16 / 9)).toBeLessThan(0.02)
+  expect(short && shortBar && short.y + short.height).toBeLessThanOrEqual(shortBar?.y ?? 0)
+  await page.setViewportSize({ width: 1440, height: 1000 })
   await preview(page).getByRole('switch', { name: 'Mostra le zone coperte' }).click()
   await expect(reel.locator('[data-safe-zones]')).toHaveCount(0)
 

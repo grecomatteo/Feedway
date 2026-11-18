@@ -6,7 +6,16 @@
  * the covered zones are fractions of the frame Meta measures them on, and short enough to fit
  * the screen's height.
  */
-defineProps<{ vertical?: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    vertical?: boolean
+    /** the screen's height kept for what stands above and below the frame */
+    reserve?: string
+  }>(),
+  { reserve: '20rem' },
+)
+// never narrower than 12rem, where the app's names and buttons still read
+const maxWidth = computed(() => `max(12rem, min(100%, calc((100dvh - ${props.reserve}) * 9 / 16)))`)
 </script>
 
 <template>
@@ -17,7 +26,7 @@ defineProps<{ vertical?: boolean }>()
         ? 'aspect-[9/16] border-black bg-black text-white'
         : 'border-[#dbdbdb] bg-white text-[#141414]'
     "
-    :style="vertical ? { maxWidth: 'min(100%, calc((100dvh - 20rem) * 9 / 16))' } : undefined"
+    :style="vertical ? { maxWidth } : undefined"
     data-preview-frame
   >
     <slot />

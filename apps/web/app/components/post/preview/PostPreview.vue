@@ -11,7 +11,7 @@ import {
 
 /**
  * «Anteprima» (§11.3; design E4): a tab for each way the post goes out on the chosen accounts,
- * the account of the tab, the phone with the post as the app shows it, after the choices and
+ * the account of the tab, the post in the platform's interface as the app shows it, after the choices and
  * the crops; for reels and stories the zones the app covers. A file dropped here joins the post
  * (Task 6).
  */
@@ -20,6 +20,8 @@ const props = defineProps<{
   accounts: Map<string, ProfileAccount>
   /** the copies are read from the library, Editor and up: the Viewer sees none (D-72) */
   showFiles: boolean
+  /** the height kept free around a reel or a story's frame (the column and the action bar) */
+  reserve?: string
 }>()
 const { t, locale } = useI18n()
 const e = props.editor
@@ -157,6 +159,12 @@ const fbWhen = computed(() =>
 )
 /** the file the feed's carousel shows: «Sposta prima/dopo» under the frame move it */
 const feedAt = ref(0)
+// another tab or account starts from the first file; fewer files never leave it past the last
+watch([view, accountId], () => (feedAt.value = 0))
+watch(
+  () => items.value.length,
+  (n) => (feedAt.value = Math.min(feedAt.value, Math.max(0, n - 1))),
+)
 const canMove = computed(
   () =>
     view.value === 'instagram_feed' && items.value.length > 1 && e.editable.value && fresh.value,
@@ -227,7 +235,7 @@ function over(event: DragEvent) {
         {{ accountLabel(accountId) }}
       </p>
       <USwitch v-if="vertical" v-model="zones" :label="t('posts.preview.zones')" class="min-h-11" />
-      <PostPreviewFrame :vertical="vertical">
+      <PostPreviewFrame :vertical="vertical" :reserve="reserve">
         <PostPreviewInstagramFeed
           v-if="view === 'instagram_feed'"
           :name="handle"
@@ -280,10 +288,10 @@ function over(event: DragEvent) {
     </template>
     <div
       v-else
-      class="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-[2rem] border-2 border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-text-muted)"
+      class="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-text-muted)"
       data-preview-empty
     >
-      <UIcon name="i-lucide-smartphone" class="size-6" aria-hidden="true" />
+      <UIcon name="i-lucide-eye" class="size-6" aria-hidden="true" />
       <p>{{ e.checking.value ? t('posts.preview.loading') : t('posts.preview.empty') }}</p>
     </div>
     <p class="flex gap-1.5 text-xs text-(--app-text-muted)">
