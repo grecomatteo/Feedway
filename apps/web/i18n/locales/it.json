@@ -1962,10 +1962,10 @@
       "at": "Programma",
       "day": "Giorno",
       "time": "Ora",
-      "zoneRome": "ora di Roma",
       "zone": "ora di {city}",
       "sentence": "Esce {day} alle {time} · {zone}.",
-      "default": "{time} è l'orario predefinito di {client}."
+      "default": "{time} è l'orario predefinito di {client}.",
+      "sentenceLocal": "Esce {day} alle {time}."
     },
     "summary": {
       "title": "Riepilogo delle destinazioni",

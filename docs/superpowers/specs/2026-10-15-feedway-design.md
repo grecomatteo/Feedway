@@ -966,6 +966,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 | Destinazione confermata | Info | Pannello; Telegram/email se attivati |
 | Post confermato su tutti gli account | Successo | Pannello + Telegram |
 | Pubblicazione fallita o con problema | Errore | Tutti |
+| File di un post programmato che non esce (cancellato, non riuscito o rifiutato da Meta), prima o all'ora del post (D-74) | Errore | Pannello + **email a chi l'ha programmato**, sempre, con il file, la posizione e l'account; poi Telegram e gli altri canali come gli errori |
 | Destinazione in pausa | Avviso | Pannello + Telegram, ai Manager |
 | Programmazione in blocco completata | Info | Pannello |
 | Contenuto pianificato da preparare entro domani (§11.12) | Avviso | Pannello + Telegram, a chi può prepararlo nello spazio |
@@ -1176,7 +1177,7 @@ audit_log           id, organization_id (null = piattaforma), actor_id,
 - **Mai perdere lavoro**: salvataggio automatico delle bozze; avviso se esci con modifiche.
 - **"Annulla" invece di "Sei sicuro?"** per le azioni reversibili; conferma esplicita solo per ciò che non si annulla (Pubblica ora).
 - **Errori accanto al campo**, in italiano semplice, con la soluzione.
-- **Orari chiari**: fuso indicato, "tra 2 ore" accanto alla data, avviso nei giorni del cambio d'ora.
+- **Orari chiari**: fuso indicato quando non è quello predefinito (Roma, che non si scrive: Matteo, 18/11/2026), "tra 2 ore" accanto alla data, avviso nei giorni del cambio d'ora.
 - **Ricerca e scorciatoie**: Cmd/Ctrl+K per cercare post, clienti e azioni; N per nuovo post.
 - **Feedback immediato**: le azioni si vedono subito e si allineano col server in background.
 - **Accessibilità WCAG 2.2 AA**: contrasto, tastiera, etichette, aree di tocco di almeno 44 px, "riduci movimento".

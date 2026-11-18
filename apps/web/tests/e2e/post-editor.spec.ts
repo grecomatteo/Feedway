@@ -129,8 +129,9 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await pickFromLibrary(page, ['pane.jpg'])
   await expect(page.locator('[data-type="photo"]')).toHaveAttribute('aria-pressed', 'true')
-  // the date proposed is ahead, the zone said next to it
-  await expect(page.locator('[data-when-sentence]')).toContainText('ora di Roma')
+  // the date proposed is ahead; Rome, the default zone, is not said (Matteo 18/11)
+  await expect(page.locator('[data-when-sentence]')).toContainText(/^Esce .+ alle \d\d:\d\d\./)
+  await expect(page.getByText(/ora di Roma/)).toHaveCount(0)
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await expect(scheduleButton(page)).toHaveText(/Programma su 2 account/)
   await scheduleButton(page).click()

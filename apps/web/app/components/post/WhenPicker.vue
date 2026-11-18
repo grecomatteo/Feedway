@@ -2,8 +2,9 @@
 import type { PostEditor } from '~/composables/usePostEditor'
 
 /**
- * «Quando» (§11.2 point 6, P1; design E1, E1b): the day and the time in the post's zone, always
- * said next to the time (D-58, §14.2 «Orari chiari»), with the client's default time already
+ * «Quando» (§11.2 point 6, P1; design E1, E1b): the day and the time in the post's zone. Rome,
+ * the default, is not said (Matteo 18/11); another zone set in the agency's settings is said next
+ * to the time, so nobody reads it as Rome (D-58). The client's default time is already
  * written. «Pubblica subito» is drawn for who can schedule, off with «Presto» until publishing
  * arrives (stage 7, Matteo 18/11).
  */
@@ -11,10 +12,10 @@ const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t, locale } = useI18n()
 const e = props.editor
 
-/** «ora di Roma», «ora di New York» */
+/** «ora di New York»; null for Rome, the default */
 const zone = computed(() => {
   const tz = e.timeZone.value
-  if (tz === 'Europe/Rome') return t('posts.when.zoneRome')
+  if (tz === 'Europe/Rome') return null
   const city = tz.split('/').pop()?.replaceAll('_', ' ') ?? tz
   return t('posts.when.zone', { city })
 })
@@ -45,7 +46,9 @@ const sentence = computed(() => {
     month: 'long',
     timeZone: 'UTC',
   }).format(new Date(`${w.localDate}T12:00:00Z`))
-  return t('posts.when.sentence', { day, time: w.localTime, zone: zone.value })
+  return zone.value
+    ? t('posts.when.sentence', { day, time: w.localTime, zone: zone.value })
+    : t('posts.when.sentenceLocal', { day, time: w.localTime })
 })
 const isDefault = computed(
   () => props.client.defaultPostTime && e.when.value?.localTime === props.client.defaultPostTime,
@@ -101,7 +104,7 @@ const isDefault = computed(
           :ui="{ base: 'min-h-11' }"
         />
       </UFormField>
-      <p class="flex min-h-11 items-center gap-1.5 text-sm text-(--app-text-muted)">
+      <p v-if="zone" class="flex min-h-11 items-center gap-1.5 text-sm text-(--app-text-muted)">
         <UIcon name="i-lucide-globe" class="size-4" aria-hidden="true" />
         {{ zone }}
       </p>
