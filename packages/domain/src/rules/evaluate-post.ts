@@ -285,11 +285,12 @@ function touches(o: RuleOutcome, d: DestinationSummary): boolean {
 }
 
 /**
- * D-56: a file no destination publishes after the choices says nothing of its own, only that
- * it does not go out (an information, as the other fixes). Only when some destination goes out:
- * with none, the block of the destinations says it.
+ * D-56 (Matteo, 18/11): a file no destination publishes after the choices blocks the post, so a
+ * carousel never goes out without a file that was meant to be in it. Its own outcomes stay: a
+ * file with a problem blocks even where it would not go out. Only when some destination goes
+ * out: with none, the block of the destinations says it.
  */
-function withoutUnusedMedia(
+function withUnusedMedia(
   draft: PostDraft,
   outcomes: RuleOutcome[],
   destinations: readonly DestinationSummary[],
@@ -300,12 +301,11 @@ function withoutUnusedMedia(
   const unused = draft.media.flatMap((_, index) => (used.has(index) ? [] : [index]))
   if (unused.length === 0) return outcomes
   const keys = mediaKeys(draft.media)
-  const kept = outcomes.filter((o) => o.subject.kind !== 'media' || used.has(o.subject.index))
   return [
-    ...kept,
+    ...outcomes,
     ...unused.map((index): RuleOutcome => {
       const finding = { code: 'media_unused', subject: { kind: 'media', index } } as const
-      return { level: 'fix', ...finding, params: {}, key: outcomeKey(finding, keys) }
+      return { level: 'block', ...finding, params: {}, key: outcomeKey(finding, keys) }
     }),
   ]
 }
@@ -326,7 +326,7 @@ export function evaluatePost(draft: PostDraft, ctx: RuleContext): RuleReport {
   const pass = effects.length > 0 ? runPass(draft, ctx, when, choices, effects) : first
   // a warning whose choice changed the post stays in the report, with its choice
   const keys = new Set(pass.outcomes.map((o) => o.key))
-  const outcomes = withoutUnusedMedia(
+  const outcomes = withUnusedMedia(
     draft,
     [...pass.outcomes, ...applied.filter((o) => !keys.has(o.key))],
     pass.destinations,
