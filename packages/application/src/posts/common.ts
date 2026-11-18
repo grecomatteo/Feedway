@@ -87,7 +87,11 @@ export async function openPosts(
   const scope: PostScope = { organizationId, workspaceId: workspace.id }
   if (!opts.write) return { current, workspace, scope, organization: null }
   const organization = await assertActiveOrganization(tx, organizationId)
-  if (workspace.archivedAt !== null)
+  // a write waits for an archiving under way, and archiving waits for the writes: a post is
+  // never scheduled in a client that was just archived (D-70, its scheduled posts go back to
+  // draft in the same transaction)
+  const locked = await tx.workspaces.findForShare(organizationId, workspace.id)
+  if (!locked || locked.archivedAt !== null)
     throw new DomainError('CONFLICT', 'Il cliente è archiviato: i suoi post non si modificano')
   return { current, workspace, scope, organization }
 }

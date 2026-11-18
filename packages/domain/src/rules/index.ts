@@ -10,6 +10,7 @@ export {
   CROP_MIN_SIDE,
   evaluatePost,
   isValidCrop,
+  coverKey,
   mediaKeys,
   outcomeKey,
   postFingerprint,

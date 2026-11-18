@@ -2,6 +2,7 @@ import { describe, expect, it, test } from 'vitest'
 import { DomainError } from '../errors.js'
 import { FB, IG, RULE_CASES, context, draft, photo, video } from './cases.js'
 import {
+  coverKey,
   evaluatePost,
   isValidCrop,
   mediaKeys,
@@ -11,7 +12,7 @@ import {
 import { platformRulesMap } from './platform-rules.js'
 import { INSTAGRAM_RULES } from '../platforms/meta/rules/index.js'
 import type { MediaFailure } from '../media/processing.js'
-import type { PlatformRules, RuleOutcome, RuleReport } from './types.js'
+import type { PlatformRules, PostDraft, RuleOutcome, RuleReport } from './types.js'
 
 const short = (o: RuleOutcome) => {
   const subject =
@@ -492,6 +493,44 @@ describe('plan 06: keys by file, crops, unused files, purpose', () => {
     const report = evaluatePost(draft({ media: [tall('a')], choices: [choice] }), context())
     expect(report.invalidChoices).toEqual([choice])
     expect(report.unresolved).toEqual([keyOf('a')])
+  })
+
+  test('a cover photo carries its file in the key; a frame does not (P2, stage 6 review)', () => {
+    const reelOf = (cover: NonNullable<PostDraft['cover']>, choices: PostDraft['choices'] = []) =>
+      draft({
+        type: 'reel',
+        media: [video(20_000, { width: 1080, height: 1920 })],
+        destinations: [{ accountId: IG }],
+        cover,
+        choices,
+      })
+    const coverA = {
+      source: 'image' as const,
+      media: photo({ width: 1080, height: 1350 }, { mediaId: 'A' }),
+    }
+    const coverB = {
+      source: 'image' as const,
+      media: photo({ width: 1080, height: 1080 }, { mediaId: 'B' }),
+    }
+    const keyA = 'cover_aspect_ratio:cover:A:instagram'
+    const boxA = { x: 0, y: 0, width: 0.703125, height: 1 }
+    const cut = [{ key: keyA, option: 'crop' as const, crop: boxA }]
+
+    const first = evaluatePost(reelOf(coverA, cut), context())
+    expect(first.outcomes.find((o) => o.code === 'cover_aspect_ratio')).toMatchObject({
+      key: keyA,
+      chosen: 'crop',
+    })
+    expect(first.invalidChoices).toEqual([])
+
+    // another photo: the box of A is an orphan choice, it does nothing and is not invalid
+    const changed = evaluatePost(reelOf(coverB, cut), context())
+    expect(changed.invalidChoices).toEqual([])
+    expect(changed.unresolved).toEqual(['cover_aspect_ratio:cover:B:instagram'])
+
+    expect(coverKey({ source: 'frame' })).toBe('cover')
+    expect(coverKey(undefined)).toBe('cover')
+    expect(coverKey({ source: 'image', mediaId: 'A' })).toBe('cover:A')
   })
 
   test('isValidCrop checks the box against the format', () => {

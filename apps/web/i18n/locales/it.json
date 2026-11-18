@@ -750,7 +750,10 @@
     "renamed": "Nome salvato.",
     "archived": "{name} archiviato.",
     "archiveTitle": "Archiviare {name}?",
-    "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti."
+    "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti.",
+    "archivePosts": "Il suo post programmato torna in bozza. | I suoi {n} post programmati tornano in bozza.",
+    "archivePostsMany": "I suoi oltre {n} post programmati tornano in bozza.",
+    "archivePostsUnknown": "I suoi post programmati tornano in bozza."
   },
   "workspaceAccounts": {
     "title": "Account del cliente",
@@ -1986,7 +1989,7 @@
     "summary": {
       "title": "Riepilogo delle destinazioni",
       "pending": "Nessuna scelta da fare | Una scelta da fare | {n} scelte da fare",
-      "checkFailed": "Controlli non aggiornati:",
+      "checkFailed": "Controlli non riusciti:",
       "empty": "Scegli i file e gli account: qui vedi cosa esce su ognuno.",
       "unknownAccount": "Account non più del cliente",
       "place": "{n}° posto",
@@ -2209,6 +2212,9 @@
       "beforeDraft": "Le note si aggiungono quando la bozza è salvata",
       "add": "Aggiungi",
       "remove": "Togli la nota",
+      "removeTitle": "Togliere la nota?",
+      "removeText": "La nota sparisce per tutto il team e non si può recuperare.",
+      "keep": "Annulla",
       "empty": "Nessuna nota.",
       "you": "Tu",
       "today": "oggi alle {time}",

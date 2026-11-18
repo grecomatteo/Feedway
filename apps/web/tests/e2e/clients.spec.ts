@@ -102,6 +102,9 @@ test('the clients with their profiles, the summary, search and the archived ones
   await rowOf(page, 'Studio Riva').getByRole('button', { name: 'Azioni per Studio Riva' }).click()
   await expect(page.getByRole('menuitem')).toHaveText(['Apri', 'Persone', 'Rinomina', 'Archivia'])
   await page.getByRole('menuitem', { name: 'Archivia' }).click()
+  // no scheduled post: the dialog does not speak of posts going back to draft (D-70)
+  await expect(page.getByRole('dialog')).toContainText('Il cliente resta leggibile')
+  await expect(page.getByRole('dialog')).not.toContainText('tornano in bozza')
   await page.getByRole('dialog').getByRole('button', { name: 'Archivia' }).click()
   await expect(
     page.getByRole('status').filter({ hasText: 'Studio Riva archiviato.' }),

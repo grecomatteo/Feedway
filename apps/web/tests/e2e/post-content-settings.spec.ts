@@ -141,6 +141,19 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await expect(chosen.getByText('Natale')).toBeVisible()
   await expect(e.getByText('Il prezzo lo conferma Marta')).toBeVisible()
 
+  // a note taken off is asked first (P7 of the review): «Annulla» keeps it
+  await e.getByLabel('Nuova nota per il team').fill('Da togliere')
+  await e.getByRole('button', { name: 'Aggiungi', exact: true }).click()
+  const last = e.getByRole('listitem').filter({ hasText: 'Da togliere' })
+  await last.getByRole('button', { name: 'Togli la nota' }).click()
+  const ask = e.getByRole('dialog', { name: 'Togliere la nota?' })
+  await ask.getByRole('button', { name: 'Annulla' }).click()
+  await expect(last).toBeVisible()
+  await last.getByRole('button', { name: 'Togli la nota' }).click()
+  await ask.getByRole('button', { name: 'Togli la nota' }).click()
+  await expect(e.getByText('Da togliere')).toHaveCount(0)
+  await expect(e.getByText('Il prezzo lo conferma Marta')).toBeVisible()
+
   // the label in the client's list of posts
   await e.goto(`/${org}/spazi/${client.slug}/post`)
   await expect(

@@ -168,6 +168,17 @@ const ratioLabel = (r: number) =>
     : Math.abs(r - 9 / 16) < 0.01
       ? '9:16'
       : `${n(r, { maximumFractionDigits: 2 })}:1`
+/**
+ * The photo a cover outcome is about, from its key (`<code>:cover:<mediaId>[:<platform>]`): the
+ * box opens on the photo the report measured, even if the cover changed since.
+ */
+function coverSrcOf(key: string) {
+  const [, , id] = key.split(':')
+  const ofFile = id !== undefined && id !== 'instagram' && id !== 'facebook'
+  const c = e.cover.value
+  if (!ofFile || (c?.source === 'image' && c.mediaId === id)) return e.coverSrc.value
+  return e.fileUrl(id, 'ig_feed')
+}
 const crop = computed(() => {
   const o = cropping.value
   if (!o?.cropRatio) return null
@@ -188,7 +199,7 @@ const crop = computed(() => {
     src: !props.showFiles
       ? null
       : o.subject.kind === 'cover'
-        ? e.coverSrc.value
+        ? coverSrcOf(o.key)
         : id
           ? e.fileUrl(id, 'ig_feed')
           : null,

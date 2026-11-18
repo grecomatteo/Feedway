@@ -235,6 +235,28 @@ describe('the checks while writing (Scelta 8, D-57)', () => {
     expect(seen).toEqual([{ a: 2 }])
   })
 
+  test('an answer older than a failure is thrown away: the error stays (P2 c of the review)', async () => {
+    const calls: { ok: (v: string) => void; fail: (e: Error) => void }[] = []
+    const run = vi.fn(() => new Promise<string>((ok, fail) => calls.push({ ok, fail })))
+    const seen: string[] = []
+    const errors: unknown[] = []
+    const c = createCheckRunner({
+      run,
+      onReport: (r) => seen.push(r),
+      onError: (e) => errors.push(e),
+    })
+    c.request({ cover: 'A' })
+    await vi.advanceTimersByTimeAsync(500)
+    c.request({ cover: 'B' })
+    await vi.advanceTimersByTimeAsync(500)
+    calls[1]?.fail(new Error('422'))
+    await vi.advanceTimersByTimeAsync(0)
+    calls[0]?.ok('report of A')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(errors).toHaveLength(1)
+    expect(seen).toEqual([])
+  })
+
   test('an answer that comes after a newer one is thrown away', async () => {
     const answers: ((v: string) => void)[] = []
     const run = vi.fn(() => new Promise<string>((r) => answers.push(r)))

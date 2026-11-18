@@ -349,6 +349,75 @@ describe('drafts', () => {
   })
 })
 
+describe('archiving a client (D-70, Matteo 18/11)', () => {
+  test('its scheduled posts go back to draft, each with its audit entry; its drafts stay', async () => {
+    const admin = await env.person(org.id, 'admin')
+    const adminCookie = await env.strongSignIn(admin)
+    const { ws, account } = await seed(env.tdb.runtimeUrl, async (s) => {
+      const w = await s.workspace(org.id, { name: 'Da archiviare' })
+      await s.workspaceMember(org.id, w, people.manager.userId, 'manager')
+      return {
+        ws: w,
+        account: await s.account(org.id, { platform: 'instagram', workspaceIds: [w] }),
+      }
+    })
+    await env.admin.pool.query("update social_accounts set health = 'ok' where id = $1", [account])
+    const posts = `/api/v1/orgs/${org.slug}/workspaces/${ws}/posts`
+    const make = async () =>
+      expectOk(
+        call('manager', 'POST', posts, {
+          type: 'reel',
+          mediaIds: [await video(ws)],
+          caption: { common: `Da archiviare ${randomUUID().slice(0, 6)}` },
+          destinations: [{ accountId: account }],
+          when: WHEN,
+        }),
+      )
+    const kept = await make()
+    const going = await make()
+    const scheduled = await expectOk(
+      call('manager', 'POST', `${posts}/${going.id}/schedule`, { version: going.version }),
+    )
+    expect(scheduled.status).toBe('scheduled')
+
+    const r = await env.call(
+      'POST',
+      `/api/v1/orgs/${org.slug}/workspaces/${ws}/archive`,
+      undefined,
+      {
+        cookie: adminCookie,
+      },
+    )
+    expect(r.status, await r.text()).toBeLessThan(300)
+
+    const back = await expectOk(call('manager', 'GET', `${posts}/${going.id}`))
+    expect(back).toMatchObject({
+      status: 'draft',
+      version: scheduled.version + 1,
+      when: WHEN,
+      destinations: [{ accountId: account, status: 'draft' }],
+    })
+    const { rows } = await env.admin.pool.query<{ fingerprint: string | null }>(
+      'select fingerprint from post_targets where post_id = $1',
+      [going.id],
+    )
+    expect(rows.map((x) => x.fingerprint)).toEqual([null])
+    const draft = await expectOk(call('manager', 'GET', `${posts}/${kept.id}`))
+    expect(draft).toMatchObject({ status: 'draft', version: kept.version })
+    const audit = await env.admin.pool.query<{ entity_id: string; actor_id: string }>(
+      "select entity_id, actor_id from audit_log where action = 'post.unscheduled' and workspace_id = $1",
+      [ws],
+    )
+    expect(audit.rows).toEqual([{ entity_id: going.id, actor_id: admin.userId }])
+    // archived, nothing is written any more
+    await expectError(
+      call('manager', 'POST', `${posts}/${going.id}/schedule`, { version: back.version }),
+      409,
+      'CONFLICT',
+    )
+  })
+})
+
 describe('scheduling', () => {
   test('a post with a block is refused with its checks (422), and stays a draft', async () => {
     const post = await draft('editor', { destinations: [] })

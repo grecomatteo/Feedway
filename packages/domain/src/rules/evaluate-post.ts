@@ -69,11 +69,23 @@ export function mediaKeys(media: readonly { mediaId: string }[]): string[] {
   })
 }
 
-function subjectKey(s: RuleSubject, keys: readonly string[]): string {
+/**
+ * The key of the cover (P2 of the stage 6 review): a photo carries its id (`cover:<mediaId>`),
+ * as the files do, so a choice on the cover stays behind, orphan, when the photo changes; a
+ * frame of the video is `cover`.
+ */
+export function coverKey(
+  cover: { source: 'frame' } | { source: 'image'; mediaId: string } | undefined,
+) {
+  return cover?.source === 'image' ? `cover:${cover.mediaId}` : 'cover'
+}
+
+function subjectKey(s: RuleSubject, keys: readonly string[], cover: string): string {
   switch (s.kind) {
     case 'post':
-    case 'cover':
       return s.kind
+    case 'cover':
+      return cover
     case 'destination':
       return `destination:${s.accountId}`
     case 'media':
@@ -81,11 +93,22 @@ function subjectKey(s: RuleSubject, keys: readonly string[]): string {
   }
 }
 
-/** `keys`: `mediaKeys(draft.media)`, for an outcome about a file. */
+/**
+ * `keys`: `mediaKeys(draft.media)`, for an outcome about a file; `cover`: `coverKey` of the
+ * draft's cover, for an outcome about the cover.
+ */
 export const outcomeKey = (
   f: Pick<RuleFinding, 'code' | 'subject' | 'platform'>,
   keys: readonly string[] = [],
-) => [f.code, subjectKey(f.subject, keys), ...(f.platform ? [f.platform] : [])].join(':')
+  cover = 'cover',
+) => [f.code, subjectKey(f.subject, keys, cover), ...(f.platform ? [f.platform] : [])].join(':')
+
+const draftCoverKey = (draft: PostDraft) =>
+  coverKey(
+    draft.cover?.source === 'image'
+      ? { source: 'image', mediaId: draft.cover.media.mediaId }
+      : draft.cover,
+  )
 
 /** The shortest side a box may have, in pixels of the original (D-61). */
 export const CROP_MIN_SIDE = 320
@@ -230,8 +253,9 @@ function runPass(
   const invalid: RuleChoice[] = []
   const effectsByKey = new Map<string, Partial<Record<RuleOption, PostEffect>>>()
   const keys = mediaKeys(draft.media)
+  const cover = draftCoverKey(draft)
   for (const f of findings) {
-    const key = outcomeKey(f, keys)
+    const key = outcomeKey(f, keys, cover)
     if (outcomes.has(key)) continue
     const given = choices.get(key)
     // an orphan choice (D-54), a box the format does not take or a box on another option

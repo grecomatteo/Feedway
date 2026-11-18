@@ -58,16 +58,19 @@ async function loadNotes() {
     notes.value = []
     return
   }
+  const asked = postId.value
   notesFailed.value = false
   try {
-    notes.value = (
+    const items = (
       await call<{ items: PostNoteDto[] }>(
         'GET',
-        `${props.base}/posts/${encodeURIComponent(postId.value)}/notes`,
+        `${props.base}/posts/${encodeURIComponent(asked)}/notes`,
       )
     ).items
+    // a slow answer about a post left meanwhile is thrown away
+    if (postId.value === asked) notes.value = items
   } catch {
-    notesFailed.value = true
+    if (postId.value === asked) notesFailed.value = true
   }
 }
 watch(postId, () => void loadNotes(), { immediate: true })
@@ -95,7 +98,10 @@ async function add() {
     sending.value = false
   }
 }
+/** a note taken off does not come back: asked first (P7 of the stage 6 review) */
+const removing = ref<PostNoteDto | null>(null)
 async function remove(n: PostNoteDto) {
+  removing.value = null
   if (!postId.value) return
   problem.value = null
   try {
@@ -104,6 +110,9 @@ async function remove(n: PostNoteDto) {
       `${props.base}/posts/${encodeURIComponent(postId.value)}/notes/${encodeURIComponent(n.id)}`,
     )
     notes.value = (notes.value ?? []).filter((x) => x.id !== n.id)
+    // its button is gone: the focus goes to the field of a new note
+    await nextTick()
+    document.getElementById('post-note')?.focus()
   } catch (err) {
     problem.value = failure(err).message
   }
@@ -200,7 +209,7 @@ const initials = (name: string) =>
             icon="i-lucide-trash-2"
             class="size-11 shrink-0 justify-center"
             :aria-label="$t('posts.notes.remove')"
-            @click="remove(n)"
+            @click="removing = n"
           />
         </li>
       </ul>
@@ -236,5 +245,26 @@ const initials = (name: string) =>
       </p>
     </div>
     <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
+    <UModal
+      :open="removing !== null"
+      :title="$t('posts.notes.removeTitle')"
+      :description="$t('posts.notes.removeText')"
+      @update:open="
+        (v: boolean) => {
+          if (!v) removing = null
+        }
+      "
+    >
+      <template #footer>
+        <div class="flex w-full flex-wrap justify-end gap-3">
+          <UButton color="neutral" variant="ghost" class="min-h-11" @click="removing = null">
+            {{ $t('posts.notes.keep') }}
+          </UButton>
+          <UButton color="error" class="min-h-11" @click="removing && remove(removing)">
+            {{ $t('posts.notes.remove') }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </section>
 </template>
