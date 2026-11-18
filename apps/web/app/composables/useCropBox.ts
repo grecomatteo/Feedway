@@ -56,13 +56,27 @@ export function useCropBox(
   function onKey(event: KeyboardEvent) {
     const big = event.shiftKey
     const keys: Record<string, () => void> = {
-      ArrowLeft: () => move(-1, 0, big),
-      ArrowRight: () => move(1, 0, big),
-      ArrowUp: () => move(0, -1, big),
-      ArrowDown: () => move(0, 1, big),
-      '+': () => zoom(1),
-      '=': () => zoom(1),
-      '-': () => zoom(-1),
+      ArrowLeft: () => {
+        move(-1, 0, big)
+      },
+      ArrowRight: () => {
+        move(1, 0, big)
+      },
+      ArrowUp: () => {
+        move(0, -1, big)
+      },
+      ArrowDown: () => {
+        move(0, 1, big)
+      },
+      '+': () => {
+        zoom(1)
+      },
+      '=': () => {
+        zoom(1)
+      },
+      '-': () => {
+        zoom(-1)
+      },
     }
     const action = keys[event.key]
     if (!action) return
