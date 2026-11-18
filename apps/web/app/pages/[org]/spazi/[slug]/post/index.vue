@@ -90,6 +90,13 @@ const authorOf = (p: PostResponse) =>
     ? t('posts.list.you')
     : (people.value.get(p.createdBy) ?? t('posts.list.someone'))
 
+// ---- labels: the client's, by id (§11.7); one deleted since is simply not shown
+const clientId = computed(() => client.value?.id ?? null)
+const { labels } = useContentSettings(clientId)
+const labelsById = computed(() => new Map((labels.value ?? []).map((l) => [l.id, l])))
+const labelsOf = (p: PostResponse) =>
+  p.labelIds.map((id) => labelsById.value.get(id)).filter((l) => l !== undefined)
+
 // ---- profiles: the accounts the post goes to, by their name on the platform
 const accounts = computed(() => {
   const map = new Map<string, ProfileAccount>()
@@ -274,7 +281,19 @@ const mayDraft = computed(
                 class="line-clamp-1 max-w-[28rem] font-semibold underline-offset-3 hover:underline"
                 >{{ textOf(row) }}</NuxtLink
               >
-              <span class="block text-[0.8125rem] text-(--app-text-muted)">{{ typeOf(row) }}</span>
+              <span
+                class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.8125rem] text-(--app-text-muted)"
+              >
+                <span>{{ typeOf(row) }}</span>
+                <span
+                  v-for="l in labelsOf(row)"
+                  :key="l.id"
+                  class="inline-flex items-center gap-1.5"
+                  data-label
+                >
+                  <ContentLabelDot :color="l.color" />{{ l.name }}
+                </span>
+              </span>
             </span>
           </div>
         </template>
@@ -326,6 +345,12 @@ const mayDraft = computed(
             </template>
             <template #detail>
               {{ typeOf(row) }} · {{ whenOf(row) ?? $t('posts.list.noDate') }}
+              <template v-for="l in labelsOf(row)" :key="l.id">
+                ·
+                <span class="inline-flex items-center gap-1" data-label
+                  ><ContentLabelDot :color="l.color" />{{ l.name }}</span
+                >
+              </template>
             </template>
             <template #status>
               <StatusDot :label="stateOf(row).label" :tone="stateOf(row).tone" />

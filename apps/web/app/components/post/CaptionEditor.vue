@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { CaptionTemplateDto } from '@app/contracts'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import { captionStats } from '@app/domain'
 import { META_LIMITS } from '@app/domain/platforms/meta'
 import type { PostEditor } from '~/composables/usePostEditor'
@@ -9,8 +11,16 @@ import type { PostEditor } from '~/composables/usePostEditor'
  * piattaforma» opens a tab per platform of the chosen accounts, starting from a copy of the
  * common text; «Torna al testo comune» drops that tab's text, with «Annulla». A story has no
  * text: the box goes, the text stays in the draft and comes back with another type (D-60).
+ * «Inserisci» puts a template of the client where the cursor is, in the tab shown (§11.7, E8c).
  */
-const props = defineProps<{ editor: PostEditor; platforms: ('instagram' | 'facebook')[] }>()
+const props = defineProps<{
+  editor: PostEditor
+  platforms: ('instagram' | 'facebook')[]
+  /** the client's templates; null while they load */
+  templates: CaptionTemplateDto[] | null
+  /** «Gestisci i modelli»: the client's content settings, for who manages them */
+  manageTo: string | null
+}>()
 const { t } = useI18n()
 const e = props.editor
 
@@ -86,6 +96,58 @@ function undoBack() {
 }
 onBeforeUnmount(() => clearTimeout(undoTimer))
 
+// ---- «Inserisci»: where the cursor is, or at the end if the box never had it
+const box = ref<HTMLTextAreaElement | null>(null)
+const TEMPLATE_ICON: Record<CaptionTemplateDto['kind'], string> = {
+  signature: 'i-lucide-signature',
+  hashtags: 'i-lucide-hash',
+  caption: 'i-lucide-file-text',
+}
+const KIND_ORDER: CaptionTemplateDto['kind'][] = ['signature', 'hashtags', 'caption']
+function insert(x: CaptionTemplateDto) {
+  const el = box.value
+  const now = text.value
+  const start = el ? el.selectionStart : now.length
+  const end = el ? el.selectionEnd : now.length
+  const before = now.slice(0, start)
+  // a signature or hashtags go on a paragraph of their own
+  const gap =
+    x.kind !== 'caption' && before.trim() !== '' && !before.endsWith('\n\n')
+      ? before.endsWith('\n')
+        ? '\n'
+        : '\n\n'
+      : ''
+  const inserted = gap + x.body
+  text.value = before + inserted + now.slice(end)
+  const at = start + inserted.length
+  void nextTick(() => {
+    el?.focus()
+    el?.setSelectionRange(at, at)
+  })
+}
+const preview = (body: string) => {
+  const line = body.replace(/\s+/g, ' ').trim()
+  return line.length > 48 ? `${line.slice(0, 47)}…` : line
+}
+const insertItems = computed<DropdownMenuItem[][]>(() => {
+  const list = props.templates ?? []
+  const groups: DropdownMenuItem[][] = KIND_ORDER.map((kind) => list.filter((x) => x.kind === kind))
+    .filter((g) => g.length > 0)
+    .map((g) => [
+      { type: 'label', label: t(`contentSettings.templates.kinds.${g[0]?.kind ?? 'caption'}`) },
+      ...g.map((x) => ({
+        label: x.name,
+        description: preview(x.body),
+        icon: TEMPLATE_ICON[x.kind],
+        onSelect: () => insert(x),
+      })),
+    ])
+  if (list.length === 0) groups.push([{ label: t('posts.caption.noTemplates'), disabled: true }])
+  if (props.manageTo)
+    groups.push([{ label: t('posts.caption.manageTemplates'), to: props.manageTo }])
+  return groups
+})
+
 const ICON: Record<Tab, string> = { instagram: 'i-lucide-instagram', facebook: 'i-lucide-facebook' }
 </script>
 
@@ -108,34 +170,54 @@ const ICON: Record<Tab, string> = { instagram: 'i-lucide-instagram', facebook: '
       v-else
       class="overflow-hidden rounded-lg border border-(--app-field-border) bg-(--app-card) focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--app-focus)"
     >
-      <div
-        v-if="e.split.value"
-        role="tablist"
-        :aria-label="$t('posts.caption.platforms')"
-        class="flex gap-1 border-b border-(--app-border) px-2"
-      >
-        <button
-          v-for="p in tabs"
-          :key="p"
-          role="tab"
-          type="button"
-          :aria-selected="tab === p"
-          :aria-controls="'post-caption-text'"
-          class="flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm"
-          :class="
-            tab === p
-              ? 'border-(--app-brand) font-semibold'
-              : 'border-transparent text-(--app-text-muted)'
-          "
-          @click="tab = p"
+      <div class="flex items-center justify-between gap-2 border-b border-(--app-border) pr-2">
+        <div
+          v-if="e.split.value"
+          role="tablist"
+          :aria-label="$t('posts.caption.platforms')"
+          class="flex gap-1 px-2"
         >
-          <UIcon :name="ICON[p]" class="size-4" aria-hidden="true" />
-          {{ $t(`rules.platforms.${p}`) }}
-        </button>
+          <button
+            v-for="p in tabs"
+            :key="p"
+            role="tab"
+            type="button"
+            :aria-selected="tab === p"
+            :aria-controls="'post-caption-text'"
+            class="flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm"
+            :class="
+              tab === p
+                ? 'border-(--app-brand) font-semibold'
+                : 'border-transparent text-(--app-text-muted)'
+            "
+            @click="tab = p"
+          >
+            <UIcon :name="ICON[p]" class="size-4" aria-hidden="true" />
+            {{ $t(`rules.platforms.${p}`) }}
+          </button>
+        </div>
+        <p v-else class="px-4 py-2 text-sm text-(--app-text-muted)">
+          {{ $t('posts.caption.common') }}
+        </p>
+        <UDropdownMenu
+          v-if="e.editable.value"
+          :items="insertItems"
+          :content="{ align: 'end' }"
+          :ui="{ content: 'w-80 max-w-[calc(100vw-2rem)]', itemDescription: 'truncate' }"
+        >
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            class="relative min-h-10 after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-['']"
+            icon="i-lucide-plus"
+            trailing-icon="i-lucide-chevron-down"
+            :loading="templates === null"
+          >
+            {{ $t('posts.caption.insert') }}
+          </UButton>
+        </UDropdownMenu>
       </div>
-      <p v-else class="border-b border-(--app-border) px-4 py-2 text-sm text-(--app-text-muted)">
-        {{ $t('posts.caption.common') }}
-      </p>
       <label for="post-caption-text" class="sr-only">{{
         e.split.value
           ? $t('posts.caption.textFor', { platform: $t(`rules.platforms.${tab}`) })
@@ -143,6 +225,7 @@ const ICON: Record<Tab, string> = { instagram: 'i-lucide-instagram', facebook: '
       }}</label>
       <textarea
         id="post-caption-text"
+        ref="box"
         v-model="text"
         rows="6"
         :readonly="!e.editable.value"

@@ -54,6 +54,7 @@ const body = (over: Partial<DraftBody> = {}): DraftBody => ({
   shareToFeed: true,
   choices: [],
   cover: null,
+  labelIds: [],
   ...over,
 })
 
@@ -63,6 +64,8 @@ test('a draft is born with its first content, not when the page opens', () => {
   expect(hasContent(body({ mediaIds: ['m'] }))).toBe(true)
   expect(hasContent(body({ destinations: [{ accountId: 'a' }] }))).toBe(true)
   expect(hasContent(body({ caption: { common: '', instagram: 'x' } }))).toBe(true)
+  // a label is kept only by a saved post
+  expect(hasContent(body({ labelIds: ['l'] }))).toBe(true)
 })
 
 test('the files a destination leaves out are said, with their place (D-56)', () => {

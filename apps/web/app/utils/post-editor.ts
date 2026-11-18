@@ -92,12 +92,22 @@ export interface DraftBody {
   shareToFeed: boolean
   choices: ChoiceBody[]
   cover: { source: 'frame'; offsetMs: number } | { source: 'image'; mediaId: string } | null
+  /** every label of the post (§11.7) */
+  labelIds: string[]
 }
 
-/** A draft is born with its first content: a file, a character or a destination (Scelta 7). */
+/**
+ * A draft is born with its first content: a file, a character or a destination (Scelta 7), or
+ * a label, which only a saved post can keep.
+ */
 export function hasContent(body: DraftBody): boolean {
   const texts = [body.caption.common, body.caption.instagram ?? '', body.caption.facebook ?? '']
-  return body.mediaIds.length > 0 || body.destinations.length > 0 || texts.some((t) => t !== '')
+  return (
+    body.mediaIds.length > 0 ||
+    body.destinations.length > 0 ||
+    body.labelIds.length > 0 ||
+    texts.some((t) => t !== '')
+  )
 }
 
 /** The files a destination does not publish, with their place in the post (D-56). */
