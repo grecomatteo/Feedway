@@ -83,6 +83,8 @@ const PostMediaDto = z.object({
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
   durationMs: z.number().int().nullable(),
+  /** of the copy that is published: the frames of the reel's cover (D-60) */
+  fps: z.number().nullable(),
   /** the copies the panel can show (`thumbnail`, `preview`…) */
   variants: z.array(z.string()),
 })

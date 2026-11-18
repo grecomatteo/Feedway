@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PostCheckResponse } from '@app/contracts'
 import type { PostEditor } from '~/composables/usePostEditor'
+import { CROP_MIN_SIDE, canCrop } from '~/utils/crop-box'
 import { missingFiles, properType, type PostType } from '~/utils/post-editor'
 
 /**
@@ -9,9 +10,14 @@ import { missingFiles, properType, type PostType } from '~/utils/post-editor'
  * blocks with the way to fix them, then one row per account with what goes out there and which
  * files do not (D-56), last the automatic fixes in one sentence.
  */
-const props = defineProps<{ editor: PostEditor; accounts: Map<string, ProfileAccount> }>()
+const props = defineProps<{
+  editor: PostEditor
+  accounts: Map<string, ProfileAccount>
+  /** the copies are read from the library, Editor and up (D-72) */
+  showFiles: boolean
+}>()
 const emit = defineEmits<{ goto: [section: string] }>()
-const { t } = useI18n()
+const { t, n } = useI18n()
 const e = props.editor
 
 type Outcome = PostCheckResponse['outcomes'][number]
@@ -123,6 +129,76 @@ const DOT: Record<string, string> = {
 const pending = computed(() => report.value?.unresolved.length ?? 0)
 defineExpose({ proposal })
 const switchTo = (type: PostType) => e.chooseType(type)
+
+// ---- «Ritaglia»: the box, moved by the person (D-61)
+const cropping = ref<Outcome | null>(null)
+/** The photo holds a box to move (D-61); a smaller one is cut in the middle, with no box. */
+const movable = (o: Outcome) =>
+  !!o.cropRatio &&
+  canCrop({
+    width: Number(o.params.width),
+    height: Number(o.params.height),
+    ratio: o.cropRatio,
+    minSide: CROP_MIN_SIDE,
+  })
+function pick(o: Outcome, option: string) {
+  if (option === 'crop' && movable(o)) {
+    openCrop(o)
+    return
+  }
+  e.choose(o.key, option)
+}
+function openCrop(o: Outcome) {
+  cropping.value = o
+}
+function closeCrop() {
+  // the radio goes back to the answer given
+  const o = cropping.value
+  cropping.value = null
+  if (o) choosing.value = { ...choosing.value, [o.key]: o.chosen ?? '' }
+}
+function applyCrop(crop: { x: number; y: number; width: number; height: number }) {
+  const o = cropping.value
+  cropping.value = null
+  if (o) e.choose(o.key, 'crop', crop)
+}
+const ratioLabel = (r: number) =>
+  Math.abs(r - 0.8) < 0.01
+    ? '4:5'
+    : Math.abs(r - 9 / 16) < 0.01
+      ? '9:16'
+      : `${n(r, { maximumFractionDigits: 2 })}:1`
+const crop = computed(() => {
+  const o = cropping.value
+  if (!o?.cropRatio) return null
+  const width = Number(o.params.width)
+  const height = Number(o.params.height)
+  let id: string | null = null
+  let name = t('posts.summary.cover')
+  if (o.subject.kind === 'media') {
+    id = e.reportMedia.value[o.subject.index] ?? null
+    name =
+      e.files.value.find((f) => f.id === id)?.name ??
+      t('posts.summary.file', { n: o.subject.index + 1 })
+  }
+  const label = ratioLabel(o.cropRatio)
+  return {
+    title: t(o.subject.kind === 'cover' ? 'posts.crop.titleCover' : 'posts.crop.titleFeed'),
+    subtitle: [name, `${String(width)}×${String(height)}`, subject(o)].filter(Boolean).join(' · '),
+    src: !props.showFiles
+      ? null
+      : o.subject.kind === 'cover'
+        ? e.coverSrc.value
+        : id
+          ? e.fileUrl(id, 'ig_feed')
+          : null,
+    width,
+    height,
+    ratio: o.cropRatio,
+    label,
+    initial: e.choices.value.find((c) => c.key === o.key)?.crop ?? null,
+  }
+})
 </script>
 
 <template>
@@ -180,7 +256,7 @@ const switchTo = (type: PostType) => e.chooseType(type)
               :value="option"
               :checked="choosing[o.key] === option"
               :disabled="!e.editable.value"
-              @change="e.choose(o.key, option)"
+              @change="pick(o, option)"
             />
             <span class="text-sm">
               {{ msg(o).options[i] }}
@@ -190,15 +266,21 @@ const switchTo = (type: PostType) => e.chooseType(type)
             </span>
           </label>
         </div>
-        <UButton
-          v-if="o.chosen && e.editable.value"
-          color="neutral"
-          variant="link"
-          class="min-h-10 self-start"
-          @click="e.choose(o.key, null)"
-        >
-          {{ $t('posts.summary.undoChoice') }}
-        </UButton>
+        <div v-if="o.chosen && e.editable.value" class="flex flex-wrap gap-2">
+          <UButton
+            v-if="o.chosen === 'crop' && movable(o)"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-crop"
+            class="min-h-10"
+            @click="openCrop(o)"
+          >
+            {{ $t('posts.crop.edit') }}
+          </UButton>
+          <UButton color="neutral" variant="link" class="min-h-10" @click="e.choose(o.key, null)">
+            {{ $t('posts.summary.undoChoice') }}
+          </UButton>
+        </div>
       </fieldset>
 
       <!-- the blocks -->
@@ -306,5 +388,19 @@ const switchTo = (type: PostType) => e.chooseType(type)
         </ul>
       </div>
     </template>
+    <PostCropBox
+      v-if="crop"
+      :open="cropping !== null"
+      :title="crop.title"
+      :subtitle="crop.subtitle"
+      :src="crop.src"
+      :width="crop.width"
+      :height="crop.height"
+      :ratio="crop.ratio"
+      :ratio-label="crop.label"
+      :initial="crop.initial"
+      @apply="applyCrop"
+      @close="closeCrop"
+    />
   </section>
 </template>

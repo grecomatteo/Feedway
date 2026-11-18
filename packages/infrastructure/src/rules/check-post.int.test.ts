@@ -330,7 +330,9 @@ describe('what is not the workspace’s', () => {
       reel({ type: 'photo', mediaIds: [deleted], destinations: [{ accountId: ig }] }),
     )
     expect(codes(report)).toEqual([`block media_unavailable media_unavailable:media:${deleted}`])
-    expect(JSON.stringify(report)).not.toContain('1920')
+    // ids may hold «1920» by chance: only the file's measures must not show
+    const ids = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+    expect(JSON.stringify(report).replace(ids, '?')).not.toContain('1920')
   })
 
   test('an account of another workspace or agency: the same block, no platform nor name', async () => {

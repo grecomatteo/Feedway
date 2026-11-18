@@ -2138,6 +2138,44 @@
       "noProfiles": "Nessun profilo",
       "you": "Tu",
       "someone": "Una persona dell'agenzia"
+    },
+    "crop": {
+      "titleFeed": "Ritaglia la foto per il feed",
+      "titleCover": "Ritaglia la copertina del reel",
+      "area": "Riquadro del ritaglio {ratio}",
+      "value": "A {x}% da sinistra e {y}% dall'alto, largo il {size}% del massimo",
+      "result": "Risultato · {ratio}",
+      "keyboard": "Da tastiera",
+      "keyMove": "sposta dell'1%",
+      "keyMoveBig": "sposta del 10%",
+      "keySize": "più piccolo o più grande",
+      "mouse": "Con il mouse: trascina il riquadro per spostarlo, gli angoli per cambiarne la misura. Le proporzioni restano {ratio} e il riquadro non esce dalla foto.",
+      "touch": "Trascina il riquadro con un dito per spostarlo, gli angoli per cambiarne la misura. Le proporzioni restano {ratio}.",
+      "smaller": "Riquadro più piccolo",
+      "larger": "Riquadro più grande",
+      "center": "Rimetti al centro",
+      "cancel": "Annulla",
+      "apply": "Usa questo ritaglio",
+      "edit": "Modifica il ritaglio"
+    },
+    "cover": {
+      "title": "Copertina del reel",
+      "frameShort": "Fotogramma {s} s",
+      "imageChosen": "Immagine caricata",
+      "frameAt": "{s} s · fotogramma {frame} di {total}",
+      "chooseFrame": "Scegli un fotogramma",
+      "keys": "Frecce: un fotogramma · Maiusc + frecce: un secondo",
+      "upload": "Carica copertina",
+      "restore": "Ripristina",
+      "rule": "Solo immagini: un video trascinato qui viene rifiutato subito.",
+      "onlyImages": "{name} è un video: la copertina può essere solo un'immagine.",
+      "notImage": "{name} non è un'immagine: la copertina può essere solo un'immagine.",
+      "failed": "La copertina non si è caricata: riprova.",
+      "uploading": "Carico {name}…",
+      "reelTab": "Scheda Reels · 9:16",
+      "grid": "Griglia · 3:4",
+      "shareToFeed": "Mostra anche nel feed",
+      "shareToFeedHelp": "Il reel compare anche nella griglia del profilo, oltre che tra i Reels."
     }
   }
 }

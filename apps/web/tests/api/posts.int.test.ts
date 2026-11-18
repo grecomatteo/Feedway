@@ -308,6 +308,25 @@ describe('drafts', () => {
     expect(post.scheduledAt).toBe('2027-03-28T01:30:00.000Z')
   })
 
+  test("a video says the frame rate of the copy published: the reel's cover frames (D-60)", async () => {
+    const post = await draft()
+    const id = post.media[0]?.id ?? ''
+    const fps = async () =>
+      (
+        await expectOk<{ media: { fps: number | null }[] }>(
+          call('editor', 'GET', `${base()}/${post.id}`),
+        )
+      ).media[0]?.fps
+    await env.admin.pool.query('update media set fps = 59.94 where id = $1', [id])
+    expect(await fps()).toBe(59.94)
+    // the worker converts it: the frames are those of the 30 fps copy
+    await env.admin.pool.query('update media set fps = 120, checks = $2 where id = $1', [
+      id,
+      JSON.stringify({ fixes: [], warnings: [{ code: 'convert_fps', fps: 30 }] }),
+    ])
+    expect(await fps()).toBe(30)
+  })
+
   test('a Viewer sees the files of a post, not their names', async () => {
     const post = await draft()
     const seen = await expectOk<{ media: { originalName: string | null }[] }>(

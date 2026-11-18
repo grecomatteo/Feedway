@@ -11,7 +11,7 @@ import {
 
 /**
  * «Anteprima» (§11.3; design E4): a tab for each way the post goes out on the chosen accounts,
- * the account of the tab, the phone with the post as the app shows it, after the choices and
+ * the account of the tab, the post in the platform's interface as the app shows it, after the choices and
  * the crops; for reels and stories the zones the app covers. A file dropped here joins the post
  * (Task 6).
  */
@@ -20,6 +20,8 @@ const props = defineProps<{
   accounts: Map<string, ProfileAccount>
   /** the copies are read from the library, Editor and up: the Viewer sees none (D-72) */
   showFiles: boolean
+  /** the height kept free around a reel or a story's frame (the column and the action bar) */
+  reserve?: string
 }>()
 const { t, locale } = useI18n()
 const e = props.editor
@@ -109,9 +111,16 @@ const feedRatio = computed(() => {
   const file = id ? byId.value.get(id) : undefined
   return feedFrameRatio(file, first === undefined ? null : (answers.value.get(first) ?? null))
 })
+/** a reel's cover chosen as an image: the video starts from it (D-60) */
+const coverImage = computed(() => (props.showFiles ? e.coverSrc.value : null))
 const items = computed(() =>
   vertical.value
-    ? indices.value.slice(0, 1).map((i) => itemOf(i, 9 / 16, 'contain'))
+    ? indices.value.slice(0, 1).map((i) => {
+        const item = itemOf(i, 9 / 16, 'contain')
+        return coverImage.value && view.value?.endsWith('_reel')
+          ? { ...item, poster: coverImage.value }
+          : item
+      })
     : indices.value.map((i) =>
         itemOf(i, view.value === 'instagram_feed' ? feedRatio.value : 1, 'fill'),
       ),
@@ -148,7 +157,24 @@ const fbWhen = computed(() =>
       })
     : '',
 )
-const time = computed(() => e.when.value?.localTime ?? '18:00')
+/** the file the feed's carousel shows: «Sposta prima/dopo» under the frame move it */
+const feedAt = ref(0)
+// another tab or account starts from the first file; fewer files never leave it past the last
+watch([view, accountId], () => (feedAt.value = 0))
+watch(
+  () => items.value.length,
+  (n) => (feedAt.value = Math.min(feedAt.value, Math.max(0, n - 1))),
+)
+const canMove = computed(
+  () =>
+    view.value === 'instagram_feed' && items.value.length > 1 && e.editable.value && fresh.value,
+)
+function moveShown(by: -1 | 1) {
+  const item = items.value[feedAt.value]
+  if (!item) return
+  move(item.index, by)
+  feedAt.value += by
+}
 
 /** The report was made on the files as they are now: its positions can be moved. */
 const fresh = computed(() => e.reportMedia.value.join() === e.files.value.map((f) => f.id).join())
@@ -209,7 +235,7 @@ function over(event: DragEvent) {
         {{ accountLabel(accountId) }}
       </p>
       <USwitch v-if="vertical" v-model="zones" :label="t('posts.preview.zones')" class="min-h-11" />
-      <PostPreviewPhoneFrame :dark="vertical" :time="time">
+      <PostPreviewFrame :vertical="vertical" :reserve="reserve">
         <PostPreviewInstagramFeed
           v-if="view === 'instagram_feed'"
           :name="handle"
@@ -217,9 +243,8 @@ function over(event: DragEvent) {
           :items="items"
           :frame-ratio="feedRatio"
           :caption="destination?.caption ?? ''"
+          v-model:at="feedAt"
           :day="day"
-          :movable="e.editable.value && fresh"
-          @move="move"
         />
         <PostPreviewFacebookPost
           v-else-if="view === 'facebook_post'"
@@ -239,14 +264,34 @@ function over(event: DragEvent) {
           :zones="zones"
           :start-ms="view.endsWith('_reel') ? coverMs : undefined"
         />
-      </PostPreviewPhoneFrame>
+      </PostPreviewFrame>
+      <div v-if="canMove" class="flex flex-wrap gap-2" data-preview-move>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-arrow-left"
+          class="min-h-11"
+          :label="t('posts.preview.moveBefore')"
+          :disabled="feedAt === 0"
+          @click="moveShown(-1)"
+        />
+        <UButton
+          color="neutral"
+          variant="outline"
+          trailing-icon="i-lucide-arrow-right"
+          class="min-h-11"
+          :label="t('posts.preview.moveAfter')"
+          :disabled="feedAt === items.length - 1"
+          @click="moveShown(1)"
+        />
+      </div>
     </template>
     <div
       v-else
-      class="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-[2rem] border-2 border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-text-muted)"
+      class="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-text-muted)"
       data-preview-empty
     >
-      <UIcon name="i-lucide-smartphone" class="size-6" aria-hidden="true" />
+      <UIcon name="i-lucide-eye" class="size-6" aria-hidden="true" />
       <p>{{ e.checking.value ? t('posts.preview.loading') : t('posts.preview.empty') }}</p>
     </div>
     <p class="flex gap-1.5 text-xs text-(--app-text-muted)">

@@ -27,6 +27,8 @@ export interface PostMediaDto {
   width: number | null
   height: number | null
   durationMs: number | null
+  /** of the copy that is published (D-60) */
+  fps: number | null
   variants: string[]
 }
 
@@ -61,6 +63,7 @@ const gone = (id: string): PostMediaDto => ({
   width: null,
   height: null,
   durationMs: null,
+  fps: null,
   variants: [],
 })
 

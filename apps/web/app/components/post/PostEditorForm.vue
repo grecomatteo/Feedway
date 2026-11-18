@@ -209,6 +209,7 @@ const confirmText = computed(() => {
             @choose="e.chooseType($event)"
           />
           <PostMediaList :editor="editor" :client="client" />
+          <PostCoverPicker v-if="e.type.value === 'reel'" :editor="editor" :client="client" />
           <PostCaptionEditor :editor="editor" :platforms="platforms" />
           <PostDestinationPicker :editor="editor" :profiles="profiles" :loading="profilesLoading" />
           <PostWhenPicker :editor="editor" :client="client" />
@@ -218,7 +219,12 @@ const confirmText = computed(() => {
           >
             {{ $t('posts.editor.editorOnly') }}
           </p>
-          <PostDestinationSummary :editor="editor" :accounts="accounts" @goto="goto" />
+          <PostDestinationSummary
+            :editor="editor"
+            :accounts="accounts"
+            :show-files="client.myRole !== 'viewer'"
+            @goto="goto"
+          />
         </div>
         <!-- the preview, as on Meta (§11.3, Task 6): always beside the form from 1024 px -->
         <aside
@@ -267,6 +273,7 @@ const confirmText = computed(() => {
             :editor="editor"
             :accounts="accounts"
             :show-files="client.myRole !== 'viewer'"
+            reserve="15rem"
           />
         </div>
       </template>

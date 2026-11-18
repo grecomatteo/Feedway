@@ -55,7 +55,6 @@ const dragging = ref(false)
 
 /** The uploaded preview and the square on it, in the preview's own pixels. */
 const source = ref<Source | null>(null)
-const crop = reactive({ x: 0, y: 0, size: 0 })
 const open = ref(false)
 
 const busy = computed(() => uploading.value || saving.value || removing.value)
@@ -94,10 +93,7 @@ async function upload(file: File) {
     form.append('file', file, file.name)
     const answer = await call<Source>('POST', props.routes.upload, form)
     source.value = answer
-    const side = Math.min(answer.width, answer.height)
-    crop.size = side
-    crop.x = Math.floor((answer.width - side) / 2)
-    crop.y = Math.floor((answer.height - side) / 2)
+    cropper.reset()
     open.value = true
   })
   uploading.value = false
@@ -123,46 +119,38 @@ function onDrop(event: DragEvent) {
   if (file && !busy.value) void upload(file)
 }
 
-// ---- crop: every change keeps the square inside the photo
+// ---- crop: the square stays inside the photo (useCropBox, shared with the post's crops)
 const side = computed(() => Math.min(source.value?.width ?? 0, source.value?.height ?? 0))
-function place(x: number, y: number, size: number) {
-  const s = source.value
-  if (!s) return
-  const next = Math.round(Math.min(Math.max(size, Math.min(MIN_CROP, side.value)), side.value))
-  // zoom around the centre of the square
-  const cx = x + crop.size / 2
-  const cy = y + crop.size / 2
-  const nx = size === crop.size ? x : cx - next / 2
-  const ny = size === crop.size ? y : cy - next / 2
-  crop.size = next
-  crop.x = Math.round(Math.min(Math.max(nx, 0), s.width - next))
-  crop.y = Math.round(Math.min(Math.max(ny, 0), s.height - next))
-}
-const step = computed(() => Math.max(1, Math.round(crop.size / 20)))
-const move = (dx: number, dy: number) => {
-  place(crop.x + dx * step.value, crop.y + dy * step.value, crop.size)
-}
-const zoom = (direction: 1 | -1) => {
+const spec = computed(() =>
+  source.value
+    ? {
+        width: source.value.width,
+        height: source.value.height,
+        ratio: 1,
+        minSide: MIN_CROP,
+        round: true,
+      }
+    : null,
+)
+const cropper = useCropBox(spec, {
+  scale: computed(() => scale.value),
+  step: (box) => {
+    const px = Math.max(1, Math.round(box.width / 20))
+    return { x: px, y: px }
+  },
   // zooming in shows less of the photo: a smaller square
-  place(crop.x, crop.y, crop.size - direction * Math.max(1, Math.round(side.value / 10)))
-}
-const canZoomIn = computed(() => crop.size > Math.min(MIN_CROP, side.value))
-const canZoomOut = computed(() => crop.size < side.value)
-
-function onKey(event: KeyboardEvent) {
-  const keys: Record<string, () => void> = {
-    ArrowLeft: () => move(-1, 0),
-    ArrowRight: () => move(1, 0),
-    ArrowUp: () => move(0, -1),
-    ArrowDown: () => move(0, 1),
-    '+': () => zoom(1),
-    '=': () => zoom(1),
-    '-': () => zoom(-1),
-  }
-  const action = keys[event.key]
-  if (!action) return
-  event.preventDefault()
-  action()
+  zoomStep: () => Math.max(1, Math.round(side.value / 10)),
+})
+const crop = computed(() => ({
+  x: cropper.box.value.x,
+  y: cropper.box.value.y,
+  size: cropper.box.value.width,
+}))
+const { move, zoom, onKey, onPointerMove, onPointerUp } = cropper
+const canZoomIn = cropper.canZoomIn
+const canZoomOut = cropper.canZoomOut
+const onPointerDown = (event: PointerEvent) => {
+  cropper.onPointerDown(event)
 }
 
 /** The photo fits a square of FRAME px; the selection is drawn over it. */
@@ -176,34 +164,11 @@ const frameStyle = computed(() => ({
   height: `${String(Math.round((source.value?.height ?? 0) * scale.value))}px`,
 }))
 const selectionStyle = computed(() => ({
-  left: `${String(crop.x * scale.value)}px`,
-  top: `${String(crop.y * scale.value)}px`,
-  width: `${String(crop.size * scale.value)}px`,
-  height: `${String(crop.size * scale.value)}px`,
+  left: `${String(crop.value.x * scale.value)}px`,
+  top: `${String(crop.value.y * scale.value)}px`,
+  width: `${String(crop.value.size * scale.value)}px`,
+  height: `${String(crop.value.size * scale.value)}px`,
 }))
-
-let drag: { pointer: number; startX: number; startY: number; x: number; y: number } | null = null
-function onPointerDown(event: PointerEvent) {
-  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
-  drag = {
-    pointer: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    x: crop.x,
-    y: crop.y,
-  }
-}
-function onPointerMove(event: PointerEvent) {
-  if (!drag || drag.pointer !== event.pointerId) return
-  place(
-    drag.x + (event.clientX - drag.startX) / scale.value,
-    drag.y + (event.clientY - drag.startY) / scale.value,
-    crop.size,
-  )
-}
-function onPointerUp() {
-  drag = null
-}
 
 /** The logo whole inside the square, as the server will fit it. */
 const fitStyle = computed(() => {
@@ -214,12 +179,13 @@ const fitStyle = computed(() => {
 /** The square as a circle of `px` pixels: the photo moved and scaled behind it. */
 function previewStyle(px: number) {
   const s = source.value
-  if (!s || crop.size === 0) return {}
-  const k = px / crop.size
+  const c = crop.value
+  if (!s || c.size === 0) return {}
+  const k = px / c.size
   return {
     backgroundImage: `url("${s.previewUrl}")`,
     backgroundSize: `${String(s.width * k)}px ${String(s.height * k)}px`,
-    backgroundPosition: `${String(-crop.x * k)}px ${String(-crop.y * k)}px`,
+    backgroundPosition: `${String(-c.x * k)}px ${String(-c.y * k)}px`,
   }
 }
 
@@ -233,7 +199,7 @@ async function save() {
       'POST',
       props.routes.save,
       cropping.value
-        ? { stagingId: s.stagingId, x: crop.x, y: crop.y, size: crop.size }
+        ? { stagingId: s.stagingId, x: crop.value.x, y: crop.value.y, size: crop.value.size }
         : { stagingId: s.stagingId },
     )
     open.value = false
