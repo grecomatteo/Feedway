@@ -65,18 +65,22 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   await clients(page).getByRole('link', { name: 'Forno Luce', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${client.slug}$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Forno Luce' })).toBeVisible()
-  // the names of its profiles under the name, «Nuovo post» waiting for stage 6
+  // the names of its profiles under the name, and «Nuovo post» (stage 6)
   await expect(page.getByRole('main').getByText('@fornoluce').first()).toBeVisible()
-  await expect(page.getByRole('button', { name: /Nuovo post/ })).toBeDisabled()
+  await expect(page.getByRole('main').getByRole('link', { name: 'Nuovo post' })).toHaveAttribute(
+    'href',
+    new RegExp(`/spazi/${client.slug}/post/nuovo`),
+  )
 
   const tabs = page.getByRole('navigation', { name: 'Sezioni del cliente' })
   await expect(tabs.getByRole('link', { name: 'Panoramica' })).toHaveAttribute(
     'aria-current',
     'page',
   )
-  await expect(tabs.getByText('Calendario')).toContainText('Presto')
+  // until the calendar (stage 9) the posts are a list in «Post» (plan 06 Scelta 6)
+  await expect(tabs.getByRole('link', { name: 'Post', exact: true })).toBeVisible()
   await expect(tabs.getByRole('link', { name: 'Libreria' })).toBeVisible()
-  await expect(tabs.getByRole('link', { name: 'Calendario' })).toHaveCount(0)
+  await expect(tabs.getByText('Calendario')).toHaveCount(0)
   // the tabs scroll sideways on a narrow screen, never up and down (prova 0.10.0, R-10)
   expect(await tabs.evaluate((n) => n.scrollHeight - n.clientHeight)).toBe(0)
 

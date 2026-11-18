@@ -54,6 +54,18 @@ const icon = computed(() =>
       ? 'i-lucide-film'
       : 'i-lucide-image',
 )
+/** «Nel post del 24/11», «In una bozza» (D-18): the post that uses the file, the scheduled first. */
+const used = computed(() => {
+  const u = props.file.usedIn
+  if (!u) return null
+  if (u.status === 'scheduled' && u.scheduledAt)
+    return t('library.inPosts.scheduled', {
+      day: new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit' }).format(
+        new Date(u.scheduledAt),
+      ),
+    })
+  return t(`library.inPosts.${u.status === 'cancelled' ? 'cancelled' : 'draft'}`)
+})
 const failedImage = ref(false)
 watch(
   () => props.src,
@@ -110,6 +122,14 @@ function dragStart(event: DragEvent) {
         />
       </span>
       <span
+        v-if="used && layout === 'grid'"
+        class="absolute top-1.5 left-1.5 flex max-w-[calc(100%-0.75rem)] items-center gap-1 rounded-md bg-(--app-card) px-1.5 py-0.5 text-xs font-medium text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.2)]"
+        data-used-in
+      >
+        <UIcon name="i-lucide-calendar-check" class="size-3 shrink-0" />
+        <span class="truncate">{{ used }}</span>
+      </span>
+      <span
         v-if="layout === 'grid' && file.kind === 'video' && file.status === 'ready'"
         class="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/65 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums"
       >
@@ -140,6 +160,8 @@ function dragStart(event: DragEvent) {
           >
           <span v-else class="truncate">{{ detail }}</span>
           <span v-if="layout === 'list'" class="truncate">{{ facts }}</span>
+          <!-- on the thumbnail in the grid, which screen readers skip: said here for them -->
+          <span v-if="used" :class="layout === 'list' ? 'truncate' : 'sr-only'">{{ used }}</span>
         </p>
       </div>
       <div class="relative z-10 shrink-0" :class="layout === 'grid' ? '-mt-1.5 -mr-1.5' : ''">

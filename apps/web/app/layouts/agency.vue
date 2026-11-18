@@ -107,7 +107,8 @@ watch(org.slug, refresh)
         <p v-if="many" class="text-(--app-text-muted)">{{ $t('agency.suspendedOthers') }}</p>
       </section>
     </main>
-    <MobileNav v-if="org.active.value" />
+    <!-- the editor of a post has its own bar at the bottom (design E3) -->
+    <MobileNav v-if="org.active.value && route.meta['editor'] !== true" />
     <!-- the uploads go on from page to page (D-21) -->
     <ClientOnly><UploadsDock v-if="inAgency" /></ClientOnly>
   </div>

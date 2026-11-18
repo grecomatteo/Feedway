@@ -36,7 +36,7 @@ const contentOf = (folder: Folder) => {
   return { files, folders: below.length }
 }
 const filtering = computed(
-  () => filter.kind !== 'all' || filter.tag !== null || filter.q.trim() !== '',
+  () => filter.kind !== 'all' || filter.tag !== null || filter.q.trim() !== '' || filter.inPosts,
 )
 
 const done = useFlash()
@@ -95,7 +95,7 @@ const gridStyle = computed(() =>
 )
 
 function clearFilters() {
-  Object.assign(filter, { kind: 'all', tag: null, q: '' })
+  Object.assign(filter, { kind: 'all', tag: null, q: '', inPosts: false })
 }
 
 // ---- the detail
@@ -553,6 +553,18 @@ function filesDrop(event: DragEvent) {
             size="xl"
             :ui="{ leadingIcon: 'size-[1.125rem]' }"
           />
+          <UButton
+            color="neutral"
+            :variant="filter.inPosts ? 'soft' : 'outline'"
+            icon="i-lucide-calendar-check"
+            class="min-h-11 shrink-0"
+            :class="filter.inPosts ? 'font-semibold ring-2 ring-(--app-text) ring-inset' : ''"
+            :aria-pressed="filter.inPosts"
+            data-in-posts
+            @click="filter.inPosts = !filter.inPosts"
+          >
+            {{ $t('library.inPosts.filter') }}
+          </UButton>
         </div>
       </div>
 

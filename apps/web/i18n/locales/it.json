@@ -1338,7 +1338,8 @@
       "overview": "Panoramica",
       "calendar": "Calendario",
       "library": "Libreria",
-      "people": "Persone"
+      "people": "Persone",
+      "posts": "Post"
     },
     "profiles": "Profili",
     "loading": "Carico i profili del cliente",
@@ -1510,6 +1511,12 @@
         "2": "Grandi",
         "3": "Molto grandi"
       }
+    },
+    "inPosts": {
+      "filter": "Nei post",
+      "scheduled": "Nel post del {day}",
+      "draft": "In una bozza",
+      "cancelled": "In un post annullato"
     }
   },
   "upload": {
@@ -1869,6 +1876,229 @@
     "media_unused": {
       "title": "File che non esce su nessun account",
       "text": "Con le scelte fatte questo file non esce su nessun account. Toglilo dal post o cambia le scelte, così il post esce come l'hai pensato."
+    }
+  },
+  "posts": {
+    "type": {
+      "title": "Tipo",
+      "photo": "Foto",
+      "carousel": "Carosello",
+      "reel": "Reel",
+      "story": "Storia",
+      "off": {
+        "onePhoto": "Foto vuole un file solo.",
+        "photoNotVideo": "Foto vuole una foto, non un video.",
+        "carouselTwo": "Carosello vuole almeno 2 file.",
+        "oneVideo": "Reel vuole un video solo.",
+        "reelNotPhoto": "Reel vuole un video, non una foto.",
+        "oneFile": "Storia vuole un file solo."
+      }
+    },
+    "media": {
+      "title": "File",
+      "count": "Nessun file | Un file | {n} file · trascina per cambiare l'ordine",
+      "unnamed": "File",
+      "deleted": "Non disponibile: eliminato dalla libreria",
+      "tile": "File {n}: {name}",
+      "dragFor": "Trascina {name} per cambiare l'ordine",
+      "earlier": "Sposta prima {name}",
+      "later": "Sposta dopo {name}",
+      "remove": "Togli {name} dal post",
+      "moved": "{name} ora è al {n}° posto.",
+      "removed": "{name} tolto dal post.",
+      "dropHere": "Trascina qui foto e video",
+      "upload": "Carica",
+      "fromLibrary": "Dalla libreria"
+    },
+    "library": {
+      "title": "Scegli dalla libreria",
+      "text": "I file entrano nel post nell'ordine in cui li scegli.",
+      "search": "Cerca un file",
+      "kind": "Tipo di file",
+      "all": "Tutti",
+      "photos": "Foto",
+      "videos": "Video",
+      "error": "Non riesco a leggere la libreria. Riprova tra poco.",
+      "empty": "Nessun file da aggiungere.",
+      "more": "Mostra altri",
+      "add": "Aggiungi | Aggiungi un file | Aggiungi {n} file"
+    },
+    "caption": {
+      "title": "Testo",
+      "split": "Testo diverso per piattaforma",
+      "story": "Una storia esce senza testo. Quello che hai scritto resta nella bozza e torna se cambi tipo.",
+      "platforms": "Testo per piattaforma",
+      "common": "Testo comune",
+      "textFor": "Testo per {platform}",
+      "placeholder": "Scrivi il testo del post…",
+      "characters": "{n} di {limit} caratteri",
+      "hashtags": "{n} di {limit} hashtag",
+      "mentions": "{n} di {limit} menzioni",
+      "backToCommon": "Torna al testo comune",
+      "backDone": "Il testo per {platform} è tornato quello comune.",
+      "undo": "Annulla",
+      "splitHint": "Le schede partono da una copia del testo comune; poi ognuna va per conto suo."
+    },
+    "destinations": {
+      "title": "Dove pubblicare",
+      "count": "Nessun account scelto | Un account scelto | {n} account scelti",
+      "none": "Questo cliente non ha ancora profili collegati.",
+      "search": "Cerca un profilo o un {'@'}nome",
+      "all": "Seleziona tutti",
+      "none_": "Togli tutti",
+      "profile": "Tutti gli account di {name}",
+      "ofProfile": "{on} di {n}",
+      "inactive": "Disattivato: non si può scegliere.",
+      "reconnect": "Da ricollegare: non si può scegliere finché non viene ricollegato.",
+      "kind": {
+        "instagram": "Instagram",
+        "facebook": "Pagina Facebook"
+      }
+    },
+    "when": {
+      "title": "Quando",
+      "mode": "Quando esce",
+      "now": "Pubblica subito",
+      "at": "Programma",
+      "day": "Giorno",
+      "time": "Ora",
+      "zoneRome": "ora di Roma",
+      "zone": "ora di {city}",
+      "sentence": "Esce {day} alle {time} · {zone}.",
+      "default": "{time} è l'orario predefinito di {client}."
+    },
+    "summary": {
+      "title": "Riepilogo delle destinazioni",
+      "pending": "Nessuna scelta da fare | Una scelta da fare | {n} scelte da fare",
+      "checkFailed": "Controlli non aggiornati:",
+      "empty": "Scegli i file e gli account: qui vedi cosa esce su ognuno.",
+      "unknownAccount": "Account non più del cliente",
+      "place": "{n}° posto",
+      "file": "File {n}",
+      "cover": "Copertina",
+      "on": "su {platform}, {accounts}",
+      "toWhen": "Cambia data e ora",
+      "toCaption": "Vai al testo",
+      "toDestinations": "Vai agli account",
+      "toMedia": "Vai ai file",
+      "recommended": "consigliata",
+      "undoChoice": "Annulla la scelta",
+      "switchTo": "Passa a {type}",
+      "typeMismatch": "I file non vanno più con il tipo scelto.",
+      "files": "nessun file | un file | {n} file",
+      "ownText": "testo per la piattaforma",
+      "commonText": "testo comune",
+      "notGoing": "Non esce",
+      "blocked": "Bloccato",
+      "toChoose": "Nessuna scelta | Una scelta da fare | {n} scelte da fare",
+      "ready": "Pronto",
+      "missingPhoto": "la foto al {place}",
+      "missingVideo": "il video al {place}",
+      "missingOn": "Su {account} non esce {what}. Se deve esserci, cambia la scelta o togli il file.",
+      "fixes": "Feedway non sistema niente da solo | Feedway sistema da solo una cosa, senza chiederti niente: {what}. | Feedway sistema da solo {n} cose, senza chiederti niente: {what}.",
+      "showDetails": "Mostra i dettagli",
+      "hideDetails": "Nascondi i dettagli"
+    },
+    "save": {
+      "saving": "Salvataggio…",
+      "saved": "Bozza salvata alle {time}",
+      "notYet": "La bozza si salva da sola appena scrivi",
+      "failed": "Non salvata: riprova",
+      "retry": "Riprova",
+      "conflict": "Modificato da un'altra persona",
+      "conflictText": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova. Le tue modifiche restano qui finché non ricarichi: copia il testo se ti serve.",
+      "reload": "Ricarica"
+    },
+    "actions": {
+      "saveDraft": "Salva bozza",
+      "schedule": "Programma | Programma su un account | Programma su {n} account",
+      "scheduled": "Post programmato. Nella 0.12 non esce ancora: la pubblicazione arriva con la versione dopo.",
+      "cancel": "Annulla programmazione",
+      "cancelled": "Post annullato: non esce su nessun account.",
+      "unschedule": "Riporta in bozza",
+      "saveChanges": "Salva modifiche",
+      "delete": "Elimina post",
+      "waitFiles": "Aspetta i file | Aspetta che finisca un file | Aspetta che finiscano {n} file",
+      "checking": "Controllo in corso…",
+      "choose": "Nessuna scelta | Scegli cosa fare per un avviso | Scegli cosa fare per {n} avvisi",
+      "fix": "Nessun blocco | Risolvi un blocco | Risolvi {n} blocchi",
+      "notSchedulable": "Non si può programmare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo."
+    },
+    "confirm": {
+      "cancelTitle": "Annullare il post?",
+      "cancelText": "Non esce su nessun account. Resta nella scheda «Post» come annullato.",
+      "removeTitle": "Eliminare il post?",
+      "removeText": "Il post sparisce. I suoi file restano nella libreria.",
+      "leaveTitle": "Uscire senza salvare?",
+      "leaveText": "Le ultime modifiche non sono salvate. Se esci le perdi.",
+      "leave": "Esci lo stesso",
+      "stay": "Resta qui"
+    },
+    "editor": {
+      "newTitle": "Nuovo post",
+      "editTitle": "Bozza",
+      "scheduledTitle": "Post programmato",
+      "cancelledTitle": "Post annullato",
+      "loading": "Carico il post…",
+      "missing": "Questo post non c'è più, o non è di questo cliente.",
+      "backToPosts": "Torna ai post",
+      "loadFailed": "Non riesco ad aprire il post. Ricarica la pagina tra poco.",
+      "archived": "Il cliente è archiviato: i suoi post si leggono e non si modificano.",
+      "viewer": "Puoi vedere il post, non modificarlo.",
+      "cancelled": "Il post è annullato: si legge soltanto.",
+      "scheduledEditor": "Il post è programmato: lo cambia solo chi può programmare.",
+      "notYours": "È la bozza di un'altra persona: puoi vederla, non modificarla.",
+      "editorOnly": "Puoi salvare la bozza. La programma chi nel cliente può pubblicare."
+    },
+    "preview": {
+      "title": "Anteprima",
+      "soon": "L'anteprima come su Instagram e Facebook arriva qui a breve."
+    },
+    "choose": {
+      "title": "Nuovo post: per quale cliente?",
+      "text": "Ogni post è di un cliente: scegli per chi lo prepari.",
+      "loading": "Carico i clienti…"
+    },
+    "list": {
+      "title": "Post",
+      "titleOf": "Post di {name}",
+      "loading": "Carico i post…",
+      "failed": "Non riesco a leggere i post.",
+      "retry": "Riprova",
+      "empty": "Ancora nessun post per questo cliente.",
+      "search": "Cerca nel testo o in un profilo",
+      "noMatch": "Nessun post con questa ricerca.",
+      "none": {
+        "all": "Nessun post.",
+        "draft": "Nessuna bozza.",
+        "scheduled": "Nessun post programmato.",
+        "cancelled": "Nessun post annullato."
+      },
+      "filter": {
+        "label": "Quali post",
+        "all": "Tutti",
+        "draft": "Bozze",
+        "scheduled": "Programmati",
+        "cancelled": "Annullati"
+      },
+      "column": {
+        "post": "Post",
+        "when": "Quando",
+        "profiles": "Profili",
+        "state": "Stato",
+        "author": "Autore"
+      },
+      "state": {
+        "draft": "Bozza",
+        "scheduled": "Programmato",
+        "cancelled": "Annullato"
+      },
+      "noText": "Senza testo",
+      "noType": "Senza file",
+      "noDate": "Senza data",
+      "noProfiles": "Nessun profilo",
+      "you": "Tu",
+      "someone": "Una persona dell'agenzia"
     }
   }
 }

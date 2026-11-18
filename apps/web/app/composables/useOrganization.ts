@@ -8,6 +8,8 @@ export interface WorkspaceView {
   slug: string
   archivedAt: string | null
   myRole: 'owner' | 'admin' | 'manager' | 'publisher' | 'editor' | 'viewer'
+  /** `HH:MM`: the time a new post proposes; null: none */
+  defaultPostTime?: string | null
   /** Its first profile's picture, as Feedway keeps it (only in the list); null: the initials. */
   photoUrl?: string | null
   /** Its profiles and the state of their link (only in the list). */

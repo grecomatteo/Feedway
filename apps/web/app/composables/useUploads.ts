@@ -74,6 +74,8 @@ class HttpFailure extends Error {
 class Stopped extends Error {}
 
 interface Side {
+  /** who waits for this file in the library: the editor that added it (it may be closed by then) */
+  onMedia: ((media: MediaDto) => void) | null
   file: File | null
   type: UploadType | null
   folderId: string | null
@@ -387,6 +389,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         const { duplicateOf, ...made } = media
         item.media = made
         item.duplicateOf = duplicateOf
+        s.onMedia?.(made)
         if (duplicateOf)
           announce(t('upload.announce.duplicate', { name: item.name, other: duplicateOf.name }))
         item.sent = item.size
@@ -583,6 +586,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   function newItem(file: File | null, name: string, size: number): UploadItem {
     const key = `u${String(++keys)}`
     sides.set(key, {
+      onMedia: null,
       file: file ? markRaw(file) : null,
       type: null,
       folderId: null,
@@ -623,8 +627,16 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     })
   }
 
-  /** Files chosen, dropped or pasted: each is checked on its own, the good ones start. */
-  async function add(files: readonly File[], folderId: string | null) {
+  /**
+   * Files chosen, dropped or pasted: each is checked on its own, the good ones start. `onMedia`
+   * hears each file as soon as it is in the library, even after the page that added it closed.
+   * Gives the items, in the order of the files.
+   */
+  async function add(
+    files: readonly File[],
+    folderId: string | null,
+    onMedia: ((media: MediaDto) => void) | null = null,
+  ): Promise<UploadItem[]> {
     // the limits come with the list: a file chosen at once waits for them
     await loading
     let started = 0
@@ -654,6 +666,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         item.kind = check.kind
         s.type = check.type
         s.folderId = folderId
+        s.onMedia = onMedia
         if (check.kind === 'video' || PREVIEWABLE_IMAGES.has(check.type))
           item.preview = { url: URL.createObjectURL(file), kind: check.kind }
         started += 1
@@ -663,6 +676,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     items.value = [...added, ...items.value]
     if (started > 0) announce(t('upload.announce.started', { n: started }, started))
     pump()
+    return added
   }
 
   /** The same file chosen again for an upload left halfway; without a file, when all its pieces arrived. */

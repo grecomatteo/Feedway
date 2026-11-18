@@ -9,6 +9,8 @@ export interface LibraryFilter {
   folder: string | null
   tag: string | null
   q: string
+  /** «Nei post»: only the files a post uses (D-18) */
+  inPosts: boolean
 }
 
 /** Whether the person may use the workspace's library: Editor and above (spec §10.2). */
@@ -23,7 +25,13 @@ export function useLibrary(workspaceId: Ref<string>) {
   const { call } = useApi()
   const base = computed(() => org.api(`/workspaces/${encodeURIComponent(workspaceId.value)}`))
 
-  const filter = reactive<LibraryFilter>({ kind: 'all', folder: null, tag: null, q: '' })
+  const filter = reactive<LibraryFilter>({
+    kind: 'all',
+    folder: null,
+    tag: null,
+    q: '',
+    inPosts: false,
+  })
   const files = ref<LibraryFile[]>([])
   const next = ref<string | null>(null)
   const usedBytes = ref(0)
@@ -39,6 +47,7 @@ export function useLibrary(workspaceId: Ref<string>) {
     if (filter.folder) q.set('folder', filter.folder)
     if (filter.tag) q.set('tag', filter.tag)
     if (filter.q.trim()) q.set('q', filter.q.trim())
+    if (filter.inPosts) q.set('inPosts', 'true')
     return q.toString()
   }
   interface Page {
@@ -92,7 +101,7 @@ export function useLibrary(workspaceId: Ref<string>) {
 
   let typing: ReturnType<typeof setTimeout> | undefined
   watch(
-    () => [filter.kind, filter.folder, filter.tag],
+    () => [filter.kind, filter.folder, filter.tag, filter.inPosts],
     () => void load(),
   )
   watch(
@@ -103,7 +112,7 @@ export function useLibrary(workspaceId: Ref<string>) {
     },
   )
   watch(workspaceId, () => {
-    Object.assign(filter, { kind: 'all', folder: null, tag: null, q: '' })
+    Object.assign(filter, { kind: 'all', folder: null, tag: null, q: '', inPosts: false })
     void load()
   })
   onMounted(() => void load())
