@@ -73,7 +73,7 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 **Minuti di Actions**: con il repository privato il piano ne include 3.000 al mese, e un'esecuzione della CI su una PR di codice ne costa circa 20 (pochi di più con la build arm64, che gira sul runner arm64 nativo); finché il repository è pubblico sono gratis, ma le regole restano le stesse, perché tornerà privato. Quindi:
 - si fa push solo di lavoro già verde con `pnpm verify:ci`, idealmente una volta per PR, e i task piccoli e legati si raggruppano in una PR;
 - la CI parte solo sulle PR e a mano, mai dopo il merge su `main`; un nuovo push annulla l'esecuzione in corso sullo stesso ramo;
-- su una PR che cambia solo documentazione, design o istruzioni degli agenti gira soltanto gitleaks (Prettier quei file li ignora): circa 9 minuti invece di 20, perché ogni job ne conta almeno uno; la build arm64 solo se cambiano Docker, dipendenze, Node o la CI (§5);
+- su una PR che cambia solo documentazione, design o istruzioni degli agenti gira soltanto gitleaks (Prettier quei file li ignora): ogni job fa solo il checkout, ma conta comunque almeno un minuto; la build arm64 solo se cambiano Docker, dipendenze, Node o la CI (§5);
 - ogni job ha un tempo massimo, così un'esecuzione bloccata non consuma minuti per ore;
 - un controllo nuovo nella CI entra anche in `pnpm verify:ci`, e si decide subito quali file lo rendono necessario.
 
