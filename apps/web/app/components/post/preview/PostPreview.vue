@@ -150,10 +150,18 @@ const fbWhen = computed(() =>
 )
 const time = computed(() => e.when.value?.localTime ?? '18:00')
 
+/** The report was made on the files as they are now: its positions can be moved. */
+const fresh = computed(() => e.reportMedia.value.join() === e.files.value.map((f) => f.id).join())
+/** The file shown goes before or after its neighbour in the preview, not in the whole list. */
 function move(index: number, by: -1 | 1) {
+  if (!fresh.value) return
+  const pos = indices.value.indexOf(index)
   const id = e.reportMedia.value[index]
+  const neighbour = indices.value[pos + by]
+  const other = neighbour === undefined ? undefined : e.reportMedia.value[neighbour]
   const entry = e.entries.value.find((x) => x.file?.id === id)
-  if (entry) e.move(entry.key, by)
+  const to = e.entries.value.findIndex((x) => x.file?.id === other)
+  if (entry && to >= 0) e.moveTo(entry.key, to)
 }
 
 // a file dropped on the preview joins the post, as on the files' area (Task 6)
@@ -210,7 +218,7 @@ function over(event: DragEvent) {
           :frame-ratio="feedRatio"
           :caption="destination?.caption ?? ''"
           :day="day"
-          :movable="e.editable.value"
+          :movable="e.editable.value && fresh"
           @move="move"
         />
         <PostPreviewFacebookPost
@@ -229,7 +237,7 @@ function over(event: DragEvent) {
           :item="items[0]"
           :caption="destination?.caption ?? ''"
           :zones="zones"
-          :start-ms="coverMs"
+          :start-ms="view.endsWith('_reel') ? coverMs : undefined"
         />
       </PostPreviewPhoneFrame>
     </template>

@@ -504,7 +504,10 @@ export function usePostEditor(opts: {
   }
 
   // ---- actions ----
+  /** the files of the post when an action left: a refusal's report points into these */
+  let sent: string[] | null = null
   async function act(what: 'schedule' | 'unschedule' | 'cancel'): Promise<PostResponse | null> {
+    sent = null
     actionProblem.value = null
     acting.value = what
     try {
@@ -515,6 +518,7 @@ export function usePostEditor(opts: {
       const id = save.value.postId
       const version = save.value.version
       if (!id || version === null) return null
+      sent = files.value.map((f) => f.id)
       // back to draft keeps what was changed and not saved yet: it is saved on the draft
       const keep = what === 'unschedule' && save.value.dirty
       const p = await call<PostResponse>(
@@ -541,6 +545,7 @@ export function usePostEditor(opts: {
 
   /** «Salva modifiche» of a scheduled post: saved only if the checks pass. */
   async function saveScheduled() {
+    sent = null
     actionProblem.value = null
     acting.value = 'saveScheduled'
     autosave.pause(false)
@@ -573,7 +578,7 @@ export function usePostEditor(opts: {
     const b = bodyOf(e)
     if (b?.report) {
       report.value = b.report
-      reportMedia.value = files.value.map((f) => f.id)
+      reportMedia.value = sent ?? files.value.map((f) => f.id)
     }
     if (isConflict(e)) save.value = { ...save.value, status: 'conflict' }
     actionProblem.value =
