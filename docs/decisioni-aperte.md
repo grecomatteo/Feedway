@@ -300,8 +300,8 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Origine:** prova della 0.11.0, richiesta di Matteo. Riguarda D-52 e RF-34.
 - **Cosa vuole Matteo:** quando una foto non rientra nel formato (feed fuori da 4:5–1,91:1, copertina del reel non 9:16), la persona sposta e regola il riquadro da sola, con l'anteprima del risultato. Il ritaglio al centro è solo il punto di partenza. Si può riusare il ritaglio trascinabile della foto del profilo.
 - **Cosa cambia:** l'opzione `crop_center` dei controlli diventa «ritaglia» con un riquadro salvato con il post (tappa 6, editor e anteprima); le copie da pubblicare lo applicano (tappa 7). La specifica §9.2 lo dice già.
-- **Da chiedere a Matteo:** se il riquadro spostabile vale anche per il video del reel non 9:16 (avviso `reel_aspect_ratio`, opzione «ritaglia»), o solo per le foto e la copertina.
-- **Stato:** decisa da Matteo il 18/11 per la foto del feed e la copertina, da scrivere nel piano della tappa 6; aperta per il video del reel.
+- **Solo foto e copertina** (Matteo, 18/11): il video del reel non 9:16 resta con ritaglio al centro, bande o «pubblica così» (`reel_aspect_ratio`).
+- **Stato:** decisa da Matteo il 18/11, da scrivere nel piano della tappa 6.
 
 ### D-62 · Foto 3:4 nel feed di Instagram
 - **Origine:** prova della 0.11.0. Secondo Matteo l'app di Instagram oggi accetta le foto 3:4 (non verificato dall'API); la documentazione delle API dice da 4:5 a 1,91:1.
