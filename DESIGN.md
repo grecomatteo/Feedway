@@ -4,13 +4,13 @@ Riferimento visivo: la tela Pencil `design/feedway-ui.pen` (tavole esportate in 
 
 ## Tela unica (18 novembre 2026)
 
-Da oggi c'è un solo file di design, `design/feedway-ui.pen`: marchio, variabili, componenti, pannello, email, landing, direzione hub e archivio. Ha assorbito `design/feedway-ui-hallmark.pen`, che non esiste più (resta nella storia di Git). Tavole esportate in `design/tavole/2026-11-18-tela-unica/`.
+Da oggi c'è un solo file di design, `design/feedway-ui.pen`, solo con l'ultima versione di ogni cosa: marchio, variabili, componenti, pannello, email, landing, direzione hub e bozze delle funzioni future. Ha assorbito `design/feedway-ui-hallmark.pen`; le versioni superate (prima tela del 15/10, coppie Prima/Dopo del 26/10, landing e tavole hub superate dal codice) sono state tolte, con le loro esportazioni, e restano nella storia di Git (Matteo, 18/11). Tavole esportate in `design/tavole/2026-11-18-tela-unica/`.
 
-- **Sezioni, dall'alto:** Leggimi; Brand e sistema; Pannello com'è nel codice (0.11.0); Email transazionali; Landing giro 3; Direzione hub giro 3; Idee hub; Archivio. Ogni sezione ha una fascia con il titolo e lo stato.
-- **Stato nel nome di ogni tavola:** `[Nel codice]` (la tela copia il codice), `[Approvata · da costruire]` (scelta di Matteo, codice ancora da fare), `[Idea hub · da decidere]` (direzione futura da riprendere), `[Archivio]` (superata, solo per memoria).
+- **Sezioni, dall'alto:** Leggimi; Brand e sistema; Pannello com'è nel codice (0.11.0); Email transazionali; Landing giro 3; Direzione hub giro 3; Bozze · funzioni future. Ogni sezione ha una fascia con il titolo e lo stato.
+- **Stato nel nome di ogni tavola:** `[Nel codice]` (la tela copia il codice), `[Approvata · da costruire]` (scelta di Matteo, codice ancora da fare), `[Bozza · futura]` (funzione delle tappe future, da rifare con i componenti quando arriva la sua tappa). Una versione superata si toglie dalla tela, non si archivia.
 - **Fonte di verità:** il codice per le pagine fatte, questo file per quelle da fare. Il pannello sulla tela è ricostruito dal codice e dalle schermate delle tappe 4 e 5; gli esempi (Studio Riva, Forno Luce…) sono fittizi.
 - **Variabili:** i token di `packages/ui/src/tokens.ts` con due assi di tema, `mode` (light, dark) e `palette` (feedway, blu, verde, viola, grafite); il tema si sceglie sul frame della tavola. I colori del marchio (`fw-arancio`, `fw-carbone`, `fw-carta`, `fw-bianco`) e quelli della landing Hallmark non cambiano con il tema. Spazi `sp-1`…`sp-12` (4, 8, 12, 16, 24, 32, 48), `page-pad` 32 e `page-pad-phone` 16, `r-control` 8, `r-card` 12, righe 56/64, barra laterale 256, colonna del contenuto 960 (la misura di oggi: D-63 la cambierà).
-- **Componenti** (tavola «Componenti del pannello»): pulsanti Principale, Contorno, Pericolo, Testo; pillola «Presto»; filtro a scanalatura; campo di ricerca; campo con etichetta; tendina; avatar con iniziali; logo dell'agenzia; pallino di stato; etichetta di stato; voce di navigazione (normale e attiva); schede del cliente; barra laterale dell'agenzia; testata di pagina; intestazione e riga di tabella; miniatura del file; avviso «Da sistemare»; riquadro «Aspetta te»; barre in alto e in basso del telefono. Restano anche i componenti delle email e quelli del 15/10 (nell'archivio).
+- **Componenti** (tavola «Componenti del pannello»): pulsanti Principale, Contorno, Pericolo, Testo; pillola «Presto»; filtro a scanalatura; campo di ricerca; campo con etichetta; tendina; avatar con iniziali; logo dell'agenzia; pallino di stato; etichetta di stato; voce di navigazione (normale e attiva); schede del cliente; barra laterale dell'agenzia; testata di pagina; intestazione e riga di tabella; miniatura del file; avviso «Da sistemare»; riquadro «Aspetta te»; barre in alto e in basso del telefono. Restano anche i componenti delle email; i loghi (`Logo orizzontale`, `Simbolo`) sono nella stessa tavola.
 - **Limiti di Pencil:** Sora si vede a 600 invece di 650; il corpo è Inter al posto di `system-ui`; le variabili numeriche funzionano su raggi, spazi e padding, non sulle larghezze.
 
 ## Direzione
@@ -60,9 +60,9 @@ I colori di stato hanno significato indipendente dal marchio e sono sempre accom
 - Corpo: `system-ui` nel codice; sulla tela Inter come sostituto provvisorio dichiarato (Pencil non offre `system-ui`).
 - Testo operativo 13–16 px, titoli di pagina 24–28 px, hero landing 56 px.
 
-## Componenti condivisi (tela, pagina «00 · Sistema condiviso», ora in archivio)
+## Componenti condivisi (prima tela, 15 ottobre)
 
-Dal 18/11 i componenti di riferimento del pannello sono nella tavola «Componenti del pannello» (vedi «Tela unica»). Quelli del 15/10 restano nell'archivio:
+Dal 18/11 i componenti di riferimento sono nella tavola «Componenti del pannello» (vedi «Tela unica»); la pagina «00 · Sistema condiviso» del 15/10 è stata tolta. Aveva:
 
 Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (arancio, etichetta e bordo carbone), secondario, focus visibile, disabilitato, etichette di stato (bozza, programmato, in preparazione, in verifica, da accertare, con problema, in pausa, confermato), scheda post, riga account (attivo / da ricollegare), barra laterale app.
 
