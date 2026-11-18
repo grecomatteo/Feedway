@@ -34,7 +34,8 @@ const toneClass = computed(
 
 <template>
   <p class="text-[0.78125rem] leading-snug break-words whitespace-pre-line" data-preview-caption>
-    <span v-if="name" class="font-semibold">{{ name }}</span>{{ name ? ' ' : '' }}
+    <span v-if="name" class="font-semibold">{{ name }}</span
+    >{{ name ? ' ' : '' }}
     <template v-for="(p, i) in parts" :key="i">
       <span v-if="p.kind === 'text'">{{ p.text }}</span>
       <span v-else :class="toneClass" :data-mark="p.kind">{{ p.text }}</span>
