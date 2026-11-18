@@ -7,6 +7,10 @@ import type { ApiFailure } from './useApi'
  * 20 MiB with their sha-256, two files at a time, and resumed on their own when the connection
  * comes back or the tab is shown again. After a reload the uploads left halfway are listed: the
  * same file chosen again goes on from where it stopped.
+ *
+ * The uploads belong to the panel, not to a page (D-21, Matteo 18/11): one store per workspace
+ * lives as long as the tab, so a file started in the library or in the editor goes on while the
+ * person moves around, and `UploadsDock` shows it in the corner when no page shows it.
  */
 
 export type UploadState =
@@ -87,17 +91,21 @@ interface Side {
   watching: boolean
 }
 
-export function useUploads(workspaceId: Ref<string>, options: { onChange: () => void }) {
-  const org = useOrganization()
+/** Fixed when the store is made: a running upload never follows the page to another agency. */
+function createUploadStore(orgSlug: string, workspaceId: string) {
   const { failure } = useApi()
   const i18n = useI18n()
   const t = i18n.t
-  const base = computed(
-    () => `${org.api(`/workspaces/${encodeURIComponent(workspaceId.value)}`)}/uploads`,
-  )
-  const mediaBase = computed(
-    () => `${org.api(`/workspaces/${encodeURIComponent(workspaceId.value)}`)}/media`,
-  )
+  const root = `/api/v1/orgs/${encodeURIComponent(orgSlug)}/workspaces/${encodeURIComponent(workspaceId)}`
+  const base = computed(() => `${root}/uploads`)
+  const mediaBase = computed(() => `${root}/media`)
+  /** who wants to know when a file is in the library: the library's list, the editor */
+  const listeners = new Set<(media: MediaDto | null) => void>()
+  const changed = (media: MediaDto | null) => {
+    for (const listener of listeners) listener(media)
+  }
+  /** pages that show these uploads themselves: while one is open the dock leaves them out */
+  const shown = ref(0)
 
   const items = ref<UploadItem[]>([])
   const leftovers = ref<Leftover[]>([])
@@ -107,7 +115,6 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
   const hasher = import.meta.client ? createHasher() : null
   const hasherMode = ref<'idle' | 'worker' | 'inline'>('idle')
   let keys = 0
-  let alive = true
 
   const side = (item: UploadItem) => {
     const s = sides.get(item.key)
@@ -283,7 +290,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     const abort = new AbortController()
     s.abort = abort
     const check = () => {
-      if (s.run !== run || abort.signal.aborted || !alive) throw new Stopped()
+      if (s.run !== run || abort.signal.aborted) throw new Stopped()
     }
     try {
       if (!item.uploadId) {
@@ -383,7 +390,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
           announce(t('upload.announce.duplicate', { name: item.name, other: duplicateOf.name }))
         item.sent = item.size
         settled(item, media)
-        options.onChange()
+        changed(item.media)
         return
       }
     } catch (error) {
@@ -498,7 +505,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     if (s.watching) return
     s.watching = true
     try {
-      for (let round = 0; alive; round++) {
+      for (let round = 0; ; round++) {
         await new Promise((r) => setTimeout(r, round < 10 ? 2000 : 5000))
         const item = live(key)
         if (!item?.media || item.state !== 'processing') return
@@ -510,7 +517,7 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
           item.media = media
           if (media.status !== 'processing') {
             settled(item, media)
-            options.onChange()
+            changed(media)
             return
           }
         } catch (error) {
@@ -531,7 +538,6 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     ['queued', 'hashing', 'uploading', 'offline', 'completing', 'processing'].includes(i.state)
 
   function pump() {
-    if (!alive) return
     let active = items.value.filter((i) => RUNNING.includes(i.state)).length
     for (const item of items.value) {
       if (active >= MAX_ACTIVE) break
@@ -788,33 +794,24 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     }
   })
 
-  let offNetwork: (() => void) | null = null
   function visible() {
     if (document.visibilityState === 'visible') wakeAll()
   }
   function leaving(event: BeforeUnloadEvent) {
     if (totals.value.active) event.preventDefault()
   }
-  onMounted(() => {
-    offNetwork = onNetworkChange(restartAll)
+  // as long as the tab: no page owns the uploads (D-21)
+  if (import.meta.client) {
+    onNetworkChange(restartAll)
     document.addEventListener('visibilitychange', visible)
     window.addEventListener('beforeunload', leaving)
     loading = load()
-  })
-  onBeforeUnmount(() => {
-    alive = false
-    offNetwork?.()
-    document.removeEventListener('visibilitychange', visible)
-    window.removeEventListener('beforeunload', leaving)
-    for (const item of items.value) {
-      stop(item)
-      if (item.preview) URL.revokeObjectURL(item.preview.url)
-    }
-    hasher?.stop()
-  })
-  watch(workspaceId, () => (loading = load()))
+  }
 
   return {
+    workspaceId,
+    shown,
+    listeners,
     items,
     leftovers,
     leftoverProblem,
@@ -831,5 +828,52 @@ export function useUploads(workspaceId: Ref<string>, options: { onChange: () => 
     resumeLeftover,
     cancelLeftover,
     wake,
+    reload: () => {
+      loading = load()
+    },
   }
+}
+
+export type UploadStore = ReturnType<typeof createUploadStore>
+
+/** The stores of the tab, one per agency and workspace; on the server none is kept. */
+const stores = shallowRef<UploadStore[]>([])
+const storeKeys = new Map<string, UploadStore>()
+
+/** Every store of the tab, for the dock. */
+export const uploadStores = () => stores.value
+
+/**
+ * The uploads of a workspace. `onChange` hears a file arrive in the library (its media, or null
+ * when it was taken off); `shown` says the page draws these uploads itself. Both last as long as
+ * the component that asks.
+ */
+export function useUploads(
+  workspaceId: string,
+  options: { onChange?: (media: MediaDto | null) => void; shown?: boolean } = {},
+): UploadStore {
+  const org = useOrganization()
+  const key = `${org.slug.value}/${workspaceId}`
+  let store = import.meta.client ? storeKeys.get(key) : undefined
+  // a page opened again lists what is left halfway now
+  if (store?.items.value.length === 0) store.reload()
+  if (!store) {
+    // detached: the store outlives the page that made it
+    const made = effectScope(true).run(() => createUploadStore(org.slug.value, workspaceId))
+    if (!made) throw new Error('no upload store')
+    store = made
+    if (import.meta.client) {
+      storeKeys.set(key, store)
+      stores.value = [...stores.value, store]
+    } else return store
+  }
+  const own = store
+  const listener = options.onChange
+  if (listener) own.listeners.add(listener)
+  if (options.shown) own.shown.value += 1
+  onBeforeUnmount(() => {
+    if (listener) own.listeners.delete(listener)
+    if (options.shown) own.shown.value -= 1
+  })
+  return own
 }
