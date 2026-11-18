@@ -339,8 +339,8 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 ### D-68 · Domande sul disegno dell'editor
 - **Origine:** Task 2 della tappa 6, disegno dell'editor, dell'anteprima e del ritaglio (`DESIGN.md` «Editor dei post (tappa 6, Task 2)», revisione `design/reviews/2026-11-18-disegno-editor.md`).
 - **Le domande** (in grassetto la scelta provvisoria sulla tela):
-  1. nome del primo tipo: **«Foto»** (specifica §11.2) oppure «Post»;
-  2. riepilogo delle destinazioni: **in fondo al modulo** oppure sotto l'anteprima;
+  1. nome del primo tipo: **«Foto»**, deciso da Matteo il 18/11;
+  2. riepilogo delle destinazioni: **in fondo al modulo**, deciso da Matteo il 18/11;
   3. a 1280 px: **anteprima stretta a 320 con «Nascondi anteprima»** oppure modulo e anteprima alternati;
   4. filtro della scheda «Post»: **«Tutti» in più, predefinito** oppure solo Bozze · Programmati · Annullati;
   5. etichette, modelli, gruppi e orario predefinito: **scheda «Impostazioni dei contenuti» del cliente** oppure sezione della Panoramica oppure pagina dell'agenzia.

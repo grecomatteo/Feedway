@@ -304,8 +304,8 @@ Disegno del 18 novembre 2026, in attesa dell'approvazione di Matteo (senza appro
 
 Anche in `docs/decisioni-aperte.md`, D-68.
 
-1. **Nome del primo tipo:** «Foto» (specifica §11.2, scelto sulla tela) o «Post» (come nel compito)? Consiglio «Foto»: «Post» è già il nome di tutto.
-2. **Dove sta il riepilogo delle destinazioni:** in fondo al modulo (scelto) o nella colonna dell'anteprima, sotto il telefono? Consiglio in fondo al modulo, con «Scegli cosa fare per 1 avviso» nella barra che porta lì: la colonna dell'anteprima è già lunga.
+1. **Nome del primo tipo:** deciso da Matteo il 18/11: «Foto» (specifica §11.2).
+2. **Dove sta il riepilogo delle destinazioni:** deciso da Matteo il 18/11: in fondo al modulo, con «Scegli cosa fare per 1 avviso» nella barra che porta lì.
 3. **A 1280 px:** anteprima stretta a 320 con «Nascondi anteprima» (scelto) o modulo e anteprima alternati con due schede? Consiglio la prima: si vede l'effetto di ogni modifica senza cambiare vista.
 4. **Filtro della scheda «Post»:** «Tutti» in più, predefinito (scelto), o solo Bozze · Programmati · Annullati? Consiglio «Tutti»: senza, la colonna «Quando» non mostrerebbe mai insieme date e «Bozza».
 5. **Dove stanno etichette, modelli, gruppi e orario predefinito:** nuova scheda del cliente «Impostazioni dei contenuti» (scelta), una sezione in fondo alla Panoramica o una pagina dell'agenzia con il cliente da scegliere? Consiglio la scheda: sono del cliente e chi li gestisce li cerca lì.
