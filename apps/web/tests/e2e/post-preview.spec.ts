@@ -301,12 +301,12 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   // a video dropped on the cover is refused at once
   const drop = async (name: string, type: string) => {
     const data = await page.evaluateHandle(
-      ([n, t]) => {
+      (f) => {
         const d = new DataTransfer()
-        d.items.add(new File([new Uint8Array([0, 0, 0, 24])], n, { type: t }))
+        d.items.add(new File([new Uint8Array([0, 0, 0, 24])], f.name, { type: f.type }))
         return d
       },
-      [name, type],
+      { name, type },
     )
     await section.locator('[data-cover-drop]').dispatchEvent('drop', { dataTransfer: data })
   }
