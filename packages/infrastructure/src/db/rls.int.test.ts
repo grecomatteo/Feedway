@@ -440,3 +440,39 @@ test('branding: an agency reaches only its own row; a person reads the logo of t
   // reading is all a person gets
   expect((await asUser(u1, (c) => c.query('update branding set logo_key = null'))).rowCount).toBe(0)
 })
+
+test('every table with an organization_id forces row level security and has the isolation policy', async () => {
+  const { rows } = await runtime.query<{
+    table: string
+    enabled: boolean
+    forced: boolean
+    policies: number
+  }>(
+    `select c.relname as table, c.relrowsecurity as enabled, c.relforcerowsecurity as forced,
+            (select count(*)::int from pg_policy p where p.polrelid = c.oid) as policies
+     from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+     where c.relkind = 'r'
+       and exists (select 1 from pg_attribute a
+                   where a.attrelid = c.oid and a.attname = 'organization_id' and not a.attisdropped)
+     order by 1`,
+  )
+  // the tables of stage 6 are in the list (plan 06 Task 3)
+  expect(rows.map((r) => r.table)).toEqual(
+    expect.arrayContaining([
+      'posts',
+      'post_media',
+      'post_targets',
+      'labels',
+      'post_labels',
+      'post_notes',
+      'caption_templates',
+      'account_groups',
+    ]),
+  )
+  for (const r of rows) {
+    expect(r.enabled, r.table).toBe(true)
+    expect(r.forced, r.table).toBe(true)
+    expect(r.policies, r.table).toBeGreaterThan(0)
+  }
+})

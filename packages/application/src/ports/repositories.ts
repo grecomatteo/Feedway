@@ -440,7 +440,7 @@ export interface WorkspaceRecord {
   name: string
   slug: string
   logoKey: string | null
-  /** Local time `HH:MM:SS`; null means no default. */
+  /** Local time `HH:MM`; null means no default. */
   defaultPostTime: string | null
   archivedAt: Date | null
   createdAt: Date
@@ -475,6 +475,8 @@ export interface WorkspacesRepository {
     slug: string
   }): Promise<WorkspaceRecord>
   rename(organizationId: string, id: string, name: string): Promise<void>
+  /** `HH:MM`, or null to clear it. */
+  setDefaultPostTime(organizationId: string, id: string, value: string | null): Promise<void>
   /** false: already archived. */
   archive(organizationId: string, id: string, at: Date): Promise<boolean>
 }

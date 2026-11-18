@@ -1,0 +1,308 @@
+import { CAPTION_TEMPLATE_KINDS, LABEL_COLORS, POST_STATUSES, POST_TYPES } from '@app/domain'
+import { sql } from 'drizzle-orm'
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
+import { socialAccounts } from '../accounts/schema.js'
+import { createdAt, inList, tz, updatedAt } from '../columns.js'
+import { media } from '../media/schema.js'
+import { organizations } from '../organizations/schema.js'
+import { workspaces } from '../workspaces/schema.js'
+
+// The posts module (spec §13, plan 06 Task 3): every table carries the agency, and the composite
+// keys keep a post, its files, its labels and its notes inside one workspace. The people
+// (`created_by`, `author_id`…) have no foreign key, as `media.uploaded_by`: what they wrote
+// stays when they leave the agency.
+
+/** A post of a workspace; its state derives from its destinations (§9.3). */
+export const posts = pgTable(
+  'posts',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    type: text('type').notNull(),
+    caption: text('caption').notNull().default(''),
+    // the text of a platform that has its own; missing = the common text (D-53)
+    captionByPlatform: jsonb('caption_by_platform').notNull().default({}),
+    scheduledAt: tz('scheduled_at'),
+    // copied from the agency's settings when the post is created (D-58)
+    timezone: text('timezone').notNull().default('Europe/Rome'),
+    status: text('status').notNull().default('draft'),
+    // { shareToFeed, choices } (P5)
+    options: jsonb('options').notNull(),
+    createdBy: uuid('created_by').notNull(),
+    scheduledBy: uuid('scheduled_by'),
+    updatedBy: uuid('updated_by').notNull(),
+    version: integer('version').notNull().default(1),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // target of the composite foreign keys
+    unique('posts_workspace_id').on(t.organizationId, t.workspaceId, t.id),
+    index('posts_workspace_status_idx').on(
+      t.organizationId,
+      t.workspaceId,
+      t.status,
+      t.scheduledAt,
+    ),
+    foreignKey({
+      name: 'posts_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('posts_type', inList('type', POST_TYPES)),
+    check('posts_status', inList('status', POST_STATUSES)),
+    check(
+      'posts_scheduled_has_date',
+      sql`${t.status} <> 'scheduled' or ${t.scheduledAt} is not null`,
+    ),
+    check('posts_version', sql`${t.version} >= 1`),
+  ],
+)
+
+/** The files of a post, in its order; a reel's cover sits on its video (position 0). */
+export const postMedia = pgTable(
+  'post_media',
+  {
+    organizationId: uuid('organization_id').notNull(),
+    workspaceId: uuid('workspace_id').notNull(),
+    postId: uuid('post_id').notNull(),
+    position: integer('position').notNull(),
+    mediaId: uuid('media_id').notNull(),
+    // a reel's cover: a photo of the workspace, or a frame of the video
+    coverMediaId: uuid('cover_media_id'),
+    coverOffsetMs: integer('cover_offset_ms'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.postId, t.position] }),
+    // which posts use a file (the library's «Nel post del …», a delete refused)
+    index('post_media_media_idx').on(t.organizationId, t.mediaId),
+    foreignKey({
+      name: 'post_media_post_fk',
+      columns: [t.organizationId, t.workspaceId, t.postId],
+      foreignColumns: [posts.organizationId, posts.workspaceId, posts.id],
+    }).onDelete('cascade'),
+    // files are never deleted for real (`status = 'deleted'`): the use case refuses a file of a
+    // scheduled post, the key only keeps it in the workspace
+    foreignKey({
+      name: 'post_media_media_fk',
+      columns: [t.organizationId, t.workspaceId, t.mediaId],
+      foreignColumns: [media.organizationId, media.workspaceId, media.id],
+    }),
+    foreignKey({
+      name: 'post_media_cover_fk',
+      columns: [t.organizationId, t.workspaceId, t.coverMediaId],
+      foreignColumns: [media.organizationId, media.workspaceId, media.id],
+    }),
+    check('post_media_position', sql`${t.position} >= 0`),
+    check('post_media_one_cover', sql`${t.coverMediaId} is null or ${t.coverOffsetMs} is null`),
+    check('post_media_cover_offset', sql`${t.coverOffsetMs} is null or ${t.coverOffsetMs} >= 0`),
+  ],
+)
+
+/**
+ * A destination of a post: one account. The account's key is the agency's, not the workspace's:
+ * an account taken off the workspace keeps the drafts, and the checks call it unavailable.
+ * The columns after `fingerprint` are stage 7's (§13), null until then.
+ */
+export const postTargets = pgTable(
+  'post_targets',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id').notNull(),
+    workspaceId: uuid('workspace_id').notNull(),
+    postId: uuid('post_id').notNull(),
+    accountId: uuid('account_id').notNull(),
+    status: text('status').notNull().default('draft'),
+    // hex sha256 of `postFingerprint` after the choices, written when scheduled (P3)
+    fingerprint: text('fingerprint'),
+    variant: text('variant'),
+    step: text('step'),
+    metaIds: jsonb('meta_ids'),
+    externalPostId: text('external_post_id'),
+    permalink: text('permalink'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: tz('next_attempt_at'),
+    lastErrorCode: text('last_error_code'),
+    lastErrorMessage: text('last_error_message'),
+    publishedAt: tz('published_at'),
+    verifiedAt: tz('verified_at'),
+    verification: jsonb('verification'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique('post_targets_post_account').on(t.organizationId, t.postId, t.accountId),
+    index('post_targets_account_status_idx').on(t.organizationId, t.accountId, t.status),
+    index('post_targets_account_fingerprint_idx').on(t.organizationId, t.accountId, t.fingerprint),
+    foreignKey({
+      name: 'post_targets_post_fk',
+      columns: [t.organizationId, t.workspaceId, t.postId],
+      foreignColumns: [posts.organizationId, posts.workspaceId, posts.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'post_targets_account_fk',
+      columns: [t.organizationId, t.accountId],
+      foreignColumns: [socialAccounts.organizationId, socialAccounts.id],
+    }),
+    check('post_targets_status', inList('status', POST_STATUSES)),
+    check(
+      'post_targets_fingerprint',
+      sql`${t.fingerprint} is null or ${t.fingerprint} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('post_targets_attempts', sql`${t.attempts} >= 0`),
+  ],
+)
+
+/** A coloured label of a workspace (§11.7). */
+export const labels = pgTable(
+  'labels',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    name: text('name').notNull(),
+    color: text('color').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique('labels_workspace_id').on(t.organizationId, t.workspaceId, t.id),
+    // «Promo» and «promo» are one label
+    uniqueIndex('labels_workspace_name').on(t.organizationId, t.workspaceId, sql`lower(${t.name})`),
+    foreignKey({
+      name: 'labels_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('labels_name', sql`char_length(${t.name}) between 1 and 40`),
+    check('labels_color', inList('color', LABEL_COLORS)),
+  ],
+)
+
+export const postLabels = pgTable(
+  'post_labels',
+  {
+    organizationId: uuid('organization_id').notNull(),
+    workspaceId: uuid('workspace_id').notNull(),
+    postId: uuid('post_id').notNull(),
+    labelId: uuid('label_id').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.postId, t.labelId] }),
+    index('post_labels_label_idx').on(t.organizationId, t.labelId),
+    foreignKey({
+      name: 'post_labels_post_fk',
+      columns: [t.organizationId, t.workspaceId, t.postId],
+      foreignColumns: [posts.organizationId, posts.workspaceId, posts.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'post_labels_label_fk',
+      columns: [t.organizationId, t.workspaceId, t.labelId],
+      foreignColumns: [labels.organizationId, labels.workspaceId, labels.id],
+    }).onDelete('cascade'),
+  ],
+)
+
+/** An internal note on a post, never shown to clients (§11.7). */
+export const postNotes = pgTable(
+  'post_notes',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id').notNull(),
+    workspaceId: uuid('workspace_id').notNull(),
+    postId: uuid('post_id').notNull(),
+    authorId: uuid('author_id').notNull(),
+    body: text('body').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('post_notes_post_idx').on(t.organizationId, t.postId, t.createdAt),
+    foreignKey({
+      name: 'post_notes_post_fk',
+      columns: [t.organizationId, t.workspaceId, t.postId],
+      foreignColumns: [posts.organizationId, posts.workspaceId, posts.id],
+    }).onDelete('cascade'),
+    check('post_notes_body', sql`char_length(${t.body}) between 1 and 2000`),
+  ],
+)
+
+/** A text, signature or set of hashtags of a workspace, inserted with a tap (§11.7). */
+export const captionTemplates = pgTable(
+  'caption_templates',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    kind: text('kind').notNull(),
+    name: text('name').notNull(),
+    body: text('body').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('caption_templates_workspace_idx').on(t.organizationId, t.workspaceId, t.kind),
+    foreignKey({
+      name: 'caption_templates_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('caption_templates_kind', inList('kind', CAPTION_TEMPLATE_KINDS)),
+    check('caption_templates_name', sql`char_length(${t.name}) between 1 and 80`),
+    check('caption_templates_body', sql`char_length(${t.body}) between 1 and 70000`),
+  ],
+)
+
+/**
+ * Saved accounts of a workspace (§11.7). `account_ids` has no foreign key: the use case takes
+ * only accounts of the workspace, and the editor skips one taken off it since.
+ */
+export const accountGroups = pgTable(
+  'account_groups',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    name: text('name').notNull(),
+    accountIds: uuid('account_ids')
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('account_groups_workspace_idx').on(t.organizationId, t.workspaceId),
+    foreignKey({
+      name: 'account_groups_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('account_groups_name', sql`char_length(${t.name}) between 1 and 80`),
+  ],
+)

@@ -17,6 +17,8 @@ export const OrganizationSettings = z.object({
     .nullable(),
   /** the space the clients' files take, copies included, and the agency's limit (null: none) */
   storage: z.object({ usedBytes: z.number().int(), limitBytes: z.number().int().nullable() }),
+  /** IANA: the time zone of the agency's new posts (D-58); Europe/Rome until changed */
+  timezone: z.string(),
 })
 
 export const organizationSettingsRoute = defineContract({
@@ -42,13 +44,15 @@ export const UpdateOrganizationSettingsBody = z.strictObject({
     })
     .nullable()
     .optional(),
+  /** IANA, from `Intl.supportedValuesOf('timeZone')`; the posts already written keep theirs */
+  timezone: z.string().max(64).optional(),
 })
 
 export const updateOrganizationSettingsRoute = defineContract({
   method: 'PATCH',
   path: '/api/v1/orgs/{org}/settings',
   summary:
-    'Cambia nome, regola del secondo fattore e titolare dell’informativa (Owner, con riconferma)',
+    'Cambia nome, regola del secondo fattore, titolare dell’informativa e fuso dei post (Owner, con riconferma)',
   request: { params: OrgParams, body: UpdateOrganizationSettingsBody },
   response: OrganizationSettings,
   auth: 'session',

@@ -578,6 +578,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'organization.ownership_transferred': ['from', 'to'],
   'workspace.created': [],
   'workspace.renamed': [],
+  'workspace.settings_changed': [],
   'workspace.archived': [],
   'member.added': ['role'],
   'member.role_changed': ['from', 'to'],
@@ -721,6 +722,7 @@ async function produceEveryAction() {
     await ok('POST', `${org}/workspaces`, { name: 'Spazio del registro' }),
   ) as { id: string }
   await ok('PATCH', `${org}/workspaces/${created.id}`, { name: 'Spazio rinominato' })
+  await ok('PATCH', `${org}/workspaces/${created.id}`, { defaultPostTime: '18:30' })
   const members = `${org}/workspaces/${created.id}/members`
   await ok('POST', members, { userId: ids.target, role: 'viewer' })
   await ok('PUT', `${members}/${ids.target}`, { role: 'editor' })

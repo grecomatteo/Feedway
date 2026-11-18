@@ -127,6 +127,13 @@
       "when": 1794858708324,
       "tag": "0017_media_master",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794974703779,
+      "tag": "0018_posts",
+      "breakpoints": true
     }
   ]
 }

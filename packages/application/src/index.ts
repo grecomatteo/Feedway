@@ -62,6 +62,15 @@ export type {
   PublicVariantRecord,
 } from './ports/media.js'
 export type {
+  NewPost,
+  NewPostTarget,
+  PostChange,
+  PostRecord,
+  PostRepository,
+  PostScope,
+  PostTargetRecord,
+} from './ports/posts.js'
+export type {
   ExclusiveLock,
   MadeFile,
   MediaProbe,
@@ -134,7 +143,7 @@ export * from './workspaces/index.js'
 export * from './accounts/index.js'
 export * from './media/index.js'
 export * from './rules/index.js'
-export type { PublishingHistory } from './ports/publishing-history.js'
+export type { PublishingHistory, PublishingHistoryQuery } from './ports/publishing-history.js'
 export { MODULES, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition } from './module-definition.js'
 export type {

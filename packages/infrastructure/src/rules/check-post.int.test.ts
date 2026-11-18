@@ -326,6 +326,7 @@ describe('what is not the workspace’s', () => {
         format: null,
         caption: '',
         media: [],
+        fingerprint: null,
         outcomeKeys: [`account_unavailable:destination:${notAssigned}`],
       },
       {
@@ -334,6 +335,7 @@ describe('what is not the workspace’s', () => {
         format: null,
         caption: '',
         media: [],
+        fingerprint: null,
         outcomeKeys: [`account_unavailable:destination:${ofOther}`],
       },
     ])

@@ -2,6 +2,7 @@ import type { Platform } from '../accounts/accounts.js'
 import { DomainError } from '../errors.js'
 import { zonedToInstant } from '../time/zoned.js'
 import { publishedCaption } from './caption.js'
+import { sha256Hex } from './sha256.js'
 import { commonRules, type ResolvedDestination, type ResolvedWhen } from './post-rules.js'
 import {
   RULE_OPTIONS,
@@ -34,7 +35,8 @@ export function resolveWhen(when: PostWhen, now: Date, timeZone: string): Resolv
 
 /**
  * Two posts are the same on an account (D-50): the same files in the same order and the same
- * text, but for the spaces at its ends and how its lines are broken.
+ * text, but for the spaces at its ends and how its lines are broken. The hex sha256 of that
+ * (P3): what `post_targets.fingerprint` keeps, short enough for an index.
  */
 export function postFingerprint(accountId: string, sha256s: readonly string[], caption: string) {
   // split, not a regex: the text comes from the request (CodeQL, polynomial regex)
@@ -43,7 +45,13 @@ export function postFingerprint(accountId: string, sha256s: readonly string[], c
     .map((line) => line.trim())
     .filter((line) => line !== '')
     .join(' ')
-  return JSON.stringify([accountId, sha256s, text])
+  return sha256Hex(JSON.stringify([accountId, sha256s, text]))
+}
+
+/** The fingerprint of what a destination publishes; null while a file's sha256 is unknown. */
+function fingerprintOf(accountId: string, view: PlatformView): string | null {
+  const sha256s = view.media.map((m) => m.media.sha256)
+  return sha256s.every((s) => s !== null) ? postFingerprint(accountId, sha256s, view.caption) : null
 }
 
 function subjectKey(s: RuleSubject): string {
@@ -154,6 +162,8 @@ function runPass(
   }
   findings.unshift(...commonRules(draft, ctx, when, destinations, new Set(views.keys())))
 
+  // once per destination: the sha256 runs on texts up to 70,000 characters
+  const fingerprints = new Map<string, string | null>()
   for (const d of destinations) {
     const view = d.account ? views.get(d.account.platform) : undefined
     const rules = d.account ? rulesOf.get(d.account.platform) : undefined
@@ -161,9 +171,9 @@ function runPass(
     findings.push(
       ...rules.checkAccount(view, { ...d.account, id: d.accountId }, ctx.history, when.instant),
     )
-    const sha256s = view.media.map((m) => m.media.sha256)
-    if (sha256s.every((s) => s !== null)) {
-      const fingerprint = postFingerprint(d.accountId, sha256s, view.caption)
+    const fingerprint = fingerprintOf(d.accountId, view)
+    fingerprints.set(d.accountId, fingerprint)
+    if (fingerprint !== null) {
       if (ctx.history.recentFingerprints.get(d.accountId)?.has(fingerprint))
         findings.push({
           level: 'warning',
@@ -207,6 +217,7 @@ function runPass(
         format: view?.format ?? null,
         caption: view?.caption ?? '',
         media: view?.media.map((m) => m.index) ?? [],
+        fingerprint: fingerprints.get(d.accountId) ?? null,
         outcomeKeys: [],
       }
     }),

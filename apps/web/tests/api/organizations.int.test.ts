@@ -29,6 +29,7 @@ test('Owner and Admin read the settings; a Member and a stranger do not', async 
     platformRequire2fa: 'admins',
     privacy: null,
     storage: { usedBytes: 0, limitBytes: null },
+    timezone: 'Europe/Rome',
   })
   const memberCookie = await env.signIn(member)
   expect(

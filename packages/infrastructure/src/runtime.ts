@@ -47,7 +47,7 @@ import { createS3Storage } from './storage/s3-storage.js'
 import { createLogger } from './logging/logger.js'
 import { createPgBossQueue } from './queue/pg-boss-queue.js'
 import { systemClock } from './system/clock.js'
-import { emptyPublishingHistory } from './system/publishing-history.js'
+import { postgresPublishingHistory } from './system/publishing-history.js'
 import { uuidV7Generator } from './system/id-generator.js'
 
 export type RuntimeRole = 'web' | 'worker'
@@ -226,7 +226,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       mailer,
       ...createMeta(config, { clock, logger, integrations }),
       platformRules: PLATFORM_RULES,
-      publishingHistory: emptyPublishingHistory,
+      publishingHistory: postgresPublishingHistory,
       connectionTokens: createConnectionTokens({ keyRing }),
       close: () => handle.close(),
     }

@@ -12,7 +12,8 @@ const workspaceColumns = {
   name: workspaces.name,
   slug: workspaces.slug,
   logoKey: workspaces.logoKey,
-  defaultPostTime: workspaces.defaultPostTime,
+  // `HH:MM`, as the panel and the API write it
+  defaultPostTime: sql<string | null>`to_char(${workspaces.defaultPostTime}, 'HH24:MI')`,
   archivedAt: workspaces.archivedAt,
   createdAt: workspaces.createdAt,
 }
@@ -95,6 +96,12 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
       await db
         .update(workspaces)
         .set({ name })
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
+    },
+    async setDefaultPostTime(organizationId, id, value) {
+      await db
+        .update(workspaces)
+        .set({ defaultPostTime: value })
         .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
     },
     async archive(organizationId, id, at) {
