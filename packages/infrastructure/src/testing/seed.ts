@@ -42,6 +42,11 @@ export interface Seeder {
       }[]
     },
   ): Promise<string>
+  /** A social account of the agency, with its own connection; in the workspaces given. */
+  account(
+    organizationId: string,
+    opts?: { platform?: 'instagram' | 'facebook'; workspaceIds?: string[] },
+  ): Promise<string>
 }
 
 function seederOf(c: pg.Client): Seeder {
@@ -129,6 +134,36 @@ function seederOf(c: pg.Client): Seeder {
             v.sizeBytes,
             v.publicToken ?? null,
           ],
+        )
+      return id
+    },
+    async account(organizationId, opts = {}) {
+      const [connectionId, id] = [randomUUID(), randomUUID()]
+      const platform = opts.platform ?? 'instagram'
+      await c.query(
+        `insert into account_connections
+           (id, organization_id, kind, external_user_id, connected_by, token_enc, key_version)
+         values ($1, $2, 'meta_system_user', $3, $4, 'v1.1.x', 1)`,
+        [connectionId, organizationId, `su-${connectionId}`, randomUUID()],
+      )
+      await c.query(
+        `insert into social_accounts (id, organization_id, platform, external_id, name, page_id,
+                                      connection_id)
+         values ($1, $2, $3, $4, 'Forno', $5, $6)`,
+        [
+          id,
+          organizationId,
+          platform,
+          `ext-${id}`,
+          platform === 'facebook' ? `ext-${id}` : null,
+          connectionId,
+        ],
+      )
+      for (const workspaceId of opts.workspaceIds ?? [])
+        await c.query(
+          `insert into workspace_accounts (organization_id, workspace_id, account_id)
+           values ($1, $2, $3)`,
+          [organizationId, workspaceId, id],
         )
       return id
     },

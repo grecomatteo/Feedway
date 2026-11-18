@@ -8,6 +8,7 @@ import {
   seesAllWorkspaces,
   type OrgActor,
   type WorkspaceRole,
+  validateDefaultPostTime,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Auth } from '../ports/auth.js'
@@ -31,6 +32,8 @@ export interface WorkspaceDto {
   slug: string
   archivedAt: string | null
   myRole: WorkspaceRole | 'owner' | 'admin'
+  /** `HH:MM`: the local time a new post proposes; null: none (§13) */
+  defaultPostTime: string | null
 }
 
 export const workspaceNotFound = () => new DomainError('NOT_FOUND', 'Spazio non trovato')
@@ -51,6 +54,7 @@ function toDto(record: WorkspaceRecord, role: WorkspaceDto['myRole']): Workspace
     slug: record.slug,
     archivedAt: record.archivedAt === null ? null : record.archivedAt.toISOString(),
     myRole: role,
+    defaultPostTime: record.defaultPostTime,
   }
 }
 
@@ -118,7 +122,8 @@ export const managesWorkspaces = (actor: OrgActor) =>
 export function recordWorkspace(
   tx: Tx,
   actor: OrgActor,
-  action: 'workspace.created' | 'workspace.renamed' | 'workspace.archived',
+  action:
+    'workspace.created' | 'workspace.renamed' | 'workspace.archived' | 'workspace.settings_changed',
   workspaceId: string,
   ip: string | null,
 ) {
@@ -288,6 +293,40 @@ export async function renameWorkspace(
     await tx.workspaces.rename(current.organizationId, workspaceId, name)
     await recordWorkspace(tx, current, 'workspace.renamed', workspaceId, request.ip)
     return toDto({ ...workspace, name }, role)
+  })
+}
+
+/**
+ * The local time a new post of the workspace proposes (§13, plan 06 Task 3): Manager and above
+ * (`workspace.content_settings.manage`, §10.2). The same value again changes and records nothing.
+ */
+export async function setDefaultPostTime(
+  deps: Pick<WorkspacesDeps, 'uow'>,
+  actor: OrgActor,
+  workspaceId: string,
+  value: string | null,
+  request: { ip: string | null },
+): Promise<WorkspaceDto> {
+  if (!isUuid(workspaceId)) throw workspaceNotFound()
+  const checked = validateDefaultPostTime(value)
+  if (!checked.ok)
+    throw new DomainError('VALIDATION', 'Scrivi l’orario come 18:30', { field: 'defaultPostTime' })
+  const { organizationId } = actor
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const fresh = await currentActor(tx, actor)
+    await assertActiveOrganization(tx, organizationId)
+    const { workspace, actor: current } = await lockVisibleWorkspace(tx, fresh, workspaceId)
+    if (!can(current, 'workspace.content_settings.manage', { organizationId, workspaceId }))
+      throw new DomainError(
+        'FORBIDDEN',
+        'Solo chi gestisce il cliente può cambiare le impostazioni dei contenuti',
+      )
+    if (workspace.archivedAt !== null) throw archivedConflict()
+    const role = myRole(current, workspaceId) ?? 'viewer'
+    if (workspace.defaultPostTime === checked.value) return toDto(workspace, role)
+    await tx.workspaces.setDefaultPostTime(organizationId, workspaceId, checked.value)
+    await recordWorkspace(tx, current, 'workspace.settings_changed', workspaceId, request.ip)
+    return toDto({ ...workspace, defaultPostTime: checked.value }, role)
   })
 }
 

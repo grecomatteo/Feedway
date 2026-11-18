@@ -992,6 +992,8 @@ ID UUID v7. Tutte le tabelle hanno `created_at` e `updated_at` (`timestamptz`). 
 -- Piattaforma e organizzazioni
 organizations       id, name, slug (unico), status (active|suspended), limits (jsonb),
                     settings (jsonb), suspended_at
+                    -- settings: require2fa, privacy e timezone (IANA, fuso dei post nuovi;
+                    -- assente = Europe/Rome; lo cambia l'Owner, D-58, piano 06 P4)
 organization_members organization_id, user_id, role (owner|admin|member),
                     status (active|disabled)
 organization_keys   organization_id, version, key_enc, created_at, retired_at
@@ -1086,14 +1088,21 @@ posts               id, workspace_id, type (photo|carousel|reel|story), caption,
                     caption_by_platform (jsonb: testo per piattaforma, es. instagram, facebook; vuoto = testo comune),
                     scheduled_at, timezone, status (derivato), options (jsonb),
                     created_by, scheduled_by, updated_by, version
+                    -- timezone: copiato da organizations.settings.timezone alla creazione (D-58)
+                    -- options: { shareToFeed, choices } (piano 06 P5)
 post_media          post_id, media_id, position,
                     cover_media_id, cover_offset_ms   -- solo reel: immagine caricata o fotogramma
-post_targets        id, post_id, account_id, variant, status, step, meta_ids (jsonb),
+post_targets        id, post_id, account_id, variant, status, step, fingerprint, meta_ids (jsonb),
                     external_post_id, permalink, attempts, next_attempt_at,
                     last_error_code, last_error_message, published_at,
                     verified_at, verification (jsonb)
+                    -- fingerprint: sha256 esadecimale di postFingerprint dopo le scelte, scritto
+                    -- alla programmazione; i doppioni si leggono con un indice (piano 06 P3)
+                    -- account_id: chiave composta verso social_accounts dell'agenzia, non verso
+                    -- workspace_accounts: un account tolto dal cliente non cancella le bozze
 target_attempts     id, target_id, step, outcome, meta_error_code, duration_ms, created_at
-labels              id, workspace_id, name, color
+labels              id, workspace_id, name (1–40, unico nel cliente),
+                    color (uno dei temi: feedway|blu|verde|viola|grafite)
 post_labels         post_id, label_id
 post_notes          id, post_id, author_id, body
 caption_templates   id, workspace_id, kind (caption|signature|hashtags), name, body

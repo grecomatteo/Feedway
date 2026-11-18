@@ -249,6 +249,23 @@ describe('organization settings', () => {
     expect((await getOrganizationSettings(deps, owner)).privacy).toBeNull()
   })
 
+  test('the time zone of the posts is Rome until the Owner chooses another (D-58)', async () => {
+    const a = await agency()
+    const owner = await actorOf(a.owner, a.org)
+    expect((await getOrganizationSettings(deps, owner)).timezone).toBe('Europe/Rome')
+    await expect(
+      updateOrganizationSettings(deps, owner, fresh(owner), { timezone: 'Europe/Atlantide' }, REQ),
+    ).rejects.toMatchObject({ code: 'VALIDATION', details: { field: 'timezone' } })
+    await updateOrganizationSettings(deps, owner, fresh(owner), { timezone: 'Europe/Lisbon' }, REQ)
+    expect((await getOrganizationSettings(deps, owner)).timezone).toBe('Europe/Lisbon')
+    const [entry] = await auditOf(a.org)
+    expect(entry?.data).toEqual({ fields: ['timezone'] })
+    // the same again records nothing
+    const before = (await auditOf(a.org)).length
+    await updateOrganizationSettings(deps, owner, fresh(owner), { timezone: 'Europe/Lisbon' }, REQ)
+    expect((await auditOf(a.org)).length).toBe(before)
+  })
+
   test('raising the rule closes no session: a member without a second factor owes one next', async () => {
     const a = await agency()
     const owner = await actorOf(a.owner, a.org)

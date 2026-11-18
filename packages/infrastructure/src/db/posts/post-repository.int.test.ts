@@ -1,0 +1,253 @@
+import { randomUUID } from 'node:crypto'
+import { afterAll, beforeAll, expect, test } from 'vitest'
+import type { PostChange, Tx, UnitOfWork } from '@app/application'
+import { EMPTY_POST_OPTIONS } from '@app/domain'
+import { createDb, type DbHandle } from '../client.js'
+import { createUnitOfWork } from '../unit-of-work.js'
+import { createLogger } from '../../logging/logger.js'
+import { uuidV7Generator } from '../../system/id-generator.js'
+import { seed, startTestDatabase, withScope, type TestDatabase } from '../../testing/index.js'
+
+// The posts' repository (plan 06 Task 3): the optimistic lock, the files, cover, destinations and
+// labels written and read back, the list and the posts that use a file.
+
+let tdb: TestDatabase
+let handle: DbHandle
+let uow: UnitOfWork
+let org: string, user: string, ws: string, photo: string, video: string, cover: string
+let ig: string, fb: string
+
+const scope = () => ({ organizationId: org, workspaceId: ws })
+const run = <T>(fn: (tx: Tx) => Promise<T>) => uow.run({ organizationId: org, userId: user }, fn)
+
+async function newPost(over: { type?: 'photo' | 'reel' } = {}) {
+  const id = uuidV7Generator.newId()
+  await run((tx) =>
+    tx.posts.insert({
+      id,
+      organizationId: org,
+      workspaceId: ws,
+      type: over.type ?? 'photo',
+      caption: 'Pane caldo',
+      captionByPlatform: { facebook: 'Pane caldo, anche su Facebook' },
+      scheduledAt: null,
+      timezone: 'Europe/Rome',
+      options: EMPTY_POST_OPTIONS,
+      createdBy: user,
+    }),
+  )
+  return id
+}
+
+const change = (over: Partial<PostChange> = {}): PostChange => ({
+  type: 'photo',
+  caption: 'Nuovo testo',
+  captionByPlatform: {},
+  scheduledAt: null,
+  status: 'draft',
+  options: EMPTY_POST_OPTIONS,
+  scheduledBy: null,
+  updatedBy: user,
+  ...over,
+})
+
+beforeAll(async () => {
+  tdb = await startTestDatabase()
+  handle = createDb(tdb.runtimeUrl, { max: 2, applicationName: 'post-repository' })
+  uow = createUnitOfWork({
+    db: handle.db,
+    ids: uuidV7Generator,
+    logger: createLogger({ service: 'web', level: 'error' }),
+  })
+  ;({ org, user, ws, photo, video, cover, ig, fb } = await seed(tdb.runtimeUrl, async (s) => {
+    const org = await s.organization()
+    const user = await s.user()
+    await s.member(org, user, 'owner')
+    const ws = await s.workspace(org)
+    return {
+      org,
+      user,
+      ws,
+      photo: await s.media(org, ws, { uploadedBy: user, kind: 'image' }),
+      video: await s.media(org, ws, { uploadedBy: user, kind: 'video' }),
+      cover: await s.media(org, ws, { uploadedBy: user, kind: 'image' }),
+      ig: await s.account(org, { workspaceIds: [ws] }),
+      fb: await s.account(org, { platform: 'facebook', workspaceIds: [ws] }),
+    }
+  }))
+}, 120_000)
+
+afterAll(async () => {
+  await handle.close()
+  await tdb.stop()
+})
+
+test('a new post is a draft at version 1, with what it was given', async () => {
+  const id = await newPost()
+  const post = await run((tx) => tx.posts.find(scope(), id))
+  expect(post).toMatchObject({
+    id,
+    status: 'draft',
+    version: 1,
+    caption: 'Pane caldo',
+    captionByPlatform: { facebook: 'Pane caldo, anche su Facebook' },
+    createdBy: user,
+    updatedBy: user,
+    scheduledBy: null,
+    mediaIds: [],
+    cover: null,
+    targets: [],
+    labelIds: [],
+  })
+})
+
+test('a save with the version read passes once: the second with the same version is refused', async () => {
+  const id = await newPost()
+  expect(await run((tx) => tx.posts.update(scope(), id, change(), 1))).toBe(2)
+  expect(await run((tx) => tx.posts.update(scope(), id, change({ caption: 'Altro' }), 1))).toBe(
+    null,
+  )
+  const post = await run((tx) => tx.posts.find(scope(), id))
+  expect(post).toMatchObject({ version: 2, caption: 'Nuovo testo' })
+})
+
+test('a post of another workspace is not found, nor written', async () => {
+  const id = await newPost()
+  const other = { organizationId: org, workspaceId: randomUUID() }
+  expect(await run((tx) => tx.posts.find(other, id))).toBe(null)
+  expect(await run((tx) => tx.posts.update(other, id, change(), 1))).toBe(null)
+  expect(await run((tx) => tx.posts.delete(other, id))).toBe(false)
+})
+
+test('files keep their order; the cover sits on the video, a frame or a photo', async () => {
+  const id = await newPost({ type: 'reel' })
+  await run((tx) =>
+    tx.posts.replaceMedia(scope(), id, [video], { source: 'frame', offsetMs: 1500 }),
+  )
+  expect(await run((tx) => tx.posts.find(scope(), id))).toMatchObject({
+    mediaIds: [video],
+    cover: { source: 'frame', offsetMs: 1500 },
+  })
+  await run((tx) =>
+    tx.posts.replaceMedia(scope(), id, [video], { source: 'image', mediaId: cover }),
+  )
+  expect(await run((tx) => tx.posts.find(scope(), id))).toMatchObject({
+    cover: { source: 'image', mediaId: cover },
+  })
+  await run((tx) => tx.posts.replaceMedia(scope(), id, [photo, cover, photo], null))
+  expect(await run((tx) => tx.posts.find(scope(), id))).toMatchObject({
+    mediaIds: [photo, cover, photo],
+    cover: null,
+  })
+})
+
+test('destinations are replaced; an account already there keeps its row', async () => {
+  const id = await newPost()
+  await run((tx) =>
+    tx.posts.replaceTargets(scope(), id, [{ accountId: ig, status: 'draft', fingerprint: null }]),
+  )
+  const before = await run((tx) => tx.posts.find(scope(), id))
+  const fingerprint = 'f'.repeat(64)
+  await run((tx) =>
+    tx.posts.replaceTargets(scope(), id, [
+      { accountId: ig, status: 'scheduled', fingerprint },
+      { accountId: fb, status: 'scheduled', fingerprint },
+    ]),
+  )
+  const after = await run((tx) => tx.posts.find(scope(), id))
+  expect(after?.targets.find((t) => t.accountId === ig)).toEqual({
+    id: before?.targets[0]?.id,
+    accountId: ig,
+    status: 'scheduled',
+    fingerprint,
+  })
+  await run((tx) => tx.posts.replaceTargets(scope(), id, []))
+  expect((await run((tx) => tx.posts.find(scope(), id)))?.targets).toEqual([])
+})
+
+test('the list goes newest first, by state and page; statuses come in one query', async () => {
+  const s = await seed(tdb.runtimeUrl, async (x) => x.workspace(org))
+  const own = { organizationId: org, workspaceId: s }
+  const ids: string[] = []
+  for (let i = 0; i < 3; i++) {
+    const id = uuidV7Generator.newId()
+    await run((tx) =>
+      tx.posts.insert({
+        id,
+        organizationId: org,
+        workspaceId: s,
+        type: 'photo',
+        caption: '',
+        captionByPlatform: {},
+        scheduledAt: null,
+        timezone: 'Europe/Rome',
+        options: EMPTY_POST_OPTIONS,
+        createdBy: user,
+      }),
+    )
+    ids.push(id)
+  }
+  await run((tx) =>
+    tx.posts.update(
+      own,
+      ids[0] ?? '',
+      change({ status: 'scheduled', scheduledAt: new Date('2026-12-01T17:00:00Z') }),
+      1,
+    ),
+  )
+  const first = await run((tx) => tx.posts.listByWorkspace(own, { limit: 2 }))
+  expect(first.map((p) => p.id)).toEqual([ids[2], ids[1]])
+  const next = await run((tx) => tx.posts.listByWorkspace(own, { limit: 2, before: ids[1] ?? '' }))
+  expect(next.map((p) => p.id)).toEqual([ids[0]])
+  const scheduled = await run((tx) =>
+    tx.posts.listByWorkspace(own, { limit: 10, status: 'scheduled' }),
+  )
+  expect(scheduled.map((p) => p.id)).toEqual([ids[0]])
+  const statuses = await run((tx) => tx.posts.statuses(org, [...ids, randomUUID()]))
+  expect([...statuses.entries()].sort()).toEqual(
+    [
+      [ids[0], 'scheduled'],
+      [ids[1], 'draft'],
+      [ids[2], 'draft'],
+    ].sort(),
+  )
+})
+
+test('the posts that use a file, as a file or as a cover, the scheduled ones first', async () => {
+  const draft = await newPost({ type: 'reel' })
+  const scheduled = await newPost({ type: 'reel' })
+  const unrelated = await seed(tdb.runtimeUrl, (s) => s.media(org, ws, { uploadedBy: user }))
+  await run(async (tx) => {
+    await tx.posts.replaceMedia(scope(), draft, [unrelated], { source: 'image', mediaId: cover })
+    await tx.posts.replaceMedia(scope(), scheduled, [video], { source: 'frame', offsetMs: 0 })
+    await tx.posts.update(
+      scope(),
+      scheduled,
+      change({ type: 'reel', status: 'scheduled', scheduledAt: new Date('2026-12-02T17:00:00Z') }),
+      1,
+    )
+  })
+  const uses = await run((tx) => tx.posts.usingMedia(org, [cover, unrelated]))
+  expect(
+    uses
+      .filter((u) => u.postId === draft)
+      .map((u) => u.mediaId)
+      .sort(),
+  ).toEqual([cover, unrelated].sort())
+  const onVideo = await run((tx) => tx.posts.usingMedia(org, [video]))
+  expect(onVideo[0]).toMatchObject({ postId: scheduled, status: 'scheduled' })
+})
+
+test('labels are replaced, each once', async () => {
+  const id = await newPost()
+  const label = randomUUID()
+  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query(
+      `insert into labels (id, organization_id, workspace_id, name, color)
+       values ($1, $2, $3, 'Promo', 'verde')`,
+      [label, org, ws],
+    ),
+  )
+  await run((tx) => tx.posts.replaceLabels(scope(), id, [label, label]))
+  expect((await run((tx) => tx.posts.find(scope(), id)))?.labelIds).toEqual([label])
+})

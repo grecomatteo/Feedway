@@ -887,6 +887,7 @@
       "user_role_changed": "ha cambiato un ruolo",
       "workspace_created": "ha creato un cliente",
       "workspace_renamed": "ha rinominato un cliente",
+      "workspace_settings_changed": "ha cambiato le impostazioni dei contenuti di un cliente",
       "workspace_archived": "ha archiviato un cliente",
       "workspace_member_added": "ha aggiunto una persona a un cliente",
       "workspace_member_removed": "ha tolto una persona da un cliente",

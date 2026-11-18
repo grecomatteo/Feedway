@@ -87,7 +87,7 @@ export interface RuleAccount {
 
 /** What is already published or scheduled (R4: empty until stages 6–7). */
 export interface PublishingHistoryFacts {
-  /** `postFingerprint` of the posts of the last 7 days, by account */
+  /** `postFingerprint` of the posts within 7 days of the instant, by account */
   recentFingerprints: ReadonlyMap<string, ReadonlySet<string>>
   /** reels in the 24 hours around the instant, by account */
   reelsLast24h: ReadonlyMap<string, number>
@@ -266,6 +266,8 @@ export interface DestinationSummary {
   caption: string
   /** the files it will publish, as indices of `draft.media` */
   media: number[]
+  /** `postFingerprint` of what it publishes (P3); null while a file's sha256 is unknown */
+  fingerprint: string | null
   /** the keys of the outcomes that touch it: each outcome is once, in `RuleReport.outcomes` */
   outcomeKeys: string[]
 }

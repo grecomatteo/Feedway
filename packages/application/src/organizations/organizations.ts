@@ -6,6 +6,8 @@ import {
   checkOrganizationName,
   checkPrivacySettings,
   storedPrivacySettings,
+  storedTimeZone,
+  isValidTimeZone,
   type OrganizationPrivacySettings,
   type OrgActor,
   type OrgRole,
@@ -70,6 +72,8 @@ export interface OrganizationSettingsDto {
   privacy: OrganizationPrivacySettings | null
   /** The space its clients' files take (§11.1 point 7) and its `storage_bytes`; null: none. */
   storage: { usedBytes: number; limitBytes: number | null }
+  /** IANA: the time zone of its new posts (D-58) */
+  timezone: string
 }
 
 const TWO_FACTOR_POLICIES: readonly TwoFactorPolicy[] = ['admins', 'all']
@@ -106,6 +110,7 @@ export async function getOrganizationSettings(
     require2fa: storedPolicy(organization.settings),
     platformRequire2fa: deps.config.require2fa,
     privacy: storedPrivacySettings(organization.settings),
+    timezone: storedTimeZone(organization.settings),
     storage: {
       usedBytes: used.organization,
       limitBytes: parseLimits(organization.limits).storage_bytes ?? null,
@@ -118,6 +123,8 @@ export interface OrganizationSettingsInput {
   require2fa?: TwoFactorPolicy
   /** null removes the controller data */
   privacy?: { controllerName: string; contactEmail: string; extraText?: string } | null
+  /** IANA; the posts already written keep theirs (D-58) */
+  timezone?: string
 }
 
 const PRIVACY_PROBLEMS = {
@@ -179,6 +186,9 @@ export async function updateOrganizationSettings(
       throw new DomainError('VALIDATION', PRIVACY_PROBLEMS[valid.field], { field: valid.field })
     privacy = valid.value
   }
+  const { timezone } = input
+  if (timezone !== undefined && !isValidTimeZone(timezone))
+    throw new DomainError('VALIDATION', 'Scegli un fuso orario dell’elenco', { field: 'timezone' })
   assertRecentReauth(session, deps.clock.now())
 
   await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
@@ -205,15 +215,19 @@ export async function updateOrganizationSettings(
       privacy !== undefined &&
       JSON.stringify(privacy) !== JSON.stringify(storedPrivacySettings(organization.settings))
     if (privacyChanged) fields.push('privacy')
+    const timezoneChanged =
+      timezone !== undefined && timezone !== storedTimeZone(organization.settings)
+    if (timezoneChanged) fields.push('timezone')
     if (fields.length === 0) return
 
     await tx.organizations.update(organizationId, {
       ...(fields.includes('name') && name !== undefined ? { name } : {}),
-      ...(policyChanged || privacyChanged
+      ...(policyChanged || privacyChanged || timezoneChanged
         ? {
             settings: {
               ...(policyChanged ? { require2fa } : {}),
               ...(privacyChanged ? { privacy } : {}),
+              ...(timezoneChanged ? { timezone } : {}),
             },
           }
         : {}),

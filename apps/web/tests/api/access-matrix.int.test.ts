@@ -578,6 +578,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'organization.ownership_transferred': ['from', 'to'],
   'workspace.created': [],
   'workspace.renamed': [],
+  'workspace.settings_changed': [],
   'workspace.archived': [],
   'member.added': ['role'],
   'member.role_changed': ['from', 'to'],

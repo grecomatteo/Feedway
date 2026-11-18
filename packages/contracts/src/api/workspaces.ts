@@ -9,6 +9,8 @@ export const Workspace = z.object({
   slug: z.string(),
   archivedAt: z.string().nullable(),
   myRole: z.enum(['owner', 'admin', 'manager', 'publisher', 'editor', 'viewer']),
+  /** `HH:MM`: the local time a new post proposes; null: none. */
+  defaultPostTime: z.string().nullable(),
 })
 
 /**
@@ -70,11 +72,22 @@ export const createWorkspaceRoute = defineContract({
   scope: 'organization',
 })
 
+/** The name (Owner and Admin), the default time of the posts (Manager and above). */
+const WorkspaceChange = z
+  .strictObject({
+    name: z.string().max(400),
+    defaultPostTime: z.string().max(5).nullable(),
+  })
+  .partial()
+  .refine((b) => b.name !== undefined || b.defaultPostTime !== undefined, {
+    message: 'Nessun campo da cambiare',
+  })
+
 export const renameWorkspaceRoute = defineContract({
   method: 'PATCH',
   path: '/api/v1/orgs/{org}/workspaces/{id}',
-  summary: 'Rinomina uno spazio di lavoro',
-  request: { params: WorkspaceParams, body: WorkspaceName },
+  summary: 'Rinomina uno spazio di lavoro o ne cambia l’orario predefinito dei post',
+  request: { params: WorkspaceParams, body: WorkspaceChange },
   response: Workspace,
   auth: 'session',
   scope: 'organization',

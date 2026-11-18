@@ -262,6 +262,7 @@ describe('the report', () => {
         format: null,
         caption: '',
         media: [],
+        fingerprint: null,
         outcomeKeys: ['account_unavailable:destination:acc-other-workspace'],
       },
     ])
@@ -397,4 +398,12 @@ test('the fingerprint ignores the spaces at the ends and how the lines are broke
   expect(postFingerprint('a', ['s2', 's1'], 'Il pane di oggi')).not.toBe(
     postFingerprint('a', ['s1', 's2'], 'Il pane di oggi'),
   )
+})
+
+test('each destination carries the fingerprint of what it publishes, as hex sha256 (P3)', () => {
+  const report = evaluatePost(draft({ caption: { common: 'Ciao' } }), context())
+  expect(report.destinations.length).toBeGreaterThan(0)
+  for (const d of report.destinations) {
+    expect(d.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+  }
 })
