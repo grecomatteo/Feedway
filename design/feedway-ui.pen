@@ -50805,7 +50805,8 @@
                           "fill": "$text-muted",
                           "content": "Archiviati 0",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -50826,7 +50827,8 @@
                           "fill": "$text-muted",
                           "content": "Video",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -50867,7 +50869,8 @@
                       "fill": "$text-muted",
                       "content": "Cerca un cliente o un profilo",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -50913,7 +50916,8 @@
                           "fill": "$text",
                           "content": "Studio Riva",
                           "fontFamily": "$font-body",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -50945,7 +50949,8 @@
                       "fill": "$text",
                       "content": "Quello dell'agenzia",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "icon",
@@ -51062,7 +51067,8 @@
                       "fill": "$text",
                       "content": "Da ricollegare",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -51152,7 +51158,8 @@
                       "fill": "$text",
                       "content": "Home",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -51251,7 +51258,8 @@
                           "fill": "$text-muted",
                           "content": "Calendario",
                           "fontFamily": "$font-body",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         },
                         {
                           "id": "RwuaA",
@@ -51279,7 +51287,8 @@
                           "fill": "$text-muted",
                           "content": "Libreria",
                           "fontFamily": "$font-body",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -51301,7 +51310,8 @@
                           "fill": "$text-muted",
                           "content": "Persone",
                           "fontFamily": "$font-body",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -51445,7 +51455,8 @@
                       "fill": "$text",
                       "content": "Tutti i clienti",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -51585,7 +51596,8 @@
                           "fill": "$text-muted",
                           "content": "Owner · Studio Riva",
                           "fontFamily": "$font-body",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -51652,7 +51664,8 @@
                           "fill": "$text-muted",
                           "content": "3 clienti. Pizzeria Da Gino ha un profilo da ricollegare.",
                           "fontFamily": "$font-body",
-                          "fontSize": 17
+                          "fontSize": 17,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -51707,7 +51720,8 @@
                               "fill": "$text-muted",
                               "content": "Cliente",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -51724,7 +51738,8 @@
                               "fill": "$text-muted",
                               "content": "Profili",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -51741,7 +51756,8 @@
                               "fill": "$text-muted",
                               "content": "Collegamento",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -51823,7 +51839,8 @@
                               "fill": "$text-muted",
                               "content": "@fornoluce +1",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -52002,7 +52019,8 @@
                           "fill": "$text-muted",
                           "content": "Foto",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -52064,7 +52082,8 @@
                       "content": "Il Data Use Checkup dell'app Meta scade il 25 novembre 2026 (tra 10 giorni): completalo nella dashboard dell'app.",
                       "lineHeight": 1.5,
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -52102,7 +52121,8 @@
                       "content": "Sei al passo 1 di 5: collega Feedway a Meta per pubblicare sugli account dei clienti.",
                       "lineHeight": 1.5,
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     },
                     {
                       "id": "kjF7Q",
@@ -52195,7 +52215,8 @@
                           "fill": "$text",
                           "content": "Tutti i clienti",
                           "fontFamily": "$font-body",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -52270,7 +52291,8 @@
                           "fill": "$text-muted",
                           "content": "Home",
                           "fontFamily": "$font-body",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -52303,7 +52325,8 @@
                           "fill": "$text-muted",
                           "content": "Calendario",
                           "fontFamily": "$font-body",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -52351,7 +52374,8 @@
                           "fill": "$text-muted",
                           "content": "Presto",
                           "fontFamily": "$font-body",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -52420,7 +52444,8 @@
                           "fill": "$text-muted",
                           "content": "Tu",
                           "fontFamily": "$font-body",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -52509,7 +52534,8 @@
                       "fill": "$text-muted",
                       "content": "Il tuo ruolo: Owner. Da qui raggiungi le pagine dell'agenzia.",
                       "fontFamily": "$font-body",
-                      "fontSize": 17
+                      "fontSize": 17,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -52569,7 +52595,8 @@
                               "fill": "$text",
                               "content": "Clienti",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -52607,7 +52634,8 @@
                               "fill": "$text",
                               "content": "Libreria",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -52654,7 +52682,8 @@
                               "fill": "$text",
                               "content": "Utenti",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -52692,7 +52721,8 @@
                               "fill": "$text",
                               "content": "Registro attività",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -52739,7 +52769,8 @@
                               "fill": "$text",
                               "content": "Privacy",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -52854,7 +52885,8 @@
                       "fill": "$text",
                       "content": "2 profili trovati non sono in un cliente",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -53137,7 +53169,8 @@
                               "fill": "$text-muted",
                               "content": "@fornoluce",
                               "fontFamily": "$font-body",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -53226,7 +53259,8 @@
                               "fill": "$text-muted",
                               "content": "Profilo",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53243,7 +53277,8 @@
                               "fill": "$text-muted",
                               "content": "Collegamento",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53260,7 +53295,8 @@
                               "fill": "$text-muted",
                               "content": "Pubblicati in 24 ore",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53277,7 +53313,8 @@
                               "fill": "$text-muted",
                               "content": "Ultima sincronizzazione",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53352,7 +53389,8 @@
                               "fill": "$text-muted",
                               "content": "Funziona",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53369,7 +53407,8 @@
                               "fill": "$text-muted",
                               "content": "2 di 100",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53389,7 +53428,8 @@
                               "fill": "$text-muted",
                               "content": "oggi alle 9:12",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53497,7 +53537,8 @@
                               "fill": "$text-muted",
                               "content": "0 di 100",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -53517,7 +53558,8 @@
                               "fill": "$text-muted",
                               "content": "3 giorni fa",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "id": "IOz55",
@@ -53599,7 +53641,8 @@
                   "fill": "$text-muted",
                   "content": "Spazio occupato: 658 kB",
                   "fontFamily": "$font-body",
-                  "fontSize": 15
+                  "fontSize": 15,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "frame",
@@ -53641,7 +53684,8 @@
                           "fill": "$text-muted",
                           "content": "In preparazione",
                           "fontFamily": "$font-body",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -53851,7 +53895,8 @@
                           "fill": "$text-muted",
                           "content": "Owner",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -53898,7 +53943,8 @@
                           "fill": "$text-muted",
                           "content": "Editor",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -54023,7 +54069,8 @@
                               "fill": "$text-muted",
                               "content": "@fornoluce",
                               "fontFamily": "$font-body",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -54076,7 +54123,8 @@
                   "fill": "$text-muted",
                   "content": "Spazio occupato: 658 kB",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "frame",
@@ -54202,7 +54250,8 @@
                               "width": "fill_container",
                               "content": "Senza cartella",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -54239,7 +54288,8 @@
                               "width": "fill_container",
                               "content": "Laboratorio",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -54248,7 +54298,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -54285,7 +54336,8 @@
                               "width": "fill_container",
                               "content": "Natale 2026",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -54294,7 +54346,8 @@
                               "fill": "$text-muted",
                               "content": "2",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -54333,7 +54386,8 @@
                               "width": "fill_container",
                               "content": "Vetrina",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -54342,7 +54396,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -54892,7 +54947,8 @@
                               "fill": "$text-muted",
                               "content": "@fornoluce",
                               "fontFamily": "$font-body",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -54945,7 +55001,8 @@
                   "fill": "$text-muted",
                   "content": "Spazio occupato: 658 kB",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "frame",
@@ -55071,7 +55128,8 @@
                               "width": "fill_container",
                               "content": "Senza cartella",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -55108,7 +55166,8 @@
                               "width": "fill_container",
                               "content": "Laboratorio",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -55117,7 +55176,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -55154,7 +55214,8 @@
                               "width": "fill_container",
                               "content": "Natale 2026",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -55163,7 +55224,8 @@
                               "fill": "$text-muted",
                               "content": "2",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -55202,7 +55264,8 @@
                               "width": "fill_container",
                               "content": "Vetrina",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -55211,7 +55274,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -55326,7 +55390,8 @@
                               "content": "Si sono fermati, per esempio perché la pagina è stata ricaricata. Scegli di nuovo lo stesso file: riparte da dove era arrivato.",
                               "lineHeight": 1.5,
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -55363,7 +55428,8 @@
                                       "width": "fill_container",
                                       "content": "0% di 64 MB già arrivato · si può riprendere fino al 17 novembre 2026 alle ore 17:35",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -55442,7 +55508,8 @@
                                       "fill": "$text-muted",
                                       "content": "1 di 3 file caricati · 5 kB di 75 MB · mancano 2 min",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 15
+                                      "fontSize": 15,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -55538,7 +55605,8 @@
                                       "fill": "$success",
                                       "content": "Pronto",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -55640,7 +55708,8 @@
                                       "fill": "$text-muted",
                                       "content": "12 MB di 45 MB · 27%",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "frame",
@@ -55783,7 +55852,8 @@
                                       "fill": "$text-muted",
                                       "content": "In pausa · 30 MB di 64 MB",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "frame",
@@ -55926,7 +55996,8 @@
                                       "fill": "$danger",
                                       "content": "Formato non supportato: usa JPEG, PNG, HEIC, MP4 o MOV.",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -56086,7 +56157,8 @@
                               "fill": "$text-muted",
                               "content": "@fornoluce",
                               "fontFamily": "$font-body",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -56139,7 +56211,8 @@
                   "fill": "$text-muted",
                   "content": "Spazio occupato: 658 kB",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "frame",
@@ -56265,7 +56338,8 @@
                               "width": "fill_container",
                               "content": "Senza cartella",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -56302,7 +56376,8 @@
                               "width": "fill_container",
                               "content": "Laboratorio",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -56311,7 +56386,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -56348,7 +56424,8 @@
                               "width": "fill_container",
                               "content": "Natale 2026",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -56357,7 +56434,8 @@
                               "fill": "$text-muted",
                               "content": "2",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -56396,7 +56474,8 @@
                               "width": "fill_container",
                               "content": "Vetrina",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "text",
@@ -56405,7 +56484,8 @@
                               "fill": "$text-muted",
                               "content": "0",
                               "fontFamily": "$font-body",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -56972,7 +57052,8 @@
                           "fill": "#FFFFFF",
                           "content": "0:00 / 0:18",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -57011,7 +57092,8 @@
                           "width": 150,
                           "content": "Tipo",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57022,7 +57104,8 @@
                           "width": "fill_container",
                           "content": "Video",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57041,7 +57124,8 @@
                           "width": 150,
                           "content": "Dimensioni",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57052,7 +57136,8 @@
                           "width": "fill_container",
                           "content": "1080 × 1920 px",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57071,7 +57156,8 @@
                           "width": 150,
                           "content": "Durata",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57082,7 +57168,8 @@
                           "width": "fill_container",
                           "content": "0:18",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57101,7 +57188,8 @@
                           "width": 150,
                           "content": "Peso",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57112,7 +57200,8 @@
                           "width": "fill_container",
                           "content": "18,4 MB",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57131,7 +57220,8 @@
                           "width": 150,
                           "content": "Caricato",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57142,7 +57232,8 @@
                           "width": "fill_container",
                           "content": "16 novembre 2026 da Giulia Rossi",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57161,7 +57252,8 @@
                           "width": 150,
                           "content": "Cartella",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "text",
@@ -57172,7 +57264,8 @@
                           "width": "fill_container",
                           "content": "Laboratorio",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -57214,7 +57307,8 @@
                           "fill": "$text",
                           "content": "natale",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57238,7 +57332,8 @@
                           "fill": "$text",
                           "content": "forno",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -57262,7 +57357,8 @@
                           "fill": "$text",
                           "content": "reel",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -57449,7 +57545,8 @@
                               "fill": "$text-muted",
                               "content": "Sicurezza",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -57473,7 +57570,8 @@
                               "fill": "$text-muted",
                               "content": "Dispositivi",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -57497,7 +57595,8 @@
                               "fill": "$text-muted",
                               "content": "Privacy",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -57544,7 +57643,8 @@
                               "fill": "$text-muted",
                               "content": "Generali",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -57568,7 +57668,8 @@
                               "fill": "$text-muted",
                               "content": "Integrazioni",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -57628,7 +57729,8 @@
                               "content": "Cambiano subito, su tutti i tuoi dispositivi. Il logo e quello che vedono i clienti restano con i colori di Feedway.",
                               "lineHeight": 1.5,
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -57760,7 +57862,8 @@
                                               "fill": "$text-muted",
                                               "content": "Predefiniti",
                                               "fontFamily": "$font-body",
-                                              "fontSize": 12
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -58308,7 +58411,8 @@
                                       "fill": "$text",
                                       "content": "Chiaro",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 16
+                                      "fontSize": 16,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -58336,7 +58440,8 @@
                                       "fill": "$text",
                                       "content": "Scuro",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 16
+                                      "fontSize": 16,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -58365,7 +58470,8 @@
                                       "fill": "$text",
                                       "content": "Automatico",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 16
+                                      "fontSize": 16,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -58393,7 +58499,8 @@
                               "fill": "$text-muted",
                               "content": "Per date e orari delle email che ricevi. Senza una scelta vale quello dell'agenzia.",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             },
                             {
                               "id": "NwT3E",
@@ -58536,7 +58643,8 @@
                               "fill": "$text-muted",
                               "content": "Profilo e preferenze",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -58560,7 +58668,8 @@
                               "fill": "$text-muted",
                               "content": "Sicurezza",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -58584,7 +58693,8 @@
                               "fill": "$text-muted",
                               "content": "Dispositivi",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -58608,7 +58718,8 @@
                               "fill": "$text-muted",
                               "content": "Privacy",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -58655,7 +58766,8 @@
                               "fill": "$text-muted",
                               "content": "Generali",
                               "fontFamily": "$font-body",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -58702,7 +58814,8 @@
                           "fill": "$text",
                           "content": "← Integrazioni",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "id": "zVSgh",
@@ -58774,7 +58887,8 @@
                               "content": "È l'app con cui Feedway parla con Facebook e Instagram. Il token degli account sta sul collegamento, non qui.",
                               "lineHeight": 1.5,
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             },
                             {
                               "id": "i1qgBT",
@@ -58813,7 +58927,8 @@
                               "fill": "$text-muted",
                               "content": "È impostato. Lascia vuoto per tenerlo; scrivine uno nuovo per sostituirlo.",
                               "fontFamily": "$font-body",
-                              "fontSize": 14
+                              "fontSize": 14,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -59000,7 +59115,8 @@
                       "fill": "$text-muted",
                       "content": "4 clienti.",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -59118,7 +59234,8 @@
                           "fill": "$text-muted",
                           "content": "@bottegaverde",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59187,7 +59304,8 @@
                           "fill": "$text-muted",
                           "content": "@fornoluce +1",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59324,7 +59442,8 @@
                           "fill": "$text-muted",
                           "content": "Nessun profilo",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59429,7 +59548,8 @@
                       "fill": "$text-muted",
                       "content": "4 clienti.",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -59547,7 +59667,8 @@
                           "fill": "$text-muted",
                           "content": "@bottegaverde",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59616,7 +59737,8 @@
                           "fill": "$text-muted",
                           "content": "@fornoluce +1",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59753,7 +59875,8 @@
                           "fill": "$text-muted",
                           "content": "Nessun profilo",
                           "fontFamily": "$font-body",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -59919,7 +60042,8 @@
                       "fill": "$text-muted",
                       "content": "giulia@studioriva.it",
                       "fontFamily": "$font-body",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -59951,7 +60075,8 @@
                   "fill": "$text",
                   "content": "Utenti",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -59981,7 +60106,8 @@
                   "fill": "$text",
                   "content": "Impostazioni",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -60011,7 +60137,8 @@
                   "fill": "$text",
                   "content": "Registro attività",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -60041,7 +60168,8 @@
                   "fill": "$text",
                   "content": "Privacy",
                   "fontFamily": "$font-body",
-                  "fontSize": 16
+                  "fontSize": 16,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -60082,7 +60210,8 @@
                       "fill": "$text",
                       "content": "Esci",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60192,7 +60321,8 @@
                       "fill": "$text-muted",
                       "content": "@fornoluce",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -60251,7 +60381,8 @@
                       "fill": "$text-muted",
                       "content": "Calendario",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60271,7 +60402,8 @@
                       "fill": "$text-muted",
                       "content": "Libreria",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60291,7 +60423,8 @@
                       "fill": "$text-muted",
                       "content": "Persone",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -60371,7 +60504,8 @@
                           "fill": "$text-muted",
                           "content": "Ultima sincronizzazione oggi alle 9:12",
                           "fontFamily": "$font-body",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -60592,7 +60726,8 @@
           "content": "Fonte: design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md. Il brand kit prevale su qualsiasi altra preferenza. Logo, landing, email e calendario del cliente restano sempre con i colori di Feedway, qualunque tema scelga la persona nel pannello.",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
-          "fontSize": 15
+          "fontSize": 15,
+          "fontWeight": "normal"
         },
         {
           "type": "frame",
@@ -60665,7 +60800,8 @@
                       "fill": "#5F5B55",
                       "content": "Orizzontale carbone · su chiaro",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60715,7 +60851,8 @@
                       "fill": "#B9B4AC",
                       "content": "Orizzontale arancio · su carbone",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60765,7 +60902,8 @@
                       "fill": "#5F5B55",
                       "content": "Orizzontale bianco · solo su scuro",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60815,7 +60953,8 @@
                       "fill": "#5F5B55",
                       "content": "Verticale",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60873,7 +61012,8 @@
                       "fill": "#5F5B55",
                       "content": "Simbolo · icona e avatar",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -60938,7 +61078,8 @@
                       "fill": "$fw-carbone",
                       "content": "#FF762E · RGB 255, 118, 46",
                       "fontFamily": "Inter",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -60949,7 +61090,8 @@
                       "width": "fill_container",
                       "content": "Firma, icona, azioni principali, comunicazione",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -60985,7 +61127,8 @@
                       "fill": "#FFFFFF",
                       "content": "#242321 · RGB 36, 35, 33",
                       "fontFamily": "Inter",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -60996,7 +61139,8 @@
                       "width": "fill_container",
                       "content": "Marchio e testo su chiaro; compagno scuro",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61032,7 +61176,8 @@
                       "fill": "$fw-carbone",
                       "content": "#FFFFFF · RGB 255, 255, 255",
                       "fontFamily": "Inter",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -61043,7 +61188,8 @@
                       "width": "fill_container",
                       "content": "Fondo di servizio e marchio su scuro",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61079,7 +61225,8 @@
                       "fill": "$fw-carbone",
                       "content": "#FAF9F6 · RGB 250, 249, 246",
                       "fontFamily": "Inter",
-                      "fontSize": 14
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -61090,7 +61237,8 @@
                       "width": "fill_container",
                       "content": "Fondo neutro leggermente caldo",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -61106,7 +61254,8 @@
               "content": "Carbone su arancio 5,89:1: i pulsanti arancioni hanno l'etichetta carbone. Bianco su arancio 2,66:1: mai testo bianco sull'arancio. L'accento non è mai l'unico segnale di uno stato: sempre testo e, se serve, un'icona.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -61181,7 +61330,8 @@
                       "content": "Nel codice peso 650; Pencil mostra 600. Non usarlo pesante per tutto il testo.",
                       "lineHeight": 1.45,
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61218,7 +61368,8 @@
                       "content": "Programmato per giovedì alle 19:20 su 4 profili.",
                       "lineHeight": 1.25,
                       "fontFamily": "Inter",
-                      "fontSize": 20
+                      "fontSize": 20,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "text",
@@ -61230,7 +61381,8 @@
                       "content": "Nel codice system-ui; sulla tela Inter come sostituto dichiarato.",
                       "lineHeight": 1.45,
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61280,7 +61432,8 @@
                       "content": "Orari e numeri in colonna nelle tavole hub (direzione Hallmark).",
                       "lineHeight": 1.45,
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -61316,7 +61469,8 @@
               "content": "Deformare, ruotare, staccare F e W, cambiare il rapporto fra segno e nome, aggiungere ombre, contorni o gradienti, usare il bianco come testo ordinario sull'arancio, applicare il taglio favicon al logo grande, usare la versione bianca su fondo chiaro. Dimensioni minime: orizzontale 160 px, verticale 180 px, simbolo 32 px.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         }
@@ -61358,7 +61512,8 @@
           "content": "Due assi di tema sulla tela: mode (light, dark) e palette (feedway, blu, verde, viola, grafite). Per vedere una tavola in un altro tema, scegli il tema sul suo frame. I colori di stato non cambiano con la palette. Spazi: sp-1…sp-12 (4, 8, 12, 16, 24, 32, 48); raggi r-control 8 e r-card 12; righe 56 su computer e 64 su telefono; barra laterale 256; colonna del contenuto 960 (oggi; D-63 la porterà a tutta larghezza).",
           "lineHeight": 1.5,
           "fontFamily": "$font-body",
-          "fontSize": 15
+          "fontSize": 15,
+          "fontWeight": "normal"
         },
         {
           "type": "frame",
@@ -61394,7 +61549,8 @@
                       "fill": "#242321",
                       "content": "paper",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61412,7 +61568,8 @@
                       "fill": "#242321",
                       "content": "bg",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61430,7 +61587,8 @@
                       "fill": "#242321",
                       "content": "card",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61448,7 +61606,8 @@
                       "fill": "#242321",
                       "content": "surface",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61466,7 +61625,8 @@
                       "fill": "#242321",
                       "content": "surface-sunken",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61484,7 +61644,8 @@
                       "fill": "#242321",
                       "content": "nav-bg",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61502,7 +61663,8 @@
                       "fill": "#242321",
                       "content": "nav-hover",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61520,7 +61682,8 @@
                       "fill": "#242321",
                       "content": "groove",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61538,7 +61701,8 @@
                       "fill": "#242321",
                       "content": "border",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61556,7 +61720,8 @@
                       "fill": "#242321",
                       "content": "border-strong",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61574,7 +61739,8 @@
                       "fill": "#242321",
                       "content": "field-border",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61592,7 +61758,8 @@
                       "fill": "#242321",
                       "content": "text",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61610,7 +61777,8 @@
                       "fill": "#242321",
                       "content": "text-muted",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61628,7 +61796,8 @@
                       "fill": "#242321",
                       "content": "brand",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61646,7 +61815,8 @@
                       "fill": "#242321",
                       "content": "brand-hover",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61664,7 +61834,8 @@
                       "fill": "#242321",
                       "content": "on-brand",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61682,7 +61853,8 @@
                       "fill": "#242321",
                       "content": "brand-soft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61700,7 +61872,8 @@
                       "fill": "#242321",
                       "content": "focus",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61718,7 +61891,8 @@
                       "fill": "#242321",
                       "content": "success",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61736,7 +61910,8 @@
                       "fill": "#242321",
                       "content": "success-soft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61754,7 +61929,8 @@
                       "fill": "#242321",
                       "content": "warning",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61772,7 +61948,8 @@
                       "fill": "#242321",
                       "content": "warning-soft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61790,7 +61967,8 @@
                       "fill": "#242321",
                       "content": "danger",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61808,7 +61986,8 @@
                       "fill": "#242321",
                       "content": "danger-soft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61826,7 +62005,8 @@
                       "fill": "#242321",
                       "content": "info",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61844,7 +62024,8 @@
                       "fill": "#242321",
                       "content": "info-soft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61862,7 +62043,8 @@
                       "fill": "#242321",
                       "content": "status-draft",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61880,7 +62062,8 @@
                       "fill": "#242321",
                       "content": "status-scheduled",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61898,7 +62081,8 @@
                       "fill": "#242321",
                       "content": "status-publishing",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -61916,7 +62100,8 @@
                       "fill": "#242321",
                       "content": "status-verifying",
                       "fontFamily": "Geist Mono",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -65591,7 +65776,8 @@
           "content": "Marchio dal brand kit, variabili con i temi del codice (chiaro, scuro, cinque palette) e componenti riutilizzabili del pannello.",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -65670,7 +65856,8 @@
           "content": "Ricostruito dal codice e dalle schermate delle tappe 4 e 5. Fonte di verità: il codice. Le pagine non ancora toccate da D-63 (ritocchi di layout, tappa 6) hanno ancora la colonna da 960 px.",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -65749,7 +65936,8 @@
           "content": "Modelli E0–E5 com'è nel codice: componenti Email · Intestazione, Pulsante, Riquadro, Piè di pagina, Modello. Testi esatti sulla tela.",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -65828,7 +66016,8 @@
           "content": "Approvata da Matteo: 12 sezioni, modulo «Richiedi una demo» con i suoi stati, viste da telefono. Il sito pubblico statico non è ancora costruito (ADR 013, 016).",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -65907,7 +66096,8 @@
           "content": "Menu dell'hub e gerarchia del colore approvati il 29/10 (DESIGN.md «Direzione Hallmark per l'hub»). Si costruiscono dalla tappa 6 in poi con i componenti del pannello: il menu di oggi (Home, Clienti, Libreria, Utenti) diventa quello dell'hub voce per voce (Oggi, Calendario, Piano e idee, Contenuti, Clienti, Lavoro, Report, Agenzia).",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -65986,7 +66176,8 @@
           "content": "Bozze dell'hub per le tappe successive: cruscotto, CRM, calendario settimana, dettaglio del post, lavoro, shooting, report, guide, programmazione in blocco, notifiche, portale del cliente, Oggi da telefono. Disegnate il 29/10 con le regole Hallmark: si rifanno con i componenti del pannello quando arriva la loro tappa.",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -66029,7 +66220,8 @@
           "content": "Qui c'è tutto il design di Feedway, solo nell'ultima versione: marchio, variabili e componenti, pannello com'è nel codice, email, landing, direzione hub e bozze delle funzioni future. Dal 18 novembre 2026 sostituisce design/feedway-ui.pen e design/feedway-ui-hallmark.pen; le versioni superate sono state tolte e restano nella storia di Git. Le scelte approvate sono in DESIGN.md; se tela e codice non sono d'accordo, vale il codice per le pagine fatte e DESIGN.md per quelle da fare.",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
-          "fontSize": 17
+          "fontSize": 17,
+          "fontWeight": "normal"
         },
         {
           "type": "frame",
@@ -66082,7 +66274,8 @@
                   "width": "fill_container",
                   "content": "Costruito e rilasciato: la tela copia il codice.",
                   "fontFamily": "Inter",
-                  "fontSize": 15
+                  "fontSize": 15,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -66131,7 +66324,8 @@
                   "width": "fill_container",
                   "content": "Matteo l'ha approvata; il codice non c'è ancora.",
                   "fontFamily": "Inter",
-                  "fontSize": 15
+                  "fontSize": 15,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -66180,7 +66374,8 @@
                   "width": "fill_container",
                   "content": "Funzione futura, da rifare con i componenti quando arriva la sua tappa.",
                   "fontFamily": "Inter",
-                  "fontSize": 15
+                  "fontSize": 15,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -66206,7 +66401,8 @@
           "content": "1. Ogni tavola ha lo stato nel nome: [Nel codice], [Approvata · da costruire], [Da approvare] (proposta in attesa di Matteo), [Bozza · futura]. Una versione superata si toglie, non si archivia: resta nella storia di Git.\n2. Variabili raggruppate per prefisso: fw-* marchio; token del codice (paper, bg, card, surface…, brand, stati, status-*) con due assi di tema, mode (light, dark) e palette (feedway, blu, verde, viola, grafite); font-*; sp-*, r-*, row-h e misure; ruoli della pagina D-63 (18/11): page-pad 32, page-pad-tablet 24, page-pad-phone 16, page-top 32 / page-top-phone 24, gap-header 24, gap-section 40 / gap-section-phone 32, gap-block 16, form-max 640 (40 rem), sp-10 40. content-max (960) non vale più per le pagine: resta solo per le tavole vecchie; hm-* solo landing e hub Hallmark. Logo, landing, email e calendario del cliente restano sempre Feedway.\n3. Componenti nominati «Gruppo / Variante» (Pulsante, Campo, Filtro, Identità, Stato, Navigazione, Pagina, Tabella, Libreria, Avviso, Marchio, Email): modifica il componente madre, le copie seguono. Le varianti di tema delle schermate sono istanze: cambiano da sole con l'originale.\n4. Le tavole nuove nascono dalle regole del pannello di oggi (DESIGN.md «Stile unione») e dalla direzione hub giro 3 per colore e menu.\n5. Pencil lavora su una copia: salva e copia il file in design/feedway-ui.pen prima del commit. Le immagini sono in design/feedway-ui-assets/, design/feedway-ui-hallmark-assets/ e nel brand kit.\n6. Le schermate esportate vanno in design/tavole/.",
           "lineHeight": 1.6,
           "fontFamily": "Inter",
-          "fontSize": 16
+          "fontSize": 16,
+          "fontWeight": "normal"
         },
         {
           "type": "text",
@@ -66367,7 +66563,8 @@
           "content": "Task 2 della tappa 6 (piano 06): editor, anteprima, ritaglio, stati, scheda «Post» del cliente, Etichette, Modelli e Gruppi. Regole di layout D-63 (variabili page-pad, gap-header, gap-section, gap-block, form-max). Esempio fittizio: Forno Luce, @fornoluce e Pagina Forno Luce. Leggi le scelte e le domande in DESIGN.md → «Editor dei post (tappa 6, Task 2)».",
           "lineHeight": 1.4,
           "fontFamily": "Inter",
-          "fontSize": 20
+          "fontSize": 20,
+          "fontWeight": "normal"
         }
       ]
     },
@@ -67450,7 +67647,8 @@
                                               "fill": "$text-muted",
                                               "content": "Facebook",
                                               "fontFamily": "$font-body",
-                                              "fontSize": 15
+                                              "fontSize": 15,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         }
@@ -68338,7 +68536,8 @@
                                       "fill": "$text-muted",
                                       "content": "Pubblica subito",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 15
+                                      "fontSize": 15,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "id": "tb5Ef",
@@ -69698,22 +69897,24 @@
               "clip": true,
               "width": 320,
               "fill": "#FFFFFF",
-              "cornerRadius": 36,
-              "stroke": "#242321",
-              "strokeWidth": 6,
+              "stroke": "#DBDBDB",
+              "strokeWidth": 1,
               "layout": "vertical",
               "padding": [
-                10,
                 0,
-                16,
+                0,
+                12,
                 0
               ],
               "children": [
                 {
                   "type": "frame",
                   "id": "cQL4h",
+                  "x": 0,
+                  "y": 10,
                   "name": "Barra di stato",
-                  "width": "fill_container",
+                  "enabled": false,
+                  "width": "fill_container(320)",
                   "height": 24,
                   "padding": [
                     0,
@@ -70028,11 +70229,10 @@
               "reusable": true,
               "clip": true,
               "width": 320,
-              "height": 580,
+              "height": 569,
               "fill": "#0C1014",
-              "cornerRadius": 36,
-              "stroke": "#242321",
-              "strokeWidth": 6,
+              "stroke": "#0C1014",
+              "strokeWidth": 2,
               "layout": "none",
               "children": [
                 {
@@ -70042,7 +70242,7 @@
                   "y": 0,
                   "name": "Video 9:16",
                   "width": 320,
-                  "height": 580,
+                  "height": 569,
                   "fill": {
                     "type": "image",
                     "enabled": true,
@@ -70052,9 +70252,120 @@
                 },
                 {
                   "type": "frame",
+                  "id": "Aafkr",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Zona sicura in alto",
+                  "enabled": false,
+                  "width": 320,
+                  "height": 80,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    0,
+                    0,
+                    6,
+                    0
+                  ],
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ByksY",
+                      "name": "Etichetta",
+                      "fill": "#FFFFFF",
+                      "content": "Coperto dall'interfaccia",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "E51f1",
+                  "x": 0,
+                  "y": 370,
+                  "name": "Zona sicura in basso",
+                  "enabled": false,
+                  "width": 320,
+                  "height": 199,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0,
+                    0,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uyWTJ",
+                      "name": "Etichetta",
+                      "fill": "#FFFFFF",
+                      "content": "Coperto dall'interfaccia",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Iw4rZ",
+                  "x": 301,
+                  "y": 80,
+                  "name": "Zona sicura a destra",
+                  "enabled": false,
+                  "width": 19,
+                  "height": 290,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vseGg",
+                      "x": -34,
+                      "y": 157.5,
+                      "name": "Etichetta",
+                      "enabled": false,
+                      "fill": "#FFFFFF",
+                      "content": "Coperto dall'interfaccia",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kmAqr",
+                  "x": 0,
+                  "y": 80,
+                  "name": "Zona sicura a sinistra",
+                  "enabled": false,
+                  "width": 19,
+                  "height": 290,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "frame",
                   "id": "CgLke",
                   "x": 0,
-                  "y": 380,
+                  "y": 369,
                   "name": "Velo",
                   "width": 320,
                   "height": 200,
@@ -70119,7 +70430,7 @@
                   "type": "frame",
                   "id": "XRVS7",
                   "x": 270,
-                  "y": 300,
+                  "y": 289,
                   "name": "Azioni a destra",
                   "width": 40,
                   "layout": "vertical",
@@ -70172,7 +70483,7 @@
                   "type": "frame",
                   "id": "o5mRpg",
                   "x": 14,
-                  "y": 470,
+                  "y": 459,
                   "name": "In basso",
                   "width": 250,
                   "layout": "vertical",
@@ -70260,90 +70571,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Aafkr",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Zona sicura in alto",
-                  "enabled": false,
-                  "width": 320,
-                  "height": 72,
-                  "fill": "#B5174B40",
-                  "stroke": "#B5174B",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "ByksY",
-                      "name": "Etichetta",
-                      "fill": "#FFFFFF",
-                      "content": "Coperto dall'interfaccia",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "E51f1",
-                  "x": 0,
-                  "y": 400,
-                  "name": "Zona sicura in basso",
-                  "enabled": false,
-                  "width": 320,
-                  "height": 180,
-                  "fill": "#B5174B40",
-                  "stroke": "#B5174B",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "uyWTJ",
-                      "name": "Etichetta",
-                      "fill": "#FFFFFF",
-                      "content": "Coperto dall'interfaccia",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Iw4rZ",
-                  "x": 262,
-                  "y": 72,
-                  "name": "Zona sicura a destra",
-                  "enabled": false,
-                  "width": 58,
-                  "height": 328,
-                  "fill": "#B5174B40",
-                  "stroke": "#B5174B",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "vseGg",
-                      "name": "Etichetta",
-                      "fill": "#FFFFFF",
-                      "content": "Coperto dall'interfaccia",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "600"
-                    }
-                  ]
                 }
               ]
             },
@@ -70354,11 +70581,10 @@
               "reusable": true,
               "clip": true,
               "width": 320,
-              "height": 580,
+              "height": 569,
               "fill": "#0C1014",
-              "cornerRadius": 36,
-              "stroke": "#242321",
-              "strokeWidth": 6,
+              "stroke": "#0C1014",
+              "strokeWidth": 2,
               "layout": "none",
               "children": [
                 {
@@ -70368,13 +70594,80 @@
                   "y": 0,
                   "name": "Foto 9:16",
                   "width": 320,
-                  "height": 580,
+                  "height": 569,
                   "fill": {
                     "type": "image",
                     "enabled": true,
                     "url": "feedway-ui-assets/47a5e2c5a89af42c.jpg",
                     "mode": "cover"
                   }
+                },
+                {
+                  "type": "frame",
+                  "id": "YydGc",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Zona sicura in alto",
+                  "enabled": false,
+                  "width": 320,
+                  "height": 80,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    0,
+                    0,
+                    6,
+                    0
+                  ],
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "B9fe0Y",
+                      "name": "Etichetta",
+                      "fill": "#FFFFFF",
+                      "content": "Coperto dall'interfaccia",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ybn50",
+                  "x": 0,
+                  "y": 489,
+                  "name": "Zona sicura in basso",
+                  "enabled": false,
+                  "width": 320,
+                  "height": 80,
+                  "fill": "#B5174B40",
+                  "stroke": "#B5174B",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "padding": [
+                    6,
+                    0,
+                    0,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rLJ6j",
+                      "name": "Etichetta",
+                      "fill": "#FFFFFF",
+                      "content": "Coperto dall'interfaccia",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
@@ -70465,7 +70758,7 @@
                   "type": "frame",
                   "id": "ZU9q0",
                   "x": 12,
-                  "y": 520,
+                  "y": 509,
                   "name": "In basso",
                   "width": 296,
                   "height": 44,
@@ -70520,62 +70813,6 @@
                       "fill": "#FFFFFF"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "YydGc",
-                  "x": 0,
-                  "y": 0,
-                  "name": "Zona sicura in alto",
-                  "enabled": false,
-                  "width": 320,
-                  "height": 80,
-                  "fill": "#B5174B40",
-                  "stroke": "#B5174B",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "B9fe0Y",
-                      "name": "Etichetta",
-                      "fill": "#FFFFFF",
-                      "content": "Coperto dall'interfaccia",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "ybn50",
-                  "x": 0,
-                  "y": 490,
-                  "name": "Zona sicura in basso",
-                  "enabled": false,
-                  "width": 320,
-                  "height": 90,
-                  "fill": "#B5174B40",
-                  "stroke": "#B5174B",
-                  "strokeWidth": 1,
-                  "layout": "vertical",
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "rLJ6j",
-                      "name": "Etichetta",
-                      "fill": "#FFFFFF",
-                      "content": "Coperto dall'interfaccia",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "600"
-                    }
-                  ]
                 }
               ]
             },
@@ -70586,24 +70823,19 @@
               "reusable": true,
               "clip": true,
               "width": 320,
-              "height": 580,
               "fill": "#FFFFFF",
-              "cornerRadius": 36,
-              "stroke": "#242321",
-              "strokeWidth": 6,
+              "stroke": "#DBDBDB",
+              "strokeWidth": 1,
               "layout": "vertical",
-              "padding": [
-                10,
-                0,
-                0,
-                0
-              ],
               "children": [
                 {
                   "type": "frame",
                   "id": "KMSph",
+                  "x": 0,
+                  "y": 10,
                   "name": "Barra di stato",
-                  "width": "fill_container",
+                  "enabled": false,
+                  "width": "fill_container(320)",
                   "height": 24,
                   "padding": [
                     0,
@@ -72071,7 +72303,8 @@
                                               "fill": "$text-muted",
                                               "content": "Facebook",
                                               "fontFamily": "$font-body",
-                                              "fontSize": 15
+                                              "fontSize": 15,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         }
@@ -72965,7 +73198,8 @@
                                       "fill": "$text-muted",
                                       "content": "Pubblica subito",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 15
+                                      "fontSize": 15,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "id": "zXe5i",
@@ -75496,7 +75730,8 @@
                                   "fill": "$text-muted",
                                   "content": "Facebook",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 15
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -76409,7 +76644,8 @@
                           "fill": "$text-muted",
                           "content": "Pubblica subito",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         },
                         {
                           "id": "bsbnr",
@@ -78303,7 +78539,8 @@
                                   "fill": "$text-muted",
                                   "content": "Facebook",
                                   "fontFamily": "$font-body",
-                                  "fontSize": 15
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -79333,7 +79570,7 @@
       "id": "WRa4z",
       "x": 8000,
       "y": 7029,
-      "name": "[Approvata · da costruire] E4 · Anteprima · le sei schede, zone sicure e copertina",
+      "name": "[Nel codice] E4 · Anteprima · le sei schede e le zone coperte (riquadro senza telefono)",
       "theme": {
         "mode": "light",
         "palette": "feedway"
@@ -79369,7 +79606,7 @@
               "fill": "$text-muted",
               "textGrowth": "fixed-width",
               "width": 1100,
-              "content": "Le schede compaiono solo se il post diventa quel tipo su almeno un account scelto. Il selettore cambia account e piattaforma; l'anteprima usa il testo della piattaforma, se c'è, altrimenti quello comune.",
+              "content": "Riquadro squadrato, niente telefono (Matteo, 18/11): feed e post di Facebook alti quanto il contenuto, reel e storie esattamente 9:16 e alti al massimo quanto lo schermo. Le schede compaiono solo se il post diventa quel tipo su almeno un account scelto; l'anteprima usa il testo della piattaforma, se c'è, altrimenti quello comune. Sotto il carosello «Sposta prima» e «Sposta dopo». Zone coperte: reel 14% sopra, 35% sotto, 6% per lato; storie 14% sopra e sotto (D-75, da misurare alla tappa 7). Sotto ogni anteprima: «Anteprima approssimativa: Meta cambia spesso l'interfaccia. Il ritaglio e le scelte sono quelli veri.» La copertina del reel non ha una scheda: sta nell'editor (E5e).",
               "lineHeight": 1.5,
               "fontFamily": "$font-body",
               "fontSize": 16,
@@ -79398,6 +79635,9 @@
                 "bXdje": {
                   "content": "Facebook · reel",
                   "fontSize": 14
+                },
+                "S80uEb": {
+                  "enabled": false
                 },
                 "h55YzE": {
                   "content": "Copertina",
@@ -79504,6 +79744,49 @@
                   "name": "Anteprima"
                 },
                 {
+                  "type": "frame",
+                  "id": "D2XJe3",
+                  "name": "Sposta (carosello)",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "WQeNv",
+                      "type": "ref",
+                      "ref": "YLdZz",
+                      "name": "Sposta prima",
+                      "width": "fill_container",
+                      "justifyContent": "center",
+                      "descendants": {
+                        "zQyQS": {
+                          "icon": "arrow-left",
+                          "enabled": true
+                        },
+                        "G9IOR": {
+                          "content": "Sposta prima"
+                        }
+                      }
+                    },
+                    {
+                      "id": "cDCxx",
+                      "type": "ref",
+                      "ref": "YLdZz",
+                      "name": "Sposta dopo",
+                      "width": "fill_container",
+                      "justifyContent": "center",
+                      "descendants": {
+                        "zQyQS": {
+                          "icon": "arrow-right",
+                          "enabled": false
+                        },
+                        "G9IOR": {
+                          "content": "Sposta dopo"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
                   "type": "text",
                   "id": "TVQ2j",
                   "name": "Nota",
@@ -79562,6 +79845,9 @@
                       "enabled": true
                     },
                     "Iw4rZ": {
+                      "enabled": true
+                    },
+                    "kmAqr": {
                       "enabled": true
                     }
                   }
@@ -79809,302 +80095,6 @@
                       "content": "Rispondi a Forno Luce…"
                     }
                   }
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "HBHjm",
-              "name": "Scheda Copertina",
-              "width": 400,
-              "layout": "vertical",
-              "gap": 12,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "Mtmmk",
-                  "name": "Nome scheda",
-                  "fill": "$text",
-                  "content": "Copertina del reel",
-                  "fontFamily": "$font-title",
-                  "fontSize": 18,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "text",
-                  "id": "zgR6x",
-                  "name": "Quando compare",
-                  "fill": "$text-muted",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "Con un reel. Come appare nella scheda Reels (9:16) e nella griglia del profilo Instagram (3:4).",
-                  "lineHeight": 1.4,
-                  "fontFamily": "$font-body",
-                  "fontSize": 13,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "frame",
-                  "id": "YFjkW",
-                  "name": "Copertina e griglia",
-                  "width": "fill_container",
-                  "gap": 20,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ZdKXB",
-                      "name": "9:16",
-                      "layout": "vertical",
-                      "gap": 8,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rQLKe",
-                          "name": "Copertina 9:16",
-                          "width": 144,
-                          "height": 256,
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "feedway-ui-assets/85eaab7ce7e4bb91.jpg",
-                            "mode": "cover"
-                          },
-                          "cornerRadius": "$r-control",
-                          "stroke": "$border",
-                          "strokeWidth": 1
-                        },
-                        {
-                          "type": "text",
-                          "id": "T9VJ3",
-                          "name": "Didascalia",
-                          "fill": "$text-muted",
-                          "content": "Scheda Reels · 9:16",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "OqghO",
-                      "name": "Griglia",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 8,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "De1vY",
-                          "name": "Griglia del profilo @fornoluce",
-                          "width": "fill_container",
-                          "fill": "#FFFFFF",
-                          "cornerRadius": "$r-control",
-                          "stroke": "$border",
-                          "strokeWidth": 1,
-                          "layout": "vertical",
-                          "gap": 2,
-                          "padding": 2,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "m6r42s",
-                              "name": "Riga 1",
-                              "width": "fill_container",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "kkjAn",
-                                  "name": "Questo reel (3:4)",
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/85eaab7ce7e4bb91.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "stroke": "$brand",
-                                  "strokeWidth": 3,
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end",
-                                  "children": [
-                                    {
-                                      "type": "frame",
-                                      "id": "or698",
-                                      "name": "Programmato",
-                                      "fill": "#0C1014B3",
-                                      "cornerRadius": 999,
-                                      "padding": [
-                                        2,
-                                        6
-                                      ],
-                                      "children": [
-                                        {
-                                          "type": "text",
-                                          "id": "LIPhA",
-                                          "name": "Testo",
-                                          "fill": "#FFFFFF",
-                                          "content": "27 nov",
-                                          "fontFamily": "$font-body",
-                                          "fontSize": 11,
-                                          "fontWeight": "600"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "CWRKt",
-                                  "name": "Post già pubblicato",
-                                  "opacity": 0.55,
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/adbaa4719c5d6833.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "aJstc",
-                                  "name": "Post già pubblicato",
-                                  "opacity": 0.55,
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/47a5e2c5a89af42c.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "FHWMC",
-                              "name": "Riga 2",
-                              "width": "fill_container",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "T8Dr9U",
-                                  "name": "Post già pubblicato",
-                                  "opacity": 0.55,
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/47a5e2c5a89af42c.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "UDGPr",
-                                  "name": "Post già pubblicato",
-                                  "opacity": 0.55,
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/85eaab7ce7e4bb91.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end"
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "uRJJK",
-                                  "name": "Post già pubblicato",
-                                  "opacity": 0.55,
-                                  "width": "fill_container",
-                                  "height": 105,
-                                  "fill": {
-                                    "type": "image",
-                                    "enabled": true,
-                                    "url": "feedway-ui-assets/adbaa4719c5d6833.jpg",
-                                    "mode": "cover"
-                                  },
-                                  "layout": "vertical",
-                                  "padding": 6,
-                                  "justifyContent": "end"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "M2UjJ",
-                          "name": "Didascalia",
-                          "fill": "$text-muted",
-                          "content": "Griglia del profilo · 3:4",
-                          "fontFamily": "$font-body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "QzwUn",
-                  "name": "Nota D-62",
-                  "width": "fill_container",
-                  "fill": "$info-soft",
-                  "cornerRadius": "$r-control",
-                  "gap": 8,
-                  "padding": [
-                    10,
-                    12
-                  ],
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "YAdL1",
-                      "name": "Icona",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "info",
-                      "library": "lucide",
-                      "fill": "$info"
-                    },
-                    {
-                      "type": "text",
-                      "id": "Q0Xbv",
-                      "name": "Testo",
-                      "fill": "$text",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "La griglia è un'approssimazione: Instagram ha cambiato più volte la forma delle miniature (oggi 3:4) e può tagliare in modo diverso.",
-                      "lineHeight": 1.4,
-                      "fontFamily": "$font-body",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
-                    }
-                  ]
                 }
               ]
             }
@@ -83097,7 +83087,8 @@
                   "fill": "$text-muted",
                   "content": "Non ancora salvata",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -83537,7 +83528,8 @@
                   "fill": "$text-muted",
                   "content": "Salvataggio…",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -83843,7 +83835,8 @@
                   "fill": "$text-muted",
                   "content": "Bozza salvata alle 18:04",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -84275,7 +84268,8 @@
                   "fill": "$text-muted",
                   "content": "Bozza salvata alle 18:04",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -84700,7 +84694,8 @@
                   "fill": "$text-muted",
                   "content": "Salvata alle 18:06",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -85080,7 +85075,8 @@
                   "fill": "$text-muted",
                   "content": "Salvata alle 18:04",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -85491,7 +85487,8 @@
                   "fill": "$text-muted",
                   "content": "Salvata alle 18:06",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -86205,7 +86202,8 @@
                   "fill": "$text-muted",
                   "content": "Da salvare",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -86472,7 +86470,8 @@
                   "fill": "$text-muted",
                   "content": "Sola lettura",
                   "fontFamily": "$font-body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -86604,7 +86603,8 @@
                           "fill": "$text-muted",
                           "content": "@fornoluce · Forno Luce · @fornoluce.bistrot",
                           "fontFamily": "$font-body",
-                          "fontSize": 17
+                          "fontSize": 17,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -86731,7 +86731,8 @@
                               "fill": "$text-muted",
                               "content": "Bozze 2",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -86752,7 +86753,8 @@
                               "fill": "$text-muted",
                               "content": "Programmati 3",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -86773,7 +86775,8 @@
                               "fill": "$text-muted",
                               "content": "Annullati 1",
                               "fontFamily": "$font-body",
-                              "fontSize": 15
+                              "fontSize": 15,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -88332,7 +88335,8 @@
                       "fill": "$text-muted",
                       "content": "@fornoluce",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -88369,7 +88373,8 @@
                       "fill": "$text-muted",
                       "content": "Panoramica",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -88414,7 +88419,8 @@
                       "fill": "$text-muted",
                       "content": "Libreria",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -88434,7 +88440,8 @@
                       "fill": "$text-muted",
                       "content": "Persone",
                       "fontFamily": "$font-body",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -88502,7 +88509,8 @@
                       "fill": "$text-muted",
                       "content": "Bozze 2",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -88523,7 +88531,8 @@
                       "fill": "$text-muted",
                       "content": "Programmati 3",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -88544,7 +88553,8 @@
                       "fill": "$text-muted",
                       "content": "Annullati 1",
                       "fontFamily": "$font-body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -88989,7 +88999,8 @@
                           "fill": "$text-muted",
                           "content": "@fornoluce · Forno Luce · @fornoluce.bistrot",
                           "fontFamily": "$font-body",
-                          "fontSize": 17
+                          "fontSize": 17,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -89036,7 +89047,8 @@
                       "fill": "$text-muted",
                       "content": "Panoramica",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -89056,7 +89068,8 @@
                       "fill": "$text-muted",
                       "content": "Post",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -89076,7 +89089,8 @@
                       "fill": "$text-muted",
                       "content": "Libreria",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -89096,7 +89110,8 @@
                       "fill": "$text-muted",
                       "content": "Persone",
                       "fontFamily": "$font-body",
-                      "fontSize": 16
+                      "fontSize": 16,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -92886,7 +92901,8 @@
                                       "fill": "$text-muted",
                                       "content": "Programma",
                                       "fontFamily": "$font-body",
-                                      "fontSize": 15
+                                      "fontSize": 15,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -96454,7 +96470,8 @@
                           "fill": "$text-muted",
                           "content": "Programma",
                           "fontFamily": "$font-body",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     }

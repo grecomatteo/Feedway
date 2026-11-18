@@ -23,7 +23,7 @@
 - Le zone coperte e i tagli del testo non sono misurati sulle app vere (D-75): si verificano alla tappa 7 con un post pubblicato davvero. I valori vengono da guide terze che citano la guida di Meta per i formati verticali.
 - Nel feed di Instagram il testo chiuso può occupare più di due righe a video (il taglio conta le righe del testo, non quelle mostrate). Rientra in D-75.
 - Zoom al 200% e tastiera sull'anteprima non provati in questo giro, se non dalle prove e2e esistenti (pulsanti e interruttore raggiungibili, axe senza violazioni).
-- La tela Pencil (tavola E4) mostra ancora il telefono: la riallinea il thread della tela.
+- La tela Pencil è riallineata (18/11): componenti «Anteprima / …» squadrati, bordo da 1 px su feed e post di Facebook, reel e storie 9:16 (320×569), zone coperte sotto l'interfaccia con i valori di D-75, «Sposta prima / Sposta dopo» sotto il carosello, niente scheda «Copertina» (sta nell'editor, E5e). Si aggiornano da sole anche E0, E1, E2, E3b ed E1b.
 
 ## Schermate
 
