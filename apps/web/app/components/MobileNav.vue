@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Below 768 px: Home, Calendario, + (Nuovo post), Clienti, Tu (spec §11.11). Calendario and the
- * + show disabled with «Presto» until their pages exist (stages 5 and 6); who creates no posts
+ * Below 768 px: Home, Calendario, + (Nuovo post), Clienti, Tu (spec §11.11). Calendario shows
+ * disabled with «Presto» until its page exists (stage 9); who creates no posts
  * (a Viewer, §10.2) has no +. «Tu» opens the person's menu from the bottom.
  */
 const org = useOrganization()
@@ -15,6 +15,19 @@ const createsPosts = computed(
     org.may.value.manageUsers ||
     (workspaces.value?.items ?? []).some((w) => !w.archivedAt && w.myRole !== 'viewer'),
 )
+// in a client's context the + opens its editor; in «Tutti i clienti» the client is asked first
+const newPost = computed(() => {
+  const asked = clientSlugOf(route) ?? context.value['spazio']
+  const client = (workspaces.value?.items ?? []).find(
+    (w) => w.slug === asked && !w.archivedAt && w.myRole !== 'viewer',
+  )
+  if (!client) return { path: org.to('/post/nuovo'), query: context.value }
+  const profilo = context.value['profilo']
+  return {
+    path: org.to(`/spazi/${encodeURIComponent(client.slug)}/post/nuovo`),
+    query: profilo ? { profilo } : {},
+  }
+})
 const under = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
 const current = (to: string) => (to === org.to() ? route.path === to : under(to))
 
@@ -70,20 +83,14 @@ const place =
         </span>
       </li>
       <li v-if="createsPosts" class="flex">
-        <span
-          role="link"
-          aria-disabled="true"
-          :aria-label="`${$t('client.newPost')} (${$t('client.soon')})`"
-          :class="place"
-        >
+        <NuxtLink :to="newPost" :aria-label="$t('client.newPost')" :class="place">
           <span
-            class="flex size-10 items-center justify-center rounded-full border-[1.5px] border-(--app-text) bg-(--app-brand) text-(--app-on-brand) opacity-45"
+            class="flex size-10 items-center justify-center rounded-full border-[1.5px] border-(--app-text) bg-(--app-brand) text-(--app-on-brand)"
             aria-hidden="true"
           >
             <UIcon name="i-lucide-plus" class="size-5" />
           </span>
-          <span class="text-[0.625rem] leading-3" aria-hidden="true">{{ $t('client.soon') }}</span>
-        </span>
+        </NuxtLink>
       </li>
       <li class="flex">
         <NuxtLink

@@ -101,6 +101,8 @@ export const listMediaRoute = defineContract({
       tag: z.string().max(100).optional(),
       /** a part of the file's name */
       q: z.string().max(200).optional(),
+      /** «Nei post»: only the files a post uses, as a file or as its cover (D-18) */
+      inPosts: z.enum(['true']).optional(),
     }),
   },
   response: z.object({

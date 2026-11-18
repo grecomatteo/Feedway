@@ -67,7 +67,7 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
   }
 })
 
-test('the bar at the bottom: five places, Calendario and + not there yet, the bell above', async ({
+test('the bar at the bottom: five places, Calendario not there yet, + for a new post, the bell above', async ({
   page,
   isMobile,
 }) => {
@@ -78,8 +78,14 @@ test('the bar at the bottom: five places, Calendario and + not there yet, the be
   await expect(nav.getByRole('listitem')).toHaveCount(5)
   await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('href', `/${org}`)
   await expect(nav.getByRole('link', { name: 'Clienti' })).toHaveAttribute('aria-current', 'page')
-  for (const name of ['Calendario (Presto)', 'Nuovo post (Presto)'])
-    await expect(nav.getByRole('link', { name })).toHaveAttribute('aria-disabled', 'true')
+  await expect(nav.getByRole('link', { name: 'Calendario (Presto)' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+  // in «Tutti i clienti» the + asks the client first; with only one it goes to its editor
+  await nav.getByRole('link', { name: 'Nuovo post' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi/[^/]+/post/nuovo`))
+  await page.goto(`/${org}/spazi`)
   await expect(nav.getByRole('button', { name: /^Tu, menu di Olga Telefono/ })).toBeVisible()
   // the photo at the top is gone: the person's menu opens only from «Tu»
   await expect(page.getByRole('button', { name: /menu di/i })).toHaveCount(1)

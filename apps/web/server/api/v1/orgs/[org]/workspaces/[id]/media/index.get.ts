@@ -11,6 +11,7 @@ export default defineApiRoute(listMediaRoute, ({ actor, params, query }) =>
       ...(query.folder === undefined ? {} : { folder: query.folder }),
       ...(query.tag === undefined ? {} : { tag: query.tag }),
       ...(query.q === undefined ? {} : { name: query.q }),
+      ...(query.inPosts === undefined ? {} : { inPosts: true }),
     },
   }),
 )

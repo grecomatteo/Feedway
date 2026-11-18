@@ -9,6 +9,8 @@ export interface LibraryFilter {
   folder: string | null
   tag: string | null
   q: string
+  /** «Nei post»: only the files a post uses (D-18) */
+  inPosts: boolean
 }
 
 /** Whether the person may use the workspace's library: Editor and above (spec §10.2). */
@@ -18,12 +20,22 @@ export const usesLibrary = (w: Pick<WorkspaceView, 'myRole'>) => w.myRole !== 'v
  * The library of one workspace (spec §11.8, plan 04 Task 12): its folders, a page of its files
  * narrowed by the filter, and what changes them. Pages are asked with «Mostra altri» (`before`).
  */
-export function useLibrary(workspaceId: Ref<string>) {
+export function useLibrary(
+  workspaceId: Ref<string>,
+  /** `lazy`: nothing is read until `load()` (the picker of the editor, read when it opens) */
+  opts: { lazy?: boolean } = {},
+) {
   const org = useOrganization()
   const { call } = useApi()
   const base = computed(() => org.api(`/workspaces/${encodeURIComponent(workspaceId.value)}`))
 
-  const filter = reactive<LibraryFilter>({ kind: 'all', folder: null, tag: null, q: '' })
+  const filter = reactive<LibraryFilter>({
+    kind: 'all',
+    folder: null,
+    tag: null,
+    q: '',
+    inPosts: false,
+  })
   const files = ref<LibraryFile[]>([])
   const next = ref<string | null>(null)
   const usedBytes = ref(0)
@@ -39,6 +51,7 @@ export function useLibrary(workspaceId: Ref<string>) {
     if (filter.folder) q.set('folder', filter.folder)
     if (filter.tag) q.set('tag', filter.tag)
     if (filter.q.trim()) q.set('q', filter.q.trim())
+    if (filter.inPosts) q.set('inPosts', 'true')
     return q.toString()
   }
   interface Page {
@@ -92,7 +105,7 @@ export function useLibrary(workspaceId: Ref<string>) {
 
   let typing: ReturnType<typeof setTimeout> | undefined
   watch(
-    () => [filter.kind, filter.folder, filter.tag],
+    () => [filter.kind, filter.folder, filter.tag, filter.inPosts],
     () => void load(),
   )
   watch(
@@ -103,10 +116,12 @@ export function useLibrary(workspaceId: Ref<string>) {
     },
   )
   watch(workspaceId, () => {
-    Object.assign(filter, { kind: 'all', folder: null, tag: null, q: '' })
+    Object.assign(filter, { kind: 'all', folder: null, tag: null, q: '', inPosts: false })
     void load()
   })
-  onMounted(() => void load())
+  onMounted(() => {
+    if (!opts.lazy) void load()
+  })
   onBeforeUnmount(() => {
     life.alive = false
     clearTimeout(typing)

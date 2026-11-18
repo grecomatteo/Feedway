@@ -2,8 +2,8 @@
 /**
  * The client's page (spec §14.7, plan 04 Task 6a): the «home» of a client, where the selector
  * leads (D-5). At the top its photo, name, the names of its profiles and «Nuovo post»; then the
- * tabs Panoramica, Calendario, Libreria and Persone, «Presto» on those not built yet. The tabs are
- * child pages: Panoramica is `index.vue`, Libreria `libreria.vue`, Persone `membri.vue`.
+ * tabs Panoramica, Post, Libreria and Persone. The tabs are child pages: Panoramica is `index.vue`,
+ * Post `post/index.vue` (its editor `post/[postId].vue`), Libreria `libreria.vue`, Persone `membri.vue`.
  */
 definePageMeta({ layout: 'agency' })
 
@@ -43,13 +43,19 @@ const keep = computed(() => {
 // the library from Editor up (§10.2): for a Viewer the tab is not there
 const tabs = computed(() => [
   { key: 'overview', to: base.value, label: t('client.tabs.overview') },
-  { key: 'calendar', to: null, label: t('client.tabs.calendar') },
+  // until the calendar (stage 9) the posts are a list, in the tab «Post» (plan 06 Scelta 6)
+  { key: 'posts', to: `${base.value}/post`, label: t('client.tabs.posts') },
   ...(client.value && usesLibrary(client.value)
     ? [{ key: 'library', to: `${base.value}/libreria`, label: t('client.tabs.library') }]
     : []),
   { key: 'people', to: `${base.value}/membri`, label: t('client.tabs.people') },
 ])
 const current = (to: string) => route.path === to || route.path === `${to}/`
+// the editor of a post is a page of its own, with no head nor tabs of the client (design E1)
+const bare = computed(() => route.meta['editor'] === true)
+const mayDraft = computed(
+  () => client.value !== null && client.value.myRole !== 'viewer' && !client.value.archivedAt,
+)
 </script>
 
 <template>
@@ -58,7 +64,7 @@ const current = (to: string) => route.path === to || route.path === `${to}/`
       <span class="block">{{ $t('workspaceMembers.missing') }}</span>
       <NuxtLink :to="org.to('/spazi')" class="underline">{{ $t('client.backToClients') }}</NuxtLink>
     </p>
-    <template v-if="!missing" #head>
+    <template v-if="!missing && !bare" #head>
       <div class="flex flex-col gap-block">
         <header class="flex flex-wrap items-start gap-4">
           <span
@@ -100,19 +106,14 @@ const current = (to: string) => route.path === to || route.path === `${to}/`
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2 self-center">
-            <!-- the editor arrives in stage 6 -->
             <UButton
+              v-if="mayDraft"
               class="min-h-11"
               icon="i-lucide-plus"
-              disabled
-              :aria-label="`${$t('client.newPost')} (${$t('client.soon')})`"
+              :to="{ path: `${base}/post/nuovo`, query: keep }"
+              :aria-label="$t('client.newPost')"
             >
               <span class="max-sm:hidden">{{ $t('client.newPost') }}</span>
-              <span
-                class="rounded-full bg-(--app-surface) px-2 text-xs font-medium text-(--app-text-muted) max-sm:hidden"
-                aria-hidden="true"
-                >{{ $t('client.soon') }}</span
-              >
             </UButton>
           </div>
         </header>

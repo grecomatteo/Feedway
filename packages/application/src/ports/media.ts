@@ -142,6 +142,8 @@ export interface MediaFilter {
   tag?: string
   /** a part of the file's name, any case */
   name?: string
+  /** only the files a post uses, as a file or as its cover */
+  inPosts?: boolean
 }
 
 /** The file the worker picks next: ids only, read across the agencies (ADR 021). */

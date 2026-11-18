@@ -158,6 +158,8 @@ export interface MediaListFilter {
   tag?: string
   /** a part of the file's name */
   name?: string
+  /** only the files a post uses */
+  inPosts?: boolean
 }
 
 export async function listMedia(
@@ -210,6 +212,7 @@ function cleanFilter(filter: MediaListFilter | undefined): MediaFilter {
     ...(filter.folder === undefined ? {} : { folder: filter.folder }),
     ...(tag ? { tag } : {}),
     ...(name ? { name } : {}),
+    ...(filter.inPosts ? { inPosts: true } : {}),
   }
 }
 
