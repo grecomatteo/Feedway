@@ -32,17 +32,20 @@ jobs:
       matrix:
         language: [javascript-typescript, actions]
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      # Same rule as ci.yml: a pull request that only touches documents or design analyses nothing.
+      - id: changes
+        run: scripts/ci/changes-step.sh
       - id: visibility
         env:
           GH_TOKEN: ${{ github.token }}
         run: echo "private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" >> "$GITHUB_OUTPUT"
       - if: steps.visibility.outputs.private == 'true'
         run: echo "::notice::Private repository, CodeQL needs Advanced Security. Analysis skipped."
-      - if: steps.visibility.outputs.private != 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - if: steps.visibility.outputs.private != 'true'
+      - if: steps.visibility.outputs.private != 'true' && steps.changes.outputs.code != 'false'
         uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           languages: ${{ matrix.language }}
@@ -52,7 +55,7 @@ jobs:
             paths-ignore:
               - design/**
               - docs/**
-      - if: steps.visibility.outputs.private != 'true'
+      - if: steps.visibility.outputs.private != 'true' && steps.changes.outputs.code != 'false'
         uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           category: /language:${{ matrix.language }}
