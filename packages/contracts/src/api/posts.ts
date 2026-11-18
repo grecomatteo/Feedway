@@ -36,7 +36,12 @@ const content = {
   /** a reel also in the feed */
   shareToFeed: z.boolean(),
   /** the answers to the warnings, saved with the post (P5) */
-  choices: z.array(RuleChoiceBody).max(POST_LIMITS.choices),
+  choices: z
+    .array(RuleChoiceBody)
+    .max(POST_LIMITS.choices)
+    .refine((choices) => new Set(choices.map((c) => c.key)).size === choices.length, {
+      message: 'one choice per warning',
+    }),
 }
 
 /** A new draft: the type, and whatever else the editor already has. */

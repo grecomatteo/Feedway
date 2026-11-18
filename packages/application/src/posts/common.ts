@@ -38,10 +38,18 @@ export const versionConflict = () =>
 export const cannotEdit = () =>
   new DomainError('FORBIDDEN', 'Questo post è di un’altra persona: non puoi modificarlo')
 
-export const cannotPublish = () =>
+/** «Programma» of a draft: the draft itself stays as it was saved. */
+export const cannotSchedule = () =>
   new DomainError(
     'FORBIDDEN',
     'Non puoi programmare post in questo cliente: la bozza resta salvata per chi può farlo',
+  )
+
+/** A scheduled post: changing it, back to draft, cancelling. */
+export const cannotChangeScheduled = () =>
+  new DomainError(
+    'FORBIDDEN',
+    'Non puoi modificare un post programmato: chiedi a chi può programmare in questo cliente',
   )
 
 /** The local day and time of the post, in its time zone; null: no date yet. */
@@ -138,8 +146,9 @@ export function wrongState(
 /** The instant of the post's day and time in its time zone; an impossible date is refused. */
 export function scheduledAtOf(when: PostWhenInput, timeZone: string): Date | null {
   if (when === null) return null
+  let resolved: ReturnType<typeof zonedToInstant>
   try {
-    return zonedToInstant(when.localDate, when.localTime, timeZone).instant
+    resolved = zonedToInstant(when.localDate, when.localTime, timeZone)
   } catch (error) {
     if (error instanceof DomainError && error.code === 'VALIDATION')
       throw new DomainError('VALIDATION', 'Questa data non esiste nel calendario', {
@@ -147,6 +156,8 @@ export function scheduledAtOf(when: PostWhenInput, timeZone: string): Date | nul
       })
     throw error
   }
+  // an hour the clock change skips moves forward (D-49 a): the editor's checks said so
+  return resolved.instant
 }
 
 /**
@@ -215,7 +226,12 @@ export async function recordPost(
   tx: Tx,
   actor: OrgActor,
   action:
-    'post.created' | 'post.scheduled' | 'post.unscheduled' | 'post.cancelled' | 'post.deleted',
+    | 'post.created'
+    | 'post.updated'
+    | 'post.scheduled'
+    | 'post.unscheduled'
+    | 'post.cancelled'
+    | 'post.deleted',
   post: { id: string; workspaceId: string },
   ip: string | null,
 ) {

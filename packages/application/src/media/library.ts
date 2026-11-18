@@ -267,7 +267,7 @@ export async function deleteMedia(
     if (scheduled)
       throw new DomainError(
         'CONFLICT',
-        `Questo file è nel post programmato del ${dayOf(scheduled.scheduledAt)}: toglilo dal post o annulla il post prima di eliminarlo`,
+        `Questo file è nel post programmato del ${dayOf(scheduled.scheduledAt, scheduled.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`,
         { reason: 'media_in_scheduled_post' },
       )
     if (!(await tx.media.markDeleted(organizationId, workspace.id, found.id, deps.clock.now())))
@@ -293,13 +293,13 @@ export async function deleteMedia(
   }
 }
 
-/** The day of a post for a message, as Rome's calendar shows it (the panel's own language). */
-function dayOf(at: Date | null): string {
+/** The day of a post for a message, in the post's time zone. */
+function dayOf(at: Date | null, timeZone: string): string {
   if (at === null) return '—'
   return new Intl.DateTimeFormat('it-IT', {
     day: 'numeric',
     month: 'numeric',
-    timeZone: 'Europe/Rome',
+    timeZone,
   }).format(at)
 }
 

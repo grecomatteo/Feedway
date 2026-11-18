@@ -103,6 +103,7 @@ export async function createPost(
       const { postId } = await createDraft(tx, actor, { ...input, ip: request.ip })
       return readPost(
         tx,
+        actor,
         { organizationId: actor.organizationId, workspaceId: input.workspaceId },
         postId,
       )
@@ -120,6 +121,7 @@ export async function updatePost(
   actor: OrgActor,
   postId: string,
   input: UpdatePostInput,
+  request: { ip: string | null },
 ): Promise<PostDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
@@ -135,7 +137,9 @@ export async function updatePost(
       if (post.status === 'scheduled') {
         if (!organization) throw postNotFound()
         await saveScheduled(tx, deps, current, organization, post, content)
-        return readPost(tx, scope, post.id)
+        // what goes out changes: unlike a draft's autosave, the log keeps it
+        await recordPost(tx, current, 'post.updated', post, request.ip)
+        return readPost(tx, current, scope, post.id)
       }
       if (post.status !== 'draft') throw wrongState(post.status, 'edit')
       const version = await tx.posts.update(
@@ -146,7 +150,7 @@ export async function updatePost(
       )
       if (version === null) throw versionConflict()
       await writeParts(tx, scope, post.id, content, 'draft')
-      return readPost(tx, scope, post.id)
+      return readPost(tx, current, scope, post.id)
     },
   )
 }

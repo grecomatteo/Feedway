@@ -60,6 +60,7 @@ export const AUDIT_ACTIONS = [
   'media.deleted',
   'media.retried',
   'post.created',
+  'post.updated',
   'post.scheduled',
   'post.unscheduled',
   'post.cancelled',

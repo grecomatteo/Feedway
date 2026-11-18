@@ -869,7 +869,7 @@ I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre ve
 
 Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinandoli su una cartella. I file **salvati in libreria** restano disponibili per il riuso; tutti gli altri vengono cancellati dopo la pubblicazione (§11.9). Lo spazio occupato è visibile per spazio.
 
-**I file dei post** (D-18, piano 06 P8): i file caricati dall'editor entrano nella libreria del cliente come gli altri. Ogni file dice il post che lo usa (`usedIn`, prima quello programmato), per l'etichetta «Nel post del …» o «In una bozza». Un file di un post programmato non si cancella (409 con il giorno del post); un file di una bozza sì, e la bozza lo mostra «non disponibile». Quando togliere i file dopo la pubblicazione si decide nella tappa 7.
+**I file dei post** (D-18, piano 06 P8): i file caricati dall'editor entrano nella libreria del cliente come gli altri. Ogni file dice il post che lo usa (`usedIn`, prima quello programmato), per l'etichetta «Nel post del …» o «In una bozza». Un file di un post programmato non si cancella (409 con il giorno del post), né la cartella che lo contiene; un file di una bozza sì, e la bozza lo mostra «non disponibile». Quando togliere i file dopo la pubblicazione si decide nella tappa 7.
 
 ### 11.9 Modifica, annullamento e pulizia
 

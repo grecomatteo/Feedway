@@ -715,6 +715,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'media.deleted': [],
   'media.retried': [],
   'post.created': [],
+  'post.updated': [],
   'post.scheduled': [],
   'post.unscheduled': [],
   'post.cancelled': [],
@@ -834,9 +835,13 @@ async function produceEveryAction() {
   const ownDraft = JSON.parse(await ok('POST', posts, { type: 'photo' })) as { id: string }
   await ok('DELETE', `${posts}/${ownDraft.id}`)
   await ok('POST', `${posts}/${ids.post}/schedule`, { version: 1 })
-  await ok('POST', `${posts}/${ids.post}/unschedule`, { version: 2 })
-  await ok('POST', `${posts}/${ids.post}/schedule`, { version: 3 })
-  await ok('POST', `${posts}/${ids.post}/cancel`, { version: 4 })
+  await ok('PATCH', `${posts}/${ids.post}`, {
+    version: 2,
+    caption: { common: 'Il pane di domani' },
+  })
+  await ok('POST', `${posts}/${ids.post}/unschedule`, { version: 3 })
+  await ok('POST', `${posts}/${ids.post}/schedule`, { version: 4 })
+  await ok('POST', `${posts}/${ids.post}/cancel`, { version: 5 })
   await ok('DELETE', `${posts}/${ids.post}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/media/${ids.media}`)

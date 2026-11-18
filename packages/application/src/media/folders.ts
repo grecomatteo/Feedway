@@ -179,6 +179,21 @@ export async function deleteFolder(
     if (!folder) throw folderNotFound()
     const tree = folderAndBelow(folders, folder.id)
     const files = await tx.media.mediaInFolders(organizationId, workspace.id, tree)
+    // as deleting one file: never a file of a scheduled post (D-18), one at a time with scheduling
+    await tx.posts.lockSchedule(organizationId)
+    const scheduled = new Set(
+      (await tx.posts.usingMedia(organizationId, files))
+        .filter((use) => use.status === 'scheduled')
+        .map((use) => use.mediaId),
+    )
+    if (scheduled.size > 0)
+      throw new DomainError(
+        'CONFLICT',
+        scheduled.size === 1
+          ? 'La cartella ha un file in un post programmato: toglilo dal post o annulla il post prima di eliminarla'
+          : `La cartella ha ${String(scheduled.size)} file in post programmati: toglili dai post o annulla i post prima di eliminarla`,
+        { reason: 'media_in_scheduled_post' },
+      )
     if (!input.confirm && (files.length > 0 || tree.length > 1))
       throw new DomainError(
         'CONFLICT',

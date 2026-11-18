@@ -74,3 +74,23 @@ test('the limits are those of the checks', () => {
     })),
   })
 })
+
+test('one answer per warning, and a year the calendar of the panel knows', () => {
+  refused(UpdatePostRequest, {
+    version: 1,
+    choices: [
+      { key: 'quota_low:post', option: 'accept' },
+      { key: 'quota_low:post', option: 'skip_platform' },
+    ],
+  })
+  refused(CreatePostRequest, {
+    type: 'photo',
+    when: { localDate: '2100-01-01', localTime: '10:00' },
+  })
+  expect(
+    CreatePostRequest.safeParse({
+      type: 'photo',
+      when: { localDate: '2099-12-31', localTime: '23:59' },
+    }).success,
+  ).toBe(true)
+})

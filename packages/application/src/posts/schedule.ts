@@ -13,7 +13,8 @@ import type { Tx } from '../ports/tx.js'
 import { checkPostInTx } from '../rules/index.js'
 import type { assertActiveOrganization } from '../workspaces/index.js'
 import {
-  cannotPublish,
+  cannotChangeScheduled,
+  cannotSchedule,
   changeOf,
   lockedPost,
   mayPublish,
@@ -130,7 +131,7 @@ export async function schedulePost(
       })
       if (!organization) throw postNotFound()
       const post = await lockedPost(tx, scope, input.postId)
-      if (!mayPublish(current, post)) throw cannotPublish()
+      if (!mayPublish(current, post)) throw cannotSchedule()
       if (post.version !== input.version) throw versionConflict()
       if (post.status !== 'draft') throw wrongState(post.status, 'schedule')
       if (post.scheduledAt === null) throw noDate()
@@ -154,7 +155,7 @@ export async function schedulePost(
       if (version === null) throw versionConflict()
       await scheduleSaved(tx, deps, current, organization, scope, post.id, null)
       await recordPost(tx, current, 'post.scheduled', post, request.ip)
-      return readPost(tx, scope, post.id)
+      return readPost(tx, current, scope, post.id)
     },
   )
 }
@@ -172,7 +173,7 @@ export async function saveScheduled(
   post: PostRecord,
   content: PostContent,
 ): Promise<void> {
-  if (!mayPublish(actor, post)) throw cannotPublish()
+  if (!mayPublish(actor, post)) throw cannotChangeScheduled()
   if (content.when === null)
     throw new DomainError('VALIDATION', 'Un post programmato ha bisogno di giorno e ora', {
       field: 'when',
@@ -217,7 +218,7 @@ async function moveScheduled(
     async (tx) => {
       const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
       const post = await lockedPost(tx, scope, input.postId)
-      if (!mayPublish(current, post)) throw cannotPublish()
+      if (!mayPublish(current, post)) throw cannotChangeScheduled()
       if (post.version !== input.version) throw versionConflict()
       if (post.status !== 'scheduled')
         throw wrongState(post.status, to === 'draft' ? 'unschedule' : 'cancel')
@@ -245,7 +246,7 @@ async function moveScheduled(
         post,
         ip,
       )
-      return readPost(tx, scope, post.id)
+      return readPost(tx, current, scope, post.id)
     },
   )
 }

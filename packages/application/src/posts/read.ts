@@ -1,5 +1,6 @@
 import {
   DomainError,
+  can,
   instantToZoned,
   type OrgActor,
   type PostCover,
@@ -63,10 +64,16 @@ const gone = (id: string): PostMediaDto => ({
   variants: [],
 })
 
-export function toPostDto(post: PostRecord, media: ReadonlyMap<string, PostMediaView>): PostDto {
+export function toPostDto(
+  post: PostRecord,
+  media: ReadonlyMap<string, PostMediaView>,
+  opts: { names: boolean },
+): PostDto {
   const file = (id: string): PostMediaDto => {
     const found = media.get(id)
-    return found && found.status !== 'deleted' ? found : gone(id)
+    if (!found || found.status === 'deleted') return gone(id)
+    // a file's name can be a person's: only who uses the library reads it (D-72)
+    return opts.names ? found : { ...found, originalName: null }
   }
   return {
     id: post.id,
@@ -98,7 +105,13 @@ export function toPostDto(post: PostRecord, media: ReadonlyMap<string, PostMedia
 }
 
 /** The posts as the panel sees them, with their files read in one go. */
-export async function postDtos(tx: Tx, scope: PostScope, posts: readonly PostRecord[]) {
+export async function postDtos(
+  tx: Tx,
+  actor: OrgActor,
+  scope: PostScope,
+  posts: readonly PostRecord[],
+) {
+  const names = can(actor, 'media.upload', scope)
   const media = await getMediaForPosts(
     tx,
     scope,
@@ -107,14 +120,19 @@ export async function postDtos(tx: Tx, scope: PostScope, posts: readonly PostRec
       ...(p.cover?.source === 'image' ? [p.cover.mediaId] : []),
     ]),
   )
-  return posts.map((p) => toPostDto(p, media))
+  return posts.map((p) => toPostDto(p, media, { names }))
 }
 
 /** A post just written, read again in the same transaction. */
-export async function readPost(tx: Tx, scope: PostScope, postId: string): Promise<PostDto> {
+export async function readPost(
+  tx: Tx,
+  actor: OrgActor,
+  scope: PostScope,
+  postId: string,
+): Promise<PostDto> {
   const post = await tx.posts.find(scope, postId)
   if (!post) throw postNotFound()
-  const [dto] = await postDtos(tx, scope, [post])
+  const [dto] = await postDtos(tx, actor, scope, [post])
   if (!dto) throw postNotFound()
   return dto
 }
@@ -127,9 +145,9 @@ export async function getPost(
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
+      const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
       if (!isUuid(input.postId)) throw postNotFound()
-      return readPost(tx, scope, input.postId)
+      return readPost(tx, current, scope, input.postId)
     },
   )
 }
@@ -148,7 +166,7 @@ export async function listPosts(
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
+      const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
       // one more than asked tells whether a next page exists
       const page = await tx.posts.listByWorkspace(scope, {
         ...(input.status === undefined ? {} : { status: input.status }),
@@ -157,7 +175,7 @@ export async function listPosts(
       })
       const items = page.slice(0, limit)
       return {
-        items: await postDtos(tx, scope, items),
+        items: await postDtos(tx, current, scope, items),
         next: page.length > limit ? (items.at(-1)?.id ?? null) : null,
       }
     },

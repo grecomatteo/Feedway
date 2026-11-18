@@ -123,5 +123,14 @@ export interface PostRepository {
   usingMedia(
     organizationId: string,
     mediaIds: readonly string[],
-  ): Promise<{ mediaId: string; postId: string; status: PostStatus; scheduledAt: Date | null }[]>
+  ): Promise<
+    {
+      mediaId: string
+      postId: string
+      status: PostStatus
+      scheduledAt: Date | null
+      /** the post's own (D-58), for the day a message names */
+      timezone: string
+    }[]
+  >
 }

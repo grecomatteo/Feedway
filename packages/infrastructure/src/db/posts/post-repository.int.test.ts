@@ -247,6 +247,52 @@ test('the list goes newest first, by state and page; statuses come in one query'
   )
 })
 
+test('statuses and the day count stay in the agency; an archived client does not count', async () => {
+  const { otherOrg, otherUser, otherWs, archived } = await seed(tdb.runtimeUrl, async (x) => {
+    const otherOrg = await x.organization()
+    const otherUser = await x.user()
+    await x.member(otherOrg, otherUser, 'owner')
+    return {
+      otherOrg,
+      otherUser,
+      otherWs: await x.workspace(otherOrg),
+      archived: await x.workspace(org, { archived: true }),
+    }
+  })
+  const at = new Date('2027-09-01T08:00:00Z')
+  const day = { from: new Date('2027-08-31T22:00:00Z'), to: new Date('2027-09-01T22:00:00Z') }
+  const scheduledIn = async (organizationId: string, workspaceId: string, userId: string) =>
+    uow.run({ organizationId, userId }, async (tx) => {
+      const id = await tx.posts.insert({
+        organizationId,
+        workspaceId,
+        type: 'photo',
+        caption: '',
+        captionByPlatform: {},
+        scheduledAt: null,
+        timezone: 'Europe/Rome',
+        options: EMPTY_POST_OPTIONS,
+        createdBy: userId,
+      })
+      await tx.posts.update(
+        { organizationId, workspaceId },
+        id,
+        change({ status: 'scheduled', scheduledAt: at, updatedBy: userId }),
+        1,
+      )
+      return id
+    })
+  const theirs = await scheduledIn(otherOrg, otherWs, otherUser)
+  // the repository writes where it is told: the use cases refuse an archived client
+  await scheduledIn(org, archived, user)
+  const ours = await scheduledIn(org, ws, user)
+  // another agency's post is not known here, not even by its state
+  const statuses = await run((tx) => tx.posts.statuses(org, [theirs, ours]))
+  expect([...statuses.keys()]).toEqual([ours])
+  expect(await run((tx) => tx.posts.countScheduled(org, day))).toBe(1)
+  expect(await run((tx) => tx.posts.countScheduled(org, day, ours))).toBe(0)
+})
+
 test('the posts that use a file, as a file or as a cover, the scheduled ones first', async () => {
   const draft = await newPost({ type: 'reel' })
   const scheduled = await newPost({ type: 'reel' })

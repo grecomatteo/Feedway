@@ -297,6 +297,33 @@ describe('drafts', () => {
     expect(error.message).toBe('Questa data non esiste nel calendario')
   })
 
+  test('an hour the clock change skips moves forward, as the checks warned (D-49)', async () => {
+    const post = await expectOk(
+      call('editor', 'POST', base(), {
+        type: 'photo',
+        when: { localDate: '2027-03-28', localTime: '02:30' },
+      }),
+    )
+    expect(post.when).toEqual({ localDate: '2027-03-28', localTime: '03:30' })
+    expect(post.scheduledAt).toBe('2027-03-28T01:30:00.000Z')
+  })
+
+  test('a Viewer sees the files of a post, not their names', async () => {
+    const post = await draft()
+    const seen = await expectOk<{ media: { originalName: string | null }[] }>(
+      call('viewer', 'GET', `${base()}/${post.id}`),
+    )
+    expect(seen.media.map((m) => m.originalName)).toEqual([null])
+    const listed = await expectOk<{ items: { id: string; media: { originalName: unknown }[] }[] }>(
+      call('viewer', 'GET', base()),
+    )
+    expect(listed.items.find((p) => p.id === post.id)?.media[0]?.originalName).toBeNull()
+    const byEditor = await expectOk<{ media: { originalName: string | null }[] }>(
+      call('editor', 'GET', `${base()}/${post.id}`),
+    )
+    expect(byEditor.media[0]?.originalName).not.toBeNull()
+  })
+
   test('an archived client: its posts are read, never written (409)', async () => {
     await expectError(call('manager', 'POST', base(archived), { type: 'photo' }), 409, 'CONFLICT')
     await expectOk(call('viewer', 'GET', base(archived)))
@@ -497,6 +524,70 @@ describe('scheduling', () => {
   })
 })
 
+describe('a scheduled post moved or changed', () => {
+  test('a Publisher changes their scheduled post; another’s only a Manager (403)', async () => {
+    const own = await expectOk(schedule('publisher', await draft('publisher')))
+    await expectOk(
+      call('publisher', 'PATCH', `${base()}/${own.id}`, {
+        version: own.version,
+        caption: { common: 'Il pane di domani' },
+      }),
+    )
+    const ofEditor = await expectOk(schedule('publisher', await draft('editor')))
+    await expectError(
+      call('publisher', 'PATCH', `${base()}/${ofEditor.id}`, {
+        version: ofEditor.version,
+        caption: { common: 'x' },
+      }),
+      403,
+      'FORBIDDEN',
+    )
+    const changed = await expectOk(
+      call('manager', 'PATCH', `${base()}/${ofEditor.id}`, {
+        version: ofEditor.version,
+        caption: { common: 'Il pane di domani, dal Manager' },
+      }),
+    )
+    const { rows } = await env.admin.pool.query<{ action: string }>(
+      'select action from audit_log where entity_id = $1 order by created_at, id',
+      [ofEditor.id],
+    )
+    expect(rows.map((r) => r.action)).toEqual(['post.created', 'post.scheduled', 'post.updated'])
+    expect(changed.status).toBe('scheduled')
+  })
+
+  test('moved onto a full day it is refused (409); a new hour on its own day is not', async () => {
+    const first = { localDate: '2027-08-01', localTime: '09:00' }
+    await expectOk(schedule('manager', await draft('editor', { when: first })))
+    const second = await expectOk(
+      schedule(
+        'manager',
+        await draft('editor', { when: { localDate: '2027-08-02', localTime: '09:00' } }),
+      ),
+    )
+    await limits('{"posts_per_day": 1}')
+    try {
+      await expectError(
+        call('manager', 'PATCH', `${base()}/${second.id}`, {
+          version: second.version,
+          when: { ...first, localTime: '20:00' },
+        }),
+        409,
+        'LIMIT_REACHED',
+      )
+      const later = await expectOk(
+        call('manager', 'PATCH', `${base()}/${second.id}`, {
+          version: second.version,
+          when: { localDate: '2027-08-02', localTime: '21:00' },
+        }),
+      )
+      expect(later).toMatchObject({ status: 'scheduled', when: { localTime: '21:00' } })
+    } finally {
+      await limits('{}')
+    }
+  })
+})
+
 describe('files of the posts in the library', () => {
   test('a file of a scheduled post is not deleted (409); of a draft, it is', async () => {
     const scheduled = await expectOk(schedule('manager', await draft()))
@@ -528,5 +619,27 @@ describe('files of the posts in the library', () => {
         mediaIds: after.media.map((m) => m.id),
       }),
     )
+  })
+
+  test('a folder with a file of a scheduled post is not deleted (409)', async () => {
+    const scheduled = await expectOk(schedule('manager', await draft()))
+    const fileId = scheduled.media[0]?.id ?? ''
+    const ws = `/api/v1/orgs/${org.slug}/workspaces/${forno}`
+    const folder = await expectOk<{ id: string }>(
+      call('manager', 'POST', `${ws}/folders`, { name: 'Pane', parentId: null }),
+    )
+    await expectOk(call('manager', 'PATCH', `${ws}/media/${fileId}`, { folderId: folder.id }))
+    const error = await expectError(
+      call('manager', 'DELETE', `${ws}/folders/${folder.id}?confirm=true`),
+      409,
+      'CONFLICT',
+    )
+    expect(error).toMatchObject({ reason: 'media_in_scheduled_post' })
+    await expectOk(call('manager', 'GET', `${ws}/media/${fileId}`))
+    // cancelled, the folder goes with its file
+    await expectOk(
+      call('manager', 'POST', `${base()}/${scheduled.id}/cancel`, { version: scheduled.version }),
+    )
+    await expectOk(call('manager', 'DELETE', `${ws}/folders/${folder.id}?confirm=true`))
   })
 })

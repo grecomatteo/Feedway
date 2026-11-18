@@ -877,6 +877,7 @@
       "media_deleted": "ha eliminato un file della libreria",
       "media_retried": "ha preparato di nuovo un file della libreria",
       "post_created": "ha creato un post",
+      "post_updated": "ha modificato un post programmato",
       "post_scheduled": "ha programmato un post",
       "post_unscheduled": "ha riportato in bozza un post",
       "post_cancelled": "ha annullato un post",

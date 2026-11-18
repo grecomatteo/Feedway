@@ -47,7 +47,8 @@ export const Caption = z
   })
 
 /** A whole day of the calendar and a time of it, as Rome's clock shows them. */
-export const LocalDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+/** Years 2000 to 2099: a far year would give an instant JSON cannot write (+010000-…). */
+export const LocalDate = z.string().regex(/^20\d{2}-\d{2}-\d{2}$/)
 export const LocalTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 const Fraction = z.number().min(0).max(1)

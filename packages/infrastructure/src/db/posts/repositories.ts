@@ -251,6 +251,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .where(
           and(
             eq(posts.organizationId, organizationId),
+            // an archived client's posts never go out (D-70): they take no place of the day
+            sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
+                  and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
             eq(posts.status, 'scheduled'),
             gte(posts.scheduledAt, from),
             lt(posts.scheduledAt, to),
@@ -328,6 +331,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           postId: posts.id,
           status: posts.status,
           scheduledAt: posts.scheduledAt,
+          timezone: posts.timezone,
         })
         .from(postMedia)
         .innerJoin(
@@ -342,7 +346,13 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         )
       const uses = new Map<
         string,
-        { mediaId: string; postId: string; status: PostStatus; scheduledAt: Date | null }
+        {
+          mediaId: string
+          postId: string
+          status: PostStatus
+          scheduledAt: Date | null
+          timezone: string
+        }
       >()
       for (const r of rows)
         for (const mediaId of [r.mediaId, r.coverMediaId])
@@ -352,6 +362,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               postId: r.postId,
               status: r.status as PostStatus,
               scheduledAt: r.scheduledAt,
+              timezone: r.timezone,
             })
       return [...uses.values()].sort(
         (a, b) => Number(b.status === 'scheduled') - Number(a.status === 'scheduled'),
