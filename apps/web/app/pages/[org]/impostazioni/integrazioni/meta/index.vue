@@ -52,7 +52,7 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
 
 <template>
   <SettingsShell>
-    <div class="space-y-6">
+    <div class="flex flex-col gap-section">
       <div class="space-y-3">
         <NuxtLink
           :to="{ path: org.to('/impostazioni/integrazioni'), query: context }"

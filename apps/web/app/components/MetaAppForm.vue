@@ -100,7 +100,7 @@ async function runTest() {
 
 <template>
   <div class="space-y-4">
-    <form class="space-y-4" novalidate @submit.prevent="submit">
+    <form class="max-w-form space-y-4" novalidate @submit.prevent="submit">
       <fieldset :disabled="!editable" class="min-w-0 space-y-4">
         <legend class="sr-only">{{ $t('metaIntegration.title') }}</legend>
         <UFormField

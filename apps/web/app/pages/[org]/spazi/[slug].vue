@@ -53,101 +53,103 @@ const current = (to: string) => route.path === to || route.path === `${to}/`
 </script>
 
 <template>
-  <div>
+  <PageShell>
     <p v-if="missing" role="alert" class="space-y-3">
       <span class="block">{{ $t('workspaceMembers.missing') }}</span>
       <NuxtLink :to="org.to('/spazi')" class="underline">{{ $t('client.backToClients') }}</NuxtLink>
     </p>
-    <template v-else>
-      <header class="mb-5 flex flex-wrap items-start gap-4">
-        <span
-          v-if="!client"
-          class="size-14 shrink-0 animate-pulse rounded-full bg-(--app-surface-sunken)"
-          aria-hidden="true"
-        />
-        <RowAvatar v-else :name="client.name" :src="photo" size="page" />
-        <div class="min-w-0 flex-1">
-          <h1 class="text-[1.625rem] leading-tight break-words md:text-[1.875rem]">
-            <span v-if="client">{{ client.name }}</span>
-            <span
-              v-else
-              class="inline-block h-8 w-48 animate-pulse rounded-md bg-(--app-surface-sunken)"
-              ><span class="sr-only">{{ $t('client.title') }}</span></span
-            >
-          </h1>
-          <p
-            v-if="client"
-            class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-(--app-text-muted)"
-          >
-            <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">
-              {{ $t('client.archived') }}
-            </UBadge>
-            <template v-if="list.length > 0">
-              <span v-for="p in list" :key="p.key" class="inline-flex min-w-0 items-center gap-1">
-                <UIcon
-                  :name="iconOf(mainOf(p).platform)"
-                  class="size-[0.9375rem] shrink-0"
-                  aria-hidden="true"
-                />
-                <span class="sr-only"
-                  >{{ $t(`socialAccounts.platform.${mainOf(p).platform}`) }}:</span
-                >
-                <span class="truncate">{{ handleOf(mainOf(p)) }}</span>
-              </span>
-            </template>
-            <span v-else-if="profiles.data.value">{{ $t('workspaces.noProfile') }}</span>
-          </p>
-        </div>
-        <div class="flex shrink-0 items-center gap-2 self-center">
-          <!-- the editor arrives in stage 6 -->
-          <UButton
-            class="min-h-11"
-            icon="i-lucide-plus"
-            disabled
-            :aria-label="`${$t('client.newPost')} (${$t('client.soon')})`"
-          >
-            <span class="max-sm:hidden">{{ $t('client.newPost') }}</span>
-            <span
-              class="rounded-full bg-(--app-surface) px-2 text-xs font-medium text-(--app-text-muted) max-sm:hidden"
-              aria-hidden="true"
-              >{{ $t('client.soon') }}</span
-            >
-          </UButton>
-        </div>
-      </header>
-
-      <!-- the line under the tabs is a shadow, not a border the tabs overlap: with overflow-x the
-           overlap made a vertical scrollbar appear beside them (R-10) -->
-      <nav
-        :aria-label="$t('client.tabs.label')"
-        class="-mx-4 mb-6 overflow-x-auto overflow-y-hidden px-4 shadow-[inset_0_-1px_0_var(--app-border)] sm:mx-0 sm:px-0"
-      >
-        <ul class="flex min-w-max gap-1">
-          <li v-for="tab in tabs" :key="tab.key">
-            <NuxtLink
-              v-if="tab.to"
-              :to="{ path: tab.to, query: keep }"
-              :aria-current="current(tab.to) ? 'page' : undefined"
-              class="flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm max-sm:px-2.5 text-(--app-text-muted) hover:text-(--app-text) aria-[current=page]:border-(--app-brand) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
-            >
-              {{ tab.label }}
-            </NuxtLink>
-            <span
-              v-else
-              aria-disabled="true"
-              class="flex min-h-11 cursor-default items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-(--app-text-muted) max-sm:px-2.5 max-sm:opacity-70"
-            >
-              {{ tab.label }}
+    <template v-if="!missing" #head>
+      <div class="flex flex-col gap-block">
+        <header class="flex flex-wrap items-start gap-4">
+          <span
+            v-if="!client"
+            class="size-14 shrink-0 animate-pulse rounded-full bg-(--app-surface-sunken)"
+            aria-hidden="true"
+          />
+          <RowAvatar v-else :name="client.name" :src="photo" size="page" />
+          <div class="min-w-0 flex-1">
+            <h1 class="text-[1.625rem] leading-tight break-words md:text-[1.875rem]">
+              <span v-if="client">{{ client.name }}</span>
               <span
-                class="rounded-full bg-(--app-surface-sunken) px-1.5 text-[0.6875rem] font-medium text-(--app-text-muted) max-sm:sr-only"
+                v-else
+                class="inline-block h-8 w-48 animate-pulse rounded-md bg-(--app-surface-sunken)"
+                ><span class="sr-only">{{ $t('client.title') }}</span></span
+              >
+            </h1>
+            <p
+              v-if="client"
+              class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-(--app-text-muted)"
+            >
+              <UBadge v-if="client.archivedAt" color="neutral" variant="subtle">
+                {{ $t('client.archived') }}
+              </UBadge>
+              <template v-if="list.length > 0">
+                <span v-for="p in list" :key="p.key" class="inline-flex min-w-0 items-center gap-1">
+                  <UIcon
+                    :name="iconOf(mainOf(p).platform)"
+                    class="size-[0.9375rem] shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span class="sr-only"
+                    >{{ $t(`socialAccounts.platform.${mainOf(p).platform}`) }}:</span
+                  >
+                  <span class="truncate">{{ handleOf(mainOf(p)) }}</span>
+                </span>
+              </template>
+              <span v-else-if="profiles.data.value">{{ $t('workspaces.noProfile') }}</span>
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2 self-center">
+            <!-- the editor arrives in stage 6 -->
+            <UButton
+              class="min-h-11"
+              icon="i-lucide-plus"
+              disabled
+              :aria-label="`${$t('client.newPost')} (${$t('client.soon')})`"
+            >
+              <span class="max-sm:hidden">{{ $t('client.newPost') }}</span>
+              <span
+                class="rounded-full bg-(--app-surface) px-2 text-xs font-medium text-(--app-text-muted) max-sm:hidden"
+                aria-hidden="true"
                 >{{ $t('client.soon') }}</span
               >
-            </span>
-          </li>
-        </ul>
-      </nav>
+            </UButton>
+          </div>
+        </header>
 
-      <NuxtPage />
+        <!-- the line under the tabs is a shadow, not a border the tabs overlap: with overflow-x the
+           overlap made a vertical scrollbar appear beside them (R-10) -->
+        <nav
+          :aria-label="$t('client.tabs.label')"
+          class="-mx-gutter overflow-x-auto overflow-y-hidden px-gutter shadow-[inset_0_-1px_0_var(--app-border)] sm:mx-0 sm:px-0"
+        >
+          <ul class="flex min-w-max gap-1">
+            <li v-for="tab in tabs" :key="tab.key">
+              <NuxtLink
+                v-if="tab.to"
+                :to="{ path: tab.to, query: keep }"
+                :aria-current="current(tab.to) ? 'page' : undefined"
+                class="flex min-h-11 items-center border-b-2 border-transparent px-3 text-sm max-sm:px-2.5 text-(--app-text-muted) hover:text-(--app-text) aria-[current=page]:border-(--app-brand) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
+              >
+                {{ tab.label }}
+              </NuxtLink>
+              <span
+                v-else
+                aria-disabled="true"
+                class="flex min-h-11 cursor-default items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-(--app-text-muted) max-sm:px-2.5 max-sm:opacity-70"
+              >
+                {{ tab.label }}
+                <span
+                  class="rounded-full bg-(--app-surface-sunken) px-1.5 text-[0.6875rem] font-medium text-(--app-text-muted) max-sm:sr-only"
+                  >{{ $t('client.soon') }}</span
+                >
+              </span>
+            </li>
+          </ul>
+        </nav>
+      </div>
     </template>
-  </div>
+
+    <NuxtPage v-if="!missing" />
+  </PageShell>
 </template>

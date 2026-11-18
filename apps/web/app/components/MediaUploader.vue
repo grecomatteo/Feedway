@@ -212,7 +212,9 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
           class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0"
         >
           <div class="min-w-0 flex-1 basis-56">
-            <p class="truncate font-medium" :title="u.name">{{ u.name }}</p>
+            <p class="line-clamp-2 font-medium [overflow-wrap:anywhere]" :title="u.name">
+              {{ u.name }}
+            </p>
             <p class="text-sm text-(--app-text-muted) tabular-nums">
               {{
                 $t('upload.leftovers.progress', {
@@ -340,7 +342,9 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
             </span>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate font-medium" :title="i.name">{{ i.name }}</p>
+            <p class="line-clamp-2 font-medium [overflow-wrap:anywhere]" :title="i.name">
+              {{ i.name }}
+            </p>
             <p class="text-sm tabular-nums" :class="tone(i)" data-upload-line>
               {{ line(i) }}
             </p>

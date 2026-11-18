@@ -93,7 +93,7 @@ async function remove() {
       :description="$t('accountDeletion.confirmExplain')"
     >
       <template #body>
-        <form class="space-y-4" novalidate @submit.prevent="remove">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="remove">
           <UFormField
             :label="$t('accountDeletion.typeEmail', { email: me?.email ?? '' })"
             name="confirm-email"

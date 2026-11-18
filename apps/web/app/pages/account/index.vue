@@ -155,13 +155,11 @@ async function changeEmail() {
 
 <template>
   <SettingsShell>
-    <template #intro>
-      <p v-if="me" class="text-(--app-text-muted)">
-        <span :title="me.name">{{ me.displayName }}</span
-        >, {{ me.email }}
-      </p>
+    <!-- only here, where the nickname is set: the name the panel shows, the full one on hover -->
+    <template v-if="me" #intro>
+      <span :title="me.name">{{ me.displayName }}</span
+      >, {{ me.email }}
     </template>
-
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>
@@ -194,7 +192,7 @@ async function changeEmail() {
         class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
       >
         <h2 id="account-profile" class="text-lg">{{ $t('account.profile.title') }}</h2>
-        <form class="space-y-4" novalidate @submit.prevent="saveProfile">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="saveProfile">
           <UFormField
             :label="$t('account.profile.name')"
             name="name"
@@ -236,7 +234,7 @@ async function changeEmail() {
       >
         <h2 id="account-preferences" class="text-lg">{{ $t('account.preferences.title') }}</h2>
         <PalettePicker />
-        <form class="space-y-4" novalidate @submit.prevent="savePreferences">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="savePreferences">
           <UFormField :label="$t('theme.label')" name="theme">
             <URadioGroup
               v-model="preferences.theme"
@@ -287,7 +285,7 @@ async function changeEmail() {
           {{ $t('account.email.current') }} <strong>{{ me.email }}</strong>
         </p>
         <p class="text-sm text-(--app-text-muted)">{{ $t('account.email.explain') }}</p>
-        <form class="space-y-4" novalidate @submit.prevent="changeEmail">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="changeEmail">
           <UFormField
             :label="$t('account.email.newEmail')"
             name="newEmail"

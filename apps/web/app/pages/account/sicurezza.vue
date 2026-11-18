@@ -184,13 +184,6 @@ const regenerateCodes = () =>
 
 <template>
   <SettingsShell>
-    <template #intro>
-      <p v-if="me" class="text-(--app-text-muted)">
-        <span :title="me.name">{{ me.displayName }}</span
-        >, {{ me.email }}
-      </p>
-    </template>
-
     <p v-if="!factors && !error" role="status">
       {{ $t('account.loading') }}
     </p>
@@ -228,7 +221,7 @@ const regenerateCodes = () =>
           {{ me.emailNotices ? $t('security.password.notice') : $t('security.password.noticeOff') }}
         </p>
         <form
-          class="space-y-4"
+          class="max-w-form space-y-4"
           novalidate
           @submit.prevent="firstPassword ? setFirstPassword() : changePassword()"
         >
@@ -311,7 +304,7 @@ const regenerateCodes = () =>
           >
             {{ $t('security.totp.openApp') }}
           </UButton>
-          <form class="space-y-4" novalidate @submit.prevent="verifyTotp">
+          <form class="max-w-form space-y-4" novalidate @submit.prevent="verifyTotp">
             <UFormField
               :label="$t('security.totp.code')"
               name="totp-code"
@@ -348,7 +341,7 @@ const regenerateCodes = () =>
           </UButton>
         </div>
 
-        <form v-else class="space-y-4" novalidate @submit.prevent>
+        <form v-else class="max-w-form space-y-4" novalidate @submit.prevent>
           <!-- with passkeys only there is no password to confirm -->
           <p
             v-if="me?.hasPassword === false && totp.problem"

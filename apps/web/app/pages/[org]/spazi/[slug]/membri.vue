@@ -107,7 +107,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-section">
     <h2 class="sr-only">{{ $t('client.tabs.people') }}</h2>
     <ListSkeleton
       v-if="!data && !error"

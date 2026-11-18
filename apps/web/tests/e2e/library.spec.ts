@@ -256,6 +256,35 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
   )
 })
 
+test('a long name stays on two lines, then the dots, and is whole on hover and to a screen reader', async ({
+  page,
+}) => {
+  const { org, client, editor } = await editorWithLibrary(page)
+  const long = 'cornetti-colazione-domenica-con-cappuccino-e-brioche-calde-appena-sfornate.jpg'
+  await libraryFile(org, client, editor.userId, { kind: 'image', name: long })
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  const view = page.getByRole('group', { name: 'Vista' })
+  for (const layout of ['Griglia', 'Elenco']) {
+    await view.getByRole('button', { name: layout }).click()
+    const button = tile(page, long)
+      .getByRole('button', { name: new RegExp(long) })
+      .first()
+    await expect(button).toHaveAttribute('title', long)
+    const lines = await button.evaluate((b) => {
+      const style = getComputedStyle(b)
+      return {
+        clamp: style.webkitLineClamp,
+        rows: Math.round(b.clientHeight / parseFloat(style.lineHeight)),
+        cut: b.scrollHeight > b.clientHeight,
+      }
+    })
+    expect(lines.clamp).toBe('2')
+    expect(lines.rows).toBeLessThanOrEqual(2)
+    // in the grid the name is longer than two lines: the rest is cut, not drawn
+    if (layout === 'Griglia') expect(lines).toEqual({ clamp: '2', rows: 2, cut: true })
+  }
+})
+
 test('a video that ran out of time says what to do, and «Riprova» prepares it again', async ({
   page,
 }) => {
