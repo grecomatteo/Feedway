@@ -135,6 +135,7 @@ export function useSession() {
     view.value = { state: 'signed_out' }
     palette.value = 'feedway'
     forgetAgency()
+    resetUploadStores()
     const keep = opts.stay?.keep
     if (keep === undefined) {
       clearNuxtData()
@@ -147,6 +148,7 @@ export function useSession() {
     view.value = { state: 'signed_out' }
     palette.value = 'feedway'
     forgetAgency()
+    resetUploadStores()
     clearNuxtData()
   }
 

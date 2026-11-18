@@ -1,4 +1,5 @@
 import type { CompletedUploadDto, MediaDto, UploadDto } from '@app/contracts'
+import type { EffectScope } from 'vue'
 import type { ApiFailure } from './useApi'
 
 /**
@@ -504,8 +505,9 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     const s = side(first)
     if (s.watching) return
     s.watching = true
+    let misses = 0
     try {
-      for (let round = 0; ; round++) {
+      for (let round = 0; !closed; round++) {
         await new Promise((r) => setTimeout(r, round < 10 ? 2000 : 5000))
         const item = live(key)
         if (!item?.media || item.state !== 'processing') return
@@ -521,12 +523,16 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
             return
           }
         } catch (error) {
+          const status = failure(error).status
           // deleted meanwhile: nothing left to wait for
-          if (failure(error).status === 404) {
+          if (status === 404) {
             const gone = live(key)
             if (gone) forget(gone)
             return
           }
+          // no longer allowed to see it (signed out, access taken): the library says the rest;
+          // a network that stays down stops asking after about five minutes
+          if (status === 401 || status === 403 || ++misses > 60) return
         }
       }
     } finally {
@@ -534,6 +540,8 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     }
   }
 
+  /** set when the store is thrown away (sign out): nothing of it runs any more */
+  let closed = false
   const busy = (i: UploadItem) =>
     ['queued', 'hashing', 'uploading', 'offline', 'completing', 'processing'].includes(i.state)
 
@@ -800,12 +808,26 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   function leaving(event: BeforeUnloadEvent) {
     if (totals.value.active) event.preventDefault()
   }
-  // as long as the tab: no page owns the uploads (D-21)
+  // as long as the tab, or until the person signs out: no page owns the uploads (D-21)
+  let offNetwork: (() => void) | null = null
   if (import.meta.client) {
-    onNetworkChange(restartAll)
+    offNetwork = onNetworkChange(restartAll)
     document.addEventListener('visibilitychange', visible)
     window.addEventListener('beforeunload', leaving)
     loading = load()
+  }
+  function dispose() {
+    closed = true
+    offNetwork?.()
+    document.removeEventListener('visibilitychange', visible)
+    window.removeEventListener('beforeunload', leaving)
+    for (const item of items.value) {
+      stop(item)
+      if (item.preview) URL.revokeObjectURL(item.preview.url)
+    }
+    items.value = []
+    sides.clear()
+    hasher?.stop()
   }
 
   return {
@@ -829,6 +851,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     resumeLeftover,
     cancelLeftover,
     wake,
+    dispose,
     reload: () => {
       loading = load()
     },
@@ -839,7 +862,20 @@ export type UploadStore = ReturnType<typeof createUploadStore>
 
 /** The stores of the tab, one per agency and workspace; on the server none is kept. */
 const stores = shallowRef<UploadStore[]>([])
-const storeKeys = new Map<string, UploadStore>()
+const storeKeys = new Map<string, { store: UploadStore; scope: EffectScope }>()
+
+/**
+ * Stops and forgets every upload of the tab: on sign out, so the next person on the same
+ * computer never sees, nor resumes, a file of the one before.
+ */
+export function resetUploadStores() {
+  for (const { store, scope } of storeKeys.values()) {
+    store.dispose()
+    scope.stop()
+  }
+  storeKeys.clear()
+  stores.value = []
+}
 
 /** Every store of the tab, for the dock. */
 export const uploadStores = () => stores.value
@@ -854,17 +890,18 @@ export function useUploads(
   options: { onChange?: (media: MediaDto | null) => void; shown?: boolean } = {},
 ): UploadStore {
   const org = useOrganization()
-  const key = `${org.slug.value}/${workspaceId}`
-  let store = import.meta.client ? storeKeys.get(key) : undefined
+  const key = `${org.me.value?.id ?? ''}/${org.slug.value}/${workspaceId}`
+  let store = import.meta.client ? storeKeys.get(key)?.store : undefined
   // a page opened again lists what is left halfway now
   if (store?.items.value.length === 0) store.reload()
   if (!store) {
     // detached: the store outlives the page that made it
-    const made = effectScope(true).run(() => createUploadStore(org.slug.value, workspaceId))
+    const scope = effectScope(true)
+    const made = scope.run(() => createUploadStore(org.slug.value, workspaceId))
     if (!made) throw new Error('no upload store')
     store = made
     if (import.meta.client) {
-      storeKeys.set(key, store)
+      storeKeys.set(key, { store, scope })
       stores.value = [...stores.value, store]
     } else return store
   }

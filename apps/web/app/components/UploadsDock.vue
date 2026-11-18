@@ -18,7 +18,6 @@ const visible = computed(() =>
   ),
 )
 const items = computed(() => visible.value.flatMap((s) => s.items.value))
-const active = computed(() => visible.value.some((s) => s.totals.value.active))
 const busy = computed(() =>
   items.value.filter((i) => !['ready', 'failed', 'rejected', 'error'].includes(i.state)),
 )
@@ -43,31 +42,43 @@ const libraryOf = (s: UploadStore) => {
   return c ? org.to(`/spazi/${encodeURIComponent(c.slug)}/libreria`) : null
 }
 
-/** Closes the dock: what is finished goes away, what still runs goes on behind it. */
+/** Closes the dock: what is finished goes away, what is left (running, paused) folds away. */
 function close() {
   for (const s of visible.value) s.clearFinished()
-  if (active.value) open.value = false
+  if (items.value.length > 0) open.value = false
 }
+// a file started after «Nascondi» opens the dock again
+watch(
+  () => busy.value.length,
+  (n, before) => {
+    if (n > before) open.value = true
+  },
+)
+const leftover = computed(() => items.value.length > busy.value.length)
 const canPause = (i: UploadItem) => ['queued', 'hashing', 'uploading', 'offline'].includes(i.state)
 const canResume = (i: UploadItem) => ['paused', 'error'].includes(i.state)
 const canCancel = (i: UploadItem) =>
   !['completing', 'processing', 'ready', 'failed'].includes(i.state)
-const announcement = computed(() =>
-  visible.value
-    .map((s) => s.announcement.value)
-    .filter(Boolean)
-    .join(' '),
+// only the store that spoke last: the others' old texts are not read again
+const announcement = ref('')
+watch(
+  () => visible.value.map((s) => s.announcement.value),
+  (now, before) => {
+    const fresh = now.find((text, i) => text !== '' && text !== before[i])
+    if (fresh) announcement.value = fresh
+  },
 )
 </script>
 
 <template>
+  <!-- always there, so the first words of a dock that just appeared are read -->
+  <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   <section
     v-if="visible.length > 0"
     :aria-label="$t('upload.title')"
     data-testid="uploads-dock"
     class="fixed right-2 bottom-20 left-2 z-40 rounded-lg border border-(--app-border) bg-(--app-surface) shadow-lg sm:left-auto sm:w-96 md:right-4 md:bottom-4"
   >
-    <p class="sr-only" aria-live="polite">{{ announcement }}</p>
     <header class="flex items-center gap-2 py-1 pr-1 pl-4">
       <p class="min-w-0 flex-1 text-sm font-semibold">
         {{ title }}
@@ -89,7 +100,7 @@ const announcement = computed(() =>
         variant="ghost"
         class="size-11 justify-center"
         icon="i-lucide-x"
-        :aria-label="active ? $t('upload.dock.hide') : $t('upload.dock.close')"
+        :aria-label="busy.length > 0 || leftover ? $t('upload.dock.hide') : $t('upload.dock.close')"
         @click="close"
       />
     </header>
