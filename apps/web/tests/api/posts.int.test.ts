@@ -624,13 +624,19 @@ describe('files of the posts in the library', () => {
   test('«Nei post» lists only the files a post uses, its cover included', async () => {
     const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
     const loose = await video()
-    const used = await draft()
+    const coverOnly = await video()
+    const used = await draft('editor', {
+      type: 'reel',
+      cover: { source: 'image', mediaId: coverOnly },
+    })
     const usedId = used.media[0]?.id ?? ''
     const listed = await expectOk<{ items: { id: string; usedIn: unknown }[] }>(
       call('editor', 'GET', `${library}?inPosts=true&limit=100`),
     )
     const ids = listed.items.map((m) => m.id)
     expect(ids).toContain(usedId)
+    // a file used only as the cover counts too
+    expect(ids).toContain(coverOnly)
     expect(ids).not.toContain(loose)
     expect(listed.items.every((m) => m.usedIn !== null)).toBe(true)
     const all = await expectOk<{ items: { id: string }[] }>(

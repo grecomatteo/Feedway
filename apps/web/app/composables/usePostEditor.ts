@@ -161,6 +161,14 @@ export function usePostEditor(opts: {
     if (status.value === 'scheduled') return may.value.publish
     return true
   })
+  /** a cancelled post goes away with «Elimina post»; not in an archived client (D-70) */
+  const mayDelete = computed(
+    () =>
+      status.value === 'cancelled' &&
+      may.value.draft &&
+      !opts.client.value.archivedAt &&
+      (mine.value || may.value.manageOthers),
+  )
 
   const files = computed(() => entries.value.flatMap((e) => (e.file ? [e.file] : [])))
   const kinds = computed(() => entries.value.map((e) => ({ kind: entryKind(e) })))
@@ -429,8 +437,9 @@ export function usePostEditor(opts: {
 
   function fill(p: PostResponse) {
     asPost(p)
-    type.value = p.type
-    // a saved post with files keeps its type: the person saw it (D-71)
+    // a saved post with files keeps its type, the person saw it; without files the type is
+    // chosen again, as on a new post (D-71)
+    type.value = p.media.length > 0 ? p.type : null
     typeChosen.value = p.media.length > 0
     entries.value = p.media.map((m) => ({ key: newKey(), file: fromPostMedia(m), upload: null }))
     caption.common = p.caption.common
@@ -497,12 +506,20 @@ export function usePostEditor(opts: {
       const id = save.value.postId
       const version = save.value.version
       if (!id || version === null) return null
+      // back to draft keeps what was changed and not saved yet: it is saved on the draft
+      const keep = what === 'unschedule' && save.value.dirty
       const p = await call<PostResponse>(
         'POST',
         `${base}/posts/${encodeURIComponent(id)}/${what}`,
         { version },
       )
-      fill(p)
+      if (keep) {
+        asPost(p)
+        autosave.adopt({ id: p.id, version: p.version })
+        autosave.pause(false)
+        autosave.changed()
+        await autosave.flush()
+      } else fill(p)
       askChecks()
       return p
     } catch (e) {
@@ -574,6 +591,7 @@ export function usePostEditor(opts: {
     status,
     editable,
     mine,
+    mayDelete,
     type,
     typeChosen,
     entries,

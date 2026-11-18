@@ -138,8 +138,16 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
   await expect(page.getByText('Nella 0.12 non esce ancora')).toBeVisible()
 
+  // a change not saved yet is kept when the post goes back to draft
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del martedì')
   await page.getByRole('button', { name: 'Riporta in bozza' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Bozza' })).toBeVisible()
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await page.reload()
+  await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
+    'Il pane del martedì',
+  )
+  await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await scheduleButton(page).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
   await page.getByRole('button', { name: 'Annulla programmazione' }).click()
@@ -296,4 +304,31 @@ test('leaving a new post while a file uploads: the page changes, the upload goes
   await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
   await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
   await expect(page.getByTestId('uploads-dock')).toContainText('clip.mp4')
+})
+
+test('a Viewer reads a post: no actions, no library, no thumbnails', async ({ page, browser }) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['pane.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Da vedere soltanto')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await expect(page).not.toHaveURL(/\/post\/nuovo/)
+  const address = new URL(page.url()).pathname
+
+  const viewer = await addPerson(org, 'Vera Vista', 'member', [
+    { workspaceId: client.id, role: 'viewer' },
+  ])
+  const other = await browser.newContext({ baseURL: process.env.E2E_BASE_URL ?? '' })
+  const vera = await other.newPage()
+  await ownAddress(vera)
+  await signIn(vera.request, viewer)
+  await vera.goto(address)
+  await expect(vera.getByText('Puoi vedere il post, non modificarlo.')).toBeVisible()
+  await expect(vera.getByRole('textbox', { name: 'Testo comune' })).toHaveAttribute('readonly', '')
+  await expect(vera.getByRole('button', { name: 'Dalla libreria' })).toHaveCount(0)
+  await expect(vera.getByRole('button', { name: 'Salva bozza' })).toHaveCount(0)
+  await expect(vera.locator('[data-schedule]')).toHaveCount(0)
+  await expect(vera.getByRole('main').locator('img')).toHaveCount(0)
+  expect((await axe(vera)).violations).toEqual([])
+  await other.close()
 })

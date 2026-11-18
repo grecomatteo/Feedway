@@ -56,7 +56,9 @@ const readOnly = computed(() => {
 function goto(section: string) {
   const el = document.getElementById(section)
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  el?.querySelector<HTMLElement>('button:not([disabled]), input, textarea')?.focus({
+  // the ids are on the headings: the first control is in their section
+  const area = el?.closest('section') ?? el
+  area?.querySelector<HTMLElement>('button:not([disabled]), input, textarea')?.focus({
     preventScroll: true,
   })
 }

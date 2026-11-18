@@ -285,6 +285,7 @@ function release() {
       </li>
     </ul>
     <PostLibraryPicker
+      v-if="e.editable.value"
       v-model:open="picking"
       :client="client"
       :exclude="e.files.value.map((f) => f.id)"

@@ -20,7 +20,11 @@ export const usesLibrary = (w: Pick<WorkspaceView, 'myRole'>) => w.myRole !== 'v
  * The library of one workspace (spec §11.8, plan 04 Task 12): its folders, a page of its files
  * narrowed by the filter, and what changes them. Pages are asked with «Mostra altri» (`before`).
  */
-export function useLibrary(workspaceId: Ref<string>) {
+export function useLibrary(
+  workspaceId: Ref<string>,
+  /** `lazy`: nothing is read until `load()` (the picker of the editor, read when it opens) */
+  opts: { lazy?: boolean } = {},
+) {
   const org = useOrganization()
   const { call } = useApi()
   const base = computed(() => org.api(`/workspaces/${encodeURIComponent(workspaceId.value)}`))
@@ -115,7 +119,9 @@ export function useLibrary(workspaceId: Ref<string>) {
     Object.assign(filter, { kind: 'all', folder: null, tag: null, q: '', inPosts: false })
     void load()
   })
-  onMounted(() => void load())
+  onMounted(() => {
+    if (!opts.lazy) void load()
+  })
   onBeforeUnmount(() => {
     life.alive = false
     clearTimeout(typing)

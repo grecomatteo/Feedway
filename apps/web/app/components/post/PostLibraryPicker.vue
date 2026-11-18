@@ -11,7 +11,7 @@ const open = defineModel<boolean>('open', { required: true })
 const { t } = useI18n()
 
 const workspaceId = computed(() => props.client.id)
-const lib = useLibrary(workspaceId)
+const lib = useLibrary(workspaceId, { lazy: true })
 const chosen = ref<MediaDto[]>([])
 watch(open, (now) => {
   if (!now) return

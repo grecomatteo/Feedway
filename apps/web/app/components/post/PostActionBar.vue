@@ -164,11 +164,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           </UButton>
         </template>
         <UButton
-          v-else-if="
-            e.status.value === 'cancelled' &&
-            e.may.value.draft &&
-            (e.mine.value || e.may.value.manageOthers)
-          "
+          v-else-if="e.mayDelete.value"
           color="error"
           variant="outline"
           class="min-h-11"
