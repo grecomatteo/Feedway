@@ -42,6 +42,8 @@ const content = {
     .refine((choices) => new Set(choices.map((c) => c.key)).size === choices.length, {
       message: 'one choice per warning',
     }),
+  /** every label of the post (§11.7): one of another client is not found */
+  labelIds: z.array(Id).max(100),
 }
 
 /** A new draft: the type, and whatever else the editor already has. */
@@ -54,6 +56,7 @@ export const CreatePostRequest = z.strictObject({
   when: content.when.optional(),
   shareToFeed: content.shareToFeed.optional(),
   choices: content.choices.optional(),
+  labelIds: content.labelIds.optional(),
 })
 export type CreatePostRequest = z.infer<typeof CreatePostRequest>
 
@@ -68,6 +71,7 @@ export const UpdatePostRequest = z.strictObject({
   when: content.when.optional(),
   shareToFeed: content.shareToFeed.optional(),
   choices: content.choices.optional(),
+  labelIds: content.labelIds.optional(),
 })
 export type UpdatePostRequest = z.infer<typeof UpdatePostRequest>
 

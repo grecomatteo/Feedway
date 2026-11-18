@@ -68,6 +68,15 @@ export interface NewPostTarget {
   fingerprint: string | null
 }
 
+/** An internal note on a post (§11.7): never shown outside the agency. */
+export interface PostNoteRecord {
+  id: string
+  postId: string
+  authorId: string
+  body: string
+  createdAt: Date
+}
+
 export interface PostRepository {
   /** The new post's id. */
   insert(post: NewPost): Promise<string>
@@ -133,4 +142,12 @@ export interface PostRepository {
       timezone: string
     }[]
   >
+  /** The notes of a post, oldest first. */
+  listNotes(scope: PostScope, postId: string): Promise<PostNoteRecord[]>
+  insertNote(
+    scope: PostScope,
+    note: { id: string; postId: string; authorId: string; body: string },
+  ): Promise<PostNoteRecord>
+  findNote(scope: PostScope, postId: string, noteId: string): Promise<PostNoteRecord | null>
+  deleteNote(scope: PostScope, postId: string, noteId: string): Promise<boolean>
 }

@@ -177,6 +177,37 @@ const callersDraft: Prepare = async (ids, cookie) => {
   return { values: { postId: ((await r.json()) as { id: string }).id } }
 }
 
+/** A note of the caller on the case's post, where they may write one. */
+const callersNote: Prepare = async (ids, cookie) => {
+  const r = await fx.env.call(
+    'POST',
+    `/api/v1/orgs/${ids.org}/workspaces/${ids.workspace}/posts/${ids.post}/notes`,
+    { body: 'Nota mia' },
+    { cookie },
+  )
+  if (r.status !== 200) return {}
+  return { values: { noteId: ((await r.json()) as { id: string }).id } }
+}
+
+/** Labels, templates and groups of a client: every member reads them, Manager and above change them. */
+function contentSettingsRules(): Record<string, readonly Rule[]> {
+  const read: Rule[] = [{ permission: 'workspace.view', level: 'workspace' }]
+  const manage: Rule[] = [{ permission: 'workspace.content_settings.manage', level: 'workspace' }]
+  const rules: Record<string, readonly Rule[]> = {}
+  for (const [what, param] of [
+    ['labels', 'labelId'],
+    ['caption-templates', 'templateId'],
+    ['account-groups', 'groupId'],
+  ] as const) {
+    const list = `/api/v1/orgs/{org}/workspaces/{id}/${what}`
+    rules[`GET ${list}`] = read
+    rules[`POST ${list}`] = manage
+    rules[`PATCH ${list}/{${param}}`] = manage
+    rules[`DELETE ${list}/{${param}}`] = manage
+  }
+  return rules
+}
+
 const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/settings': [
     { permission: 'organization.settings.view', level: 'organization' },
@@ -414,6 +445,26 @@ const RULES: Record<string, readonly Rule[]> = {
       prepare: (ids) => schedulable(ids, 'scheduled'),
     },
   ],
+  // the content settings of a client (plan 06 Task 7): every member reads them, the Manager
+  // and above change them
+  ...contentSettingsRules(),
+  // the notes of a post: an Editor notes anyone's post, takes off only their own
+  'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/notes': [
+    { permission: 'workspace.view', level: 'workspace' },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/notes': [
+    { permission: 'post.draft', level: 'workspace', ownIsEnough: true },
+  ],
+  'DELETE /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/notes/{noteId}': [
+    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersNote,
+      label: 'own',
+    },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },
@@ -490,6 +541,15 @@ async function ownUpload(
 }
 
 const PREPARE: Record<string, Prepare> = {
+  // a group takes only the client's accounts: the case's account goes into the case's client
+  'POST /api/v1/orgs/{org}/workspaces/{id}/account-groups': async (ids) => {
+    await fx.env.admin.pool.query(
+      `insert into workspace_accounts (organization_id, workspace_id, account_id)
+       select organization_id, $2, id from social_accounts where id = $1`,
+      [ids.account, ids.workspace],
+    )
+    return {}
+  },
   'GET /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}': (ids, cookie) =>
     ownUpload(ids, cookie),
   'PUT /api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/parts/{n}': (ids, cookie) =>

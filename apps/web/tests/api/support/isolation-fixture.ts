@@ -52,6 +52,14 @@ export interface SampleIds {
   folder: string
   /** a draft of `workspace` written by `target`, with nothing in it yet, at version 1 */
   post: string
+  /** a label of `workspace`, on no post */
+  label: string
+  /** a caption template of `workspace` */
+  template: string
+  /** an account group of `workspace`, with `account` in it */
+  group: string
+  /** a note of `target` on `post` */
+  note: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -177,10 +185,37 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     mediaIds: [ids.media],
     caption: { common: 'Il pane di oggi' },
   }),
+  // the case's file and label: either one of the other agency must not be found
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': (ids) => ({
     version: 1,
     mediaIds: [ids.media],
     caption: { common: 'Il pane di domani' },
+    labelIds: [ids.label],
+  }),
+  // the content settings of the client and the notes of a post (plan 06 Task 7)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/labels': () => ({
+    name: `Etichetta ${randomUUID().slice(0, 8)}`,
+    color: 'verde',
+  }),
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/labels/{labelId}': () => ({ color: 'viola' }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/caption-templates': () => ({
+    kind: 'signature',
+    name: 'Firma della batteria',
+    body: 'Forno della batteria',
+  }),
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/caption-templates/{templateId}': () => ({
+    name: 'Firma rinominata',
+  }),
+  // the case's account is in no workspace: the case puts it in the case's client (PREPARE)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/account-groups': (ids) => ({
+    name: 'Gruppo della batteria',
+    accountIds: [ids.account],
+  }),
+  'PATCH /api/v1/orgs/{org}/workspaces/{id}/account-groups/{groupId}': () => ({
+    name: 'Gruppo rinominato',
+  }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/notes': () => ({
+    body: 'Nota della batteria',
   }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/schedule': () => ({ version: 1 }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': () => ({ version: 1 }),
@@ -228,6 +263,10 @@ export const PLACEHOLDER_IDS: SampleIds = {
   upload: randomUUID(),
   folder: randomUUID(),
   post: randomUUID(),
+  label: randomUUID(),
+  template: randomUUID(),
+  group: randomUUID(),
+  note: randomUUID(),
 }
 
 /**
@@ -254,6 +293,10 @@ export const ID_KINDS = [
   'upload',
   'folder',
   'post',
+  'label',
+  'template',
+  'group',
+  'note',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -311,6 +354,10 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   uploadId: ids.upload,
   folderId: ids.folder,
   postId: ids.post,
+  labelId: ids.label,
+  templateId: ids.template,
+  groupId: ids.group,
+  noteId: ids.note,
   n: '1',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case
@@ -365,6 +412,11 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   posts: 'select * from posts',
   post_media: 'select * from post_media',
   post_targets: 'select * from post_targets',
+  post_labels: 'select * from post_labels',
+  post_notes: 'select * from post_notes',
+  labels: 'select * from labels',
+  caption_templates: 'select * from caption_templates',
+  account_groups: 'select * from account_groups',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -525,6 +577,39 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** A label, a template, a group with the account and a note of `authorId`, written directly. */
+  async function contentRows(
+    organizationId: string,
+    workspaceId: string,
+    postId: string,
+    accountId: string,
+    authorId: string,
+  ) {
+    const [label, template, group, note] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()]
+    const { pool } = env.admin
+    await pool.query(
+      `insert into labels (id, organization_id, workspace_id, name, color)
+       values ($1, $2, $3, $4, 'blu')`,
+      [label, organizationId, workspaceId, `Etichetta ${label.slice(0, 8)}`],
+    )
+    await pool.query(
+      `insert into caption_templates (id, organization_id, workspace_id, kind, name, body)
+       values ($1, $2, $3, 'hashtags', 'Hashtag della batteria', '#batteria')`,
+      [template, organizationId, workspaceId],
+    )
+    await pool.query(
+      `insert into account_groups (id, organization_id, workspace_id, name, account_ids)
+       values ($1, $2, $3, 'Gruppo della batteria', array[$4]::uuid[])`,
+      [group, organizationId, workspaceId, accountId],
+    )
+    await pool.query(
+      `insert into post_notes (id, organization_id, workspace_id, post_id, author_id, body)
+       values ($1, $2, $3, $4, $5, 'Nota della batteria')`,
+      [note, organizationId, workspaceId, postId, authorId],
+    )
+    return { label, template, group, note }
+  }
+
   /** A fresh imported account of the connection, written directly: no Meta call per case. */
   async function socialAccount(organizationId: string, connectionId: string) {
     const id = randomUUID()
@@ -567,13 +652,15 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
       })
       await env.addPasskey(ids.admin)
       const sender = agency === 'a' ? people.manager.userId : ownerOfB.userId
+      const account = await socialAccount(organizationId, connectionOf[agency])
+      const post = await draftPost(organizationId, ids.workspace, ids.target)
       return {
         org: agency === 'a' ? a.slug : b.slug,
         ...ids,
         email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
         invite: await openInvite(organizationId, ids.workspace, sender),
         connection: connectionOf[agency],
-        account: await socialAccount(organizationId, connectionOf[agency]),
+        account,
         media: await libraryVideo(organizationId, ids.workspace, ids.target),
         upload: await openUpload(
           organizationId,
@@ -581,7 +668,8 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           agency === 'a' ? people.owner.userId : ownerOfB.userId,
         ),
         folder: await libraryFolder(organizationId, ids.workspace),
-        post: await draftPost(organizationId, ids.workspace, ids.target),
+        post,
+        ...(await contentRows(organizationId, ids.workspace, post, account, ids.target)),
       }
     },
     async refreshReauth() {
@@ -606,6 +694,8 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
       const cookie = await env.strongSignIn(owner)
       await fixture.refreshReauth()
       const connection = await metaConnection(agency.slug, cookie)
+      const account = await socialAccount(agency.id, connection)
+      const post = await draftPost(agency.id, ids.workspace, ids.target)
       return {
         cookie,
         ids: {
@@ -614,11 +704,12 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           email: `nuova-${randomUUID().slice(0, 8)}@example.test`,
           invite: await openInvite(agency.id, ids.workspace, owner.userId),
           connection,
-          account: await socialAccount(agency.id, connection),
+          account,
           media: await libraryVideo(agency.id, ids.workspace, owner.userId),
           upload: await openUpload(agency.id, ids.workspace, owner.userId),
           folder: await libraryFolder(agency.id, ids.workspace),
-          post: await draftPost(agency.id, ids.workspace, ids.target),
+          post,
+          ...(await contentRows(agency.id, ids.workspace, post, account, ids.target)),
         },
       }
     },

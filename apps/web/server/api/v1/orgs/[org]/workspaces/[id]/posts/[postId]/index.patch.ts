@@ -10,6 +10,7 @@ export default defineApiRoute(
       params.postId,
       {
         ...postContent(body),
+        ...postLabels(body),
         workspaceId: params.id,
         version: body.version,
       },

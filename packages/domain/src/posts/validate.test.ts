@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { validateDefaultPostTime, validateLabel } from './validate.js'
+import {
+  CAPTION_TEMPLATE_BODY_MAX_LENGTH,
+  validateCaptionTemplate,
+  validateDefaultPostTime,
+  validateGroupName,
+  validateLabel,
+  validateNoteBody,
+} from './validate.js'
 
 describe('validateDefaultPostTime', () => {
   it('takes HH:MM and null', () => {
@@ -40,5 +47,44 @@ describe('validateLabel', () => {
       ok: false,
       field: 'color',
     })
+  })
+})
+
+describe('validateCaptionTemplate', () => {
+  it('trims the name, keeps the text as written', () => {
+    expect(
+      validateCaptionTemplate({ kind: 'signature', name: ' Firma ', body: 'Forno Luce\n' }),
+    ).toEqual({ ok: true, value: { kind: 'signature', name: 'Firma', body: 'Forno Luce\n' } })
+  })
+  it('refuses an unknown kind, an empty or long name, an empty or long text', () => {
+    const ok = { kind: 'hashtags', name: 'Pane', body: '#pane' }
+    expect(validateCaptionTemplate({ ...ok, kind: 'emoji' })).toEqual({ ok: false, field: 'kind' })
+    expect(validateCaptionTemplate({ ...ok, name: ' ' })).toEqual({ ok: false, field: 'name' })
+    expect(validateCaptionTemplate({ ...ok, name: 'a'.repeat(81) })).toEqual({
+      ok: false,
+      field: 'name',
+    })
+    expect(validateCaptionTemplate({ ...ok, body: ' \n ' })).toEqual({ ok: false, field: 'body' })
+    expect(
+      validateCaptionTemplate({ ...ok, body: 'a'.repeat(CAPTION_TEMPLATE_BODY_MAX_LENGTH + 1) }),
+    ).toEqual({ ok: false, field: 'body' })
+    expect(
+      validateCaptionTemplate({ ...ok, body: 'é'.repeat(CAPTION_TEMPLATE_BODY_MAX_LENGTH) }).ok,
+    ).toBe(true)
+  })
+})
+
+describe('validateGroupName and validateNoteBody', () => {
+  it('a group name is plain, 1 to 80 characters', () => {
+    expect(validateGroupName('  Solo Instagram ')).toBe('Solo Instagram')
+    expect(validateGroupName('')).toBeNull()
+    expect(validateGroupName('a'.repeat(81))).toBeNull()
+    expect(validateGroupName('www.forno.it')).toBeNull()
+  })
+  it('a note is trimmed, 1 to 2000 characters', () => {
+    expect(validateNoteBody('  Prezzo da confermare \n')).toBe('Prezzo da confermare')
+    expect(validateNoteBody('  ')).toBeNull()
+    expect(validateNoteBody('a'.repeat(2001))).toBeNull()
+    expect(validateNoteBody('a'.repeat(2000))).toBe('a'.repeat(2000))
   })
 })

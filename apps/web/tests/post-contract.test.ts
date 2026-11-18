@@ -1,13 +1,19 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from 'vitest'
 import {
+  CaptionTemplateDto,
   CreatePostRequest,
+  LabelColor,
   POST_LIMITS,
   POST_STATUSES,
   PostVersionRequest,
   UpdatePostRequest,
 } from '@app/contracts'
-import { POST_STATUSES as DOMAIN_POST_STATUSES } from '@app/domain'
+import {
+  CAPTION_TEMPLATE_KINDS,
+  LABEL_COLORS,
+  POST_STATUSES as DOMAIN_POST_STATUSES,
+} from '@app/domain'
 
 // The bodies of the posts' routes are refused before any use case runs (plan 06 Task 4).
 
@@ -93,4 +99,18 @@ test('one answer per warning, and a year the calendar of the panel knows', () =>
       when: { localDate: '2099-12-31', localTime: '23:59' },
     }).success,
   ).toBe(true)
+})
+
+test('label colours and template kinds of the contract are the domain’s (plan 06 Task 7)', () => {
+  expect([...LabelColor.options]).toEqual([...LABEL_COLORS])
+  expect([...CaptionTemplateDto.shape.kind.options]).toEqual([...CAPTION_TEMPLATE_KINDS])
+})
+
+test('a post’s labels are ids, at most 100', () => {
+  expect(UpdatePostRequest.safeParse({ version: 1, labelIds: [randomUUID()] }).success).toBe(true)
+  refused(UpdatePostRequest, { version: 1, labelIds: ['natale'] })
+  refused(UpdatePostRequest, {
+    version: 1,
+    labelIds: Array.from({ length: 101 }, () => randomUUID()),
+  })
 })

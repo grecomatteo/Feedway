@@ -65,11 +65,18 @@ export type {
   NewPost,
   NewPostTarget,
   PostChange,
+  PostNoteRecord,
   PostRecord,
   PostRepository,
   PostScope,
   PostTargetRecord,
 } from './ports/posts.js'
+export type {
+  AccountGroupRecord,
+  CaptionTemplateRecord,
+  ContentSettingsRepository,
+  LabelRecord,
+} from './ports/content-settings.js'
 export type {
   ExclusiveLock,
   MadeFile,
