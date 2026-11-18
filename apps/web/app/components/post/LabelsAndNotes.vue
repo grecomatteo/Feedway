@@ -150,7 +150,7 @@ const initials = (name: string) =>
           variant="ghost"
           size="xs"
           icon="i-lucide-x"
-          class="size-8 justify-center rounded-full"
+          class="size-8 justify-center rounded-full relative after:absolute after:-inset-1.5 after:content-['']"
           :aria-label="$t('posts.labels.remove', { name: l.name })"
           @click="toggle(l.id)"
         />
@@ -161,7 +161,7 @@ const initials = (name: string) =>
             color="neutral"
             variant="outline"
             icon="i-lucide-plus"
-            class="min-h-9 rounded-full"
+            class="min-h-9 rounded-full relative after:absolute after:-inset-x-0 after:-inset-y-1 after:content-['']"
             :loading="labels === null"
           >
             {{ $t('posts.labels.add') }}
@@ -176,7 +176,7 @@ const initials = (name: string) =>
     <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
       <p v-if="notesFailed" role="alert" class="px-4 py-3 text-sm text-(--app-danger)">
         {{ $t('posts.notes.loadError') }}
-        <UButton color="neutral" variant="link" class="min-h-10" @click="loadNotes">
+        <UButton color="neutral" variant="link" class="min-h-11" @click="loadNotes">
           {{ $t('account.retry') }}
         </UButton>
       </p>
@@ -198,7 +198,7 @@ const initials = (name: string) =>
             color="neutral"
             variant="ghost"
             icon="i-lucide-trash-2"
-            class="size-10 shrink-0 justify-center"
+            class="size-11 shrink-0 justify-center"
             :aria-label="$t('posts.notes.remove')"
             @click="remove(n)"
           />

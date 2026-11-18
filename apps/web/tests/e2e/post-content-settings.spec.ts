@@ -62,6 +62,8 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await m.getByRole('link', { name: 'Impostazioni dei contenuti' }).click()
   await expect(m).toHaveURL(/\/contenuti$/)
   await expect(m.getByText('Ancora nessuna etichetta')).toBeVisible()
+  // a Manager cannot read the agency's settings: no zone is named, rather than a wrong one
+  await expect(m.getByText(/nel fuso dell'agenzia/)).toBeVisible()
   expect((await axe(m)).violations).toEqual([])
 
   await m.getByLabel('Ora dei post nuovi').fill('09:30')

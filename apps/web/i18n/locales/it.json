@@ -1882,6 +1882,7 @@
     }
   },
   "posts": {
+    "contentSettingsFailed": "Non siamo riusciti a leggere etichette, modelli e gruppi del cliente.",
     "type": {
       "title": "Tipo",
       "photo": "Foto",
@@ -1967,7 +1968,7 @@
         "ticks": "Non spunta nessun account | Spunta 1 account | Spunta {n} account",
         "ticksSkipping": "Spunta {n} account; salta {skipped}",
         "done": "«{name}»: nessun account da spuntare. | «{name}»: spuntato 1 account. | «{name}»: spuntati {n} account.",
-        "doneSkipped": "«{name}»: spuntati {n} account; saltato {skipped}, che non si può scegliere."
+        "skippedNote": "Saltato perché non si può scegliere: {skipped}. | Saltati perché non si possono scegliere: {skipped}."
       }
     },
     "when": {
@@ -2240,6 +2241,7 @@
       "label": "Ora dei post nuovi",
       "rome": "ora di Roma · il fuso lo sceglie l'Owner in Impostazioni → Agenzia",
       "zone": "fuso {zone} · lo sceglie l'Owner in Impostazioni → Agenzia",
+      "agency": "nel fuso dell'agenzia · lo sceglie l'Owner in Impostazioni → Agenzia",
       "clear": "Togli l'orario",
       "none": "Nessun orario scelto: i post nuovi partono dalle 18:00."
     },

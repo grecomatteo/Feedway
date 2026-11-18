@@ -209,7 +209,7 @@ const ICON: Record<Tab, string> = { instagram: 'i-lucide-instagram', facebook: '
             color="neutral"
             variant="ghost"
             size="sm"
-            class="min-h-10"
+            class="relative min-h-10 after:absolute after:-inset-y-0.5 after:inset-x-0 after:content-['']"
             icon="i-lucide-plus"
             trailing-icon="i-lucide-chevron-down"
             :loading="templates === null"

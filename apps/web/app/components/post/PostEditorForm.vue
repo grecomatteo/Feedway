@@ -27,6 +27,19 @@ const e = editor
 
 // the client's labels, templates and groups (§11.7, plan 06 Task 7)
 const settings = useContentSettings(computed(() => props.client.id))
+// a label taken off the client meanwhile would make every save fail («Etichetta non trovata»):
+// the editor keeps only the labels the client still has, and reads them again on that answer
+watch([settings.labels, () => e.labelIds.value], ([list, ids]) => {
+  if (!list) return
+  const known = new Set(list.map((l) => l.id))
+  if (ids.some((id) => !known.has(id))) e.setLabels(ids.filter((id) => known.has(id)))
+})
+watch(
+  () => (e.save.value.error ? failure(e.save.value.error).message : null),
+  (message) => {
+    if (message === 'Etichetta non trovata') void settings.load()
+  },
+)
 const org = useOrganization()
 /** «Gestisci…» leads to the client's content settings, for who manages them */
 const manageTo = computed(() =>
@@ -238,6 +251,16 @@ const confirmText = computed(() => {
             class="rounded-lg bg-(--app-surface-sunken) px-4 py-3 text-sm"
           >
             {{ $t('posts.editor.editorOnly') }}
+          </p>
+          <p
+            v-if="settings.failed.value"
+            role="alert"
+            class="flex flex-wrap items-center gap-2 rounded-lg bg-(--app-surface-sunken) px-4 py-2 text-sm"
+          >
+            {{ $t('posts.contentSettingsFailed') }}
+            <UButton color="neutral" variant="link" class="min-h-11" @click="settings.load()">
+              {{ $t('account.retry') }}
+            </UButton>
           </p>
           <PostLabelsAndNotes
             :editor="editor"

@@ -94,18 +94,21 @@ async function submit() {
             <li v-for="p in profiles" :key="p.key" class="px-4 py-2">
               <p class="py-1 text-sm font-semibold">{{ profileName(p) }}</p>
               <ul>
-                <li v-for="a in p.accounts" :key="a.id" class="flex min-h-11 items-center gap-3">
-                  <UCheckbox
-                    :model-value="picked.includes(a.id)"
-                    :aria-label="`${handleOf(a)} · ${$t(`socialAccounts.platform.${a.platform}`)}`"
-                    @update:model-value="toggle(a.id, $event === true)"
-                  />
-                  <UIcon
-                    :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
-                    class="size-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span class="min-w-0 truncate">{{ handleOf(a) }}</span>
+                <li v-for="a in p.accounts" :key="a.id">
+                  <!-- the whole row ticks the account, not only the box -->
+                  <label class="flex min-h-11 cursor-pointer items-center gap-3">
+                    <UCheckbox
+                      :model-value="picked.includes(a.id)"
+                      :aria-label="`${handleOf(a)} · ${$t(`socialAccounts.platform.${a.platform}`)}`"
+                      @update:model-value="toggle(a.id, $event === true)"
+                    />
+                    <UIcon
+                      :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
+                      class="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span class="min-w-0 truncate">{{ handleOf(a) }}</span>
+                  </label>
                 </li>
               </ul>
             </li>

@@ -31,6 +31,10 @@ export function useContentSettings(workspaceId: Ref<string | null>) {
       groups.value = g.items
     } catch {
       failed.value = true
+      // the menus stop waiting: empty, and the editor says the lists could not be read
+      labels.value ??= []
+      templates.value ??= []
+      groups.value ??= []
     }
   }
   watch(base, () => void load(), { immediate: true })

@@ -59,7 +59,8 @@ async function saveTime(value: string | null) {
   }
 }
 const timeChanged = computed(() => (client.value?.defaultPostTime ?? '') !== time.value)
-// the agency's zone, for whoever may read the agency's settings; Rome is not named (D-58)
+// the agency's zone, for whoever may read the agency's settings (Owner and Admin); a Manager
+// cannot, and is told «the agency's zone» rather than a zone that may be wrong
 const zone = ref<string | null>(null)
 onMounted(async () => {
   try {
@@ -69,7 +70,8 @@ onMounted(async () => {
   }
 })
 const zoneText = computed(() => {
-  if (!zone.value || zone.value === 'Europe/Rome') return t('contentSettings.time.rome')
+  if (!zone.value) return t('contentSettings.time.agency')
+  if (zone.value === 'Europe/Rome') return t('contentSettings.time.rome')
   return t('contentSettings.time.zone', { zone: zone.value.replaceAll('_', ' ') })
 })
 

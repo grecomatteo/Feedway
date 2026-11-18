@@ -78,14 +78,16 @@ function applyGroup(g: AccountGroupDto) {
     ok.map((a) => a.id),
     true,
   )
+  const done = t('posts.destinations.groups.done', { n: ok.length, name: g.name }, ok.length)
   groupNote.value =
     skipped.length === 0
-      ? t('posts.destinations.groups.done', { n: ok.length, name: g.name }, ok.length)
-      : t('posts.destinations.groups.doneSkipped', {
-          n: ok.length,
-          name: g.name,
-          skipped: skipped.join(', '),
-        })
+      ? done
+      : `${done} ${t(
+          'posts.destinations.groups.skippedNote',
+          { skipped: skipped.join(', ') },
+          // 1 → the first form, more → the second
+          skipped.length === 1 ? 1 : 2,
+        )}`
 }
 const groupItems = computed<DropdownMenuItem[][]>(() => {
   const list = props.groups ?? []
