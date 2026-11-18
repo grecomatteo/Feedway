@@ -212,31 +212,24 @@ async function transferred() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="flex flex-wrap items-start justify-between gap-3">
-      <div class="space-y-1">
-        <h1 class="text-3xl">{{ $t('users.title') }}</h1>
-        <p v-if="data" class="text-(--app-text-muted)">
-          {{
-            $t('users.count', { people: data.items.length, invites: invites?.items.length ?? 0 })
-          }}
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <UButton
-          v-if="isOwner"
-          class="min-h-11"
-          color="neutral"
-          variant="outline"
-          @click="transferOpen = true"
-        >
-          {{ $t('transfer.button') }}
-        </UButton>
-        <UButton class="min-h-11" icon="i-lucide-user-plus" @click="inviteOpen = true">
-          {{ $t('users.invite.button') }}
-        </UButton>
-      </div>
-    </header>
+  <PageShell :title="$t('users.title')">
+    <template v-if="data" #summary>
+      {{ $t('users.count', { people: data.items.length, invites: invites?.items.length ?? 0 }) }}
+    </template>
+    <template #actions>
+      <UButton
+        v-if="isOwner"
+        class="min-h-11"
+        color="neutral"
+        variant="outline"
+        @click="transferOpen = true"
+      >
+        {{ $t('transfer.button') }}
+      </UButton>
+      <UButton class="min-h-11" icon="i-lucide-user-plus" @click="inviteOpen = true">
+        {{ $t('users.invite.button') }}
+      </UButton>
+    </template>
 
     <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
     <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
@@ -425,7 +418,7 @@ async function transferred() {
       :description="$t('users.invite.explain')"
     >
       <template #body>
-        <form class="space-y-4" novalidate @submit.prevent="sendInvite">
+        <form class="max-w-form space-y-4" novalidate @submit.prevent="sendInvite">
           <UFormField
             :label="$t('signIn.email')"
             name="invite-email"
@@ -502,5 +495,5 @@ async function transferred() {
       @done="transferred"
     />
     <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
-  </div>
+  </PageShell>
 </template>

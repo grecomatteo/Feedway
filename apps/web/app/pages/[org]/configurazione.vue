@@ -104,12 +104,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('firstSetup.title') }}</h1>
-      <p class="text-(--app-text-muted)">{{ $t('firstSetup.explain') }}</p>
-    </header>
-
+  <PageShell :title="$t('firstSetup.title')" :summary="$t('firstSetup.explain')">
     <div v-if="setup.error.value" role="alert" class="space-y-3">
       <p class="flex items-center gap-2 text-(--app-danger)">
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
@@ -280,5 +275,5 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
       />
       <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
     </template>
-  </div>
+  </PageShell>
 </template>

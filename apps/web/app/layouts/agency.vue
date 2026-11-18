@@ -67,7 +67,7 @@ watch(org.slug, refresh)
 
     <!-- phone: the selectors and the bell at the top, the person's menu in the bar at the bottom -->
     <header
-      class="flex items-center gap-2 border-b border-(--app-border) bg-(--app-surface) px-4 py-2 md:hidden"
+      class="flex items-center gap-2 border-b border-(--app-border) bg-(--app-surface) px-gutter py-2 md:hidden"
     >
       <div class="min-w-0 flex-1 space-y-1">
         <OrgSwitcher v-if="many || !org.active.value" />
@@ -88,12 +88,9 @@ watch(org.slug, refresh)
       <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
     </header>
 
-    <!-- next to the sidebar, not centred in what is left: on a wide screen a centred page left a
-         gap between the sidebar and the page's own menu (R-12) -->
-    <main
-      id="main"
-      class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:mx-0 md:px-8 md:pb-10"
-    >
+    <!-- next to the sidebar and as wide as what is left (D-63): the margins come from the layout
+         scale in main.css, the same on every page; only forms and long text are narrower -->
+    <main id="main" class="w-full min-w-0 flex-1 px-gutter pt-page-top pb-24 md:pb-12">
       <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
            the layout reads only once a page has loaded, so without it the first link out of a
            suspended agency would change the address and nothing else. -->

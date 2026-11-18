@@ -616,7 +616,6 @@
   },
   "agencyHome": {
     "title": "Agenzia",
-    "welcome": "Il tuo ruolo: {role}. Da qui raggiungi le pagine dell'agenzia.",
     "suspended": "Questa agenzia è sospesa: per ora non puoi lavorarci."
   },
   "roles": {
@@ -848,7 +847,6 @@
   },
   "audit": {
     "title": "Registro attività",
-    "explain": "Chi ha fatto cosa e quando, dal più recente.",
     "empty": "Nessuna attività registrata.",
     "more": "Mostra altre",
     "actions": {

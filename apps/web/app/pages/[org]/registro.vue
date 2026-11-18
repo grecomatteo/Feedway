@@ -62,12 +62,7 @@ const actionLabel = (action: string) =>
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-3xl">{{ $t('audit.title') }}</h1>
-      <p class="text-(--app-text-muted)">{{ $t('audit.explain') }}</p>
-    </header>
-
+  <PageShell :title="$t('audit.title')">
     <p v-if="!loaded && !problem" role="status">{{ $t('account.loading') }}</p>
     <div v-else-if="problem && !loaded" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ problem }}</p>
@@ -80,7 +75,7 @@ const actionLabel = (action: string) =>
       :title="$t('audit.empty')"
       icon="i-lucide-scroll-text"
     />
-    <template v-else>
+    <div v-else class="space-y-block">
       <ol
         class="divide-y divide-(--app-border) rounded-xl border border-(--app-border) bg-(--app-surface)"
         :aria-label="$t('audit.title')"
@@ -110,6 +105,6 @@ const actionLabel = (action: string) =>
       >
         {{ $t('audit.more') }}
       </UButton>
-    </template>
-  </div>
+    </div>
+  </PageShell>
 </template>

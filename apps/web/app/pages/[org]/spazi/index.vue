@@ -249,184 +249,197 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
 </script>
 
 <template>
-  <div :data-ready="ready || undefined">
-    <PageHeader :title="$t('workspaces.title')">
-      <template v-if="status === 'success' && active.length > 0" #summary>
-        {{ $t('workspaces.count', { n: active.length }, active.length) }}
-        <i18n-t v-if="firstProblem" :keypath="`workspaces.problem.${firstProblem.link}`" tag="span">
-          <template #name>
-            <NuxtLink
-              :to="pageOf(firstProblem.workspace)"
-              class="text-(--app-text) underline underline-offset-3"
-              >{{ firstProblem.workspace.name }}</NuxtLink
-            >
-          </template>
-        </i18n-t>
-      </template>
-      <template v-if="org.may.value.createWorkspace" #actions>
-        <UButton
-          class="min-h-11"
-          icon="i-lucide-plus"
-          :aria-label="$t('workspaces.new')"
-          @click="startAdding()"
-        >
-          <span class="max-md:hidden">{{ $t('workspaces.new') }}</span>
-        </UButton>
-      </template>
-    </PageHeader>
-
-    <div
-      v-if="orphans.length > 0"
-      class="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] bg-(--app-brand-soft) px-4 py-3 text-sm"
-    >
-      <UIcon name="i-lucide-link" class="size-[1.125rem] shrink-0" aria-hidden="true" />
-      <span class="min-w-0 flex-1">{{
-        $t('clients.fix.notice', { n: orphans.length }, orphans.length)
-      }}</span>
-      <UButton
-        class="min-h-9 bg-(--app-surface)"
-        color="neutral"
-        variant="outline"
-        @click="fixing = true"
-      >
-        {{ $t('clients.fix.open') }}
-      </UButton>
-    </div>
-
-    <p v-if="done" role="status" class="mb-4 text-sm text-(--app-success)">{{ done }}</p>
-    <p v-if="problem" role="alert" class="mb-4 text-sm text-(--app-danger)">{{ problem }}</p>
-
-    <div
-      v-if="status !== 'error' && all.length > 0"
-      class="mb-4 flex flex-col gap-3 md:flex-row md:items-center"
-    >
-      <SegmentedFilter
-        v-model="filter"
-        :label="$t('workspaces.show')"
-        :options="options"
-        class="self-start"
-      />
-      <SearchField v-model="query" :label="$t('workspaces.search')" />
-    </div>
-
-    <TableSkeleton
-      v-if="status === 'pending' || status === 'idle'"
-      :label="$t('workspaces.loading')"
-      :columns="[
-        $t('workspaces.column.client'),
-        $t('workspaces.column.profiles'),
-        $t('workspaces.column.link'),
-      ]"
-      :rows="4"
-    />
-    <div
-      v-else-if="error"
-      role="alert"
-      class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
-    >
-      <p>{{ $t('workspaces.loadError') }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
-        {{ $t('account.retry') }}
-      </UButton>
-    </div>
-    <EmptyState
-      v-else-if="all.length === 0"
-      :title="$t('workspaces.empty')"
-      :text="
-        org.may.value.createWorkspace ? $t('workspaces.emptyCreate') : $t('workspaces.emptyAsk')
-      "
-      icon="i-lucide-briefcase"
-    />
-    <p
-      v-else-if="visible.length === 0"
-      class="rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
-    >
-      {{
-        query.trim()
-          ? $t('workspaces.noMatch', { q: query.trim() })
-          : filter === 'archived'
-            ? $t('workspaces.noArchived')
-            : $t('workspaces.empty')
-      }}
-    </p>
-    <DataTable
-      v-else
-      :caption="$t('workspaces.title')"
-      :columns="columns"
-      :rows="visible"
-      :row-key="(w) => w.id"
-    >
-      <template #cell-name="{ row }">
-        <span class="flex min-w-0 items-center gap-3">
-          <RowAvatar :name="row.name" :src="row.photoUrl" />
-          <NuxtLink
-            :to="pageOf(row)"
-            class="truncate text-[0.9375rem] font-semibold underline-offset-3 hover:underline"
-            >{{ row.name }}</NuxtLink
+  <PageShell :data-ready="ready || undefined">
+    <template #head>
+      <PageHeader :title="$t('workspaces.title')">
+        <template v-if="status === 'success' && active.length > 0" #summary>
+          {{ $t('workspaces.count', { n: active.length }, active.length) }}
+          <i18n-t
+            v-if="firstProblem"
+            :keypath="`workspaces.problem.${firstProblem.link}`"
+            tag="span"
           >
-        </span>
-      </template>
-      <template #cell-profiles="{ row }">
-        <span
-          v-if="firstAccounts(row).length > 0"
-          class="flex items-center gap-x-3 text-(--app-text-muted)"
-        >
-          <span
-            v-for="a in firstAccounts(row)"
-            :key="a.id"
-            class="inline-flex min-w-0 items-center gap-1"
-          >
-            <UIcon
-              :name="iconOf(a.platform)"
-              class="size-[0.9375rem] shrink-0"
-              aria-hidden="true"
-            />
-            <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}:</span>
-            <span class="truncate">{{ handleOf(a) }}</span>
-          </span>
-          <span v-if="moreProfiles(row) > 0" class="tabular-nums">
-            <span aria-hidden="true">{{
-              $t('workspaces.moreProfiles', { n: moreProfiles(row) })
-            }}</span>
-            <span class="sr-only">{{
-              $t('workspaces.moreProfilesLabel', { n: moreProfiles(row) }, moreProfiles(row))
-            }}</span>
-          </span>
-        </span>
-        <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
-      </template>
-      <template #cell-link="{ row }">
-        <StatusDot v-if="stateOf(row)" :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
-      </template>
-      <template #cell-actions="{ row }">
-        <span class="flex items-center justify-end gap-1">
+            <template #name>
+              <NuxtLink
+                :to="pageOf(firstProblem.workspace)"
+                class="text-(--app-text) underline underline-offset-3"
+                >{{ firstProblem.workspace.name }}</NuxtLink
+              >
+            </template>
+          </i18n-t>
+        </template>
+        <template v-if="org.may.value.createWorkspace" #actions>
           <UButton
-            v-if="canReconnect(row)"
-            color="neutral"
-            variant="outline"
             class="min-h-11"
-            :to="integrations"
-            :aria-label="$t('workspaces.reconnectOf', { name: row.name })"
+            icon="i-lucide-plus"
+            :aria-label="$t('workspaces.new')"
+            @click="startAdding()"
           >
-            {{ $t('workspaces.reconnect') }}
+            <span class="max-md:hidden">{{ $t('workspaces.new') }}</span>
           </UButton>
-          <RowActions :name="row.name" :items="actions(row)" />
-        </span>
-      </template>
-      <template #mobile="{ row }">
-        <DataRow :name="row.name" :to="pageOf(row)" :src="row.photoUrl" :detail="profilesText(row)">
-          <template v-if="stateOf(row)" #detail>
-            <span class="flex min-w-0 items-center gap-2">
-              <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
-              <span class="truncate">{{ profilesText(row) }}</span>
+        </template>
+      </PageHeader>
+    </template>
+
+    <div class="flex flex-col gap-block">
+      <div
+        v-if="orphans.length > 0"
+        class="flex flex-wrap items-center gap-3 rounded-[10px] bg-(--app-brand-soft) px-4 py-3 text-sm"
+      >
+        <UIcon name="i-lucide-link" class="size-[1.125rem] shrink-0" aria-hidden="true" />
+        <span class="min-w-0 flex-1">{{
+          $t('clients.fix.notice', { n: orphans.length }, orphans.length)
+        }}</span>
+        <UButton
+          class="min-h-9 bg-(--app-surface)"
+          color="neutral"
+          variant="outline"
+          @click="fixing = true"
+        >
+          {{ $t('clients.fix.open') }}
+        </UButton>
+      </div>
+
+      <p v-if="done" role="status" class="text-sm text-(--app-success)">{{ done }}</p>
+      <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
+
+      <div
+        v-if="status !== 'error' && all.length > 0"
+        class="flex flex-col gap-3 md:flex-row md:items-center"
+      >
+        <SegmentedFilter
+          v-model="filter"
+          :label="$t('workspaces.show')"
+          :options="options"
+          class="self-start"
+        />
+        <SearchField v-model="query" :label="$t('workspaces.search')" />
+      </div>
+
+      <TableSkeleton
+        v-if="status === 'pending' || status === 'idle'"
+        :label="$t('workspaces.loading')"
+        :columns="[
+          $t('workspaces.column.client'),
+          $t('workspaces.column.profiles'),
+          $t('workspaces.column.link'),
+        ]"
+        :rows="4"
+      />
+      <div
+        v-else-if="error"
+        role="alert"
+        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
+      >
+        <p>{{ $t('workspaces.loadError') }}</p>
+        <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+          {{ $t('account.retry') }}
+        </UButton>
+      </div>
+      <EmptyState
+        v-else-if="all.length === 0"
+        :title="$t('workspaces.empty')"
+        :text="
+          org.may.value.createWorkspace ? $t('workspaces.emptyCreate') : $t('workspaces.emptyAsk')
+        "
+        icon="i-lucide-briefcase"
+      />
+      <p
+        v-else-if="visible.length === 0"
+        class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+      >
+        {{
+          query.trim()
+            ? $t('workspaces.noMatch', { q: query.trim() })
+            : filter === 'archived'
+              ? $t('workspaces.noArchived')
+              : $t('workspaces.empty')
+        }}
+      </p>
+      <DataTable
+        v-else
+        :caption="$t('workspaces.title')"
+        :columns="columns"
+        :rows="visible"
+        :row-key="(w) => w.id"
+      >
+        <template #cell-name="{ row }">
+          <span class="flex min-w-0 items-center gap-3">
+            <RowAvatar :name="row.name" :src="row.photoUrl" />
+            <NuxtLink
+              :to="pageOf(row)"
+              class="truncate text-[0.9375rem] font-semibold underline-offset-3 hover:underline"
+              >{{ row.name }}</NuxtLink
+            >
+          </span>
+        </template>
+        <template #cell-profiles="{ row }">
+          <span
+            v-if="firstAccounts(row).length > 0"
+            class="flex items-center gap-x-3 text-(--app-text-muted)"
+          >
+            <span
+              v-for="a in firstAccounts(row)"
+              :key="a.id"
+              class="inline-flex min-w-0 items-center gap-1"
+            >
+              <UIcon
+                :name="iconOf(a.platform)"
+                class="size-[0.9375rem] shrink-0"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}:</span>
+              <span class="truncate">{{ handleOf(a) }}</span>
             </span>
-          </template>
-          <template #actions>
+            <span v-if="moreProfiles(row) > 0" class="tabular-nums">
+              <span aria-hidden="true">{{
+                $t('workspaces.moreProfiles', { n: moreProfiles(row) })
+              }}</span>
+              <span class="sr-only">{{
+                $t('workspaces.moreProfilesLabel', { n: moreProfiles(row) }, moreProfiles(row))
+              }}</span>
+            </span>
+          </span>
+          <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
+        </template>
+        <template #cell-link="{ row }">
+          <StatusDot v-if="stateOf(row)" :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+        </template>
+        <template #cell-actions="{ row }">
+          <span class="flex items-center justify-end gap-1">
+            <UButton
+              v-if="canReconnect(row)"
+              color="neutral"
+              variant="outline"
+              class="min-h-11"
+              :to="integrations"
+              :aria-label="$t('workspaces.reconnectOf', { name: row.name })"
+            >
+              {{ $t('workspaces.reconnect') }}
+            </UButton>
             <RowActions :name="row.name" :items="actions(row)" />
-          </template>
-        </DataRow>
-      </template>
-    </DataTable>
+          </span>
+        </template>
+        <template #mobile="{ row }">
+          <DataRow
+            :name="row.name"
+            :to="pageOf(row)"
+            :src="row.photoUrl"
+            :detail="profilesText(row)"
+          >
+            <template v-if="stateOf(row)" #detail>
+              <span class="flex min-w-0 items-center gap-2">
+                <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
+                <span class="truncate">{{ profilesText(row) }}</span>
+              </span>
+            </template>
+            <template #actions>
+              <RowActions :name="row.name" :items="actions(row)" />
+            </template>
+          </DataRow>
+        </template>
+      </DataTable>
+    </div>
 
     <NewClientDialog
       v-model:open="adding"
@@ -510,5 +523,5 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         </div>
       </template>
     </UModal>
-  </div>
+  </PageShell>
 </template>
