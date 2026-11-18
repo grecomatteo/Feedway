@@ -66,14 +66,14 @@ Come si lavora con Git e GitHub in questo progetto. Vale per tutti: persone e ag
 **Una PR = un task del piano**, o un gruppo di task piccoli e legati. Il titolo è un Conventional Commit, perché diventa il messaggio del commit su `main` **(CI: commitlint sul titolo)**.
 
 **Prima di aprirla**
-1. `pnpm verify:ci` in locale è verde: ripete i controlli obbligatori della CI (formato, lint, tipi, confini, unit, integrazione, e2e, sicurezza, immagine, smoke) e alla fine elenca ciò che non ha potuto verificare. Serve Docker attivo. Nelle sessioni cloud degli agenti, dove il browser di Playwright non si scarica e le build Docker non raggiungono i mirror dei pacchetti: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium VERIFY_CI_SKIP_IMAGE=1 pnpm verify:ci`. Se Docker non risponde, si avvia con `dockerd &`. Immagine e smoke restano allora alla CI. Durante il lavoro basta `pnpm verify`.
+1. `pnpm verify:ci` in locale è verde: ripete i controlli obbligatori della CI (formato, lint, tipi, confini, unit, integrazione, e2e, sicurezza, immagine, smoke) e alla fine elenca ciò che non ha potuto verificare. Gli E2E girano in locale su due dei quattro progetti, incrociati (`mobile-light` e `desktop-dark`), e la CI li fa tutti e quattro in parallelo (job `e2e-project`, riassunto dal controllo obbligatorio `e2e`); con `VERIFY_CI_E2E_ALL=1` anche in locale girano tutti. Serve Docker attivo. Nelle sessioni cloud degli agenti, dove il browser di Playwright non si scarica e le build Docker non raggiungono i mirror dei pacchetti: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium VERIFY_CI_SKIP_IMAGE=1 pnpm verify:ci`. Se Docker non risponde, si avvia con `dockerd &`. Immagine e smoke restano allora alla CI. Durante il lavoro basta `pnpm verify`.
 2. Ramo riallineato a `main` con rebase.
 3. Il diff contiene solo ciò che serve al task: niente modifiche di passaggio ad altro codice.
 
 **Minuti di Actions**: con il repository privato il piano ne include 3.000 al mese, e un'esecuzione della CI su una PR di codice ne costa circa 20 (pochi di più con la build arm64, che gira sul runner arm64 nativo); finché il repository è pubblico sono gratis, ma le regole restano le stesse, perché tornerà privato. Quindi:
 - si fa push solo di lavoro già verde con `pnpm verify:ci`, idealmente una volta per PR, e i task piccoli e legati si raggruppano in una PR;
 - la CI parte solo sulle PR e a mano, mai dopo il merge su `main`; un nuovo push annulla l'esecuzione in corso sullo stesso ramo;
-- su una PR che cambia solo documentazione, design o istruzioni degli agenti gira soltanto gitleaks (Prettier quei file li ignora): circa 9 minuti invece di 20, perché ogni job ne conta almeno uno; la build arm64 solo se cambiano Docker, dipendenze, Node o la CI (§5);
+- su una PR che cambia solo documentazione, design o istruzioni degli agenti gira soltanto gitleaks (Prettier quei file li ignora): ogni job fa solo il checkout, ma conta comunque almeno un minuto; la build arm64 solo se cambiano Docker, dipendenze, Node o la CI (§5);
 - ogni job ha un tempo massimo, così un'esecuzione bloccata non consuma minuti per ore;
 - un controllo nuovo nella CI entra anche in `pnpm verify:ci`, e si decide subito quali file lo rendono necessario.
 
