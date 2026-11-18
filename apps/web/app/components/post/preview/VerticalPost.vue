@@ -2,9 +2,9 @@
 import { SAFE_ZONES, type PreviewItem, type PreviewView } from '~/utils/post-preview'
 
 /**
- * A reel or a story, on Instagram or on a Page (design E4): the file on black in 9:16, the
- * app's names and buttons over it, and the zones they cover when asked (§11.3). A story has
- * no text.
+ * A reel or a story, on Instagram or on a Page (design E4): the file on black in its 9:16 frame,
+ * the zones the app covers when asked (§11.3), and the app's names and buttons over both, so
+ * they stay readable. A story has no text.
  */
 const props = defineProps<{
   view: Extract<
@@ -29,9 +29,34 @@ const pct = (n: number) => `${String(n * 100)}%`
 <template>
   <div class="absolute inset-0 bg-black text-white" :data-view="view">
     <PostPreviewMedia v-if="item" :item="item" dark :start-ms="startMs" />
+    <!-- the zones the app covers (design E4): crimson, see-through -->
+    <div v-if="zones" class="pointer-events-none absolute inset-0 z-10" data-safe-zones>
+      <div
+        class="absolute inset-x-0 top-0 flex items-end justify-center border-b border-[#e0245e] bg-[#e0245e]/35 pb-1 text-[0.625rem] font-semibold"
+        :style="{ height: pct(zone.top) }"
+      >
+        {{ t('posts.preview.covered') }}
+      </div>
+      <div
+        class="absolute inset-x-0 bottom-0 flex items-start justify-center border-t border-[#e0245e] bg-[#e0245e]/35 pt-1 text-[0.625rem] font-semibold"
+        :style="{ height: pct(zone.bottom) }"
+      >
+        {{ t('posts.preview.covered') }}
+      </div>
+      <div
+        v-if="zone.sides > 0"
+        class="absolute left-0 border-r border-[#e0245e] bg-[#e0245e]/35"
+        :style="{ top: pct(zone.top), bottom: pct(zone.bottom), width: pct(zone.sides) }"
+      />
+      <div
+        v-if="zone.sides > 0"
+        class="absolute right-0 border-l border-[#e0245e] bg-[#e0245e]/35"
+        :style="{ top: pct(zone.top), bottom: pct(zone.bottom), width: pct(zone.sides) }"
+      />
+    </div>
     <!-- the app around the file -->
     <div class="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between">
-      <div class="flex flex-col gap-2 px-3 pt-8">
+      <div class="flex flex-col gap-2 px-3 pt-3">
         <div v-if="story" class="h-0.5 w-full rounded bg-white/60" />
         <div class="flex items-center gap-2 text-[0.75rem] font-semibold">
           <template v-if="story">
@@ -81,8 +106,9 @@ const pct = (n: number) => `${String(n * 100)}%`
               tone="light"
             />
           </div>
-          <span class="truncate text-[0.625rem] opacity-90">
-            ♫ {{ t('posts.preview.audio', { name }) }}
+          <span class="flex min-w-0 items-center gap-1 text-[0.625rem] opacity-90">
+            <UIcon name="i-lucide-music" class="size-3 shrink-0" aria-hidden="true" />
+            <span class="truncate">{{ t('posts.preview.audio', { name }) }}</span>
           </span>
         </div>
         <div class="flex flex-col items-center gap-3" aria-hidden="true">
@@ -103,26 +129,6 @@ const pct = (n: number) => `${String(n * 100)}%`
         <UIcon name="i-lucide-heart" class="size-5" />
         <UIcon name="i-lucide-send" class="size-5" />
       </div>
-    </div>
-    <!-- the zones the app covers (design E4): crimson, see-through -->
-    <div v-if="zones" class="pointer-events-none absolute inset-0 z-30" data-safe-zones>
-      <div
-        class="absolute inset-x-0 top-0 flex items-end justify-center border-b border-[#e0245e] bg-[#e0245e]/35 pb-1 text-[0.625rem] font-semibold"
-        :style="{ height: pct(zone.top) }"
-      >
-        {{ t('posts.preview.covered') }}
-      </div>
-      <div
-        class="absolute inset-x-0 bottom-0 flex items-start justify-center border-t border-[#e0245e] bg-[#e0245e]/35 pt-1 text-[0.625rem] font-semibold"
-        :style="{ height: pct(zone.bottom) }"
-      >
-        {{ t('posts.preview.covered') }}
-      </div>
-      <div
-        v-if="zone.right > 0"
-        class="absolute right-0 border-l border-[#e0245e] bg-[#e0245e]/35"
-        :style="{ top: pct(zone.top), bottom: pct(zone.bottom), width: pct(zone.right) }"
-      />
     </div>
   </div>
 </template>

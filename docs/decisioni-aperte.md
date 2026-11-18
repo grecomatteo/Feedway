@@ -355,7 +355,7 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 
 ### D-75 · Misure dell'anteprima come su Meta
 - **Origine:** tappa 6, Task 6 (anteprima, revisione della PR #240).
-- **Cosa fa ora:** l'anteprima taglia il testo dopo circa 125 caratteri o 2 righe nel feed di Instagram, 180 o 3 righe nei post di Facebook, 60 o 1 riga nei reel; le zone coperte sono il 14% in alto e il 35% in basso (più il 15% a destra) nei reel, il 14% in alto e il 20% in basso nelle storie (`SAFE_ZONES` in `apps/web/app/utils/post-preview.ts`).
+- **Cosa fa ora:** l'anteprima taglia il testo dopo circa 125 caratteri o 2 righe nel feed di Instagram, 180 o 3 righe nei post di Facebook, 60 o 1 riga nei reel; le zone coperte, misurate sul riquadro 9:16, sono il 14% in alto, il 35% in basso e il 6% per lato nei reel, il 14% in alto e in basso nelle storie (`SAFE_ZONES` in `apps/web/app/utils/post-preview.ts`; valori delle guide di Meta per i formati verticali come li riportano guide terze, rivisti il 18 novembre 2026).
 - **Non verificato:** sono misure approssimate, prese dalle guide pubbliche di Meta e dalle app di oggi; l'anteprima lo dice («Anteprima approssimativa»).
 - **Opzioni:** (a) restano così finché qualcuno non nota una differenza; (b) si misurano sulle app vere alla prova della tappa 7, con un post pubblicato davvero.
 - **Stato:** provvisoria (a), da rivedere con (b) alla tappa 7.

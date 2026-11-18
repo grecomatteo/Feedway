@@ -4,7 +4,7 @@ import type { PreviewItem } from '~/utils/post-preview'
 /**
  * A photo or a carousel in Instagram's feed (design E4): the frame takes the first file's
  * proportions, a carousel scrolls with the arrows and the dots, the text is cut after two lines
- * with «… altro». In the carousel the file shown moves before or after (Task 6).
+ * with «… altro». The file shown is a model: the panel moves it from outside the frame (Task 6).
  */
 const props = defineProps<{
   name: string
@@ -13,13 +13,11 @@ const props = defineProps<{
   frameRatio: number
   caption: string
   day: string
-  /** the files can be moved from here */
-  movable: boolean
 }>()
-const emit = defineEmits<{ move: [index: number, by: -1 | 1] }>()
 const { t } = useI18n()
 
-const at = ref(0)
+/** the position of the file shown in the carousel */
+const at = defineModel<number>('at', { default: 0 })
 watch(
   () => props.items.length,
   (n) => (at.value = Math.min(at.value, Math.max(0, n - 1))),
@@ -28,12 +26,6 @@ const current = computed(() => props.items[at.value])
 const many = computed(() => props.items.length > 1)
 function go(by: -1 | 1) {
   at.value = Math.min(props.items.length - 1, Math.max(0, at.value + by))
-}
-function move(by: -1 | 1) {
-  const item = current.value
-  if (!item) return
-  emit('move', item.index, by)
-  go(by)
 }
 </script>
 
@@ -97,24 +89,6 @@ function move(by: -1 | 1) {
         />
       </span>
       <UIcon name="i-lucide-bookmark" class="size-5" />
-    </div>
-    <div v-if="many && movable" class="flex gap-2 px-3 pt-2">
-      <button
-        type="button"
-        class="min-h-8 rounded-md border border-[#dbdbdb] px-2 text-[0.6875rem] disabled:opacity-40"
-        :disabled="at === 0"
-        @click="move(-1)"
-      >
-        {{ t('posts.preview.moveBefore') }}
-      </button>
-      <button
-        type="button"
-        class="min-h-8 rounded-md border border-[#dbdbdb] px-2 text-[0.6875rem] disabled:opacity-40"
-        :disabled="at === items.length - 1"
-        @click="move(1)"
-      >
-        {{ t('posts.preview.moveAfter') }}
-      </button>
     </div>
     <div class="flex flex-col gap-1 px-3 pt-2">
       <p class="text-[0.78125rem] font-semibold">{{ t('posts.preview.likes') }}</p>

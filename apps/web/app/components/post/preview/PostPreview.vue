@@ -155,7 +155,18 @@ const fbWhen = computed(() =>
       })
     : '',
 )
-const time = computed(() => e.when.value?.localTime ?? '18:00')
+/** the file the feed's carousel shows: «Sposta prima/dopo» under the frame move it */
+const feedAt = ref(0)
+const canMove = computed(
+  () =>
+    view.value === 'instagram_feed' && items.value.length > 1 && e.editable.value && fresh.value,
+)
+function moveShown(by: -1 | 1) {
+  const item = items.value[feedAt.value]
+  if (!item) return
+  move(item.index, by)
+  feedAt.value += by
+}
 
 /** The report was made on the files as they are now: its positions can be moved. */
 const fresh = computed(() => e.reportMedia.value.join() === e.files.value.map((f) => f.id).join())
@@ -216,7 +227,7 @@ function over(event: DragEvent) {
         {{ accountLabel(accountId) }}
       </p>
       <USwitch v-if="vertical" v-model="zones" :label="t('posts.preview.zones')" class="min-h-11" />
-      <PostPreviewPhoneFrame :dark="vertical" :time="time">
+      <PostPreviewFrame :vertical="vertical">
         <PostPreviewInstagramFeed
           v-if="view === 'instagram_feed'"
           :name="handle"
@@ -224,9 +235,8 @@ function over(event: DragEvent) {
           :items="items"
           :frame-ratio="feedRatio"
           :caption="destination?.caption ?? ''"
+          v-model:at="feedAt"
           :day="day"
-          :movable="e.editable.value && fresh"
-          @move="move"
         />
         <PostPreviewFacebookPost
           v-else-if="view === 'facebook_post'"
@@ -246,7 +256,27 @@ function over(event: DragEvent) {
           :zones="zones"
           :start-ms="view.endsWith('_reel') ? coverMs : undefined"
         />
-      </PostPreviewPhoneFrame>
+      </PostPreviewFrame>
+      <div v-if="canMove" class="flex flex-wrap gap-2" data-preview-move>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-arrow-left"
+          class="min-h-11"
+          :label="t('posts.preview.moveBefore')"
+          :disabled="feedAt === 0"
+          @click="moveShown(-1)"
+        />
+        <UButton
+          color="neutral"
+          variant="outline"
+          trailing-icon="i-lucide-arrow-right"
+          class="min-h-11"
+          :label="t('posts.preview.moveAfter')"
+          :disabled="feedAt === items.length - 1"
+          @click="moveShown(1)"
+        />
+      </div>
     </template>
     <div
       v-else

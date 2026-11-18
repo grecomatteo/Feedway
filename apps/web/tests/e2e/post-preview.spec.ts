@@ -122,8 +122,11 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
   await tab(page, 'Instagram · feed').click()
   await feed.getByRole('button', { name: 'File successivo' }).click()
   await expect(feed.getByText('2/3')).toBeVisible()
-  await feed.getByRole('button', { name: 'Sposta prima' }).click()
+  // the buttons are the panel's, under the frame, not inside Instagram's interface
+  await expect(feed.getByRole('button', { name: 'Sposta prima' })).toHaveCount(0)
+  await preview(page).getByRole('button', { name: 'Sposta prima' }).click()
   await expect(page.locator('[data-entry]').first()).toHaveAccessibleName(/File 1: impasto\.mov/)
+  await expect(feed.getByText('1/3')).toBeVisible()
 })
 
 test('a story shows no text and the zones the app covers; a reel the same, and the zones go away', async ({
@@ -141,6 +144,11 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   await expect(reel.locator('[data-preview-caption]')).toHaveText('Dietro le quinte')
   await expect(reel.locator('[data-safe-zones]')).toBeVisible()
   await expect(reel.getByText("Coperto dall'interfaccia").first()).toBeVisible()
+  // a plain 9:16 rectangle (no phone), whole above the action bar
+  const frame = await preview(page).locator('[data-preview-frame]').boundingBox()
+  const bar = await page.locator('[data-action-bar]').boundingBox()
+  expect(frame && Math.abs(frame.height / frame.width - 16 / 9)).toBeLessThan(0.02)
+  expect(frame && bar && frame.y + frame.height).toBeLessThanOrEqual(bar?.y ?? 0)
   await preview(page).getByRole('switch', { name: 'Mostra le zone coperte' }).click()
   await expect(reel.locator('[data-safe-zones]')).toHaveCount(0)
 
