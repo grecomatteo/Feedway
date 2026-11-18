@@ -346,7 +346,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       />
       <p
         v-else-if="visible.length === 0"
-        class="rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+        class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
       >
         {{
           query.trim()

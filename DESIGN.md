@@ -54,7 +54,7 @@ Matteo, dopo la prova della 0.11.0: una struttura sola, con margini e spaziature
 - **Elenchi:** la testata e poi un solo blocco con strumenti, avvisi ed elenco a `gap-block`, così il filtro resta attaccato all'elenco che filtra.
 - **Sottotitoli:** via quelli che ripetono il titolo o dicono l'ovvio («Il tuo ruolo: Owner. Da qui raggiungi le pagine dell'agenzia.», «Chi ha fatto cosa e quando, dal più recente.», nome ed email sotto «Impostazioni» nelle schede Sicurezza, Dispositivi e Privacy). Restano quelli che riassumono o spiegano una conseguenza: il riepilogo di Clienti e Utenti, «Solo l'Owner può cambiarle.», la prima configurazione, l'email di sistema, nome ed email in «Profilo e preferenze» (dove si sceglie il soprannome: al passaggio del mouse c'è il nome intero).
 - **Nomi dei file:** al massimo due righe, poi i puntini (`line-clamp-2`), in griglia, in elenco e nei caricamenti; il nome intero resta nel `title` e per lo screen reader.
-- Prova: `apps/web/tests/e2e/page-layout.spec.ts` (stessi margini e larghezza piena su otto pagine, a 390 e 1280 px). Revisione e schermate in `design/reviews/2026-11-18-ritocchi-d63.md`.
+- Prova: `apps/web/tests/e2e/page-layout.spec.ts` (stessi margini e larghezza piena su otto pagine, nei progetti Playwright a 1280 px e da telefono a 412 px; la fascia da 640 a 767 px, con il margine di 24 px, non ha ancora una prova). Le caselle che prendono il posto di un elenco vuoto («Nessun cliente trovato») hanno `max-w-none`: sono larghe come l'elenco. Revisione e schermate in `design/reviews/2026-11-18-ritocchi-d63.md`.
 
 ## Temi colore (16 novembre 2026; tappa 4, Task 13b)
 

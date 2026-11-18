@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { Me } from '@app/contracts'
-
 definePageMeta({ layout: 'personal' })
 
 interface MySession {
@@ -16,7 +14,6 @@ const { t } = useI18n()
 
 useHead({ title: () => t('devices.title') })
 
-const { data: me } = useFetch<Me>('/api/v1/me', { key: 'me', server: false, lazy: true })
 const { data, error, refresh } = useFetch<{ items: MySession[] }>('/api/v1/me/sessions', {
   key: 'my-sessions',
   server: false,
