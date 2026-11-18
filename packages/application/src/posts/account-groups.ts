@@ -96,11 +96,11 @@ export async function createAccountGroup(
   actor: OrgActor,
   input: { workspaceId: string; name: string; accountIds: readonly string[] },
 ): Promise<AccountGroupDto> {
-  const name = checkedName(input.name)
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const name = checkedName(input.name)
       if ((await tx.contentSettings.countGroups(scope)) >= CONTENT_SETTINGS_MAX)
         throw tooMany('gruppi')
       const accountIds = await checkedAccounts(tx, scope, input.accountIds)
@@ -118,11 +118,11 @@ export async function updateAccountGroup(
   actor: OrgActor,
   input: { workspaceId: string; groupId: string; name?: string; accountIds?: readonly string[] },
 ): Promise<AccountGroupDto> {
-  const name = input.name === undefined ? undefined : checkedName(input.name)
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const name = input.name === undefined ? undefined : checkedName(input.name)
       const groupId = knownId(input.groupId, groupNotFound)
       await readGroup(tx, scope, groupId)
       const accountIds =

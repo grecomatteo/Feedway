@@ -25,6 +25,9 @@ export interface PostNoteDto {
 
 export const noteNotFound = () => new DomainError('NOT_FOUND', 'Nota non trovata')
 
+/** Notes on one post: enough for a discussion, and the list stays light to read. */
+export const NOTES_PER_POST_MAX = 200
+
 const mayDelete = (actor: OrgActor, scope: PostScope, note: PostNoteRecord) =>
   note.authorId === actor.userId
     ? can(actor, 'post.draft', scope)
@@ -35,6 +38,7 @@ async function toDtos(
   actor: OrgActor,
   scope: PostScope,
   notes: readonly PostNoteRecord[],
+  archived: boolean,
 ): Promise<PostNoteDto[]> {
   // the authors are or were people of the agency: they wrote on its post
   const people = new Map(
@@ -49,7 +53,8 @@ async function toDtos(
     authorId: n.authorId,
     authorName: people.get(n.authorId) ?? '',
     createdAt: n.createdAt.toISOString(),
-    canDelete: mayDelete(actor, scope, n),
+    // an archived client takes no changes: its notes stay as they are
+    canDelete: !archived && mayDelete(actor, scope, n),
   }))
 }
 
@@ -67,9 +72,12 @@ export async function listNotes(
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
+      const { current, workspace, scope } = await openPosts(tx, actor, input.workspaceId, {
+        write: false,
+      })
       const post = await postOf(tx, scope, input.postId)
-      return { items: await toDtos(tx, current, scope, await tx.posts.listNotes(scope, post.id)) }
+      const notes = await tx.posts.listNotes(scope, post.id)
+      return { items: await toDtos(tx, current, scope, notes, workspace.archivedAt !== null) }
     },
   )
 }
@@ -79,9 +87,6 @@ export async function addNote(
   actor: OrgActor,
   input: { workspaceId: string; postId: string; body: string },
 ): Promise<PostNoteDto> {
-  const body = validateNoteBody(input.body)
-  if (body === null)
-    throw new DomainError('VALIDATION', 'La nota va da 1 a 2.000 caratteri', { field: 'body' })
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
@@ -89,14 +94,22 @@ export async function addNote(
       // on the workspace, not on the post: an Editor notes someone else's post too (§10.2)
       if (!can(current, 'post.draft', scope))
         throw new DomainError('FORBIDDEN', 'Non puoi scrivere note sui post di questo cliente')
+      const body = validateNoteBody(input.body)
+      if (body === null)
+        throw new DomainError('VALIDATION', 'La nota va da 1 a 2.000 caratteri', { field: 'body' })
       const post = await postOf(tx, scope, input.postId)
+      if ((await tx.posts.listNotes(scope, post.id)).length >= NOTES_PER_POST_MAX)
+        throw new DomainError(
+          'CONFLICT',
+          `Questo post ha già ${String(NOTES_PER_POST_MAX)} note: togline qualcuna prima di aggiungerne`,
+        )
       const note = await tx.posts.insertNote(scope, {
         id: deps.ids.newId(),
         postId: post.id,
         authorId: current.userId,
         body,
       })
-      const [dto] = await toDtos(tx, current, scope, [note])
+      const [dto] = await toDtos(tx, current, scope, [note], false)
       if (!dto) throw noteNotFound()
       return dto
     },

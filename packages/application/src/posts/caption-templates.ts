@@ -62,11 +62,11 @@ export async function createCaptionTemplate(
   actor: OrgActor,
   input: { workspaceId: string; kind: string; name: string; body: string },
 ): Promise<CaptionTemplateDto> {
-  const value = checked(input)
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const value = checked(input)
       if ((await tx.contentSettings.countTemplates(scope)) >= CONTENT_SETTINGS_MAX)
         throw tooMany('modelli')
       const id = deps.ids.newId()

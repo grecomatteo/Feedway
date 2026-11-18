@@ -61,11 +61,11 @@ export async function createLabel(
   actor: OrgActor,
   input: { workspaceId: string; name: string; color: string },
 ): Promise<LabelDto> {
-  const value = checked(input)
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: true })
+      const value = checked(input)
       const existing = await tx.contentSettings.listLabels(scope)
       if (existing.length >= CONTENT_SETTINGS_MAX) throw tooMany('etichette')
       const id = deps.ids.newId()

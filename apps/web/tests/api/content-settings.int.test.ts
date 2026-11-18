@@ -188,6 +188,23 @@ describe('labels, templates and groups', () => {
     )
   })
 
+  test('whoever may not write gets 403 even with an invalid body', async () => {
+    await refused(
+      call('viewer', 'POST', `${ws()}/labels`, { name: '', color: 'blu' }),
+      403,
+      'FORBIDDEN',
+    )
+    await refused(
+      call('editor', 'POST', `${ws()}/caption-templates`, {
+        kind: 'hashtags',
+        name: 'X',
+        body: ' ',
+      }),
+      403,
+      'FORBIDDEN',
+    )
+  })
+
   test('an archived client’s settings are read only', async () => {
     await ok(call('manager', 'GET', `${ws(archived)}/labels`))
     await refused(
@@ -304,6 +321,42 @@ describe('notes', () => {
     expect(
       (await ok<{ items: Note[] }>(call('viewer', 'GET', `${ws()}/posts/${post.id}/notes`))).items,
     ).toEqual([])
+  })
+
+  test('on an archived client no note is offered for deletion', async () => {
+    const post = await draft()
+    const note = await ok<Note>(
+      call('manager', 'POST', `${ws()}/posts/${post.id}/notes`, { body: 'Da archiviare' }),
+    )
+    await env.admin.pool.query('update workspaces set archived_at = now() where id = $1', [forno])
+    try {
+      const seen = await ok<{ items: Note[] }>(
+        call('manager', 'GET', `${ws()}/posts/${post.id}/notes`),
+      )
+      expect(seen.items.map((n) => [n.id, n.canDelete])).toEqual([[note.id, false]])
+      await refused(
+        call('manager', 'DELETE', `${ws()}/posts/${post.id}/notes/${note.id}`),
+        409,
+        'CONFLICT',
+      )
+    } finally {
+      await env.admin.pool.query('update workspaces set archived_at = null where id = $1', [forno])
+    }
+  })
+
+  test('a post takes at most 200 notes', async () => {
+    const post = await draft()
+    await env.admin.pool.query(
+      `insert into post_notes (id, organization_id, workspace_id, post_id, author_id, body)
+       select gen_random_uuid(), p.organization_id, p.workspace_id, p.id, p.created_by, 'Nota ' || n
+       from posts p, generate_series(1, 200) n where p.id = $1`,
+      [post.id],
+    )
+    await refused(
+      call('editor', 'POST', `${ws()}/posts/${post.id}/notes`, { body: 'Una di troppo' }),
+      409,
+      'CONFLICT',
+    )
   })
 
   test('a Viewer reads the notes and writes none (403)', async () => {
