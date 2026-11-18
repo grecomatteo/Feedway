@@ -1,5 +1,5 @@
 {
-  "id": "ec40c0aa-dc97-4d5e-aa4d-d1c4b52fdc2a",
+  "id": "b129a3ea-7127-466e-9fb8-17290bb55a9d",
   "prevId": "fb1261d2-69d4-434e-8f8a-8cbd3640ef0c",
   "version": "7",
   "dialect": "postgresql",
@@ -3956,7 +3956,35 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "labels_workspace_name": {
+          "name": "labels_workspace_name",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(\"name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "labels_organization_id_organizations_id_fk": {
           "name": "labels_organization_id_organizations_id_fk",
@@ -3996,15 +4024,6 @@
             "organization_id",
             "workspace_id",
             "id"
-          ]
-        },
-        "labels_workspace_name": {
-          "name": "labels_workspace_name",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "workspace_id",
-            "name"
           ]
         }
       },
@@ -4846,14 +4865,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "posts_organization_id": {
-          "name": "posts_organization_id",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "id"
-          ]
-        },
         "posts_workspace_id": {
           "name": "posts_workspace_id",
           "nullsNotDistinct": false,

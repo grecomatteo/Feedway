@@ -1,6 +1,6 @@
 import { isPlainDisplayName } from '../identity/display-name.js'
 import { normalizeEmail } from '../identity/email.js'
-import { isValidTimeZone } from '../identity/profile.js'
+import { isListedTimeZone } from '../identity/profile.js'
 import type { TwoFactorPolicy } from '../identity/second-factor-policy.js'
 
 export interface OrganizationPrivacySettings {
@@ -22,7 +22,7 @@ export const DEFAULT_POST_TIME_ZONE = 'Europe/Rome'
 /** What an agency stored, if it is a time zone this runtime knows; Rome otherwise. */
 export function storedTimeZone(settings: Record<string, unknown>): string {
   const value = settings.timezone
-  return typeof value === 'string' && isValidTimeZone(value) ? value : DEFAULT_POST_TIME_ZONE
+  return typeof value === 'string' && isListedTimeZone(value) ? value : DEFAULT_POST_TIME_ZONE
 }
 
 // Keys present in the patch replace the current value; `privacy` is replaced as a whole.

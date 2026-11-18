@@ -154,7 +154,8 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             page.before === undefined
               ? undefined
               : sql`(${posts.createdAt}, ${posts.id}) < (select b.created_at, b.id from ${posts} b
-                     where b.organization_id = ${scope.organizationId} and b.id = ${page.before})`,
+                     where b.organization_id = ${scope.organizationId}
+                       and b.workspace_id = ${scope.workspaceId} and b.id = ${page.before})`,
           ),
         )
         .orderBy(desc(posts.createdAt), desc(posts.id))
@@ -165,7 +166,11 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       await db
         .delete(postMedia)
         .where(
-          and(eq(postMedia.organizationId, scope.organizationId), eq(postMedia.postId, postId)),
+          and(
+            eq(postMedia.organizationId, scope.organizationId),
+            eq(postMedia.workspaceId, scope.workspaceId),
+            eq(postMedia.postId, postId),
+          ),
         )
       if (mediaIds.length === 0) return
       await db.insert(postMedia).values(
@@ -182,9 +187,12 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     async replaceTargets(scope, postId, targets) {
       const ofPost = and(
         eq(postTargets.organizationId, scope.organizationId),
+        eq(postTargets.workspaceId, scope.workspaceId),
         eq(postTargets.postId, postId),
       )
-      const accountIds = targets.map((t) => t.accountId)
+      // one row per account: the last one given wins
+      const byAccount = new Map(targets.map((t) => [t.accountId, t]))
+      const accountIds = [...byAccount.keys()]
       await db
         .delete(postTargets)
         .where(
@@ -192,12 +200,14 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             ? ofPost
             : and(ofPost, notInArray(postTargets.accountId, accountIds)),
         )
-      if (targets.length === 0) return
+      if (accountIds.length === 0) return
       await db
         .insert(postTargets)
-        .values(targets.map((t) => ({ id: ids.newId(), ...scope, postId, ...t })))
+        .values([...byAccount.values()].map((t) => ({ id: ids.newId(), ...scope, postId, ...t })))
         .onConflictDoUpdate({
           target: [postTargets.organizationId, postTargets.postId, postTargets.accountId],
+          // never a row of another workspace's post: its key would not take this one
+          setWhere: eq(postTargets.workspaceId, scope.workspaceId),
           set: {
             status: sql`excluded.status`,
             fingerprint: sql`excluded.fingerprint`,
@@ -209,7 +219,11 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       await db
         .delete(postLabels)
         .where(
-          and(eq(postLabels.organizationId, scope.organizationId), eq(postLabels.postId, postId)),
+          and(
+            eq(postLabels.organizationId, scope.organizationId),
+            eq(postLabels.workspaceId, scope.workspaceId),
+            eq(postLabels.postId, postId),
+          ),
         )
       if (labelIds.length === 0) return
       await db

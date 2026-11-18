@@ -162,6 +162,8 @@ function runPass(
   }
   findings.unshift(...commonRules(draft, ctx, when, destinations, new Set(views.keys())))
 
+  // once per destination: the sha256 runs on texts up to 70,000 characters
+  const fingerprints = new Map<string, string | null>()
   for (const d of destinations) {
     const view = d.account ? views.get(d.account.platform) : undefined
     const rules = d.account ? rulesOf.get(d.account.platform) : undefined
@@ -170,6 +172,7 @@ function runPass(
       ...rules.checkAccount(view, { ...d.account, id: d.accountId }, ctx.history, when.instant),
     )
     const fingerprint = fingerprintOf(d.accountId, view)
+    fingerprints.set(d.accountId, fingerprint)
     if (fingerprint !== null) {
       if (ctx.history.recentFingerprints.get(d.accountId)?.has(fingerprint))
         findings.push({
@@ -214,7 +217,7 @@ function runPass(
         format: view?.format ?? null,
         caption: view?.caption ?? '',
         media: view?.media.map((m) => m.index) ?? [],
-        fingerprint: view ? fingerprintOf(d.accountId, view) : null,
+        fingerprint: fingerprints.get(d.accountId) ?? null,
         outcomeKeys: [],
       }
     }),

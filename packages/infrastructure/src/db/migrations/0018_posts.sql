@@ -32,7 +32,6 @@ CREATE TABLE "labels" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "labels_workspace_id" UNIQUE("organization_id","workspace_id","id"),
-	CONSTRAINT "labels_workspace_name" UNIQUE("organization_id","workspace_id","name"),
 	CONSTRAINT "labels_name" CHECK (char_length("labels"."name") between 1 and 40),
 	CONSTRAINT "labels_color" CHECK (color in ('feedway', 'blu', 'verde', 'viola', 'grafite'))
 );
@@ -120,7 +119,6 @@ CREATE TABLE "posts" (
 	"version" integer DEFAULT 1 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "posts_organization_id" UNIQUE("organization_id","id"),
 	CONSTRAINT "posts_workspace_id" UNIQUE("organization_id","workspace_id","id"),
 	CONSTRAINT "posts_type" CHECK (type in ('photo', 'carousel', 'reel', 'story')),
 	CONSTRAINT "posts_status" CHECK (status in ('draft', 'scheduled', 'cancelled')),
@@ -146,6 +144,7 @@ ALTER TABLE "posts" ADD CONSTRAINT "posts_organization_id_organizations_id_fk" F
 ALTER TABLE "posts" ADD CONSTRAINT "posts_workspace_fk" FOREIGN KEY ("organization_id","workspace_id") REFERENCES "public"."workspaces"("organization_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_groups_workspace_idx" ON "account_groups" USING btree ("organization_id","workspace_id");--> statement-breakpoint
 CREATE INDEX "caption_templates_workspace_idx" ON "caption_templates" USING btree ("organization_id","workspace_id","kind");--> statement-breakpoint
+CREATE UNIQUE INDEX "labels_workspace_name" ON "labels" USING btree ("organization_id","workspace_id",lower("name"));--> statement-breakpoint
 CREATE INDEX "post_labels_label_idx" ON "post_labels" USING btree ("organization_id","label_id");--> statement-breakpoint
 CREATE INDEX "post_media_media_idx" ON "post_media" USING btree ("organization_id","media_id");--> statement-breakpoint
 CREATE INDEX "post_notes_post_idx" ON "post_notes" USING btree ("organization_id","post_id","created_at");--> statement-breakpoint

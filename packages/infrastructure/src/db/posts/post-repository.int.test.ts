@@ -111,12 +111,46 @@ test('a save with the version read passes once: the second with the same version
   expect(post).toMatchObject({ version: 2, caption: 'Nuovo testo' })
 })
 
-test('a post of another workspace is not found, nor written', async () => {
+test('a post of another workspace is not found, nor written, nor emptied', async () => {
   const id = await newPost()
+  await run(async (tx) => {
+    await tx.posts.replaceMedia(scope(), id, [photo], null)
+    await tx.posts.replaceTargets(scope(), id, [
+      { accountId: ig, status: 'draft', fingerprint: null },
+    ])
+  })
   const other = { organizationId: org, workspaceId: randomUUID() }
   expect(await run((tx) => tx.posts.find(other, id))).toBe(null)
   expect(await run((tx) => tx.posts.update(other, id, change(), 1))).toBe(null)
   expect(await run((tx) => tx.posts.delete(other, id))).toBe(false)
+  await run(async (tx) => {
+    await tx.posts.replaceMedia(other, id, [], null)
+    await tx.posts.replaceTargets(other, id, [])
+    await tx.posts.replaceLabels(other, id, [])
+  })
+  // an account already there is not rewritten from another workspace
+  await run((tx) =>
+    tx.posts.replaceTargets(other, id, [
+      { accountId: ig, status: 'scheduled', fingerprint: 'f'.repeat(64) },
+    ]),
+  )
+  expect(await run((tx) => tx.posts.find(scope(), id))).toMatchObject({
+    mediaIds: [photo],
+    targets: [{ accountId: ig, status: 'draft', fingerprint: null }],
+  })
+})
+
+test('an account given twice is one destination, the last one given', async () => {
+  const id = await newPost()
+  await run((tx) =>
+    tx.posts.replaceTargets(scope(), id, [
+      { accountId: ig, status: 'draft', fingerprint: null },
+      { accountId: ig, status: 'scheduled', fingerprint: 'a'.repeat(64) },
+    ]),
+  )
+  expect((await run((tx) => tx.posts.find(scope(), id)))?.targets).toEqual([
+    expect.objectContaining({ accountId: ig, status: 'scheduled' }),
+  ])
 })
 
 test('files keep their order; the cover sits on the video, a frame or a photo', async () => {
@@ -234,8 +268,14 @@ test('the posts that use a file, as a file or as a cover, the scheduled ones fir
       .map((u) => u.mediaId)
       .sort(),
   ).toEqual([cover, unrelated].sort())
+  // a draft written after the scheduled post, with the same video
+  const later = await newPost({ type: 'reel' })
+  await run((tx) => tx.posts.replaceMedia(scope(), later, [video], null))
   const onVideo = await run((tx) => tx.posts.usingMedia(org, [video]))
-  expect(onVideo[0]).toMatchObject({ postId: scheduled, status: 'scheduled' })
+  expect(onVideo.map((u) => [u.postId, u.status])).toEqual([
+    [scheduled, 'scheduled'],
+    [later, 'draft'],
+  ])
 })
 
 test('labels are replaced, each once', async () => {

@@ -72,15 +72,21 @@ export const createWorkspaceRoute = defineContract({
   scope: 'organization',
 })
 
-/** The name (Owner and Admin), the default time of the posts (Manager and above). */
+/**
+ * One field at a time, each with its own permission: the name (Owner and Admin) or the default
+ * time of the posts, `HH:MM` or null (Manager and above).
+ */
 const WorkspaceChange = z
   .strictObject({
     name: z.string().max(400),
-    defaultPostTime: z.string().max(5).nullable(),
+    defaultPostTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable(),
   })
   .partial()
-  .refine((b) => b.name !== undefined || b.defaultPostTime !== undefined, {
-    message: 'Nessun campo da cambiare',
+  .refine((b) => (b.name === undefined) !== (b.defaultPostTime === undefined), {
+    message: 'Un campo alla volta: name oppure defaultPostTime',
   })
 
 export const renameWorkspaceRoute = defineContract({

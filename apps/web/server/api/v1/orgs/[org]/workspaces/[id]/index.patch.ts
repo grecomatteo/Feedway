@@ -1,16 +1,9 @@
 import { renameWorkspace, setDefaultPostTime } from '@app/application'
 import { renameWorkspaceRoute } from '@app/contracts'
 
-// Two permissions, one field each (plan 06 Task 3): the panel changes one at a time.
-export default defineApiRoute(renameWorkspaceRoute, async ({ actor, params, body, ip }) => {
-  const deps = useDeps()
-  let workspace =
-    body.name === undefined
-      ? undefined
-      : await renameWorkspace(deps, actor, params.id, { name: body.name }, { ip })
-  if (body.defaultPostTime !== undefined)
-    workspace = await setDefaultPostTime(deps, actor, params.id, body.defaultPostTime, { ip })
-  // the contract refuses a body with neither field
-  if (!workspace) throw new Error('unreachable: an empty change')
-  return workspace
-})
+// One field per request (the contract), each with its own permission (plan 06 Task 3).
+export default defineApiRoute(renameWorkspaceRoute, ({ actor, params, body, ip }) =>
+  body.name !== undefined
+    ? renameWorkspace(useDeps(), actor, params.id, { name: body.name }, { ip })
+    : setDefaultPostTime(useDeps(), actor, params.id, body.defaultPostTime ?? null, { ip }),
+)

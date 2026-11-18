@@ -89,9 +89,9 @@ export interface RuleAccount {
 export interface PublishingHistoryFacts {
   /** `postFingerprint` of the posts within 7 days of the instant, by account */
   recentFingerprints: ReadonlyMap<string, ReadonlySet<string>>
-  /** reels in the 24 hours around the instant, by account */
+  /** reels in the 24 hours before the instant, the instant included, by account (D-68) */
   reelsLast24h: ReadonlyMap<string, number>
-  /** posts scheduled in the 24 hours before the instant, by account */
+  /** posts scheduled in the 24 hours before the instant, the instant included, by account (D-68) */
   scheduledNear: ReadonlyMap<string, number>
 }
 

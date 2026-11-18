@@ -7,7 +7,7 @@ import {
   checkPrivacySettings,
   storedPrivacySettings,
   storedTimeZone,
-  isValidTimeZone,
+  isListedTimeZone,
   type OrganizationPrivacySettings,
   type OrgActor,
   type OrgRole,
@@ -187,7 +187,7 @@ export async function updateOrganizationSettings(
     privacy = valid.value
   }
   const { timezone } = input
-  if (timezone !== undefined && !isValidTimeZone(timezone))
+  if (timezone !== undefined && !isListedTimeZone(timezone))
     throw new DomainError('VALIDATION', 'Scegli un fuso orario dell’elenco', { field: 'timezone' })
   assertRecentReauth(session, deps.clock.now())
 

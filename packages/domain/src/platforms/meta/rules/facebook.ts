@@ -134,7 +134,7 @@ export const FACEBOOK_RULES: PlatformRules = {
       })
     return [...findings, ...checkCarousel(view), ...checkReel(view), ...checkReelAndStory(view)]
   },
-  // the 30 reels are counted around the instant by `history.reelsLast24h`
+  // the 30 reels are counted in the 24 hours before the instant by `history.reelsLast24h` (D-68)
   checkAccount(view, account, history) {
     if (view.format !== 'reel') return []
     const reels = history.reelsLast24h.get(account.id) ?? 0

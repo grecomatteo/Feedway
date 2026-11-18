@@ -207,6 +207,16 @@ test('the checks keep the values inside their lists', async () => {
   await expect(inOrg(orgA, (c) => c.query(`update labels set color = '#ff0000'`))).rejects.toThrow(
     /labels_color/,
   )
+  // one name per workspace, whatever its case
+  await expect(
+    inOrg(orgA, (c) =>
+      c.query(
+        `insert into labels (id, organization_id, workspace_id, name, color)
+         values ($1, $2, $3, 'PROMO', 'blu')`,
+        [randomUUID(), orgA, wsA],
+      ),
+    ),
+  ).rejects.toThrow(/labels_workspace_name/)
   await expect(
     inOrg(orgA, (c) => c.query(`update caption_templates set kind = 'emoji'`)),
   ).rejects.toThrow(/caption_templates_kind/)
@@ -226,8 +236,24 @@ test('deleting a post takes its files, destinations, labels and notes with it', 
        values ($1, $2, $3, $4, $5, 'x')`,
       [randomUUID(), orgA, wsA, id, userA],
     )
+    await c.query(
+      `insert into post_targets (id, organization_id, workspace_id, post_id, account_id)
+       values ($1, $2, $3, $4, $5)`,
+      [randomUUID(), orgA, wsA, id, accountA],
+    )
+    const label = randomUUID()
+    await c.query(
+      `insert into labels (id, organization_id, workspace_id, name, color)
+       values ($1, $2, $3, 'Da cancellare', 'viola')`,
+      [label, orgA, wsA],
+    )
+    await c.query(
+      `insert into post_labels (organization_id, workspace_id, post_id, label_id)
+       values ($1, $2, $3, $4)`,
+      [orgA, wsA, id, label],
+    )
     await c.query('delete from posts where id = $1', [id])
-    for (const t of ['post_media', 'post_notes'])
+    for (const t of ['post_media', 'post_notes', 'post_targets', 'post_labels'])
       expect((await c.query(`select 1 from ${t} where post_id = $1`, [id])).rowCount, t).toBe(0)
   })
 })

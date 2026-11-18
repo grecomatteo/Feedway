@@ -10,6 +10,7 @@ import {
   primaryKey,
   text,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { socialAccounts } from '../accounts/schema.js'
@@ -50,8 +51,7 @@ export const posts = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
-    // targets of the composite foreign keys
-    unique('posts_organization_id').on(t.organizationId, t.id),
+    // target of the composite foreign keys
     unique('posts_workspace_id').on(t.organizationId, t.workspaceId, t.id),
     index('posts_workspace_status_idx').on(
       t.organizationId,
@@ -186,7 +186,8 @@ export const labels = pgTable(
   },
   (t) => [
     unique('labels_workspace_id').on(t.organizationId, t.workspaceId, t.id),
-    unique('labels_workspace_name').on(t.organizationId, t.workspaceId, t.name),
+    // «Promo» and «promo» are one label
+    uniqueIndex('labels_workspace_name').on(t.organizationId, t.workspaceId, sql`lower(${t.name})`),
     foreignKey({
       name: 'labels_workspace_fk',
       columns: [t.organizationId, t.workspaceId],
