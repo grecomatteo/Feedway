@@ -32,7 +32,7 @@ Ultimo aggiornamento: Piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06
 - **Origine:** tappa 4, Task 12, domanda di Matteo (16 novembre 2026). La specifica (§11.8, §11.9) dice che i file caricati direttamente in un post non entrano in libreria e si cancellano `MEDIA_RETENTION_DAYS` (7) giorni dopo la pubblicazione, salvo «salvati in libreria».
 - **Decisione di Matteo:** finché il post è programmato i suoi file si vedono nella libreria del cliente; quando il programma ha verificato che la pubblicazione è andata a buon fine, si possono togliere. Resta il pulsante per tenerli («Salva in libreria»).
 - **Da precisare nella tappa 6:** se si tolgono subito dopo la verifica o dopo i 7 giorni di `MEDIA_RETENTION_DAYS`; come si distinguono in libreria dai file salvati (per esempio un'etichetta «Nel post del …»).
-- **Stato:** decisa, da fare nelle tappe 6 (post) e 7 (pubblicazione e verifica); la specifica §11.8 va aggiornata in quella PR. Nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 10: etichetta «Nel post del …» e filtro «Nei post», un file in un post programmato non si cancella; quando toglierli resta della tappa 7.
+- **Stato:** decisa, da fare nelle tappe 6 (post) e 7 (pubblicazione e verifica); la specifica §11.8 va aggiornata in quella PR. Nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 10: etichetta «Nel post del …» e filtro «Nei post», un file in un post programmato non si cancella; quando toglierli resta della tappa 7. §11.8 e §11.9 si aggiornano nel Task 4 (P8).
 
 ### D-19 · Il limite delle foto si controlla solo nel pannello e nel worker
 - **Origine:** tappa 4, Task 13.
@@ -277,7 +277,7 @@ Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.
 ### D-58 · Fuso dei post fisso su Roma
 - **Origine:** revisione finale della tappa 5, P9. `POST_TIME_ZONE = 'Europe/Rome'` in `check-post.ts`; i testi `time_skipped` e `time_ambiguous` e i fusi di `rule-message.ts` sono scritti per Roma. La specifica §13 ha `posts.timezone` e il piano generale (tappa 6) il fuso predefinito dell'organizzazione.
 - **Opzioni:** (a) nella tappa 6 il fuso arriva con il post o dall'organizzazione, e i due testi diventano generici con `{time}` e `{zone}`; (b) Roma per tutta la 1.0, scritto nella specifica.
-- **Stato:** scelta provvisoria **(a)** nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 3: `organizations.default_timezone` (predefinito `Europe/Rome`, lo cambia l'Owner) copiato in `posts.timezone`, testi generici con `{time}` e `{zone}`; da confermare da Matteo con il piano. Tabelle nel Task 3, regole e testi nel Task 4, impostazione nel Task 7.
+- **Stato:** scelta provvisoria **(a)** nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 3: `organizations.settings.timezone` (assente = `Europe/Rome`, lo cambia l'Owner) copiato in `posts.timezone`, testi generici con `{time}` e `{zone}`; da confermare da Matteo con il piano. Lettura e scrittura nel Task 3, regole e testi nel Task 4, interfaccia nel Task 7.
 
 ### D-59 · Lo stesso file due volte in un carosello
 - **Origine:** revisione finale della tappa 5, P12. `mediaIds` può ripetere un id e il motore lo accetta senza esiti.
