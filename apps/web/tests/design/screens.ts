@@ -45,9 +45,7 @@ export const SCREENS: Screen[] = [
     id: '03-oggi-niente-da-sistemare',
     path: (s) => `/${s.org}`,
     prepare: async (page) => {
-      await page.route(/\/agenda\/issues\?/, (route) =>
-        route.fulfill({ json: { items: [] } }),
-      )
+      await page.route(/\/agenda\/issues\?/, (route) => route.fulfill({ json: { items: [] } }))
       await page.reload()
       await page.locator('[data-today-calm]').waitFor()
       await page.waitForLoadState('networkidle')
@@ -75,5 +73,18 @@ export const SCREENS: Screen[] = [
       await page.mouse.move(0, 0)
       await page.waitForTimeout(300)
     },
+  },
+  // the client's page (Task R4): Forno Luce, whose third profile asks to be reconnected
+  {
+    id: '16-cliente-panoramica',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}`,
+  },
+  {
+    id: '17-cliente-post',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/post`,
+  },
+  {
+    id: '18-cliente-contenuti',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/contenuti`,
   },
 ]

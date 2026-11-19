@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import type { ClientProfile } from '@app/contracts'
+import type { AgendaPost, ClientProfile } from '@app/contracts'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { DataColumn } from '~/components/DataTable.vue'
+import type { Platform } from '~/components/PlatformIcons.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
 
 /**
- * Panoramica of the client's page (spec §14.7, plan 04 Task 6a): its profiles with their state,
- * quota and last sync, and the people who work in it. Owner and Admin act on the profiles from
+ * Panoramica of the client's page (screen 16, spec §14.7): on the left its next posts and its
+ * profiles with what they published in 24 hours, the last sync and the link only where someone
+ * has to act; on the right the latest files and who works in it. Owner and Admin act on the profiles from
  * «⋯»: «Ricollega» (to Integrazioni), «Sostituisci profilo» (one in no client takes its place),
  * «Togli dal cliente» (the account stays, back in «Sistemali» if in no other client).
  */
@@ -20,13 +21,13 @@ interface Member {
 
 const org = useOrganization()
 const context = useContextQuery()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { call, failure } = useApi()
 const ready = useHydrated()
 const { client, profiles, refreshClients } = useClientPage()
 const { data: withoutClient, refresh: refreshWithoutClient } = useProfilesWithoutClient()
 
-const list = computed(() => profiles.data.value?.items ?? [])
+const list = computed(() => instagramFirst(profiles.data.value?.items ?? []))
 const archived = computed(() => (client.value?.archivedAt ?? null) !== null)
 /** The actions on the profiles: Owner and Admin, on a client that is not archived (§10.2). */
 const canChange = computed(() => org.may.value.assignAccounts && !archived.value)
@@ -51,14 +52,8 @@ const stateOf = (p: WorkspaceProfile) => {
   }
 }
 
-const PLATFORM_ICON: Record<string, string> = {
-  instagram: 'i-lucide-instagram',
-  facebook: 'i-lucide-facebook',
-}
-const iconOf = (platform: string) => PLATFORM_ICON[platform] ?? 'i-lucide-at-sign'
 const handleOf = (a: ProfileAccount) =>
   a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
-const handles = (p: WorkspaceProfile) => p.accounts.map(handleOf).join(' · ')
 
 // ---- quota (what the platform lets it publish in a day) and the last sync
 const quotaOf = (p: WorkspaceProfile) => p.accounts.find((a) => a.quota)?.quota ?? null
@@ -72,45 +67,75 @@ const syncedOf = (p: WorkspaceProfile) =>
     .filter((d): d is string => d !== null)
     .sort()
     .at(-1) ?? null
-/** «2 ore fa», «ieri»: how long ago, in the person's language. */
-const ago = (iso: string) => {
-  const seconds = (new Date(iso).getTime() - Date.now()) / 1000
-  const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
-  for (const [unit, size] of [
-    ['day', 86_400],
-    ['hour', 3_600],
-    ['minute', 60],
-  ] as const)
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit)
-  return rtf.format(0, 'minute')
-}
 const syncedText = (p: WorkspaceProfile) => {
   const d = syncedOf(p)
-  return d ? ago(d) : t('client.neverSynced')
+  return d ? formatRelative(d, { now }) : t('client.neverSynced')
 }
-/** On a phone: the handles, then the quota and the last sync, short. */
-const detailOf = (p: WorkspaceProfile) =>
-  [
-    handles(p),
-    quotaText(p),
-    syncedOf(p) ? t('client.syncedShort', { when: syncedText(p) }) : t('client.neverSynced'),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
-const columns = computed<DataColumn[]>(() => [
-  { key: 'profile', label: t('client.column.profile') },
-  { key: 'state', label: t('client.column.state') },
-  { key: 'quota', label: t('client.column.quota') },
-  { key: 'synced', label: t('client.column.synced') },
-  {
-    key: 'actions',
-    label: t('workspaces.column.actions'),
-    hideLabel: true,
-    align: 'end',
-    class: 'w-px px-2 whitespace-nowrap',
-  },
+/** «Instagram», «Pagina Facebook», or both for an Instagram and its Page. */
+const kindOf = (p: WorkspaceProfile) => {
+  const platforms = new Set(p.accounts.map((a) => a.platform))
+  if (platforms.size > 1) return t('clients.new.kind.both')
+  return platforms.has('facebook')
+    ? t('clients.new.kind.facebook')
+    : t('clients.new.kind.instagram')
+}
+const mainOf = (p: WorkspaceProfile) =>
+  (p.accounts.find((a) => a.platform === 'instagram') ?? p.accounts[0]) as ProfileAccount
+const profileHead = computed(() => [
+  t('client.column.profile'),
+  t('client.column.quota'),
+  t('client.column.synced'),
+  t('client.column.state'),
+  { label: t('workspaces.column.actions'), hidden: true as const },
 ])
+
+// ---- the next posts: the three that go out first, from now
+const now = new Date()
+const clientIdRef = computed(() => client.value?.id ?? null)
+const agenda = useFetch<{ items: AgendaPost[] }>(() => org.api('/agenda'), {
+  key: () => `client-next-${org.slug.value}-${clientIdRef.value ?? ''}`,
+  query: computed(() => ({
+    from: now.toISOString(),
+    to: new Date(now.getTime() + 42 * 86_400_000).toISOString(),
+    ...(clientIdRef.value ? { workspaceId: clientIdRef.value } : {}),
+  })),
+  server: false,
+  lazy: true,
+  immediate: false,
+  watch: false,
+})
+watch(
+  clientIdRef,
+  (id) => {
+    if (id) void agenda.refresh()
+  },
+  { immediate: true },
+)
+const nextPosts = computed(() => (agenda.data.value?.items ?? []).slice(0, 3))
+const TYPE_ICON: Record<AgendaPost['type'], string> = {
+  photo: 'i-lucide-image',
+  carousel: 'i-lucide-gallery-horizontal-end',
+  reel: 'i-lucide-clapperboard',
+  story: 'i-lucide-circle-dashed',
+}
+const postThumb = (p: AgendaPost) =>
+  p.thumbnail
+    ? org.api(
+        `/workspaces/${encodeURIComponent(p.workspaceId)}/media/${encodeURIComponent(p.thumbnail.mediaId)}/file/${p.thumbnail.variant}`,
+      )
+    : null
+/** «Carosello · 3 file», «Foto», «Senza file» */
+const postKind = (p: AgendaPost) => {
+  if (p.mediaCount === 0) return t('posts.list.noType')
+  const type = t(`posts.type.${p.type}`)
+  return p.type === 'carousel' ? `${type} · ${t('client.files', { n: p.mediaCount })}` : type
+}
+const postWhen = (p: AgendaPost) => formatRelative(p.scheduledAt, { timeZone: p.timezone, now })
+const postsPage = computed(() =>
+  client.value ? org.to(`/spazi/${encodeURIComponent(client.value.slug)}/post`) : '',
+)
+const postPage = (p: AgendaPost) => `${postsPage.value}/${encodeURIComponent(p.id)}`
+const platformsOf = (p: AgendaPost) => p.platforms as Platform[]
 
 // ---- the actions
 const done = useFlash()
@@ -213,6 +238,8 @@ function actions(p: WorkspaceProfile): DropdownMenuItem[][] {
   return groups
 }
 const name = (p: WorkspaceProfile) => profileName(p)
+const reconnects = (p: WorkspaceProfile) =>
+  org.may.value.manageAccounts && stateOf(p).link === 'reconnect'
 
 // ---- who works in it
 const membersPath = computed(() =>
@@ -235,9 +262,6 @@ watch(
   },
   { immediate: true },
 )
-const canManageMembers = computed(
-  () => org.may.value.manageUsers || client.value?.myRole === 'manager',
-)
 </script>
 
 <template>
@@ -247,177 +271,234 @@ const canManageMembers = computed(
       {{ problem }}
     </p>
 
-    <section aria-labelledby="client-profiles" class="space-y-3">
-      <div class="flex min-h-11 items-center justify-between gap-3">
-        <h2 id="client-profiles" class="text-lg">{{ $t('client.profiles') }}</h2>
-        <UButton
-          v-if="canChange && orphans.length > 0"
-          class="min-h-control"
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-plus"
-          @click="picking = { replace: null }"
-        >
-          {{ $t('client.add') }}
-        </UButton>
-      </div>
-
-      <TableSkeleton
-        v-if="!profiles.data.value && !profiles.error.value"
-        :label="$t('client.loading')"
-        :columns="[
-          $t('client.column.profile'),
-          $t('client.column.state'),
-          $t('client.column.quota'),
-          $t('client.column.synced'),
-        ]"
-        :rows="2"
-      />
-      <div
-        v-else-if="profiles.error.value"
-        role="alert"
-        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
-      >
-        <p>{{ $t('workspaceAccounts.loadError') }}</p>
-        <UButton
-          class="min-h-control"
-          color="neutral"
-          variant="outline"
-          @click="() => profiles.refresh()"
-        >
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
-      <EmptyState
-        v-else-if="list.length === 0"
-        icon="i-lucide-at-sign"
-        :title="$t('client.noProfiles')"
-        :text="
-          archived
-            ? $t('workspaceAccounts.emptyArchived')
-            : canChange
-              ? orphans.length > 0
-                ? $t('client.noProfilesAdd')
-                : $t('client.noProfilesNone')
-              : $t('workspaceAccounts.emptyMember')
-        "
-      />
-      <DataTable
-        v-else
-        :caption="$t('client.profiles')"
-        :columns="columns"
-        :rows="list"
-        :row-key="(p) => p.key"
-      >
-        <template #cell-profile="{ row }">
-          <span class="flex min-w-0 items-center gap-3">
-            <RowAvatar :name="name(row)" :src="profilePhoto(row)" />
-            <span class="min-w-0">
-              <span class="block truncate text-[0.9375rem] font-semibold">{{ name(row) }}</span>
-              <span class="flex gap-x-3 text-[0.8125rem] text-(--app-text-muted)">
+    <div
+      class="grid items-start gap-8 max-md:gap-7 min-[1360px]:grid-cols-[minmax(0,1fr)_340px]"
+      data-overview
+    >
+      <div class="flex min-w-0 flex-col gap-8 max-md:gap-7">
+        <!-- Prossimi post -->
+        <section :aria-label="$t('client.nextPosts')" data-next-posts>
+          <SectionHead :title="$t('client.nextPosts')">
+            <NuxtLink
+              v-if="postsPage"
+              :to="postsPage"
+              class="text-detail underline underline-offset-3"
+              >{{ $t('client.allPosts') }}</NuxtLink
+            >
+          </SectionHead>
+          <ListSkeleton
+            v-if="agenda.status.value === 'pending' || agenda.status.value === 'idle'"
+            :label="$t('client.loadingPosts')"
+            :rows="2"
+            :action="false"
+          />
+          <p
+            v-else-if="agenda.error.value"
+            role="alert"
+            class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
+          >
+            <span class="flex-1">{{ $t('client.postsError') }}</span>
+            <UButton color="neutral" variant="outline" @click="() => agenda.refresh()">
+              {{ $t('account.retry') }}
+            </UButton>
+          </p>
+          <p
+            v-else-if="nextPosts.length === 0"
+            class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
+          >
+            {{ $t('client.noNextPosts') }}
+          </p>
+          <ListSurface
+            v-else
+            columns="minmax(0, 1fr) 150px 56px 124px"
+            :label="$t('client.nextPosts')"
+          >
+            <ListRow
+              v-for="p in nextPosts"
+              :key="p.id"
+              class="max-md:grid-cols-[minmax(0,1fr)_auto]"
+              :data-post="p.id"
+            >
+              <span class="flex min-w-0 items-center gap-3">
                 <span
-                  v-for="a in row.accounts"
-                  :key="a.id"
-                  class="inline-flex min-w-0 items-center gap-1"
+                  class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
                 >
-                  <UIcon :name="iconOf(a.platform)" class="size-3.5 shrink-0" aria-hidden="true" />
-                  <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}:</span>
-                  <span class="truncate">{{ handleOf(a) }}</span>
+                  <img
+                    v-if="postThumb(p)"
+                    :src="postThumb(p)!"
+                    alt=""
+                    class="size-full object-cover"
+                  />
+                  <UIcon v-else :name="TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
+                </span>
+                <span class="min-w-0">
+                  <NuxtLink
+                    :to="postPage(p)"
+                    class="block truncate font-medium underline-offset-3 hover:underline"
+                    >{{ p.text || $t('posts.list.noText') }}</NuxtLink
+                  >
+                  <span class="block truncate text-detail text-(--app-text-muted)">
+                    <span class="max-md:hidden">{{ postKind(p) }}</span>
+                    <span class="md:hidden">{{ postWhen(p) }}</span>
+                  </span>
                 </span>
               </span>
-            </span>
-          </span>
-        </template>
-        <template #cell-state="{ row }">
-          <StatusDot :tone="stateOf(row).tone" :label="stateOf(row).label" />
-        </template>
-        <template #cell-quota="{ row }">
-          <span class="text-(--app-text-muted) tabular-nums">{{ quotaText(row) ?? '—' }}</span>
-        </template>
-        <template #cell-synced="{ row }">
-          <span
-            class="text-(--app-text-muted)"
-            :title="syncedOf(row) ? formatShort(syncedOf(row)!) : undefined"
-            >{{ syncedText(row) }}</span
+              <span class="max-md:hidden">{{ postWhen(p) }}</span>
+              <PlatformIcons :platforms="platformsOf(p)" class="max-md:hidden" />
+              <StatusDot status="scheduled" :label="$t('posts.list.state.scheduled')" />
+            </ListRow>
+          </ListSurface>
+        </section>
+
+        <!-- Profili -->
+        <section :aria-label="$t('client.profiles')" data-client-profiles>
+          <SectionHead
+            :title="$t('client.profiles')"
+            :count="profiles.data.value ? list.length : null"
           >
-        </template>
-        <template #cell-actions="{ row }">
-          <span class="flex items-center justify-end gap-1">
             <UButton
-              v-if="org.may.value.manageAccounts && stateOf(row).link === 'reconnect'"
+              v-if="canChange && orphans.length > 0"
+              size="sm"
               color="neutral"
               variant="outline"
-              class="min-h-control"
-              :to="reconnectTo(row)"
-              :aria-label="$t('workspaces.reconnectOf', { name: name(row) })"
+              icon="i-lucide-plus"
+              @click="picking = { replace: null }"
             >
-              {{ $t('workspaces.reconnect') }}
+              {{ $t('client.add') }}
             </UButton>
-            <RowActions v-if="canChange" :name="name(row)" :items="actions(row)" />
-          </span>
-        </template>
-        <template #mobile="{ row }">
-          <DataRow :name="name(row)" :src="profilePhoto(row)" :detail="detailOf(row)">
-            <template v-if="stateOf(row).link !== 'ok'" #detail>
-              <span class="flex min-w-0 items-center gap-2">
-                <StatusDot :tone="stateOf(row).tone" :label="stateOf(row).label" />
-                <span class="truncate">{{ detailOf(row) }}</span>
+          </SectionHead>
+          <ListSkeleton
+            v-if="!profiles.data.value && !profiles.error.value"
+            :label="$t('client.loading')"
+            :rows="2"
+            :action="false"
+          />
+          <p
+            v-else-if="profiles.error.value"
+            role="alert"
+            class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
+          >
+            <span class="flex-1">{{ $t('workspaceAccounts.loadError') }}</span>
+            <UButton color="neutral" variant="outline" @click="() => profiles.refresh()">
+              {{ $t('account.retry') }}
+            </UButton>
+          </p>
+          <EmptyState
+            v-else-if="list.length === 0"
+            icon="i-lucide-at-sign"
+            :title="$t('client.noProfiles')"
+            :text="
+              archived
+                ? $t('workspaceAccounts.emptyArchived')
+                : canChange
+                  ? orphans.length > 0
+                    ? $t('client.noProfilesAdd')
+                    : $t('client.noProfilesNone')
+                  : $t('workspaceAccounts.emptyMember')
+            "
+          />
+          <ListSurface
+            v-else
+            columns="minmax(0, 1fr) 150px 170px 110px 30px"
+            :head="profileHead"
+            :label="$t('client.profiles')"
+          >
+            <ListRow
+              v-for="row in list"
+              :key="row.key"
+              class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+              :data-profile="row.key"
+            >
+              <span role="cell" class="flex min-w-0 items-center gap-3">
+                <PlatformIcons
+                  :platforms="[mainOf(row).platform]"
+                  class="shrink-0 text-(--app-text)"
+                />
+                <span class="min-w-0">
+                  <span class="block truncate font-semibold">{{ handleOf(mainOf(row)) }}</span>
+                  <span class="block truncate text-detail text-(--app-text-muted)">{{
+                    kindOf(row)
+                  }}</span>
+                </span>
               </span>
-            </template>
-            <template v-if="canChange" #actions>
-              <RowActions :name="name(row)" :items="actions(row)" />
-            </template>
-          </DataRow>
-        </template>
-      </DataTable>
-    </section>
-
-    <RecentFiles v-if="client && usesLibrary(client)" :key="client.id" :workspace="client" />
-
-    <section aria-labelledby="client-people" class="space-y-3">
-      <div class="flex min-h-11 items-center justify-between gap-3">
-        <h2 id="client-people" class="text-lg">{{ $t('client.people') }}</h2>
-        <UButton
-          v-if="canManageMembers && client"
-          class="min-h-control"
-          color="neutral"
-          variant="ghost"
-          trailing-icon="i-lucide-arrow-right"
-          :to="org.to(`/spazi/${client.slug}/membri`)"
-        >
-          {{ $t('client.managePeople') }}
-        </UButton>
+              <span role="cell" class="tabular-nums max-md:hidden">{{
+                quotaText(row) ?? '—'
+              }}</span>
+              <span
+                role="cell"
+                class="text-(--app-text-muted) max-md:hidden"
+                :title="syncedOf(row) ? formatShort(syncedOf(row)!) : undefined"
+                >{{ syncedText(row) }}</span
+              >
+              <span role="cell" class="min-w-0">
+                <UButton
+                  v-if="reconnects(row)"
+                  size="sm"
+                  color="neutral"
+                  variant="outline"
+                  :to="reconnectTo(row)"
+                  :aria-label="$t('workspaces.reconnectOf', { name: name(row) })"
+                >
+                  {{ $t('workspaces.reconnect') }}
+                </UButton>
+                <StatusDot
+                  v-else-if="stateOf(row).link !== 'ok'"
+                  :tone="stateOf(row).tone"
+                  :label="stateOf(row).label"
+                />
+              </span>
+              <span role="cell" class="flex justify-end md:-me-2">
+                <RowActions v-if="canChange" :name="name(row)" :items="actions(row)" />
+              </span>
+            </ListRow>
+          </ListSurface>
+        </section>
       </div>
-      <ListSkeleton
-        v-if="!members && !membersError"
-        :label="$t('client.loadingPeople')"
-        :rows="2"
-        :action="false"
-      />
-      <p v-else-if="membersError" role="alert" class="text-(--app-danger)">
-        {{ failure(membersError).message }}
-      </p>
-      <p
-        v-else-if="members && members.items.length === 0"
-        class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
-      >
-        {{ $t('client.noPeople') }}
-      </p>
-      <DataList v-else-if="members" :label="$t('client.people')">
-        <DataRow
-          v-for="m in members.items"
-          :key="m.userId"
-          :name="m.displayName"
-          :detail="
-            m.status === 'disabled'
-              ? `${$t(`roles.${m.role}`)} · ${$t('users.disabled')}`
-              : $t(`roles.${m.role}`)
-          "
-        >
-          <template #avatar><UserAvatar :name="m.displayName" :src="m.avatarUrl" /></template>
-        </DataRow>
-      </DataList>
-    </section>
+
+      <div class="flex min-w-0 flex-col gap-8 max-md:gap-7">
+        <RecentFiles v-if="client && usesLibrary(client)" :key="client.id" :workspace="client" />
+
+        <!-- Chi ci lavora -->
+        <section :aria-label="$t('client.people')" data-client-people>
+          <SectionHead :title="$t('client.people')">
+            <NuxtLink
+              v-if="client"
+              :to="org.to(`/spazi/${client.slug}/membri`)"
+              class="text-detail underline underline-offset-3"
+              >{{ $t('client.tabs.people') }}</NuxtLink
+            >
+          </SectionHead>
+          <ListSkeleton
+            v-if="!members && !membersError"
+            :label="$t('client.loadingPeople')"
+            :rows="2"
+            :action="false"
+          />
+          <p v-else-if="membersError" role="alert" class="text-(--app-danger)">
+            {{ failure(membersError).message }}
+          </p>
+          <p
+            v-else-if="members && members.items.length === 0"
+            class="rounded-card border border-(--app-border) bg-(--app-surface) px-4 py-4 text-(--app-text-muted)"
+          >
+            {{ $t('client.noPeople') }}
+          </p>
+          <ListSurface v-else-if="members" :label="$t('client.people')">
+            <ListRow v-for="m in members.items" :key="m.userId" class="px-3.5">
+              <span class="flex min-w-0 items-center gap-3">
+                <Avatar kind="person" :name="m.displayName" :src="m.avatarUrl" />
+                <span class="truncate font-medium">{{ m.displayName }}</span>
+              </span>
+              <span class="text-detail text-(--app-text-muted)">{{
+                m.status === 'disabled'
+                  ? `${$t(`roles.${m.role}`)} · ${$t('users.disabled')}`
+                  : $t(`roles.${m.role}`)
+              }}</span>
+            </ListRow>
+          </ListSurface>
+        </section>
+      </div>
+    </div>
 
     <UModal
       v-model:open="removeOpen"

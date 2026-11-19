@@ -1416,7 +1416,7 @@
       "library": "Libreria",
       "people": "Persone",
       "posts": "Post",
-      "content": "Impostazioni dei contenuti"
+      "content": "Contenuti"
     },
     "profiles": "Profili",
     "loading": "Carico i profili del cliente",
@@ -1451,7 +1451,14 @@
     "noPeople": "Per ora ci lavorano solo Owner e Admin dell'agenzia, che vedono ogni cliente.",
     "managePeople": "Gestisci le persone",
     "syncedShort": "sincronizzato {when}",
-    "pickLegend": "Profili senza cliente"
+    "pickLegend": "Profili senza cliente",
+    "nextPosts": "Prossimi post",
+    "allPosts": "Tutti i post",
+    "loadingPosts": "Carico i prossimi post",
+    "postsError": "Non siamo riusciti a caricare i prossimi post.",
+    "noNextPosts": "Nessun post in programma.",
+    "files": "{n} file",
+    "libraryLink": "Libreria"
   },
   "library": {
     "title": "Libreria",
@@ -2312,14 +2319,12 @@
       "grafite": "Grafite"
     },
     "time": {
-      "title": "Orario predefinito",
-      "text": "I post nuovi di {name} partono da quest'ora; si cambia nel post.",
-      "label": "Ora dei post nuovi",
+      "title": "Orario abituale",
+      "label": "I nuovi post partono da",
       "rome": "ora di Roma · il fuso lo sceglie l'Owner in Impostazioni → Agenzia",
       "zone": "fuso {zone} · lo sceglie l'Owner in Impostazioni → Agenzia",
       "agency": "nel fuso dell'agenzia · lo sceglie l'Owner in Impostazioni → Agenzia",
-      "clear": "Togli l'orario",
-      "none": "Nessun orario scelto: i post nuovi partono dalle 18:00."
+      "noneChoice": "Nessuno (18:00)"
     },
     "labels": {
       "title": "Etichette",

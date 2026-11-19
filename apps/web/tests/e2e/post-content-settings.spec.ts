@@ -59,15 +59,16 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await ownAddress(m)
   await signIn(m.request, manager)
   await m.goto(`/${org}/spazi/${client.slug}`)
-  await m.getByRole('link', { name: 'Impostazioni dei contenuti' }).click()
+  await m.getByRole('link', { name: 'Contenuti', exact: true }).click()
   await expect(m).toHaveURL(/\/contenuti$/)
   await expect(m.getByText('Ancora nessuna etichetta')).toBeVisible()
   // a Manager cannot read the agency's settings: no zone is named, rather than a wrong one
   await expect(m.getByText(/nel fuso dell'agenzia/)).toBeVisible()
   expect((await axe(m)).violations).toEqual([])
 
-  await m.getByLabel('Ora dei post nuovi').fill('09:30')
-  await m.getByRole('button', { name: 'Salva', exact: true }).click()
+  // the time is a choice of its own, saved as soon as it is picked
+  await m.getByRole('combobox', { name: 'I nuovi post partono da' }).click()
+  await m.getByRole('option', { name: '9:30', exact: true }).click()
   await expect(m.getByRole('status').filter({ hasText: 'Salvato' })).toBeVisible()
 
   await m.getByRole('button', { name: 'Nuova etichetta' }).click()
@@ -103,7 +104,7 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await signIn(e.request, editor)
   // the Editor does not manage the client: no settings tab
   await e.goto(`/${org}/spazi/${client.slug}`)
-  await expect(e.getByRole('link', { name: 'Impostazioni dei contenuti' })).toHaveCount(0)
+  await expect(e.getByRole('link', { name: 'Contenuti', exact: true })).toHaveCount(0)
   await e.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await expect(e.getByLabel('Ora', { exact: true })).toHaveValue('09:30')
 
