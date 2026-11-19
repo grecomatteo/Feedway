@@ -291,7 +291,7 @@ test('a person in two agencies switches, and another agency address is not found
   await page.goto(`/${owner.organizationSlug}`)
   await changeAgency(page, 'Olga Due', 'Agenzia Due')
   await expect(page).toHaveURL(new RegExp(`/${second?.id ?? ''}$`))
-  await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Due' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Oggi' })).toBeVisible()
 
   const stranger = await newPerson('Sara Estranea', 'member')
   await page.context().clearCookies()
@@ -351,7 +351,7 @@ test('a suspended agency hides the menu, and one click leaves it', async ({ page
 test('a suspension made while the page is open shows when the tab comes back', async ({ page }) => {
   const { second } = await ownerOfTwo(page, 'active')
   await page.goto(`/${second}`)
-  await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Ferma' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Oggi' })).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)
   // as the platform does it: only the system scope may change the status
   await withScope(process.env.E2E_DATABASE_URL ?? '', { kind: 'system' }, (c) =>

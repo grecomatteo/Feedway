@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { newMember, signIn } from './support/people.ts'
+import { newWorkspace } from './support/meta.ts'
+import { newMember, newPerson, signIn, signInWithTotp } from './support/people.ts'
 
 // The measures of the new direction (D-81, base.css of the exploration), read from the computed
 // styles of the pages already redrawn: controls 36 on a computer and 44 on a phone, rows 52 / 60,
@@ -11,7 +12,8 @@ test.use({ baseURL: process.env.E2E_BASE_URL })
 
 interface MeasuredPage {
   name: string
-  path: string
+  /** the address, or what makes the page's data and gives its address */
+  path: string | ((page: Page) => Promise<string>)
   /** a control of the page: a button or a field */
   control: string
   /** a row of a list, if the page has one */
@@ -24,6 +26,17 @@ const PAGES: MeasuredPage[] = [
     path: '/__test/sistema',
     control: '[data-sample="outline"]',
     row: '[data-list-row]',
+  },
+  {
+    // an Owner with a client and nothing planned: the outline «Nuovo post» of the empty week
+    name: 'Oggi',
+    path: async (page) => {
+      const owner = await newPerson('Mara Oggi', 'owner')
+      await signInWithTotp(page.request, owner)
+      await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}`
+    },
+    control: '[data-today-empty] a',
   },
 ]
 
@@ -38,7 +51,7 @@ test.beforeEach(async ({ baseURL, page }) => {
 
 for (const p of PAGES) {
   test(`${p.name}: the measures of the new direction`, async ({ page }) => {
-    await page.goto(p.path)
+    await page.goto(typeof p.path === 'string' ? p.path : await p.path(page))
     await expect(page.locator('[data-ready]')).toHaveCount(1)
     const phone = isPhone(page)
 
@@ -94,7 +107,7 @@ for (const p of PAGES) {
       probe.remove()
       return [...document.querySelectorAll<HTMLElement>('body *')].filter(
         (el) =>
-          !el.closest('[data-swatch], [data-count]') &&
+          !el.closest('[data-swatch], [data-count], [data-accent]') &&
           el.checkVisibility() &&
           getComputedStyle(el).backgroundColor === brand,
       ).length

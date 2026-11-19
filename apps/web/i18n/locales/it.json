@@ -617,8 +617,68 @@
     "firstPassword": "Con una password, subito dopo aggiungi l'app di autenticazione.",
     "useExisting": "Hai già una passkey o l'app di autenticazione: esci e accedi con quella. Con la sola password non si aggiungono altri metodi."
   },
+  "today": {
+    "title": "Oggi",
+    "issues": {
+      "title": "Da sistemare",
+      "none": "Niente da sistemare.",
+      "failed": "Non siamo riusciti a leggere cosa c’è da sistemare.",
+      "count": ", 1 cosa da sistemare | , {n} cose da sistemare",
+      "profile": {
+        "reconnect": "{name} da ricollegare",
+        "error": "{name} ha un problema",
+        "warning": "{name} da controllare"
+      },
+      "media": "{name} non caricato",
+      "where": {
+        "facebook": "questa Pagina Facebook",
+        "instagram": "questo account Instagram"
+      },
+      "scheduled": "nessun post in programma su {where} | 1 post in programma su {where} | {n} post in programma su {where}",
+      "reconnectOf": "Ricollega {name}",
+      "openClient": "Apri il cliente",
+      "retry": "Riprova",
+      "retryOf": "Riprova a preparare {name}",
+      "retried": "{name} si sta preparando di nuovo",
+      "openLibrary": "Apri la libreria"
+    },
+    "week": {
+      "label": "La settimana",
+      "today": "oggi",
+      "free": "libero",
+      "posts": "{n} post | {n} post",
+      "dayLabel": "{day}, nessun post | {day}, 1 post | {day}, {n} post"
+    },
+    "list": {
+      "today": "Oggi",
+      "tomorrow": "Domani, {day}"
+    },
+    "out": {
+      "title": "In uscita",
+      "empty": "Niente in programma oggi e domani.",
+      "emptyDay": "Niente in programma questo giorno.",
+      "none": "Niente in programma.",
+      "failed": "Non siamo riusciti a leggere i post in uscita.",
+      "again": "Riprova"
+    },
+    "drafts": {
+      "title": "Bozze da finire",
+      "all": "Tutte",
+      "ready": "pronta da programmare",
+      "missing": {
+        "media": "mancano i file",
+        "text": "manca il testo",
+        "accounts": "mancano gli account"
+      }
+    },
+    "clients": {
+      "title": "Clienti recenti",
+      "all": "Tutti",
+      "none": "niente in programma",
+      "scheduled": "{n} in programma | {n} in programma"
+    }
+  },
   "agencyHome": {
-    "title": "Agenzia",
     "suspended": "Questa agenzia è sospesa: per ora non puoi lavorarci."
   },
   "roles": {
@@ -698,7 +758,8 @@
     "problem": {
       "reconnect": "un profilo da ricollegare",
       "error": "un profilo con un problema",
-      "warning": "un profilo da controllare"
+      "warning": "un profilo da controllare",
+      "media": "un file non caricato"
     }
   },
   "agencies": {
