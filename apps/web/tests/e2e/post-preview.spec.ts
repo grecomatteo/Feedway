@@ -78,7 +78,11 @@ async function clientWithFiles(page: Page) {
 }
 
 async function pickFromLibrary(page: Page, names: string[]) {
-  await page.getByRole('button', { name: 'Dalla libreria' }).click()
+  // on a phone the library is in the menu of «Aggiungi»
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.locator('[data-add-file]').click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
   const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
   for (const name of names) await dialog.getByRole('button', { name }).click()
   await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
@@ -96,7 +100,7 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
 
   await pickFromLibrary(page, ['pane.jpg', 'impasto.mov', 'focaccia.jpg'])
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane è tornato #segale')
-  await page.getByRole('switch', { name: 'Testo diverso per piattaforma' }).click()
+  await page.getByRole('switch', { name: 'Testo diverso per Instagram e Facebook' }).click()
   await page.getByRole('tab', { name: 'Facebook' }).click()
   await page
     .getByRole('textbox', { name: 'Testo per Facebook' })
@@ -157,18 +161,18 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   await expect(reel.locator('[data-preview-caption]')).toHaveText('Dietro le quinte')
   await expect(reel.locator('[data-safe-zones]')).toBeVisible()
   await expect(reel.getByText("Coperto dall'interfaccia").first()).toBeVisible()
-  // a plain 9:16 rectangle (no phone), whole above the action bar
+  // a plain 9:16 rectangle (no phone), whole on the screen under the row at the top
   const frame = await preview(page).locator('[data-preview-frame]').boundingBox()
-  const bar = await page.locator('[data-action-bar]').boundingBox()
+  const bar = await page.locator('[data-editor-bar]').boundingBox()
   expect(frame && Math.abs(frame.height / frame.width - 16 / 9)).toBeLessThan(0.02)
-  expect(frame && bar && frame.y + frame.height).toBeLessThanOrEqual(bar?.y ?? 0)
+  expect(frame && bar && frame.y).toBeGreaterThanOrEqual((bar?.y ?? 0) + (bar?.height ?? 0))
+  expect(frame && frame.y + frame.height).toBeLessThanOrEqual(1000)
   // on a shorter screen the frame narrows to stay whole, under the column's 320 px
   await page.setViewportSize({ width: 1440, height: 760 })
   const short = await preview(page).locator('[data-preview-frame]').boundingBox()
-  const shortBar = await page.locator('[data-action-bar]').boundingBox()
   expect(short?.width).toBeLessThan(300)
   expect(short && Math.abs(short.height / short.width - 16 / 9)).toBeLessThan(0.02)
-  expect(short && shortBar && short.y + short.height).toBeLessThanOrEqual(shortBar?.y ?? 0)
+  expect(short && short.y + short.height).toBeLessThanOrEqual(760)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await preview(page).getByRole('switch', { name: 'Mostra le zone coperte' }).click()
   await expect(reel.locator('[data-safe-zones]')).toHaveCount(0)
@@ -307,7 +311,7 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await pickFromLibrary(page, ['impasto.mov'])
   const section = page.locator('[data-cover]')
-  await expect(section.getByRole('heading', { name: 'Copertina del reel' })).toBeVisible()
+  await expect(section.getByRole('heading', { name: 'Copertina' })).toBeVisible()
   const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })
   // 18 s at 30 fps: the cursor stops on the last true frame
   await expect(frame).toHaveAttribute('max', '17966')
@@ -319,7 +323,7 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
     'aria-valuetext',
     /1,0 s · fotogramma 32 di 539|1 s · fotogramma 32 di 539/,
   )
-  await expect(section.locator('[data-cover-state]')).toHaveText(/Fotogramma 1(,0)? s/)
+  await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma a 0:01')
   // «Mostra anche nel feed» on by default
   await expect(section.getByRole('switch', { name: 'Mostra anche nel feed' })).toHaveAttribute(
     'aria-checked',
@@ -345,13 +349,14 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   )
 
   // an image from the library becomes the cover
-  await section.getByRole('button', { name: 'Dalla libreria' }).click()
+  await section.getByRole('button', { name: "Carica un'immagine" }).click()
+  await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
   const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
   await dialog.getByRole('button', { name: 'cop.jpg' }).click()
   await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
   await expect(section.locator('[data-cover-state]')).toHaveText('Immagine caricata')
   await section.getByRole('button', { name: 'Ripristina' }).click()
-  await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma 0 s')
+  await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma a 0:00')
   await expect(frame).toHaveAttribute('aria-valuetext', /fotogramma 1 di 539/)
 })
 
@@ -371,7 +376,8 @@ test('a cover cropped, then changed: the box of the old photo does nothing, the 
   await pickFromLibrary(page, ['impasto.mov'])
   const section = page.locator('[data-cover]')
   async function pickCover(name: string) {
-    await section.getByRole('button', { name: 'Dalla libreria' }).click()
+    await section.getByRole('button', { name: "Carica un'immagine" }).click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
     const library = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
     await library.getByRole('button', { name }).click()
     await library.getByRole('button', { name: /^Aggiungi/ }).click()

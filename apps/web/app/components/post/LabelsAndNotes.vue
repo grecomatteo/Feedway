@@ -132,132 +132,134 @@ const initials = (name: string) =>
 </script>
 
 <template>
-  <section aria-labelledby="post-labels-notes" class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-baseline justify-between gap-3">
-      <h2 id="post-labels-notes" class="text-lg">{{ $t('posts.labels.title') }}</h2>
-      <p class="text-sm text-(--app-text-muted)">{{ $t('posts.labels.agencyOnly') }}</p>
-    </div>
+  <PostEditorRow heading="post-labels-notes" :label="$t('posts.labels.title')">
+    <div class="flex flex-col gap-3">
+      <p class="text-detail text-(--app-text-muted)">{{ $t('posts.labels.agencyOnly') }}</p>
 
-    <ul class="flex flex-wrap items-center gap-2" :aria-label="$t('posts.labels.chosen')">
-      <li
-        v-for="l in chosen"
-        :key="l.id"
-        class="inline-flex min-h-9 items-center gap-2 rounded-full border border-(--app-border) bg-(--app-card) pr-1 pl-3 text-sm"
-      >
-        <ContentLabelDot :color="l.color" />
-        {{ l.name }}
-        <UButton
-          v-if="e.editable.value"
-          color="neutral"
-          variant="ghost"
-          size="xs"
-          icon="i-lucide-x"
-          class="size-8 justify-center rounded-full relative after:absolute after:-inset-1.5 after:content-['']"
-          :aria-label="$t('posts.labels.remove', { name: l.name })"
-          @click="toggle(l.id)"
-        />
-      </li>
-      <li v-if="e.editable.value">
-        <UDropdownMenu :items="labelItems" :content="{ align: 'start' }">
+      <ul class="flex flex-wrap items-center gap-2" :aria-label="$t('posts.labels.chosen')">
+        <li
+          v-for="l in chosen"
+          :key="l.id"
+          class="inline-flex min-h-9 items-center gap-2 rounded-full border border-(--app-border) bg-(--app-card) pr-1 pl-3 text-sm"
+        >
+          <ContentLabelDot :color="l.color" />
+          {{ l.name }}
           <UButton
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-plus"
-            class="min-h-9 rounded-full relative after:absolute after:-inset-x-0 after:-inset-y-1 after:content-['']"
-            :loading="labels === null"
-          >
-            {{ $t('posts.labels.add') }}
-          </UButton>
-        </UDropdownMenu>
-      </li>
-      <li v-else-if="chosen.length === 0" class="text-sm text-(--app-text-muted)">
-        {{ $t('posts.labels.noneOnPost') }}
-      </li>
-    </ul>
-
-    <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
-      <p v-if="notesFailed" role="alert" class="px-4 py-3 text-sm text-(--app-danger)">
-        {{ $t('posts.notes.loadError') }}
-        <UButton color="neutral" variant="link" class="min-h-control" @click="loadNotes">
-          {{ $t('account.retry') }}
-        </UButton>
-      </p>
-      <ul v-else-if="notes && notes.length > 0" class="divide-y divide-(--app-border)">
-        <li v-for="n in notes" :key="n.id" class="flex gap-3 px-4 py-3">
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--app-surface-sunken) text-xs font-semibold"
-            aria-hidden="true"
-            >{{ initials(n.authorName) }}</span
-          >
-          <div class="min-w-0 flex-1">
-            <p class="text-xs text-(--app-text-muted)">
-              {{ authorOf(n) }} · <time :datetime="n.createdAt">{{ when(n.createdAt) }}</time>
-            </p>
-            <p class="text-sm break-words whitespace-pre-line">{{ n.body }}</p>
-          </div>
-          <UButton
-            v-if="n.canDelete && !archived"
+            v-if="e.editable.value"
             color="neutral"
             variant="ghost"
-            icon="i-lucide-trash-2"
-            class="size-11 shrink-0 justify-center"
-            :aria-label="$t('posts.notes.remove')"
-            @click="removing = n"
+            size="xs"
+            icon="i-lucide-x"
+            class="size-8 justify-center rounded-full relative after:absolute after:-inset-1.5 after:content-['']"
+            :aria-label="$t('posts.labels.remove', { name: l.name })"
+            @click="toggle(l.id)"
           />
         </li>
+        <li v-if="e.editable.value">
+          <UDropdownMenu :items="labelItems" :content="{ align: 'start' }">
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-plus"
+              class="min-h-9 rounded-full relative after:absolute after:-inset-x-0 after:-inset-y-1 after:content-['']"
+              :loading="labels === null"
+            >
+              {{ $t('posts.labels.add') }}
+            </UButton>
+          </UDropdownMenu>
+        </li>
+        <li v-else-if="chosen.length === 0" class="text-sm text-(--app-text-muted)">
+          {{ $t('posts.labels.noneOnPost') }}
+        </li>
       </ul>
-      <form
-        v-if="mayWrite"
-        class="flex items-center gap-2 border-t border-(--app-border) px-2 first:border-t-0"
-        novalidate
-        @submit.prevent="add"
-      >
-        <label for="post-note" class="sr-only">{{ $t('posts.notes.label') }}</label>
-        <input
-          id="post-note"
-          v-model="draft"
-          type="text"
-          maxlength="2000"
-          :disabled="!postId"
-          :placeholder="postId ? $t('posts.notes.placeholder') : $t('posts.notes.beforeDraft')"
-          class="min-h-12 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-(--app-text-muted) disabled:cursor-not-allowed"
-        />
-        <UButton
-          type="submit"
-          color="neutral"
-          variant="ghost"
-          class="min-h-control"
-          :loading="sending"
-          :disabled="!postId || draft.trim() === ''"
+
+      <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
+        <p v-if="notesFailed" role="alert" class="px-4 py-3 text-sm text-(--app-danger)">
+          {{ $t('posts.notes.loadError') }}
+          <UButton color="neutral" variant="link" class="min-h-control" @click="loadNotes">
+            {{ $t('account.retry') }}
+          </UButton>
+        </p>
+        <ul v-else-if="notes && notes.length > 0" class="divide-y divide-(--app-border)">
+          <li v-for="n in notes" :key="n.id" class="flex gap-3 px-4 py-3">
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--app-surface-sunken) text-xs font-semibold"
+              aria-hidden="true"
+              >{{ initials(n.authorName) }}</span
+            >
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-(--app-text-muted)">
+                {{ authorOf(n) }} · <time :datetime="n.createdAt">{{ when(n.createdAt) }}</time>
+              </p>
+              <p class="text-sm break-words whitespace-pre-line">{{ n.body }}</p>
+            </div>
+            <UButton
+              v-if="n.canDelete && !archived"
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-trash-2"
+              class="size-11 shrink-0 justify-center"
+              :aria-label="$t('posts.notes.remove')"
+              @click="removing = n"
+            />
+          </li>
+        </ul>
+        <form
+          v-if="mayWrite"
+          class="flex items-center gap-2 border-t border-(--app-border) px-2 first:border-t-0"
+          novalidate
+          @submit.prevent="add"
         >
-          {{ $t('posts.notes.add') }}
-        </UButton>
-      </form>
-      <p v-else-if="!notes || notes.length === 0" class="px-4 py-3 text-sm text-(--app-text-muted)">
-        {{ $t('posts.notes.empty') }}
-      </p>
+          <label for="post-note" class="sr-only">{{ $t('posts.notes.label') }}</label>
+          <input
+            id="post-note"
+            v-model="draft"
+            type="text"
+            maxlength="2000"
+            :disabled="!postId"
+            :placeholder="postId ? $t('posts.notes.placeholder') : $t('posts.notes.beforeDraft')"
+            class="min-h-12 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-(--app-text-muted) disabled:cursor-not-allowed"
+          />
+          <UButton
+            type="submit"
+            color="neutral"
+            variant="ghost"
+            class="min-h-control"
+            :loading="sending"
+            :disabled="!postId || draft.trim() === ''"
+          >
+            {{ $t('posts.notes.add') }}
+          </UButton>
+        </form>
+        <p
+          v-else-if="!notes || notes.length === 0"
+          class="px-4 py-3 text-sm text-(--app-text-muted)"
+        >
+          {{ $t('posts.notes.empty') }}
+        </p>
+      </div>
+      <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
+      <UModal
+        :open="removing !== null"
+        :title="$t('posts.notes.removeTitle')"
+        :description="$t('posts.notes.removeText')"
+        @update:open="
+          (v: boolean) => {
+            if (!v) removing = null
+          }
+        "
+      >
+        <template #footer>
+          <div class="flex w-full flex-wrap justify-end gap-3">
+            <UButton color="neutral" variant="ghost" class="min-h-control" @click="removing = null">
+              {{ $t('posts.notes.keep') }}
+            </UButton>
+            <UButton color="error" class="min-h-control" @click="removing && remove(removing)">
+              {{ $t('posts.notes.remove') }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
     </div>
-    <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
-    <UModal
-      :open="removing !== null"
-      :title="$t('posts.notes.removeTitle')"
-      :description="$t('posts.notes.removeText')"
-      @update:open="
-        (v: boolean) => {
-          if (!v) removing = null
-        }
-      "
-    >
-      <template #footer>
-        <div class="flex w-full flex-wrap justify-end gap-3">
-          <UButton color="neutral" variant="ghost" class="min-h-control" @click="removing = null">
-            {{ $t('posts.notes.keep') }}
-          </UButton>
-          <UButton color="error" class="min-h-control" @click="removing && remove(removing)">
-            {{ $t('posts.notes.remove') }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
-  </section>
+  </PostEditorRow>
 </template>

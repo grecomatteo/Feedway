@@ -18,6 +18,8 @@ interface MeasuredPage {
   control: string
   /** a row of a list, if the page has one */
   row?: string
+  /** the page title's size when it is not 22: [computer, phone] */
+  title?: [string, string]
 }
 
 const PAGES: MeasuredPage[] = [
@@ -72,6 +74,19 @@ const PAGES: MeasuredPage[] = [
     },
     control: '[data-content-settings] button[role="combobox"]',
   },
+  {
+    // a new post (screen 08): the row at the top with its title in Sora 15 (16 on a phone), the
+    // back arrow, the rows of the form; «Programma» is the only orange
+    name: 'Editor',
+    path: async (page) => {
+      const owner = await newPerson('Mara Editor', 'owner')
+      await signInWithTotp(page.request, owner)
+      const ws = await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/spazi/${ws.slug}/post/nuovo`
+    },
+    control: '[data-editor-bar] a',
+    title: ['15px', '16px'],
+  },
 ]
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
@@ -124,7 +139,7 @@ for (const p of PAGES) {
         const css = getComputedStyle(el)
         return { size: css.fontSize, weight: css.fontWeight, family: css.fontFamily }
       })
-      expect(h1.size, 'page title size').toBe('22px')
+      expect(h1.size, 'page title size').toBe(p.title ? p.title[phone ? 1 : 0] : '22px')
       expect(h1.weight).toBe('600')
       expect(h1.family).toMatch(/^"?Sora/)
     }

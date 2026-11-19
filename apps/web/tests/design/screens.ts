@@ -1,5 +1,7 @@
 import type { Page } from '@playwright/test'
 import type { DesignSample } from '../e2e/support/design-sample.ts'
+import { libraryFile } from '../e2e/support/media.ts'
+import { adminQuery } from '../e2e/support/people.ts'
 
 /**
  * The screens of the references (design/esplorazioni/2026-11-19-nuova-direzione/schermate) that the
@@ -36,6 +38,38 @@ async function openShell(page: Page, which: 'selector' | 'person') {
   await page.waitForTimeout(300)
 }
 
+/** A new post of Forno Luce, as the editor shows it with these files from the library and text. */
+async function newPost(page: Page, files: string[], caption: string) {
+  // on a phone the library is in the menu of «Aggiungi»
+  if ((page.viewportSize()?.width ?? 1440) < 768) {
+    await page.locator('[data-add-file]').click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  for (const name of files) await dialog.getByRole('button', { name }).click()
+  await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
+  await dialog.waitFor({ state: 'detached' })
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill(caption)
+  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+  await page.waitForLoadState('networkidle')
+  await page.locator('h1').click()
+  await page.mouse.move(0, 0)
+  await page.waitForTimeout(300)
+}
+/** The accounts chosen in «Dove», by their name; then back to the top of the page. */
+async function tick(page: Page, names: RegExp[]) {
+  for (const name of names) {
+    const box = page.getByRole('checkbox', { name })
+    if ((await box.getAttribute('aria-checked')) !== 'true') await box.click()
+  }
+  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+  await page.waitForLoadState('networkidle')
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+  })
+}
+const forno = (s: DesignSample) => s.clients['Forno Luce'] ?? { id: '', slug: '' }
+
 export const SCREENS: Screen[] = [
   { id: '00-sistema', path: () => '/__test/sistema', computerOnly: true },
   // the shell (Task R2): the pages inside it are redrawn by their own tasks
@@ -70,6 +104,66 @@ export const SCREENS: Screen[] = [
       await dialog.getByRole('checkbox', { name: 'Bar Centrale Bologna' }).click()
       await dialog.getByRole('textbox', { name: 'Nome' }).fill('Bar Centrale')
       await dialog.getByRole('textbox', { name: 'Nome' }).blur()
+      await page.mouse.move(0, 0)
+      await page.waitForTimeout(300)
+    },
+  },
+  // the editor (Task R5): the top part, the form's rows; the right column and «Dove», «Quando»
+  // are redrawn by Task R7
+  {
+    id: '08-editor-carosello',
+    path: (s) => `/${s.org}/spazi/${forno(s).slug}/post/nuovo`,
+    prepare: async (page) => {
+      await newPost(
+        page,
+        ['pane.jpg', 'banco.jpg'],
+        'Il pane del lunedì è appena uscito dal forno.\nVi aspettiamo in via Roma 12, dalle 7.',
+      )
+      await tick(page, [/^@fornoluce ·/, /^Forno Luce ·/])
+      await page.mouse.move(0, 0)
+      await page.waitForTimeout(300)
+    },
+  },
+  {
+    // a landscape video for a reel: one choice to make, «Programma» off
+    id: '09-editor-reel-con-scelta',
+    path: (s) => `/${s.org}/spazi/${forno(s).slug}/post/nuovo`,
+    prepare: async (page, s) => {
+      // one video for both sizes: the sample is the same
+      const name = 'sfoglia-dietro-il-banco.mov'
+      const known = await adminQuery<{ id: string }>(
+        'select id from media where workspace_id = $1 and original_name = $2',
+        [forno(s).id, name],
+      )
+      const id =
+        known[0]?.id ??
+        (await libraryFile(s.org, forno(s).id, s.owner.userId, { kind: 'video', name }))
+      const analysis = {
+        kind: 'video',
+        format: 'mp4',
+        sizeBytes: 38_800_000,
+        width: 1920,
+        height: 1080,
+        durationMs: 42_000,
+        fps: 30,
+        videoCodec: 'h264',
+        audioCodec: 'aac',
+        faststart: true,
+        hasMetadata: false,
+      }
+      await adminQuery(
+        'update media set width = 1920, height = 1080, duration_ms = 42000, analysis = $2 where id = $1',
+        [id, JSON.stringify(analysis)],
+      )
+      await page.reload()
+      await newPost(
+        page,
+        ['sfoglia-dietro-il-banco.mov'],
+        'Dietro il banco: come nasce la sfoglia.\nOgni mattina, dalle 5.',
+      )
+      // only Instagram, as in the reference
+      await tick(page, [/^@fornoluce ·/])
+      await page.locator('[data-missing]').locator('visible=true').waitFor()
       await page.mouse.move(0, 0)
       await page.waitForTimeout(300)
     },

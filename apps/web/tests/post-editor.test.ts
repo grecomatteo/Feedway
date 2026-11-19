@@ -5,6 +5,7 @@ import {
   hasContent,
   missingFiles,
   nextType,
+  typeHint,
   typeOptions,
   type DraftBody,
 } from '../app/utils/post-editor.ts'
@@ -29,6 +30,15 @@ describe('the type of the post (D-60, §11.2 point 2)', () => {
     expect(typeOptions([video]).find((o) => o.type === 'photo')?.reason).toBe('photoNotVideo')
     expect(typeOptions([photo]).find((o) => o.type === 'reel')?.reason).toBe('reelNotPhoto')
     expect(typeOptions([photo]).find((o) => o.type === 'carousel')?.reason).toBe('carouselTwo')
+  })
+
+  test('one sentence says why the others are off, written for the files there are (R5)', () => {
+    expect(typeHint([])).toBeNull()
+    expect(typeHint([photo, video])).toEqual({ key: 'many', n: 2 })
+    expect(typeHint([photo])).toEqual({ key: 'onePhoto', n: 1 })
+    expect(typeHint([video])).toEqual({ key: 'oneVideo', n: 1 })
+    // a file still uploading: its kind is not known yet
+    expect(typeHint([{ kind: null }])).toEqual({ key: 'oneFile', n: 1 })
   })
 
   test('the editor proposes the type until the person chooses, never a story', () => {

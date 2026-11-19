@@ -213,205 +213,209 @@ const crop = computed(() => {
 </script>
 
 <template>
-  <section
+  <PostEditorRow
     id="post-summary"
-    aria-labelledby="post-summary-title"
-    class="flex scroll-mt-6 flex-col gap-3"
+    heading="post-summary-title"
+    :label="$t('posts.summary.title')"
+    :detail="pending > 0 ? $t('posts.summary.pending', { n: pending }, pending) : null"
+    class="scroll-mt-20"
   >
-    <div class="flex items-baseline justify-between gap-3">
-      <h2 id="post-summary-title" class="text-lg">{{ $t('posts.summary.title') }}</h2>
-      <p v-if="pending > 0" class="text-sm text-(--app-text-muted)">
-        {{ $t('posts.summary.pending', { n: pending }, pending) }}
+    <div class="flex flex-col gap-3">
+      <p v-if="e.checkProblem.value" role="alert" class="text-sm text-(--app-danger)">
+        {{ $t('posts.summary.checkFailed') }} {{ e.checkProblem.value }}
       </p>
-    </div>
-    <p v-if="e.checkProblem.value" role="alert" class="text-sm text-(--app-danger)">
-      {{ $t('posts.summary.checkFailed') }} {{ e.checkProblem.value }}
-    </p>
-    <ListSkeleton v-if="!report && e.checking.value" />
-    <p v-else-if="!report" class="text-(--app-text-muted)">{{ $t('posts.summary.empty') }}</p>
-    <template v-else>
-      <!-- the warnings to answer -->
-      <fieldset
-        v-for="o in warnings"
-        :key="o.key"
-        :data-outcome="o.code"
-        class="flex flex-col gap-3 rounded-xl border-2 p-4"
-        :class="o.chosen ? 'border-(--app-border)' : 'border-(--app-warning)'"
-      >
-        <legend class="sr-only">{{ msg(o).title }}</legend>
-        <p class="flex items-start gap-2 font-semibold">
-          <UIcon
-            name="i-lucide-triangle-alert"
-            class="mt-0.5 size-4 shrink-0 text-(--app-warning)"
-            aria-hidden="true"
-          />
-          {{ msg(o).title }}
-        </p>
-        <p v-if="subject(o)" class="text-xs text-(--app-text-muted)">{{ subject(o) }}</p>
-        <p class="text-sm">{{ msg(o).text }}</p>
-        <div class="grid gap-2 sm:grid-cols-2">
-          <label
-            v-for="(option, i) in o.options ?? []"
-            :key="option"
-            class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2"
-            :class="
-              choosing[o.key] === option
-                ? 'border-2 border-(--app-text) bg-(--app-brand-soft)'
-                : 'border-(--app-border)'
-            "
-          >
-            <input
-              type="radio"
-              class="size-5 accent-(--app-brand)"
-              :name="`choice-${o.key}`"
-              :value="option"
-              :checked="choosing[o.key] === option"
-              :disabled="!e.editable.value"
-              @change="pick(o, option)"
-            />
-            <span class="text-sm">
-              {{ msg(o).options[i] }}
-              <span v-if="o.recommended === option" class="text-xs text-(--app-text-muted)">
-                · {{ $t('posts.summary.recommended') }}</span
-              >
-            </span>
-          </label>
-        </div>
-        <div v-if="o.chosen && e.editable.value" class="flex flex-wrap gap-2">
-          <UButton
-            v-if="o.chosen === 'crop' && movable(o)"
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-crop"
-            class="min-h-10"
-            @click="openCrop(o)"
-          >
-            {{ $t('posts.crop.edit') }}
-          </UButton>
-          <UButton color="neutral" variant="link" class="min-h-10" @click="e.choose(o.key, null)">
-            {{ $t('posts.summary.undoChoice') }}
-          </UButton>
-        </div>
-      </fieldset>
-
-      <!-- the blocks -->
-      <div
-        v-for="o in blocks"
-        :key="o.key"
-        :data-outcome="o.code"
-        class="flex flex-col gap-2 rounded-xl border-2 border-(--app-danger) p-4"
-      >
-        <p class="flex items-start gap-2 font-semibold">
-          <UIcon
-            name="i-lucide-octagon-x"
-            class="mt-0.5 size-4 shrink-0 text-(--app-danger)"
-            aria-hidden="true"
-          />
-          {{ msg(o).title }}
-        </p>
-        <p v-if="subject(o)" class="text-xs text-(--app-text-muted)">{{ subject(o) }}</p>
-        <p class="text-sm">{{ msg(o).text }}</p>
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-if="o.code === 'type_not_supported' && proposal && e.editable.value"
-            class="min-h-control"
-            @click="switchTo(proposal)"
-          >
-            {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
-          </UButton>
-          <UButton
-            v-if="fixAt(o)"
-            color="neutral"
-            variant="outline"
-            class="min-h-control"
-            @click="emit('goto', fixAt(o)!.section)"
-          >
-            {{ fixAt(o)!.label }}
-          </UButton>
-        </div>
-      </div>
-      <div
-        v-if="proposal && !blocks.some((o) => o.code === 'type_not_supported') && e.editable.value"
-        class="flex flex-col gap-2 rounded-xl border-2 border-(--app-danger) p-4"
-        data-outcome="type_mismatch"
-      >
-        <p class="font-semibold">{{ $t('posts.summary.typeMismatch') }}</p>
-        <UButton class="min-h-control self-start" @click="switchTo(proposal)">
-          {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
-        </UButton>
-      </div>
-
-      <!-- one row per account -->
-      <ul
-        v-if="rows.length > 0"
-        class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
-      >
-        <li
-          v-for="r in rows"
-          :key="r.id"
-          class="flex flex-col gap-1 px-4 py-3"
-          :data-destination="r.id"
+      <ListSkeleton v-if="!report && e.checking.value" />
+      <p v-else-if="!report" class="text-(--app-text-muted)">{{ $t('posts.summary.empty') }}</p>
+      <template v-else>
+        <!-- the warnings to answer -->
+        <fieldset
+          v-for="o in warnings"
+          :key="o.key"
+          :data-outcome="o.code"
+          class="flex flex-col gap-3 rounded-xl border-2 p-4"
+          :class="o.chosen ? 'border-(--app-border)' : 'border-(--app-warning)'"
         >
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <legend class="sr-only">{{ msg(o).title }}</legend>
+          <p class="flex items-start gap-2 font-semibold">
             <UIcon
-              :name="ICON[r.platform ?? ''] ?? 'i-lucide-at-sign'"
-              class="size-4"
+              name="i-lucide-triangle-alert"
+              class="mt-0.5 size-4 shrink-0 text-(--app-warning)"
               aria-hidden="true"
             />
-            <span class="font-medium">{{ handleOf(r.id) }}</span>
-            <span class="min-w-0 flex-1 text-sm text-(--app-text-muted)">
-              <template v-if="r.what">
-                {{ r.what }} · {{ $t('posts.summary.files', { n: r.files }, r.files) }} ·
-                {{ r.own ? $t('posts.summary.ownText') : $t('posts.summary.commonText') }}
-              </template>
-              <template v-else>{{ $t('posts.summary.notGoing') }}</template>
-            </span>
-            <span class="flex items-center gap-1.5 text-sm">
-              <span class="size-2 rounded-full" :class="DOT[r.tone]" aria-hidden="true" />
-              {{ r.state }}
-            </span>
-          </div>
-          <p v-for="m in r.missing" :key="m" class="text-sm text-(--app-danger)" data-missing>
-            {{ $t('posts.summary.missingOn', { what: m, account: handleOf(r.id) }) }}
+            {{ msg(o).title }}
           </p>
-        </li>
-      </ul>
+          <p v-if="subject(o)" class="text-xs text-(--app-text-muted)">{{ subject(o) }}</p>
+          <p class="text-sm">{{ msg(o).text }}</p>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label
+              v-for="(option, i) in o.options ?? []"
+              :key="option"
+              class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2"
+              :class="
+                choosing[o.key] === option
+                  ? 'border-2 border-(--app-text) bg-(--app-brand-soft)'
+                  : 'border-(--app-border)'
+              "
+            >
+              <input
+                type="radio"
+                class="size-5 accent-(--app-brand)"
+                :name="`choice-${o.key}`"
+                :value="option"
+                :checked="choosing[o.key] === option"
+                :disabled="!e.editable.value"
+                @change="pick(o, option)"
+              />
+              <span class="text-sm">
+                {{ msg(o).options[i] }}
+                <span v-if="o.recommended === option" class="text-xs text-(--app-text-muted)">
+                  · {{ $t('posts.summary.recommended') }}</span
+                >
+              </span>
+            </label>
+          </div>
+          <div v-if="o.chosen && e.editable.value" class="flex flex-wrap gap-2">
+            <UButton
+              v-if="o.chosen === 'crop' && movable(o)"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-crop"
+              class="min-h-10"
+              @click="openCrop(o)"
+            >
+              {{ $t('posts.crop.edit') }}
+            </UButton>
+            <UButton color="neutral" variant="link" class="min-h-10" @click="e.choose(o.key, null)">
+              {{ $t('posts.summary.undoChoice') }}
+            </UButton>
+          </div>
+        </fieldset>
 
-      <!-- the fixes, in one sentence -->
-      <div v-if="fixes.length > 0" class="flex flex-col gap-1 text-sm text-(--app-text-muted)">
-        <p class="flex items-start gap-2">
-          <UIcon name="i-lucide-wand-sparkles" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          {{ $t('posts.summary.fixes', { n: fixes.length, what: fixSentence }, fixes.length) }}
-        </p>
-        <UButton
-          color="neutral"
-          variant="link"
-          class="min-h-10 self-start"
-          :aria-expanded="open"
-          @click="open = !open"
+        <!-- the blocks -->
+        <div
+          v-for="o in blocks"
+          :key="o.key"
+          :data-outcome="o.code"
+          class="flex flex-col gap-2 rounded-xl border-2 border-(--app-danger) p-4"
         >
-          {{ open ? $t('posts.summary.hideDetails') : $t('posts.summary.showDetails') }}
-        </UButton>
-        <ul v-if="open" class="list-disc pl-6">
-          <li v-for="o in fixes" :key="o.key">
-            <span v-if="subject(o)">{{ subject(o) }}: </span>{{ msg(o).text }}
+          <p class="flex items-start gap-2 font-semibold">
+            <UIcon
+              name="i-lucide-octagon-x"
+              class="mt-0.5 size-4 shrink-0 text-(--app-danger)"
+              aria-hidden="true"
+            />
+            {{ msg(o).title }}
+          </p>
+          <p v-if="subject(o)" class="text-xs text-(--app-text-muted)">{{ subject(o) }}</p>
+          <p class="text-sm">{{ msg(o).text }}</p>
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-if="o.code === 'type_not_supported' && proposal && e.editable.value"
+              class="min-h-control"
+              @click="switchTo(proposal)"
+            >
+              {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
+            </UButton>
+            <UButton
+              v-if="fixAt(o)"
+              color="neutral"
+              variant="outline"
+              class="min-h-control"
+              @click="emit('goto', fixAt(o)!.section)"
+            >
+              {{ fixAt(o)!.label }}
+            </UButton>
+          </div>
+        </div>
+        <div
+          v-if="
+            proposal && !blocks.some((o) => o.code === 'type_not_supported') && e.editable.value
+          "
+          class="flex flex-col gap-2 rounded-xl border-2 border-(--app-danger) p-4"
+          data-outcome="type_mismatch"
+        >
+          <p class="font-semibold">{{ $t('posts.summary.typeMismatch') }}</p>
+          <UButton class="min-h-control self-start" @click="switchTo(proposal)">
+            {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
+          </UButton>
+        </div>
+
+        <!-- one row per account -->
+        <ul
+          v-if="rows.length > 0"
+          class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
+        >
+          <li
+            v-for="r in rows"
+            :key="r.id"
+            class="flex flex-col gap-1 px-4 py-3"
+            :data-destination="r.id"
+          >
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <UIcon
+                :name="ICON[r.platform ?? ''] ?? 'i-lucide-at-sign'"
+                class="size-4"
+                aria-hidden="true"
+              />
+              <span class="font-medium">{{ handleOf(r.id) }}</span>
+              <span class="min-w-0 flex-1 text-sm text-(--app-text-muted)">
+                <template v-if="r.what">
+                  {{ r.what }} · {{ $t('posts.summary.files', { n: r.files }, r.files) }} ·
+                  {{ r.own ? $t('posts.summary.ownText') : $t('posts.summary.commonText') }}
+                </template>
+                <template v-else>{{ $t('posts.summary.notGoing') }}</template>
+              </span>
+              <span class="flex items-center gap-1.5 text-sm">
+                <span class="size-2 rounded-full" :class="DOT[r.tone]" aria-hidden="true" />
+                {{ r.state }}
+              </span>
+            </div>
+            <p v-for="m in r.missing" :key="m" class="text-sm text-(--app-danger)" data-missing>
+              {{ $t('posts.summary.missingOn', { what: m, account: handleOf(r.id) }) }}
+            </p>
           </li>
         </ul>
-      </div>
-    </template>
-    <PostCropBox
-      v-if="crop"
-      :open="cropping !== null"
-      :title="crop.title"
-      :subtitle="crop.subtitle"
-      :src="crop.src"
-      :width="crop.width"
-      :height="crop.height"
-      :ratio="crop.ratio"
-      :ratio-label="crop.label"
-      :initial="crop.initial"
-      @apply="applyCrop"
-      @close="closeCrop"
-    />
-  </section>
+
+        <!-- the fixes, in one sentence -->
+        <div v-if="fixes.length > 0" class="flex flex-col gap-1 text-sm text-(--app-text-muted)">
+          <p class="flex items-start gap-2">
+            <UIcon
+              name="i-lucide-wand-sparkles"
+              class="mt-0.5 size-4 shrink-0"
+              aria-hidden="true"
+            />
+            {{ $t('posts.summary.fixes', { n: fixes.length, what: fixSentence }, fixes.length) }}
+          </p>
+          <UButton
+            color="neutral"
+            variant="link"
+            class="min-h-10 self-start"
+            :aria-expanded="open"
+            @click="open = !open"
+          >
+            {{ open ? $t('posts.summary.hideDetails') : $t('posts.summary.showDetails') }}
+          </UButton>
+          <ul v-if="open" class="list-disc pl-6">
+            <li v-for="o in fixes" :key="o.key">
+              <span v-if="subject(o)">{{ subject(o) }}: </span>{{ msg(o).text }}
+            </li>
+          </ul>
+        </div>
+      </template>
+      <PostCropBox
+        v-if="crop"
+        :open="cropping !== null"
+        :title="crop.title"
+        :subtitle="crop.subtitle"
+        :src="crop.src"
+        :width="crop.width"
+        :height="crop.height"
+        :ratio="crop.ratio"
+        :ratio-label="crop.label"
+        :initial="crop.initial"
+        @apply="applyCrop"
+        @close="closeCrop"
+      />
+    </div>
+  </PostEditorRow>
 </template>

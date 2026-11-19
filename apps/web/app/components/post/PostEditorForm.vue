@@ -2,9 +2,11 @@
 import { usePostEditor } from '~/composables/usePostEditor'
 
 /**
- * The editor's page body (design E1–E3, E6): the blocks in their order, the preview column on
- * the right (Task 6), the bar of the actions fixed at the bottom. Leaving with changes not saved
- * asks first (brief F02).
+ * The editor's page (screens 08 and 09; design E1–E3, E6), with no side bar: a row at the top
+ * with «indietro», the client, the title and the state of the save, and on a computer the
+ * actions on the right; then the rows of the form (label on the left, content on the right) and
+ * the preview column on the right. On a phone the actions stay in a bar at the bottom. Leaving
+ * with changes not saved asks first (brief F02).
  */
 const props = defineProps<{
   client: WorkspaceView
@@ -63,17 +65,28 @@ const platforms = computed(() => {
 const previewOpen = ref(false)
 /** One preview at a time: the column from 1024 px, the full screen below (design E3b). */
 const wide = ref(false)
+/** The actions in the row at the top from 768 px, in the bar at the bottom below: in one place
+ *  only, so a button is never there twice. The editor runs only in the browser (ClientOnly). */
+const desktop = ref(window.matchMedia('(min-width: 48rem)').matches)
 let wideQuery: MediaQueryList | null = null
+let desktopQuery: MediaQueryList | null = null
 const onWide = () => {
   wide.value = wideQuery?.matches ?? false
   if (wide.value) previewOpen.value = false
 }
+const onDesktop = () => (desktop.value = desktopQuery?.matches ?? false)
 onMounted(() => {
   wideQuery = window.matchMedia('(min-width: 1024px)')
+  desktopQuery = window.matchMedia('(min-width: 48rem)')
   onWide()
+  onDesktop()
   wideQuery.addEventListener('change', onWide)
+  desktopQuery.addEventListener('change', onDesktop)
 })
-onBeforeUnmount(() => wideQuery?.removeEventListener('change', onWide))
+onBeforeUnmount(() => {
+  wideQuery?.removeEventListener('change', onWide)
+  desktopQuery?.removeEventListener('change', onDesktop)
+})
 
 const title = computed(() => {
   if (!props.postId && !e.save.value.postId) return t('posts.editor.newTitle')
@@ -99,6 +112,11 @@ function goto(section: string) {
   area?.querySelector<HTMLElement>('button:not([disabled]), input, textarea')?.focus({
     preventScroll: true,
   })
+}
+
+/** «Salva ed esci»: leaving saves the draft first, and asks if it cannot (below). */
+function exit() {
+  void navigateTo(props.back)
 }
 
 async function schedule() {
@@ -171,125 +189,192 @@ const confirmText = computed(() => {
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-col gap-header">
-    <header class="flex flex-col gap-1">
-      <NuxtLink
+  <div
+    class="flex min-h-dvh min-w-0 flex-col"
+    :data-ready="e.loadState.value === 'ready' || undefined"
+  >
+    <header
+      class="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-3 border-b border-(--app-border) bg-(--app-surface) px-5 max-md:h-13 max-md:gap-1 max-md:ps-1 max-md:pe-2"
+      data-editor-bar
+    >
+      <UButton
         :to="back"
-        class="inline-flex min-h-11 items-center gap-1.5 self-start text-sm text-(--app-text-muted) hover:text-(--app-text)"
+        color="neutral"
+        variant="ghost"
+        square
+        icon="i-lucide-arrow-left"
+        class="shrink-0"
+        :aria-label="$t('posts.editor.backTo', { name: client.name })"
+      />
+      <span class="flex min-w-0 shrink items-center gap-2 max-lg:hidden">
+        <Avatar :name="client.name" :src="client.photoUrl" :size="22" />
+        <span class="truncate text-(--app-text-muted)">{{ client.name }}</span>
+      </span>
+      <span class="h-5 w-px shrink-0 bg-(--app-border-strong) max-lg:hidden" aria-hidden="true" />
+      <h1
+        class="min-w-0 shrink truncate text-[0.9375rem] leading-5 tracking-[-0.01em] max-md:text-base"
       >
-        <UIcon name="i-lucide-arrow-left" class="size-4" aria-hidden="true" />
-        {{ client.name }}
-      </NuxtLink>
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="text-[1.625rem] leading-tight md:text-[1.875rem]">{{ title }}</h1>
+        {{ title }}
+      </h1>
+      <PostActionBar
+        v-if="desktop && e.loadState.value === 'ready'"
+        placement="top"
+        :editor="editor"
+        :accounts-count="e.destinations.value.length"
+        @schedule="schedule"
+        @cancel="confirm = 'cancel'"
+        @remove="confirm = 'remove'"
+        @exit="exit"
+        @goto="goto"
+      >
         <UButton
-          v-if="e.loadState.value === 'ready'"
+          v-if="!wide"
           color="neutral"
-          variant="outline"
-          icon="i-lucide-smartphone"
-          class="min-h-control lg:hidden"
+          variant="ghost"
+          icon="i-lucide-eye"
+          class="shrink-0"
           @click="previewOpen = true"
         >
           {{ $t('posts.preview.open') }}
         </UButton>
-      </div>
+      </PostActionBar>
+      <template v-else>
+        <span class="flex-1" />
+        <UButton
+          v-if="e.loadState.value === 'ready'"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-eye"
+          class="shrink-0"
+          @click="previewOpen = true"
+        >
+          {{ $t('posts.preview.open') }}
+        </UButton>
+      </template>
     </header>
 
-    <p v-if="e.loadState.value === 'loading'" class="sr-only" role="status">
-      {{ $t('posts.editor.loading') }}
-    </p>
-    <ListSkeleton v-if="e.loadState.value === 'loading'" />
-    <div v-else-if="e.loadState.value === 'missing'" role="alert" class="flex flex-col gap-3">
-      <p>{{ $t('posts.editor.missing') }}</p>
-      <NuxtLink :to="back" class="self-start underline">{{
-        $t('posts.editor.backToPosts')
-      }}</NuxtLink>
-    </div>
-    <div v-else-if="e.loadState.value === 'error'" role="alert" class="flex flex-col gap-3">
-      <p>{{ $t('posts.editor.loadFailed') }}</p>
-    </div>
-    <template v-else>
-      <p v-if="flash" role="status" class="text-sm text-(--app-success)">{{ flash }}</p>
-      <p
-        v-if="readOnly"
-        role="note"
-        class="rounded-lg border border-(--app-border) bg-(--app-surface-sunken) px-4 py-3 text-sm"
-      >
-        {{ readOnly }}
+    <div class="flex-1 px-8 pt-2 pb-20 max-md:px-gutter max-md:pt-0 max-md:pb-8">
+      <p v-if="e.loadState.value === 'loading'" class="sr-only" role="status">
+        {{ $t('posts.editor.loading') }}
       </p>
-      <p
-        v-if="e.save.value.status === 'conflict'"
+      <div v-if="e.loadState.value === 'loading'" class="mx-auto max-w-[42.5rem] pt-5">
+        <ListSkeleton />
+      </div>
+      <div
+        v-else-if="e.loadState.value === 'missing'"
         role="alert"
-        class="rounded-lg border-2 border-(--app-danger) px-4 py-3 text-sm"
+        class="mx-auto flex max-w-[42.5rem] flex-col gap-3 pt-5"
       >
-        {{ $t('posts.save.conflictText') }}
-      </p>
-      <p
-        v-if="e.actionProblem.value"
+        <p>{{ $t('posts.editor.missing') }}</p>
+        <NuxtLink :to="back" class="self-start underline">{{
+          $t('posts.editor.backToPosts')
+        }}</NuxtLink>
+      </div>
+      <div
+        v-else-if="e.loadState.value === 'error'"
         role="alert"
-        class="rounded-lg border-2 border-(--app-danger) px-4 py-3 text-sm"
+        class="mx-auto flex max-w-[42.5rem] flex-col gap-3 pt-5"
       >
-        {{ e.actionProblem.value }}
-      </p>
-      <div class="flex min-w-0 gap-10">
-        <div class="flex w-full max-w-[45rem] min-w-0 flex-col gap-section">
-          <PostTypePicker
-            :type="e.type.value"
-            :kinds="e.kinds.value"
-            :disabled="!e.editable.value"
-            @choose="e.chooseType($event)"
-          />
-          <PostMediaList :editor="editor" :client="client" />
-          <PostCoverPicker v-if="e.type.value === 'reel'" :editor="editor" :client="client" />
-          <PostCaptionEditor
-            :editor="editor"
-            :platforms="platforms"
-            :templates="settings.templates.value"
-            :manage-to="manageTo"
-          />
-          <PostDestinationPicker
-            :editor="editor"
-            :profiles="profiles"
-            :loading="profilesLoading"
-            :groups="settings.groups.value"
-          />
-          <PostWhenPicker :editor="editor" :client="client" />
-          <p
-            v-if="!e.may.value.publish && e.editable.value"
-            class="rounded-lg bg-(--app-surface-sunken) px-4 py-3 text-sm"
+        <p>{{ $t('posts.editor.loadFailed') }}</p>
+      </div>
+      <div
+        v-else
+        class="grid grid-cols-[minmax(0,42.5rem)] justify-center gap-x-10 lg:grid-cols-[minmax(0,42.5rem)_23.75rem] xl:gap-x-16 max-md:grid-cols-1"
+      >
+        <div class="min-w-0">
+          <div
+            v-if="
+              flash ||
+              readOnly ||
+              e.save.value.status === 'conflict' ||
+              e.actionProblem.value ||
+              (!e.may.value.publish && e.editable.value) ||
+              settings.failed.value
+            "
+            class="flex flex-col gap-3 pt-5"
           >
-            {{ $t('posts.editor.editorOnly') }}
-          </p>
-          <p
-            v-if="settings.failed.value"
-            role="alert"
-            class="flex flex-wrap items-center gap-2 rounded-lg bg-(--app-surface-sunken) px-4 py-2 text-sm"
-          >
-            {{ $t('posts.contentSettingsFailed') }}
-            <UButton color="neutral" variant="link" class="min-h-control" @click="settings.load()">
-              {{ $t('account.retry') }}
-            </UButton>
-          </p>
-          <PostLabelsAndNotes
-            :editor="editor"
-            :labels="settings.labels.value"
-            :base="settings.base.value"
-            :manage-to="manageTo"
-            :archived="client.archivedAt !== null"
-          />
-          <PostDestinationSummary
-            :editor="editor"
-            :accounts="accounts"
-            :show-files="client.myRole !== 'viewer'"
-            @goto="goto"
-          />
+            <p v-if="flash" role="status" class="text-(--app-success)">{{ flash }}</p>
+            <p
+              v-if="readOnly"
+              role="note"
+              class="rounded-card border border-(--app-border) bg-(--app-surface-sunken) px-4 py-3"
+            >
+              {{ readOnly }}
+            </p>
+            <p
+              v-if="e.save.value.status === 'conflict'"
+              role="alert"
+              class="rounded-card border-2 border-(--app-danger) px-4 py-3"
+            >
+              {{ $t('posts.save.conflictText') }}
+            </p>
+            <p
+              v-if="e.actionProblem.value"
+              role="alert"
+              class="rounded-card border-2 border-(--app-danger) px-4 py-3"
+            >
+              {{ e.actionProblem.value }}
+            </p>
+            <p
+              v-if="!e.may.value.publish && e.editable.value"
+              class="rounded-card bg-(--app-surface-sunken) px-4 py-3"
+            >
+              {{ $t('posts.editor.editorOnly') }}
+            </p>
+            <p
+              v-if="settings.failed.value"
+              role="alert"
+              class="flex flex-wrap items-center gap-2 rounded-card bg-(--app-surface-sunken) px-4 py-2"
+            >
+              {{ $t('posts.contentSettingsFailed') }}
+              <UButton color="neutral" variant="link" @click="settings.load()">
+                {{ $t('account.retry') }}
+              </UButton>
+            </p>
+          </div>
+          <div>
+            <PostTypePicker
+              :type="e.type.value"
+              :kinds="e.kinds.value"
+              :disabled="!e.editable.value"
+              @choose="e.chooseType($event)"
+            />
+            <PostMediaList :editor="editor" :client="client" />
+            <PostCoverPicker v-if="e.type.value === 'reel'" :editor="editor" :client="client" />
+            <PostCaptionEditor
+              :editor="editor"
+              :platforms="platforms"
+              :templates="settings.templates.value"
+              :manage-to="manageTo"
+            />
+            <PostDestinationPicker
+              :editor="editor"
+              :profiles="profiles"
+              :loading="profilesLoading"
+              :groups="settings.groups.value"
+            />
+            <PostWhenPicker :editor="editor" :client="client" />
+            <PostLabelsAndNotes
+              :editor="editor"
+              :labels="settings.labels.value"
+              :base="settings.base.value"
+              :manage-to="manageTo"
+              :archived="client.archivedAt !== null"
+            />
+            <PostDestinationSummary
+              :editor="editor"
+              :accounts="accounts"
+              :show-files="client.myRole !== 'viewer'"
+              @goto="goto"
+            />
+          </div>
         </div>
         <!-- the preview, as on Meta (§11.3, Task 6): always beside the form from 1024 px -->
         <aside
           :aria-label="$t('posts.preview.title')"
-          class="sticky top-6 hidden w-80 shrink-0 flex-col gap-3 self-start lg:flex 2xl:w-90"
+          class="sticky top-[4.75rem] hidden min-w-0 flex-col gap-3 self-start pt-[1.375rem] lg:flex"
         >
-          <h2 class="text-lg">{{ $t('posts.preview.title') }}</h2>
+          <h2>{{ $t('posts.preview.title') }}</h2>
           <PostPreview
             v-if="wide"
             :editor="editor"
@@ -298,15 +383,16 @@ const confirmText = computed(() => {
           />
         </aside>
       </div>
-      <PostActionBar
-        :editor="editor"
-        :accounts-count="e.destinations.value.length"
-        @schedule="schedule"
-        @cancel="confirm = 'cancel'"
-        @remove="confirm = 'remove'"
-        @goto="goto"
-      />
-    </template>
+    </div>
+    <PostActionBar
+      v-if="!desktop && e.loadState.value === 'ready'"
+      :editor="editor"
+      :accounts-count="e.destinations.value.length"
+      @schedule="schedule"
+      @cancel="confirm = 'cancel'"
+      @remove="confirm = 'remove'"
+      @goto="goto"
+    />
 
     <!-- on a phone the preview takes the whole screen, with «← Modifica» (design E3b) -->
     <UModal

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { MediaDto } from '@app/contracts'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import { META_LIMITS } from '@app/domain/platforms/meta'
 import type { EditorEntry, PostEditor } from '~/composables/usePostEditor'
 
 /**
- * «File» (§11.2 point 3; design E1, E6b, E6c): the files of the post in their order, as 4:5
- * tiles with their number, the bar while they upload and their state. The order changes by
- * dragging the handle (mouse or touch) or with «Sposta prima» and «Sposta dopo». Files come
- * from «Carica», a drop, a paste or «Dalla libreria».
+ * «File» (§11.2 point 3; screens 08 and 09): the files of the post in their order, as 96×120
+ * tiles with their number and handle, the bar while they upload and their state; «Aggiungi» is
+ * the last tile. The order changes by dragging the handle (mouse or touch) or with «Sposta
+ * prima» and «Sposta dopo», shown under the tile that has the focus. Files come from «Carica»,
+ * a drop, a paste or «Dalla libreria».
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t } = useI18n()
@@ -52,6 +55,31 @@ function fromLibrary(list: MediaDto[]) {
   e.addFromLibrary(list)
 }
 defineExpose({ choose: () => picker.value?.click() })
+
+const MAX = META_LIMITS.instagramCarouselMaxItems.value
+/** Under the label: «2 di 10», or «1 video» for a reel's only file. */
+const detail = computed(() => {
+  const n = e.entries.value.length
+  if (n === 0) return null
+  if (n === 1 && e.kinds.value[0]?.kind === 'video') return t('posts.media.oneVideo')
+  return t('posts.media.detail', { n, max: MAX })
+})
+const addItems = computed<DropdownMenuItem[]>(() => [
+  {
+    label: t('posts.media.upload'),
+    icon: 'i-lucide-upload',
+    onSelect: () => picker.value?.click(),
+  },
+  {
+    label: t('posts.media.fromLibrary'),
+    icon: 'i-lucide-images',
+    onSelect: () => (picking.value = true),
+  },
+])
+const clock = (ms: number) => {
+  const s = Math.round(ms / 1000)
+  return `${String(Math.floor(s / 60))}:${String(s % 60).padStart(2, '0')}`
+}
 
 const nameOf = (entry: EditorEntry) =>
   entry.file?.name ?? e.uploadItem(entry)?.name ?? t('posts.media.unnamed')
@@ -113,16 +141,11 @@ function release() {
 </script>
 
 <template>
-  <section aria-labelledby="post-media" class="flex flex-col gap-3">
-    <div class="flex items-baseline justify-between gap-3">
-      <h2 id="post-media" class="text-lg">{{ $t('posts.media.title') }}</h2>
-      <p v-if="e.entries.value.length > 1" class="text-sm text-(--app-text-muted)">
-        {{ $t('posts.media.count', { n: e.entries.value.length }, e.entries.value.length) }}
-      </p>
-    </div>
+  <PostEditorRow heading="post-media" :label="$t('posts.media.title')" :detail="detail">
     <p class="sr-only" aria-live="polite">{{ said }}</p>
     <div
-      class="flex flex-wrap gap-3"
+      class="flex flex-wrap gap-2.5 max-md:-mx-gutter max-md:flex-nowrap max-md:overflow-x-auto max-md:px-gutter"
+      data-drop
       @dragover.prevent="dragOver = true"
       @dragleave="dragOver = false"
       @drop.prevent="dropped"
@@ -139,12 +162,7 @@ function release() {
           v-for="(entry, index) in e.entries.value"
           :key="entry.key"
           :data-index="index"
-          class="flex w-32 flex-col gap-1"
-          :class="
-            dropAt === index && dragging !== entry.key
-              ? 'outline-2 outline-(--app-brand) outline-offset-2 rounded-lg'
-              : ''
-          "
+          class="flex w-24 shrink-0 flex-col"
           @focusin="focused = entry.key"
         >
           <div
@@ -155,8 +173,13 @@ function release() {
               $t('posts.media.tile', { n: index + 1, name: nameOf(entry) }) +
               (stateOf(entry) ? ` · ${stateOf(entry)?.text}` : '')
             "
-            class="relative h-40 w-32 overflow-hidden rounded-lg border border-(--app-border) bg-(--app-surface-sunken) focus-visible:outline-2 focus-visible:outline-(--app-brand)"
-            :class="dragging === entry.key ? 'opacity-60' : ''"
+            class="relative h-30 w-24 overflow-hidden rounded-lg bg-(--app-surface-sunken) outline-1 -outline-offset-1 outline-(--app-img-outline) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--app-focus)"
+            :class="[
+              dragging === entry.key ? 'opacity-60' : '',
+              dropAt === index && dragging !== entry.key
+                ? 'ring-2 ring-(--app-text) ring-offset-2 ring-offset-(--app-bg)'
+                : '',
+            ]"
           >
             <template v-if="thumbOf(entry)">
               <video
@@ -180,19 +203,33 @@ function release() {
               />
             </span>
             <span
-              class="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-(--app-surface) text-xs font-semibold tabular-nums"
+              v-if="e.entries.value.length > 1"
+              class="absolute top-1.5 left-1.5 flex h-5 min-w-5 items-center justify-center rounded-md bg-black/70 px-1 text-xs font-semibold text-white tabular-nums"
               aria-hidden="true"
               >{{ index + 1 }}</span
+            >
+            <span
+              v-if="entry.file?.kind === 'video' && entry.file.durationMs"
+              class="absolute bottom-1.5 left-1.5 flex h-5 items-center gap-1 rounded-md bg-black/70 px-1.5 text-xs font-semibold text-white tabular-nums"
+              aria-hidden="true"
+            >
+              <UIcon name="i-lucide-clapperboard" class="size-3" />{{
+                clock(entry.file.durationMs)
+              }}</span
             >
             <button
               v-if="e.editable.value && e.entries.value.length > 1"
               type="button"
-              class="absolute top-1 right-1 flex size-8 cursor-grab touch-none items-center justify-center rounded-md bg-(--app-surface)"
+              class="absolute top-0.5 right-0.5 flex size-7 cursor-grab touch-none items-center justify-center"
               :aria-label="$t('posts.media.dragFor', { name: nameOf(entry) })"
               tabindex="-1"
               @pointerdown.prevent="grab(entry, $event)"
             >
-              <UIcon name="i-lucide-grip" class="size-4" aria-hidden="true" />
+              <span
+                class="flex size-5 items-center justify-center rounded-md bg-black/70 text-white"
+              >
+                <UIcon name="i-lucide-grip-vertical" class="size-[13px]" aria-hidden="true" />
+              </span>
             </button>
             <div
               v-if="e.uploadItem(entry) && !entry.file && showsBar(e.uploadItem(entry)!)"
@@ -200,24 +237,24 @@ function release() {
               aria-hidden="true"
             >
               <div
-                class="h-full bg-(--app-brand)"
+                class="h-full bg-(--app-text)"
                 :style="{ width: `${barPercent(e.uploadItem(entry)!)}%` }"
               />
             </div>
           </div>
-          <p class="line-clamp-2 text-xs break-all" :title="nameOf(entry)">{{ nameOf(entry) }}</p>
+          <p class="mt-1.5 truncate text-xs text-(--app-text-muted)" :title="nameOf(entry)">
+            {{ nameOf(entry) }}
+          </p>
           <p v-if="stateOf(entry)" class="text-xs" :class="stateOf(entry)?.tone">
             {{ stateOf(entry)?.text }}
           </p>
-          <div
-            v-if="e.editable.value && (focused === entry.key || e.entries.value.length === 1)"
-            class="flex gap-1"
-          >
+          <div v-if="e.editable.value && focused === entry.key" class="mt-1 flex gap-0.5">
             <UButton
               v-if="e.entries.value.length > 1"
               color="neutral"
               variant="outline"
-              class="size-10 justify-center max-sm:size-11"
+              size="sm"
+              square
               icon="i-lucide-arrow-left"
               :disabled="index === 0"
               :aria-label="$t('posts.media.earlier', { name: nameOf(entry) })"
@@ -227,7 +264,8 @@ function release() {
               v-if="e.entries.value.length > 1"
               color="neutral"
               variant="outline"
-              class="size-10 justify-center max-sm:size-11"
+              size="sm"
+              square
               icon="i-lucide-arrow-right"
               :disabled="index === e.entries.value.length - 1"
               :aria-label="$t('posts.media.later', { name: nameOf(entry) })"
@@ -236,7 +274,8 @@ function release() {
             <UButton
               color="neutral"
               variant="outline"
-              class="size-10 justify-center max-sm:size-11"
+              size="sm"
+              square
               icon="i-lucide-x"
               :aria-label="$t('posts.media.remove', { name: nameOf(entry) })"
               @click="removeOne(entry)"
@@ -244,42 +283,55 @@ function release() {
           </div>
         </li>
       </ol>
-      <div
-        v-if="e.editable.value"
-        class="flex min-h-40 flex-1 basis-56 flex-col items-stretch justify-center gap-2 rounded-lg border border-dashed p-4"
-        :class="dragOver ? 'border-(--app-brand) bg-(--app-brand-soft)' : 'border-(--app-border)'"
-      >
-        <p class="text-center text-sm text-(--app-text-muted)">{{ $t('posts.media.dropHere') }}</p>
-        <UButton
-          color="neutral"
-          variant="outline"
-          class="min-h-control justify-center"
-          icon="i-lucide-upload"
-          @click="picker?.click()"
+      <UDropdownMenu v-if="e.editable.value" :items="addItems" :content="{ align: 'start' }">
+        <button
+          type="button"
+          class="flex h-30 w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed text-xs text-(--app-text-muted) hover:text-(--app-text)"
+          :class="
+            dragOver
+              ? 'border-(--app-text) bg-(--app-surface-sunken)'
+              : 'border-(--app-border-strong)'
+          "
+          :aria-label="$t('posts.media.addLabel')"
+          data-add-file
         >
-          {{ $t('posts.media.upload') }}
-        </UButton>
-        <UButton
-          color="neutral"
-          variant="outline"
-          class="min-h-control justify-center"
-          icon="i-lucide-images"
-          @click="picking = true"
-        >
-          {{ $t('posts.media.fromLibrary') }}
-        </UButton>
-        <input
-          ref="picker"
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov"
-          class="hidden"
-          data-post-input
-          @change="picked"
-        />
-      </div>
+          <UIcon name="i-lucide-plus" class="size-5" aria-hidden="true" />
+          {{ $t('posts.media.add') }}
+        </button>
+      </UDropdownMenu>
     </div>
-    <ul v-if="e.refused.value.length > 0" class="flex flex-col gap-1" role="alert">
+    <div v-if="e.editable.value" class="mt-2.5 flex flex-wrap items-center gap-2 max-md:hidden">
+      <UButton
+        color="neutral"
+        variant="outline"
+        size="sm"
+        icon="i-lucide-upload"
+        @click="picker?.click()"
+      >
+        {{ $t('posts.media.upload') }}
+      </UButton>
+      <UButton
+        color="neutral"
+        variant="outline"
+        size="sm"
+        icon="i-lucide-images"
+        @click="picking = true"
+      >
+        {{ $t('posts.media.fromLibrary') }}
+      </UButton>
+      <span class="text-detail text-(--app-text-muted)">{{ $t('posts.media.dropHere') }}</span>
+    </div>
+    <input
+      v-if="e.editable.value"
+      ref="picker"
+      type="file"
+      multiple
+      accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov"
+      class="hidden"
+      data-post-input
+      @change="picked"
+    />
+    <ul v-if="e.refused.value.length > 0" class="mt-2 flex flex-col gap-1" role="alert">
       <li v-for="r in e.refused.value" :key="r.key" class="text-sm text-(--app-danger)">
         {{ r.name }}: {{ r.message }}
       </li>
@@ -291,5 +343,5 @@ function release() {
       :exclude="e.files.value.map((f) => f.id)"
       @pick="fromLibrary"
     />
-  </section>
+  </PostEditorRow>
 </template>

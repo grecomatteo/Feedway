@@ -57,12 +57,14 @@ const bare = computed(() => route.meta['editor'] === true)
 </script>
 
 <template>
-  <PageShell>
+  <!-- the editor draws its whole page, edge to edge (screens 08 and 09) -->
+  <NuxtPage v-if="bare && !missing" />
+  <PageShell v-else>
     <p v-if="missing" role="alert" class="space-y-3">
       <span class="block">{{ $t('workspaceMembers.missing') }}</span>
       <NuxtLink :to="org.to('/spazi')" class="underline">{{ $t('client.backToClients') }}</NuxtLink>
     </p>
-    <template v-if="!missing && !bare" #head>
+    <template v-if="!missing" #head>
       <div data-client-head>
         <header class="mb-4 flex min-w-0 items-center gap-3.5 max-md:mb-3">
           <span

@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { MediaDto } from '@app/contracts'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import { frameAt, lastFrameMs, stepFrames } from '@app/domain'
 import { fromMedia, type PostEditor } from '~/composables/usePostEditor'
-import { centeredCrop, cropStyle } from '~/utils/post-preview'
 
 /**
- * «Copertina del reel» (D-60, Scelta 4; design E5e): a frame of the video, from 0 to the last
- * true frame, with the arrows one frame at a time and Maiusc+arrows a second; or an image,
- * uploaded, dropped or from the library (a video is refused at once, with the reason); seen in
- * 9:16 and as the profile's grid cuts it (3:4, D-62). «Ripristina» goes back to the first
- * frame. Under it, «Mostra anche nel feed» (§9.1).
+ * «Copertina» of a reel (D-60, Scelta 4; screen 09): the cover in 9:16 on the left; on the right
+ * a strip of frames of the video with the cursor on the one chosen, from 0 to the last true
+ * frame (the arrows one frame at a time, Maiusc+arrows a second); or an image, uploaded, dropped
+ * or from the library (a video is refused at once, with the reason). «Ripristina» goes back to
+ * the first frame. Under it, «Mostra anche nel feed» (§9.1). How the grid cuts the cover is in
+ * the preview («Griglia»).
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t, n } = useI18n()
@@ -98,6 +99,19 @@ function fromLibrary(list: MediaDto[]) {
   e.coverFile.value = fromMedia(first)
   e.setCover({ source: 'image', mediaId: first.id })
 }
+/** «Carica un'immagine»: from the computer or from the library. */
+const uploadItems = computed<DropdownMenuItem[]>(() => [
+  {
+    label: t('posts.cover.fromComputer'),
+    icon: 'i-lucide-upload',
+    onSelect: () => input.value?.click(),
+  },
+  {
+    label: t('posts.media.fromLibrary'),
+    icon: 'i-lucide-images',
+    onSelect: () => (picking.value = true),
+  },
+])
 function restore() {
   problem.value = null
   e.coverUpload.value = null
@@ -131,71 +145,65 @@ const videoSrc = computed(() =>
 )
 const imageSrc = computed(() => (showFiles.value ? e.coverSrc.value : null))
 const big = ref<HTMLVideoElement | null>(null)
-const small = ref<HTMLVideoElement | null>(null)
 watch(offset, (ms) => {
-  for (const v of [big.value, small.value]) if (v) v.currentTime = ms / 1000
+  if (big.value) big.value.currentTime = ms / 1000
 })
 const seek = (event: Event) => {
   ;(event.target as HTMLVideoElement).currentTime = offset.value / 1000
 }
-/** The grid of the profile shows the middle 3:4 of the 9:16 cover (D-62). */
-const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
+/** The strip: eight frames spread over the video, each one in the middle of its eighth. */
+const STRIP = 8
+const stripAt = (i: number) => ((timing.value.durationMs / STRIP) * (i + 0.5)) / 1000
+/** Where the cursor stands on the strip, from 0 to 1. */
+const at = computed(() => (last.value > 0 ? offset.value / last.value : 0))
 </script>
 
 <template>
-  <section aria-labelledby="post-cover" class="flex flex-col gap-4" data-cover>
-    <div class="flex items-baseline justify-between gap-3">
-      <h2 id="post-cover" class="text-lg">{{ t('posts.cover.title') }}</h2>
-      <p class="text-sm text-(--app-text-muted)" data-cover-state>
-        {{
-          image ? t('posts.cover.imageChosen') : t('posts.cover.frameShort', { s: seconds(offset) })
-        }}
-      </p>
-    </div>
-    <div class="flex flex-col gap-5 sm:flex-row">
-      <div class="flex shrink-0 gap-3">
-        <figure class="flex flex-col gap-1">
-          <div class="relative aspect-[9/16] w-36 overflow-hidden rounded-lg bg-black">
-            <img v-if="imageSrc" :src="imageSrc" alt="" class="size-full object-cover" />
-            <video
-              v-else-if="videoSrc"
-              ref="big"
-              :src="videoSrc"
-              muted
-              playsinline
-              preload="auto"
-              class="size-full object-cover"
-              aria-hidden="true"
-              @loadedmetadata="seek"
-            />
-          </div>
-          <figcaption class="text-xs text-(--app-text-muted)">
-            {{ t('posts.cover.reelTab') }}
-          </figcaption>
-        </figure>
-        <figure class="flex flex-col gap-1 self-end">
-          <div class="relative aspect-[3/4] w-20 overflow-hidden rounded-sm bg-black">
-            <img v-if="imageSrc" :src="imageSrc" alt="" :style="grid" />
-            <video
-              v-else-if="videoSrc"
-              ref="small"
-              :src="videoSrc"
-              muted
-              playsinline
-              preload="auto"
-              :style="grid"
-              aria-hidden="true"
-              @loadedmetadata="seek"
-            />
-          </div>
-          <figcaption class="text-xs text-(--app-text-muted)">
-            {{ t('posts.cover.grid') }}
-          </figcaption>
-        </figure>
+  <PostEditorRow heading="post-cover" :label="t('posts.cover.title')" data-cover>
+    <div class="flex items-start gap-4">
+      <div
+        class="aspect-[9/16] w-[90px] shrink-0 overflow-hidden rounded-lg bg-black outline-1 -outline-offset-1 outline-(--app-img-outline) max-md:w-[72px]"
+      >
+        <img v-if="imageSrc" :src="imageSrc" alt="" class="size-full object-cover" />
+        <video
+          v-else-if="videoSrc"
+          ref="big"
+          :src="videoSrc"
+          muted
+          playsinline
+          preload="auto"
+          class="size-full object-cover"
+          aria-hidden="true"
+          @loadedmetadata="seek"
+        />
       </div>
-      <div class="flex min-w-0 flex-1 flex-col gap-3">
-        <label class="flex flex-col gap-2">
-          <span class="text-sm font-semibold">{{ t('posts.cover.chooseFrame') }}</span>
+      <div
+        class="min-w-0 flex-1 rounded-lg"
+        :class="dragging ? 'outline-2 outline-offset-4 outline-dashed outline-(--app-text)' : ''"
+        data-cover-drop
+        @dragover.prevent="dragging = e.editable.value"
+        @dragleave="dragging = false"
+        @drop.prevent="onDrop"
+      >
+        <div
+          class="relative rounded-md has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-(--app-focus)"
+        >
+          <div
+            class="grid h-14 grid-cols-8 overflow-hidden rounded-md bg-(--app-surface-sunken) outline-1 -outline-offset-1 outline-(--app-img-outline)"
+            aria-hidden="true"
+          >
+            <template v-if="videoSrc && !image">
+              <video
+                v-for="i in STRIP"
+                :key="i"
+                :src="`${videoSrc}#t=${stripAt(i - 1)}`"
+                muted
+                playsinline
+                preload="metadata"
+                class="size-full object-cover"
+              />
+            </template>
+          </div>
           <input
             type="range"
             min="0"
@@ -203,57 +211,49 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
             step="1"
             :value="offset"
             :disabled="!e.editable.value || !video"
+            :aria-label="t('posts.cover.chooseFrame')"
             :aria-valuetext="frameLabel"
-            class="h-11 w-full accent-(--app-brand)"
+            aria-describedby="post-cover-keys"
+            class="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-default"
             data-cover-frame
             @keydown="onKey"
             @input="onInput"
           />
-        </label>
-        <div class="flex justify-between text-xs text-(--app-text-muted) tabular-nums">
-          <span>0:00</span>
-          <span class="font-semibold text-(--app-text)" aria-live="polite">{{ frameLabel }}</span>
-          <span>{{ clock(timing.durationMs) }}</span>
+          <span
+            v-if="!image"
+            class="pointer-events-none absolute -top-1 -bottom-1 w-9 rounded-lg border-3 border-(--app-text) shadow-[0_0_0_1px_var(--app-surface)]"
+            :style="{ left: `calc(${at} * (100% - 2.25rem))` }"
+            aria-hidden="true"
+          />
+          <span id="post-cover-keys" class="sr-only">{{ t('posts.cover.keys') }}</span>
         </div>
-        <p class="text-xs text-(--app-text-muted)">{{ t('posts.cover.keys') }}</p>
-        <div
-          class="flex flex-wrap items-center gap-2 rounded-lg border-2 border-dashed p-2"
-          :class="dragging ? 'border-(--app-brand) bg-(--app-brand-soft)' : 'border-transparent'"
-          data-cover-drop
-          @dragover.prevent="dragging = e.editable.value"
-          @dragleave="dragging = false"
-          @drop.prevent="onDrop"
-        >
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-image-up"
-            class="min-h-control"
-            :disabled="!e.editable.value"
-            @click="input?.click()"
-          >
-            {{ t('posts.cover.upload') }}
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-images"
-            class="min-h-control"
-            :disabled="!e.editable.value"
-            @click="picking = true"
-          >
-            {{ t('posts.media.fromLibrary') }}
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="ghost"
-            trailing-icon="i-lucide-rotate-ccw"
-            class="min-h-control"
-            :disabled="!e.editable.value || (!image && offset === 0)"
-            @click="restore"
-          >
-            {{ t('posts.cover.restore') }}
-          </UButton>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <span class="text-detail text-(--app-text-muted)" aria-live="polite" data-cover-state>
+            {{
+              image
+                ? t('posts.cover.imageChosen')
+                : t('posts.cover.frameShort', { time: clock(offset) })
+            }}
+          </span>
+          <span class="flex-1" />
+          <template v-if="e.editable.value">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              square
+              icon="i-lucide-rotate-ccw"
+              :aria-label="t('posts.cover.restore')"
+              :title="t('posts.cover.restore')"
+              :disabled="!image && offset === 0"
+              @click="restore"
+            />
+            <UDropdownMenu :items="uploadItems" :content="{ align: 'end' }">
+              <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-upload">
+                {{ t('posts.cover.upload') }}
+              </UButton>
+            </UDropdownMenu>
+          </template>
           <input
             ref="input"
             type="file"
@@ -265,11 +265,12 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
             @change="onPicked"
           />
         </div>
-        <p class="text-xs text-(--app-text-muted)">{{ t('posts.cover.rule') }}</p>
-        <p v-if="uploading" role="status" class="text-sm">
+        <p v-if="uploading" role="status" class="mt-2 text-detail">
           {{ t('posts.cover.uploading', { name: uploading.name }) }}
         </p>
-        <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
+        <p v-if="problem" role="alert" class="mt-2 text-detail text-(--app-danger)">
+          {{ problem }}
+        </p>
       </div>
     </div>
     <USwitch
@@ -277,7 +278,7 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
       :disabled="!e.editable.value"
       :label="t('posts.cover.shareToFeed')"
       :description="t('posts.cover.shareToFeedHelp')"
-      class="min-h-11"
+      class="mt-4"
       @update:model-value="(v: boolean) => e.setShareToFeed(v)"
     />
     <PostLibraryPicker
@@ -287,5 +288,5 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
       :exclude="[]"
       @pick="fromLibrary"
     />
-  </section>
+  </PostEditorRow>
 </template>
