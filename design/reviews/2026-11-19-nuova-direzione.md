@@ -6,8 +6,8 @@ Richiesta di Matteo dopo la prova della 0.12.0: il pannello sembra «ancora un p
 
 ## Dove guardare
 
-- Schermate: `design/esplorazioni/2026-11-19-nuova-direzione/schermate/` (1440 px e 390 px, tema chiaro).
-- Pagine vive: `design/esplorazioni/2026-11-19-nuova-direzione/index.html?p=oggi` (anche `editor`, `cliente`, `cliente&stato=programmato`, `clienti`, `libreria`, `utenti`, `impostazioni`, `sistema`). Sono HTML e CSS veri, con gli stessi punti di rottura del pannello: restringendo la finestra si vede il telefono.
+- Schermate: `design/esplorazioni/2026-11-19-nuova-direzione/schermate/computer/` (1440 px) e `…/schermate/telefono/` (390 px), tema chiaro, con lo stesso numero per la stessa schermata.
+- Pagine vive: `design/esplorazioni/2026-11-19-nuova-direzione/index.html?p=oggi`. Sono HTML e CSS veri, con gli stessi punti di rottura del pannello: restringendo la finestra si vede il telefono. Valori di `p`: `sistema`, `accedi`, `oggi`, `oggi-tranquillo`, `selettore`, `notifiche`, `tu`, `calendario`, `editor`, `editor-reel`, `editor-anteprima`, `conferma`, `cliente&stato=programmato`, `post`, `clienti`, `nuovo-cliente`, `panoramica`, `cliente`, `contenuti`, `libreria`, `file`, `utenti`, `invita`, `impostazioni`, `sicurezza`, `integrazioni`, `registro`.
 - Non è sulla tela Pencil: in questo ambiente Pencil non era raggiungibile. Se la direzione passa, le tavole si rifanno sulla tela con i componenti.
 
 ## Fonti
@@ -52,7 +52,7 @@ Il marchio non cambia: arancio `#FF762E`, carbone `#242321`, Sora, fondi caldi, 
 | Date e ore | Formato del browser | «venerdì 20 novembre», «ven 20 nov, 18:00», sempre 24 ore |
 | Larghezza | Piena | Piena fino a 1200 px di contenuto, poi si ferma |
 
-La tavola `00-sistema.png` le mostra tutte.
+La tavola `computer/00-sistema.png` le mostra tutte.
 
 ### Guscio
 
@@ -60,7 +60,7 @@ La tavola `00-sistema.png` le mostra tutte.
 - **Telefono:** una sola riga in alto con il selettore del cliente e la campanella (richiesta della prova). La riga dell'agenzia sparisce. La barra in basso resta a cinque voci, con «Oggi» al posto di «Home».
 - Le azioni di pagina («Nuovo cliente», «Carica», «Invita») sono pulsanti con contorno nella riga degli strumenti, accanto a filtro e ricerca, non più nell'angolo opposto al titolo.
 
-### Oggi (`01`, `02`)
+### Oggi (`02`–`06`)
 
 Tre domande, in quest'ordine: cosa devo sistemare, cosa esce, cosa ho lasciato a metà.
 
@@ -70,7 +70,7 @@ Tre domande, in quest'ordine: cosa devo sistemare, cosa esce, cosa ho lasciato a
 
 Quello che mostra oltre la 0.12.0: gli esiti «Pubblicato» e «non uscito» (tappa 7) e il calendario (tappa 9). Prima di allora «In uscita» mostra solo i programmati.
 
-### Editor del post (`03`, `04`)
+### Editor del post (`08`–`13`)
 
 - **Pagina senza barra laterale.** In alto una riga: indietro, cliente, «Nuovo post», stato del salvataggio, e a destra «Salva ed esci» e «Programma su 2 account». Più spazio per modulo e anteprima, e un solo arancio.
 - **Etichetta a sinistra, contenuto a destra.** Tipo, File, Testo, Dove, Quando, Etichette, Note: sette righe separate da un filetto. A 1440 px l'intero post sta in una schermata e mezza invece di due e mezza.
@@ -81,18 +81,39 @@ Quello che mostra oltre la 0.12.0: gli esiti «Pubblicato» e «non uscito» (ta
 - **Quando:** giorno e ora scritti all'italiana. La frase «Esce…» sparisce; resta «Orario abituale di Forno Luce» quando l'ora è quella predefinita.
 - **A destra:** anteprima senza cornice da telefono e, subito sotto, i **controlli** per destinazione. Si vede sempre se il post è pronto, senza scorrere.
 - **Telefono:** una riga in alto (indietro, titolo, «Anteprima»). In basso una riga: a sinistra «Bozza salvata alle 11:53», a destra «Programma su 2 account». «Salva bozza» sparisce dal telefono, perché la bozza si salva da sola; per uscire c'è la freccia.
-- **Dopo «Programma»** (`06`): si torna ai post del cliente con la conferma «Programmato per ven 20 nov alle 8:00 · Apri».
+- **Dopo «Programma»** (`12`): si torna ai post del cliente con la conferma «Programmato per ven 20 nov alle 8:00 · Apri».
 
-### Elenchi (`05`, `07`–`12`)
+### Elenchi (`14`–`22`)
 
 - **Clienti:** al posto della colonna vuota, «Prossimo post» e «In programma». «Collegamento» si riempie solo quando c'è da agire. I profili non abbinati sono una riga sotto l'elenco.
 - **Post del cliente:** nome del cliente e profili su una riga; filtro con «Pubblicati»; la riga dice tipo e numero di file.
 - **Libreria:** file raggruppati per giorno; sotto il nome, in blu, dove è usato («Nel post di oggi, 18:00», «In una bozza»); filtri per cliente e per uso accanto alla ricerca.
 - **Utenti:** colonna «Clienti» (su quali lavora) e «Ultimo accesso»; lo stato compare solo se c'è un problema («Senza secondo fattore»).
 
-### Impostazioni (`13`, `14`)
+### Impostazioni (`23`–`26`)
 
 Righe «etichetta a sinistra, valore a destra» dentro una superficie per gruppo. Niente nome ed email sotto il titolo. Sul telefono il menu delle schede diventa una tendina.
+
+### Secondo giro (19/11, richiesta di Matteo: «dammene tante altre», computer e telefono separati)
+
+| N. | Schermata | Cosa mostra |
+|---|---|---|
+| 01 | Accedi | Passkey per prima, poi email e password |
+| 03 | Oggi senza problemi | «Da sistemare» sparisce e resta una riga: «Niente da sistemare.» |
+| 04 | Selettore del cliente | Ricerca, «Tutti i clienti», pallino sui clienti con un problema. Sul telefono è un foglio dal basso |
+| 05 | Notifiche | Le nuove hanno il punto arancio; ogni riga dice il cliente |
+| 06 | Menu della persona | Sul telefono contiene anche Libreria e Utenti, che non stanno nella barra in basso |
+| 07 | Calendario | Mese al computer, elenco per giorni sul telefono. Bozze con il bordo tratteggiato, problemi in rosso tenue |
+| 09 | Editor · Reel | Copertina dal fotogramma e una scelta da fare: finché manca, «Programma» è spento e accanto c'è scritto perché |
+| 10 | Anteprima (telefono) | A tutta pagina, con «← Modifica» |
+| 11 | «Pubblica subito» | Conferma con le destinazioni e la frase sull'impossibilità di annullare |
+| 13 | Post uscito | Esito per profilo. Dove non è uscito: motivo, cosa fare, «Modifica per Facebook» e «Riprova», senza ripubblicare dove è già uscito |
+| 15, 22 | Nuovo cliente, Invita | Finestre al computer, fogli dal basso sul telefono |
+| 16, 18 | Cliente · Panoramica e Contenuti | Prossimi post, profili, ultimi file, chi ci lavora; orario, etichette, modelli, gruppi |
+| 20 | Dettaglio di un file | Pannello a destra: dove è usato e perché non si può eliminare, detto prima di provarci |
+| 24–26 | Sicurezza, Meta, Registro attività | Righe con l'azione a destra; il registro entra nelle Impostazioni |
+
+Funzioni che queste schermate mostrano e che oggi non esistono, o non così: calendario (tappa 9), esiti e «Riprova» (tappa 7), notifiche (tappa 8), «Duplica», filtro della libreria per uso, colonna «Clienti» degli utenti. Sono disegnate per far vedere dove andrebbero, non sono decise.
 
 ## Cosa cambia rispetto a scelte già prese
 

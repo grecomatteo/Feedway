@@ -19,7 +19,7 @@ const NAV = [
   ['libreria', 'Libreria', 'images', ''],
 ]
 const NAV2 = [['utenti', 'Utenti', 'users'], ['impostazioni', 'Impostazioni', 'settings']]
-const section = { cliente: 'clienti' }[P] || P
+const section = { cliente: 'clienti', panoramica: 'clienti', contenuti: 'clienti', post: 'clienti', 'nuovo-cliente': 'clienti', selettore: 'oggi', 'oggi-tranquillo': 'oggi', notifiche: 'oggi', tu: 'oggi', invita: 'utenti', file: 'libreria', integrazioni: 'impostazioni', sicurezza: 'impostazioni', registro: 'impostazioni' }[P] || P
 
 const shell = (body, { ctx = 'Tutti i clienti', ctxAv = av('SR', 'dark sm'), toast = '' } = {}) => `
 <div class="app">
@@ -32,7 +32,7 @@ const shell = (body, { ctx = 'Tutti i clienti', ctxAv = av('SR', 'dark sm'), toa
     <button class="switcher">${ctxAv}<span class="lbl">${ctx}</span>${ic('chevrons-up-down')}</button>
     <button class="btn primary block">${ic('plus')}Nuovo post</button>
     <nav class="nav">
-      ${NAV.map(([k, l, i, x]) => `<a href="?p=${k}" ${section === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${x}</a>`).join('')}
+      ${NAV.map(([k, l, i, x]) => `<a href="?p=${k}" ${section === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${section === 'calendario' && k === 'calendario' ? '' : x}</a>`).join('')}
       <div class="nav-h">Studio Riva</div>
       ${NAV2.map(([k, l, i]) => `<a href="?p=${k}" ${section === k ? 'aria-current="page"' : ''}>${ic(i)}${l}</a>`).join('')}
     </nav>
@@ -467,5 +467,3 @@ const sistema = () => `<main class="page" style="max-width:1440px;padding:40px 4
   </div></main>`
 
 const PAGES = { oggi, clienti, cliente, libreria, utenti, impostazioni, editor, sistema }
-document.title = 'Feedway · ' + P
-document.getElementById('root').innerHTML = (PAGES[P] || oggi)()
