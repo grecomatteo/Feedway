@@ -41,7 +41,7 @@ watch(org.slug, refresh)
       <header
         class="sticky top-0 z-30 flex h-13 items-center gap-2 border-b border-(--app-border) bg-(--app-bg) ps-3 pe-2 md:hidden"
       >
-        <ContextSwitcher v-if="org.active.value" variant="top" />
+        <ContextSwitcher v-if="org.active.value && inAgency" variant="top" />
         <span class="flex-1" />
         <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
         <button

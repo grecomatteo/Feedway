@@ -148,6 +148,11 @@ function onKey(event: KeyboardEvent) {
   if (event.key === 'ArrowDown') active.value = (active.value + 1) % count
   else if (event.key === 'ArrowUp') active.value = (active.value - 1 + count) % count
   else if (event.key === 'Enter') {
+    // a search that found nobody picks nothing, not «Tutti i clienti»
+    if (query.value.trim() !== '' && clients.value.length === 0) {
+      event.preventDefault()
+      return
+    }
     const option = options.value[active.value]
     if (option) pick(option)
   } else return

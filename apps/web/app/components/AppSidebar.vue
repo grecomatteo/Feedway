@@ -9,6 +9,7 @@ const nav = useAgencyNav()
 const context = useContextQuery()
 const route = useRoute()
 const newPost = useNewPost()
+const inAgency = computed(() => Boolean(route.params['org']))
 
 const main = computed(() => nav.value.filter((item) => item.group === 'main'))
 const agency = computed(() => nav.value.filter((item) => item.group === 'agency'))
@@ -51,7 +52,8 @@ const entry =
     </div>
 
     <template v-if="org.active.value">
-      <ContextSwitcher />
+      <!-- the personal settings have no client context of their own (D-87) -->
+      <ContextSwitcher v-if="inAgency" />
       <UButton
         v-if="newPost.allowed.value"
         :to="newPost.link.value"

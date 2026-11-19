@@ -357,3 +357,16 @@ test('the measures of the shell (base.css): 240 and 44 on a computer, one row at
     await height(mainNav(page).getByRole('link', { name: 'Nuovo post' }).locator('span').first()),
   ).toBe(36)
 })
+
+test('a search that finds nobody: Enter picks nothing', async ({ page }) => {
+  const { org, client } = await ownerWithClient(page, 'Olga Ricerca')
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  const trigger = page.getByRole('button', { name: /^Contesto:/ }).locator('visible=true')
+  await expect(trigger).toBeEnabled()
+  await trigger.click()
+  const search = page.getByRole('combobox', { name: 'Cerca un cliente' })
+  await search.fill('nessuno così')
+  await expect(page.getByText('Nessun cliente con questo nome')).toBeVisible()
+  await search.press('Enter')
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${client.slug}$`))
+})

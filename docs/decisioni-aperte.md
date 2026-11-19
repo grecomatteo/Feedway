@@ -10,12 +10,14 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Media e caricamento
 
 ### D-01 · Tetto ai caricamenti aperti per le agenzie senza limite di spazio
+
 - **Origine:** tappa 4, Task 9, revisione di sicurezza.
 - **Il problema:** un'agenzia senza `storage_bytes` e senza `MEDIA_WORKSPACE_MAX_BYTES` è frenata solo dal limite di frequenza (circa 12 GiB ogni 10 minuti per persona). I pezzi restano fino a 24 ore sul volume `media` condiviso.
 - **Opzioni:** (a) un tetto all'ingombro dei caricamenti aperti per agenzia, anche senza limiti; (b) un tetto per persona; (c) lasciare così e mettere un avviso sul disco nel runbook.
 - **Stato:** aperta.
 
 ### D-02 · Decodifica delle foto e delle HEIC dentro il processo del worker
+
 - **Origine:** tappa 4, Task 10, revisione di sicurezza.
 - **Il problema:** un file costruito ad arte può far superare il limite di memoria del contenitore. Il worker si riavvia; dopo 3 tentativi il file va in `processing_failed`.
 - **Legata alla revisione della tappa 4 (P2):** dalla 0.10.0 un riavvio pulito (aggiornamento, `restart`) non consuma tentativi e la conversione riparte appena il worker torna; un crash vero sì, ed è voluto, così un file che uccide il worker si ferma dopo 3 volte.
@@ -23,30 +25,35 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** aperta.
 
 ### D-04 · SEI dei video HEVC
+
 - **Origine:** tappa 4, Task 10.
 - **Il problema:** i SEI dell'HEVC restano, perché portano le informazioni HDR, ma potrebbero portare luogo o ora.
 - **Opzioni:** (a) toglierli, perdendo l'HDR; (b) toglierli solo se non c'è HDR; (c) lasciarli.
 - **Stato:** aperta.
 
 ### D-18 · I file caricati in un post e la libreria
+
 - **Origine:** tappa 4, Task 12, domanda di Matteo (16 novembre 2026).
 - **Fatto nella tappa 6:** i file di un post stanno nella libreria del cliente con l'etichetta «Nel post del …» e il filtro «Nei post»; un file di un post programmato non si cancella (409 con il giorno del post). Specifica §11.8 aggiornata.
 - **Resta, tappa 7:** quando togliere i file dopo la pubblicazione verificata (subito o dopo i 7 giorni di `MEDIA_RETENTION_DAYS`), con «Salva in libreria» per tenerli.
 - **Stato:** decisa, resta la parte della tappa 7.
 
 ### D-19 · Il limite delle foto si controlla solo nel pannello e nel worker
+
 - **Origine:** tappa 4, Task 13.
 - **Il problema:** all'inizio di un caricamento il server controlla solo `MEDIA_MAX_VIDEO_BYTES` (300 MB), il limite più alto, come dice l'ADR 021. Il pannello rifiuta subito una foto oltre `MEDIA_MAX_IMAGE_BYTES` (50 MB), ma chi chiama l'API direttamente può caricarla: il worker poi la segna «Non riuscito».
 - **Opzioni:** (a) controllare anche il limite delle foto al `POST`, dal tipo dichiarato; (b) lasciare così, perché il worker la blocca comunque.
 - **Stato:** scelta provvisoria (b).
 
 ### D-20 · Quanti file si caricano insieme
+
 - **Origine:** tappa 4, Task 13.
 - **Il problema:** il pannello manda due file alla volta, un pezzo per file. Con più file insieme la connessione si divide e nessuno finisce prima.
 - **Opzioni:** (a) due alla volta; (b) uno alla volta; (c) tre o più.
 - **Stato:** scelta provvisoria (a), da rivedere con la prova sulla VPS (Task 14).
 
 ### D-27 · Un pezzo deve arrivare entro 300 secondi
+
 - **Origine:** revisione finale della tappa 4 (P1 bis).
 - **Il problema:** il server del pannello è quello di Nitro, che lascia il limite di Node: una richiesta deve arrivare tutta in 300 secondi. Con pezzi da 20 MiB, sotto circa 70 KB/s in invio (0,56 Mbit/s) un pezzo non arriva mai, e il pannello lo riprova.
 - **Cosa fa oggi il pannello:** se lo stesso pezzo cade due volte di fila dopo almeno 4 minuti di invio, scrive «La rete è troppo lenta per questo file» e continua a provare.
@@ -55,6 +62,7 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** scelta provvisoria (c), da misurare su 4G debole in una prova successiva.
 
 ### D-29 · Video con un errore di decodifica
+
 - **Origine:** revisione finale della tappa 4 (P6).
 - **Il problema:** un video da telefono può dare qualche errore innocuo al decoder. Prima bastava una riga d'errore per rifiutarlo come illeggibile.
 - **Cosa fa ora il worker:** dopo un errore conta i fotogrammi: la copia d'anteprima deve averli tutti, come il file (contati senza decodificare). Un fotogramma oltre il limite di pixel rifiuta sempre il video, perché la copia da pubblicare prende i fotogrammi così come sono (revisione di sicurezza).
@@ -63,6 +71,7 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** scelta provvisoria (a). Se un video vero, anche Android, viene rifiutato per pochi fotogrammi persi, (b).
 
 ### D-30 · iPhone in modalità «Più compatibile»
+
 - **Origine:** revisione finale della tappa 4 (P14), dagli handoff dei Task 10 e 13.
 - **Il problema:** con «Formati → Più compatibile» l'iPhone salva foto JPEG e video H.264, e quando li manda può convertire una HEIC in JPEG da sé. Quello che arriva a Feedway non è allora il file della fotocamera. Nella prova va scelto «Attuale» nel selettore di iOS, e il codec va controllato nel dettaglio del file.
 - **Opzioni:** (a) scriverlo nella guida per le agenzie; (b) non fare niente, perché Feedway converte comunque.
@@ -72,6 +81,7 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Host pubblico (`/m/*`)
 
 ### D-08 · Limite di richieste per IP sull'ingresso pubblico
+
 - **Origine:** tappa 4, Task 11 (§15.3).
 - **Il problema:** ogni nome ben formato apre una transazione di sistema sul pool del web.
 - **Fatto con la revisione della tappa 4 (P3):** al massimo 3 letture insieme dall'ingresso pubblico; oltre, la risposta è 503 con `Retry-After: 5`, che Meta riprova. Il pannello non resta più senza connessioni.
@@ -79,24 +89,28 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** scelta provvisoria (c), da rivedere nella tappa 7, quando Meta scarica davvero.
 
 ### D-09 · File di agenzie sospese o di clienti archiviati
+
 - **Origine:** tappa 4, Task 11.
 - **Il problema:** oggi le loro copie restano servite da `/m/*`.
 - **Opzioni:** (a) non servirle più; (b) servirle finché il post pubblicato le usa; (c) lasciare così.
 - **Stato:** aperta.
 
 ### D-10 · `robots.txt` e lo scaricatore di Meta
+
 - **Origine:** tappa 4, Task 11.
 - **Il problema:** la specifica chiede `robots.txt` che blocca tutto anche sull'host pubblico. Non è provato che lo scaricatore di Meta lo ignori.
 - **Opzioni:** se Meta non scarica, lasciare passare `facebookexternalhit` su `/m/`.
 - **Stato:** aperta, da verificare con Meta vera (tappa 7).
 
 ### D-11 · `/m/*` fuori dalla batteria d'isolamento
+
 - **Origine:** tappa 4, Task 11.
 - **Il problema:** `/m/*` non è una rotta dell'API: il token è la sola chiave, e la batteria non lo prova.
 - **Opzioni:** (a) aggiungere un caso dedicato alla batteria; (b) lasciare i 17 test di `public-host.int.test.ts`.
 - **Stato:** aperta.
 
 ### D-12 · L'ETag di `/m/*` è l'id della copia
+
 - **Origine:** tappa 4, Task 11.
 - **Il problema:** l'id è un UUID v7 e rivela l'ora di creazione della copia.
 - **Opzioni:** (a) un ETag dall'impronta del file; (b) lasciare così.
@@ -105,16 +119,19 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Lavoro rimandato ad altre tappe
 
 ### D-32 · I file di un'agenzia eliminata
+
 - **Origine:** revisione finale della tappa 4 (P13).
 - **Il problema:** l'eliminazione di un'agenzia non esiste ancora. Quando arriverà, dovrà cancellare anche `org/<id>/` dall'archivio dei file (libreria, logo, foto dei clienti) oltre alle righe del database.
 - **Stato:** decisa, da fare nella tappa che introduce l'eliminazione delle agenzie.
 
 ### D-33 · Nessun backup dei file della libreria fino alla tappa 11
+
 - **Origine:** revisione finale della tappa 4 (P9), specifica §16.4.
 - **Il problema:** il backup di oggi copre il database, non i file. Finché la tappa 11 non c'è, la libreria non va usata come unica copia del materiale dei clienti. Scritto nel runbook dei media.
 - **Stato:** decisa, da fare nella tappa 11.
 
 ### D-34 · Foto delle Pagine a 256 px e scaricamenti in modalità di prova
+
 - **Origine:** revisione finale della tappa 4 (P13).
 - **Cosa è cambiato:** il pannello chiede a Meta le foto delle Pagine larghe 256 px (`picture.width(256).height(256)`), invece dei circa 50 px di prima. Provato solo con `tools/meta-mock`: **non verificato su Meta vera**.
 - **Da sapere:** anche con `META_MODE=dry-run` le foto dei profili si scaricano dalla CDN di Meta. Non è una chiamata ad account Meta, sono immagini pubbliche.
@@ -122,18 +139,21 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** da verificare con una Pagina Facebook vera con la sua foto.
 
 ### D-35 · Cambiare la chiave di cifratura e il segreto di Better Auth senza perdere dati
+
 - **Origine:** revisione retroattiva delle tappe 1–3 (A3), specifica §15, ADR 007 e 012.
 - **Il problema:** il portachiavi conosce una sola versione della chiave di cifratura (`PLATFORM_KEY_VERSION = 1`): cambiarla rende illeggibili token Meta, App Secret e password SMTP. `BETTER_AUTH_SECRETS` (`2:nuovo,1:vecchio`, provata nel contratto V1b) non arriva al container, quindi cambiare il segreto chiude le sessioni e rende illeggibile la 2FA. Oggi il runbook [cambiare i segreti](runbooks/rotazione-segreti.md) dice come limitare i danni.
 - **Opzioni:** (a) `APP_ENCRYPTION_KEYS` con più versioni e un comando `fw` che ricifra le chiavi delle agenzie e i segreti della piattaforma con la nuova, più un file segreto facoltativo per `BETTER_AUTH_SECRETS` nel compose (con il segnaposto in `update.sh`, come per `ts_public_authkey`); (b) lasciare così e cambiare i segreti solo con la procedura d'emergenza del runbook.
 - **Stato:** scelta provvisoria (a), da fare nella tappa 11 (sicurezza e operazioni); Matteo può cambiarla.
 
 ### D-36 · Versione della Graph API predefinita
+
 - **Origine:** revisione retroattiva delle tappe 1–3 (A8).
 - **Il problema:** `META_GRAPH_VERSION` vale `v25.0` se non è impostata, mentre l'app Meta della prova risulta abilitata a v26 e v27: probabilmente Meta porta le chiamate alla versione minima dell'app senza dirlo, e le risposte possono non essere quelle che simula `tools/meta-mock`. Le date di ritiro note (`META_GRAPH_SUNSETS`) sono solo di v24 e v25, quindi per le versioni nuove l'avviso di ritiro (§8.4) parte solo se si imposta `META_GRAPH_VERSION_SUNSET`. **Non verificato su Meta vera.**
 - **Opzioni:** (a) alla prossima prova su Meta vera, leggere la versione che Meta usa davvero e portare il valore predefinito e le date di ritiro a quella; (b) lasciare v25.0 e impostare la versione solo da `.env`.
 - **Stato:** aperta, da verificare nella prossima prova su Meta vera.
 
 ### D-37 · Per quanto restano i contatori dei limiti e gli errori di accesso
+
 - **Origine:** revisione retroattiva delle tappe 1–3 (A4).
 - **Cosa è stato scelto:** i contatori fermi da **2 giorni** si cancellano nella conservazione notturna (il doppio della finestra più lunga in uso, 24 ore per gli inviti); gli accessi sbagliati si dimenticano dopo **24 ore** senza nuovi errori. Scritto nella specifica §15.7, nel registro dei trattamenti e nell'informativa.
 - **Da sapere:** un limite nuovo con una finestra più lunga di 2 giorni verrebbe accorciato in silenzio dalla pulizia: va alzato anche `RETENTION.rateLimitCountersMs`.
@@ -141,6 +161,7 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** scelta provvisoria (a).
 
 ### D-38 · Rafforzamenti trovati dalla revisione di sicurezza, rimandati
+
 - **Origine:** revisione di sicurezza della PR delle correzioni delle tappe 1–3.
 - **I punti:** (1) il ritardo degli accessi sbagliati legge il contatore e poi lo aggiorna in due passi: N tentativi in parallelo da IP diversi passano insieme nella stessa finestra (il limite per IP resta 10 al minuto); (2) il rilascio unisce le immagini amd64 e arm64 per tag e non per digest, e `update.sh` non controlla la firma dei tag; (3) l'immagine pubblicata con `docker push` non ha più l'attestazione di provenienza che aggiungeva `build-push-action`.
 - **Opzioni:** (a) farli nella tappa 11 (sicurezza e operazioni): prenotazione atomica del tentativo con un solo `UPDATE … RETURNING`, manifest per digest con `actions/attest-build-provenance`, verifica dei tag; (b) prima, se Matteo lo chiede.
@@ -149,6 +170,7 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Dalla prova della 0.10.0
 
 ### D-40 · Copia per le Reels oltre i limiti di Meta
+
 - **Origine:** prova della 0.10.0 (R-2, alta prima della pubblicazione vera).
 - **Il problema:** la copia `reel` era un remux dell'originale: un 4K iPhone restava HEVC 3840×2160 a circa 36 Mbit/s, oltre i limiti delle Reels via API. Da Funnel, a circa 21 Mbit/s, non si guardava fluido.
 - **Limiti di Meta ricontrollati il 17 novembre 2026:** Instagram («IG User Media», Reel Specifications): MOV o MP4 senza edit list e con moov all'inizio; HEVC o H.264, progressivo, GOP chiuso, 4:2:0; 23–60 fps; al massimo 1920 colonne (pixel in orizzontale); VBR al massimo 25 Mbit/s; AAC al massimo 48 kHz, mono o stereo, 128 kbit/s; 3 s–15 min; 300 MB. Facebook («Reels Publishing API»): 1080×1920 consigliato, minimo 540×960; 24–60 fps a **frequenza fissa**; GOP chiuso di 2–5 s; 4:2:0; H.264 o H.265; AAC LC 48 kHz stereo, 128 kbit/s o più; 3–90 s.
@@ -161,12 +183,14 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Clienti e profili
 
 ### D-15 · Profilo già in un altro cliente
+
 - **Origine:** tappa 4, Task 6a.
 - **Il problema:** dalla pagina del cliente si aggiungono solo i profili senza cliente.
 - **Opzioni:** (a) proporre anche quelli di altri clienti, con «Sposta qui»; (b) lasciare così.
 - **Stato:** aperta.
 
 ### D-16 · «Ricollega» con due collegamenti diversi
+
 - **Origine:** tappa 4, Task 6c.
 - **Il problema:** «Ricollega» evidenzia il collegamento del primo account del profilo, anche se il secondo viene da un altro.
 - **Stato:** aperta.
@@ -174,12 +198,14 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 ## Temi colore (Task 13b)
 
 ### D-22 · Quali temi e con quali colori
+
 - **Origine:** tappa 4, Task 13b.
 - **La scelta:** cinque temi: Feedway (i colori di oggi, predefinito), Blu, Verde, Viola, Grafite (senza tinta, l'accento è il colore del testo). Ognuno tinge carta, superfici e filetti della sua tinta con la stessa luminosità di Feedway. Nei temi colorati l'accento è chiaro con l'etichetta scura di giorno e scuro con l'etichetta bianca di notte: così non si confonde con i colori di stato (verde «confermato», blu «programmato»), che di giorno sono scuri e di notte chiari. Schermate in `schermate/tappa-4-temi/`.
 - **Opzioni:** (a) tenere questi; (b) cambiare tinte o aggiungerne (per esempio un rosa, che però va tenuto lontano dal rosso di «con problema»); (c) togliere Grafite.
 - **Stato:** scelta provvisoria, aspetta lo sguardo di Matteo sulle schermate.
 
 ### D-23 · Bordi dei campi più scuri anche in Feedway
+
 - **Origine:** tappa 4, Task 13b (il piano chiede bordi dei campi di almeno 3:1).
 - **Il problema:** il bordo dei campi era `border-strong` (#CFCAC0 su bianco, circa 1,6:1). Per il criterio 1.4.11 delle WCAG il bordo di un campo che si riconosce solo da lì deve avere 3:1.
 - **La scelta:** un token nuovo, `field-border` (#7F7B74 di giorno, #83807A di notte in Feedway), per i campi, le tendine e i pulsanti con il contorno (`--ui-border-accented`). È l'unico cambio visibile per chi resta su Feedway: i campi hanno un bordo più deciso.
@@ -187,58 +213,69 @@ Ultimo aggiornamento: ridisegno, Task R1, componenti e strumenti di fedeltà (19
 - **Stato:** scelta provvisoria.
 
 ### D-24 · Il colore si salva subito, il tema chiaro/scuro con «Salva»
+
 - **Origine:** tappa 4, Task 13b.
 - **Il problema:** il piano chiede che il cambio di colori si veda subito: la scelta dei colori si salva al clic, mentre chiaro/scuro/automatico e il fuso restano nel modulo con «Salva».
 - **Opzioni:** (a) lasciare così; (b) anche chiaro/scuro al clic, come il pulsante sole/luna del menu, e «Salva» solo per il fuso.
 - **Stato:** scelta provvisoria (a).
+
 ## Regole (tappa 5)
 
 Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.md`, «Scelte di questa tappa»), 17 novembre 2026.
 
 ### D-46 · Come si contano caratteri, hashtag e menzioni della caption
+
 - **Origine:** piano della tappa 5, Scelta 1. Meta parla di «caratteri» senza dire quali.
 - **Opzioni:** (a) punti di codice Unicode, hashtag ripetuti contati ogni volta; (b) grafemi (un'emoji composta conta 1); (c) unità UTF-16, come la lunghezza delle stringhe in JavaScript.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5), la più prudente tra (a) e (b); da verificare su Meta vera nella tappa 7. Nel codice: `captionStats` in `packages/domain/src/rules/caption.ts`; un `#` dopo una lettera, una cifra o `&` non apre un hashtag (`&#39;`), una `@` dopo una lettera non è una menzione (un indirizzo e-mail), un nome utente oltre 30 caratteri non è una menzione.
 
 ### D-47 · Limite della caption di Facebook
+
 - **Origine:** piano della tappa 5, Scelta 2; la specifica §9.2 lo lascia «da verificare».
 - **Opzioni:** (a) 63.206 caratteri, il valore della documentazione delle Pagine; (b) un valore più basso per prudenza.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5), da verificare su Meta vera nella tappa 7.
 
 ### D-48 · Foto per un post multi-foto di Facebook
+
 - **Origine:** piano della tappa 5, Scelta 3; la specifica §9.2 lo lascia «da verificare».
 - **Opzioni:** (a) 10, come il carosello di Instagram, con avviso oltre («solo le prime 10 su Facebook» o «salta Facebook»); (b) nessun limite finché Meta non rifiuta.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5), da verificare su Meta vera nella tappa 7. Nel codice conta le foto: con un carosello misto «solo le prime 10 su Facebook» tiene le prime 10 foto.
 
 ### D-49 · Ora inesistente e ora doppia del cambio d'ora
+
 - **Origine:** piano della tappa 5, Scelta 4 (§9.2, piano generale §8 punto 2).
 - **Opzioni:** (a) l'ora inesistente slitta avanti di un'ora (02:30 → 03:30), quella doppia prende la prima delle due (ora legale); (b) bloccare le due ore e chiedere un'altra ora.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5), con l'avviso che mostra l'ora risultante; la tappa 9 usa la stessa funzione. Dalla tappa 6 il post salvato tiene l'ora risultante (02:30 → 03:30), quella che l'avviso ha mostrato.
 
 ### D-50 · Quando due post sono «lo stesso»
+
 - **Origine:** piano della tappa 5, Scelta 5 (§9.2, «Stessi media e caption… ultimi 7 giorni»).
 - **Opzioni:** (a) stesso account, stessi file nello stesso ordine (sha256 dell'originale) e stesso testo pubblicato a meno di spazi ai bordi e a capo, programmati o pubblicati negli ultimi 7 giorni; (b) come (a) ma con i file in qualunque ordine; (c) solo il testo.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5); i dati arrivano con le tappe 6 e 7. Nel codice: `postFingerprint(account, sha256 dei file, testo)` in `packages/domain/src/rules/evaluate-post.ts`, calcolata dopo le scelte (con «solo le foto» Facebook confronta solo le foto); un file senza sha256 non dà doppioni. Il testo dell'avviso è prudente (revisione P4): «{platform} potrebbe rifiutarlo o mostrarlo meno»; **da verificare nella tappa 7 se Facebook rifiuta davvero** i duplicati (la specifica §9.2 dice di sì).
 
 ### D-51 · Limiti di Meta dove la documentazione non concorda con la specifica
+
 - **Origine:** Task 1 della tappa 5, controllo della documentazione pubblica di Meta del 17 novembre 2026 (`packages/domain/src/platforms/meta/rules/limits.ts`, con le pagine).
 - **Il problema:** due valori della specifica non sono quelli di tutte le pagine di Meta. (1) **Carosello di Instagram:** «Content Publishing» dice al massimo 10 elementi, «IG User Media» dice fino a 20. (2) **Foto per Facebook:** la specifica dice 4 MB, «Album Photos» dice «meno di 10 MB». Inoltre la pagina delle storie di Facebook dice sia «3 to 90 seconds» sia «non oltre 60 secondi»: si usa 60, come Instagram.
 - **Opzioni:** (1a) carosello a 10, il valore più basso e quello della specifica; (1b) 20, il valore della pagina di riferimento, che rischia un rifiuto di Meta alla pubblicazione. (2a) foto per Facebook a 4 MB: la foto è solo ricompressa di più, niente si blocca; (2b) 10 MB, meno ricompressione.
 - **Stato:** decise da Matteo il 17 novembre 2026. (1a): carosello a 10, come in Meta Business Suite, e Matteo non ne caricherà di più. (2a), con la regola generale **«prima Instagram»**: dove Instagram e Facebook hanno limiti diversi, la copia per Instagram resta com'è caricata finché sta nei limiti di Instagram (una grafica di 7 MB esce di 7 MB, solo in JPEG sRGB e larga al massimo 1440 px), e Facebook riceve una copia sua convertita nei suoi limiti, con la correzione detta nel riepilogo («ricompressa per Facebook»); la copia per Facebook la fa il worker della tappa 7. Il contratto della rotta (Task 2) accetta comunque fino a 20 file, così il motore dà il suo messaggio.
 
 ### D-52 · Gli avvisi non hanno «annulla» tra le opzioni
+
 - **Origine:** Task 1 della tappa 5. La specifica §9.2 elenca «annulla» tra le azioni di tre avvisi (foto del feed fuori da 4:5–1,91:1, storia video oltre 60 s).
 - **Il problema:** un'opzione risolve l'avviso e lascia programmare; «annulla» invece vuol dire non scegliere e cambiare il post (un altro file, un altro tipo). Per la foto del feed «usa così» non c'è, perché Instagram la rifiuterebbe.
 - **Opzioni:** (a) le opzioni sono solo le scelte che lasciano programmare: foto del feed «ritaglio al centro» o «bande», storia lunga «taglia ai primi 60 s»; «annulla» è il pulsante dell'editor che chiude l'avviso senza scelta; (b) un'opzione `cancel` che non risolve nulla.
 - **Stato:** (a), confermata da Matteo il 17/11 (revisione della tappa 5); l'editor della tappa 6 disegna il pulsante.
 
 ### D-53 · Un testo per piattaforma lasciato vuoto
+
 - **Origine:** Task 2 della tappa 5, contratto della rotta `post-checks` (punto lasciato aperto dal Task 1).
 - **Il problema:** il corpo può avere `caption.instagram: ""`. Prima del Task 2 il motore lo prendeva come un testo vuoto voluto: Instagram avrebbe pubblicato senza testo, e il testo comune non si controllava per Instagram.
 - **Opzioni:** (a) vuoto o di soli spazi vale come «nessun testo diverso»: esce il testo comune e si controlla quello; (b) un testo vuoto voluto, solo per quella piattaforma.
 - **Stato:** decisa (a) nel Task 2 e confermata da Matteo il 17/11 (revisione della tappa 5), perché la specifica §13 dice già «vuoto = testo comune» per `caption_by_platform` e perché un campo svuotato per sbaglio non deve far uscire un post senza testo. Fatto in `publishedCaption` (`packages/domain/src/rules/caption.ts`), quindi vale anche per il salvataggio (tappa 6) e per il worker (tappa 7); caso `caption-ig-empty` nella tabella. Chi vuole davvero un post senza testo su una sola piattaforma oggi non può: se servirà, si aggiunge un valore esplicito nella tappa 6.
 
 ### D-54 · `checkPost` riusato dal salvataggio (tappa 6) e dal worker (tappa 7)
+
 - **Origine:** revisione finale della tappa 5, P1.
 - **Il problema:** la stessa funzione serve al pannello mentre si scrive, al salvataggio e al worker prima di pubblicare, ma oggi conosce solo il primo uso. Riusata così, dà quattro esiti sbagliati.
 - **Requisiti per il piano della tappa 6** (le quattro trappole):
@@ -249,22 +286,26 @@ Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.
 - **Stato:** decisa da Matteo il 17/11 (B più il punto 3 di C). **Fatti in `checkPost` nel Task 4 della tappa 6** (18/11): `purpose` (con `publish` la data passata non blocca), `postId` (escluso dallo storico, il suo fuso, 404 se non è dello spazio) e il proprietario (`ownerId`: un Editor che controlla il post di un altro riceve 403). **Usata dal salvataggio nel Task 4** (18/11): «Programma» e «Salva modifiche» di un post programmato chiamano `checkPostInTx` con `purpose: 'save'` e il `postId`, nella transazione che scrive il post. Resta il worker della tappa 7 (`purpose: 'publish'`); poi la voce si toglie.
 
 ### D-55 · Video dentro un carosello di Instagram
+
 - **Origine:** revisione finale della tappa 5, P6. Durata, proporzioni e risoluzione si controllano solo per reel e storie; la specifica §9.2 non ha righe per i video di un carosello.
 - **Controllato il 17/11:** «IG User Media» e «Content Publishing» non danno limiti per i video dei caroselli. Dicono solo che i reel non possono stare in un carosello, che il massimo è 10 elementi e che le immagini si ritagliano sulla prima.
 - **Opzioni:** (a) aggiungere limiti e una riga di §9.2 dopo la prova; (b) nessun controllo se Meta li accetta.
 - **Stato:** aperta, da provare su Meta vera nella tappa 7 con le altre prove su video e caroselli: durata, peso, proporzioni e fps dei video in un carosello (scelta di Matteo).
 
 ### D-58 · Fuso dei post fisso su Roma
+
 - **Origine:** revisione finale della tappa 5, P9. `POST_TIME_ZONE = 'Europe/Rome'` in `check-post.ts`; i testi `time_skipped` e `time_ambiguous` e i fusi di `rule-message.ts` sono scritti per Roma. La specifica §13 ha `posts.timezone` e il piano generale (tappa 6) il fuso predefinito dell'organizzazione.
 - **Opzioni:** (a) nella tappa 6 il fuso arriva con il post o dall'organizzazione, e i due testi diventano generici con `{time}` e `{zone}`; (b) Roma per tutta la 1.0, scritto nella specifica.
 - **Stato:** **(a), confermata da Matteo il 18/11** (vale il fuso delle impostazioni dell'agenzia, Roma se non lo cambia), nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 3: `organizations.settings.timezone` (assente = `Europe/Rome`, lo cambia l'Owner) copiato in `posts.timezone`, testi generici con `{time}` e `{zone}`. **Lettura e scrittura fatte nel Task 3:** `storedTimeZone(settings)` (assente o sconosciuto = `Europe/Rome`), `timezone` in `GET`/`PATCH …/settings` (Owner, con la riconferma come gli altri campi delle impostazioni), `posts.timezone` con predefinito `Europe/Rome`. **Regole e testi fatti nel Task 4** (18/11): il fuso è quello del post salvato o, senza post, quello dell'agenzia; `time_skipped` e `time_ambiguous` hanno testi generici con il nome del fuso (`zoneName` in `rule-message.ts`). Resta l'interfaccia nel Task 7. **Editor (Task 5):** Matteo, 18/11: il fuso di Roma non si mostra nell'editor (niente «ora di Roma»), resta il predefinito; un fuso diverso scelto nelle impostazioni si scrive accanto all'ora.
 
 ### D-59 · Lo stesso file due volte in un carosello
+
 - **Origine:** revisione finale della tappa 5, P12. `mediaIds` può ripetere un id e il motore lo accetta senza esiti.
 - **Opzioni:** (a) un avviso «file ripetuto»; (b) un blocco; (c) niente, se Meta lo accetta.
 - **Stato:** aperta, da verificare su Meta vera nella tappa 7.
 
 ### D-60 · L'editor della tappa 6: tipo, storia e copertina
+
 - **Origine:** revisione finale della tappa 5, scelte 6 e 7 del piano e P2 (Matteo, 17/11). Scritto anche nella specifica §9.1 e §11.2 (punti 2, 3 e 4).
 - **Requisiti per il piano della tappa 6:**
   - **Tipo di post:** senza file i quattro pulsanti (Foto, Carosello, Reel, Storia) ci sono tutti, nessuno scelto. Dopo il caricamento i tipi che non vanno si spengono con il motivo, e si accende da solo quello di `suggestType` (1 foto → Foto, 1 video → Reel, più file → Carosello); Storia mai da sola. La scelta della persona è sovrana: poi l'editor non cambia più tipo da solo. Se i file non vanno più col tipo scelto, esce il blocco con la proposta del tipo giusto in un tocco.
@@ -277,6 +318,7 @@ Aperte con il piano della tappa 5 (`docs/superpowers/plans/2026-10-15-05-regole.
 Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tappa 5, `esiti-prova-0.11.0.md`).
 
 ### D-61 · Ritaglio spostabile, non solo al centro
+
 - **Origine:** prova della 0.11.0, richiesta di Matteo. Riguarda D-52 e RF-34.
 - **Cosa vuole Matteo:** quando una foto non rientra nel formato (feed fuori da 4:5–1,91:1, copertina del reel non 9:16), la persona sposta e regola il riquadro da sola, con l'anteprima del risultato. Il ritaglio al centro è solo il punto di partenza. Si può riusare il ritaglio trascinabile della foto del profilo.
 - **Cosa cambia:** l'opzione `crop_center` dei controlli diventa «ritaglia» con un riquadro salvato con il post (tappa 6, editor e anteprima); le copie da pubblicare lo applicano (tappa 7). La specifica §9.2 lo dice già.
@@ -286,17 +328,20 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Stato:** decisa da Matteo il 18/11, scritta nel piano della tappa 6 (`docs/superpowers/plans/2026-10-15-06-post.md`), Scelta 5 (opzione `crop` con il riquadro in `RuleChoice.crop`); riquadro e anteprima nel Task 6, copie da pubblicare nella tappa 7. **Regole fatte nel Task 4** (18/11): opzione `crop` per `photo_aspect_ratio` (consigliata) e `cover_aspect_ratio`, `RuleChoice.crop` in frazioni della foto, controllato da `isValidCrop` (dentro la foto, proporzioni all'1%, lato corto ≥ 320 px); un riquadro che non va lascia l'avviso da risolvere e torna in `invalidChoices`.
 
 ### D-62 · Foto 3:4 nel feed di Instagram
+
 - **Origine:** prova della 0.11.0. Secondo Matteo l'app di Instagram oggi accetta le foto 3:4 (non verificato dall'API); la documentazione delle API dice da 4:5 a 1,91:1.
 - **Opzioni:** (a) restare a 4:5 (oggi); (b) accettare 3:4 se Meta vera le prende dall'API.
 - **Stato:** decisa (a) da Matteo il 18/11, per ora; (b) da provare su Meta vera nella tappa 7.
 
 ### D-67 · Le bozze hub sulla tela
+
 - **Origine:** tela unica (18 novembre 2026), richiesta di Matteo di dire quali tavole progettare.
 - **Il problema:** sulla tela restano 12 tavole hub del 29/10 mai approvate nel dettaglio (cruscotto, CRM, calendario settimana, dettaglio del post, lavoro e richieste, shooting, report, guide interne, programmazione in blocco, notifiche, portale del cliente, Oggi da telefono). Sono disegnate con le regole Hallmark del 29/10, non con quelle del pannello di oggi.
 - **Opzioni:** (a) lasciarle come idee e ridisegnare ognuna solo quando arriva la sua tappa, sulle regole del pannello di oggi (proposta: niente lavoro adesso, e il disegno resta vicino al codice che lo usa); (b) ridisegnarle tutte ora per avere la mappa completa dell'hub (molto lavoro che rischia di invecchiare prima di servire); (c) toglierle.
 - **Stato:** scelta provvisoria (a): restano nella sezione «Bozze · funzioni future». Il dettaglio del post è l'editor della tappa 6 (tavole E1–E6), quindi la tavola hub del dettaglio non serve più; il calendario settimana si ridisegna con la tappa 9.
 
 ### D-64 · Caricamento: altro dispositivo, peso della copia, conferma doppia
+
 - **Origine:** prova della 0.11.0, osservazioni della chat della VPS.
 - **I punti:**
   1. sul computer, un caricamento ancora in corso dal telefono compare come «Caricamenti rimasti a metà»: meglio «in corso su un altro dispositivo», o nasconderlo finché la sessione è attiva;
@@ -306,11 +351,13 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Stato:** aperta; da valutare con le correzioni del pannello; (3) prima da controllare nel client.
 
 ### D-65 · Tetto CPU del web e profilo sRGB incorporato
+
 - **Origine:** prova della 0.11.0.
 - **I punti:** (1) anche il web ha 0,5 CPU: nella prova bastava (circa 0,2% durante una conversione), da tenere d'occhio con più persone insieme; (2) le copie JPEG sono già in sRGB ma senza profilo incorporato: un profilo sRGB compatto (circa 3 KB) aiuterebbe solo i programmi più pignoli.
 - **Stato:** aperta, nessuna azione ora.
 
 ### D-68 · Colori delle etichette
+
 - **Origine:** piano della tappa 6, Task 3 (`validateLabel`: «colore tra quelli dei temi di `DESIGN.md`»).
 - **Scelta provvisoria:** i cinque temi (`feedway`, `blu`, `verde`, `viola`, `grafite`), salvati per nome (`LABEL_COLORS` in `packages/domain/src/posts/validate.ts`, vincolo `labels_color`); il pannello disegna l'etichetta con l'accento di quel tema, così resta leggibile in chiaro e in scuro.
 - **Opzioni:** (a) i cinque temi, come ora; (b) una tavolozza propria delle etichette, più ampia (8–10 colori), da disegnare nel Task 2 e da provare con il test del contrasto.
@@ -319,14 +366,15 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Stato:** decisa (a) per ora da Matteo (18/11). La tavolozza più ampia (b) resta un'idea futura: si cambia con una migrazione del vincolo, il contratto e l'interfaccia del Task 7.
 
 ### D-74 · Email a chi ha programmato un post con un file che non esce
+
 - **Origine:** Matteo, 18/11, nel thread dell'editor: «per file che non esce mandiamo email di avviso a chi ha programmato, importante».
 - **Cosa vale già:** prima di programmare un file che non esce è un blocco (D-56): il post non si programma.
 - **Cosa resta:** dopo la programmazione un file può non uscire lo stesso (cancellato dalla libreria quando era in una bozza poi riprogrammata, diventato «Non riuscito», rifiutato da Meta all'ora del post). Allora parte un'email a chi l'ha programmato (`posts.scheduled_by`) con il file (nome e posizione), l'account e cosa fare, oltre alla notifica nel pannello. Specifica §12.2 aggiornata.
 - **Proposta da confermare:** l'email parte sempre, anche se la persona ha spento le email degli errori o è nelle ore di silenzio, come gli avvisi di sicurezza; il worker della tappa 7 ricontrolla i file qualche ora prima dell'uscita, così l'avviso arriva in tempo per correggere.
 - **Stato:** requisito per la tappa 7 (controllo e evento dal worker) e la tappa 8 (email e centro notifiche).
 
-
 ### D-75 · Misure dell'anteprima come su Meta
+
 - **Origine:** tappa 6, Task 6 (anteprima, revisione della PR #240).
 - **Cosa fa ora:** l'anteprima taglia il testo dopo circa 125 caratteri o 2 righe nel feed di Instagram, 180 o 3 righe nei post di Facebook, 60 o 1 riga nei reel. Le zone coperte (`SAFE_ZONES` in `apps/web/app/utils/post-preview.ts`):
   - **storie:** 250 px in alto e in basso e 65 px per lato su 1080×1920 (circa 13% e 6%), dalle guide di Photoshop verificate che Matteo usa (18/11, copie in `handoff/tappa-6/guide-photoshop/` nelle consegne). Prima erano 14% sopra e sotto, senza i lati;
@@ -336,18 +384,21 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Stato:** decisa (a) per ora da Matteo (18/11), con le storie allineate alle sue guide; la verifica sulle app vere resta alla tappa 7 (b). Un margine di 70 px sul feed come guida facoltativa si aggiunge se Matteo lo chiede.
 
 ### D-77 · Post programmati rimasti indietro quando parte il worker
+
 - **Origine:** revisione finale della tappa 6, P3. Nella 0.12.0 nessuno pubblica: un post programmato resta «Programmato» anche dopo la sua ora, conta nei limiti e nei doppioni, e si può solo riportare in bozza o annullare.
 - **Il rischio:** dalla 0.13.0 il worker controlla con `purpose: 'publish'`, dove la data passata non blocca: appena aggiornato pubblicherebbe in ritardo tutti i post di prova rimasti programmati.
 - **Opzioni:** (a) la migrazione della 0.13.0 riporta in bozza i programmati con l'ora passata, con una voce `post.unscheduled` di origine `system`; (b) il worker non pubblica un post in ritardo oltre una soglia (per esempio 15 minuti) e lo segna «non riuscito: ora passata»; (c) tutte e due.
 - **Stato:** aperta, da decidere con il piano della tappa 7, prima di accendere il worker. Nella guida della 0.12.0 c'è l'avviso di usare date future e di riportare in bozza o annullare i post di prova.
 
 ### D-78 · Fuso dell'agenzia nell'editor per chi non è Owner o Admin
+
 - **Origine:** revisione finale della tappa 6, P4. L'editor legge il fuso da `GET …/settings`, che leggono solo Owner e Admin: per Manager, Publisher ed Editor resta `Europe/Rome` finché il primo salvataggio non porta il `timezone` del post.
 - **Effetto:** solo con un'agenzia che ha un fuso diverso da Roma, per qualche secondo: l'ora proposta è calcolata su Roma e manca «· ora di …». Il server usa comunque il fuso giusto.
 - **Opzioni:** (a) il fuso in una risposta che leggono tutti (l'organizzazione corrente o il cliente); (b) lasciare così fino alla tappa 9 (calendario).
 - **Stato:** rimandata (b) nel Task 8 della tappa 6 (non c'era spazio): da fare con la tappa 9, che ne ha bisogno per il calendario.
 
 ### D-79 · Elenco «Post» del cliente: peso e ordine
+
 - **Origine:** revisione finale della tappa 6, P5 (segnalato anche dal thread B2). L'elenco legge fino a 10 pagine da 100 post interi, una dopo l'altra; oltre i 1.000 la fine manca senza avviso; l'ordine è per data di creazione, non per data del post.
 - **Opzioni:** (a) lasciare fino alla tappa 9, dove calendario e vista «Elenco» leggono per intervallo di date; (b) ora una risposta ridotta, l'ordine «programmati per data, poi bozze» e un avviso oltre i 1.000.
 - **Stato:** rimandata (a), consiglio della revisione; l'ordine per data del post si decide con Matteo nella tappa 9.
@@ -357,6 +408,7 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, `ESITI-prova-0.12.0.md`). La 0.12.0 passa.
 
 ### D-80 · Difetti della prova della 0.12.0, nella tappa 7
+
 - **Origine:** prova della 0.12.0, §2 del report.
 - **I difetti:**
   1. Un file ancora in preparazione dà blocchi finti (per esempio «Carosello con un file solo»). Finché il file non è pronto bisogna dire «in attesa del file N».
@@ -371,6 +423,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Stato:** decisa da Matteo il 19/11. **Nessuna 0.12.1**: i difetti si correggono nella tappa 7 e si provano con la 0.13.0.
 
 ### D-81 · Nuova direzione di design del pannello
+
 - **Origine:** prova della 0.12.0, §3 del report, più gli appunti di Matteo: Home «Oggi», schermi larghi, una riga in alto sul telefono, ritorno alla lista dopo «Programma», clic scomodi, sottotitoli inutili, editor sul telefono.
 - **Proposta:** `design/reviews/2026-11-19-nuova-direzione.md`, con le pagine vive e le schermate in `design/esplorazioni/2026-11-19-nuova-direzione/` (PR #249, dove la voce si chiamava D-80).
 - **Opzioni:** (a) adottarla tutta; (b) in parte; (c) tenere il pannello e correggere solo i punti della prova.
@@ -378,6 +431,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Stato:** decisa (a) da Matteo il 19/11: tutte le pagine «accuratamente uguali» alle schermate, con l'accesso corretto (logo grande al centro, «Accedi» centrato). Il ridisegno si fa **prima della tappa 7** (scelta di Matteo del 19/11). Piano: `docs/superpowers/plans/2026-11-19-ridisegno-pannello.md`, dieci task in thread separati, più la revisione di fedeltà. Le scelte già prese che cambiano sono nella tabella del piano e vanno in `DESIGN.md` con il Task R10. Si chiude con il Task R10.
 
 ### D-82 · Prove rimaste della 0.12.0
+
 - **Origine:** prova della 0.12.0, §5 del report.
 - **Le prove:**
   - 7.5: rete giù durante il salvataggio;
@@ -392,22 +446,26 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 ## Ridisegno del pannello
 
 ### D-83 · Rilascio del ridisegno
+
 - **Origine:** piano del ridisegno (19/11). Il ridisegno si fa prima della tappa 7, che per la regola «una minor per tappa» esce come 0.13.0.
 - **Opzioni:** (a) un rilascio suo, 0.12.1, con una prova breve solo del pannello; (b) nessun rilascio, il ridisegno esce con la tappa 7; (c) 0.13.0 al ridisegno e la tappa 7 diventa 0.14.0.
 - **Stato:** decisa (a) da Matteo il 19/11: il ridisegno esce come **0.12.1**, con la sua guida della prova (Task R10); la tappa 7 resta 0.13.0.
 
 ### D-84 · Funzioni che le schermate mostrano e che non esistono
+
 - **Origine:** piano del ridisegno (19/11), tabella «Funzioni che le schermate mostrano e che non esistono».
 - **Scelta provvisoria del piano:** calendario e campanella si vedono spenti con «Presto» (il calendario è così nella schermata); esiti, «Riprova» del post, pagina del post uscito e «Pubblica subito» restano alla tappa 7, con i componenti già pronti; «Duplica» non compare fino alla tappa 9. Si fanno nel ridisegno, perché sono letture piccole senza tabelle nuove: la settimana «In uscita» e le bozze di Oggi, «Prossimo post» e «In programma» dei clienti, il pallino dei problemi nel selettore, il filtro della libreria per uso, la colonna «Clienti» degli utenti (se costa poco, altrimenti si toglie e si torna qui).
 - **Alternative:** nascondere del tutto calendario e campanella finché non esistono; oppure togliere dal ridisegno le letture nuove e lasciare le colonne vuote.
 - **Stato:** scelta provvisoria, Matteo può cambiarla.
 
 ### D-85 · Due difetti della prova dentro il ridisegno
+
 - **Origine:** piano del ridisegno (19/11). La schermata `20` disegna il punto 4 di D-80 (eliminare il file di un post programmato: voce spenta con il motivo, prima di provarci) e il filtro per uso della `19` richiede il punto 7 (l'etichetta d'uso uguale con ogni filtro).
 - **Opzioni:** (a) farli nel Task R6 con la libreria, togliendoli da D-80; (b) lasciarli nella tappa 7.
 - **Stato:** decisa (a) da Matteo il 19/11, con una correzione alla radice: le due regole (quale uso conta, quando un file non si elimina) diventano funzioni pure del dominio usate sia dal server sia dal pannello, con un ordine scritto e i test prima del codice. I passi sono nel piano, Task R6. Si chiude con la PR che li corregge.
 
 ### D-86 · Scelte provvisorie delle fondamenta (Task R1)
+
 - **Origine:** Task R1 del ridisegno, PR «token e date» (19/11).
 - **Scelte:**
   1. I token tengono i nomi di oggi (`surface-sunken`, `nav-bg`, `nav-hover`, `text-muted`) con i valori di `base.css` (`sunken`, `nav`, `hover`, `muted`): rinominarli toccava 280 righe senza cambiare niente a schermo. `paper`, `card` e `groove` sono alias dei nuovi fondi in `main.css` e si tolgono nel Task R9. Nuovi: `warning-dot`, `neutral-dot`, `toast`, `on-toast`, `toast-icon`, `img-outline`.
@@ -422,6 +480,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Stato:** provvisorie; Matteo può cambiarle, il Task R9 rivede 1 e 2.
 
 ### D-87 · Scelte provvisorie del guscio (Task R2)
+
 - **Origine:** Task R2 del ridisegno, PR «guscio» (19/11).
 - **Scelte:**
   1. Il menu della persona mostra Libreria e Utenti anche al computer, come la schermata `06`. `base.css` le nasconde al computer (`.pop .m-it`), e la barra laterale le ha già: vale la schermata, come dice il piano. Se a Matteo sembra un doppione, basta toglierle al computer.
@@ -433,4 +492,5 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   7. Le icone hanno il tratto 1,75 di `base.css` (`svg.ic`) in tutto il pannello, non solo nel guscio (`app.config.ts`, `icon.customize`); il «+» della barra in basso 2,25.
   8. Al computer il selettore aperto tiene il fuoco nella ricerca, che si vede con il bordo scuro: la schermata `04` la mostra senza fuoco. Sul telefono la ricerca aspetta un tocco, perché la tastiera coprirebbe il foglio.
   9. L'ordine dei clienti nel selettore è alfabetico, come oggi; nella schermata `04` è un altro (Osteria Bruna seconda).
+  10. Nelle Impostazioni personali (`/account/*`) il selettore del cliente non c'è, come prima: lì l'indirizzo non ha un cliente, e la schermata `23` lo mostra. Si rivede nel Task R8, quando le Impostazioni diventano una sola.
 - **Stato:** provvisorie; Matteo può cambiarle.
