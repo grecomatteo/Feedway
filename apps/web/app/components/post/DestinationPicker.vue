@@ -117,112 +117,112 @@ const whyOff = (a: ProfileAccount) =>
 </script>
 
 <template>
-  <section aria-labelledby="post-destinations" class="flex flex-col gap-3">
-    <div class="flex items-baseline justify-between gap-3">
-      <h2 id="post-destinations" class="text-lg">{{ $t('posts.destinations.title') }}</h2>
-      <p class="text-sm text-(--app-text-muted)" aria-live="polite">
-        {{ $t('posts.destinations.count', { n: count }, count) }}
+  <PostEditorRow
+    heading="post-destinations"
+    :label="$t('posts.destinations.title')"
+    :detail="$t('posts.destinations.count', { n: count }, count)"
+  >
+    <div class="flex flex-col gap-3">
+      <ListSkeleton v-if="loading && profiles.length === 0" />
+      <p v-else-if="profiles.length === 0" class="text-(--app-text-muted)">
+        {{ $t('posts.destinations.none') }}
       </p>
-    </div>
-    <ListSkeleton v-if="loading && profiles.length === 0" />
-    <p v-else-if="profiles.length === 0" class="text-(--app-text-muted)">
-      {{ $t('posts.destinations.none') }}
-    </p>
-    <template v-else>
-      <div class="flex flex-wrap items-center gap-3">
-        <SearchField v-model="q" :label="$t('posts.destinations.search')" class="flex-1" />
-        <UDropdownMenu
-          v-if="e.editable.value"
-          :items="groupItems"
-          :content="{ align: 'end' }"
-          :ui="{ content: 'w-80 max-w-[calc(100vw-2rem)]', itemDescription: 'whitespace-normal' }"
-        >
-          <UButton
-            color="neutral"
-            variant="outline"
-            class="min-h-control"
-            icon="i-lucide-users"
-            :loading="groups === null"
+      <template v-else>
+        <div class="flex flex-wrap items-center gap-3">
+          <SearchField v-model="q" :label="$t('posts.destinations.search')" class="flex-1" />
+          <UDropdownMenu
+            v-if="e.editable.value"
+            :items="groupItems"
+            :content="{ align: 'end' }"
+            :ui="{ content: 'w-80 max-w-[calc(100vw-2rem)]', itemDescription: 'whitespace-normal' }"
           >
-            {{ $t('posts.destinations.groups.button') }}
+            <UButton
+              color="neutral"
+              variant="outline"
+              class="min-h-control"
+              icon="i-lucide-users"
+              :loading="groups === null"
+            >
+              {{ $t('posts.destinations.groups.button') }}
+            </UButton>
+          </UDropdownMenu>
+          <UButton
+            v-if="e.editable.value"
+            color="neutral"
+            variant="ghost"
+            class="min-h-control"
+            :icon="allPicked ? 'i-lucide-x' : 'i-lucide-check-check'"
+            trailing
+            :disabled="all.length === 0"
+            @click="
+              set(
+                all.map((a) => a.id),
+                !allPicked,
+              )
+            "
+          >
+            {{ allPicked ? $t('posts.destinations.none_') : $t('posts.destinations.all') }}
           </UButton>
-        </UDropdownMenu>
-        <UButton
-          v-if="e.editable.value"
-          color="neutral"
-          variant="ghost"
-          class="min-h-control"
-          :icon="allPicked ? 'i-lucide-x' : 'i-lucide-check-check'"
-          trailing
-          :disabled="all.length === 0"
-          @click="
-            set(
-              all.map((a) => a.id),
-              !allPicked,
-            )
-          "
+        </div>
+        <p v-if="groupNote" role="status" class="text-sm text-(--app-text-muted)">
+          {{ groupNote }}
+        </p>
+        <ul
+          class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
         >
-          {{ allPicked ? $t('posts.destinations.none_') : $t('posts.destinations.all') }}
-        </UButton>
-      </div>
-      <p v-if="groupNote" role="status" class="text-sm text-(--app-text-muted)">
-        {{ groupNote }}
-      </p>
-      <ul
-        class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
-      >
-        <li v-for="p in shown" :key="p.key" class="flex flex-col gap-1 px-4 py-3">
-          <div class="flex min-h-11 items-center gap-3">
-            <UCheckbox
-              :model-value="stateOf(p)"
-              :disabled="!e.editable.value || p.accounts.filter(selectable).length === 0"
-              :aria-label="$t('posts.destinations.profile', { name: profileName(p) })"
-              @update:model-value="
-                set(
-                  p.accounts.filter(selectable).map((a) => a.id),
-                  stateOf(p) !== true,
-                )
-              "
-            />
-            <RowAvatar :name="profileName(p)" :src="profilePhoto(p)" />
-            <span class="min-w-0 flex-1 truncate font-medium">{{ profileName(p) }}</span>
-            <span class="text-sm text-(--app-text-muted) tabular-nums">{{
-              $t('posts.destinations.ofProfile', {
-                on: p.accounts.filter((a) => picked(a)).length,
-                n: p.accounts.length,
-              })
-            }}</span>
-          </div>
-          <ul class="flex flex-col pl-9">
-            <li v-for="a in p.accounts" :key="a.id" class="flex min-h-11 items-center gap-3">
+          <li v-for="p in shown" :key="p.key" class="flex flex-col gap-1 px-4 py-3">
+            <div class="flex min-h-11 items-center gap-3">
               <UCheckbox
-                :model-value="picked(a)"
-                :disabled="!e.editable.value || !selectable(a)"
-                :aria-label="`${handleOf(a)} · ${$t(`socialAccounts.platform.${a.platform}`)}`"
-                :aria-describedby="selectable(a) ? undefined : `why-${a.id}`"
-                :data-account="a.id"
-                @update:model-value="set([a.id], $event === true)"
+                :model-value="stateOf(p)"
+                :disabled="!e.editable.value || p.accounts.filter(selectable).length === 0"
+                :aria-label="$t('posts.destinations.profile', { name: profileName(p) })"
+                @update:model-value="
+                  set(
+                    p.accounts.filter(selectable).map((a) => a.id),
+                    stateOf(p) !== true,
+                  )
+                "
               />
-              <UIcon
-                :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
-                class="size-4 shrink-0"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="truncate" :class="selectable(a) ? '' : 'text-(--app-text-muted)'">
-                  {{ handleOf(a) }}
-                  <span class="text-xs text-(--app-text-muted)">{{
-                    $t(`posts.destinations.kind.${a.platform}`)
-                  }}</span>
-                </p>
-                <p v-if="!selectable(a)" :id="`why-${a.id}`" class="text-xs text-(--app-warning)">
-                  {{ whyOff(a) }}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </li>
-      </ul>
-    </template>
-  </section>
+              <RowAvatar :name="profileName(p)" :src="profilePhoto(p)" />
+              <span class="min-w-0 flex-1 truncate font-medium">{{ profileName(p) }}</span>
+              <span class="text-sm text-(--app-text-muted) tabular-nums">{{
+                $t('posts.destinations.ofProfile', {
+                  on: p.accounts.filter((a) => picked(a)).length,
+                  n: p.accounts.length,
+                })
+              }}</span>
+            </div>
+            <ul class="flex flex-col pl-9">
+              <li v-for="a in p.accounts" :key="a.id" class="flex min-h-11 items-center gap-3">
+                <UCheckbox
+                  :model-value="picked(a)"
+                  :disabled="!e.editable.value || !selectable(a)"
+                  :aria-label="`${handleOf(a)} · ${$t(`socialAccounts.platform.${a.platform}`)}`"
+                  :aria-describedby="selectable(a) ? undefined : `why-${a.id}`"
+                  :data-account="a.id"
+                  @update:model-value="set([a.id], $event === true)"
+                />
+                <UIcon
+                  :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
+                  class="size-4 shrink-0"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate" :class="selectable(a) ? '' : 'text-(--app-text-muted)'">
+                    {{ handleOf(a) }}
+                    <span class="text-xs text-(--app-text-muted)">{{
+                      $t(`posts.destinations.kind.${a.platform}`)
+                    }}</span>
+                  </p>
+                  <p v-if="!selectable(a)" :id="`why-${a.id}`" class="text-xs text-(--app-warning)">
+                    {{ whyOff(a) }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </template>
+    </div>
+  </PostEditorRow>
 </template>

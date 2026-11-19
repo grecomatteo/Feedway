@@ -14,6 +14,9 @@ const inAgency = computed(() => Boolean(route.params['org']))
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()
 const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
+// the editor of a post is a page with no side bar and no shell rows: its own row at the top
+// (screens 08 and 09)
+const editor = computed(() => route.meta['editor'] === true)
 
 // A suspension made by the platform must show without a reload: ask again who the person is
 // when the tab comes back to the front and when they move to another agency.
@@ -34,11 +37,12 @@ watch(org.slug, refresh)
       {{ $t('a11y.skipToContent') }}
     </a>
 
-    <AppSidebar />
+    <AppSidebar v-if="!editor || !org.active.value" />
 
     <div class="min-w-0 flex-1">
       <!-- phone: one row at the top, the client selector and the bell (D-81) -->
       <header
+        v-if="!editor || !org.active.value"
         class="sticky top-0 z-30 flex h-13 items-center gap-2 border-b border-(--app-border) bg-(--app-bg) ps-3 pe-2 md:hidden"
       >
         <ContextSwitcher v-if="org.active.value && inAgency" variant="top" />
@@ -59,7 +63,11 @@ watch(org.slug, refresh)
       </header>
 
       <!-- the content is as wide as what is left, up to 1200 (PageShell); the margins of base.css -->
-      <main id="main" class="w-full min-w-0 px-gutter pt-page-top pb-24 md:pb-16">
+      <main
+        id="main"
+        class="w-full min-w-0"
+        :class="editor && org.active.value ? '' : 'px-gutter pt-page-top pb-24 md:pb-16'"
+      >
         <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
              the layout reads only once a page has loaded, so without it the first link out of a
              suspended agency would change the address and nothing else. -->
@@ -78,7 +86,7 @@ watch(org.slug, refresh)
       </main>
     </div>
     <!-- the editor of a post has its own bar at the bottom (design E3) -->
-    <MobileNav v-if="org.active.value && route.meta['editor'] !== true" />
+    <MobileNav v-if="org.active.value && !editor" />
     <!-- the uploads go on from page to page (D-21) -->
     <ClientOnly><UploadsDock v-if="inAgency" /></ClientOnly>
   </div>

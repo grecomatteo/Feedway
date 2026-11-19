@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { typeOptions, type PostType } from '~/utils/post-editor'
+import { typeHint, typeOptions, type PostType } from '~/utils/post-editor'
 
 /**
- * «Tipo» (D-60, §11.2 point 2; design E1): four buttons, none chosen with no file. The types
- * that do not go with the files are off, with the reason written under them for everyone (not
- * only on hover) and read with the button.
+ * «Tipo» (D-60, §11.2 point 2; screen 08): the four types on one line, none chosen with no file.
+ * The types that do not go with the files are off; why is one sentence under them, written for
+ * the files there are («Con 2 file si può fare solo un carosello.»), read with every button off.
  */
 const props = defineProps<{
   type: PostType | null
@@ -12,7 +12,6 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ choose: [PostType] }>()
-const { t } = useI18n()
 
 const ICONS: Record<PostType, string> = {
   photo: 'i-lucide-image',
@@ -21,21 +20,16 @@ const ICONS: Record<PostType, string> = {
   story: 'i-lucide-circle-dashed',
 }
 const options = computed(() => typeOptions(props.kinds))
-const reasons = computed(() =>
-  options.value
-    .filter((o) => !o.enabled && o.reason)
-    .map((o) => t(`posts.type.off.${o.reason}`))
-    .filter((r, i, all) => all.indexOf(r) === i),
-)
+const hint = computed(() => typeHint(props.kinds))
+const someOff = computed(() => options.value.some((o) => !o.enabled))
 </script>
 
 <template>
-  <section aria-labelledby="post-type" class="flex flex-col gap-3">
-    <h2 id="post-type" class="text-lg">{{ $t('posts.type.title') }}</h2>
+  <PostEditorRow heading="post-type" :label="$t('posts.type.title')">
     <div
       role="group"
       :aria-label="$t('posts.type.title')"
-      class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      class="flex gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
     >
       <button
         v-for="o in options"
@@ -43,29 +37,28 @@ const reasons = computed(() =>
         type="button"
         :aria-pressed="type === o.type"
         :aria-disabled="!o.enabled || disabled"
-        :aria-describedby="!o.enabled ? 'post-type-why' : undefined"
+        :aria-describedby="!o.enabled && hint ? 'post-type-why' : undefined"
         :data-type="o.type"
-        class="flex min-h-12 items-center justify-center gap-2 rounded-lg border px-3 text-sm transition-colors"
+        class="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[5px] px-2.5 font-medium whitespace-nowrap text-(--app-text-muted) max-md:h-9 max-md:px-1.5"
         :class="[
           type === o.type
-            ? 'border-2 border-(--app-text) bg-(--app-brand-soft) font-semibold'
-            : 'border-(--app-border) bg-(--app-surface) hover:bg-(--app-surface-sunken)',
-          !o.enabled || disabled ? 'cursor-not-allowed opacity-50' : '',
+            ? 'bg-(--app-surface) font-semibold text-(--app-text) shadow-[var(--app-shadow-1),0_0_0_1px_var(--app-border)]'
+            : '',
+          !o.enabled || disabled ? 'cursor-not-allowed opacity-55' : 'hover:text-(--app-text)',
         ]"
         @click="o.enabled && !disabled && emit('choose', o.type)"
       >
-        <UIcon :name="ICONS[o.type]" class="size-4" aria-hidden="true" />
+        <UIcon :name="ICONS[o.type]" class="size-4 shrink-0" aria-hidden="true" />
         {{ $t(`posts.type.${o.type}`) }}
-        <UIcon v-if="type === o.type" name="i-lucide-check" class="size-4" aria-hidden="true" />
       </button>
     </div>
     <p
-      v-if="reasons.length > 0"
+      v-if="hint && someOff"
       id="post-type-why"
-      class="flex items-start gap-2 text-sm text-(--app-text-muted)"
+      class="mt-2 flex items-center gap-1.5 text-detail text-(--app-text-muted)"
     >
-      <UIcon name="i-lucide-info" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <span>{{ reasons.join(' ') }}</span>
+      <UIcon name="i-lucide-info" class="size-4 shrink-0" aria-hidden="true" />
+      <span>{{ $t(`posts.type.hint.${hint.key}`, { n: hint.n }) }}</span>
     </p>
-  </section>
+  </PostEditorRow>
 </template>

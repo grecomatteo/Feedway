@@ -4,8 +4,8 @@ import { editorKeyOf } from '~/utils/post-editor'
 /**
  * Nuovo post, and the same page to change one (plan 06 Task 5, spec §11.2; brief F02; design
  * E1–E7): `…/spazi/<cliente>/post/nuovo` makes a draft at its first content, then the address
- * becomes the post's without a new page (the key below keeps the editor mounted). The preview
- * column arrives with Task 6.
+ * becomes the post's without a new page (the key below keeps the editor mounted). No side bar:
+ * the editor draws its own row at the top (screens 08 and 09).
  */
 definePageMeta({
   layout: 'agency',
@@ -42,7 +42,9 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
       :profiles-loading="profiles.status.value === 'pending' || profiles.status.value === 'idle'"
       :back="back"
     />
-    <ListSkeleton v-else />
-    <template #fallback><ListSkeleton /></template>
+    <div v-else class="px-gutter pt-page-top"><ListSkeleton /></div>
+    <template #fallback>
+      <div class="px-gutter pt-page-top"><ListSkeleton /></div>
+    </template>
   </ClientOnly>
 </template>

@@ -58,7 +58,11 @@ async function clientWithFiles(page: Page) {
 }
 
 async function pickFromLibrary(page: Page, names: string[]) {
-  await page.getByRole('button', { name: 'Dalla libreria' }).click()
+  // on a phone the library is in the menu of «Aggiungi»
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.locator('[data-add-file]').click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
   const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
   for (const name of names) await dialog.getByRole('button', { name }).click()
   await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
@@ -80,10 +84,13 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
   expect((await axe(page)).violations).toEqual([])
 
   await pickFromLibrary(page, ['pane.jpg', 'focaccia.jpg'])
-  // two files: Carosello by itself, Foto and Reel off with their reason
+  // two files: Carosello by itself, Foto and Reel off, why in one sentence read with them
   await expect(page.locator('[data-type="carousel"]')).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('[data-type="photo"]')).toHaveAttribute('aria-disabled', 'true')
-  await expect(page.getByText('Foto vuole un file solo.')).toBeVisible()
+  await expect(page.locator('[data-type="photo"]')).toHaveAccessibleDescription(
+    'Con 2 file si può fare solo un carosello.',
+  )
+  await expect(page.getByRole('region', { name: 'File' })).toContainText('2 di 10')
   // the draft is born with its first content, and the address becomes the post's
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
   await expect(page).toHaveURL(/\/post\/[0-9a-f-]{36}$/)
@@ -95,7 +102,7 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
 
   // a text of its own for Instagram
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane di segale è tornato')
-  await page.getByRole('switch', { name: 'Testo diverso per piattaforma' }).click()
+  await page.getByRole('switch', { name: 'Testo diverso per Instagram e Facebook' }).click()
   await page.getByRole('tab', { name: 'Instagram' }).click()
   await page
     .getByRole('textbox', { name: 'Testo per Instagram' })
@@ -240,7 +247,8 @@ test('an Editor only saves drafts, and sees a draft of another without changing 
   await ownAddress(elia)
   await signIn(elia.request, editor)
   await elia.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
-  await expect(elia.getByRole('button', { name: 'Salva bozza' })).toBeVisible()
+  // «Salva ed esci» at the top on a computer, «Salva bozza» at the bottom on a phone
+  await expect(elia.getByRole('button', { name: /^Salva (bozza|ed esci)$/ })).toBeVisible()
   await expect(elia.locator('[data-schedule]')).toHaveCount(0)
   await expect(elia.getByRole('group', { name: 'Quando esce' })).toHaveCount(0)
   await expect(elia.getByText('La programma chi nel cliente può pubblicare.')).toBeVisible()
@@ -438,7 +446,8 @@ test('a Viewer reads a post: no actions, no library, no thumbnails', async ({ pa
   await expect(vera.getByText('Puoi vedere il post, non modificarlo.')).toBeVisible()
   await expect(vera.getByRole('textbox', { name: 'Testo comune' })).toHaveAttribute('readonly', '')
   await expect(vera.getByRole('button', { name: 'Dalla libreria' })).toHaveCount(0)
-  await expect(vera.getByRole('button', { name: 'Salva bozza' })).toHaveCount(0)
+  await expect(vera.locator('[data-add-file]')).toHaveCount(0)
+  await expect(vera.getByRole('button', { name: /^Salva (bozza|ed esci)$/ })).toHaveCount(0)
   await expect(vera.locator('[data-schedule]')).toHaveCount(0)
   await expect(vera.getByRole('main').locator('img')).toHaveCount(0)
   expect((await axe(vera)).violations).toEqual([])

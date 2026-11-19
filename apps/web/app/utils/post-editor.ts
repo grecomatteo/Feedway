@@ -7,7 +7,7 @@ export const POST_TYPES: readonly PostType[] = ['photo', 'carousel', 'reel', 'st
 
 type Kind = 'image' | 'video' | null
 
-/** Why a type is off with these files: `posts.type.off.<reason>` of it.json. */
+/** Why a type is off with these files (the page says it once, with `typeHint`). */
 export type TypeOffReason =
   'onePhoto' | 'photoNotVideo' | 'carouselTwo' | 'oneVideo' | 'reelNotPhoto' | 'oneFile'
 
@@ -41,6 +41,18 @@ export function typeOptions(media: readonly { kind: Kind }[]): TypeOption[] {
     const reason = offReason(type, media)
     return { type, enabled: reason === null, reason }
   })
+}
+
+/** The one sentence under «Tipo» (screen 08): `posts.type.hint.<key>` of it.json. */
+export type TypeHint = { key: 'many' | 'onePhoto' | 'oneVideo' | 'oneFile'; n: number }
+
+/** Why the other types are off, said once for the files there are, not once per button. */
+export function typeHint(media: readonly { kind: Kind }[]): TypeHint | null {
+  const n = media.length
+  if (n === 0) return null
+  if (n > 1) return { key: 'many', n }
+  const kind = media[0]?.kind
+  return { key: kind === 'image' ? 'onePhoto' : kind === 'video' ? 'oneVideo' : 'oneFile', n }
 }
 
 /** What `suggestType` of the rules proposes: never a story (D-60). */

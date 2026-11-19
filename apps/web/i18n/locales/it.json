@@ -1971,18 +1971,15 @@
       "carousel": "Carosello",
       "reel": "Reel",
       "story": "Storia",
-      "off": {
-        "onePhoto": "Foto vuole un file solo.",
-        "photoNotVideo": "Foto vuole una foto, non un video.",
-        "carouselTwo": "Carosello vuole almeno 2 file.",
-        "oneVideo": "Reel vuole un video solo.",
-        "reelNotPhoto": "Reel vuole un video, non una foto.",
-        "oneFile": "Storia vuole un file solo."
+      "hint": {
+        "many": "Con {n} file si può fare solo un carosello.",
+        "onePhoto": "Con una foto si può fare una foto o una storia.",
+        "oneVideo": "Con un video si può fare un reel o una storia.",
+        "oneFile": "Con un file solo non si può fare un carosello."
       }
     },
     "media": {
       "title": "File",
-      "count": "Nessun file | Un file | {n} file · trascina per cambiare l'ordine",
       "unnamed": "File",
       "deleted": "Non disponibile: eliminato dalla libreria",
       "tile": "File {n}: {name}",
@@ -1992,9 +1989,13 @@
       "remove": "Togli {name} dal post",
       "moved": "{name} ora è al {n}° posto.",
       "removed": "{name} tolto dal post.",
-      "dropHere": "Trascina qui foto e video",
+      "dropHere": "oppure trascina qui",
       "upload": "Carica",
-      "fromLibrary": "Dalla libreria"
+      "fromLibrary": "Dalla libreria",
+      "detail": "{n} di {max}",
+      "oneVideo": "1 video",
+      "add": "Aggiungi",
+      "addLabel": "Aggiungi file"
     },
     "library": {
       "title": "Scegli dalla libreria",
@@ -2011,7 +2012,7 @@
     },
     "caption": {
       "title": "Testo",
-      "split": "Testo diverso per piattaforma",
+      "split": "Testo diverso per Instagram e Facebook",
       "story": "Una storia esce senza testo. Quello che hai scritto resta nella bozza e torna se cambi tipo.",
       "platforms": "Testo per piattaforma",
       "common": "Testo comune",
@@ -2118,9 +2119,10 @@
       "delete": "Elimina post",
       "waitFiles": "Aspetta i file | Aspetta che finisca un file | Aspetta che finiscano {n} file",
       "checking": "Controllo in corso…",
-      "choose": "Nessuna scelta | Scegli cosa fare per un avviso | Scegli cosa fare per {n} avvisi",
+      "choose": "Nessuna scelta | Manca 1 scelta | Mancano {n} scelte",
       "fix": "Nessun blocco | Risolvi un blocco | Risolvi {n} blocchi",
-      "notSchedulable": "Non si può programmare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo."
+      "notSchedulable": "Non si può programmare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo.",
+      "saveAndExit": "Salva ed esci"
     },
     "confirm": {
       "cancelTitle": "Annullare il post?",
@@ -2146,7 +2148,8 @@
       "cancelled": "Il post è annullato: si legge soltanto.",
       "scheduledEditor": "Il post è programmato: lo cambia solo chi può programmare.",
       "notYours": "È la bozza di un'altra persona: puoi vederla, non modificarla.",
-      "editorOnly": "Puoi salvare la bozza. La programma chi nel cliente può pubblicare."
+      "editorOnly": "Puoi salvare la bozza. La programma chi nel cliente può pubblicare.",
+      "backTo": "Torna ai post di {name}"
     },
     "preview": {
       "title": "Anteprima",
@@ -2257,23 +2260,21 @@
       "edit": "Modifica il ritaglio"
     },
     "cover": {
-      "title": "Copertina del reel",
-      "frameShort": "Fotogramma {s} s",
+      "title": "Copertina",
+      "frameShort": "Fotogramma a {time}",
       "imageChosen": "Immagine caricata",
       "frameAt": "{s} s · fotogramma {frame} di {total}",
       "chooseFrame": "Scegli un fotogramma",
       "keys": "Frecce: un fotogramma · Maiusc + frecce: un secondo",
-      "upload": "Carica copertina",
+      "upload": "Carica un'immagine",
       "restore": "Ripristina",
-      "rule": "Solo immagini: un video trascinato qui viene rifiutato subito.",
       "onlyImages": "{name} è un video: la copertina può essere solo un'immagine.",
       "notImage": "{name} non è un'immagine: la copertina può essere solo un'immagine.",
       "failed": "La copertina non si è caricata: riprova.",
       "uploading": "Carico {name}…",
-      "reelTab": "Scheda Reels · 9:16",
-      "grid": "Griglia · 3:4",
       "shareToFeed": "Mostra anche nel feed",
-      "shareToFeedHelp": "Il reel compare anche nella griglia del profilo, oltre che tra i Reels."
+      "shareToFeedHelp": "Il reel compare anche nella griglia del profilo, oltre che tra i Reels.",
+      "fromComputer": "Dal computer"
     },
     "labels": {
       "title": "Etichette e note",
