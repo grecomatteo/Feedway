@@ -72,7 +72,7 @@ Le schermate le disegnano per far vedere dove andranno. Nel ridisegno si comport
 | Colonna «Clienti» degli utenti | `21` | **Si fa** se la lettura costa poco (assegnazioni già nel database); altrimenti la colonna si toglie e si segnala (D-84) | ridisegno |
 | Filtro della libreria per uso | `19` | **Si fa** con l'etichetta d'uso che esiste già (D-18) | ridisegno |
 
-Due difetti della prova della 0.12.0 (D-80) sono **disegnati** nelle schermate: il punto 4 (in `20` il file di un post programmato dice prima perché non si elimina, con la voce spenta) e il punto 7 (l'etichetta d'uso uguale con ogni filtro, che il filtro per uso richiede). Proposta in D-85: farli nel Task R6, insieme alla libreria; gli altri cinque restano nella tappa 7.
+Due difetti della prova della 0.12.0 (D-80) sono **disegnati** nelle schermate: il punto 4 (in `20` il file di un post programmato dice prima perché non si elimina, con la voce spenta) e il punto 7 (l'etichetta d'uso uguale con ogni filtro, che il filtro per uso richiede). Matteo ha deciso il 19/11 di chiuderli nel Task R6, con la correzione alla radice descritta lì (D-85); gli altri cinque restano nella tappa 7.
 
 ## Scelte già prese che il ridisegno cambia
 
@@ -218,9 +218,21 @@ Oltre al piano generale §8:
 
 **Schermate:** `19`, `20`.
 
-**Cosa fa:** `MediaLibrary.vue`, `MediaTile.vue`, `MediaDetail.vue`: file raggruppati per giorno; sotto il nome, in blu, dove è usato («Nel post di oggi, 18:00», «In una bozza»); filtri per cliente e per uso accanto alla ricerca, «Carica» con contorno nella riga degli strumenti; dettaglio in un pannello a destra con dove è usato e, per un file di un post programmato, «Elimina» spento con il motivo **prima** di provarci. Se Matteo approva D-85, qui si chiudono anche D-80 punti 4 e 7. Griglia e elenco, cartelle, caricamenti nell'angolo e selezione multipla restano.
+**Cosa fa:** `MediaLibrary.vue`, `MediaTile.vue`, `MediaDetail.vue`: file raggruppati per giorno; sotto il nome, in blu, dove è usato («Nel post di oggi, 18:00», «In una bozza»); filtri per cliente e per uso accanto alla ricerca, «Carica» con contorno nella riga degli strumenti; dettaglio in un pannello a destra con dove è usato e, per un file di un post programmato, «Elimina» spento con il motivo **prima** di provarci. Griglia e elenco, cartelle, caricamenti nell'angolo e selezione multipla restano.
 
-**Test:** `library.spec.ts`, `upload.spec.ts` verdi; test nuovo dell'eliminazione spenta con il motivo; misure; confronti `19` e `20`.
+**Due difetti della prova della 0.12.0 da chiudere qui** (D-80 punti 4 e 7, spostati da Matteo il 19/11, D-85). Vanno corretti alla radice: un difetto che dipende dall'ordine delle righe o dal pannello che «non sa» una regola del server torna in un'altra pagina se si mette una pezza nel componente. **PR a parte, prima di quella dell'aspetto**, con i test che falliscono scritti per primi.
+
+1. **L'etichetta d'uso cambia con il filtro (D-80.7).** IMG_0389.png era «In una bozza» con «Tutti i file» e «In un post annullato» con «Nei post».
+   - *Causa:* `usingMedia` in `infrastructure/src/db/posts/repositories.ts` ordina solo «programmati prima»; tra bozze e annullati l'ordine è quello in cui Postgres restituisce le righe, che cambia con il piano della query (e il filtro `inPosts` di `media/repositories.ts` lo cambia). `usesOf` in `application/src/media/library.ts` prende poi il primo. In più `MediaTile.vue` scrive la data con `Intl` nel fuso del browser, ignorando `timezone` del post che il repository legge già.
+   - *Correzione:* l'uso «che conta» si decide in un solo punto, una funzione pura del dominio (`domain/src/media/usage.ts`, per esempio `primaryUse(uses)`), con un ordine totale e scritto: programmato con la data più vicina, poi bozza modificata più di recente, poi annullato, a parità l'id del post. Il repository ordina in SQL con lo stesso criterio (`ORDER BY` esplicito) e la funzione lo garantisce comunque. Il DTO porta anche `timezone` e il numero di post (`useCount`), così l'etichetta può dire «Nel post di ven 20 nov, 18:00» o «In 2 post» con le date di R1, senza ricalcoli nel pannello.
+   - *Test prima del codice:* unità di `primaryUse` con tutte le combinazioni (programmato + bozza + annullato, due programmati, due bozze); integrazione: lo stesso file letto con «Tutti i file», «Nei post», per cartella e per etichetta dà sempre lo stesso `usedIn`; E2E: l'etichetta non cambia cambiando filtro.
+2. **Eliminare il file di un post programmato chiede «Non si può annullare» e solo dopo rifiuta (D-80.4).**
+   - *Causa:* la regola «un file in un post programmato non si elimina» (D-18) vive solo nel server (`application/src/media/…` e `folders.ts`, 409 `media_in_scheduled_post`); il pannello ha `usedIn` ma `fileActions` e `MediaDetail.vue` aprono sempre la conferma.
+   - *Correzione:* la regola diventa una funzione pura del dominio (`domain/src/media/deletion.ts`, per esempio `deletionBlock(uses): { reason: 'in_scheduled_post', postAt, timezone, count } | null`) usata **sia** dal caso d'uso, che resta la difesa vera e risponde 409 come oggi, **sia** dal DTO, che espone `deleteBlockedBy`. Il pannello non ricalcola niente: se `deleteBlockedBy` c'è, «Elimina» è spento nel menu «⋯», nel dettaglio e nella selezione multipla, con il motivo scritto accanto («Nel post di ven 20 nov, 18:00: toglilo dal post o annulla il post per eliminarlo») e un link al post. Una cartella con file bloccati dice prima quanti sono, con la stessa funzione. Se il post viene programmato tra la lettura e il clic, il 409 mostra lo stesso testo e aggiorna il file, senza la conferma «Non si può annullare».
+   - *Test prima del codice:* unità di `deletionBlock`; integrazione: DTO e caso d'uso danno lo stesso esito sugli stessi dati (un test solo che li confronta), cartella con file bloccati; E2E: voce spenta con il motivo, nessuna finestra di conferma, gara programmazione-eliminazione con il 409 tradotto.
+3. **Da controllare nello stesso giro:** ogni altro punto del pannello che mostra lo stato d'uso di un file (editor, «Dalla libreria», libreria del cliente) legge lo stesso `usedIn`; nessun componente formatta date d'uso per conto suo.
+
+**Test:** `library.spec.ts`, `upload.spec.ts` verdi; i test dei due difetti sopra; misure; confronti `19` e `20`.
 
 ## Task R7 · Editor (2): Dove, Quando, anteprima, Controlli, telefono, dopo «Programma»
 
@@ -267,11 +279,11 @@ Come la revisione di fine tappa (istruzioni del progetto): thread su `claude-opu
 
 - Le correzioni che Matteo sceglie dalla revisione.
 - `DESIGN.md`: le scelte nuove al posto di quelle sostituite (tabella «Scelte già prese che il ridisegno cambia»), la sezione «Struttura delle pagine» con le misure nuove; `design/reviews/2026-11-19-nuova-direzione.md` segnata «fatta nel codice».
-- Rilascio secondo D-83 e guida della prova completa per Matteo (VPS: prerequisiti, aggiornamento, controlli; poi ogni pagina da telefono e computer), in `/mnt/project-files/handoff/ridisegno/GUIDA-prova-<versione>.md`.
+- Rilascio **0.12.1** (D-83, decisa da Matteo il 19/11) e guida della prova completa per Matteo (VPS: prerequisiti, aggiornamento, controlli; poi ogni pagina da telefono e computer), in `/mnt/project-files/handoff/ridisegno/GUIDA-prova-<versione>.md`.
 - `docs/decisioni-aperte.md`: chiude D-81, D-83, D-84, D-85 per quello che è fatto.
 
 ## Fuori dal ridisegno
 
-- Calendario e duplicazione (tappa 9), esiti, «Riprova» del post, pagina del post uscito, «Pubblica subito» e i difetti D-80 non spostati da D-85 (tappa 7), notifiche e campanella (tappa 8).
+- Calendario e duplicazione (tappa 9), esiti, «Riprova» del post, pagina del post uscito, «Pubblica subito» e i difetti D-80 punti 1, 2, 3, 5 e 6 (tappa 7), notifiche e campanella (tappa 8).
 - La landing: si rivede dopo, sulla stessa grammatica (con `taste-skill` ed eventualmente GSAP), in un piano suo.
 - Nuove funzioni non disegnate: nessuna. Se un thread ne trova bisogno, la scrive in `docs/decisioni-aperte.md` invece di farla.
