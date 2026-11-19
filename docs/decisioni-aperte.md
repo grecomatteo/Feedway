@@ -526,9 +526,10 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   4. Sul telefono ogni riga tiene «⋯» a destra, che la schermata non mostra: è l'unico posto di Rinomina, Archivia e Persone.
   5. Spariscono la frase sotto il titolo («5 clienti. Forno Luce ha un profilo da ricollegare.»), come vuole la regola «niente sottotitoli», e il riquadro arancio chiaro dei profili senza cliente, che diventa la riga grigia sotto l'elenco con «Sistemali».
   6. «Nuovo cliente» (`15`): una casella per profilo al posto della scelta di un solo profilo e della voce «Senza profilo, per ora». Nessuna casella spuntata vuol dire un cliente senza profili; se ne possono spuntare più d'uno. Il nome viene dal primo profilo spuntato finché la persona non scrive il suo. Un Instagram con la sua Pagina collegata su Meta resta una riga sola («Instagram e Pagina»).
-  7. Fra 768 e 1024 px l'elenco mostra le righe del telefono (nome, prossimo post, stato): sei colonne non stanno accanto alla barra laterale.
+  7. Fra 768 e 1024 px l'elenco mostra le righe del telefono (nome, prossimo post, stato): sei colonne non stanno accanto alla barra laterale. L'intestazione della tabella resta per i lettori di schermo.
   8. L'ordine resta alfabetico, come prima e come il selettore (D-87.9); la schermata ha l'ordine di creazione.
   9. Il titolo della finestra è in Sora 16 semigrassetto, come in `base.css` e nella schermata `15` (D-86.9 resta per gli `h3` delle pagine).
   10. Il campo di ricerca è alto come gli altri controlli (36, 44 sul telefono) e largo 280, come `base.css`: era 38 e 320. Cambia in ogni pagina che lo usa.
   11. Nell'agenzia di esempio delle schermate Forno Luce Bistrot ha un collegamento scaduto, così è «Da ricollegare» come in `14` e `16` (prima era «ha un problema», D-88.8), e ci sono i due profili di Bar Centrale senza cliente.
+  12. Al computer «Nuovo cliente» sta nella riga degli strumenti o nello stato vuoto; se la lettura dei clienti non riesce torna accanto al titolo, così resta raggiungibile.
 - **Stato:** provvisorie; Matteo può cambiarle.

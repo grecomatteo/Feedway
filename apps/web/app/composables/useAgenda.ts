@@ -19,6 +19,7 @@ export function useAgendaIssues() {
     },
     server: false,
     lazy: true,
+    immediate: org.active.value,
   })
 }
 

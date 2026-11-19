@@ -161,15 +161,15 @@ test('«Nuovo cliente» with the profiles in no client, and without one', async 
   await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(dialog).toHaveCount(0)
   const forno = clients(page).getByRole('row').filter({ hasText: 'Forno Luce' })
-  await expect(forno).toContainText('@fornoluce')
+  if (!isPhone(page)) await expect(forno).toContainText('@fornoluce', { useInnerText: true })
 
   await page.getByRole('button', { name: 'Nuovo cliente' }).locator('visible=true').click()
   await expect(dialog.getByRole('checkbox', { checked: true })).toHaveCount(0)
   await dialog.getByLabel('Nome').fill('Cantina Monteverde')
   await dialog.getByRole('button', { name: 'Crea cliente' }).click()
-  await expect(
-    clients(page).getByRole('row').filter({ hasText: 'Cantina Monteverde' }),
-  ).toContainText('Nessun profilo')
+  const cantina = clients(page).getByRole('row').filter({ hasText: 'Cantina Monteverde' })
+  await expect(cantina).toBeVisible()
+  if (!isPhone(page)) await expect(cantina).toContainText('Nessun profilo', { useInnerText: true })
   await expect(
     page.getByText('3 profili trovati su Meta non sono ancora in un cliente.'),
   ).toBeVisible()

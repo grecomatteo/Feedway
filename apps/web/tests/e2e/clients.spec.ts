@@ -67,10 +67,15 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(page.getByRole('heading', { level: 1, name: 'Clienti' })).toBeVisible()
   // no sentence under the title (D-81)
   await expect(page.locator('[data-page-summary]')).toHaveCount(0)
-  // the profile is its Instagram and its Page; a client without one says so
-  await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
-  await expect(rowOf(page, 'Bottega')).toContainText('Bottega Verde')
-  await expect(rowOf(page, 'Studio Riva')).toContainText('Nessun profilo')
+  // the profile is its Instagram and its Page; a client without one says so (the profiles'
+  // column is on a computer: a phone shows them on the client's page)
+  if (!isPhone(page)) {
+    await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce', { useInnerText: true })
+    await expect(rowOf(page, 'Bottega')).toContainText('Bottega Verde', { useInnerText: true })
+    await expect(rowOf(page, 'Studio Riva')).toContainText('Nessun profilo', {
+      useInnerText: true,
+    })
+  }
   // all is well: no state is written
   await expect(clients(page).locator('[data-tone]')).toHaveCount(0)
   if (!isPhone(page))
@@ -85,7 +90,12 @@ test('the clients with their profiles, the summary, search and the archived ones
   // nothing planned yet: a dash on a computer, a sentence on a phone
   await expect(rowOf(page, 'Forno Luce')).toContainText(
     isPhone(page) ? 'Nessun post in programma' : '—',
+    { useInnerText: true },
   )
+  if (!isPhone(page))
+    await expect(rowOf(page, 'Forno Luce')).not.toContainText('Nessun post in programma', {
+      useInnerText: true,
+    })
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
 
@@ -139,7 +149,8 @@ test('a profile to reconnect: the row says it, «Ricollega» in «⋯» for the 
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
   // the state does not hide the profiles (on a phone they are on the client's page)
-  if (!isPhone(page)) await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
+  if (!isPhone(page))
+    await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce', { useInnerText: true })
   // «Ricollega» is the first action of «⋯», where it is the thing to do
   await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
   await expect(page.getByRole('menuitem').first()).toHaveText('Ricollega')
@@ -168,7 +179,9 @@ test('the next post and how many are planned, only for what is still to come', a
   await expect(page.locator('[data-ready]')).toHaveCount(1)
   const row = rowOf(page, 'Forno Luce')
   if (isPhone(page)) {
-    await expect(row).toContainText(/Prossimo: (oggi|domani), \d{1,2}:\d{2}/)
+    await expect(row).toContainText(/Prossimo: (oggi|domani), \d{1,2}:\d{2}/, {
+      useInnerText: true,
+    })
   } else {
     await expect(row.getByRole('cell').nth(2)).toHaveText(/^(oggi|domani), \d{1,2}:\d{2}$/)
     await expect(row.getByRole('cell').nth(3)).toHaveText('2 post')
@@ -238,7 +251,10 @@ test('«Nuovo cliente» opens a dialog and the client joins the list', async ({ 
   await expect(
     page.getByRole('status').filter({ hasText: 'Gelateria Nuvola creato.' }),
   ).toBeVisible()
-  if (!isPhone(page)) await expect(rowOf(page, 'Gelateria Nuvola')).toContainText('Nessun profilo')
+  if (!isPhone(page))
+    await expect(rowOf(page, 'Gelateria Nuvola')).toContainText('Nessun profilo', {
+      useInnerText: true,
+    })
 
   await rowOf(page, 'Gelateria Nuvola')
     .getByRole('button', { name: 'Azioni per Gelateria Nuvola' })

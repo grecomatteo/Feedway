@@ -16,7 +16,7 @@ const { call, failure } = useApi()
 const { data, status, error, refresh } = useWorkspaces()
 // «Prossimo post» and «In programma», from the read «Oggi» shares (D-88.7)
 const now = new Date()
-const { data: activity } = useClientActivity(now)
+const { data: activity, refresh: refreshActivity } = useClientActivity(now)
 // the menus and the dialogs work once Vue runs the page
 const ready = useHydrated()
 
@@ -95,6 +95,8 @@ const head = computed(() => [
   t('workspaces.column.link'),
   { label: t('workspaces.column.actions'), hidden: true as const },
 ])
+/** the tools' line, with «Nuovo cliente» on a computer */
+const tools = computed(() => status.value === 'success' && all.value.length > 0)
 const COLUMNS = 'minmax(0, 1.4fr) minmax(0, 1.6fr) 150px 110px 150px 30px'
 const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)
 /** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
@@ -245,7 +247,8 @@ async function archive() {
   try {
     await call('POST', org.api(`/workspaces/${encodeURIComponent(w.id)}/archive`))
     done.value = t('workspaces.archived', { name: w.name })
-    await refresh()
+    // archiving takes its scheduled posts back to draft (D-70): the next post goes too
+    await Promise.all([refresh(), refreshActivity()])
   } catch (e) {
     problem.value = failure(e).message
   } finally {
@@ -294,10 +297,11 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
   <PageShell :data-ready="ready || undefined">
     <template #head>
       <PageHeader :title="$t('workspaces.title')">
-        <!-- on a phone the action sits beside the title, on a computer in the tools' line -->
+        <!-- on a phone the action sits beside the title, on a computer in the tools' line or in
+             the empty state; only a failed read keeps it here, so it does not move while loading -->
         <template v-if="org.may.value.createWorkspace" #actions>
           <UButton
-            class="md:hidden"
+            :class="error ? '' : 'md:hidden'"
             color="neutral"
             variant="outline"
             icon="i-lucide-plus"
@@ -313,7 +317,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       <p v-if="done" role="status" class="mb-3 text-sm text-(--app-success)">{{ done }}</p>
       <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>
 
-      <Toolbar v-if="status !== 'error' && all.length > 0">
+      <Toolbar v-if="tools">
         <SegmentedFilter v-model="filter" :label="$t('workspaces.show')" :options="options" />
         <SearchField v-model="query" :label="$t('workspaces.search')" />
         <span class="flex-1 max-md:hidden" />
@@ -383,7 +387,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       </p>
       <ListSurface
         v-else
-        class="max-lg:[&>[data-list-head]]:hidden"
+        class="max-lg:[&>[data-list-head]]:sr-only"
         :columns="COLUMNS"
         :head="head"
         :label="$t('workspaces.title')"
@@ -449,7 +453,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       </ListSurface>
 
       <p
-        v-if="orphans.length > 0 && status === 'success'"
+        v-if="orphans.length > 0"
         class="mt-3 text-detail text-(--app-text-muted)"
         data-clients-orphans
       >
