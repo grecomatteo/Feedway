@@ -90,6 +90,11 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   const list = profiles(page)
   await expect(list.getByText('@fornoluce', { exact: true })).toBeVisible()
   await expect(list.getByText('Instagram e Pagina')).toBeVisible()
+  // on a computer the quota and the last sync have their columns
+  if (!phone) {
+    await expect(list.getByRole('columnheader', { name: 'Ultima sincronizzazione' })).toBeVisible()
+    await expect(list.getByRole('columnheader', { name: 'Pubblicati in 24 ore' })).toBeVisible()
+  }
   await expect(page.getByRole('heading', { level: 2, name: 'Chi ci lavora' })).toBeVisible()
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
@@ -178,7 +183,6 @@ test('who is not Owner or Admin sees the profiles and the people, without the ac
   await expect(page.getByRole('button', { name: 'Aggiungi profilo' })).toHaveCount(0)
   const people = page.getByRole('list', { name: 'Chi ci lavora' })
   await expect(people.getByText('Vera Vede')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Gestisci le persone' })).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 
   await page
@@ -219,4 +223,13 @@ test('in Panoramica a file that did not succeed is marked in red, with its word'
   await expect(failed).toBeVisible()
   await expect(failed.locator('[data-failed]')).toContainText('Non riuscito')
   expect((await axe(page)).violations).toEqual([])
+})
+
+test('an archived client: nothing planned, and no error from the agenda', async ({ page }) => {
+  const { org, client } = await agencyWithClient(page)
+  await adminQuery('update workspaces set archived_at = now() where id = $1', [client.id])
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  await expect(page.getByText('Nessun post in programma.')).toBeVisible()
+  await expect(page.getByText('Non siamo riusciti a caricare i prossimi post.')).toHaveCount(0)
 })

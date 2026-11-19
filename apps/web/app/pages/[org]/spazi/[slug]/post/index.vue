@@ -148,8 +148,9 @@ const thumbOf = (p: PostResponse) => {
 /** «lunedì 24 novembre, 18:00»: the day and time in the post's zone, as the editor says them. */
 const whenOf = (p: PostResponse) => {
   if (!p.when) return null
-  // «oggi, 18:00» when it has its instant; a draft with only a wall date keeps «ven 20 nov, 8:00»
-  return p.scheduledAt
+  // «oggi, 18:00» for what is still to come; a past date or a wall date keeps «ven 20 nov, 8:00»,
+  // since a past day without its hour would lose it
+  return p.scheduledAt && new Date(p.scheduledAt).getTime() >= Date.now()
     ? formatRelative(p.scheduledAt, { timeZone: p.timezone })
     : formatWallShort(p.when.localDate, p.when.localTime)
 }

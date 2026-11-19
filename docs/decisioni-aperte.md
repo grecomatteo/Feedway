@@ -540,4 +540,5 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   18. Post del cliente: «Annullati» al posto di «Pubblicati» finché la tappa 7 non pubblica; le etichette si vedono anche sul telefono, accanto alla data.
   19. Libreria del cliente resta com'è fino al Task R6, che ridisegna la libreria. Persone prende `ListSurface`, `Avatar` e `SectionHead`.
   20. Nell'agenzia di esempio Forno Luce ha l'orario delle 18:00, tre etichette su quattro post, tre modelli e il gruppo «Solo Instagram», come in `18`.
+  21. Sul telefono, come nelle schermate, si vedono meno cose: nella Panoramica i profili senza pubblicati in 24 ore e ultima sincronizzazione, nei Post le icone delle piattaforme al posto degli handle, nei Contenuti i gruppi senza i loro account e i modelli con tipo e testo (il nome resta per i lettori di schermo). Al computer c'è tutto. Senza «Nuovo post» nella testata, chi apre un cliente archiviato o in cui è Viewer trova il «Nuovo post» della barra laterale verso la scelta del cliente, se può scrivere altrove.
 - **Stato:** provvisorie; Matteo può cambiarle.

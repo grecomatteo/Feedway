@@ -107,11 +107,14 @@ const agenda = useFetch<{ items: AgendaPost[] }>(() => org.api('/agenda'), {
 watch(
   clientIdRef,
   (id) => {
-    if (id) void agenda.refresh()
+    // an archived client has nothing planned, and the agenda does not know it (404)
+    if (id && client.value?.archivedAt === null) void agenda.refresh()
   },
   { immediate: true },
 )
-const nextPosts = computed(() => (agenda.data.value?.items ?? []).slice(0, 3))
+const nextPosts = computed(() =>
+  archived.value ? [] : (agenda.data.value?.items ?? []).slice(0, 3),
+)
 const TYPE_ICON: Record<AgendaPost['type'], string> = {
   photo: 'i-lucide-image',
   carousel: 'i-lucide-gallery-horizontal-end',
@@ -287,13 +290,15 @@ watch(
             >
           </SectionHead>
           <ListSkeleton
-            v-if="agenda.status.value === 'pending' || agenda.status.value === 'idle'"
+            v-if="
+              !archived && (agenda.status.value === 'pending' || agenda.status.value === 'idle')
+            "
             :label="$t('client.loadingPosts')"
             :rows="2"
             :action="false"
           />
           <p
-            v-else-if="agenda.error.value"
+            v-else-if="!archived && agenda.error.value"
             role="alert"
             class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
           >

@@ -56,6 +56,8 @@ async function saveTime(value: string | null) {
   } catch (e) {
     timeProblem.value = failure(e).message
     timeState.value = 'idle'
+    // the choice goes back to what is saved, so picking it again retries
+    time.value = client.value?.defaultPostTime ?? ''
   }
 }
 const timeChanged = computed(() => (client.value?.defaultPostTime ?? '') !== time.value)
@@ -232,7 +234,7 @@ const actions = (edit: () => void, remove: () => void) => [
             :items="timeItems"
             icon="i-lucide-clock"
             class="w-30"
-            :disabled="!manages"
+            :disabled="!manages || timeState === 'saving'"
             :aria-label="$t('contentSettings.time.label')"
             :loading="timeState === 'saving'"
           />
