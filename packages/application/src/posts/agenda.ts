@@ -1,5 +1,6 @@
 import {
   DomainError,
+  PROFILE_LINKS,
   can,
   type OrgActor,
   type Platform,
@@ -106,7 +107,9 @@ export function textStart(post: Pick<PostRecord, 'caption' | 'captionByPlatform'
     .find((t) => t !== '')
   if (!text) return ''
   const line = text.replace(/\s+/g, ' ')
-  return line.length > TEXT_START_LENGTH ? line.slice(0, TEXT_START_LENGTH) : line
+  // by code points, so an emoji at the edge is never cut in half
+  const chars = Array.from(line)
+  return chars.length > TEXT_START_LENGTH ? chars.slice(0, TEXT_START_LENGTH).join('') : line
 }
 
 /** What a draft lacks, in the order the editor asks it: files, text, accounts. */
@@ -123,8 +126,10 @@ export function draftMissing(
 /** The period asked, or the next seven days from now; at most `AGENDA_MAX_DAYS`. */
 export function agendaPeriod(now: Date, from?: string, to?: string): { from: Date; to: Date } {
   const start = from === undefined ? now : new Date(from)
+  if (Number.isNaN(start.getTime()))
+    throw new DomainError('VALIDATION', 'Periodo non valido', { field: 'from' })
   const end = to === undefined ? new Date(start.getTime() + 7 * DAY_MS) : new Date(to)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start)
+  if (Number.isNaN(end.getTime()) || end <= start)
     throw new DomainError('VALIDATION', 'Periodo non valido', { field: 'to' })
   if (end.getTime() - start.getTime() > AGENDA_MAX_DAYS * DAY_MS)
     throw new DomainError(
@@ -286,8 +291,6 @@ export async function listDraftsToFinish(
   })
 }
 
-const LINK_ORDER = ['reconnect', 'error', 'warning'] as const
-
 /**
  * «Da sistemare» with the problems that exist before stage 7: the profiles whose link asks for a
  * hand (worst first) and the files the worker could not prepare (latest first). The posts that did
@@ -303,27 +306,38 @@ export async function listAgendaIssues(
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { current, ids } = await clientsOf(tx, actor, input.workspaceId)
     const profiles = await getClientProfiles(tx, current)
+    const asking = ids.flatMap((workspaceId) =>
+      (profiles.get(workspaceId) ?? []).flatMap((p) =>
+        p.link === 'ok' ? [] : [{ workspaceId, p, link: p.link }],
+      ),
+    )
+    // the posts each profile holds up, read in one go for all of them
+    const targets = await tx.posts.scheduledTargets(
+      organizationId,
+      ids,
+      asking.flatMap(({ p }) => p.accounts.map((a) => a.id)),
+      now,
+    )
     const profileIssues: (AgendaIssueDto & { kind: 'profile' })[] = []
-    for (const workspaceId of ids)
-      for (const p of profiles.get(workspaceId) ?? []) {
-        if (p.link === 'ok') continue
-        const named = p.accounts.find((a) => a.platform === 'facebook') ?? p.accounts[0]
-        if (!named) continue
-        profileIssues.push({
-          kind: 'profile',
-          workspaceId,
-          profileKey: p.key,
-          name: named.name,
-          platform: named.platform,
-          link: p.link,
-          scheduled: await tx.posts.countScheduledTo(
-            { organizationId, workspaceId },
-            p.accounts.map((a) => a.id),
-            now,
-          ),
-        })
-      }
-    profileIssues.sort((a, b) => LINK_ORDER.indexOf(a.link) - LINK_ORDER.indexOf(b.link))
+    for (const { workspaceId, p, link } of asking) {
+      const named = p.accounts.find((a) => a.platform === 'facebook') ?? p.accounts[0]
+      if (!named) continue
+      const own = new Set(p.accounts.map((a) => a.id))
+      profileIssues.push({
+        kind: 'profile',
+        workspaceId,
+        profileKey: p.key,
+        name: named.name,
+        platform: named.platform,
+        link,
+        scheduled: new Set(
+          targets
+            .filter((t) => t.workspaceId === workspaceId && own.has(t.accountId))
+            .map((t) => t.postId),
+        ).size,
+      })
+    }
+    profileIssues.sort((a, b) => PROFILE_LINKS.indexOf(a.link) - PROFILE_LINKS.indexOf(b.link))
     const files = await getFailedMedia(tx, current, ids)
     return {
       items: [

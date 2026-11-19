@@ -178,11 +178,12 @@ export interface MediaRepository {
   ): Promise<{ id: string; originalName: string } | null>
   /**
    * The files `failed` of these workspaces, the latest first (the «Da sistemare» of «Oggi»):
-   * `hasOriginal` tells whether «Riprova» can prepare it again.
+   * `hasOriginal` tells whether «Riprova» can prepare it again. At most `limit`.
    */
   listFailed(
     organizationId: string,
     workspaceIds: readonly string[],
+    limit: number,
   ): Promise<
     {
       id: string

@@ -172,8 +172,16 @@ export interface PostRepository {
     workspaceIds: readonly string[],
     from: Date,
   ): Promise<{ workspaceId: string; scheduled: number; nextAt: Date | null; changedAt: Date }[]>
-  /** The scheduled posts of the workspace from `from` that go to at least one of these accounts. */
-  countScheduledTo(scope: PostScope, accountIds: readonly string[], from: Date): Promise<number>
+  /**
+   * The destinations among these accounts of the scheduled posts of these workspaces from
+   * `from`, in one query: the posts each profile of «Da sistemare» holds up.
+   */
+  scheduledTargets(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    accountIds: readonly string[],
+    from: Date,
+  ): Promise<{ postId: string; workspaceId: string; accountId: string }[]>
   /** The notes of a post, oldest first. */
   listNotes(scope: PostScope, postId: string): Promise<PostNoteRecord[]>
   insertNote(

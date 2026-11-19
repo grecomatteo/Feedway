@@ -503,5 +503,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   2. «Da sistemare» mostra i profili con qualunque problema di collegamento, non solo «da ricollegare»: anche «con problema» e «attenzione», come il pallino del selettore. Prima quelli da ricollegare, poi gli altri, poi i file non riusciti dal più recente.
   3. I file non riusciti compaiono solo a chi usa la libreria del cliente (da Editor in su): per il Viewer i file non esistono (§10.2). Il profilo da ricollegare lo vede ogni membro del cliente.
   4. I conteggi «da ora» (post in programma di un profilo e di un cliente) contano dal momento che manda il pannello, se lo manda: così pagina e conteggi parlano dello stesso giorno, anche nelle schermate di fedeltà con l'orologio fermo al 19/11.
-  5. Una lettura copre al massimo 42 giorni (un mese come lo mostrerà il calendario) e 500 post.
+  5. Una lettura copre al massimo 42 giorni (un mese come lo mostrerà il calendario) e 500 post; «Da sistemare» mostra al massimo 50 file non riusciti.
+  6. Un profilo che sta in due clienti compare in «Da sistemare» una volta per cliente (le righe sono per cliente), anche se basta un «Ricollega».
+  7. La lettura `GET …/agenda/clients` (post in programma, prossimo post, ultima modifica per cliente) non era nel piano del Task R3: serve a «Clienti recenti». Il Task R4 la usa per «Prossimo post» e «In programma» invece di scrivere una seconda lettura (`getScheduleSummary` del piano).
 - **Stato:** provvisorie; Matteo può cambiarle.

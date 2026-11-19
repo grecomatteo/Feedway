@@ -161,6 +161,7 @@ interface AgendaJson {
     type: string
     status: string
     scheduledAt: string
+    timezone: string
     text: string
     platforms: string[]
     mediaCount: number
@@ -206,6 +207,8 @@ describe('agenda', () => {
       workspaceId: forno,
       type: 'carousel',
       status: 'scheduled',
+      // the post's own zone (D-58), the agency's when it was created
+      timezone: 'Europe/Rome',
       text: 'Il pane di oggi',
       platforms: ['instagram', 'facebook'],
       mediaCount: 1,
@@ -301,22 +304,29 @@ interface IssuesJson {
 }
 
 describe('issues', () => {
-  let timeout: string, refused: string, lost: string, inGino: string
+  let timeout: string, refused: string, lost: string, inGino: string, bistrot: string
 
   beforeAll(async () => {
     timeout = await failed(forno, 'timeout')
     refused = await failed(forno, 'unreadable')
     lost = await failed(forno, 'processing_failed', false)
     inGino = await failed(gino, 'timeout')
-    // Forno Luce's Page must be connected again; two posts go to it from now, one went before
+    // a second Page of Forno Luce, to connect again: two posts go to it from now; one went
+    // before, one was cancelled and one is a draft, and none of them counts
+    bistrot = await seed(env.tdb.runtimeUrl, (s) =>
+      s.account(org.id, { platform: 'facebook', workspaceIds: [forno] }),
+    )
     await env.admin.pool.query(
       `update account_connections set status = 'revoked'
         where id = (select connection_id from social_accounts where id = $1)`,
-      [fbForno],
+      [bistrot],
     )
-    await post(forno, { accounts: [fbForno] })
-    await post(forno, { accounts: [igForno, fbForno] })
-    await post(forno, { accounts: [fbForno], when: at(-30) })
+    await env.admin.pool.query(`update social_accounts set health = 'ok' where id = $1`, [bistrot])
+    await post(forno, { accounts: [bistrot] })
+    await post(forno, { accounts: [igForno, bistrot] })
+    await post(forno, { accounts: [bistrot], when: at(-30) })
+    await post(forno, { accounts: [bistrot], status: 'cancelled' })
+    await post(forno, { accounts: [bistrot], status: 'draft' })
   })
 
   afterAll(async () => {
@@ -325,12 +335,6 @@ describe('issues', () => {
 
   test('the profiles to connect again, then the files not prepared', async () => {
     const { items } = await get<IssuesJson>('owner', '/agenda/issues')
-    // the two posts above, and the carousel of the agenda's tests
-    const { rows } = await env.admin.pool.query<{ n: number }>(
-      `select count(distinct p.id)::int as n from posts p join post_targets t on t.post_id = p.id
-        where t.account_id = $1 and p.status = 'scheduled' and p.scheduled_at >= now()`,
-      [fbForno],
-    )
     expect(items[0]).toEqual({
       kind: 'profile',
       workspaceId: forno,
@@ -338,7 +342,7 @@ describe('issues', () => {
       name: 'Forno',
       platform: 'facebook',
       link: 'reconnect',
-      scheduled: rows[0]?.n,
+      scheduled: 2,
     })
     const files = items.flatMap((i) => (i.kind === 'media' ? [[i.mediaId, i.retryable]] : []))
     expect(files).toEqual(
@@ -364,30 +368,41 @@ describe('issues', () => {
 
 describe('clients', () => {
   test('per client: posts from now, the next one, the latest change; hidden ones left out', async () => {
+    // a client of its own, with known posts: two to go out, one gone, one cancelled, a draft
+    const polo = await seed(env.tdb.runtimeUrl, (s) =>
+      s.workspace(org.id, { name: 'Gelateria Polo' }),
+    )
+    const next = at(10)
+    const changed = at(24)
+    await post(polo, { when: at(20) })
+    await post(polo, { when: next })
+    await post(polo, { when: at(-5) })
+    await post(polo, { status: 'cancelled', when: at(3) })
+    await post(polo, { status: 'draft', when: at(2), changed })
+    await post(archived, { when: at(8) })
+    await post(gino, { when: at(9) })
     const owner = await get<{
-      items: { workspaceId: string; scheduled: number; nextAt: string | null }[]
+      items: { workspaceId: string; scheduled: number; nextAt: string | null; changedAt: string }[]
     }>('owner', '/agenda/clients')
     const ids = owner.items.map((c) => c.workspaceId)
-    expect(ids).toEqual(expect.arrayContaining([forno, gino]))
+    expect(ids).toContain(polo)
     expect(ids).not.toContain(archived)
-    const fornoRow = owner.items.find((c) => c.workspaceId === forno)
-    const { rows } = await env.admin.pool.query<{ n: number; next: Date }>(
-      `select count(*)::int as n, min(scheduled_at) as next from posts
-        where workspace_id = $1 and status = 'scheduled' and scheduled_at >= now()`,
-      [forno],
-    )
-    expect(fornoRow).toMatchObject({
-      scheduled: rows[0]?.n,
-      nextAt: rows[0]?.next.toISOString(),
+    // the latest changed first: the draft changed «tomorrow»
+    expect(owner.items[0]).toEqual({
+      workspaceId: polo,
+      scheduled: 2,
+      nextAt: next.toISOString(),
+      changedAt: changed.toISOString(),
     })
     const editor = await get<typeof owner>('editor', '/agenda/clients')
-    expect(editor.items.map((c) => c.workspaceId)).toEqual([forno])
+    expect(editor.items.map((c) => c.workspaceId)).not.toContain(gino)
+    expect(editor.items.map((c) => c.workspaceId)).not.toContain(polo)
     // counted from the panel's moment: after every post, none is left to go out
     const later = await get<typeof owner>(
       'owner',
       `/agenda/clients?from=${at(24 * 400).toISOString()}`,
     )
-    expect(later.items.find((c) => c.workspaceId === forno)).toMatchObject({
+    expect(later.items.find((c) => c.workspaceId === polo)).toMatchObject({
       scheduled: 0,
       nextAt: null,
     })

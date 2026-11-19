@@ -352,8 +352,8 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .select({
           workspaceId: posts.workspaceId,
           scheduled: sql<number>`(count(*) filter (where ${ahead}))::int`,
-          nextAt: sql<Date | null>`min(${posts.scheduledAt}) filter (where ${ahead})`,
-          changedAt: sql<Date>`max(${posts.updatedAt})`,
+          nextAt: sql<string | null>`min(${posts.scheduledAt}) filter (where ${ahead})`,
+          changedAt: sql<string>`max(${posts.updatedAt})`,
         })
         .from(posts)
         .where(
@@ -371,32 +371,31 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         changedAt: new Date(r.changedAt),
       }))
     },
-    async countScheduledTo(scope, accountIds, from) {
-      if (accountIds.length === 0) return 0
-      const [row] = await db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(posts)
-        .where(
+    async scheduledTargets(organizationId, workspaceIds, accountIds, from) {
+      if (workspaceIds.length === 0 || accountIds.length === 0) return []
+      return db
+        .selectDistinct({
+          postId: postTargets.postId,
+          workspaceId: postTargets.workspaceId,
+          accountId: postTargets.accountId,
+        })
+        .from(postTargets)
+        .innerJoin(
+          posts,
           and(
-            inScope(scope),
-            eq(posts.status, 'scheduled'),
-            gte(posts.scheduledAt, from),
-            inArray(
-              posts.id,
-              db
-                .select({ id: postTargets.postId })
-                .from(postTargets)
-                .where(
-                  and(
-                    eq(postTargets.organizationId, scope.organizationId),
-                    eq(postTargets.workspaceId, scope.workspaceId),
-                    inArray(postTargets.accountId, [...accountIds]),
-                  ),
-                ),
-            ),
+            eq(posts.organizationId, postTargets.organizationId),
+            eq(posts.id, postTargets.postId),
           ),
         )
-      return row?.n ?? 0
+        .where(
+          and(
+            eq(postTargets.organizationId, organizationId),
+            inArray(postTargets.workspaceId, [...workspaceIds]),
+            inArray(postTargets.accountId, [...accountIds]),
+            eq(posts.status, 'scheduled'),
+            gte(posts.scheduledAt, from),
+          ),
+        )
     },
     async statuses(organizationId, postIds) {
       if (postIds.length === 0) return new Map()

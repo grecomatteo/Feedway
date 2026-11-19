@@ -227,7 +227,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .limit(1)
       return row ?? null
     },
-    async listFailed(organizationId, workspaceIds) {
+    async listFailed(organizationId, workspaceIds, limit) {
       if (workspaceIds.length === 0) return []
       const rows = await db
         .select({
@@ -247,6 +247,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           ),
         )
         .orderBy(desc(media.updatedAt), desc(media.id))
+        .limit(limit)
       return rows.map(({ storageKey, failure, ...row }) => ({
         ...row,
         failure: failure as MediaFailure | null,

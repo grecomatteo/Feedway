@@ -137,8 +137,10 @@ export const agendaClientsRoute = defineContract({
   summary: 'Per ogni cliente con dei post: quanti escono da ora, il prossimo, l’ultima modifica',
   request: {
     params: OrgParams,
-    /** the moment the posts are counted from: the panel's now; the server's when left out */
-    query: z.strictObject({ from: Timestamp.optional() }),
+    query: z.strictObject({
+      /** the moment the posts are counted from: the panel's now; the server's when left out */
+      from: Timestamp.optional(),
+    }),
   },
   response: z.object({ items: z.array(ClientActivity) }),
   auth: 'session',

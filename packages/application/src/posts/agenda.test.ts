@@ -35,8 +35,10 @@ describe('textStart', () => {
     expect(textStart({ caption: '', captionByPlatform: {} })).toBe('')
   })
 
-  test('at most 140 characters', () => {
+  test('at most 140 characters, never half an emoji', () => {
     expect(textStart({ caption: 'a'.repeat(300), captionByPlatform: {} })).toHaveLength(140)
+    const cut = textStart({ caption: `${'a'.repeat(139)}🥐🥐`, captionByPlatform: {} })
+    expect(cut).toBe(`${'a'.repeat(139)}🥐`)
   })
 })
 
