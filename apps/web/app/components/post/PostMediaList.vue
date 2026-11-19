@@ -204,13 +204,13 @@ function release() {
             </span>
             <span
               v-if="e.entries.value.length > 1"
-              class="absolute top-1.5 left-1.5 flex h-5 min-w-5 items-center justify-center rounded-md bg-[rgb(20_20_20/0.72)] px-1 text-xs font-semibold text-white tabular-nums"
+              class="absolute top-1.5 left-1.5 flex h-5 min-w-5 items-center justify-center rounded-md bg-black/70 px-1 text-xs font-semibold text-white tabular-nums"
               aria-hidden="true"
               >{{ index + 1 }}</span
             >
             <span
               v-if="entry.file?.kind === 'video' && entry.file.durationMs"
-              class="absolute bottom-1.5 left-1.5 flex h-5 items-center gap-1 rounded-md bg-[rgb(20_20_20/0.72)] px-1.5 text-xs font-semibold text-white tabular-nums"
+              class="absolute bottom-1.5 left-1.5 flex h-5 items-center gap-1 rounded-md bg-black/70 px-1.5 text-xs font-semibold text-white tabular-nums"
               aria-hidden="true"
             >
               <UIcon name="i-lucide-clapperboard" class="size-3" />{{
@@ -226,7 +226,7 @@ function release() {
               @pointerdown.prevent="grab(entry, $event)"
             >
               <span
-                class="flex size-5 items-center justify-center rounded-md bg-[rgb(20_20_20/0.72)] text-white"
+                class="flex size-5 items-center justify-center rounded-md bg-black/70 text-white"
               >
                 <UIcon name="i-lucide-grip-vertical" class="size-[13px]" aria-hidden="true" />
               </span>

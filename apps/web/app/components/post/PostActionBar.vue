@@ -98,7 +98,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         :class="TONE[saveLine.tone]"
         aria-hidden="true"
       />
-      <span class="truncate">{{ saveLine.text }}</span>
+      <span class="truncate max-lg:sr-only">{{ saveLine.text }}</span>
       <UButton
         v-if="e.save.value.status === 'failed'"
         color="neutral"
@@ -130,12 +130,13 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         @click="emit('goto', 'post-summary')"
       >
         <UIcon
-          v-if="missing.warn"
-          name="i-lucide-triangle-alert"
+          :name="missing.warn ? 'i-lucide-triangle-alert' : 'i-lucide-info'"
           class="size-4 shrink-0"
+          :class="missing.warn ? '' : 'lg:hidden'"
           aria-hidden="true"
         />
-        {{ missing.text }}
+        <!-- between 768 and 1024 only the icon: the row keeps its buttons whole -->
+        <span class="max-lg:sr-only">{{ missing.text }}</span>
       </button>
       <template v-if="draft && e.editable.value">
         <UButton

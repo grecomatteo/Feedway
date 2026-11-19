@@ -555,5 +555,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   6. Spostare e togliere un file: i pulsanti piccoli compaiono sotto la casella che ha il fuoco (un clic la seleziona). Prima, con un file solo, c'erano sempre.
   7. «Copertina»: la miniatura della griglia 3:4 e la spiegazione dei tasti sotto la striscia non si vedono più (la griglia è nell'anteprima, i tasti li legge il lettore di schermo). «Carica un'immagine» apre un menu con «Dal computer» e «Dalla libreria»; «Ripristina» è un'icona. «Mostra anche nel feed» resta sotto.
   8. «Testo»: la casella cresce con il testo (Chrome ed Edge; altrove è alta cinque righe e scorre). In fondo i contatori corti con l'icona: «85 / 2.200», «# 0 / 30» (non sul telefono), le menzioni solo quando ce ne sono, Facebook solo il numero finché non supera il limite. Per il lettore di schermo restano le frasi intere.
-  9. «Dove», «Quando», «Etichette e note» e «Riepilogo» entrano nelle righe con l'etichetta a sinistra, ma dentro sono quelli di oggi: li ridisegna il Task R7, insieme alla colonna destra.
+  9. Fra 768 e 1024 px la riga in alto si stringe: niente nome del cliente, lo stato del salvataggio e «Manca 1 scelta» solo con l'icona (il testo lo legge il lettore di schermo), così i pulsanti restano interi.
+  10. Numero, durata e maniglia delle caselle dei file su un fondo nero al 70%, come le etichette delle miniature della libreria (`bg-black/65` in `MediaTile`): stanno sopra le foto e non cambiano con il tema.
+  11. «Dove», «Quando», «Etichette e note» e «Riepilogo» entrano nelle righe con l'etichetta a sinistra, ma dentro sono quelli di oggi: li ridisegna il Task R7, insieme alla colonna destra.
 - **Stato:** provvisorie; Matteo può cambiarle.

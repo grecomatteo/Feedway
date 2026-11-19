@@ -405,6 +405,8 @@ test.describe('a file that finishes after leaving the editor goes into the post'
     await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
     await pickFromLibrary(page, ['pane.jpg'])
     await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+    // the address becomes the post's right after its first save
+    await expect(page).toHaveURL(/\/post\/[0-9a-f-]{36}$/)
     const postId = page.url().split('/').pop() ?? ''
     await leaveWhileUploading(page, client.slug)
     await expect
@@ -452,4 +454,40 @@ test('a Viewer reads a post: no actions, no library, no thumbnails', async ({ pa
   await expect(vera.getByRole('main').locator('img')).toHaveCount(0)
   expect((await axe(vera)).violations).toEqual([])
   await other.close()
+})
+
+// the row at the top (Task R5): «Salva ed esci» saves on the way out; the row fits from 768 px
+test('«Salva ed esci» saves the draft and leaves; the row at the top fits at 768 px', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 1280) < 768, 'the row at the top is on a computer')
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['pane.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Prima di uscire')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await expect(page).toHaveURL(/\/post\/[0-9a-f-]{36}$/)
+  const draftUrl = page.url()
+
+  // the widest row: a draft with what is missing and both buttons, at the narrowest computer
+  await page.setViewportSize({ width: 768, height: 900 })
+  await expect(page.getByRole('button', { name: 'Anteprima' })).toBeVisible()
+  const bar = page.locator('[data-editor-bar]')
+  expect(await bar.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0)
+  await expect(scheduleButton(page)).toBeInViewport({ ratio: 1 })
+
+  // a change typed just now goes with the person when they leave
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Salvato uscendo')
+  await page.getByRole('button', { name: 'Salva ed esci' }).click()
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await page.goto(draftUrl)
+  await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue('Salvato uscendo')
+
+  // with no network the save fails, and leaving asks first
+  await page.route('**/posts/*', (route) =>
+    route.request().method() === 'PATCH' ? route.abort('internetdisconnected') : route.continue(),
+  )
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Senza rete')
+  await page.getByRole('button', { name: 'Salva ed esci' }).click()
+  await expect(page.getByRole('dialog', { name: 'Uscire senza salvare?' })).toBeVisible()
 })

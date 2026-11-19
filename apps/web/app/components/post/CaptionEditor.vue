@@ -246,14 +246,22 @@ const insertItems = computed<DropdownMenuItem[][]>(() => {
             <span
               v-for="(c, i) in counters(text, p)"
               :key="i"
-              class="inline-flex items-center gap-[5px]"
+              class="items-center gap-[5px]"
               :class="[
                 c.over ? 'font-semibold text-(--app-danger)' : '',
-                c.wide && !c.over ? 'max-md:hidden' : '',
+                c.wide && !c.over ? 'inline-flex max-md:contents' : 'inline-flex',
               ]"
             >
-              <UIcon :name="c.icon" class="size-[13px]" aria-hidden="true" />
-              <span aria-hidden="true">{{ c.short }}</span>
+              <!-- on a phone the hashtags' counter is only read, not shown (screen 08) -->
+              <UIcon
+                :name="c.icon"
+                class="size-[13px]"
+                :class="c.wide && !c.over ? 'max-md:hidden' : ''"
+                aria-hidden="true"
+              />
+              <span aria-hidden="true" :class="c.wide && !c.over ? 'max-md:hidden' : ''">{{
+                c.short
+              }}</span>
               <span class="sr-only">{{ c.long }}</span>
             </span>
           </span>

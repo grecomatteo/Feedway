@@ -206,13 +206,13 @@ const confirmText = computed(() => {
         class="shrink-0"
         :aria-label="$t('posts.editor.backTo', { name: client.name })"
       />
-      <span class="flex min-w-0 shrink items-center gap-2 max-md:hidden">
+      <span class="flex min-w-0 shrink items-center gap-2 max-lg:hidden">
         <Avatar :name="client.name" :src="client.photoUrl" :size="22" />
         <span class="truncate text-(--app-text-muted)">{{ client.name }}</span>
       </span>
-      <span class="h-5 w-px shrink-0 bg-(--app-border-strong) max-md:hidden" aria-hidden="true" />
+      <span class="h-5 w-px shrink-0 bg-(--app-border-strong) max-lg:hidden" aria-hidden="true" />
       <h1
-        class="shrink-0 truncate text-[0.9375rem] leading-5 tracking-[-0.01em] max-md:min-w-0 max-md:shrink max-md:text-base"
+        class="min-w-0 shrink truncate text-[0.9375rem] leading-5 tracking-[-0.01em] max-md:text-base"
       >
         {{ title }}
       </h1>

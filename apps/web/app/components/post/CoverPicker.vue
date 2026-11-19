@@ -185,7 +185,9 @@ const at = computed(() => (last.value > 0 ? offset.value / last.value : 0))
         @dragleave="dragging = false"
         @drop.prevent="onDrop"
       >
-        <div class="relative">
+        <div
+          class="relative rounded-md has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-(--app-focus)"
+        >
           <div
             class="grid h-14 grid-cols-8 overflow-hidden rounded-md bg-(--app-surface-sunken) outline-1 -outline-offset-1 outline-(--app-img-outline)"
             aria-hidden="true"
@@ -212,14 +214,14 @@ const at = computed(() => (last.value > 0 ? offset.value / last.value : 0))
             :aria-label="t('posts.cover.chooseFrame')"
             :aria-valuetext="frameLabel"
             aria-describedby="post-cover-keys"
-            class="peer absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-default"
+            class="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-default"
             data-cover-frame
             @keydown="onKey"
             @input="onInput"
           />
           <span
             v-if="!image"
-            class="pointer-events-none absolute -top-1 -bottom-1 w-9 rounded-lg border-3 border-(--app-text) shadow-[0_0_0_1px_var(--app-surface)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--app-focus)"
+            class="pointer-events-none absolute -top-1 -bottom-1 w-9 rounded-lg border-3 border-(--app-text) shadow-[0_0_0_1px_var(--app-surface)]"
             :style="{ left: `calc(${at} * (100% - 2.25rem))` }"
             aria-hidden="true"
           />
