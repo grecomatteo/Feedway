@@ -465,6 +465,23 @@ const RULES: Record<string, readonly Rule[]> = {
       label: 'own',
     },
   ],
+  // «Oggi» (redesign R3): every member, each across the clients they see; narrowed to one
+  // client, who does not see it gets 404
+  'GET /api/v1/orgs/{org}/agenda': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/agenda/drafts': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/agenda/issues': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/agenda/clients': [
+    { permission: 'workspace.view', level: 'organization' },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },

@@ -240,6 +240,10 @@ export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
 /** Optional queries that name a workspace: they get their own cases. */
 const SAMPLE_QUERIES: Record<string, (ids: SampleIds) => string> = {
   'GET /api/v1/orgs/{org}/audit-log': (ids) => `workspaceId=${ids.workspace}`,
+  // «Oggi» narrowed to the selector's client (redesign R3)
+  'GET /api/v1/orgs/{org}/agenda': (ids) => `workspaceId=${ids.workspace}`,
+  'GET /api/v1/orgs/{org}/agenda/drafts': (ids) => `workspaceId=${ids.workspace}`,
+  'GET /api/v1/orgs/{org}/agenda/issues': (ids) => `workspaceId=${ids.workspace}`,
 }
 
 export function sampleQuery(route: ApiContract, ids: SampleIds): string | undefined {

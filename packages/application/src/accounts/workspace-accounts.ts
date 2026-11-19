@@ -357,45 +357,56 @@ export async function clientProfiles(
   actor: OrgActor,
 ): Promise<Map<string, ClientProfile[]>> {
   const { organizationId } = actor
-  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const current = await currentActor(tx, actor)
-    const seesAll = seesAllWorkspaces(current)
-    const accounts = await tx.accounts.list(
-      organizationId,
-      seesAll ? {} : { workspaceIds: [...current.memberships.keys()] },
-    )
-    const byWorkspace = new Map<string, Set<string>>()
-    for (const { accountId, workspaceId } of await tx.workspaceAccounts.listForAccounts(
-      organizationId,
-      accounts.map((a) => a.id),
-    ))
-      if (seesAll || current.memberships.has(workspaceId))
-        byWorkspace.set(workspaceId, (byWorkspace.get(workspaceId) ?? new Set()).add(accountId))
-    const status = new Map(
-      (await tx.connections.list(organizationId)).map((c) => [c.id, c.status] as const),
-    )
-    const profiles = new Map<string, ClientProfile[]>()
-    for (const [workspaceId, ids] of byWorkspace)
-      profiles.set(
-        workspaceId,
-        formProfiles(accounts.filter((a) => ids.has(a.id))).map((p) => ({
-          key: p.key,
-          accounts: p.accounts.map((a) => ({
-            id: a.id,
-            platform: a.platform,
-            name: a.name,
-            username: a.username,
-            avatarKey: a.avatarKey,
-          })),
-          link: profileLink(
-            p.accounts.map((a) => ({
-              health: a.health,
-              // an account always has its connection (foreign key)
-              connectionStatus: status.get(a.connectionId) ?? 'revoked',
-            })),
-          ),
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) =>
+    getClientProfiles(tx, await currentActor(tx, actor)),
+  )
+}
+
+/**
+ * The same inside the caller's transaction, for an actor already read again in it (the
+ * «Da sistemare» of «Oggi», redesign R3).
+ */
+export async function getClientProfiles(
+  tx: Tx,
+  current: OrgActor,
+): Promise<Map<string, ClientProfile[]>> {
+  const { organizationId } = current
+  const seesAll = seesAllWorkspaces(current)
+  const accounts = await tx.accounts.list(
+    organizationId,
+    seesAll ? {} : { workspaceIds: [...current.memberships.keys()] },
+  )
+  const byWorkspace = new Map<string, Set<string>>()
+  for (const { accountId, workspaceId } of await tx.workspaceAccounts.listForAccounts(
+    organizationId,
+    accounts.map((a) => a.id),
+  ))
+    if (seesAll || current.memberships.has(workspaceId))
+      byWorkspace.set(workspaceId, (byWorkspace.get(workspaceId) ?? new Set()).add(accountId))
+  const status = new Map(
+    (await tx.connections.list(organizationId)).map((c) => [c.id, c.status] as const),
+  )
+  const profiles = new Map<string, ClientProfile[]>()
+  for (const [workspaceId, ids] of byWorkspace)
+    profiles.set(
+      workspaceId,
+      formProfiles(accounts.filter((a) => ids.has(a.id))).map((p) => ({
+        key: p.key,
+        accounts: p.accounts.map((a) => ({
+          id: a.id,
+          platform: a.platform,
+          name: a.name,
+          username: a.username,
+          avatarKey: a.avatarKey,
         })),
-      )
-    return profiles
-  })
+        link: profileLink(
+          p.accounts.map((a) => ({
+            health: a.health,
+            // an account always has its connection (foreign key)
+            connectionStatus: status.get(a.connectionId) ?? 'revoked',
+          })),
+        ),
+      })),
+    )
+  return profiles
 }

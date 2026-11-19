@@ -23,6 +23,7 @@ export {
   accountsOfWorkspace,
   assignAccount,
   clientProfiles,
+  getClientProfiles,
   listAccounts,
   listProfiles,
   MAX_PROFILE_CHANGE,

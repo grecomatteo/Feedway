@@ -227,6 +227,32 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .limit(1)
       return row ?? null
     },
+    async listFailed(organizationId, workspaceIds) {
+      if (workspaceIds.length === 0) return []
+      const rows = await db
+        .select({
+          id: media.id,
+          workspaceId: media.workspaceId,
+          originalName: media.originalName,
+          failure: media.failure,
+          storageKey: media.storageKey,
+          failedAt: media.updatedAt,
+        })
+        .from(media)
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            inArray(media.workspaceId, [...workspaceIds]),
+            eq(media.status, 'failed'),
+          ),
+        )
+        .orderBy(desc(media.updatedAt), desc(media.id))
+      return rows.map(({ storageKey, failure, ...row }) => ({
+        ...row,
+        failure: failure as MediaFailure | null,
+        hasOriginal: storageKey !== null,
+      }))
+    },
     async failedSince(organizationId, before) {
       return db
         .select({ id: media.id, workspaceId: media.workspaceId })

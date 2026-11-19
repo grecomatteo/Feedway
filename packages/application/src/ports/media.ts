@@ -176,6 +176,23 @@ export interface MediaRepository {
     sha256: string,
     exceptId: string,
   ): Promise<{ id: string; originalName: string } | null>
+  /**
+   * The files `failed` of these workspaces, the latest first (the «Da sistemare» of «Oggi»):
+   * `hasOriginal` tells whether «Riprova» can prepare it again.
+   */
+  listFailed(
+    organizationId: string,
+    workspaceIds: readonly string[],
+  ): Promise<
+    {
+      id: string
+      workspaceId: string
+      originalName: string
+      failure: MediaFailure | null
+      hasOriginal: boolean
+      failedAt: Date
+    }[]
+  >
   /** The files `failed` not changed since `before`, with their workspace (D-43). */
   failedSince(organizationId: string, before: Date): Promise<{ id: string; workspaceId: string }[]>
   /**
