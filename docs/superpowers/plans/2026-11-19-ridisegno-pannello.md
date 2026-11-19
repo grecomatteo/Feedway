@@ -111,7 +111,7 @@ Dieci task in dieci thread, più la revisione di fedeltà e la tela Pencil. Ogni
 | a parte | Tela Pencil nuova (quando Pencil è raggiungibile) | tutte | 1 | R1 |
 
 - **In parallelo:** dopo R2, al massimo **due thread insieme**, su pagine diverse: R3 con R5, poi R4 con R6, poi R7 con R8. Si toccano i componenti di R1 solo per aggiungere varianti; chi deve cambiarne uno lo dice nell'handoff e l'altro thread riparte dalla `main` aggiornata.
-- **Tela Pencil** (proposta di Matteo): un file nuovo `design/feedway-ui-v2.pen` costruito con i componenti e le variabili di R1, tenendo `design/feedway-ui.pen` com'è. Serve un thread con Pencil raggiungibile (in questo ambiente non lo è, D-31): parte quando c'è, non blocca il codice. **Fatta il 19/11** (`design/feedway-ui-v2.pen`, tavole in `design/tavole/2026-11-19-nuova-tela/`), copiando le schermate dell'esplorazione: quando R1 cambia token o componenti, la tela va riallineata.
+- **Tela Pencil** (proposta di Matteo): un file nuovo `design/feedway-ui-v2.pen` costruito con i componenti e le variabili di R1, tenendo `design/feedway-ui.pen` com'è. Serve un thread con Pencil raggiungibile: non blocca il codice. **Fatta il 19/11** (`design/feedway-ui-v2.pen`, tavole in `design/tavole/2026-11-19-nuova-tela/`), copiando le schermate dell'esplorazione: quando R1 cambia token o componenti, la tela va riallineata.
 - **Handoff** in `/mnt/project-files/handoff/ridisegno/HANDOFF-R<n>.md`: fatto, PR, differenze dalla schermata, scelte prese, cosa resta, non verificato, cosa serve al thread dopo.
 
 ## Review Focus
