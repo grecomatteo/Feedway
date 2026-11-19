@@ -139,7 +139,7 @@ Queste erano decisioni di Matteo: la proposta le riapre e servono una risposta.
 
 ## Skill
 
-Lette e scelte il 19/11 dalla lista di Matteo. Nel repo, in `.claude/skills/`: `make-interfaces-feel-better`, `emil-design-eng`, `humanizer`, oltre a `impeccable`. Tutte con licenza MIT.
+Lette e scelte il 19/11 dalla lista di Matteo. Tra le skill del repo: `make-interfaces-feel-better`, `emil-design-eng`, `humanizer`, oltre a `impeccable`. Tutte con licenza MIT.
 
 Non installate: `no-ai-slop` (doppione di humanizer, costruita sull'inglese), `better-icons` (il pannello usa già Lucide), `three-js` e `gsap` (non servono a un pannello), `taste-skill` (per siti: da riprendere con la landing).
 
