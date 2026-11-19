@@ -2,7 +2,7 @@
 
 Richiesta di Matteo dopo la prova della 0.12.0: il pannello sembra «ancora un po' troppo artigianale e giocoso», i sottotitoli sono inutili, la barra in alto e alcuni clic sono scomodi. Vuole una direzione più professionale che tenga lo stile di Feedway, con schermate fatte come verrebbero davvero.
 
-**Stato: proposta, non adottata.** Il codice e `DESIGN.md` non cambiano finché Matteo non sceglie (D-80 in `docs/decisioni-aperte.md`).
+**Stato: adottata da Matteo il 19 novembre 2026** (D-80 in `docs/decisioni-aperte.md`), con l'accesso corretto (logo grande al centro). Il codice e `DESIGN.md` cambiano con il piano del ridisegno, non con questa PR.
 
 ## Dove guardare
 

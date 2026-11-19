@@ -346,7 +346,7 @@ const registro = () => setShell('registro', `
 const accedi = () => `
 <main class="login"><div class="box">
   <img src="../../assets/feedway-horizontal-carbone.svg" alt="Feedway">
-  <h1>Accedi</h1>
+  <h1 style="text-align:center">Accedi</h1>
   <button class="btn" style="height:44px">${ic('key-round')}Accedi con una passkey</button>
   <div class="or">oppure</div>
   <label class="lbl">Email<span class="field" style="height:44px">giulia@studioriva.example</span></label>

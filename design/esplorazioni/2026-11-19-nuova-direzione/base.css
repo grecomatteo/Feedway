@@ -610,7 +610,7 @@ dl { margin: 0; }
 
 .login { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 380px); justify-content: center; align-content: center; padding: 24px 16px; }
 .login .box { display: grid; gap: 16px; min-width: 0; }
-.login img { height: 34px; justify-self: start; margin-bottom: 12px; }
+.login img { height: 64px; justify-self: center; margin-bottom: 20px; }
 .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
 .calm { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-bottom: 4px; }
