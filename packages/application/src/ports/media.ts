@@ -283,12 +283,12 @@ export interface MediaRepository {
     folderId: string,
     change: { name?: string; parentId?: string | null },
   ): Promise<'updated' | 'taken' | 'missing'>
-  /** The files right inside these folders of the workspace's library, any status but deleted. */
+  /** The files right inside these folders of the workspace's library, with their folder. */
   mediaInFolders(
     organizationId: string,
     workspaceId: string,
     folderIds: readonly string[],
-  ): Promise<string[]>
+  ): Promise<{ mediaId: string; folderId: string }[]>
   /**
    * Deletes these folders of the workspace, which must hold no file any more (the caller marks
    * them deleted first). An upload still open into one of them lands outside any folder.

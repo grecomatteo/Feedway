@@ -152,6 +152,15 @@ export function useLibrary(
     files.value = files.value.filter((f) => f.id !== file.id)
     await reloadFolders()
   }
+  /** The file read again, in place in the list: what it says now (`usedIn`, `deleteBlockedBy`). */
+  async function refresh(file: Pick<LibraryFile, 'id'>) {
+    const fresh = await call<LibraryFile>(
+      'GET',
+      `${base.value}/media/${encodeURIComponent(file.id)}`,
+    )
+    replace(fresh)
+    return fresh
+  }
   /** «Riprova» (D-39): the file is `processing` again, followed until it is done. */
   async function retry(file: LibraryFile) {
     const again = await call<LibraryFile>(
@@ -216,6 +225,8 @@ export function useLibrary(
     more,
     update,
     remove,
+    refresh,
+    reloadFolders,
     retry,
     createFolder,
     renameFolder,

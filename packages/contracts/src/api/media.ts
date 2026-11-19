@@ -59,14 +59,30 @@ export const MediaDto = z.object({
   folderId: Id.nullable(),
   tags: z.array(z.string()),
   /**
-   * A post that uses the file (D-18), the scheduled one first: the library's «Nel post del …».
-   * A file of a scheduled post is not deleted (409).
+   * The post that uses the file and counts (`primaryUse`, D-80.7): the nearest scheduled, else
+   * the draft changed last, else a cancelled post. The library's «Nel post di …», «In una bozza»,
+   * the day in the post's `timezone`; `count`: how many posts use the file.
    */
   usedIn: z
     .object({
       postId: Id,
       status: z.enum(['draft', 'scheduled', 'cancelled']),
       scheduledAt: Timestamp.nullable(),
+      timezone: z.string(),
+      count: z.number().int(),
+    })
+    .nullable(),
+  /**
+   * Why the file is not deleted (`deletionBlock`, D-18, D-80.4): the same rule the deletion
+   * answers 409 by. `postId`: the nearest scheduled post; `count`: how many scheduled posts.
+   */
+  deleteBlockedBy: z
+    .object({
+      reason: z.literal('in_scheduled_post'),
+      postId: Id,
+      scheduledAt: Timestamp.nullable(),
+      timezone: z.string(),
+      count: z.number().int(),
     })
     .nullable(),
   variants: z.array(
@@ -185,6 +201,8 @@ export const LibraryFolder = z.object({
   parentId: Id.nullable(),
   /** files right inside it */
   fileCount: z.number().int(),
+  /** of those, the files not deleted because a scheduled post uses them (D-80.4) */
+  blockedFiles: z.number().int(),
   createdAt: Timestamp,
 })
 

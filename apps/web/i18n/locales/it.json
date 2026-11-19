@@ -1496,6 +1496,10 @@
       "delete": "Elimina cartella",
       "deleteTitle": "Eliminare «{name}»?",
       "deleteEmpty": "La cartella è vuota.",
+      "deleteBlocked": {
+        "one": "Non si può eliminare: un file è in un post programmato.",
+        "many": "Non si può eliminare: {n} file sono in post programmati."
+      },
       "deleteFull": "Contiene {what}.",
       "and": "e",
       "deleteForever": "Vengono eliminati definitivamente insieme alla cartella: non si può annullare.",
@@ -1530,6 +1534,11 @@
     "delete": "Elimina",
     "deleteTitle": "Eliminare «{name}»?",
     "deleteText": "Il file sparisce dalla libreria e le sue copie vengono cancellate. Non si può annullare.",
+    "deleteBlocked": {
+      "one": "Non si può eliminare: è in un post programmato per {when}.",
+      "many": "Non si può eliminare: è in {n} post programmati, il primo per {when}.",
+      "fix": "Toglilo dal post o annulla il post per eliminarlo."
+    },
     "deleted": "«{name}» eliminato.",
     "detail": {
       "title": "Dettagli del file",
@@ -1598,10 +1607,10 @@
     },
     "inPosts": {
       "filter": "Nei post",
-      "scheduled": "Nel post del {date}",
-      "scheduledNear": "Nel post di {when}",
+      "scheduled": "Nel post di {when}",
       "draft": "In una bozza",
-      "cancelled": "In un post annullato"
+      "cancelled": "In un post annullato",
+      "many": "In {n} post"
     }
   },
   "upload": {

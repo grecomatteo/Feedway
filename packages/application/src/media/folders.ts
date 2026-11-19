@@ -6,7 +6,9 @@ import {
   folderName,
   folderPath,
   folderWouldLoop,
+  deletionBlock,
   normalizeTags,
+  type MediaUse,
   type OrgActor,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
@@ -15,7 +17,14 @@ import type { LibraryFolderRecord } from '../ports/media.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { assertActiveOrganization } from '../workspaces/index.js'
-import { type DeleteMediaDeps, type MediaDto, liveMedia, mediaDto, openLibrary } from './library.js'
+import {
+  type DeleteMediaDeps,
+  type MediaDto,
+  liveMedia,
+  mediaDto,
+  openLibrary,
+  usesOf,
+} from './library.js'
 
 // The folders and the tags of a workspace's library (spec §11.8, plan 04 Task 12). Whoever may
 // use the library (`media.upload`, Editor and above) arranges it; for anyone else it does not
@@ -27,16 +36,48 @@ export interface FolderDto {
   parentId: string | null
   /** files right inside it */
   fileCount: number
+  /** of those, the files not deleted because a scheduled post uses them (D-80.4) */
+  blockedFiles: number
   createdAt: string
 }
 
-const toFolderDto = (f: LibraryFolderRecord): FolderDto => ({
-  id: f.id,
-  name: f.name,
-  parentId: f.parentId,
-  fileCount: f.fileCount,
-  createdAt: f.createdAt.toISOString(),
-})
+/** How many of these files `deletionBlock` keeps: the rule the deletion answers 409 by. */
+function blockedFiles(uses: ReadonlyMap<string, readonly MediaUse[]>): number {
+  let blocked = 0
+  for (const list of uses.values()) if (deletionBlock(list)) blocked++
+  return blocked
+}
+
+/** The folders as the panel sees them, each with its files that are not deleted (D-80.4). */
+async function folderDtos(
+  tx: Tx,
+  organizationId: string,
+  workspaceId: string,
+  folders: readonly LibraryFolderRecord[],
+): Promise<FolderDto[]> {
+  const placed = await tx.media.mediaInFolders(
+    organizationId,
+    workspaceId,
+    folders.map((f) => f.id),
+  )
+  const uses = await usesOf(
+    tx,
+    organizationId,
+    placed.map((p) => p.mediaId),
+  )
+  const blocked = new Map<string, number>()
+  for (const { mediaId, folderId } of placed)
+    if (deletionBlock(uses.get(mediaId) ?? []))
+      blocked.set(folderId, (blocked.get(folderId) ?? 0) + 1)
+  return folders.map((f) => ({
+    id: f.id,
+    name: f.name,
+    parentId: f.parentId,
+    fileCount: f.fileCount,
+    blockedFiles: blocked.get(f.id) ?? 0,
+    createdAt: f.createdAt.toISOString(),
+  }))
+}
 
 export const folderNotFound = () => new DomainError('NOT_FOUND', 'Cartella non trovata')
 
@@ -86,7 +127,7 @@ export async function listFolders(
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
     const folders = await tx.media.listFolders(organizationId, workspace.id)
-    return { items: folders.map(toFolderDto) }
+    return { items: await folderDtos(tx, organizationId, workspace.id, folders) }
   })
 }
 
@@ -119,7 +160,9 @@ export async function createFolder(
     const all = await tx.media.listFolders(organizationId, workspace.id)
     const folder = all.find((f) => f.id === id)
     if (!folder) throw folderNotFound()
-    return toFolderDto(folder)
+    const [dto] = await folderDtos(tx, organizationId, workspace.id, [folder])
+    if (!dto) throw folderNotFound()
+    return dto
   })
 }
 
@@ -156,7 +199,9 @@ export async function updateFolder(
     const all = await tx.media.listFolders(organizationId, workspace.id)
     const updated = all.find((f) => f.id === folder.id)
     if (!updated) throw folderNotFound()
-    return toFolderDto(updated)
+    const [dto] = await folderDtos(tx, organizationId, workspace.id, [updated])
+    if (!dto) throw folderNotFound()
+    return dto
   })
 }
 
@@ -178,20 +223,18 @@ export async function deleteFolder(
     const folder = knownFolder(folders, input.folderId)
     if (!folder) throw folderNotFound()
     const tree = folderAndBelow(folders, folder.id)
-    const files = await tx.media.mediaInFolders(organizationId, workspace.id, tree)
+    const files = (await tx.media.mediaInFolders(organizationId, workspace.id, tree)).map(
+      (f) => f.mediaId,
+    )
     // as deleting one file: never a file of a scheduled post (D-18), one at a time with scheduling
     await tx.posts.lockSchedule(organizationId)
-    const scheduled = new Set(
-      (await tx.posts.usingMedia(organizationId, files))
-        .filter((use) => use.status === 'scheduled')
-        .map((use) => use.mediaId),
-    )
-    if (scheduled.size > 0)
+    const blocked = blockedFiles(await usesOf(tx, organizationId, files))
+    if (blocked > 0)
       throw new DomainError(
         'CONFLICT',
-        scheduled.size === 1
+        blocked === 1
           ? 'La cartella ha un file in un post programmato: toglilo dal post o annulla il post prima di eliminarla'
-          : `La cartella ha ${String(scheduled.size)} file in post programmati: toglili dai post o annulla i post prima di eliminarla`,
+          : `La cartella ha ${String(blocked)} file in post programmati: toglili dai post o annulla i post prima di eliminarla`,
         { reason: 'media_in_scheduled_post' },
       )
     if (!input.confirm && (files.length > 0 || tree.length > 1))

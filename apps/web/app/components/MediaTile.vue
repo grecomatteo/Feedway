@@ -56,20 +56,8 @@ const icon = computed(() =>
       ? 'i-lucide-film'
       : 'i-lucide-image',
 )
-const NEAR = new Set(['oggi', 'domani', 'ieri'])
-/**
- * «Nel post di oggi, 18:00», «Nel post del 21 novembre», «In una bozza» (D-18): the post that uses
- * the file, the scheduled first.
- */
-const used = computed(() => {
-  const u = props.file.usedIn
-  if (!u) return null
-  if (u.status === 'scheduled' && u.scheduledAt)
-    return NEAR.has(formatRelative(u.scheduledAt, { time: false }))
-      ? t('library.inPosts.scheduledNear', { when: formatRelative(u.scheduledAt) })
-      : t('library.inPosts.scheduled', { date: formatDate(u.scheduledAt) })
-  return t(`library.inPosts.${u.status === 'cancelled' ? 'cancelled' : 'draft'}`)
-})
+/** «Nel post di oggi, 18:00», «In una bozza» (D-18, D-80.7): the use the server decided. */
+const used = computed(() => mediaUseLabel(props.file.usedIn, t))
 const failedImage = ref(false)
 watch(
   () => props.src,

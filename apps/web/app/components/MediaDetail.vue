@@ -11,6 +11,8 @@ const props = defineProps<{
   folders: (Folder & { depth: number })[]
   fileUrl: (file: LibraryFile, variant: string) => string
   readOnly: boolean
+  /** the editor of a post of the client */
+  postTo: (postId: string) => string
 }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{
@@ -29,6 +31,10 @@ const retryable = computed(
     RETRYABLE.has(props.file.failure?.code ?? ''),
 )
 const { t } = useI18n()
+/** Why «Elimina» is off (D-80.4), said before anyone tries. */
+const blocked = computed(() =>
+  props.file?.deleteBlockedBy ? deleteBlockText(props.file.deleteBlockedBy, t) : null,
+)
 
 const has = (purpose: string) => props.file?.variants.some((v) => v.purpose === purpose) ?? false
 const image = computed(() => {
@@ -235,6 +241,8 @@ const folderValue = computed({
           color="error"
           variant="outline"
           icon="i-lucide-trash-2"
+          :disabled="blocked !== null"
+          :aria-describedby="blocked ? 'media-delete-blocked' : undefined"
           @click="emit('delete', file)"
         >
           {{ $t('library.delete') }}
@@ -242,6 +250,19 @@ const folderValue = computed({
         <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('library.detail.close') }}
         </UButton>
+        <p
+          v-if="blocked && file.deleteBlockedBy"
+          id="media-delete-blocked"
+          class="w-full text-sm text-(--app-text-muted)"
+          data-delete-blocked
+        >
+          {{ blocked }}
+          <ULink
+            :to="postTo(file.deleteBlockedBy.postId)"
+            class="text-(--app-text) underline underline-offset-2"
+            >{{ $t('library.deleteBlocked.fix') }}</ULink
+          >
+        </p>
       </div>
     </template>
   </USlideover>

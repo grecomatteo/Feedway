@@ -6,6 +6,7 @@ import type {
   PostScope,
   PostTargetRecord,
 } from '@app/application'
+import { compareUses, type MediaUse } from '@app/domain'
 import type { Platform, PostCover, PostOptions, PostStatus, PostType } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
@@ -470,6 +471,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           status: posts.status,
           scheduledAt: posts.scheduledAt,
           timezone: posts.timezone,
+          updatedAt: posts.updatedAt,
         })
         .from(postMedia)
         .innerJoin(
@@ -482,16 +484,15 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             or(inArray(postMedia.mediaId, ids), inArray(postMedia.coverMediaId, ids)),
           ),
         )
-      const uses = new Map<
-        string,
-        {
-          mediaId: string
-          postId: string
-          status: PostStatus
-          scheduledAt: Date | null
-          timezone: string
-        }
-      >()
+        // the order of `compareUses` (D-80.7): scheduled by date, then drafts and cancelled
+        // posts by their last change, then the id; the sort below makes sure of it
+        .orderBy(
+          sql`case ${posts.status} when 'scheduled' then 0 when 'draft' then 1 else 2 end`,
+          sql`case when ${posts.status} = 'scheduled' then ${posts.scheduledAt} end asc nulls last`,
+          sql`case when ${posts.status} <> 'scheduled' then ${posts.updatedAt} end desc nulls last`,
+          asc(posts.id),
+        )
+      const uses = new Map<string, MediaUse & { mediaId: string }>()
       for (const r of rows)
         for (const mediaId of [r.mediaId, r.coverMediaId])
           if (mediaId !== null && wanted.has(mediaId))
@@ -501,10 +502,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               status: r.status as PostStatus,
               scheduledAt: r.scheduledAt,
               timezone: r.timezone,
+              updatedAt: r.updatedAt,
             })
-      return [...uses.values()].sort(
-        (a, b) => Number(b.status === 'scheduled') - Number(a.status === 'scheduled'),
-      )
+      return [...uses.values()].sort(compareUses)
     },
     listNotes(scope, postId) {
       return db

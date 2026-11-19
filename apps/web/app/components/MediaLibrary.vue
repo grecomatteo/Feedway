@@ -17,6 +17,10 @@ const props = defineProps<{
 const { t } = useI18n()
 const { failure } = useApi()
 const ready = useHydrated()
+const org = useOrganization()
+/** The editor of a post of this client: «Usato in» and the reason a file is not deleted. */
+const postTo = (postId: string) =>
+  org.to(`/spazi/${encodeURIComponent(props.workspace.slug)}/post/${encodeURIComponent(postId)}`)
 
 const workspaceId = computed(() => props.workspace.id)
 const lib = useLibrary(workspaceId)
@@ -223,8 +227,27 @@ async function confirmDelete() {
   const file = deleting.value
   if (!file) return
   deleting.value = null
-  if (selected.value?.id === file.id) selected.value = null
-  if (await attempt(() => lib.remove(file))) say(t('library.deleted', { name: file.originalName }))
+  done.value = null
+  problem.value = null
+  try {
+    await lib.remove(file)
+    if (selected.value?.id === file.id) selected.value = null
+    say(t('library.deleted', { name: file.originalName }))
+  } catch (e) {
+    const f = failure(e)
+    if (f.reason !== 'media_in_scheduled_post') {
+      problem.value = f.message
+      return
+    }
+    // scheduled meanwhile (D-80.4): the file read again says why, as if it had said so before
+    const fresh = await lib.refresh(file).catch(() => null)
+    if (fresh && selected.value?.id === file.id) selected.value = fresh
+    problem.value = fresh?.deleteBlockedBy ? deleteBlockText(fresh.deleteBlockedBy, t) : f.message
+  }
+}
+/** Starts deleting a file: never for a file the server says is not deleted (D-80.4). */
+function startDelete(file: LibraryFile) {
+  if (!file.deleteBlockedBy) deleting.value = file
 }
 
 function fileActions(file: LibraryFile): DropdownMenuItem[][] {
@@ -243,12 +266,15 @@ function fileActions(file: LibraryFile): DropdownMenuItem[][] {
       icon: 'i-lucide-folder-input',
       onSelect: () => startMove(file),
     })
+    const block = file.deleteBlockedBy
     groups.push([
       {
         label: t('library.delete'),
         icon: 'i-lucide-trash-2',
         color: 'error',
-        onSelect: () => (deleting.value = file),
+        // off, with the reason, before anyone tries (D-80.4)
+        ...(block ? { disabled: true, description: deleteBlockText(block, t) } : {}),
+        onSelect: () => startDelete(file),
       },
     ])
   }
@@ -326,9 +352,23 @@ async function confirmRemoveFolder() {
   const folder = removingFolder.value
   if (!folder) return
   removingFolder.value = null
-  if (await attempt(() => lib.deleteFolder(folder))) say(t('library.folders.deleted'))
+  done.value = null
+  problem.value = null
+  try {
+    await lib.deleteFolder(folder)
+    say(t('library.folders.deleted'))
+  } catch (e) {
+    const f = failure(e)
+    problem.value = f.message
+    // a file scheduled meanwhile: the folders read again say it before the next try
+    if (f.reason === 'media_in_scheduled_post') await lib.reloadFolders().catch(() => undefined)
+  }
 }
+/** Files in the folder and below it that a scheduled post keeps (D-80.4). */
+const blockedIn = (folder: Folder) =>
+  [folder, ...foldersBelow(folders.value, folder.id)].reduce((n, f) => n + f.blockedFiles, 0)
 function folderActions(folder: Folder): DropdownMenuItem[][] {
+  const blocked = blockedIn(folder)
   return [
     [
       {
@@ -347,7 +387,10 @@ function folderActions(folder: Folder): DropdownMenuItem[][] {
         label: t('library.folders.delete'),
         icon: 'i-lucide-trash-2',
         color: 'error',
-        onSelect: () => (removingFolder.value = folder),
+        ...(blocked > 0 ? { disabled: true, description: folderBlockText(blocked, t) } : {}),
+        onSelect: () => {
+          if (blockedIn(folder) === 0) removingFolder.value = folder
+        },
       },
     ],
   ]
@@ -742,9 +785,10 @@ function filesDrop(event: DragEvent) {
       :folders="tree"
       :file-url="lib.fileUrl"
       :read-only="readOnly"
+      :post-to="postTo"
       @tags="saveTags"
       @move="move"
-      @delete="(f) => (deleting = f)"
+      @delete="startDelete"
       @retry="retry"
     />
 
