@@ -68,6 +68,15 @@
   --container-form: 40rem;
 }
 
+/* phone: the row at the top and the bar at the bottom stay on screen; what gets the focus or is
+   scrolled into view stops clear of them (WCAG 2.4.11) */
+@media (width < 48rem) {
+  html {
+    scroll-padding-top: 3.25rem;
+    scroll-padding-bottom: 3.75rem;
+  }
+}
+
 /* phone: the measures of a finger (base.css switches at 760; the panel keeps its own 768) */
 @media (width < 48rem) {
   :root {
