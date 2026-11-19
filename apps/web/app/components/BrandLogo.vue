@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { PRODUCT_NAME } from '@app/config/product'
 
-// large: the sign-in pages; small: the sidebar, at the 160 px the brand guide recommends.
-const props = withDefaults(defineProps<{ size?: 'large' | 'small' }>(), { size: 'large' })
-const box = computed(() =>
-  props.size === 'small'
-    ? { width: 160, height: 46, cls: 'h-[46px] w-[160px]' }
-    : { width: 176, height: 51, cls: 'h-[51px] w-[176px]' },
-)
+// large: the sign-in pages; small: the sidebar, at the 160 px the brand guide recommends;
+// bar: 30 high, the side bar of the new direction (D-81, base.css `.side-top img`).
+const props = withDefaults(defineProps<{ size?: 'large' | 'small' | 'bar' }>(), { size: 'large' })
+const BOXES = {
+  bar: { width: 104, height: 30, cls: 'h-[30px] w-[104px]' },
+  small: { width: 160, height: 46, cls: 'h-[46px] w-[160px]' },
+  large: { width: 176, height: 51, cls: 'h-[51px] w-[176px]' },
+} as const
+const box = computed(() => BOXES[props.size])
 </script>
 
 <!-- The horizontal logo of the brand kit: carbone on light, arancio on dark (brand guide). -->

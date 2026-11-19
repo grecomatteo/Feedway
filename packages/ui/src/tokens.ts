@@ -45,6 +45,8 @@ export const tokenNames = [
   // the confirmation at the bottom of the page: charcoal on light, the other way round on dark
   'toast',
   'on-toast',
+  // the tick of the confirmation: the success colour of the other theme
+  'toast-icon',
   // the hairline around a picture, so a white photo does not melt into a white surface
   'img-outline',
   ...statusTokens,
@@ -72,6 +74,7 @@ const states = {
     'neutral-dot': '#A39E95',
     toast: '#242321',
     'on-toast': '#FFFFFF',
+    'toast-icon': '#6FD39C',
     'img-outline': 'rgb(0 0 0 / 0.1)',
     'status-draft': '#7A756D',
     'status-scheduled': '#1F5AA6',
@@ -94,6 +97,7 @@ const states = {
     'neutral-dot': '#7D7972',
     toast: '#F4F2EE',
     'on-toast': '#242321',
+    'toast-icon': '#17693F',
     'img-outline': 'rgb(255 255 255 / 0.1)',
     'status-draft': '#9B958B',
     'status-scheduled': '#8CB8F2',

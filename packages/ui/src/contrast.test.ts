@@ -53,6 +53,7 @@ test.each(cases)('%s palette, %s mode, meets WCAG AA', (id, mode) => {
   ).toBeGreaterThanOrEqual(4.5)
   expect(contrastRatio(t.text, t['brand-soft']), 'text on brand-soft').toBeGreaterThanOrEqual(4.5)
   expect(contrastRatio(t['on-toast'], t.toast), 'on-toast on toast').toBeGreaterThanOrEqual(4.5)
+  expect(contrastRatio(t['toast-icon'], t.toast), 'toast-icon on toast').toBeGreaterThanOrEqual(3)
 })
 
 test.each(cases)('%s palette, %s mode: states do not pass for the accent', (id, mode) => {

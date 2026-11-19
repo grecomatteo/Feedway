@@ -28,6 +28,7 @@
   --app-neutral-dot: #A39E95;
   --app-toast: #242321;
   --app-on-toast: #FFFFFF;
+  --app-toast-icon: #6FD39C;
   --app-img-outline: rgb(0 0 0 / 0.1);
   --app-status-draft: #7A756D;
   --app-status-scheduled: #1F5AA6;
@@ -66,6 +67,7 @@
   --app-neutral-dot: #7D7972;
   --app-toast: #F4F2EE;
   --app-on-toast: #242321;
+  --app-toast-icon: #17693F;
   --app-img-outline: rgb(255 255 255 / 0.1);
   --app-status-draft: #9B958B;
   --app-status-scheduled: #8CB8F2;
@@ -104,6 +106,7 @@
   --app-neutral-dot: #A39E95;
   --app-toast: #242321;
   --app-on-toast: #FFFFFF;
+  --app-toast-icon: #6FD39C;
   --app-img-outline: rgb(0 0 0 / 0.1);
   --app-status-draft: #7A756D;
   --app-status-scheduled: #1F5AA6;
@@ -142,6 +145,7 @@
   --app-neutral-dot: #7D7972;
   --app-toast: #F4F2EE;
   --app-on-toast: #242321;
+  --app-toast-icon: #17693F;
   --app-img-outline: rgb(255 255 255 / 0.1);
   --app-status-draft: #9B958B;
   --app-status-scheduled: #8CB8F2;
@@ -180,6 +184,7 @@
   --app-neutral-dot: #A39E95;
   --app-toast: #242321;
   --app-on-toast: #FFFFFF;
+  --app-toast-icon: #6FD39C;
   --app-img-outline: rgb(0 0 0 / 0.1);
   --app-status-draft: #7A756D;
   --app-status-scheduled: #1F5AA6;
@@ -218,6 +223,7 @@
   --app-neutral-dot: #7D7972;
   --app-toast: #F4F2EE;
   --app-on-toast: #242321;
+  --app-toast-icon: #17693F;
   --app-img-outline: rgb(255 255 255 / 0.1);
   --app-status-draft: #9B958B;
   --app-status-scheduled: #8CB8F2;
@@ -256,6 +262,7 @@
   --app-neutral-dot: #A39E95;
   --app-toast: #242321;
   --app-on-toast: #FFFFFF;
+  --app-toast-icon: #6FD39C;
   --app-img-outline: rgb(0 0 0 / 0.1);
   --app-status-draft: #7A756D;
   --app-status-scheduled: #1F5AA6;
@@ -294,6 +301,7 @@
   --app-neutral-dot: #7D7972;
   --app-toast: #F4F2EE;
   --app-on-toast: #242321;
+  --app-toast-icon: #17693F;
   --app-img-outline: rgb(255 255 255 / 0.1);
   --app-status-draft: #9B958B;
   --app-status-scheduled: #8CB8F2;
@@ -332,6 +340,7 @@
   --app-neutral-dot: #A39E95;
   --app-toast: #242321;
   --app-on-toast: #FFFFFF;
+  --app-toast-icon: #6FD39C;
   --app-img-outline: rgb(0 0 0 / 0.1);
   --app-status-draft: #7A756D;
   --app-status-scheduled: #1F5AA6;
@@ -370,6 +379,7 @@
   --app-neutral-dot: #7D7972;
   --app-toast: #F4F2EE;
   --app-on-toast: #242321;
+  --app-toast-icon: #17693F;
   --app-img-outline: rgb(255 255 255 / 0.1);
   --app-status-draft: #9B958B;
   --app-status-scheduled: #8CB8F2;

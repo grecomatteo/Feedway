@@ -1,9 +1,18 @@
 <script setup lang="ts" generic="T extends string">
 /**
- * The filter in a groove above a list («Attivi 5 · Archiviati 1»). Each choice is a toggle button
- * that says whether it is on; the count, when given, follows the word.
+ * The filter above a list («Tutti 9 · Bozze 2 · Programmati 3», D-81): toggle buttons in a sunken
+ * well, the chosen one on a white surface. On a phone each choice is 36 high, and in a `Toolbar`
+ * the filter fills the line.
  */
-defineProps<{ label: string; options: { value: T; label: string; count?: number }[] }>()
+withDefaults(
+  defineProps<{
+    label: string
+    options: { value: T; label: string; count?: number; disabled?: boolean }[]
+    /** Every choice as wide as the others, on the whole width (the editor's «Tipo»). */
+    wide?: boolean
+  }>(),
+  { wide: false },
+)
 const model = defineModel<T>({ required: true })
 </script>
 
@@ -11,23 +20,29 @@ const model = defineModel<T>({ required: true })
   <div
     role="group"
     :aria-label="label"
-    class="inline-flex rounded-[0.625rem] border border-(--app-border) bg-(--app-groove) p-[3px]"
+    class="gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
+    :class="wide ? 'flex' : 'inline-flex'"
+    data-segmented
   >
     <button
       v-for="o in options"
       :key="o.value"
       type="button"
       :aria-pressed="model === o.value"
-      class="min-h-11 rounded-[0.4375rem] px-3.5 text-[0.84375rem] whitespace-nowrap transition-colors md:min-h-9"
-      :class="
+      :disabled="o.disabled"
+      class="inline-flex h-7 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap transition-colors disabled:opacity-55 max-md:h-9"
+      :class="[
+        wide ? 'flex-1' : '',
         model === o.value
-          ? 'bg-(--app-card) font-semibold text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.15)]'
-          : 'text-(--app-text-muted) hover:text-(--app-text)'
-      "
+          ? 'bg-(--app-surface) font-semibold text-(--app-text) shadow-[var(--app-shadow-1),0_0_0_1px_var(--app-border)]'
+          : 'font-medium text-(--app-text-muted) enabled:hover:text-(--app-text)',
+      ]"
       @click="model = o.value"
     >
-      {{ o.label }}
-      <span v-if="o.count !== undefined" class="tabular-nums">{{ o.count }}</span>
+      <slot name="option" :option="o">{{ o.label }}</slot>
+      <span v-if="o.count !== undefined" class="font-normal text-(--app-text-muted) tabular-nums">{{
+        o.count
+      }}</span>
     </button>
   </div>
 </template>

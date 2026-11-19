@@ -13,7 +13,7 @@
 - **Regole e motivi:** `design/reviews/2026-11-19-nuova-direzione.md` (tabella «Regole», «Guscio», pagina per pagina, «Cosa cambia rispetto a scelte già prese»).
 - **Accesso:** la versione corretta con il logo grande al centro e «Accedi» centrato (`?p=accedi`, schermate `01-accedi`), chiesta da Matteo il 19/11.
 - **Marchio:** `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md`; logo dai file originali.
-- **Skill:** `impeccable` e, nel repo in `.claude/skills/`, `make-interfaces-feel-better`, `emil-design-eng`, `humanizer` (per i testi). Per la revisione: `design/brief-feedway/06-PROMPT-REVISIONE.md` e i criteri del documento 05.
+- **Skill:** `impeccable` e, tra le skill del repo, `make-interfaces-feel-better`, `emil-design-eng`, `humanizer` (per i testi). Per la revisione: `design/brief-feedway/06-PROMPT-REVISIONE.md` e i criteri del documento 05.
 - **Prova della 0.12.0:** `/mnt/project-files/handoff/tappa-6/ESITI-prova-0.12.0.md` §3, le richieste che hanno originato la direzione.
 
 ## Prerequisito
@@ -106,7 +106,7 @@ Dieci task in dieci thread, più la revisione di fedeltà e la tela Pencil. Ogni
 | 7 | R7 · Editor (2): Dove, Quando, anteprima, Controlli, telefono, dopo «Programma» | `08`–`10`, `12` | 1–2 | R5, R4 (per `12`) |
 | 8 | R8 · Utenti, Impostazioni e accesso | `01`, `21`–`26` | 2 | R2 |
 | 9 | R9 · Tema scuro, palette e stati | tutte | 1 | R3–R8 |
-| — | Revisione di fedeltà (thread separato, `claude-opus-5-5` effort high, nessun codice) | tutte | — | R9 |
+| — | Revisione di fedeltà (thread separato, modello più capace con effort alto, nessun codice) | tutte | — | R9 |
 | 10 | R10 · Correzioni della revisione, `DESIGN.md`, rilascio e guida della prova | — | 1–2 | revisione |
 | a parte | Tela Pencil nuova (quando Pencil è raggiungibile) | tutte | 1 | R1 |
 
@@ -273,7 +273,7 @@ Oltre al piano generale §8:
 
 ## Revisione di fedeltà (thread separato)
 
-Come la revisione di fine tappa (istruzioni del progetto): thread su `claude-opus-5-5` con effort high, nessuna modifica al codice. Rigira `design:shots` su tutte le schermate, confronta ogni coppia con il riferimento e con la revisione del 19/11, controlla codice, test, accessibilità e comportamento rimasto, e scrive `/mnt/project-files/handoff/ridisegno/REVISIONE-fedelta.md` per Matteo: ogni differenza con la schermata accanto, pro e contro delle correzioni possibili.
+Come la revisione di fine tappa (istruzioni del progetto): thread sul modello più capace con effort alto, nessuna modifica al codice. Rigira `design:shots` su tutte le schermate, confronta ogni coppia con il riferimento e con la revisione del 19/11, controlla codice, test, accessibilità e comportamento rimasto, e scrive `/mnt/project-files/handoff/ridisegno/REVISIONE-fedelta.md` per Matteo: ogni differenza con la schermata accanto, pro e contro delle correzioni possibili.
 
 ## Task R10 · Correzioni della revisione, `DESIGN.md`, rilascio e guida della prova
 
