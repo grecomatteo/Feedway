@@ -2,8 +2,8 @@
 import type { LibraryFile } from '~/composables/useLibrary'
 
 /**
- * «Ultimi file» and «Spazio occupato» in a client's Panoramica (plan 04 Task 12): the newest
- * files of its library and the space they take, with the way into «Libreria».
+ * «Ultimi file» in a client's Panoramica (screen 16): the six newest files of its library in a
+ * grid of three, with the way into «Libreria» (which says the space they take).
  */
 const props = defineProps<{ workspace: WorkspaceView }>()
 const org = useOrganization()
@@ -27,49 +27,36 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
 </script>
 
 <template>
-  <section aria-labelledby="client-recent" class="space-y-3">
-    <div class="flex min-h-11 flex-wrap items-center justify-between gap-x-3">
-      <h2 id="client-recent" class="text-lg">{{ $t('library.recent') }}</h2>
-      <UButton
-        class="min-h-control"
-        color="neutral"
-        variant="ghost"
-        trailing-icon="i-lucide-arrow-right"
-        :to="libraryPage"
-      >
-        {{ $t('library.openLibrary') }}
-      </UButton>
-    </div>
-    <p v-if="page" class="text-sm text-(--app-text-muted)">
-      {{ $t('library.usage') }}:
-      <span class="font-semibold text-(--app-text) tabular-nums">{{
-        formatBytes(page.usedBytes)
-      }}</span>
-    </p>
+  <section :aria-label="$t('library.recent')" data-recent-files>
+    <SectionHead :title="$t('library.recent')">
+      <NuxtLink :to="libraryPage" class="text-detail underline underline-offset-3">{{
+        $t('client.libraryLink')
+      }}</NuxtLink>
+    </SectionHead>
     <p v-if="failed" role="alert" class="text-(--app-danger)">{{ $t('library.loadError') }}</p>
     <ul
       v-else-if="!page"
       :aria-label="$t('library.loading')"
       aria-busy="true"
-      class="grid grid-cols-3 gap-2 sm:grid-cols-6"
+      class="grid grid-cols-3 gap-2"
     >
-      <li v-for="n in 6" :key="n" class="skeleton aspect-square rounded-lg" />
+      <li v-for="n in 6" :key="n" class="skeleton aspect-square rounded-lg" aria-hidden="true" />
     </ul>
     <p
       v-else-if="page.items.length === 0"
-      class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+      class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
     >
       {{ $t('library.noRecent') }}
     </p>
-    <ul v-else :aria-label="$t('library.recent')" class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+    <ul v-else :aria-label="$t('library.recent')" class="grid grid-cols-3 gap-2">
       <li v-for="f in page.items" :key="f.id" class="min-w-0">
         <NuxtLink
           :to="libraryPage"
-          class="relative block overflow-hidden rounded-lg border"
+          class="relative block overflow-hidden rounded-lg outline-1 -outline-offset-1"
           :class="
             f.status === 'failed'
-              ? 'border-(--app-danger) bg-(--app-danger-soft)'
-              : 'border-(--app-border) bg-(--app-surface-sunken)'
+              ? 'bg-(--app-danger-soft) outline-(--app-danger)'
+              : 'bg-(--app-surface-sunken) outline-(--app-img-outline)'
           "
           :title="
             f.status === 'failed'

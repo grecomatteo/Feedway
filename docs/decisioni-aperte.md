@@ -518,7 +518,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 
 ### D-89 · Scelte provvisorie di «Clienti» e della pagina del cliente (Task R4)
 
-- **Origine:** Task R4 del ridisegno, PR «elenco dei clienti e nuovo cliente» (19/11).
+- **Origine:** Task R4 del ridisegno, PR «elenco dei clienti e nuovo cliente» e PR «pagina del cliente» (19/11).
 - **Scelte:**
   1. «Prossimo post» e «In programma» vengono dalla lettura di «Oggi» `GET …/agenda/clients` (D-88.7), non da due campi nuovi nel contratto dell'elenco (`getScheduleSummary` del piano): è la stessa query, letta una volta sola. Un cliente archiviato non ha né l'uno né l'altro («—»).
   2. «Profili» mostra i primi due account del cliente, prima gli Instagram, poi «+N» per gli altri account (la schermata: «@fornoluce · Forno Luce +1»).
@@ -532,4 +532,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   10. Il campo di ricerca è alto come gli altri controlli (36, 44 sul telefono) e largo 280, come `base.css`: era 38 e 320. Cambia in ogni pagina che lo usa.
   11. Nell'agenzia di esempio delle schermate Forno Luce Bistrot ha un collegamento scaduto, così è «Da ricollegare» come in `14` e `16` (prima era «ha un problema», D-88.8), e ci sono i due profili di Bar Centrale senza cliente.
   12. Al computer «Nuovo cliente» sta nella riga degli strumenti o nello stato vuoto; se la lettura dei clienti non riesce torna accanto al titolo, così resta raggiungibile.
+  13. Pagina del cliente (`16`–`18`): la testata non ha più «Nuovo post», perché il pulsante della barra laterale (e il «+» del telefono) scrive già per il cliente aperto. Gli handle dei profili accanto al nome si vedono solo al computer, come nella schermata.
+  14. I profili sono in ordine con gli Instagram prima, nella testata e nella Panoramica, come nelle schermate.
+  15. Panoramica: due colonne solo da 1360 px; sotto, una colonna sola (accanto alla barra laterale la tabella dei profili non sta in 760 px). «Ultimi file» perde la riga dello spazio usato, che resta nella Libreria.
+  16. «Chi ci lavora» elenca le persone del cliente, non Owner e Admin dell'agenzia che la schermata aggiunge: chi non è Owner o Admin non può leggere l'elenco dell'agenzia.
+  17. Contenuti: la scheda si chiama «Contenuti» come nella schermata (era «Impostazioni dei contenuti»). L'orario abituale è una scelta ogni quarto d'ora più «Nessuno (18:00)», salvata appena si cambia, senza «Salva»; sotto resta la riga del fuso, che la schermata non ha. Le etichette restano in ordine alfabetico e con il colore dei temi (D-68): la schermata ha un quadratino e un altro ordine.
+  18. Post del cliente: «Annullati» al posto di «Pubblicati» finché la tappa 7 non pubblica; le etichette si vedono anche sul telefono, accanto alla data.
+  19. Libreria del cliente resta com'è fino al Task R6, che ridisegna la libreria. Persone prende `ListSurface`, `Avatar` e `SectionHead`.
+  20. Nell'agenzia di esempio Forno Luce ha l'orario delle 18:00, tre etichette su quattro post, tre modelli e il gruppo «Solo Instagram», come in `18`.
+  21. Sul telefono, come nelle schermate, si vedono meno cose: nella Panoramica i profili senza pubblicati in 24 ore e ultima sincronizzazione, nei Post le icone delle piattaforme al posto degli handle, nei Contenuti i gruppi senza i loro account e i modelli con tipo e testo (il nome resta per i lettori di schermo). Al computer c'è tutto. Senza «Nuovo post» nella testata, chi apre un cliente archiviato o in cui è Viewer trova il «Nuovo post» della barra laterale verso la scelta del cliente, se può scrivere altrove.
 - **Stato:** provvisorie; Matteo può cambiarle.

@@ -396,6 +396,42 @@ export async function designSample(page: Page): Promise<DesignSample> {
     }
   }
 
+  // Forno Luce's content settings (screen 18): the usual time, three labels, three templates and a
+  // group, with the labels on some of its posts
+  const forno = clients['Forno Luce']?.id ?? ''
+  const fornoBase = `/api/v1/orgs/${org}/workspaces/${forno}`
+  await send(page.request, 'PATCH', `/api/v1/orgs/${org}/workspaces/${forno}`, {
+    defaultPostTime: '18:00',
+  })
+  const labelOf: Record<string, string> = {}
+  for (const [name, color] of [
+    ['Prodotto', 'feedway'],
+    ['Natale', 'blu'],
+    ['Dietro le quinte', 'verde'],
+  ] as const)
+    labelOf[name] = (await send(page.request, 'POST', `${fornoBase}/labels`, { name, color })).id
+  for (const [caption, label] of [
+    ['Il pane del lunedì è appena uscito dal forno', 'Prodotto'],
+    ['Le brioche di Natale si prenotano da oggi', 'Natale'],
+    ['Le brioche di Natale si prenotano da oggi', 'Prodotto'],
+    ['Dietro il banco: come nasce la sfoglia', 'Dietro le quinte'],
+  ] as const)
+    await adminQuery(
+      `insert into post_labels (organization_id, workspace_id, post_id, label_id)
+       values ($1, $2, $3, $4)`,
+      [org, forno, posts[caption], labelOf[label]],
+    )
+  for (const [kind, name, body] of [
+    ['signature', 'Firma', 'Forno Luce · via Roma 12 · aperti dalle 7 alle 19:30'],
+    ['hashtags', 'Hashtag', '#fornoluce #panefresco #lievitomadre #colazione'],
+    ['caption', 'Testo', 'Prenota entro le 18 al numero 051 555 0142'],
+  ] as const)
+    await send(page.request, 'POST', `${fornoBase}/caption-templates`, { kind, name, body })
+  await send(page.request, 'POST', `${fornoBase}/account-groups`, {
+    name: 'Solo Instagram',
+    accountIds: [accounts['Forno Luce']?.instagram],
+  })
+
   for (const m of TEAM) {
     const person = await addPerson(
       org,

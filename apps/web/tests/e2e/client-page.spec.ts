@@ -65,12 +65,14 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   await clients(page).getByRole('link', { name: 'Forno Luce', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${client.slug}$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Forno Luce' })).toBeVisible()
-  // the names of its profiles under the name, and «Nuovo post» (stage 6)
-  await expect(page.getByRole('main').getByText('@fornoluce').first()).toBeVisible()
-  await expect(page.getByRole('main').getByRole('link', { name: 'Nuovo post' })).toHaveAttribute(
-    'href',
-    new RegExp(`/spazi/${client.slug}/post/nuovo`),
-  )
+  // the names of its profiles beside the name on a computer; «Nuovo post» is the shell's, which
+  // writes for this client (D-89)
+  const phone = (page.viewportSize()?.width ?? 1280) < 768
+  if (!phone) await expect(page.locator('[data-client-head]').getByText('@fornoluce')).toBeVisible()
+  await expect(page.getByRole('main').getByRole('link', { name: 'Nuovo post' })).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: 'Nuovo post' }).locator('visible=true'),
+  ).toHaveAttribute('href', new RegExp(`/spazi/${client.slug}/post/nuovo`))
 
   const tabs = page.getByRole('navigation', { name: 'Sezioni del cliente' })
   await expect(tabs.getByRole('link', { name: 'Panoramica' })).toHaveAttribute(
@@ -84,10 +86,15 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   // the tabs scroll sideways on a narrow screen, never up and down (prova 0.10.0, R-10)
   expect(await tabs.evaluate((n) => n.scrollHeight - n.clientHeight)).toBe(0)
 
-  // one row for the Page and its Instagram, linked
+  // one row for the Page and its Instagram, named by its Instagram
   const list = profiles(page)
-  await expect(list.getByText('Forno Luce', { exact: true }).first()).toBeVisible()
-  await expect(list.getByText(/collegato|sincronizzato/i).first()).toBeVisible()
+  await expect(list.getByText('@fornoluce', { exact: true })).toBeVisible()
+  await expect(list.getByText('Instagram e Pagina')).toBeVisible()
+  // on a computer the quota and the last sync have their columns
+  if (!phone) {
+    await expect(list.getByRole('columnheader', { name: 'Ultima sincronizzazione' })).toBeVisible()
+    await expect(list.getByRole('columnheader', { name: 'Pubblicati in 24 ore' })).toBeVisible()
+  }
   await expect(page.getByRole('heading', { level: 2, name: 'Chi ci lavora' })).toBeVisible()
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
@@ -101,7 +108,7 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   // «Clienti → Account» of before lands on the Panoramica
   await page.goto(`/${org}/spazi/${client.slug}/account`)
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${client.slug}$`))
-  await expect(profiles(page).getByText('Forno Luce', { exact: true }).first()).toBeVisible()
+  await expect(profiles(page).getByText('@fornoluce', { exact: true })).toBeVisible()
 })
 
 test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ page }) => {
@@ -142,7 +149,7 @@ test('«Togli dal cliente» sends the profile to «Sistemali»; «Sostituisci pr
   await expect(picker).toHaveCount(0)
   await expect(page.getByText('Bottega Verde ha preso il posto di Forno Luce.')).toBeVisible()
   await expect(profiles(page).getByText('Bottega Verde', { exact: true }).first()).toBeVisible()
-  await expect(profiles(page).getByText('Forno Luce', { exact: true })).toHaveCount(0)
+  await expect(profiles(page).getByText('@fornoluce', { exact: true })).toHaveCount(0)
 
   // «Togli dal cliente»: the account stays, and «Sistemali» counts it
   await profiles(page).getByRole('button', { name: 'Azioni per Bottega Verde' }).click()
@@ -171,12 +178,11 @@ test('who is not Owner or Admin sees the profiles and the people, without the ac
   await page.context().clearCookies()
   await signIn(page.request, viewer)
   await page.goto(`/${org}/spazi/${client.slug}`)
-  await expect(profiles(page).getByText('Forno Luce', { exact: true }).first()).toBeVisible()
+  await expect(profiles(page).getByText('@fornoluce', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /Azioni per/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Aggiungi profilo' })).toHaveCount(0)
   const people = page.getByRole('list', { name: 'Chi ci lavora' })
   await expect(people.getByText('Vera Vede')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Gestisci le persone' })).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 
   await page
@@ -217,4 +223,13 @@ test('in Panoramica a file that did not succeed is marked in red, with its word'
   await expect(failed).toBeVisible()
   await expect(failed.locator('[data-failed]')).toContainText('Non riuscito')
   expect((await axe(page)).violations).toEqual([])
+})
+
+test('an archived client: nothing planned, and no error from the agenda', async ({ page }) => {
+  const { org, client } = await agencyWithClient(page)
+  await adminQuery('update workspaces set archived_at = now() where id = $1', [client.id])
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  await expect(page.getByText('Nessun post in programma.')).toBeVisible()
+  await expect(page.getByText('Non siamo riusciti a caricare i prossimi post.')).toHaveCount(0)
 })

@@ -126,31 +126,29 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         :title="$t('workspaceMembers.empty')"
         icon="i-lucide-users"
       />
-      <ul v-else class="space-y-2" :aria-label="$t('workspaceMembers.listLabel')">
-        <li
+      <ListSurface v-else :label="$t('workspaceMembers.listLabel')">
+        <ListRow
           v-for="m in data.items"
           :key="m.userId"
-          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-3"
+          class="max-md:py-2"
+          :class="canManage ? 'max-sm:grid-cols-1 max-sm:gap-y-2' : ''"
+          :data-member="m.userId"
         >
-          <span class="flex items-center gap-2">
-            <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
-            <span>{{ m.displayName }}</span>
-            <UBadge v-if="m.status === 'disabled'" color="neutral" variant="subtle">
-              {{ $t('users.disabled') }}
-            </UBadge>
+          <span class="flex min-w-0 items-center gap-3">
+            <Avatar kind="person" :name="m.displayName" :src="m.avatarUrl" />
+            <span class="truncate font-medium">{{ m.displayName }}</span>
+            <StatusDot v-if="m.status === 'disabled'" :label="$t('users.disabled')" />
           </span>
-          <span v-if="canManage" class="flex flex-wrap items-center gap-2">
+          <span v-if="canManage" class="flex items-center justify-end gap-2">
             <USelect
               :model-value="m.role"
               :items="roleItems"
               :aria-label="$t('workspaceMembers.roleOf', { name: m.displayName })"
-              class="min-w-36"
-              size="xl"
+              class="w-36 max-sm:flex-1"
               :disabled="sending"
               @update:model-value="(r) => changeRole(m, r as WorkspaceMember['role'])"
             />
             <UButton
-              class="min-h-control"
               color="neutral"
               variant="ghost"
               :disabled="sending"
@@ -160,36 +158,43 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               {{ $t('workspaceMembers.remove') }}
             </UButton>
           </span>
-          <span v-else class="text-sm text-(--app-text-muted)">{{ $t(`roles.${m.role}`) }}</span>
-        </li>
-      </ul>
+          <span v-else class="text-detail text-(--app-text-muted)">{{
+            $t(`roles.${m.role}`)
+          }}</span>
+        </ListRow>
+      </ListSurface>
 
       <section
         v-if="org.may.value.manageUsers && workspace?.archivedAt === null"
-        aria-labelledby="add-member"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+        :aria-label="$t('workspaceMembers.addTitle')"
       >
-        <h2 id="add-member" class="text-lg">{{ $t('workspaceMembers.addTitle') }}</h2>
-        <p v-if="candidates.length === 0" class="text-sm text-(--app-text-muted)">
-          {{ $t('workspaceMembers.noCandidates') }}
-        </p>
-        <form v-else class="flex flex-wrap items-end gap-3" novalidate @submit.prevent="addMember">
-          <UFormField :label="$t('workspaceMembers.person')" name="person" class="min-w-48 flex-1">
-            <USelect v-model="add.userId" :items="candidates" class="w-full" size="xl" />
-          </UFormField>
-          <UFormField :label="$t('workspaceMembers.role')" name="role">
-            <USelect v-model="add.role" :items="roleItems" class="min-w-36" size="xl" />
-          </UFormField>
-          <UButton
-            type="submit"
-            class="min-h-control"
-            :loading="sending"
-            :disabled="add.userId === ''"
+        <SectionHead :title="$t('workspaceMembers.addTitle')" :level="3" />
+        <div class="space-y-4 rounded-card border border-(--app-border) bg-(--app-surface) p-4">
+          <p v-if="candidates.length === 0" class="text-detail text-(--app-text-muted)">
+            {{ $t('workspaceMembers.noCandidates') }}
+          </p>
+          <form
+            v-else
+            class="flex flex-wrap items-end gap-3"
+            novalidate
+            @submit.prevent="addMember"
           >
-            {{ $t('workspaceMembers.add') }}
-          </UButton>
-        </form>
-        <RoleExplainer />
+            <UFormField
+              :label="$t('workspaceMembers.person')"
+              name="person"
+              class="min-w-48 flex-1"
+            >
+              <USelect v-model="add.userId" :items="candidates" class="w-full" />
+            </UFormField>
+            <UFormField :label="$t('workspaceMembers.role')" name="role">
+              <USelect v-model="add.role" :items="roleItems" class="w-36" />
+            </UFormField>
+            <UButton type="submit" :loading="sending" :disabled="add.userId === ''">
+              {{ $t('workspaceMembers.add') }}
+            </UButton>
+          </form>
+          <RoleExplainer />
+        </div>
       </section>
 
       <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />

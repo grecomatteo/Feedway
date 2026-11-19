@@ -50,6 +50,28 @@ const PAGES: MeasuredPage[] = [
     control: '[data-toolbar] > div:has(input[type="search"])',
     row: '[data-list-row]',
   },
+  {
+    // a client without posts: the outline «Nuovo post» of the empty list (screen 17)
+    name: 'Post del cliente',
+    path: async (page) => {
+      const owner = await newPerson('Mara Post', 'owner')
+      await signInWithTotp(page.request, owner)
+      const ws = await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/spazi/${ws.slug}/post`
+    },
+    control: 'section[aria-labelledby="posts-title"] a',
+  },
+  {
+    // the usual time's select and the outline «Nuova etichetta» (screen 18)
+    name: 'Contenuti',
+    path: async (page) => {
+      const owner = await newPerson('Mara Contenuti', 'owner')
+      await signInWithTotp(page.request, owner)
+      const ws = await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/spazi/${ws.slug}/contenuti`
+    },
+    control: '[data-content-settings] button[role="combobox"]',
+  },
 ]
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
