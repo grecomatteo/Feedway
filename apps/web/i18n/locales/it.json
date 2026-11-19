@@ -674,11 +674,10 @@
     "viewer": "Vede calendario e post, senza modificare."
   },
   "agency": {
-    "switcher": "Agenzia",
-    "suspendedOthers": "Puoi passare a un'altra delle tue agenzie dal selettore.",
+    "suspendedOthers": "Puoi passare a un'altra delle tue agenzie dal tuo menu, con «Cambia agenzia».",
     "nav": {
       "label": "Navigazione principale",
-      "home": "Home",
+      "home": "Oggi",
       "workspaces": "Clienti",
       "users": "Utenti",
       "audit": "Registro attività",
@@ -691,7 +690,16 @@
   "context": {
     "label": "Contesto",
     "all": "Tutti i clienti",
-    "profile": "Profilo {name}"
+    "profile": "Profilo {name}",
+    "search": "Cerca un cliente",
+    "newClient": "Nuovo cliente",
+    "none": "Ancora nessun cliente",
+    "noMatch": "Nessun cliente con questo nome",
+    "problem": {
+      "reconnect": "un profilo da ricollegare",
+      "error": "un profilo con un problema",
+      "warning": "un profilo da controllare"
+    }
   },
   "agencies": {
     "title": "Scegli agenzia",

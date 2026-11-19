@@ -1,35 +1,27 @@
 <script setup lang="ts">
 /**
- * Below 768 px: Home, Calendario, + (Nuovo post), Clienti, Tu (spec §11.11). Calendario shows
- * disabled with «Presto» until its page exists (stage 9); who creates no posts
- * (a Viewer, §10.2) has no +. «Tu» opens the person's menu from the bottom.
+ * Below 768 px (D-81, `base.css` `.m-nav`): Oggi, Calendario, + (Nuovo post), Clienti, Tu (spec
+ * §11.11). Calendario stays off until its page exists (stage 9); who creates no posts (a Viewer,
+ * §10.2) has no +. «Tu» opens the person's menu from the bottom, with Libreria, Utenti and
+ * Impostazioni: it is the current place on those pages.
  */
 const org = useOrganization()
 const route = useRoute()
 const context = useContextQuery()
-const { data: workspaces } = useWorkspaces()
+const newPost = useNewPost()
 
-// Owner and Admin create posts everywhere; anyone else in a client as more than a Viewer
-const createsPosts = computed(
-  () =>
-    org.may.value.manageUsers ||
-    (workspaces.value?.items ?? []).some((w) => !w.archivedAt && w.myRole !== 'viewer'),
-)
-// in a client's context the + opens its editor; in «Tutti i clienti» the client is asked first
-const newPost = computed(() => {
-  const asked = clientSlugOf(route) ?? context.value['spazio']
-  const client = (workspaces.value?.items ?? []).find(
-    (w) => w.slug === asked && !w.archivedAt && w.myRole !== 'viewer',
-  )
-  if (!client) return { path: org.to('/post/nuovo'), query: context.value }
-  const profilo = context.value['profilo']
-  return {
-    path: org.to(`/spazi/${encodeURIComponent(client.slug)}/post/nuovo`),
-    query: profilo ? { profilo } : {},
-  }
-})
+// the + of the bar is drawn heavier than the other icons (base.css `.m-nav .plus svg`)
+const bold = (content: string) =>
+  content.replaceAll(/stroke-width="[\d.]+"/g, 'stroke-width="2.25"')
+
 const under = (to: string) => route.path === to || route.path.startsWith(`${to}/`)
 const current = (to: string) => (to === org.to() ? route.path === to : under(to))
+const inYou = computed(
+  () =>
+    ['/libreria', '/utenti', '/impostazioni', '/registro', '/privacy'].some((p) =>
+      under(org.to(p)),
+    ) || under('/account'),
+)
 
 // the bar hides while the keyboard is open: the page shrinks well below the window
 const keyboard = ref(false)
@@ -42,7 +34,7 @@ onMounted(() => window.visualViewport?.addEventListener('resize', onResize))
 onBeforeUnmount(() => window.visualViewport?.removeEventListener('resize', onResize))
 
 const place =
-  'flex min-h-15 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-(--app-text-muted)'
+  'flex h-[59px] flex-1 flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] font-medium text-(--app-text-muted) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)'
 </script>
 
 <template>
@@ -51,44 +43,37 @@ const place =
     :aria-label="$t('agency.nav.label')"
     class="fixed inset-x-0 bottom-0 z-40 border-t border-(--app-border) bg-(--app-surface) pb-[env(safe-area-inset-bottom)] md:hidden"
   >
-    <ul :class="['grid', createsPosts ? 'grid-cols-5' : 'grid-cols-4']">
+    <ul :class="['grid', newPost.allowed.value ? 'grid-cols-5' : 'grid-cols-4']">
       <li class="flex">
         <NuxtLink
           :to="{ path: org.to(), query: context }"
           :aria-current="current(org.to()) ? 'page' : undefined"
-          :class="[
-            place,
-            'aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)',
-          ]"
+          :class="place"
         >
-          <UIcon name="i-lucide-house" class="size-5" aria-hidden="true" />
+          <UIcon name="i-lucide-sun" class="size-[21px]" aria-hidden="true" />
           {{ $t('agency.nav.home') }}
         </NuxtLink>
       </li>
       <li class="flex">
+        <!-- the calendar arrives in stage 9 -->
         <span
           role="link"
           aria-disabled="true"
           :aria-label="`${$t('agency.nav.calendar')} (${$t('client.soon')})`"
+          :title="$t('client.soon')"
           :class="place"
         >
-          <span class="relative" aria-hidden="true">
-            <UIcon name="i-lucide-calendar" class="size-5 opacity-60" />
-            <span
-              class="absolute -top-2 left-4 rounded-full border border-(--app-surface) bg-(--app-surface-sunken) px-1.5 text-[0.625rem] leading-4 font-medium text-(--app-text-muted)"
-              >{{ $t('client.soon') }}</span
-            >
-          </span>
-          <span class="opacity-60" aria-hidden="true">{{ $t('agency.nav.calendar') }}</span>
+          <UIcon name="i-lucide-calendar-days" class="size-[21px]" aria-hidden="true" />
+          <span aria-hidden="true">{{ $t('agency.nav.calendar') }}</span>
         </span>
       </li>
-      <li v-if="createsPosts" class="flex">
-        <NuxtLink :to="newPost" :aria-label="$t('client.newPost')" :class="place">
+      <li v-if="newPost.allowed.value" class="flex">
+        <NuxtLink :to="newPost.link.value" :aria-label="$t('client.newPost')" :class="place">
           <span
-            class="flex size-10 items-center justify-center rounded-full border-[1.5px] border-(--app-text) bg-(--app-brand) text-(--app-on-brand)"
+            class="flex h-9 w-11 items-center justify-center rounded-[10px] bg-(--app-brand) text-(--app-on-brand)"
             aria-hidden="true"
           >
-            <UIcon name="i-lucide-plus" class="size-5" />
+            <Icon name="i-lucide-plus" class="size-[22px]" :customize="bold" />
           </span>
         </NuxtLink>
       </li>
@@ -96,17 +81,14 @@ const place =
         <NuxtLink
           :to="{ path: org.to('/spazi'), query: context }"
           :aria-current="current(org.to('/spazi')) ? 'page' : undefined"
-          :class="[
-            place,
-            'aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)',
-          ]"
+          :class="place"
         >
-          <UIcon name="i-lucide-briefcase" class="size-5" aria-hidden="true" />
+          <UIcon name="i-lucide-briefcase-business" class="size-[21px]" aria-hidden="true" />
           {{ $t('agency.nav.workspaces') }}
         </NuxtLink>
       </li>
       <li class="flex">
-        <UserMenu variant="tab" />
+        <UserMenu variant="tab" :current="inYou" />
       </li>
     </ul>
   </nav>

@@ -3,8 +3,8 @@
  * One «Impostazioni» for everything (Matteo, 13/11): the person's own pages and, for who may see
  * them, the agency's. The addresses stay where they were (`/account/*`, `/<agenzia>/impostazioni/*`),
  * so the links in the emails keep working; only the shell around them is shared. The agency is the
- * one of the address, or the one remembered outside it; its group shows only to who may see it
- * (`organization.settings.view`).
+ * one of the address, or the one remembered outside it; its general settings and integrations show
+ * only to who may see them (`organization.settings.view`).
  */
 const route = useRoute()
 const org = useOrganization()
@@ -22,15 +22,20 @@ const groups = computed(() => {
       ],
     },
   ]
-  if (org.active.value && org.may.value.viewSettings)
-    list.push({
-      id: 'settings-agency',
-      label: 'settings.groups.agency',
-      tabs: [
-        { to: org.to('/impostazioni'), label: 'orgSettings.tabs.general' },
-        { to: org.to('/impostazioni/integrazioni'), label: 'orgSettings.tabs.integrations' },
-      ],
-    })
+  if (!org.active.value) return list
+  // the activity log and the agency's privacy notice left the person's menu (D-81): they are
+  // reached from here until Task R8 moves them inside these settings
+  const tabs = [
+    ...(org.may.value.viewSettings
+      ? [
+          { to: org.to('/impostazioni'), label: 'orgSettings.tabs.general' },
+          { to: org.to('/impostazioni/integrazioni'), label: 'orgSettings.tabs.integrations' },
+        ]
+      : []),
+    ...(org.may.value.viewAudit ? [{ to: org.to('/registro'), label: 'agency.nav.audit' }] : []),
+    { to: org.to('/privacy'), label: 'agency.nav.privacy' },
+  ]
+  list.push({ id: 'settings-agency', label: 'settings.groups.agency', tabs })
   return list
 })
 /** The tab of this page: the longest one it is under (Integrazioni → Meta is still Integrazioni). */

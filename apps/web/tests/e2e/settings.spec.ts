@@ -48,7 +48,13 @@ test('an Owner opens «Impostazioni» from the user menu and finds both groups',
     'page',
   )
   const agency = group(page, 'Agenzia')
-  await expect(agency.getByRole('link')).toHaveText(['Generali', 'Integrazioni'])
+  // the activity log and the agency's privacy notice left the person's menu (D-81, D-86)
+  await expect(agency.getByRole('link')).toHaveText([
+    'Generali',
+    'Integrazioni',
+    'Registro attività',
+    'Privacy',
+  ])
   await expect(agency.getByRole('link', { name: 'Generali' })).toHaveAttribute(
     'href',
     `/${owner.organizationSlug}/impostazioni`,
@@ -85,13 +91,13 @@ test('on a wide screen the settings start next to the sidebar, with no gap', asy
   expect(menu.x - (sidebar.x + sidebar.width)).toBeLessThan(64)
 })
 
-test('a Member sees only «Il tuo account»', async ({ page }) => {
+test('a Member sees «Il tuo account» and only the agency’s privacy notice', async ({ page }) => {
   const member = await newMember('Mara Impostazioni')
   await signIn(page.request, member)
   await page.goto('/account')
   await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
   await expect(group(page, 'Il tuo account').getByRole('link')).toHaveCount(4)
-  await expect(group(page, 'Agenzia')).toHaveCount(0)
+  await expect(group(page, 'Agenzia').getByRole('link')).toHaveText(['Privacy'])
 
   const menu = await openUserMenu(page, 'Mara Impostazioni')
   await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toHaveAttribute(

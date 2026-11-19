@@ -73,4 +73,8 @@ export default defineAppConfig({
       defaultVariants: { color: 'neutral' },
     },
   },
+  icon: {
+    // the icons' line of base.css (`svg.ic`): 1.75, a little lighter than Lucide's 2
+    customize: (content: string) => content.replaceAll('stroke-width="2"', 'stroke-width="1.75"'),
+  },
 })

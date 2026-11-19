@@ -31,8 +31,9 @@ const fontSize = computed(() => {
   return `${String(Math.round(props.size * 0.32))}px`
 })
 // the 64 px copy is sharp up to 32 px on a 2x screen; bigger ones keep the 256 px one the URL names
+// (the agency's logo has the same two copies)
 const photo = computed(() =>
-  props.src && props.size <= 32 ? props.src.replace('/avatar/256', '/avatar/64') : props.src,
+  props.src && props.size <= 32 ? props.src.replace(/\/(avatar|logo)\/256/, '/$1/64') : props.src,
 )
 const failed = ref(false)
 watch(photo, () => {
@@ -45,12 +46,13 @@ watch(photo, () => {
     v-if="photo && !failed"
     :src="photo"
     alt=""
-    class="shrink-0 bg-(--app-surface-sunken) object-cover outline-1 -outline-offset-1 outline-(--app-img-outline)"
+    class="shrink-0 bg-(--app-surface-sunken) outline-1 -outline-offset-1 outline-(--app-img-outline)"
     :style="{ width: `${size}px`, height: `${size}px`, borderRadius: radius }"
     :width="size"
     :height="size"
     aria-hidden="true"
     referrerpolicy="no-referrer"
+    :class="kind === 'agency' ? 'object-contain' : 'object-cover'"
     :data-avatar="kind"
     @error="failed = true"
   />

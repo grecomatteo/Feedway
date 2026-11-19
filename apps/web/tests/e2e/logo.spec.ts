@@ -21,8 +21,8 @@ const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
 /**
- * The logo once it has loaded: the small one of the sidebar on a computer; on a phone, with a
- * single agency, the top bar shows no agency, so the large one of the settings.
+ * The logo once it has loaded: the small one in the client selector's square on a computer (D-81);
+ * on a phone the large one of the settings, the one the test looks at there.
  */
 async function shownLogo(page: Page, org: string) {
   const size = phone(page) ? 256 : 64

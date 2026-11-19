@@ -1,12 +1,23 @@
 /**
- * The agency's menu: only what the person may use, and only what exists in this stage. `link`
- * carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
- * current page. `inUserMenu` entries are opened rarely: they live in the user's menu, not in the
- * sidebar (Matteo, 13/11: activity log, privacy). `inPhoneMenu` entries are in the sidebar on a
- * computer and in the «Tu» menu on a phone, where the bar at the bottom has no room for them
- * (spec §11.11). The client holds its profiles (proposal P): no «Account social» entry. «Libreria»
- * is only in the sidebar: on a phone the library opens from the client's page (plan 04 Task 12).
+ * The agency's menu (D-81, `base.css` `.nav`): only what the person may use, and only what exists.
+ * `link` carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
+ * current page. `group` says where an entry lives:
+ * - `main`: the sidebar's first block (Oggi, Clienti, Libreria); Calendario is drawn by the shell,
+ *   off with «Presto» until stage 9;
+ * - `agency`: under the agency's name (Utenti, Impostazioni); on a phone in the «Tu» menu;
+ * - `settings`: pages reached from Impostazioni (Registro attività, Privacy), until Task R8 moves
+ *   them inside it.
+ * `phoneMenu` entries are in the «Tu» menu too: the bar at the bottom has room for five places
+ * only (spec §11.11).
  */
+export interface AgencyNavItem {
+  to: string
+  label: string
+  icon: string
+  group: 'main' | 'agency' | 'settings'
+  phoneMenu?: boolean
+}
+
 export function useAgencyNav() {
   const org = useOrganization()
   const context = useContextQuery()
@@ -20,42 +31,83 @@ export function useAgencyNav() {
   })
   const items = computed(() => {
     const may = org.may.value
-    const list: {
-      to: string
-      label: string
-      icon: string
-      inUserMenu?: boolean
-      inPhoneMenu?: boolean
-    }[] = [
-      { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-house' },
-      { to: org.to('/spazi'), label: 'agency.nav.workspaces', icon: 'i-lucide-briefcase' },
+    const list: AgencyNavItem[] = [
+      { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-sun', group: 'main' },
+      {
+        to: org.to('/spazi'),
+        label: 'agency.nav.workspaces',
+        icon: 'i-lucide-briefcase-business',
+        group: 'main',
+      },
     ]
-    // on a phone the library opens from the client's tab: the bar at the bottom has no room
     if (usesAnyLibrary.value)
-      list.push({ to: org.to('/libreria'), label: 'agency.nav.library', icon: 'i-lucide-images' })
+      list.push({
+        to: org.to('/libreria'),
+        label: 'agency.nav.library',
+        icon: 'i-lucide-images',
+        group: 'main',
+        phoneMenu: true,
+      })
     if (may.manageUsers)
       list.push({
         to: org.to('/utenti'),
         label: 'agency.nav.users',
         icon: 'i-lucide-users',
-        inPhoneMenu: true,
+        group: 'agency',
+        phoneMenu: true,
       })
+    // one «Impostazioni» for the person's and the agency's settings (Matteo, 13/11)
+    list.push({ to: '/account', label: 'nav.settings', icon: 'i-lucide-settings', group: 'agency' })
     if (may.viewAudit)
       list.push({
         to: org.to('/registro'),
         label: 'agency.nav.audit',
         icon: 'i-lucide-scroll-text',
-        inUserMenu: true,
+        group: 'settings',
       })
     list.push({
       to: org.to('/privacy'),
       label: 'agency.nav.privacy',
       icon: 'i-lucide-shield',
-      inUserMenu: true,
+      group: 'settings',
     })
     return list
   })
   return computed(() =>
-    items.value.map((item) => ({ ...item, link: { path: item.to, query: context.value } })),
+    items.value.map((item) => ({
+      ...item,
+      // the settings have no client context of their own
+      link: item.to === '/account' ? item.to : { path: item.to, query: context.value },
+    })),
   )
+}
+
+/**
+ * Who creates posts and where «Nuovo post» goes: Owner and Admin everywhere, anyone else in a
+ * client where they are more than a Viewer (§10.2). In a client's context it opens that client's
+ * editor; in «Tutti i clienti» `post/nuovo` asks for the client first.
+ */
+export function useNewPost() {
+  const org = useOrganization()
+  const route = useRoute()
+  const context = useContextQuery()
+  const { data: workspaces } = useWorkspaces()
+  const allowed = computed(
+    () =>
+      org.may.value.manageUsers ||
+      (workspaces.value?.items ?? []).some((w) => !w.archivedAt && w.myRole !== 'viewer'),
+  )
+  const link = computed(() => {
+    const asked = clientSlugOf(route) ?? context.value['spazio']
+    const client = (workspaces.value?.items ?? []).find(
+      (w) => w.slug === asked && !w.archivedAt && w.myRole !== 'viewer',
+    )
+    if (!client) return { path: org.to('/post/nuovo'), query: context.value }
+    const profilo = context.value['profilo']
+    return {
+      path: org.to(`/spazi/${encodeURIComponent(client.slug)}/post/nuovo`),
+      query: profilo ? { profilo } : {},
+    }
+  })
+  return { allowed, link }
 }

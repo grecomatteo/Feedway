@@ -240,6 +240,16 @@ export async function designSample(page: Page): Promise<DesignSample> {
     'giulia@studioriva.example',
   ])
   owner.email = 'giulia@studioriva.example'
+  // a second agency, as screen 06 shows «Cambia agenzia»
+  const other = randomUUID()
+  await adminQuery(
+    "insert into organizations (id, name, slug, status) values ($1::uuid, 'Studio Nord', $1::text, 'active')",
+    [other],
+  )
+  await adminQuery(
+    "insert into organization_members (organization_id, user_id, role, status) values ($1, $2, 'member', 'active')",
+    [other, owner.userId],
+  )
   await signInWithTotp(page.request, owner)
 
   // the agency's Meta app and its system user, with the sample's profiles in place of the fake

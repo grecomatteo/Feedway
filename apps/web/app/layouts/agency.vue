@@ -1,15 +1,15 @@
 <script setup lang="ts">
+/**
+ * The shell of every page of the agency (D-81): the sidebar on a computer; on a phone one row at
+ * the top (the client selector and the bell) and the bar at the bottom. The agency itself changes
+ * from the person's menu («Cambia agenzia»).
+ */
 const org = useOrganization()
-const allNav = useAgencyNav()
-const nav = computed(() => allNav.value.filter((item) => !item.inUserMenu))
-const context = useContextQuery()
 useRememberAgency()
 const session = useSession()
 const route = useRoute()
-const current = (to: string) =>
-  to === org.to() ? route.path === to : route.path === to || route.path.startsWith(`${to}/`)
 const me = computed(() => org.me.value)
-// the personal settings (`/account/*`) show the agency's menu too, but have no client context of its own
+// the personal settings (`/account/*`) show the agency's shell too
 const inAgency = computed(() => Boolean(route.params['org']))
 // buttons drawn by the server do nothing until the page runs in the browser
 const ready = useHydrated()
@@ -26,8 +26,7 @@ watch(org.slug, refresh)
 </script>
 
 <template>
-  <div class="min-h-dvh bg-(--app-paper) md:flex">
-    <!-- the paper of the union style under every page of the agency (Matteo, 14/11) -->
+  <div class="min-h-dvh bg-(--app-bg) md:flex">
     <a
       href="#main"
       class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-(--app-surface) focus:px-3 focus:py-2"
@@ -35,78 +34,49 @@ watch(org.slug, refresh)
       {{ $t('a11y.skipToContent') }}
     </a>
 
-    <!-- computer: the sidebar -->
-    <aside
-      class="hidden w-64 shrink-0 flex-col gap-4 border-r border-(--app-border) bg-(--app-nav-bg) p-3 md:sticky md:top-0 md:flex md:h-dvh md:self-start md:overflow-y-auto"
-    >
-      <NuxtLink :to="{ path: org.to(), query: context }" class="flex min-h-11 items-center px-2"
-        ><AppLogo
-      /></NuxtLink>
-      <div class="space-y-1">
-        <OrgSwitcher />
-        <ContextSwitcher v-if="org.active.value && inAgency" />
-      </div>
-      <nav v-if="org.active.value" :aria-label="$t('agency.nav.label')">
-        <ul class="space-y-1">
-          <li v-for="item in nav" :key="item.to">
-            <NuxtLink
-              :to="item.link"
-              :aria-current="current(item.to) ? 'page' : undefined"
-              class="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm hover:bg-(--app-surface-sunken) aria-[current=page]:bg-(--app-brand-soft) aria-[current=page]:font-semibold"
-            >
-              <UIcon :name="item.icon" class="size-4" aria-hidden="true" />
-              {{ $t(item.label) }}
-            </NuxtLink>
-          </li>
-        </ul>
-      </nav>
-      <div class="mt-auto border-t border-(--app-border) pt-3">
-        <UserMenu />
-      </div>
-    </aside>
+    <AppSidebar />
 
-    <!-- phone: the selectors and the bell at the top, the person's menu in the bar at the bottom -->
-    <header
-      class="flex items-center gap-2 border-b border-(--app-border) bg-(--app-surface) px-gutter py-2 md:hidden"
-    >
-      <div class="min-w-0 flex-1 space-y-1">
-        <OrgSwitcher v-if="many || !org.active.value" />
-        <ContextSwitcher v-if="org.active.value && inAgency" />
-      </div>
-      <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
-      <UButton
-        v-if="org.active.value"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-bell"
-        disabled
-        :aria-label="`${$t('agency.nav.notifications')} (${$t('client.soon')})`"
-        :title="$t('client.soon')"
-        class="size-11 shrink-0 justify-center"
-      />
-      <!-- a suspended agency has no bar at the bottom: «Tu» stays reachable at the top -->
-      <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
-    </header>
-
-    <!-- next to the sidebar and as wide as what is left (D-63): the margins come from the layout
-         scale in main.css, the same on every page; only forms and long text are narrower -->
-    <main id="main" class="w-full min-w-0 flex-1 px-gutter pt-page-top pb-24 md:pb-12">
-      <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
-           the layout reads only once a page has loaded, so without it the first link out of a
-           suspended agency would change the address and nothing else. -->
-      <fieldset
-        v-show="org.active.value"
-        :disabled="!ready || !org.active.value"
-        class="m-0 min-w-0 border-0 p-0"
+    <div class="min-w-0 flex-1">
+      <!-- phone: one row at the top, the client selector and the bell (D-81) -->
+      <header
+        class="sticky top-0 z-30 flex h-13 items-center gap-2 border-b border-(--app-border) bg-(--app-bg) ps-3 pe-2 md:hidden"
       >
-        <slot />
-      </fieldset>
-      <section v-if="!org.active.value" aria-labelledby="suspended" class="space-y-3">
-        <h1 id="suspended" class="text-3xl">{{ org.organization.value?.name }}</h1>
-        <p role="alert">{{ $t('agencyHome.suspended') }}</p>
-        <p v-if="many" class="text-(--app-text-muted)">{{ $t('agency.suspendedOthers') }}</p>
-      </section>
-    </main>
+        <ContextSwitcher v-if="org.active.value && inAgency" variant="top" />
+        <span class="flex-1" />
+        <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
+        <button
+          v-if="org.active.value"
+          type="button"
+          aria-disabled="true"
+          :aria-label="`${$t('agency.nav.notifications')} (${$t('client.soon')})`"
+          :title="$t('client.soon')"
+          class="flex size-11 shrink-0 items-center justify-center rounded-control text-(--app-text)"
+        >
+          <UIcon name="i-lucide-bell" class="size-5" aria-hidden="true" />
+        </button>
+        <!-- a suspended agency has no bar at the bottom: «Tu» stays reachable at the top -->
+        <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
+      </header>
+
+      <!-- the content is as wide as what is left, up to 1200 (PageShell); the margins of base.css -->
+      <main id="main" class="w-full min-w-0 px-gutter pt-page-top pb-24 md:pb-16">
+        <!-- The page stays mounted while the agency is suspended, only hidden: Nuxt moves the route
+             the layout reads only once a page has loaded, so without it the first link out of a
+             suspended agency would change the address and nothing else. -->
+        <fieldset
+          v-show="org.active.value"
+          :disabled="!ready || !org.active.value"
+          class="m-0 min-w-0 border-0 p-0"
+        >
+          <slot />
+        </fieldset>
+        <section v-if="!org.active.value" aria-labelledby="suspended" class="space-y-3">
+          <h1 id="suspended" class="text-title">{{ org.organization.value?.name }}</h1>
+          <p role="alert">{{ $t('agencyHome.suspended') }}</p>
+          <p v-if="many" class="text-(--app-text-muted)">{{ $t('agency.suspendedOthers') }}</p>
+        </section>
+      </main>
+    </div>
     <!-- the editor of a post has its own bar at the bottom (design E3) -->
     <MobileNav v-if="org.active.value && route.meta['editor'] !== true" />
     <!-- the uploads go on from page to page (D-21) -->
