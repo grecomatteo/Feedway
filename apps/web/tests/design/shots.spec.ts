@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { test, type Browser, type Page } from '@playwright/test'
@@ -26,8 +26,8 @@ async function compareDir() {
     await mkdir(COMPARE, { recursive: true })
     return COMPARE
   } catch {
-    const dir = `${tmpdir()}/feedway-confronti`
-    await mkdir(dir, { recursive: true })
+    // a new private folder each time, never a fixed name others could have prepared
+    const dir = await mkdtemp(`${tmpdir()}/feedway-confronti-`)
     console.warn(`design:shots: ${COMPARE} cannot be written, the comparisons go to ${dir}`)
     return dir
   }
