@@ -57,7 +57,7 @@ async function confirm() {
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ problem.message }}
       </p>
-      <UButton class="min-h-11" :loading="sending" :disabled="!ready" @click="confirm">
+      <UButton class="min-h-control" :loading="sending" :disabled="!ready" @click="confirm">
         {{ $t('confirmEmail.button') }}
       </UButton>
     </template>

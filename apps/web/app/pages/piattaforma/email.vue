@@ -130,7 +130,7 @@ async function sendTest() {
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ $t('account.loadError') }}
       </p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -147,9 +147,9 @@ async function sendTest() {
           </UBadge>
         </div>
         <p v-if="settings" class="text-sm text-(--app-text-muted)">
-          {{ $t('systemEmail.updatedAt', { when: formatDate(settings.updatedAt, true) }) }}
+          {{ $t('systemEmail.updatedAt', { when: formatRelative(settings.updatedAt) }) }}
           <template v-if="settings.verifiedAt">
-            {{ $t('systemEmail.verifiedAt', { when: formatDate(settings.verifiedAt, true) }) }}
+            {{ $t('systemEmail.verifiedAt', { when: formatRelative(settings.verifiedAt) }) }}
           </template>
         </p>
         <form class="max-w-form space-y-4" novalidate @submit.prevent="submit">
@@ -207,7 +207,7 @@ async function sendTest() {
           </UFormField>
           <p v-if="saveError" role="alert" class="text-(--app-danger)">{{ saveError }}</p>
           <div class="flex flex-wrap items-center gap-3">
-            <UButton type="submit" class="min-h-11" :loading="save.sending">
+            <UButton type="submit" class="min-h-control" :loading="save.sending">
               {{ $t('account.save') }}
             </UButton>
             <p v-if="save.done" role="status" class="text-(--app-success)">
@@ -234,7 +234,7 @@ async function sendTest() {
           </UFormField>
           <UButton
             type="submit"
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             :loading="test.sending"

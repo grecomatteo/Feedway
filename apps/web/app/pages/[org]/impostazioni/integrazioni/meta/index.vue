@@ -69,7 +69,7 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
           <UButton
             v-if="org.may.value.manageAccounts"
             :to="{ path: org.to('/impostazioni/integrazioni/meta/aggiungi'), query: context }"
-            class="min-h-11"
+            class="min-h-control"
             icon="i-lucide-plus"
           >
             {{ $t('socialAccounts.add') }}
@@ -117,21 +117,25 @@ const guideSteps = ['create', 'copy', 'checkup'] as const
             <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
             {{ $t('account.loadError') }}
           </p>
-          <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+          <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
             {{ $t('account.retry') }}
           </UButton>
         </div>
         <template v-else>
           <p v-if="integration" class="text-sm text-(--app-text-muted)">
-            {{ $t('metaIntegration.updatedAt', { when: formatDate(integration.updatedAt, true) }) }}
+            {{ $t('metaIntegration.updatedAt', { when: formatRelative(integration.updatedAt) }) }}
             <template v-if="integration.rejectedAt">
               {{
-                $t('metaIntegration.rejectedAt', { when: formatDate(integration.rejectedAt, true) })
+                $t('metaIntegration.rejectedAt', {
+                  when: formatDate(integration.rejectedAt, { time: true }),
+                })
               }}
             </template>
             <template v-else-if="integration.verifiedAt">
               {{
-                $t('metaIntegration.verifiedAt', { when: formatDate(integration.verifiedAt, true) })
+                $t('metaIntegration.verifiedAt', {
+                  when: formatDate(integration.verifiedAt, { time: true }),
+                })
               }}
             </template>
           </p>

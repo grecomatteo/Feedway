@@ -49,10 +49,10 @@ async function confirm() {
           <URadioGroup v-model="chosen" :items="items" :ui="{ item: 'min-h-11 items-center' }" />
         </UFormField>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" class="min-h-11" :loading="sending" :disabled="chosen === ''">
+          <UButton type="submit" class="min-h-control" :loading="sending" :disabled="chosen === ''">
             {{ $t('transfer.confirm') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
             {{ $t('security.cancel') }}
           </UButton>
         </div>

@@ -253,7 +253,7 @@ function release() {
         <UButton
           color="neutral"
           variant="outline"
-          class="min-h-11 justify-center"
+          class="min-h-control justify-center"
           icon="i-lucide-upload"
           @click="picker?.click()"
         >
@@ -262,7 +262,7 @@ function release() {
         <UButton
           color="neutral"
           variant="outline"
-          class="min-h-11 justify-center"
+          class="min-h-control justify-center"
           icon="i-lucide-images"
           @click="picking = true"
         >

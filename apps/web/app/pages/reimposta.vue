@@ -49,11 +49,16 @@ async function submit() {
     <h1 class="text-2xl">{{ $t('reset.title') }}</h1>
     <template v-if="done">
       <p role="status" class="text-(--app-success)">{{ $t('reset.done') }}</p>
-      <UButton class="min-h-11" to="/accedi">{{ $t('reset.signIn') }}</UButton>
+      <UButton class="min-h-control" to="/accedi">{{ $t('reset.signIn') }}</UButton>
     </template>
     <template v-else-if="invalid">
       <p role="alert" class="text-(--app-danger)">{{ problem ?? $t('reset.invalid') }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" to="/accedi/password-dimenticata">
+      <UButton
+        class="min-h-control"
+        color="neutral"
+        variant="outline"
+        to="/accedi/password-dimenticata"
+      >
         {{ $t('reset.askAgain') }}
       </UButton>
     </template>

@@ -9,14 +9,12 @@ import type { PostEditor } from '~/composables/usePostEditor'
  */
 const props = defineProps<{ editor: PostEditor; accountsCount: number }>()
 const emit = defineEmits<{ schedule: []; cancel: []; remove: []; goto: [section: string] }>()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const e = props.editor
 
 const savedAt = computed(() => {
   const at = e.save.value.savedAt
-  return at
-    ? new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' }).format(at)
-    : null
+  return at ? formatTime(at) : null
 })
 const saveLine = computed(() => {
   const s = e.save.value
@@ -117,7 +115,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           <UButton
             :color="e.may.value.publish ? 'neutral' : 'primary'"
             :variant="e.may.value.publish ? 'outline' : 'solid'"
-            class="min-h-11 max-sm:flex-1 max-sm:justify-center"
+            class="min-h-control max-sm:flex-1 max-sm:justify-center"
             :loading="e.save.value.status === 'saving'"
             @click="e.flush()"
           >
@@ -125,7 +123,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           </UButton>
           <UButton
             v-if="e.may.value.publish"
-            class="min-h-11 max-sm:flex-1 max-sm:justify-center"
+            class="min-h-control max-sm:flex-1 max-sm:justify-center"
             icon="i-lucide-calendar-check"
             :disabled="!canSchedule"
             :loading="e.acting.value === 'schedule'"
@@ -139,7 +137,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           <UButton
             color="error"
             variant="ghost"
-            class="min-h-11"
+            class="min-h-control"
             :loading="e.acting.value === 'cancel'"
             @click="emit('cancel')"
           >
@@ -148,14 +146,14 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           <UButton
             color="neutral"
             variant="outline"
-            class="min-h-11"
+            class="min-h-control"
             :loading="e.acting.value === 'unschedule'"
             @click="e.unschedule()"
           >
             {{ $t('posts.actions.unschedule') }}
           </UButton>
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             :disabled="!e.save.value.dirty"
             :loading="e.acting.value === 'saveScheduled'"
             @click="e.saveScheduled()"
@@ -167,7 +165,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
           v-else-if="e.mayDelete.value"
           color="error"
           variant="outline"
-          class="min-h-11"
+          class="min-h-control"
           :loading="e.acting.value === 'delete'"
           @click="emit('remove')"
         >

@@ -91,11 +91,11 @@ const signIn = () => clearError({ redirect: '/accedi' })
           <code class="break-all font-mono" data-testid="request-id">{{ requestId }}</code>
         </p>
         <div class="flex flex-wrap gap-3">
-          <UButton v-if="kind === 'unauthenticated'" class="min-h-11" @click="signIn">
+          <UButton v-if="kind === 'unauthenticated'" class="min-h-control" @click="signIn">
             {{ t('errorPage.signIn') }}
           </UButton>
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             :color="kind === 'unauthenticated' ? 'neutral' : 'primary'"
             :variant="kind === 'unauthenticated' ? 'outline' : 'solid'"
             @click="goHome"

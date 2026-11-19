@@ -152,7 +152,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
                 $t('upload.leftovers.progress', {
                   percent: leftoverPercent(u),
                   total: formatBytes(u.sizeBytes),
-                  when: formatDate(u.expiresAt, true),
+                  when: formatDate(u.expiresAt, { time: true }),
                 })
               }}
             </p>
@@ -160,7 +160,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
           <div class="flex flex-wrap gap-2">
             <UButton
               v-if="leftoverComplete(u)"
-              class="min-h-11"
+              class="min-h-control"
               icon="i-lucide-check"
               @click="uploads.resumeLeftover(u, null)"
             >
@@ -168,7 +168,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
             </UButton>
             <UButton
               v-else
-              class="min-h-11"
+              class="min-h-control"
               icon="i-lucide-file-up"
               :aria-label="$t('upload.leftovers.chooseAgainFor', { name: u.name })"
               @click="chooseAgain(u)"
@@ -176,7 +176,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
               {{ $t('upload.leftovers.chooseAgain') }}
             </UButton>
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="ghost"
               :aria-label="$t('upload.cancelFor', { name: u.name })"
@@ -201,7 +201,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
         </div>
         <UButton
           v-if="finished"
-          class="-my-1 min-h-11"
+          class="-my-1 min-h-control"
           color="neutral"
           variant="ghost"
           size="sm"
@@ -339,7 +339,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
               v-if="i.state === 'error' || i.state === 'offline'"
               color="neutral"
               variant="outline"
-              class="min-h-11"
+              class="min-h-control"
               :aria-label="$t('upload.retryFor', { name: i.name })"
               @click="i.state === 'offline' ? uploads.wake(i.key) : uploads.resume(i)"
             >

@@ -515,7 +515,7 @@ function filesDrop(event: DragEvent) {
           <UButton
             v-if="!readOnly && !uploadInHeader"
             icon="i-lucide-upload"
-            class="min-h-11 shrink-0 lg:order-last"
+            class="min-h-control shrink-0 lg:order-last"
             @click="chooseFiles"
           >
             {{ $t('upload.choose') }}
@@ -557,7 +557,7 @@ function filesDrop(event: DragEvent) {
             color="neutral"
             :variant="filter.inPosts ? 'soft' : 'outline'"
             icon="i-lucide-calendar-check"
-            class="min-h-11 shrink-0"
+            class="min-h-control shrink-0"
             :class="filter.inPosts ? 'font-semibold ring-2 ring-(--app-text) ring-inset' : ''"
             :aria-pressed="filter.inPosts"
             data-in-posts
@@ -635,7 +635,7 @@ function filesDrop(event: DragEvent) {
         class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
       >
         <p>{{ $t('library.loadError') }}</p>
-        <UButton class="min-h-11" color="neutral" variant="outline" @click="lib.load()">
+        <UButton class="min-h-control" color="neutral" variant="outline" @click="lib.load()">
           {{ $t('account.retry') }}
         </UButton>
       </div>
@@ -645,7 +645,7 @@ function filesDrop(event: DragEvent) {
           class="flex flex-wrap items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
         >
           <span class="flex-1">{{ $t('library.noMatch') }}</span>
-          <UButton class="min-h-11" color="neutral" variant="outline" @click="clearFilters">
+          <UButton class="min-h-control" color="neutral" variant="outline" @click="clearFilters">
             {{ $t('library.clearFilters') }}
           </UButton>
         </div>
@@ -724,7 +724,7 @@ function filesDrop(event: DragEvent) {
         </ul>
         <div v-if="lib.next.value" class="mt-5 flex justify-center">
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             :loading="lib.loadingMore.value"
@@ -761,10 +761,10 @@ function filesDrop(event: DragEvent) {
       </template>
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" form="move-file" class="min-h-11">
+          <UButton type="submit" form="move-file" class="min-h-control">
             {{ $t('library.move') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="moving = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="moving = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>
@@ -778,10 +778,10 @@ function filesDrop(event: DragEvent) {
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton class="min-h-11" color="error" @click="confirmDelete">
+          <UButton class="min-h-control" color="error" @click="confirmDelete">
             {{ $t('library.delete') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="deleting = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="deleting = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>
@@ -802,10 +802,10 @@ function filesDrop(event: DragEvent) {
       </template>
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" form="folder-name" class="min-h-11">
+          <UButton type="submit" form="folder-name" class="min-h-control">
             {{ naming?.mode === 'rename' ? $t('account.save') : $t('library.folders.create') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="naming = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="naming = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>
@@ -819,10 +819,15 @@ function filesDrop(event: DragEvent) {
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton class="min-h-11" color="error" @click="confirmRemoveFolder">
+          <UButton class="min-h-control" color="error" @click="confirmRemoveFolder">
             {{ removingFull ? $t('library.folders.deleteAll') : $t('library.folders.delete') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="removingFolder = null">
+          <UButton
+            class="min-h-control"
+            color="neutral"
+            variant="ghost"
+            @click="removingFolder = null"
+          >
             {{ $t('security.cancel') }}
           </UButton>
         </div>

@@ -64,7 +64,10 @@ const facts = computed(() => {
       label: t('library.detail.fps'),
       value: new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(f.fps),
     })
-  rows.push({ label: t('library.detail.uploaded'), value: formatDate(f.createdAt, true) })
+  rows.push({
+    label: t('library.detail.uploaded'),
+    value: formatRelative(f.createdAt, { sentence: true }),
+  })
   return rows
 })
 
@@ -228,7 +231,7 @@ const folderValue = computed({
     <template v-if="file && !readOnly" #footer>
       <div class="flex w-full flex-wrap justify-between gap-3">
         <UButton
-          class="min-h-11"
+          class="min-h-control"
           color="error"
           variant="outline"
           icon="i-lucide-trash-2"
@@ -236,7 +239,7 @@ const folderValue = computed({
         >
           {{ $t('library.delete') }}
         </UButton>
-        <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+        <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('library.detail.close') }}
         </UButton>
       </div>

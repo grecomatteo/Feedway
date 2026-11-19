@@ -247,7 +247,7 @@ watch(
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ $t('socialAccounts.loadError') }}
       </p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -258,7 +258,7 @@ watch(
       <div v-if="connectionsError" role="alert" class="space-y-3">
         <p class="text-(--app-danger)">{{ $t('socialAccounts.connectionsError') }}</p>
         <UButton
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="outline"
           @click="() => refreshConnections()"
@@ -303,7 +303,7 @@ watch(
             </div>
             <div class="flex flex-wrap gap-2">
               <UButton
-                class="min-h-11"
+                class="min-h-control"
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-refresh-cw"
@@ -315,7 +315,7 @@ watch(
               </UButton>
               <UButton
                 v-if="c.kind === 'meta_system_user'"
-                class="min-h-11"
+                class="min-h-control"
                 :color="broken(c.status) ? 'primary' : 'neutral'"
                 :variant="broken(c.status) ? 'solid' : 'outline'"
                 icon="i-lucide-key-round"
@@ -433,7 +433,7 @@ watch(
         </ul>
         <div v-if="nextCursor" class="space-y-2">
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             :loading="loadingMore"

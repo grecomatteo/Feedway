@@ -219,14 +219,14 @@ async function transferred() {
     <template #actions>
       <UButton
         v-if="isOwner"
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="outline"
         @click="transferOpen = true"
       >
         {{ $t('transfer.button') }}
       </UButton>
-      <UButton class="min-h-11" icon="i-lucide-user-plus" @click="inviteOpen = true">
+      <UButton class="min-h-control" icon="i-lucide-user-plus" @click="inviteOpen = true">
         {{ $t('users.invite.button') }}
       </UButton>
     </template>
@@ -244,7 +244,7 @@ async function transferred() {
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -302,13 +302,13 @@ async function transferred() {
               <p v-if="m.anonymizationScheduledFor" class="mt-1 text-sm text-(--app-text-muted)">
                 {{
                   $t('users.anonymizationScheduled', {
-                    date: formatDate(m.anonymizationScheduledFor, false),
+                    date: formatDate(m.anonymizationScheduledFor),
                   })
                 }}
               </p>
             </td>
             <td class="px-4 py-2">
-              {{ m.lastLoginAt ? formatDate(m.lastLoginAt, true) : $t('users.never') }}
+              {{ m.lastLoginAt ? formatRelative(m.lastLoginAt) : $t('users.never') }}
             </td>
             <td class="px-4 py-2">
               <div
@@ -316,7 +316,7 @@ async function transferred() {
                 class="flex flex-wrap justify-end gap-1"
               >
                 <UButton
-                  class="min-h-11"
+                  class="min-h-control"
                   color="neutral"
                   variant="ghost"
                   :disabled="busy !== null"
@@ -327,7 +327,7 @@ async function transferred() {
                 </UButton>
                 <UButton
                   v-if="m.status === 'active'"
-                  class="min-h-11"
+                  class="min-h-control"
                   color="error"
                   variant="ghost"
                   :disabled="busy !== null"
@@ -338,7 +338,7 @@ async function transferred() {
                 </UButton>
                 <UButton
                   v-else
-                  class="min-h-11"
+                  class="min-h-control"
                   color="neutral"
                   variant="ghost"
                   :disabled="busy !== null"
@@ -383,12 +383,12 @@ async function transferred() {
                     .join(', ')
                 }}
               </template>
-              · {{ $t('users.inviteExpires', { when: formatDate(i.expiresAt, true) }) }}
+              · {{ $t('users.inviteExpires', { when: formatDate(i.expiresAt, { time: true }) }) }}
             </span>
           </span>
           <span class="flex gap-1">
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="ghost"
               :disabled="busy !== null"
@@ -398,7 +398,7 @@ async function transferred() {
               {{ $t('users.resend') }}
             </UButton>
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="ghost"
               :disabled="busy !== null"
@@ -476,10 +476,15 @@ async function transferred() {
             {{ inviteState.problem }}
           </p>
           <div class="flex flex-wrap gap-3">
-            <UButton type="submit" class="min-h-11" :loading="inviteState.sending">
+            <UButton type="submit" class="min-h-control" :loading="inviteState.sending">
               {{ $t('users.invite.send') }}
             </UButton>
-            <UButton class="min-h-11" color="neutral" variant="ghost" @click="inviteOpen = false">
+            <UButton
+              class="min-h-control"
+              color="neutral"
+              variant="ghost"
+              @click="inviteOpen = false"
+            >
               {{ $t('security.cancel') }}
             </UButton>
           </div>

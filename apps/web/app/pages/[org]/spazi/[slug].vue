@@ -113,7 +113,7 @@ const mayDraft = computed(
           <div class="flex shrink-0 items-center gap-2 self-center">
             <UButton
               v-if="mayDraft"
-              class="min-h-11"
+              class="min-h-control"
               icon="i-lucide-plus"
               :to="{ path: `${base}/post/nuovo`, query: keep }"
               :aria-label="$t('client.newPost')"

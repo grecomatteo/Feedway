@@ -194,7 +194,7 @@ const regenerateCodes = () =>
       </p>
       <UButton
         v-if="!signedOut"
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="outline"
         @click="() => refresh()"
@@ -260,7 +260,7 @@ const regenerateCodes = () =>
             />
           </UFormField>
           <div class="flex flex-wrap items-center gap-3">
-            <UButton type="submit" class="min-h-11" :loading="passwordState.sending">
+            <UButton type="submit" class="min-h-control" :loading="passwordState.sending">
               {{
                 firstPassword ? $t('security.password.setSubmit') : $t('security.password.submit')
               }}
@@ -298,7 +298,7 @@ const regenerateCodes = () =>
             v-if="totpLink"
             :to="totpLink"
             external
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
           >
@@ -320,10 +320,10 @@ const regenerateCodes = () =>
               />
             </UFormField>
             <div class="flex flex-wrap gap-3">
-              <UButton type="submit" class="min-h-11" :loading="totp.sending">
+              <UButton type="submit" class="min-h-control" :loading="totp.sending">
                 {{ $t('security.totp.verify') }}
               </UButton>
-              <UButton class="min-h-11" color="neutral" variant="ghost" @click="resetTotp">
+              <UButton class="min-h-control" color="neutral" variant="ghost" @click="resetTotp">
                 {{ $t('security.cancel') }}
               </UButton>
             </div>
@@ -336,7 +336,7 @@ const regenerateCodes = () =>
           <ul class="grid grid-cols-2 gap-2 font-mono" :aria-label="$t('security.totp.codesTitle')">
             <li v-for="code in totp.backupCodes" :key="code">{{ code }}</li>
           </ul>
-          <UButton class="min-h-11" color="neutral" variant="outline" @click="resetTotp">
+          <UButton class="min-h-control" color="neutral" variant="outline" @click="resetTotp">
             {{ $t('security.totp.codesSaved') }}
           </UButton>
         </div>
@@ -368,7 +368,7 @@ const regenerateCodes = () =>
           <div class="flex flex-wrap gap-3">
             <UButton
               v-if="!factors.totpEnabled"
-              class="min-h-11"
+              class="min-h-control"
               :loading="totp.sending"
               @click="startTotp"
             >
@@ -376,7 +376,7 @@ const regenerateCodes = () =>
             </UButton>
             <template v-else>
               <UButton
-                class="min-h-11"
+                class="min-h-control"
                 color="neutral"
                 variant="outline"
                 :loading="totp.sending"
@@ -385,7 +385,7 @@ const regenerateCodes = () =>
                 {{ $t('security.totp.regenerate') }}
               </UButton>
               <UButton
-                class="min-h-11"
+                class="min-h-control"
                 color="error"
                 variant="outline"
                 :disabled="lastFactor"

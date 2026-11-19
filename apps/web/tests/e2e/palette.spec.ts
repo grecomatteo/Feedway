@@ -153,7 +153,7 @@ test('Feedway: the orange button keeps its contrast on hover, in light and dark'
   const save = page
     .getByRole('region', { name: 'Preferenze' })
     .getByRole('button', { name: 'Salva' })
-  await keepsContrastWhenPointed(page, save, '#FF8F52')
+  await keepsContrastWhenPointed(page, save, '#FF8A4C')
 })
 
 test('quick choices end on the last one, and the next person in the same browser gets their own', async ({

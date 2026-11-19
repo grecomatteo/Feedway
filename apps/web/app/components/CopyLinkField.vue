@@ -36,7 +36,7 @@ async function copy() {
           autoresize
           @focus="($event.target as HTMLTextAreaElement).select()"
         />
-        <UButton class="min-h-11" icon="i-lucide-copy" @click="copy">{{
+        <UButton class="min-h-control" icon="i-lucide-copy" @click="copy">{{
           $t('copyLink.copy')
         }}</UButton>
       </div>
@@ -48,7 +48,7 @@ async function copy() {
           size="xl"
           @focus="($event.target as HTMLInputElement).select()"
         />
-        <UButton class="min-h-11" icon="i-lucide-copy" @click="copy">{{
+        <UButton class="min-h-control" icon="i-lucide-copy" @click="copy">{{
           $t('copyLink.copy')
         }}</UButton>
       </div>

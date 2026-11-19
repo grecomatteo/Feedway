@@ -112,7 +112,7 @@ const submit = () => {
         >
           {{ confirm }}
         </UButton>
-        <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+        <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
       </div>

@@ -77,7 +77,7 @@ async function remove() {
     </p>
     <UButton
       v-else
-      class="min-h-11"
+      class="min-h-control"
       color="error"
       variant="outline"
       icon="i-lucide-user-x"
@@ -110,14 +110,19 @@ async function remove() {
           <div class="flex flex-wrap gap-3">
             <UButton
               type="submit"
-              class="min-h-11"
+              class="min-h-control"
               color="error"
               :loading="sending"
               :disabled="!matches"
             >
               {{ $t('accountDeletion.confirm') }}
             </UButton>
-            <UButton class="min-h-11" color="neutral" variant="ghost" @click="confirming = false">
+            <UButton
+              class="min-h-control"
+              color="neutral"
+              variant="ghost"
+              @click="confirming = false"
+            >
               {{ $t('security.cancel') }}
             </UButton>
           </div>

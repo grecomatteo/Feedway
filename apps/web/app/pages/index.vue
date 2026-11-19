@@ -14,7 +14,7 @@ const { data, status, error, refresh } = useFetch('/api/ready', {
   <div class="space-y-6">
     <h1 class="text-3xl">{{ PRODUCT_NAME }}</h1>
     <!-- signed in, /accedi goes straight to the person's agency -->
-    <UButton to="/accedi" size="xl" class="min-h-11" icon="i-lucide-log-in">
+    <UButton to="/accedi" size="xl" class="min-h-control" icon="i-lucide-log-in">
       {{ $t('home.signIn') }}
     </UButton>
     <section
@@ -35,7 +35,7 @@ const { data, status, error, refresh } = useFetch('/api/ready', {
       </p>
       <UButton
         v-if="error"
-        class="mt-3 min-h-11"
+        class="mt-3 min-h-control"
         color="neutral"
         variant="outline"
         @click="() => refresh()"

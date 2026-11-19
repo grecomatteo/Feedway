@@ -21,7 +21,7 @@ const { data, status, error, refresh } = useFetch<PrivacyNotice>(() => org.api('
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>

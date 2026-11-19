@@ -89,14 +89,14 @@ async function placeIn(w: WorkspaceView) {
           </div>
           <div class="flex flex-wrap gap-2">
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               :aria-label="$t('clients.fix.createOf', { name: p.name })"
               @click="emit('create', p.key)"
             >
               {{ $t('clients.fix.create') }}
             </UButton>
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="outline"
               :disabled="activeClients.length === 0"

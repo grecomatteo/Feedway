@@ -21,8 +21,10 @@ test('the default palette is Feedway with the brand kit colours', () => {
   expect(themes).toBe(palettes.feedway)
   expect(themes.light.brand).toBe('#FF762E')
   expect(themes.light.text).toBe('#242321')
-  expect(themes.light.bg).toBe('#FAF9F6')
-  expect(themes.dark.bg).toBe('#191817')
+  expect(themes.light.bg).toBe('#FBFAF8')
+  expect(themes.light.surface).toBe('#FFFFFF')
+  expect(themes.light['text-muted']).toBe('#625E58')
+  expect(themes.dark.bg).toBe('#171615')
 })
 
 test('generated css: Feedway on :root and .dark, the others behind data-palette', () => {

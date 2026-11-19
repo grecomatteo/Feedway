@@ -241,7 +241,7 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
   await expect(grid(page)).toHaveAttribute('data-layout', 'list')
   // the list gives the whole name, the weight and the day
   await expect(tile(page, 'IMG_0221.HEIC')).toContainText('IMG_0221.HEIC')
-  await expect(tile(page, 'IMG_0221.HEIC')).toContainText(/MB · \d+ \w+ \d{4}/)
+  await expect(tile(page, 'IMG_0221.HEIC')).toContainText(/MB · oggi/)
   await fitsTheScreen(page)
   const results = await axe(page)
   expect(results.violations).toEqual([])

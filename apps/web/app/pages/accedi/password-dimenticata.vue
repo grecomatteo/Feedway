@@ -61,7 +61,7 @@ async function submit() {
         </fieldset>
       </form>
     </template>
-    <UButton class="min-h-11" color="neutral" variant="link" to="/accedi">
+    <UButton class="min-h-control" color="neutral" variant="link" to="/accedi">
       {{ $t('verify.back') }}
     </UButton>
   </div>

@@ -90,10 +90,10 @@ const errorOf = (field: string) =>
     </template>
     <template #footer>
       <div class="flex flex-wrap gap-3">
-        <UButton type="submit" form="template-form" class="min-h-11" :loading="sending">
+        <UButton type="submit" form="template-form" class="min-h-control" :loading="sending">
           {{ template ? $t('contentSettings.save') : $t('contentSettings.templates.create') }}
         </UButton>
-        <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+        <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
       </div>

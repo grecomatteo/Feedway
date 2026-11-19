@@ -52,7 +52,13 @@ async function lock() {
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ problem.message }}
       </p>
-      <UButton class="min-h-11" color="error" :loading="sending" :disabled="!ready" @click="lock">
+      <UButton
+        class="min-h-control"
+        color="error"
+        :loading="sending"
+        :disabled="!ready"
+        @click="lock"
+      >
         {{ $t('notMe.submit') }}
       </UButton>
     </template>

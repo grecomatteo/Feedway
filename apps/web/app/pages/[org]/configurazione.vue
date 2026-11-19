@@ -110,7 +110,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ $t('account.loadError') }}
       </p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => setup.refresh()">
+      <UButton
+        class="min-h-control"
+        color="neutral"
+        variant="outline"
+        @click="() => setup.refresh()"
+      >
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -164,12 +169,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         </h2>
         <p>{{ $t('firstSetup.done.text') }}</p>
         <div class="flex flex-wrap gap-3">
-          <UButton :to="org.to('/spazi')" class="min-h-11" icon="i-lucide-briefcase">
+          <UButton :to="org.to('/spazi')" class="min-h-control" icon="i-lucide-briefcase">
             {{ $t('firstSetup.done.workspaces') }}
           </UButton>
           <UButton
             :to="org.to('/impostazioni/integrazioni/meta')"
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             icon="i-lucide-plug"
@@ -214,7 +219,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             <li>{{ $t('firstSetup.step2.add') }}</li>
             <li>{{ $t('firstSetup.step2.app') }}</li>
           </ol>
-          <UButton class="min-h-11" icon="i-lucide-arrow-right" @click="next(2)">
+          <UButton class="min-h-control" icon="i-lucide-arrow-right" @click="next(2)">
             {{ $t('firstSetup.next') }}
           </UButton>
         </template>
@@ -225,7 +230,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             <li>{{ $t('addAccount.assign.full') }}</li>
             <li>{{ $t('firstSetup.step3.clients') }}</li>
           </ol>
-          <UButton class="min-h-11" icon="i-lucide-arrow-right" @click="next(3)">
+          <UButton class="min-h-control" icon="i-lucide-arrow-right" @click="next(3)">
             {{ $t('firstSetup.next') }}
           </UButton>
         </template>
@@ -238,7 +243,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             </li>
           </ul>
           <p class="text-sm text-(--app-text-muted)">{{ $t('firstSetup.step4.checked') }}</p>
-          <UButton class="min-h-11" icon="i-lucide-key-round" @click="tokenOpen = true">
+          <UButton class="min-h-control" icon="i-lucide-key-round" @click="tokenOpen = true">
             {{ $t('firstSetup.step4.paste') }}
           </UButton>
         </template>
@@ -246,7 +251,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         <template v-else-if="shown === 5">
           <p>{{ $t('firstSetup.step5.explain') }}</p>
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             icon="i-lucide-search"
             :color="found === null ? 'primary' : 'neutral'"
             :variant="found === null ? 'solid' : 'outline'"

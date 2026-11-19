@@ -145,10 +145,10 @@ async function submit() {
     </template>
     <template #footer>
       <div class="flex flex-wrap gap-3">
-        <UButton type="submit" form="new-client" class="min-h-11" :loading="sending">
+        <UButton type="submit" form="new-client" class="min-h-control" :loading="sending">
           {{ $t('workspaces.create') }}
         </UButton>
-        <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+        <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
       </div>

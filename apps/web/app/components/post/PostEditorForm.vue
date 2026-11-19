@@ -187,7 +187,7 @@ const confirmText = computed(() => {
           color="neutral"
           variant="outline"
           icon="i-lucide-smartphone"
-          class="min-h-11 lg:hidden"
+          class="min-h-control lg:hidden"
           @click="previewOpen = true"
         >
           {{ $t('posts.preview.open') }}
@@ -266,7 +266,7 @@ const confirmText = computed(() => {
             class="flex flex-wrap items-center gap-2 rounded-lg bg-(--app-surface-sunken) px-4 py-2 text-sm"
           >
             {{ $t('posts.contentSettingsFailed') }}
-            <UButton color="neutral" variant="link" class="min-h-11" @click="settings.load()">
+            <UButton color="neutral" variant="link" class="min-h-control" @click="settings.load()">
               {{ $t('account.retry') }}
             </UButton>
           </p>
@@ -322,7 +322,7 @@ const confirmText = computed(() => {
             color="neutral"
             variant="ghost"
             icon="i-lucide-arrow-left"
-            class="min-h-11 self-start"
+            class="min-h-control self-start"
             @click="previewOpen = false"
           >
             {{ $t('posts.preview.back') }}
@@ -349,12 +349,12 @@ const confirmText = computed(() => {
     >
       <template #footer>
         <div class="flex w-full flex-wrap justify-end gap-3">
-          <UButton color="neutral" variant="ghost" class="min-h-11" @click="confirm = null">
+          <UButton color="neutral" variant="ghost" class="min-h-control" @click="confirm = null">
             {{ $t('posts.confirm.stay') }}
           </UButton>
           <UButton
             :color="confirm === 'leave' ? 'primary' : 'error'"
-            class="min-h-11"
+            class="min-h-control"
             @click="confirmed"
           >
             {{ confirmText?.ok }}

@@ -61,7 +61,7 @@ async function confirm(how: 'password' | 'passkey') {
           />
         </UFormField>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" class="min-h-11" :loading="sending">
+          <UButton type="submit" class="min-h-control" :loading="sending">
             {{ $t('reauth.confirm') }}
           </UButton>
           <UButton

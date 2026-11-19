@@ -19,7 +19,7 @@ useHead({ title: () => org.organization.value?.name ?? t('agencyHome.title') })
     >
       <h2 id="first-setup" class="text-lg">{{ $t('firstSetup.title') }}</h2>
       <p class="max-w-prose">{{ $t('firstSetup.home', { n: setup.step.value }) }}</p>
-      <UButton :to="org.to('/configurazione')" class="min-h-11" icon="i-lucide-arrow-right">
+      <UButton :to="org.to('/configurazione')" class="min-h-control" icon="i-lucide-arrow-right">
         {{ $t('firstSetup.resume') }}
       </UButton>
     </section>

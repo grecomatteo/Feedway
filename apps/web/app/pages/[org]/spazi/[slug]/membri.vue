@@ -150,7 +150,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               @update:model-value="(r) => changeRole(m, r as WorkspaceMember['role'])"
             />
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="ghost"
               :disabled="sending"
@@ -180,7 +180,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
           <UFormField :label="$t('workspaceMembers.role')" name="role">
             <USelect v-model="add.role" :items="roleItems" class="min-w-36" size="xl" />
           </UFormField>
-          <UButton type="submit" class="min-h-11" :loading="sending" :disabled="add.userId === ''">
+          <UButton
+            type="submit"
+            class="min-h-control"
+            :loading="sending"
+            :disabled="add.userId === ''"
+          >
             {{ $t('workspaceMembers.add') }}
           </UButton>
         </form>

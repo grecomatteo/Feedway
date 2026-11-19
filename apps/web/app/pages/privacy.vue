@@ -21,12 +21,12 @@ const { data, status, error, refresh } = useFetch<PrivacyNotice>('/api/v1/privac
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
     <PrivacyNoticeView v-else-if="data" :notice="data" />
-    <UButton to="/accedi" class="min-h-11" color="neutral" variant="outline">
+    <UButton to="/accedi" class="min-h-control" color="neutral" variant="outline">
       {{ $t('privacyNotice.backToSignIn') }}
     </UButton>
   </div>

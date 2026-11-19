@@ -45,7 +45,9 @@ const detail = computed(() => {
 })
 /** In the list: weight and day of the upload, after the kind. */
 const facts = computed(() =>
-  [formatBytes(props.file.sizeBytes), formatDate(props.file.createdAt)].join(' · '),
+  [formatBytes(props.file.sizeBytes), formatRelative(props.file.createdAt, { time: false })].join(
+    ' · ',
+  ),
 )
 const icon = computed(() =>
   props.file.status === 'failed'
@@ -54,15 +56,13 @@ const icon = computed(() =>
       ? 'i-lucide-film'
       : 'i-lucide-image',
 )
-/** «Nel post del 24/11», «In una bozza» (D-18): the post that uses the file, the scheduled first. */
+/** «Nel post di oggi, 18:00», «In una bozza» (D-18): the post that uses the file, the scheduled first. */
 const used = computed(() => {
   const u = props.file.usedIn
   if (!u) return null
   if (u.status === 'scheduled' && u.scheduledAt)
     return t('library.inPosts.scheduled', {
-      day: new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit' }).format(
-        new Date(u.scheduledAt),
-      ),
+      when: formatRelative(u.scheduledAt),
     })
   return t(`library.inPosts.${u.status === 'cancelled' ? 'cancelled' : 'draft'}`)
 })
