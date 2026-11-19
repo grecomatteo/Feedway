@@ -364,3 +364,13 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Origine:** revisione finale della tappa 6, P5 (segnalato anche dal thread B2). L'elenco legge fino a 10 pagine da 100 post interi, una dopo l'altra; oltre i 1.000 la fine manca senza avviso; l'ordine è per data di creazione, non per data del post.
 - **Opzioni:** (a) lasciare fino alla tappa 9, dove calendario e vista «Elenco» leggono per intervallo di date; (b) ora una risposta ridotta, l'ordine «programmati per data, poi bozze» e un avviso oltre i 1.000.
 - **Stato:** rimandata (a), consiglio della revisione; l'ordine per data del post si decide con Matteo nella tappa 9.
+
+## Design
+
+### D-80 · Nuova direzione del pannello
+- **Origine:** Matteo, 19/11, dopo la prova della 0.12.0: il pannello è «ancora un po' troppo artigianale e giocoso», i sottotitoli sono inutili, barra in alto e clic scomodi. Ha chiesto una revisione critica e le schermate di una direzione nuova, senza toccare il pannello di oggi.
+- **Proposta:** `design/reviews/2026-11-19-nuova-direzione.md`, con le schermate e le pagine vive in `design/esplorazioni/2026-11-19-nuova-direzione/`. Il marchio resta; cambiano l'uso dell'arancio (una sola azione per schermata), la scala dei caratteri e dei controlli, i fondi, il guscio («Nuovo post» nella barra laterale, una riga in alto sul telefono), la pagina «Oggi», l'editor (senza barra laterale, etichette a sinistra, controlli sotto l'anteprima, una riga di azioni sul telefono) e gli elenchi.
+- **Scelte già prese che la proposta riapre:** riepilogo delle destinazioni in fondo al modulo (18/11); barra delle azioni in fondo anche al computer; «Salva bozza» sul telefono; voce attiva e spunte in arancio (29/10); larghezza piena senza tetto (D-63); fondi carta e cartoncino dello stile unione (14/11). L'elenco con i motivi è nella revisione.
+- **Opzioni:** (a) adottarla tutta; (b) adottarla in parte, dicendo quali schermate o regole; (c) tenere il pannello com'è e correggere solo i punti della prova 0.12.0 (Home «Oggi», tetto di larghezza, una riga in alto sul telefono, ritorno alla lista dopo «Programma»).
+- **Cosa manca:** tema scuro, palette, stati (vuoto, caricamento, errore), prove di accessibilità; la tela Pencil non è aggiornata; la landing si rivede dopo la scelta.
+- **Stato:** aperta, aspetta Matteo. Finché non sceglie, `DESIGN.md` e il codice restano com'erano.
