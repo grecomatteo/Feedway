@@ -70,7 +70,8 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
 }) => {
   const { org, client, fb } = await clientWithFiles(page)
   await page.goto(`/${org}/spazi/${client.slug}`)
-  await page.getByRole('main').getByRole('link', { name: 'Nuovo post' }).click()
+  // the shell's «Nuovo post» writes for the client that is open (D-89)
+  await page.getByRole('link', { name: 'Nuovo post' }).locator('visible=true').click()
   await expect(page).toHaveURL(/\/post\/nuovo$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Nuovo post' })).toBeVisible()
   // no file: the four types, none chosen; nothing saved yet
