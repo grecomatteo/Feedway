@@ -147,6 +147,41 @@ export interface PostRepository {
       timezone: string
     }[]
   >
+  /**
+   * The posts of these workspaces with one of these states and a time in `[from, to)`, by time
+   * (the agenda of «Oggi», redesign R3); at most `limit`.
+   */
+  listInPeriod(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    period: { from: Date; to: Date; statuses: readonly PostStatus[]; limit: number },
+  ): Promise<PostRecord[]>
+  /** The drafts of these workspaces, the latest changed first; at most `limit`. */
+  listLatestDrafts(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    limit: number,
+  ): Promise<PostRecord[]>
+  countDrafts(organizationId: string, workspaceIds: readonly string[]): Promise<number>
+  /**
+   * For each of these workspaces that has a post: its scheduled posts from `from`, the first of
+   * them, and the latest change to any of its posts.
+   */
+  activityOf(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    from: Date,
+  ): Promise<{ workspaceId: string; scheduled: number; nextAt: Date | null; changedAt: Date }[]>
+  /**
+   * The destinations among these accounts of the scheduled posts of these workspaces from
+   * `from`, in one query: the posts each profile of «Da sistemare» holds up.
+   */
+  scheduledTargets(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    accountIds: readonly string[],
+    from: Date,
+  ): Promise<{ postId: string; workspaceId: string; accountId: string }[]>
   /** The notes of a post, oldest first. */
   listNotes(scope: PostScope, postId: string): Promise<PostNoteRecord[]>
   insertNote(

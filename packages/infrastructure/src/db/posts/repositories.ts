@@ -297,6 +297,106 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         )
       return row?.n ?? 0
     },
+    async listInPeriod(organizationId, workspaceIds, { from, to, statuses, limit }) {
+      if (workspaceIds.length === 0 || statuses.length === 0) return []
+      const rows = await db
+        .select(postColumns)
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.workspaceId, [...workspaceIds]),
+            inArray(posts.status, [...statuses]),
+            gte(posts.scheduledAt, from),
+            lt(posts.scheduledAt, to),
+          ),
+        )
+        .orderBy(asc(posts.scheduledAt), asc(posts.id))
+        .limit(limit)
+      return complete(db, organizationId, rows)
+    },
+    async listLatestDrafts(organizationId, workspaceIds, limit) {
+      if (workspaceIds.length === 0) return []
+      const rows = await db
+        .select(postColumns)
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.workspaceId, [...workspaceIds]),
+            eq(posts.status, 'draft'),
+          ),
+        )
+        .orderBy(desc(posts.updatedAt), desc(posts.id))
+        .limit(limit)
+      return complete(db, organizationId, rows)
+    },
+    async countDrafts(organizationId, workspaceIds) {
+      if (workspaceIds.length === 0) return 0
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.workspaceId, [...workspaceIds]),
+            eq(posts.status, 'draft'),
+          ),
+        )
+      return row?.n ?? 0
+    },
+    async activityOf(organizationId, workspaceIds, from) {
+      if (workspaceIds.length === 0) return []
+      const ahead = sql`${posts.status} = 'scheduled' and ${posts.scheduledAt} >= ${from}`
+      const rows = await db
+        .select({
+          workspaceId: posts.workspaceId,
+          scheduled: sql<number>`(count(*) filter (where ${ahead}))::int`,
+          nextAt: sql<string | null>`min(${posts.scheduledAt}) filter (where ${ahead})`,
+          changedAt: sql<string>`max(${posts.updatedAt})`,
+        })
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.workspaceId, [...workspaceIds]),
+          ),
+        )
+        .groupBy(posts.workspaceId)
+      // an aggregate comes back as text: the driver parses only the columns it knows
+      return rows.map((r) => ({
+        workspaceId: r.workspaceId,
+        scheduled: r.scheduled,
+        nextAt: r.nextAt === null ? null : new Date(r.nextAt),
+        changedAt: new Date(r.changedAt),
+      }))
+    },
+    async scheduledTargets(organizationId, workspaceIds, accountIds, from) {
+      if (workspaceIds.length === 0 || accountIds.length === 0) return []
+      return db
+        .selectDistinct({
+          postId: postTargets.postId,
+          workspaceId: postTargets.workspaceId,
+          accountId: postTargets.accountId,
+        })
+        .from(postTargets)
+        .innerJoin(
+          posts,
+          and(
+            eq(posts.organizationId, postTargets.organizationId),
+            eq(posts.id, postTargets.postId),
+          ),
+        )
+        .where(
+          and(
+            eq(postTargets.organizationId, organizationId),
+            inArray(postTargets.workspaceId, [...workspaceIds]),
+            inArray(postTargets.accountId, [...accountIds]),
+            eq(posts.status, 'scheduled'),
+            gte(posts.scheduledAt, from),
+          ),
+        )
+    },
     async statuses(organizationId, postIds) {
       if (postIds.length === 0) return new Map()
       const rows = await db

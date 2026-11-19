@@ -50,3 +50,5 @@ export type { MediaProcessDeps, MediaProcessJob, MediaProcessOutcome } from './p
 export { getMediaForRules } from './rules.js'
 export { getMediaForPosts } from './for-posts.js'
 export type { PostMediaView } from './for-posts.js'
+export { getFailedMedia } from './failed.js'
+export type { FailedMediaView } from './failed.js'

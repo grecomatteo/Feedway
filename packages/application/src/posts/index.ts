@@ -27,3 +27,23 @@ export {
 export type { AccountGroupDto } from './account-groups.js'
 export { addNote, deleteNote, listNotes } from './notes.js'
 export type { PostNoteDto } from './notes.js'
+// «Oggi» (redesign R3): the agenda of the clients the person sees.
+export {
+  AGENDA_MAX_DAYS,
+  DRAFTS_MAX,
+  agendaPeriod,
+  draftMissing,
+  listAgenda,
+  listAgendaIssues,
+  listClientActivity,
+  listDraftsToFinish,
+  textStart,
+} from './agenda.js'
+export type {
+  AgendaIssueDto,
+  AgendaPostDto,
+  AgendaThumbnail,
+  ClientActivityDto,
+  DraftMissing,
+  DraftToFinishDto,
+} from './agenda.js'
