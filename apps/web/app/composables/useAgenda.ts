@@ -4,13 +4,19 @@ import type { AgendaIssue, AgendaPost, ClientActivity, DraftToFinish } from '@ap
  * «Da sistemare» of the whole agency (redesign R3), read once and shared: the page «Oggi», the
  * count beside «Oggi» in the sidebar and the dot of the client selector say the same thing. The
  * page narrows it to the client of the selector on its own; the server never shows a client the
- * person does not see. Counted from the browser's moment, as the page.
+ * person does not see. Counted from the browser's moment at each read, as the page.
  */
 export function useAgendaIssues() {
   const org = useOrganization()
   return useFetch<{ items: AgendaIssue[] }>(() => org.api('/agenda/issues'), {
     key: () => `agenda-issues-${org.slug.value}`,
-    query: { from: new Date().toISOString() },
+    // read at every fetch: the sidebar registers this read first, and a later refresh (the page,
+    // «Riprova») must count from its own moment, not from when the panel opened
+    query: {
+      get from() {
+        return new Date().toISOString()
+      },
+    },
     server: false,
     lazy: true,
     immediate: org.active.value,

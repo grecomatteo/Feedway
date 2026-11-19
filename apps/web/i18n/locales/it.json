@@ -622,6 +622,7 @@
     "issues": {
       "title": "Da sistemare",
       "none": "Niente da sistemare.",
+      "failed": "Non siamo riusciti a leggere cosa c’è da sistemare.",
       "count": ", 1 cosa da sistemare | , {n} cose da sistemare",
       "profile": {
         "reconnect": "{name} da ricollegare",

@@ -130,8 +130,8 @@ test('the sections: what to fix, the week, the drafts and the clients', async ({
   const days = week(page).getByRole('button')
   await expect(days).toHaveCount(7)
   await expect(week(page).locator('[data-today]')).toContainText('oggi')
-  await expect(days.nth(1)).toHaveAccessibleName('martedì 17 novembre, 1 post')
-  await expect(days.nth(6)).toHaveAccessibleName('domenica 22 novembre, nessun post')
+  await expect(days.nth(1)).toHaveAccessibleName('mar 17, 1 post')
+  await expect(days.nth(6)).toHaveAccessibleName('dom 22, nessun post')
   const out = section(page, 'In uscita')
   await expect(out.getByRole('region', { name: 'Oggi' })).toContainText('Il pane del giovedì')
   await expect(out.getByRole('region', { name: 'Domani, venerdì 20' })).toContainText(
@@ -157,8 +157,17 @@ test('the sections: what to fix, the week, the drafts and the clients', async ({
   await expect(recent.getByRole('link', { name: 'Osteria Prova' })).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
 
-  // «Riprova» prepares the file again: its row goes, and the count with it
+  // «Riprova» prepares the file again: its row goes, and the count with it; the issues are read
+  // again from the moment of the click, not from when the panel opened
+  const later = new Date(DESIGN_NOW.getTime() + 60 * 60 * 1000)
+  await page.clock.setFixedTime(later)
+  const reread = page.waitForRequest(
+    (r) =>
+      r.url().includes('/agenda/issues?') &&
+      new URL(r.url()).searchParams.get('from') === later.toISOString(),
+  )
   await issues.getByRole('button', { name: 'Riprova a preparare IMG_0233.mov' }).click()
+  await reread
   await expect(issues.locator('[data-issue]')).toHaveCount(1)
   if (!isMobile) await expect(page.locator('nav [data-count]')).toContainText('1 cosa da sistemare')
 })
@@ -178,9 +187,7 @@ test('the client of the selector narrows the page', async ({ page }) => {
   await expect(out.getByRole('region', { name: 'Oggi' })).toContainText('Niente in programma.')
   await expect(out).not.toContainText('Il pane del giovedì')
   await expect(out).toContainText('Il menu del venerdì')
-  await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName(
-    'martedì 17 novembre, 1 post',
-  )
+  await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName('mar 17, 1 post')
   // Forno Prova's draft is not here, and the clients' list is for all of them only
   await expect(section(page, 'Bozze da finire')).toHaveCount(0)
   await expect(section(page, 'Clienti recenti')).toHaveCount(0)
@@ -212,6 +219,9 @@ test('a read that fails says so, and «Riprova» reads again', async ({ page }) 
   await page.goto(`/${owner.organizationSlug}`)
   const out = section(page, 'In uscita')
   await expect(out.getByRole('alert')).toHaveText(/Non siamo riusciti a leggere i post in uscita/)
+  // the strip does not claim the days are free when it could not read them
+  await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName('mar 17')
+  await expect(week(page)).not.toContainText('libero')
   failing = false
   await out.getByRole('button', { name: 'Riprova' }).click()
   await expect(out.getByRole('alert')).toHaveCount(0)
@@ -238,4 +248,22 @@ test('on a phone: one column, the week with dots, nothing sideways', async ({ pa
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
   expect(overflow).toBeLessThanOrEqual(0)
+})
+
+test('a failed read of what to fix says so, and «Riprova» reads again', async ({ page }) => {
+  const owner = await newPerson('Olga Problemi', 'owner')
+  await signInWithTotp(page.request, owner)
+  let failing = true
+  await page.route(/\/agenda\/issues\?/, async (route) => {
+    if (failing) await route.fulfill({ status: 500, body: '{}' })
+    else await route.continue()
+  })
+  await page.goto(`/${owner.organizationSlug}`)
+  const failed = page.locator('[data-today-issues-failed]')
+  await expect(failed).toHaveRole('alert')
+  await expect(failed).toContainText('Non siamo riusciti a leggere cosa c’è da sistemare.')
+  await expect(page.locator('[data-today-calm]')).toHaveCount(0)
+  failing = false
+  await failed.getByRole('button', { name: 'Riprova' }).click()
+  await expect(page.locator('[data-today-calm]')).toHaveText('Niente da sistemare.')
 })

@@ -512,4 +512,6 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
      - il titolo di un profilo dice il suo problema: «da ricollegare», «ha un problema» o «da controllare» (la schermata mostra solo il primo). Il campione delle schermate ha la Pagina in errore con il collegamento valido, quindi il confronto mostra «ha un problema»;
      - le due colonne partono da 1024 px (la schermata va da 760): sotto, la colonna destra va sotto «In uscita», come sul telefono, perché a 760–1024 l'elenco dei post a sei colonne non entra accanto a una colonna di 340;
      - la sottolineatura arancio di oggi e il conteggio accanto a «Oggi» non contano come «l'arancio della pagina» nelle misure (`data-accent`, `data-count`): l'unica azione arancio resta «Nuovo post».
+     - i giorni della striscia e dell'elenco sono quelli del browser, l'ora di ogni post è nel fuso del post (come nell'elenco dei post). Per chi lavora da Roma coincidono; da un altro fuso un post alle 0:30 di Roma può stare sotto il giorno prima;
+     - lasciata aperta oltre la mezzanotte, la pagina si ricarica quando si torna a guardarla.
 - **Stato:** provvisorie; Matteo può cambiarle.

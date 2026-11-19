@@ -25,6 +25,12 @@ const { now, from, agenda, drafts, clients } = useAgenda(workspaceId)
 const issuesRead = useAgendaIssues()
 // the issues may have changed since the sidebar read them
 onMounted(() => void issuesRead.refresh())
+// the page was left open into another day: «Oggi» starts again from the new day
+function newDay() {
+  if (document.visibilityState === 'visible' && !sameDay(now, new Date())) reloadNuxtApp()
+}
+onMounted(() => document.addEventListener('visibilitychange', newDay))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', newDay))
 
 const clientOf = (id: string) => visible.value.find((w) => w.id === id) ?? null
 const clientName = (id: string) => clientOf(id)?.name ?? ''
@@ -87,6 +93,8 @@ async function retry(i: AgendaIssue & { kind: 'media' }) {
 // ---- In uscita: the week in a strip, then today and tomorrow or the day picked
 const WEEKDAY = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }) // «lun»
 const posts = computed(() => agenda.data.value?.items ?? [])
+// while the read is on its way or failed the strip says nothing about the days
+const known = computed(() => agenda.status.value === 'success')
 const days = computed(() =>
   Array.from({ length: 7 }, (_, i) => {
     const day = dayStart(from, i)
@@ -99,6 +107,7 @@ const days = computed(() =>
       weekday: sameDay(day, now) ? t('today.week.today') : WEEKDAY.format(day),
       number: day.getDate(),
       posts: own,
+      label: `${sameDay(day, now) ? t('today.week.today') : WEEKDAY.format(day)} ${String(day.getDate())}`,
     }
   }),
 )
@@ -245,6 +254,17 @@ const ready = computed(
           </ListRow>
         </ListSurface>
       </section>
+      <div
+        v-else-if="issuesRead.error.value"
+        role="alert"
+        class="flex items-center justify-between gap-3 text-(--app-text-muted)"
+        data-today-issues-failed
+      >
+        <span>{{ $t('today.issues.failed') }}</span>
+        <UButton color="neutral" variant="outline" size="sm" @click="issuesRead.refresh()">{{
+          $t('today.out.again')
+        }}</UButton>
+      </div>
       <p
         v-else-if="issuesRead.data.value"
         class="flex items-center gap-2 text-(--app-text-muted)"
@@ -279,11 +299,9 @@ const ready = computed(
                 type="button"
                 :aria-pressed="picked === d.key"
                 :aria-label="
-                  $t(
-                    'today.week.dayLabel',
-                    { day: formatDay(d.day, { now }), n: d.posts.length },
-                    d.posts.length,
-                  )
+                  known
+                    ? $t('today.week.dayLabel', { day: d.label, n: d.posts.length }, d.posts.length)
+                    : d.label
                 "
                 class="relative border-s border-(--app-border) px-3.5 pt-2.5 pb-3 text-start first:border-s-0 hover:bg-(--app-nav-hover) aria-pressed:bg-(--app-nav-hover) max-md:px-0 max-md:pt-2 max-md:pb-2.5 max-md:text-center"
                 :data-today="d.today || undefined"
@@ -295,17 +313,21 @@ const ready = computed(
                   :class="d.past ? 'text-(--app-text-muted)' : ''"
                 >
                   {{ d.number }}
-                  <span class="text-caption font-normal text-(--app-text-muted) max-md:hidden">{{
-                    d.posts.length === 0
-                      ? $t('today.week.free')
-                      : $t('today.week.posts', { n: d.posts.length }, d.posts.length)
-                  }}</span>
+                  <span
+                    v-if="known"
+                    class="text-caption font-normal text-(--app-text-muted) max-md:hidden"
+                    >{{
+                      d.posts.length === 0
+                        ? $t('today.week.free')
+                        : $t('today.week.posts', { n: d.posts.length }, d.posts.length)
+                    }}</span
+                  >
                 </span>
                 <span
                   class="mt-2 flex h-1 gap-[3px] overflow-hidden max-md:justify-center max-md:h-[5px]"
                 >
                   <i
-                    v-for="p in d.posts"
+                    v-for="p in known ? d.posts : []"
                     :key="p.id"
                     class="block w-3.5 shrink-0 rounded-[2px] max-md:size-[5px] max-md:rounded-full"
                     :class="STATUS_BAR[p.status]"
