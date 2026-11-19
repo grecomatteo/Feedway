@@ -1,19 +1,18 @@
 <script setup lang="ts">
-// the menu opens only once the page runs in the browser: a click before that would be lost
-const ready = useHydrated()
 /**
  * "Tutti i clienti", one workspace the person sees, or one profile of that workspace (§14.6),
  * kept in the address (`?spazio=`, `&profilo=`). What is unknown or not visible falls back to
- * "Tutti i clienti" (useActiveContext). A clean row like the agency's and the person's: the
- * client's photo (its Instagram's, else its Page's, as Feedway keeps it) or its initials, no
- * arrows. Choosing a client, or one of its profiles, opens the client's page (D-5); its profiles
- * are listed only under the client chosen (D-6).
+ * "Tutti i clienti" (useActiveContext). Two shapes (D-81): `side`, the 44 px box of the sidebar
+ * with a popover under it (screen 04); `top`, the name in the phone's only row at the top with a
+ * sheet from the bottom.
  */
-const route = useRoute()
-const router = useRouter()
+const props = withDefaults(defineProps<{ variant?: 'side' | 'top' }>(), { variant: 'side' })
+
+// the menu opens only once the page runs in the browser: a click before that would be lost
+const ready = useHydrated()
 const org = useOrganization()
-const { t } = useI18n()
-const { visible, workspace, profile, profiles } = useActiveContext()
+const { workspace, profile, profiles } = useActiveContext()
+const open = ref(false)
 
 const list = computed(() => profiles.data.value?.items ?? [])
 /** The chosen profile's photo, else the first one among the client's profiles, as the list. */
@@ -25,82 +24,107 @@ const photo = computed(() => {
   }
   return workspace.value?.photoUrl ?? null
 })
-const pick = (slug: string | null, profileId: string | null = null) => {
-  if (slug !== null) {
-    void navigateTo({
-      path: org.to(`/spazi/${encodeURIComponent(slug)}`),
-      query: profileId === null ? {} : { profilo: profileId },
-    })
-    return
-  }
-  // «Tutti i clienti»: from a client's page back to the clients, elsewhere the same page
-  if (clientSlugOf(route) !== null) {
-    void navigateTo(org.to('/spazi'))
-    return
-  }
-  const query = { ...route.query }
-  delete query['profilo']
-  delete query['spazio']
-  void router.replace({ query })
-}
-const items = computed(() => [
-  {
-    label: t('context.all'),
-    icon: 'i-lucide-layout-grid',
-    type: 'checkbox' as const,
-    checked: workspace.value === null,
-    onSelect: () => pick(null),
-  },
-  ...visible.value.flatMap((w) => {
-    const current = workspace.value?.id === w.id
-    return [
-      {
-        label: w.name,
-        // every client with its photo (D-14): the list gives the first profile's
-        avatar: { src: (current ? photo.value : w.photoUrl) ?? undefined, alt: w.name },
-        type: 'checkbox' as const,
-        // with one profile, the client and its profile are the same choice
-        checked: current && (profile.value === null || list.value.length <= 1),
-        onSelect: () => pick(w.slug),
+const avatar = computed(() =>
+  workspace.value
+    ? { name: workspace.value.name, src: photo.value, kind: 'client' as const }
+    : {
+        name: org.organization.value?.name ?? '',
+        src: org.organization.value?.logoUrl ?? null,
+        kind: 'agency' as const,
       },
-      // the profiles of the client in context, right under it, only when it has more than one
-      ...(current && list.value.length > 1
-        ? list.value.map((p) => ({
-            label: t('context.profile', { name: profileName(p) }),
-            avatar: { src: profilePhoto(p) ?? undefined, alt: profileName(p) },
-            type: 'checkbox' as const,
-            checked: profile.value?.key === p.key,
-            class: 'ps-6',
-            onSelect: () => pick(w.slug, p.id),
-          }))
-        : []),
-    ]
-  }),
-])
+)
+// «Nuovo cliente» opens a dialog on the clients' page: the focus must not come back here, or the
+// dialog would close as soon as it opens
+let away = false
+const close = (leaving = false) => {
+  away = leaving
+  open.value = false
+}
+// the popover's own focus goes to the search, which the panel focuses itself
+const keepFocus = (event: Event) => event.preventDefault()
+const focusBack = (event: Event) => {
+  if (away) event.preventDefault()
+  away = false
+}
 </script>
 
 <template>
-  <UDropdownMenu :items="items" :ui="{ content: 'min-w-60 max-h-96' }">
+  <UPopover
+    v-if="props.variant === 'side'"
+    v-model:open="open"
+    :content="{
+      side: 'bottom',
+      align: 'start',
+      sideOffset: 0,
+      onOpenAutoFocus: keepFocus,
+      onCloseAutoFocus: focusBack,
+    }"
+    :ui="{
+      content:
+        'w-[300px] rounded-xl border border-(--app-border) bg-(--app-surface) p-1.5 shadow-(--app-shadow-2) ring-0',
+    }"
+  >
     <button
       type="button"
       :disabled="!ready"
-      class="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-1 text-start transition-colors duration-150 hover:bg-(--app-nav-hover) aria-expanded:bg-(--app-nav-hover)"
+      class="mb-2 flex h-11 w-full items-center gap-2.5 rounded-control border border-(--app-border-strong) bg-(--app-surface) ps-2 pe-2.5 text-start shadow-(--app-shadow-1) transition-colors duration-150 hover:bg-(--app-surface-sunken)"
     >
-      <RowAvatar v-if="workspace" :name="workspace.name" :src="photo" />
-      <span
-        v-else
-        class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-(--app-surface) text-(--app-text-muted)"
-        aria-hidden="true"
-      >
-        <UIcon name="i-lucide-layout-grid" class="size-4" />
-      </span>
-      <span class="min-w-0 flex-1">
+      <Avatar :name="avatar.name" :src="avatar.src" :kind="avatar.kind" :size="22" />
+      <span class="min-w-0 flex-1 leading-[1.125rem]">
         <span class="sr-only">{{ $t('context.label') }}: </span>
-        <span class="block truncate text-sm">{{ workspace?.name ?? $t('context.all') }}</span>
-        <span v-if="workspace && profile" class="block truncate text-xs text-(--app-text-muted)">
-          {{ profileName(profile) }}
-        </span>
+        <span class="block truncate font-semibold">{{ workspace?.name ?? $t('context.all') }}</span>
+        <span
+          v-if="workspace && profile"
+          class="block truncate text-caption text-(--app-text-muted)"
+          >{{ profileName(profile) }}</span
+        >
       </span>
+      <UIcon
+        name="i-lucide-chevrons-up-down"
+        class="size-4 shrink-0 text-(--app-text-muted)"
+        aria-hidden="true"
+      />
     </button>
-  </UDropdownMenu>
+    <template #content>
+      <ContextSwitcherPanel @done="close" />
+    </template>
+  </UPopover>
+
+  <UDrawer
+    v-else
+    v-model:open="open"
+    :title="$t('context.label')"
+    :handle="false"
+    :content="{ onCloseAutoFocus: focusBack }"
+    :ui="{
+      overlay: 'bg-[rgb(36_35_33/0.4)]',
+      content:
+        'max-h-[80vh] rounded-t-2xl border border-b-0 border-(--app-border) bg-(--app-surface) ring-0',
+      container: 'gap-0 p-2.5 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+      header: 'sr-only',
+    }"
+  >
+    <button
+      type="button"
+      :disabled="!ready"
+      class="flex h-10 min-w-0 items-center gap-2 rounded-control px-1.5 text-start font-semibold"
+    >
+      <Avatar :name="avatar.name" :src="avatar.src" :kind="avatar.kind" :size="22" />
+      <span class="min-w-0 truncate">
+        <span class="sr-only">{{ $t('context.label') }}: </span
+        >{{ workspace?.name ?? $t('context.all')
+        }}<span v-if="workspace && profile" class="font-normal text-(--app-text-muted)">
+          {{ profileName(profile) }}</span
+        >
+      </span>
+      <UIcon
+        name="i-lucide-chevron-down"
+        class="size-4 shrink-0 text-(--app-text-muted)"
+        aria-hidden="true"
+      />
+    </button>
+    <template #body>
+      <ContextSwitcherPanel phone @done="close" />
+    </template>
+  </UDrawer>
 </template>

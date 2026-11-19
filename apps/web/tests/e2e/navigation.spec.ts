@@ -1,10 +1,18 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { newWorkspace } from './support/meta.ts'
-import { addPerson, newPerson, ownAddress, signIn, signInWithTotp } from './support/people.ts'
+import { assignAccount, connectedAgency, newWorkspace } from './support/meta.ts'
+import {
+  addPerson,
+  adminQuery,
+  newPerson,
+  ownAddress,
+  signIn,
+  signInWithTotp,
+} from './support/people.ts'
 
-// The agency's menu and the phone (plan 04 Task 6b, spec §11.11): no «Account social», the bar
-// at the bottom Home · Calendario · + · Clienti · Tu, and the «Tu» menu with the person's pages.
+// The agency's shell (D-81, Task R2 of the redesign; spec §11.11): the sidebar with «Nuovo post»,
+// the bar at the bottom Oggi · Calendario · + · Clienti · Tu, the «Tu» menu with the person's
+// pages, and the client selector with its search.
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -56,14 +64,30 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     await expect(nav.getByText('Account social'), path).toHaveCount(0)
   }
   if (!isMobile) {
-    // the sidebar: Home, Clienti, Libreria, Utenti, nothing else
+    // the sidebar (screen 02): Oggi, Calendario (off), Clienti, Libreria; under the agency's
+    // name Utenti and Impostazioni
     await page.goto(`/${org}`)
     await expect(mainNav(page).getByRole('link')).toHaveText([
-      'Home',
+      'Oggi',
+      /^Calendario/,
       'Clienti',
       'Libreria',
       'Utenti',
+      'Impostazioni',
     ])
+    await expect(mainNav(page).getByRole('link', { name: 'Calendario (Presto)' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    await expect(mainNav(page).getByRole('link', { name: 'Oggi' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await page.goto(`/${org}/registro`)
+    await expect(mainNav(page).getByRole('link', { name: 'Impostazioni' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   }
 })
 
@@ -76,7 +100,7 @@ test('the bar at the bottom: five places, Calendario not there yet, + for a new 
   await page.goto(`/${org}/spazi`)
   const nav = mainNav(page)
   await expect(nav.getByRole('listitem')).toHaveCount(5)
-  await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('href', `/${org}`)
+  await expect(nav.getByRole('link', { name: 'Oggi' })).toHaveAttribute('href', `/${org}`)
   await expect(nav.getByRole('link', { name: 'Clienti' })).toHaveAttribute('aria-current', 'page')
   await expect(nav.getByRole('link', { name: 'Calendario (Presto)' })).toHaveAttribute(
     'aria-disabled',
@@ -124,12 +148,12 @@ test('the «Tu» menu: the person’s pages by role, and the keyboard opens and 
   await page.keyboard.press('Enter')
   const menu = youMenu(page)
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: 'Utenti' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
+  // screen 06: the activity log and the privacy notice are reached from Impostazioni
   await expect(menu.getByRole('menuitem')).toHaveText([
+    'Libreria',
     'Utenti',
     'Impostazioni',
-    'Registro attività',
-    'Privacy',
     'Esci',
     '',
   ])
@@ -144,7 +168,7 @@ test('the «Tu» menu: the person’s pages by role, and the keyboard opens and 
   await expect(menu).toBeHidden()
   await expect(you).toBeFocused()
 
-  // a Publisher: no Utenti, no Registro attività
+  // a Publisher: no Utenti
   const publisher = await addPerson(org, 'Paolo Publisher', 'member', [
     { workspaceId: client.id, role: 'publisher' },
   ])
@@ -156,29 +180,115 @@ test('the «Tu» menu: the person’s pages by role, and the keyboard opens and 
   await expect(their).toBeEnabled()
   await their.click()
   await expect(youMenu(page).getByRole('menuitem')).toHaveText([
+    'Libreria',
     'Impostazioni',
-    'Privacy',
     'Esci',
     '',
   ])
 })
 
-test('on a computer the user menu keeps Utenti in the sidebar, not in the menu', async ({
+test('on a computer: the bell beside the logo, «Nuovo post», and the menu of screen 06', async ({
   page,
   isMobile,
 }) => {
   test.skip(isMobile, 'the sidebar is the computer')
-  const { org } = await ownerWithClient(page, 'Olga Laterale')
+  const { org, client } = await ownerWithClient(page, 'Olga Laterale')
   await page.goto(`/${org}`)
-  await expect(page.getByRole('button', { name: 'Notifiche (Presto)' })).toHaveCount(0)
+  const sidebar = page.getByRole('complementary')
+  expect((await sidebar.boundingBox())?.width).toBe(240)
+  // the notifications live in the bell, until the centre exists (stage 8)
+  const bell = sidebar.getByRole('button', { name: 'Notifiche (Presto)' })
+  await expect(bell).toBeVisible()
+  await expect(bell).toBeDisabled()
+  // «Nuovo post» is always there: in «Tutti i clienti» it asks the client first, in a client's
+  // context it opens that client's editor
+  const newPost = sidebar.getByRole('link', { name: 'Nuovo post' })
+  await expect(newPost).toHaveAttribute('href', `/${org}/post/nuovo`)
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  await expect(newPost).toHaveAttribute('href', `/${org}/spazi/${client.slug}/post/nuovo`)
+
   const trigger = page.getByRole('button', { name: /Olga Laterale/ })
   await expect(trigger).toBeEnabled()
+  // the person's row: name and role, nothing else
+  await expect(trigger).toHaveText('OLOlga LateraleOwner')
   await trigger.click()
   const menu = youMenu(page)
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: 'Utenti' })).toHaveCount(0)
-  await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toBeVisible()
+  await expect(menu.getByRole('menuitem')).toHaveText([
+    'Libreria',
+    'Utenti',
+    'Impostazioni',
+    'Esci',
+    '',
+  ])
   await expect(menu.locator(`a[href^="/${org}/account"]`)).toHaveCount(0)
+  expect((await axe(page)).violations).toEqual([])
+})
+
+test('the client selector: search, a dot on a client to fix, «Nuovo cliente», and the keyboard', async ({
+  page,
+  isMobile,
+}) => {
+  const { org, client } = await ownerWithClient(page, 'Olga Selettore')
+  const other = await newWorkspace(page.request, org, 'Osteria Bruna')
+  // a profile of Cliente Barra whose Page stopped working: the dot of screen 04
+  await connectedAgency(page.request, org)
+  const [page1] = await adminQuery<{ id: string }>(
+    "select id from social_accounts where organization_id = $1 and platform = 'facebook' limit 1",
+    [org],
+  )
+  await assignAccount(page.request, org, client.id, page1?.id ?? '')
+  await adminQuery("update social_accounts set health = 'error' where id = $1", [page1?.id])
+  await page.goto(`/${org}/spazi`)
+  const trigger = page.getByRole('button', { name: /^Contesto:/ }).locator('visible=true')
+  await expect(trigger).toBeEnabled()
+  await expect(trigger).toContainText('Tutti i clienti')
+  await trigger.click()
+  const search = page.getByRole('combobox', { name: 'Cerca un cliente' })
+  await expect(search).toBeVisible()
+  const list = page.getByRole('listbox', { name: 'Contesto' })
+  // the initials of each square come first in the text
+  await expect(list.getByRole('option')).toHaveText([
+    /Tutti i clienti$/,
+    /Cliente Barra, un profilo con un problema$/,
+    /Osteria Bruna$/,
+  ])
+  await expect(list.getByRole('option', { name: 'Tutti i clienti' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(list.locator('[data-problem="error"]')).toHaveCount(1)
+  expect((await axe(page)).violations).toEqual([])
+
+  // the search narrows the list, accents and case aside; Enter picks the first client found
+  if (isMobile) await search.click()
+  else await expect(search).toBeFocused()
+  await search.fill('ostèria')
+  await expect(list.getByRole('option')).toHaveText([/Tutti i clienti$/, /Osteria Bruna$/])
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${other.slug}$`))
+  await expect(trigger).toContainText('Osteria Bruna')
+
+  // the arrows walk the list, Esc closes it and gives the focus back
+  await trigger.click()
+  await expect(list.getByRole('option', { name: 'Osteria Bruna' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await search.press('ArrowUp')
+  await expect(search).toHaveAttribute(
+    'aria-activedescendant',
+    (await list.getByRole('option', { name: /^Cliente Barra/ }).getAttribute('id')) ?? '',
+  )
+  await search.press('Escape')
+  await expect(list).toBeHidden()
+  await expect(trigger).toBeFocused()
+
+  // «Nuovo cliente» opens the dialog of the clients' page
+  await trigger.click()
+  await page.getByRole('link', { name: 'Nuovo cliente' }).click()
+  await expect(page.getByRole('dialog', { name: 'Nuovo cliente' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
 })
 
 test('the old addresses of the accounts land in Integrazioni → Meta, keeping the client', async ({
@@ -211,4 +321,39 @@ test('the old addresses of the accounts land in Integrazioni → Meta, keeping t
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
   await page.goto(`/${org}/account/aggiungi`)
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
+})
+
+test('the measures of the shell (base.css): 240 and 44 on a computer, one row at the top on a phone', async ({
+  page,
+  isMobile,
+}) => {
+  const { org } = await ownerWithClient(page, 'Olga Misure')
+  await page.goto(`/${org}/spazi`)
+  const height = async (locator: ReturnType<Page['locator']>) =>
+    Math.round((await locator.boundingBox())?.height ?? 0)
+  const trigger = page.getByRole('button', { name: /^Contesto:/ }).locator('visible=true')
+  await expect(trigger).toBeVisible()
+  if (!isMobile) {
+    const sidebar = page.getByRole('complementary')
+    expect(Math.round((await sidebar.boundingBox())?.width ?? 0)).toBe(240)
+    expect(await height(trigger)).toBe(44)
+    expect(await height(sidebar.getByRole('link', { name: 'Nuovo post' }))).toBe(36)
+    expect(await height(mainNav(page).getByRole('link', { name: 'Clienti' }))).toBe(36)
+    // the title starts 28 below the top and 32 from the sidebar
+    const title = await page.getByRole('heading', { level: 1 }).first().boundingBox()
+    expect(Math.round(title?.x ?? 0)).toBe(240 + 32)
+    return
+  }
+  // one row at the top: the selector and the bell, no agency row and no sidebar
+  const top = page.getByRole('banner')
+  await expect(top).toHaveCount(1)
+  expect(await height(top)).toBe(52)
+  await expect(top.getByRole('button')).toHaveCount(2)
+  expect(await height(trigger)).toBe(40)
+  expect(await height(top.getByRole('button', { name: 'Notifiche (Presto)' }))).toBe(44)
+  await expect(page.getByRole('complementary')).toBeHidden()
+  expect(await height(mainNav(page))).toBe(60)
+  expect(
+    await height(mainNav(page).getByRole('link', { name: 'Nuovo post' }).locator('span').first()),
+  ).toBe(36)
 })

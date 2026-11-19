@@ -1,11 +1,18 @@
 <script setup lang="ts">
 /**
- * The signed-in person at the bottom of the sidebar (`row`) or as «Tu» in the phone's bar at the
- * bottom (`tab`, spec §11.11). One click opens their menu: «Impostazioni», the rarely used agency
- * pages, the other agencies, «Esci» and the theme. On a phone it opens from the bottom, full
- * width, and starts with the pages the sidebar holds on a computer (Utenti).
+ * The signed-in person at the bottom of the sidebar (`row`, name and role) or as «Tu» in the
+ * phone's bar at the bottom (`tab`, spec §11.11). One click opens their menu (D-81, screen 06):
+ * Libreria and Utenti, «Impostazioni», the other agencies, «Esci» and the theme. On a phone it
+ * opens from the bottom, full width.
  */
-const props = withDefaults(defineProps<{ variant?: 'row' | 'tab' }>(), { variant: 'row' })
+const props = withDefaults(
+  defineProps<{
+    variant?: 'row' | 'tab'
+    /** `tab`: the page is one of the menu's (Libreria, Utenti, Impostazioni) */
+    current?: boolean
+  }>(),
+  { variant: 'row', current: false },
+)
 
 const org = useOrganization()
 const session = useSession()
@@ -20,20 +27,12 @@ const panel = ref<HTMLElement | null>(null)
 const leaving = ref(false)
 const leaveFailed = ref(false)
 
-const subtitle = computed(() =>
-  [org.role.value ? t(`roles.${org.role.value}`) : null, org.organization.value?.name]
-    .filter(Boolean)
-    .join(' · '),
-)
-const otherAgencies = computed(
-  () => (me.value?.organizations.filter((o) => o.status === 'active').length ?? 0) > 1,
-)
-// the agency pages opened rarely, only with an agency of the person's
+const subtitle = computed(() => (org.role.value ? t(`roles.${org.role.value}`) : ''))
+// from a suspended agency too: the list of the agencies is the way out
+const otherAgencies = computed(() => (me.value?.organizations.length ?? 0) > 1)
+// the agency's pages the phone's bar has no room for, only with an agency of the person's
 const nav = useAgencyNav()
-const links = computed(() => (org.active.value ? nav.value.filter((item) => item.inUserMenu) : []))
-const phoneLinks = computed(() =>
-  org.active.value ? nav.value.filter((item) => item.inPhoneMenu) : [],
-)
+const pages = computed(() => (org.active.value ? nav.value.filter((item) => item.phoneMenu) : []))
 const dark = computed(() => colorMode.value === 'dark')
 
 /** Light ↔ dark at once, without closing the menu; the profile keeps it. */
@@ -97,19 +96,22 @@ const close = () => (open.value = false)
     <UPopover
       v-if="props.variant === 'row'"
       v-model:open="open"
-      :content="{ side: 'top', align: 'start', sideOffset: 8, onOpenAutoFocus: focusFirst }"
-      :ui="{ content: 'w-(--reka-popover-trigger-width) min-w-60 rounded-xl p-1.5' }"
+      :content="{ side: 'top', align: 'start', sideOffset: 0, onOpenAutoFocus: focusFirst }"
+      :ui="{
+        content:
+          'w-[264px] rounded-xl border border-(--app-border) bg-(--app-surface) p-1.5 shadow-(--app-shadow-2) ring-0',
+      }"
     >
       <button
         type="button"
         :disabled="!ready"
         aria-haspopup="menu"
-        class="flex min-h-12 w-full items-center gap-3 rounded-lg px-2 py-1.5 text-start transition-colors duration-150 hover:bg-(--app-nav-hover) aria-expanded:bg-(--app-nav-hover)"
+        class="flex w-full items-center gap-2.5 rounded-control p-2 text-start transition-colors duration-150 hover:bg-(--app-nav-hover)"
       >
-        <UserAvatar :name="me.displayName" :src="me.avatarUrl" />
-        <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm font-semibold">{{ me.displayName }}</span>
-          <span v-if="subtitle" class="block truncate text-xs text-(--app-text-muted)">
+        <Avatar :name="me.displayName" :src="me.avatarUrl" kind="person" :size="28" />
+        <span class="min-w-0 flex-1 leading-[1.125rem]">
+          <span class="block truncate font-semibold">{{ me.displayName }}</span>
+          <span v-if="subtitle" class="block truncate text-caption text-(--app-text-muted)">
             {{ subtitle }}
           </span>
         </span>
@@ -118,7 +120,7 @@ const close = () => (open.value = false)
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
             :me="me"
-            :links="links"
+            :pages="pages"
             :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"
@@ -135,24 +137,32 @@ const close = () => (open.value = false)
       v-else
       v-model:open="open"
       :title="$t('userMenu.label')"
-      :ui="{ header: 'sr-only', body: 'p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]' }"
+      :handle="false"
+      :ui="{
+        overlay: 'bg-[rgb(36_35_33/0.4)]',
+        content:
+          'max-h-[80vh] rounded-t-2xl border border-b-0 border-(--app-border) bg-(--app-surface) ring-0',
+        container: 'gap-0 p-2.5 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+        header: 'sr-only',
+      }"
     >
       <button
         type="button"
         :disabled="!ready"
         aria-haspopup="menu"
         :aria-label="$t('userMenu.tab', { name: me.displayName })"
-        class="flex min-h-15 w-full flex-col items-center justify-center gap-0.5 text-xs text-(--app-text-muted) outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus) focus-visible:ring-inset aria-expanded:font-semibold aria-expanded:text-(--app-text)"
+        class="flex h-[59px] w-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] font-medium text-(--app-text-muted) outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus) focus-visible:ring-inset aria-expanded:font-semibold aria-expanded:text-(--app-text) data-[current]:font-semibold data-[current]:text-(--app-text)"
+        :data-current="current || undefined"
       >
-        <UserAvatar :name="me.displayName" :src="me.avatarUrl" size="xs" />
+        <Avatar :name="me.displayName" :src="me.avatarUrl" kind="person" :size="22" />
         {{ $t('userMenu.you') }}
       </button>
       <template #body>
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
+            phone
             :me="me"
-            :links="links"
-            :before="phoneLinks"
+            :pages="pages"
             :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"

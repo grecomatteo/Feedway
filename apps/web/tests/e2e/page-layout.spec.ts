@@ -64,8 +64,8 @@ test('every page of the agency has the same margins and the whole width', async 
   if (!phone) {
     await page.goto(`/${org}/spazi`)
     const list = await page.getByRole('table').boundingBox()
-    // the sidebar is 256 px wide
-    expect(Math.abs((list?.width ?? 0) - (width - 256 - 2 * gutter))).toBeLessThanOrEqual(2)
+    // the sidebar is 240 px wide (D-81)
+    expect(Math.abs((list?.width ?? 0) - (width - 240 - 2 * gutter))).toBeLessThanOrEqual(2)
   }
   await page.goto(`/${org}/impostazioni`)
   const field = await page.getByRole('textbox', { name: /Nome dell'agenzia/ }).boundingBox()

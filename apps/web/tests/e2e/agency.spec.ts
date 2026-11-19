@@ -159,13 +159,13 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   await page.goto(`/${org}/spazi`)
   const context = page.getByRole('button', { name: 'Contesto' }).first()
   await context.click()
-  await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
+  await page.getByRole('option', { name: 'Cliente A' }).click()
   // choosing a client opens its page (D-5)
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi/cliente-a$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Cliente A' })).toBeVisible()
   await expect(context).toHaveText(/Cliente A/)
   await context.click()
-  await page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' }).click()
+  await page.getByRole('option', { name: 'Profilo Forno Luce' }).click()
   await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
   expect(page.url()).toMatch(/\/spazi\/cliente-a\?profilo=/)
 
@@ -173,7 +173,7 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   const nav = page
     .getByRole('navigation', { name: 'Navigazione principale' })
     .locator('visible=true')
-  await nav.getByRole('link', { name: 'Home' }).click()
+  await nav.getByRole('link', { name: 'Oggi' }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}\\?spazio=[^&]+&profilo=`))
   await expect(context).toHaveText(/Cliente A\s*Forno Luce/)
   await nav.getByRole('link', { name: 'Clienti' }).click()
@@ -207,13 +207,13 @@ test('context switcher: a profile, its link, and profiles that are not there', a
   await page.goto(`/${org}/spazi/${slug}`)
   await expect(context).toHaveText(/Cliente A/)
   await context.click()
-  await expect(page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' })).toBeVisible()
-  await page.getByRole('menuitemcheckbox', { name: 'Tutti i clienti' }).click()
+  await expect(page.getByRole('option', { name: 'Profilo Forno Luce' })).toBeVisible()
+  await page.getByRole('option', { name: 'Tutti i clienti' }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
   await expect(context).toHaveText(/Tutti i clienti/)
   await context.click()
-  await expect(page.getByRole('menuitemcheckbox', { name: 'Cliente A' })).toBeVisible()
-  await expect(page.getByRole('menuitemcheckbox', { name: /^Profilo / })).toHaveCount(0)
+  await expect(page.getByRole('option', { name: 'Cliente A' })).toBeVisible()
+  await expect(page.getByRole('option', { name: /^Profilo / })).toHaveCount(0)
 })
 
 test("client selector: Feedway's copy of each client's photo, initials without it, nothing from Meta", async ({
@@ -244,12 +244,11 @@ test("client selector: Feedway's copy of each client's photo, initials without i
 
   await page.goto(`/${org}/spazi`)
   const context = page.getByRole('button', { name: 'Contesto' }).first()
-  // clean rows: no up and down arrows on the selectors
-  await expect(page.locator('.iconify.i-lucide\\:chevrons-up-down')).toHaveCount(0)
   await context.click()
-  // every client with its photo in the list, before it is chosen (D-14)
-  const itemA = page.getByRole('menuitemcheckbox', { name: 'Cliente A' })
-  await expect(itemA.locator(`img[src^="${photo}"]`)).toBeVisible()
+  // every client with its photo in the list, before it is chosen (D-14): the 64 px copy, as
+  // the squares are 22 px
+  const itemA = page.getByRole('option', { name: 'Cliente A' })
+  await expect(itemA.locator(`img[src^="${photo.replace('/256?', '/64?')}"]`)).toBeVisible()
   await itemA.click()
   // the row shows the 64 px copy
   const img = context.locator(`img[src^="${photo.replace('/256?', '/64?')}"]`)
@@ -257,8 +256,8 @@ test("client selector: Feedway's copy of each client's photo, initials without i
   await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0)
   // one profile only: the menu does not list it under the client
   await context.click()
-  await expect(page.getByRole('menuitemcheckbox', { name: 'Profilo Forno Luce' })).toHaveCount(0)
-  await page.getByRole('menuitemcheckbox', { name: 'Cliente B' }).click()
+  await expect(page.getByRole('option', { name: 'Profilo Forno Luce' })).toHaveCount(0)
+  await page.getByRole('option', { name: 'Cliente B' }).click()
   // no profile, no photo: the initials
   await expect(context).toContainText('CB')
   await expect(context.locator('img')).toHaveCount(0)
@@ -290,11 +289,7 @@ test('a person in two agencies switches, and another agency address is not found
   )
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
-  await page
-    .getByRole('button', { name: /^Agenzia:/ })
-    .first()
-    .click()
-  await page.getByRole('menuitemcheckbox', { name: 'Agenzia Due' }).click()
+  await changeAgency(page, 'Olga Due', 'Agenzia Due')
   await expect(page).toHaveURL(new RegExp(`/${second?.id ?? ''}$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Agenzia Due' })).toBeVisible()
 
@@ -320,8 +315,13 @@ async function ownerOfTwo(page: Page, secondStatus: 'active' | 'suspended') {
   return { owner, second: id }
 }
 
-const switcher = (page: Page) =>
-  page.getByRole('button', { name: /^Agenzia:/ }).locator('visible=true')
+/** The agency changes from the person's menu, «Cambia agenzia» (D-81, screen 06). */
+async function changeAgency(page: Page, person: string, agency: string) {
+  const menu = await openUserMenu(page, person)
+  await menu.getByRole('menuitem', { name: 'Cambia agenzia' }).click()
+  await expect(page).toHaveURL(/\/agenzie$/)
+  await page.getByRole('link', { name: new RegExp(`^${agency}`) }).click()
+}
 
 test('a suspended agency hides the menu, and one click leaves it', async ({ page, isMobile }) => {
   const { owner, second } = await ownerOfTwo(page, 'suspended')
@@ -343,8 +343,7 @@ test('a suspended agency hides the menu, and one click leaves it', async ({ page
     'select name from organizations where slug = $1',
     [owner.organizationSlug],
   )
-  await switcher(page).click()
-  await page.getByRole('menuitemcheckbox', { name: first?.name ?? '' }).click()
+  await changeAgency(page, 'Olga Sospesa', first?.name ?? '')
   await expect(page).toHaveURL(new RegExp(`/${owner.organizationSlug}$`))
   await expect(page.getByRole('link', { name: 'Clienti' }).first()).toBeVisible()
 })
@@ -493,5 +492,6 @@ test('sidebar: the brand logo, not the name typed out, in the theme in use', asy
     'src',
     dark ? '/brand/feedway-horizontal-arancio.svg' : '/brand/feedway-horizontal-carbone.svg',
   )
-  expect((await logo.boundingBox())?.width).toBe(160)
+  // the side bar's size (D-81): 30 high
+  expect((await logo.boundingBox())?.width).toBe(104)
 })

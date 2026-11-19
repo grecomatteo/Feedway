@@ -114,6 +114,18 @@ function startAdding(key: string | null = null) {
   fixing.value = false
   adding.value = true
 }
+// «Nuovo cliente» from the client selector opens the dialog here (`?nuovo=1`)
+const route = useRoute()
+const router = useRouter()
+function askedToAdd() {
+  if (route.query['nuovo'] === undefined) return
+  const query = { ...route.query }
+  delete query['nuovo']
+  void router.replace({ query })
+  if (org.may.value.createWorkspace) startAdding()
+}
+onMounted(askedToAdd)
+watch(() => route.query['nuovo'], askedToAdd)
 async function created(clientName: string) {
   filter.value = 'active'
   query.value = ''

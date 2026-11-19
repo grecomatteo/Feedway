@@ -24,7 +24,6 @@ const axe = (page: Page) =>
 
 test('the user menu: who is signed in, the theme, and «Impostazioni» with the sidebar', async ({
   page,
-  isMobile,
 }) => {
   const owner = await newPerson('Olga Menu', 'owner')
   await signInWithTotp(page.request, owner)
@@ -34,30 +33,25 @@ test('the user menu: who is signed in, the theme, and «Impostazioni» with the 
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toHaveCount(0)
 
   const menu = await openUserMenu(page, 'Olga Menu')
-  // the first entry takes the focus, on a phone too, where Utenti leads (the sidebar's, §11.11)
-  await expect(
-    menu.getByRole('menuitem', { name: isMobile ? 'Utenti' : 'Impostazioni' }),
-  ).toBeFocused()
+  // the first entry takes the focus (screen 06: Libreria leads, on a phone and on a computer)
+  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
   // who is signed in heads the menu, outside its entries
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
 
-  // the rarely used agency pages are in the menu, not in the sidebar
-  await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toHaveAttribute(
-    'href',
-    `/${owner.organizationSlug}/registro`,
-  )
+  // the rarely used agency pages left the menu and the sidebar: they open from Impostazioni
   await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toHaveAttribute(
     'href',
     '/account',
   )
-  await expect(menu.getByRole('menuitem', { name: 'Privacy' })).toBeVisible()
-  for (const name of ['Registro attività', 'Impostazioni', 'Privacy'])
+  for (const name of ['Registro attività', 'Privacy']) {
+    await expect(menu.getByRole('menuitem', { name })).toHaveCount(0)
     await expect(
       page
         .getByRole('navigation', { name: 'Navigazione principale' })
         .getByRole('link', { name, exact: true }),
     ).toHaveCount(0)
+  }
 
   // the theme is one button beside «Esci»: it changes at once, stays open, and is kept
   const html = page.locator('html')
@@ -140,16 +134,16 @@ test('the user menu works from the keyboard', async ({ page, isMobile }) => {
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
   const menu = await openUserMenu(page, 'Olga Tasti')
-  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'Registro attività' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Utenti' })).toBeFocused()
   await page.keyboard.press('End')
   await expect(menu.getByRole('menuitem', { name: /^Passa al tema/ })).toBeFocused()
   await page.keyboard.press('ArrowLeft')
   await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeFocused()
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
 })
 
 test('«Esci» from the user menu closes the session', async ({ page }) => {

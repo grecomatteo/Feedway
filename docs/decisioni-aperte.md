@@ -420,3 +420,17 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   8. Le scelte del filtro a schede (`SegmentedFilter`) sono alte 36 sul telefono, come in `base.css` e nelle schermate, non 44 come chiede il «Review Focus» del piano per le aree di tocco: il pozzetto intorno è alto 44. Il filtro riempie la riga solo dentro una `Toolbar` (come `.tools > .seg` di `base.css`), così Libreria e scelta dei file non cambiano prima dei loro task.
   9. `h3` è nel carattere di sistema, 14 semigrassetto, come dice il piano (R1, `main.css`); `base.css` lo vuole in Sora 16 per i titoli delle finestre. Si rivede con le finestre del Task R4 (nuovo cliente) e del Task R8.
 - **Stato:** provvisorie; Matteo può cambiarle, il Task R9 rivede 1 e 2.
+
+### D-87 · Scelte provvisorie del guscio (Task R2)
+- **Origine:** Task R2 del ridisegno, PR «guscio» (19/11).
+- **Scelte:**
+  1. Il menu della persona mostra Libreria e Utenti anche al computer, come la schermata `06`. `base.css` le nasconde al computer (`.pop .m-it`), e la barra laterale le ha già: vale la schermata, come dice il piano. Se a Matteo sembra un doppione, basta toglierle al computer.
+  2. «Registro attività» e «Privacy» dell'agenzia escono dal menu della persona (`06`) ed entrano nel gruppo «Agenzia» delle Impostazioni, che ora vede anche chi non è Owner o Admin (con la sola «Privacy»). Le due pagine restano dove sono, fuori dalle Impostazioni, finché il Task R8 non le sposta dentro con un rinvio dagli indirizzi vecchi.
+  3. Il pallino del selettore viene dai profili del cliente («da ricollegare», «con un problema», «da controllare») ed è sempre ambra, come Forno Luce nella schermata `04`. Il rosso di Osteria Bruna è un post non uscito (tappa 7). I file non riusciti arrivano con la lettura di «Da sistemare» del Task R3, che il piano vuole condivisa con il pallino.
+  4. «Cambia agenzia» c'è quando la persona ha più di un'agenzia, anche sospesa (prima contavano solo quelle attive): da un'agenzia sospesa è l'unica uscita, ora che il selettore d'agenzia non c'è più. Porta alla pagina `/agenzie`. Nel campione delle schermate Giulia ha una seconda agenzia, Studio Nord, perché `06` lo mostra.
+  5. Calendario sul telefono ha l'aspetto della schermata, senza l'etichetta «Presto» che c'era prima; il lettore di schermo legge «Calendario (Presto)» e un tocco non fa niente. Al computer l'etichetta resta, come nella schermata.
+  6. La campanella è spenta («Presto» al passaggio) e non ha il punto arancio della schermata del telefono: le notifiche arrivano con la tappa 8.
+  7. Le icone hanno il tratto 1,75 di `base.css` (`svg.ic`) in tutto il pannello, non solo nel guscio (`app.config.ts`, `icon.customize`); il «+» della barra in basso 2,25.
+  8. Al computer il selettore aperto tiene il fuoco nella ricerca, che si vede con il bordo scuro: la schermata `04` la mostra senza fuoco. Sul telefono la ricerca aspetta un tocco, perché la tastiera coprirebbe il foglio.
+  9. L'ordine dei clienti nel selettore è alfabetico, come oggi; nella schermata `04` è un altro (Osteria Bruna seconda).
+- **Stato:** provvisorie; Matteo può cambiarle.
