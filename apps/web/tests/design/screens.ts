@@ -61,4 +61,19 @@ export const SCREENS: Screen[] = [
   },
   { id: '06-menu-utente', path: (s) => `/${s.org}`, prepare: (p) => openShell(p, 'person') },
   { id: '14-clienti', path: (s) => `/${s.org}/spazi` },
+  // «Nuovo cliente» with the name typed and the two profiles in no client ticked
+  {
+    id: '15-nuovo-cliente',
+    path: (s) => `/${s.org}/spazi`,
+    prepare: async (page) => {
+      await page.getByRole('button', { name: 'Nuovo cliente' }).locator('visible=true').click()
+      const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
+      await dialog.getByRole('checkbox', { name: '@barcentrale.bo' }).click()
+      await dialog.getByRole('checkbox', { name: 'Bar Centrale Bologna' }).click()
+      await dialog.getByRole('textbox', { name: 'Nome' }).fill('Bar Centrale')
+      await dialog.getByRole('textbox', { name: 'Nome' }).blur()
+      await page.mouse.move(0, 0)
+      await page.waitForTimeout(300)
+    },
+  },
 ]

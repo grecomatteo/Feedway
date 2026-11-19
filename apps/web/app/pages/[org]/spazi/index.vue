@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import type { ClientProfile } from '@app/contracts'
-import { PROFILE_LINKS, worstLink } from '@app/domain'
+import { worstLink } from '@app/domain'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { DataColumn } from '~/components/DataTable.vue'
+import type { Platform } from '~/components/PlatformIcons.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
 
-// «Clienti» in the union style (plan 04 Task 5b, spec §14.7, DESIGN.md «Elenchi e tabelle»):
-// one row per client with its profiles, the state of the link only where someone has to act.
+// «Clienti» of the new direction (screen 14, redesign R4, spec §14.7): one row per client with
+// its profiles, its next post and how many are planned, the state of the link only where someone
+// has to act. No sentence under the title: the rows say which client asks for something.
 definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
 const { t } = useI18n()
 const { call, failure } = useApi()
 const { data, status, error, refresh } = useWorkspaces()
+// «Prossimo post» and «In programma», from the read «Oggi» shares (D-88.7)
+const now = new Date()
+const { data: activity } = useClientActivity(now)
 // the menus and the dialogs work once Vue runs the page
 const ready = useHydrated()
 
@@ -35,30 +39,29 @@ const stateOf = (w: WorkspaceView) => {
   const link = linkOf(w)
   return link === 'ok' ? null : { link, tone: TONE[link], label: t(`workspaces.link.${link}`) }
 }
-/** The first client that needs someone, for the sentence at the top. */
-const firstProblem = computed(() => {
-  for (const link of PROFILE_LINKS.filter((l) => l !== 'ok')) {
-    const w = active.value.find((c) => linkOf(c) === link)
-    if (w) return { workspace: w, link }
-  }
-  return null
-})
 
-// ---- profiles: the first one's accounts, then «+N» for the others
-const PLATFORM_ICON: Record<string, string> = {
-  instagram: 'i-lucide-instagram',
-  facebook: 'i-lucide-facebook',
-}
-const iconOf = (platform: string) => PLATFORM_ICON[platform] ?? 'i-lucide-at-sign'
+// ---- profiles: the first two accounts, the Instagram ones first, then «+N» for the others
+const PROFILES_SHOWN = 2
 const handleOf = (a: ClientProfile['accounts'][number]) =>
   a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
-const firstAccounts = (w: WorkspaceView) => w.profiles?.[0]?.accounts ?? []
-const moreProfiles = (w: WorkspaceView) => Math.max((w.profiles?.length ?? 0) - 1, 0)
-const profilesText = (w: WorkspaceView) => {
-  const names = firstAccounts(w).map(handleOf).join(' · ')
-  if (!names) return t('workspaces.noProfile')
-  const more = moreProfiles(w)
-  return more > 0 ? `${names} ${t('workspaces.moreProfiles', { n: more })}` : names
+const accountsOf = (w: WorkspaceView) =>
+  (w.profiles ?? [])
+    .flatMap((p) => p.accounts)
+    .sort((a, b) => Number(b.platform === 'instagram') - Number(a.platform === 'instagram'))
+const shownAccounts = (w: WorkspaceView) => accountsOf(w).slice(0, PROFILES_SHOWN)
+const moreAccounts = (w: WorkspaceView) => Math.max(accountsOf(w).length - PROFILES_SHOWN, 0)
+const platformOf = (a: ClientProfile['accounts'][number]) => [a.platform as Platform]
+
+// ---- the next post and how many are planned: «—» for a client with none
+const activityOf = (w: WorkspaceView) =>
+  activity.value?.items.find((a) => a.workspaceId === w.id && a.scheduled > 0) ?? null
+const nextOf = (w: WorkspaceView) => {
+  const a = activityOf(w)
+  return a?.nextAt ? formatRelative(a.nextAt, { now }) : null
+}
+const plannedOf = (w: WorkspaceView) => {
+  const n = activityOf(w)?.scheduled ?? 0
+  return n > 0 ? t('workspaces.planned', { n }, n) : null
 }
 
 // ---- filter and search
@@ -84,18 +87,15 @@ const visible = computed(() => {
   )
 })
 
-const columns = computed<DataColumn[]>(() => [
-  { key: 'name', label: t('workspaces.column.client') },
-  { key: 'profiles', label: t('workspaces.column.profiles') },
-  { key: 'link', label: t('workspaces.column.link') },
-  {
-    key: 'actions',
-    label: t('workspaces.column.actions'),
-    hideLabel: true,
-    align: 'end',
-    class: 'w-px px-2 whitespace-nowrap',
-  },
+const head = computed(() => [
+  t('workspaces.column.client'),
+  t('workspaces.column.profiles'),
+  t('workspaces.column.next'),
+  t('workspaces.column.planned'),
+  t('workspaces.column.link'),
+  { label: t('workspaces.column.actions'), hidden: true as const },
 ])
+const COLUMNS = 'minmax(0, 1.4fr) minmax(0, 1.6fr) 150px 110px 150px 30px'
 const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)
 /** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
 const canReconnect = (w: WorkspaceView) =>
@@ -263,12 +263,11 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       },
     ],
   ]
-  // on a phone the row has no room for the button: «Ricollega» comes first in «⋯»
+  // the row shows the state only: «Ricollega» comes first in «⋯», where it is the thing to do
   if (canReconnect(w))
     groups[0]?.unshift({
       label: t('workspaces.reconnect'),
       icon: 'i-lucide-link',
-      class: 'md:hidden',
       onSelect: () => void navigateTo(integrations.value),
     })
   if (canManageMembers(w))
@@ -295,69 +294,40 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
   <PageShell :data-ready="ready || undefined">
     <template #head>
       <PageHeader :title="$t('workspaces.title')">
-        <template v-if="status === 'success' && active.length > 0" #summary>
-          {{ $t('workspaces.count', { n: active.length }, active.length) }}
-          <i18n-t
-            v-if="firstProblem"
-            :keypath="`workspaces.problem.${firstProblem.link}`"
-            tag="span"
-          >
-            <template #name>
-              <NuxtLink
-                :to="pageOf(firstProblem.workspace)"
-                class="text-(--app-text) underline underline-offset-3"
-                >{{ firstProblem.workspace.name }}</NuxtLink
-              >
-            </template>
-          </i18n-t>
-        </template>
+        <!-- on a phone the action sits beside the title, on a computer in the tools' line -->
         <template v-if="org.may.value.createWorkspace" #actions>
           <UButton
-            class="min-h-control"
+            class="md:hidden"
+            color="neutral"
+            variant="outline"
             icon="i-lucide-plus"
-            :aria-label="$t('workspaces.new')"
             @click="startAdding()"
           >
-            <span class="max-md:hidden">{{ $t('workspaces.new') }}</span>
+            {{ $t('workspaces.new') }}
           </UButton>
         </template>
       </PageHeader>
     </template>
 
-    <div class="flex flex-col gap-block">
-      <div
-        v-if="orphans.length > 0"
-        class="flex flex-wrap items-center gap-3 rounded-[10px] bg-(--app-brand-soft) px-4 py-3 text-sm"
-      >
-        <UIcon name="i-lucide-link" class="size-[1.125rem] shrink-0" aria-hidden="true" />
-        <span class="min-w-0 flex-1">{{
-          $t('clients.fix.notice', { n: orphans.length }, orphans.length)
-        }}</span>
+    <div>
+      <p v-if="done" role="status" class="mb-3 text-sm text-(--app-success)">{{ done }}</p>
+      <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>
+
+      <Toolbar v-if="status !== 'error' && all.length > 0">
+        <SegmentedFilter v-model="filter" :label="$t('workspaces.show')" :options="options" />
+        <SearchField v-model="query" :label="$t('workspaces.search')" />
+        <span class="flex-1 max-md:hidden" />
         <UButton
-          class="min-h-9 bg-(--app-surface)"
+          v-if="org.may.value.createWorkspace"
+          class="max-md:hidden"
           color="neutral"
           variant="outline"
-          @click="fixing = true"
+          icon="i-lucide-plus"
+          @click="startAdding()"
         >
-          {{ $t('clients.fix.open') }}
+          {{ $t('workspaces.new') }}
         </UButton>
-      </div>
-
-      <p v-if="done" role="status" class="text-sm text-(--app-success)">{{ done }}</p>
-      <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
-
-      <div
-        v-if="status !== 'error' && all.length > 0"
-        class="flex flex-col gap-3 md:flex-row md:items-center"
-      >
-        <SegmentedFilter
-          v-model="filter"
-          :label="$t('workspaces.show')"
-          :options="options"
-          class="self-start"
-        />
-        <SearchField v-model="query" :label="$t('workspaces.search')" />
-      </div>
+      </Toolbar>
 
       <TableSkeleton
         v-if="status === 'pending' || status === 'idle'"
@@ -365,17 +335,17 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         :columns="[
           $t('workspaces.column.client'),
           $t('workspaces.column.profiles'),
-          $t('workspaces.column.link'),
+          $t('workspaces.column.next'),
         ]"
         :rows="4"
       />
       <div
         v-else-if="error"
         role="alert"
-        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
+        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
       >
         <p>{{ $t('workspaces.loadError') }}</p>
-        <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
+        <UButton color="neutral" variant="outline" @click="() => refresh()">
           {{ $t('account.retry') }}
         </UButton>
       </div>
@@ -386,10 +356,22 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
           org.may.value.createWorkspace ? $t('workspaces.emptyCreate') : $t('workspaces.emptyAsk')
         "
         icon="i-lucide-briefcase"
-      />
+      >
+        <UButton
+          v-if="org.may.value.createWorkspace"
+          class="max-md:hidden"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+          @click="startAdding()"
+        >
+          {{ $t('workspaces.new') }}
+        </UButton>
+      </EmptyState>
       <p
         v-else-if="visible.length === 0"
-        class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+        class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
+        data-clients-none
       >
         {{
           query.trim()
@@ -399,89 +381,87 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
               : $t('workspaces.empty')
         }}
       </p>
-      <DataTable
+      <ListSurface
         v-else
-        :caption="$t('workspaces.title')"
-        :columns="columns"
-        :rows="visible"
-        :row-key="(w) => w.id"
+        class="max-lg:[&>[data-list-head]]:hidden"
+        :columns="COLUMNS"
+        :head="head"
+        :label="$t('workspaces.title')"
       >
-        <template #cell-name="{ row }">
-          <span class="flex min-w-0 items-center gap-3">
-            <RowAvatar :name="row.name" :src="row.photoUrl" />
-            <NuxtLink
-              :to="pageOf(row)"
-              class="truncate text-[0.9375rem] font-semibold underline-offset-3 hover:underline"
-              >{{ row.name }}</NuxtLink
-            >
+        <ListRow
+          v-for="w in visible"
+          :key="w.id"
+          class="max-lg:grid-cols-[minmax(0,1fr)_auto_auto]"
+          :data-client="w.slug"
+        >
+          <span role="cell" class="flex min-w-0 items-center gap-3">
+            <Avatar :name="w.name" :src="w.photoUrl" />
+            <span class="min-w-0">
+              <NuxtLink
+                :to="pageOf(w)"
+                class="block truncate font-semibold underline-offset-3 hover:underline"
+                >{{ w.name }}</NuxtLink
+              >
+              <span class="block truncate text-detail text-(--app-text-muted) lg:hidden">{{
+                nextOf(w)
+                  ? $t('workspaces.nextShort', { when: nextOf(w) })
+                  : $t('workspaces.nothingPlanned')
+              }}</span>
+            </span>
           </span>
-        </template>
-        <template #cell-profiles="{ row }">
-          <span
-            v-if="firstAccounts(row).length > 0"
-            class="flex items-center gap-x-3 text-(--app-text-muted)"
-          >
-            <span
-              v-for="a in firstAccounts(row)"
-              :key="a.id"
-              class="inline-flex min-w-0 items-center gap-1"
-            >
-              <UIcon
-                :name="iconOf(a.platform)"
-                class="size-[0.9375rem] shrink-0"
-                aria-hidden="true"
+          <span role="cell" class="flex min-w-0 items-center gap-x-3.5 max-lg:hidden">
+            <template v-if="shownAccounts(w).length > 0">
+              <PlatformIcons
+                v-for="a in shownAccounts(w)"
+                :key="a.id"
+                :platforms="platformOf(a)"
+                :label="handleOf(a)"
+                class="min-w-0"
               />
-              <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}:</span>
-              <span class="truncate">{{ handleOf(a) }}</span>
-            </span>
-            <span v-if="moreProfiles(row) > 0" class="tabular-nums">
-              <span aria-hidden="true">{{
-                $t('workspaces.moreProfiles', { n: moreProfiles(row) })
-              }}</span>
-              <span class="sr-only">{{
-                $t('workspaces.moreProfilesLabel', { n: moreProfiles(row) }, moreProfiles(row))
-              }}</span>
-            </span>
-          </span>
-          <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
-        </template>
-        <template #cell-link="{ row }">
-          <StatusDot v-if="stateOf(row)" :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
-        </template>
-        <template #cell-actions="{ row }">
-          <span class="flex items-center justify-end gap-1">
-            <UButton
-              v-if="canReconnect(row)"
-              color="neutral"
-              variant="outline"
-              class="min-h-control"
-              :to="integrations"
-              :aria-label="$t('workspaces.reconnectOf', { name: row.name })"
-            >
-              {{ $t('workspaces.reconnect') }}
-            </UButton>
-            <RowActions :name="row.name" :items="actions(row)" />
-          </span>
-        </template>
-        <template #mobile="{ row }">
-          <DataRow
-            :name="row.name"
-            :to="pageOf(row)"
-            :src="row.photoUrl"
-            :detail="profilesText(row)"
-          >
-            <template v-if="stateOf(row)" #detail>
-              <span class="flex min-w-0 items-center gap-2">
-                <StatusDot :tone="stateOf(row)!.tone" :label="stateOf(row)!.label" />
-                <span class="truncate">{{ profilesText(row) }}</span>
+              <span v-if="moreAccounts(w) > 0" class="text-(--app-text-muted) tabular-nums">
+                <span aria-hidden="true">{{
+                  $t('workspaces.moreProfiles', { n: moreAccounts(w) })
+                }}</span>
+                <span class="sr-only">{{
+                  $t('workspaces.moreProfilesLabel', { n: moreAccounts(w) }, moreAccounts(w))
+                }}</span>
               </span>
             </template>
-            <template #actions>
-              <RowActions :name="row.name" :items="actions(row)" />
-            </template>
-          </DataRow>
-        </template>
-      </DataTable>
+            <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
+          </span>
+          <span
+            role="cell"
+            class="max-lg:hidden"
+            :class="nextOf(w) ? '' : 'text-(--app-text-muted)'"
+          >
+            {{ nextOf(w) ?? '—' }}
+          </span>
+          <span role="cell" class="text-(--app-text-muted) max-lg:hidden">
+            {{ plannedOf(w) ?? '—' }}
+          </span>
+          <span role="cell" class="min-w-0">
+            <StatusDot v-if="stateOf(w)" :tone="stateOf(w)!.tone" :label="stateOf(w)!.label" />
+          </span>
+          <span role="cell" class="flex justify-end lg:-me-2">
+            <RowActions :name="w.name" :items="actions(w)" />
+          </span>
+        </ListRow>
+      </ListSurface>
+
+      <p
+        v-if="orphans.length > 0 && status === 'success'"
+        class="mt-3 text-detail text-(--app-text-muted)"
+        data-clients-orphans
+      >
+        {{ $t('clients.fix.notice', { n: orphans.length }, orphans.length) }}
+        <button
+          type="button"
+          class="font-medium text-(--app-text) underline decoration-(--app-border-strong) underline-offset-3"
+          @click="fixing = true"
+        >
+          {{ $t('clients.fix.open') }}
+        </button>
+      </p>
     </div>
 
     <NewClientDialog

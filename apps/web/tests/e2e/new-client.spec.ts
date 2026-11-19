@@ -16,8 +16,7 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
-const clients = (page: Page) =>
-  page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' }))
+const clients = (page: Page) => page.getByRole('table', { name: 'Clienti' })
 const proposals = (page: Page) =>
   page
     .getByRole('table', { name: 'Clienti da creare' })
@@ -118,7 +117,9 @@ test('«Abbina ai clienti»: untick, rename, join two rows, «Crea N clienti» a
   await expect(page).toHaveURL(new RegExp(`/${org}/spazi$`))
   await expect(page.locator('[data-ready]')).toHaveCount(1)
   await expect(clients(page).getByRole('link')).toHaveText(['Panificio Luce', 'Studio Rossi'])
-  await expect(page.getByText('1 profilo trovato non è in un cliente.')).toBeVisible()
+  await expect(
+    page.getByText('1 profilo trovato su Meta non è ancora in un cliente.'),
+  ).toBeVisible()
   const undo = page.getByRole('status').filter({ hasText: '2 clienti creati' })
   await expect(undo).toBeVisible()
   await fitsTheScreen(page)
@@ -129,10 +130,12 @@ test('«Abbina ai clienti»: untick, rename, join two rows, «Crea N clienti» a
     page.getByText('Fatto: i clienti sono tolti e i profili sono in «Sistemali».'),
   ).toBeVisible()
   await expect(clients(page)).toHaveCount(0)
-  await expect(page.getByText('4 profili trovati non sono in un cliente.')).toBeVisible()
+  await expect(
+    page.getByText('4 profili trovati su Meta non sono ancora in un cliente.'),
+  ).toBeVisible()
 })
 
-test('«Nuovo cliente» from a profile, and without one', async ({ page }) => {
+test('«Nuovo cliente» with the profiles in no client, and without one', async ({ page }) => {
   const owner = await newPerson('Olga Profilo', 'owner')
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
@@ -140,27 +143,36 @@ test('«Nuovo cliente» from a profile, and without one', async ({ page }) => {
 
   await page.goto(`/${org}/spazi`)
   await expect(page.locator('[data-ready]')).toHaveCount(1)
-  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
+  await page.getByRole('button', { name: 'Nuovo cliente' }).locator('visible=true').click()
   const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
-  await dialog.getByRole('radio', { name: /Forno Luce/ }).check()
-  await expect(dialog.getByLabel('Nome del nuovo cliente')).toHaveValue('Forno Luce')
+  // nothing is ticked without a click
+  await expect(dialog.getByRole('checkbox', { checked: true })).toHaveCount(0)
+  // ticking a profile proposes its name, the next one does not replace a name already proposed
+  await dialog.getByRole('checkbox', { name: /@fornoluce/ }).click()
+  await expect(dialog.getByLabel('Nome')).toHaveValue('Forno Luce')
+  await dialog.getByRole('checkbox', { name: /Bottega Verde/ }).click()
+  await expect(dialog.getByLabel('Nome')).toHaveValue('Forno Luce')
+  await dialog.getByRole('checkbox', { name: /Bottega Verde/ }).click()
+  await expect(
+    dialog.getByText('Sono i profili trovati su Meta che non hanno ancora un cliente.'),
+  ).toBeVisible()
+  await page.mouse.move(0, 0)
   expect((await axe(page)).violations).toEqual([])
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(dialog).toHaveCount(0)
-  const forno = clients(page)
-    .locator(isPhone(page) ? 'li' : 'tr')
-    .filter({ hasText: 'Forno Luce' })
+  const forno = clients(page).getByRole('row').filter({ hasText: 'Forno Luce' })
   await expect(forno).toContainText('@fornoluce')
 
-  await page.getByRole('button', { name: 'Nuovo cliente' }).click()
-  await dialog.getByRole('radio', { name: /Senza profilo, per ora/ }).check()
-  await dialog.getByLabel('Nome del nuovo cliente').fill('Cantina Monteverde')
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await page.getByRole('button', { name: 'Nuovo cliente' }).locator('visible=true').click()
+  await expect(dialog.getByRole('checkbox', { checked: true })).toHaveCount(0)
+  await dialog.getByLabel('Nome').fill('Cantina Monteverde')
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(
-    clients(page)
-      .locator(isPhone(page) ? 'li' : 'tr')
-      .filter({ hasText: 'Cantina Monteverde' }),
+    clients(page).getByRole('row').filter({ hasText: 'Cantina Monteverde' }),
   ).toContainText('Nessun profilo')
+  await expect(
+    page.getByText('3 profili trovati su Meta non sono ancora in un cliente.'),
+  ).toBeVisible()
 })
 
 test('«Sistemali»: create the client, or add the profile to one that exists', async ({ page }) => {
@@ -172,7 +184,9 @@ test('«Sistemali»: create the client, or add the profile to one that exists', 
 
   await page.goto(`/${org}/spazi`)
   await expect(page.locator('[data-ready]')).toHaveCount(1)
-  await expect(page.getByText('4 profili trovati non sono in un cliente.')).toBeVisible()
+  await expect(
+    page.getByText('4 profili trovati su Meta non sono ancora in un cliente.'),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Sistemali' }).click()
   const panel = page.getByRole('dialog', { name: 'Profili senza cliente' })
   expect((await axe(page)).violations).toEqual([])
@@ -185,14 +199,19 @@ test('«Sistemali»: create the client, or add the profile to one that exists', 
   await expect(
     page.getByRole('status').filter({ hasText: 'Bottega Verde aggiunto a Bottega.' }),
   ).toBeVisible()
-  await expect(page.getByText('3 profili trovati non sono in un cliente.')).toBeVisible()
+  await expect(
+    page.getByText('3 profili trovati su Meta non sono ancora in un cliente.'),
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Sistemali' }).click()
   await panel.getByRole('button', { name: 'Crea il cliente per Studio Rossi' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
-  await expect(dialog.getByLabel('Nome del nuovo cliente')).toHaveValue('Studio Rossi')
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
-  await expect(page.getByText('2 profili trovati non sono in un cliente.')).toBeVisible()
+  await expect(dialog.getByLabel('Nome')).toHaveValue('Studio Rossi')
+  await expect(dialog.getByRole('checkbox', { checked: true })).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
+  await expect(
+    page.getByText('2 profili trovati su Meta non sono ancora in un cliente.'),
+  ).toBeVisible()
   await expect(clients(page).getByRole('link')).toHaveText(['Bottega', 'Studio Rossi'])
   await fitsTheScreen(page)
 })

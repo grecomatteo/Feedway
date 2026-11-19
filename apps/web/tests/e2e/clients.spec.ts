@@ -10,8 +10,9 @@ import {
   signInWithTotp,
 } from './support/people.ts'
 
-// «Clienti» in the union style (plan 04 Task 5b, spec §14.7): the clients with their profiles,
-// the state of the link only where someone has to act, filter, search and «⋯».
+// «Clienti» of the new direction (screen 14, redesign R4, spec §14.7): the clients with their
+// profiles, next post and posts planned, the state of the link only where someone has to act,
+// filter, search and «⋯».
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -23,12 +24,11 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
-/** The table on a computer, the rows on a phone: the one that shows. */
-const clients = (page: Page) =>
-  page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' }))
+/** The list of the clients: a table, whose head a phone hides. */
+const clients = (page: Page) => page.getByRole('table', { name: 'Clienti' })
 const rowOf = (page: Page, name: string) =>
   clients(page)
-    .locator(isPhone(page) ? 'li' : 'tr')
+    .getByRole('row')
     .filter({ has: page.getByRole('link', { name, exact: true }) })
 
 async function fitsTheScreen(page: Page) {
@@ -65,7 +65,8 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(page.locator('[data-ready]')).toHaveCount(1)
 
   await expect(page.getByRole('heading', { level: 1, name: 'Clienti' })).toBeVisible()
-  await expect(page.getByRole('main').locator('header p').first()).toHaveText('3 clienti.')
+  // no sentence under the title (D-81)
+  await expect(page.locator('[data-page-summary]')).toHaveCount(0)
   // the profile is its Instagram and its Page; a client without one says so
   await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
   await expect(rowOf(page, 'Bottega')).toContainText('Bottega Verde')
@@ -76,9 +77,15 @@ test('the clients with their profiles, the summary, search and the archived ones
     await expect(clients(page).getByRole('columnheader')).toHaveText([
       'Cliente',
       'Profili',
+      'Prossimo post',
+      'In programma',
       'Collegamento',
       'Azioni',
     ])
+  // nothing planned yet: a dash on a computer, a sentence on a phone
+  await expect(rowOf(page, 'Forno Luce')).toContainText(
+    isPhone(page) ? 'Nessun post in programma' : '—',
+  )
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
 
@@ -93,8 +100,8 @@ test('the clients with their profiles, the summary, search and the archived ones
   // a client created during a search shows: the search empties
   await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
-  await dialog.getByLabel('Nome del nuovo cliente').fill('Ottica Bellavista')
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await dialog.getByLabel('Nome').fill('Ottica Bellavista')
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(rowOf(page, 'Ottica Bellavista')).toBeVisible()
   await expect(search).toHaveValue('')
 
@@ -109,7 +116,6 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(
     page.getByRole('status').filter({ hasText: 'Studio Riva archiviato.' }),
   ).toBeVisible()
-  await expect(page.getByRole('main').locator('header p').first()).toHaveText('3 clienti.')
   const filter = page.getByRole('group', { name: 'Mostra' })
   await filter.getByRole('button', { name: 'Archiviati 1' }).click()
   await expect(clients(page).getByRole('link')).toHaveText(['Studio Riva'])
@@ -117,7 +123,7 @@ test('the clients with their profiles, the summary, search and the archived ones
   await expect(page.getByRole('menuitem')).toHaveText(['Apri', 'Persone'])
 })
 
-test('a profile to reconnect: the summary links to the client, «Ricollega» for the Owner', async ({
+test('a profile to reconnect: the row says it, «Ricollega» in «⋯» for the Owner', async ({
   page,
 }) => {
   const { org } = await agencyWithClients(page)
@@ -127,31 +133,46 @@ test('a profile to reconnect: the summary links to the client, «Ricollega» for
   await page.goto(`/${org}/spazi`)
   await expect(page.locator('[data-ready]')).toHaveCount(1)
 
-  const summary = page.getByRole('main').locator('header p').first()
-  await expect(summary).toHaveText('3 clienti. Bottega ha un profilo da ricollegare.')
-  await expect(summary.getByRole('link', { name: 'Bottega' })).toHaveAttribute(
-    'href',
-    /\/spazi\/bottega[^/]*$/,
-  )
   await expect(rowOf(page, 'Forno Luce').getByText('Da ricollegare')).toBeVisible()
+  await expect(rowOf(page, 'Bottega').getByText('Da ricollegare')).toBeVisible()
   await expect(rowOf(page, 'Studio Riva').locator('[data-tone]')).toHaveCount(0)
   await fitsTheScreen(page)
   expect((await axe(page)).violations).toEqual([])
-  // the state does not hide the profiles
-  await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
+  // the state does not hide the profiles (on a phone they are on the client's page)
+  if (!isPhone(page)) await expect(rowOf(page, 'Forno Luce')).toContainText('@fornoluce')
+  // «Ricollega» is the first action of «⋯», where it is the thing to do
+  await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
+  await expect(page.getByRole('menuitem').first()).toHaveText('Ricollega')
+  await page.getByRole('menuitem', { name: 'Ricollega' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta$`))
+})
+
+test('the next post and how many are planned, only for what is still to come', async ({ page }) => {
+  const { org, forno } = await agencyWithClients(page)
+  const now = new Date()
+  // three scheduled posts of Forno Luce: in two hours, in three days, and one already gone
+  for (const hours of [2, 72, -5]) {
+    const res = await page.request.post(`/api/v1/orgs/${org}/workspaces/${forno.id}/posts`, {
+      headers: { origin: new URL(process.env.E2E_BASE_URL ?? '').origin, 'x-app-request': '1' },
+      data: { type: 'photo', caption: { common: 'Prova' }, mediaIds: [], destinations: [] },
+    })
+    expect(res.status()).toBeLessThan(300)
+    const { id } = (await res.json()) as { id: string }
+    await adminQuery(
+      `update posts set status = 'scheduled', scheduled_by = created_by, scheduled_at = $2
+        where id = $1`,
+      [id, new Date(now.getTime() + hours * 3_600_000).toISOString()],
+    )
+  }
+  await page.goto(`/${org}/spazi`)
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  const row = rowOf(page, 'Forno Luce')
   if (isPhone(page)) {
-    // no room for the button: «Ricollega» comes first in «⋯»
-    await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
-    await expect(page.getByRole('menuitem').first()).toHaveText('Ricollega')
-    await page.getByRole('menuitem', { name: 'Ricollega' }).click()
-    await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta$`))
+    await expect(row).toContainText(/Prossimo: (oggi|domani), \d{1,2}:\d{2}/)
   } else {
-    await expect(
-      rowOf(page, 'Forno Luce').getByRole('link', { name: 'Ricollega i profili di Forno Luce' }),
-    ).toHaveAttribute('href', `/${org}/impostazioni/integrazioni/meta`)
-    // the button is enough: the menu does not repeat it
-    await rowOf(page, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Ricollega' })).toBeHidden()
+    await expect(row.getByRole('cell').nth(2)).toHaveText(/^(oggi|domani), \d{1,2}:\d{2}$/)
+    await expect(row.getByRole('cell').nth(3)).toHaveText('2 post')
+    await expect(rowOf(page, 'Bottega').getByRole('cell').nth(3)).toHaveText('—')
   }
 })
 
@@ -177,7 +198,6 @@ test('a Member sees only their client and its state, without «Ricollega» or ch
     await expect(clients(p).getByRole('link')).toHaveText(['Forno Luce'])
     await expect(rowOf(p, 'Forno Luce')).toContainText('Da ricollegare')
     await expect(p.getByText('Bottega Verde')).toHaveCount(0)
-    await expect(p.getByRole('link', { name: /Ricollega/ })).toHaveCount(0)
     await expect(p.getByRole('button', { name: 'Nuovo cliente' })).toHaveCount(0)
     await rowOf(p, 'Forno Luce').getByRole('button', { name: 'Azioni per Forno Luce' }).click()
     await expect(p.getByRole('menuitem')).toHaveText(['Apri'])
@@ -212,11 +232,13 @@ test('«Nuovo cliente» opens a dialog and the client joins the list', async ({ 
   await expect(page.locator('[data-ready]')).toHaveCount(1)
   await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
-  await dialog.getByLabel('Nome del nuovo cliente').fill('Gelateria Nuvola')
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await dialog.getByLabel('Nome').fill('Gelateria Nuvola')
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(dialog).toHaveCount(0)
-  await expect(rowOf(page, 'Gelateria Nuvola')).toContainText('Nessun profilo')
-  await expect(page.getByRole('main').locator('header p').first()).toHaveText('1 cliente.')
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Gelateria Nuvola creato.' }),
+  ).toBeVisible()
+  if (!isPhone(page)) await expect(rowOf(page, 'Gelateria Nuvola')).toContainText('Nessun profilo')
 
   await rowOf(page, 'Gelateria Nuvola')
     .getByRole('button', { name: 'Azioni per Gelateria Nuvola' })
