@@ -26,16 +26,15 @@ test.beforeEach(async ({ baseURL, page }) => {
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
-/** The list of «Clienti»: a table on a computer, rows on a phone. */
-const clientList = (page: Page) =>
-  page.getByRole('table', { name: 'Clienti' }).or(page.getByRole('list', { name: 'Clienti' }))
+/** The list of «Clienti». */
+const clientList = (page: Page) => page.getByRole('table', { name: 'Clienti' })
 
 async function createWorkspace(page: Page, name: string) {
   await expect(page.locator('[data-ready]')).toHaveCount(1)
   await page.getByRole('button', { name: 'Nuovo cliente' }).click()
   const dialog = page.getByRole('dialog', { name: 'Nuovo cliente' })
-  await dialog.getByLabel('Nome del nuovo cliente').fill(name)
-  await dialog.getByRole('button', { name: 'Crea', exact: true }).click()
+  await dialog.getByLabel('Nome').fill(name)
+  await dialog.getByRole('button', { name: 'Crea cliente' }).click()
   await expect(clientList(page).getByRole('link', { name, exact: true })).toBeVisible()
 }
 

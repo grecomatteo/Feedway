@@ -74,6 +74,17 @@ export const SAMPLE_CLIENTS: ClientSeed[] = [
   { name: 'Cantina Monteverde', profiles: [], archived: true },
 ]
 
+/** The profiles in no client of screens 14 and 15: an Instagram and a Page that Meta does not pair. */
+const ORPHANS: (ProfileSeed & { externalId: string })[] = [
+  {
+    platform: 'instagram',
+    name: 'Bar Centrale',
+    username: 'barcentrale.bo',
+    externalId: '9100000001',
+  },
+  { platform: 'facebook', name: 'Bar Centrale Bologna', externalId: '9100000002' },
+]
+
 interface PostSeed {
   client: string
   type: 'photo' | 'carousel' | 'reel'
@@ -255,6 +266,22 @@ export async function designSample(page: Page): Promise<DesignSample> {
   // the agency's Meta app and its system user, with the sample's profiles in place of the fake
   // Graph API's ones
   const { connectionId } = await connectedAgency(page.request, org, { importAccounts: false })
+  // «Da ricollegare»: a profile whose connection stopped working (the agency's own still works)
+  let expired: string | undefined
+  const expiredConnection = async () => {
+    expired ??= randomUUID()
+    await adminQuery(
+      `insert into account_connections (id, organization_id, kind, external_user_id, connected_by,
+                                        token_enc, key_version, status)
+       select $2::uuid, organization_id, kind, 'expired-' || $2::text, connected_by, token_enc,
+              key_version,
+              'expired'
+         from account_connections where id = $1
+       on conflict do nothing`,
+      [connectionId, expired],
+    )
+    return expired
+  }
   const clients: DesignSample['clients'] = {}
   const accounts: Record<string, Partial<Record<Platform, string>>> = {}
   for (const c of SAMPLE_CLIENTS) {
@@ -277,9 +304,9 @@ export async function designSample(page: Page): Promise<DesignSample> {
           p.name,
           p.username ?? null,
           p.platform === 'facebook' ? externalId : null,
-          connectionId,
-          p.broken ? 'error' : 'ok',
-          p.broken ? 'Il token della Pagina non è più valido' : null,
+          p.broken ? await expiredConnection() : connectionId,
+          'ok',
+          null,
           DESIGN_NOW.toISOString(),
         ],
       )
@@ -290,6 +317,25 @@ export async function designSample(page: Page): Promise<DesignSample> {
       mine[p.platform] ??= id
     }
   }
+
+  // two profiles found on Meta and in no client yet (screens 14 and 15)
+  for (const o of ORPHANS)
+    await adminQuery(
+      `insert into social_accounts (id, organization_id, platform, external_id, name, username,
+                                    page_id, connection_id, health, last_synced_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, 'ok', $9)`,
+      [
+        randomUUID(),
+        org,
+        o.platform,
+        o.externalId,
+        o.name,
+        o.username ?? null,
+        o.platform === 'facebook' ? o.externalId : null,
+        connectionId,
+        DESIGN_NOW.toISOString(),
+      ],
+    )
 
   // the three photos, in every client that has a post with them
   const files: Record<string, Partial<Record<Photo, string>>> = {}

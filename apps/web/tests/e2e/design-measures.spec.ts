@@ -38,6 +38,18 @@ const PAGES: MeasuredPage[] = [
     },
     control: '[data-today-empty] a',
   },
+  {
+    // an Owner with a client: the outline «Nuovo cliente», the search and a row (screen 14)
+    name: 'Clienti',
+    path: async (page) => {
+      const owner = await newPerson('Mara Clienti', 'owner')
+      await signInWithTotp(page.request, owner)
+      await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/spazi`
+    },
+    control: '[data-toolbar] > div:has(input[type="search"])',
+    row: '[data-list-row]',
+  },
 ]
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
@@ -76,9 +88,12 @@ for (const p of PAGES) {
     })
     expect(type.body, 'text size').toBe(phone ? '15px' : '14px')
     expect(type.numbers).toContain('tabular-nums')
-    expect(type.h2Size, 'section title size').toBe('14px')
-    expect(type.h2Weight).toBe('600')
-    expect(type.h2Family).not.toMatch(/^"?Sora/)
+    // the section titles, where the page has some
+    if (type.h2Size !== undefined) {
+      expect(type.h2Size, 'section title size').toBe('14px')
+      expect(type.h2Weight).toBe('600')
+      expect(type.h2Family).not.toMatch(/^"?Sora/)
+    }
 
     // the page title, where the page shows one: Sora 22 semibold, the only Sora on the screen
     const title = page.locator('h1').filter({ visible: true }).first()

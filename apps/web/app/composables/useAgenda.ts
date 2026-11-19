@@ -73,11 +73,20 @@ export function useAgenda(workspaceId: Ref<string | null>) {
       lazy: true,
     },
   )
-  const clients = useFetch<{ items: ClientActivity[] }>(() => org.api('/agenda/clients'), {
+  const clients = useClientActivity(now)
+  return { now, from, to, agenda, drafts, clients }
+}
+
+/**
+ * For every client the person sees with some posts: how many go out from `now`, the next one and
+ * the latest change (D-88.7). «Oggi» and «Clienti» share it; a client without posts is not there.
+ */
+export function useClientActivity(now = new Date()) {
+  const org = useOrganization()
+  return useFetch<{ items: ClientActivity[] }>(() => org.api('/agenda/clients'), {
     key: () => `agenda-clients-${org.slug.value}`,
     query: { from: now.toISOString() },
     server: false,
     lazy: true,
   })
-  return { now, from, to, agenda, drafts, clients }
 }

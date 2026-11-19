@@ -14,7 +14,7 @@ function clear() {
 
 <template>
   <div
-    class="flex min-h-control w-full items-center gap-2 rounded-control border border-(--app-border-strong) bg-(--app-card) pl-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--app-focus) md:max-w-80"
+    class="flex h-control w-full items-center gap-2 rounded-control border border-(--app-border-strong) bg-(--app-card) pl-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--app-focus) md:max-w-70"
   >
     <UIcon name="i-lucide-search" class="size-[1.125rem] shrink-0 text-(--app-text-muted)" />
     <input
@@ -23,7 +23,7 @@ function clear() {
       type="search"
       :aria-label="label"
       :placeholder="label"
-      class="min-w-0 flex-1 bg-transparent py-2 text-sm text-(--app-text) placeholder:text-(--app-text-muted) focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+      class="min-w-0 flex-1 self-stretch bg-transparent py-0 text-sm text-(--app-text) placeholder:text-(--app-text-muted) focus:outline-none [&::-webkit-search-cancel-button]:hidden"
       @keydown.esc="model ? clear() : undefined"
     />
     <button

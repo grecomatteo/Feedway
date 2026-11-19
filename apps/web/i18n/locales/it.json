@@ -774,15 +774,8 @@
   },
   "workspaces": {
     "title": "Clienti",
-    "count": "{n} cliente. | {n} clienti.",
-    "problem": {
-      "reconnect": "{name} ha un profilo da ricollegare.",
-      "error": "{name} ha un profilo con un problema.",
-      "warning": "{name} ha un profilo da controllare."
-    },
     "new": "Nuovo cliente",
-    "newName": "Nome del nuovo cliente",
-    "create": "Crea",
+    "create": "Crea cliente",
     "show": "Mostra",
     "activeFilter": "Attivi",
     "archivedFilter": "Archiviati",
@@ -794,12 +787,14 @@
     "column": {
       "client": "Cliente",
       "profiles": "Profili",
+      "next": "Prossimo post",
+      "planned": "In programma",
       "link": "Collegamento",
       "actions": "Azioni"
     },
     "noProfile": "Nessun profilo",
     "moreProfiles": "+{n}",
-    "moreProfilesLabel": "e un altro profilo | e altri {n} profili",
+    "moreProfilesLabel": "e un altro account | e altri {n} account",
     "link": {
       "reconnect": "Da ricollegare",
       "error": "Con problema",
@@ -822,7 +817,10 @@
     "archiveText": "Il cliente resta leggibile ma non si possono aggiungere persone né nuovi contenuti.",
     "archivePosts": "Il suo post programmato torna in bozza. | I suoi {n} post programmati tornano in bozza.",
     "archivePostsMany": "I suoi oltre {n} post programmati tornano in bozza.",
-    "archivePostsUnknown": "I suoi post programmati tornano in bozza."
+    "archivePostsUnknown": "I suoi post programmati tornano in bozza.",
+    "planned": "{n} post",
+    "nextShort": "Prossimo: {when}",
+    "nothingPlanned": "Nessun post in programma"
   },
   "workspaceAccounts": {
     "title": "Account del cliente",
@@ -1382,7 +1380,7 @@
       "undoneAdded": "Fatto: gli account sono tolti dai clienti e sono in «Sistemali»."
     },
     "fix": {
-      "notice": "{n} profilo trovato non è in un cliente. | {n} profili trovati non sono in un cliente.",
+      "notice": "{n} profilo trovato su Meta non è ancora in un cliente. | {n} profili trovati su Meta non sono ancora in un cliente.",
       "open": "Sistemali",
       "title": "Profili senza cliente",
       "intro": "Crea il loro cliente o aggiungili a uno che c'è già.",
@@ -1394,10 +1392,14 @@
       "empty": "Tutti i profili sono nei loro clienti."
     },
     "new": {
-      "profile": "Da quale profilo nasce?",
-      "none": "Senza profilo, per ora",
-      "noneHelp": "Per esempio un cliente che non ha ancora i social.",
-      "name": "Nome del nuovo cliente"
+      "name": "Nome",
+      "profiles": "Profili",
+      "profilesHelp": "Sono i profili trovati su Meta che non hanno ancora un cliente.",
+      "kind": {
+        "instagram": "Instagram",
+        "facebook": "Pagina Facebook",
+        "both": "Instagram e Pagina"
+      }
     },
     "created": "{name} creato."
   },
