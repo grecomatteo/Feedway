@@ -250,7 +250,7 @@ watch(open, (value) => {
         </p>
         <div class="flex flex-wrap gap-2">
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             icon="i-lucide-image-up"
             :loading="uploading"
             :disabled="!ready || busy"
@@ -260,7 +260,7 @@ watch(open, (value) => {
           </UButton>
           <UButton
             v-if="current"
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             icon="i-lucide-trash-2"
@@ -333,7 +333,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-left"
               :aria-label="$t('avatar.moveLeft')"
               @click="move(-1, 0)"
@@ -341,7 +341,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-up"
               :aria-label="$t('avatar.moveUp')"
               @click="move(0, -1)"
@@ -349,7 +349,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-down"
               :aria-label="$t('avatar.moveDown')"
               @click="move(0, 1)"
@@ -357,7 +357,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-right"
               :aria-label="$t('avatar.moveRight')"
               @click="move(1, 0)"
@@ -365,7 +365,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-in"
               :aria-label="$t('avatar.zoomIn')"
               :disabled="!canZoomIn"
@@ -374,7 +374,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-out"
               :aria-label="$t('avatar.zoomOut')"
               :disabled="!canZoomOut"
@@ -429,13 +429,13 @@ watch(open, (value) => {
           <UButton
             color="neutral"
             variant="outline"
-            class="min-h-11"
+            class="min-h-control"
             :disabled="saving"
             @click="open = false"
           >
             {{ tx('cancel') }}
           </UButton>
-          <UButton class="min-h-11" :loading="saving" @click="save">
+          <UButton class="min-h-control" :loading="saving" @click="save">
             {{ tx('save') }}
           </UButton>
         </div>

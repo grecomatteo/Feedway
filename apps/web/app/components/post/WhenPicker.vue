@@ -9,7 +9,7 @@ import type { PostEditor } from '~/composables/usePostEditor'
  * arrives (stage 7, Matteo 18/11).
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const e = props.editor
 
 /** «ora di New York»; null for Rome, the default */
@@ -40,15 +40,11 @@ const time = computed({
 const sentence = computed(() => {
   const w = e.when.value
   if (!w?.localDate || !w.localTime) return null
-  const day = new Intl.DateTimeFormat(locale.value, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'UTC',
-  }).format(new Date(`${w.localDate}T12:00:00Z`))
+  const day = formatDay(w.localDate)
+  const time = formatTime(w.localTime)
   return zone.value
-    ? t('posts.when.sentence', { day, time: w.localTime, zone: zone.value })
-    : t('posts.when.sentenceLocal', { day, time: w.localTime })
+    ? t('posts.when.sentence', { day, time, zone: zone.value })
+    : t('posts.when.sentenceLocal', { day, time })
 })
 const isDefault = computed(
   () => props.client.defaultPostTime && e.when.value?.localTime === props.client.defaultPostTime,
@@ -91,7 +87,7 @@ const isDefault = computed(
           type="date"
           :disabled="!e.editable.value"
           class="min-w-48"
-          :ui="{ base: 'min-h-11' }"
+          :ui="{ base: 'min-h-control' }"
         />
       </UFormField>
       <UFormField :label="$t('posts.when.time')" name="post-time">
@@ -101,10 +97,13 @@ const isDefault = computed(
           step="60"
           :disabled="!e.editable.value"
           class="w-32"
-          :ui="{ base: 'min-h-11' }"
+          :ui="{ base: 'min-h-control' }"
         />
       </UFormField>
-      <p v-if="zone" class="flex min-h-11 items-center gap-1.5 text-sm text-(--app-text-muted)">
+      <p
+        v-if="zone"
+        class="flex min-h-control items-center gap-1.5 text-sm text-(--app-text-muted)"
+      >
         <UIcon name="i-lucide-globe" class="size-4" aria-hidden="true" />
         {{ zone }}
       </p>

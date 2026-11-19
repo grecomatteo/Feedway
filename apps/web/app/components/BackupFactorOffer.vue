@@ -29,7 +29,7 @@ async function addNow() {
       </UButton>
       <UButton
         block
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="ghost"
         :disabled="going"

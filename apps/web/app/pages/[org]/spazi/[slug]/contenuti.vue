@@ -234,7 +234,7 @@ const actions = (edit: () => void, remove: () => void) => [
           <UButton
             v-if="timeChanged"
             type="submit"
-            class="min-h-11"
+            class="min-h-control"
             :loading="timeState === 'saving'"
           >
             {{ $t('contentSettings.save') }}
@@ -243,7 +243,7 @@ const actions = (edit: () => void, remove: () => void) => [
             v-else-if="client?.defaultPostTime"
             color="neutral"
             variant="ghost"
-            class="min-h-11"
+            class="min-h-control"
             :loading="timeState === 'saving'"
             @click="saveTime(null)"
           >
@@ -266,7 +266,7 @@ const actions = (edit: () => void, remove: () => void) => [
 
     <p v-if="failed" role="alert" class="space-y-2">
       <span class="block text-(--app-danger)">{{ $t('contentSettings.loadError') }}</span>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="settings.load()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="settings.load()">
         {{ $t('account.retry') }}
       </UButton>
     </p>
@@ -285,7 +285,7 @@ const actions = (edit: () => void, remove: () => void) => [
           color="neutral"
           variant="outline"
           icon="i-lucide-plus"
-          class="min-h-11"
+          class="min-h-control"
           @click="openLabel(null)"
         >
           {{ $t('contentSettings.labels.new') }}
@@ -337,7 +337,7 @@ const actions = (edit: () => void, remove: () => void) => [
           color="neutral"
           variant="outline"
           icon="i-lucide-plus"
-          class="min-h-11"
+          class="min-h-control"
           @click="openTemplate(null)"
         >
           {{ $t('contentSettings.templates.new') }}
@@ -391,7 +391,7 @@ const actions = (edit: () => void, remove: () => void) => [
           color="neutral"
           variant="outline"
           icon="i-lucide-plus"
-          class="min-h-11"
+          class="min-h-control"
           :disabled="accounts.size === 0"
           @click="openGroup(null)"
         >
@@ -456,10 +456,10 @@ const actions = (edit: () => void, remove: () => void) => [
       </template>
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton color="error" class="min-h-11" :loading="deleting" @click="confirmRemove">
+          <UButton color="error" class="min-h-control" :loading="deleting" @click="confirmRemove">
             {{ $t('contentSettings.remove') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="removing = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="removing = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>

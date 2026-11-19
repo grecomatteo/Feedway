@@ -104,10 +104,10 @@ const remove = (p: Passkey) =>
           >
             <UInput v-model="newName" maxlength="60" class="w-full" size="xl" />
           </UFormField>
-          <UButton type="submit" class="min-h-11" :loading="sending === p.id">
+          <UButton type="submit" class="min-h-control" :loading="sending === p.id">
             {{ $t('account.save') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="renaming = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="renaming = null">
             {{ $t('security.cancel') }}
           </UButton>
         </form>
@@ -120,7 +120,7 @@ const remove = (p: Passkey) =>
           </div>
           <div class="flex flex-wrap gap-2">
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="neutral"
               variant="outline"
               :aria-label="$t('security.passkeys.renameOf', { name: label(p) })"
@@ -129,7 +129,7 @@ const remove = (p: Passkey) =>
               {{ $t('security.passkeys.rename') }}
             </UButton>
             <UButton
-              class="min-h-11"
+              class="min-h-control"
               color="error"
               variant="outline"
               :loading="sending === p.id"
@@ -157,7 +157,7 @@ const remove = (p: Passkey) =>
 
     <UButton
       v-if="passkey.supported()"
-      class="min-h-11"
+      class="min-h-control"
       icon="i-lucide-fingerprint"
       :loading="sending === 'add'"
       @click="add"

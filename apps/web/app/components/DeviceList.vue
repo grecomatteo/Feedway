@@ -80,12 +80,12 @@ const signOutAll = () =>
             {{ s.ipApprox ? $t('devices.ip', { ip: s.ipApprox }) : $t('devices.ipUnknown') }}
           </p>
           <p class="text-sm text-(--app-text-muted)">
-            {{ $t('devices.lastActive', { date: formatDate(s.lastActiveAt, true) }) }}
+            {{ $t('devices.lastActive', { date: formatRelative(s.lastActiveAt) }) }}
           </p>
         </div>
         <UButton
           v-if="!s.current"
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="outline"
           :loading="sending === s.id"
@@ -101,7 +101,7 @@ const signOutAll = () =>
     <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
 
     <UButton
-      class="min-h-11"
+      class="min-h-control"
       color="error"
       variant="outline"
       icon="i-lucide-log-out"
@@ -117,10 +117,20 @@ const signOutAll = () =>
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton class="min-h-11" color="error" :loading="sending === 'all'" @click="signOutAll">
+          <UButton
+            class="min-h-control"
+            color="error"
+            :loading="sending === 'all'"
+            @click="signOutAll"
+          >
             {{ $t('devices.confirm') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="confirmOpen = false">
+          <UButton
+            class="min-h-control"
+            color="neutral"
+            variant="ghost"
+            @click="confirmOpen = false"
+          >
             {{ $t('security.cancel') }}
           </UButton>
         </div>

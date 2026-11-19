@@ -20,7 +20,7 @@ async function signOut() {
 <template>
   <div class="flex flex-col gap-1">
     <UButton
-      class="min-h-11"
+      class="min-h-control"
       color="neutral"
       variant="ghost"
       icon="i-lucide-log-out"

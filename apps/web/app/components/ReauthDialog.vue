@@ -61,13 +61,13 @@ async function confirm(how: 'password' | 'passkey') {
           />
         </UFormField>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" class="min-h-11" :loading="sending">
+          <UButton type="submit" class="min-h-control" :loading="sending">
             {{ $t('reauth.confirm') }}
           </UButton>
           <UButton
             v-if="props.passkeys > 0 && passkey.supported()"
             type="button"
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             icon="i-lucide-fingerprint"

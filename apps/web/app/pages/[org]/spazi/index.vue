@@ -301,7 +301,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         </template>
         <template v-if="org.may.value.createWorkspace" #actions>
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             icon="i-lucide-plus"
             :aria-label="$t('workspaces.new')"
             @click="startAdding()"
@@ -363,7 +363,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
       >
         <p>{{ $t('workspaces.loadError') }}</p>
-        <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refresh()">
+        <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
           {{ $t('account.retry') }}
         </UButton>
       </div>
@@ -442,7 +442,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
               v-if="canReconnect(row)"
               color="neutral"
               variant="outline"
-              class="min-h-11"
+              class="min-h-control"
               :to="integrations"
               :aria-label="$t('workspaces.reconnectOf', { name: row.name })"
             >
@@ -501,7 +501,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
             )
       }}</span>
       <UButton
-        class="min-h-11 font-semibold text-(--app-bg) underline underline-offset-3"
+        class="min-h-control font-semibold text-(--app-bg) underline underline-offset-3"
         color="neutral"
         variant="link"
         :loading="undoing"
@@ -528,10 +528,10 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       </template>
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton type="submit" form="rename-client" class="min-h-11">
+          <UButton type="submit" form="rename-client" class="min-h-control">
             {{ $t('account.save') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="renaming = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="renaming = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>
@@ -546,14 +546,14 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       <template #footer>
         <div class="flex flex-wrap gap-3">
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             color="error"
             :loading="scheduledCount === null"
             @click="archive"
           >
             {{ $t('workspaces.archive') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="archiving = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="archiving = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>

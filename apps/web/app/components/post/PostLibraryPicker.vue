@@ -105,7 +105,7 @@ function done() {
           v-if="lib.next.value"
           color="neutral"
           variant="outline"
-          class="min-h-11 self-start"
+          class="min-h-control self-start"
           :loading="lib.loadingMore.value"
           @click="lib.more()"
         >
@@ -115,10 +115,10 @@ function done() {
     </template>
     <template #footer>
       <div class="flex w-full flex-wrap justify-end gap-3">
-        <UButton color="neutral" variant="ghost" class="min-h-11" @click="open = false">
+        <UButton color="neutral" variant="ghost" class="min-h-control" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
-        <UButton class="min-h-11" :disabled="chosen.length === 0" @click="done">
+        <UButton class="min-h-control" :disabled="chosen.length === 0" @click="done">
           {{ $t('posts.library.add', { n: chosen.length }, chosen.length) }}
         </UButton>
       </div>

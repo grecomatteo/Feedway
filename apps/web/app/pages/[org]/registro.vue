@@ -66,7 +66,7 @@ const actionLabel = (action: string) =>
     <p v-if="!loaded && !problem" role="status">{{ $t('account.loading') }}</p>
     <div v-else-if="problem && !loaded" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ problem }}</p>
-      <UButton class="min-h-11" color="neutral" variant="outline" @click="load()">
+      <UButton class="min-h-control" color="neutral" variant="outline" @click="load()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -90,14 +90,14 @@ const actionLabel = (action: string) =>
             {{ actionLabel(item.action) }}
           </span>
           <time :datetime="item.createdAt" class="text-sm text-(--app-text-muted)">
-            {{ formatDate(item.createdAt, true) }}
+            {{ formatRelative(item.createdAt) }}
           </time>
         </li>
       </ol>
       <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
       <UButton
         v-if="cursor"
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="outline"
         :loading="loading"

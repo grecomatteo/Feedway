@@ -228,7 +228,7 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
             color="neutral"
             variant="outline"
             icon="i-lucide-image-up"
-            class="min-h-11"
+            class="min-h-control"
             :disabled="!e.editable.value"
             @click="input?.click()"
           >
@@ -238,7 +238,7 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
             color="neutral"
             variant="outline"
             icon="i-lucide-images"
-            class="min-h-11"
+            class="min-h-control"
             :disabled="!e.editable.value"
             @click="picking = true"
           >
@@ -248,7 +248,7 @@ const grid = cropStyle(centeredCrop(3 / 4, 9, 16))
             color="neutral"
             variant="ghost"
             trailing-icon="i-lucide-rotate-ccw"
-            class="min-h-11"
+            class="min-h-control"
             :disabled="!e.editable.value || (!image && offset === 0)"
             @click="restore"
           >

@@ -170,7 +170,7 @@ async function changeEmail() {
       </p>
       <UButton
         v-if="!signedOut"
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="outline"
         @click="() => refresh()"
@@ -218,7 +218,7 @@ async function changeEmail() {
             {{ formError(profileState, ['name', 'nickname']) }}
           </p>
           <div class="flex flex-wrap items-center gap-3">
-            <UButton type="submit" class="min-h-11" :loading="profileState.sending">
+            <UButton type="submit" class="min-h-control" :loading="profileState.sending">
               {{ $t('account.save') }}
             </UButton>
             <p v-if="profileState.done" role="status" class="text-(--app-success)">
@@ -266,7 +266,7 @@ async function changeEmail() {
             {{ formError(preferencesState, ['timezone']) }}
           </p>
           <div class="flex flex-wrap items-center gap-3">
-            <UButton type="submit" class="min-h-11" :loading="preferencesState.sending">
+            <UButton type="submit" class="min-h-control" :loading="preferencesState.sending">
               {{ $t('account.save') }}
             </UButton>
             <p v-if="preferencesState.done" role="status" class="text-(--app-success)">
@@ -323,7 +323,7 @@ async function changeEmail() {
             {{ formError(emailState, ['newEmail', 'password']) }}
           </p>
           <div class="space-y-3">
-            <UButton type="submit" class="min-h-11" :loading="emailState.sending">
+            <UButton type="submit" class="min-h-control" :loading="emailState.sending">
               {{ $t('account.email.submit') }}
             </UButton>
             <p v-if="emailState.done" role="status" class="text-(--app-success)">

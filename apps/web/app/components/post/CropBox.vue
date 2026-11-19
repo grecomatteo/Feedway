@@ -197,7 +197,7 @@ function apply() {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-in"
               :aria-label="t('posts.crop.smaller')"
               :disabled="!cropper.canZoomIn.value"
@@ -206,7 +206,7 @@ function apply() {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-11 min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-out"
               :aria-label="t('posts.crop.larger')"
               :disabled="!cropper.canZoomOut.value"
@@ -222,16 +222,16 @@ function apply() {
           color="neutral"
           variant="ghost"
           trailing-icon="i-lucide-rotate-ccw"
-          class="min-h-11"
+          class="min-h-control"
           @click="cropper.reset()"
         >
           {{ t('posts.crop.center') }}
         </UButton>
         <div class="flex gap-3">
-          <UButton color="neutral" variant="outline" class="min-h-11" @click="emit('close')">
+          <UButton color="neutral" variant="outline" class="min-h-control" @click="emit('close')">
             {{ t('posts.crop.cancel') }}
           </UButton>
-          <UButton icon="i-lucide-check" class="min-h-11" data-crop-apply @click="apply">
+          <UButton icon="i-lucide-check" class="min-h-control" data-crop-apply @click="apply">
             {{ t('posts.crop.apply') }}
           </UButton>
         </div>

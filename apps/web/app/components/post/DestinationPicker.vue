@@ -140,7 +140,7 @@ const whyOff = (a: ProfileAccount) =>
           <UButton
             color="neutral"
             variant="outline"
-            class="min-h-11"
+            class="min-h-control"
             icon="i-lucide-users"
             :loading="groups === null"
           >
@@ -151,7 +151,7 @@ const whyOff = (a: ProfileAccount) =>
           v-if="e.editable.value"
           color="neutral"
           variant="ghost"
-          class="min-h-11"
+          class="min-h-control"
           :icon="allPicked ? 'i-lucide-x' : 'i-lucide-check-check'"
           trailing
           :disabled="all.length === 0"

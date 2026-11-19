@@ -137,7 +137,7 @@ async function leave() {
         >
           {{ $t('secondFactor.useApp') }}
         </UButton>
-        <UButton block class="min-h-11" color="neutral" variant="ghost" @click="leave">
+        <UButton block class="min-h-control" color="neutral" variant="ghost" @click="leave">
           {{ $t('nav.signOut') }}
         </UButton>
       </fieldset>

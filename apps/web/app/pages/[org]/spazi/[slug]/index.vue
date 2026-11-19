@@ -252,7 +252,7 @@ const canManageMembers = computed(
         <h2 id="client-profiles" class="text-lg">{{ $t('client.profiles') }}</h2>
         <UButton
           v-if="canChange && orphans.length > 0"
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="outline"
           icon="i-lucide-plus"
@@ -280,7 +280,7 @@ const canManageMembers = computed(
       >
         <p>{{ $t('workspaceAccounts.loadError') }}</p>
         <UButton
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="outline"
           @click="() => profiles.refresh()"
@@ -337,7 +337,7 @@ const canManageMembers = computed(
         <template #cell-synced="{ row }">
           <span
             class="text-(--app-text-muted)"
-            :title="syncedOf(row) ? new Date(syncedOf(row)!).toLocaleString(locale) : undefined"
+            :title="syncedOf(row) ? formatShort(syncedOf(row)!) : undefined"
             >{{ syncedText(row) }}</span
           >
         </template>
@@ -347,7 +347,7 @@ const canManageMembers = computed(
               v-if="org.may.value.manageAccounts && stateOf(row).link === 'reconnect'"
               color="neutral"
               variant="outline"
-              class="min-h-11"
+              class="min-h-control"
               :to="reconnectTo(row)"
               :aria-label="$t('workspaces.reconnectOf', { name: name(row) })"
             >
@@ -379,7 +379,7 @@ const canManageMembers = computed(
         <h2 id="client-people" class="text-lg">{{ $t('client.people') }}</h2>
         <UButton
           v-if="canManageMembers && client"
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="ghost"
           trailing-icon="i-lucide-arrow-right"
@@ -431,10 +431,10 @@ const canManageMembers = computed(
     >
       <template #footer>
         <div class="flex flex-wrap gap-3">
-          <UButton class="min-h-11" color="error" :loading="busy" @click="remove">
+          <UButton class="min-h-control" color="error" :loading="busy" @click="remove">
             {{ $t('client.remove') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="removing = null">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="removing = null">
             {{ $t('security.cancel') }}
           </UButton>
         </div>

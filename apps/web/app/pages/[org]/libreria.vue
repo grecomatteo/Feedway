@@ -45,7 +45,7 @@ const library = ref<{ chooseFiles: () => void } | null>(null)
           {{ $t('library.chooseClientText') }}
         </template>
         <template v-if="client && client.archivedAt === null" #actions>
-          <UButton icon="i-lucide-upload" class="min-h-11" @click="library?.chooseFiles()">
+          <UButton icon="i-lucide-upload" class="min-h-control" @click="library?.chooseFiles()">
             {{ $t('upload.choose') }}
           </UButton>
         </template>

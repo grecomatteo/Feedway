@@ -19,7 +19,7 @@ const props = defineProps<{
   /** an archived client is read only (D-70) */
   archived: boolean
 }>()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { call, failure } = useApi()
 const e = props.editor
 
@@ -121,14 +121,7 @@ async function remove(n: PostNoteDto) {
 const org = useOrganization()
 const authorOf = (n: PostNoteDto) =>
   n.authorId === org.me.value?.id ? t('posts.notes.you') : n.authorName || t('posts.list.someone')
-function when(iso: string) {
-  const d = new Date(iso)
-  const time = d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
-  const today = new Date()
-  if (d.toDateString() === today.toDateString()) return t('posts.notes.today', { time })
-  const day = d.toLocaleDateString(locale.value, { day: 'numeric', month: 'long' })
-  return t('posts.notes.on', { day, time })
-}
+const when = (iso: string) => formatRelative(iso, { sentence: true })
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -185,7 +178,7 @@ const initials = (name: string) =>
     <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
       <p v-if="notesFailed" role="alert" class="px-4 py-3 text-sm text-(--app-danger)">
         {{ $t('posts.notes.loadError') }}
-        <UButton color="neutral" variant="link" class="min-h-11" @click="loadNotes">
+        <UButton color="neutral" variant="link" class="min-h-control" @click="loadNotes">
           {{ $t('account.retry') }}
         </UButton>
       </p>
@@ -233,7 +226,7 @@ const initials = (name: string) =>
           type="submit"
           color="neutral"
           variant="ghost"
-          class="min-h-11"
+          class="min-h-control"
           :loading="sending"
           :disabled="!postId || draft.trim() === ''"
         >
@@ -257,10 +250,10 @@ const initials = (name: string) =>
     >
       <template #footer>
         <div class="flex w-full flex-wrap justify-end gap-3">
-          <UButton color="neutral" variant="ghost" class="min-h-11" @click="removing = null">
+          <UButton color="neutral" variant="ghost" class="min-h-control" @click="removing = null">
             {{ $t('posts.notes.keep') }}
           </UButton>
-          <UButton color="error" class="min-h-11" @click="removing && remove(removing)">
+          <UButton color="error" class="min-h-control" @click="removing && remove(removing)">
             {{ $t('posts.notes.remove') }}
           </UButton>
         </div>

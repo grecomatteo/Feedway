@@ -5,7 +5,7 @@ import type { MetaReminder } from '@app/contracts'
 const props = defineProps<{ items: MetaReminder[] }>()
 const { t } = useI18n()
 
-const day = (iso: string) => formatDate(`${iso}T12:00:00Z`)
+const day = (localDate: string) => formatDate(localDate)
 const when = (daysLeft: number) =>
   daysLeft === 0 ? t('metaReminders.today') : t('metaReminders.inDays', { n: daysLeft }, daysLeft)
 
@@ -34,7 +34,7 @@ const lines = computed(() =>
           new Date(r.expiresAt).getTime() <= Date.now()
             ? 'metaReminders.tokenExpired'
             : 'metaReminders.tokenExpiring',
-          { date: formatDate(r.expiresAt, true) },
+          { date: formatDate(r.expiresAt, { time: true }) },
         )
     }
   }),

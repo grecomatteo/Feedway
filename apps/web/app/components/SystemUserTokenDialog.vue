@@ -103,13 +103,13 @@ async function confirm() {
         <div class="flex flex-wrap gap-3">
           <UButton
             type="submit"
-            class="min-h-11"
+            class="min-h-control"
             :loading="sending"
             :disabled="token.trim() === ''"
           >
             {{ $t('metaToken.confirm') }}
           </UButton>
-          <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+          <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
             {{ $t('security.cancel') }}
           </UButton>
         </div>

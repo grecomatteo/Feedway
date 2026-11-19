@@ -14,7 +14,7 @@ function clear() {
 
 <template>
   <div
-    class="flex min-h-11 w-full items-center gap-2 rounded-lg border border-(--app-border-strong) bg-(--app-card) pl-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--app-focus) md:max-w-80"
+    class="flex min-h-control w-full items-center gap-2 rounded-control border border-(--app-border-strong) bg-(--app-card) pl-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--app-focus) md:max-w-80"
   >
     <UIcon name="i-lucide-search" class="size-[1.125rem] shrink-0 text-(--app-text-muted)" />
     <input

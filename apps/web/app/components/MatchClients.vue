@@ -456,7 +456,7 @@ const columns = computed<DataColumn[]>(() => [
       class="flex items-center justify-between gap-3 rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-[60px] max-md:z-10 max-md:flex-col max-md:items-stretch max-md:gap-1 max-md:rounded-none max-md:border-x-0 max-md:border-b-0 max-md:py-2.5"
     >
       <UButton
-        class="min-h-11 max-md:hidden"
+        class="min-h-control max-md:hidden"
         color="neutral"
         variant="ghost"
         :loading="sending === 'later'"
@@ -472,7 +472,7 @@ const columns = computed<DataColumn[]>(() => [
           >{{ restText }}</span
         >
         <UButton
-          class="min-h-11 justify-center max-md:min-h-12 max-md:text-[0.9375rem]"
+          class="min-h-control justify-center max-md:min-h-12 max-md:text-[0.9375rem]"
           :loading="sending === 'create'"
           :disabled="sending !== null"
           @click="submit('create')"

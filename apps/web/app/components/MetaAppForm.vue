@@ -161,11 +161,11 @@ async function runTest() {
         </UFormField>
         <p v-if="saveError" role="alert" class="text-(--app-danger)">{{ saveError }}</p>
         <div v-if="editable" class="flex flex-wrap items-center gap-3">
-          <UButton type="submit" class="min-h-11" :loading="save.sending">
+          <UButton type="submit" class="min-h-control" :loading="save.sending">
             {{ $t('metaIntegration.save') }}
           </UButton>
           <UButton
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             :loading="test.sending"

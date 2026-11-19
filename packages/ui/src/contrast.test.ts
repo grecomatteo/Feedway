@@ -15,16 +15,8 @@ test('perceptual distance of a colour with itself is 0, of black and white 1', (
   expect(perceptualDistance('#000000', '#FFFFFF')).toBeCloseTo(1, 2)
 })
 
-const BACKGROUNDS = [
-  'bg',
-  'surface',
-  'surface-sunken',
-  'nav-bg',
-  'nav-hover',
-  'paper',
-  'card',
-  'groove',
-] as const
+/** Every surface text sits on: the page, a surface, the sunken well, the menu, a hovered or active row. */
+const BACKGROUNDS = ['bg', 'surface', 'surface-sunken', 'nav-bg', 'nav-hover'] as const
 
 /** OKLab distance below which the accent could pass for a state (the closest pair today: 0.078). */
 const DISTINCT_FROM_ACCENT = 0.075
@@ -60,6 +52,7 @@ test.each(cases)('%s palette, %s mode, meets WCAG AA', (id, mode) => {
     'on-brand on hover',
   ).toBeGreaterThanOrEqual(4.5)
   expect(contrastRatio(t.text, t['brand-soft']), 'text on brand-soft').toBeGreaterThanOrEqual(4.5)
+  expect(contrastRatio(t['on-toast'], t.toast), 'on-toast on toast').toBeGreaterThanOrEqual(4.5)
 })
 
 test.each(cases)('%s palette, %s mode: states do not pass for the accent', (id, mode) => {

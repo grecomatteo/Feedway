@@ -49,7 +49,10 @@ test('a failure shows a generic page with the request id, never the detail', asy
   expect(results.violations).toEqual([])
 })
 
-test('the error page fits a phone screen without sideways scrolling', async ({ page }) => {
+test('the error page fits a phone screen without sideways scrolling', async ({
+  page,
+  isMobile,
+}) => {
   await page.goto('/pagina/che-non-esiste')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   const overflow = await page.evaluate(
@@ -57,5 +60,6 @@ test('the error page fits a phone screen without sideways scrolling', async ({ p
   )
   expect(overflow).toBeLessThanOrEqual(0)
   const box = await page.getByRole('button', { name: 'Torna alla home' }).boundingBox()
-  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+  // a control is 44 on a phone, 36 on a computer (D-81)
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(isMobile ? 44 : 36)
 })

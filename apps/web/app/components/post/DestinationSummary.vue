@@ -314,7 +314,7 @@ const crop = computed(() => {
         <div class="flex flex-wrap gap-2">
           <UButton
             v-if="o.code === 'type_not_supported' && proposal && e.editable.value"
-            class="min-h-11"
+            class="min-h-control"
             @click="switchTo(proposal)"
           >
             {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
@@ -323,7 +323,7 @@ const crop = computed(() => {
             v-if="fixAt(o)"
             color="neutral"
             variant="outline"
-            class="min-h-11"
+            class="min-h-control"
             @click="emit('goto', fixAt(o)!.section)"
           >
             {{ fixAt(o)!.label }}
@@ -336,7 +336,7 @@ const crop = computed(() => {
         data-outcome="type_mismatch"
       >
         <p class="font-semibold">{{ $t('posts.summary.typeMismatch') }}</p>
-        <UButton class="min-h-11 self-start" @click="switchTo(proposal)">
+        <UButton class="min-h-control self-start" @click="switchTo(proposal)">
           {{ $t('posts.summary.switchTo', { type: $t(`posts.type.${proposal}`) }) }}
         </UButton>
       </div>

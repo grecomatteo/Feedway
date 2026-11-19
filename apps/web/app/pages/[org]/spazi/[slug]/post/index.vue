@@ -16,7 +16,7 @@ type Filter = 'all' | Status
 
 const org = useOrganization()
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { client, profiles } = useClientPage()
 
 useHead({
@@ -142,13 +142,7 @@ const thumbOf = (p: PostResponse) => {
 /** «lunedì 24 novembre, 18:00»: the day and time in the post's zone, as the editor says them. */
 const whenOf = (p: PostResponse) => {
   if (!p.when) return null
-  const day = new Intl.DateTimeFormat(locale.value, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(`${p.when.localDate}T12:00:00Z`))
-  return `${day} · ${p.when.localTime}`
+  return formatWallShort(p.when.localDate, p.when.localTime)
 }
 const STATE: Record<Status, StatusTone> = {
   draft: 'neutral',
@@ -222,7 +216,7 @@ const mayDraft = computed(
     <h2 id="posts-title" class="sr-only">{{ $t('posts.list.title') }}</h2>
     <p v-if="failed" role="alert" class="flex flex-wrap items-center gap-3 text-(--app-danger)">
       {{ $t('posts.list.failed') }}
-      <UButton color="neutral" variant="outline" class="min-h-11" @click="load">
+      <UButton color="neutral" variant="outline" class="min-h-control" @click="load">
         {{ $t('posts.list.retry') }}
       </UButton>
     </p>
@@ -240,7 +234,7 @@ const mayDraft = computed(
       <UButton
         v-if="mayDraft"
         icon="i-lucide-plus"
-        class="mt-2 min-h-11"
+        class="mt-2 min-h-control"
         :to="{ path: `${base}/nuovo`, query: keep }"
       >
         {{ $t('client.newPost') }}

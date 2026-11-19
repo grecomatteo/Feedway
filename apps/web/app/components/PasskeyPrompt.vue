@@ -28,11 +28,11 @@ async function create() {
     <p>{{ $t('passkeyPrompt.explain') }}</p>
     <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
     <div class="flex flex-wrap gap-3">
-      <UButton class="min-h-11" icon="i-lucide-key-round" :loading="sending" @click="create">
+      <UButton class="min-h-control" icon="i-lucide-key-round" :loading="sending" @click="create">
         {{ $t('passkeyPrompt.create') }}
       </UButton>
       <UButton
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="ghost"
         :disabled="sending"

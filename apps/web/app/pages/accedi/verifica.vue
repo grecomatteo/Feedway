@@ -77,10 +77,10 @@ function toggle() {
       </fieldset>
     </form>
     <div class="flex flex-wrap gap-2">
-      <UButton class="min-h-11" color="neutral" variant="link" @click="toggle">
+      <UButton class="min-h-control" color="neutral" variant="link" @click="toggle">
         {{ mode === 'app' ? $t('verify.useBackup') : $t('verify.useApp') }}
       </UButton>
-      <UButton class="min-h-11" color="neutral" variant="link" to="/accedi">
+      <UButton class="min-h-control" color="neutral" variant="link" to="/accedi">
         {{ $t('verify.back') }}
       </UButton>
     </div>

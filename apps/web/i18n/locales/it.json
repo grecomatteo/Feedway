@@ -1520,7 +1520,8 @@
     },
     "inPosts": {
       "filter": "Nei post",
-      "scheduled": "Nel post del {day}",
+      "scheduled": "Nel post del {date}",
+      "scheduledNear": "Nel post di {when}",
       "draft": "In una bozza",
       "cancelled": "In un post annullato"
     }
@@ -2217,8 +2218,6 @@
       "keep": "Annulla",
       "empty": "Nessuna nota.",
       "you": "Tu",
-      "today": "oggi alle {time}",
-      "on": "{day} alle {time}",
       "loadError": "Le note non si sono caricate."
     }
   },

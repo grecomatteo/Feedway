@@ -160,7 +160,12 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
           <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
           {{ $t('account.loadError') }}
         </p>
-        <UButton class="min-h-11" color="neutral" variant="outline" @click="() => refreshApp()">
+        <UButton
+          class="min-h-control"
+          color="neutral"
+          variant="outline"
+          @click="() => refreshApp()"
+        >
           {{ $t('account.retry') }}
         </UButton>
       </div>
@@ -263,7 +268,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             <div v-if="connectionsError" role="alert" class="space-y-3">
               <p class="text-(--app-danger)">{{ $t('addAccount.connectionsError') }}</p>
               <UButton
-                class="min-h-11"
+                class="min-h-control"
                 color="neutral"
                 variant="outline"
                 @click="() => refreshConnections()"
@@ -281,7 +286,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             </p>
             <template v-else-if="connectionId === null">
               <p>{{ $t('addAccount.noSystemUser') }}</p>
-              <UButton class="min-h-11" icon="i-lucide-key-round" @click="tokenOpen = true">
+              <UButton class="min-h-control" icon="i-lucide-key-round" @click="tokenOpen = true">
                 {{ $t('addAccount.connectSystemUser') }}
               </UButton>
             </template>
@@ -301,7 +306,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               </UFormField>
               <div class="flex flex-wrap gap-3">
                 <UButton
-                  class="min-h-11"
+                  class="min-h-control"
                   icon="i-lucide-search"
                   :loading="search.sending"
                   @click="searchAgain"
@@ -309,7 +314,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
                   {{ $t('addAccount.search') }}
                 </UButton>
                 <UButton
-                  class="min-h-11"
+                  class="min-h-control"
                   color="neutral"
                   variant="outline"
                   icon="i-lucide-key-round"

@@ -104,7 +104,7 @@ onMounted(() => {
             size="xl"
           />
         </UFormField>
-        <UButton type="submit" class="min-h-11" :loading="state.sending">
+        <UButton type="submit" class="min-h-control" :loading="state.sending">
           {{ $t('totpEnrollment.start') }}
         </UButton>
       </form>
@@ -112,7 +112,7 @@ onMounted(() => {
         <p v-if="state.sending" role="status">{{ $t('totpEnrollment.preparing') }}</p>
         <template v-else-if="state.problem">
           <p role="alert" class="text-(--app-danger)">{{ state.problem }}</p>
-          <UButton class="min-h-11" @click="start">{{ $t('totpEnrollment.retry') }}</UButton>
+          <UButton class="min-h-control" @click="start">{{ $t('totpEnrollment.retry') }}</UButton>
         </template>
       </template>
     </template>
@@ -124,7 +124,14 @@ onMounted(() => {
       <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
         {{ secret }}
       </p>
-      <UButton v-if="link" :to="link" external class="min-h-11" color="neutral" variant="outline">
+      <UButton
+        v-if="link"
+        :to="link"
+        external
+        class="min-h-control"
+        color="neutral"
+        variant="outline"
+      >
         {{ $t('security.totp.openApp') }}
       </UButton>
       <form class="max-w-form space-y-4" novalidate @submit.prevent="verify">
@@ -142,7 +149,7 @@ onMounted(() => {
             size="xl"
           />
         </UFormField>
-        <UButton type="submit" class="min-h-11" :loading="state.sending">
+        <UButton type="submit" class="min-h-control" :loading="state.sending">
           {{ $t('security.totp.verify') }}
         </UButton>
       </form>
@@ -154,7 +161,7 @@ onMounted(() => {
       <ul class="grid grid-cols-2 gap-2 font-mono" :aria-label="$t('security.totp.codesTitle')">
         <li v-for="c in state.backupCodes" :key="c">{{ c }}</li>
       </ul>
-      <UButton class="min-h-11" @click="finish">{{ $t('security.totp.codesSaved') }}</UButton>
+      <UButton class="min-h-control" @click="finish">{{ $t('security.totp.codesSaved') }}</UButton>
     </div>
   </section>
 </template>

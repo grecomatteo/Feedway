@@ -31,7 +31,7 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
     <div class="flex min-h-11 flex-wrap items-center justify-between gap-x-3">
       <h2 id="client-recent" class="text-lg">{{ $t('library.recent') }}</h2>
       <UButton
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="ghost"
         trailing-icon="i-lucide-arrow-right"

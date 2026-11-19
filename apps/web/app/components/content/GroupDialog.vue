@@ -131,13 +131,13 @@ async function submit() {
         <UButton
           type="submit"
           form="group-form"
-          class="min-h-11"
+          class="min-h-control"
           :loading="sending"
           :disabled="picked.length === 0"
         >
           {{ group ? $t('contentSettings.save') : $t('contentSettings.groups.create') }}
         </UButton>
-        <UButton class="min-h-11" color="neutral" variant="ghost" @click="open = false">
+        <UButton class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
       </div>

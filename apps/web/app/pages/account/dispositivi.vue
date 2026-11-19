@@ -40,7 +40,7 @@ const allSignedOut = ref(false)
       </p>
       <UButton
         v-if="!signedOut"
-        class="min-h-11"
+        class="min-h-control"
         color="neutral"
         variant="outline"
         @click="() => refresh()"

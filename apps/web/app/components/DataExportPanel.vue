@@ -39,7 +39,7 @@ function schedule() {
 watch(latest, schedule)
 onBeforeUnmount(() => clearTimeout(timer))
 
-const when = (iso: string) => formatDate(iso, true, props.me?.timezone)
+const when = (iso: string) => formatDate(iso, { time: true, timeZone: props.me?.timezone })
 
 /** What the screen reader hears when the state changes. */
 const announcement = computed(() => {
@@ -154,7 +154,7 @@ async function download(item: DataExport) {
 
     <div v-if="latest?.status === 'ready'" class="space-y-2">
       <UButton
-        class="min-h-11"
+        class="min-h-control"
         icon="i-lucide-download"
         :loading="downloading"
         @click="download(latest)"
@@ -168,7 +168,7 @@ async function download(item: DataExport) {
 
     <div v-if="!preparing" class="space-y-2">
       <UButton
-        class="min-h-11"
+        class="min-h-control"
         :color="latest?.status === 'ready' ? 'neutral' : 'primary'"
         :variant="latest?.status === 'ready' ? 'outline' : 'solid'"
         :loading="sending"
