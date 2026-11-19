@@ -10,6 +10,13 @@ const context = useContextQuery()
 const route = useRoute()
 const newPost = useNewPost()
 const inAgency = computed(() => Boolean(route.params['org']))
+// beside «Oggi», how many things need a hand: the same read as «Da sistemare» (redesign R3), for
+// the client of the selector or for all of them
+const { workspace } = useActiveContext()
+const issues = useAgendaIssues()
+const toFix = computed(() =>
+  inAgency.value ? issuesOf(issues.data.value?.items ?? [], workspace.value?.id ?? null).length : 0,
+)
 
 const main = computed(() => nav.value.filter((item) => item.group === 'main'))
 const agency = computed(() => nav.value.filter((item) => item.group === 'agency'))
@@ -73,6 +80,13 @@ const entry =
         >
           <UIcon :name="item.icon" class="size-[18px] shrink-0" aria-hidden="true" />
           {{ $t(item.label) }}
+          <span
+            v-if="toFix > 0"
+            class="ms-auto h-5 min-w-5 rounded-full bg-(--app-brand) px-1.5 text-center text-caption leading-5 font-semibold text-(--app-on-brand) tabular-nums"
+            data-count
+            ><span aria-hidden="true">{{ toFix }}</span
+            ><span class="sr-only">{{ $t('today.issues.count', { n: toFix }, toFix) }}</span></span
+          >
         </NuxtLink>
         <!-- the calendar arrives in stage 9: in its place, off -->
         <span

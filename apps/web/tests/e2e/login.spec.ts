@@ -68,7 +68,7 @@ test('after sign-in the agency home opens; another agency address is not found',
   await signInFromPage(page, person)
   await skipPasskeyOffer(page)
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Agenzia')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Oggi')
   await page.goto(`/${randomUUID()}`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
   // signed in, the sign-in page goes straight in

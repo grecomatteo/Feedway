@@ -24,13 +24,17 @@ const input = ref<HTMLInputElement | null>(null)
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
 /**
- * What a client's profiles ask, worst first (the clients' page says the same). The dot is amber for
- * all three: the red one is for a post that did not go out (stage 7).
+ * What needs a hand in a client, read from «Da sistemare» of «Oggi» (the same read, redesign R3):
+ * its profiles' link, worst first, else a file not prepared. The dot is amber for all of them:
+ * the red one is for a post that did not go out (stage 7).
  */
-type Problem = 'reconnect' | 'error' | 'warning'
+type Problem = 'reconnect' | 'error' | 'warning' | 'media'
+const issues = useAgendaIssues()
 function problemOf(w: WorkspaceView): Problem | null {
-  const links = (w.profiles ?? []).map((p) => p.link)
-  return (['reconnect', 'error', 'warning'] as const).find((l) => links.includes(l)) ?? null
+  const own = (issues.data.value?.items ?? []).filter((i) => i.workspaceId === w.id)
+  const links = own.flatMap((i) => (i.kind === 'profile' ? [i.link] : []))
+  const link = (['reconnect', 'error', 'warning'] as const).find((l) => links.includes(l))
+  return link ?? (own.length > 0 ? 'media' : null)
 }
 
 interface Option {

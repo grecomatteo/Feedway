@@ -40,6 +40,20 @@ export const SCREENS: Screen[] = [
   { id: '00-sistema', path: () => '/__test/sistema', computerOnly: true },
   // the shell (Task R2): the pages inside it are redrawn by their own tasks
   { id: '02-oggi', path: (s) => `/${s.org}` },
+  // the same morning with nothing to fix: the issues' read answers empty, the sample stays as it is
+  {
+    id: '03-oggi-niente-da-sistemare',
+    path: (s) => `/${s.org}`,
+    prepare: async (page) => {
+      await page.route(/\/agenda\/issues\?/, (route) =>
+        route.fulfill({ json: { items: [] } }),
+      )
+      await page.reload()
+      await page.locator('[data-today-calm]').waitFor()
+      await page.waitForLoadState('networkidle')
+      await page.unrouteAll()
+    },
+  },
   {
     id: '04-selettore-del-cliente',
     path: (s) => `/${s.org}`,
