@@ -2,11 +2,15 @@
 /**
  * A row of a `ListSurface`: 52 high on a computer, 60 on a phone, on the surface's grid. `columns`
  * overrides the grid for this row only (on a phone, for instance, two columns instead of five).
+ * The surface says whether it is a table row or a list item.
  */
-withDefaults(defineProps<{ columns?: string; table?: boolean }>(), {
-  columns: undefined,
-  table: false,
-})
+import { LIST_TABLE } from '~/utils/list-context'
+
+withDefaults(defineProps<{ columns?: string }>(), { columns: undefined })
+const table = inject(
+  LIST_TABLE,
+  computed(() => false),
+)
 </script>
 
 <template>

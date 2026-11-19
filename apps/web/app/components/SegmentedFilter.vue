@@ -1,7 +1,8 @@
 <script setup lang="ts" generic="T extends string">
 /**
  * The filter above a list («Tutti 9 · Bozze 2 · Programmati 3», D-81): toggle buttons in a sunken
- * well, the chosen one on a white surface. On a phone it fills the line and each choice is 36 high.
+ * well, the chosen one on a white surface. On a phone each choice is 36 high, and in a `Toolbar`
+ * the filter fills the line.
  */
 withDefaults(
   defineProps<{
@@ -19,7 +20,7 @@ const model = defineModel<T>({ required: true })
   <div
     role="group"
     :aria-label="label"
-    class="gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px] max-md:flex max-md:w-full max-md:overflow-x-auto"
+    class="gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
     :class="wide ? 'flex' : 'inline-flex'"
     data-segmented
   >
@@ -29,11 +30,11 @@ const model = defineModel<T>({ required: true })
       type="button"
       :aria-pressed="model === o.value"
       :disabled="o.disabled"
-      class="inline-flex h-7 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap transition-colors disabled:opacity-55 max-md:h-9 max-md:flex-1"
+      class="inline-flex h-7 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap transition-colors disabled:opacity-55 max-md:h-9"
       :class="[
         wide ? 'flex-1' : '',
         model === o.value
-          ? 'bg-(--app-surface) font-semibold text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.06),0_0_0_1px_var(--app-border)]'
+          ? 'bg-(--app-surface) font-semibold text-(--app-text) shadow-[var(--app-shadow-1),0_0_0_1px_var(--app-border)]'
           : 'font-medium text-(--app-text-muted) enabled:hover:text-(--app-text)',
       ]"
       @click="model = o.value"

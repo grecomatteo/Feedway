@@ -204,8 +204,18 @@ export interface DesignSample {
   posts: Record<string, string>
 }
 
-/** Rome wall time («2026-11-19T09:30») as an instant: November is always UTC+1 in Rome. */
-const romeInstant = (wall: string) => new Date(`${wall}:00+01:00`).toISOString()
+/** Rome wall time («2026-11-19T09:30») as an instant, with the offset of that day in Rome. */
+export function romeInstant(wall: string) {
+  const asUtc = new Date(`${wall}:00Z`)
+  const offset = new Intl.DateTimeFormat('en', {
+    timeZone: 'Europe/Rome',
+    timeZoneName: 'longOffset',
+  })
+    .formatToParts(asUtc)
+    .find((p) => p.type === 'timeZoneName')?.value // «GMT+01:00»
+  const sign = offset?.slice(3) || '+00:00'
+  return new Date(`${wall}:00${sign}`).toISOString()
+}
 
 async function send(request: APIRequestContext, method: string, path: string, data?: unknown) {
   const res = await request.fetch(path, {

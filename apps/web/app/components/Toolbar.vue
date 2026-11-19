@@ -6,7 +6,10 @@
 </script>
 
 <template>
-  <div class="mb-3 flex flex-wrap items-center gap-3" data-toolbar>
+  <div
+    class="mb-3 flex flex-wrap items-center gap-3 max-md:[&>[data-segmented]]:flex max-md:[&>[data-segmented]]:w-full max-md:[&>[data-segmented]]:overflow-x-auto max-md:[&>[data-segmented]>button]:flex-1"
+    data-toolbar
+  >
     <slot />
   </div>
 </template>

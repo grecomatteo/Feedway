@@ -30,9 +30,9 @@ const fontSize = computed(() => {
   if (props.size <= 44) return '14px'
   return `${String(Math.round(props.size * 0.32))}px`
 })
-// a small copy is enough up to 64 px (the URL names the 256 px one)
+// the 64 px copy is sharp up to 32 px on a 2x screen; bigger ones keep the 256 px one the URL names
 const photo = computed(() =>
-  props.src && props.size <= 64 ? props.src.replace('/avatar/256', '/avatar/64') : props.src,
+  props.src && props.size <= 32 ? props.src.replace('/avatar/256', '/avatar/64') : props.src,
 )
 const failed = ref(false)
 watch(photo, () => {

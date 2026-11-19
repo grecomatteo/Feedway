@@ -145,7 +145,7 @@ const toast = ref(true)
             :style="{ background: `var(--app-${s.token})` }"
           />
           <b class="mt-1.5 block text-detail font-medium">{{ s.name }}</b>
-          <span class="text-caption text-(--app-text-muted)">{{ s.value }}</span>
+          <span class="text-caption leading-5 text-(--app-text-muted)">{{ s.value }}</span>
         </div>
       </div>
     </section>
@@ -159,7 +159,7 @@ const toast = ref(true)
             :style="{ background: `var(--app-${s.token})` }"
           />
           <b class="mt-1.5 block text-detail font-medium">{{ s.name }}</b>
-          <span class="text-caption text-(--app-text-muted)">{{ s.value }}</span>
+          <span class="text-caption leading-5 text-(--app-text-muted)">{{ s.value }}</span>
         </div>
       </div>
     </section>
@@ -168,12 +168,14 @@ const toast = ref(true)
       <h2 class="mb-3 border-b border-(--app-border) pb-2">Caratteri</h2>
       <div class="grid grid-cols-[150px_1fr] items-baseline gap-x-4 gap-y-3">
         <template v-for="t in type" :key="t.name">
-          <span class="text-caption text-(--app-text-muted)">{{ t.name }}<br />{{ t.spec }}</span>
+          <span class="text-caption leading-5 text-(--app-text-muted)"
+            >{{ t.name }}<br />{{ t.spec }}</span
+          >
           <div :class="t.class === 'title' ? 'font-display text-title font-semibold' : t.class">
             {{ t.sample }}
           </div>
         </template>
-        <span class="text-caption text-(--app-text-muted)"
+        <span class="text-caption leading-5 text-(--app-text-muted)"
           >Numeri e orari<br />cifre allineate</span
         >
         <div class="tabular-nums">
@@ -286,15 +288,10 @@ const toast = ref(true)
       </SectionHead>
       <ListSurface
         :columns="COLUMNS"
-        :head="['Post', 'Quando', 'Profili', 'Stato', 'Autore', '']"
+        :head="['Post', 'Quando', 'Profili', 'Stato', 'Autore', { label: 'Azioni', hidden: true }]"
         label="Post"
       >
-        <ListRow
-          v-for="p in posts"
-          :key="p.text"
-          table
-          class="max-md:grid-cols-[minmax(0,1fr)_auto]"
-        >
+        <ListRow v-for="p in posts" :key="p.text" class="max-md:grid-cols-[minmax(0,1fr)_auto]">
           <span class="flex min-w-0 items-center gap-3" role="cell">
             <span
               class="grid size-10 shrink-0 place-items-center rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline-1 -outline-offset-1 outline-(--app-img-outline)"
@@ -350,7 +347,7 @@ const toast = ref(true)
           icon="i-lucide-search"
           placeholder="Cerca"
           aria-label="Cerca nei post"
-          class="w-[220px] max-md:w-full"
+          class="w-[180px] max-md:w-full"
         />
         <span class="flex-1 max-md:hidden" />
         <UButton icon="i-lucide-plus" color="neutral" variant="outline">Nuovo cliente</UButton>

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { test, type Browser, type Page } from '@playwright/test'
 import { designSample, DESIGN_NOW } from '../e2e/support/design-sample.ts'
 import { ownAddress } from '../e2e/support/people.ts'
@@ -18,6 +19,19 @@ const REFERENCE = new URL('design/esplorazioni/2026-11-19-nuova-direzione/scherm
 const CODE = new URL('design/reviews/ridisegno/codice/', repo)
 const COMPARE =
   process.env.DESIGN_COMPARE_DIR ?? '/mnt/project-files/design-revisione/ridisegno/confronti'
+
+/** DESIGN_COMPARE_DIR, or a temporary folder where that one cannot be written (outside the cloud). */
+async function compareDir() {
+  try {
+    await mkdir(COMPARE, { recursive: true })
+    return COMPARE
+  } catch {
+    const dir = `${tmpdir()}/feedway-confronti`
+    await mkdir(dir, { recursive: true })
+    console.warn(`design:shots: ${COMPARE} cannot be written, the comparisons go to ${dir}`)
+    return dir
+  }
+}
 
 const SIZES = {
   computer: { width: 1440, height: 900, fullPage: true, isMobile: false },
@@ -49,7 +63,14 @@ async function shoot(page: Page, screen: Screen, size: Size, sample: Awaited<Ret
   await page.setViewportSize({ width: s.width, height: s.height })
   await page.goto(screen.path(sample))
   await page.waitForLoadState('networkidle')
-  await page.locator('[data-ready]').first().waitFor({ timeout: 2_000 }).catch(() => undefined)
+  await page
+    .locator('[data-ready]')
+    .first()
+    .waitFor({ timeout: 2_000 })
+    .catch(() => {
+      // not every page marks itself ready: shoot it anyway, but say so
+      console.warn(`design:shots: ${screen.id} (${size}) has no [data-ready] after 2 s`)
+    })
   await screen.prepare?.(page, sample)
   await page.evaluate(() => document.fonts.ready)
   // the caret and the transitions would make two shots of the same page differ
@@ -77,6 +98,7 @@ test('design shots', async ({ browser }) => {
     ),
   ) as Record<Size, Awaited<ReturnType<Browser['newContext']>>>
 
+  const compare = await compareDir()
   const first = await contexts.computer.newPage()
   await ownAddress(first)
   const sample = await designSample(first)
@@ -94,9 +116,8 @@ test('design shots', async ({ browser }) => {
       await writeFile(new URL(`${size}/${screen.id}.png`, CODE), code)
       const ref = new URL(`${size}/${screen.id}.png`, REFERENCE)
       if (!existsSync(ref)) continue
-      await mkdir(COMPARE, { recursive: true })
       const side = await compose(browser, await readFile(ref), code, `${screen.id} · ${size}`)
-      await writeFile(`${COMPARE}/${screen.id}-${size}.png`, side)
+      await writeFile(`${compare}/${screen.id}-${size}.png`, side)
     }
   }
   for (const c of Object.values(contexts)) await c.close()
