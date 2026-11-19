@@ -8,6 +8,19 @@ const fieldSizes = { md: { base: field }, lg: { base: field }, xl: { base: field
 
 export default defineAppConfig({
   ui: {
+    // tailwind-merge has to know the theme's own sizes, radii and shadows: otherwise it takes
+    // `text-body` for a colour and drops it, and keeps the library's `rounded-md` beside ours
+    tv: {
+      twMergeConfig: {
+        extend: {
+          theme: {
+            text: ['title', 'body', 'detail', 'caption'],
+            radius: ['control', 'card', 'thumb'],
+            shadow: ['1', '2'],
+          },
+        },
+      },
+    },
     colors: { primary: 'brand', neutral: 'stone' },
     button: {
       slots: { base: 'rounded-control font-semibold' },

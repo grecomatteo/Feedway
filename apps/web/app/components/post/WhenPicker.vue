@@ -100,7 +100,10 @@ const isDefault = computed(
           :ui="{ base: 'min-h-control' }"
         />
       </UFormField>
-      <p v-if="zone" class="flex min-h-11 items-center gap-1.5 text-sm text-(--app-text-muted)">
+      <p
+        v-if="zone"
+        class="flex min-h-control items-center gap-1.5 text-sm text-(--app-text-muted)"
+      >
         <UIcon name="i-lucide-globe" class="size-4" aria-hidden="true" />
         {{ zone }}
       </p>

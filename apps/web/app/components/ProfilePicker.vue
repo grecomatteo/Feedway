@@ -106,7 +106,7 @@ const submit = () => {
           v-if="profiles.length > 0"
           type="submit"
           form="pick-profile"
-          class="min-h-11"
+          class="min-h-control"
           :loading="busy"
           :disabled="choice === null"
         >

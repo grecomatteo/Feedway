@@ -252,7 +252,7 @@ const canManageMembers = computed(
         <h2 id="client-profiles" class="text-lg">{{ $t('client.profiles') }}</h2>
         <UButton
           v-if="canChange && orphans.length > 0"
-          class="min-h-11"
+          class="min-h-control"
           color="neutral"
           variant="outline"
           icon="i-lucide-plus"

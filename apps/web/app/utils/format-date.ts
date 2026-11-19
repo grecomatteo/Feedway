@@ -23,7 +23,12 @@ function formatter(timeZone: string | undefined, options: Intl.DateTimeFormatOpt
   const key = `${timeZone ?? ''}|${JSON.stringify(options)}`
   let f = formatters.get(key)
   if (!f) {
-    f = new Intl.DateTimeFormat('it-IT', { ...options, ...(timeZone ? { timeZone } : {}) })
+    try {
+      f = new Intl.DateTimeFormat('it-IT', { ...options, ...(timeZone ? { timeZone } : {}) })
+    } catch {
+      // a zone the runtime does not know: the browser's, rather than a page that does not draw
+      f = new Intl.DateTimeFormat('it-IT', options)
+    }
     formatters.set(key, f)
   }
   return f

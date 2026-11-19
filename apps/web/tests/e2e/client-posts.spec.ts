@@ -107,7 +107,7 @@ test('the «Post» tab: all the posts, the filter and the search, a row opens th
   // the library says which files are in a post, and «Nei post» keeps only those (D-18)
   await page.goto(`/${org}/spazi/${client.slug}/libreria`)
   const tile = (name: string) => page.locator('[data-media-id]').filter({ hasText: name })
-  await expect(tile('pane.jpg').locator('[data-used-in]')).toHaveText(/^Nel post di /)
+  await expect(tile('pane.jpg').locator('[data-used-in]')).toHaveText(/^Nel post del? /)
   await expect(tile('sciolto.jpg').locator('[data-used-in]')).toHaveCount(0)
   const inPosts = page.getByRole('button', { name: 'Nei post' })
   await inPosts.click()

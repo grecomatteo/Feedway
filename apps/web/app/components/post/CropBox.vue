@@ -197,7 +197,7 @@ function apply() {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-in"
               :aria-label="t('posts.crop.smaller')"
               :disabled="!cropper.canZoomIn.value"
@@ -206,7 +206,7 @@ function apply() {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-out"
               :aria-label="t('posts.crop.larger')"
               :disabled="!cropper.canZoomOut.value"

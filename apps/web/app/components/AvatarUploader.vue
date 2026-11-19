@@ -333,7 +333,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-left"
               :aria-label="$t('avatar.moveLeft')"
               @click="move(-1, 0)"
@@ -341,7 +341,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-up"
               :aria-label="$t('avatar.moveUp')"
               @click="move(0, -1)"
@@ -349,7 +349,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-down"
               :aria-label="$t('avatar.moveDown')"
               @click="move(0, 1)"
@@ -357,7 +357,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-arrow-right"
               :aria-label="$t('avatar.moveRight')"
               @click="move(1, 0)"
@@ -365,7 +365,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-in"
               :aria-label="$t('avatar.zoomIn')"
               :disabled="!canZoomIn"
@@ -374,7 +374,7 @@ watch(open, (value) => {
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control min-w-11"
+              class="min-h-control min-w-control"
               icon="i-lucide-zoom-out"
               :aria-label="$t('avatar.zoomOut')"
               :disabled="!canZoomOut"

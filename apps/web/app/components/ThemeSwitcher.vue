@@ -44,7 +44,7 @@ async function toggle(event: MouseEvent) {
     color="neutral"
     variant="ghost"
     size="xl"
-    class="theme-toggle min-h-control min-w-11 justify-center"
+    class="theme-toggle min-h-control min-w-control justify-center"
     :aria-label="$t('theme.toggle')"
     :title="$t('theme.toggle')"
     @click="toggle"

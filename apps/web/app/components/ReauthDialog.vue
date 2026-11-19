@@ -67,7 +67,7 @@ async function confirm(how: 'password' | 'passkey') {
           <UButton
             v-if="props.passkeys > 0 && passkey.supported()"
             type="button"
-            class="min-h-11"
+            class="min-h-control"
             color="neutral"
             variant="outline"
             icon="i-lucide-fingerprint"

@@ -133,3 +133,23 @@ describe('formatDate', () => {
     )
   })
 })
+
+describe('edge cases', () => {
+  test('a Date as well as a string', () => {
+    expect(formatTime(new Date('2026-11-19T10:53:00Z'), rome)).toBe('11:53')
+  })
+  test('the day across the clock change is counted on the calendar', () => {
+    const monday = { timeZone: 'Europe/Rome', now: new Date('2026-10-26T09:00:00Z') }
+    expect(formatRelative('2026-10-25T08:00:00Z', monday)).toBe('ieri, 9:00')
+    expect(formatRelative('2026-10-24T08:00:00Z', monday)).toBe('sab 24 ott')
+  })
+  test('the past week across the new year keeps the year', () => {
+    const january = { timeZone: 'Europe/Rome', now: new Date('2027-01-02T09:00:00Z') }
+    expect(formatRelative('2026-12-31T10:00:00Z', january)).toBe('gio 31 dic 2026')
+  })
+  test('a zone the runtime does not know falls back to the browser’s', () => {
+    expect(() =>
+      formatShort('2026-11-20T17:00:00Z', { timeZone: 'Europa/Nowhere', now }),
+    ).not.toThrow()
+  })
+})
