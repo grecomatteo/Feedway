@@ -77,17 +77,25 @@ test('workspaces and invite: a publisher sees only their client and no users pag
 
   await page.goto(`/${org}/utenti`)
   await page.getByRole('button', { name: 'Invita', exact: true }).click()
-  const dialog = page.getByRole('dialog')
+  const dialog = page.getByRole('dialog', { name: 'Invita una persona' })
   await dialog.getByLabel('Email').fill('nuova-persona@example.test')
-  await dialog.getByRole('combobox', { name: 'Cliente A' }).click()
-  await page.getByRole('option', { name: 'Publisher' }).click()
-  await dialog.getByRole('button', { name: "Invia l'invito" }).click()
+  await dialog.getByText('Publisher', { exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: /^Publisher/ })).toBeChecked()
+  await dialog.getByRole('button', { name: 'Aggiungi un cliente' }).click()
+  await page.getByRole('menuitemcheckbox', { name: 'Cliente A' }).click()
+  await page.keyboard.press('Escape')
+  await expect(dialog.getByText('Cliente A')).toBeVisible()
+  await dialog.getByRole('button', { name: "Manda l'invito" }).click()
   await expect(page.getByRole('status')).toContainText(
     'Invito inviato a nuova-persona@example.test',
   )
-  await expect(page.getByRole('region', { name: 'Inviti in attesa' })).toContainText(
-    'Publisher di Cliente A',
-  )
+  await page.getByRole('button', { name: /^Inviti/ }).click()
+  const invite = page
+    .getByRole('table', { name: 'Inviti in attesa' })
+    .getByRole('row')
+    .filter({ hasText: 'nuova-persona@example.test' })
+  await expect(invite).toContainText('Publisher')
+  await expect(invite).toContainText('Cliente A')
 
   const other = await browser.newContext({ baseURL: baseURL ?? '' })
   try {
@@ -375,8 +383,8 @@ test('a suspension made while the page is open shows when the tab comes back', a
 test('a role change asks for the confirmation and then runs', async ({ page }) => {
   const { org, collab } = await agencyWithPublisher(page)
   await page.goto(`/${org}/utenti`)
-  await page.getByRole('combobox', { name: `Ruolo di ${collab.name} nell'agenzia` }).click()
-  await page.getByRole('option', { name: 'Admin' }).click()
+  await page.getByRole('button', { name: `Azioni per ${collab.name}` }).click()
+  await page.getByRole('menuitem', { name: 'Rendi Admin' }).click()
   await confirmWithPassword(page)
   await expect(page.getByRole('status')).toContainText(`Ruolo di ${collab.name} cambiato`)
   const [row] = await adminQuery<{ role: string }>(
@@ -393,8 +401,11 @@ test('inviting an Admin asks for the confirmation first', async ({ page }) => {
   await page.getByRole('button', { name: 'Invita', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Invita una persona' })
   await dialog.getByLabel('Email').fill('nuovo-admin@example.test')
-  await dialog.getByRole('radio', { name: 'Admin' }).check()
-  await dialog.getByRole('button', { name: "Invia l'invito" }).click()
+  await dialog.getByText('Admin', { exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: /^Admin/ })).toBeChecked()
+  // an Admin works on every client: there are none to choose
+  await expect(dialog.getByRole('button', { name: 'Aggiungi un cliente' })).toHaveCount(0)
+  await dialog.getByRole('button', { name: "Manda l'invito" }).click()
   await confirmWithPassword(page)
   await expect(page.getByRole('status')).toContainText('Invito inviato a nuovo-admin@example.test')
   const [row] = await adminQuery<{ org_role: string }>(
@@ -410,7 +421,8 @@ test('the owner passes ownership to an admin and becomes admin', async ({ page }
   await addPasskeyRow(admin.userId)
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}/utenti`)
-  await page.getByRole('button', { name: 'Passa la proprietà' }).click()
+  await page.getByRole('button', { name: `Azioni per ${owner.name}` }).click()
+  await page.getByRole('menuitem', { name: 'Passa la proprietà' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('radio', { name: admin.name }).check()
   await dialog.getByRole('button', { name: 'Passa la proprietà' }).click()
@@ -438,9 +450,8 @@ test('agency screens have no a11y violations', async ({ page }) => {
     `/${org}`,
     `/${org}/utenti`,
     `/${org}/spazi`,
-    `/${org}/registro`,
     `/${org}/impostazioni`,
-    `/${org}/privacy`,
+    `/${org}/impostazioni/registro`,
   ]) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -455,10 +466,19 @@ test('agency screens have no a11y violations', async ({ page }) => {
   await expect(page.getByRole('list', { name: 'Persone del cliente' })).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
   // the log shows what just happened
-  await page.goto(`/${org}/registro`)
-  await expect(page.getByRole('list', { name: 'Registro attività' })).toContainText(
+  await page.goto(`/${org}/impostazioni/registro`)
+  await expect(page.getByRole('table', { name: 'Registro attività' })).toContainText(
     'ha creato un cliente',
   )
+})
+
+test('the old addresses of the log and of the privacy page still lead there', async ({ page }) => {
+  const { org } = await agencyWithPublisher(page)
+  await page.goto(`/${org}/registro`)
+  await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/registro$`))
+  await expect(page.getByRole('table', { name: 'Registro attività' })).toBeVisible()
+  await page.goto(`/${org}/privacy`)
+  await expect(page).toHaveURL(/\/account\/privacy$/)
 })
 
 test('settings: the owner renames the agency and names the privacy controller', async ({

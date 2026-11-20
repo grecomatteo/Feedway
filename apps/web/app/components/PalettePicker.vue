@@ -7,6 +7,7 @@ import type { Theme } from '@app/ui'
  * The colour palettes, each previewed by day and by night. A choice applies at once and is saved
  * in the profile, so it follows the person on every device.
  */
+withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 const { t } = useI18n()
 const { call } = useApi()
 const palette = usePalette()
@@ -66,7 +67,38 @@ const previews = computed(() =>
 </script>
 
 <template>
-  <fieldset class="space-y-3" aria-describedby="palette-help">
+  <!-- inside a settings row (screen 23): a small card per palette, its colour over a grey line -->
+  <fieldset v-if="compact" class="min-w-0" :aria-label="$t('palette.label')">
+    <div class="flex flex-wrap gap-2">
+      <label
+        v-for="p in previews"
+        :key="p.id"
+        :data-palette-option="p.id"
+        :title="$t('palette.help')"
+        class="grid h-[52px] w-[84px] cursor-pointer content-start gap-1 rounded-[8px] border border-(--app-border-strong) bg-(--app-surface) p-1.5 has-checked:border-2 has-checked:border-(--app-text) has-checked:p-[5px] has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--app-focus)"
+      >
+        <input
+          type="radio"
+          name="palette"
+          class="sr-only"
+          :value="p.id"
+          :checked="palette === p.id"
+          @change="choose(p.id)"
+        />
+        <span class="block h-3.5 rounded-[3px]" :style="p.day.accent" aria-hidden="true" />
+        <span class="block h-1.5 w-3/5 rounded-[3px] bg-(--app-border-strong)" aria-hidden="true" />
+        <span class="text-[11px]/3 text-(--app-text-muted)">{{ p.name }}</span>
+      </label>
+    </div>
+    <!-- always there, so screen readers hear what appears in it -->
+    <p role="status" class="sr-only">
+      <template v-if="result === 'saved'">{{ $t('palette.saved') }}</template>
+    </p>
+    <p v-if="result === 'failed'" role="alert" class="mt-2 text-sm text-(--app-danger)">
+      {{ $t('palette.failed') }}
+    </p>
+  </fieldset>
+  <fieldset v-else class="space-y-3" aria-describedby="palette-help">
     <legend class="text-sm font-medium">{{ $t('palette.label') }}</legend>
     <p id="palette-help" class="text-sm text-(--app-text-muted)">{{ $t('palette.help') }}</p>
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

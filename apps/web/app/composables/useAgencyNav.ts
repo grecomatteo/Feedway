@@ -60,13 +60,13 @@ export function useAgencyNav() {
     list.push({ to: '/account', label: 'nav.settings', icon: 'i-lucide-settings', group: 'agency' })
     if (may.viewAudit)
       list.push({
-        to: org.to('/registro'),
+        to: org.to('/impostazioni/registro'),
         label: 'agency.nav.audit',
         icon: 'i-lucide-scroll-text',
         group: 'settings',
       })
     list.push({
-      to: org.to('/privacy'),
+      to: '/account/privacy',
       label: 'agency.nav.privacy',
       icon: 'i-lucide-shield',
       group: 'settings',
@@ -77,7 +77,7 @@ export function useAgencyNav() {
     items.value.map((item) => ({
       ...item,
       // the settings have no client context of their own
-      link: item.to === '/account' ? item.to : { path: item.to, query: context.value },
+      link: item.to.startsWith('/account') ? item.to : { path: item.to, query: context.value },
     })),
   )
 }

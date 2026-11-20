@@ -115,6 +115,14 @@ test('a palette chosen in Impostazioni applies at once, comes back on reload, an
   await expect.poll(saved).toBe('blu')
 })
 
+/** The settings save as they change: the window of «Cambia email» has a primary button. */
+async function primaryButton(page: Page) {
+  await page.getByRole('button', { name: 'Cambia email' }).click()
+  return page
+    .getByRole('dialog', { name: 'Cambia email' })
+    .getByRole('button', { name: 'Invia il link di conferma' })
+}
+
 for (const id of ['blu', 'verde', 'viola', 'grafite'] as const satisfies readonly PaletteId[]) {
   test(`${id}: the pages pass axe and the primary button keeps its contrast on hover`, async ({
     page,
@@ -132,10 +140,11 @@ for (const id of ['blu', 'verde', 'viola', 'grafite'] as const satisfies readonl
     await fitsTheScreen(page)
 
     const mode = (await isDark(page)) ? 'dark' : 'light'
-    const save = page
-      .getByRole('region', { name: 'Preferenze' })
-      .getByRole('button', { name: 'Salva' })
-    await keepsContrastWhenPointed(page, save, palettes[id][mode]['brand-hover'])
+    await keepsContrastWhenPointed(
+      page,
+      await primaryButton(page),
+      palettes[id][mode]['brand-hover'],
+    )
 
     await page.goto(`/${person.organizationSlug}/spazi`)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -150,10 +159,7 @@ test('Feedway: the orange button keeps its contrast on hover, in light and dark'
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  const save = page
-    .getByRole('region', { name: 'Preferenze' })
-    .getByRole('button', { name: 'Salva' })
-  await keepsContrastWhenPointed(page, save, '#FF8A4C')
+  await keepsContrastWhenPointed(page, await primaryButton(page), '#FF8A4C')
 })
 
 test('quick choices end on the last one, and the next person in the same browser gets their own', async ({

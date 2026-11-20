@@ -124,160 +124,202 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
 <template>
   <SettingsShell>
-    <template v-if="!org.may.value.editSettings" #intro>
+    <p v-if="!org.may.value.editSettings" class="text-(--app-text-muted)">
       {{ $t('orgSettings.ownerOnly') }}
-    </template>
-
-    <AvatarUploader
-      v-if="org.may.value.editSettings && org.organization.value"
-      :name="org.organization.value.name"
-      :current="org.organization.value.logoUrl"
-      shape="square"
-      texts="logo"
-      :routes="logoRoutes"
-      :guard="withReauth"
-      @saved="logoSaved"
-    />
+    </p>
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>
     <div v-else-if="error" role="alert" class="space-y-3">
       <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
-      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
+      <UButton color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
-    <form
-      v-else-if="data"
-      class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      novalidate
-      @submit.prevent="save"
-    >
-      <fieldset :disabled="!org.may.value.editSettings" class="max-w-form min-w-0 space-y-4">
-        <UFormField
-          :label="$t('orgSettings.name')"
-          name="name"
-          required
-          :error="state.field === 'name' ? (state.problem ?? undefined) : undefined"
+    <form v-else-if="data" class="grid gap-8" novalidate @submit.prevent="save">
+      <SettingsGroup :title="$t('orgSettings.group')">
+        <SettingsRow
+          v-if="org.may.value.editSettings && org.organization.value"
+          :label="$t('logo.label')"
+          inline
         >
-          <UInput v-model="form.name" class="w-full" size="xl" />
-        </UFormField>
-        <UFormField
-          :label="$t('orgSettings.timezone')"
-          :help="$t('orgSettings.timezoneHelp')"
-          name="timezone"
-          :error="fieldError('timezone')"
-        >
-          <USelectMenu
-            v-model="form.timezone"
-            :items="zoneItems"
-            value-key="value"
-            class="w-full"
-            size="xl"
-            :search-input="{ placeholder: $t('account.preferences.searchZone') }"
+          <AvatarUploader
+            compact
+            :name="org.organization.value.name"
+            :current="org.organization.value.logoUrl"
+            shape="square"
+            texts="logo"
+            :routes="logoRoutes"
+            :guard="withReauth"
+            @saved="logoSaved"
           />
-        </UFormField>
-        <UFormField
-          :label="$t('orgSettings.require2fa')"
-          :help="data.platformRequire2fa === 'all' ? $t('orgSettings.platformAll') : undefined"
-          name="require2fa"
-        >
-          <URadioGroup
-            v-model="form.require2fa"
-            :items="policyItems"
-            :ui="{ item: 'min-h-11 items-center' }"
-          />
-        </UFormField>
-        <fieldset class="min-w-0 space-y-4 border-t border-(--app-border) pt-4">
-          <legend class="text-lg">{{ $t('orgSettings.privacy.title') }}</legend>
-          <p
-            v-if="!data.privacy && org.may.value.editSettings"
-            class="rounded-md border border-(--app-border-strong) bg-(--app-surface-sunken) p-3"
-          >
-            {{ $t('orgSettings.privacy.missing') }}
-          </p>
-          <p class="text-sm text-(--app-text-muted)">
-            {{ $t('orgSettings.privacy.help') }}
-            <NuxtLink :to="org.to('/privacy')" class="underline">{{
-              $t('orgSettings.privacy.see')
-            }}</NuxtLink>
-          </p>
+        </SettingsRow>
+        <SettingsRow :label="$t('orgSettings.name')" for="org-name">
           <UFormField
-            :label="$t('orgSettings.privacy.controllerName')"
+            name="name"
+            class="w-full max-w-[360px]"
+            :error="state.field === 'name' ? (state.problem ?? undefined) : undefined"
+          >
+            <UInput
+              id="org-name"
+              v-model="form.name"
+              class="w-full"
+              :disabled="!org.may.value.editSettings"
+              :ui="{ base: 'bg-(--app-surface)' }"
+            />
+          </UFormField>
+        </SettingsRow>
+        <SettingsRow :label="$t('orgSettings.timezone')" for="org-timezone">
+          <UFormField
+            name="timezone"
+            class="w-full max-w-[360px]"
+            :help="$t('orgSettings.timezoneHelp')"
+            :error="fieldError('timezone')"
+          >
+            <USelectMenu
+              id="org-timezone"
+              v-model="form.timezone"
+              :items="zoneItems"
+              value-key="value"
+              class="w-full"
+              :disabled="!org.may.value.editSettings"
+              :ui="{ base: 'bg-(--app-surface)' }"
+              :search-input="{ placeholder: $t('account.preferences.searchZone') }"
+            />
+          </UFormField>
+        </SettingsRow>
+        <SettingsRow :label="$t('orgSettings.require2fa')">
+          <UFormField
+            name="require2fa"
+            :help="data.platformRequire2fa === 'all' ? $t('orgSettings.platformAll') : undefined"
+          >
+            <URadioGroup
+              v-model="form.require2fa"
+              :items="policyItems"
+              :disabled="!org.may.value.editSettings"
+              :aria-label="$t('orgSettings.require2fa')"
+              orientation="horizontal"
+              :ui="{ item: 'min-h-11 items-center' }"
+            />
+          </UFormField>
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup :title="$t('orgSettings.privacy.title')">
+        <template #aside>
+          <NuxtLink
+            to="/account/privacy"
+            class="text-detail font-medium underline underline-offset-3"
+            >{{ $t('orgSettings.privacy.see') }}</NuxtLink
+          >
+        </template>
+        <p
+          v-if="!data.privacy && org.may.value.editSettings"
+          class="border-b border-(--app-border) bg-(--app-warning-soft) px-4 py-3"
+        >
+          {{ $t('orgSettings.privacy.missing') }}
+        </p>
+        <p class="px-4 pt-3 text-detail text-(--app-text-muted)">
+          {{ $t('orgSettings.privacy.help') }}
+        </p>
+        <SettingsRow :label="$t('orgSettings.privacy.controllerName')" for="org-controller">
+          <UFormField
             name="privacy.controllerName"
+            class="w-full max-w-[360px]"
             :error="fieldError('privacy.controllerName')"
           >
-            <UInput v-model="form.controllerName" class="w-full" size="xl" />
+            <UInput
+              id="org-controller"
+              v-model="form.controllerName"
+              class="w-full"
+              :disabled="!org.may.value.editSettings"
+              :ui="{ base: 'bg-(--app-surface)' }"
+            />
           </UFormField>
+        </SettingsRow>
+        <SettingsRow :label="$t('orgSettings.privacy.contactEmail')" for="org-contact">
           <UFormField
-            :label="$t('orgSettings.privacy.contactEmail')"
             name="privacy.contactEmail"
+            class="w-full max-w-[360px]"
             :error="fieldError('privacy.contactEmail')"
           >
-            <UInput v-model="form.contactEmail" type="email" class="w-full" size="xl" />
+            <UInput
+              id="org-contact"
+              v-model="form.contactEmail"
+              type="email"
+              class="w-full"
+              :disabled="!org.may.value.editSettings"
+              :ui="{ base: 'bg-(--app-surface)' }"
+            />
           </UFormField>
+        </SettingsRow>
+        <SettingsRow :label="$t('orgSettings.privacy.extraText')" for="org-extra">
           <UFormField
-            :label="$t('orgSettings.privacy.extraText')"
-            :help="$t('orgSettings.privacy.extraTextHelp')"
             name="privacy.extraText"
+            class="w-full"
+            :help="$t('orgSettings.privacy.extraTextHelp')"
             :error="fieldError('privacy.extraText')"
           >
-            <UTextarea v-model="form.extraText" class="w-full" :rows="4" autoresize />
+            <UTextarea
+              id="org-extra"
+              v-model="form.extraText"
+              class="w-full"
+              :rows="3"
+              autoresize
+              :disabled="!org.may.value.editSettings"
+              :ui="{ base: 'bg-(--app-surface)' }"
+            />
           </UFormField>
-        </fieldset>
-        <p
-          v-if="
-            state.problem &&
-            ![
-              'name',
-              'timezone',
-              'privacy.controllerName',
-              'privacy.contactEmail',
-              'privacy.extraText',
-            ].includes(state.field)
-          "
-          role="alert"
-          class="text-(--app-danger)"
-        >
-          {{ state.problem }}
+        </SettingsRow>
+      </SettingsGroup>
+
+      <p
+        v-if="
+          state.problem &&
+          ![
+            'name',
+            'timezone',
+            'privacy.controllerName',
+            'privacy.contactEmail',
+            'privacy.extraText',
+          ].includes(state.field)
+        "
+        role="alert"
+        class="text-(--app-danger)"
+      >
+        {{ state.problem }}
+      </p>
+      <div v-if="org.may.value.editSettings" class="-mt-4 flex flex-wrap items-center gap-3">
+        <UButton type="submit" :loading="state.sending">{{ $t('account.save') }}</UButton>
+        <p v-if="state.done" role="status" class="text-(--app-success)">
+          {{ $t('account.saved') }}
         </p>
-        <div v-if="org.may.value.editSettings" class="flex flex-wrap items-center gap-3">
-          <UButton type="submit" class="min-h-control" :loading="state.sending">{{
-            $t('account.save')
-          }}</UButton>
-          <p v-if="state.done" role="status" class="text-(--app-success)">
-            {{ $t('account.saved') }}
-          </p>
-        </div>
-      </fieldset>
+      </div>
     </form>
-    <section
-      v-if="data"
-      aria-labelledby="agency-storage"
-      class="space-y-2 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-    >
-      <h2 id="agency-storage" class="text-lg font-semibold">
-        {{ $t('orgSettings.storage.title') }}
-      </h2>
-      <p class="text-(--app-text-muted)">{{ $t('orgSettings.storage.text') }}</p>
-      <p class="font-semibold tabular-nums">
-        {{
+    <SettingsGroup v-if="data" :title="$t('orgSettings.storage.title')">
+      <SettingsRow
+        :label="
           data.storage.limitBytes === null
             ? $t('orgSettings.storage.used', { used: formatBytes(data.storage.usedBytes) })
             : $t('orgSettings.storage.usedOf', {
                 used: formatBytes(data.storage.usedBytes),
                 limit: formatBytes(data.storage.limitBytes),
               })
-        }}
-      </p>
-      <UProgress
-        v-if="data.storage.limitBytes"
-        :model-value="Math.min(100, (data.storage.usedBytes / data.storage.limitBytes) * 100)"
-        :aria-label="$t('orgSettings.storage.title')"
-        size="sm"
-      />
-      <p v-else class="text-sm text-(--app-text-muted)">{{ $t('orgSettings.storage.noLimit') }}</p>
-    </section>
+        "
+        :hint="$t('orgSettings.storage.text')"
+      >
+        <UProgress
+          v-if="data.storage.limitBytes"
+          :model-value="Math.min(100, (data.storage.usedBytes / data.storage.limitBytes) * 100)"
+          :aria-label="$t('orgSettings.storage.title')"
+          size="sm"
+          class="max-w-[360px]"
+        />
+        <p v-else class="text-detail text-(--app-text-muted)">
+          {{ $t('orgSettings.storage.noLimit') }}
+        </p>
+      </SettingsRow>
+    </SettingsGroup>
     <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
   </SettingsShell>
 </template>

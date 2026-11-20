@@ -98,6 +98,7 @@ const profiles = computed(() => {
 // every connection, a new one without accounts too; the list is not paged (a few per agency)
 const {
   data: connectionList,
+  status: connectionsStatus,
   error: connectionsError,
   refresh: refreshConnections,
 } = useFetch<{
@@ -106,6 +107,8 @@ const {
     kind: string
     status: ConnectionStatus
     syncRetryAfterSeconds: number | null
+    expiresAt: string | null
+    createdAt: string
   }[]
 }>(() => org.api('/connections'), {
   key: () => `connections-${org.slug.value}`,
@@ -135,6 +138,27 @@ function stateOf(a: AccountItem): {
   return { key: 'ok', color: 'success' }
 }
 const broken = (s: ConnectionStatus) => s === 'expired' || s === 'revoked'
+const STATE_TONE = {
+  ok: 'success',
+  warning: 'warning',
+  error: 'danger',
+  reconnect: 'warning',
+  unchecked: 'neutral',
+  inactive: 'neutral',
+} as const
+const toneOf = (a: AccountItem) => STATE_TONE[stateOf(a).key as keyof typeof STATE_TONE]
+const connectionHead = computed(() => [
+  t('socialAccounts.col.connection'),
+  t('socialAccounts.col.profiles'),
+  t('socialAccounts.col.expires'),
+  t('socialAccounts.col.state'),
+  { label: t('users.col.actions'), hidden: true as const },
+])
+const profileHead = computed(() => [
+  t('socialAccounts.col.profile'),
+  t('socialAccounts.col.clients'),
+  t('socialAccounts.col.state'),
+])
 const reactivable = (a: AccountItem) =>
   a.connection?.kind === 'meta_system_user' && !broken(a.connection.status)
 
@@ -214,7 +238,6 @@ async function tokenDone(outcome: 'connected' | 'replaced') {
 
 /** «Ricollega» of a client: the connection of its account, once both lists are in. */
 const focused = ref<string | null>(null)
-const connectionItems = ref<HTMLElement[]>([])
 watch(
   [() => props.focusAccount, items, connectionList],
   async () => {
@@ -229,7 +252,7 @@ watch(
     if (!id) return
     focused.value = id
     await nextTick()
-    const el = connectionItems.value.find((li) => li.dataset['connection'] === id)
+    const el = document.getElementById(`collegamento-${id}`)
     el?.scrollIntoView({ block: 'center' })
     el?.focus({ preventScroll: true })
   },
@@ -238,220 +261,258 @@ watch(
 </script>
 
 <template>
-  <div class="space-y-6">
-    <p v-if="status === 'pending' || status === 'idle'" role="status">
-      {{ $t('socialAccounts.loading') }}
-    </p>
-    <div v-else-if="error" role="alert" class="space-y-3">
-      <p class="flex items-center gap-2 text-(--app-danger)">
-        <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
-        {{ $t('socialAccounts.loadError') }}
-      </p>
-      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
-        {{ $t('account.retry') }}
-      </UButton>
-    </div>
+  <div class="flex flex-col gap-8">
+    <p v-if="token.done" role="status" class="text-(--app-success)">{{ token.done }}</p>
 
-    <template v-else>
-      <p v-if="token.done" role="status" class="text-(--app-success)">{{ token.done }}</p>
-
-      <div v-if="connectionsError" role="alert" class="space-y-3">
+    <!-- the connections (screen 25): each with its sync, or «Ricollega» when it broke -->
+    <SettingsGroup :title="$t('socialAccounts.connections')" bare>
+      <TableSkeleton
+        v-if="connectionsStatus === 'pending' || connectionsStatus === 'idle'"
+        :label="$t('socialAccounts.loading')"
+        :columns="[$t('socialAccounts.col.connection'), $t('socialAccounts.col.profiles')]"
+        :rows="2"
+      />
+      <div
+        v-else-if="connectionsError"
+        role="alert"
+        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
+      >
         <p class="text-(--app-danger)">{{ $t('socialAccounts.connectionsError') }}</p>
-        <UButton
-          class="min-h-control"
-          color="neutral"
-          variant="outline"
-          @click="() => refreshConnections()"
-        >
+        <UButton color="neutral" variant="outline" @click="() => refreshConnections()">
           {{ $t('account.retry') }}
         </UButton>
       </div>
-      <section
-        v-if="connections.length > 0"
-        aria-labelledby="connections"
-        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+      <p
+        v-else-if="connections.length === 0"
+        class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
       >
-        <h3 id="connections" class="text-lg">{{ $t('socialAccounts.connections') }}</h3>
-        <ul class="divide-y divide-(--app-border)">
-          <li
-            v-for="c in connections"
-            :id="`collegamento-${c.id}`"
-            :key="c.id"
-            ref="connectionItems"
-            :data-connection="c.id"
-            :tabindex="focused === c.id ? -1 : undefined"
-            :aria-current="focused === c.id ? 'true' : undefined"
-            class="-mx-2 flex flex-wrap items-center justify-between gap-3 rounded-lg px-2 py-3 aria-[current=true]:ring-2 aria-[current=true]:ring-(--app-brand)"
-          >
-            <div class="min-w-0 space-y-1">
-              <p class="font-semibold">{{ $t(`socialAccounts.kind.${c.kind}`) }}</p>
-              <p class="text-sm text-(--app-text-muted)">
-                <template v-if="nextCursor === null">
-                  {{ $t('socialAccounts.connectionAccounts', { n: c.accounts }, c.accounts)
-                  }}<template v-if="c.inactive > 0"
-                    >,
-                    {{
-                      $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive)
-                    }}</template
-                  >
-                  ·
-                </template>
-                <span :class="broken(c.status) ? 'text-(--app-danger)' : undefined">{{
+        {{ $t('socialAccounts.noConnections') }}
+      </p>
+      <ListSurface
+        v-else
+        columns="minmax(0,1.4fr) 110px 170px 150px auto"
+        :head="connectionHead"
+        :label="$t('socialAccounts.connections')"
+        class="max-md:[&>[data-list-head]]:sr-only"
+      >
+        <ListRow
+          v-for="c in connections"
+          :id="`collegamento-${c.id}`"
+          :key="c.id"
+          :data-connection="c.id"
+          :tabindex="focused === c.id ? -1 : undefined"
+          :aria-current="focused === c.id ? 'true' : undefined"
+          class="aria-[current=true]:ring-2 aria-[current=true]:ring-(--app-focus) aria-[current=true]:ring-inset max-md:grid-cols-[minmax(0,1fr)_auto]"
+        >
+          <span role="cell" class="flex min-w-0 items-center gap-3">
+            <UIcon name="i-lucide-facebook" class="size-[18px] shrink-0" aria-hidden="true" />
+            <span class="min-w-0">
+              <span class="block truncate font-semibold">{{
+                $t(`socialAccounts.kind.${c.kind}`)
+              }}</span>
+              <span class="block truncate text-detail text-(--app-text-muted)">
+                <template v-if="broken(c.status) || c.status === 'pending'">{{
                   $t(`socialAccounts.connectionStatus.${c.status}`)
-                }}</span>
-              </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
+                }}</template>
+                <template v-else>{{
+                  $t('socialAccounts.since', { when: formatDate(c.createdAt) })
+                }}</template>
+              </span>
+            </span>
+          </span>
+          <span role="cell" class="tabular-nums max-md:hidden">
+            <template v-if="nextCursor === null">
+              {{ c.accounts
+              }}<span v-if="c.inactive > 0" class="text-(--app-text-muted)">
+                ·
+                {{ $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive) }}</span
+              >
+            </template>
+          </span>
+          <span role="cell" class="text-(--app-text-muted) max-md:hidden">
+            {{ c.expiresAt ? formatRelative(c.expiresAt) : $t('socialAccounts.neverExpires') }}
+          </span>
+          <span role="cell" class="max-md:hidden">
+            <StatusDot
+              v-if="broken(c.status)"
+              tone="warning"
+              :label="$t(`socialAccounts.connectionState.${c.status}`)"
+            />
+          </span>
+          <span role="cell" class="flex items-center justify-end gap-1 md:-me-2">
+            <UButton
+              v-if="broken(c.status) && c.kind === 'meta_system_user'"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="openToken(true)"
+            >
+              {{ $t('socialAccounts.reconnect') }}
+            </UButton>
+            <template v-else>
               <UButton
-                class="min-h-control"
                 color="neutral"
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 icon="i-lucide-refresh-cw"
+                :aria-label="$t('socialAccounts.sync')"
                 :disabled="broken(c.status) || waiting(c.id) || (sync.sending && sync.id !== c.id)"
                 :loading="sync.sending && sync.id === c.id"
                 @click="syncConnection(c.id)"
               >
-                {{ $t('socialAccounts.sync') }}
+                <span class="max-md:hidden">{{ $t('socialAccounts.sync') }}</span>
               </UButton>
-              <UButton
+              <RowActions
                 v-if="c.kind === 'meta_system_user'"
-                class="min-h-control"
-                :color="broken(c.status) ? 'primary' : 'neutral'"
-                :variant="broken(c.status) ? 'solid' : 'outline'"
-                icon="i-lucide-key-round"
-                @click="openToken(broken(c.status))"
-              >
-                {{
-                  broken(c.status)
-                    ? $t('socialAccounts.reconnect')
-                    : $t('socialAccounts.replaceToken')
-                }}
-              </UButton>
-            </div>
-            <div v-if="outcomes[c.id] || waiting(c.id)" class="w-full space-y-1 text-sm">
-              <p
-                v-if="outcomes[c.id]"
-                :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
-                :class="{
-                  'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
-                  'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
-                }"
-              >
-                {{ outcomes[c.id]?.message }}
-              </p>
-              <p v-if="waiting(c.id)" class="text-(--app-text-muted)">
-                {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
-              </p>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <section aria-labelledby="meta-profiles" class="space-y-3">
-        <h3 id="meta-profiles" class="text-lg">{{ $t('socialAccounts.list') }}</h3>
-        <EmptyState
-          v-if="items.length === 0"
-          icon="i-lucide-at-sign"
-          :title="$t('socialAccounts.emptyTitle')"
-          :text="$t('socialAccounts.emptyText')"
-        >
-          <NuxtLink :to="addTo" class="underline">
-            {{ $t('socialAccounts.add') }}
-          </NuxtLink>
-        </EmptyState>
-        <ul v-else class="space-y-4" aria-labelledby="meta-profiles">
-          <li
-            v-for="profile in profiles"
-            :key="profile.key"
-            class="rounded-xl border border-(--app-border) bg-(--app-surface)"
+                :name="$t(`socialAccounts.kind.${c.kind}`)"
+                :items="[
+                  {
+                    label: $t('socialAccounts.replaceToken'),
+                    icon: 'i-lucide-key-round',
+                    onSelect: () => openToken(false),
+                  },
+                ]"
+              />
+            </template>
+          </span>
+          <span
+            v-if="outcomes[c.id] || waiting(c.id)"
+            role="cell"
+            class="col-span-full -mt-2 pb-3 text-detail"
           >
-            <h4 class="border-b border-(--app-border) px-4 py-3 text-base font-semibold sm:px-6">
-              {{ profile.name }}
-            </h4>
-            <ul class="divide-y divide-(--app-border)">
-              <li
-                v-for="a in profile.accounts"
-                :key="a.id"
-                class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-6"
-                :data-testid="`account-${a.externalId}`"
-              >
-                <div class="flex min-w-0 items-start gap-3">
-                  <RowAvatar :name="a.name" :src="a.avatarUrl" />
+            <span
+              v-if="outcomes[c.id]"
+              class="block"
+              :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
+              :class="{
+                'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
+                'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
+              }"
+            >
+              {{ outcomes[c.id]?.message }}
+            </span>
+            <span v-if="waiting(c.id)" class="block text-(--app-text-muted)">
+              {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
+            </span>
+          </span>
+        </ListRow>
+      </ListSurface>
+    </SettingsGroup>
+
+    <slot />
+
+    <!-- the profiles the connections bring, with their clients and state -->
+    <SettingsGroup :title="$t('socialAccounts.list')" bare>
+      <TableSkeleton
+        v-if="status === 'pending' || status === 'idle'"
+        :label="$t('socialAccounts.loading')"
+        :columns="[$t('socialAccounts.col.profile'), $t('socialAccounts.col.clients')]"
+        :rows="3"
+      />
+      <div
+        v-else-if="error"
+        role="alert"
+        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
+      >
+        <p class="text-(--app-danger)">{{ $t('socialAccounts.loadError') }}</p>
+        <UButton color="neutral" variant="outline" @click="() => refresh()">
+          {{ $t('account.retry') }}
+        </UButton>
+      </div>
+      <EmptyState
+        v-else-if="items.length === 0"
+        icon="i-lucide-at-sign"
+        :title="$t('socialAccounts.emptyTitle')"
+        :text="$t('socialAccounts.emptyText')"
+      >
+        <NuxtLink :to="addTo" class="underline">
+          {{ $t('socialAccounts.add') }}
+        </NuxtLink>
+      </EmptyState>
+      <ListSurface
+        v-else
+        columns="minmax(0,1.4fr) minmax(0,1fr) 150px"
+        :head="profileHead"
+        :label="$t('socialAccounts.list')"
+        class="max-md:[&>[data-list-head]]:sr-only"
+      >
+        <template v-for="profile in profiles" :key="profile.key">
+          <ListRow
+            v-for="a in profile.accounts"
+            :key="a.id"
+            class="py-2 max-md:grid-cols-[minmax(0,1fr)_auto]"
+            :data-testid="`account-${a.externalId}`"
+          >
+            <span role="cell" class="flex min-w-0 items-center gap-3">
+              <RowAvatar :name="a.name" :src="a.avatarUrl" />
+              <span class="min-w-0">
+                <span class="flex min-w-0 items-center gap-1.5 font-semibold">
                   <UIcon
                     :name="a.platform === 'instagram' ? 'i-lucide-instagram' : 'i-lucide-facebook'"
-                    class="mt-1.5 size-5 shrink-0"
+                    class="size-4 shrink-0"
                     aria-hidden="true"
                   />
-                  <div class="min-w-0 space-y-1">
-                    <p class="font-semibold break-words">
-                      <span class="sr-only"
-                        >{{ $t(`socialAccounts.platform.${a.platform}`) }}:
-                      </span>
-                      {{ a.name }}
-                      <span v-if="a.username" class="font-normal text-(--app-text-muted)"
-                        >@{{ a.username }}</span
-                      >
-                    </p>
-                    <p
-                      v-if="a.healthMessage"
-                      class="text-sm"
-                      :class="
-                        a.health === 'error' ? 'text-(--app-danger)' : 'text-(--app-text-muted)'
-                      "
-                    >
-                      {{ a.healthMessage }}
-                    </p>
-                    <p v-if="!a.active" class="text-sm text-(--app-text-muted)">
-                      <!-- only a working system user can find it again from «Aggiungi account» -->
-                      <template v-if="reactivable(a)">
-                        {{ $t('socialAccounts.inactiveWhy') }}
-                        <NuxtLink :to="addTo" class="underline">{{
-                          $t('addAccount.search')
-                        }}</NuxtLink
-                        >.
-                      </template>
-                      <template v-else>{{ $t('socialAccounts.inactiveOther') }}</template>
-                    </p>
-                    <p v-if="a.quota" class="text-sm text-(--app-text-muted)">
-                      {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}
-                    </p>
-                    <p class="text-sm text-(--app-text-muted)">
-                      {{
-                        a.workspaceIds.length === 0
-                          ? $t('socialAccounts.noWorkspace')
-                          : workspaceNames(a.workspaceIds)
-                      }}
-                    </p>
-                  </div>
-                </div>
-                <UBadge :color="stateOf(a).color" variant="subtle" class="self-start">
-                  {{ $t(`socialAccounts.state.${stateOf(a).key}`) }}
-                </UBadge>
-              </li>
-            </ul>
-          </li>
-        </ul>
-        <div v-if="nextCursor" class="space-y-2">
-          <UButton
-            class="min-h-control"
-            color="neutral"
-            variant="outline"
-            :loading="loadingMore"
-            @click="loadMore"
-          >
-            {{ $t('socialAccounts.more') }}
-          </UButton>
-          <p v-if="moreProblem" role="alert" class="text-(--app-danger)">{{ moreProblem }}</p>
-        </div>
-      </section>
+                  <span class="sr-only">{{ $t(`socialAccounts.platform.${a.platform}`) }}: </span>
+                  <span class="truncate">{{ a.name }}</span>
+                  <span v-if="a.username" class="truncate font-normal text-(--app-text-muted)"
+                    >@{{ a.username }}</span
+                  >
+                </span>
+                <span
+                  v-if="a.healthMessage"
+                  class="block text-detail"
+                  :class="a.health === 'error' ? 'text-(--app-danger)' : 'text-(--app-text-muted)'"
+                >
+                  {{ a.healthMessage }}
+                </span>
+                <span v-if="!a.active" class="block text-detail text-(--app-text-muted)">
+                  <!-- only a working system user can find it again from «Aggiungi account» -->
+                  <template v-if="reactivable(a)">
+                    {{ $t('socialAccounts.inactiveWhy') }}
+                    <NuxtLink :to="addTo" class="underline">{{ $t('addAccount.search') }}</NuxtLink
+                    >.
+                  </template>
+                  <template v-else>{{ $t('socialAccounts.inactiveOther') }}</template>
+                </span>
+                <span v-if="a.quota" class="block text-detail text-(--app-text-muted)">
+                  {{ $t('socialAccounts.quota', { used: a.quota.used, total: a.quota.total }) }}
+                </span>
+                <span class="block text-detail text-(--app-text-muted) md:hidden">
+                  {{
+                    a.workspaceIds.length === 0
+                      ? $t('socialAccounts.noWorkspace')
+                      : workspaceNames(a.workspaceIds)
+                  }}
+                </span>
+              </span>
+            </span>
+            <span role="cell" class="truncate text-(--app-text-muted) max-md:hidden">
+              {{
+                a.workspaceIds.length === 0
+                  ? $t('socialAccounts.noWorkspace')
+                  : workspaceNames(a.workspaceIds)
+              }}
+            </span>
+            <span role="cell">
+              <StatusDot :tone="toneOf(a)" :label="$t(`socialAccounts.state.${stateOf(a).key}`)" />
+            </span>
+          </ListRow>
+        </template>
+      </ListSurface>
+      <div v-if="nextCursor" class="mt-3 space-y-2">
+        <UButton color="neutral" variant="outline" :loading="loadingMore" @click="loadMore">
+          {{ $t('socialAccounts.more') }}
+        </UButton>
+        <p v-if="moreProblem" role="alert" class="text-(--app-danger)">{{ moreProblem }}</p>
+      </div>
+    </SettingsGroup>
 
-      <SystemUserTokenDialog
-        v-model:open="token.open"
-        :title="token.title"
-        :with-reauth="props.withReauth"
-        :path="org.api('/connections/system-user')"
-        @done="tokenDone"
-      />
-    </template>
+    <SystemUserTokenDialog
+      v-model:open="token.open"
+      :title="token.title"
+      :with-reauth="props.withReauth"
+      :path="org.api('/connections/system-user')"
+      @done="tokenDone"
+    />
   </div>
 </template>

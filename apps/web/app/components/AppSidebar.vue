@@ -21,7 +21,7 @@ const toFix = computed(() =>
 const main = computed(() => nav.value.filter((item) => item.group === 'main'))
 const agency = computed(() => nav.value.filter((item) => item.group === 'agency'))
 // Impostazioni holds the person's and the agency's settings, and the pages reached from them
-const SETTINGS = ['/account', '/impostazioni', '/registro', '/privacy']
+const SETTINGS = ['/account', '/impostazioni']
 const under = (path: string, to: string) => path === to || path.startsWith(`${to}/`)
 const current = (to: string) => {
   const path = route.path

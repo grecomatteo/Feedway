@@ -98,6 +98,35 @@ const PAGES: MeasuredPage[] = [
     },
     control: '[data-library-tools] > div:has(input[type="search"])',
   },
+  {
+    // the people of the agency (screen 21): the search, the outline «Invita», a row
+    name: 'Utenti',
+    path: async (page) => {
+      const owner = await newPerson('Mara Utenti', 'owner')
+      await signInWithTotp(page.request, owner)
+      return `/${owner.organizationSlug}/utenti`
+    },
+    control: '[data-toolbar] > div:has(input[type="search"])',
+    row: '[data-member-row]',
+  },
+  {
+    // the person's profile (screen 23): the fields of the rows
+    name: 'Profilo e preferenze',
+    path: '/account',
+    control: '[data-settings-row] input[type="text"]',
+  },
+  {
+    // the activity log (screen 26): the search and a row
+    name: 'Registro attività',
+    path: async (page) => {
+      const owner = await newPerson('Mara Registro', 'owner')
+      await signInWithTotp(page.request, owner)
+      await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/impostazioni/registro`
+    },
+    control: '[data-toolbar] > div:has(input[type="search"])',
+    row: '[data-list-row]',
+  },
 ]
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768

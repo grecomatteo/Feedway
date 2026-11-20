@@ -19,16 +19,19 @@ test('profile edits are saved and theme follows the user to a new device', async
   await page.goto('/account')
   await expect(page.getByRole('heading', { level: 1, name: 'Impostazioni' })).toBeVisible()
 
-  const profile = page.getByRole('region', { name: 'Nome e soprannome' })
+  // the fields save when they are left changed (screen 23 has no «Salva»)
+  const profile = page.getByRole('region', { name: 'Profilo' })
   await profile.getByRole('textbox', { name: 'Soprannome' }).fill('Teo')
-  await profile.getByRole('button', { name: 'Salva' }).click()
+  await profile.getByRole('textbox', { name: 'Soprannome' }).blur()
   await expect(profile.getByRole('status')).toHaveText('Modifiche salvate.')
-  await expect(page.getByTitle('Matteo Greco')).toHaveText('Teo')
+  await page.reload()
+  await expect(profile.getByRole('textbox', { name: 'Soprannome' })).toHaveValue('Teo')
 
   const preferences = page.getByRole('region', { name: 'Preferenze' })
-  await preferences.getByRole('radio', { name: 'Scuro' }).check()
-  await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
+  await preferences.getByRole('button', { name: 'Scuro' }).click()
+  await expect(
+    preferences.getByRole('status').filter({ hasText: 'Modifiche salvate.' }),
+  ).toBeVisible()
   await expect(page.locator('html')).toHaveClass(/dark/)
 
   // another browser, signed in from scratch: the theme comes with the profile
@@ -79,8 +82,8 @@ test('the theme button keeps the choice in the profile, so a new visit keeps it'
   await expect(
     page
       .getByRole('region', { name: 'Preferenze' })
-      .getByRole('radio', { name: wasDark ? 'Chiaro' : 'Scuro' }),
-  ).toBeChecked()
+      .getByRole('button', { name: wasDark ? 'Chiaro' : 'Scuro' }),
+  ).toHaveAttribute('aria-pressed', 'true')
 
   // another browser whose system says the opposite: the profile wins
   const other = await browser.newContext({
@@ -144,12 +147,22 @@ test('after a light or dark choice, «Automatico» in the preferences sticks', a
   await signIn(page.request, person)
   await page.goto('/account')
   const preferences = page.getByRole('region', { name: 'Preferenze' })
-  await preferences.getByRole('radio', { name: 'Scuro' }).check()
-  await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
-  await preferences.getByRole('radio', { name: 'Automatico' }).check()
-  await preferences.getByRole('button', { name: 'Salva' }).click()
-  await expect(preferences.locator('form').getByRole('status')).toHaveText('Modifiche salvate.')
+  // the choice saves at once
+  await preferences.getByRole('button', { name: 'Scuro' }).click()
+  await expect(
+    preferences.getByRole('status').filter({ hasText: 'Modifiche salvate.' }),
+  ).toBeVisible()
+  await expect
+    .poll(
+      async () =>
+        (
+          await adminQuery<{ theme: string }>('select theme from users where id = $1', [
+            person.userId,
+          ])
+        )[0]?.theme,
+    )
+    .toBe('dark')
+  await preferences.getByRole('button', { name: 'Automatico' }).click()
   const theme = async () =>
     (
       await adminQuery<{ theme: string }>('select theme from users where id = $1', [person.userId])
@@ -158,7 +171,10 @@ test('after a light or dark choice, «Automatico» in the preferences sticks', a
   await page.waitForTimeout(1000)
   expect(await theme()).toBe('system')
   await page.reload()
-  await expect(preferences.getByRole('radio', { name: 'Automatico' })).toBeChecked()
+  await expect(preferences.getByRole('button', { name: 'Automatico' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await page.waitForTimeout(1000)
   expect(await theme()).toBe('system')
 })
@@ -167,9 +183,9 @@ test('a wrong nickname gets its error next to the field', async ({ page }) => {
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  const profile = page.getByRole('region', { name: 'Nome e soprannome' })
+  const profile = page.getByRole('region', { name: 'Profilo' })
   await profile.getByRole('textbox', { name: 'Soprannome' }).fill('a'.repeat(31))
-  await profile.getByRole('button', { name: 'Salva' }).click()
+  await profile.getByRole('textbox', { name: 'Soprannome' }).blur()
   await expect(profile.getByText('Il soprannome può avere al massimo 30 caratteri')).toBeVisible()
 })
 

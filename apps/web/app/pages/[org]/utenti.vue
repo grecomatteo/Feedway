@@ -9,6 +9,7 @@ interface Member {
   email: string
   orgRole: 'owner' | 'admin' | 'member'
   status: 'active' | 'disabled'
+  avatarUrl?: string | null
   secondFactorConfigured: boolean
   workspaces: { id: string; name: string; role: WorkspaceRole }[]
   lastLoginAt: string | null
@@ -45,14 +46,6 @@ const myId = computed(() => org.me.value?.id ?? '')
 const isOwner = computed(() => org.role.value === 'owner')
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 const spaceName = (id: string) => spaces.value?.items.find((w) => w.id === id)?.name ?? ''
-
-function rolesText(m: Member): string {
-  if (m.orgRole !== 'member') return t('users.allClients')
-  if (m.workspaces.length === 0) return t('users.noClients')
-  return m.workspaces
-    .map((w) => t('users.roleIn', { role: t(`roles.${w.role}`), name: w.name }))
-    .join(', ')
-}
 
 // ---- one action at a time, with its outcome
 const busy = ref<string | null>(null)
@@ -131,65 +124,128 @@ onBeforeUnmount(() => {
   resetUrl.value = null
 })
 
-const roleItems = computed(() => [
-  { value: 'member', label: t('roles.member') },
-  { value: 'admin', label: t('roles.admin') },
-])
-
 // ---- invite
 const inviteOpen = ref(false)
-const NONE = 'none'
-const invite = reactive({
-  email: '',
-  orgRole: 'member' as 'member' | 'admin',
-  roles: {} as Record<string, WorkspaceRole | typeof NONE>,
-})
-const inviteState = reactive({ sending: false, problem: null as string | null, field: '' })
-const workspaceRoleItems = computed(() => [
-  { value: NONE, label: t('users.invite.noAccess') },
-  ...(['manager', 'publisher', 'editor', 'viewer'] as const).map((r) => ({
-    value: r,
-    label: t(`roles.${r}`),
-  })),
-])
 const activeSpaces = computed(() =>
   (spaces.value?.items ?? []).filter((w) => w.archivedAt === null),
 )
-watch(inviteOpen, (open) => {
-  if (!open) return
-  Object.assign(invite, { email: '', orgRole: 'member', roles: {} })
-  Object.assign(inviteState, { problem: null, field: '' })
-})
-async function sendInvite() {
-  inviteState.sending = true
-  inviteState.problem = null
-  try {
-    const memberships =
-      invite.orgRole === 'member'
-        ? Object.entries(invite.roles)
-            .filter(([, role]) => role !== NONE)
-            .map(([workspaceId, role]) => ({ workspaceId, role }))
-        : []
-    // inviting an Admin is sensitive: the server asks for a recent confirmation
-    await withReauth(async () => {
-      await call('POST', org.api('/invites'), {
-        email: invite.email.trim(),
-        orgRole: invite.orgRole,
-        memberships,
-      })
-    })
-    done.value = t('users.invite.sent', { email: invite.email.trim() })
-    inviteOpen.value = false
-    await refreshInvites()
-  } catch (e) {
-    if (e instanceof ReauthCancelled) return
-    const f = failure(e)
-    inviteState.problem = f.message
-    inviteState.field = f.field ?? ''
-  } finally {
-    inviteState.sending = false
-  }
+async function inviteSent(email: string) {
+  done.value = t('users.invite.sent', { email })
+  await refreshInvites()
 }
+
+// ---- the list: who is active, the open invites, who is suspended
+type Tab = 'active' | 'invites' | 'disabled'
+const tab = ref<Tab>('active')
+const query = ref('')
+const matches = (...texts: string[]) => {
+  const q = query.value.trim().toLocaleLowerCase('it')
+  return q === '' || texts.some((x) => x.toLocaleLowerCase('it').includes(q))
+}
+const members = computed(() => data.value?.items ?? [])
+const active = computed(() => members.value.filter((m) => m.status === 'active'))
+const suspended = computed(() => members.value.filter((m) => m.status !== 'active'))
+const openInvites = computed(() => invites.value?.items ?? [])
+const tabs = computed(() => [
+  { value: 'active' as const, label: t('users.tabs.active'), count: active.value.length },
+  { value: 'invites' as const, label: t('users.tabs.invites'), count: openInvites.value.length },
+  { value: 'disabled' as const, label: t('users.tabs.disabled'), count: suspended.value.length },
+])
+const shownMembers = computed(() =>
+  (tab.value === 'disabled' ? suspended.value : active.value).filter((m) =>
+    matches(m.displayName, m.name, m.email),
+  ),
+)
+const shownInvites = computed(() => openInvites.value.filter((i) => matches(i.email)))
+
+/** «Owner», «Admin», or the roles a Member has on their clients («Editor»). */
+function roleOf(m: { orgRole: Member['orgRole']; roles: WorkspaceRole[] }): string {
+  if (m.orgRole !== 'member') return t(`roles.${m.orgRole}`)
+  const distinct = [...new Set(m.roles)]
+  return distinct.length === 0 ? t('roles.member') : distinct.map((r) => t(`roles.${r}`)).join(', ')
+}
+/** «Tutti» for Owner and Admin, the names of the clients for a Member. */
+function clientsOf(m: { orgRole: Member['orgRole']; names: string[] }): string {
+  if (m.orgRole !== 'member') return t('users.allClients')
+  return m.names.length === 0 ? t('users.noClients') : m.names.join(', ')
+}
+const memberRole = (m: Member) =>
+  roleOf({ orgRole: m.orgRole, roles: m.workspaces.map((w) => w.role) })
+const memberClients = (m: Member) =>
+  clientsOf({ orgRole: m.orgRole, names: m.workspaces.map((w) => w.name) })
+const inviteRole = (i: Invite) =>
+  roleOf({ orgRole: i.orgRole, roles: i.memberships.map((ms) => ms.role) })
+const inviteClients = (i: Invite) =>
+  clientsOf({ orgRole: i.orgRole, names: i.memberships.map((ms) => spaceName(ms.workspaceId)) })
+const lastSeen = (m: Member) =>
+  m.id === myId.value
+    ? t('users.now')
+    : m.lastLoginAt
+      ? formatRelative(m.lastLoginAt)
+      : t('users.never')
+
+function memberActions(m: Member) {
+  const items: { label: string; icon?: string; color?: 'error'; onSelect: () => void }[] = []
+  if (m.id === myId.value) {
+    if (isOwner.value)
+      items.push({
+        label: t('transfer.button'),
+        icon: 'i-lucide-crown',
+        onSelect: () => (transferOpen.value = true),
+      })
+    return items
+  }
+  if (m.orgRole === 'owner') return items
+  if (isOwner.value && m.status === 'active')
+    items.push(
+      m.orgRole === 'admin'
+        ? {
+            label: t('users.makeMember'),
+            icon: 'i-lucide-user',
+            onSelect: () => changeRole(m, 'member'),
+          }
+        : {
+            label: t('users.makeAdmin'),
+            icon: 'i-lucide-user-cog',
+            onSelect: () => changeRole(m, 'admin'),
+          },
+    )
+  items.push({ label: t('users.reset'), icon: 'i-lucide-key-round', onSelect: () => resetLink(m) })
+  items.push(
+    m.status === 'active'
+      ? {
+          label: t('users.disable'),
+          icon: 'i-lucide-user-x',
+          color: 'error',
+          onSelect: () => disable(m),
+        }
+      : { label: t('users.enable'), icon: 'i-lucide-user-check', onSelect: () => enable(m) },
+  )
+  return items
+}
+const inviteActions = (i: Invite) => [
+  { label: t('users.resend'), icon: 'i-lucide-send', onSelect: () => resend(i) },
+  { label: t('users.revoke'), icon: 'i-lucide-x', onSelect: () => revoke(i) },
+]
+
+const COLUMNS = 'minmax(240px,1.6fr) 120px minmax(160px,1fr) 140px 150px 30px'
+const memberHead = computed(() => [
+  t('users.col.person'),
+  t('users.col.role'),
+  t('users.col.clients'),
+  t('users.col.lastLogin'),
+  { label: t('users.col.status'), hidden: true as const },
+  { label: t('users.col.actions'), hidden: true as const },
+])
+const inviteHead = computed(() => [
+  t('users.col.email'),
+  t('users.col.role'),
+  t('users.col.clients'),
+  t('users.col.expires'),
+  { label: t('users.col.status'), hidden: true as const },
+  { label: t('users.col.actions'), hidden: true as const },
+])
+const ready = computed(() => data.value !== undefined && invites.value !== undefined)
 
 // ---- ownership
 const transferOpen = ref(false)
@@ -212,286 +268,190 @@ async function transferred() {
 </script>
 
 <template>
-  <PageShell :title="$t('users.title')">
-    <template v-if="data" #summary>
-      {{ $t('users.count', { people: data.items.length, invites: invites?.items.length ?? 0 }) }}
-    </template>
-    <template #actions>
-      <UButton
-        v-if="isOwner"
-        class="min-h-control"
-        color="neutral"
-        variant="outline"
-        @click="transferOpen = true"
-      >
-        {{ $t('transfer.button') }}
-      </UButton>
-      <UButton class="min-h-control" icon="i-lucide-user-plus" @click="inviteOpen = true">
-        {{ $t('users.invite.button') }}
-      </UButton>
+  <PageShell :data-ready="ready || undefined">
+    <template #head>
+      <PageHeader :title="$t('users.title')">
+        <template #actions>
+          <UButton
+            class="md:hidden"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-user-plus"
+            @click="inviteOpen = true"
+          >
+            {{ $t('users.invite.button') }}
+          </UButton>
+        </template>
+      </PageHeader>
     </template>
 
-    <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
-    <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
-    <CopyLinkField
-      v-if="resetUrl"
-      :url="resetUrl.url"
-      :label="$t('users.resetLinkFor', { name: resetUrl.name })"
-    />
+    <div>
+      <p v-if="done" role="status" class="mb-3 text-sm text-(--app-success)">{{ done }}</p>
+      <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>
+      <CopyLinkField
+        v-if="resetUrl"
+        class="mb-3"
+        :url="resetUrl.url"
+        :label="$t('users.resetLinkFor', { name: resetUrl.name })"
+      />
 
-    <p v-if="status === 'pending' || status === 'idle'" role="status">
-      {{ $t('account.loading') }}
-    </p>
-    <div v-else-if="error" role="alert" class="space-y-3">
-      <p class="text-(--app-danger)">{{ $t('account.loadError') }}</p>
-      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
-        {{ $t('account.retry') }}
-      </UButton>
-    </div>
-    <div
-      v-else-if="data"
-      class="relative overflow-x-auto rounded-xl border border-(--app-border) bg-(--app-surface)"
-    >
-      <table class="w-full min-w-[44rem] text-left text-sm">
-        <caption class="sr-only">
-          {{
-            $t('users.title')
-          }}
-        </caption>
-        <thead class="bg-(--app-surface-sunken) text-(--app-text-muted)">
-          <tr>
-            <th scope="col" class="px-4 py-2 font-normal">{{ $t('users.col.person') }}</th>
-            <th scope="col" class="px-4 py-2 font-normal">{{ $t('users.col.agency') }}</th>
-            <th scope="col" class="px-4 py-2 font-normal">{{ $t('users.col.clients') }}</th>
-            <th scope="col" class="px-4 py-2 font-normal">{{ $t('users.col.status') }}</th>
-            <th scope="col" class="px-4 py-2 font-normal">{{ $t('users.col.lastLogin') }}</th>
-            <th scope="col" class="px-4 py-2 font-normal">
-              <span class="sr-only">{{ $t('users.col.actions') }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in data.items" :key="m.id" class="border-t border-(--app-border)">
-            <th scope="row" class="px-4 py-2 font-normal">
-              <span class="flex items-center gap-2">
-                <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
-                <span>
-                  <span class="block font-semibold">{{ m.displayName }}</span>
-                  <span class="block text-(--app-text-muted)">{{ m.email }}</span>
-                </span>
-              </span>
-            </th>
-            <td class="px-4 py-2">
-              <USelect
-                v-if="isOwner && m.orgRole !== 'owner' && m.id !== myId"
-                :model-value="m.orgRole"
-                :items="roleItems"
-                :aria-label="$t('users.roleOf', { name: m.displayName })"
-                size="xl"
-                class="min-w-32"
-                :disabled="busy !== null"
-                @update:model-value="(r) => changeRole(m, r as 'admin' | 'member')"
-              />
-              <span v-else>{{ $t(`roles.${m.orgRole}`) }}</span>
-            </td>
-            <td class="px-4 py-2">{{ rolesText(m) }}</td>
-            <td class="px-4 py-2">
-              <UBadge :color="m.status === 'active' ? 'success' : 'neutral'" variant="subtle">
-                {{ m.status === 'active' ? $t('users.active') : $t('users.disabled') }}
-              </UBadge>
-              <p v-if="m.anonymizationScheduledFor" class="mt-1 text-sm text-(--app-text-muted)">
-                {{
-                  $t('users.anonymizationScheduled', {
-                    date: formatDate(m.anonymizationScheduledFor),
-                  })
-                }}
-              </p>
-            </td>
-            <td class="px-4 py-2">
-              {{ m.lastLoginAt ? formatRelative(m.lastLoginAt) : $t('users.never') }}
-            </td>
-            <td class="px-4 py-2">
-              <div
-                v-if="m.id !== myId && m.orgRole !== 'owner'"
-                class="flex flex-wrap justify-end gap-1"
-              >
-                <UButton
-                  class="min-h-control"
-                  color="neutral"
-                  variant="ghost"
-                  :disabled="busy !== null"
-                  :aria-label="$t('users.resetOf', { name: m.displayName })"
-                  @click="resetLink(m)"
-                >
-                  {{ $t('users.reset') }}
-                </UButton>
-                <UButton
-                  v-if="m.status === 'active'"
-                  class="min-h-control"
-                  color="error"
-                  variant="ghost"
-                  :disabled="busy !== null"
-                  :aria-label="$t('users.disableOf', { name: m.displayName })"
-                  @click="disable(m)"
-                >
-                  {{ $t('users.disable') }}
-                </UButton>
-                <UButton
-                  v-else
-                  class="min-h-control"
-                  color="neutral"
-                  variant="ghost"
-                  :disabled="busy !== null"
-                  :aria-label="$t('users.enableOf', { name: m.displayName })"
-                  @click="enable(m)"
-                >
-                  {{ $t('users.enable') }}
-                </UButton>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <section
-      v-if="invites && invites.items.length > 0"
-      aria-labelledby="open-invites"
-      class="space-y-2"
-    >
-      <h2 id="open-invites" class="text-lg">{{ $t('users.invitesTitle') }}</h2>
-      <ul class="space-y-2">
-        <li
-          v-for="i in invites.items"
-          :key="i.id"
-          class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-(--app-border) bg-(--app-surface) p-3"
+      <Toolbar>
+        <SegmentedFilter v-model="tab" :label="$t('users.show')" :options="tabs" />
+        <SearchField v-model="query" :label="$t('users.search')" />
+        <span class="flex-1 max-md:hidden" />
+        <UButton
+          class="max-md:hidden"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-user-plus"
+          @click="inviteOpen = true"
         >
-          <span>
-            <span class="font-semibold">{{ i.email }}</span>
-            <span class="block text-sm text-(--app-text-muted)">
-              {{ $t(`roles.${i.orgRole}`) }}
-              <template v-if="i.memberships.length > 0">
-                ·
-                {{
-                  i.memberships
-                    .map((ms) =>
-                      $t('users.roleIn', {
-                        role: $t(`roles.${ms.role}`),
-                        name: spaceName(ms.workspaceId),
-                      }),
-                    )
-                    .join(', ')
-                }}
-              </template>
-              · {{ $t('users.inviteExpires', { when: formatDate(i.expiresAt, { time: true }) }) }}
+          {{ $t('users.invite.button') }}
+        </UButton>
+      </Toolbar>
+
+      <TableSkeleton
+        v-if="status === 'pending' || status === 'idle'"
+        :label="$t('account.loading')"
+        :columns="[$t('users.col.person'), $t('users.col.role'), $t('users.col.clients')]"
+        :rows="4"
+      />
+      <div
+        v-else-if="error"
+        role="alert"
+        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
+      >
+        <p>{{ $t('account.loadError') }}</p>
+        <UButton color="neutral" variant="outline" @click="() => refresh()">
+          {{ $t('account.retry') }}
+        </UButton>
+      </div>
+
+      <template v-else-if="tab === 'invites'">
+        <p
+          v-if="shownInvites.length === 0"
+          class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
+        >
+          {{ query.trim() ? $t('users.noMatch', { q: query.trim() }) : $t('users.noInvites') }}
+        </p>
+        <ListSurface
+          v-else
+          :columns="COLUMNS"
+          :head="inviteHead"
+          :label="$t('users.invitesTitle')"
+          class="max-md:[&>[data-list-head]]:sr-only"
+        >
+          <ListRow
+            v-for="i in shownInvites"
+            :key="i.id"
+            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+            data-invite-row
+          >
+            <span role="cell" class="flex min-w-0 items-center gap-3">
+              <Avatar :name="i.email" kind="person" />
+              <span class="min-w-0">
+                <span class="block truncate font-semibold">{{ i.email }}</span>
+                <span class="block truncate text-detail text-(--app-text-muted)">{{
+                  $t('users.inviteExpires', { when: formatDate(i.expiresAt, { time: true }) })
+                }}</span>
+              </span>
             </span>
-          </span>
-          <span class="flex gap-1">
-            <UButton
-              class="min-h-control"
-              color="neutral"
-              variant="ghost"
-              :disabled="busy !== null"
-              :aria-label="$t('users.resendOf', { email: i.email })"
-              @click="resend(i)"
-            >
-              {{ $t('users.resend') }}
-            </UButton>
-            <UButton
-              class="min-h-control"
-              color="neutral"
-              variant="ghost"
-              :disabled="busy !== null"
-              :aria-label="$t('users.revokeOf', { email: i.email })"
-              @click="revoke(i)"
-            >
-              {{ $t('users.revoke') }}
-            </UButton>
-          </span>
-        </li>
-      </ul>
-    </section>
-
-    <UModal
-      v-model:open="inviteOpen"
-      :title="$t('users.invite.title')"
-      :description="$t('users.invite.explain')"
-    >
-      <template #body>
-        <form class="max-w-form space-y-4" novalidate @submit.prevent="sendInvite">
-          <UFormField
-            :label="$t('signIn.email')"
-            name="invite-email"
-            required
-            :error="inviteState.field === 'email' ? (inviteState.problem ?? undefined) : undefined"
-          >
-            <UInput
-              v-model="invite.email"
-              type="email"
-              autocomplete="off"
-              class="w-full"
-              size="xl"
-            />
-          </UFormField>
-          <UFormField :label="$t('users.invite.agencyRole')" name="invite-role">
-            <URadioGroup
-              v-model="invite.orgRole"
-              :items="[
-                {
-                  value: 'member',
-                  label: $t('roles.member'),
-                  description: $t('roleExplain.member'),
-                },
-                { value: 'admin', label: $t('roles.admin'), description: $t('roleExplain.admin') },
-              ]"
-              :ui="{ item: 'min-h-11 items-start py-1' }"
-            />
-          </UFormField>
-          <fieldset v-if="invite.orgRole === 'member'" class="space-y-3">
-            <legend class="text-sm font-medium">{{ $t('users.invite.clients') }}</legend>
-            <p v-if="activeSpaces.length === 0" class="text-sm text-(--app-text-muted)">
-              {{ $t('users.invite.noClients') }}
-            </p>
-            <UFormField
-              v-for="w in activeSpaces"
-              :key="w.id"
-              :label="w.name"
-              :name="`role-${w.id}`"
-            >
-              <USelect
-                :model-value="invite.roles[w.id] ?? NONE"
-                :items="workspaceRoleItems"
-                class="w-full"
-                size="xl"
-                @update:model-value="(r) => (invite.roles[w.id] = r as WorkspaceRole)"
-              />
-            </UFormField>
-            <RoleExplainer />
-          </fieldset>
-          <p
-            v-if="inviteState.problem && inviteState.field !== 'email'"
-            role="alert"
-            class="text-(--app-danger)"
-          >
-            {{ inviteState.problem }}
-          </p>
-          <div class="flex flex-wrap gap-3">
-            <UButton type="submit" class="min-h-control" :loading="inviteState.sending">
-              {{ $t('users.invite.send') }}
-            </UButton>
-            <UButton
-              class="min-h-control"
-              color="neutral"
-              variant="ghost"
-              @click="inviteOpen = false"
-            >
-              {{ $t('security.cancel') }}
-            </UButton>
-          </div>
-        </form>
+            <span role="cell" class="max-md:text-detail max-md:text-(--app-text-muted)">{{
+              inviteRole(i)
+            }}</span>
+            <span role="cell" class="truncate max-md:hidden">{{ inviteClients(i) }}</span>
+            <span role="cell" class="text-(--app-text-muted) max-md:hidden">{{
+              formatRelative(i.expiresAt)
+            }}</span>
+            <span role="cell" class="max-md:hidden" />
+            <span role="cell" class="flex justify-end md:-me-2">
+              <RowActions :name="i.email" :items="inviteActions(i)" />
+            </span>
+          </ListRow>
+        </ListSurface>
       </template>
-    </UModal>
 
+      <template v-else-if="data">
+        <p
+          v-if="shownMembers.length === 0"
+          class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
+        >
+          {{
+            query.trim()
+              ? $t('users.noMatch', { q: query.trim() })
+              : tab === 'disabled'
+                ? $t('users.noDisabled')
+                : $t('users.noActive')
+          }}
+        </p>
+        <ListSurface
+          v-else
+          :columns="COLUMNS"
+          :head="memberHead"
+          :label="$t('users.title')"
+          class="max-md:[&>[data-list-head]]:sr-only"
+        >
+          <ListRow
+            v-for="m in shownMembers"
+            :key="m.id"
+            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+            data-member-row
+          >
+            <span role="cell" class="flex min-w-0 items-center gap-3">
+              <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
+              <span class="min-w-0">
+                <span class="block truncate font-semibold">{{ m.displayName }}</span>
+                <span class="block truncate text-detail text-(--app-text-muted)">{{
+                  m.email
+                }}</span>
+              </span>
+            </span>
+            <span role="cell" class="max-md:text-detail max-md:text-(--app-text-muted)">{{
+              memberRole(m)
+            }}</span>
+            <span role="cell" class="truncate max-md:hidden">{{ memberClients(m) }}</span>
+            <span role="cell" class="text-(--app-text-muted) max-md:hidden">{{ lastSeen(m) }}</span>
+            <span role="cell" class="min-w-0 max-md:hidden">
+              <span v-if="m.id === myId" class="text-(--app-text-muted)">{{
+                $t('users.you')
+              }}</span>
+              <template v-else-if="m.status !== 'active'">
+                <StatusDot :label="$t('users.disabled')" />
+                <span
+                  v-if="m.anonymizationScheduledFor"
+                  class="block text-caption text-(--app-text-muted)"
+                  >{{
+                    $t('users.anonymizationScheduled', {
+                      date: formatDate(m.anonymizationScheduledFor),
+                    })
+                  }}</span
+                >
+              </template>
+              <StatusDot
+                v-else-if="!m.secondFactorConfigured"
+                tone="warning"
+                :label="$t('users.noSecondFactor')"
+                class="whitespace-nowrap"
+              />
+            </span>
+            <span role="cell" class="flex justify-end md:-me-2">
+              <RowActions
+                v-if="memberActions(m).length > 0"
+                :name="m.displayName"
+                :items="memberActions(m)"
+              />
+            </span>
+          </ListRow>
+        </ListSurface>
+      </template>
+    </div>
+
+    <InviteDialog
+      v-model:open="inviteOpen"
+      :clients="activeSpaces"
+      :with-reauth="withReauth"
+      @sent="inviteSent"
+    />
     <TransferOwnershipDialog
       v-model:open="transferOpen"
       :candidates="transferCandidates"

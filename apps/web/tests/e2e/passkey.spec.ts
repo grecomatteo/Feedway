@@ -46,8 +46,20 @@ const inviteOf = (email: string) =>
     [email],
   )
 
+/** The passkeys live in a dialog opened from the «Passkey» row of Sicurezza. */
+async function openPasskeys(page: Page) {
+  await page.getByRole('button', { name: 'Gestisci le passkey' }).click()
+  return page.getByRole('dialog', { name: 'Passkey' })
+}
+
+/** The authenticator app lives in a dialog opened from its row of Sicurezza. */
+async function openTotp(page: Page) {
+  await page.getByRole('button', { name: "Gestisci l'app di autenticazione" }).click()
+  return page.getByRole('dialog', { name: 'App di autenticazione' })
+}
+
 async function addPasskey(page: Page) {
-  const passkeys = page.getByRole('region', { name: 'Passkey' })
+  const passkeys = await openPasskeys(page)
   await passkeys.getByRole('button', { name: 'Aggiungi passkey' }).click()
   await expect(passkeys.getByRole('status')).toHaveText('Passkey aggiunta.')
   return passkeys
@@ -60,10 +72,11 @@ test('passkey added from the security page is audited and mailed, renamed and re
   await addVirtualAuthenticator(page)
   await signIn(page.request, person)
   await page.goto('/account/sicurezza')
-  const passkeys = page.getByRole('region', { name: 'Passkey' })
+  const passkeys = await openPasskeys(page)
   await expect(passkeys.getByText('Non hai ancora aggiunto passkey.')).toBeVisible()
 
-  await addPasskey(page)
+  await passkeys.getByRole('button', { name: 'Aggiungi passkey' }).click()
+  await expect(passkeys.getByRole('status')).toHaveText('Passkey aggiunta.')
   const list = passkeys.getByRole('list', { name: 'Passkey' })
   await expect(list.getByRole('listitem').filter({ hasText: 'Passkey' })).toHaveCount(1)
   const audit = await adminQuery<{ action: string }>(
@@ -142,7 +155,7 @@ test('an owner cannot turn off the only second factor, and the panel says why', 
   await page.goto('/account/sicurezza')
 
   // the authenticator app, set up from the page as a person would
-  const totp = page.getByRole('region', { name: 'App di autenticazione' })
+  let totp = await openTotp(page)
   await totp.getByLabel('Password attuale').fill(E2E_PASSWORD)
   await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
   await expect(totp.getByRole('img', { name: "QR code da inquadrare con l'app" })).toBeVisible()
@@ -156,9 +169,13 @@ test('an owner cannot turn off the only second factor, and the panel says why', 
     totp.getByRole('list', { name: 'Codici di recupero' }).getByRole('listitem'),
   ).toHaveCount(10)
   await totp.getByRole('button', { name: 'Li ho salvati' }).click()
-  await expect(totp.getByText('Attiva', { exact: true })).toBeVisible()
+  await expect(totp).toBeHidden()
+  await expect(page.getByRole('button', { name: "Gestisci l'app di autenticazione" })).toHaveText(
+    'Gestisci',
+  )
 
   // new codes: the password typed in the confirmation dialog is the one the call needs
+  totp = await openTotp(page)
   await totp.getByRole('button', { name: 'Nuovi codici di recupero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Conferma che sei tu' })
   await dialog.getByLabel('Password').fill(E2E_PASSWORD)
@@ -173,6 +190,7 @@ test('an owner cannot turn off the only second factor, and the panel says why', 
     person.userId,
   ])
   await page.reload()
+  totp = await openTotp(page)
   const disable = totp.getByRole('button', { name: 'Disattiva' })
   await expect(disable).toBeDisabled()
   await expect(
@@ -270,7 +288,7 @@ test('an admin whose only factor is a passkey is offered a backup until there is
   const warning = page.getByText('Hai un solo modo per il secondo passaggio')
   await expect(warning).toBeVisible()
 
-  const totp = page.getByRole('region', { name: 'App di autenticazione' })
+  const totp = await openTotp(page)
   await totp.getByLabel('Password attuale').fill(E2E_PASSWORD)
   await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
   const secret = (await totp.getByLabel("Chiave da scrivere nell'app").innerText()).replace(
@@ -357,7 +375,7 @@ test('with passkeys only, the authenticator app asks no password', async ({ page
   await page.getByRole('button', { name: "Attiva l'account" }).click()
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
   await page.goto('/account/sicurezza')
-  const totp = page.getByRole('region', { name: 'App di autenticazione' })
+  const totp = await openTotp(page)
   await expect(totp.getByRole('button', { name: "Attiva l'app di autenticazione" })).toBeVisible()
   await expect(totp.getByLabel('Password attuale')).toHaveCount(0)
   await totp.getByRole('button', { name: "Attiva l'app di autenticazione" }).click()
@@ -374,7 +392,8 @@ test('with passkeys only, a first password is set without a current one', async 
   await page.getByRole('button', { name: "Attiva l'account" }).click()
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
   await page.goto('/account/sicurezza')
-  const password = page.getByRole('region', { name: 'Password' })
+  await page.getByRole('button', { name: 'Scegli' }).click()
+  const password = page.getByRole('dialog', { name: 'Imposta la password' })
   await expect(password.getByLabel('Password attuale')).toHaveCount(0)
   // the test server sends email: the notice is promised
   await expect(
@@ -383,11 +402,15 @@ test('with passkeys only, a first password is set without a current one', async 
   await password.getByLabel('Nuova password').fill(E2E_PASSWORD)
   await password.getByRole('button', { name: 'Imposta la password' }).click()
   // the passkey sign-in of the activation is the recent confirmation the server asks for
-  await expect(password.getByRole('status')).toHaveText(
+  await expect(password).toBeHidden()
+  await expect(page.getByRole('region', { name: 'Accesso' }).getByRole('status')).toHaveText(
     'Password impostata: ora puoi accedere anche con email e password.',
   )
   // the form now changes it, with the current one
-  await expect(password.getByLabel('Password attuale')).toBeVisible()
+  await page.getByRole('button', { name: 'Cambia', exact: true }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Cambia password' }).getByLabel('Password attuale'),
+  ).toBeVisible()
   await signIn(page.request, { userId: '', email, name: '', organizationSlug })
 })
 

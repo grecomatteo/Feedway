@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MetaIntegration, MetaReminder } from '@app/contracts'
+import MetaConnections from '~/components/MetaConnections.vue'
 
 /**
  * Impostazioni → Integrazioni → Meta (spec §8.3, plan 04 Task 6c): the agency's Meta app (only the
@@ -48,136 +49,214 @@ const aboveReady = computed(
 
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 const guideSteps = ['create', 'copy', 'checkup'] as const
+
+/** The state beside «Meta»: works, refused, still to try, or not set up. */
+const state = computed(() => {
+  const i = integration.value
+  if (!i) return { tone: 'neutral' as const, label: t('metaIntegration.notConfigured') }
+  if (i.rejectedAt) return { tone: 'danger' as const, label: t('metaIntegration.rejected') }
+  if (i.verifiedAt) return { tone: 'success' as const, label: t('metaIntegration.verified') }
+  return { tone: 'neutral' as const, label: t('metaIntegration.notVerified') }
+})
+/** The app's form opens in a window once the app exists (screen 25: «Sostituisci»). */
+const editing = ref(false)
+/** Saved: the form gives way to the rows (or the window closes), so the page says it. */
+const saved = ref(false)
+function integrationSaved(value: MetaIntegration) {
+  data.value = { integration: value }
+}
+function appSaved() {
+  saved.value = true
+  editing.value = false
+}
+watch(editing, (open) => {
+  if (open) saved.value = false
+})
 </script>
 
 <template>
-  <SettingsShell>
-    <div class="flex flex-col gap-section">
-      <div class="space-y-3">
-        <NuxtLink
-          :to="{ path: org.to('/impostazioni/integrazioni'), query: context }"
-          class="inline-flex min-h-11 items-center gap-1 text-sm underline"
-        >
-          <UIcon name="i-lucide-arrow-left" aria-hidden="true" />
-          {{ $t('integrations.back') }}
-        </NuxtLink>
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="space-y-1">
-            <h2 class="text-2xl">{{ $t('metaIntegration.title') }}</h2>
-            <p class="text-(--app-text-muted)">{{ $t('integrations.meta.explain') }}</p>
-          </div>
-          <UButton
-            v-if="org.may.value.manageAccounts"
-            :to="{ path: org.to('/impostazioni/integrazioni/meta/aggiungi'), query: context }"
-            class="min-h-control"
-            icon="i-lucide-plus"
-          >
-            {{ $t('socialAccounts.add') }}
-          </UButton>
-        </div>
-      </div>
-
-      <MetaReminders :items="reminders?.items ?? []" />
-
-      <section
-        aria-labelledby="meta-integration"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+  <SettingsShell wide :data-ready="aboveReady || undefined">
+    <div class="-mb-4">
+      <NuxtLink
+        :to="{ path: org.to('/impostazioni/integrazioni'), query: context }"
+        class="mb-2 inline-flex items-center gap-1.5 text-detail text-(--app-text-muted) hover:text-(--app-text)"
       >
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h3 id="meta-integration" class="text-lg">{{ $t('metaIntegration.app') }}</h3>
-          <UBadge
-            v-if="data"
-            :color="
-              integration?.rejectedAt ? 'error' : integration?.verifiedAt ? 'success' : 'neutral'
-            "
-            variant="subtle"
-            data-testid="meta-integration-state"
-          >
-            {{
-              integration
-                ? integration.rejectedAt
-                  ? $t('metaIntegration.rejected')
-                  : integration.verifiedAt
-                    ? $t('metaIntegration.verified')
-                    : $t('metaIntegration.notVerified')
-                : $t('metaIntegration.notConfigured')
-            }}
-          </UBadge>
-        </div>
-        <p class="text-sm text-(--app-text-muted)">{{ $t('metaIntegration.explain') }}</p>
-        <p v-if="!editable" class="text-sm text-(--app-text-muted)">
-          {{ $t('orgSettings.ownerOnly') }}
-        </p>
+        <UIcon name="i-lucide-arrow-left" class="size-3.5" aria-hidden="true" />
+        {{ $t('integrations.back') }}
+      </NuxtLink>
+      <div class="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-3">
+        <h2 class="font-display text-lg font-semibold tracking-[-0.01em]">
+          {{ $t('metaIntegration.title') }}
+        </h2>
+        <StatusDot
+          v-if="data"
+          :tone="state.tone"
+          :label="state.label"
+          class="ms-2 text-(--app-text)"
+          data-testid="meta-integration-state"
+        />
+        <span class="flex-1" />
+        <UButton
+          v-if="org.may.value.manageAccounts"
+          :to="{ path: org.to('/impostazioni/integrazioni/meta/aggiungi'), query: context }"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-plus"
+        >
+          {{ $t('socialAccounts.add') }}
+        </UButton>
+      </div>
+    </div>
 
-        <p v-if="!data && !error && (status === 'pending' || status === 'idle')" role="status">
+    <MetaReminders :items="reminders?.items ?? []" />
+
+    <component
+      :is="org.may.value.manageAccounts ? MetaConnections : 'div'"
+      v-bind="
+        org.may.value.manageAccounts
+          ? { withReauth, focusAccount: aboveReady ? focusAccount : null }
+          : { class: 'contents' }
+      "
+    >
+      <SettingsGroup :title="$t('metaIntegration.app')">
+        <template #aside>
+          <p v-if="saved" role="status" class="text-detail text-(--app-success)">
+            {{ $t('metaIntegration.saved') }}
+          </p>
+        </template>
+        <div
+          v-if="!data && !error && (status === 'pending' || status === 'idle')"
+          role="status"
+          class="px-4 py-3"
+        >
           {{ $t('account.loading') }}
-        </p>
-        <div v-else-if="error" role="alert" class="space-y-3">
+        </div>
+        <div v-else-if="error" role="alert" class="space-y-3 px-4 py-3">
           <p class="flex items-center gap-2 text-(--app-danger)">
             <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
             {{ $t('account.loadError') }}
           </p>
-          <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
+          <UButton color="neutral" variant="outline" @click="() => refresh()">
             {{ $t('account.retry') }}
           </UButton>
         </div>
-        <template v-else>
-          <p v-if="integration" class="text-sm text-(--app-text-muted)">
-            {{ $t('metaIntegration.updatedAt', { when: formatRelative(integration.updatedAt) }) }}
-            <template v-if="integration.rejectedAt">
-              {{
-                $t('metaIntegration.rejectedAt', {
-                  when: formatDate(integration.rejectedAt, { time: true }),
-                })
-              }}
-            </template>
-            <template v-else-if="integration.verifiedAt">
-              {{
-                $t('metaIntegration.verifiedAt', {
-                  when: formatDate(integration.verifiedAt, { time: true }),
-                })
-              }}
-            </template>
+        <template v-else-if="integration">
+          <SettingsRow :label="$t('metaIntegration.appIdRow')">
+            <span class="tabular-nums">{{ integration.appId }}</span>
+          </SettingsRow>
+          <SettingsRow :label="$t('metaIntegration.secret')">
+            <span class="text-(--app-text-muted)">{{
+              $t('metaIntegration.secretSaved', { when: formatDate(integration.updatedAt) })
+            }}</span>
+            <UButton
+              v-if="editable"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              :aria-label="$t('metaIntegration.edit')"
+              @click="editing = true"
+            >
+              {{ $t('metaIntegration.replace') }}
+            </UButton>
+          </SettingsRow>
+          <SettingsRow v-if="integration.businessId" :label="$t('metaIntegration.businessId')">
+            <span class="tabular-nums">{{ integration.businessId }}</span>
+          </SettingsRow>
+          <SettingsRow
+            v-if="integration.dataUseCheckupDueOn"
+            :label="$t('metaIntegration.dataUseCheckup')"
+          >
+            {{ formatDate(integration.dataUseCheckupDueOn) }}
+          </SettingsRow>
+          <p
+            v-if="integration.rejectedAt"
+            role="alert"
+            class="border-t border-(--app-border) px-4 py-3 text-(--app-danger)"
+          >
+            {{
+              $t('metaIntegration.rejectedAt', {
+                when: formatDate(integration.rejectedAt, { time: true }),
+              })
+            }}
           </p>
+        </template>
+        <div v-else class="space-y-4 p-4">
+          <p class="text-detail text-(--app-text-muted)">{{ $t('metaIntegration.explain') }}</p>
           <EmptyState
-            v-else-if="!editable"
+            v-if="!editable"
             icon="i-lucide-plug"
             :title="$t('metaIntegration.emptyTitle')"
             :text="$t('metaIntegration.emptyAdmin')"
           />
-
           <MetaAppForm
-            v-if="integration || editable"
+            v-else
+            :integration="null"
+            :editable="editable"
+            :with-reauth="withReauth"
+            @update:integration="integrationSaved"
+            @saved="appSaved"
+          />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup
+        v-if="data && !integration && editable"
+        :title="$t('metaIntegration.guide.title')"
+      >
+        <div class="space-y-3 p-4">
+          <ol class="list-decimal space-y-2 pl-5">
+            <li v-for="step in guideSteps" :key="step">
+              {{ $t(`metaIntegration.guide.${step}`) }}
+            </li>
+          </ol>
+          <p class="rounded-md bg-(--app-surface-sunken) p-3">
+            {{ $t('metaIntegration.guide.pagePermissions') }}
+          </p>
+        </div>
+      </SettingsGroup>
+    </component>
+
+    <UModal
+      v-model:open="editing"
+      :title="$t('metaIntegration.edit')"
+      :description="$t('metaIntegration.explain')"
+      :close="false"
+      :ui="DIALOG_UI"
+    >
+      <template #body>
+        <div class="grid gap-4">
+          <p class="text-detail text-(--app-text-muted)">
+            {{ $t('metaIntegration.explain') }}
+            <template v-if="integration">
+              {{ $t('metaIntegration.updatedAt', { when: formatRelative(integration.updatedAt) }) }}
+              <template v-if="integration.verifiedAt">{{
+                $t('metaIntegration.verifiedAt', {
+                  when: formatDate(integration.verifiedAt, { time: true }),
+                })
+              }}</template>
+            </template>
+          </p>
+          <MetaAppForm
             :integration="integration"
             :editable="editable"
             :with-reauth="withReauth"
-            @update:integration="data = { integration: $event }"
+            @update:integration="integrationSaved"
+            @saved="appSaved"
           />
-        </template>
-      </section>
+        </div>
+      </template>
+      <template #footer>
+        <UButton
+          class="max-md:flex-1 max-md:justify-center"
+          color="neutral"
+          variant="outline"
+          @click="editing = false"
+        >
+          {{ $t('accountDeletion.close') }}
+        </UButton>
+      </template>
+    </UModal>
 
-      <MetaConnections
-        v-if="org.may.value.manageAccounts"
-        :with-reauth="withReauth"
-        :focus-account="aboveReady ? focusAccount : null"
-      />
-
-      <section
-        aria-labelledby="meta-guide"
-        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      >
-        <h3 id="meta-guide" class="text-lg">{{ $t('metaIntegration.guide.title') }}</h3>
-        <ol class="list-decimal space-y-2 pl-5">
-          <li v-for="step in guideSteps" :key="step">
-            {{ $t(`metaIntegration.guide.${step}`) }}
-          </li>
-        </ol>
-        <p class="rounded-md border border-(--app-border-strong) bg-(--app-surface-sunken) p-3">
-          {{ $t('metaIntegration.guide.pagePermissions') }}
-        </p>
-      </section>
-
-      <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
-    </div>
+    <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
   </SettingsShell>
 </template>

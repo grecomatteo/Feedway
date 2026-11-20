@@ -28,8 +28,15 @@ const props = withDefaults(
     texts?: 'avatar' | 'logo'
     /** Runs each change: the logo asks for a recent reauth (`withReauth`). */
     guard?: (action: () => Promise<void>) => Promise<void>
+    /** Inside a settings row (screen 23): the picture and «Cambia», no box of its own. */
+    compact?: boolean
   }>(),
-  { shape: 'round', texts: 'avatar', guard: (action: () => Promise<void>) => action() },
+  {
+    shape: 'round',
+    texts: 'avatar',
+    guard: (action: () => Promise<void>) => action(),
+    compact: false,
+  },
 )
 const emit = defineEmits<{ saved: [answer: unknown] }>()
 
@@ -229,12 +236,55 @@ watch(open, (value) => {
 </script>
 
 <template>
-  <section
-    :aria-labelledby="id"
-    class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+  <component
+    :is="compact ? 'div' : 'section'"
+    :aria-labelledby="compact ? undefined : id"
+    :role="compact ? 'group' : undefined"
+    :aria-label="compact ? tx('title') : undefined"
+    :class="
+      compact
+        ? 'flex w-full flex-wrap items-center justify-end gap-3'
+        : 'space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6'
+    "
   >
-    <h2 :id="id" class="text-lg">{{ tx('title') }}</h2>
+    <h2 v-if="!compact" :id="id" class="text-lg">{{ tx('title') }}</h2>
     <div
+      v-if="compact"
+      class="flex items-center gap-3"
+      :class="dragging ? 'rounded-control outline-2 outline-dashed outline-(--app-brand)' : ''"
+      :data-testid="`${texts}-drop`"
+      @dragover.prevent="dragging = ready && !busy"
+      @dragleave="dragging = false"
+      @drop.prevent="onDrop"
+    >
+      <UserAvatar v-if="cropping" :name="name" :src="current" size="md" />
+      <AgencyLogo v-else :name="name" :src="current" size="sm" />
+      <span v-if="dragging" class="text-detail text-(--app-text-muted)">{{ tx('dropHere') }}</span>
+      <UButton
+        v-if="current"
+        color="neutral"
+        variant="ghost"
+        size="sm"
+        :loading="removing"
+        :disabled="!ready || busy"
+        :aria-label="tx('remove')"
+        @click="remove"
+      >
+        {{ tx('removeShort') }}
+      </UButton>
+      <UButton
+        color="neutral"
+        variant="outline"
+        size="sm"
+        :loading="uploading"
+        :disabled="!ready || busy"
+        @click="choose"
+      >
+        {{ tx('change') }}
+      </UButton>
+    </div>
+    <div
+      v-else
       class="flex flex-wrap items-center gap-4 rounded-lg border-2 border-dashed p-4"
       :class="dragging ? 'border-(--app-brand) bg-(--app-brand-soft)' : 'border-transparent'"
       :data-testid="`${texts}-drop`"
@@ -271,18 +321,18 @@ watch(open, (value) => {
             {{ tx('remove') }}
           </UButton>
         </div>
-        <input
-          ref="input"
-          type="file"
-          :accept="ACCEPT"
-          class="sr-only"
-          tabindex="-1"
-          aria-hidden="true"
-          :data-testid="`${texts}-file`"
-          @change="onPicked"
-        />
       </div>
     </div>
+    <input
+      ref="input"
+      type="file"
+      :accept="ACCEPT"
+      class="sr-only"
+      tabindex="-1"
+      aria-hidden="true"
+      :data-testid="`${texts}-file`"
+      @change="onPicked"
+    />
     <p v-if="uploading" role="status">{{ tx('uploading') }}</p>
     <p v-if="problem && !open" role="alert" class="text-(--app-danger)">{{ problem }}</p>
     <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
@@ -441,5 +491,5 @@ watch(open, (value) => {
         </div>
       </template>
     </UModal>
-  </section>
+  </component>
 </template>

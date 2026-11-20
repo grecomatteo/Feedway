@@ -5,7 +5,7 @@
  */
 import type { Me } from '@app/contracts'
 
-const props = defineProps<{ me: Me | null }>()
+const props = withDefaults(defineProps<{ me: Me | null; row?: boolean }>(), { row: false })
 
 const { call, failure } = useApi()
 const session = useSession()
@@ -30,6 +30,13 @@ const blocked = computed(() => {
   if (owned) return t('accountDeletion.owner', { agency: owned.name })
   if (props.me?.platformRole === 'admin') return t('accountDeletion.platformAdmin')
   return null
+})
+/** The line under «Elimina il tuo account» in Sicurezza (screen 24). */
+const hint = computed(() => {
+  if (props.me?.organizations.some((o) => o.role === 'owner'))
+    return t('accountDeletion.ownerShort')
+  if (props.me?.platformRole === 'admin') return t('accountDeletion.platformAdminShort')
+  return t('accountDeletion.short')
 })
 const matches = computed(
   () =>
@@ -62,7 +69,80 @@ async function remove() {
 </script>
 
 <template>
+  <!-- a row of Sicurezza (screen 24): the explanation and the confirmation in one window -->
+  <SettingsRow v-if="row" :label="$t('accountDeletion.rowLabel')" :hint="hint" inline>
+    <UButton
+      color="neutral"
+      variant="outline"
+      size="sm"
+      class="text-(--app-danger)"
+      :disabled="me === null"
+      @click="confirming = true"
+    >
+      {{ $t('accountDeletion.rowButton') }}
+    </UButton>
+    <UModal
+      v-model:open="confirming"
+      :title="$t('accountDeletion.heading')"
+      :description="$t('accountDeletion.confirmExplain')"
+      :close="false"
+      :ui="DIALOG_UI"
+    >
+      <template #body>
+        <form id="delete-account" class="grid gap-3" novalidate @submit.prevent="remove">
+          <p>{{ $t('accountDeletion.now') }}</p>
+          <p>{{ $t('accountDeletion.stays') }}</p>
+          <p class="font-semibold">{{ $t('accountDeletion.final') }}</p>
+          <p v-if="blocked" class="flex items-start gap-2" data-deletion-blocked>
+            <UIcon name="i-lucide-info" class="mt-0.5 shrink-0" aria-hidden="true" />
+            {{ blocked }}
+          </p>
+          <UFormField
+            v-else
+            :label="$t('accountDeletion.typeEmail', { email: me?.email ?? '' })"
+            name="confirm-email"
+            :error="problem ?? undefined"
+          >
+            <UInput
+              v-model="typed"
+              type="email"
+              autocomplete="off"
+              spellcheck="false"
+              class="w-full"
+            />
+          </UFormField>
+        </form>
+      </template>
+      <template #footer>
+        <UButton
+          class="max-md:flex-1 max-md:justify-center"
+          color="neutral"
+          variant="outline"
+          @click="confirming = false"
+        >
+          {{ blocked ? $t('accountDeletion.close') : $t('security.cancel') }}
+        </UButton>
+        <UButton
+          v-if="!blocked"
+          type="submit"
+          form="delete-account"
+          class="max-md:flex-1 max-md:justify-center"
+          color="error"
+          :loading="sending"
+          :disabled="!matches"
+        >
+          {{ $t('accountDeletion.confirm') }}
+        </UButton>
+      </template>
+    </UModal>
+    <ReauthDialog
+      v-model:open="reauthOpen"
+      :passkeys="factors?.passkeys.length ?? 0"
+      @done="reauthDone"
+    />
+  </SettingsRow>
   <section
+    v-else
     aria-labelledby="account-deletion-heading"
     class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
   >
