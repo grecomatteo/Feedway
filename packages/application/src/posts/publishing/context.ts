@@ -393,15 +393,30 @@ export async function readTargetOf(
 export async function confirmTarget(
   tx: Tx,
   target: PublishingTargetRecord,
-  fields: { permalink: string | null; at: Date; verification: Record<string, unknown> },
+  fields: {
+    permalink: string | null
+    at: Date
+    verification: Record<string, unknown>
+    /** «Segna come verificato» is the panel's move from `problem` */
+    by?: 'panel' | 'worker'
+  },
 ): Promise<StepLog> {
-  await moveTarget(tx, target, 'confirmed', {
+  const patch = {
     permalink: fields.permalink ?? target.permalink,
     verifiedAt: fields.at,
     verification: fields.verification,
     nextAttemptAt: null,
     lastErrorCode: null,
-  })
+  }
+  if (fields.by === 'panel') {
+    if (!canMoveTarget(target.status, 'confirmed', 'panel'))
+      throw new Error(`the panel cannot confirm a destination in ${target.status}`)
+    const saved = await tx.publishing.saveStep(target.organizationId, target.id, {
+      ...patch,
+      status: 'confirmed',
+    })
+    if (!saved) throw new Error('destination gone while locked')
+  } else await moveTarget(tx, target, 'confirmed', patch)
   await tx.outbox.record({
     organizationId: target.organizationId,
     type: 'post.target_confirmed',
