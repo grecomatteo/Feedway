@@ -653,6 +653,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | Lavoro | Quando | Note |
 |---|---|---|
 | `media.process` | Dopo l'upload | Analisi, conversioni, miniature; uno alla volta |
+| `media.publish_copies` | Alla programmazione (piano 07, P4) | Le copie con una ricetta (ritaglio, bande, copia per Facebook, reel adattato, storia, copertina): una alla volta, con lo stesso lucchetto e gli stessi turni tra le agenzie di `media.process`; dopo ogni conversione si sveglia la prossima copia e il prossimo file; la pulizia ogni dieci minuti sveglia le copie rimaste in attesa. Una copia non riuscita è un blocco del controllo prima di pubblicare (`media_copy_failed`) |
 | `target.prepare` | 15 minuti prima (subito se "Pubblica ora" o mancano meno di 15 minuti) | Container IG, upload video FB senza pubblicare |
 | `target.publish` | All'orario | |
 | `target.reconcile` | Su esito incerto | §9.5 |
@@ -1089,11 +1090,13 @@ media               id, workspace_id, uploaded_by, kind (image|video),
 media_variants      id, media_id, purpose (ig_feed|fb_photo|reel|story|thumbnail|share|preview|cover),
                     storage_key, public_token (unico, 32 caratteri, null per preview: mai servita
                     da /m/*), mime, size_bytes, width, height, recipe, status
-                    (pending|ready|failed), failure
+                    (pending|ready|failed), failure, attempts, started_at
                     -- una sola variante per scopo e ricetta; recipe: '' per le copie fatte
                     -- all'elaborazione del file, l'impronta della ricetta (ritaglio, fotogramma,
                     -- bande, storia) per le copie da pubblicare fatte alla programmazione
                     -- (piano 07 P4); /m/* serve solo le copie ready
+                    -- attempts, started_at: i turni del worker sulle copie con una ricetta,
+                    -- come per i file (piano 07 Task 6); oltre 3 tentativi la copia è failed
 library_folders     id, workspace_id, name, parent_id (cartella dello stesso spazio)
 library_items       workspace_id, media_id, folder_id, tags
                     -- file e cartella dello stesso spazio (chiavi esterne composte)

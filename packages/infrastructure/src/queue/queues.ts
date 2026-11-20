@@ -109,6 +109,14 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
     expireInSeconds: MEDIA_PROCESS_EXPIRE_SECONDS,
   },
+  // ids only, a wake-up as `media.process` (plan 07 Task 6): the copies waiting are rows of
+  // media_variants; one copy may be a long ffmpeg command
+  'media.publish_copies': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 7 * 86_400, deleteAfterSeconds: 7 * 86_400 },
+    expireInSeconds: MEDIA_PROCESS_EXPIRE_SECONDS,
+  },
   // every hour, one run at a time; a run that waited a day is replaced by the next ones
   'media.uploads_cleanup': {
     policy: 'singleton',

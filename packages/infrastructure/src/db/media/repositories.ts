@@ -9,6 +9,7 @@ import type {
   MediaRepository,
   MediaVariantRecord,
   PublicVariantRecord,
+  PublishCopyRecord,
 } from '@app/application'
 import type {
   FileAnalysis,
@@ -18,6 +19,7 @@ import type {
   MediaProgress,
   MediaStatus,
   VariantPurpose,
+  VariantStatus,
 } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { libraryFolders, libraryItems, media, mediaVariants, uploadSessions } from './schema.js'
@@ -65,6 +67,36 @@ type MediaRow = {
 } & Omit<MediaRecord, 'kind' | 'status' | 'progress' | 'failure' | 'checks' | 'tags' | 'inLibrary'>
 
 // the check constraints keep the values inside the lists
+const copyColumns = {
+  id: mediaVariants.id,
+  mediaId: mediaVariants.mediaId,
+  purpose: mediaVariants.purpose,
+  recipe: mediaVariants.recipe,
+  status: mediaVariants.status,
+  failure: mediaVariants.failure,
+  storageKey: mediaVariants.storageKey,
+  publicToken: mediaVariants.publicToken,
+  mime: mediaVariants.mime,
+  sizeBytes: mediaVariants.sizeBytes,
+  width: mediaVariants.width,
+  height: mediaVariants.height,
+}
+
+const copyOf = (
+  row: Omit<PublishCopyRecord, 'purpose' | 'status'> & { purpose: string; status: string },
+): PublishCopyRecord => ({
+  ...row,
+  purpose: row.purpose as VariantPurpose,
+  status: row.status as VariantStatus,
+})
+
+const copyPending = (organizationId: string, variantId: string) =>
+  and(
+    eq(mediaVariants.organizationId, organizationId),
+    eq(mediaVariants.id, variantId),
+    eq(mediaVariants.status, 'pending'),
+  )
+
 function mediaOf(row: MediaRow): MediaRecord {
   const { libraryMediaId, ...rest } = row
   return {
@@ -398,6 +430,102 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             failure: null,
           },
         })
+    },
+    async requestCopies(organizationId, copies) {
+      if (copies.length === 0) return 0
+      const rows = await db
+        .insert(mediaVariants)
+        .values(
+          copies.map((c) => ({
+            ...c,
+            organizationId,
+            sizeBytes: 0,
+            status: 'pending',
+            failure: null,
+            attempts: 0,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [
+            mediaVariants.organizationId,
+            mediaVariants.mediaId,
+            mediaVariants.purpose,
+            mediaVariants.recipe,
+          ],
+          // only a copy that could not be made is tried again; the others stay as they are
+          set: { status: 'pending', failure: null, attempts: 0 },
+          setWhere: sql`${mediaVariants.status} = 'failed'`,
+        })
+        .returning({ id: mediaVariants.id })
+      return rows.length
+    },
+    async copiesOf(organizationId, mediaIds) {
+      if (mediaIds.length === 0) return []
+      const rows = await db
+        .select(copyColumns)
+        .from(mediaVariants)
+        .where(
+          and(
+            eq(mediaVariants.organizationId, organizationId),
+            inArray(mediaVariants.mediaId, [...mediaIds]),
+          ),
+        )
+        .orderBy(mediaVariants.mediaId, mediaVariants.purpose, mediaVariants.recipe)
+      return rows.map(copyOf)
+    },
+    async nextCopyToMake() {
+      // as `nextToProcess`: the agency served least recently, then its oldest copy; ids only
+      const result = await db.execute<{ organization_id: string; id: string }>(sql`
+        with waiting as (
+          select distinct organization_id from ${mediaVariants} where status = 'pending'
+        ), turns as (
+          select w.organization_id,
+                 (select max(v.started_at) from ${mediaVariants} v
+                   where v.organization_id = w.organization_id) as served_at
+            from waiting w
+        )
+        select t.organization_id, c.id
+          from turns t
+          cross join lateral (
+            select v.id from ${mediaVariants} v
+             where v.organization_id = t.organization_id and v.status = 'pending'
+             order by v.created_at, v.id
+             limit 1
+          ) c
+         order by t.served_at asc nulls first, t.organization_id
+         limit 1`)
+      const [row] = result.rows
+      return row ? { organizationId: row.organization_id, variantId: row.id } : null
+    },
+    async claimCopy(organizationId, variantId, at) {
+      const [row] = await db
+        .update(mediaVariants)
+        .set({ attempts: sql`${mediaVariants.attempts} + 1`, startedAt: at })
+        .where(copyPending(organizationId, variantId))
+        .returning({ ...copyColumns, attempts: mediaVariants.attempts })
+      return row ? { ...copyOf(row), attempts: row.attempts } : null
+    },
+    async releaseCopyAttempt(organizationId, variantId) {
+      await db
+        .update(mediaVariants)
+        .set({ attempts: sql`greatest(${mediaVariants.attempts} - 1, 0)` })
+        .where(copyPending(organizationId, variantId))
+    },
+    async finishCopy(organizationId, variantId, made) {
+      const rows = await db
+        .update(mediaVariants)
+        .set({ ...made, status: 'ready', failure: null })
+        .where(copyPending(organizationId, variantId))
+        .returning({ id: mediaVariants.id })
+      return rows.length > 0
+    },
+    async failCopy(organizationId, variantId, failure) {
+      const rows = await db
+        .update(mediaVariants)
+        .set({ status: 'failed', failure })
+        .where(copyPending(organizationId, variantId))
+        .returning({ id: mediaVariants.id })
+      return rows.length > 0
     },
     async dropVariants(organizationId, mediaId) {
       const rows = await db

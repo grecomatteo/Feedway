@@ -5,6 +5,7 @@ import type { Storage } from '../ports/storage.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { UploadParts } from '../ports/uploads.js'
+import { nextCopyTurn } from './process-turn.js'
 
 // `media.uploads_cleanup` (plan 04 Task 9), every ten minutes: the system job of the media module. The
 // system scope only lists the agencies; each agency's clean-up runs in its own scope, so a
@@ -158,6 +159,22 @@ export async function runMediaUploadsCleanup(
       report.failed += 1
       deps.logger.error({ organizationId, err }, 'media uploads clean-up step failed')
     }
+  }
+  // a copy to publish left waiting (its wake-up lost with a worker that died): one wake-up, the
+  // next ones follow each copy made (plan 07 Task 6)
+  try {
+    const copy = await nextCopyTurn(deps.uow)
+    if (copy) {
+      const id = await deps.queue.send(
+        'media.publish_copies',
+        { organizationId: copy.organizationId, postId: null },
+        { dedupeKey: `cleanup:${tenMinutes}:copies` },
+      )
+      if (id !== null) report.woken += 1
+    }
+  } catch (err) {
+    report.failed += 1
+    deps.logger.error({ err }, 'publish copies wake-up of the clean-up failed')
   }
   deps.logger.info({ report }, 'media uploads clean-up done')
   if (report.failed > 0)

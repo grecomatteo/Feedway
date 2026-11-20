@@ -232,7 +232,12 @@ test('the worker that consumes the media conversions wakes them at once when it 
     // a file left `processing` by the worker that stopped: the next at its turn
     services: {
       ...services,
-      uow: { ...services.uow, runAsSystem: () => Promise.resolve(turn) as never },
+      // no copy to publish waiting (plan 07 Task 6): only the file is woken
+      uow: {
+        ...services.uow,
+        runAsSystem: (reason: string) =>
+          Promise.resolve(reason.startsWith('media.publish_copies') ? null : turn) as never,
+      },
     },
     heartbeatPath: heartbeatPath(),
     heartbeatEveryMs: 1000,

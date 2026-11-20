@@ -24,6 +24,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'accounts.avatar': true,
   'media.delete_files': true,
   'media.process': true,
+  'media.publish_copies': true,
   'media.uploads_cleanup': true,
 }
 

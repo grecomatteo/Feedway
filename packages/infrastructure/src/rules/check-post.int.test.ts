@@ -3,6 +3,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
   checkPost,
+  publishFilesOfPost,
   type CheckPostDeps,
   type PostCheckInput,
   type PublishingHistory,
@@ -536,5 +537,48 @@ describe('a saved post (plan 06 Task 4)', () => {
     )
     expect(forWorker.outcomes.map((o) => o.code)).not.toContain('scheduled_in_past')
     expect(forWorker.canSchedule).toBe(true)
+  })
+})
+
+describe('the copies to publish (plan 07 Task 6)', () => {
+  test('a copy that could not be made blocks the worker’s check, not the editor’s', async () => {
+    const input = reel({ purpose: 'publish', postId: ownPost })
+    const files = await deps.uow.run({ organizationId: org, userId: people.editor }, async (tx) =>
+      publishFilesOfPost(
+        tx,
+        deps,
+        { organizationId: org, workspaceId: forno },
+        input,
+        await checkPost(deps, actor(people.editor), input),
+      ),
+    )
+    // the seeded video has no copy for the Reels: both accounts publish one converted
+    expect(files.map((f) => f.media)).toEqual([
+      [{ mediaId: video, purpose: 'reel', recipe: 'reel-convert' }],
+      [{ mediaId: video, purpose: 'reel', recipe: 'reel-convert' }],
+    ])
+    // still waiting: no block, the preparation waits for it
+    expect((await checkPost(deps, actor(people.editor), input)).canSchedule).toBe(true)
+
+    await admin.query(
+      `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
+         size_bytes, recipe, status, failure)
+       values ($1, $2, $3, 'reel', $4, 'video/mp4', 0, 'reel-convert', 'failed', 'timeout')`,
+      [randomUUID(), org, video, `org/${org}/media/${video}/reel-reel-convert.mp4`],
+    )
+    const forWorker = await checkPost(deps, actor(people.editor), input)
+    expect(forWorker.canSchedule).toBe(false)
+    expect(codes(forWorker)).toEqual([`block media_copy_failed media_copy_failed:media:${video}`])
+    expect(forWorker.outcomes[0]?.params).toEqual({ reason: 'timeout' })
+    expect(forWorker.destinations.map((d) => d.outcomeKeys)).toEqual([
+      [`media_copy_failed:media:${video}`],
+      [`media_copy_failed:media:${video}`],
+    ])
+    const forEditor = await checkPost(deps, actor(people.editor), reel({ postId: ownPost }))
+    expect(forEditor.canSchedule).toBe(true)
+    await admin.query(
+      `delete from media_variants where media_id = $1 and recipe = 'reel-convert'`,
+      [video],
+    )
   })
 })

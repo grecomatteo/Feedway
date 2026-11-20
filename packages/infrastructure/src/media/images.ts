@@ -108,6 +108,82 @@ function refusalOf(error: unknown): 'timeout' | 'unreadable' {
   return 'unreadable'
 }
 
+/** A box of the picture, in fractions of its width and height (D-61). */
+export interface PhotoBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+const BLACK = { r: 0, g: 0, b: 0 }
+
+/**
+ * The picture cut to `crop`, put in the frame of `pad` with bands at the centre, then made to
+ * fit inside `maxWidth` × `maxHeight`, never enlarged (plan 07 Task 6).
+ */
+async function frame(
+  image: Sharp,
+  opts: {
+    maxWidth: number
+    maxHeight?: number | undefined
+    crop?: PhotoBox | undefined
+    pad?: { ratio: number; background: 'white' | 'black' } | undefined
+  },
+): Promise<Sharp> {
+  // the upright pixels: the size the fractions of a box are of
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true })
+  const raw = { width: info.width, height: info.height, channels: info.channels }
+  const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v))
+  const box = opts.crop
+    ? (() => {
+        const left = clamp(Math.round(opts.crop.x * raw.width), raw.width - 1)
+        const top = clamp(Math.round(opts.crop.y * raw.height), raw.height - 1)
+        return {
+          left,
+          top,
+          width: clamp(Math.round(opts.crop.width * raw.width), raw.width - left) || 1,
+          height: clamp(Math.round(opts.crop.height * raw.height), raw.height - top) || 1,
+        }
+      })()
+    : { left: 0, top: 0, width: raw.width, height: raw.height }
+  let canvas = { width: box.width, height: box.height }
+  if (opts.pad) {
+    const ratio = opts.pad.ratio
+    canvas =
+      box.width / box.height > ratio
+        ? { width: box.width, height: Math.round(box.width / ratio) }
+        : { width: Math.round(box.height * ratio), height: box.height }
+  }
+  const scale = Math.min(
+    1,
+    opts.maxWidth / canvas.width,
+    (opts.maxHeight ?? Number.POSITIVE_INFINITY) / canvas.height,
+  )
+  const outer = {
+    width: Math.max(1, Math.round(canvas.width * scale)),
+    height: Math.max(1, Math.round(canvas.height * scale)),
+  }
+  const inner = {
+    width: Math.min(outer.width, Math.max(1, Math.round(box.width * scale))),
+    height: Math.min(outer.height, Math.max(1, Math.round(box.height * scale))),
+  }
+  const left = Math.floor((outer.width - inner.width) / 2)
+  const top = Math.floor((outer.height - inner.height) / 2)
+  const cut = await sharp(data, { raw })
+    .extract(box)
+    .resize(inner.width, inner.height, { fit: 'fill' })
+    .png({ compressionLevel: 0 })
+    .toBuffer()
+  return sharp(cut).extend({
+    top,
+    bottom: outer.height - inner.height - top,
+    left,
+    right: outer.width - inner.width - left,
+    background: opts.pad?.background === 'black' ? BLACK : WHITE,
+  })
+}
+
 export function createImageTools() {
   // one libvips thread: the worker never takes both cores (§16.6); no cache of decoded images
   sharp.concurrency(1)
@@ -189,15 +265,26 @@ export function createImageTools() {
     async photo(
       path: string,
       output: string,
-      opts: { format: ImageFormat; maxWidth: number; maxBytes: number; maxPixels: number },
+      opts: {
+        format: ImageFormat
+        maxWidth: number
+        maxBytes: number
+        maxPixels: number
+        maxHeight?: number | undefined
+        crop?: PhotoBox | undefined
+        pad?: { ratio: number; background: 'white' | 'black' } | undefined
+      },
     ): Promise<ToolResult<{ file: MadeFile }>> {
       const src = await source(path, opts.format, opts.maxPixels)
       if (!src.ok) return src
       let resized: Buffer
       try {
+        const framed =
+          opts.crop || opts.pad || opts.maxHeight !== undefined
+            ? await frame(src.image, opts)
+            : src.image.resize({ width: opts.maxWidth, withoutEnlargement: true })
         // decoded once: every quality below starts from these pixels
-        resized = await src.image
-          .resize({ width: opts.maxWidth, withoutEnlargement: true })
+        resized = await framed
           .flatten({ background: WHITE })
           .toColourspace('srgb')
           .timeout({ seconds: TIMEOUT_SECONDS })

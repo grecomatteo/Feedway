@@ -16,6 +16,7 @@ import { identityPasswordResetEmail } from './handlers/identity-password-reset-e
 import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { mediaDeleteFiles } from './handlers/media-delete-files.js'
 import { mediaProcess } from './handlers/media-process.js'
+import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
@@ -63,6 +64,14 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       },
       d,
     )
+  const mediaPublishCopiesOnStop: JobHandler<'media.publish_copies'> = (job, d) =>
+    (deps.handlers?.['media.publish_copies'] ?? mediaPublishCopies)(
+      {
+        ...job,
+        signal: job.signal ? AbortSignal.any([job.signal, stopping.signal]) : stopping.signal,
+      },
+      d,
+    )
   const handlers: JobHandlers = {
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
@@ -82,6 +91,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'media.uploads_cleanup': mediaUploadsCleanup,
     ...deps.handlers,
     'media.process': mediaProcessOnStop,
+    'media.publish_copies': mediaPublishCopiesOnStop,
   }
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
 
@@ -107,7 +117,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
         tz: MEDIA_UPLOADS_CLEANUP_TZ,
       },
     )
-  if (queues.includes('media.process'))
+  if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
 

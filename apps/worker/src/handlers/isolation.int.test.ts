@@ -15,6 +15,7 @@ import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
+import { mediaPublishCopies } from './media-publish-copies.js'
 import {
   FORNO_LUCE,
   accountsRuntime,
@@ -142,12 +143,57 @@ async function processingWorld(): Promise<World> {
   }
 }
 
+/**
+ * A copy to publish of A waiting, and one of B already made. `media.publish_copies` is a wake-up
+ * as `media.process`: B's copy is not waiting, so a job of A naming B's post leaves it alone.
+ */
+async function copiesWorld(): Promise<World> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const photo = await imageFixture('photo.png')
+  const copy = async (of: Agency, status: 'pending' | 'ready') => {
+    const mediaId = await seed(tdb.runtimeUrl, async (s) => {
+      const workspace = await s.workspace(of.organizationId)
+      return s.media(of.organizationId, workspace, {
+        uploadedBy: of.ownerId,
+        kind: 'image',
+        status: 'ready',
+      })
+    })
+    const prefix = `org/${of.organizationId}/media/${mediaId}`
+    await runtime.storage.put(`${prefix}/master.jpg`, photo, { contentType: 'image/png' })
+    await admin.query(
+      `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
+         size_bytes, recipe, status)
+       values (gen_random_uuid(), $1, $2, 'master', $3, 'image/jpeg', 1, '', 'ready'),
+              (gen_random_uuid(), $1, $2, 'ig_feed', $4, 'image/jpeg', 0, 'pad-8000', $5)`,
+      [
+        of.organizationId,
+        mediaId,
+        `${prefix}/master.jpg`,
+        `${prefix}/ig_feed-pad-8000.jpg`,
+        status,
+      ],
+    )
+    return mediaId
+  }
+  await copy(a, 'pending')
+  await copy(b, 'ready')
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, postId: null },
+    crossing: { organizationId: a.organizationId, postId: null },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
   'accounts.avatar': { handler: accountsAvatar, world: picturesWorld },
   'media.delete_files': { handler: mediaDeleteFiles, world: mediaWorld },
   'media.process': { handler: mediaProcess, world: processingWorld },
+  'media.publish_copies': { handler: mediaPublishCopies, world: copiesWorld },
 }
 
 // every row an agency's job could touch, by agency
