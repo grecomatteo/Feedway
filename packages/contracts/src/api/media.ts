@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Id, OrgSlug, Timestamp } from './common.js'
 import { FileResponse, defineContract } from './define.js'
+import { POST_STATUSES } from './posts.js'
 
 // The files of a workspace (plan 04 Task 8). Editor and above (`media.upload`); for a Viewer,
 // as for anyone without a role in the workspace, these routes answer 404 (spec §10.2).
@@ -62,14 +63,15 @@ export const MediaDto = z.object({
   folderId: Id.nullable(),
   tags: z.array(z.string()),
   /**
-   * The post that uses the file and counts (`primaryUse`, D-80.7): the nearest scheduled, else
-   * the draft changed last, else a cancelled post. The library's «Nel post di …», «In una bozza»,
-   * the day in the post's `timezone`; `count`: how many posts use the file.
+   * The post that uses the file and counts (`primaryUse`, D-80.7): the nearest going out, else
+   * the draft changed last, else the latest gone out, else a post not out or cancelled. The
+   * library's «Nel post di …», «In una bozza», «Pubblicato il …» (plan 07 Scelta 5), the day in
+   * the post's `timezone`; `count`: how many posts use the file.
    */
   usedIn: z
     .object({
       postId: Id,
-      status: z.enum(['draft', 'scheduled', 'cancelled']),
+      status: z.enum(POST_STATUSES),
       scheduledAt: Timestamp.nullable(),
       timezone: z.string(),
       count: z.number().int(),

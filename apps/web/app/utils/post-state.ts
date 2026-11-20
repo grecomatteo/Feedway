@@ -46,17 +46,33 @@ const POST_TONE: Record<PostStatus, StatusTone> = {
   cancelled: 'neutral',
 }
 
-/** «Bozza», «Programmato», «1 non uscito», «Pubblicato»… with the tone of its dot. */
-export function postStateOf(
-  post: Pick<PostResponse, 'status' | 'destinations'>,
+/** The tone of a post's state: the colour of its dot, and of its bar in the week of «Oggi». */
+export const postToneOf = (status: PostStatus): StatusTone => POST_TONE[status]
+
+/**
+ * «Bozza», «Programmato», «1 non uscito», «Pubblicato»… with the tone of its dot, from the state
+ * and how many destinations did not go out (as the agenda counts them, `notOut`).
+ */
+export function postStateLabel(
+  post: { status: PostStatus; notOut: number },
   t: Translate,
 ): { label: string; tone: StatusTone } {
   if (post.status === 'partial') {
-    const n = post.destinations.filter((d) => d.status === 'failed').length
+    const n = post.notOut
     return { label: t('posts.state.partial', { n }, n), tone: POST_TONE.partial }
   }
   return { label: t(`posts.state.${post.status}`), tone: POST_TONE[post.status] }
 }
+
+/** The same for a post read whole, counting its destinations. */
+export const postStateOf = (post: Pick<PostResponse, 'status' | 'destinations'>, t: Translate) =>
+  postStateLabel(
+    {
+      status: post.status,
+      notOut: post.destinations.filter((d) => d.status === 'failed').length,
+    },
+    t,
+  )
 
 const TARGET_TONE: Record<TargetStatus, StatusTone> = {
   draft: 'neutral',

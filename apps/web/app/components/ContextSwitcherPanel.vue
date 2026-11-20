@@ -25,16 +25,21 @@ const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
 
 /**
  * What needs a hand in a client, read from «Da sistemare» of «Oggi» (the same read, redesign R3):
- * its profiles' link, worst first, else a file not prepared. The dot is amber for all of them:
- * the red one is for a post that did not go out (stage 7).
+ * a post that did not go out (the red dot, plan 07 Scelta 8, D-87.3), else its profiles' link,
+ * worst first, else a post paused or with a problem, else a file not prepared (amber).
  */
-type Problem = 'reconnect' | 'error' | 'warning' | 'media'
+type Problem = 'notOut' | 'reconnect' | 'error' | 'warning' | 'paused' | 'postProblem' | 'media'
 const issues = useAgendaIssues()
 function problemOf(w: WorkspaceView): Problem | null {
-  const own = (issues.data.value?.items ?? []).filter((i) => i.workspaceId === w.id)
+  const items = issues.data.value?.items ?? []
+  const own = items.filter((i) => i.workspaceId === w.id)
+  const posts = clientPostTrouble(items, w.id)
+  if (posts?.status === 'notOut') return 'notOut'
   const links = own.flatMap((i) => (i.kind === 'profile' ? [i.link] : []))
   const link = (['reconnect', 'error', 'warning'] as const).find((l) => links.includes(l))
-  return link ?? (own.length > 0 ? 'media' : null)
+  if (link) return link
+  if (posts) return posts.status === 'paused' ? 'paused' : 'postProblem'
+  return own.length > 0 ? 'media' : null
 }
 
 interface Option {
@@ -235,7 +240,12 @@ const row = computed(() => (props.phone ? 'min-h-12' : 'min-h-9'))
         />
         <template v-else-if="option.problem">
           <span
-            class="me-1 size-2 shrink-0 rounded-full bg-(--app-warning-dot) ring-3 ring-(--app-warning-soft)"
+            class="me-1 size-2 shrink-0 rounded-full ring-3"
+            :class="
+              option.problem === 'notOut'
+                ? 'bg-(--app-danger) ring-(--app-danger-soft)'
+                : 'bg-(--app-warning-dot) ring-(--app-warning-soft)'
+            "
             :data-problem="option.problem"
             aria-hidden="true"
           />

@@ -77,16 +77,24 @@ const uploaded = computed(() => {
   const when = formatRelative(f.createdAt, { sentence: true })
   return f.uploadedByName ? t('library.detail.uploadedBy', { when, name: f.uploadedByName }) : when
 })
-/** «Post di oggi, 18:00», «Bozza»: the use the server decided (D-80.7), and how many more. */
+/** «Post di oggi, 18:00», «Bozza», «Pubblicato il 18 novembre»: the use the server decided (D-80.7), and how many more. */
 const use = computed(() => {
   const u = props.file?.usedIn
   if (!u) return null
+  const going = u.status === 'scheduled' || u.status === 'publishing' || u.status === 'paused'
+  const out = u.status === 'published' || u.status === 'partial' || u.status === 'problem'
   const label =
-    u.status === 'scheduled' && u.scheduledAt
+    going && u.scheduledAt
       ? t('library.detail.useScheduled', {
           when: formatRelative(u.scheduledAt, { timeZone: u.timezone }),
         })
-      : t(`library.detail.${u.status === 'cancelled' ? 'useCancelled' : 'useDraft'}`)
+      : out && u.scheduledAt
+        ? t('library.detail.usePublished', {
+            day: formatDate(u.scheduledAt, { timeZone: u.timezone }),
+          })
+        : t(
+            `library.detail.${u.status === 'cancelled' ? 'useCancelled' : u.status === 'failed' ? 'useNotOut' : 'useDraft'}`,
+          )
   return { label, more: u.count > 1 ? t('library.detail.useMore', { n: u.count - 1 }) : null }
 })
 

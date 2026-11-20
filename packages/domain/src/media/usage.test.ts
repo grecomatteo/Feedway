@@ -77,6 +77,31 @@ describe('the use that counts (D-80.7)', () => {
   })
 })
 
+describe('the posts of the publishing (plan 07 Scelta 5)', () => {
+  const going = use('g', 'publishing', { scheduledAt: day('2026-11-19') })
+  const paused = use('h', 'paused', { scheduledAt: day('2026-11-21') })
+  const outOld = use('o1', 'published', { scheduledAt: day('2026-11-10') })
+  const outNew = use('o2', 'partial', { scheduledAt: day('2026-11-15') })
+  const notOut = use('n', 'failed', { updatedAt: day('2026-11-19') })
+
+  test('a post on its way or paused is still going out: with the scheduled ones, by date', () => {
+    for (const rows of orders([scheduledSoon, going, paused, draftNew]))
+      expect([...rows].sort(compareUses)).toEqual([going, scheduledSoon, paused, draftNew])
+  })
+
+  test('after the drafts the posts that went out, the latest first; then the rest', () => {
+    const all = [notOut, outOld, draftNew, cancelled, outNew]
+    for (const rows of orders(all))
+      expect([...rows].sort(compareUses)).toEqual([draftNew, outNew, outOld, notOut, cancelled])
+  })
+
+  test('a file in a post on its way or paused is not deleted', () => {
+    expect(deletionBlock([outNew, going])).toMatchObject({ postId: 'g', count: 1 })
+    expect(deletionBlock([paused, scheduledLater])).toMatchObject({ postId: 'h', count: 2 })
+    expect(deletionBlock([outNew, outOld, notOut])).toBeNull()
+  })
+})
+
 describe('when a file is not deleted (D-18, D-80.4)', () => {
   test('a file in no scheduled post is deleted', () => {
     expect(deletionBlock([])).toBeNull()

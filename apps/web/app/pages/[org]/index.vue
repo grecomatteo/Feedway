@@ -12,7 +12,7 @@ import type { StatusTone } from '~/components/StatusDot.vue'
 definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
-const { t } = useI18n()
+const { t, te } = useI18n()
 const { call, failure } = useApi()
 const toast = useToast()
 const { workspace, visible } = useActiveContext()
@@ -60,13 +60,28 @@ const textOf = (p: { text: string }) => p.text || t('posts.list.noText')
 // ---- Da sistemare
 const issues = computed(() => issuesOf(issuesRead.data.value?.items ?? [], workspaceId.value))
 const issueKey = (i: AgendaIssue) =>
-  i.kind === 'profile' ? `${i.workspaceId}-${i.profileKey}` : i.mediaId
-const issueTitle = (i: AgendaIssue) =>
   i.kind === 'profile'
-    ? t(`today.issues.profile.${i.link}`, { name: i.name })
-    : t('today.issues.media', { name: i.name })
+    ? `${i.workspaceId}-${i.profileKey}`
+    : i.kind === 'post'
+      ? i.postId
+      : i.mediaId
+const issueTitle = (i: AgendaIssue) =>
+  i.kind === 'post'
+    ? postIssueTitle(i, t, now)
+    : i.kind === 'profile'
+      ? t(`today.issues.profile.${i.link}`, { name: i.name })
+      : t('today.issues.media', { name: i.name })
+/** The icon of a row: a post not out red, the rest amber (screen 02). */
+const issueIcon = (i: AgendaIssue) => {
+  if (i.kind === 'profile') return { name: 'i-lucide-unplug', tone: 'warning' }
+  if (i.kind === 'media') return { name: 'i-lucide-triangle-alert', tone: 'warning' }
+  const tone = postIssueTone(i.status)
+  if (tone === 'danger') return { name: 'i-lucide-circle-x', tone }
+  return { name: i.status === 'paused' ? 'i-lucide-circle-pause' : 'i-lucide-triangle-alert', tone }
+}
 const issueDetail = (i: AgendaIssue) => {
   const client = clientName(i.workspaceId)
+  if (i.kind === 'post') return `${client} · ${postIssueReason(i, t, te)}`
   if (i.kind === 'media')
     return `${client} · ${formatRelative(i.failedAt, { sentence: true, now })}`
   const where = t(`today.issues.where.${i.platform}`)
@@ -115,16 +130,17 @@ const picked = ref<string | null>(null)
 function pick(key: string, today: boolean) {
   picked.value = today || picked.value === key ? null : key
 }
-const STATUS_BAR: Record<AgendaPost['status'], string> = {
-  scheduled: 'bg-(--app-info)',
-  draft: 'bg-(--app-neutral-dot)',
-  cancelled: 'bg-(--app-neutral-dot)',
+/** The bar of a post in the strip, in the colour of its state: red where one did not go out. */
+const BAR: Record<StatusTone, string> = {
+  neutral: 'bg-(--app-neutral-dot)',
+  success: 'bg-(--app-success)',
+  info: 'bg-(--app-info)',
+  warning: 'bg-(--app-warning-dot)',
+  danger: 'bg-(--app-danger)',
 }
-const STATE_TONE: Record<AgendaPost['status'], StatusTone> = {
-  scheduled: 'info',
-  draft: 'neutral',
-  cancelled: 'neutral',
-}
+const barOf = (p: AgendaPost) => BAR[postToneOf(p.status)]
+/** «1 non uscito», «Pubblicato», «In pausa»… (plan 07 Scelte 3 and 8) */
+const stateOf = (p: AgendaPost) => postStateLabel(p, t)
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 /** The groups of the list: today and tomorrow, or the day picked in the strip. */
 const groups = computed(() => {
@@ -230,8 +246,12 @@ const ready = computed(
             :data-issue="i.kind"
           >
             <UIcon
-              :name="i.kind === 'profile' ? 'i-lucide-unplug' : 'i-lucide-triangle-alert'"
-              class="size-[18px] text-(--app-warning-dot)"
+              :name="issueIcon(i).name"
+              class="size-[18px]"
+              :class="
+                issueIcon(i).tone === 'danger' ? 'text-(--app-danger)' : 'text-(--app-warning-dot)'
+              "
+              :data-tone="issueIcon(i).tone"
               aria-hidden="true"
             />
             <span class="min-w-0">
@@ -240,7 +260,16 @@ const ready = computed(
                 issueDetail(i)
               }}</span>
             </span>
-            <template v-if="i.kind === 'profile'">
+            <UButton
+              v-if="i.kind === 'post'"
+              :to="postPage(i.workspaceId, i.postId)"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              :aria-label="$t('today.issues.post.openOf', { title: issueTitle(i) })"
+              >{{ $t('today.issues.post.open') }}</UButton
+            >
+            <template v-else-if="i.kind === 'profile'">
               <UButton
                 v-if="org.may.value.manageAccounts"
                 :to="org.to('/impostazioni/integrazioni/meta')"
@@ -361,7 +390,7 @@ const ready = computed(
                       v-for="p in known ? d.posts : []"
                       :key="p.id"
                       class="block w-3.5 shrink-0 rounded-[2px] max-md:size-[5px] max-md:rounded-full"
-                      :class="STATUS_BAR[p.status]"
+                      :class="barOf(p)"
                     />
                   </span>
                   <span
@@ -467,8 +496,8 @@ const ready = computed(
                           <span class="truncate">{{ clientName(p.workspaceId) }}</span>
                           <StatusDot
                             v-if="p.status !== 'scheduled'"
-                            :tone="STATE_TONE[p.status]"
-                            :label="$t(`posts.list.state.${p.status}`)"
+                            :tone="stateOf(p).tone"
+                            :label="stateOf(p).label"
                             class="shrink-0"
                           />
                         </span>
@@ -484,8 +513,8 @@ const ready = computed(
                       <span v-if="exceptions" class="hidden @min-[46rem]:block">
                         <StatusDot
                           v-if="p.status !== 'scheduled'"
-                          :tone="STATE_TONE[p.status]"
-                          :label="$t(`posts.list.state.${p.status}`)"
+                          :tone="stateOf(p).tone"
+                          :label="stateOf(p).label"
                         />
                       </span>
                     </li>

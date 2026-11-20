@@ -250,6 +250,20 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
         .orderBy(asc(postTargets.createdAt), asc(postTargets.id))
       return rows.map(targetOf)
     },
+    async targetsOfPosts(organizationId, postIds) {
+      if (postIds.length === 0) return []
+      const rows = await db
+        .select(targetColumns)
+        .from(postTargets)
+        .where(
+          and(
+            eq(postTargets.organizationId, organizationId),
+            inArray(postTargets.postId, [...postIds]),
+          ),
+        )
+        .orderBy(asc(postTargets.postId), asc(postTargets.createdAt), asc(postTargets.id))
+      return rows.map(targetOf)
+    },
     async attemptsOfPost(organizationId, postId, limit) {
       const rows = await db
         .select({

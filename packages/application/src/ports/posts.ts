@@ -1,4 +1,11 @@
-import type { MediaUse, Post, PostCover, PostStatus, PublishingHistoryFacts } from '@app/domain'
+import type {
+  MediaUse,
+  Post,
+  PostCover,
+  PostStatus,
+  PublishingHistoryFacts,
+  PublishingPostStatus,
+} from '@app/domain'
 
 // The posts of a workspace (spec §13, plan 06 Task 3). Every method takes the agency and the
 // workspace, and filters by them in SQL as well: row level security is the second barrier. The
@@ -156,7 +163,17 @@ export interface PostRepository {
   listInPeriod(
     organizationId: string,
     workspaceIds: readonly string[],
-    period: { from: Date; to: Date; statuses: readonly PostStatus[]; limit: number },
+    period: { from: Date; to: Date; statuses: readonly PublishingPostStatus[]; limit: number },
+  ): Promise<PostRecord[]>
+  /**
+   * The posts of these workspaces in one of these states, the latest time first, at most
+   * `limit`: the posts of «Da sistemare» (plan 07 Scelta 8).
+   */
+  listWithStatuses(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    statuses: readonly PublishingPostStatus[],
+    limit: number,
   ): Promise<PostRecord[]>
   /** The drafts of these workspaces, the latest changed first; at most `limit`. */
   listLatestDrafts(

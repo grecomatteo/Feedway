@@ -1,4 +1,11 @@
-import { formatRelative } from './format-date.ts'
+import type { PostResponse } from '@app/contracts'
+import { formatDate, formatRelative } from './format-date.ts'
+
+type PostStatus = PostResponse['status']
+/** Still going out without anyone's hand (`isGoingOut` of @app/domain). */
+const GOING_OUT = new Set<PostStatus>(['scheduled', 'publishing', 'paused'])
+/** Gone out, all or in part (plan 07 Scelta 5). */
+const GONE_OUT = new Set<PostStatus>(['published', 'partial', 'problem'])
 
 /**
  * What the library says about a file's posts (D-18, D-80): the use and the reason come decided
@@ -9,7 +16,7 @@ import { formatRelative } from './format-date.ts'
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
 export interface MediaUseView {
-  status: 'draft' | 'scheduled' | 'cancelled'
+  status: PostStatus
   scheduledAt: string | null
   timezone: string
   count: number
@@ -21,18 +28,26 @@ export interface DeleteBlockView {
   count: number
 }
 
-/** «Nel post di oggi, 18:00», «In una bozza», «In 3 post»; null when no post uses the file. */
+/**
+ * «Nel post di oggi, 18:00», «In una bozza», «Pubblicato il 18 novembre», «In 3 post»; null when no
+ * post uses the file.
+ */
 export function mediaUseLabel(
   use: MediaUseView | null,
   t: Translate,
   now = new Date(),
 ): string | null {
   if (!use) return null
-  if (use.status === 'scheduled' && use.scheduledAt)
+  if (GOING_OUT.has(use.status) && use.scheduledAt)
     return t('library.inPosts.scheduled', {
       when: formatRelative(use.scheduledAt, { timeZone: use.timezone, now }),
     })
+  if (GONE_OUT.has(use.status) && use.scheduledAt)
+    return t('library.inPosts.published', {
+      day: formatDate(use.scheduledAt, { timeZone: use.timezone, now }),
+    })
   if (use.count > 1) return t('library.inPosts.many', { n: use.count })
+  if (use.status === 'failed') return t('library.inPosts.notOut')
   return t(`library.inPosts.${use.status === 'cancelled' ? 'cancelled' : 'draft'}`)
 }
 

@@ -169,6 +169,11 @@ export interface PublishingRepository {
   ): Promise<{ postId: string; workspaceId: string }[]>
   /** The destinations of a post of the agency, in the order they were added. */
   targetsOfPost(organizationId: string, postId: string): Promise<PublishingTargetRecord[]>
+  /** The same for several posts in one query, by post and then in the order they were added. */
+  targetsOfPosts(
+    organizationId: string,
+    postIds: readonly string[],
+  ): Promise<PublishingTargetRecord[]>
   /**
    * The calls of the destinations of a post that ended a step or failed it for good (`done`,
    * `permanent`, `uncertain`), the latest first, at most `limit`: the activity of the page of the

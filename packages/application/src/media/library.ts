@@ -14,7 +14,7 @@ import {
   type MediaStatus,
   type MediaUse,
   type OrgActor,
-  type PostStatus,
+  type PublishingPostStatus,
   type VariantPurpose,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
@@ -67,7 +67,7 @@ export interface MediaDto {
   /** the post that uses the file and counts (`primaryUse`, D-80.7): «Nel post di …» */
   usedIn: {
     postId: string
-    status: PostStatus
+    status: PublishingPostStatus
     scheduledAt: string | null
     timezone: string
     /** how many posts use the file */

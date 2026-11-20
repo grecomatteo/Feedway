@@ -113,6 +113,35 @@ async function failed(workspaceId: string, code: string, kept = true) {
   return id
 }
 
+/** A post the worker has moved: its own state and each destination's, as the worker leaves them. */
+async function moved(
+  workspaceId: string,
+  status: 'publishing' | 'partial' | 'failed' | 'problem' | 'published' | 'paused',
+  targets: { account: string; status: string; error?: string; problem?: string }[],
+  opts: { when?: Date; type?: 'photo' | 'reel' } = {},
+): Promise<string> {
+  const id = await post(workspaceId, { when: opts.when ?? at(-2), type: opts.type ?? 'photo' })
+  const { pool } = env.admin
+  await pool.query(`update posts set status = $2 where id = $1`, [id, status])
+  for (const t of targets)
+    await pool.query(
+      `insert into post_targets (id, organization_id, workspace_id, post_id, account_id, status,
+                                 last_error_code, verification)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        randomUUID(),
+        org.id,
+        workspaceId,
+        id,
+        t.account,
+        t.status,
+        t.error ?? null,
+        t.problem ? JSON.stringify({ reason: t.problem }) : null,
+      ],
+    )
+  return id
+}
+
 beforeAll(async () => {
   env = await startApiEnv('agenda')
   org = await env.agency()
@@ -166,6 +195,7 @@ interface AgendaJson {
     platforms: string[]
     mediaCount: number
     thumbnail: { mediaId: string; variant: string } | null
+    notOut: number
   }[]
 }
 
@@ -219,6 +249,39 @@ describe('agenda', () => {
       platforms: ['instagram'],
       thumbnail: null,
     })
+  })
+
+  test('the posts the worker moved stay in the agenda, with the destinations not out', async () => {
+    const start = new Date(from.getTime() + 30 * 24 * HOUR)
+    const inside = (h: number) => new Date(start.getTime() + h * HOUR)
+    const out = await moved(forno, 'published', [{ account: igForno, status: 'confirmed' }], {
+      when: inside(1),
+    })
+    const half = await moved(
+      forno,
+      'partial',
+      [
+        { account: igForno, status: 'published' },
+        { account: fbForno, status: 'failed', error: 'media_rejected' },
+      ],
+      { when: inside(2) },
+    )
+    const stopped = await moved(gino, 'paused', [{ account: igGino, status: 'paused' }], {
+      when: inside(3),
+    })
+    const { items } = await get<AgendaJson>(
+      'owner',
+      `/agenda?from=${start.toISOString()}&to=${inside(24).toISOString()}`,
+    )
+    expect(items.map((p) => [p.id, p.status, p.notOut])).toEqual([
+      [out, 'published', 0],
+      [half, 'partial', 1],
+      [stopped, 'paused', 0],
+    ])
+    // out of the way of «Da sistemare» below
+    await env.admin.pool.query(`update posts set status = 'cancelled' where id = any($1::uuid[])`, [
+      [half, stopped],
+    ])
   })
 
   test('one client, as the selector asks', async () => {
@@ -300,6 +363,18 @@ interface IssuesJson {
         scheduled: number
       }
     | { kind: 'media'; workspaceId: string; mediaId: string; name: string; retryable: boolean }
+    | {
+        kind: 'post'
+        workspaceId: string
+        postId: string
+        type: string
+        status: string
+        scheduledAt: string
+        timezone: string
+        platforms: string[]
+        reason: string | null
+        notOut: number
+      }
   )[]
 }
 
@@ -363,6 +438,85 @@ describe('issues', () => {
     expect(viewer.items.map((i) => i.kind)).toEqual(['profile'])
     const gino_ = await get<IssuesJson>('owner', `/agenda/issues?workspaceId=${gino}`)
     expect(gino_.items).toEqual([expect.objectContaining({ kind: 'media', mediaId: inGino })])
+  })
+})
+
+describe('posts that need a hand', () => {
+  let half: string, none: string, checked: string, stopped: string, fine: string
+  const halfAt = at(-3)
+
+  beforeAll(async () => {
+    half = await moved(
+      forno,
+      'partial',
+      [
+        { account: igForno, status: 'confirmed' },
+        { account: fbForno, status: 'failed', error: 'media_rejected' },
+      ],
+      { when: halfAt, type: 'reel' },
+    )
+    none = await moved(gino, 'failed', [{ account: igGino, status: 'failed', error: 'too_late' }], {
+      when: at(-1),
+    })
+    checked = await moved(
+      forno,
+      'problem',
+      [{ account: igForno, status: 'problem', problem: 'still_processing' }],
+      { when: at(-2) },
+    )
+    stopped = await moved(
+      forno,
+      'paused',
+      [{ account: igForno, status: 'paused', error: 'author_lost_permission' }],
+      { when: at(1) },
+    )
+    fine = await moved(forno, 'published', [{ account: igForno, status: 'confirmed' }])
+  })
+
+  afterAll(async () => {
+    await env.admin.pool.query(`update posts set status = 'cancelled' where id = any($1::uuid[])`, [
+      [half, none, checked, stopped],
+    ])
+  })
+
+  test('not out first, then paused or with a problem, the latest first, before the profiles', async () => {
+    const { items } = await get<IssuesJson>('owner', '/agenda/issues')
+    const posts = items.flatMap((i) => (i.kind === 'post' ? [i] : []))
+    expect(posts.map((p) => p.postId)).toEqual([none, half, stopped, checked])
+    expect(posts.map((p) => p.postId)).not.toContain(fine)
+    // the posts come before any other issue
+    expect(items.slice(0, 4).every((i) => i.kind === 'post')).toBe(true)
+    expect(posts[1]).toEqual({
+      kind: 'post',
+      workspaceId: forno,
+      postId: half,
+      type: 'reel',
+      status: 'partial',
+      scheduledAt: halfAt.toISOString(),
+      timezone: 'Europe/Rome',
+      // the platforms where it did not go out, and why
+      platforms: ['facebook'],
+      reason: 'media_rejected',
+      notOut: 1,
+    })
+    expect(posts[0]).toMatchObject({ status: 'failed', reason: 'too_late', notOut: 1 })
+    expect(posts[3]).toMatchObject({
+      status: 'problem',
+      platforms: ['instagram'],
+      reason: 'still_processing',
+      notOut: 0,
+    })
+    expect(posts[2]).toMatchObject({ status: 'paused', reason: 'author_lost_permission' })
+  })
+
+  test('only the clients the person sees; the Viewer too, who opens the post', async () => {
+    const editor = await get<IssuesJson>('editor', '/agenda/issues')
+    const ids = editor.items.flatMap((i) => (i.kind === 'post' ? [i.postId] : []))
+    expect(ids).toEqual([half, stopped, checked])
+    const viewer = await get<IssuesJson>('viewer', '/agenda/issues')
+    expect(viewer.items.filter((i) => i.kind === 'post')).toHaveLength(3)
+    const gino_ = await get<IssuesJson>('owner', `/agenda/issues?workspaceId=${gino}`)
+    expect(gino_.items.flatMap((i) => (i.kind === 'post' ? [i.postId] : []))).toEqual([none])
   })
 })
 

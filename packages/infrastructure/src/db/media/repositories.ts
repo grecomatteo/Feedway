@@ -158,12 +158,22 @@ function filterOf(filter: MediaFilter | undefined): (SQL | undefined)[] {
 }
 
 // post_media belongs to the posts module: read here by its table, as the RLS allows
-const inPostWith = (status: string | null) =>
+const inPostWith = (statuses: readonly string[] | null) =>
   sql`exists (select 1 from post_media pm join posts p
         on p.organization_id = pm.organization_id and p.id = pm.post_id
       where pm.organization_id = ${media.organizationId}
         and (pm.media_id = ${media.id} or pm.cover_media_id = ${media.id})
-        ${status === null ? sql`` : sql`and p.status = ${status}`})`
+        ${
+          statuses === null
+            ? sql``
+            : sql`and p.status in (${sql.join(
+                statuses.map((st) => sql`${st}`),
+                sql`, `,
+              )})`
+        })`
+
+/** The states of a post still going out (`isGoingOut`): «In programma» of the filter. */
+const GOING_OUT = ['scheduled', 'publishing', 'paused'] as const
 
 /** The filter with every kind: the counts of «Tutti · Foto · Video». */
 function withoutKind(filter: MediaFilter): MediaFilter {
@@ -181,9 +191,9 @@ function usedBy(use: MediaFilter['use']): SQL | undefined {
     case 'any':
       return inPostWith(null)
     case 'scheduled':
-      return inPostWith('scheduled')
+      return inPostWith(GOING_OUT)
     case 'draft':
-      return sql`(${inPostWith('draft')} and not ${inPostWith('scheduled')})`
+      return sql`(${inPostWith(['draft'])} and not ${inPostWith(GOING_OUT)})`
     case 'unused':
       return sql`not ${inPostWith(null)}`
     default:

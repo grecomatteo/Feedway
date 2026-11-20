@@ -4,8 +4,9 @@ import {
   can,
   type OrgActor,
   type Platform,
-  type PostStatus,
   type PostType,
+  type PublishingPostStatus,
+  type TargetStatus,
 } from '@app/domain'
 import { getAccountsForRules, getClientProfiles } from '../accounts/index.js'
 import { isUuid } from '../identity/index.js'
@@ -20,8 +21,32 @@ import { currentActor, workspaceNotFound } from '../workspaces/index.js'
 // hand, across the clients the person sees. A client that is hidden from the person is never
 // read, so it is never counted either; an archived one is left out (its posts never go out).
 
-/** The states the agenda shows: the posts that go out, and from stage 7 those that went out. */
-const AGENDA_STATUSES: readonly PostStatus[] = ['scheduled']
+/** The states the agenda shows: the posts that go out, are going out or went out (or not). */
+const AGENDA_STATUSES: readonly PublishingPostStatus[] = [
+  'scheduled',
+  'publishing',
+  'partial',
+  'failed',
+  'problem',
+  'published',
+  'paused',
+]
+
+/**
+ * The posts of «Da sistemare» (plan 07 Scelta 8), the red ones first: not out, then paused or
+ * with a problem. The destinations that need the hand are those in the post's own trouble.
+ */
+const POST_ISSUES = {
+  failed: { rank: 0, target: 'failed' },
+  partial: { rank: 0, target: 'failed' },
+  paused: { rank: 1, target: 'paused' },
+  problem: { rank: 1, target: 'problem' },
+} as const satisfies Record<string, { rank: number; target: TargetStatus }>
+type PostIssueStatus = keyof typeof POST_ISSUES
+const isPostIssue = (status: string): status is PostIssueStatus =>
+  Object.hasOwn(POST_ISSUES, status)
+/** More posts than anyone fixes in a sitting: the rest waits for these. */
+const POST_ISSUES_MAX = 50
 
 /** The longest period one read covers: six weeks, a month as the calendar shows it. */
 export const AGENDA_MAX_DAYS = 42
@@ -44,7 +69,7 @@ export interface AgendaPostDto {
   id: string
   workspaceId: string
   type: PostType
-  status: PostStatus
+  status: PublishingPostStatus
   scheduledAt: string
   timezone: string
   /** the start of the text, on one line; '' when there is none */
@@ -54,6 +79,8 @@ export interface AgendaPostDto {
   mediaCount: number
   /** null for who does not use the client's library, the Viewer (D-72) */
   thumbnail: AgendaThumbnail | null
+  /** its destinations that did not go out: «1 non uscito» */
+  notOut: number
 }
 
 /** What a draft still needs before «Programma», read from its fields (not the checks). */
@@ -70,6 +97,20 @@ export interface DraftToFinishDto {
 }
 
 export type AgendaIssueDto =
+  | {
+      kind: 'post'
+      workspaceId: string
+      postId: string
+      type: PostType
+      status: PostIssueStatus
+      scheduledAt: string
+      timezone: string
+      /** the platforms of the destinations that need the hand, each once */
+      platforms: Platform[]
+      /** Feedway's code of the first of them: its error, or why it is `problem` */
+      reason: string | null
+      notOut: number
+    }
   | {
       kind: 'profile'
       workspaceId: string
@@ -98,6 +139,26 @@ export interface ClientActivityDto {
   nextAt: string | null
   /** the latest change to one of its posts */
   changedAt: string
+}
+
+const notOutOf = (p: PostRecord) =>
+  p.targets.filter((t) => (t.status as TargetStatus) === 'failed').length
+
+/** Why a destination needs a hand, as a code: the reason of `problem`, else its last error. */
+function reasonOf(target: {
+  status: TargetStatus
+  lastErrorCode: string | null
+  verification: unknown
+}) {
+  if (
+    target.status === 'problem' &&
+    typeof target.verification === 'object' &&
+    target.verification
+  ) {
+    const reason = (target.verification as { reason?: unknown }).reason
+    if (typeof reason === 'string') return reason
+  }
+  return target.lastErrorCode
 }
 
 /** The text a row starts with: the common one, else a platform's, on one line. */
@@ -214,6 +275,12 @@ async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]
   }
   return {
     thumbnail: (p: PostRecord) => thumbnailOf(p, media),
+    /** each destination's account with its platform */
+    accounts: (p: PostRecord): [string, Platform][] =>
+      p.targets.flatMap((t) => {
+        const platform = platforms.get(t.accountId)
+        return platform ? [[t.accountId, platform] as [string, Platform]] : []
+      }),
     platforms: (p: PostRecord) => [
       ...new Set(
         p.targets.flatMap((t) => {
@@ -257,6 +324,7 @@ export async function listAgenda(
                 platforms: details.platforms(p),
                 mediaCount: p.mediaIds.length,
                 thumbnail: details.thumbnail(p),
+                notOut: notOutOf(p),
               },
             ],
       ),
@@ -292,9 +360,10 @@ export async function listDraftsToFinish(
 }
 
 /**
- * «Da sistemare» with the problems that exist before stage 7: the profiles whose link asks for a
- * hand (worst first) and the files the worker could not prepare (latest first). The posts that did
- * not go out join with stage 7.
+ * «Da sistemare»: the posts that did not go out, then those paused or with a problem (plan 07
+ * Scelta 8), the profiles whose link asks for a hand (worst first) and the files the worker could
+ * not prepare (latest first). Every member of a client sees its posts: the Viewer opens the
+ * outcome to read it.
  */
 export async function listAgendaIssues(
   deps: { uow: UnitOfWork; clock: Clock },
@@ -338,9 +407,11 @@ export async function listAgendaIssues(
       })
     }
     profileIssues.sort((a, b) => PROFILE_LINKS.indexOf(a.link) - PROFILE_LINKS.indexOf(b.link))
+    const postIssues = await postIssuesOf(tx, current, ids)
     const files = await getFailedMedia(tx, current, ids)
     return {
       items: [
+        ...postIssues,
         ...profileIssues,
         ...files.map((f) => ({
           kind: 'media' as const,
@@ -353,6 +424,60 @@ export async function listAgendaIssues(
       ],
     }
   })
+}
+
+/** The posts of «Da sistemare», with the platforms and the reason of what needs the hand. */
+async function postIssuesOf(
+  tx: Tx,
+  actor: OrgActor,
+  workspaceIds: readonly string[],
+): Promise<(AgendaIssueDto & { kind: 'post' })[]> {
+  const { organizationId } = actor
+  const records = (
+    await tx.posts.listWithStatuses(
+      organizationId,
+      workspaceIds,
+      Object.keys(POST_ISSUES) as PostIssueStatus[],
+      POST_ISSUES_MAX,
+    )
+  ).filter((p) => p.scheduledAt !== null)
+  const targets = await tx.publishing.targetsOfPosts(
+    organizationId,
+    records.map((p) => p.id),
+  )
+  const details = await detailsOf(tx, actor, records)
+  const platformOf = new Map(records.flatMap((p) => details.accounts(p)))
+  return records
+    .flatMap((p) => {
+      const status = p.status as string
+      if (!isPostIssue(status) || p.scheduledAt === null) return []
+      const trouble = targets.filter(
+        (t) => t.postId === p.id && t.status === POST_ISSUES[status].target,
+      )
+      const first = trouble[0]
+      return [
+        {
+          kind: 'post' as const,
+          workspaceId: p.workspaceId,
+          postId: p.id,
+          type: p.type,
+          status,
+          scheduledAt: p.scheduledAt.toISOString(),
+          timezone: p.timezone,
+          platforms: [
+            ...new Set(
+              trouble.flatMap((t) => {
+                const platform = platformOf.get(t.accountId)
+                return platform ? [platform] : []
+              }),
+            ),
+          ],
+          reason: first ? reasonOf(first) : null,
+          notOut: notOutOf(p),
+        },
+      ]
+    })
+    .sort((a, b) => POST_ISSUES[a.status].rank - POST_ISSUES[b.status].rank)
 }
 
 /**

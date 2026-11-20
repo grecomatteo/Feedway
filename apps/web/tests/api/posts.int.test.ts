@@ -850,6 +850,38 @@ describe('files of the posts in the library', () => {
     expect(agency.items.map((m) => m.id)).toContain(inDraft)
   })
 
+  test('a file of a post gone out says so and can go; one of a paused post stays (Scelta 5)', async () => {
+    const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
+    const out = await expectOk(schedule('manager', await draft()))
+    const stopped = await expectOk(schedule('manager', await draft()))
+    // as the worker leaves them
+    await env.admin.pool.query(`update posts set status = 'published' where id = $1`, [out.id])
+    await env.admin.pool.query(`update posts set status = 'paused' where id = $1`, [stopped.id])
+    const outFile = out.media[0]?.id ?? ''
+    const stoppedFile = stopped.media[0]?.id ?? ''
+    type Seen = {
+      usedIn: { status: string; scheduledAt: string | null } | null
+      deleteBlockedBy: unknown
+    }
+    const seenOut = await expectOk<Seen>(call('editor', 'GET', `${library}/${outFile}`))
+    expect(seenOut.usedIn).toMatchObject({ status: 'published', scheduledAt: out.scheduledAt })
+    expect(seenOut.deleteBlockedBy).toBeNull()
+    const seenStopped = await expectOk<Seen>(call('editor', 'GET', `${library}/${stoppedFile}`))
+    expect(seenStopped.usedIn).toMatchObject({ status: 'paused' })
+    expect(seenStopped.deleteBlockedBy).toMatchObject({ postId: stopped.id })
+    const ids = async (use: string) =>
+      (
+        await expectOk<{ items: { id: string }[] }>(
+          call('editor', 'GET', `${library}?use=${use}&limit=100`),
+        )
+      ).items.map((m) => m.id)
+    const going = await ids('scheduled')
+    expect(going).toContain(stoppedFile)
+    expect(going).not.toContain(outFile)
+    await expectError(call('editor', 'DELETE', `${library}/${stoppedFile}`), 409, 'CONFLICT')
+    await expectOk(call('editor', 'DELETE', `${library}/${outFile}`))
+  })
+
   test('a folder with a file of a scheduled post is not deleted (409)', async () => {
     const scheduled = await expectOk(schedule('manager', await draft()))
     const fileId = scheduled.media[0]?.id ?? ''

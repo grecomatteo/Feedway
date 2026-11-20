@@ -1,4 +1,4 @@
-import { postCount, primaryUse, type MediaUse } from './usage.js'
+import { isGoingOut, postCount, primaryUse, type MediaUse } from './usage.js'
 
 // When a file of the library is not deleted (D-18, D-80.4). The use case refuses with 409 and
 // the panel reads the same answer in the file's DTO, so «Elimina» is off, with the reason,
@@ -16,7 +16,7 @@ export interface DeletionBlock {
 
 /** Why the file of these uses is not deleted, or null when it is. */
 export function deletionBlock(uses: readonly MediaUse[]): DeletionBlock | null {
-  const scheduled = uses.filter((u) => u.status === 'scheduled')
+  const scheduled = uses.filter((u) => isGoingOut(u.status))
   const first = primaryUse(scheduled)
   if (first === null) return null
   return {
