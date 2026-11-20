@@ -2158,12 +2158,13 @@
       "retry": "Riprova",
       "conflict": "Modificato da un'altra persona",
       "conflictText": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova. Le tue modifiche restano qui finché non ricarichi: copia il testo se ti serve.",
-      "reload": "Ricarica"
+      "reload": "Ricarica",
+      "savedShort": "Bozza salvata",
+      "savedAt": "alle {time}"
     },
     "actions": {
       "saveDraft": "Salva bozza",
       "schedule": "Programma | Programma su 1 account | Programma su {n} account",
-      "scheduled": "Post programmato. Nella 0.12 non esce ancora: la pubblicazione arriva con la versione dopo.",
       "cancel": "Annulla programmazione",
       "cancelled": "Post annullato: non esce su nessun account.",
       "unschedule": "Riporta in bozza",
@@ -2174,7 +2175,11 @@
       "choose": "Nessuna scelta | Manca 1 scelta | Mancano {n} scelte",
       "fix": "Nessun blocco | Risolvi un blocco | Risolvi {n} blocchi",
       "notSchedulable": "Non si può programmare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo.",
-      "saveAndExit": "Salva ed esci"
+      "saveAndExit": "Salva ed esci",
+      "scheduledFor": "Programmato per {when}",
+      "scheduledShort": "Post programmato",
+      "open": "Apri",
+      "scheduleShort": "Programma"
     },
     "confirm": {
       "cancelTitle": "Annullare il post?",
@@ -2211,7 +2216,7 @@
       "account": "Account dell'anteprima",
       "zones": "Mostra le zone coperte",
       "covered": "Coperto dall'interfaccia",
-      "approximate": "Anteprima approssimativa: Meta cambia spesso l'interfaccia. Il ritaglio e le scelte sono quelli veri.",
+      "approximate": "Anteprima indicativa: Meta cambia spesso l'aspetto. Il ritaglio e le scelte sono quelli veri.",
       "empty": "Scegli almeno un file e un account: qui vedi come uscirà il post.",
       "loading": "Preparo l'anteprima…",
       "dropHere": "Rilascia qui per aggiungere i file al post",

@@ -120,6 +120,11 @@ export function formatWallShort(localDate: string, localTime: string, now = new 
   return `${shortDay(parts(localDate), now)}, ${formatTime(localTime)}`
 }
 
+/** «ven 20 nov alle 8:00»: a post's wall date and time inside a sentence («Programmato per …»). */
+export function formatWallSentence(localDate: string, localTime: string, now = new Date()): string {
+  return `${shortDay(parts(localDate), now)} alle ${formatTime(localTime)}`
+}
+
 export interface RelativeOptions extends DateOptions {
   /** false: the day only («oggi», «lun 16 nov»). */
   time?: boolean

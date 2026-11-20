@@ -26,6 +26,7 @@ const refresh = () => {
 onMounted(() => document.addEventListener('visibilitychange', refresh))
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', refresh))
 watch(org.slug, refresh)
+const notice = useNotice()
 </script>
 
 <template>
@@ -87,6 +88,15 @@ watch(org.slug, refresh)
     </div>
     <!-- the editor of a post has its own bar at the bottom (design E3) -->
     <MobileNav v-if="org.active.value && !editor" />
+    <!-- a confirmation that outlives the page it came from: «Programmato per …» (screen 12) -->
+    <ClientOnly>
+      <Toast
+        v-model:open="notice.open.value"
+        :message="notice.notice.value?.message ?? ''"
+        :link-label="notice.notice.value?.linkLabel"
+        :to="notice.notice.value?.to"
+      />
+    </ClientOnly>
     <!-- the uploads go on from page to page (D-21) -->
     <ClientOnly><UploadsDock v-if="inAgency" /></ClientOnly>
   </div>

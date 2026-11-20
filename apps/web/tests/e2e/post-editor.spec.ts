@@ -162,8 +162,12 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await expect(scheduleButton(page)).toHaveText(/Programma su 2 account/)
   await scheduleButton(page).click()
+  // back to the client's posts, with the confirmation and the way back to the post (screen 12)
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  const toast = page.locator('[data-toast]')
+  await expect(toast).toContainText(/Programmato per \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:30/u)
+  await toast.getByRole('link', { name: 'Apri' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
-  await expect(page.getByText('Nella 0.12 non esce ancora')).toBeVisible()
 
   // a change not saved yet is kept when the post goes back to draft
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del martedì')
@@ -176,6 +180,8 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   )
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await scheduleButton(page).click()
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await page.locator('[data-toast]').getByRole('link', { name: 'Apri' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
   await page.getByRole('button', { name: 'Annulla programmazione' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Annulla programmazione' }).click()
@@ -266,8 +272,9 @@ test('an Editor only saves drafts, and sees a draft of another without changing 
   await ownAddress(elia)
   await signIn(elia.request, editor)
   await elia.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
-  // «Salva ed esci» at the top on a computer, «Salva bozza» at the bottom on a phone
-  await expect(elia.getByRole('button', { name: /^Salva (bozza|ed esci)$/ })).toBeVisible()
+  // «Salva ed esci», at the top on a computer and at the bottom on a phone: no «Salva bozza»
+  await expect(elia.getByRole('button', { name: 'Salva ed esci' })).toBeVisible()
+  await expect(elia.getByRole('button', { name: 'Salva bozza' })).toHaveCount(0)
   await expect(elia.locator('[data-schedule]')).toHaveCount(0)
   await expect(elia.getByRole('group', { name: 'Quando esce' })).toHaveCount(0)
   await expect(elia.getByText('La programma chi nel cliente può pubblicare.')).toBeVisible()
@@ -328,6 +335,7 @@ test('a scheduled post changed: «Esci lo stesso» leaves, and the post stays as
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del lunedì')
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await scheduleButton(page).click()
+  await page.locator('[data-toast]').getByRole('link', { name: 'Apri' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
   const postUrl = page.url()
 
@@ -509,4 +517,44 @@ test('«Salva ed esci» saves the draft and leaves; the row at the top fits at 7
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Senza rete')
   await page.getByRole('button', { name: 'Salva ed esci' }).click()
   await expect(page.getByRole('dialog', { name: 'Uscire senza salvare?' })).toBeVisible()
+})
+
+test('on a phone: one bar at the bottom with the state and «Programma», above the keyboard', async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 1280) >= 768, 'the bar at the bottom is on a phone')
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['pane.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del lunedì')
+  const bar = page.locator('[data-action-bar]')
+  await expect(bar.locator('[data-save-state]')).toContainText(
+    /Bozza salvata\s*alle \d{1,2}:\d\d/,
+    {
+      timeout: 10_000,
+    },
+  )
+  await expect(bar.locator('[data-schedule]')).toHaveText(/Programma su 2 account/)
+  await expect(page.getByRole('button', { name: 'Salva bozza' })).toHaveCount(0)
+  // the checks are the last row of the form
+  await expect(page.locator('section#post-summary')).toBeVisible()
+
+  // the keyboard takes the lower 340 px: the bar moves above it, never under it
+  await page.getByRole('textbox', { name: 'Testo comune' }).focus()
+  const height = page.viewportSize()?.height ?? 800
+  await page.evaluate((covered) => {
+    const v = window.visualViewport
+    if (!v) return
+    Object.defineProperty(v, 'height', {
+      configurable: true,
+      get: () => window.innerHeight - covered,
+    })
+    v.dispatchEvent(new Event('resize'))
+  }, 340)
+  await expect
+    .poll(async () => {
+      const box = await bar.boundingBox()
+      return box ? box.y + box.height : Infinity
+    })
+    .toBeLessThanOrEqual(height - 340 + 1)
 })

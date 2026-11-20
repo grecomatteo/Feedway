@@ -56,7 +56,7 @@ function leaveFocus(e: FocusEvent) {
   >
     <div
       v-if="open"
-      class="flex h-11 items-center gap-2.5 rounded-card bg-(--app-toast) pr-1.5 pl-3.5 font-medium whitespace-nowrap text-(--app-on-toast) shadow-2 max-md:justify-between"
+      class="flex h-11 items-center gap-2.5 rounded-card bg-(--app-toast) pr-1.5 pl-3.5 font-medium whitespace-nowrap text-(--app-on-toast) shadow-2 max-md:justify-between max-md:text-detail"
       data-toast
     >
       <span class="inline-flex min-w-0 items-center gap-2">
@@ -71,6 +71,7 @@ function leaveFocus(e: FocusEvent) {
         v-if="to && linkLabel"
         :to="to"
         class="inline-flex h-8 items-center rounded-thumb px-2.5 font-semibold underline underline-offset-3"
+        @click="open = false"
         >{{ linkLabel }}</NuxtLink
       >
     </div>

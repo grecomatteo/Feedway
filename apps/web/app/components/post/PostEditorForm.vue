@@ -137,9 +137,20 @@ function exit() {
   void navigateTo(props.back)
 }
 
+/** «Programma»: back to the client's posts, with «Programmato per … · Apri» (screen 12). */
+const notice = useNotice()
 async function schedule() {
   const p = await e.schedule()
-  if (p) flash.value = t('posts.actions.scheduled')
+  if (!p) return
+  const w = e.when.value
+  notice.show({
+    message: w
+      ? t('posts.actions.scheduledFor', { when: formatWallSentence(w.localDate, w.localTime) })
+      : t('posts.actions.scheduledShort'),
+    linkLabel: t('posts.actions.open'),
+    to: org.to(`/spazi/${encodeURIComponent(props.client.slug)}/post/${encodeURIComponent(p.id)}`),
+  })
+  await navigateTo(props.back)
 }
 const confirm = ref<null | 'cancel' | 'remove' | 'leave'>(null)
 let leaveTo: (() => void) | null = null
@@ -426,33 +437,42 @@ const confirmText = computed(() => {
       @schedule="schedule"
       @cancel="confirm = 'cancel'"
       @remove="confirm = 'remove'"
+      @exit="exit"
       @goto="goto"
     />
 
-    <!-- on a phone the preview takes the whole screen, with «← Modifica» (design E3b) -->
+    <!-- on a phone the preview takes the whole screen, with «← Modifica» (screen 10) -->
     <UModal
       v-model:open="previewOpen"
       fullscreen
       :title="$t('posts.preview.title')"
       :description="$t('posts.preview.approximate')"
-      :ui="{ header: 'hidden', body: 'p-4 sm:p-6' }"
+      :ui="{ header: 'hidden', body: 'p-0 sm:p-0' }"
     >
       <template #body>
-        <div class="mx-auto flex w-full max-w-90 flex-col gap-3">
+        <div
+          class="sticky top-0 z-10 flex h-13 items-center gap-1 border-b border-(--app-border) bg-(--app-surface) ps-1 pe-5"
+          data-preview-bar
+        >
           <UButton
             color="neutral"
             variant="ghost"
             icon="i-lucide-arrow-left"
-            class="min-h-control self-start"
             @click="previewOpen = false"
           >
             {{ $t('posts.preview.back') }}
           </UButton>
+          <span class="flex-1" />
+          <p class="font-display text-base font-semibold tracking-[-0.01em]" aria-hidden="true">
+            {{ $t('posts.preview.title') }}
+          </p>
+        </div>
+        <div class="mx-auto w-full max-w-[26.25rem] p-4">
           <PostPreview
             :editor="editor"
             :accounts="accounts"
             :show-files="client.myRole !== 'viewer'"
-            reserve="15rem"
+            reserve="13rem"
           />
         </div>
       </template>
