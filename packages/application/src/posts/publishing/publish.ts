@@ -83,8 +83,10 @@ async function decide(
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // D-77 (b): a worker stopped past the time does not publish late; the attempts after an
-  // error go on (`retrying`)
-  if (target.status === 'ready' && isTooLate(post.scheduledAt, now))
+  // error go on (`retrying`), and a preparation that ended late is measured from its end
+  // (`next_attempt_at` of `ready`: the time, or the end of a preparation past it)
+  const dueAt = target.nextAttemptAt ?? post.scheduledAt
+  if (target.status === 'ready' && isTooLate(dueAt, now))
     return done(await failTarget(tx, target, 'too_late'))
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const copies = await destinationCopies(tx, deps, post, report, target.accountId)

@@ -208,17 +208,23 @@ test('a worker stopped halfway through the preparation resumes from the saved id
   const [scheduled] = await targetsOf(admin, post.postId)
   if (!scheduled) throw new Error('no destination')
   const real = runtime.publishers.instagram as PlatformPublisher
+  // the worker stops: the call is aborted, and the step leaves the destination as it is
+  const stop = new AbortController()
   const dying: PlatformPublisher = {
     ...real,
     prepare: async (target, files, ctx) => {
       await real.prepare(target, files, ctx)
+      stop.abort()
       throw new WorkerDied()
     },
   }
   const deps = workerDeps(runtime, clock, host.url)
   const containers = callsTo('/media')
   await expect(
-    prepareTarget({ ...deps, publishers: { instagram: dying } }, job(world, scheduled)),
+    prepareTarget(
+      { ...deps, publishers: { instagram: dying } },
+      { ...job(world, scheduled), signal: stop.signal },
+    ),
   ).rejects.toThrow(WorkerDied)
   const [left] = await targetsOf(admin, post.postId)
   expect(left?.status).toBe('preparing')
@@ -464,6 +470,69 @@ test('CS1: six destinations of one agency at the same time all go out within the
 })
 
 class WorkerDied extends Error {}
+
+test('a preparation that ends after the time still publishes: D-77 (b) is for the first start only', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  mock.scenario('rate_limited', { path: /\/media$/, times: 1 })
+  await runSteps(world, post.postId, clock, 'prepare')
+  mock.scenario('default')
+  // the attempt after the error, and turns waited: ready 14 minutes after the time
+  clock.set(new Date(at.getTime() + 14 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  const [ready] = await targetsOf(admin, post.postId)
+  expect(ready).toMatchObject({ status: 'ready' })
+  expect(ready?.next_attempt_at?.getTime()).toBe(clock.now().getTime())
+  clock.set(new Date(at.getTime() + 17 * MINUTE))
+  const published = callsTo('/media_publish')
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
+  expect(callsTo('/media_publish')).toBe(published + 1)
+})
+
+test('an unexpected error of the preparation counts as an attempt, so it has an end', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  const real = runtime.publishers.instagram as PlatformPublisher
+  const deps = {
+    ...workerDeps(runtime, clock, host.url),
+    publishers: {
+      ...runtime.publishers,
+      instagram: { ...real, prepare: () => Promise.reject(new Error('an answer never seen')) },
+    },
+  }
+  const [scheduled] = await targetsOf(admin, post.postId)
+  await prepareTarget(deps, job(world, scheduled as TargetRow))
+  const [after] = await targetsOf(admin, post.postId)
+  expect(after).toMatchObject({
+    status: 'retrying',
+    step: 'prepare',
+    attempts: 1,
+    last_error_code: 'meta_error',
+    claimed_until: null,
+  })
+  expect(after?.next_attempt_at?.getTime()).toBe(clock.now().getTime() + MINUTE)
+})
+
+test('a job used up without moving its destination: the reconciler sends a new one every 10 minutes', async () => {
+  const { at, post } = await setUp({ accounts: 'instagram' })
+  const [scheduled] = await targetsOf(admin, post.postId)
+  if (!scheduled) throw new Error('no destination')
+  const keysSent = (deps: ReturnType<typeof workerDeps>) =>
+    deps.queue.sent
+      .filter((j) => (j.data as { targetId?: string }).targetId === scheduled.id)
+      .map((j) => (j.opts as { dedupeKey?: string } | undefined)?.dedupeKey)
+  const base = `${scheduled.id}:prepare:${String(scheduled.generation)}`
+  const clock = testClock(new Date(at.getTime() - 14 * MINUTE))
+  const early = workerDeps(runtime, clock, host.url)
+  await reconcilePublishing(early)
+  // a job still waiting has the same key: not doubled
+  expect(keysSent(early)).toEqual([base])
+  clock.set(new Date(at.getTime() - 4 * MINUTE))
+  const late = workerDeps(runtime, clock, host.url)
+  await reconcilePublishing(late)
+  expect(keysSent(late)).toEqual([`${base}:r1`])
+})
 
 /** A unit of work whose transactions after the first one die with the process. */
 function diesAfterCall(uow: Runtime['uow']): Runtime['uow'] {

@@ -68,10 +68,18 @@ export interface StepJob {
   targetId: string
   generation: number
   startAfter?: Date
+  /**
+   * The reconciler's resend of a job used up without moving its destination (a job that
+   * failed, kept a day under its key): a new key every `RESEND_EVERY_MINUTES`. A job of the
+   * same generation twice is harmless, the step reads the destination locked.
+   */
+  resend?: number
 }
 
-export const stepKey = (job: Pick<StepJob, 'name' | 'targetId' | 'generation'>) =>
-  `${job.targetId}:${job.name === 'target.prepare' ? 'prepare' : 'publish'}:${String(job.generation)}`
+export const stepKey = (job: Pick<StepJob, 'name' | 'targetId' | 'generation' | 'resend'>) => {
+  const key = `${job.targetId}:${job.name === 'target.prepare' ? 'prepare' : 'publish'}:${String(job.generation)}`
+  return job.resend ? `${key}:r${String(job.resend)}` : key
+}
 
 /**
  * Sends the next steps after the commit. A failed send is not lost: the destination has its

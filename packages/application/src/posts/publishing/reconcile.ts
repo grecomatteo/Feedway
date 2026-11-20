@@ -17,6 +17,18 @@ import {
 /** At most this many destinations a minute: the next run takes the rest. */
 export const RECONCILE_BATCH = 500
 
+/**
+ * A destination still due this long after its time had its job used up (failed, and kept a
+ * day under its key): it gets a job under a new key. Longer than a job's run and its retries.
+ */
+export const RESEND_EVERY_MINUTES = 10
+
+const resendOf = (due: DueTarget, now: Date) =>
+  Math.max(
+    0,
+    Math.floor((now.getTime() - due.nextAttemptAt.getTime()) / (RESEND_EVERY_MINUTES * 60_000)),
+  )
+
 /** The states with a job of this stage; Task 8 adds the search and the verification. */
 export const RECONCILED_STATUSES: readonly TargetStatus[] = [
   'scheduled',
@@ -84,6 +96,7 @@ export async function reconcilePublishing(
         organizationId: d.organizationId,
         targetId: d.targetId,
         generation: d.generation,
+        resend: resendOf(d, now),
       })
   }
   await sendSteps(deps, jobs)

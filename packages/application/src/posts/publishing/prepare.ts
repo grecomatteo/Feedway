@@ -350,8 +350,17 @@ export async function prepareTarget(deps: PublishingWorkerDeps, job: TargetJob):
       saveIds: saverOf(deps, call),
     })
   } catch (error) {
-    if (!(error instanceof PublishError)) throw error
-    result = error
+    // a worker stopping: the destination stays as it is, the reconciler resumes it from the
+    // ids saved once the claim has expired
+    if (signal.aborted && !(error instanceof PublishError)) throw error
+    // an answer never seen, or a bug: an attempt as a temporary error, so that the destination
+    // has an end (`failed` after the last one) and every attempt has a new job
+    if (!(error instanceof PublishError))
+      deps.logger.error({ err: error, targetId: call.record.id }, 'preparation failed unexpectedly')
+    result =
+      error instanceof PublishError
+        ? error
+        : new PublishError({ kind: 'transient', code: 'meta_error' })
   }
   const durationMs = deps.clock.now().getTime() - started
   const settled = await deps.uow.run(scope, async (tx) => {

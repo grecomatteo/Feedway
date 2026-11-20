@@ -507,6 +507,37 @@ test('the panel moving a prepared destination starts a new round and keeps the i
   })
 })
 
+test('archiving while a step takes a destination as publishing: that post goes on', async () => {
+  const { postId, targetIds } = await newPost(
+    orgA,
+    wsA,
+    [{ accountId: igA, status: 'ready' }],
+    'publishing',
+  )
+  const id = targetIds[0] as string
+  let release!: () => void
+  const held = new Promise<void>((r) => (release = r))
+  let saved!: () => void
+  const isSaved = new Promise<void>((r) => (saved = r))
+  const step = runA(async (tx) => {
+    await tx.publishing.lockTarget(orgA, id)
+    await tx.publishing.saveStep(orgA, id, { status: 'publishing', step: 'publish' })
+    saved()
+    await held
+  })
+  await isSaved
+  // the archive starts while the step has not committed yet, and waits for it
+  const archive = runA((tx) =>
+    tx.posts.unscheduleAll({ organizationId: orgA, workspaceId: wsA }, userA),
+  )
+  await new Promise((r) => setTimeout(r, 300))
+  release()
+  await step
+  expect(await archive).not.toContain(postId)
+  expect((await runA((tx) => tx.publishing.lockTarget(orgA, id)))?.status).toBe('publishing')
+  expect((await postStatusOf(postId))?.status).toBe('publishing')
+})
+
 test('the reconciler reads only the states it asks for', async () => {
   const past = new Date(Date.now() - 60_000)
   const { targetIds } = await newPost(orgA, wsA, [

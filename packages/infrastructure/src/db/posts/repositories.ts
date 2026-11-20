@@ -135,6 +135,9 @@ async function complete(
   })
 }
 
+/** The destinations' states the panel may still move (plan 07 P2); the others are going out. */
+const PANEL_REACH: readonly string[] = ['scheduled', 'preparing', 'ready', 'retrying', 'cancelled']
+
 /**
  * A new round of the worker on a destination the panel moves (plan 07 P2): the jobs of the old
  * one find nothing to do, and what was prepared on Meta, which holds the old files and text,
@@ -290,28 +293,39 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       )
     },
     async unscheduleAll(scope, updatedBy) {
-      // also those in preparation (plan 07 P2); one being published goes on
-      const moved = await db
-        .update(posts)
-        .set({ status: 'draft', updatedBy, version: sql`${posts.version} + 1` })
+      // also those in preparation (plan 07 P2); one being published goes on. The posts are
+      // locked first, as `lockTarget` does: a step holding one is waited for, and the states of
+      // the destinations are read after, in a statement of their own, so a step that has just
+      // taken one as `publishing` is seen (a subquery of one UPDATE would read the old ones)
+      const candidates = await db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(inScope(scope), inArray(posts.status, ['scheduled', 'publishing'])))
+        .orderBy(posts.id)
+        .for('update')
+      if (candidates.length === 0) return []
+      const candidateIds = candidates.map((r) => r.id)
+      const targets = await db
+        .select({ postId: postTargets.postId, status: postTargets.status })
+        .from(postTargets)
         .where(
           and(
-            inScope(scope),
-            or(
-              eq(posts.status, 'scheduled'),
-              and(
-                eq(posts.status, 'publishing'),
-                sql`not exists (
-                  select 1 from ${postTargets} t
-                   where t.organization_id = ${posts.organizationId} and t.post_id = ${posts.id}
-                     and t.status not in ('scheduled', 'preparing', 'ready', 'retrying', 'cancelled'))`,
-              ),
-            ),
+            eq(postTargets.organizationId, scope.organizationId),
+            eq(postTargets.workspaceId, scope.workspaceId),
+            inArray(postTargets.postId, candidateIds),
           ),
         )
-        .returning({ id: posts.id })
-      const postIds = moved.map((r) => r.id)
+        .orderBy(postTargets.id)
+        .for('update')
+      const going = new Set(
+        targets.filter((t) => !PANEL_REACH.includes(t.status)).map((t) => t.postId),
+      )
+      const postIds = candidateIds.filter((id) => !going.has(id))
       if (postIds.length === 0) return []
+      await db
+        .update(posts)
+        .set({ status: 'draft', updatedBy, version: sql`${posts.version} + 1` })
+        .where(and(inScope(scope), inArray(posts.id, postIds)))
       await db
         .update(postTargets)
         .set({ status: 'draft', fingerprint: null, ...NEW_ROUND, nextAttemptAt: null })
@@ -320,6 +334,8 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             eq(postTargets.organizationId, scope.organizationId),
             eq(postTargets.workspaceId, scope.workspaceId),
             inArray(postTargets.postId, postIds),
+            // a second barrier: a destination out of the panel's reach is never touched
+            inArray(postTargets.status, [...PANEL_REACH]),
           ),
         )
       return postIds

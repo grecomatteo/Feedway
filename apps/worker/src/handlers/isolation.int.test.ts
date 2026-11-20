@@ -215,7 +215,9 @@ async function targetsWorld(status: 'scheduled' | 'ready'): Promise<World> {
     )
     if (status === 'ready')
       await admin.query(
-        "update post_targets set status = 'ready', step = 'publish' where post_id = $1",
+        // ready at the time, as a preparation leaves it: 20 minutes late, so too late (D-77 b)
+        `update post_targets set status = 'ready', step = 'publish',
+                next_attempt_at = now() - interval '20 minutes' where post_id = $1`,
         [postId],
       )
     const [target] = await targetsOf(admin, postId)
