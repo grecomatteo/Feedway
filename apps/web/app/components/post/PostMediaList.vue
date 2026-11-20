@@ -35,6 +35,17 @@ const converted = computed(() => {
   return single.value && e.entries.value[0]?.file?.status === 'ready' && !/\.mp4$/i.test(name)
 })
 
+/** «38,8 MB · Convertito in MP4» beside «Sostituisci» (screen 09, D-98) */
+const replaceNote = computed(() => {
+  const size = e.entries.value[0]?.file?.sizeBytes
+  return [
+    single.value && size ? formatBytes(size) : null,
+    converted.value ? t('posts.media.converted') : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+})
+
 function picked(event: Event) {
   const input = event.target as HTMLInputElement
   const list = Array.from(input.files ?? [])
@@ -367,8 +378,8 @@ function release() {
           {{ $t('posts.media.replace') }}
         </UButton>
       </UDropdownMenu>
-      <span v-if="converted" class="text-detail text-(--app-text-muted)">{{
-        $t('posts.media.converted')
+      <span v-if="replaceNote" class="text-detail text-(--app-text-muted)" data-replace-note>{{
+        replaceNote
       }}</span>
     </div>
     <div

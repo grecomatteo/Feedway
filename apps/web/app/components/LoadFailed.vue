@@ -18,7 +18,8 @@ defineEmits<{ retry: [] }>()
       class="size-4 shrink-0 text-(--app-danger)"
       aria-hidden="true"
     />
-    <p class="min-w-0 flex-1">{{ text }}</p>
+    <!-- the row is the measure: «Riprova» at its end, not after 75 characters (the cap of main.css is unlayered) -->
+    <p class="max-w-none! min-w-0 flex-1">{{ text }}</p>
     <UButton v-if="retry" color="neutral" variant="outline" size="sm" @click="$emit('retry')">
       {{ $t('account.retry') }}
     </UButton>

@@ -127,17 +127,8 @@ function insert(x: CaptionTemplateDto) {
   const now = text.value
   const start = el ? el.selectionStart : now.length
   const end = el ? el.selectionEnd : now.length
-  const before = now.slice(0, start)
-  // a signature or hashtags go on a paragraph of their own
-  const gap =
-    x.kind !== 'caption' && before.trim() !== '' && !before.endsWith('\n\n')
-      ? before.endsWith('\n')
-        ? '\n'
-        : '\n\n'
-      : ''
-  const inserted = gap + x.body
-  text.value = before + inserted + now.slice(end)
-  const at = start + inserted.length
+  const { text: next, cursor: at } = insertTemplate(now, start, end, x)
+  text.value = next
   void nextTick(() => {
     el?.focus()
     el?.setSelectionRange(at, at)

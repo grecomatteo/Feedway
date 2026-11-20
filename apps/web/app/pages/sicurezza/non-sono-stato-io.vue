@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { ApiFailure } from '~/composables/useApi'
+
+/** The link of a security email, «Non sono stato io»: a page before the panel (D-99). */
+definePageMeta({ layout: 'auth' })
 // a click before the page runs in the browser would be lost
 const ready = useHydrated()
-import type { ApiFailure } from '~/composables/useApi'
 
 const { t } = useI18n()
 const { call, failure } = useApi()
@@ -37,22 +40,33 @@ async function lock() {
 </script>
 
 <template>
-  <section aria-labelledby="not-me" class="space-y-4">
-    <h1 id="not-me" class="text-3xl">{{ $t('notMe.title') }}</h1>
-    <p v-if="locked" role="status" class="flex items-center gap-2 text-(--app-success)">
-      <UIcon name="i-lucide-circle-check" aria-hidden="true" />
+  <section aria-labelledby="not-me" class="grid gap-5">
+    <h1 id="not-me" class="text-center">{{ $t('notMe.title') }}</h1>
+    <p v-if="locked" role="status" class="flex items-start gap-2">
+      <UIcon
+        name="i-lucide-circle-check"
+        class="mt-0.5 size-4 shrink-0 text-(--app-success)"
+        aria-hidden="true"
+      />
       {{ $t('notMe.done') }}
     </p>
-    <p v-else-if="token === ''" role="alert" class="text-(--app-danger)">
+    <p v-else-if="token === ''" role="alert" class="flex items-start gap-2">
+      <UIcon
+        name="i-lucide-triangle-alert"
+        class="mt-0.5 size-4 shrink-0 text-(--app-danger)"
+        aria-hidden="true"
+      />
       {{ $t('notMe.missing') }}
     </p>
     <template v-else>
       <p>{{ $t('notMe.intro') }}</p>
-      <p v-if="problem" role="alert" class="flex items-center gap-2 text-(--app-danger)">
-        <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
+      <p v-if="problem" role="alert" class="flex items-start gap-2 text-(--app-danger)">
+        <UIcon name="i-lucide-triangle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         {{ problem.message }}
       </p>
       <UButton
+        block
+        size="xl"
         class="min-h-control"
         color="error"
         :loading="sending"

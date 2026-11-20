@@ -1,4 +1,5 @@
 import { captionStats } from '../../../rules/caption.js'
+import { isPendingMedia } from '../../../rules/post-rules.js'
 import type { PlatformRules, PlatformView, RuleFinding } from '../../../rules/types.js'
 import { instagramFormat } from './content-types.js'
 import { META_LIMITS as L } from './limits.js'
@@ -59,7 +60,8 @@ function checkFeedProportions(view: PlatformView): RuleFinding[] {
         },
       })
   }
-  if (view.type === 'carousel') {
+  // the proportions of a carousel wait for every file (D-80.1)
+  if (view.type === 'carousel' && !view.media.some((m) => isPendingMedia(m.media))) {
     const ratios = view.media.flatMap((m) =>
       m.media.analysis && 'width' in m.media.analysis ? [ratioOf(m.media.analysis)] : [],
     )

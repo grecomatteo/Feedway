@@ -328,6 +328,53 @@ export const RULE_CASES: RuleCase[] = [
     draft({ media: [photo({}, { status: 'processing', analysis: null, checks: null })] }),
     [block('media_processing', 'media:0')],
   ),
+  // a file not ready yet counts as in the post: the rules that depend on it wait (D-80.1)
+  c(
+    'file-processing-carousel-mixed',
+    'file',
+    'Carosello con una foto e un MOV ancora in preparazione, su Instagram e Facebook',
+    carousel([photo(), video(10_000, {}, { status: 'processing', analysis: null, checks: null })]),
+    [block('media_processing', 'media:1')],
+    ctx,
+    [
+      { accountId: IG, format: 'carousel', media: [0, 1] },
+      { accountId: FB, format: 'multi_photo', media: [0, 1] },
+    ],
+  ),
+  c(
+    'file-uploading-carousel-videos',
+    'file',
+    'Carosello di due video, il secondo ancora in caricamento, su Instagram e Facebook',
+    carousel([
+      video(10_000),
+      video(10_000, {}, { status: 'uploading', analysis: null, checks: null }),
+    ]),
+    [block('media_processing', 'media:1')],
+  ),
+  c(
+    'file-processing-carousel-fb',
+    'file',
+    'Carosello solo su Facebook con un video ancora in preparazione',
+    carousel(
+      [photo(), photo(), video(10_000, {}, { status: 'processing', analysis: null, checks: null })],
+      {
+        destinations: onlyFb,
+      },
+    ),
+    [block('media_processing', 'media:2')],
+    ctx,
+    [{ accountId: FB, format: 'multi_photo', media: [0, 1, 2] }],
+  ),
+  c(
+    'file-processing-carousel-ratios',
+    'file',
+    'Carosello con una foto 1:1 e una ancora in preparazione: le proporzioni aspettano',
+    carousel([
+      photo({ width: 1080, height: 1080 }),
+      photo({ width: 1080, height: 1350 }, { status: 'processing', analysis: null, checks: null }),
+    ]),
+    [block('media_processing', 'media:1')],
+  ),
   c(
     'file-deleted',
     'file',

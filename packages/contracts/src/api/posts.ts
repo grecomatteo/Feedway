@@ -84,6 +84,8 @@ const PostMediaDto = z.object({
   status: z.enum(['uploading', 'processing', 'ready', 'failed', 'deleted']),
   kind: z.enum(['image', 'video']).nullable(),
   originalName: z.string().nullable(),
+  /** of the original as uploaded (D-98) */
+  sizeBytes: z.number().int().nullable(),
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
   durationMs: z.number().int().nullable(),
