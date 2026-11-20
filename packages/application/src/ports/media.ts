@@ -7,6 +7,7 @@ import type {
   MediaStatus,
   StorageUsed,
   VariantPurpose,
+  VariantStatus,
 } from '@app/domain'
 
 /** A file of a workspace, with its library entry (spec §13). */
@@ -153,6 +154,43 @@ export interface MediaFilter {
   use?: 'any' | 'scheduled' | 'draft' | 'unused'
 }
 
+/** A copy to publish asked for when a post is scheduled (plan 07 Task 6): `pending` until made. */
+export interface NewPublishCopy {
+  id: string
+  mediaId: string
+  purpose: VariantPurpose
+  /** never `''`: the copies made with the file are not asked for */
+  recipe: string
+  /** where it will be: known before it is made (the column has no empty value) */
+  storageKey: string
+  publicToken: string
+  mime: string
+}
+
+/** A copy of a file, made with it (`recipe` `''`) or for a post, in any state. */
+export interface PublishCopyRecord {
+  id: string
+  mediaId: string
+  purpose: VariantPurpose
+  recipe: string
+  status: VariantStatus
+  /** why it could not be made; null unless `failed` */
+  failure: string | null
+  storageKey: string
+  publicToken: string | null
+  mime: string
+  /** 0 until made */
+  sizeBytes: number
+  width: number | null
+  height: number | null
+}
+
+/** The copy the worker makes next: ids only, read across the agencies (ADR 021). */
+export interface CopyTurn {
+  organizationId: string
+  variantId: string
+}
+
 /** The file the worker picks next: ids only, read across the agencies (ADR 021). */
 export interface MediaTurn {
   organizationId: string
@@ -220,6 +258,38 @@ export interface MediaRepository {
   releaseAttempt(organizationId: string, mediaId: string): Promise<void>
   /** Writes or replaces the copy of that purpose; a replaced copy takes the new id. */
   saveVariant(organizationId: string, mediaId: string, variant: NewMediaVariant): Promise<void>
+  /**
+   * Asks for copies to publish: a new one is `pending`; one that `failed` is `pending` again,
+   * with its attempts cleared (a post scheduled again tries again); one pending or ready stays
+   * as it is. Returns how many are now pending because of this call.
+   */
+  requestCopies(organizationId: string, copies: readonly NewPublishCopy[]): Promise<number>
+  /** Every copy of these files, with or without a recipe, in any state. */
+  copiesOf(organizationId: string, mediaIds: readonly string[]): Promise<PublishCopyRecord[]>
+  /**
+   * SYSTEM scope only: the next copy `pending` of the installation, from the agency whose copies
+   * were started least recently, its oldest copy first.
+   */
+  nextCopyToMake(): Promise<CopyTurn | null>
+  /**
+   * The worker takes a copy still `pending`: one more attempt, and its start is the agency's
+   * turn. null: no such copy any more.
+   */
+  claimCopy(
+    organizationId: string,
+    variantId: string,
+    at: Date,
+  ): Promise<(PublishCopyRecord & { attempts: number }) | null>
+  /** Gives back the attempt of a claim that ended in a passing failure (as `releaseAttempt`). */
+  releaseCopyAttempt(organizationId: string, variantId: string): Promise<void>
+  /** A copy still `pending` is `ready`, with what was made. false: no longer pending. */
+  finishCopy(
+    organizationId: string,
+    variantId: string,
+    made: { sizeBytes: number; width: number; height: number },
+  ): Promise<boolean>
+  /** A copy still `pending` is `failed` with its reason. false: no longer pending. */
+  failCopy(organizationId: string, variantId: string, failure: string): Promise<boolean>
   /** Removes the copies' rows; returns their keys, for the storage. */
   dropVariants(organizationId: string, mediaId: string): Promise<string[]>
   /**

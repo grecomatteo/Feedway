@@ -162,6 +162,8 @@ export const RULE_CODES = [
   'facebook_reels_limit',
   /** a file no destination publishes after the choices (D-56) */
   'media_unused',
+  /** the copy to publish of a file could not be made (plan 07 Task 6): only with `publish` */
+  'media_copy_failed',
   // warnings
   'time_skipped',
   'time_ambiguous',

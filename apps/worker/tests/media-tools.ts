@@ -37,6 +37,8 @@ export const unusedMediaTools: JobHandlerDeps['media'] = {
     videoPreview: unused,
     videoReel: unused,
     videoFrame: unused,
+    videoFit: unused,
+    videoStill: unused,
   },
   newPublicToken,
   limits: MEDIA_LIMITS,

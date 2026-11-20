@@ -43,6 +43,7 @@ export const KNOWN_QUEUES = [
   'accounts.avatar',
   'media.delete_files',
   'media.process',
+  'media.publish_copies',
   'media.uploads_cleanup',
 ] as const
 

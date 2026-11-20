@@ -17,10 +17,16 @@ import {
   type PostWhen,
   type RuleChoice,
   type RuleReport,
+  distinctCopies,
+  publishFilesOf,
+  withFailedCopies,
+  type DestinationFiles,
+  type PublishFile,
+  type PublishPost,
 } from '@app/domain'
 import { getAccountsForRules } from '../accounts/index.js'
 import { isUuid } from '../identity/index.js'
-import { getMediaForRules } from '../media/index.js'
+import { getMediaForRules, publishCopiesOf, publishFileFacts } from '../media/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { PublishingHistory } from '../ports/publishing-history.js'
 import type { Tx } from '../ports/tx.js'
@@ -92,11 +98,9 @@ export async function checkPost(
   if (!isUuid(input.workspaceId)) throw workspaceNotFound()
   if (input.postId !== undefined && !isUuid(input.postId)) throw postNotFound()
   const now = deps.clock.now()
-  const read = await deps.uow.run(
-    { organizationId: actor.organizationId, userId: actor.userId },
-    (tx) => readForCheck(tx, deps, actor, input, now),
+  return deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, (tx) =>
+    checkIn(tx, deps, actor, input, now),
   )
-  return evaluate(deps, input, read, now)
 }
 
 /**
@@ -111,8 +115,87 @@ export async function checkPostInTx(
 ): Promise<RuleReport> {
   if (!isUuid(input.workspaceId)) throw workspaceNotFound()
   if (input.postId !== undefined && !isUuid(input.postId)) throw postNotFound()
-  const now = deps.clock.now()
-  return evaluate(deps, input, await readForCheck(tx, deps, actor, input, now), now)
+  return checkIn(tx, deps, actor, input, deps.clock.now())
+}
+
+async function checkIn(
+  tx: Tx,
+  deps: Omit<CheckPostDeps, 'uow'>,
+  actor: OrgActor,
+  input: PostCheckInput,
+  now: Date,
+): Promise<RuleReport> {
+  const read = await readForCheck(tx, deps, actor, input, now)
+  const report = evaluate(deps, input, read, now)
+  if ((input.purpose ?? 'draft') !== 'publish') return report
+  // before publishing, a copy that could not be made is a block (plan 07 Task 6)
+  const { post, files } = await filesOf(tx, deps, actor.organizationId, input, read.media, report)
+  const states = await publishCopiesOf(tx, actor.organizationId, distinctCopies(files))
+  const failed = states.flatMap(({ request, state }) =>
+    state.status === 'failed' ? [{ request, failure: state.failure }] : [],
+  )
+  return withFailedCopies(post, report, files, failed)
+}
+
+/**
+ * The copy of each file every destination publishes, after the checks (plan 07 Task 6): what
+ * the posts module asks for when the post is scheduled and reads when it is prepared.
+ */
+export async function publishFilesOfPost(
+  tx: Tx,
+  deps: Pick<CheckPostDeps, 'platformRules'>,
+  scope: { organizationId: string; workspaceId: string },
+  input: Pick<PostCheckInput, 'type' | 'mediaIds' | 'cover' | 'choices'>,
+  report: RuleReport,
+): Promise<DestinationFiles[]> {
+  const coverId = input.cover?.source === 'image' ? input.cover.mediaId : null
+  const media = await getMediaForRules(tx, scope, [
+    ...input.mediaIds,
+    ...(coverId ? [coverId] : []),
+  ])
+  return (await filesOf(tx, deps, scope.organizationId, input, media, report)).files
+}
+
+async function filesOf(
+  tx: Tx,
+  deps: Pick<CheckPostDeps, 'platformRules'>,
+  organizationId: string,
+  input: Pick<PostCheckInput, 'type' | 'mediaIds' | 'cover' | 'choices'>,
+  media: ReadonlyMap<string, DraftMedia>,
+  report: RuleReport,
+): Promise<{ post: PublishPost; files: DestinationFiles[] }> {
+  const coverId = input.cover?.source === 'image' ? input.cover.mediaId : null
+  const facts = await publishFileFacts(tx, organizationId, [
+    ...input.mediaIds,
+    ...(coverId ? [coverId] : []),
+  ])
+  const fileOf = (id: string): PublishFile => {
+    const m = media.get(id)
+    const a = m?.analysis
+    return {
+      mediaId: id,
+      kind: m?.kind ?? 'image',
+      width: a && a.kind !== 'unknown' ? a.width : null,
+      height: a && a.kind !== 'unknown' ? a.height : null,
+      feedCopyBytes: facts.get(id)?.feedCopyBytes ?? null,
+      hasReelCopy: facts.get(id)?.hasReelCopy ?? false,
+    }
+  }
+  const post: PublishPost = {
+    type: input.type,
+    media: input.mediaIds.map(fileOf),
+    ...(input.cover === undefined
+      ? {}
+      : {
+          cover:
+            input.cover.source === 'image'
+              ? { source: 'image', file: fileOf(input.cover.mediaId) }
+              : input.cover,
+        }),
+    choices: input.choices,
+  }
+  const limits = new Map([...deps.platformRules].map(([p, rules]) => [p, rules.photoMaxBytes]))
+  return { post, files: publishFilesOf(post, report, limits) }
 }
 
 async function readForCheck(
