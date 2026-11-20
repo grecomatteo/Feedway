@@ -154,13 +154,13 @@ test('a file moves into a folder with «Sposta in…» and by dragging', async (
   await expect(page.getByText('«pane-01.jpg» spostato in «Natale 2026».')).toBeVisible()
 
   // by dragging onto the folder
-  await tile(page, 'cornetti.jpg').dragTo(folders.getByRole('button', { name: /Natale 2026/ }))
+  await tile(page, 'cornetti.jpg').dragTo(folders.locator('[data-folder="Natale 2026"]'))
   await expect(page.getByText('«cornetti.jpg» spostato in «Natale 2026».')).toBeVisible()
 
-  await folders.getByRole('button', { name: /Natale 2026/ }).click()
+  await folders.locator('[data-folder="Natale 2026"]').click()
   await expect(page.getByRole('heading', { level: 2, name: 'Natale 2026' })).toBeVisible()
   await expect(grid(page).getByRole('listitem')).toHaveCount(2)
-  await expect(folders.getByRole('button', { name: /Natale 2026/ })).toContainText('2')
+  await expect(folders.locator('[data-folder="Natale 2026"]')).toContainText('2')
 
   // a folder with files is deleted only with a confirmation, and its files go with it
   await page.getByRole('button', { name: 'Azioni per Natale 2026' }).click()
@@ -172,6 +172,72 @@ test('a file moves into a folder with «Sposta in…» and by dragging', async (
   await expect(page.getByText('Cartella eliminata.')).toBeVisible()
   await expect(grid(page).getByRole('listitem')).toHaveCount(1)
   await expect(tile(page, 'pane-01.jpg')).toHaveCount(0)
+})
+
+test('every folder has its «⋯»: new folder inside, rename, move and delete (D-103)', async ({
+  page,
+}) => {
+  const { org, client } = await editorWithLibrary(page)
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
+  const create = async (name: string) => {
+    // «Nuova cartella» with its text, in the column or, on a phone, next to the menu
+    await page
+      .getByRole('button', { name: 'Nuova cartella', exact: true })
+      .locator('visible=true')
+      .click()
+    await page.getByRole('textbox', { name: 'Nome della cartella' }).fill(name)
+    await page.getByRole('button', { name: 'Crea' }).click()
+    await expect(page.getByText(`Cartella «${name}» creata.`)).toBeVisible()
+  }
+  await create('Novembre')
+  await create('Reel')
+
+  /** The «⋯» of a folder: in the column on a computer, next to its name once open on a phone. */
+  const actions = async (name: string) => {
+    if (isPhone(page)) {
+      await page.getByRole('combobox', { name: 'Cartella' }).click()
+      await page.getByRole('option', { name: new RegExp(`${name}$`) }).click()
+      await page.getByRole('button', { name: `Azioni per ${name}` }).click()
+    } else {
+      const column = page.getByRole('navigation', { name: 'Cartelle' })
+      await column.locator(`[data-folder="${name}"]`).hover()
+      await column.getByRole('button', { name: `Azioni per la cartella ${name}` }).click()
+    }
+  }
+
+  await actions('Reel')
+  await page.getByRole('menuitem', { name: 'Rinomina' }).click()
+  await page.getByRole('textbox', { name: 'Nome della cartella' }).fill('Reel di novembre')
+  await page.getByRole('button', { name: 'Salva' }).click()
+  await expect(page.getByText('Cartella rinominata.')).toBeVisible()
+
+  await actions('Reel di novembre')
+  await page.getByRole('menuitem', { name: 'Sposta…' }).click()
+  const move = page.getByRole('dialog', { name: 'Sposta la cartella «Reel di novembre»' })
+  await move.getByRole('combobox').click()
+  // never into itself
+  await expect(page.getByRole('option', { name: 'Reel di novembre' })).toHaveCount(0)
+  await page.getByRole('option', { name: 'Novembre' }).click()
+  await move.getByRole('button', { name: 'Sposta' }).click()
+  await expect(page.getByText('Cartella «Reel di novembre» spostata in «Novembre».')).toBeVisible()
+  if (!isPhone(page))
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Cartelle' })
+        .locator('[data-folder="Reel di novembre"]'),
+    ).toHaveAttribute('style', /padding-left: 1\.5rem/)
+
+  const results = await axe(page)
+  expect(results.violations).toEqual([])
+
+  await actions('Novembre')
+  await page.getByRole('menuitem', { name: 'Elimina cartella' }).click()
+  const confirm = page.getByRole('dialog', { name: 'Eliminare «Novembre»?' })
+  await expect(confirm).toContainText('1 sottocartella')
+  await confirm.getByRole('button', { name: 'Elimina tutto' }).click()
+  await expect(page.getByText('Cartella eliminata.')).toBeVisible()
+  await fitsTheScreen(page)
 })
 
 test('the detail plays the video, saves the tags and deletes the file', async ({ page }) => {

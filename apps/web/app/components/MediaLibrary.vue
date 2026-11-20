@@ -6,7 +6,8 @@ import { THUMB_SIZES } from '~/composables/useLibraryView'
 /**
  * The library of one client (spec §11.8, plan 04 Task 12; brief F03): folders on the left (a
  * menu on a phone), filters by type, tag and name, a grid of files by pages, the detail on the
- * side. A file moves into a folder by dragging it there or with «Sposta in…». Used by
+ * side. A file moves into a folder by dragging it there or with «Sposta in…»; every folder of the
+ * column has its «⋯» (new folder inside, rename, move, delete: D-103). Used by
  * `/<agenzia>/libreria` and by the client's «Libreria» tab. An archived client is read only.
  */
 const props = defineProps<{
@@ -330,6 +331,45 @@ async function saveName() {
     nameProblem.value = failure(e).message
   }
 }
+// ---- move a folder, with what it holds (D-103)
+const movingFolder = ref<Folder | null>(null)
+const folderTarget = ref('top')
+const moveFolderOpen = computed({
+  get: () => movingFolder.value !== null,
+  set: (v) => {
+    if (!v) movingFolder.value = null
+  },
+})
+/** Where the folder being moved can go, as the menu lists them: the top, then the tree. */
+const folderTargets = computed(() => {
+  const folder = movingFolder.value
+  if (!folder) return []
+  const allowed = new Set(folderMoveTargets(tree.value, folder.id))
+  return [
+    ...(allowed.has(null) ? [{ value: 'top', label: t('library.folders.moveTop') }] : []),
+    ...tree.value
+      .filter((f) => allowed.has(f.id))
+      .map((f) => ({ value: f.id, label: `${'— '.repeat(f.depth)}${f.name}` })),
+  ]
+})
+function startMoveFolder(folder: Folder) {
+  movingFolder.value = folder
+  folderTarget.value = folderTargets.value[0]?.value ?? 'top'
+}
+async function confirmMoveFolder() {
+  const folder = movingFolder.value
+  if (!folder || folderTargets.value.length === 0) return
+  movingFolder.value = null
+  const parentId = folderTarget.value === 'top' ? null : folderTarget.value
+  const ok = await attempt(() => lib.moveFolder(folder, parentId))
+  if (ok)
+    say(
+      parentId === null
+        ? t('library.folders.movedTop', { name: folder.name })
+        : t('library.folders.moved', { name: folder.name, folder: folderLabel(parentId) }),
+    )
+}
+
 const removingFolder = ref<Folder | null>(null)
 const removeFolderOpen = computed({
   get: () => removingFolder.value !== null,
@@ -384,6 +424,11 @@ function folderActions(folder: Folder): DropdownMenuItem[][] {
         label: t('library.folders.rename'),
         icon: 'i-lucide-pencil',
         onSelect: () => startRename(folder),
+      },
+      {
+        label: t('library.folders.move'),
+        icon: 'i-lucide-folder-input',
+        onSelect: () => startMoveFolder(folder),
       },
     ],
     [
@@ -487,10 +532,12 @@ function filesDrop(event: DragEvent) {
           variant="ghost"
           size="sm"
           icon="i-lucide-folder-plus"
-          class="size-9 justify-center"
-          :aria-label="$t('library.folders.new')"
+          class="min-h-8 font-medium"
+          data-new-folder
           @click="startCreate(null)"
-        />
+        >
+          {{ $t('library.folders.new') }}
+        </UButton>
       </div>
       <ul class="space-y-0.5">
         <li>
@@ -520,10 +567,10 @@ function filesDrop(event: DragEvent) {
             {{ $t('library.folders.none') }}
           </button>
         </li>
-        <li v-for="f in tree" :key="f.id">
+        <li v-for="f in tree" :key="f.id" class="group/folder relative">
           <button
             type="button"
-            :class="folderClass(f.id)"
+            :class="[folderClass(f.id), readOnly ? '' : 'pointer-coarse:pr-10']"
             :style="{ paddingLeft: `${0.625 + f.depth * 0.875}rem` }"
             :aria-current="isCurrent(f.id) ? 'true' : undefined"
             :data-folder="f.name"
@@ -539,13 +586,34 @@ function filesDrop(event: DragEvent) {
               aria-hidden="true"
             />
             <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
-            <span class="text-xs text-(--app-text-muted) tabular-nums">
+            <!-- the «⋯» takes the count's place on hover (on touch it has its own) -->
+            <span
+              class="text-xs text-(--app-text-muted) tabular-nums"
+              :class="
+                readOnly
+                  ? ''
+                  : 'group-focus-within/folder:invisible group-hover/folder:invisible group-has-[[data-state=open]]/folder:invisible pointer-coarse:visible!'
+              "
+            >
               <span aria-hidden="true">{{ f.fileCount }}</span>
               <span class="sr-only">{{
                 $t('library.folders.files', { n: f.fileCount }, f.fileCount)
               }}</span>
             </span>
           </button>
+          <!-- «⋯» of every folder (D-103): in view on hover, with the keyboard and on touch -->
+          <span
+            v-if="!readOnly"
+            class="absolute top-1/2 right-0.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/folder:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100 pointer-coarse:opacity-100"
+            data-folder-actions
+          >
+            <RowActions
+              compact
+              :name="f.name"
+              :label="$t('library.folders.actionsFor', { name: f.name })"
+              :items="folderActions(f)"
+            />
+          </span>
         </li>
       </ul>
       <!-- the client's space, quiet under its folders (on a phone the page says it) -->
@@ -578,10 +646,12 @@ function filesDrop(event: DragEvent) {
             color="neutral"
             variant="outline"
             icon="i-lucide-folder-plus"
-            class="size-11 shrink-0 justify-center"
-            :aria-label="$t('library.folders.new')"
+            class="min-h-11 shrink-0 font-medium"
+            data-new-folder
             @click="startCreate(current?.id ?? null)"
-          />
+          >
+            {{ $t('library.folders.new') }}
+          </UButton>
         </div>
         <SearchField v-model="filter.q" :label="$t('library.search')" class="md:max-w-52!" />
         <USelect
@@ -858,6 +928,42 @@ function filesDrop(event: DragEvent) {
             {{ naming?.mode === 'rename' ? $t('account.save') : $t('library.folders.create') }}
           </UButton>
           <UButton class="min-h-control" color="neutral" variant="ghost" @click="naming = null">
+            {{ $t('security.cancel') }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="moveFolderOpen"
+      :title="$t('library.folders.moveTitle', { name: movingFolder?.name ?? '' })"
+    >
+      <template #body>
+        <p v-if="folderTargets.length === 0" class="text-sm text-(--app-text-muted)">
+          {{ $t('library.folders.moveNowhere') }}
+        </p>
+        <form v-else id="move-folder" novalidate @submit.prevent="confirmMoveFolder">
+          <UFormField :label="$t('library.folders.moveTarget')" name="move-folder-target">
+            <USelect v-model="folderTarget" :items="folderTargets" class="w-full" size="xl" />
+          </UFormField>
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex flex-wrap gap-3">
+          <UButton
+            v-if="folderTargets.length > 0"
+            type="submit"
+            form="move-folder"
+            class="min-h-control"
+          >
+            {{ $t('library.move') }}
+          </UButton>
+          <UButton
+            class="min-h-control"
+            color="neutral"
+            variant="ghost"
+            @click="movingFolder = null"
+          >
             {{ $t('security.cancel') }}
           </UButton>
         </div>
