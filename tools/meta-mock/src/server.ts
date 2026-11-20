@@ -11,6 +11,7 @@ import {
   type GraphObject,
   type TokenFixture,
 } from './fixtures.ts'
+import { createPublishing, type PublishingAnswer } from './publishing.ts'
 import {
   matches,
   type ActiveScenario,
@@ -95,6 +96,17 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
   const scenariosNamed = <N extends ScenarioName>(name: N) =>
     active.filter((s): s is Extract<ActiveScenario, { name: N }> => s.name === name)
   const has = (name: ScenarioName) => active.some((s) => s.name === name)
+  const inlineQuota = (igUserId: string) =>
+    (data.edges[`${igUserId}/content_publishing_limit`]?.[0] ?? {}) as {
+      quota_usage?: number
+      config?: { quota_total?: number }
+    }
+  const publishing = createPublishing({
+    scenarios: scenariosNamed,
+    isInstagramAccount: (id) => typeof data.objects[id]?.username === 'string',
+    quotaTotal: (id) => inlineQuota(id).config?.quota_total ?? 50,
+    quotaUsedBefore: (id) => inlineQuota(id).quota_usage ?? 0,
+  })
 
   function send(
     res: ServerResponse,
@@ -363,14 +375,31 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     )
   }
 
-  function graph(
+  function answer(res: ServerResponse, a: PublishingAnswer, headers: Record<string, string>) {
+    const deliver = () => {
+      if ('error' in a) sendError(res, a.error, a.status, headers)
+      else send(res, a.status, a.body, headers)
+    }
+    const delayMs = 'delayMs' in a ? a.delayMs : undefined
+    if (delayMs === undefined) {
+      deliver()
+      return
+    }
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      deliver()
+    }, delayMs)
+    timers.add(timer)
+  }
+
+  async function graph(
     method: string,
     path: string,
     params: URLSearchParams,
     tokenValue: string | undefined,
     res: ServerResponse,
     self: string,
-  ): void {
+  ): Promise<void> {
     if (tokenValue === undefined) {
       sendError(res, {
         message: 'An access token is required to request this resource.',
@@ -445,6 +474,21 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       )
       return
     }
+    const [first = '', edge, ...rest] = path.slice(1).split('/')
+    const id = first === 'me' ? token.subject : first
+    const owner = publishing.ownerOf(id)
+    const canSee = (nodeId: string) =>
+      (token.visible.includes(nodeId) ||
+        (publishing.ownerOf(nodeId) !== undefined &&
+          token.visible.includes(publishing.ownerOf(nodeId) ?? ''))) &&
+      !removed.has(nodeId)
+    if (canSee(id) && rest.length === 0 && (owner === undefined || !removed.has(owner))) {
+      const published = await publishing.handle({ method, id, edge, params })
+      if (published !== null) {
+        answer(res, published, headers)
+        return
+      }
+    }
     if (method !== 'GET') {
       sendError(
         res,
@@ -459,9 +503,6 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       return
     }
 
-    const [first = '', edge, ...rest] = path.slice(1).split('/')
-    const id = first === 'me' ? token.subject : first
-    const canSee = (nodeId: string) => token.visible.includes(nodeId) && !removed.has(nodeId)
     if (!canSee(id) || rest.length > 0) {
       sendError(res, unsupportedGet(id), 400, headers)
       return
@@ -550,7 +591,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         if (exhausted) {
           const config = row.config as { quota_total?: number } | undefined
           row.quota_usage = config?.quota_total ?? 50
-        }
+        } else if (e.edge === 'content_publishing_limit' && typeof row.quota_usage === 'number')
+          row.quota_usage += publishing.publishedCount(e.id)
         rows.push(row)
       }
     }
@@ -606,8 +648,38 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     res.end(bytes)
   }
 
-  function handle(req: IncomingMessage, res: ServerResponse): void {
+  /** Graph API takes the parameters in the address, a form or JSON body alike. */
+  function bodyParams(text: string, type: string | undefined): [string, string][] {
+    if (text === '') return []
+    if (type?.startsWith('application/json') === true) {
+      try {
+        const json = JSON.parse(text) as Record<string, unknown>
+        return Object.entries(json).map(([k, v]) => [
+          k,
+          typeof v === 'string' ? v : JSON.stringify(v),
+        ])
+      } catch {
+        return []
+      }
+    }
+    return [...new URLSearchParams(text)]
+  }
+
+  function receive(req: IncomingMessage, res: ServerResponse): void {
+    const chunks: Buffer[] = []
+    req.on('data', (chunk: Buffer) => chunks.push(chunk))
+    req.on('end', () => {
+      handle(
+        req,
+        res,
+        bodyParams(Buffer.concat(chunks).toString('utf8'), req.headers['content-type']),
+      )
+    })
+  }
+
+  function handle(req: IncomingMessage, res: ServerResponse, body: [string, string][]): void {
     const self = new URL(req.url ?? '/', 'http://meta-mock.invalid')
+    for (const [k, v] of body) self.searchParams.set(k, v)
     origins.set(res, `http://${req.headers.host ?? 'meta-mock.invalid'}`)
     const versioned = VERSIONED.exec(self.pathname)
     const header = req.headers.authorization
@@ -649,13 +721,18 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     const route = () => {
       if (path === '/oauth/access_token') exchange(params, res)
       else if (path === '/debug_token') debugToken(params, bearer ?? queryToken, res)
-      else graph(req.method ?? 'GET', path, params, bearer ?? queryToken, res, fullSelf)
+      else
+        void graph(req.method ?? 'GET', path, params, bearer ?? queryToken, res, fullSelf).catch(
+          () => {
+            sendError(res, { message: 'meta-mock failed', type: 'OAuthException', code: 2 }, 500)
+          },
+        )
     }
     const token = data.tokens[bearer ?? queryToken ?? '']
     if (!fault(path, token, res, route)) route()
   }
 
-  const server = createServer(handle)
+  const server = createServer(receive)
   await new Promise<void>((resolve) => server.listen(opts.port ?? 0, '127.0.0.1', resolve))
   const { port } = server.address() as AddressInfo
 
@@ -667,6 +744,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         active = []
         removed.clear()
         codes.clear()
+        publishing.reset()
         return
       }
       const opts = (args[0] ?? {}) as ScenarioOptions[N]
@@ -681,7 +759,9 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         }
         return
       }
-      const times = (opts as { times?: number }).times
+      const times =
+        (opts as { times?: number }).times ??
+        (name === 'publish_timeout_but_created' ? 1 : undefined)
       active.push({ name, opts, remaining: times ?? Infinity } as ActiveScenario)
     },
     calls: () => calls.map((c) => ({ ...c, params: { ...c.params } })),

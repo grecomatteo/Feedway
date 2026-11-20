@@ -28,8 +28,24 @@ export interface ScenarioOptions {
   }
   /** The node disappears from every list and its own id answers 100/33. */
   asset_removed: { id: string }
-  /** `content_publishing_limit` reports the whole quota used. */
+  /** `content_publishing_limit` reports the whole quota used, and `media_publish` answers 9/2207042. */
   quota_exhausted: { igUserId?: string }
+  /**
+   * Containers created from now (videos only, or `all`) answer `IN_PROGRESS` for `reads` (3)
+   * status reads, then `FINISHED`.
+   */
+  container_in_progress: { reads?: number; all?: boolean; times?: number }
+  /** Containers created from now end in `ERROR` (status 2207026, a video Meta cannot read). */
+  container_error: { times?: number }
+  /** Every container read or published from now is `EXPIRED`: `media_publish` answers -2/2207020. */
+  container_expired: { times?: number }
+  /**
+   * `media_publish` publishes, then answers after `delayMs` (15 s, beyond the client timeout):
+   * the uncertain outcome of §9.5. Once by default.
+   */
+  publish_timeout_but_created: { delayMs?: number; times?: number }
+  /** The files are not downloaded: an image answers 9004/2207052, a video ends in `ERROR`. */
+  media_download_failed: { times?: number }
   /** A rate limit error, with the usage headers at 100% and `minutesToRegain` (5) in the business one. */
   rate_limited: Match & { code?: 4 | 17 | 32 | 613 | 80001 | 80002; minutesToRegain?: number }
   /** A temporary error (code 2 by default) as JSON. */

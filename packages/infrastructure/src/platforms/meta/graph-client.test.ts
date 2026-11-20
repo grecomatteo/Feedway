@@ -216,6 +216,19 @@ describe('error classification', () => {
     ['2', { code: 2, status: 500 }, 'transient', 'meta_unavailable'],
     ['506', { code: 506 }, 'permanent', 'rejected'],
     ['100 other', { code: 100 }, 'permanent', 'rejected'],
+    // Instagram publishing (Instagram Error Codes, not verified on Meta)
+    ['9007/2207027', { code: 9007, subcode: 2207027 }, 'transient', 'media_not_ready'],
+    ['9004/2207052', { code: 9004, subcode: 2207052 }, 'permanent', 'media_rejected'],
+    ['352/2207026', { code: 352, subcode: 2207026 }, 'permanent', 'media_rejected'],
+    ['36000/2207004', { code: 36000, subcode: 2207004 }, 'permanent', 'media_rejected'],
+    ['36003/2207009', { code: 36003, subcode: 2207009 }, 'permanent', 'media_rejected'],
+    ['-2/2207020', { code: -2, subcode: 2207020 }, 'permanent', 'container_expired'],
+    ['24/2207008', { code: 24, subcode: 2207008 }, 'permanent', 'container_expired'],
+    ['-1/2207032', { code: -1, subcode: 2207032 }, 'transient', 'meta_unavailable'],
+    ['-1/2207001', { code: -1, subcode: 2207001 }, 'transient', 'meta_unavailable'],
+    ['-2/2207003', { code: -2, subcode: 2207003 }, 'transient', 'meta_unavailable'],
+    ['9/2207042', { code: 9, subcode: 2207042 }, 'transient', 'quota_exhausted'],
+    ['25/2207050', { code: 25, subcode: 2207050 }, 'permanent', 'account_restricted'],
   ]
 
   test.each(rows)('%s', async (_label, error, kind, reason) => {
@@ -297,6 +310,29 @@ describe('error classification', () => {
     expect(info.data).toMatchObject({ isValid: false, error: { code: 190, subcode: 463 } })
     expect(info.data.expiresAt).toBeInstanceOf(Date)
   })
+})
+
+test('dry-run reads Meta but never writes: a fake id, a finished container', async () => {
+  const dry = createMetaGraphClient({
+    mode: 'dry-run',
+    version: 'v25.0',
+    baseUrl: mock.url,
+    clock: fixedClock(new Date('2026-11-09T12:00:00Z')),
+    logger: memoryLogger(),
+  })
+  const signal = new AbortController().signal
+  const ig = META_MOCK.instagram.ofPage
+  const made = await dry.createInstagramContainer(systemUser, ig, { image_url: 'x' }, signal)
+  expect(made.data.id).toMatch(/^dry-run-[0-9a-f]{16}$/)
+  const status = await dry.getContainerStatus(systemUser, made.data.id, signal)
+  expect(status.data.statusCode).toBe('FINISHED')
+  const published = await dry.publishInstagramContainer(systemUser, ig, made.data.id, signal)
+  expect(published.data.id).toMatch(/^dry-run-/)
+  expect(mock.calls().filter((c) => c.method !== 'GET')).toEqual([])
+  expect(mock.calls().some((c) => c.path.includes('dry-run'))).toBe(false)
+  // reads still go to Meta
+  await dry.getPublishingLimit(systemUser, ig)
+  expect(mock.calls()).toHaveLength(1)
 })
 
 test('no token, secret, proof or code reaches the log', async () => {
