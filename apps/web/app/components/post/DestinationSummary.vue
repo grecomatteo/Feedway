@@ -44,7 +44,8 @@ const ordinal = (n: number) => t('posts.summary.place', { n })
 /** «File 3», «su Instagram, @fornoluce»: whom an outcome is about. */
 function subject(o: Outcome): string {
   const parts: string[] = []
-  if (o.subject.kind === 'media') parts.push(t('posts.summary.file', { n: o.subject.index + 1 }))
+  if (o.subject.kind === 'media')
+    parts.push(t('posts.summary.file', { n: placeOf(o.subject.index) }))
   if (o.subject.kind === 'cover') parts.push(t('posts.summary.cover'))
   if (o.subject.kind === 'destination') parts.push(handleOf(o.subject.accountId))
   else if (o.platform) {
@@ -160,7 +161,8 @@ const rows = computed(() =>
 )
 /** «Carosello, 2 foto», «Post con 2 foto», «Reel»: what goes out on an account (screen 08). */
 function whatOf(platform: string, format: string, media: readonly number[]): string {
-  const kinds = media.map((i) => e.kinds.value[i]?.kind)
+  // the indices are of the files the report was made on, not of the editor's tiles
+  const kinds = media.map((i) => e.files.value.find((f) => f.id === e.reportMedia.value[i])?.kind)
   const photos = kinds.filter((k) => k === 'image').length
   if (format === 'multi_photo')
     return photos === kinds.length
