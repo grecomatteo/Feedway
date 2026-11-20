@@ -1060,7 +1060,9 @@ social_accounts     id, organization_id, platform (instagram|facebook), external
 account_connections id, organization_id, kind (meta_system_user|meta_business_login, ADR 020),
                     external_user_id, connected_by (user_id, solo informazione), token_enc,
                     key_version, expires_at (vuoto = non scade), status (pending|active|expired|
-                    revoked), last_refreshed_at, last_usage (jsonb)
+                    revoked), last_refreshed_at, last_usage (jsonb), last_usage_at
+                    -- last_usage_at: quando è stato letto last_usage; il rallentamento della
+                    -- pubblicazione lo legge (piano 07)
                     -- UNIQUE (organization_id, kind, external_user_id): lo stesso utente Meta
                     -- sostituisce il token del collegamento che c'è già
                     -- token_enc: sigillato con la chiave dati dell'organizzazione,
@@ -1086,8 +1088,12 @@ media               id, workspace_id, uploaded_by, kind (image|video),
                     -- i file li toglie il lavoro media.delete_files (piano 04, Task 8)
 media_variants      id, media_id, purpose (ig_feed|fb_photo|reel|story|thumbnail|share|preview|cover),
                     storage_key, public_token (unico, 32 caratteri, null per preview: mai servita
-                    da /m/*), mime, size_bytes, width, height
-                    -- una sola variante per scopo
+                    da /m/*), mime, size_bytes, width, height, recipe, status
+                    (pending|ready|failed), failure
+                    -- una sola variante per scopo e ricetta; recipe: '' per le copie fatte
+                    -- all'elaborazione del file, l'impronta della ricetta (ritaglio, fotogramma,
+                    -- bande, storia) per le copie da pubblicare fatte alla programmazione
+                    -- (piano 07 P4); /m/* serve solo le copie ready
 library_folders     id, workspace_id, name, parent_id (cartella dello stesso spazio)
 library_items       workspace_id, media_id, folder_id, tags
                     -- file e cartella dello stesso spazio (chiavi esterne composte)
@@ -1104,21 +1110,32 @@ upload_sessions     id, workspace_id, user_id, folder_id, original_name, mime, s
 -- Post e pubblicazione
 posts               id, workspace_id, type (photo|carousel|reel|story), caption,
                     caption_by_platform (jsonb: testo per piattaforma, es. instagram, facebook; vuoto = testo comune),
-                    scheduled_at, timezone, status (derivato), options (jsonb),
+                    scheduled_at, timezone, status (derivato: draft|scheduled|publishing|
+                    partial|failed|problem|published|paused|cancelled), options (jsonb),
                     created_by, scheduled_by, updated_by, version
                     -- timezone: copiato da organizations.settings.timezone alla creazione (D-58)
                     -- options: { shareToFeed, choices } (piano 06 P5)
 post_media          post_id, media_id, position,
                     cover_media_id, cover_offset_ms   -- solo reel: immagine caricata o fotogramma
 post_targets        id, post_id, account_id, variant, status, step, fingerprint, meta_ids (jsonb),
-                    external_post_id, permalink, attempts, next_attempt_at,
+                    external_post_id, permalink, attempts, generation, next_attempt_at,
                     last_error_code, last_error_message, published_at,
                     verified_at, verification (jsonb)
+                    -- status: gli stati di §9.3; step: prepare|publish|verify|recheck (dice da
+                    -- dove viene unknown: una chiamata incerta o «Riprova» da problem)
+                    -- generation: cresce a ogni mossa e a ogni nuova lettura del container,
+                    -- per le chiavi dei lavori (piano 07 P3)
+                    -- indici: (status, next_attempt_at) per il riconciliatore, l'unico che legge
+                    -- tutte le agenzie; (organization_id, account_id, published_at) per la
+                    -- ricerca dell'esito incerto e i reel delle 24 ore
                     -- fingerprint: sha256 esadecimale di postFingerprint dopo le scelte, scritto
                     -- alla programmazione; i doppioni si leggono con un indice (piano 06 P3)
                     -- account_id: chiave composta verso social_accounts dell'agenzia, non verso
                     -- workspace_accounts: un account tolto dal cliente non cancella le bozze
-target_attempts     id, target_id, step, outcome, meta_error_code, duration_ms, created_at
+target_attempts     id, workspace_id, target_id, step, outcome (done|wait|transient|permanent|
+                    uncertain), error_code, meta_error_code, duration_ms, created_at
+                    -- solo codici: error_code di Feedway, meta_error_code come code/subcode;
+                    -- mai il messaggio di Meta né un token
 labels              id, workspace_id, name (1–40, unico nel cliente),
                     color (uno dei temi: feedway|blu|verde|viola|grafite)
 post_labels         post_id, label_id
@@ -1135,6 +1152,8 @@ plan_items          id, workspace_id, local_date, local_time (facoltativa),
 -- Notifiche e condivisione
 outbox_events       id, organization_id (null = piattaforma), type, payload (jsonb),
                     created_at, dispatched_at
+                    -- payload: solo id e codici; un evento della piattaforma lo legge solo il
+                    -- sistema; indice parziale sugli eventi da mandare (dispatched_at null)
 notifications       id, user_id, event_id, kind, level, workspace_id, payload (jsonb), read_at
 notification_deliveries id, notification_id, channel (panel|telegram|email),
                     status (pending|sent|failed), attempts, error, sent_at

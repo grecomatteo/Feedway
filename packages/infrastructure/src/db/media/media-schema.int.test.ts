@@ -31,12 +31,19 @@ const insertMedia = (
     [id, organizationId, workspaceId, userA],
   )
 const insertVariant = (c: pg.Client, organizationId: string, mediaId: string, over = {}) => {
-  const v = { purpose: 'ig_feed', token: null as string | null, ...over }
+  const v = {
+    purpose: 'ig_feed',
+    token: null as string | null,
+    recipe: '',
+    status: 'ready',
+    failure: null as string | null,
+    ...over,
+  }
   return c.query(
     `insert into media_variants (id, organization_id, media_id, purpose, storage_key, public_token,
-                                 mime, size_bytes)
-     values ($1, $2, $3, $4, 'org/x/media/y/ig_feed.jpg', $5, 'image/jpeg', 10)`,
-    [randomUUID(), organizationId, mediaId, v.purpose, v.token],
+                                 mime, size_bytes, recipe, status, failure)
+     values ($1, $2, $3, $4, 'org/x/media/y/ig_feed.jpg', $5, 'image/jpeg', 10, $6, $7, $8)`,
+    [randomUUID(), organizationId, mediaId, v.purpose, v.token, v.recipe, v.status, v.failure],
   )
 }
 
@@ -171,10 +178,27 @@ test('the preview is never public, and a public token is unique and 32 character
   await expect(
     asSystem((c) => insertVariant(c, orgA, mediaA, { purpose: 'ig_feed', token })),
   ).rejects.toThrow(/media_variants_token_unique/)
-  // one variant per purpose
+  // one variant per purpose and recipe (plan 07 P4)
   await expect(
     asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'ig_feed' })),
-  ).rejects.toThrow(/media_variants_one_per_purpose/)
+  ).rejects.toThrow(/media_variants_one_per_recipe/)
+  await asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'ig_feed', recipe: 'c0ffee' }))
+  await expect(
+    asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'ig_feed', recipe: 'c0ffee' })),
+  ).rejects.toThrow(/media_variants_one_per_recipe/)
+  await expect(
+    asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'reel', recipe: '../up' })),
+  ).rejects.toThrow(/media_variants_recipe/)
+  await expect(
+    asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'reel', status: 'done' })),
+  ).rejects.toThrow(/media_variants_status/)
+  // a copy that could not be made says why
+  await expect(
+    asSystem((c) => insertVariant(c, orgA, media2, { purpose: 'story', status: 'failed' })),
+  ).rejects.toThrow(/media_variants_failure/)
+  await asSystem((c) =>
+    insertVariant(c, orgA, media2, { purpose: 'story', status: 'failed', failure: 'ffmpeg' }),
+  )
 })
 
 test('a deleted file has its time, and only a deleted file has one', async () => {

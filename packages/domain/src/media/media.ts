@@ -27,6 +27,17 @@ export const VARIANT_PURPOSES = [
 ] as const
 export type VariantPurpose = (typeof VARIANT_PURPOSES)[number]
 
+/**
+ * A copy with a recipe (plan 07 P4) is made by the worker after the post is scheduled:
+ * `pending` until then, `failed` with its reason when it cannot be made. The copies of one per
+ * purpose are written when ready.
+ */
+export const VARIANT_STATUSES = ['pending', 'ready', 'failed'] as const
+export type VariantStatus = (typeof VARIANT_STATUSES)[number]
+
+/** The fingerprint of a copy's recipe, safe in a storage key; `''`: no recipe. */
+export const VARIANT_RECIPE = /^[a-z0-9-]{0,64}$/
+
 /** The length of a variant's `public_token` (plan 04, «Due host»). */
 export const PUBLIC_TOKEN_LENGTH = 32
 

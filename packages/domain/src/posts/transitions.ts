@@ -4,7 +4,8 @@ import type { PostStatus } from './post.js'
 
 // The moves of a post that the panel saves today (plan 06, P7): draft, scheduled, cancelled.
 // They are the panel's moves of the full machine of §9.3 (`publishing`, plan 07 Task 2) seen
-// from these three states; the rest arrives with the tables of Task 3.
+// from these three states. The tables take every state since plan 07 Task 3; the panel reads
+// the new ones when Task 7 and Task 9 show them (D-100.15).
 
 export function canTransition(from: PostStatus, to: PostStatus): boolean {
   return canMoveTarget(from, to, 'panel')

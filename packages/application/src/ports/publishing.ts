@@ -1,0 +1,140 @@
+import type {
+  AttemptOutcome,
+  OutboxEventType,
+  OutboxPayload,
+  PostType,
+  PublishingPostStatus,
+  TargetStatus,
+  TargetStep,
+} from '@app/domain'
+
+// The publishing of the destinations (spec §9, §13; plan 07 Task 3). It lives in the `posts`
+// module (P1): the jobs of the worker read and write `post_targets` through here. Every method
+// but `dueTargets` takes the agency and filters by it in SQL as well: row level security is the
+// second barrier.
+
+/** A destination as the worker's steps read it. */
+export interface PublishingTargetRecord {
+  id: string
+  organizationId: string
+  workspaceId: string
+  postId: string
+  accountId: string
+  status: TargetStatus
+  step: TargetStep | null
+  /** grows at every move and every new look at a container: the jobs' keys (P3) */
+  generation: number
+  /** the ids received from Meta, saved after every call (§8.5) */
+  metaIds: Record<string, unknown> | null
+  externalPostId: string | null
+  permalink: string | null
+  attempts: number
+  nextAttemptAt: Date | null
+  lastErrorCode: string | null
+  lastErrorMessage: string | null
+  publishedAt: Date | null
+  verifiedAt: Date | null
+  verification: unknown
+}
+
+/**
+ * What a step writes on its destination. A new `status` is a move: the generation goes up by
+ * one and the post's state is computed again from its destinations (Scelta 3). `renew` makes a
+ * new generation without a move (a new look at a container, a new round of verification).
+ */
+export type TargetStepPatch = Partial<
+  Pick<
+    PublishingTargetRecord,
+    | 'status'
+    | 'step'
+    | 'metaIds'
+    | 'externalPostId'
+    | 'permalink'
+    | 'attempts'
+    | 'nextAttemptAt'
+    | 'lastErrorCode'
+    | 'lastErrorMessage'
+    | 'publishedAt'
+    | 'verifiedAt'
+    | 'verification'
+  >
+> & { renew?: boolean }
+
+/** One call of a step (`target_attempts`): codes and a duration, never a text or a token. */
+export interface NewTargetAttempt {
+  organizationId: string
+  workspaceId: string
+  targetId: string
+  step: TargetStep
+  outcome: AttemptOutcome
+  /** Feedway's code (`PublishErrorCode`) */
+  errorCode?: string | null
+  /** Meta's `code` or `code/subcode` */
+  metaErrorCode?: string | null
+  durationMs: number
+}
+
+/** A destination whose time has come, for the reconciler. */
+export interface DueTarget {
+  organizationId: string
+  workspaceId: string
+  targetId: string
+  status: TargetStatus
+  step: TargetStep | null
+  generation: number
+  nextAttemptAt: Date
+}
+
+/** A destination of the account that came out, for the uncertain search and the reels of 24h. */
+export interface PublishedTarget {
+  targetId: string
+  postId: string
+  type: PostType
+  externalPostId: string | null
+  publishedAt: Date
+}
+
+export interface PublishingRepository {
+  /**
+   * Locks the destination until the transaction ends (`FOR UPDATE`), its post first, as the
+   * panel's saves do, so the two never wait on each other in a circle. null: no such
+   * destination in the agency.
+   */
+  lockTarget(organizationId: string, targetId: string): Promise<PublishingTargetRecord | null>
+  /**
+   * Writes the step on a destination locked by `lockTarget`; with a move, saves the post's state
+   * from its destinations. null: no such destination.
+   */
+  saveStep(
+    organizationId: string,
+    targetId: string,
+    patch: TargetStepPatch,
+  ): Promise<{ generation: number; postStatus: PublishingPostStatus } | null>
+  recordAttempt(attempt: NewTargetAttempt): Promise<void>
+  /**
+   * The destinations of every agency in a step of the worker whose `next_attempt_at` has come,
+   * the oldest first. Only in the system scope (the reconciler); a scheduled destination is due
+   * once its scheduling wrote `next_attempt_at` (`prepareAt`).
+   */
+  dueTargets(now: Date, limit: number): Promise<DueTarget[]>
+  /** The destinations of a post of the agency, in the order they were added. */
+  targetsOfPost(organizationId: string, postId: string): Promise<PublishingTargetRecord[]>
+  /** The destinations of the account published in `[from, to)`, the latest first. */
+  publishedNear(
+    organizationId: string,
+    accountId: string,
+    range: { from: Date; to: Date },
+  ): Promise<PublishedTarget[]>
+}
+
+/** An event for stage 8's notifications; `organizationId` null: one of the platform. */
+export interface OutboxEvent {
+  organizationId: string | null
+  type: OutboxEventType
+  payload: OutboxPayload
+}
+
+/** Writes in the transaction of the change it tells of (§12.2). */
+export interface Outbox {
+  record(event: OutboxEvent): Promise<void>
+}

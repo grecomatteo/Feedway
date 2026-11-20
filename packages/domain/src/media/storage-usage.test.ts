@@ -11,6 +11,16 @@ test('a media file lives under its own folder of the agency', () => {
   )
 })
 
+test('two recipes of one purpose never write on the same key (plan 07, P4)', () => {
+  expect(mediaVariantKey(ORG, MEDIA, 'ig_feed', 'jpg', '')).toBe(
+    `org/${ORG}/media/${MEDIA}/ig_feed.jpg`,
+  )
+  expect(mediaVariantKey(ORG, MEDIA, 'ig_feed', 'jpg', '3f2a9c01')).toBe(
+    `org/${ORG}/media/${MEDIA}/ig_feed-3f2a9c01.jpg`,
+  )
+  expect(() => mediaVariantKey(ORG, MEDIA, 'ig_feed', 'jpg', '../x')).toThrow()
+})
+
 test('without limits anything fits', () => {
   expect(
     checkStorage({ limits: {}, workspaceMaxBytes: null }, { organization: 10, workspace: 10 }, 5),

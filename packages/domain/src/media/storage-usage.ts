@@ -1,5 +1,5 @@
 import { checkLimit, type OrganizationLimits } from '../organizations/limits.js'
-import type { VariantPurpose } from './media.js'
+import { VARIANT_RECIPE, type VariantPurpose } from './media.js'
 
 // Where a media file is stored, and whether more bytes fit (spec §11.1 point 6, plan 04 M5).
 
@@ -7,12 +7,21 @@ import type { VariantPurpose } from './media.js'
 export const mediaPrefix = (organizationId: string, mediaId: string) =>
   `org/${organizationId}/media/${mediaId}/`
 
-export const mediaVariantKey = (
+/**
+ * The key of a copy. `recipe` is the fingerprint of what the copy applies (a crop, a frame…,
+ * plan 07 P4), `''` for the copies of one per purpose: two recipes never share a key.
+ */
+export function mediaVariantKey(
   organizationId: string,
   mediaId: string,
   purpose: VariantPurpose | 'original',
   extension: string,
-) => `${mediaPrefix(organizationId, mediaId)}${purpose}.${extension}`
+  recipe = '',
+): string {
+  if (!VARIANT_RECIPE.test(recipe)) throw new Error(`not a recipe: ${recipe}`)
+  const name = recipe === '' ? purpose : `${purpose}-${recipe}`
+  return `${mediaPrefix(organizationId, mediaId)}${name}.${extension}`
+}
 
 /** Bytes kept: originals, copies and thumbnails of files not yet removed. */
 export interface StorageUsed {

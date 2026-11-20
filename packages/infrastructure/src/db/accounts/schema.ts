@@ -41,6 +41,8 @@ export const accountConnections = pgTable(
     lastRefreshedAt: tz('last_refreshed_at'),
     // the platform's usage counters at the last call; null: never measured
     lastUsage: jsonb('last_usage'),
+    // when `last_usage` was read: the slowing down of the publishing (plan 07 «Rallentamento»)
+    lastUsageAt: tz('last_usage_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
