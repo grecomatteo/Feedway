@@ -1,26 +1,23 @@
+import { canMoveTarget } from '../publishing/transitions.js'
+import { postStatusFromTargets } from '../publishing/post-status.js'
 import type { PostStatus } from './post.js'
 
-// The moves of a post in stage 6 (plan 06, P7). A draft is deleted, never cancelled; a
-// scheduled post goes back to draft («Riporta in bozza») or is cancelled. Every other move is
-// refused. The full machine of §9.3 stays in `publishing` (stage 7).
-
-const ALLOWED: ReadonlyMap<PostStatus, readonly PostStatus[]> = new Map([
-  ['draft', ['scheduled']],
-  ['scheduled', ['draft', 'cancelled']],
-  ['cancelled', []],
-])
+// The moves of a post that the panel saves today (plan 06, P7): draft, scheduled, cancelled.
+// They are the panel's moves of the full machine of §9.3 (`publishing`, plan 07 Task 2) seen
+// from these three states; the rest arrives with the tables of Task 3.
 
 export function canTransition(from: PostStatus, to: PostStatus): boolean {
-  return ALLOWED.get(from)?.includes(to) ?? false
+  return canMoveTarget(from, to, 'panel')
 }
 
 /**
- * The state of a post from its destinations (§9.3): one scheduled destination makes the post
- * scheduled, all of them cancelled make it cancelled; anything else, no destination included,
- * is a draft.
+ * The state of a post from its destinations (§9.3, plan 07 Scelta 3): one scheduled
+ * destination makes the post scheduled, all of them cancelled make it cancelled; anything
+ * else, no destination included, is a draft.
  */
 export function postStatusOf(targets: readonly PostStatus[]): PostStatus {
-  if (targets.includes('scheduled')) return 'scheduled'
-  if (targets.length > 0 && targets.every((s) => s === 'cancelled')) return 'cancelled'
-  return 'draft'
+  const status = postStatusFromTargets(targets)
+  // with draft, scheduled and cancelled destinations only, the post is one of them too
+  if (status === 'draft' || status === 'scheduled' || status === 'cancelled') return status
+  throw new Error(`unexpected post status ${status}`)
 }
