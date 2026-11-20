@@ -10,7 +10,9 @@ interface Watched extends HTMLElement {
 }
 
 function update(el: HTMLElement) {
-  const max = el.scrollWidth - el.clientWidth
+  // only a box that scrolls: one that just overflows could never lose its fade
+  const scrolls = /auto|scroll/.test(getComputedStyle(el).overflowX)
+  const max = scrolls ? el.scrollWidth - el.clientWidth : 0
   // RTL scrolls to negative positions: the distance from the start is the absolute value
   const at = Math.abs(el.scrollLeft)
   el.toggleAttribute('data-more-start', max > 1 && at > 1)
