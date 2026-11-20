@@ -1,5 +1,6 @@
 export { prepareTarget } from './prepare.js'
 export { publishTarget } from './publish.js'
+export { cancelPaused, cancelTarget, markVerified, resumePaused, retryTarget } from './actions.js'
 export { searchTarget } from './search.js'
 export { verifyTarget, type ProblemReason } from './verify.js'
 export { recheckTarget, type RecheckOutcome } from './recheck.js'

@@ -264,6 +264,64 @@ export const cancelPostRoute = defineContract({
   scope: 'organization',
 })
 
+const DestinationParams = z.strictObject({ org: OrgSlug, id: Id, postId: Id, accountId: Id })
+
+// After the worker (plan 07 Task 8): a destination is named by its account, one per post
+export const retryTargetRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/retry',
+  summary: 'Riprova una destinazione non uscita o con un problema',
+  request: { params: DestinationParams },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const markVerifiedRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/verified',
+  summary: 'Segna come verificata una destinazione con un problema',
+  request: { params: DestinationParams },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const cancelTargetRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/cancel',
+  summary: 'Annulla una destinazione non ancora uscita',
+  request: { params: DestinationParams },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const ResumePostRequest = z.strictObject({
+  version: z.number().int().min(1),
+  when: PostWhenBody.optional(),
+})
+
+export const resumePostRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/resume',
+  summary: 'Riprende un post in pausa, a nome di chi lo riprende',
+  request: { params: PostParams, body: ResumePostRequest },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const cancelPausedRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel-paused',
+  summary: 'Annulla le destinazioni in pausa di un post',
+  request: { params: PostParams, body: PostVersionRequest },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const postRoutes = [
   listPostsRoute,
   createPostRoute,
@@ -273,4 +331,9 @@ export const postRoutes = [
   schedulePostRoute,
   unschedulePostRoute,
   cancelPostRoute,
+  retryTargetRoute,
+  markVerifiedRoute,
+  cancelTargetRoute,
+  resumePostRoute,
+  cancelPausedRoute,
 ] as const

@@ -45,6 +45,7 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
+import { retriedAtOf } from './retry-mark.js'
 
 // `target.prepare` (plan 07 Task 7): everything before the post goes out, from 15 minutes
 // before its time: the checks again, the person who scheduled, the copies, a place among the
@@ -105,7 +106,8 @@ async function decide(
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // D-77 (b): only the first start; a preparation under way or tried again goes on
-  if (target.status === 'scheduled' && isTooLate(post.scheduledAt, now))
+  // after a «Riprova» the 15 minutes count from it (Scelta 1): the post keeps its time
+  if (target.status === 'scheduled' && isTooLate(retriedAtOf(target) ?? post.scheduledAt, now))
     return done(await failTarget(tx, target, 'too_late'))
 
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))

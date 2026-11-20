@@ -162,6 +162,18 @@ async function schedulable(ids: SampleIds, status: 'draft' | 'scheduled' = 'draf
   return {}
 }
 
+/** The case's post scheduled, with its destination where the worker left it (plan 07 Task 8). */
+async function withTargetIn(ids: SampleIds, status: 'failed' | 'problem' | 'paused') {
+  await schedulable(ids, 'scheduled')
+  await fx.env.admin.pool.query(
+    `update post_targets set status = $2,
+            external_post_id = case when $2 = 'problem' then '17890000000000001' end
+      where post_id = $1`,
+    [ids.post, status],
+  )
+  return {}
+}
+
 /**
  * A draft of the caller in the case's workspace, made through the route; who may not write
  * there gets the case's draft, which is someone else's.
@@ -443,6 +455,44 @@ const RULES: Record<string, readonly Rule[]> = {
       permission: 'post.publish',
       level: 'workspace',
       prepare: (ids) => schedulable(ids, 'scheduled'),
+    },
+  ],
+  // after the worker (plan 07 Task 8, §10.2 «Riprovare pubblicazioni fallite», P5, P6): the
+  // case's post is someone else's, so «Riprova» and «Segna come verificato» take the Manager;
+  // the Publisher cancels a destination of anyone's post, as the whole post
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/retry': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: (ids) => withTargetIn(ids, 'failed'),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/verified': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: (ids) => withTargetIn(ids, 'problem'),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/cancel': [
+    {
+      permission: 'post.publish',
+      level: 'workspace',
+      prepare: (ids) => schedulable(ids, 'scheduled'),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/resume': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: (ids) => withTargetIn(ids, 'paused'),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel-paused': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: (ids) => withTargetIn(ids, 'paused'),
     },
   ],
   // the content settings of a client (plan 06 Task 7): every member reads them, the Manager
@@ -803,6 +853,10 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'post.unscheduled': [],
   'post.cancelled': [],
   'post.deleted': [],
+  'post.retried': ['accountId', 'from'],
+  'post.verified_manually': ['accountId'],
+  'post.target_cancelled': ['accountId'],
+  'post.resumed': ['scheduledAt'],
 }
 
 /**
@@ -924,7 +978,24 @@ async function produceEveryAction() {
   })
   await ok('POST', `${posts}/${ids.post}/unschedule`, { version: 3 })
   await ok('POST', `${posts}/${ids.post}/schedule`, { version: 4 })
-  await ok('POST', `${posts}/${ids.post}/cancel`, { version: 5 })
+  // after the worker (plan 07 Task 8): the destination where a step left it, then the panel
+  const destination = `${posts}/${ids.post}/destinations/${ids.account}`
+  const leave = (status: string) =>
+    env.admin.pool.query(
+      `update post_targets set status = $2,
+              external_post_id = case when $2 = 'problem' then '17890000000000002' end
+        where post_id = $1`,
+      [ids.post, status],
+    )
+  await leave('failed')
+  await ok('POST', `${destination}/retry`)
+  await leave('problem')
+  await ok('POST', `${destination}/verified`)
+  await leave('scheduled')
+  await ok('POST', `${destination}/cancel`)
+  await leave('paused')
+  await ok('POST', `${posts}/${ids.post}/resume`, { version: 5 })
+  await ok('POST', `${posts}/${ids.post}/cancel`, { version: 6 })
   await ok('DELETE', `${posts}/${ids.post}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/media/${ids.media}`)
