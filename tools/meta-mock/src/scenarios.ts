@@ -59,6 +59,12 @@ export interface ScenarioOptions {
   page_token_missing: { pageId?: string }
   /** A rate limit error, with the usage headers at 100% and `minutesToRegain` (5) in the business one. */
   rate_limited: Match & { code?: 4 | 17 | 32 | 613 | 80001 | 80002; minutesToRegain?: number }
+  /**
+   * Every answer from now carries these usage percentages (call count, CPU and time alike):
+   * `app` in `X-App-Usage`, `business` in `X-Business-Use-Case-Usage` with `minutesToRegain`
+   * (0). For the slowing down of the publishing (§8.6).
+   */
+  usage_high: { app?: number; business?: number; minutesToRegain?: number }
   /** A temporary error (code 2 by default) as JSON. */
   transient_error: Match & { code?: 1 | 2; status?: number; retryAfter?: number }
   /** Any Graph API error, for the rows of the error table. */

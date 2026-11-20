@@ -48,9 +48,15 @@ export type {
   DraftToFinishDto,
 } from './agenda.js'
 export {
+  QUOTA_LOW_BELOW,
+  copyKey,
   prepareTarget,
+  publishCopiesInUse,
   publishTarget,
+  recheckTarget,
   reconcilePublishing,
+  type CopiesInUse,
+  type RecheckOutcome,
   type PublishingWorkerDeps,
   type ReconcileReport,
   type StepLog,

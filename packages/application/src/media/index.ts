@@ -66,3 +66,9 @@ export type {
   PublishCopiesOutcome,
   PublishCopyState,
 } from './publish-copies.js'
+export { PUBLISH_COPY_MIN_AGE_MS, cleanupPublishCopies } from './publish-copies-cleanup.js'
+export type {
+  CopiesStillNeeded,
+  PublishCopiesCleanupDeps,
+  PublishCopiesCleanupReport,
+} from './publish-copies-cleanup.js'

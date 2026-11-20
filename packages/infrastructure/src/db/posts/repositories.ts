@@ -251,6 +251,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             postId,
             ...t,
             nextAttemptAt: t.nextAttemptAt ?? null,
+            recheckAt: t.recheckAt ?? null,
           })),
         )
         .onConflictDoUpdate({
@@ -262,6 +263,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             fingerprint: sql`excluded.fingerprint`,
             ...NEW_ROUND,
             nextAttemptAt: sql`excluded.next_attempt_at`,
+            recheckAt: sql`excluded.recheck_at`,
           },
         })
     },
@@ -328,7 +330,13 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .where(and(inScope(scope), inArray(posts.id, postIds)))
       await db
         .update(postTargets)
-        .set({ status: 'draft', fingerprint: null, ...NEW_ROUND, nextAttemptAt: null })
+        .set({
+          status: 'draft',
+          fingerprint: null,
+          ...NEW_ROUND,
+          nextAttemptAt: null,
+          recheckAt: null,
+        })
         .where(
           and(
             eq(postTargets.organizationId, scope.organizationId),

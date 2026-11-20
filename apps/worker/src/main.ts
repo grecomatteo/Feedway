@@ -60,6 +60,7 @@ async function main(): Promise<void> {
         platformRules: runtime.platformRules,
         publishingHistory: runtime.publishingHistory,
         publicUrl: config.publicUrl,
+        copiesKeptDays: config.mediaRetentionDays,
       },
       media: {
         ...createMediaTools({ maxVideoPixels: config.media.maxVideoPixels }),

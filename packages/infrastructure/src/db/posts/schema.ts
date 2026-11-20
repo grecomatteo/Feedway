@@ -153,6 +153,8 @@ export const postTargets = pgTable(
     // the preparation running on Meta now, until then: at most 3 per agency and 1 per account
     // (plan 07 «Lavori pesanti»); a worker gone leaves it to expire
     claimedUntil: tz('claimed_until'),
+    // when the scheduled post is checked again, 3 hours before (Scelta 4); null: done
+    recheckAt: tz('recheck_at'),
     lastErrorCode: text('last_error_code'),
     lastErrorMessage: text('last_error_message'),
     publishedAt: tz('published_at'),
@@ -173,6 +175,10 @@ export const postTargets = pgTable(
     index('post_targets_claimed_idx')
       .on(t.organizationId, t.accountId)
       .where(sql`${t.claimedUntil} is not null`),
+    // the checks 3 hours before, read by the reconciler across the agencies (`dueRechecks`)
+    index('post_targets_recheck_idx')
+      .on(t.recheckAt)
+      .where(sql`${t.recheckAt} is not null`),
     index('post_targets_account_status_idx').on(t.organizationId, t.accountId, t.status),
     index('post_targets_account_fingerprint_idx').on(t.organizationId, t.accountId, t.fingerprint),
     foreignKey({

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, inArray, lt, lte, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, inArray, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 import type {
   IdGenerator,
   PublishingRepository,
@@ -28,6 +28,9 @@ const WORKER_STATES: readonly TargetStatus[] = [
   'published',
   'verifying',
 ]
+
+/** The states a destination ends in; one of them keeps its copies for `MEDIA_RETENTION_DAYS`. */
+const ENDED_STATES: readonly TargetStatus[] = ['confirmed', 'cancelled', 'failed', 'problem']
 
 const targetColumns = {
   id: postTargets.id,
@@ -209,6 +212,34 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
         // `lte` keeps only the rows that have one
         nextAttemptAt: r.nextAttemptAt as Date,
       }))
+    },
+    async dueRechecks(now, limit) {
+      return db
+        .select({
+          organizationId: postTargets.organizationId,
+          targetId: postTargets.id,
+          generation: postTargets.generation,
+        })
+        .from(postTargets)
+        .where(lte(postTargets.recheckAt, now))
+        .orderBy(asc(postTargets.recheckAt), asc(postTargets.id))
+        .limit(limit)
+    },
+    async postsNeedingCopies(organizationId, endedAfter) {
+      return db
+        .selectDistinct({ postId: postTargets.postId, workspaceId: postTargets.workspaceId })
+        .from(postTargets)
+        .where(
+          and(
+            eq(postTargets.organizationId, organizationId),
+            ne(postTargets.status, 'draft'),
+            or(
+              notInArray(postTargets.status, [...ENDED_STATES]),
+              gt(postTargets.updatedAt, endedAfter),
+            ),
+          ),
+        )
+        .orderBy(asc(postTargets.postId), asc(postTargets.workspaceId))
     },
     async targetsOfPost(organizationId, postId) {
       const rows = await db

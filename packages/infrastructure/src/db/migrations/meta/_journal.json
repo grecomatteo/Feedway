@@ -162,6 +162,13 @@
       "when": 1795201239054,
       "tag": "0022_publishing_worker",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795205326723,
+      "tag": "0023_publishing_slow_down",
+      "breakpoints": true
     }
   ]
 }

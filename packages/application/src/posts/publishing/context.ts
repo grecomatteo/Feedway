@@ -1,6 +1,7 @@
 import {
   can,
   canMoveTarget,
+  slowDownUntil,
   type OrgActor,
   type Platform,
   type PlatformRules,
@@ -16,8 +17,10 @@ import type { JobQueue, TargetJobData } from '../../ports/job-queue.js'
 import type { Logger } from '../../ports/logger.js'
 import type { ConnectionCredentials, PlatformConnectors } from '../../ports/platform-connector.js'
 import type {
+  PlatformLoad,
   PlatformPublisher,
   PlatformPublishers,
+  PlatformQuota,
   PublishTarget,
 } from '../../ports/platform-publisher.js'
 import type { PostRecord } from '../../ports/posts.js'
@@ -290,9 +293,58 @@ export async function waitTarget(
   }
 }
 
+/** The latest of the times given, nulls left out. */
+export const latestOf = (first: Date, ...others: (Date | null)[]): Date =>
+  others.reduce<Date>((a, b) => (b !== null && b > a ? b : a), first)
+
 export const plusMinutes = (at: Date, minutes: number) => new Date(at.getTime() + minutes * 60_000)
 
 /** Where Meta downloads a copy (`/m/<token>.<ext>`, spec §16.1). */
 export function publicFileUrl(base: URL, token: string, mime: string): string {
   return new URL(`/m/${token}.${mime === 'video/mp4' ? 'mp4' : 'jpg'}`, base).toString()
+}
+
+/** Below this share of its quota left, the account is told nearly out (`account.quota_low`). */
+export const QUOTA_LOW_BELOW = 0.1
+
+/**
+ * What an answer said of the platform's limits, saved on the account for the next steps (§8.6):
+ * the usage, which slows down the account or the agency, and the quota, which is told once per
+ * window when nearly over (plan 07 «Eventi»). An answer that said nothing leaves the last one.
+ */
+export async function recordReadings(
+  tx: Tx,
+  target: PublishingTargetRecord,
+  answer: { load: PlatformLoad | null; quota?: PlatformQuota | undefined },
+  at: Date,
+): Promise<void> {
+  const { organizationId, accountId } = target
+  const { load, quota } = answer
+  if (load && (load.accountPercent !== null || load.appPercent !== null))
+    await tx.accounts.recordUsageReading(organizationId, accountId, { ...load, readAt: at })
+  if (!quota || quota.total <= 0) return
+  await tx.accounts.recordQuota(organizationId, accountId, quota, at)
+  const left = Math.max(0, quota.total - quota.used)
+  if (left >= quota.total * QUOTA_LOW_BELOW) return
+  const since = new Date(at.getTime() - quota.windowSeconds * 1000)
+  if (await tx.accounts.markQuotaLow(organizationId, accountId, at, since))
+    await tx.outbox.record({
+      organizationId,
+      type: 'account.quota_low',
+      payload: { accountId, left, total: quota.total },
+    })
+}
+
+/**
+ * When the step may run, slowed down by the usage the last answers said (§8.6); null: now.
+ * `publish` waits only above 95%, so a post does not miss its time.
+ */
+export async function slowDownOf(
+  tx: Tx,
+  target: PublishingTargetRecord,
+  step: 'prepare' | 'publish',
+  now: Date,
+): Promise<Date | null> {
+  const readings = await tx.accounts.usageReadings(target.organizationId, target.accountId)
+  return slowDownUntil(step, readings, now)
 }

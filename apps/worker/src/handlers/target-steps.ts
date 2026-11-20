@@ -19,7 +19,10 @@ export function publishingDeps(deps: JobHandlerDeps): PublishingWorkerDeps {
     connectors: deps.connectors,
     connectionTokens: deps.connectionTokens,
     newPublicToken: deps.media.newPublicToken,
-    ...deps.publishing,
+    publishers: deps.publishing.publishers,
+    platformRules: deps.publishing.platformRules,
+    publishingHistory: deps.publishing.publishingHistory,
+    publicUrl: deps.publishing.publicUrl,
   }
 }
 
@@ -43,6 +46,6 @@ export const targetPublish: JobHandler<'target.publish'> = async (job, deps) => 
 
 export const schedulerReconcile: JobHandler<'scheduler.reconcile'> = async (job, deps) => {
   const report = await reconcilePublishing(publishingDeps(deps))
-  if (report.sent > 0 || report.uncertain > 0)
+  if (report.sent > 0 || report.uncertain > 0 || report.rechecked > 0)
     deps.logger.info({ jobId: job.id, ...report }, 'publishing reconciled')
 }

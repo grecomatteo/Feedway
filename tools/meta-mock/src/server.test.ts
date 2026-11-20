@@ -67,6 +67,28 @@ test('the system user sees the pages of the agency business, with their Instagra
   })
 })
 
+test('usage_high puts its percentages in the usage headers of every answer', async () => {
+  const token = META_MOCK.tokens.systemUser
+  mock.scenario('usage_high', { app: 85, business: 92, minutesToRegain: 3 })
+  const res = await graph('/me/accounts', token, { fields: 'id' })
+  expect(JSON.parse(res.headers.get('x-app-usage') ?? '')).toEqual({
+    call_count: 85,
+    total_cputime: 85,
+    total_time: 85,
+  })
+  const business = JSON.parse(res.headers.get('x-business-use-case-usage') ?? '{}') as Record<
+    string,
+    { call_count: number; estimated_time_to_regain_access: number }[]
+  >
+  expect(Object.values(business)[0]?.[0]).toMatchObject({
+    call_count: 92,
+    estimated_time_to_regain_access: 3,
+  })
+  mock.scenario('default')
+  const normal = await graph('/me/accounts', token, { fields: 'id' })
+  expect(JSON.parse(normal.headers.get('x-app-usage') ?? '')).toMatchObject({ call_count: 4 })
+})
+
 test('the unified login goes from the dialog to a token that sees the client portfolio', async () => {
   const redirectUri = 'https://panel.test/connessioni/meta_business_login/ritorno'
   const dialog = new URL(`${mock.url}/v25.0/dialog/oauth`)

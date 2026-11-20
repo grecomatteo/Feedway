@@ -62,6 +62,8 @@ export type TargetStepPatch = Partial<
   renew?: boolean
   /** the preparation's claim (`claimPrepare`); null gives it back */
   claimedUntil?: Date | null
+  /** the check 3 hours before (Scelta 4); null: done */
+  recheckAt?: Date | null
 }
 
 /** One call of a step (`target_attempts`): codes and a duration, never a text or a token. */
@@ -87,6 +89,13 @@ export interface DueTarget {
   step: TargetStep | null
   generation: number
   nextAttemptAt: Date
+}
+
+/** A destination whose check 3 hours before has come (Scelta 4), for the reconciler. */
+export interface DueRecheck {
+  organizationId: string
+  targetId: string
+  generation: number
 }
 
 /** A destination of the account that came out, for the uncertain search and the reels of 24h. */
@@ -133,6 +142,21 @@ export interface PublishingRepository {
    * steps the reconciler has a job for), every state of the worker when left out.
    */
   dueTargets(now: Date, limit: number, statuses?: readonly TargetStatus[]): Promise<DueTarget[]>
+  /**
+   * The destinations of every agency whose check 3 hours before has come, the oldest first,
+   * whatever their state (the check clears the ones gone past `scheduled`). Only in the system
+   * scope (the reconciler).
+   */
+  dueRechecks(now: Date, limit: number): Promise<DueRecheck[]>
+  /**
+   * The posts of the agency whose copies to publish are still needed (Scelta 5): a destination
+   * scheduled or on its way, or one that ended (`confirmed`, `cancelled`, `failed`, `problem`)
+   * after `endedAfter`, so that «Riprova» still finds them. Drafts need none.
+   */
+  postsNeedingCopies(
+    organizationId: string,
+    endedAfter: Date,
+  ): Promise<{ postId: string; workspaceId: string }[]>
   /** The destinations of a post of the agency, in the order they were added. */
   targetsOfPost(organizationId: string, postId: string): Promise<PublishingTargetRecord[]>
   /** The destinations of the account published in `[from, to)`, the latest first. */

@@ -1,6 +1,7 @@
 import {
   DISCARD_KEY,
   PUBLISHING_STALE_MINUTES,
+  SLOW_DOWN_MAX_MINUTES,
   UNCERTAIN_FIRST_SEARCH_MINUTES,
   isTooLate,
   nextAttemptAt,
@@ -27,9 +28,12 @@ import {
   openAccount,
   pauseTarget,
   plusMinutes,
+  latestOf,
   publisherOf,
+  recordReadings,
   sendSteps,
   skipped,
+  slowDownOf,
   waitTarget,
   type PublishingWorkerDeps,
   type StepJob,
@@ -88,6 +92,15 @@ async function decide(
   const dueAt = target.nextAttemptAt ?? post.scheduledAt
   if (target.status === 'ready' && isTooLate(dueAt, now))
     return done(await failTarget(tx, target, 'too_late'))
+  // only above 95% of Meta's usage (§8.6): at 85% the post still goes out at its time. At most
+  // 5 minutes after the post's time, whatever the waits: a wait moves `next_attempt_at`, so
+  // without this bound waits one after the other would publish late without end (D-77 b)
+  const slowUntil = await slowDownOf(tx, target, 'publish', now)
+  const slowLimit = plusMinutes(post.scheduledAt, SLOW_DOWN_MAX_MINUTES)
+  if (slowUntil && slowUntil.getTime() <= slowLimit.getTime()) {
+    const wait = await waitTarget(tx, target, 'target.publish', slowUntil, 'slowing down')
+    return done(wait.log, [wait.job])
+  }
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const copies = await destinationCopies(tx, deps, post, report, target.accountId)
   if (copies.status !== 'ready') return done(await failTarget(tx, target, 'file_wont_publish'))
@@ -154,6 +167,7 @@ async function settle(
   now: Date,
 ): Promise<{ log: StepLog; jobs: StepJob[] }> {
   const { organizationId } = target
+  await recordReadings(tx, target, result, now)
   const again = (generation: number, at: Date, name: StepJob['name'] = 'target.publish') => ({
     name,
     organizationId,
@@ -225,7 +239,8 @@ async function settle(
   const attempt = target.attempts + 1
   const next = nextAttemptAt(now, attempt)
   if (next === null) return { log: await failTarget(tx, target, result.code), jobs: [] }
-  const at = result.retryAt && result.retryAt > next ? result.retryAt : next
+  // not before Meta serves the account again (§8.6): the answer said how busy it is
+  const at = latestOf(next, result.retryAt, await slowDownOf(tx, target, 'publish', now))
   const generation = await moveTarget(tx, target, 'retrying', {
     step: 'publish',
     attempts: attempt,

@@ -146,6 +146,13 @@ describe('every type reaches a confirmed post', () => {
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
     // the ids are saved after every call, before the next one
     expect(saved.at(-1)).toMatchObject({ mediaId: published.externalPostId })
+    // the quota as read before, with this post (`account.quota_low`)
+    expect(published.quota).toEqual({
+      used: expect.any(Number) as number,
+      total: 50,
+      windowSeconds: 86_400,
+    })
+    expect(published.quota?.used).toBeGreaterThan(0)
   })
 
   test('carousel: the items, the video waits for FINISHED read once a minute, then CAROUSEL', async () => {
@@ -296,7 +303,11 @@ describe('publish', () => {
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('quota_exhausted', { igUserId: ig })
     const result = await publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx())
-    expect(result).toMatchObject({ outcome: 'wait', reason: 'quota' })
+    expect(result).toMatchObject({
+      outcome: 'wait',
+      reason: 'quota',
+      quota: { used: 50, total: 50 },
+    })
     expect((result as { retryAt: Date }).retryAt.getTime()).toBeGreaterThan(clock.now().getTime())
     expect(posts(`/${ig}/media_publish`)).toHaveLength(0)
   })

@@ -61,10 +61,23 @@ export interface StepContext {
   saveIds(ids: PublishMetaIds): Promise<void>
 }
 
+/**
+ * The account's quota of posts as the step read it (Instagram's `content_publishing_limit`),
+ * counting the post this step published: the worker tells when it is nearly over.
+ */
+export interface PlatformQuota {
+  used: number
+  total: number
+  /** the length of the quota's window */
+  windowSeconds: number
+}
+
 /** The last answer's counters, opaque to the posts module, and how close the limits are. */
 export interface StepUsage {
   usage: unknown
   load: PlatformLoad
+  /** Only when the step read it. */
+  quota?: PlatformQuota
 }
 
 /**
