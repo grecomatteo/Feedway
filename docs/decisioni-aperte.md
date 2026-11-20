@@ -654,7 +654,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 
 ### D-98 · Correzioni della revisione di fedeltà, da scegliere per il Task R10
 
-- **Origine:** revisione di fedeltà del ridisegno (20/11), dopo i task R1–R9. Il testo intero, con pro e contro di ogni correzione, è in `/mnt/project-files/handoff/ridisegno/REVISIONE-fedelta.md`; i confronti nuovi sono in `/mnt/project-files/design-revisione/ridisegno/revisione-fedelta/`.
+- **Origine:** revisione di fedeltà del ridisegno (20/11), dopo i task R1–R9. Il testo intero, con pro e contro di ogni correzione, è stato consegnato a Matteo fuori dal repo, nella cartella condivisa del progetto (`handoff/ridisegno/REVISIONE-fedelta.md`, confronti in `design-revisione/ridisegno/revisione-fedelta/`).
 - **Problemi veri (proposta: tutti in R10):**
   1. A1: nell'editor i «Controlli» non si vedono senza scorrere a 1440×900 (né a 1280 e 1024), e l'anteprima del feed è 2:3 invece di 4:5, perché `aspect-ratio` cede all'altezza della foto.
   2. A2: «Oggi» tra 1024 e circa 1300 px ha colonne che si sovrappongono.
@@ -667,4 +667,4 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   - le zone coperte accese di default nell'anteprima del reel;
   - il riquadro pesca «Prima configurazione» in «Oggi»;
   - un secondo pulsante arancio in Generali, Privacy, prima configurazione, libreria e persone del cliente.
-- **Stato:** aperta; Matteo sceglie quali correzioni entrano in R10. Proposta della revisione: A1–A6, le correzioni piccole di B, C1–C2 e gli stati; C3, C4 e `/agenzie` in un task a parte prima della tappa 7.
+- **Stato:** aperta; Matteo sceglie quali correzioni entrano in R10. Proposta della revisione: A1–A6, le correzioni di B tranne B11 e B13, C1–C2 e gli stati; C3, C4 e `/agenzie` in un task a parte prima della tappa 7.
