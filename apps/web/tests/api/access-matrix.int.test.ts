@@ -799,7 +799,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'media.retried': [],
   'post.created': [],
   'post.updated': [],
-  'post.scheduled': [],
+  'post.scheduled': ['scheduledAt'],
   'post.unscheduled': [],
   'post.cancelled': [],
   'post.deleted': [],
