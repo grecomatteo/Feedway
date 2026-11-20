@@ -46,7 +46,7 @@ async function submit() {
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('reset.title') }}</h1>
+    <h1 class="text-center">{{ $t('reset.title') }}</h1>
     <template v-if="done">
       <p role="status" class="text-(--app-success)">{{ $t('reset.done') }}</p>
       <UButton class="min-h-control" to="/accedi">{{ $t('reset.signIn') }}</UButton>

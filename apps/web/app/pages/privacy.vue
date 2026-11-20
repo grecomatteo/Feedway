@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PrivacyNotice } from '@app/contracts'
 
-definePageMeta({ layout: 'auth' })
+definePageMeta({ layout: 'auth', authWide: true })
 
 const { t } = useI18n()
 useHead({ title: () => t('privacyNotice.title') })
@@ -15,7 +15,7 @@ const { data, status, error, refresh } = useFetch<PrivacyNotice>('/api/v1/privac
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('privacyNotice.title') }}</h1>
+    <h1 class="text-center">{{ $t('privacyNotice.title') }}</h1>
     <p v-if="status === 'pending' || status === 'idle'" role="status">
       {{ $t('account.loading') }}
     </p>

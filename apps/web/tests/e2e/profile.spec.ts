@@ -120,7 +120,7 @@ test('the theme chosen before signing in stays after it, and a profile that neve
   const halfway = await newPerson('Bice Admin', 'admin')
   await page.getByLabel('Email', { exact: true }).fill(halfway.email)
   await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
-  await page.getByRole('button', { name: 'Accedi con la password' }).click()
+  await page.getByRole('button', { name: 'Accedi', exact: true }).click()
   await expect(page).toHaveURL(/\/accedi\/secondo-fattore$/)
   expect(await turned()).toBe(true)
   await page.getByRole('button', { name: 'Esci' }).first().click()

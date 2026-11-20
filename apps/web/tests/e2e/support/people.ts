@@ -89,7 +89,7 @@ export async function signInFromPage(page: Page, person: { email: string }) {
   await page.goto('/accedi')
   await page.getByLabel('Email', { exact: true }).fill(person.email)
   await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
-  await page.getByRole('button', { name: 'Accedi con la password' }).click()
+  await page.getByRole('button', { name: 'Accedi', exact: true }).click()
 }
 
 /** A password sign-in as the panel does it; the session cookie lands in the page's context. */

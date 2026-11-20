@@ -521,9 +521,6 @@
     "USER_VERIFICATION_REQUIRED": "Conferma la passkey con il PIN, il volto o l'impronta.",
     "INVALID_TWO_FACTOR_COOKIE": "L'accesso è scaduto: ricomincia da email e password."
   },
-  "auth": {
-    "footer": "Accesso solo su invito della tua agenzia."
-  },
   "nav": {
     "label": "Menu",
     "agency": "Agenzia",
@@ -533,14 +530,13 @@
     "settings": "Impostazioni"
   },
   "signIn": {
-    "title": "Accedi a Feedway",
-    "withPasskey": "Accedi con passkey",
+    "title": "Accedi",
+    "withPasskey": "Accedi con una passkey",
     "or": "oppure",
     "email": "Email",
     "password": "Password",
-    "withPassword": "Accedi con la password",
-    "forgot": "Password dimenticata?",
-    "forgotHint": "Ti mandiamo un link per email.",
+    "withPassword": "Accedi",
+    "forgot": "Dimenticata?",
     "invalid": "Email o password non corretti",
     "tooMany": "Troppi tentativi. Riprova tra qualche minuto.",
     "wait": "Troppi tentativi. Riprova tra {seconds} secondi.",

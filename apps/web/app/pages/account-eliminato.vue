@@ -8,7 +8,7 @@ useHead({ title: () => t('accountDeletion.doneTitle') })
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('accountDeletion.doneTitle') }}</h1>
+    <h1 class="text-center">{{ $t('accountDeletion.doneTitle') }}</h1>
     <p role="status">{{ $t('accountDeletion.done') }}</p>
     <UButton to="/accedi" class="min-h-control" color="neutral" variant="outline">
       {{ $t('accountDeletion.signIn') }}

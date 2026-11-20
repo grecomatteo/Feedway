@@ -53,7 +53,7 @@ function toggle() {
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('verify.title') }}</h1>
+    <h1 class="text-center">{{ $t('verify.title') }}</h1>
     <p>{{ mode === 'app' ? $t('verify.appExplain') : $t('verify.backupExplain') }}</p>
     <form class="space-y-4" novalidate @submit.prevent="submit">
       <fieldset :disabled="!ready" class="min-w-0 space-y-4">

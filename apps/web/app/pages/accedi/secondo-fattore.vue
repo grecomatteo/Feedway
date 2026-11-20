@@ -75,7 +75,7 @@ async function leave() {
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('secondFactor.title') }}</h1>
+    <h1 class="text-center">{{ $t('secondFactor.title') }}</h1>
 
     <template v-if="useExisting">
       <p role="alert">{{ $t('secondFactor.useExisting') }}</p>
