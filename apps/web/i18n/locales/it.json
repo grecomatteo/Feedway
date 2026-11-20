@@ -2203,7 +2203,9 @@
     "library": {
       "title": "Scegli dalla libreria",
       "text": "I file entrano nel post nell'ordine in cui li scegli.",
-      "search": "Cerca un file",
+      "searchIn": "Cerca in «{place}»",
+      "everywhere": "In tutto {client}",
+      "path": "Percorso della cartella",
       "kind": "Tipo di file",
       "all": "Tutti",
       "photos": "Foto",

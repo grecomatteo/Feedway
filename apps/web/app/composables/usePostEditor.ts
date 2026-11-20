@@ -334,9 +334,10 @@ export function usePostEditor(opts: {
   const newKey = () => `e${String(++entryKeys)}`
   let alive = true
 
-  async function addFiles(list: readonly File[]) {
+  /** Files from the computer into the post; into `folderId` of the library when given (D-103). */
+  async function addFiles(list: readonly File[], folderId: string | null = null) {
     if (!editable.value || list.length === 0) return
-    const items = await uploads.add(list, null, (media) => {
+    const items = await uploads.add(list, folderId, (media) => {
       attached(media)
     })
     for (const item of items)

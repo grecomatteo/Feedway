@@ -76,6 +76,11 @@ function pasted(event: ClipboardEvent) {
 }
 onMounted(() => document.addEventListener('paste', pasted))
 onBeforeUnmount(() => document.removeEventListener('paste', pasted))
+/** «Carica» of «Dalla libreria»: into the folder open there, and into the post (D-103). */
+function fromComputer(list: File[], folderId: string | null) {
+  picking.value = false
+  void e.addFiles(list, folderId)
+}
 function fromLibrary(list: MediaDto[]) {
   picking.value = false
   if (replacing.value) e.replaceFromLibrary(list)
@@ -430,7 +435,9 @@ function release() {
       v-model:open="picking"
       :client="client"
       :exclude="e.files.value.map((f) => f.id)"
+      :can-upload="!replacing"
       @pick="fromLibrary"
+      @upload="fromComputer"
     />
   </PostEditorRow>
 </template>
