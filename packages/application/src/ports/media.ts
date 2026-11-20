@@ -98,6 +98,8 @@ export interface NewMediaVariant {
   sizeBytes: number
   width: number
   height: number
+  /** the fingerprint of a copy to publish with a recipe (plan 07 P4); missing: `''` */
+  recipe?: string
 }
 
 /** What the analysis read, into the columns of the file (spec §13). */
@@ -329,6 +331,7 @@ export interface MediaRepository {
   ): Promise<MediaRecord[]>
   /** Any status, deleted included. */
   findById(organizationId: string, mediaId: string): Promise<MediaRecord | null>
+  /** the copies without a recipe, one per purpose; the copies to publish are read on their own */
   variantsOf(organizationId: string, mediaIds: readonly string[]): Promise<MediaVariantRecord[]>
   /**
    * The copy with this public token, if its file is `ready`; read in the system scope, by the

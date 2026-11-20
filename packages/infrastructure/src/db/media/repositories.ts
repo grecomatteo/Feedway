@@ -374,12 +374,17 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .where(stillProcessing(organizationId, mediaId))
     },
     async saveVariant(organizationId, mediaId, variant) {
-      const { id, ...rest } = variant
+      const { id, recipe = '', ...rest } = variant
       await db
         .insert(mediaVariants)
-        .values({ id, organizationId, mediaId, ...rest })
+        .values({ id, organizationId, mediaId, recipe, ...rest, status: 'ready', failure: null })
         .onConflictDoUpdate({
-          target: [mediaVariants.organizationId, mediaVariants.mediaId, mediaVariants.purpose],
+          target: [
+            mediaVariants.organizationId,
+            mediaVariants.mediaId,
+            mediaVariants.purpose,
+            mediaVariants.recipe,
+          ],
           set: {
             // a copy made again is another copy: its id is the ETag the browsers and Meta keep
             id,
@@ -389,6 +394,8 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             sizeBytes: rest.sizeBytes,
             width: rest.width,
             height: rest.height,
+            status: 'ready',
+            failure: null,
           },
         })
     },
@@ -678,6 +685,8 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           and(
             eq(mediaVariants.publicToken, token),
             eq(media.status, 'ready'),
+            // a copy to publish still being made, or that could not be, has no file to serve
+            eq(mediaVariants.status, 'ready'),
             // only the copies made to be published: never the panel's own (`preview`,
             // `thumbnail`, §11.1 point 7), nor a purpose added later, even with a token
             inArray(mediaVariants.purpose, ['ig_feed', 'fb_photo', 'reel', 'story', 'cover']),
@@ -704,6 +713,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
           and(
             eq(mediaVariants.organizationId, organizationId),
             inArray(mediaVariants.mediaId, [...mediaIds]),
+            eq(mediaVariants.recipe, ''),
           ),
         )
         .orderBy(mediaVariants.mediaId, mediaVariants.purpose)

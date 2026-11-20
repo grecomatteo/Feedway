@@ -376,7 +376,7 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
     async recordUsage(organizationId, id, usage) {
       await db
         .update(accountConnections)
-        .set({ lastUsage: usage })
+        .set({ lastUsage: usage, lastUsageAt: sql`now()` })
         .where(connectionKey(organizationId, id))
     },
     async deleteStalePending(organizationId, createdBefore) {
