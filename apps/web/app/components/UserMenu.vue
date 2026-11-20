@@ -2,8 +2,9 @@
 /**
  * The signed-in person at the bottom of the sidebar (`row`, name and role) or as «Tu» in the
  * phone's bar at the bottom (`tab`, spec §11.11). One click opens their menu (D-81, screen 06):
- * Libreria and Utenti, «Impostazioni», the other agencies, «Esci» and the theme. On a phone it
- * opens from the bottom, full width.
+ * «Impostazioni», the other agencies, «Esci» and the theme; on a phone also Libreria and Utenti,
+ * which its bar has no room for (on a computer the side bar has them: no double, D-87.1). On a
+ * phone it opens from the bottom, full width.
  */
 const props = withDefaults(
   defineProps<{
@@ -108,9 +109,9 @@ const close = () => (open.value = false)
         aria-haspopup="menu"
         class="flex w-full items-center gap-2.5 rounded-control p-2 text-start transition-colors duration-150 hover:bg-(--app-nav-hover)"
       >
-        <Avatar :name="me.displayName" :src="me.avatarUrl" kind="person" :size="28" />
+        <Avatar :name="me.name" :src="me.avatarUrl" kind="person" :size="28" />
         <span class="min-w-0 flex-1 leading-[1.125rem]">
-          <span class="block truncate font-semibold">{{ me.displayName }}</span>
+          <span class="block truncate font-semibold">{{ me.name }}</span>
           <span v-if="subtitle" class="block truncate text-caption text-(--app-text-muted)">
             {{ subtitle }}
           </span>
@@ -120,7 +121,7 @@ const close = () => (open.value = false)
         <div ref="panel" @keydown="onKey">
           <UserMenuPanel
             :me="me"
-            :pages="pages"
+            :pages="[]"
             :dark="dark"
             :other-agencies="otherAgencies"
             :leaving="leaving"
@@ -150,11 +151,11 @@ const close = () => (open.value = false)
         type="button"
         :disabled="!ready"
         aria-haspopup="menu"
-        :aria-label="$t('userMenu.tab', { name: me.displayName })"
+        :aria-label="$t('userMenu.tab', { name: me.name })"
         class="flex h-[59px] w-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] font-medium text-(--app-text-muted) outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus) focus-visible:ring-inset aria-expanded:font-semibold aria-expanded:text-(--app-text) data-[current]:font-semibold data-[current]:text-(--app-text)"
         :data-current="current || undefined"
       >
-        <Avatar :name="me.displayName" :src="me.avatarUrl" kind="person" :size="22" />
+        <Avatar :name="me.name" :src="me.avatarUrl" kind="person" :size="22" />
         {{ $t('userMenu.you') }}
       </button>
       <template #body>

@@ -400,10 +400,10 @@ function folderActions(folder: Folder): DropdownMenuItem[][] {
   ]
 }
 const folderClass = (target: string) => [
-  'flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm transition-colors',
+  'flex h-9 w-full items-center gap-2.5 rounded-control px-2.5 text-left font-medium text-(--app-text-muted) transition-colors aria-[current=true]:text-(--app-text)',
   dropOn.value === target
     ? 'bg-(--app-brand-soft) ring-2 ring-(--app-brand) ring-inset'
-    : 'hover:bg-(--app-surface-sunken)',
+    : 'hover:bg-(--app-nav-hover) hover:text-(--app-text)',
 ]
 const isCurrent = (target: string | null) => (filter.folder ?? null) === target
 
@@ -478,7 +478,7 @@ function filesDrop(event: DragEvent) {
     <!-- folders: on a computer a column, on a phone a menu above the grid -->
     <nav :aria-label="$t('library.folders.label')" class="max-md:hidden">
       <div class="mb-2 flex items-center justify-between">
-        <h2 class="text-xs font-semibold tracking-wide text-(--app-text-muted) uppercase">
+        <h2 class="px-2.5 text-caption font-medium text-(--app-text-muted)">
           {{ $t('library.folders.label') }}
         </h2>
         <UButton
@@ -498,7 +498,7 @@ function filesDrop(event: DragEvent) {
             type="button"
             :class="folderClass('all')"
             :aria-current="isCurrent(null) ? 'true' : undefined"
-            class="aria-[current=true]:bg-(--app-surface-sunken) aria-[current=true]:font-semibold"
+            class="aria-[current=true]:bg-(--app-nav-hover) aria-[current=true]:font-semibold"
             @click="filter.folder = null"
           >
             <UIcon name="i-lucide-images" class="size-4 shrink-0" aria-hidden="true" />
@@ -510,7 +510,7 @@ function filesDrop(event: DragEvent) {
             type="button"
             :class="folderClass('none')"
             :aria-current="isCurrent('none') ? 'true' : undefined"
-            class="aria-[current=true]:bg-(--app-surface-sunken) aria-[current=true]:font-semibold"
+            class="aria-[current=true]:bg-(--app-nav-hover) aria-[current=true]:font-semibold"
             @click="filter.folder = 'none'"
             @dragover="dragOver($event, 'none')"
             @dragleave="dropOn = null"
@@ -527,7 +527,7 @@ function filesDrop(event: DragEvent) {
             :style="{ paddingLeft: `${0.625 + f.depth * 0.875}rem` }"
             :aria-current="isCurrent(f.id) ? 'true' : undefined"
             :data-folder="f.name"
-            class="aria-[current=true]:bg-(--app-surface-sunken) aria-[current=true]:font-semibold"
+            class="aria-[current=true]:bg-(--app-nav-hover) aria-[current=true]:font-semibold"
             @click="filter.folder = f.id"
             @dragover="dragOver($event, f.id)"
             @dragleave="dropOn = null"
@@ -548,71 +548,120 @@ function filesDrop(event: DragEvent) {
           </button>
         </li>
       </ul>
+      <!-- the client's space, quiet under its folders (on a phone the page says it) -->
+      <p class="mt-4 px-2.5 text-caption text-(--app-text-muted)" data-library-usage>
+        {{ $t('library.usageOf', { used: formatBytes(lib.usedBytes.value) }) }}
+      </p>
     </nav>
 
     <div class="min-w-0">
-      <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <div class="flex items-center justify-between gap-3 lg:contents">
-          <SegmentedFilter
-            v-model="filter.kind"
-            :label="$t('library.kind.label')"
-            :options="kindOptions"
-            class="self-start"
+      <!-- the tools of the agency's library (screen 19), in the same order and look -->
+      <div class="mb-5 flex flex-wrap items-center gap-3 max-md:gap-2" data-library-tools>
+        <SegmentedFilter
+          v-model="filter.kind"
+          :label="$t('library.kind.label')"
+          :options="kindOptions"
+          class="max-md:flex max-md:w-full max-md:[&>*]:flex-1"
+        />
+        <div class="flex w-full gap-2 md:hidden">
+          <USelect
+            v-model="folderValue"
+            :items="folderItems"
+            :aria-label="$t('library.folders.choose')"
+            class="min-w-0 flex-1 text-sm"
+            size="xl"
+            icon="i-lucide-folder"
+            :ui="{ leadingIcon: 'size-[1.125rem]' }"
           />
+          <UButton
+            v-if="!readOnly"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-folder-plus"
+            class="size-11 shrink-0 justify-center"
+            :aria-label="$t('library.folders.new')"
+            @click="startCreate(current?.id ?? null)"
+          />
+        </div>
+        <SearchField v-model="filter.q" :label="$t('library.search')" class="md:max-w-52!" />
+        <USelect
+          v-if="lib.tags.value.length > 0"
+          v-model="tagValue"
+          :items="tagItems"
+          :aria-label="$t('library.tag.label')"
+          icon="i-lucide-tag"
+          color="neutral"
+          variant="outline"
+          class="min-w-36 font-medium max-md:flex-1"
+        />
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-calendar-check"
+          class="shrink-0 font-medium aria-pressed:bg-(--app-nav-hover) aria-pressed:font-semibold"
+          :aria-pressed="filter.inPosts"
+          data-in-posts
+          @click="filter.inPosts = !filter.inPosts"
+        >
+          {{ $t('library.inPosts.filter') }}
+        </UButton>
+        <span class="flex-1 max-md:hidden" />
+        <div
+          class="ms-auto flex items-center gap-3 max-md:w-full max-md:justify-between"
+          data-view-controls
+        >
+          <div
+            v-if="view.layout === 'grid'"
+            class="flex min-h-11 items-center gap-2 text-(--app-text-muted) md:min-h-0"
+            data-thumb-size
+          >
+            <UIcon name="i-lucide-image" class="size-3.5 shrink-0" aria-hidden="true" />
+            <USlider
+              v-model="view.size"
+              :min="0"
+              :max="THUMB_SIZES.length - 1"
+              :step="1"
+              color="neutral"
+              class="w-16"
+              :ui="{ root: 'max-md:h-11', track: 'bg-(--app-border-strong)' }"
+              :aria-label="$t('library.view.size')"
+              :aria-valuetext="sizeText"
+            />
+            <UIcon name="i-lucide-image" class="size-5 shrink-0" aria-hidden="true" />
+          </div>
+          <div
+            role="group"
+            :aria-label="$t('library.view.label')"
+            class="ms-auto inline-flex gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
+          >
+            <button
+              v-for="o in layoutOptions"
+              :key="o.value"
+              type="button"
+              :aria-pressed="view.layout === o.value"
+              :aria-label="o.label"
+              :title="o.label"
+              class="flex size-11 items-center justify-center rounded-[6px] text-(--app-text-muted) md:h-7 md:w-8"
+              :class="
+                view.layout === o.value
+                  ? 'bg-(--app-surface) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]'
+                  : 'hover:text-(--app-text)'
+              "
+              @click="view.layout = o.value"
+            >
+              <UIcon :name="o.icon" class="size-4" aria-hidden="true" />
+            </button>
+          </div>
           <UButton
             v-if="!readOnly && !uploadInHeader"
             color="neutral"
             variant="outline"
             icon="i-lucide-upload"
-            class="min-h-control shrink-0 lg:order-last"
+            class="shrink-0"
             @click="chooseFiles"
           >
-            {{ $t('upload.choose') }}
-          </UButton>
-        </div>
-        <div class="flex flex-1 flex-wrap gap-3">
-          <div class="flex w-full gap-2 md:hidden">
-            <USelect
-              v-model="folderValue"
-              :items="folderItems"
-              :aria-label="$t('library.folders.choose')"
-              class="min-w-0 flex-1 text-sm"
-              size="xl"
-              icon="i-lucide-folder"
-              :ui="{ leadingIcon: 'size-[1.125rem]' }"
-            />
-            <UButton
-              v-if="!readOnly"
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-folder-plus"
-              class="size-11 shrink-0 justify-center"
-              :aria-label="$t('library.folders.new')"
-              @click="startCreate(current?.id ?? null)"
-            />
-          </div>
-          <SearchField v-model="filter.q" :label="$t('library.search')" class="min-w-48 flex-1" />
-          <USelect
-            v-if="lib.tags.value.length > 0"
-            v-model="tagValue"
-            :items="tagItems"
-            :aria-label="$t('library.tag.label')"
-            icon="i-lucide-tag"
-            class="min-w-40 text-sm max-md:flex-1"
-            size="xl"
-            :ui="{ leadingIcon: 'size-[1.125rem]' }"
-          />
-          <UButton
-            color="neutral"
-            :variant="filter.inPosts ? 'soft' : 'outline'"
-            icon="i-lucide-calendar-check"
-            class="min-h-control shrink-0"
-            :class="filter.inPosts ? 'font-semibold ring-2 ring-(--app-text) ring-inset' : ''"
-            :aria-pressed="filter.inPosts"
-            data-in-posts
-            @click="filter.inPosts = !filter.inPosts"
-          >
-            {{ $t('library.inPosts.filter') }}
+            <!-- on a phone the icon alone: the row has the size and the view too -->
+            <span class="max-md:sr-only">{{ $t('upload.choose') }}</span>
           </UButton>
         </div>
       </div>
@@ -707,49 +756,6 @@ function filesDrop(event: DragEvent) {
         />
       </template>
       <template v-else>
-        <div class="mb-3 flex items-center justify-end gap-3" data-view-controls>
-          <div
-            v-if="view.layout === 'grid'"
-            class="flex min-h-11 items-center gap-2 text-(--app-text-muted)"
-            data-thumb-size
-          >
-            <UIcon name="i-lucide-image" class="size-3.5 shrink-0" aria-hidden="true" />
-            <USlider
-              v-model="view.size"
-              :min="0"
-              :max="THUMB_SIZES.length - 1"
-              :step="1"
-              class="w-24"
-              :ui="{ root: 'max-md:h-11', track: 'bg-(--app-border-strong)' }"
-              :aria-label="$t('library.view.size')"
-              :aria-valuetext="sizeText"
-            />
-            <UIcon name="i-lucide-image" class="size-5 shrink-0" aria-hidden="true" />
-          </div>
-          <div
-            role="group"
-            :aria-label="$t('library.view.label')"
-            class="inline-flex shrink-0 rounded-[0.625rem] border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
-          >
-            <button
-              v-for="o in layoutOptions"
-              :key="o.value"
-              type="button"
-              :aria-pressed="view.layout === o.value"
-              :aria-label="o.label"
-              :title="o.label"
-              class="flex size-11 items-center justify-center rounded-[0.4375rem] transition-colors md:size-9"
-              :class="
-                view.layout === o.value
-                  ? 'bg-(--app-surface) text-(--app-text) shadow-1'
-                  : 'text-(--app-text-muted) hover:text-(--app-text)'
-              "
-              @click="view.layout = o.value"
-            >
-              <UIcon :name="o.icon" class="size-[1.125rem]" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
         <ul
           :aria-label="$t('library.title')"
           :class="view.layout === 'grid' ? 'grid gap-3' : 'space-y-2'"

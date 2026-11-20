@@ -141,16 +141,17 @@ const initials = (name: string) =>
       <li
         v-for="l in chosen"
         :key="l.id"
-        class="inline-flex h-6 items-center gap-1.5 rounded-thumb border border-(--app-border-strong) bg-(--app-surface) ps-2 text-detail"
+        class="group inline-flex h-6 items-center gap-1.5 rounded-thumb border border-(--app-border-strong) bg-(--app-surface) ps-2 text-detail"
         :class="e.editable.value ? 'pe-0.5' : 'pe-2'"
         data-label-chip
       >
         <ContentLabelDot :color="l.color" />
         {{ l.name }}
+        <!-- the × on hover or focus where there is a mouse (screen 08), always on a touch screen -->
         <button
           v-if="e.editable.value"
           type="button"
-          class="relative grid size-5 place-items-center rounded-[4px] text-(--app-text-muted) after:absolute after:-inset-2.5 after:content-[''] hover:bg-(--app-surface-sunken) hover:text-(--app-text)"
+          class="relative grid size-5 place-items-center rounded-[4px] text-(--app-text-muted) after:absolute after:-inset-2.5 after:content-[''] hover:bg-(--app-surface-sunken) hover:text-(--app-text) focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
           :aria-label="$t('posts.labels.remove', { name: l.name })"
           @click="toggle(l.id)"
         >
@@ -228,7 +229,9 @@ const initials = (name: string) =>
           :placeholder="postId ? $t('posts.notes.placeholder') : $t('posts.notes.beforeDraft')"
           class="h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-(--app-text-muted) disabled:cursor-not-allowed"
         />
+        <!-- only once there is something to add (screen 08: an empty field); Enter adds too -->
         <UButton
+          v-show="draft.trim() !== '' || sending"
           type="submit"
           color="neutral"
           variant="ghost"

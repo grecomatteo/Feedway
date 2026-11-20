@@ -145,7 +145,8 @@
   },
   "devices": {
     "title": "Dispositivi",
-    "explain": "I dispositivi da cui hai accesso al tuo account. Se non ne riconosci uno, fallo uscire e cambia la password.",
+    "unknown": "Non riconosci un dispositivo?",
+    "explain": "Fallo uscire, poi cambia la password.",
     "listLabel": "Dispositivi collegati",
     "empty": "Nessun dispositivo collegato.",
     "deviceOn": "{browser} su {os}",
@@ -165,10 +166,11 @@
   "dataExport": {
     "title": "Privacy",
     "heading": "I tuoi dati",
-    "explain": "Scarica in un file ZIP i dati che il pannello conserva su di te: profilo, agenzie e clienti, sessioni e dispositivi, attività registrate a tuo nome e foto profilo. Password, codici e chiavi non ci sono mai.",
+    "row": "Copia dei tuoi dati",
+    "explain": "Un file ZIP con profilo, agenzie e clienti, sessioni, attività a tuo nome e foto profilo. Mai password, codici o chiavi.",
     "request": "Scarica i miei dati",
     "requestAgain": "Prepara un nuovo file",
-    "limit": "Puoi chiederli fino a 3 volte in 24 ore. Il file resta scaricabile per 24 ore.",
+    "limit": "Fino a 3 volte in 24 ore; il file resta scaricabile per 24 ore.",
     "stepsLabel": "Avanzamento",
     "stepPreparing": "In preparazione",
     "stepReady": "Pronto",
@@ -179,7 +181,7 @@
     "failed": "Non siamo riusciti a preparare il file. Riprova.",
     "expired": "Il file è scaduto: preparane uno nuovo.",
     "requestedAt": "Richiesto il {date}",
-    "reauth": "Prima di preparare e di scaricare il file ti chiediamo di nuovo la password."
+    "reauth": "Prima ti chiediamo di nuovo la password."
   },
   "accountDeletion": {
     "heading": "Elimina il mio account",
@@ -784,9 +786,10 @@
     }
   },
   "agencies": {
-    "title": "Scegli agenzia",
+    "title": "Scegli l'agenzia",
     "empty": "Non fai parte di nessuna agenzia.",
-    "suspended": "Sospesa"
+    "suspended": "Sospesa",
+    "signedInAs": "Hai fatto l'accesso come {email}"
   },
   "copyLink": {
     "copy": "Copia",
@@ -868,8 +871,7 @@
     "empty": "Nessuna persona su questo cliente.",
     "listLabel": "Persone del cliente",
     "roleOf": "Ruolo di {name}",
-    "remove": "Togli",
-    "removeOf": "Togli {name}",
+    "remove": "Togli dal cliente",
     "added": "Persona aggiunta.",
     "roleChanged": "Ruolo di {name} cambiato.",
     "removed": "{name} tolto dal cliente.",
@@ -877,7 +879,8 @@
     "person": "Persona",
     "role": "Ruolo",
     "add": "Aggiungi",
-    "noCandidates": "Tutte le persone dell'agenzia con il ruolo Member sono già qui. Owner e Admin vedono già ogni cliente."
+    "noCandidates": "Tutte le persone dell'agenzia con il ruolo Member sono già qui. Owner e Admin vedono già ogni cliente.",
+    "rolesHelp": "Cosa può fare ogni ruolo"
   },
   "users": {
     "title": "Utenti",
@@ -1061,7 +1064,9 @@
   "orgSettings": {
     "ownerOnly": "Solo l'Owner può cambiarle.",
     "name": "Nome dell'agenzia",
-    "require2fa": "Secondo passaggio all'accesso obbligatorio per",
+    "require2fa": "Secondo passaggio",
+    "require2faHint": "Chi deve usarlo all'accesso",
+    "require2faLabel": "Chi deve usare il secondo passaggio all'accesso",
     "policy": {
       "admins": "Owner e Admin",
       "all": "Tutti"
@@ -1069,13 +1074,13 @@
     "platformAll": "La piattaforma lo chiede già a tutti: non si può allentare.",
     "privacy": {
       "title": "Informativa privacy",
-      "help": "Chi è il titolare dei dati del team e come contattarlo: compaiono nella pagina Privacy, anche in quella pubblica collegata dall'accesso.",
+      "help": "Compare nella pagina Privacy, anche in quella pubblica.",
       "see": "Vedi l'informativa",
-      "missing": "L'informativa non indica ancora il titolare: compila nome e email di contatto.",
+      "missing": "Manca il titolare",
       "controllerName": "Titolare del trattamento",
-      "contactEmail": "Email per le richieste sulla privacy",
-      "extraText": "Testo aggiuntivo (facoltativo)",
-      "extraTextHelp": "Per esempio il responsabile della protezione dei dati o la sede. Fino a 2000 caratteri, testo semplice."
+      "contactEmail": "Email per la privacy",
+      "extraText": "Testo aggiuntivo",
+      "extraTextHelp": "Facoltativo: per esempio il responsabile della protezione dei dati o la sede. Fino a 2000 caratteri, testo semplice."
     },
     "tabs": {
       "general": "Generali",
@@ -1726,8 +1731,7 @@
       "storage_full": "Lo spazio del cliente o dell'agenzia è pieno.",
       "processing_failed": "La preparazione non è riuscita dopo vari tentativi."
     },
-    "usage": "Spazio occupato",
-    "usageOf": "{used} di {limit}",
+    "usageOf": "{used} occupati",
     "recent": "Ultimi file",
     "openLibrary": "Apri la libreria",
     "noRecent": "Ancora nessun file nella libreria.",
@@ -2384,7 +2388,6 @@
     },
     "choose": {
       "title": "Nuovo post: per quale cliente?",
-      "text": "Ogni post è di un cliente: scegli per chi lo prepari.",
       "loading": "Carico i clienti…"
     },
     "list": {

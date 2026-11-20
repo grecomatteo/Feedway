@@ -21,6 +21,14 @@ const confirmOpen = ref(false)
 
 const deviceLabel = (s: MySession) =>
   t('devices.deviceOn', { browser: s.device.browser, os: s.device.os })
+// a phone or a computer, by its system: only a hint for the eye, the words say which one
+const iconOf = (s: MySession) =>
+  /android|ios|iphone|ipad/i.test(s.device.os) ? 'i-lucide-smartphone' : 'i-lucide-laptop'
+const detailOf = (s: MySession) =>
+  [
+    s.ipApprox ? t('devices.ip', { ip: s.ipApprox }) : t('devices.ipUnknown'),
+    t('devices.lastActive', { date: formatRelative(s.lastActiveAt) }),
+  ].join(' · ')
 
 async function run(key: string, action: () => Promise<void>) {
   sending.value = key
@@ -55,39 +63,35 @@ const signOutAll = () =>
 </script>
 
 <template>
-  <section
-    aria-labelledby="devices-list"
-    class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-  >
-    <h2 id="devices-list" class="text-lg">{{ $t('devices.listLabel') }}</h2>
-    <p class="text-sm text-(--app-text-muted)">{{ $t('devices.explain') }}</p>
-
-    <p v-if="props.sessions.length === 0">{{ $t('devices.empty') }}</p>
-    <ul v-else class="divide-y divide-(--app-border)" :aria-label="$t('devices.listLabel')">
+  <!-- the devices in the settings' grammar (D-81, screen 24): one group, a row each -->
+  <SettingsGroup :title="$t('devices.listLabel')">
+    <template #aside>
+      <p v-if="done" role="status" class="text-detail text-(--app-text-muted)">{{ done }}</p>
+    </template>
+    <p v-if="props.sessions.length === 0" class="px-4 py-3">{{ $t('devices.empty') }}</p>
+    <ul v-else :aria-label="$t('devices.listLabel')">
       <li
         v-for="s in props.sessions"
         :key="s.id"
-        class="flex flex-wrap items-center justify-between gap-3 py-3"
+        class="flex min-h-15 items-center gap-3 border-t border-(--app-border) px-4 py-3 first:border-t-0"
       >
-        <div class="space-y-1">
-          <p class="flex flex-wrap items-center gap-2 font-semibold">
+        <UIcon
+          :name="iconOf(s)"
+          class="size-5 shrink-0 text-(--app-text-muted)"
+          aria-hidden="true"
+        />
+        <div class="min-w-0 flex-1">
+          <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-medium">
             {{ deviceLabel(s) }}
-            <UBadge v-if="s.current" color="success" variant="subtle">
-              {{ $t('devices.current') }}
-            </UBadge>
+            <StatusDot v-if="s.current" tone="success" :label="$t('devices.current')" />
           </p>
-          <p class="text-sm text-(--app-text-muted)">
-            {{ s.ipApprox ? $t('devices.ip', { ip: s.ipApprox }) : $t('devices.ipUnknown') }}
-          </p>
-          <p class="text-sm text-(--app-text-muted)">
-            {{ $t('devices.lastActive', { date: formatRelative(s.lastActiveAt) }) }}
-          </p>
+          <p class="text-detail text-(--app-text-muted)">{{ detailOf(s) }}</p>
         </div>
         <UButton
           v-if="!s.current"
-          class="min-h-control"
           color="neutral"
           variant="outline"
+          size="sm"
           :loading="sending === s.id"
           :aria-label="$t('devices.signOutOf', { device: deviceLabel(s) })"
           @click="signOut(s)"
@@ -96,45 +100,41 @@ const signOutAll = () =>
         </UButton>
       </li>
     </ul>
-
-    <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
-    <p v-if="done" role="status" class="text-(--app-success)">{{ done }}</p>
-
-    <UButton
-      class="min-h-control"
-      color="error"
-      variant="outline"
-      icon="i-lucide-log-out"
-      @click="confirmOpen = true"
+    <!-- the way out for a device not recognised: beside its reason, under it on a phone -->
+    <div
+      class="flex min-h-15 flex-wrap items-center gap-x-6 gap-y-2 border-t border-(--app-border) px-4 py-3"
     >
-      {{ $t('devices.signOutAll') }}
-    </UButton>
+      <div class="min-w-48 flex-1">
+        <p class="font-medium">{{ $t('devices.unknown') }}</p>
+        <p class="text-detail text-(--app-text-muted)">{{ $t('devices.explain') }}</p>
+      </div>
+      <UButton
+        color="error"
+        variant="outline"
+        size="sm"
+        icon="i-lucide-log-out"
+        @click="confirmOpen = true"
+      >
+        {{ $t('devices.signOutAll') }}
+      </UButton>
+    </div>
+  </SettingsGroup>
+  <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
 
-    <UModal
-      v-model:open="confirmOpen"
-      :title="$t('devices.confirmTitle')"
-      :description="$t('devices.confirmText')"
-    >
-      <template #footer>
-        <div class="flex flex-wrap gap-3">
-          <UButton
-            class="min-h-control"
-            color="error"
-            :loading="sending === 'all'"
-            @click="signOutAll"
-          >
-            {{ $t('devices.confirm') }}
-          </UButton>
-          <UButton
-            class="min-h-control"
-            color="neutral"
-            variant="ghost"
-            @click="confirmOpen = false"
-          >
-            {{ $t('security.cancel') }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
-  </section>
+  <UModal
+    v-model:open="confirmOpen"
+    :title="$t('devices.confirmTitle')"
+    :description="$t('devices.confirmText')"
+  >
+    <template #footer>
+      <div class="flex flex-wrap gap-3">
+        <UButton color="error" :loading="sending === 'all'" @click="signOutAll">
+          {{ $t('devices.confirm') }}
+        </UButton>
+        <UButton color="neutral" variant="outline" @click="confirmOpen = false">
+          {{ $t('security.cancel') }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>

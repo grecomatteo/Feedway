@@ -30,9 +30,9 @@ const icon = 'size-4 shrink-0 text-(--app-text-muted)'
   <div class="text-(--app-text)">
     <!-- who is signed in: not an entry of the menu -->
     <div class="flex items-center gap-2 px-2 pt-2 pb-2.5">
-      <Avatar :name="me.displayName" :src="me.avatarUrl" kind="person" :size="28" />
+      <Avatar :name="me.name" :src="me.avatarUrl" kind="person" :size="28" />
       <div class="min-w-0 leading-[1.125rem]">
-        <p class="truncate font-semibold">{{ me.displayName }}</p>
+        <p class="truncate font-semibold">{{ me.name }}</p>
         <p class="truncate text-detail text-(--app-text-muted)">{{ me.email }}</p>
       </div>
     </div>

@@ -16,6 +16,13 @@ useHead({ title: () => t('posts.choose.title') })
 const usable = computed(() =>
   (data.value?.items ?? []).filter((w) => w.archivedAt === null && w.myRole !== 'viewer'),
 )
+// a search only when the list is long enough to need one, as in the client selector
+const SEARCH_FROM = 8
+const query = ref('')
+const shown = computed(() => {
+  const q = query.value.trim().toLocaleLowerCase('it')
+  return q ? usable.value.filter((w) => w.name.toLocaleLowerCase('it').includes(q)) : usable.value
+})
 const editorOf = (slug: string) => {
   const profilo = route.query['profilo']
   return {
@@ -36,23 +43,41 @@ watchEffect(() => {
 <template>
   <PageShell>
     <template #head>
-      <PageHeader :title="$t('posts.choose.title')">
-        <template #summary>{{ $t('posts.choose.text') }}</template>
-      </PageHeader>
+      <PageHeader :title="$t('posts.choose.title')" />
     </template>
-    <ListSkeleton
-      v-if="status !== 'success' || usable.length === 1"
-      :label="$t('posts.choose.loading')"
-      :rows="3"
-    />
-    <DataList v-else :label="$t('posts.choose.title')">
-      <DataRow
-        v-for="w in usable"
-        :key="w.id"
-        :name="w.name"
-        :src="w.photoUrl"
-        :to="editorOf(w.slug)"
+    <div class="grid max-w-form gap-stack">
+      <ListSkeleton
+        v-if="status !== 'success' || usable.length === 1"
+        :label="$t('posts.choose.loading')"
+        :rows="3"
       />
-    </DataList>
+      <template v-else>
+        <SearchField
+          v-if="usable.length >= SEARCH_FROM"
+          v-model="query"
+          :label="$t('context.search')"
+          class="md:max-w-none"
+        />
+        <p v-if="shown.length === 0" class="text-(--app-text-muted)">
+          {{ $t('context.noMatch') }}
+        </p>
+        <ListSurface v-else class="overflow-hidden" :label="$t('posts.choose.title')">
+          <ListRow v-for="w in shown" :key="w.id">
+            <NuxtLink
+              :to="editorOf(w.slug)"
+              class="col-span-full -mx-4 flex min-h-row items-center gap-3 px-4 font-semibold hover:bg-(--app-nav-hover) max-md:-mx-3.5 max-md:px-3.5"
+            >
+              <Avatar :name="w.name" :src="w.photoUrl" />
+              <span class="min-w-0 flex-1 truncate">{{ w.name }}</span>
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="size-4 shrink-0 text-(--app-text-muted)"
+                aria-hidden="true"
+              />
+            </NuxtLink>
+          </ListRow>
+        </ListSurface>
+      </template>
+    </div>
   </PageShell>
 </template>

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import type { PrivacyNotice } from '@app/contracts'
 
-const props = defineProps<{ notice: PrivacyNotice }>()
+const props = withDefaults(
+  defineProps<{
+    notice: PrivacyNotice
+    /** inside a settings group: its titles at the size of the group's, not of a page's */
+    compact?: boolean
+  }>(),
+  { compact: false },
+)
+const heading = computed(() => (props.compact ? 'text-base font-semibold' : 'text-xl'))
 const { t } = useI18n()
 
 const DAY = 86_400_000
@@ -41,7 +49,7 @@ const cookies = computed(() =>
 <template>
   <div class="space-y-6">
     <section class="space-y-2" aria-labelledby="privacy-controller">
-      <h2 id="privacy-controller" class="text-xl">{{ $t('privacyNotice.controllerTitle') }}</h2>
+      <h2 id="privacy-controller" :class="heading">{{ $t('privacyNotice.controllerTitle') }}</h2>
       <template v-if="notice.controllerName">
         <p>
           {{
@@ -63,20 +71,20 @@ const cookies = computed(() =>
     </section>
 
     <section class="space-y-2" aria-labelledby="privacy-what">
-      <h2 id="privacy-what" class="text-xl">{{ $t('privacyNotice.whatTitle') }}</h2>
+      <h2 id="privacy-what" :class="heading">{{ $t('privacyNotice.whatTitle') }}</h2>
       <p>{{ $t('privacyNotice.what') }}</p>
       <p>{{ $t('privacyNotice.why') }}</p>
     </section>
 
     <section class="space-y-2" aria-labelledby="privacy-retention">
-      <h2 id="privacy-retention" class="text-xl">{{ $t('privacyNotice.retentionTitle') }}</h2>
+      <h2 id="privacy-retention" :class="heading">{{ $t('privacyNotice.retentionTitle') }}</h2>
       <ul class="list-disc space-y-1 pl-5">
         <li v-for="line in retention" :key="line">{{ line }}</li>
       </ul>
     </section>
 
     <section class="space-y-2" aria-labelledby="privacy-cookies">
-      <h2 id="privacy-cookies" class="text-xl">{{ $t('privacyNotice.cookiesTitle') }}</h2>
+      <h2 id="privacy-cookies" :class="heading">{{ $t('privacyNotice.cookiesTitle') }}</h2>
       <p>{{ $t('privacyNotice.cookiesIntro') }}</p>
       <ul class="space-y-2">
         <li v-for="c in cookies" :key="c.name">
@@ -87,7 +95,7 @@ const cookies = computed(() =>
     </section>
 
     <section class="space-y-2" aria-labelledby="privacy-rights">
-      <h2 id="privacy-rights" class="text-xl">{{ $t('privacyNotice.rightsTitle') }}</h2>
+      <h2 id="privacy-rights" :class="heading">{{ $t('privacyNotice.rightsTitle') }}</h2>
       <p>{{ $t('privacyNotice.rights') }}</p>
     </section>
   </div>

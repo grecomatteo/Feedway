@@ -52,6 +52,23 @@ const tabs = computed(() => [
     : []),
 ])
 const current = (to: string) => route.path === to || route.path === `${to}/`
+// on a phone the strip of tabs is wider than the screen: the open one is scrolled into view, not
+// left cut at the edge («Co…»)
+const tabStrip = ref<HTMLElement | null>(null)
+watch(
+  [() => route.path, tabStrip],
+  async () => {
+    await nextTick()
+    const strip = tabStrip.value
+    const active = strip?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!strip || !active) return
+    const left =
+      active.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft
+    if (left < strip.scrollLeft || left + active.offsetWidth > strip.scrollLeft + strip.clientWidth)
+      strip.scrollTo({ left: left - (strip.clientWidth - active.offsetWidth) / 2 })
+  },
+  { immediate: true },
+)
 // the editor of a post is a page of its own, with no head nor tabs of the client (design E1)
 const bare = computed(() => route.meta['editor'] === true)
 </script>
@@ -102,6 +119,7 @@ const bare = computed(() => route.meta['editor'] === true)
         <!-- the line under the tabs is a shadow, not a border the tabs overlap: with overflow-x the
            overlap made a vertical scrollbar appear beside them (R-10) -->
         <nav
+          ref="tabStrip"
           :aria-label="$t('client.tabs.label')"
           class="overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--app-border)] max-md:-mx-gutter max-md:px-gutter"
         >
