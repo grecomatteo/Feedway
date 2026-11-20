@@ -201,7 +201,7 @@ const row = computed(() => (props.phone ? 'min-h-12' : 'min-h-9'))
       :id="`${id}-list`"
       role="listbox"
       :aria-label="$t('context.label')"
-      class="max-h-[60vh] overflow-y-auto"
+      class="max-h-[60vh] overflow-x-hidden overflow-y-auto"
     >
       <li
         v-for="(option, i) in options"

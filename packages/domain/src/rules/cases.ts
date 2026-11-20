@@ -826,7 +826,7 @@ export const RULE_CASES: RuleCase[] = [
   c(
     'publish-now',
     'post',
-    '«Pubblica ora»: la regola della data non vale',
+    '«Pubblica subito»: la regola della data non vale',
     draft({ when: { mode: 'now' } }),
     [],
   ),
