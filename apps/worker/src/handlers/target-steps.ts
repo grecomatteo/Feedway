@@ -2,6 +2,8 @@ import {
   prepareTarget,
   publishTarget,
   reconcilePublishing,
+  searchTarget,
+  verifyTarget,
   type PublishingWorkerDeps,
 } from '@app/application'
 import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
@@ -42,6 +44,24 @@ export const targetPublish: JobHandler<'target.publish'> = async (job, deps) => 
     ...(job.signal ? { signal: job.signal } : {}),
   })
   deps.logger.info({ jobId: job.id, targetId: job.data.targetId, ...log }, 'publish step done')
+}
+
+export const targetReconcile: JobHandler<'target.reconcile'> = async (job, deps) => {
+  const log = await searchTarget(publishingDeps(deps), {
+    ...job.data,
+    jobId: job.id,
+    ...(job.signal ? { signal: job.signal } : {}),
+  })
+  deps.logger.info({ jobId: job.id, targetId: job.data.targetId, ...log }, 'search step done')
+}
+
+export const targetVerify: JobHandler<'target.verify'> = async (job, deps) => {
+  const log = await verifyTarget(publishingDeps(deps), {
+    ...job.data,
+    jobId: job.id,
+    ...(job.signal ? { signal: job.signal } : {}),
+  })
+  deps.logger.info({ jobId: job.id, targetId: job.data.targetId, ...log }, 'verify step done')
 }
 
 export const schedulerReconcile: JobHandler<'scheduler.reconcile'> = async (job, deps) => {

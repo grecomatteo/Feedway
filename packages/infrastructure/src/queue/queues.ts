@@ -145,6 +145,18 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
     expireInSeconds: TARGET_STEP_EXPIRE_SECONDS,
   },
+  'target.reconcile': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+    expireInSeconds: TARGET_STEP_EXPIRE_SECONDS,
+  },
+  'target.verify': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+    expireInSeconds: TARGET_STEP_EXPIRE_SECONDS,
+  },
   // every minute, one run at a time; a run that waited is replaced by the next one
   'scheduler.reconcile': {
     policy: 'singleton',

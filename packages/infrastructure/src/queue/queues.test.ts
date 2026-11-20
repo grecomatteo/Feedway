@@ -25,6 +25,8 @@ test('every registered queue declares a scope', () => {
     ['media.publish_copies_cleanup', 'system'],
     ['target.prepare', 'organization'],
     ['target.publish', 'organization'],
+    ['target.reconcile', 'organization'],
+    ['target.verify', 'organization'],
     ['scheduler.reconcile', 'system'],
   ])
   expect(QUEUE_NAMES).toEqual([
@@ -49,12 +51,14 @@ test('every registered queue declares a scope', () => {
     'media.publish_copies_cleanup',
     'target.prepare',
     'target.publish',
+    'target.reconcile',
+    'target.verify',
     'scheduler.reconcile',
   ])
 })
 
 test('a step of the publishing is aborted before its preparation claim expires', () => {
-  for (const name of ['target.prepare', 'target.publish'])
+  for (const name of ['target.prepare', 'target.publish', 'target.reconcile', 'target.verify'])
     expect(QUEUES.find((q) => q.name === name)?.expireInSeconds).toBe(300)
   expect(QUEUES.find((q) => q.name === 'scheduler.reconcile')?.policy).toBe('singleton')
   expect(QUEUES.find((q) => q.name === 'media.publish_copies_cleanup')?.policy).toBe('singleton')

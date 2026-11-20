@@ -16,7 +16,7 @@ import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
-import { targetPrepare, targetPublish } from './target-steps.js'
+import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
   publishingWorld,
   readyPhoto,
@@ -199,7 +199,9 @@ async function copiesWorld(): Promise<World> {
  * A scheduled destination of each agency whose time passed 20 minutes ago (D-77 b): the step
  * fails it without calling Meta, which is enough to see where it writes.
  */
-async function targetsWorld(status: 'scheduled' | 'ready'): Promise<World> {
+async function targetsWorld(
+  status: 'scheduled' | 'ready' | 'unknown' | 'published',
+): Promise<World> {
   const a = await publishingWorld(tdb, runtime)
   const b = await publishingWorld(tdb, runtime)
   const ofEach = async (w: PublishingWorld) => {
@@ -219,6 +221,14 @@ async function targetsWorld(status: 'scheduled' | 'ready'): Promise<World> {
         `update post_targets set status = 'ready', step = 'publish',
                 next_attempt_at = now() - interval '20 minutes' where post_id = $1`,
         [postId],
+      )
+    if (status === 'unknown' || status === 'published')
+      // an uncertain call nothing came of, or a post out without its id: the step reads Meta,
+      // finds nothing, and writes the next round or the problem, on its own agency only
+      await admin.query(
+        `update post_targets set status = $2, step = $3, next_attempt_at = now()
+          where post_id = $1`,
+        [postId, status, status === 'unknown' ? 'publish' : 'verify'],
       )
     const [target] = await targetsOf(admin, postId)
     if (!target) throw new Error('no destination')
@@ -243,6 +253,8 @@ const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'media.publish_copies': { handler: mediaPublishCopies, world: copiesWorld },
   'target.prepare': { handler: targetPrepare, world: () => targetsWorld('scheduled') },
   'target.publish': { handler: targetPublish, world: () => targetsWorld('ready') },
+  'target.reconcile': { handler: targetReconcile, world: () => targetsWorld('unknown') },
+  'target.verify': { handler: targetVerify, world: () => targetsWorld('published') },
 }
 
 // every row an agency's job could touch, by agency

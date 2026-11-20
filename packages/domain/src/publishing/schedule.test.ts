@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { instantToZoned, zonedToInstant } from '../time/index.js'
-import { isTooLate, nextAttemptAt, prepareAt, recheckAt, verifyAt } from './schedule.js'
+import { isTooLate, nextAttemptAt, prepareAt, recheckAt, searchAt, verifyAt } from './schedule.js'
 
 const MIN = 60_000
 const at = (iso: string) => new Date(iso)
@@ -29,6 +29,20 @@ describe('nextAttemptAt (§9.5: 1, 5, 15 minutes after the failed step)', () => 
     expect(next).toEqual(plus(failed, 15))
     expect(rome(failed)).toBe('2026-10-25 02:55 +02:00')
     expect(rome(next as Date)).toBe('2026-10-25 02:10 +01:00')
+  })
+})
+
+describe('searchAt (§9.5, Scelta 7: 2, 5, 15 minutes after the uncertain call)', () => {
+  const uncertainAt = at('2026-11-20T17:00:00Z')
+  it('three searches, then none', () => {
+    expect(searchAt(uncertainAt, 1)).toEqual(plus(uncertainAt, 2))
+    expect(searchAt(uncertainAt, 2)).toEqual(plus(uncertainAt, 5))
+    expect(searchAt(uncertainAt, 3)).toEqual(plus(uncertainAt, 15))
+    expect(searchAt(uncertainAt, 4)).toBeNull()
+  })
+  it('counts real minutes across the change of time (2027-03-28)', () => {
+    const uncertain = zonedToInstant('2027-03-28', '01:50', 'Europe/Rome').instant
+    expect(rome(searchAt(uncertain, 3) as Date)).toBe('2027-03-28 03:05 +02:00')
   })
 })
 

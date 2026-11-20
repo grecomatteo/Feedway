@@ -29,6 +29,8 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'media.publish_copies_cleanup': true,
   'target.prepare': true,
   'target.publish': true,
+  'target.reconcile': true,
+  'target.verify': true,
   'scheduler.reconcile': true,
 }
 

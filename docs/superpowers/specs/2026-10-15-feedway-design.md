@@ -675,7 +675,7 @@ Ogni lavoro ha una chiave di unicità `<destinazione>:<passo>:<generazione>` (pi
 
 - **Temporanei** (rete, 5xx, limiti di frequenza, video in elaborazione): nuovi tentativi dopo 1, 5 e 15 minuti dal passo fallito.
 - **Definitivi** (permessi, file rifiutato, duplicato, token non valido): `failed` con messaggio tradotto, nessun tentativo automatico.
-- **Incerti** (timeout sulla chiamata che pubblica): `unknown`; il worker cerca il post tra gli ultimi dell'account per caption (il testo di quella destinazione) e orario e lo segna `published` o `failed`. Così "Riprova" non crea doppioni.
+- **Incerti** (timeout sulla chiamata che pubblica): `unknown`; il worker (`target.reconcile`) cerca il post tra gli ultimi 25 dell'account per caption (il testo di quella destinazione, spazi normalizzati; per una storia l'ultima storia) pubblicato tra l'inizio della chiamata e 10 minuti dopo, con tre ricerche a 2, 5 e 15 minuti dall'esito incerto (piano 07, Scelta 7). Trovato, `published` con l'id trovato, poi la verifica; non trovato dopo la terza, `failed` con `uncertain_not_found`. Una ricerca che riceve un errore conta come una ricerca senza risultato (D-112). Così "Riprova" non crea doppioni.
 - **Container IG scaduti**: ricreati da capo.
 - Ogni tentativo è registrato in `target_attempts` (passo, esito, codice Meta, durata), senza dati sensibili.
 
@@ -701,9 +701,10 @@ Una risposta positiva di Meta non basta: un reel può fallire durante l'elaboraz
 | FB reel e video | `GET /{video-id}?fields=status,permalink_url`: elaborazione e pubblicazione completate |
 | Storie | Esistenza tramite ID (verifica immediata: scadono dopo 24 h) |
 
-Primo controllo dopo **3 minuti**, poi a 10 e 30 se Meta sta ancora elaborando.
-- **Confermato**: salvato il link definitivo.
-- **Con problema**: non esiste, è in errore o ancora in elaborazione dopo 30 minuti. Il pannello propone "Riprova" o "Segna come verificato a mano".
+Primo controllo dopo **3 minuti**, poi a 10 e 30 se Meta sta ancora elaborando (`target.verify`; un errore di Meta vale come «ancora in elaborazione», D-112).
+- **Confermato**: salvato il link definitivo; `post.target_confirmed`, e `post.confirmed` quando tutte le destinazioni non annullate lo sono.
+- **Con problema**: non esiste, è in errore o del tipo sbagliato (subito), o ancora in elaborazione dopo 30 minuti; il motivo (`not_found`, `failed`, `wrong_type`, `still_processing`) in `verification.reason` e in `post.target_problem`. Il pannello propone "Riprova" o "Segna come verificato a mano".
+- **Riprova da Con problema** (piano 07, Task 8): `unknown` con il passo `recheck`; il worker rilegge il post e lo cerca sull'account: se c'è, `confirmed` (o di nuovo la verifica, se è ancora in elaborazione); se non c'è, `retrying` dalla preparazione, senza gli id del post di prima. Mai una seconda pubblicazione di un post che Meta ha.
 
 I campi esatti da leggere saranno confermati nei primi test reali.
 

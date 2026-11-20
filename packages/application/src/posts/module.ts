@@ -8,5 +8,11 @@ import type { ModuleDefinition } from '../module-definition.js'
 export const postsModule: ModuleDefinition = {
   name: 'posts',
   permissions: ['post.draft', 'post.publish', 'post.manage_others'],
-  queues: ['target.prepare', 'target.publish', 'scheduler.reconcile'],
+  queues: [
+    'target.prepare',
+    'target.publish',
+    'target.reconcile',
+    'target.verify',
+    'scheduler.reconcile',
+  ],
 }
