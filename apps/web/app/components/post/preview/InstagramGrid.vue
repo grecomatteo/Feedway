@@ -31,7 +31,7 @@ const SIGN = { carousel: 'i-lucide-gallery-horizontal-end', reel: 'i-lucide-clap
           <span class="sr-only">{{ t(`posts.preview.gridKind.${kind}`) }}</span>
         </template>
       </li>
-      <li v-for="i in 8" :key="i" class="aspect-[3/4] bg-[#efefef]" aria-hidden="true" />
+      <li v-for="i in 8" :key="i" class="aspect-[3/4] bg-(--pv-sunken)" aria-hidden="true" />
     </ul>
   </div>
 </template>

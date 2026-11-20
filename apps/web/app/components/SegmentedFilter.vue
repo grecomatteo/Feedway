@@ -1,8 +1,10 @@
 <script setup lang="ts" generic="T extends string">
+import { vScrollEdges } from '~/utils/scroll-edges'
+
 /**
  * The filter above a list («Tutti 9 · Bozze 2 · Programmati 3», D-81): toggle buttons in a sunken
  * well, the chosen one on a white surface. On a phone each choice is 36 high, and in a `Toolbar`
- * the filter fills the line.
+ * the filter fills the line, and fades at the edge where more of it scrolls (D-102.8).
  */
 withDefaults(
   defineProps<{
@@ -18,6 +20,7 @@ const model = defineModel<T>({ required: true })
 
 <template>
   <div
+    v-scroll-edges
     role="group"
     :aria-label="label"
     class="gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"

@@ -33,7 +33,7 @@ function go(by: -1 | 1) {
   <div class="flex flex-col pb-3" data-view="instagram_feed">
     <div class="flex items-center gap-2 px-3 py-2">
       <span
-        class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#efefef] text-[0.625rem] font-semibold ring-2 ring-[#d62976]"
+        class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-(--pv-sunken) text-[0.625rem] font-semibold ring-2 ring-[#d62976]"
         aria-hidden="true"
       >
         <img v-if="avatar" :src="avatar" alt="" class="size-full object-cover" />
@@ -86,7 +86,7 @@ function go(by: -1 | 1) {
           v-for="(item, i) in many ? items : []"
           :key="item.index"
           class="size-1.5 rounded-full"
-          :class="i === at ? 'bg-[#0095f6]' : 'bg-[#c7c7c7]'"
+          :class="i === at ? 'bg-[#0095f6]' : 'bg-(--pv-dot)'"
         />
       </span>
       <UIcon name="i-lucide-bookmark" class="size-5" />

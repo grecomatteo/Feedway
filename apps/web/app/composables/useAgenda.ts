@@ -36,25 +36,19 @@ export function dayStart(at: Date, days = 0): Date {
   return d
 }
 
-/** Monday of the week of `at`, at midnight. */
-export function weekStart(at: Date): Date {
-  const monday = (at.getDay() + 6) % 7
-  return dayStart(at, -monday)
-}
-
 /** The same day, in the browser's zone. */
 export const sameDay = (a: Date, b: Date) => dayStart(a).getTime() === dayStart(b).getTime()
 
 /**
- * The reads of «Oggi»: the week of today (and tomorrow, when today is Sunday), the drafts to
+ * The reads of «Oggi»: the seven days from today, the drafts to
  * finish and the clients' activity, for the client of the selector or for all of them.
  */
 export function useAgenda(workspaceId: Ref<string | null>) {
   const org = useOrganization()
   const now = new Date()
-  const from = weekStart(now)
-  // tomorrow is on the list even on a Sunday, when it is in the next week
-  const to = new Date(Math.max(dayStart(from, 7).getTime(), dayStart(now, 2).getTime()))
+  // the seven days from today: the days already gone are not «free» (D-102.9)
+  const from = dayStart(now)
+  const to = dayStart(from, 7)
   const narrowed = () => (workspaceId.value === null ? {} : { workspaceId: workspaceId.value })
   const key = (what: string) => `agenda-${what}-${org.slug.value}-${workspaceId.value ?? 'all'}`
 

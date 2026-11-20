@@ -2333,6 +2333,7 @@
     },
     "editor": {
       "newTitle": "Nuovo post",
+      "untitledDraft": "Bozza senza testo",
       "editTitle": "Modifica il post",
       "scheduledTitle": "Post programmato",
       "cancelledTitle": "Post annullato",

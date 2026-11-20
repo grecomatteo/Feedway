@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * The box around a preview (Matteo, 18 November 2026: no phone, a plain rectangle with the
- * platform's interface): the app's own colours, white for the feed and the Page's posts, black
- * for reels and stories, in the panel's dark theme too. A reel or a story is exactly 9:16, so
+ * platform's interface): the app's own colours, in the app's light or dark mode as the panel's
+ * theme (D-102.10: a white box in the dark theme was the only one), black for reels and stories
+ * in both. A reel or a story is exactly 9:16, so
  * the covered zones are fractions of the frame Meta measures them on, and short enough to fit
  * the screen's height. In the editor's column a reel is 236 px wide (screen 09).
  */
@@ -18,8 +19,10 @@ const props = withDefaults(
      * of the app included: on a low screen the feed narrows so «Controlli» stay in view (A1)
      */
     feed?: { ratio: number; reserve: string }
+    /** whose colours: Instagram's or Facebook's */
+    app?: 'instagram' | 'facebook'
   }>(),
-  { reserve: '20rem', width: '100%', feed: undefined },
+  { reserve: '20rem', width: '100%', feed: undefined, app: 'instagram' },
 )
 // never narrower than 12rem, where the app's names and buttons still read
 const maxWidth = computed(() =>
@@ -37,10 +40,11 @@ const maxWidth = computed(() =>
     :class="
       vertical
         ? 'aspect-[9/16] border-black bg-black text-white'
-        : 'border-(--app-border-strong) bg-white text-[#141414]'
+        : 'border-(--app-border-strong) bg-(--pv-bg) text-(--pv-text)'
     "
     :style="maxWidth ? { maxWidth } : undefined"
     data-preview-frame
+    :data-preview-app="app"
   >
     <slot />
   </div>

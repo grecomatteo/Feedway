@@ -123,12 +123,15 @@ onBeforeUnmount(() => {
   desktopQuery?.removeEventListener('change', onDesktop)
 })
 
-/** A draft is named by the first line of its text, «Nuovo post» while it has none (B12). */
+/** A draft is named by the first line of its text (B12); without one «Nuovo post» until it is
+ *  saved, then «Bozza senza testo» (D-102.5). */
 const title = computed(() => {
   if (e.status.value === 'scheduled') return t('posts.editor.scheduledTitle')
   if (e.status.value === 'cancelled') return t('posts.editor.cancelledTitle')
   const text = e.caption.common || e.caption.instagram || e.caption.facebook || ''
-  return text.trim().split('\n')[0]?.trim() || t('posts.editor.newTitle')
+  const first = text.trim().split('\n')[0]?.trim()
+  if (first) return first
+  return e.save.value.postId ? t('posts.editor.untitledDraft') : t('posts.editor.newTitle')
 })
 /** Why this person reads the post and does not change it. */
 const readOnly = computed(() => {

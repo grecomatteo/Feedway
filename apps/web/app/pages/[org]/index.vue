@@ -2,7 +2,7 @@
 /**
  * «Oggi» (D-81, screens 02 and 03): three questions in this order. What needs a hand («Da
  * sistemare», with the button that fixes each problem, or one calm line when nothing does), what
- * goes out («In uscita»: the week in a strip, then today and tomorrow, or the day picked in the
+ * goes out («In uscita»: the seven days from today in a strip, then today and tomorrow, or the day picked in the
  * strip), what was left half done («Bozze da finire») and the clients worked on last. With a
  * client in the selector the page is about that client only.
  */
@@ -91,7 +91,7 @@ async function retry(i: AgendaIssue & { kind: 'media' }) {
   }
 }
 
-// ---- In uscita: the week in a strip, then today and tomorrow or the day picked
+// ---- In uscita: the seven days from today in a strip, then today and tomorrow or the day picked
 const WEEKDAY = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }) // «lun»
 const posts = computed(() => agenda.data.value?.items ?? [])
 // while the read is on its way or failed the strip says nothing about the days
@@ -104,7 +104,6 @@ const days = computed(() =>
       key: day.toISOString(),
       day,
       today: sameDay(day, now),
-      past: day < dayStart(now),
       weekday: sameDay(day, now) ? t('today.week.today') : WEEKDAY.format(day),
       number: day.getDate(),
       posts: own,
@@ -343,7 +342,6 @@ const ready = computed(
                   <span class="block text-caption text-(--app-text-muted)">{{ d.weekday }}</span>
                   <span
                     class="mt-0.5 flex items-baseline gap-1.5 text-[15px] leading-5 font-semibold tabular-nums max-md:items-center max-md:justify-center @max-[44rem]:flex-col @max-[44rem]:gap-0"
-                    :class="d.past ? 'text-(--app-text-muted)' : ''"
                   >
                     {{ d.number }}
                     <span
