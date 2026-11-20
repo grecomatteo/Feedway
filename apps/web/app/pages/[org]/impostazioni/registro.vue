@@ -131,47 +131,47 @@ const head = computed(() => [
       >
         {{ items.length === 0 ? $t('audit.empty') : $t('audit.noMatch') }}
       </p>
-      <div v-else class="grid gap-3">
-        <ListSurface
-          columns="120px 150px minmax(0,1fr) 150px"
-          :head="head"
-          :label="$t('audit.title')"
-          class="max-md:[&>[data-list-head]]:sr-only"
+      <ListSurface
+        v-else
+        columns="120px 150px minmax(0,1fr) 150px"
+        :head="head"
+        :label="$t('audit.title')"
+        class="max-md:[&>[data-list-head]]:sr-only"
+      >
+        <ListRow
+          v-for="item in shown"
+          :key="item.id"
+          class="max-md:grid-cols-1 max-md:py-2.5"
+          data-audit-row
         >
-          <ListRow
-            v-for="item in shown"
-            :key="item.id"
-            class="max-md:grid-cols-1 max-md:py-2.5"
-            data-audit-row
-          >
-            <span role="cell" class="text-(--app-text-muted) max-md:hidden">
-              <time :datetime="item.createdAt">{{ formatRelative(item.createdAt) }}</time>
-            </span>
-            <span role="cell" class="truncate font-medium max-md:hidden">{{
-              item.authorName
-            }}</span>
-            <span role="cell" class="min-w-0">
-              <span
-                ><span class="font-semibold md:hidden">{{ `${item.authorName} ` }}</span
-                >{{ actionLabel(item.action) }}</span
-              >
-              <span class="block text-detail text-(--app-text-muted) md:hidden"
-                >{{ formatRelative(item.createdAt)
-                }}<template v-if="clientOf(item)"> · {{ clientOf(item) }}</template></span
-              >
-            </span>
-            <span role="cell" class="truncate text-(--app-text-muted) max-md:hidden">{{
-              clientOf(item) ?? '—'
-            }}</span>
-          </ListRow>
-        </ListSurface>
-        <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
-        <div v-if="cursor">
+          <span role="cell" class="text-(--app-text-muted) max-md:hidden">
+            <time :datetime="item.createdAt">{{ formatRelative(item.createdAt) }}</time>
+          </span>
+          <span role="cell" class="truncate font-medium max-md:hidden">{{ item.authorName }}</span>
+          <span role="cell" class="min-w-0">
+            <span
+              ><span class="font-semibold md:hidden">{{ `${item.authorName} ` }}</span
+              >{{ actionLabel(item.action) }}</span
+            >
+            <span class="block text-detail text-(--app-text-muted) md:hidden"
+              >{{ formatRelative(item.createdAt)
+              }}<template v-if="clientOf(item)"> · {{ clientOf(item) }}</template></span
+            >
+          </span>
+          <span role="cell" class="truncate text-(--app-text-muted) max-md:hidden">{{
+            clientOf(item) ?? '—'
+          }}</span>
+        </ListRow>
+      </ListSurface>
+      <!-- outside the list: a filter that finds nothing among the rows loaded can find older ones -->
+      <template v-if="loaded">
+        <p v-if="problem" role="alert" class="mt-3 text-(--app-danger)">{{ problem }}</p>
+        <div v-if="cursor" class="mt-3">
           <UButton color="neutral" variant="outline" :loading="loading" @click="load(true)">
             {{ $t('audit.more') }}
           </UButton>
         </div>
-      </div>
+      </template>
     </div>
   </SettingsShell>
 </template>

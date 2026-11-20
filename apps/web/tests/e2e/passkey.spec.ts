@@ -54,7 +54,8 @@ async function openPasskeys(page: Page) {
 
 /** The authenticator app lives in a dialog opened from its row of Sicurezza. */
 async function openTotp(page: Page) {
-  await page.getByRole('button', { name: "Gestisci l'app di autenticazione" }).click()
+  // «Attiva» when it is off, «Gestisci» when it is on
+  await page.getByRole('button', { name: /^(Attiva|Gestisci) l'app di autenticazione$/ }).click()
   return page.getByRole('dialog', { name: 'App di autenticazione' })
 }
 

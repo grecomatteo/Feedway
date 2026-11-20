@@ -91,7 +91,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await expect(app.getByText('Scadenza del Data Use Checkup')).toBeVisible()
   // the secret never comes back
   const edit = page.getByRole('dialog', { name: "Modifica l'app Meta" })
-  await app.getByRole('button', { name: "Modifica l'app Meta" }).click()
+  await app.getByRole('button', { name: 'Sostituisci', exact: true }).click()
   await expect(edit.getByLabel('App Secret')).toHaveValue('')
 
   await edit.getByRole('button', { name: 'Prova' }).click()
@@ -117,7 +117,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
     "Meta non accetta più l'App ID o l'App Secret dell'agenzia",
   )
   // a test that works takes it away, and keeps what was typed and not saved yet
-  await page.getByRole('button', { name: "Modifica l'app Meta" }).click()
+  await page.getByRole('button', { name: 'Sostituisci', exact: true }).click()
   await edit.getByLabel('App Secret').fill('incollato-non-salvato')
   await edit.getByRole('button', { name: 'Prova' }).click()
   await expect(edit.getByRole('status')).toHaveText('Funziona: Meta accetta App ID e App Secret.')
@@ -135,7 +135,7 @@ test('meta integration: the owner saves and tries the app, the admin only reads 
   await adminPage.goto(`/${org}/impostazioni/integrazioni/meta`)
   // the Admin reads the rows and changes nothing
   await expect(adminPage.getByRole('region', { name: 'App Meta' })).toContainText(META_MOCK.app.id)
-  await expect(adminPage.getByRole('button', { name: "Modifica l'app Meta" })).toHaveCount(0)
+  await expect(adminPage.getByRole('button', { name: 'Sostituisci', exact: true })).toHaveCount(0)
   await expect(adminPage.getByLabel('App ID')).toHaveCount(0)
   await expect(adminPage.getByRole('button', { name: 'Salva e verifica' })).toHaveCount(0)
   await expect(adminPage.getByRole('button', { name: 'Prova' })).toHaveCount(0)

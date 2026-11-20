@@ -57,6 +57,7 @@ const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
 const passwordOpen = ref(false)
 const passkeysOpen = ref(false)
 const totpOpen = ref(false)
+const totpOff = ref(false)
 watch(passwordOpen, (open) => {
   if (!open) return
   passwordForm.current = ''
@@ -64,6 +65,7 @@ watch(passwordOpen, (open) => {
   Object.assign(passwordState, { problem: null, field: '' })
 })
 watch(totpOpen, (open) => {
+  if (open) totpOff.value = false
   // secret and codes leave the page with the window
   if (!open) resetTotp()
   totp.problem = null
@@ -188,6 +190,9 @@ const disableTotp = () =>
       await call('POST', '/api/auth/two-factor/disable', totpBody(password))
       resetTotp()
       await refresh()
+      // the window closes and the group says what happened
+      totpOpen.value = false
+      totpOff.value = true
     }),
   )
 const regenerateCodes = () =>
@@ -262,6 +267,11 @@ const regenerateCodes = () =>
       </SettingsGroup>
 
       <SettingsGroup :title="$t('security.groups.secondFactor')">
+        <template #aside>
+          <p role="status" class="text-detail text-(--app-text-muted)">
+            <template v-if="totpOff">{{ $t('security.totp.disabled') }}</template>
+          </p>
+        </template>
         <SettingsRow
           :label="$t('security.totp.title')"
           :hint="factors.totpEnabled ? null : $t('security.totp.off')"
@@ -277,7 +287,9 @@ const regenerateCodes = () =>
             color="neutral"
             variant="outline"
             size="sm"
-            :aria-label="$t('security.totp.manage')"
+            :aria-label="
+              factors.totpEnabled ? $t('security.totp.manage') : $t('security.totp.turnOnLabel')
+            "
             @click="totpOpen = true"
           >
             {{ factors.totpEnabled ? $t('security.manage') : $t('security.totp.turnOn') }}
@@ -519,6 +531,16 @@ const regenerateCodes = () =>
               </p>
             </form>
           </div>
+        </template>
+        <template #footer>
+          <UButton
+            class="max-md:flex-1 max-md:justify-center"
+            color="neutral"
+            variant="outline"
+            @click="totpOpen = false"
+          >
+            {{ $t('accountDeletion.close') }}
+          </UButton>
         </template>
       </UModal>
 

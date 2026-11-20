@@ -72,10 +72,11 @@ const profile = reactive({ name: '', nickname: '' })
 const profileState = formState()
 watch(
   me,
-  (value) => {
+  // a field the person changed meanwhile is theirs: a save of the other one does not undo it
+  (value, old) => {
     if (!value) return
-    profile.name = value.name
-    profile.nickname = value.nickname ?? ''
+    if (!old || profile.name === old.name) profile.name = value.name
+    if (!old || profile.nickname === (old.nickname ?? '')) profile.nickname = value.nickname ?? ''
   },
   { immediate: true },
 )
@@ -93,10 +94,11 @@ const preferences = reactive({ theme: 'system' as Me['theme'], timezone: AGENCY_
 const preferencesState = formState()
 watch(
   me,
-  (value) => {
+  (value, old) => {
     if (!value) return
-    preferences.theme = value.theme
-    preferences.timezone = value.timezone ?? AGENCY_ZONE
+    if (!old || preferences.theme === old.theme) preferences.theme = value.theme
+    if (!old || preferences.timezone === (old.timezone ?? AGENCY_ZONE))
+      preferences.timezone = value.timezone ?? AGENCY_ZONE
   },
   { immediate: true },
 )
@@ -243,9 +245,13 @@ async function changeEmail() {
               autocomplete="nickname"
               class="w-full"
               :title="$t('account.profile.nicknameHelp')"
+              aria-describedby="profile-nickname-help"
               :ui="{ base: 'bg-(--app-surface)' }"
               @change="saveProfile"
             />
+            <span id="profile-nickname-help" class="sr-only">{{
+              $t('account.profile.nicknameHelp')
+            }}</span>
           </UFormField>
         </SettingsRow>
         <SettingsRow :label="$t('account.email.title')" for="profile-email">

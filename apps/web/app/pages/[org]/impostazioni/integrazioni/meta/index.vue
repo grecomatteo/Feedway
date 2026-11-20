@@ -153,7 +153,6 @@ watch(editing, (open) => {
               color="neutral"
               variant="outline"
               size="sm"
-              :aria-label="$t('metaIntegration.edit')"
               @click="editing = true"
             >
               {{ $t('metaIntegration.replace') }}

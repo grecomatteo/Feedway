@@ -109,7 +109,9 @@
       "codesSaved": "Li ho salvati",
       "regenerate": "Nuovi codici di recupero",
       "disable": "Disattiva",
+      "disabled": "App di autenticazione disattivata.",
       "manage": "Gestisci l'app di autenticazione",
+      "turnOnLabel": "Attiva l'app di autenticazione",
       "turnOn": "Attiva",
       "newCodes": "Nuovi codici",
       "codesHint": "Servono se non hai l'app a portata di mano"

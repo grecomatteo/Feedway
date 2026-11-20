@@ -184,6 +184,9 @@ const lastSeen = (m: Member) =>
       ? formatRelative(m.lastLoginAt)
       : t('users.never')
 
+/** While one action runs the others wait: a second reset link would void the one shown. */
+const locked = <T extends object>(items: T[]) =>
+  items.map((item) => ({ ...item, disabled: busy.value !== null }))
 function memberActions(m: Member) {
   const items: { label: string; icon?: string; color?: 'error'; onSelect: () => void }[] = []
   if (m.id === myId.value) {
@@ -193,7 +196,7 @@ function memberActions(m: Member) {
         icon: 'i-lucide-crown',
         onSelect: () => (transferOpen.value = true),
       })
-    return items
+    return locked(items)
   }
   if (m.orgRole === 'owner') return items
   if (isOwner.value && m.status === 'active')
@@ -221,12 +224,13 @@ function memberActions(m: Member) {
         }
       : { label: t('users.enable'), icon: 'i-lucide-user-check', onSelect: () => enable(m) },
   )
-  return items
+  return locked(items)
 }
-const inviteActions = (i: Invite) => [
-  { label: t('users.resend'), icon: 'i-lucide-send', onSelect: () => resend(i) },
-  { label: t('users.revoke'), icon: 'i-lucide-x', onSelect: () => revoke(i) },
-]
+const inviteActions = (i: Invite) =>
+  locked([
+    { label: t('users.resend'), icon: 'i-lucide-send', onSelect: () => resend(i) },
+    { label: t('users.revoke'), icon: 'i-lucide-x', onSelect: () => revoke(i) },
+  ])
 
 const COLUMNS = 'minmax(240px,1.6fr) 120px minmax(160px,1fr) 140px 150px 30px'
 const memberHead = computed(() => [

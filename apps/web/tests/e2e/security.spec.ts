@@ -129,7 +129,7 @@ test('security screens have no a11y violations', async ({ page }) => {
   for (const [button, title] of [
     ['Cambia', 'Cambia password'],
     ['Gestisci le passkey', 'Passkey'],
-    ["Gestisci l'app di autenticazione", 'App di autenticazione'],
+    ["Attiva l'app di autenticazione", 'App di autenticazione'],
     ['Elimina', 'Elimina il mio account'],
   ] as const) {
     await page.getByRole('button', { name: button, exact: true }).click()
