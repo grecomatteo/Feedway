@@ -453,16 +453,18 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Origine:** piano della tappa 7 (`docs/superpowers/plans/2026-10-15-07-pubblicazione.md`, 20/11), scritto mentre Matteo prova il ridisegno.
 - **Scelte provvisorie** (il piano le spiega, con il motivo):
   1. P1: la macchina a stati è in `domain/src/publishing/`, ma casi d'uso, repository e lavori restano nel modulo `posts`, che possiede `post_targets`.
-  2. P2: si modifica, si riporta in bozza e si annulla finché nessuna destinazione è in `publishing` (non più solo fino a `preparing`); la modifica scarta i container già creati.
-  3. P3: i lavori partono dopo il commit, con una chiave di unicità; il riconciliatore ricrea quelli mancanti ogni minuto.
+  2. P2: si modifica, si riporta in bozza e si annulla finché nessuna destinazione è in `publishing` (non più solo fino a `preparing`); la modifica scarta ciò che è già pronto su Meta (i container di Instagram scadono, le foto e i video di Facebook non pubblicati si cancellano).
+  3. P3: i lavori partono dopo il commit, con una chiave di unicità che contiene la generazione della destinazione; il riconciliatore ricrea quelli mancanti ogni minuto.
   4. P4 e Scelta 4: le copie con ritaglio, fotogramma, bande o storia sono varianti del file con una ricetta (`media_variants.recipe`), fatte alla programmazione; il worker ricontrolla il post 3 ore prima dell'uscita e scrive l'evento per l'avviso di D-74.
   5. P5: riprendere o annullare un post in pausa chiede `post.manage_others` (Manager in su).
   6. Scelta 2: «Pubblica subito» con la conferma della schermata `11`.
-  7. Scelta 3: lo stato del post si legge dalle destinazioni, con «In pausa», «In pubblicazione», «In verifica», «Pubblicato», «N non uscito» e «Non uscito».
+  7. Scelta 3: lo stato del post si legge dalle destinazioni, con «In pausa», «In pubblicazione», «N non uscito», «Non uscito», «Con problema» e «Pubblicato»; un fallimento non si nasconde mai dietro «Programmato»; «In verifica» si legge solo nella pagina dell'esito.
   8. Scelta 6: la pagina dell'esito della schermata `13`, che si aggiorna da sola ogni 10 secondi finché c'è una destinazione in corso.
   9. Scelta 7: l'esito incerto cerca tra gli ultimi 25 post dell'account per testo e ora, tre volte (2, 5, 15 minuti); senza risultato «Non uscito» con l'avviso di controllare il profilo prima di riprovare.
   10. Scelta 8: «Non uscito», «Con problema» e «In pausa» entrano in «Da sistemare», nel pallino del selettore e nella colonna «Collegamento» dei clienti.
-  11. Regole della tappa: al massimo 3 destinazioni insieme in preparazione o pubblicazione per agenzia e 1 per account; sopra l'80% d'uso di Meta il passo successivo di quell'account aspetta.
+  11. Regole della tappa: al massimo 3 destinazioni insieme in preparazione per agenzia e 1 per account (la pubblicazione all'ora non aspetta il turno, per CS1); sopra l'80% d'uso di Meta i passi dell'account, o di tutta l'agenzia se è l'uso dell'app, aspettano al massimo 5 minuti.
+  12. P6: i «propri» post del Publisher per «Riprova» sono quelli che ha creato (`created_by`, come oggi nei permessi); la pausa guarda chi ha programmato (`scheduled_by`), e «Riprendi» scrive chi riprende.
+  13. «Riprova» su una destinazione «Con problema» rilegge Meta prima di ripubblicare; su «Non uscito: ora passata» pubblica subito. Una sola destinazione si annulla finché non è uscita (§11.9).
 - **Stato:** scelte provvisorie, Matteo può cambiarle prima del task che le usa.
 
 ### D-101 · «Modifica per Facebook» su una destinazione non uscita
