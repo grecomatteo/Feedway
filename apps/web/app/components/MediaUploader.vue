@@ -130,7 +130,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
     <section
       v-if="leftovers.length > 0"
       aria-labelledby="upload-leftovers"
-      class="mb-4 rounded-xl border border-(--app-border) bg-(--app-card) p-4"
+      class="mb-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4"
     >
       <h2 id="upload-leftovers" class="font-semibold">{{ $t('upload.leftovers.title') }}</h2>
       <p class="mt-1 text-sm text-(--app-text-muted)">{{ $t('upload.leftovers.text') }}</p>
@@ -192,7 +192,7 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
     <section
       v-if="items.length > 0"
       aria-labelledby="upload-title"
-      class="mb-4 rounded-xl border border-(--app-border) bg-(--app-card) p-4"
+      class="mb-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4"
     >
       <div class="flex flex-wrap items-start gap-x-4 gap-y-1">
         <div class="min-w-0 flex-1">

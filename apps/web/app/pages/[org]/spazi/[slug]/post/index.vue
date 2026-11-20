@@ -240,16 +240,7 @@ const mayDraft = computed(
     :data-ready="posts !== null || failed || undefined"
   >
     <h2 id="posts-title" class="sr-only">{{ $t('posts.list.title') }}</h2>
-    <p
-      v-if="failed"
-      role="alert"
-      class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
-    >
-      <span class="flex-1 text-(--app-danger)">{{ $t('posts.list.failed') }}</span>
-      <UButton color="neutral" variant="outline" @click="load">
-        {{ $t('posts.list.retry') }}
-      </UButton>
-    </p>
+    <LoadFailed v-if="failed" :text="$t('posts.list.failed')" @retry="load()" />
     <TableSkeleton
       v-else-if="posts === null"
       :label="$t('posts.list.loading')"

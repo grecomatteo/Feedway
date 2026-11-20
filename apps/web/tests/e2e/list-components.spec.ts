@@ -130,7 +130,7 @@ test('the filter says which choice is on and the search narrows the list', async
   await expect(search).toBeFocused()
 })
 
-test('the skeletons have the shape of the rows and announce themselves once', async ({ page }) => {
+test('the skeletons have the shape of a row and announce themselves once', async ({ page }) => {
   const section = tableSection(page)
   const expected = isPhone(page) ? 64 : 56
   const rowHeights = await heights(
@@ -143,11 +143,13 @@ test('the skeletons have the shape of the rows and announce themselves once', as
   await expect(
     section.getByRole('status').filter({ hasText: 'Caricamento dei clienti' }),
   ).toHaveCount(1)
+  // the skeletons have the rows of the new lists (ListRow, Task R9): 52 on a computer, 60 on a phone
+  const row = isPhone(page) ? 60 : 52
   expect(new Set(await heights(page, 'section[aria-label="Tabella"] [data-skeleton-row]'))).toEqual(
-    new Set([expected]),
+    new Set([row]),
   )
   expect(new Set(await heights(page, 'section[aria-label="Elenco"] [data-skeleton-row]'))).toEqual(
-    new Set([expected]),
+    new Set([row]),
   )
   await expect(page.getByRole('status').filter({ hasText: 'Caricamento dei profili' })).toHaveCount(
     1,

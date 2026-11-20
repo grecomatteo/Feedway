@@ -3,7 +3,15 @@ import { contrastRatio, palettes } from '@app/ui'
 import type { PaletteId } from '@app/ui'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { openUserMenu } from './support/menu.ts'
-import { adminQuery, newMember, signIn, signInFromPage } from './support/people.ts'
+import { newWorkspace } from './support/meta.ts'
+import {
+  adminQuery,
+  newMember,
+  newPerson,
+  signIn,
+  signInFromPage,
+  signInWithTotp,
+} from './support/people.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -123,13 +131,30 @@ async function primaryButton(page: Page) {
     .getByRole('button', { name: 'Invia il link di conferma' })
 }
 
+/** The main pages of the panel (Task R9): each passes axe in every palette, light and dark. */
+const MAIN_PAGES = (org: string, client: string) => [
+  `/${org}`,
+  `/${org}/spazi`,
+  `/${org}/spazi/${client}`,
+  `/${org}/spazi/${client}/post`,
+  `/${org}/spazi/${client}/contenuti`,
+  `/${org}/spazi/${client}/post/nuovo`,
+  `/${org}/libreria`,
+  `/${org}/utenti`,
+  `/${org}/impostazioni/registro`,
+  `/${org}/impostazioni/integrazioni/meta`,
+  '/account/sicurezza',
+]
+
 for (const id of ['blu', 'verde', 'viola', 'grafite'] as const satisfies readonly PaletteId[]) {
   test(`${id}: the pages pass axe and the primary button keeps its contrast on hover`, async ({
     page,
   }) => {
-    const person = await newMember()
+    test.slow()
+    const person = await newPerson(`Paola ${id}`, 'owner')
     await adminQuery('update users set palette = $1 where id = $2', [id, person.userId])
-    await signIn(page.request, person)
+    await signInWithTotp(page.request, person)
+    const client = await newWorkspace(page.request, person.organizationSlug, 'Cliente Colori')
 
     await page.goto('/account')
     await expect(page.locator('html')).toHaveAttribute('data-palette', id)
@@ -146,10 +171,13 @@ for (const id of ['blu', 'verde', 'viola', 'grafite'] as const satisfies readonl
       palettes[id][mode]['brand-hover'],
     )
 
-    await page.goto(`/${person.organizationSlug}/spazi`)
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    expect((await axe(page)).violations).toEqual([])
-    await fitsTheScreen(page)
+    for (const path of MAIN_PAGES(person.organizationSlug, client.slug)) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
+      await page.waitForLoadState('networkidle')
+      expect((await axe(page)).violations, path).toEqual([])
+      await fitsTheScreen(page)
+    }
   })
 }
 

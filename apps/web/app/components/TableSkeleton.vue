@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The shape of a `DataTable` while it loads: the column headings as they will be, rows of 56 px
- * with the picture in the first cell and «⋯» in the last. Below 768 px it is a `ListSkeleton`,
+ * The shape of a table of `ListSurface` while it loads: the column heads as they will be, rows of
+ * 52 with the picture in the first cell and «⋯» in the last. Below 768 px it is a `ListSkeleton`,
  * as the table becomes rows there. Screen readers hear `label` once.
  */
 const props = withDefaults(
@@ -17,7 +17,7 @@ const cells = computed(() => props.columns.length)
     <span class="sr-only">{{ label }}</span>
     <div
       aria-hidden="true"
-      class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card) max-md:hidden"
+      class="overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface) max-md:hidden"
     >
       <table class="w-full border-collapse text-sm">
         <thead>
@@ -25,11 +25,11 @@ const cells = computed(() => props.columns.length)
             <th
               v-for="c in columns"
               :key="c"
-              class="border-b border-(--app-border-strong) px-4 py-2.5 text-left text-[0.8125rem] font-medium text-(--app-text-muted)"
+              class="h-9 border-b border-(--app-border) px-4 text-left text-caption font-medium text-(--app-text-muted)"
             >
               {{ c }}
             </th>
-            <th v-if="action" class="w-13 border-b border-(--app-border-strong)" />
+            <th v-if="action" class="w-13 border-b border-(--app-border)" />
           </tr>
         </thead>
         <tbody>
@@ -39,15 +39,15 @@ const cells = computed(() => props.columns.length)
             data-skeleton-row
             class="border-b border-(--app-border) last:border-b-0"
           >
-            <td v-for="n in cells" :key="n" class="h-14 px-4 py-1">
+            <td v-for="n in cells" :key="n" class="h-row px-4 py-1">
               <span v-if="n === 1" class="flex items-center gap-3">
                 <span class="skeleton size-8 shrink-0 rounded-full" />
                 <span :class="['skeleton block h-3.5 rounded', widths[(i - 1) % widths.length]]" />
               </span>
               <span v-else class="skeleton block h-3 w-24 max-w-full rounded" />
             </td>
-            <td v-if="action" class="h-14 px-2">
-              <span class="skeleton block size-8 rounded-md" />
+            <td v-if="action" class="h-row px-2">
+              <span class="skeleton block size-control-sm rounded-thumb" />
             </td>
           </tr>
         </tbody>

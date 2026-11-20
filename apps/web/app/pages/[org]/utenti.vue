@@ -320,16 +320,7 @@ async function transferred() {
         :columns="[$t('users.col.person'), $t('users.col.role'), $t('users.col.clients')]"
         :rows="4"
       />
-      <div
-        v-else-if="error"
-        role="alert"
-        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
-      >
-        <p>{{ $t('account.loadError') }}</p>
-        <UButton color="neutral" variant="outline" @click="() => refresh()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+      <LoadFailed v-else-if="error" :text="$t('users.loadError')" @retry="refresh()" />
 
       <template v-else-if="tab === 'invites'">
         <p

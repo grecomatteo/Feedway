@@ -8,6 +8,7 @@
     "build": "nuxt build",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
     "design:shots": "node tests/design/run-shots.mjs",
+    "design:states": "node tests/design/run-shots.mjs --states",
     "typecheck": "nuxt prepare && vue-tsc --noEmit && tsc -p tests/tsconfig.json"
   },
   "dependencies": {

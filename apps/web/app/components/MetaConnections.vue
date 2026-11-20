@@ -272,16 +272,11 @@ watch(
         :columns="[$t('socialAccounts.col.connection'), $t('socialAccounts.col.profiles')]"
         :rows="2"
       />
-      <div
+      <LoadFailed
         v-else-if="connectionsError"
-        role="alert"
-        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
-      >
-        <p class="text-(--app-danger)">{{ $t('socialAccounts.connectionsError') }}</p>
-        <UButton color="neutral" variant="outline" @click="() => refreshConnections()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+        :text="$t('socialAccounts.connectionsError')"
+        @retry="refreshConnections()"
+      />
       <p
         v-else-if="connections.length === 0"
         class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
@@ -409,16 +404,7 @@ watch(
         :columns="[$t('socialAccounts.col.profile'), $t('socialAccounts.col.clients')]"
         :rows="3"
       />
-      <div
-        v-else-if="error"
-        role="alert"
-        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
-      >
-        <p class="text-(--app-danger)">{{ $t('socialAccounts.loadError') }}</p>
-        <UButton color="neutral" variant="outline" @click="() => refresh()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+      <LoadFailed v-else-if="error" :text="$t('socialAccounts.loadError')" @retry="refresh()" />
       <EmptyState
         v-else-if="items.length === 0"
         icon="i-lucide-at-sign"

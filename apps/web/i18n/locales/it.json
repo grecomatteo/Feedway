@@ -946,6 +946,7 @@
     },
     "noMatch": "Nessuna persona per «{q}».",
     "noInvites": "Nessun invito in attesa.",
+    "loadError": "Non siamo riusciti a caricare le persone dell’agenzia.",
     "noActive": "Nessuna persona attiva.",
     "noDisabled": "Nessuna persona sospesa.",
     "now": "adesso",
@@ -1113,6 +1114,7 @@
     "clearDay": "Togli",
     "secretSaved": "Salvata il {when}",
     "secret": "Chiave segreta",
+    "loadError": "Non siamo riusciti a caricare l’app Meta dell’agenzia.",
     "appIdRow": "ID dell'app",
     "replace": "Sostituisci",
     "edit": "Modifica l'app Meta"

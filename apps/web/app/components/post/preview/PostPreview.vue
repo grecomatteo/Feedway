@@ -277,7 +277,7 @@ function over(event: DragEvent) {
         <span class="sr-only">{{ t('posts.preview.account') }}</span>
         <select
           v-model="accountId"
-          class="min-h-11 rounded-lg border border-(--app-border) bg-(--app-card) px-3"
+          class="min-h-11 rounded-lg border border-(--app-border) bg-(--app-surface) px-3"
           data-preview-account
         >
           <option v-for="id in tab.accountIds" :key="id" :value="id">

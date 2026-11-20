@@ -31,8 +31,12 @@ async function openShell(page: Page, which: 'selector' | 'person') {
       ? page.getByRole('button', { name: /^Contesto:/ }).locator('visible=true')
       : phone
         ? page.getByRole('button', { name: /^Tu, menu di/ })
-        : page.getByRole('button', { name: /Giulia Ferri/ }).locator('visible=true')
-  await trigger.click()
+        : page
+            .getByRole('button', { name: /Giulia/, expanded: false })
+            .locator('visible=true')
+            .first()
+  // fail in seconds, not at the end of the whole run, when the trigger is not found
+  await trigger.click({ timeout: 15_000 })
   await page
     .getByRole(which === 'selector' ? 'listbox' : 'menu')
     .locator('visible=true')
@@ -43,6 +47,13 @@ async function openShell(page: Page, which: 'selector' | 'person') {
   await page.waitForTimeout(300)
 }
 
+/** The names libraryLikeTheScreen gives the files of Forno Luce (screen 19). */
+const RENAMED: Record<string, string> = {
+  'pane.jpg': 'pane-lunedi-01.jpg',
+  'banco.jpg': 'banco-brioche.jpg',
+  'impasto.jpg': 'impasto-mani.jpg',
+}
+
 /** A new post of Forno Luce, as the editor shows it with these files from the library and text. */
 async function newPost(page: Page, files: string[], caption: string) {
   // on a phone the library is in the menu of «Aggiungi»
@@ -51,7 +62,11 @@ async function newPost(page: Page, files: string[], caption: string) {
     await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
   } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
   const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
-  for (const name of files) await dialog.getByRole('button', { name }).click()
+  // 19-libreria renames the files on the computer pass, before the phone takes this screen
+  for (const name of files)
+    await dialog
+      .getByRole('button', { name: new RegExp(`^(${name}|${RENAMED[name] ?? name})$`) })
+      .click()
   await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
   await dialog.waitFor({ state: 'detached' })
   await page.getByRole('textbox', { name: 'Testo comune' }).fill(caption)
@@ -199,7 +214,7 @@ export const SCREENS: Screen[] = [
     signedOut: true,
     prepare: async (page) => {
       await page.getByLabel('Email').fill('giulia@studioriva.example')
-      await page.getByLabel('Password').fill('una-password!')
+      await page.getByLabel('Password', { exact: true }).fill('una-password!')
       await page.evaluate(() => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
       })
