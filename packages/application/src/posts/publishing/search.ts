@@ -50,6 +50,9 @@ export const uncertainSearch = (since: Date, at: Date): { search: UncertainSearc
   search: { since: since.toISOString(), uncertainAt: at.toISOString() },
 })
 
+const hasSearch = (target: PublishingTargetRecord) =>
+  typeof (target.verification as { search?: unknown } | null)?.search === 'object'
+
 function searchOf(target: PublishingTargetRecord): { since: Date; uncertainAt: Date } {
   const saved = (target.verification as { search?: Partial<UncertainSearch> } | null)?.search
   const since = saved?.since ? new Date(saved.since) : null
@@ -92,16 +95,22 @@ async function lookFor(look: Look, signal: AbortSignal): Promise<Answer> {
   try {
     if (record.step === 'recheck') {
       const verified = await read.publisher.verify(read.target, signal)
-      if (verified.outcome !== 'problem') return { verified, found: null }
+      // there but of the wrong type: never published a second time, the verification tells
+      if (verified.outcome !== 'problem' || verified.reason === 'wrong_type')
+        return { verified, found: null }
       const found = await read.publisher.findPublished(
         read.target,
         record.publishedAt ?? new Date(0),
         signal,
       )
-      // the same post Meta just said is not there, or failed: not the one looked for
+      // the same post Meta said failed is not the one looked for; the same post Meta said it
+      // could not read (`not_found` may be a refusal for a while) is there: verified again
       return {
         verified,
-        found: found?.externalPostId === record.externalPostId ? null : found,
+        found:
+          verified.reason === 'failed' && found?.externalPostId === record.externalPostId
+            ? null
+            : found,
       }
     }
     const found = await read.publisher.findPublished(read.target, searchOf(record).since, signal)
@@ -132,13 +141,15 @@ async function foundOut(
   found: Pick<FoundPost, 'externalPostId' | 'permalink'> & { publishedAt: Date | null },
   now: Date,
 ): Promise<{ log: StepLog; jobs: StepJob[] }> {
-  const from = found.publishedAt && found.publishedAt < now ? found.publishedAt : now
-  const at = latestOf(verifyAt(from, 1) ?? now, now)
+  const published = found.publishedAt && found.publishedAt < now ? found.publishedAt : now
+  // the rounds count from now, so they are not all past when found late (D-112)
+  const from = now
+  const at = verifyAt(from, 1) ?? now
   const generation = await moveTarget(tx, target, 'published', {
     step: 'verify',
     externalPostId: found.externalPostId,
     permalink: found.permalink ?? target.permalink,
-    publishedAt: target.publishedAt ?? from,
+    publishedAt: target.publishedAt ?? published,
     attempts: 0,
     nextAttemptAt: at,
     lastErrorCode: null,
@@ -156,7 +167,8 @@ async function searchAgain(
   target: PublishingTargetRecord,
   now: Date,
 ): Promise<{ log: StepLog; jobs: StepJob[] }> {
-  const round = target.attempts + 1
+  // a row made uncertain before Task 8 kept the publish's attempts: its searches start at one
+  const round = hasSearch(target) ? target.attempts + 1 : 1
   const next = searchAt(searchOf(target).uncertainAt, round + 1)
   if (next === null) return { log: await failTarget(tx, target, 'uncertain_not_found'), jobs: [] }
   const at = latestOf(next, now)
@@ -216,8 +228,12 @@ async function afterRecheck(
       }),
       jobs: [],
     }
-  if (verified?.outcome === 'pending' && target.externalPostId !== null)
-    // there, still processing: verified again from now, never published twice
+  if (
+    (verified?.outcome === 'pending' ||
+      (verified?.outcome === 'problem' && verified.reason === 'wrong_type')) &&
+    target.externalPostId !== null
+  )
+    // there, still processing or of the wrong type: verified again, never published twice
     return foundOut(
       tx,
       target,

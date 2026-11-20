@@ -704,7 +704,7 @@ Una risposta positiva di Meta non basta: un reel può fallire durante l'elaboraz
 Primo controllo dopo **3 minuti**, poi a 10 e 30 se Meta sta ancora elaborando (`target.verify`; un errore di Meta vale come «ancora in elaborazione», D-112).
 - **Confermato**: salvato il link definitivo; `post.target_confirmed`, e `post.confirmed` quando tutte le destinazioni non annullate lo sono.
 - **Con problema**: non esiste, è in errore o del tipo sbagliato (subito), o ancora in elaborazione dopo 30 minuti; il motivo (`not_found`, `failed`, `wrong_type`, `still_processing`) in `verification.reason` e in `post.target_problem`. Il pannello propone "Riprova" o "Segna come verificato a mano".
-- **Riprova da Con problema** (piano 07, Task 8): `unknown` con il passo `recheck`; il worker rilegge il post e lo cerca sull'account: se c'è, `confirmed` (o di nuovo la verifica, se è ancora in elaborazione); se non c'è, `retrying` dalla preparazione, senza gli id del post di prima. Mai una seconda pubblicazione di un post che Meta ha.
+- **Riprova da Con problema** (piano 07, Task 8): `unknown` con il passo `recheck`; il worker rilegge il post e lo cerca sull'account: se c'è, `confirmed` (o di nuovo la verifica, se è ancora in elaborazione o del tipo sbagliato); se non c'è, `retrying` dalla preparazione, senza gli id del post di prima. Mai una seconda pubblicazione di un post che Meta ha.
 
 I campi esatti da leggere saranno confermati nei primi test reali.
 

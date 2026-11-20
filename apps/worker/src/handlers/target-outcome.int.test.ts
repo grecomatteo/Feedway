@@ -289,11 +289,26 @@ test('«Riprova» from problem with the post gone from Meta: prepared and publis
             next_attempt_at = now(), generation = generation + 2 where id = $1`,
     [out.id],
   )
-  mock.scenario('asset_removed', { id: out.external_post_id ?? '' })
+  // gone: Meta does not have it, and it is not among the account's posts
+  const real = runtime.publishers.instagram as PlatformPublisher
+  const gone: PlatformPublisher = {
+    ...real,
+    verify: () =>
+      Promise.resolve({
+        outcome: 'problem',
+        reason: 'not_found',
+        usage: null,
+        load: { accountPercent: null, appPercent: null, regainMinutes: 0 },
+      }),
+    findPublished: () => Promise.resolve(null),
+  }
   clock.set(plus(clock.now(), 40))
-  expect(await searchTarget(deps, job(world, await only(post.postId)))).toMatchObject({
-    to: 'retrying',
-  })
+  expect(
+    await searchTarget(
+      { ...deps, publishers: { instagram: gone } },
+      job(world, await only(post.postId)),
+    ),
+  ).toMatchObject({ to: 'retrying' })
   const again = await only(post.postId)
   expect(again).toMatchObject({
     status: 'retrying',
@@ -301,7 +316,6 @@ test('«Riprova» from problem with the post gone from Meta: prepared and publis
     external_post_id: null,
     meta_ids: null,
   })
-  mock.scenario('default')
   const before = publishCalls()
   await prepareTarget(deps, job(world, again))
   const ready = await only(post.postId)
@@ -320,4 +334,78 @@ test('the reconciler sends the search and the verification that were never queue
   expect(sentOf(deps, 'target.verify', out.id).map((s) => s.opts)).toContainEqual(
     expect.objectContaining({ dedupeKey: `${out.id}:verify:${String(out.generation)}` }),
   )
+})
+
+test('found at the third search: the verification rounds count from then, not all past', async () => {
+  const { world, post, clock, deps, ready } = await readyNow()
+  const startedAt = clock.now()
+  await publishTarget(
+    { ...deps, publishers: { instagram: uncertainPublisher(true) } },
+    job(world, ready),
+  )
+  const real = runtime.publishers.instagram as PlatformPublisher
+  let searches = 0
+  const late: PlatformPublisher = {
+    ...real,
+    findPublished: (target, since, signal) =>
+      ++searches < 3 ? Promise.resolve(null) : real.findPublished(target, since, signal),
+  }
+  for (const minutes of [2, 5, 15]) {
+    clock.set(plus(startedAt, minutes))
+    await searchTarget(
+      { ...deps, publishers: { instagram: late } },
+      job(world, await only(post.postId)),
+    )
+  }
+  const found = await only(post.postId)
+  expect(found.status).toBe('published')
+  expect(found.next_attempt_at).toEqual(plus(startedAt, 18))
+})
+
+test('«Riprova» from problem with a post of the wrong type on Meta: verified again, never published twice', async () => {
+  const { world, post, clock, deps, out } = await publishedNow()
+  await admin.query(
+    `update post_targets set status = 'unknown', step = 'recheck', attempts = 0,
+            next_attempt_at = now(), generation = generation + 2 where id = $1`,
+    [out.id],
+  )
+  const real = runtime.publishers.instagram as PlatformPublisher
+  const wrong: PlatformPublisher = {
+    ...real,
+    verify: () =>
+      Promise.resolve({
+        outcome: 'problem',
+        reason: 'wrong_type',
+        usage: null,
+        load: { accountPercent: null, appPercent: null, regainMinutes: 0 },
+      }),
+  }
+  const before = publishCalls()
+  clock.set(plus(clock.now(), 40))
+  expect(
+    await searchTarget(
+      { ...deps, publishers: { instagram: wrong } },
+      job(world, await only(post.postId)),
+    ),
+  ).toMatchObject({ to: 'published' })
+  expect((await only(post.postId)).external_post_id).toBe(out.external_post_id)
+  expect(publishCalls()).toBe(before)
+})
+
+test("«Riprova» from problem: Meta refuses to read the post, but it is among the account's posts: not published again", async () => {
+  const { world, post, clock, deps, out } = await publishedNow()
+  await admin.query(
+    `update post_targets set status = 'unknown', step = 'recheck', attempts = 0,
+            next_attempt_at = now(), generation = generation + 2 where id = $1`,
+    [out.id],
+  )
+  // its own id answers 100/33, a refusal that may pass; the list of the account still has it
+  mock.scenario('asset_removed', { id: out.external_post_id ?? '' })
+  const before = publishCalls()
+  clock.set(plus(clock.now(), 40))
+  expect(await searchTarget(deps, job(world, await only(post.postId)))).toMatchObject({
+    to: 'published',
+  })
+  expect((await only(post.postId)).external_post_id).toBe(out.external_post_id)
+  expect(publishCalls()).toBe(before)
 })
