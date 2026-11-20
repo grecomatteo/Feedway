@@ -220,6 +220,8 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/schedule': () => ({ version: 1 }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': () => ({ version: 1 }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel': () => ({ version: 1 }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/resume': () => ({ version: 1 }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/cancel-paused': () => ({ version: 1 }),
 }
 
 export function sampleBody(route: ApiContract, ids: SampleIds): unknown {
