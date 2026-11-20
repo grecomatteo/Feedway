@@ -96,29 +96,24 @@ function take(list: { remaining: number }[]): boolean {
 }
 
 // Only the machine the mock runs on, as in tests and development (`META_MODE=mock`): the mock
-// never fetches an address it is handed on the open network. More hosts (a panel reached through
-// another name) go in META_MOCK_DOWNLOAD_HOSTS, separated by commas.
-const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]'])
-
-function allowedHosts(): Set<string> {
-  const extra = (process.env.META_MOCK_DOWNLOAD_HOSTS ?? '')
-    .split(',')
-    .map((h) => h.trim().toLowerCase())
-    .filter((h) => h !== '')
-  return new Set([...LOOPBACK, ...extra])
-}
+// never fetches an address it is handed on the open network. The address is built again from
+// fixed parts, so nothing but the port, the path and the query comes from the request.
+const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'] as const
 
 /** The address to download, if the mock may reach it; null otherwise. */
-export function downloadableUrl(raw: string): URL | null {
+export function downloadableUrl(raw: string): string | null {
   let url: URL
   try {
     url = new URL(raw)
   } catch {
     return null
   }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
-  if (url.username !== '' || url.password !== '') return null
-  return allowedHosts().has(url.hostname.toLowerCase()) ? url : null
+  const protocol = url.protocol === 'http:' ? 'http:' : url.protocol === 'https:' ? 'https:' : null
+  const host = LOOPBACK.find((h) => h === url.hostname.toLowerCase())
+  if (protocol === null || host === undefined || url.username !== '' || url.password !== '')
+    return null
+  const port = url.port === '' ? '' : `:${String(Number(url.port))}`
+  return `${protocol}//${host}${port}${url.pathname}${url.search}`
 }
 
 async function downloads(raw: string): Promise<boolean> {
