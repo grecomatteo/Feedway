@@ -230,12 +230,11 @@ const initials = (name: string) =>
         />
         <UButton
           type="submit"
-          v-if="draft.trim() !== ''"
           color="neutral"
           variant="ghost"
           size="sm"
           :loading="sending"
-          :disabled="!postId"
+          :disabled="!postId || draft.trim() === ''"
         >
           {{ $t('posts.notes.add') }}
         </UButton>

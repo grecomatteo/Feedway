@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AccountGroupDto } from '@app/contracts'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { selectable, type PostEditor } from '~/composables/usePostEditor'
+import { reconnecting, selectable, type PostEditor } from '~/composables/usePostEditor'
 
 /**
  * «Dove» (§11.2 point 5; screens 08 and 09): the client's accounts in one list, each with its box,
@@ -28,11 +28,6 @@ const ICON: Record<string, string> = {
 }
 const handleOf = (a: ProfileAccount) =>
   a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
-/** the profiles whose connection to Meta expired: their accounts wait to be reconnected */
-const reconnecting = computed(
-  () =>
-    new Set((props.client.profiles ?? []).filter((p) => p.link === 'reconnect').map((p) => p.key)),
-)
 /**
  * Every account of the client, Instagram first (D-51), each with its profile's name for the
  * search and whether it can be ticked.
@@ -42,7 +37,7 @@ const accounts = computed(() => {
     p.accounts.map((a) => ({
       a,
       profile: profileName(p),
-      reconnect: reconnecting.value.has(p.key),
+      reconnect: reconnecting(props.client, p.key),
     })),
   )
   return [

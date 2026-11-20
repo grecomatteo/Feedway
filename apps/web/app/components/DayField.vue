@@ -148,12 +148,16 @@ const dayLabel = (date: string) => formatDay(date)
           </thead>
           <tbody>
             <tr v-for="(w, i) in weeks" :key="i">
-              <td v-for="d in w" :key="d.date" class="p-0.5 text-center">
+              <td
+                v-for="d in w"
+                :key="d.date"
+                class="p-0.5 text-center"
+                :aria-selected="d.date === model"
+              >
                 <button
                   type="button"
                   :tabindex="d.date === cursor ? 0 : -1"
                   :aria-label="dayLabel(d.date)"
-                  :aria-pressed="d.date === model"
                   :aria-current="d.date === today ? 'date' : undefined"
                   :data-day="d.date"
                   class="h-9 w-full rounded-control tabular-nums transition-colors max-md:h-10"

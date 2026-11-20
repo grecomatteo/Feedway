@@ -120,7 +120,7 @@ function whatOf(platform: string, format: string, media: readonly number[]): str
   const files =
     photos === kinds.length
       ? t('posts.summary.photos', { n: photos }, photos)
-      : photos === 0
+      : kinds.every((k) => k === 'video')
         ? t('posts.summary.videos', { n: kinds.length }, kinds.length)
         : t('posts.summary.files', { n: kinds.length }, kinds.length)
   return `${label}, ${files}`
