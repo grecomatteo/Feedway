@@ -431,7 +431,6 @@ async function transferred() {
                 v-else-if="!m.secondFactorConfigured"
                 tone="warning"
                 :label="$t('users.noSecondFactor')"
-                class="whitespace-nowrap"
               />
             </span>
             <span role="cell" class="flex justify-end md:-me-2">
