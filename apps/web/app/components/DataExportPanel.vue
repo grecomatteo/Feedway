@@ -153,7 +153,7 @@ async function download(item: DataExport) {
         role="status"
         aria-live="polite"
         tabindex="-1"
-        class="empty:hidden"
+        class="empty:sr-only"
         :class="latest?.status === 'failed' ? 'text-(--app-danger)' : ''"
       >
         {{ announcement }}

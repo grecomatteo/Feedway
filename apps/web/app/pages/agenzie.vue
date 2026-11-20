@@ -25,7 +25,7 @@ const organizations = computed(() => me.value?.organizations ?? [])
       <ListRow v-for="o in organizations" :key="o.id">
         <NuxtLink
           :to="`/${o.slug}`"
-          class="col-span-full -mx-4 flex min-h-row items-center gap-3 px-4 hover:bg-(--app-nav-hover) max-md:-mx-3.5 max-md:px-3.5"
+          class="col-span-full -mx-4 flex min-h-row focus-visible:-outline-offset-2! items-center gap-3 px-4 hover:bg-(--app-nav-hover) max-md:-mx-3.5 max-md:px-3.5"
         >
           <Avatar :name="o.name" :src="o.logoUrl" kind="agency" />
           <span class="min-w-0 flex-1">

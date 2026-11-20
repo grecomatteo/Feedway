@@ -16,12 +16,14 @@ useHead({ title: () => t('posts.choose.title') })
 const usable = computed(() =>
   (data.value?.items ?? []).filter((w) => w.archivedAt === null && w.myRole !== 'viewer'),
 )
-// a search only when the list is long enough to need one, as in the client selector
+// a search only when the list is long enough to need one; accents do not count, as in the
+// client selector («caffe» finds «Caffè»)
 const SEARCH_FROM = 8
 const query = ref('')
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 const shown = computed(() => {
-  const q = query.value.trim().toLocaleLowerCase('it')
-  return q ? usable.value.filter((w) => w.name.toLocaleLowerCase('it').includes(q)) : usable.value
+  const q = fold(query.value.trim())
+  return q ? usable.value.filter((w) => fold(w.name).includes(q)) : usable.value
 })
 const editorOf = (slug: string) => {
   const profilo = route.query['profilo']
@@ -65,7 +67,7 @@ watchEffect(() => {
           <ListRow v-for="w in shown" :key="w.id">
             <NuxtLink
               :to="editorOf(w.slug)"
-              class="col-span-full -mx-4 flex min-h-row items-center gap-3 px-4 font-semibold hover:bg-(--app-nav-hover) max-md:-mx-3.5 max-md:px-3.5"
+              class="col-span-full -mx-4 flex min-h-row focus-visible:-outline-offset-2! items-center gap-3 px-4 font-semibold hover:bg-(--app-nav-hover) max-md:-mx-3.5 max-md:px-3.5"
             >
               <Avatar :name="w.name" :src="w.photoUrl" />
               <span class="min-w-0 flex-1 truncate">{{ w.name }}</span>

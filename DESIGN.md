@@ -29,7 +29,7 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Impostazioni in gruppi e righe:** ogni pagina delle impostazioni usa `SettingsGroup` e `SettingsRow` (o righe con le stesse misure), mai un riquadro con il titolo dentro; l'aiuto va sotto l'etichetta del campo a cui serve, e un'etichetta sta su una riga nei 200 px.
 - **Un'azione che non risolve un problema va nel «⋯»** della riga (`RowActions`), come «Togli dal cliente».
 - **Le pagine prima del pannello** (accedi, scegli l'agenzia) usano il guscio `auth`: logo e una colonna in mezzo, nessuna barra in alto.
-- **Strumenti di un elenco in una riga sola:** filtro a schede, ricerca, filtri, poi a destra vista e azione, nello stesso ordine in ogni libreria.
+- **Strumenti di un elenco in una riga sola:** a sinistra il filtro a schede, la ricerca e i filtri; a destra vista e azione. Su un portatile stretto la parte destra va a capo allineata a destra.
 
 ## Tela unica (18 novembre 2026)
 

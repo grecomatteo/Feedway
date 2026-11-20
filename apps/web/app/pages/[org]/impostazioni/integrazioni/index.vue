@@ -73,9 +73,7 @@ const metaDetail = computed(() => {
             </span>
             <StatusDot
               v-if="meta"
-              :tone="
-                meta.tone === 'error' ? 'danger' : meta.tone === 'success' ? 'success' : meta.tone
-              "
+              :tone="meta.tone === 'error' ? 'danger' : meta.tone"
               :label="meta.label"
               class="shrink-0 max-md:col-span-2 max-md:row-start-2"
               data-testid="meta-entry-state"

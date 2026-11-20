@@ -93,6 +93,9 @@ async function add() {
     )
     notes.value = [...(notes.value ?? []), note]
     draft.value = ''
+    // «Aggiungi» hides with the empty draft: the focus goes back to the field, not to the page
+    await nextTick()
+    document.getElementById('post-note')?.focus()
   } catch (err) {
     problem.value = failure(err).message
   } finally {

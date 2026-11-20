@@ -9,7 +9,7 @@ const id = useId()
 
 <template>
   <section :aria-labelledby="id" data-settings-group>
-    <div class="mb-2.5 flex min-h-5 items-center gap-2">
+    <div class="mb-2.5 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1">
       <h2 :id="id" class="min-w-0 flex-1">{{ title }}</h2>
       <slot name="aside" />
     </div>
