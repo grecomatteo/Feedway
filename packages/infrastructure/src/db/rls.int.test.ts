@@ -457,9 +457,11 @@ test('every table with an organization_id forces row level security and has the 
                    where a.attrelid = c.oid and a.attname = 'organization_id' and not a.attisdropped)
      order by 1`,
   )
-  // the tables of stage 6 are in the list (plan 06 Task 3)
+  // the tables of stage 6 (plan 06 Task 3) and of stage 7 (plan 07 Task 3) are in the list
   expect(rows.map((r) => r.table)).toEqual(
     expect.arrayContaining([
+      'target_attempts',
+      'outbox_events',
       'posts',
       'post_media',
       'post_targets',

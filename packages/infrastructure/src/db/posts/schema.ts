@@ -1,4 +1,12 @@
-import { CAPTION_TEMPLATE_KINDS, LABEL_COLORS, POST_STATUSES, POST_TYPES } from '@app/domain'
+import {
+  CAPTION_TEMPLATE_KINDS,
+  LABEL_COLORS,
+  POST_TYPES,
+  PUBLISHING_POST_STATUSES,
+  TARGET_STATUSES,
+  TARGET_STEPS,
+  ATTEMPT_OUTCOMES,
+} from '@app/domain'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -65,7 +73,8 @@ export const posts = pgTable(
       foreignColumns: [workspaces.organizationId, workspaces.id],
     }),
     check('posts_type', inList('type', POST_TYPES)),
-    check('posts_status', inList('status', POST_STATUSES)),
+    // derived from the destinations at every move (§9.3, plan 07 Scelta 3)
+    check('posts_status', inList('status', PUBLISHING_POST_STATUSES)),
     check(
       'posts_scheduled_has_date',
       sql`${t.status} <> 'scheduled' or ${t.scheduledAt} is not null`,
@@ -138,6 +147,8 @@ export const postTargets = pgTable(
     externalPostId: text('external_post_id'),
     permalink: text('permalink'),
     attempts: integer('attempts').notNull().default(0),
+    // grows at every move and every new look at a container: the jobs' keys (plan 07 P3)
+    generation: integer('generation').notNull().default(0),
     nextAttemptAt: tz('next_attempt_at'),
     lastErrorCode: text('last_error_code'),
     lastErrorMessage: text('last_error_message'),
@@ -149,6 +160,12 @@ export const postTargets = pgTable(
   },
   (t) => [
     unique('post_targets_post_account').on(t.organizationId, t.postId, t.accountId),
+    // target of the composite foreign key from target_attempts
+    unique('post_targets_workspace_id').on(t.organizationId, t.workspaceId, t.id),
+    // the reconciler's read across the agencies (`dueTargets`, plan 07 Task 3)
+    index('post_targets_due_idx').on(t.status, t.nextAttemptAt),
+    // the search after an uncertain call and the reels of the last 24 hours
+    index('post_targets_account_published_idx').on(t.organizationId, t.accountId, t.publishedAt),
     index('post_targets_account_status_idx').on(t.organizationId, t.accountId, t.status),
     index('post_targets_account_fingerprint_idx').on(t.organizationId, t.accountId, t.fingerprint),
     foreignKey({
@@ -161,12 +178,55 @@ export const postTargets = pgTable(
       columns: [t.organizationId, t.accountId],
       foreignColumns: [socialAccounts.organizationId, socialAccounts.id],
     }),
-    check('post_targets_status', inList('status', POST_STATUSES)),
+    check('post_targets_status', inList('status', TARGET_STATUSES)),
+    check('post_targets_step', sql`${t.step} is null or ${inList('step', TARGET_STEPS)}`),
+    check('post_targets_generation', sql`${t.generation} >= 0`),
     check(
       'post_targets_fingerprint',
       sql`${t.fingerprint} is null or ${t.fingerprint} ~ '^[0-9a-f]{64}$'`,
     ),
     check('post_targets_attempts', sql`${t.attempts} >= 0`),
+  ],
+)
+
+/**
+ * One call of a step to the platform (§9.5, §13): what was tried, how it ended, how long it took.
+ * No text, token or answer of the platform: only the codes.
+ */
+export const targetAttempts = pgTable(
+  'target_attempts',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id').notNull(),
+    workspaceId: uuid('workspace_id').notNull(),
+    targetId: uuid('target_id').notNull(),
+    step: text('step').notNull(),
+    outcome: text('outcome').notNull(),
+    // Feedway's code (`PUBLISH_ERROR_CODES`) and Meta's `code/subcode`, never Meta's message
+    errorCode: text('error_code'),
+    metaErrorCode: text('meta_error_code'),
+    durationMs: integer('duration_ms').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('target_attempts_target_idx').on(t.organizationId, t.targetId, t.createdAt),
+    foreignKey({
+      name: 'target_attempts_target_fk',
+      columns: [t.organizationId, t.workspaceId, t.targetId],
+      foreignColumns: [postTargets.organizationId, postTargets.workspaceId, postTargets.id],
+    }).onDelete('cascade'),
+    check('target_attempts_step', inList('step', TARGET_STEPS)),
+    check('target_attempts_outcome', inList('outcome', ATTEMPT_OUTCOMES)),
+    check('target_attempts_duration', sql`${t.durationMs} >= 0`),
+    check(
+      'target_attempts_error_code',
+      sql`${t.errorCode} is null or ${t.errorCode} ~ '^[a-z_]{1,40}$'`,
+    ),
+    check(
+      'target_attempts_meta_error_code',
+      sql`${t.metaErrorCode} is null or ${t.metaErrorCode} ~ '^[0-9]{1,10}(/[0-9]{1,10})?$'`,
+    ),
   ],
 )
 

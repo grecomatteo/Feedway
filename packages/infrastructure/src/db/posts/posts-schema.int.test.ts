@@ -193,7 +193,7 @@ test('a destination takes any account of the agency, never one of another agency
 
 test('the checks keep the values inside their lists', async () => {
   await expect(
-    inOrg(orgA, (c) => c.query(`update posts set status = 'published' where id = $1`, [postA])),
+    inOrg(orgA, (c) => c.query(`update posts set status = 'sent' where id = $1`, [postA])),
   ).rejects.toThrow(/posts_status/)
   // a scheduled post has a date
   await expect(

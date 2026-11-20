@@ -72,6 +72,16 @@ export type {
   PostTargetRecord,
 } from './ports/posts.js'
 export type {
+  DueTarget,
+  NewTargetAttempt,
+  Outbox,
+  OutboxEvent,
+  PublishedTarget,
+  PublishingRepository,
+  PublishingTargetRecord,
+  TargetStepPatch,
+} from './ports/publishing.js'
+export type {
   AccountGroupRecord,
   CaptionTemplateRecord,
   ContentSettingsRepository,

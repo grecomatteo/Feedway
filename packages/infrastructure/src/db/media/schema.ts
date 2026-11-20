@@ -1,4 +1,11 @@
-import { MEDIA_KINDS, MEDIA_STATUSES, PUBLIC_TOKEN_LENGTH, VARIANT_PURPOSES } from '@app/domain'
+import {
+  MEDIA_KINDS,
+  MEDIA_STATUSES,
+  PUBLIC_TOKEN_LENGTH,
+  VARIANT_PURPOSES,
+  VARIANT_RECIPE,
+  VARIANT_STATUSES,
+} from '@app/domain'
 import { sql } from 'drizzle-orm'
 import {
   bigint,
@@ -94,7 +101,11 @@ export const media = pgTable(
   ],
 )
 
-/** A copy of a file made by the worker: one per purpose. */
+/**
+ * A copy of a file made by the worker: one per purpose and recipe. `recipe` is `''` for the
+ * copies made when the file is processed, the fingerprint of a crop, a frame… for the copies
+ * made when a post is scheduled (plan 07 P4).
+ */
 export const mediaVariants = pgTable(
   'media_variants',
   {
@@ -109,11 +120,15 @@ export const mediaVariants = pgTable(
     sizeBytes: bytes('size_bytes').notNull(),
     width: integer('width'),
     height: integer('height'),
+    recipe: text('recipe').notNull().default(''),
+    status: text('status').notNull().default('ready'),
+    // why a copy with a recipe could not be made (a code)
+    failure: text('failure'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
-    unique('media_variants_one_per_purpose').on(t.organizationId, t.mediaId, t.purpose),
+    unique('media_variants_one_per_recipe').on(t.organizationId, t.mediaId, t.purpose, t.recipe),
     unique('media_variants_token_unique').on(t.publicToken),
     foreignKey({
       name: 'media_variants_media_fk',
@@ -132,6 +147,9 @@ export const mediaVariants = pgTable(
       ),
     ),
     check('media_variants_size', sql`${t.sizeBytes} >= 0`),
+    check('media_variants_recipe', sql.raw(`recipe ~ '${VARIANT_RECIPE.source}'`)),
+    check('media_variants_status', inList('status', VARIANT_STATUSES)),
+    check('media_variants_failure', sql`${t.status} <> 'failed' or ${t.failure} is not null`),
   ],
 )
 

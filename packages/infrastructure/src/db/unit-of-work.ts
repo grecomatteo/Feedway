@@ -28,6 +28,8 @@ import { drizzleMedia } from './media/repositories.js'
 import { drizzleUploadSessions } from './media/upload-sessions.js'
 import { drizzleContentSettings } from './posts/content-settings.js'
 import { drizzlePosts } from './posts/repositories.js'
+import { drizzlePublishing } from './posts/publishing.js'
+import { drizzleOutbox } from './outbox/repositories.js'
 import { drizzlePlatformSettings } from './platform/repositories.js'
 import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
@@ -64,6 +66,8 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     media: drizzleMedia(db),
     uploads: drizzleUploadSessions(db),
     posts: drizzlePosts(db, ids),
+    publishing: drizzlePublishing(db, ids),
+    outbox: drizzleOutbox(db, ids),
     contentSettings: drizzleContentSettings(db),
     audit: drizzleAuditLog(db, ids, ctx),
   }

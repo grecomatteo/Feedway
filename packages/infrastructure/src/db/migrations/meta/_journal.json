@@ -134,6 +134,13 @@
       "when": 1794974703779,
       "tag": "0018_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795189688598,
+      "tag": "0019_publishing",
+      "breakpoints": true
     }
   ]
 }
