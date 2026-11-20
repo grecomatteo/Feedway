@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import type { DesignSample } from '../e2e/support/design-sample.ts'
 import { libraryFile } from '../e2e/support/media.ts'
 import { adminQuery } from '../e2e/support/people.ts'
+import { storedZip } from '../e2e/support/zip.ts'
 
 /**
  * The screens of the references (design/esplorazioni/2026-11-19-nuova-direzione/schermate) that the
@@ -476,6 +477,34 @@ export const SCREENS: Screen[] = [
       } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
       const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
       await dialog.waitFor()
+      await page.waitForTimeout(400)
+    },
+  },
+  // a zip into the library, its preview with a folder of the same name there (Task 10 of stage 7)
+  {
+    id: '32-libreria-zip',
+    path: (s) => `/${s.org}/libreria?spazio=${s.clients['Forno Luce']?.slug ?? ''}`,
+    prepare: async (page, s) => {
+      await folders(page, s)
+      const photo = new Uint8Array(2048).fill(1)
+      const names = [
+        'novembre/reel/forno-01.mp4',
+        'novembre/reel/forno-02.mp4',
+        'novembre/copertine/pane.jpg',
+        'novembre/copertine/cornetti.jpg',
+        'novembre/vetrina.jpg',
+        '__MACOSX/novembre/._vetrina.jpg',
+        'novembre/note.txt',
+      ]
+      await page.locator('[data-zip-input]').setInputFiles({
+        name: 'novembre.zip',
+        mimeType: 'application/zip',
+        buffer: storedZip(names.map((name) => ({ name, data: photo }))),
+      })
+      await page
+        .getByRole('dialog', { name: 'Carica uno zip' })
+        .locator('[data-tree-summary]')
+        .waitFor()
       await page.waitForTimeout(400)
     },
   },
