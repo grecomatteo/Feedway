@@ -1,6 +1,7 @@
 import {
   DISCARD_KEY,
   PUBLISHING_STALE_MINUTES,
+  SLOW_DOWN_MAX_MINUTES,
   UNCERTAIN_FIRST_SEARCH_MINUTES,
   isTooLate,
   nextAttemptAt,
@@ -91,9 +92,12 @@ async function decide(
   const dueAt = target.nextAttemptAt ?? post.scheduledAt
   if (target.status === 'ready' && isTooLate(dueAt, now))
     return done(await failTarget(tx, target, 'too_late'))
-  // only above 95% of Meta's usage (§8.6): at 85% the post still goes out at its time
+  // only above 95% of Meta's usage (§8.6): at 85% the post still goes out at its time. At most
+  // 5 minutes after the post's time, whatever the waits: a wait moves `next_attempt_at`, so
+  // without this bound waits one after the other would publish late without end (D-77 b)
   const slowUntil = await slowDownOf(tx, target, 'publish', now)
-  if (slowUntil) {
+  const slowLimit = plusMinutes(post.scheduledAt, SLOW_DOWN_MAX_MINUTES)
+  if (slowUntil && slowUntil.getTime() <= slowLimit.getTime()) {
     const wait = await waitTarget(tx, target, 'target.publish', slowUntil, 'slowing down')
     return done(wait.log, [wait.job])
   }

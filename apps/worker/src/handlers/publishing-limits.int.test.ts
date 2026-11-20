@@ -201,6 +201,28 @@ test('publish waits only above 95%: at 85% the post goes out at its time', async
   expect(callsTo('/media_publish')).toBe(published + 1)
 })
 
+test('the waits of publish end 5 minutes after the time: then it goes out, never late without end', async () => {
+  const { world, at, post, target } = await setUp()
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  const deps = workerDeps(runtime, clock, host.url)
+  await prepareTarget(deps, job(world, target))
+  const [ready] = await targetsOf(admin, post.postId)
+  if (!ready) throw new Error('no destination')
+  // a first wait, to 4 minutes after the time
+  clock.set(at)
+  await setUsage(world.accounts.instagram, { account: 99, regain: 4, at })
+  expect(await publishTarget(deps, job(world, ready))).toMatchObject({ why: 'slowing down' })
+  const [waiting] = await targetsOf(admin, post.postId)
+  if (!waiting) throw new Error('no destination')
+  // still at 99% then: another wait would end past 5 minutes after the time, so it publishes
+  clock.set(new Date(at.getTime() + 4 * MINUTE))
+  await setUsage(world.accounts.instagram, { account: 99, regain: 4, at: clock.now() })
+  expect(await publishTarget(deps, job(world, waiting))).toEqual({
+    outcome: 'moved',
+    to: 'published',
+  })
+})
+
 test('CS1: five destinations of one agency at 18:00 all go out within the minute with Meta at 85%', async () => {
   const world = await publishingWorld(tdb, runtime)
   const photo = await readyPhoto(tdb, runtime, admin, world)
@@ -384,6 +406,14 @@ const cleanUp = () =>
 
 test('Scelta 5: the nightly clean-up keeps the copies a post needs, and removes old recipes and ended posts', async () => {
   const { world, photo, post } = await setUp({ type: 'story' })
+  // another agency with its own scheduled story: its copy is never touched by this one's posts
+  const other = await setUp({ type: 'story' })
+  await admin.query(
+    "update media_variants set created_at = now() - interval '2 hours' where media_id = $1",
+    [other.photo],
+  )
+  const othersCopies = await copiesOf(other.photo)
+  expect(othersCopies).toHaveLength(1)
   // the copy the scheduled story asked for, made an hour and more ago
   const asked = await copiesOf(photo)
   expect(asked).toHaveLength(1)
@@ -416,6 +446,7 @@ test('Scelta 5: the nightly clean-up keeps the copies a post needs, and removes 
   )
   await cleanUp()
   expect(await copiesOf(photo)).toEqual([])
+  expect(await copiesOf(other.photo)).toEqual(othersCopies)
   const { rows } = await admin.query<{ status: string }>('select status from media where id = $1', [
     photo,
   ])

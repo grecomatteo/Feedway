@@ -5,7 +5,7 @@ import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 
 // `media.publish_copies_cleanup` (plan 07 Task 7, Scelta 5), every night: the copies to publish
-// (those with a recipe) that no post needs any more go, rows first and then their bytes. The
+// (those with a recipe) that no post needs any more go, rows and bytes. The
 // files of the library stay: only a person deletes them. Which copies the posts still need is
 // the posts module's to say (`copiesInUse`), so the media module never reads the posts. The
 // system scope only lists the agencies; each one is cleaned in its own scope.
@@ -69,16 +69,18 @@ export async function cleanupPublishCopies(
             !needed.mediaIds.has(c.mediaId) &&
             !needed.keys.has(`${c.mediaId}/${c.purpose}/${c.recipe}`),
         )
-        return tx.media.dropCopies(
+        const dropped = await tx.media.dropCopies(
           organizationId,
           unused.map((c) => c.id),
         )
+        // the bytes go before the commit: the deleted rows stay locked until then, so a copy
+        // asked for again meanwhile (its key is the same) waits, and its new bytes come after
+        for (const key of dropped)
+          await deps.storage.delete(key).catch((error: unknown) => {
+            deps.logger.warn({ err: error, organizationId }, 'publish copy bytes not deleted')
+          })
+        return dropped
       })
-      // after the commit: a copy asked for again meanwhile is a new row, made again
-      for (const key of keys)
-        await deps.storage.delete(key).catch((error: unknown) => {
-          deps.logger.warn({ err: error, organizationId }, 'publish copy bytes not deleted')
-        })
       report.removed += keys.length
     } catch (error) {
       report.failed += 1
