@@ -85,11 +85,31 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
   await expect(tabs.getByText('Calendario')).toHaveCount(0)
   // the tabs scroll sideways on a narrow screen, never up and down (prova 0.10.0, R-10)
   expect(await tabs.evaluate((n) => n.scrollHeight - n.clientHeight)).toBe(0)
+  // on a phone they fade at the edge where more of them is hidden (D-102.8)
+  if (phone) {
+    const size = page.viewportSize()
+    await page.setViewportSize({ width: 340, height: size?.height ?? 800 })
+    await expect(tabs).toHaveAttribute('data-more-end', '')
+    await expect(tabs).not.toHaveAttribute('data-more-start')
+    await tabs.evaluate((n) => {
+      n.scrollTo({ left: n.scrollWidth })
+    })
+    await expect(tabs).toHaveAttribute('data-more-start', '')
+    await expect(tabs).not.toHaveAttribute('data-more-end')
+    await tabs.evaluate((n) => {
+      n.scrollTo({ left: 0 })
+    })
+    if (size) await page.setViewportSize(size)
+  } else await expect(tabs).not.toHaveAttribute('data-more-end')
 
   // one row for the Page and its Instagram, named by its Instagram
   const list = profiles(page)
   await expect(list.getByText('@fornoluce', { exact: true })).toBeVisible()
   await expect(list.getByText('Instagram e Pagina')).toBeVisible()
+  // its picture, so a lost one shows at a glance (D-102.7)
+  await expect(list.locator('[data-profile-picture] [data-avatar]')).toHaveCount(1)
+  // a profile that works says so on a computer: the column is never empty (D-102.6)
+  if (!phone) await expect(list.locator('[data-linked]')).toHaveText('Collegato')
   // on a computer the quota and the last sync have their columns
   if (!phone) {
     await expect(list.getByRole('columnheader', { name: 'Ultima sincronizzazione' })).toBeVisible()

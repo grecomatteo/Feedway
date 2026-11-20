@@ -87,6 +87,18 @@
   }
 }
 
+/* phone: a field under 16 px makes Safari on the iPhone zoom the page when it is touched (D-86.4,
+   D-102.3). Outside the layers, so it wins over a smaller size a field sets with a utility. */
+@media (width < 48rem) {
+  :where(
+    input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color']),
+    textarea,
+    select
+  ) {
+    font-size: 1rem;
+  }
+}
+
 @media (width >= 40rem) {
   :root {
     --spacing-gutter: 1.5rem;
@@ -172,6 +184,62 @@
 :focus-visible {
   outline: 2px solid var(--app-focus);
   outline-offset: 2px;
+}
+
+/* the editor's preview in the app's own colours, light or dark as the panel's theme (D-102.10):
+   Instagram's and Facebook's palettes of their light and dark modes */
+[data-preview-app='instagram'] {
+  --pv-bg: #fff;
+  --pv-text: #0c1014;
+  --pv-muted: #737373;
+  --pv-sunken: #efefef;
+  --pv-line: #dbdbdb;
+  --pv-dot: #c7c7c7;
+  --pv-link: #00376b;
+}
+[data-preview-app='facebook'] {
+  --pv-bg: #fff;
+  --pv-text: #080809;
+  --pv-muted: #65676b;
+  --pv-sunken: #e4e6eb;
+  --pv-line: #e4e6eb;
+  --pv-dot: #c7c7c7;
+  --pv-link: #385898;
+}
+.dark [data-preview-app='instagram'] {
+  --pv-bg: #000;
+  --pv-text: #f5f5f5;
+  --pv-muted: #a8a8a8;
+  --pv-sunken: #262626;
+  --pv-line: #363636;
+  --pv-dot: #555;
+  --pv-link: #e0f1ff;
+}
+.dark [data-preview-app='facebook'] {
+  --pv-bg: #242526;
+  --pv-text: #e4e6eb;
+  --pv-muted: #b0b3b8;
+  --pv-sunken: #3a3b3c;
+  --pv-line: #3e4042;
+  --pv-dot: #555;
+  --pv-link: #e4e6eb;
+}
+
+/* a row that scrolls sideways fades at the edge where more of it is hidden (v-scroll-edges, D-102.8) */
+[data-more-end]:not([data-more-start]) {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+}
+[data-more-start]:not([data-more-end]) {
+  mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+}
+[data-more-start][data-more-end] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 2.5rem,
+    #000 calc(100% - 2.5rem),
+    transparent
+  );
 }
 
 /* the blocks of ListSkeleton and TableSkeleton */

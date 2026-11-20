@@ -22,7 +22,7 @@ const single = computed(() => (props.items.length === 1 ? props.items[0] : undef
   <div class="flex flex-col" data-view="facebook_post">
     <div class="flex items-center gap-2 px-3 py-2">
       <span
-        class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4e6eb] text-[0.625rem] font-semibold"
+        class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-(--pv-sunken) text-[0.625rem] font-semibold"
         aria-hidden="true"
       >
         <img v-if="avatar" :src="avatar" alt="" class="size-full object-cover" />
@@ -30,7 +30,7 @@ const single = computed(() => (props.items.length === 1 ? props.items[0] : undef
       </span>
       <span class="flex min-w-0 flex-1 flex-col">
         <span class="truncate text-[0.78125rem] font-semibold">{{ name }}</span>
-        <span class="flex items-center gap-1 text-[0.625rem] text-[#65676b]">
+        <span class="flex items-center gap-1 text-[0.625rem] text-(--pv-muted)">
           {{ when }}
           <UIcon name="i-lucide-globe" class="size-2.5" aria-hidden="true" />
         </span>
@@ -66,11 +66,11 @@ const single = computed(() => (props.items.length === 1 ? props.items[0] : undef
         </span>
       </div>
     </div>
-    <p class="border-b border-[#e4e6eb] px-3 py-1.5 text-[0.625rem] text-[#65676b]">
+    <p class="border-b border-(--pv-line) px-3 py-1.5 text-[0.625rem] text-(--pv-muted)">
       {{ t('posts.preview.firstReaction') }}
     </p>
     <div
-      class="flex justify-around px-2 py-2 text-[0.6875rem] font-semibold text-[#65676b]"
+      class="flex justify-around px-2 py-2 text-[0.6875rem] font-semibold text-(--pv-muted)"
       aria-hidden="true"
     >
       <span class="flex items-center gap-1">

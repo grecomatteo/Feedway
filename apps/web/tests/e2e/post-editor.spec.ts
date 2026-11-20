@@ -268,6 +268,25 @@ test('a post of an archived client: the summary says why, never «Controlli non 
   await expect(summary).not.toContainText('Controlli non riusciti')
 })
 
+test('a saved draft without text is «Bozza senza testo»; the preview follows the theme (D-102.5, D-102.10)', async ({
+  page,
+  isMobile,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  if (!isMobile) await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Nuovo post' })).toBeVisible()
+  await pickFromLibrary(page, ['pane.jpg'])
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await expect(page.getByRole('heading', { level: 1, name: 'Bozza senza testo' })).toBeVisible()
+
+  test.skip(isMobile, 'the preview is beside the form on a computer')
+  const frame = page.locator('aside [data-preview] [data-preview-frame]')
+  await expect(frame).toHaveAttribute('data-preview-app', 'instagram')
+  const dark = await page.evaluate(() => document.documentElement.classList.contains('dark'))
+  await expect(frame).toHaveCSS('background-color', dark ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)')
+})
+
 test('a warning to answer: the choice is saved, then the post can be scheduled', async ({
   page,
 }) => {

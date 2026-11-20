@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vScrollEdges } from '~/utils/scroll-edges'
+
 /**
  * The client's page (spec §14.7, screens 16–18 of the new direction): the «home» of a client,
  * where the selector leads (D-5). At the top its square picture, name and the names of its profiles
@@ -120,6 +122,7 @@ const bare = computed(() => route.meta['editor'] === true)
            overlap made a vertical scrollbar appear beside them (R-10) -->
         <nav
           ref="tabStrip"
+          v-scroll-edges
           :aria-label="$t('client.tabs.label')"
           class="overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--app-border)] max-md:-mx-gutter max-md:px-gutter"
         >
