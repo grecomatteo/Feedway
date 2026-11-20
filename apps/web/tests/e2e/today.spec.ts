@@ -219,6 +219,8 @@ test('a read that fails says so, and «Riprova» reads again', async ({ page }) 
   await page.goto(`/${owner.organizationSlug}`)
   const out = section(page, 'In uscita')
   await expect(out.getByRole('alert')).toHaveText(/Non siamo riusciti a leggere i post in uscita/)
+  // the same row as every other failed read: the red sign and «Riprova» (D, state 1)
+  await expect(out.locator('[data-load-failed]')).toBeVisible()
   // the strip does not claim the days are free when it could not read them
   await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName('mar 17')
   await expect(week(page)).not.toContainText('libero')
@@ -261,6 +263,7 @@ test('a failed read of what to fix says so, and «Riprova» reads again', async 
   await page.goto(`/${owner.organizationSlug}`)
   const failed = page.locator('[data-today-issues-failed]')
   await expect(failed).toHaveRole('alert')
+  await expect(failed).toHaveAttribute('data-load-failed')
   await expect(failed).toContainText('Non siamo riusciti a leggere cosa c’è da sistemare.')
   await expect(page.locator('[data-today-calm]')).toHaveCount(0)
   failing = false

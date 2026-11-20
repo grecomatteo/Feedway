@@ -585,6 +585,16 @@ describe('scheduling', () => {
       'post.cancelled',
       'post.deleted',
     ])
+    // «ha programmato un post per ven 11 giu, 18:00» in the log (review of fidelity, B9): the
+    // moment only, never the text
+    const { rows: data } = await env.admin.pool.query<{ data: Record<string, unknown> | null }>(
+      `select data from audit_log where entity_id = $1 and action = 'post.scheduled'`,
+      [post.id],
+    )
+    expect(data.map((r) => r.data)).toEqual([
+      { scheduledAt: again.scheduledAt },
+      { scheduledAt: again.scheduledAt },
+    ])
   })
 
   test('the agency’s posts of a day stop at its limit (409)', async () => {

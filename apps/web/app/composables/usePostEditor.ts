@@ -389,6 +389,36 @@ export function usePostEditor(opts: {
     touched()
   }
 
+  /**
+   * «Sostituisci» of a reel's only video (screen 09, B4): the new file takes the place of every
+   * file of the post, and the type stays. A file refused leaves the post as it was.
+   */
+  function dropEntries() {
+    for (const x of entries.value) {
+      const item = uploadItem(x)
+      if (item && !item.media) void uploads.cancel(item)
+    }
+    entries.value = []
+  }
+  async function replaceFiles(list: readonly File[]) {
+    if (!editable.value || list.length === 0) return
+    const items = await uploads.add(list.slice(0, 1), null, (media) => {
+      attached(media)
+    })
+    refused.value = items.filter((i) => i.state === 'rejected')
+    const ok = items.filter((i) => i.state !== 'rejected')
+    if (ok.length === 0) return
+    dropEntries()
+    for (const item of ok) entries.value.push({ key: newKey(), file: null, upload: item.key })
+    followFiles()
+    touched()
+  }
+  function replaceFromLibrary(list: readonly MediaDto[]) {
+    if (!editable.value || list.length === 0) return
+    dropEntries()
+    addFromLibrary(list.slice(0, 1))
+  }
+
   function move(key: string, by: -1 | 1) {
     const i = entries.value.findIndex((e) => e.key === key)
     const j = i + by
@@ -731,6 +761,8 @@ export function usePostEditor(opts: {
     chooseType,
     addFiles,
     addFromLibrary,
+    replaceFiles,
+    replaceFromLibrary,
     move,
     moveTo,
     removeEntry,

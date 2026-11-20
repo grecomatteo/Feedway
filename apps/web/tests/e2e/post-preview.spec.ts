@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { libraryFile } from './support/media.ts'
@@ -89,7 +90,7 @@ async function pickFromLibrary(page: Page, names: string[]) {
   await expect(dialog).toHaveCount(0)
 }
 
-test('a mixed carousel on Instagram and Facebook: only the photos on the Page, its own text, the order changed from the preview', async ({
+test('a mixed carousel on Instagram and Facebook: only the photos on the Page, its own text, the arrows of the carousel', async ({
   page,
 }) => {
   const { org, client } = await clientWithFiles(page)
@@ -130,17 +131,14 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
   await expect(post.locator('[data-preview-caption]')).toHaveText('Sulla Pagina: pane da sabato')
   expect((await axe(page)).violations).toEqual([])
 
-  // back on Instagram, the second file (the video) moves first from the preview
+  // back on Instagram the carousel moves with its arrows; the order changes in «File» only, so
+  // the column stays short enough for «Controlli» (review of fidelity, A1)
   await tab(page, 'Feed').click()
   await feed.getByRole('button', { name: 'File successivo' }).click()
   await expect(feed.getByText('2/3')).toBeVisible()
-  // the buttons are the panel's, under the frame, not inside Instagram's interface
-  await expect(feed.getByRole('button', { name: 'Sposta prima' })).toHaveCount(0)
-  await preview(page).getByRole('button', { name: 'Sposta prima' }).click()
-  await expect(page.locator('[data-entry]').first()).toHaveAccessibleName(/File 1: impasto\.mov/)
-  await expect(feed.getByText('1/3')).toBeVisible()
-  await expect(feed.locator('[data-preview-file]')).toHaveAttribute('data-preview-file', '0')
   await expect(feed.locator('video')).toHaveCount(1)
+  await expect(preview(page).getByRole('button', { name: /^Sposta/ })).toHaveCount(0)
+  await feed.getByRole('button', { name: 'File precedente' }).click()
 
   // on the last file, a file taken out while another tab shows: back on the feed, the first
   await feed.getByRole('button', { name: 'File successivo' }).click()
@@ -154,7 +152,55 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
   await expect(feed.locator('[data-preview-file]')).toHaveCount(1)
 })
 
-test('a story shows no text and the zones the app covers; a reel the same, and the zones go away', async ({
+test('a tall photo shows in the feed at 4:5, and «Controlli» stand under the preview on a laptop screen', async ({
+  page,
+}) => {
+  const { owner, org, client, fb } = await clientWithFiles(page)
+  // a real 2:3 photo (720×1079), not the tiny square of the fixtures: it must not stretch the frame
+  const image = await readFile(
+    new URL('../../../../design/feedway-ui-assets/adbaa4719c5d6833.jpg', import.meta.url),
+  )
+  const tall = await libraryFile(org, client.id, owner.userId, {
+    kind: 'image',
+    name: 'alta.jpg',
+    image,
+  })
+  await analysed(tall, 'image', 720, 1079)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['alta.jpg', 'pane.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del lunedì')
+  const file = preview(page).locator('[data-view="instagram_feed"] [data-preview-file="0"]')
+  await expect(file).toBeVisible()
+  const box = await file.boundingBox()
+  expect(box && Math.abs(box.height / box.width - 5 / 4)).toBeLessThan(0.02)
+  // what the app shows under the photo is not the panel's: no likes, no date
+  await expect(preview(page).getByText('Piace a 0 persone')).toHaveCount(0)
+
+  // «Controlli» on the first screen, without scrolling the column (screen 08)
+  const summary = page.locator('aside #post-summary-title')
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(size)
+    await expect(summary).toBeVisible()
+    const at = await summary.boundingBox()
+    expect(
+      at && at.y + at.height,
+      `«Controlli» at ${String(size.width)}×${String(size.height)}`,
+    ).toBeLessThanOrEqual(size.height)
+  }
+  expect((await axe(page)).violations).toEqual([])
+
+  // only Instagram: no «Testo diverso per Instagram e Facebook» (screen 09, B5)
+  const split = page.getByRole('switch', { name: 'Testo diverso per Instagram e Facebook' })
+  await expect(split).toBeVisible()
+  await page.locator(`[data-account="${fb}"]`).click()
+  await expect(split).toHaveCount(0)
+})
+
+test('a story shows no text; a reel shows the zones the app covers when asked, and they go away', async ({
   page,
 }) => {
   const { org, client } = await clientWithFiles(page)
@@ -167,6 +213,9 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   await expect(tab(page, 'Facebook')).toBeVisible()
   const reel = preview(page).locator('[data-view="instagram_reel"]')
   await expect(reel.locator('[data-preview-caption]')).toHaveText('Dietro le quinte')
+  // the zones are off at first, the video clean (screen 09, B2); the switch shows them
+  await expect(reel.locator('[data-safe-zones]')).toHaveCount(0)
+  await preview(page).getByRole('switch', { name: 'Mostra le zone coperte' }).click()
   await expect(reel.locator('[data-safe-zones]')).toBeVisible()
   await expect(reel.getByText("Coperto dall'interfaccia").first()).toBeVisible()
   // a plain 9:16 rectangle (no phone), whole on the screen under the row at the top
@@ -318,6 +367,29 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await pickFromLibrary(page, ['impasto.mov'])
+  // a reel takes one video: no «Aggiungi», but «Sostituisci» (screen 09, B4)
+  const media = page.getByRole('region', { name: 'File' })
+  await expect(media.locator('[data-add-file]')).toHaveCount(0)
+  await expect(media.getByText('Convertito in MP4')).toBeVisible()
+  const other = await libraryFile(org, client.id, owner.userId, {
+    kind: 'video',
+    name: 'forno.mov',
+  })
+  await analysed(other, 'video', 1080, 1920)
+  await media.getByRole('button', { name: 'Sostituisci il video' }).click()
+  await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  const library = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  await library.getByRole('button', { name: 'forno.mov' }).click()
+  await library.getByRole('button', { name: /^Aggiungi/ }).click()
+  await expect(page.locator('[data-entry]')).toHaveCount(1)
+  await expect(page.locator('[data-entry]')).toHaveAccessibleName(/forno\.mov/)
+  await expect(page.locator('[data-type="reel"]')).toHaveAttribute('aria-pressed', 'true')
+  // and back to the first video, for the cover below
+  await media.getByRole('button', { name: 'Sostituisci il video' }).click()
+  await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  await library.getByRole('button', { name: 'impasto.mov' }).click()
+  await library.getByRole('button', { name: /^Aggiungi/ }).click()
+  await expect(page.locator('[data-entry]')).toHaveAccessibleName(/impasto\.mov/)
   const section = page.locator('[data-cover]')
   await expect(section.getByRole('heading', { name: 'Copertina' })).toBeVisible()
   const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })

@@ -99,7 +99,9 @@ test('the «Post» tab: all the posts, the filter and the search, a row opens th
   await page.getByRole('searchbox', { name: 'Cerca nel testo o in un profilo' }).fill('focaccia')
   await expect(rows.filter({ visible: true })).toHaveCount(1)
   await rows.filter({ visible: true }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Bozza' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'La focaccia del sabato' }),
+  ).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
     'La focaccia del sabato',
   )

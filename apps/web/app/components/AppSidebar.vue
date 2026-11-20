@@ -59,8 +59,8 @@ const entry =
     </div>
 
     <template v-if="org.active.value">
-      <!-- the personal settings have no client context of their own (D-87) -->
-      <ContextSwitcher v-if="inAgency" />
+      <!-- also in the personal settings, on «Tutti i clienti» (screens 23 and 24, D-98 A6) -->
+      <ContextSwitcher />
       <UButton
         v-if="newPost.allowed.value"
         :to="newPost.link.value"

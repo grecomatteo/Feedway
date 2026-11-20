@@ -1,5 +1,4 @@
 import type { AccountGroupDto, CaptionTemplateDto, LabelDto } from '@app/contracts'
-import { palettes } from '@app/ui'
 
 /**
  * The content settings of a client (spec §11.7, plan 06 Task 7): its labels, caption templates
@@ -19,6 +18,12 @@ export function useContentSettings(workspaceId: Ref<string | null>) {
 
   async function load() {
     if (!base.value) return
+    // after a failed read the lists were emptied: read again, they wait (skeletons, not «none»)
+    if (failed.value) {
+      labels.value = null
+      templates.value = null
+      groups.value = null
+    }
     failed.value = false
     try {
       const [l, t, g] = await Promise.all([
@@ -51,8 +56,21 @@ export const LABEL_COLOR_NAMES: readonly LabelColorName[] = [
   'grafite',
 ]
 
-/** A label is drawn with the accent of its theme (D-68), by day or by night as the panel is. */
+/**
+ * The mark of a label: a small square in a deep tone of its theme (screens 08, 17 and 18), so it
+ * never passes for the orange of «Nuovo post»; lighter by night, to show on the dark surfaces.
+ * Feedway's is the amber of the screens, not the brand's orange (review of fidelity, B1).
+ */
+export const LABEL_MARKS: Record<LabelColorName, { light: string; dark: string }> = {
+  feedway: { light: '#D98A00', dark: '#F0A733' },
+  blu: { light: '#1F5AA6', dark: '#6EA8F0' },
+  verde: { light: '#17693F', dark: '#4FBF80' },
+  viola: { light: '#7F4BB1', dark: '#BF8AE6' },
+  grafite: { light: '#4A4F57', dark: '#A39E95' },
+}
+
+/** A label's mark by day or by night, as the panel is (D-68). */
 export function useLabelColor() {
   const mode = useColorMode()
-  return (color: LabelColorName) => palettes[color][mode.value === 'dark' ? 'dark' : 'light'].brand
+  return (color: LabelColorName) => LABEL_MARKS[color][mode.value === 'dark' ? 'dark' : 'light']
 }

@@ -174,20 +174,31 @@ const ready = computed(
   <PageShell v-if="org.organization.value" :title="$t('today.title')">
     <template #aside>{{ formatDay(now, { now }) }}</template>
 
+    <!-- the first setup: a quiet row like «Da sistemare», not a box of its own (C1) -->
     <section
       v-if="setup.step.value !== null && setup.step.value !== 6"
       aria-labelledby="first-setup"
-      class="space-y-3 rounded-card border border-(--app-brand) bg-(--app-brand-soft) p-4 sm:p-6"
+      class="flex min-h-row flex-wrap items-center gap-x-3.5 gap-y-2 rounded-card border border-(--app-border) bg-(--app-surface) px-4 py-2.5"
+      data-first-setup
     >
-      <h2 id="first-setup">{{ $t('firstSetup.title') }}</h2>
-      <p class="max-w-prose">{{ $t('firstSetup.home', { n: setup.step.value }) }}</p>
+      <UIcon
+        name="i-lucide-list-checks"
+        class="size-[18px] shrink-0 text-(--app-text-muted)"
+        aria-hidden="true"
+      />
+      <div class="min-w-0 flex-1">
+        <h2 id="first-setup">{{ $t('firstSetup.title') }}</h2>
+        <p class="text-detail text-(--app-text-muted)">
+          {{ $t('firstSetup.home', { n: setup.step.value }) }}
+        </p>
+      </div>
       <UButton
         :to="org.to('/configurazione')"
         color="neutral"
         variant="outline"
-        icon="i-lucide-arrow-right"
+        :aria-label="$t('firstSetup.resume')"
       >
-        {{ $t('firstSetup.resume') }}
+        {{ $t('firstSetup.resumeShort') }}
       </UButton>
     </section>
 
@@ -254,17 +265,12 @@ const ready = computed(
           </ListRow>
         </ListSurface>
       </section>
-      <div
+      <LoadFailed
         v-else-if="issuesRead.error.value"
-        role="alert"
-        class="flex items-center justify-between gap-3 text-(--app-text-muted)"
+        :text="$t('today.issues.failed')"
         data-today-issues-failed
-      >
-        <span>{{ $t('today.issues.failed') }}</span>
-        <UButton color="neutral" variant="outline" size="sm" @click="issuesRead.refresh()">{{
-          $t('today.out.again')
-        }}</UButton>
-      </div>
+        @retry="issuesRead.refresh()"
+      />
       <p
         v-else-if="issuesRead.data.value"
         class="flex items-center gap-2 text-(--app-text-muted)"
@@ -278,7 +284,9 @@ const ready = computed(
         {{ $t('today.issues.none') }}
       </p>
 
-      <div class="grid items-start gap-8 max-lg:gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div
+        class="grid items-start gap-8 max-[1359px]:gap-7 min-[1360px]:grid-cols-[minmax(0,1fr)_340px]"
+      >
         <!-- In uscita -->
         <section
           :aria-label="$t('today.out.title')"
@@ -309,7 +317,7 @@ const ready = computed(
               >
                 <span class="block text-caption text-(--app-text-muted)">{{ d.weekday }}</span>
                 <span
-                  class="mt-0.5 flex items-baseline gap-1.5 text-[15px] leading-5 font-semibold tabular-nums max-md:justify-center"
+                  class="mt-0.5 flex items-baseline gap-1.5 text-[15px] leading-5 font-semibold tabular-nums max-md:justify-center md:max-xl:flex-col md:max-xl:gap-0"
                   :class="d.past ? 'text-(--app-text-muted)' : ''"
                 >
                   {{ d.number }}
@@ -354,14 +362,21 @@ const ready = computed(
                 <USkeleton class="h-4 flex-1" />
               </div>
             </div>
+            <!-- the row of LoadFailed, inside the surface of «In uscita» (D, state 1) -->
             <div
               v-else-if="agenda.error.value"
               role="alert"
-              class="flex min-h-row items-center justify-between gap-3 px-4"
+              class="flex min-h-row items-center gap-3 px-4"
+              data-load-failed
             >
-              <span class="text-(--app-text-muted)">{{ $t('today.out.failed') }}</span>
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="size-4 shrink-0 text-(--app-danger)"
+                aria-hidden="true"
+              />
+              <span class="min-w-0 flex-1">{{ $t('today.out.failed') }}</span>
               <UButton color="neutral" variant="outline" size="sm" @click="agenda.refresh()">{{
-                $t('today.out.again')
+                $t('account.retry')
               }}</UButton>
             </div>
             <div

@@ -83,11 +83,18 @@ export function ruleValues(outcome: RuleMessageInput, t: Translate): Record<stri
   return values
 }
 
+/**
+ * Codes whose choices have words of their own, saying what each does to the file (screen 09,
+ * B6): `rules.<code>.options.<option>` in place of the shared `rules.options.<option>`.
+ */
+const OWN_OPTIONS: ReadonlySet<string> = new Set(['reel_aspect_ratio'])
+
 export function ruleMessage(outcome: RuleMessageInput, t: Translate): RuleMessage {
   const values = ruleValues(outcome, t)
+  const options = OWN_OPTIONS.has(outcome.code) ? `rules.${outcome.code}.options` : 'rules.options'
   return {
     title: t(`rules.${outcome.code}.title`, values),
     text: t(`rules.${outcome.code}.text`, values),
-    options: (outcome.options ?? []).map((o) => t(`rules.options.${o}`, values)),
+    options: (outcome.options ?? []).map((o) => t(`${options}.${o}`, values)),
   }
 }

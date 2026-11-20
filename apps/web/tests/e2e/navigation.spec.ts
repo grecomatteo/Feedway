@@ -357,6 +357,24 @@ test('the measures of the shell (base.css): 240 and 44 on a computer, one row at
   ).toBe(36)
 })
 
+// the personal settings keep the shell of the agency's pages (screens 23 and 24): the selector
+// on «Tutti i clienti», so nothing moves and the phone's row is not empty (review of fidelity, A6)
+test('the personal settings keep the client selector, and a client leads to its page', async ({
+  page,
+}) => {
+  const { org, client } = await ownerWithClient(page, 'Olga Profilo')
+  await page.goto(`/${org}/spazi`)
+  const trigger = page.getByRole('button', { name: /^Contesto:/ }).locator('visible=true')
+  const before = await trigger.boundingBox()
+  await page.goto('/account')
+  await expect(trigger).toHaveAccessibleName(/Tutti i clienti/)
+  await expect(trigger).toBeEnabled()
+  expect((await trigger.boundingBox())?.y).toBe(before?.y)
+  await trigger.click()
+  await page.getByRole('option', { name: /Cliente Barra/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/spazi/${client.slug}$`))
+})
+
 test('a search that finds nobody: Enter picks nothing', async ({ page }) => {
   const { org, client } = await ownerWithClient(page, 'Olga Ricerca')
   await page.goto(`/${org}/spazi/${client.slug}`)

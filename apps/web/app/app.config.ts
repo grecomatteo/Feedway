@@ -23,7 +23,10 @@ export default defineAppConfig({
     },
     colors: { primary: 'brand', neutral: 'stone' },
     button: {
-      slots: { base: 'rounded-control font-semibold' },
+      // off at half its colour, as `.btn[disabled]` of base.css (the library's 0.75 looked on)
+      slots: {
+        base: 'rounded-control font-semibold disabled:opacity-50 aria-disabled:opacity-50',
+      },
       variants: {
         size: {
           sm: { base: 'min-h-control-sm py-1 px-2.5 text-detail gap-1.5' },

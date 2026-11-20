@@ -67,6 +67,19 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
     { workspaceId: client.id, role: 'editor' },
   ])
 
+  // the Owner works from Rome, as the agency: no line about the zone (screen 18, B10)
+  const octx = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? '',
+    timezoneId: 'Europe/Rome',
+  })
+  await octx.addCookies(await page.context().cookies())
+  const o = await octx.newPage()
+  await ownAddress(o)
+  await o.goto(`/${org}/spazi/${client.slug}/contenuti`)
+  await expect(o.getByRole('combobox', { name: 'I nuovi post partono da' })).toBeVisible()
+  await expect(o.getByText(/ora di Roma|fuso/)).toHaveCount(0)
+  await octx.close()
+
   // ---- the Manager, in the client's content settings
   const mctx = await browser.newContext({ baseURL: process.env.E2E_BASE_URL ?? '' })
   const m = await mctx.newPage()
@@ -170,9 +183,36 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await expect(e.getByText('Il prezzo lo conferma Marta')).toBeVisible()
 
   // the label in the client's list of posts
+  await e.setViewportSize({ width: 1280, height: 800 })
   await e.goto(`/${org}/spazi/${client.slug}/post`)
   await expect(
     e.locator('[data-label]').filter({ hasText: 'Natale', visible: true }).first(),
   ).toBeVisible()
+  // on a phone the row has no room for it: the label stays in the post (screen 17, B8)
+  await e.setViewportSize({ width: 390, height: 844 })
+  await expect(e.locator('[data-label]').filter({ visible: true })).toHaveCount(0)
   await ectx.close()
+})
+
+// a read that fails shows no false «0» and no «Nuova…» under it; «Riprova» waits with the
+// skeletons, then shows the lists (review of fidelity, D state 4)
+test('content settings that cannot be read say only that', async ({ page }) => {
+  const owner = await newPerson('Olga Errore Contenuti', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const client = await newWorkspace(page.request, org, 'Forno Errore')
+  let failing = true
+  await page.route(/\/labels$/, async (route) => {
+    if (failing) await route.fulfill({ status: 500, body: '{}' })
+    else await route.continue()
+  })
+  await page.goto(`/${org}/spazi/${client.slug}/contenuti`)
+  const failed = page.locator('[data-load-failed]')
+  await expect(failed).toBeVisible()
+  await expect(page.locator('[data-content-labels]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Nuova etichetta' })).toHaveCount(0)
+  failing = false
+  await failed.getByRole('button', { name: 'Riprova' }).click()
+  await expect(page.getByText('Ancora nessuna etichetta')).toBeVisible()
+  await expect(failed).toHaveCount(0)
 })
