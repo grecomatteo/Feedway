@@ -80,6 +80,23 @@ const platforms = computed(() => {
   return (['instagram', 'facebook'] as const).filter((p) => set.has(p))
 })
 
+/**
+ * «Controlli» above the preview once the post has something to answer or fix: the choice that
+ * keeps «Programma» off is then on the screen at any height, not under a 420 px reel. They stay
+ * on top after the answer, so the option just picked does not jump away under the pointer.
+ */
+const checksFirst = ref(false)
+watch(
+  () => {
+    const r = e.report.value
+    return !!r && (r.unresolved.length > 0 || r.outcomes.some((o) => o.level === 'block'))
+  },
+  (attention) => {
+    if (attention) checksFirst.value = true
+  },
+  { immediate: true },
+)
+
 const previewOpen = ref(false)
 /** One preview at a time: the column from 1024 px, the full screen below (design E3b). */
 const wide = ref(false)
@@ -412,6 +429,15 @@ const confirmText = computed(() => {
           tabindex="0"
         >
           <template v-if="wide">
+            <PostDestinationSummary
+              v-if="checksFirst"
+              placement="column"
+              :editor="editor"
+              :accounts="accounts"
+              :show-files="client.myRole !== 'viewer'"
+              data-checks-first
+              @goto="goto"
+            />
             <PostPreview
               :editor="editor"
               :accounts="accounts"
@@ -422,6 +448,7 @@ const confirmText = computed(() => {
               feed-reserve="20rem"
             />
             <PostDestinationSummary
+              v-if="!checksFirst"
               placement="column"
               :editor="editor"
               :accounts="accounts"

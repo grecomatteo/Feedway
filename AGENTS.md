@@ -47,6 +47,7 @@ Se specifica, piano e codice non sono d'accordo, fermati e segnala la differenza
 
 ## Design Feedway
 
+- **Ogni pagina, anche futura, segue lo stile del ridisegno** (Matteo, 20/11): componenti e regole di `DESIGN.md` («Regole del ridisegno per ogni pagina» e «Tela nuova direzione»), mai lo stile di prima. Una pagina toccata che ha ancora lo stile vecchio si porta nel nuovo.
 - Per nuovo lavoro UI o cambiamenti ai flussi, leggi `design/brief-feedway/03-BRIEF-APP.md` oppure `04-BRIEF-LANDING.md` secondo la superficie. Per dominio e permessi la fonte è la [specifica](docs/superpowers/specs/2026-10-15-feedway-design.md): il v9 originale in `design/brief-feedway/progetto/` si consulta solo per il lavoro di design, come chiede il pacchetto del brief.
 - Per logo, colori e tipografia usa `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md`. Gli asset approvati e il brief prevalgono sulle preferenze generiche delle skill.
 - Usa Pencil tramite MCP e le istruzioni ottenute da `read_skill()`. Gestisci il file `design/feedway-ui.pen` con gli strumenti Pencil. Mantieni modificabili componenti e variabili.

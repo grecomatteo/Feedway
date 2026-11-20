@@ -78,6 +78,15 @@ const canSchedule = computed(
     busyFiles.value === 0 &&
     e.save.value.status !== 'conflict',
 )
+/**
+ * «Programma» off because of a choice or a block still reads as off, but a click on it leads to
+ * what is missing, as «Manca 1 scelta» does: an off button that answers nothing reads as broken.
+ */
+const leadsToMissing = computed(() => !canSchedule.value && !!missing.value?.warn)
+function scheduleOrShow() {
+  if (leadsToMissing.value) emit('goto', 'post-summary')
+  else emit('schedule')
+}
 const draft = computed(() => e.status.value === 'draft')
 /** «Bozza salvata» over «alle 11:53», at the bottom on a phone */
 const saved = computed(
@@ -179,10 +188,12 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         <UButton
           v-if="e.may.value.publish"
           icon="i-lucide-calendar-check"
-          :disabled="!canSchedule"
+          :disabled="!canSchedule && !leadsToMissing"
+          :aria-disabled="leadsToMissing || undefined"
+          :class="{ 'aria-disabled:cursor-pointer': leadsToMissing }"
           :loading="e.acting.value === 'schedule'"
           data-schedule
-          @click="emit('schedule')"
+          @click="scheduleOrShow"
         >
           {{ $t('posts.actions.schedule', { n: accountsCount }, accountsCount) }}
         </UButton>
@@ -296,10 +307,12 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         <UButton
           v-if="e.may.value.publish"
           icon="i-lucide-calendar-check"
-          :disabled="!canSchedule"
+          :disabled="!canSchedule && !leadsToMissing"
+          :aria-disabled="leadsToMissing || undefined"
+          :class="{ 'aria-disabled:cursor-pointer': leadsToMissing }"
           :loading="e.acting.value === 'schedule'"
           data-schedule
-          @click="emit('schedule')"
+          @click="scheduleOrShow"
         >
           {{
             showMissing

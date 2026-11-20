@@ -63,7 +63,7 @@
   --spacing-page-top: 1.25rem; /* above the title: 20 phone, 28 computer (base.css `.page`) */
   --spacing-header: 1.5rem; /* from the page head to its content */
   --spacing-section: 2rem; /* between the sections of a page: 32 phone, 40 computer */
-  --spacing-block: 1rem; /* inside a section: its title to its content, between blocks */
+  --spacing-stack: 1rem; /* inside a section: its title to its content, between blocks. Not `block`: Tailwind would make `.inline-block` 1rem wide */
   /* the only limited widths: a form (fields as wide as what they hold) and long text */
   --container-form: 40rem;
 }
