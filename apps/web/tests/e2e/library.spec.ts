@@ -569,3 +569,99 @@ test('a post scheduled after the page was read: the refusal says why, and the fi
   await expect(tile(page, 'cornetti.jpg')).toContainText('Nel post di gio 10 giu 2027, 18:00')
   await expect(grid(page).getByRole('listitem')).toHaveCount(3)
 })
+
+test('one library: the clients with their folders, a client and its folder in the address (D-103)', async ({
+  page,
+}) => {
+  // a Publisher of two clients out of three: the third never shows
+  const owner = await newPerson('Olga Unita', 'owner')
+  const org = owner.organizationSlug
+  const url = process.env.E2E_DATABASE_URL ?? ''
+  const forno = await seed(url, (s) => s.workspace(org, { name: 'Forno Luce' }))
+  const osteria = await seed(url, (s) => s.workspace(org, { name: 'Osteria Bruna' }))
+  await seed(url, (s) => s.workspace(org, { name: 'Gelateria Polo' }))
+  const publisher = await addPerson(org, 'Pia Publisher', 'member', [
+    { workspaceId: forno, role: 'publisher' },
+    { workspaceId: osteria, role: 'publisher' },
+  ])
+  await signIn(page.request, publisher)
+  const headers = { origin: new URL(process.env.E2E_BASE_URL ?? '').origin, 'x-app-request': '1' }
+  const folder = async (name: string, parentId: string | null) => {
+    const res = await page.request.post(`/api/v1/orgs/${org}/workspaces/${forno}/folders`, {
+      headers,
+      data: { name, parentId },
+    })
+    expect(res.status()).toBeLessThan(300)
+    return ((await res.json()) as { id: string }).id
+  }
+  const novembre = await folder('Novembre', null)
+  const reel = await folder('Reel', novembre)
+  await libraryFile(org, forno, publisher.userId, {
+    kind: 'video',
+    name: 'sfoglia.mov',
+    folderId: reel,
+  })
+  await libraryFile(org, forno, publisher.userId, { kind: 'image', name: 'pane.jpg' })
+  await libraryFile(org, osteria, publisher.userId, { kind: 'image', name: 'sala.jpg' })
+
+  await page.goto(`/${org}/libreria`)
+  await expect(page.getByRole('list', { name: 'Oggi' }).getByRole('listitem')).toHaveCount(3)
+  if (!isPhone(page)) {
+    const tree = page.getByRole('navigation', { name: 'Clienti e cartelle' })
+    await expect
+      .poll(() =>
+        tree
+          .locator('[data-tree-client]')
+          .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-tree-client'))),
+      )
+      .toEqual(['Forno Luce', 'Osteria Bruna'])
+    await tree.getByRole('button', { name: 'Cartelle di Forno Luce' }).click()
+    const branch = tree.getByRole('list', { name: 'Cartelle di Forno Luce' })
+    await expect(branch.locator('[data-tree-folder]')).toHaveText([/Novembre/, /Reel/])
+    await branch.locator('[data-tree-folder="Reel"]').click()
+  } else {
+    // on a phone the client from the filter, then the folder from the menu
+    await page.getByRole('combobox', { name: 'Cliente' }).click()
+    await expect(page.getByRole('option')).toHaveText([
+      'Tutti i clienti',
+      'Forno Luce',
+      'Osteria Bruna',
+    ])
+    await page.getByRole('option', { name: 'Forno Luce' }).click()
+    await page.getByRole('combobox', { name: 'Cartella' }).click()
+    await page.getByRole('option', { name: /Reel$/ }).click()
+  }
+  // the client and the folder are in the address (the seed gives a client its id as slug), and
+  // the context selector agrees
+  await expect(page).toHaveURL((u) => {
+    const q = new URL(u).searchParams
+    return q.get('spazio') === forno && q.get('cartella') === reel
+  })
+
+  await expect(page.getByRole('heading', { level: 2, name: 'Reel' })).toBeVisible()
+  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
+  await expect(tile(page, 'sfoglia.mov')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /^Contesto: Forno Luce/ }).locator('visible=true'),
+  ).toBeVisible()
+  await fitsTheScreen(page)
+  const results = await axe(page)
+  expect(results.violations).toEqual([])
+
+  // the address opens it again; the client's tab is the same library
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 2, name: 'Reel' })).toBeVisible()
+  await page.goto(`/${org}/spazi/${forno}/libreria?cartella=${reel}`)
+  await expect(page.getByRole('heading', { level: 2, name: 'Reel' })).toBeVisible()
+  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
+
+  // back to every client from the filter
+  await page.goto(`/${org}/libreria?spazio=${forno}`)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(2)
+  if (isPhone(page)) {
+    await page.getByRole('combobox', { name: 'Cliente' }).click()
+    await page.getByRole('option', { name: 'Tutti i clienti' }).click()
+  } else await page.getByRole('link', { name: 'Tutti i clienti' }).click()
+  await expect(page).toHaveURL(new RegExp(`/${org}/libreria$`))
+  await expect(page.getByRole('list', { name: 'Oggi' }).getByRole('listitem')).toHaveCount(3)
+})

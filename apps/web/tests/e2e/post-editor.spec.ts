@@ -628,3 +628,77 @@ test('on a phone: one bar at the bottom with the state and «Programma», above 
     })
     .toBeLessThanOrEqual(height - 340 + 1)
 })
+
+test('«Dalla libreria» with the client’s folders: the last one again, the search in it or everywhere, «Carica» into it (D-103)', async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const headers = { origin: new URL(process.env.E2E_BASE_URL ?? '').origin, 'x-app-request': '1' }
+  const made = await page.request.post(`/api/v1/orgs/${org}/workspaces/${client.id}/folders`, {
+    headers,
+    data: { name: 'Novembre', parentId: null },
+  })
+  const novembre = ((await made.json()) as { id: string }).id
+  await libraryFile(org, client.id, owner.userId, {
+    kind: 'image',
+    name: 'sfoglia.jpg',
+    folderId: novembre,
+  })
+  const phone = (page.viewportSize()?.width ?? 1280) < 768
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  const openPicker = async () => {
+    if (phone) {
+      await page.locator('[data-add-file]').click()
+      await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+    } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
+    return page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  }
+  const files = (dialog: ReturnType<Page['getByRole']>) =>
+    dialog.getByRole('list', { name: 'Scegli dalla libreria' }).getByRole('listitem')
+
+  let dialog = await openPicker()
+  await expect(files(dialog)).toHaveCount(3)
+  if (phone) {
+    await dialog.getByRole('combobox', { name: 'Cartella' }).click()
+    await page.getByRole('option', { name: 'Novembre' }).click()
+    // the path back to every file
+    await expect(dialog.getByRole('navigation', { name: 'Percorso della cartella' })).toContainText(
+      'Novembre',
+    )
+  } else await dialog.locator('[data-picker-folder="Novembre"]').click()
+  await expect(files(dialog)).toHaveCount(1)
+  await expect(files(dialog)).toContainText('sfoglia.jpg')
+  expect((await axe(page)).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Annulla' }).click()
+  await expect(dialog).toHaveCount(0)
+
+  // opened again on the same folder; the search looks in it, or in the whole client
+  dialog = await openPicker()
+  await expect(files(dialog)).toHaveCount(1)
+  await dialog.getByRole('searchbox', { name: 'Cerca in «Novembre»' }).fill('pane')
+  await expect(dialog.getByText('Nessun file da aggiungere.')).toBeVisible()
+  await dialog.getByRole('checkbox', { name: 'In tutto Forno Luce' }).click()
+  await expect(files(dialog)).toHaveCount(1)
+  await expect(files(dialog)).toContainText('pane.jpg')
+  await dialog.getByRole('checkbox', { name: 'In tutto Forno Luce' }).click()
+  await dialog.getByRole('searchbox', { name: 'Cerca in «Novembre»' }).fill('')
+
+  // «Carica»: from the computer into «Novembre», and into the post
+  await dialog
+    .locator('[data-picker-input]')
+    .setInputFiles(new URL('./fixtures/frame.jpg', import.meta.url).pathname)
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('[data-entry]')).toHaveCount(1)
+  await expect
+    .poll(
+      async () =>
+        (
+          await adminQuery<{ folder_id: string | null }>(
+            "select folder_id from upload_sessions where workspace_id = $1 and original_name = 'frame.jpg'",
+            [client.id],
+          )
+        )[0]?.folder_id ?? null,
+      { timeout: 15_000 },
+    )
+    .toBe(novembre)
+})

@@ -14,6 +14,11 @@ const props = defineProps<{
   workspace: WorkspaceView
   /** the page puts «Carica file» in its head (`chooseFiles`) */
   uploadInHeader?: boolean
+  /**
+   * On the page «Libreria» (D-103): the clients of its filter, to go to another one or back to
+   * «Tutti i clienti». The client's own tab has no such filter.
+   */
+  clients?: WorkspaceView[]
 }>()
 const { t } = useI18n()
 const { failure } = useApi()
@@ -27,8 +32,27 @@ const postTo = (_file: LibraryFile, postId: string) =>
 const newPostTo = (file: LibraryFile) =>
   org.to(`${clientPath()}/post/nuovo?file=${encodeURIComponent(file.id)}`)
 
+// ---- the folder open is in the address (`?cartella=<id>`, `none` for «Senza cartella», D-103)
+const route = useRoute()
+const router = useRouter()
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const askedFolder = (): string | null => {
+  const asked = route.query['cartella']
+  return typeof asked === 'string' && (asked === 'none' || UUID.test(asked)) ? asked : null
+}
+/** The address with these changes; a null value takes the key away. */
+function withQuery(change: Record<string, string | null>) {
+  const query: Record<string, string> = {}
+  for (const [key, value] of Object.entries(route.query))
+    if (typeof value === 'string') query[key] = value
+  for (const [key, value] of Object.entries(change))
+    if (value === null) delete query[key]
+    else query[key] = value
+  return query
+}
+
 const workspaceId = computed(() => props.workspace.id)
-const lib = useLibrary(workspaceId)
+const lib = useLibrary(workspaceId, { folder: askedFolder() })
 const { filter, files, folders, status } = lib
 const readOnly = computed(() => props.workspace.archivedAt !== null)
 
@@ -44,6 +68,44 @@ const contentOf = (folder: Folder) => {
   const files = [folder, ...below].reduce((n, f) => n + f.fileCount, 0)
   return { files, folders: below.length }
 }
+watch(
+  () => route.query['cartella'],
+  () => {
+    const asked = askedFolder()
+    if (asked !== filter.folder) filter.folder = asked
+  },
+)
+watch(
+  () => filter.folder,
+  (folder) => {
+    if (folder !== askedFolder()) void router.replace({ query: withQuery({ cartella: folder }) })
+  },
+)
+// a folder of the address that is not there (deleted, of another client): all the files
+watch(folders, (list) => {
+  const open = filter.folder
+  if (open && open !== 'none' && status.value === 'success' && !list.some((f) => f.id === open))
+    filter.folder = null
+})
+
+// ---- the client of the page «Libreria», by the filter or back to «Tutti i clienti»
+const clientItems = computed(() => [
+  { value: 'all', label: t('library.allClients') },
+  ...(props.clients ?? []).map((c) => ({ value: c.id, label: c.name })),
+])
+const clientValue = computed({
+  get: () => props.workspace.id,
+  set: (id: string) => {
+    const client = props.clients?.find((c) => c.id === id)
+    void router.replace({
+      query: withQuery({ spazio: client?.slug ?? null, cartella: null, profilo: null }),
+    })
+  },
+})
+const allClients = computed(() => ({
+  query: withQuery({ spazio: null, cartella: null, profilo: null }),
+}))
+
 const filtering = computed(
   () => filter.kind !== 'all' || filter.tag !== null || filter.q.trim() !== '' || filter.inPosts,
 )
@@ -522,6 +584,15 @@ function filesDrop(event: DragEvent) {
     </div>
     <!-- folders: on a computer a column, on a phone a menu above the grid -->
     <nav :aria-label="$t('library.folders.label')" class="max-md:hidden">
+      <NuxtLink
+        v-if="clients"
+        :to="allClients"
+        class="mb-3 flex h-9 items-center gap-2 rounded-control px-2.5 text-sm font-medium text-(--app-text-muted) hover:bg-(--app-nav-hover) hover:text-(--app-text)"
+        data-all-clients
+      >
+        <UIcon name="i-lucide-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
+        {{ $t('library.tree.back') }}
+      </NuxtLink>
       <div class="mb-2 flex items-center justify-between">
         <h2 class="px-2.5 text-caption font-medium text-(--app-text-muted)">
           {{ $t('library.folders.label') }}
@@ -631,6 +702,16 @@ function filesDrop(event: DragEvent) {
           :label="$t('library.kind.label')"
           :options="kindOptions"
           class="max-md:flex max-md:w-full max-md:[&>*]:flex-1"
+        />
+        <USelect
+          v-if="clients"
+          v-model="clientValue"
+          :items="clientItems"
+          :aria-label="$t('library.clientFilter')"
+          color="neutral"
+          variant="outline"
+          class="w-full font-medium md:hidden"
+          data-client-filter
         />
         <div class="flex w-full gap-2 md:hidden">
           <USelect

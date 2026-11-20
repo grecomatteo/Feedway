@@ -6,27 +6,24 @@ import { useAgencyLibrary, type LibraryUse } from '~/composables/useAgencyLibrar
 /**
  * «Libreria» of the agency (screen 19, Matteo 20/11): the files of every client whose library the
  * person uses, grouped by day, with the filters by type, client and use beside the search, and
- * «Carica». A file opens its detail on the right (screen 20). The folders stay in the client's
- * own library («Libreria» tab of the client).
+ * «Carica». A file opens its detail on the right (screen 20). On the left the clients with their
+ * folders, as a tree (D-103): choosing a client, there or in the filter, opens its own library
+ * with its folders (`MediaLibrary`, `?spazio=<slug>`).
  */
 const props = defineProps<{
   /** the clients whose library the person uses, not archived */
   clients: WorkspaceView[]
-  /** the client of the context selector, if any: the filter starts on it */
-  initialClient: string | null
 }>()
 const { t } = useI18n()
 const { failure } = useApi()
 const org = useOrganization()
-const lib = useAgencyLibrary({ workspaceId: props.initialClient })
+const lib = useAgencyLibrary({ workspaceId: null })
 const { filter, files, counts, status } = lib
 const { view } = useLibraryView()
+const route = useRoute()
+const router = useRouter()
 
 const clientOf = (id: string) => props.clients.find((c) => c.id === id) ?? null
-watch(
-  () => props.initialClient,
-  (id) => (filter.workspaceId = id),
-)
 
 const kindOptions = computed(() => [
   {
@@ -41,9 +38,17 @@ const clientItems = computed(() => [
   { value: 'all', label: t('library.allClients') },
   ...props.clients.map((c) => ({ value: c.id, label: c.name })),
 ])
+/** A client chosen here opens its own library, with its folders (D-103). */
 const clientValue = computed({
-  get: () => filter.workspaceId ?? 'all',
-  set: (v: string) => (filter.workspaceId = v === 'all' ? null : v),
+  get: () => 'all',
+  set: (v: string) => {
+    const client = clientOf(v)
+    if (!client) return
+    const query: Record<string, string> = {}
+    for (const [key, value] of Object.entries(route.query))
+      if (typeof value === 'string' && !['cartella', 'profilo'].includes(key)) query[key] = value
+    void router.replace({ query: { ...query, spazio: client.slug } })
+  },
 })
 const USES: LibraryUse[] = ['all', 'any', 'scheduled', 'draft', 'unused']
 const useItems = computed(() => USES.map((u) => ({ value: u, label: t(`library.useFilter.${u}`) })))
@@ -169,13 +174,7 @@ async function uploadInto(client: WorkspaceView) {
 const uploadItems = computed<DropdownMenuItem[]>(() =>
   props.clients.map((c) => ({ label: c.name, onSelect: () => void uploadInto(c) })),
 )
-const filteredClient = computed(() =>
-  filter.workspaceId
-    ? clientOf(filter.workspaceId)
-    : props.clients.length === 1
-      ? props.clients[0]
-      : null,
-)
+const filteredClient = computed(() => (props.clients.length === 1 ? props.clients[0] : null))
 function upload() {
   if (filteredClient.value) void uploadInto(filteredClient.value)
 }
@@ -185,14 +184,10 @@ async function showMore() {
   if (!(await lib.more())) problem.value = t('library.loadError')
 }
 const filtering = computed(
-  () =>
-    filter.kind !== 'all' ||
-    filter.use !== 'all' ||
-    filter.q.trim() !== '' ||
-    filter.workspaceId !== null,
+  () => filter.kind !== 'all' || filter.use !== 'all' || filter.q.trim() !== '',
 )
 function clearFilters() {
-  Object.assign(filter, { kind: 'all', use: 'all', q: '', workspaceId: null })
+  Object.assign(filter, { kind: 'all', use: 'all', q: '' })
 }
 </script>
 
@@ -201,161 +196,165 @@ function clearFilters() {
   <div
     :data-ready="status === 'success' ? '' : undefined"
     :class="detailOpen ? 'lg:pe-[23rem]' : ''"
+    class="md:grid md:grid-cols-[13.5rem_1fr] md:gap-6"
     data-library
   >
-    <div class="mb-5 flex flex-wrap items-center gap-3 max-md:gap-2" data-library-tools>
-      <SegmentedFilter
-        v-model="filter.kind"
-        :label="$t('library.kind.label')"
-        :options="kindOptions"
-        class="max-md:flex max-md:w-full max-md:[&>*]:flex-1"
-      />
-      <USelect
-        v-model="clientValue"
-        :items="clientItems"
-        :aria-label="$t('library.clientFilter')"
-        color="neutral"
-        variant="outline"
-        class="min-w-34 font-medium max-md:hidden"
-        data-client-filter
-      />
-      <USelect
-        v-model="filter.use"
-        :items="useItems"
-        :aria-label="$t('library.useFilter.label')"
-        color="neutral"
-        variant="outline"
-        class="min-w-36 font-medium max-md:hidden"
-        data-use-filter
-      />
-      <SearchField v-model="filter.q" :label="$t('library.searchAll')" />
-      <span class="flex-1 max-md:hidden" />
-      <div
-        role="group"
-        :aria-label="$t('library.view.label')"
-        class="inline-flex gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px] max-md:hidden"
-      >
-        <button
-          v-for="o in layoutOptions"
-          :key="o.value"
-          type="button"
-          class="flex h-7 w-8 items-center justify-center rounded-[6px] text-(--app-text-muted)"
-          :class="
-            view.layout === o.value
-              ? 'bg-(--app-surface) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]'
-              : ''
-          "
-          :aria-label="o.label"
-          :aria-pressed="view.layout === o.value"
-          @click="view.layout = o.value"
-        >
-          <UIcon :name="o.icon" class="size-4" />
-        </button>
-      </div>
-      <div class="max-md:hidden">
-        <UButton
-          v-if="filteredClient"
+    <LibraryClientTree :clients="clients" class="max-md:hidden" />
+    <div class="min-w-0">
+      <div class="mb-5 flex flex-wrap items-center gap-3 max-md:gap-2" data-library-tools>
+        <SegmentedFilter
+          v-model="filter.kind"
+          :label="$t('library.kind.label')"
+          :options="kindOptions"
+          class="max-md:flex max-md:w-full max-md:[&>*]:flex-1"
+        />
+        <USelect
+          v-model="clientValue"
+          :items="clientItems"
+          :aria-label="$t('library.clientFilter')"
           color="neutral"
           variant="outline"
-          icon="i-lucide-upload"
-          :label="$t('library.upload')"
-          @click="upload"
+          class="w-full font-medium md:hidden"
+          data-client-filter
         />
-        <UDropdownMenu
-          v-else-if="clients.length > 0"
-          :items="uploadItems"
-          :content="{ align: 'end' }"
+        <USelect
+          v-model="filter.use"
+          :items="useItems"
+          :aria-label="$t('library.useFilter.label')"
+          color="neutral"
+          variant="outline"
+          class="min-w-36 font-medium max-md:hidden"
+          data-use-filter
+        />
+        <SearchField v-model="filter.q" :label="$t('library.searchAll')" />
+        <span class="flex-1 max-md:hidden" />
+        <div
+          role="group"
+          :aria-label="$t('library.view.label')"
+          class="inline-flex gap-0.5 rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px] max-md:hidden"
         >
+          <button
+            v-for="o in layoutOptions"
+            :key="o.value"
+            type="button"
+            class="flex h-7 w-8 items-center justify-center rounded-[6px] text-(--app-text-muted)"
+            :class="
+              view.layout === o.value
+                ? 'bg-(--app-surface) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]'
+                : ''
+            "
+            :aria-label="o.label"
+            :aria-pressed="view.layout === o.value"
+            @click="view.layout = o.value"
+          >
+            <UIcon :name="o.icon" class="size-4" />
+          </button>
+        </div>
+        <div class="max-md:hidden">
           <UButton
+            v-if="filteredClient"
             color="neutral"
             variant="outline"
             icon="i-lucide-upload"
             :label="$t('library.upload')"
-            :aria-label="$t('library.uploadTo')"
+            @click="upload"
           />
-        </UDropdownMenu>
+          <UDropdownMenu
+            v-else-if="clients.length > 0"
+            :items="uploadItems"
+            :content="{ align: 'end' }"
+          >
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-upload"
+              :label="$t('library.upload')"
+              :aria-label="$t('library.uploadTo')"
+            />
+          </UDropdownMenu>
+        </div>
       </div>
-    </div>
 
-    <MediaUploader
-      v-if="uploadClient"
-      ref="uploader"
-      :key="uploadClient.id"
-      :workspace="uploadClient"
-      :folder-id="null"
-      @changed="lib.load()"
-    />
-
-    <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>
-
-    <ListSkeleton
-      v-if="status === 'pending' && files.length === 0"
-      :label="$t('library.loading')"
-      :rows="3"
-    />
-    <LoadFailed
-      v-else-if="status === 'error'"
-      :text="$t('library.loadError')"
-      @retry="lib.load()"
-    />
-    <EmptyState
-      v-else-if="files.length === 0"
-      :title="filtering ? $t('library.noMatch') : $t('library.empty')"
-      icon="i-lucide-images"
-    >
-      <UButton
-        v-if="filtering"
-        color="neutral"
-        variant="outline"
-        :label="$t('library.clearFilters')"
-        @click="clearFilters"
+      <MediaUploader
+        v-if="uploadClient"
+        ref="uploader"
+        :key="uploadClient.id"
+        :workspace="uploadClient"
+        :folder-id="null"
+        @changed="lib.load()"
       />
-    </EmptyState>
-    <template v-else>
-      <section
-        v-for="g in groups"
-        :key="g.key"
-        :aria-labelledby="`library-day-${g.key}`"
-        class="mb-5"
+
+      <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>
+
+      <ListSkeleton
+        v-if="status === 'pending' && files.length === 0"
+        :label="$t('library.loading')"
+        :rows="3"
+      />
+      <LoadFailed
+        v-else-if="status === 'error'"
+        :text="$t('library.loadError')"
+        @retry="lib.load()"
+      />
+      <EmptyState
+        v-else-if="files.length === 0"
+        :title="filtering ? $t('library.noMatch') : $t('library.empty')"
+        icon="i-lucide-images"
       >
-        <h2
-          :id="`library-day-${g.key}`"
-          class="mb-2.5 text-xs font-medium text-(--app-text-muted)"
-          data-library-day
-        >
-          {{ g.label }}
-        </h2>
-        <ul
-          :aria-labelledby="`library-day-${g.key}`"
-          :class="
-            view.layout === 'grid'
-              ? 'grid grid-cols-3 gap-x-2 gap-y-4 md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:gap-x-4 md:gap-y-5'
-              : 'grid gap-2'
-          "
-          data-library-grid
-        >
-          <MediaTile
-            v-for="f in g.files"
-            :key="f.id"
-            :file="f"
-            :src="thumb(f)"
-            :meta="meta(f)"
-            :layout="view.layout"
-            :actions="fileActions(f)"
-            @open="selected = f"
-          />
-        </ul>
-      </section>
-      <div v-if="lib.next.value" class="mt-2 flex justify-center">
         <UButton
+          v-if="filtering"
           color="neutral"
           variant="outline"
-          :loading="lib.loadingMore.value"
-          :label="$t('library.more')"
-          @click="showMore"
+          :label="$t('library.clearFilters')"
+          @click="clearFilters"
         />
-      </div>
-    </template>
+      </EmptyState>
+      <template v-else>
+        <section
+          v-for="g in groups"
+          :key="g.key"
+          :aria-labelledby="`library-day-${g.key}`"
+          class="mb-5"
+        >
+          <h2
+            :id="`library-day-${g.key}`"
+            class="mb-2.5 text-xs font-medium text-(--app-text-muted)"
+            data-library-day
+          >
+            {{ g.label }}
+          </h2>
+          <ul
+            :aria-labelledby="`library-day-${g.key}`"
+            :class="
+              view.layout === 'grid'
+                ? 'grid grid-cols-3 gap-x-2 gap-y-4 md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:gap-x-4 md:gap-y-5'
+                : 'grid gap-2'
+            "
+            data-library-grid
+          >
+            <MediaTile
+              v-for="f in g.files"
+              :key="f.id"
+              :file="f"
+              :src="thumb(f)"
+              :meta="meta(f)"
+              :layout="view.layout"
+              :actions="fileActions(f)"
+              @open="selected = f"
+            />
+          </ul>
+        </section>
+        <div v-if="lib.next.value" class="mt-2 flex justify-center">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :loading="lib.loadingMore.value"
+            :label="$t('library.more')"
+            @click="showMore"
+          />
+        </div>
+      </template>
+    </div>
 
     <MediaDetail
       v-model:open="detailOpen"
