@@ -281,7 +281,7 @@ const actions = (edit: () => void, remove: () => void) => [
         icon="i-lucide-tag"
       />
       <ListSurface
-        v-else-if="labels"
+        v-else-if="labels && (labels.length || !failed)"
         columns="minmax(0, 1fr) 100px 30px"
         :label="$t('contentSettings.labels.title')"
       >
@@ -339,7 +339,7 @@ const actions = (edit: () => void, remove: () => void) => [
         icon="i-lucide-file-text"
       />
       <ListSurface
-        v-else-if="templates"
+        v-else-if="templates && (templates.length || !failed)"
         columns="110px minmax(0, 1fr) 30px"
         :label="$t('contentSettings.templates.title')"
       >
@@ -402,7 +402,7 @@ const actions = (edit: () => void, remove: () => void) => [
         icon="i-lucide-users"
       />
       <ListSurface
-        v-else-if="groups"
+        v-else-if="groups && (groups.length || !failed)"
         columns="minmax(0, 1fr) auto 30px"
         :label="$t('contentSettings.groups.title')"
       >
