@@ -1562,7 +1562,20 @@
       "retry": "Riprova",
       "noPreview": "Anteprima non disponibile",
       "preparing": "Anteprima in preparazione",
-      "close": "Chiudi"
+      "close": "Chiudi",
+      "client": "Cliente",
+      "image": "Foto",
+      "video": "Video",
+      "uploadedBy": "{when}, da {name}",
+      "usedIn": "Usato in",
+      "notUsed": "In nessun post",
+      "useScheduled": "Post di {when}",
+      "useDraft": "Bozza",
+      "useCancelled": "Post annullato",
+      "useMore": "e altri {n}",
+      "newPost": "Usa in un nuovo post",
+      "download": "Scarica",
+      "technical": "Dettagli tecnici"
     },
     "fix": {
       "convert_to_jpeg": "Convertito in JPEG",
@@ -1611,7 +1624,23 @@
       "draft": "In una bozza",
       "cancelled": "In un post annullato",
       "many": "In {n} post"
-    }
+    },
+    "all": "Tutti",
+    "photos": "Foto",
+    "videos": "Video",
+    "allClients": "Tutti i clienti",
+    "clientFilter": "Cliente",
+    "useFilter": {
+      "label": "Nei post",
+      "all": "Nei post: tutti",
+      "any": "In un post",
+      "scheduled": "In un post programmato",
+      "draft": "Solo in bozze",
+      "unused": "In nessun post"
+    },
+    "searchAll": "Cerca per nome o tag",
+    "upload": "Carica",
+    "uploadTo": "Carica in…"
   },
   "upload": {
     "choose": "Carica file",

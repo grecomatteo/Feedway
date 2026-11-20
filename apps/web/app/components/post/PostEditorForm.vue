@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MediaDto } from '@app/contracts'
 import { usePostEditor } from '~/composables/usePostEditor'
 
 /**
@@ -12,6 +13,8 @@ const props = defineProps<{
   client: WorkspaceView
   postId: string | null
   profileKey: string | null
+  /** «Usa in un nuovo post» of the library (screen 20): the file the new post starts with */
+  fileId?: string | null
   profiles: WorkspaceProfile[]
   profilesLoading: boolean
   back: string
@@ -43,6 +46,21 @@ watch(
   },
 )
 const org = useOrganization()
+// «Usa in un nuovo post» (screen 20): the file of the library goes in, as «Dalla libreria»
+onMounted(async () => {
+  if (props.postId || !props.fileId) return
+  try {
+    const file = await useApi().call<MediaDto>(
+      'GET',
+      org.api(
+        `/workspaces/${encodeURIComponent(props.client.id)}/media/${encodeURIComponent(props.fileId)}`,
+      ),
+    )
+    e.addFromLibrary([file])
+  } catch {
+    // the file went meanwhile: the post starts empty, as a new one
+  }
+})
 /** «Gestisci…» leads to the client's content settings, for who manages them */
 const manageTo = computed(() =>
   ['owner', 'admin', 'manager'].includes(props.client.myRole) && !props.client.archivedAt

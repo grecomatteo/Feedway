@@ -4,11 +4,11 @@ import type { LibraryFile } from '~/composables/useLibrary'
 import type { LibraryLayout } from '~/composables/useLibraryView'
 
 /**
- * A file in the library (plan 04 Task 12, brief F03): in the grid a square that never changes size
- * while the image arrives, its name on up to two lines, and for a video its length; in the list
- * (prova 0.10.0, E-1) a row with a small thumbnail, the whole name, weight and date. A file not
- * ready says why, a failed one in red. The whole card opens the detail; it can be dragged onto a
- * folder, and «⋯» moves or deletes it without dragging.
+ * A file in the library (screen 19): in the grid a square that never changes size while the image
+ * arrives, the name on one line, the client and the size, the post that uses it in blue, a video's
+ * length on the picture; in the list (prova 0.10.0, E-1) a row with a small thumbnail, the whole
+ * name, weight and date. A file not ready says why, a failed one in red. The whole tile opens the
+ * detail; it can be dragged onto a folder, and «⋯» moves or deletes it without dragging.
  */
 const props = withDefaults(
   defineProps<{
@@ -16,8 +16,10 @@ const props = withDefaults(
     src: string | null
     actions: DropdownMenuItem[][]
     layout?: LibraryLayout
+    /** under the name in the grid: «Forno Luce · 2,4 MB» (screen 19); the size when left out */
+    meta?: string | null
   }>(),
-  { layout: 'grid' },
+  { layout: 'grid', meta: null },
 )
 const emit = defineEmits<{ open: [] }>()
 const { t } = useI18n()
@@ -49,6 +51,8 @@ const facts = computed(() =>
     ' · ',
   ),
 )
+/** Under the name in the grid: the client and the size, or what the file is waiting for. */
+const gridMeta = computed(() => props.meta ?? formatBytes(props.file.sizeBytes))
 const icon = computed(() =>
   props.file.status === 'failed'
     ? 'i-lucide-file-x'
@@ -72,22 +76,22 @@ function dragStart(event: DragEvent) {
 </script>
 
 <template>
+  <!-- the grid of screen 19: the picture, the name on one line, client and size, the use in blue -->
   <li
-    class="group relative flex min-w-0 rounded-xl border border-(--app-border) bg-(--app-card) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
-    :class="layout === 'list' ? 'items-center gap-3' : 'flex-col'"
+    v-if="layout === 'grid'"
+    class="group relative min-w-0"
     draggable="true"
     :data-media-id="file.id"
-    :data-layout="layout"
+    data-layout="grid"
     @dragstart="dragStart"
   >
     <div
-      class="relative shrink-0 overflow-hidden rounded-lg"
-      :class="[
-        layout === 'list' ? 'size-14' : 'aspect-square',
+      class="relative aspect-square overflow-hidden rounded-lg outline-1 -outline-offset-1 outline-(--app-img-outline) transition-shadow group-focus-within:ring-2 group-focus-within:ring-(--app-focus) group-hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
+      :class="
         file.status === 'failed'
           ? 'bg-(--app-danger-soft) text-(--app-danger)'
-          : 'bg-(--app-surface-sunken) text-(--app-text-muted)',
-      ]"
+          : 'bg-(--app-surface-sunken) text-(--app-text-muted)'
+      "
       aria-hidden="true"
     >
       <img
@@ -101,39 +105,96 @@ function dragStart(event: DragEvent) {
         @error="failedImage = true"
       />
       <span v-else class="flex size-full items-center justify-center">
-        <UIcon :name="icon" :class="layout === 'list' ? 'size-5' : 'size-7'" />
+        <UIcon :name="icon" class="size-7" />
       </span>
       <span
         v-if="percent !== null"
-        class="absolute h-1 overflow-hidden rounded-full bg-(--app-border)"
-        :class="layout === 'list' ? 'inset-x-1.5 bottom-1.5' : 'inset-x-2 bottom-2'"
+        class="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-(--app-border)"
       >
-        <span
-          class="block h-full rounded-full bg-(--app-brand)"
-          :style="{ width: `${percent}%` }"
-        />
+        <span class="block h-full rounded-full bg-(--app-text)" :style="{ width: `${percent}%` }" />
       </span>
       <span
-        v-if="used && layout === 'grid'"
-        class="absolute top-1.5 left-1.5 flex max-w-[calc(100%-0.75rem)] items-center gap-1 rounded-md bg-(--app-card) px-1.5 py-0.5 text-xs font-medium text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.2)]"
-        data-used-in
+        v-if="file.kind === 'video' && file.status === 'ready' && file.durationMs !== null"
+        class="absolute bottom-1.5 left-1.5 flex h-5 items-center gap-1 rounded-md bg-[rgb(20_20_20/0.72)] px-1.5 text-xs text-white tabular-nums"
       >
-        <UIcon name="i-lucide-calendar-check" class="size-3 shrink-0" />
-        <span class="truncate">{{ used }}</span>
-      </span>
-      <span
-        v-if="layout === 'grid' && file.kind === 'video' && file.status === 'ready'"
-        class="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/65 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums"
-      >
-        <UIcon name="i-lucide-play" class="size-3" />
-        {{ file.durationMs === null ? '' : formatDuration(file.durationMs) }}
+        <UIcon name="i-lucide-clapperboard" class="size-3" />
+        {{ formatDuration(file.durationMs) }}
       </span>
     </div>
-    <div class="flex min-w-0 flex-1 items-start gap-1" :class="layout === 'grid' ? 'mt-2' : ''">
+    <div class="mt-2 grid min-w-0">
+      <!-- the name is the tile's button: the whole tile is its target; the whole name stays in the
+           tooltip and for the screen reader -->
+      <button
+        type="button"
+        class="truncate text-left text-[0.8125rem] leading-[1.125rem] font-medium after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none"
+        :title="file.originalName"
+        @click="emit('open')"
+      >
+        <span class="sr-only">{{ $t('library.openFile', { name: '' }) }}</span
+        >{{ file.originalName }}
+      </button>
+      <span class="truncate text-xs text-(--app-text-muted) max-md:hidden" data-meta>
+        <template v-if="state"
+          >{{ state.label }}<template v-if="percent !== null"> · {{ percent }}%</template></template
+        >
+        <template v-else>{{ gridMeta }}</template>
+      </span>
+      <span
+        v-if="state && state.tone === 'danger'"
+        class="truncate text-xs text-(--app-danger) md:hidden"
+        >{{ state.label }}</span
+      >
+      <span v-if="used" class="mt-0.5 truncate text-xs text-(--app-info)" data-used-in>{{
+        used
+      }}</span>
+    </div>
+    <!-- «⋯» over the picture, at the pointer or the keyboard; on a touch screen the detail has
+         every action -->
+    <div
+      class="absolute top-1 right-1 z-10 rounded-lg bg-(--app-card)/90 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
+    >
+      <RowActions :name="file.originalName" :items="actions" />
+    </div>
+  </li>
+  <li
+    v-else
+    class="group relative flex min-w-0 items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-card) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
+    draggable="true"
+    :data-media-id="file.id"
+    data-layout="list"
+    @dragstart="dragStart"
+  >
+    <div
+      class="relative size-14 shrink-0 overflow-hidden rounded-lg"
+      :class="
+        file.status === 'failed'
+          ? 'bg-(--app-danger-soft) text-(--app-danger)'
+          : 'bg-(--app-surface-sunken) text-(--app-text-muted)'
+      "
+      aria-hidden="true"
+    >
+      <img
+        v-if="src && !failedImage"
+        :src="src"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        draggable="false"
+        class="size-full object-cover"
+        @error="failedImage = true"
+      />
+      <span v-else class="flex size-full items-center justify-center">
+        <UIcon :name="icon" class="size-5" />
+      </span>
+      <span
+        v-if="percent !== null"
+        class="absolute inset-x-1.5 bottom-1.5 h-1 overflow-hidden rounded-full bg-(--app-border)"
+      >
+        <span class="block h-full rounded-full bg-(--app-text)" :style="{ width: `${percent}%` }" />
+      </span>
+    </div>
+    <div class="flex min-w-0 flex-1 items-start gap-1">
       <div class="min-w-0 flex-1 px-0.5">
-        <!-- the name is the card's button: the whole card is its target; at most two lines, then
-             the dots (D-63), so «IMG_0221.HEIC» and «IMG_0222.HEIC» are not both «IMG_022…»; the
-             whole name stays in the tooltip and for the screen reader -->
         <button
           type="button"
           class="line-clamp-2 w-full text-left text-sm font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
@@ -147,16 +208,15 @@ function dragStart(event: DragEvent) {
           class="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-[0.8125rem] text-(--app-text-muted)"
         >
           <StatusDot v-if="state?.tone === 'danger'" :tone="state.tone" :label="state.label" />
-          <span v-else-if="state" :class="layout === 'list' ? 'truncate' : ''"
+          <span v-else-if="state" class="truncate"
             >{{ state.label }}<template v-if="percent !== null"> · {{ percent }}%</template></span
           >
           <span v-else class="truncate">{{ detail }}</span>
-          <span v-if="layout === 'list'" class="truncate">{{ facts }}</span>
-          <!-- on the thumbnail in the grid, which screen readers skip: said here for them -->
-          <span v-if="used" :class="layout === 'list' ? 'truncate' : 'sr-only'">{{ used }}</span>
+          <span class="truncate">{{ meta ? `${meta} · ` : '' }}{{ facts }}</span>
+          <span v-if="used" class="truncate text-(--app-info)" data-used-in>{{ used }}</span>
         </p>
       </div>
-      <div class="relative z-10 shrink-0" :class="layout === 'grid' ? '-mt-1.5 -mr-1.5' : ''">
+      <div class="relative z-10 shrink-0">
         <RowActions :name="file.originalName" :items="actions" />
       </div>
     </div>

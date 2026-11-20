@@ -55,6 +55,9 @@ export const MediaDto = z.object({
     })
     .nullable(),
   uploadedBy: Id,
+  /** who uploaded it, by name; empty for a person no longer known */
+  uploadedByName: z.string(),
+  workspaceId: Id,
   createdAt: Timestamp,
   folderId: Id.nullable(),
   tags: z.array(z.string()),
@@ -98,6 +101,41 @@ export const MediaDto = z.object({
 
 export type MediaDto = z.infer<typeof MediaDto>
 
+/**
+ * «Nei post» by the use that counts (screen 19): in any post, in a scheduled one, only in drafts,
+ * in none.
+ */
+const MediaUseFilter = z.enum(['any', 'scheduled', 'draft', 'unused'])
+
+export const listAgencyMediaRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/media',
+  summary:
+    'I file di tutti i clienti di cui la persona usa la libreria, dal più recente, con quante foto e quanti video',
+  request: {
+    params: z.strictObject({ org: OrgSlug }),
+    query: z.strictObject({
+      /** one client only */
+      workspaceId: Id.optional(),
+      before: Id.optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+      kind: z.enum(['image', 'video']).optional(),
+      tag: z.string().max(100).optional(),
+      /** a part of the file's name or of one of its tags */
+      q: z.string().max(200).optional(),
+      use: MediaUseFilter.optional(),
+    }),
+  },
+  response: z.object({
+    items: z.array(MediaDto),
+    next: Id.nullable(),
+    /** the files the filter finds, by kind, its kind aside: «Tutti 48 · Foto 39 · Video 9» */
+    counts: z.object({ image: z.number().int(), video: z.number().int() }),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 const WorkspaceParams = z.strictObject({ org: OrgSlug, id: Id })
 const MediaParams = z.strictObject({ org: OrgSlug, id: Id, mediaId: Id })
 
@@ -119,6 +157,7 @@ export const listMediaRoute = defineContract({
       q: z.string().max(200).optional(),
       /** «Nei post»: only the files a post uses, as a file or as its cover (D-18) */
       inPosts: z.enum(['true']).optional(),
+      use: MediaUseFilter.optional(),
     }),
   },
   response: z.object({
@@ -264,6 +303,7 @@ export const deleteFolderRoute = defineContract({
 })
 
 export const mediaRoutes = [
+  listAgencyMediaRoute,
   listMediaRoute,
   getMediaRoute,
   updateMediaRoute,

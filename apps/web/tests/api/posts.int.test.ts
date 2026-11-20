@@ -811,6 +811,35 @@ describe('files of the posts in the library', () => {
     await expectOk(call('editor', 'DELETE', `${ws}/media/${free}`))
   })
 
+  test('the filter by use agrees with the use the library names (screen 19)', async () => {
+    const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
+    const scheduled = await expectOk(schedule('manager', await draft()))
+    const inScheduled = scheduled.media[0]?.id ?? ''
+    // also in a draft: the scheduled post is the use that counts
+    await draft('editor', { mediaIds: [inScheduled] })
+    const inDraft = (await draft()).media[0]?.id ?? ''
+    const loose = await video()
+    const ids = async (use: string) =>
+      (
+        await expectOk<{ items: { id: string }[] }>(
+          call('editor', 'GET', `${library}?use=${use}&limit=100`),
+        )
+      ).items.map((m) => m.id)
+    const scheduledIds = await ids('scheduled')
+    expect(scheduledIds).toContain(inScheduled)
+    expect(scheduledIds).not.toContain(inDraft)
+    const draftIds = await ids('draft')
+    expect(draftIds).toContain(inDraft)
+    expect(draftIds).not.toContain(inScheduled)
+    const unused = await ids('unused')
+    expect(unused).toContain(loose)
+    expect(unused).not.toContain(inDraft)
+    const agency = await expectOk<{ items: { id: string }[] }>(
+      call('editor', 'GET', `/api/v1/orgs/${org.slug}/media?use=draft&limit=100`),
+    )
+    expect(agency.items.map((m) => m.id)).toContain(inDraft)
+  })
+
   test('a folder with a file of a scheduled post is not deleted (409)', async () => {
     const scheduled = await expectOk(schedule('manager', await draft()))
     const fileId = scheduled.media[0]?.id ?? ''

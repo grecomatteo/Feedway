@@ -244,6 +244,8 @@ const SAMPLE_QUERIES: Record<string, (ids: SampleIds) => string> = {
   'GET /api/v1/orgs/{org}/agenda': (ids) => `workspaceId=${ids.workspace}`,
   'GET /api/v1/orgs/{org}/agenda/drafts': (ids) => `workspaceId=${ids.workspace}`,
   'GET /api/v1/orgs/{org}/agenda/issues': (ids) => `workspaceId=${ids.workspace}`,
+  // «Libreria» narrowed to one client (redesign R6)
+  'GET /api/v1/orgs/{org}/media': (ids) => `workspaceId=${ids.workspace}`,
 }
 
 export function sampleQuery(route: ApiContract, ids: SampleIds): string | undefined {

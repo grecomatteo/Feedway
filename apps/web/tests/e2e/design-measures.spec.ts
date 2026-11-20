@@ -87,6 +87,17 @@ const PAGES: MeasuredPage[] = [
     control: '[data-editor-bar] a',
     title: ['15px', '16px'],
   },
+  {
+    // the library of every client (screen 19): the search «Cerca per nome o tag»
+    name: 'Libreria',
+    path: async (page) => {
+      const owner = await newPerson('Mara Libreria', 'owner')
+      await signInWithTotp(page.request, owner)
+      await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+      return `/${owner.organizationSlug}/libreria`
+    },
+    control: '[data-library-tools] > div:has(input[type="search"])',
+  },
 ]
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
