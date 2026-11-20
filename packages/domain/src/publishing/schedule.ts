@@ -40,6 +40,15 @@ export function verifyAt(publishedAt: Date, round: number): Date | null {
   return delay === null ? null : plusMinutes(publishedAt, delay)
 }
 
+/**
+ * When to run the search number `round` (1 = the first) after the call that became uncertain at
+ * `uncertainAt`; `null` after the last: the destination is `failed` (`uncertain_not_found`).
+ */
+export function searchAt(uncertainAt: Date, round: number): Date | null {
+  const delay = delayOf(UNCERTAIN_SEARCH_DELAYS_MINUTES, round, 'round')
+  return delay === null ? null : plusMinutes(uncertainAt, delay)
+}
+
 /** 15 minutes before the post, or now when fewer are left (or its time has passed). */
 export function prepareAt(scheduledAt: Date, now: Date): Date {
   return latest(plusMinutes(scheduledAt, -PREPARE_LEAD_MINUTES), now)
@@ -76,8 +85,10 @@ export const PREPARE_CLAIM_MINUTES = 6
  * stopped halfway: the reconciler takes it as an uncertain outcome (`unknown`), never redoes it.
  */
 export const PUBLISHING_STALE_MINUTES = 6
-/** §9.5: the first search after an uncertain call, 2 minutes later (Task 8). */
-export const UNCERTAIN_FIRST_SEARCH_MINUTES = 2
+/** §9.5, Scelta 7: the searches after an uncertain call, 2, 5 and 15 minutes later. */
+export const UNCERTAIN_SEARCH_DELAYS_MINUTES = [2, 5, 15] as const
+/** §9.5: the first search after an uncertain call, 2 minutes later. */
+export const UNCERTAIN_FIRST_SEARCH_MINUTES = UNCERTAIN_SEARCH_DELAYS_MINUTES[0]
 /** A preparation waiting for its turn, a file or a copy looks again after this. */
 export const PREPARE_TURN_WAIT_SECONDS = 20
 export const PREPARE_FILE_WAIT_MINUTES = 1

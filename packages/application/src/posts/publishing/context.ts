@@ -1,6 +1,8 @@
 import {
   can,
   canMoveTarget,
+  publishedCaption,
+  roundIds,
   slowDownUntil,
   type OrgActor,
   type Platform,
@@ -66,7 +68,7 @@ export const skipped = (why: string): StepLog => ({ outcome: 'skipped', why })
 
 /** A job of a step for a destination at its generation (P3): one job per key, even if sent twice. */
 export interface StepJob {
-  name: 'target.prepare' | 'target.publish'
+  name: 'target.prepare' | 'target.publish' | 'target.reconcile' | 'target.verify'
   organizationId: string
   targetId: string
   generation: number
@@ -80,7 +82,7 @@ export interface StepJob {
 }
 
 export const stepKey = (job: Pick<StepJob, 'name' | 'targetId' | 'generation' | 'resend'>) => {
-  const key = `${job.targetId}:${job.name === 'target.prepare' ? 'prepare' : 'publish'}:${String(job.generation)}`
+  const key = `${job.targetId}:${job.name.slice('target.'.length)}:${String(job.generation)}`
   return job.resend ? `${key}:r${String(job.resend)}` : key
 }
 
@@ -207,7 +209,7 @@ export async function moveTarget(
   return saved.generation
 }
 
-const eventOf = (target: PublishingTargetRecord, code: PublishErrorCode | null) => ({
+export const eventOf = (target: PublishingTargetRecord, code: PublishErrorCode | null) => ({
   postId: target.postId,
   targetId: target.id,
   accountId: target.accountId,
@@ -347,4 +349,71 @@ export async function slowDownOf(
 ): Promise<Date | null> {
   const readings = await tx.accounts.usageReadings(target.organizationId, target.accountId)
   return slowDownUntil(step, readings, now)
+}
+
+/**
+ * What a reading step (the search, the verification) hands the platform: the destination as it
+ * went out, without the checks of a publication (the person who scheduled may be gone, the post
+ * may be read all the same). null: the account cannot be reached.
+ */
+export async function readTargetOf(
+  tx: Tx,
+  deps: Pick<PublishingWorkerDeps, 'connectors' | 'connectionTokens' | 'publishers'>,
+  target: PublishingTargetRecord,
+  post: PostRecord,
+): Promise<{ target: PublishTarget; publisher: PlatformPublisher; connectionId: string } | null> {
+  const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
+  if (!opened) return null
+  return {
+    publisher: opened.publisher,
+    connectionId: opened.connectionId,
+    target: {
+      targetId: target.id,
+      account: opened.account,
+      credentials: opened.credentials,
+      type: post.type,
+      // Facebook: a reel beyond its length went out as a video, by the choice of the editor
+      asVideo:
+        post.type === 'reel' && post.options.choices.some((c) => c.option === 'publish_as_video'),
+      caption: publishedCaption(
+        { type: post.type, caption: { common: post.caption, ...post.captionByPlatform } },
+        opened.account.platform,
+      ),
+      shareToFeed: post.options.shareToFeed,
+      metaIds: roundIds(target.metaIds),
+      externalPostId: target.externalPostId,
+    },
+  }
+}
+
+/**
+ * `confirmed` (§9.6) with the post's link, and the events: this destination, and the post once
+ * every destination not cancelled is confirmed.
+ */
+export async function confirmTarget(
+  tx: Tx,
+  target: PublishingTargetRecord,
+  fields: { permalink: string | null; at: Date; verification: Record<string, unknown> },
+): Promise<StepLog> {
+  await moveTarget(tx, target, 'confirmed', {
+    permalink: fields.permalink ?? target.permalink,
+    verifiedAt: fields.at,
+    verification: fields.verification,
+    nextAttemptAt: null,
+    lastErrorCode: null,
+  })
+  await tx.outbox.record({
+    organizationId: target.organizationId,
+    type: 'post.target_confirmed',
+    payload: eventOf(target, null),
+  })
+  const all = await tx.publishing.targetsOfPost(target.organizationId, target.postId)
+  const live = all.filter((t) => t.status !== 'cancelled')
+  if (live.every((t) => t.status === 'confirmed'))
+    await tx.outbox.record({
+      organizationId: target.organizationId,
+      type: 'post.confirmed',
+      payload: { postId: target.postId, workspaceId: target.workspaceId },
+    })
+  return { outcome: 'moved', to: 'confirmed' }
 }

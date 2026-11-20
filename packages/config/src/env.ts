@@ -48,6 +48,8 @@ export const KNOWN_QUEUES = [
   'media.publish_copies_cleanup',
   'target.prepare',
   'target.publish',
+  'target.reconcile',
+  'target.verify',
   'scheduler.reconcile',
 ] as const
 

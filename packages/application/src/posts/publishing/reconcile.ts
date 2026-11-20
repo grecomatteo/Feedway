@@ -1,6 +1,11 @@
-import { UNCERTAIN_FIRST_SEARCH_MINUTES, type TargetStatus } from '@app/domain'
+import {
+  PUBLISHING_STALE_MINUTES,
+  UNCERTAIN_FIRST_SEARCH_MINUTES,
+  type TargetStatus,
+} from '@app/domain'
 import type { DueTarget } from '../../ports/publishing.js'
 import { recheckTarget } from './recheck.js'
+import { uncertainSearch } from './search.js'
 import {
   moveTarget,
   plusMinutes,
@@ -30,13 +35,16 @@ const resendOf = (due: DueTarget, now: Date) =>
     Math.floor((now.getTime() - due.nextAttemptAt.getTime()) / (RESEND_EVERY_MINUTES * 60_000)),
   )
 
-/** The states with a job of this stage; Task 8 adds the search and the verification. */
+/** The states with a job of the worker: every one but those a person decides. */
 export const RECONCILED_STATUSES: readonly TargetStatus[] = [
   'scheduled',
   'preparing',
   'ready',
   'retrying',
   'publishing',
+  'unknown',
+  'published',
+  'verifying',
 ]
 
 export function stepOf(due: Pick<DueTarget, 'status' | 'step'>): StepJob['name'] | null {
@@ -48,6 +56,11 @@ export function stepOf(due: Pick<DueTarget, 'status' | 'step'>): StepJob['name']
       return 'target.publish'
     case 'retrying':
       return due.step === 'publish' ? 'target.publish' : 'target.prepare'
+    case 'unknown':
+      return 'target.reconcile'
+    case 'published':
+    case 'verifying':
+      return 'target.verify'
     default:
       return null
   }
@@ -72,9 +85,14 @@ async function takeAsUncertain(
   return deps.uow.run({ organizationId: due.organizationId, userId: null }, async (tx) => {
     const target = await tx.publishing.lockTarget(due.organizationId, due.targetId)
     if (target?.status !== 'publishing' || target.generation !== due.generation) return false
+    // the call started when `publishing` was written, `PUBLISHING_STALE_MINUTES` before its
+    // `next_attempt_at`; the first search is sent by the next run, at its time
+    const startedAt = plusMinutes(due.nextAttemptAt, -PUBLISHING_STALE_MINUTES)
     await moveTarget(tx, target, 'unknown', {
       step: 'publish',
+      attempts: 0,
       nextAttemptAt: plusMinutes(now, UNCERTAIN_FIRST_SEARCH_MINUTES),
+      verification: uncertainSearch(startedAt, now),
     })
     return true
   })

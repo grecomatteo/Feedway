@@ -37,6 +37,8 @@ interface JobDefinitions {
   'media.publish_copies_cleanup': { scope: 'system'; data: object }
   'target.prepare': { scope: 'organization'; data: TargetJobData }
   'target.publish': { scope: 'organization'; data: TargetJobData }
+  'target.reconcile': { scope: 'organization'; data: TargetJobData }
+  'target.verify': { scope: 'organization'; data: TargetJobData }
   'scheduler.reconcile': { scope: 'system'; data: object }
 }
 

@@ -41,6 +41,7 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
+import { uncertainSearch } from './search.js'
 
 // `target.publish` (plan 07 Task 7): the call that publishes, at the post's time. `publishing`
 // is written before the call: a worker stopped halfway leaves it, and the reconciler takes it
@@ -54,6 +55,8 @@ interface Call {
   connectionId: string
   record: PublishingTargetRecord
   generation: number
+  /** when the step began: the uncertain search looks from here (§9.5) */
+  startedAt: Date
 }
 
 type Decision = { kind: 'done'; log: StepLog; jobs: StepJob[] } | { kind: 'call'; call: Call }
@@ -116,6 +119,7 @@ async function decide(
     call: {
       record: target,
       generation,
+      startedAt: now,
       connectionId: opened.connectionId,
       publisher: opened.publisher,
       files: copies.files,
@@ -179,18 +183,23 @@ async function settle(
     await tx.connections.recordUsage(organizationId, call.connectionId, result.usage)
     const metaIds = withRoundIds(target.metaIds, result.metaIds)
     if (result.outcome === 'done' && result.externalPostId !== null) {
-      // the first verification (§9.6) is stage 7's Task 8, at `next_attempt_at`
-      await moveTarget(tx, target, 'published', {
+      // the first verification (§9.6), 3 minutes later
+      const verifyFirst = verifyAt(now, 1) ?? now
+      const generation = await moveTarget(tx, target, 'published', {
         step: 'verify',
         metaIds,
         externalPostId: result.externalPostId,
         permalink: result.permalink,
         publishedAt: now,
         attempts: 0,
-        nextAttemptAt: verifyAt(now, 1),
+        nextAttemptAt: verifyFirst,
         lastErrorCode: null,
+        verification: null,
       })
-      return { log: { outcome: 'moved', to: 'published' }, jobs: [] }
+      return {
+        log: { outcome: 'moved', to: 'published' },
+        jobs: [again(generation, verifyFirst, 'target.verify')],
+      }
     }
     if (target.status === 'unknown') return { log: skipped('taken as uncertain'), jobs: [] }
     if (result.outcome === 'done')
@@ -226,13 +235,19 @@ async function settle(
   }
   if (target.status === 'unknown') return { log: skipped('taken as uncertain'), jobs: [] }
   if (result.kind === 'uncertain') {
-    // the post may be out: searched before anything else (§9.5, Task 8)
-    await moveTarget(tx, target, 'unknown', {
+    // the post may be out: searched before anything else (§9.5)
+    const searchFirst = plusMinutes(now, UNCERTAIN_FIRST_SEARCH_MINUTES)
+    const generation = await moveTarget(tx, target, 'unknown', {
       step: 'publish',
-      nextAttemptAt: plusMinutes(now, UNCERTAIN_FIRST_SEARCH_MINUTES),
+      attempts: 0,
+      nextAttemptAt: searchFirst,
       lastErrorCode: result.code,
+      verification: uncertainSearch(call.startedAt, now),
     })
-    return { log: { outcome: 'moved', to: 'unknown', code: result.code }, jobs: [] }
+    return {
+      log: { outcome: 'moved', to: 'unknown', code: result.code },
+      jobs: [again(generation, searchFirst, 'target.reconcile')],
+    }
   }
   if (result.kind === 'permanent')
     return { log: await failTarget(tx, target, result.code), jobs: [] }
