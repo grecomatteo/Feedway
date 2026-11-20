@@ -2,6 +2,7 @@ export {
   deleteMedia,
   retryMedia,
   getMedia,
+  listAgencyMedia,
   listMedia,
   mediaNotFound,
   openLibrary,

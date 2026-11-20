@@ -144,6 +144,11 @@ export interface MediaFilter {
   name?: string
   /** only the files a post uses, as a file or as its cover */
   inPosts?: boolean
+  /**
+   * By the use that counts (`primaryUse`, screen 19): in any post, in a scheduled one, only in
+   * drafts (never in a scheduled post), in none
+   */
+  use?: 'any' | 'scheduled' | 'draft' | 'unused'
 }
 
 /** The file the worker picks next: ids only, read across the agencies (ADR 021). */
@@ -249,6 +254,18 @@ export interface MediaRepository {
     workspaceId: string,
     page: { before?: string; limit: number; filter?: MediaFilter },
   ): Promise<MediaRecord[]>
+  /** The files of these workspaces, newest first: the library of «Tutti i clienti». */
+  listForWorkspaces(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    page: { before?: string; limit: number; filter?: MediaFilter },
+  ): Promise<MediaRecord[]>
+  /** How many files of these workspaces match the filter, by kind (the filter's kind aside). */
+  countByKind(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    filter: MediaFilter,
+  ): Promise<Record<MediaKind, number>>
   /** Every tag used in the library of the workspace, by name. */
   tagsOf(organizationId: string, workspaceId: string): Promise<string[]>
   /**

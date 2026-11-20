@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * «Libreria» (spec §11.8, plan 04 Task 12): the library of the client chosen in the selector
- * (`?spazio=`). Without a client it asks to choose one. Only for Editor and above (§10.2): for
- * whoever uses no library (a Viewer everywhere) the page does not exist.
+ * «Libreria» (screen 19, Matteo 20/11): the files of every client whose library the person uses,
+ * or of the client of the selector. Only for Editor and above (§10.2): for whoever uses no
+ * library (a Viewer everywhere) the page does not exist. The folders are in the client's tab.
  */
 definePageMeta({ layout: 'agency' })
 
@@ -16,8 +16,10 @@ useHead({ title: () => t('library.title') })
 const usable = computed(() =>
   (data.value?.items ?? []).filter((w) => w.archivedAt === null && usesLibrary(w)),
 )
-const client = computed(() =>
-  workspace.value && usesLibrary(workspace.value) ? workspace.value : null,
+const initialClient = computed(() =>
+  workspace.value && usable.value.some((w) => w.id === workspace.value?.id)
+    ? workspace.value.id
+    : null,
 )
 
 // a Viewer everywhere, or a client whose library the person may not use: «Pagina non trovata»
@@ -30,51 +32,49 @@ watchEffect(() => {
     showError(createError({ statusCode: 404, statusMessage: 'Not Found' }))
 })
 
-const used = ref(0)
-const library = ref<{ chooseFiles: () => void } | null>(null)
+const library = ref<{
+  upload: () => void
+  uploadItems: { label: string; onSelect: () => void }[]
+  filteredClient: WorkspaceView | null
+} | null>(null)
 </script>
 
 <template>
   <PageShell>
     <template #head>
       <PageHeader :title="$t('library.title')">
-        <template v-if="client" #summary>
-          {{ client.name }} · {{ $t('library.usage') }}: {{ formatBytes(used) }}
-        </template>
-        <template v-else-if="status === 'success'" #summary>
-          {{ $t('library.chooseClientText') }}
-        </template>
-        <template v-if="client && client.archivedAt === null" #actions>
-          <UButton icon="i-lucide-upload" class="min-h-control" @click="library?.chooseFiles()">
-            {{ $t('upload.choose') }}
-          </UButton>
+        <template v-if="library && usable.length > 0" #actions>
+          <!-- on a phone «Carica» sits by the title (screen 19); on a computer in the tools -->
+          <div class="md:hidden">
+            <UButton
+              v-if="library.filteredClient"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-upload"
+              :label="$t('library.upload')"
+              @click="library.upload()"
+            />
+            <UDropdownMenu v-else :items="library.uploadItems" :content="{ align: 'end' }">
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-upload"
+                :label="$t('library.upload')"
+                :aria-label="$t('library.uploadTo')"
+              />
+            </UDropdownMenu>
+          </div>
         </template>
       </PageHeader>
     </template>
 
-    <MediaLibrary
-      v-if="client"
+    <ListSkeleton v-if="status !== 'success'" :label="$t('library.loading')" :rows="3" />
+    <AgencyLibrary
+      v-else-if="usable.length > 0"
       ref="library"
-      :key="client.id"
-      :workspace="client"
-      upload-in-header
-      @usage="used = $event"
+      :clients="usable"
+      :initial-client="initialClient"
     />
-    <ListSkeleton v-else-if="status !== 'success'" :label="$t('library.loading')" :rows="3" />
-    <section v-else-if="usable.length > 0" aria-labelledby="choose-client">
-      <h2 id="choose-client" class="mb-3 text-lg font-semibold">
-        {{ $t('library.chooseClient') }}
-      </h2>
-      <DataList :label="$t('library.chooseClient')">
-        <DataRow
-          v-for="w in usable"
-          :key="w.id"
-          :name="w.name"
-          :src="w.photoUrl"
-          :to="{ path: org.to('/libreria'), query: { spazio: w.slug } }"
-        />
-      </DataList>
-    </section>
     <EmptyState v-else :title="$t('library.noClients')" icon="i-lucide-images" />
   </PageShell>
 </template>

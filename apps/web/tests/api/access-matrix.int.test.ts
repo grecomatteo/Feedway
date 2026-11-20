@@ -482,6 +482,12 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/agenda/clients': [
     { permission: 'workspace.view', level: 'organization' },
   ],
+  // «Libreria» of «Tutti i clienti» (redesign R6): every member, each with the clients whose
+  // library they use; narrowed to one client, who does not use its library gets 404
+  'GET /api/v1/orgs/{org}/media': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'media.upload', level: 'workspace', query: true, hiddenWithout: true },
+  ],
   'GET /api/v1/orgs/{org}/audit-log': [
     { permission: 'audit.view_all', level: 'organization' },
     { permission: 'audit.view_workspace', level: 'workspace', query: true },

@@ -2,6 +2,7 @@ import {
   DomainError,
   VARIANT_PURPOSES,
   can,
+  displayName,
   deletionBlock,
   postCount,
   primaryUse,
@@ -56,6 +57,9 @@ export interface MediaDto {
   failure: MediaFailure | null
   checks: MediaChecks | null
   uploadedBy: string
+  /** «Caricato oggi alle 10:14, da Marco Bassi» (screen 20); empty for a person gone */
+  uploadedByName: string
+  workspaceId: string
   createdAt: string
   folderId: string | null
   tags: string[]
@@ -96,6 +100,22 @@ export async function usesOf(
 
 const iso = (at: Date | null) => (at === null ? null : at.toISOString())
 
+/** Who uploaded each file, by name: people of the agency, or who were. */
+async function uploaderNames(tx: Tx, records: readonly MediaRecord[]) {
+  const ids = [...new Set(records.map((r) => r.uploadedBy))]
+  if (ids.length === 0) return new Map<string, string>()
+  return new Map((await tx.users.summaries(ids)).map((u) => [u.id, displayName(u)]))
+}
+
+/** The panel's view of these files: copies, uses and who uploaded them, read once for all. */
+async function mediaDtos(tx: Tx, organizationId: string, records: readonly MediaRecord[]) {
+  const ids = records.map((m) => m.id)
+  const variants = await tx.media.variantsOf(organizationId, ids)
+  const uses = await usesOf(tx, organizationId, ids)
+  const names = await uploaderNames(tx, records)
+  return records.map((m) => toDto(m, variants, uses, names))
+}
+
 export const mediaNotFound = () => new DomainError('NOT_FOUND', 'File non trovato')
 
 const MAX_PAGE = 100
@@ -104,6 +124,7 @@ export function toDto(
   record: MediaRecord,
   variants: readonly MediaVariantRecord[],
   uses: ReadonlyMap<string, readonly MediaUse[]>,
+  names: ReadonlyMap<string, string> = new Map(),
 ): MediaDto {
   const all = uses.get(record.id) ?? []
   const use = primaryUse(all)
@@ -135,6 +156,8 @@ export function toDto(
     failure: record.failure,
     checks: record.checks,
     uploadedBy: record.uploadedBy,
+    uploadedByName: names.get(record.uploadedBy) ?? '',
+    workspaceId: record.workspaceId,
     createdAt: record.createdAt.toISOString(),
     folderId: record.folderId,
     tags: record.tags,
@@ -188,6 +211,8 @@ export interface MediaListFilter {
   name?: string
   /** only the files a post uses */
   inPosts?: boolean
+  /** by the use that counts (screen 19) */
+  use?: 'any' | 'scheduled' | 'draft' | 'unused'
 }
 
 export async function listMedia(
@@ -209,18 +234,9 @@ export async function listMedia(
       filter,
     })
     const items = page.slice(0, limit)
-    const variants = await tx.media.variantsOf(
-      organizationId,
-      items.map((m) => m.id),
-    )
     const used = await tx.media.storageUsed(organizationId, workspace.id)
-    const uses = await usesOf(
-      tx,
-      organizationId,
-      items.map((m) => m.id),
-    )
     return {
-      items: items.map((m) => toDto(m, variants, uses)),
+      items: await mediaDtos(tx, organizationId, items),
       next: page.length > limit ? (items.at(-1)?.id ?? null) : null,
       usedBytes: used.workspace,
       tags: await tx.media.tagsOf(organizationId, workspace.id),
@@ -241,6 +257,7 @@ function cleanFilter(filter: MediaListFilter | undefined): MediaFilter {
     ...(tag ? { tag } : {}),
     ...(name ? { name } : {}),
     ...(filter.inPosts ? { inPosts: true } : {}),
+    ...(filter.use === undefined ? {} : { use: filter.use }),
   }
 }
 
@@ -259,11 +276,59 @@ export async function getMedia(
 
 /** One file as the panel sees it, with its copies and the post that uses it. */
 export async function mediaDto(tx: Tx, organizationId: string, record: MediaRecord) {
-  return toDto(
-    record,
-    await tx.media.variantsOf(organizationId, [record.id]),
-    await usesOf(tx, organizationId, [record.id]),
-  )
+  const [dto] = await mediaDtos(tx, organizationId, [record])
+  if (!dto) throw mediaNotFound()
+  return dto
+}
+
+/**
+ * «Libreria» with «Tutti i clienti» (screen 19, Matteo 20/11): the files of every active client
+ * whose library the person uses (Editor and above), newest first, with how many photos and videos
+ * the filter finds. Narrowed to one client, a client the person does not use the library of is
+ * NOT_FOUND, as in the client's own library. Folders stay in the client's library.
+ */
+export async function listAgencyMedia(
+  deps: { uow: UnitOfWork },
+  actor: OrgActor,
+  input: {
+    workspaceId?: string
+    before?: string
+    limit?: number
+    filter?: Omit<MediaListFilter, 'folder'>
+  },
+): Promise<{ items: MediaDto[]; next: string | null; counts: Record<MediaKind, number> }> {
+  const { organizationId } = actor
+  if (input.before !== undefined && !isUuid(input.before))
+    throw new DomainError('VALIDATION', 'Pagina non valida', { field: 'before' })
+  const filter = cleanFilter(input.filter)
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), MAX_PAGE)
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const current = await currentActor(tx, actor)
+    const usable = (await tx.workspaces.listVisible(current))
+      .filter(
+        (w) =>
+          w.archivedAt === null &&
+          can(current, 'media.upload', { organizationId, workspaceId: w.id }),
+      )
+      .map((w) => w.id)
+    let ids = usable
+    if (input.workspaceId !== undefined) {
+      const asked = input.workspaceId
+      if (!isUuid(asked) || !usable.includes(asked)) throw workspaceNotFound()
+      ids = [asked]
+    }
+    const page = await tx.media.listForWorkspaces(organizationId, ids, {
+      ...(input.before === undefined ? {} : { before: input.before }),
+      limit: limit + 1,
+      filter,
+    })
+    const items = page.slice(0, limit)
+    return {
+      items: await mediaDtos(tx, organizationId, items),
+      next: page.length > limit ? (items.at(-1)?.id ?? null) : null,
+      counts: await tx.media.countByKind(organizationId, ids, filter),
+    }
+  })
 }
 
 export interface DeleteMediaDeps {

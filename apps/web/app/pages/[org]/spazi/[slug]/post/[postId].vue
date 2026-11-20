@@ -38,6 +38,7 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
       :client="client"
       :post-id="firstId"
       :profile-key="typeof route.query['profilo'] === 'string' ? route.query['profilo'] : null"
+      :file-id="typeof route.query['file'] === 'string' ? route.query['file'] : null"
       :profiles="profileList"
       :profiles-loading="profiles.status.value === 'pending' || profiles.status.value === 'idle'"
       :back="back"

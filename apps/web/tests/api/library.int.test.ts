@@ -208,3 +208,65 @@ test('two moves at once never make a loop', async () => {
   ])
   expect([one.status, two.status].sort()).toEqual([200, 422])
 })
+
+interface AgencyPage {
+  items: (Media & { workspaceId: string; uploadedByName: string })[]
+  next: string | null
+  counts: { image: number; video: number }
+}
+const agency = async (cookieOf: string, query = '', status = 200) =>
+  json<AgencyPage>(
+    await env.call('GET', `/api/v1/orgs/${org.slug}/media${query}`, undefined, {
+      cookie: cookieOf,
+    }),
+    status,
+  )
+
+test('«Tutti i clienti»: the files of every client whose library the person uses, and no other', async () => {
+  // a person who is Editor of w1 and Viewer of w2: the library of w2 does not exist for them
+  const mixed = await env.person(org.id, 'member')
+  await seed(env.tdb.runtimeUrl, async (s) => {
+    await s.workspaceMember(org.id, w1, mixed.userId, 'editor')
+    await s.workspaceMember(org.id, w2, mixed.userId, 'viewer')
+  })
+  const mixedCookie = await env.signIn(mixed)
+  const inW1 = await file(w1, 'image')
+  const inW2 = await file(w2, 'video')
+  const inArchived = await file(archived, 'image')
+
+  const all = await agency(cookie, '?limit=100')
+  const ids = all.items.map((m) => m.id)
+  expect(ids).toEqual(expect.arrayContaining([inW1, inW2]))
+  // an archived client is read from its own page only
+  expect(ids).not.toContain(inArchived)
+  expect(all.items.find((m) => m.id === inW2)).toMatchObject({
+    workspaceId: w2,
+    uploadedByName: expect.any(String) as string,
+  })
+  expect(all.counts.image + all.counts.video).toBe(all.items.length)
+
+  const theirs = await agency(mixedCookie, '?limit=100')
+  expect(theirs.items.map((m) => m.workspaceId).every((w) => w === w1)).toBe(true)
+  expect(theirs.items.map((m) => m.id)).toContain(inW1)
+  // counts too: nothing of a client whose library is hidden
+  expect(theirs.counts.image + theirs.counts.video).toBe(theirs.items.length)
+  // narrowed to w2, or to the archived client: as if it did not exist
+  await agency(mixedCookie, `?workspaceId=${w2}`, 404)
+  await agency(cookie, `?workspaceId=${archived}`, 404)
+
+  const one = await agency(cookie, `?workspaceId=${w1}&kind=image&limit=100`)
+  expect(one.items.every((m) => m.workspaceId === w1)).toBe(true)
+  expect(one.items.map((m) => m.id)).toContain(inW1)
+  // the kind filters the files, not the counts of «Tutti · Foto · Video»
+  expect(one.counts.video).toBeGreaterThanOrEqual(0)
+  expect(one.items.length).toBe(one.counts.image)
+})
+
+test('«Cerca per nome o tag» finds a tag too', async () => {
+  const tagged = await file(w1, 'image')
+  await json(await call('PATCH', `${ws(w1)}/media/${tagged}`, { tags: ['laboratorio'] }))
+  const found = await agency(cookie, '?q=labor&limit=100')
+  expect(found.items.map((m) => m.id)).toContain(tagged)
+  const inClient = await list(w1, '?q=labor&limit=100')
+  expect(inClient.items.map((m) => m.id)).toContain(tagged)
+})

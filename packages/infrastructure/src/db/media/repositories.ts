@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import type {
   LibraryFolderRecord,
@@ -113,16 +113,50 @@ function filterOf(filter: MediaFilter | undefined): (SQL | undefined)[] {
     filter.tag === undefined
       ? undefined
       : sql`${libraryItems.tags} @> array[${filter.tag}]::text[]`,
+    // «Cerca per nome o tag» (screen 19): a part of the name, or of one of its tags
     filter.name === undefined
       ? undefined
-      : ilike(media.originalName, `%${likeLiteral(filter.name)}%`),
-    // post_media belongs to the posts module: read here by its table, as the RLS allows
-    filter.inPosts
-      ? sql`exists (select 1 from post_media pm
-          where pm.organization_id = ${media.organizationId}
-            and (pm.media_id = ${media.id} or pm.cover_media_id = ${media.id}))`
-      : undefined,
+      : or(
+          ilike(media.originalName, `%${likeLiteral(filter.name)}%`),
+          sql`exists (select 1 from unnest(${libraryItems.tags}) as t(tag)
+                where t.tag ilike ${`%${likeLiteral(filter.name.toLocaleLowerCase('it'))}%`})`,
+        ),
+    usedBy(filter.inPosts ? 'any' : filter.use),
   ]
+}
+
+// post_media belongs to the posts module: read here by its table, as the RLS allows
+const inPostWith = (status: string | null) =>
+  sql`exists (select 1 from post_media pm join posts p
+        on p.organization_id = pm.organization_id and p.id = pm.post_id
+      where pm.organization_id = ${media.organizationId}
+        and (pm.media_id = ${media.id} or pm.cover_media_id = ${media.id})
+        ${status === null ? sql`` : sql`and p.status = ${status}`})`
+
+/** The filter with every kind: the counts of «Tutti · Foto · Video». */
+function withoutKind(filter: MediaFilter): MediaFilter {
+  const rest = { ...filter }
+  delete rest.kind
+  return rest
+}
+
+/**
+ * The filter by use (screen 19), on the same order as `primaryUse` (D-80.7): «in una bozza» is a
+ * file whose use that counts is a draft, so never a file of a scheduled post.
+ */
+function usedBy(use: MediaFilter['use']): SQL | undefined {
+  switch (use) {
+    case 'any':
+      return inPostWith(null)
+    case 'scheduled':
+      return inPostWith('scheduled')
+    case 'draft':
+      return sql`(${inPostWith('draft')} and not ${inPostWith('scheduled')})`
+    case 'unused':
+      return sql`not ${inPostWith(null)}`
+    default:
+      return undefined
+  }
 }
 
 const factsColumns = (facts: MediaFacts) => ({
@@ -142,6 +176,31 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
       eq(media.id, mediaId),
       eq(media.status, 'processing'),
     )
+  /** The files of these workspaces, newest first, a page after `before`. */
+  async function listFor(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    page: { before?: string; limit: number; filter?: MediaFilter },
+  ) {
+    if (workspaceIds.length === 0) return []
+    const rows = await withLibrary(db)
+      .where(
+        and(
+          eq(media.organizationId, organizationId),
+          inArray(media.workspaceId, [...workspaceIds]),
+          ne(media.status, 'deleted'),
+          ...filterOf(page.filter),
+          page.before === undefined
+            ? undefined
+            : sql`(${media.createdAt}, ${media.id}) < (select b.created_at, b.id from ${media} b
+                   where b.organization_id = ${organizationId} and b.id = ${page.before})`,
+        ),
+      )
+      .orderBy(desc(media.createdAt), desc(media.id))
+      .limit(page.limit)
+    return rows.map(mediaOf)
+  }
+
   return {
     async create(record) {
       const { folderId, ...row } = record
@@ -399,23 +458,36 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .returning({ id: media.id })
       return rows.length > 0
     },
-    async listForWorkspace(organizationId, workspaceId, page) {
-      const rows = await withLibrary(db)
+    listForWorkspace(organizationId, workspaceId, page) {
+      return listFor(organizationId, [workspaceId], page)
+    },
+    listForWorkspaces(organizationId, workspaceIds, page) {
+      return listFor(organizationId, workspaceIds, page)
+    },
+    async countByKind(organizationId, workspaceIds, filter) {
+      const counts = { image: 0, video: 0 }
+      if (workspaceIds.length === 0) return counts
+      const rows = await db
+        .select({ kind: media.kind, n: sql<number>`count(*)::int` })
+        .from(media)
+        .leftJoin(
+          libraryItems,
+          and(
+            eq(libraryItems.organizationId, media.organizationId),
+            eq(libraryItems.mediaId, media.id),
+          ),
+        )
         .where(
           and(
             eq(media.organizationId, organizationId),
-            eq(media.workspaceId, workspaceId),
+            inArray(media.workspaceId, [...workspaceIds]),
             ne(media.status, 'deleted'),
-            ...filterOf(page.filter),
-            page.before === undefined
-              ? undefined
-              : sql`(${media.createdAt}, ${media.id}) < (select b.created_at, b.id from ${media} b
-                     where b.organization_id = ${organizationId} and b.id = ${page.before})`,
+            ...filterOf(withoutKind(filter)),
           ),
         )
-        .orderBy(desc(media.createdAt), desc(media.id))
-        .limit(page.limit)
-      return rows.map(mediaOf)
+        .groupBy(media.kind)
+      for (const r of rows) if (r.kind === 'image' || r.kind === 'video') counts[r.kind] = r.n
+      return counts
     },
     async tagsOf(organizationId, workspaceId) {
       const result = await db.execute<{ tag: string }>(sql`

@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 import type { DesignSample } from '../e2e/support/design-sample.ts'
 import { libraryFile } from '../e2e/support/media.ts'
@@ -68,6 +69,96 @@ async function tick(page: Page, names: RegExp[]) {
     window.scrollTo(0, 0)
   })
 }
+
+const asset = (name: string) =>
+  readFile(new URL(`../../../../design/feedway-ui-assets/${name}`, import.meta.url))
+const ASSETS = {
+  pane: 'adbaa4719c5d6833.jpg',
+  banco: '85eaab7ce7e4bb91.jpg',
+  impasto: '47a5e2c5a89af42c.jpg',
+} as const
+
+/**
+ * The library of screen 19: the sample's files with the names of the screen, and the files no post
+ * uses, uploaded today and earlier in the week (the clock of the shots is Thursday 19/11, 10:00).
+ */
+async function libraryLikeTheScreen(page: Page, s: DesignSample) {
+  const id = (name: string) => s.clients[name]?.id ?? ''
+  const rename = async (client: string, from: string, to: string, at: string, size: number) =>
+    adminQuery(
+      `update media set original_name = $3, created_at = $4, size_bytes = $5
+        where workspace_id = $1 and original_name = $2`,
+      [id(client), from, to, at, size],
+    )
+  await rename('Forno Luce', 'pane.jpg', 'pane-lunedi-01.jpg', '2026-11-19T08:50:00Z', 2_400_000)
+  await adminQuery(
+    `update library_items set tags = '{pane,lunedi}' where media_id =
+      (select id from media where workspace_id = $1 and original_name = $2)`,
+    [id('Forno Luce'), 'pane-lunedi-01.jpg'],
+  )
+  await rename('Forno Luce', 'impasto.jpg', 'impasto-mani.jpg', '2026-11-19T08:10:00Z', 1_800_000)
+  await rename('Forno Luce', 'banco.jpg', 'banco-brioche.jpg', '2026-11-19T08:20:00Z', 3_000_000)
+  await rename(
+    'Gelateria Polo',
+    'banco.jpg',
+    'gusti-autunno.heic',
+    '2026-11-19T08:30:00Z',
+    1_200_000,
+  )
+  await rename('Osteria Bruna', 'banco.jpg', 'sala-venerdi.jpg', '2026-11-17T15:00:00Z', 2_700_000)
+  await rename(
+    'Ottica Venti',
+    'impasto.jpg',
+    'cucina-preparazione.jpg',
+    '2026-11-17T09:00:00Z',
+    1_400_000,
+  )
+  const add = async (
+    client: string,
+    name: string,
+    photo: keyof typeof ASSETS,
+    at: string,
+    size: number,
+    video?: { durationMs: number },
+  ) => {
+    // idempotent: the sample is shared by the screens and their two sizes
+    const [had] = await adminQuery<{ id: string }>(
+      'select id from media where workspace_id = $1 and original_name = $2',
+      [id(client), name],
+    )
+    if (had) return had.id
+    const file = await libraryFile(s.org, id(client), s.owner.userId, {
+      kind: video ? 'video' : 'image',
+      name,
+      image: await asset(ASSETS[photo]),
+    })
+    await adminQuery(
+      `update media set created_at = $2, size_bytes = $3, width = $4, height = $5,
+              duration_ms = $6 where id = $1`,
+      [file, at, size, video ? 1920 : 1080, video ? 1080 : 1350, video?.durationMs ?? null],
+    )
+    return file
+  }
+  await add('Forno Luce', 'pane-lunedi-02.jpg', 'pane', '2026-11-19T08:55:00Z', 2_100_000)
+  await add(
+    'Forno Luce',
+    'sfoglia-dietro-il-banco.mov',
+    'impasto',
+    '2026-11-19T09:14:00Z',
+    38_800_000,
+    {
+      durationMs: 42_000,
+    },
+  )
+  await add('Forno Luce', 'segale-mercoledi.jpg', 'pane', '2026-11-18T07:00:00Z', 2_200_000)
+  await add('Gelateria Polo', 'insegna-gelato.jpg', 'banco', '2026-11-16T10:00:00Z', 1_100_000)
+  await add('Forno Luce', 'pagnotta-tagliata.jpg', 'pane', '2026-11-16T09:00:00Z', 2_000_000)
+  await add('Osteria Bruna', 'bancone-dettaglio.jpg', 'banco', '2026-11-16T08:00:00Z', 1_600_000)
+  await page.reload()
+  await page.locator('[data-ready]').first().waitFor()
+  await page.waitForLoadState('networkidle')
+}
+
 const forno = (s: DesignSample) => s.clients['Forno Luce'] ?? { id: '', slug: '' }
 
 export const SCREENS: Screen[] = [
@@ -180,5 +271,20 @@ export const SCREENS: Screen[] = [
   {
     id: '18-cliente-contenuti',
     path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/contenuti`,
+  },
+  // the library (Task R6): every client, then a file's detail
+  { id: '19-libreria', path: (s) => `/${s.org}/libreria`, prepare: libraryLikeTheScreen },
+  {
+    id: '20-libreria-file',
+    path: (s) => `/${s.org}/libreria`,
+    prepare: async (page, s) => {
+      await libraryLikeTheScreen(page, s)
+      await page
+        .getByRole('button', { name: /pane-lunedi-01\.jpg/ })
+        .first()
+        .click()
+      await page.getByRole('dialog', { name: 'pane-lunedi-01.jpg' }).waitFor()
+      await page.waitForTimeout(400)
+    },
   },
 ]

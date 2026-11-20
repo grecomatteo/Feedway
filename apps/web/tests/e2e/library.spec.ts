@@ -58,46 +58,55 @@ async function editorWithLibrary(page: Page) {
   return { org, client, editor }
 }
 
-test('from «Libreria», the client chosen, the library filters by tag, type and name', async ({
+test('«Libreria» shows the files of the clients by day, filtered by type, use and name or tag', async ({
   page,
 }) => {
-  test.skip(isPhone(page), 'on a phone the library opens from the client')
-  const { org } = await editorWithLibrary(page)
+  const { org, client } = await editorWithLibrary(page)
+  const [file] = await adminQuery<{ id: string }>(
+    "select id from media where workspace_id = $1 and original_name = 'cornetti.jpg'",
+    [client],
+  )
+  await postWith(page, org, client, [file?.id ?? ''], 'draft')
   await page.goto(`/${org}`)
-  await page
-    .getByRole('navigation', { name: 'Navigazione principale' })
-    .getByRole('link', { name: 'Libreria' })
-    .click()
+  if (isPhone(page)) await page.goto(`/${org}/libreria`)
+  else
+    await page
+      .getByRole('navigation', { name: 'Navigazione principale' })
+      .getByRole('link', { name: 'Libreria' })
+      .click()
   await expect(page).toHaveURL(new RegExp(`/${org}/libreria`))
   await expect(page.getByRole('heading', { level: 1, name: 'Libreria' })).toBeVisible()
-  // no client chosen: the page asks for one
-  await page
-    .getByRole('list', { name: 'Scegli un cliente' })
-    .getByRole('link', { name: 'Forno Luce' })
-    .click()
-  await expect(page).toHaveURL(/spazio=/)
-  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
-  await expect(page.getByText(/Forno Luce · Spazio occupato/)).toBeVisible()
+  const today = page.getByRole('list', { name: 'Oggi' })
+  await expect(today.getByRole('listitem')).toHaveCount(3)
+  const kinds = page.getByRole('group', { name: 'Tipo di file' })
+  await expect(kinds.getByRole('button', { name: /Tutti/ })).toContainText('3')
+  await expect(kinds.getByRole('button', { name: /Video/ })).toContainText('1')
+  await expect(today.getByRole('listitem').filter({ hasText: 'cornetti.jpg' })).toContainText(
+    'In una bozza',
+  )
+  if (!isPhone(page))
+    await expect(today.getByRole('listitem').filter({ hasText: 'pane-01.jpg' })).toContainText(
+      'Forno Luce',
+    )
+  await fitsTheScreen(page)
 
-  await page.getByRole('combobox', { name: 'Tag' }).click()
-  await page.getByRole('option', { name: '#natale' }).click()
-  await expect(grid(page).getByRole('listitem')).toHaveCount(2)
-  await expect(tile(page, 'cornetti.jpg')).toHaveCount(0)
+  await kinds.getByRole('button', { name: /Video/ }).click()
+  await expect(today.getByRole('listitem')).toHaveCount(1)
+  await expect(today.getByRole('listitem')).toContainText('0:18')
+  await kinds.getByRole('button', { name: /Tutti/ }).click()
 
-  await page
-    .getByRole('group', { name: 'Tipo di file' })
-    .getByRole('button', { name: 'Video' })
-    .click()
-  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
-  await expect(tile(page, 'laboratorio.mov')).toContainText('Video 0:18')
+  // the search finds a tag too
+  await page.getByRole('searchbox', { name: 'Cerca per nome o tag' }).fill('natale')
+  await expect(today.getByRole('listitem')).toHaveCount(2)
+  await page.getByRole('searchbox', { name: 'Cerca per nome o tag' }).fill('')
+  await expect(today.getByRole('listitem')).toHaveCount(3)
 
-  await page
-    .getByRole('group', { name: 'Tipo di file' })
-    .getByRole('button', { name: 'Tutti' })
-    .click()
-  await page.getByRole('searchbox', { name: 'Cerca per nome' }).fill('pane')
-  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
-  await expect(tile(page, 'pane-01.jpg')).toBeVisible()
+  if (!isPhone(page)) {
+    await page.getByRole('combobox', { name: 'Nei post' }).click()
+    await page.getByRole('option', { name: 'Solo in bozze' }).click()
+    await expect(today.getByRole('listitem')).toHaveCount(1)
+    await expect(today.getByRole('listitem')).toContainText('cornetti.jpg')
+  }
 
   const results = await axe(page)
   expect(results.violations).toEqual([])
@@ -106,7 +115,7 @@ test('from «Libreria», the client chosen, the library filters by tag, type and
 test('a file moves into a folder with «Sposta in…» and by dragging', async ({ page }) => {
   test.skip(isPhone(page), 'dragging is for a computer; the phone has «Sposta in…»')
   const { org, client } = await editorWithLibrary(page)
-  await page.goto(`/${org}/libreria?spazio=${client}`)
+  await page.goto(`/${org}/spazi/${client}/libreria`)
   await expect(grid(page).getByRole('listitem')).toHaveCount(3)
   const folders = page.getByRole('navigation', { name: 'Cartelle' })
 
@@ -162,8 +171,9 @@ test('the detail plays the video, saves the tags and deletes the file', async ({
     .first()
     .click()
   const detail = page.getByRole('dialog', { name: 'laboratorio.mov' })
+  await expect(detail.getByText('1080 × 1920 · 0:18 · 18,4 MB')).toBeVisible()
+  await detail.getByText('Dettagli tecnici').click()
   await expect(detail.getByText('Preparato per partire subito in riproduzione')).toBeVisible()
-  await expect(detail.getByText('1080 × 1920 px')).toBeVisible()
   // the player reads the preview by ranges, and plays it
   const player = detail.getByTestId('media-player')
   await expect
@@ -256,7 +266,7 @@ test('the library shows a grid with thumbnails of the chosen size, or a list, an
   )
 })
 
-test('a long name stays on two lines, then the dots, and is whole on hover and to a screen reader', async ({
+test('a long name: one line with the dots in the grid, two in the list, whole on hover', async ({
   page,
 }) => {
   const { org, client, editor } = await editorWithLibrary(page)
@@ -270,18 +280,21 @@ test('a long name stays on two lines, then the dots, and is whole on hover and t
       .getByRole('button', { name: new RegExp(long) })
       .first()
     await expect(button).toHaveAttribute('title', long)
-    const lines = await button.evaluate((b) => {
+    const shape = await button.evaluate((b) => {
       const style = getComputedStyle(b)
       return {
         clamp: style.webkitLineClamp,
+        ellipsis: style.textOverflow === 'ellipsis',
         rows: Math.round(b.clientHeight / parseFloat(style.lineHeight)),
-        cut: b.scrollHeight > b.clientHeight,
+        cut: b.scrollHeight > b.clientHeight || b.scrollWidth > b.clientWidth,
       }
     })
-    expect(lines.clamp).toBe('2')
-    expect(lines.rows).toBeLessThanOrEqual(2)
-    // in the grid the name is longer than two lines: the rest is cut, not drawn
-    if (layout === 'Griglia') expect(lines).toEqual({ clamp: '2', rows: 2, cut: true })
+    // screen 19: one line in the grid; the list keeps two (D-63)
+    if (layout === 'Griglia') expect(shape).toMatchObject({ ellipsis: true, rows: 1, cut: true })
+    else {
+      expect(shape.clamp).toBe('2')
+      expect(shape.rows).toBeLessThanOrEqual(2)
+    }
   }
 })
 
@@ -391,12 +404,16 @@ test('the file of a scheduled post says it is not deleted, without asking first 
   await page.goto(`/${org}/spazi/${client}/libreria`)
   const reason = 'Non si può eliminare: è in un post programmato per gio 10 giu 2027 alle 18:00.'
 
-  // «⋯»: the item is off, with the reason
-  await tile(page, 'cornetti.jpg').getByRole('button', { name: 'Azioni per cornetti.jpg' }).click()
-  const item = page.getByRole('menuitem', { name: /Elimina/ })
-  await expect(item).toBeDisabled()
-  await expect(item).toContainText(reason)
-  await page.keyboard.press('Escape')
+  // «⋯»: the item is off, with the reason (a phone has no «⋯»: the detail has every action)
+  if (!isPhone(page)) {
+    await tile(page, 'cornetti.jpg')
+      .getByRole('button', { name: 'Azioni per cornetti.jpg' })
+      .click()
+    const item = page.getByRole('menuitem', { name: /Elimina/ })
+    await expect(item).toBeDisabled()
+    await expect(item).toContainText(reason)
+    await page.keyboard.press('Escape')
+  }
 
   // the detail: off, the reason and the way to the post
   await tile(page, 'cornetti.jpg')
@@ -404,7 +421,8 @@ test('the file of a scheduled post says it is not deleted, without asking first 
     .first()
     .click()
   const detail = page.getByRole('dialog', { name: 'cornetti.jpg' })
-  await expect(detail.getByRole('button', { name: 'Elimina' })).toBeDisabled()
+  // screen 20: no «Elimina», the reason in its place
+  await expect(detail.getByRole('button', { name: 'Elimina' })).toHaveCount(0)
   await expect(detail.getByText(reason)).toBeVisible()
   await expect(
     detail.getByRole('link', { name: 'Toglilo dal post o annulla il post per eliminarlo.' }),
@@ -439,9 +457,11 @@ test('a post scheduled after the page was read: the refusal says why, and the fi
     .click()
   const reason = 'Non si può eliminare: è in un post programmato per gio 10 giu 2027 alle 18:00.'
   await expect(page.getByText(reason).first()).toBeVisible()
-  // the detail read again: off, with the reason
-  await expect(detail.getByRole('button', { name: 'Elimina' })).toBeDisabled()
+  // the detail read again: the reason in place of «Elimina»
+  await expect(detail.getByRole('button', { name: 'Elimina' })).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: /Eliminare/ })).toHaveCount(0)
   await page.keyboard.press('Escape')
+  await expect(detail).toHaveCount(0)
   await expect(page.getByRole('alert').filter({ hasText: reason })).toBeVisible()
   await expect(tile(page, 'cornetti.jpg')).toContainText('Nel post di gio 10 giu 2027, 18:00')
   await expect(grid(page).getByRole('listitem')).toHaveCount(3)

@@ -19,8 +19,12 @@ const { failure } = useApi()
 const ready = useHydrated()
 const org = useOrganization()
 /** The editor of a post of this client: «Usato in» and the reason a file is not deleted. */
-const postTo = (postId: string) =>
-  org.to(`/spazi/${encodeURIComponent(props.workspace.slug)}/post/${encodeURIComponent(postId)}`)
+const clientPath = () => `/spazi/${encodeURIComponent(props.workspace.slug)}`
+const postTo = (_file: LibraryFile, postId: string) =>
+  org.to(`${clientPath()}/post/${encodeURIComponent(postId)}`)
+/** «Usa in un nuovo post» (screen 20) */
+const newPostTo = (file: LibraryFile) =>
+  org.to(`${clientPath()}/post/nuovo?file=${encodeURIComponent(file.id)}`)
 
 const workspaceId = computed(() => props.workspace.id)
 const lib = useLibrary(workspaceId)
@@ -786,6 +790,7 @@ function filesDrop(event: DragEvent) {
       :file-url="lib.fileUrl"
       :read-only="readOnly"
       :post-to="postTo"
+      :new-post-to="newPostTo"
       @tags="saveTags"
       @move="move"
       @delete="startDelete"
