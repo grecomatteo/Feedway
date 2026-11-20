@@ -87,7 +87,7 @@ Ognuna ha la sua voce in `docs/decisioni-aperte.md`. La 1 aspetta Matteo; le alt
 
 ## Come si divide il lavoro
 
-Dieci task, ognuno una PR (o due dove il task lo dice), in sette thread più la revisione di fine tappa.
+Undici task, ognuno una PR (o più dove il task lo dice), in otto thread più la revisione di fine tappa.
 
 | Thread | Task | Dipende da | Perché insieme |
 |---|---|---|---|
@@ -97,14 +97,15 @@ Dieci task, ognuno una PR (o due dove il task lo dice), in sette thread più la 
 | D · Copie | Task 6 · Copie da pubblicare: ritaglio, fotogramma, bande, storia | B | Solo `media`, con ffmpeg e sharp |
 | E · Worker | Task 7 · Preparazione, pubblicazione e riconciliatore; Task 8 · Esito incerto, verifica, «Riprova» e pausa | C, D | Gli stessi gestori e la stessa prova del riavvio |
 | F · Pannello | Task 9 · «Pubblica subito», pagina dell'esito, stati nelle liste e «Da sistemare» | E | Tutta l'interfaccia della tappa, con gli stessi E2E |
-| — | Revisione di fine tappa (thread separato, istruzioni del progetto) | A–F | |
-| G · Rilascio | Task 10 · Correzioni della revisione, rilascio 0.13.0 e guida della prova con la prima pubblicazione vera | revisione | |
+| H · Libreria | Task 10 · Cartelle in tutte le librerie e nell'editor, caricamento di una cartella o di uno zip (D-103, D-104) | A | Richiesta di Matteo dopo la prova della 0.12.1 (20/11): «una task finale nella tappa, e poi le proviamo»; tocca solo libreria, caricamento ed editor dei file, non la pubblicazione |
+| — | Revisione di fine tappa (thread separato, istruzioni del progetto) | A–F, H | |
+| G · Rilascio | Task 11 · Correzioni della revisione, rilascio 0.13.0 e guida della prova con la prima pubblicazione vera | revisione | |
 
-- **A, B e (dopo B) C e D possono andare in parallelo**: C e D toccano moduli diversi. E aspetta C e D fusi; F aspetta E.
+- **A, B e (dopo B) C e D possono andare in parallelo**: C e D toccano moduli diversi. E aspetta C e D fusi; F aspetta E. **H** parte quando A è fuso (stesse pagine della libreria) e va in parallelo a B–F; se il thread F tocca la libreria (etichetta «Pubblicato il …»), il secondo dei due a fondere si allinea alla `main`.
 - **Dentro un thread** i task vanno in ordine, una PR alla volta: si fonde la prima, poi si parte dalla `main` aggiornata. `pnpm verify:ci` una volta prima di ogni push.
 - **Se il contesto non basta**, il thread fa il suo primo task, scrive l'handoff e chiede al coordinatore un thread nuovo per il secondo.
 - **A fine thread** l'handoff in `/mnt/project-files/handoff/tappa-7/HANDOFF-thread-<lettera>.md` (fatto, PR, scelte prese, cosa resta, non verificato, cosa serve al thread dopo), poi la richiesta al coordinatore del thread successivo.
-- **Rilascio:** la tappa esce come **0.13.0** (D-83). Il rilascio 0.12.1 del ridisegno è di un altro thread: nessun task di questa tappa tocca versioni, changelog o PR di release-please prima del Task 10.
+- **Rilascio:** la tappa esce come **0.13.0** (D-83). Il rilascio 0.12.1 del ridisegno è di un altro thread: nessun task di questa tappa tocca versioni, changelog o PR di release-please prima del Task 11.
 
 ## Review Focus
 
@@ -132,7 +133,7 @@ Oltre al piano generale §8:
 - **D-99, pagine fuori dal pannello con la barra vecchia** (`/`, `/conferma-email`, `/sicurezza/non-sono-stato-io`, `/piattaforma/email`): passano al guscio delle pagine prima del pannello, come Accedi e `/agenzie` (regola «ogni pagina segue il ridisegno»).
 
 - **Resti del rilascio 0.12.1** (D-83: la 0.12.1 è uscita senza revisione di fine tappa, e le correzioni rimaste vengono qui): in `DESIGN.md` la tabella dei token senza `paper` e `groove` (tolti in R9) e con le regole di R10 che mancano (etichette, un solo arancio per pagina, soglie delle colonne); i punti 4 e 6 di «Cosa resta» dell'handoff di R10 già chiusi da D-99 si verificano e si segnano.
-- **D-102, difetti della prova della 0.12.1:** la barra orizzontale del selettore e Utenti tra 1024 e 1280 px prima di tutto, poi i punti minori 3–10. Le richieste sulle cartelle (D-103) e sullo zip (D-104) non sono in questa tappa.
+- **D-102, difetti della prova della 0.12.1:** la barra orizzontale del selettore e Utenti tra 1024 e 1280 px prima di tutto, poi i punti minori 3–10. Le richieste sulle cartelle (D-103) e sullo zip (D-104) sono il Task 10.
 
 **Test:** unit delle regole (file in preparazione in un carosello, in un post misto, su Facebook); componente o E2E del gruppo che sostituisce, della firma a metà testo e del cliente archiviato; E2E delle pagine portate nel guscio (390 e 1440, chiaro e scuro, axe).
 
@@ -276,7 +277,29 @@ Il lavoro rispetta il limite di conversioni per organizzazione di `process-turn.
 
 **Fine:** `pnpm verify` verde; D-84 aggiornata (esiti, «Riprova», pagina del post e «Pubblica subito» fatti); D-89.18 e D-87.3 aggiornate.
 
-## Task 10 · Correzioni della revisione, rilascio 0.13.0 e guida della prova
+## Task 10 · Cartelle in tutte le librerie e nell'editor, caricamento di una cartella o di uno zip
+
+**Obiettivo:** un solo posto per gestire i file di tutti i clienti, con le cartelle sempre in vista, anche quando si scelgono i file di un post; una cartella o uno zip si caricano con le loro sottocartelle. Richiesta di Matteo dopo la prova della 0.12.1 (D-103, D-104), da provare con la 0.13.0.
+
+**Prima di scrivere:** leggere D-103, D-104, D-91, D-92 e D-99 (libreria del cliente «non unita»), il §3 degli esiti della 0.12.1 (`handoff/ridisegno/ESITI-prova-0.12.1.md` nella cartella condivisa) e le schermate `19` e `20`; usare la skill `impeccable` per la colonna «Cartelle» e l'albero. Le cartelle ci sono già, annidate (`library_folders.parent_id`), una per cliente.
+
+**Tre PR, in quest'ordine:**
+1. **Gestione delle cartelle in vista** (D-103 punto 1): «Nuova cartella» come pulsante con il testo; un «⋯» su ogni cartella della colonna con «Rinomina», «Sposta» ed «Elimina»; sotto i 770 px la colonna diventa un menu in alto con le stesse azioni, invece di sparire. Prima e dopo a Matteo.
+2. **Una libreria sola e le cartelle nell'editor** (D-103 punti 2 e 3):
+   - `MediaLibrary.vue` e `AgencyLibrary.vue` diventano una pagina sola, `/[org]/libreria`, con il cliente e la cartella nell'indirizzo (`?cliente=…&cartella=…`). Con un cliente scelto compare la sua colonna «Cartelle» con tutta la gestione e il trascinamento, e «Carica» carica in quel cliente e nella cartella aperta; con «Tutti i clienti» la colonna è un albero (clienti, poi le loro cartelle), e aprire un nodo cambia il filtro. La scheda «Libreria» del cliente mostra la stessa pagina con il cliente già scelto, senza un secondo componente. Le letture restano per cliente, con `can()` su ogni spazio visibile: l'albero non mostra mai i clienti che la persona non vede;
+   - «Dalla libreria» dell'editor (`PostLibraryPicker.vue`, e lo stesso in `CoverPicker.vue`): a sinistra le cartelle del cliente del post, con «Tutti i file» e «Senza cartella»; sul telefono un menu in alto e il percorso per tornare indietro; si riapre sull'ultima cartella usata per quel cliente; la ricerca cerca nella cartella aperta, con «In tutto il cliente»; «Carica» dall'editor mette i file nella cartella aperta.
+3. **Caricare una cartella o uno zip** (D-104):
+   - prima la **cartella trascinata** o scelta (`webkitGetAsEntry`, `<input webkitdirectory>`), senza dipendenze nuove; poi lo **zip, aperto nel browser** con una libreria a flusso (proposta: `fflate`, già nel repo per l'esportazione dei dati, aggiunta al pannello con l'**ADR 022**), mai sul server;
+   - **anteprima prima di caricare:** «Creo 3 cartelle e carico 47 file (1,2 GB) in Cliente prova meta», con la scelta del cliente e della cartella di arrivo, e cosa fare se una cartella con lo stesso nome esiste già;
+   - ogni file sale con il caricamento a pezzi che c'è già (`useUploads`, ripresa e avanzamento per file); le cartelle si creano con le rotte di oggi prima dei file che contengono;
+   - si saltano da soli `__MACOSX`, `.DS_Store`, `Thumbs.db`, i file nascosti e quelli che non sono foto o video, e alla fine il pannello dice cosa ha saltato e perché; i doppioni si segnalano come oggi;
+   - limiti chiari, controllati nell'anteprima (Scelte in D-105).
+
+**Test:** E2E della libreria unita (cliente scelto, «Tutti i clienti» con l'albero, la scheda del cliente, un Publisher che vede due clienti su tre), della gestione delle cartelle al computer e a 390 px, di «Dalla libreria» con le cartelle e l'ultima cartella ricordata, di una cartella con due sottocartelle trascinata (Chromium) e di uno zip con `__MACOSX` e un file `.txt`; unit della lettura dello zip (percorsi con `..` o assoluti rifiutati, profondità, numero di file, nomi doppi); `cross-organization` e `access-matrix` se nasce una rotta nuova. axe, chiaro e scuro. Prima e dopo per Matteo.
+
+**Fine:** `pnpm verify` verde; ADR 022 se lo zip usa una libreria nel pannello; D-103 e D-104 tolte o aggiornate con ciò che resta, D-99 aggiornata (le librerie ora sono unite), D-105 con le scelte; `DESIGN.md` con la colonna «Cartelle».
+
+## Task 11 · Correzioni della revisione, rilascio 0.13.0 e guida della prova
 
 **Obiettivo:** la 0.13.0 installata sulla VPS e provata da Matteo, con la prima pubblicazione vera fatta insieme.
 
@@ -285,7 +308,8 @@ Il lavoro rispetta il limite di conversioni per organizzazione di `process-turn.
 - la PR di rilascio 0.13.0 (release-please, `Release-As` se serve) e le note «Cosa provare»;
 - la guida della prova in `/mnt/project-files/handoff/tappa-7/GUIDA-prova-0.13.0.md`, completa per la VPS (prerequisiti, Funnel attivo perché Meta scarichi i file, `update.sh v0.13.0`, controlli di salute e dei log) e per ogni passo: il riavvio del worker a metà con il finto Graph API, poi la prima pubblicazione vera su ogni tipo e su tutti e due i social con gli account di prova, la data di domani dove serve (D-80, nota per le guide);
 - le verifiche su Meta vera rimaste aperte, come passi della guida: D-10 (lo scaricatore di Meta e `robots.txt`; se non scarica, la correzione è far passare `facebookexternalhit` su `/m/`), D-08, D-40, D-46, D-47, D-48, D-55, D-59, D-62, D-75 (b), la copertina del reel su Facebook, il nome del Business (B11 b), un reel 16:9 «così com'è» (D-99);
-- le prove rimaste della 0.12.0 (D-82);
+- le prove rimaste della 0.12.0 (D-82) e della 0.12.1 (D-102: zoom dei campi e tastiera sull'iPhone vero, Firefox e Safari);
+- i passi della libreria (Task 10): gestione delle cartelle, libreria unita, «Dalla libreria» con le cartelle, una cartella trascinata e uno zip con sottocartelle caricati dal computer;
 - le risposte vere registrate (`META_RECORD_DIR`) diventano le risposte del finto Graph API.
 
 **Fine:** criteri del piano generale §7; il piano della tappa 8 scritto sul codice reale.

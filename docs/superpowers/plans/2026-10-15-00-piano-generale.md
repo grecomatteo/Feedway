@@ -23,7 +23,7 @@
 | `04-media.md` | Tappa 4, formato leggero | Approvato da Matteo il 2026-11-13 |
 | `05-regole.md` | Tappa 5, formato leggero, task più grandi (Matteo, 17/11) | Approvato da Matteo il 2026-11-17 |
 | `06-post.md` | Tappa 6, formato leggero, task raggruppati in cinque thread (Matteo, 18/11) | Da approvare da Matteo |
-| `07-pubblicazione.md` | Tappa 7, formato leggero, task raggruppati in sette thread più la revisione | Scritto il 2026-11-20, da approvare da Matteo (si parte dal Task 1 e dal dominio) |
+| `07-pubblicazione.md` | Tappa 7, formato leggero, task raggruppati in otto thread più la revisione (il Task 10 sulle cartelle aggiunto il 2026-11-20) | Scritto il 2026-11-20, da approvare da Matteo (si parte dal Task 1 e dal dominio) |
 | `08-notifiche.md` … `12-produzione.md` | Tappe 8–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
