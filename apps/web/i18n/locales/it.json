@@ -1643,6 +1643,16 @@
       "dropHere": "Rilascia qui per spostare in «{name}»",
       "files": "nessun file | {n} file | {n} file"
     },
+    "tree": {
+      "label": "Clienti e cartelle",
+      "folders": "Cartelle di {name}",
+      "foldersOf": "Cartelle di {name}",
+      "loading": "Carico le cartelle…",
+      "error": "Cartelle non lette.",
+      "retry": "Riprova",
+      "none": "Nessuna cartella",
+      "back": "Tutti i clienti"
+    },
     "empty": "Ancora nessun file",
     "emptyText": "Le foto e i video di questo cliente compaiono qui. Usa «Carica file», trascinali qui o incolla un'immagine.",
     "emptyFolder": "Questa cartella è vuota",
@@ -2193,7 +2203,9 @@
     "library": {
       "title": "Scegli dalla libreria",
       "text": "I file entrano nel post nell'ordine in cui li scegli.",
-      "search": "Cerca un file",
+      "searchIn": "Cerca in «{place}»",
+      "everywhere": "In tutto {client}",
+      "path": "Percorso della cartella",
       "kind": "Tipo di file",
       "all": "Tutti",
       "photos": "Foto",

@@ -447,6 +447,38 @@ export const SCREENS: Screen[] = [
       await page.waitForTimeout(300)
     },
   },
+  // one library (Task 10 of stage 7): the clients' tree, then a client with a folder open
+  {
+    id: '29-libreria-albero',
+    path: (s) => `/${s.org}/libreria`,
+    computerOnly: true,
+    prepare: async (page, s) => {
+      await folders(page, s)
+      await page.getByRole('button', { name: 'Cartelle di Forno Luce' }).click()
+      await page.locator('[data-tree-folder="Reel"]').waitFor()
+      await page.mouse.move(0, 0)
+    },
+  },
+  {
+    id: '30-libreria-cliente',
+    path: (s) => `/${s.org}/libreria?spazio=${s.clients['Forno Luce']?.slug ?? ''}`,
+    prepare: folders,
+  },
+  // «Dalla libreria» of the editor with the client's folders (Task 10 of stage 7)
+  {
+    id: '31-editor-dalla-libreria',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/post/nuovo`,
+    prepare: async (page, s) => {
+      await folders(page, s)
+      if ((page.viewportSize()?.width ?? 1440) < 768) {
+        await page.locator('[data-add-file]').click()
+        await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+      } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
+      const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+      await dialog.waitFor()
+      await page.waitForTimeout(400)
+    },
+  },
   // people and settings (Task R8)
   { id: '21-utenti', path: (s) => `/${s.org}/utenti` },
   {
