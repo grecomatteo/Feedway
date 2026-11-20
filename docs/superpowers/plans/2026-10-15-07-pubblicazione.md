@@ -129,6 +129,8 @@ Oltre al piano generale §8:
 - **D-98, resti:** il peso del file in «Sostituisci» (il DTO del file porta `sizeBytes`); lo stato di errore di «Profili» del cliente come nella tavola degli stati.
 - **D-99, pagine fuori dal pannello con la barra vecchia** (`/`, `/conferma-email`, `/sicurezza/non-sono-stato-io`, `/piattaforma/email`): passano al guscio delle pagine prima del pannello, come Accedi e `/agenzie` (regola «ogni pagina segue il ridisegno»).
 
+- **Resti del rilascio 0.12.1** (D-83: la 0.12.1 è uscita senza revisione di fine tappa, e le correzioni rimaste vengono qui): in `DESIGN.md` la tabella dei token senza `paper` e `groove` (tolti in R9) e con le regole di R10 che mancano (etichette, un solo arancio per pagina, soglie delle colonne); i punti 4 e 6 di «Cosa resta» dell'handoff di R10 già chiusi da D-99 si verificano e si segnano.
+
 **Test:** unit delle regole (file in preparazione in un carosello, in un post misto, su Facebook); componente o E2E del gruppo che sostituisce, della firma a metà testo e del cliente archiviato; E2E delle pagine portate nel guscio (390 e 1440, chiaro e scuro, axe).
 
 **Fine:** `pnpm verify` verde; D-80 tolta (resta solo la nota per le guide), D-98 e D-99 aggiornate; Matteo ha visto prima e dopo.
