@@ -32,7 +32,7 @@ async function send(page: Page, path: string, data: unknown) {
 
 /**
  * Two clients of an Owner: Forno Prova, whose Facebook Page stopped working, with a post today
- * and a draft; Osteria Prova, with a post on Tuesday and one tomorrow and a file that failed.
+ * and a draft; Osteria Prova, with a post tomorrow and one on Saturday and a file that failed.
  */
 async function agency(page: Page, name: string) {
   const owner = await newPerson(name, 'owner')
@@ -88,7 +88,7 @@ async function agency(page: Page, name: string) {
   }
   await post(forno.id, page1, 'Il pane del giovedì', '2026-11-19T12:00')
   await post(forno.id, page1, 'Focaccia da finire')
-  await post(osteria.id, ig, 'Il pranzo del martedì', '2026-11-17T13:00')
+  await post(osteria.id, ig, 'Il pranzo del sabato', '2026-11-21T13:00')
   await post(osteria.id, ig, 'Il menu del venerdì', '2026-11-20T08:00')
   await libraryFile(org, osteria.id, owner.userId, {
     kind: 'video',
@@ -126,27 +126,26 @@ test('the sections: what to fix, the week, the drafts and the clients', async ({
   await expect(issues.locator('[data-issue="media"]')).toContainText('IMG_0233.mov non caricato')
   if (!isMobile) await expect(page.locator('nav [data-count]')).toContainText('2 cose da sistemare')
 
-  // In uscita: the week from Monday, today marked, a dash for each post
+  // In uscita: the seven days from today, not from Monday (D-102.9), a dash for each post
   const days = week(page).getByRole('button')
   await expect(days).toHaveCount(7)
+  await expect(days.nth(0)).toHaveAttribute('data-today')
   await expect(week(page).locator('[data-today]')).toContainText('oggi')
-  await expect(days.nth(1)).toHaveAccessibleName('mar 17, 1 post')
-  await expect(days.nth(6)).toHaveAccessibleName('dom 22, nessun post')
+  await expect(days.nth(2)).toHaveAccessibleName('sab 21, 1 post')
+  await expect(days.nth(6)).toHaveAccessibleName('mer 25, nessun post')
   const out = section(page, 'In uscita')
   await expect(out.getByRole('region', { name: 'Oggi' })).toContainText('Il pane del giovedì')
   await expect(out.getByRole('region', { name: 'Domani, venerdì 20' })).toContainText(
     'Il menu del venerdì',
   )
-  await expect(out).not.toContainText('Il pranzo del martedì')
+  await expect(out).not.toContainText('Il pranzo del sabato')
 
   // a click on a day shows that day; a second click goes back to today and tomorrow
-  await days.nth(1).click()
-  await expect(days.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  await days.nth(2).click()
+  await expect(days.nth(2)).toHaveAttribute('aria-pressed', 'true')
   await expect(out.locator('[data-day-group]')).toHaveCount(1)
-  await expect(out.getByRole('region', { name: 'Martedì 17' })).toContainText(
-    'Il pranzo del martedì',
-  )
-  await days.nth(1).click()
+  await expect(out.getByRole('region', { name: 'Sabato 21' })).toContainText('Il pranzo del sabato')
+  await days.nth(2).click()
   await expect(out.locator('[data-day-group]')).toHaveCount(2)
 
   // the drafts and the clients worked on
@@ -187,7 +186,7 @@ test('the client of the selector narrows the page', async ({ page }) => {
   await expect(out.getByRole('region', { name: 'Oggi' })).toContainText('Niente in programma.')
   await expect(out).not.toContainText('Il pane del giovedì')
   await expect(out).toContainText('Il menu del venerdì')
-  await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName('mar 17, 1 post')
+  await expect(week(page).getByRole('button').nth(2)).toHaveAccessibleName('sab 21, 1 post')
   // Forno Prova's draft is not here, and the clients' list is for all of them only
   await expect(section(page, 'Bozze da finire')).toHaveCount(0)
   await expect(section(page, 'Clienti recenti')).toHaveCount(0)
@@ -222,7 +221,7 @@ test('a read that fails says so, and «Riprova» reads again', async ({ page }) 
   // the same row as every other failed read: the red sign and «Riprova» (D, state 1)
   await expect(out.locator('[data-load-failed]')).toBeVisible()
   // the strip does not claim the days are free when it could not read them
-  await expect(week(page).getByRole('button').nth(1)).toHaveAccessibleName('mar 17')
+  await expect(week(page).getByRole('button').nth(2)).toHaveAccessibleName('sab 21')
   await expect(week(page)).not.toContainText('libero')
   failing = false
   await out.getByRole('button', { name: 'Riprova' }).click()

@@ -6,8 +6,8 @@ import type { StatusTone } from '~/components/StatusDot.vue'
 
 /**
  * Panoramica of the client's page (screen 16, spec §14.7): on the left its next posts and its
- * profiles with what they published in 24 hours, the last sync and the link only where someone
- * has to act; on the right the latest files and who works in it. Owner and Admin act on the profiles from
+ * profiles with what they published in 24 hours, the last sync and the link (in colour only where
+ * someone has to act, D-102.6); on the right the latest files and who works in it. Owner and Admin act on the profiles from
  * «⋯»: «Ricollega» (to Integrazioni), «Sostituisci profilo» (one in no client takes its place),
  * «Togli dal cliente» (the account stays, back in «Sistemali» if in no other client).
  */
@@ -78,6 +78,11 @@ const kindOf = (p: WorkspaceProfile) => {
   return platforms.has('facebook')
     ? t('clients.new.kind.facebook')
     : t('clients.new.kind.instagram')
+}
+// literal names, so the icon bundle sees them
+const PLATFORM_ICON: Record<Platform, string> = {
+  instagram: 'i-lucide-instagram',
+  facebook: 'i-lucide-facebook',
 }
 const mainOf = (p: WorkspaceProfile) =>
   (p.accounts.find((a) => a.platform === 'instagram') ?? p.accounts[0]) as ProfileAccount
@@ -418,10 +423,23 @@ watch(
               :data-profile="row.key"
             >
               <span role="cell" class="flex min-w-0 items-center gap-3">
-                <PlatformIcons
-                  :platforms="[mainOf(row).platform]"
-                  class="shrink-0 text-(--app-text)"
-                />
+                <!-- the profile's picture, so a lost one shows at a glance (D-102.7), with the
+                     platform in its corner -->
+                <span class="relative shrink-0" data-profile-picture>
+                  <Avatar
+                    kind="person"
+                    :name="mainOf(row).name"
+                    :src="mainOf(row).avatarUrl"
+                    :size="32"
+                  />
+                  <!-- the line under the handle names the platform for a screen reader -->
+                  <span
+                    class="absolute -end-1 -bottom-1 grid size-4 place-items-center rounded-full bg-(--app-surface) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]"
+                    aria-hidden="true"
+                  >
+                    <UIcon :name="PLATFORM_ICON[mainOf(row).platform]" class="size-2.5" />
+                  </span>
+                </span>
                 <span class="min-w-0">
                   <span class="block truncate font-semibold">{{ handleOf(mainOf(row)) }}</span>
                   <span class="block truncate text-detail text-(--app-text-muted)">{{
@@ -449,10 +467,13 @@ watch(
                 >
                   {{ $t('workspaces.reconnect') }}
                 </UButton>
+                <!-- «Collegato» quiet, only on a computer: an empty column looked broken (D-102.6) -->
                 <StatusDot
-                  v-else-if="stateOf(row).link !== 'ok'"
+                  v-else
                   :tone="stateOf(row).tone"
                   :label="stateOf(row).label"
+                  :class="stateOf(row).link === 'ok' ? 'max-md:hidden' : ''"
+                  :data-linked="stateOf(row).link === 'ok' || undefined"
                 />
               </span>
               <span role="cell" class="flex justify-end md:-me-2">

@@ -6,8 +6,8 @@ import type { Platform } from '~/components/PlatformIcons.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
 
 // «Clienti» of the new direction (screen 14, redesign R4, spec §14.7): one row per client with
-// its profiles, its next post and how many are planned, the state of the link only where someone
-// has to act. No sentence under the title: the rows say which client asks for something.
+// its profiles, its next post and how many are planned, the state of the link in colour only where
+// someone has to act (a quiet «Collegato» otherwise, D-102.6). No sentence under the title: the rows say which client asks for something.
 definePageMeta({ layout: 'agency' })
 
 const org = useOrganization()
@@ -433,6 +433,14 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
           </span>
           <span role="cell" class="min-w-0">
             <StatusDot v-if="stateOf(w)" :tone="stateOf(w)!.tone" :label="stateOf(w)!.label" />
+            <!-- a column always empty looked broken (D-102.6): «Collegato» quiet, only on a computer -->
+            <StatusDot
+              v-else-if="(w.profiles ?? []).length > 0"
+              :label="$t('client.linked')"
+              class="max-md:hidden"
+              data-linked
+            />
+            <span v-else class="text-(--app-text-muted) max-md:hidden">—</span>
           </span>
           <span role="cell" class="flex justify-end xl:-me-2">
             <RowActions :name="w.name" :items="actions(w)" />

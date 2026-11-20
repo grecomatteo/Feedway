@@ -11,7 +11,7 @@ import {
 } from './support/people.ts'
 
 // «Clienti» of the new direction (screen 14, redesign R4, spec §14.7): the clients with their
-// profiles, next post and posts planned, the state of the link only where someone has to act,
+// profiles, next post and posts planned, the state of the link in colour only where someone has to act,
 // filter, search and «⋯».
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
@@ -76,8 +76,13 @@ test('the clients with their profiles, the summary, search and the archived ones
       useInnerText: true,
     })
   }
-  // all is well: no state is written
-  await expect(clients(page).locator('[data-tone]')).toHaveCount(0)
+  // all is well: no state in colour; on a computer a quiet «Collegato», so the column does not
+  // look broken (D-102.6), and a dash for the client without profiles
+  await expect(clients(page).locator('[data-tone]:not([data-tone="neutral"])')).toHaveCount(0)
+  if (!isPhone(page)) {
+    await expect(rowOf(page, 'Forno Luce').locator('[data-linked]')).toHaveText('Collegato')
+    await expect(rowOf(page, 'Studio Riva').locator('[data-linked]')).toHaveCount(0)
+  } else await expect(clients(page).locator('[data-linked]').locator('visible=true')).toHaveCount(0)
   if (!isPhone(page))
     await expect(clients(page).getByRole('columnheader')).toHaveText([
       'Cliente',
@@ -100,6 +105,8 @@ test('the clients with their profiles, the summary, search and the archived ones
 
   // the search finds a client by its name or by a profile's
   const search = page.getByRole('searchbox', { name: 'Cerca un cliente o un profilo' })
+  // 16 px on a phone, or Safari on the iPhone zooms the page when it is touched (D-102.3)
+  await expect(search).toHaveCSS('font-size', isPhone(page) ? '16px' : '14px')
   await search.fill('@fornoluce')
   await expect(clients(page).getByRole('link')).toHaveText(['Forno Luce'])
   await search.fill('verde')

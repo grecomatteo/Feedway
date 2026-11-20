@@ -43,7 +43,7 @@ const boxed = computed(() =>
 <template>
   <div
     class="relative size-full overflow-hidden"
-    :class="dark ? 'bg-black' : 'bg-[#efefef]'"
+    :class="dark ? 'bg-black' : 'bg-(--pv-sunken)'"
     :data-preview-file="item.index"
     :data-framing="item.framing.mode"
   >
@@ -92,7 +92,7 @@ const boxed = computed(() =>
     <div
       v-else
       class="flex size-full flex-col items-center justify-center gap-1 p-3 text-center text-xs"
-      :class="dark ? 'text-white/70' : 'text-[#737373]'"
+      :class="dark ? 'text-white/70' : 'text-(--pv-muted)'"
     >
       <UIcon
         :name="item.video ? 'i-lucide-film' : 'i-lucide-image'"

@@ -271,6 +271,7 @@ function over(event: DragEvent) {
         </select>
       </label>
       <PostPreviewFrame
+        :app="platform"
         :vertical="vertical"
         :reserve="reserve"
         :width="width"

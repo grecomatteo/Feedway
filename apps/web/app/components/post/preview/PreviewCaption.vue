@@ -25,8 +25,8 @@ const parts = computed(() => captionParts(open.value ? props.text : cut.value.te
 const toneClass = computed(
   () =>
     ({
-      instagram: 'text-[#00376b]',
-      facebook: 'text-[#385898]',
+      instagram: 'text-(--pv-link)',
+      facebook: 'text-(--pv-link)',
       light: 'font-semibold text-white',
     })[props.tone],
 )
