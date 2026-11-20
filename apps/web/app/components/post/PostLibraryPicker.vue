@@ -63,10 +63,12 @@ watch(open, (now) => {
   if (!now) return
   chosen.value = []
   everywhere.value = false
-  filter.q = ''
   place.value = remembered()
+  // one load: a change of folder or search already loads (useLibrary's watchers)
+  const unchanged = filter.q === '' && filter.folder === place.value
+  filter.q = ''
   filter.folder = place.value
-  void lib.load()
+  if (unchanged) void lib.load()
 })
 
 const tree = computed(() => folderTree(folders.value))
@@ -119,6 +121,8 @@ function uploaded(event: Event) {
   const list = Array.from(el.files ?? [])
   el.value = ''
   if (list.length === 0) return
+  // the files ticked are not lost: they go in first, then the ones sent
+  if (chosen.value.length > 0) emit('pick', chosen.value)
   emit('upload', list, place.value && place.value !== 'none' ? place.value : null)
 }
 </script>
@@ -249,6 +253,7 @@ function uploaded(event: Event) {
           <UCheckbox
             v-if="searching && place !== null"
             v-model="everywhere"
+            :ui="{ root: 'min-h-11 items-center' }"
             :label="$t('posts.library.everywhere', { client: client.name })"
             data-picker-everywhere
           />
