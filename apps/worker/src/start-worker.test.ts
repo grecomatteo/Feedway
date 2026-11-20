@@ -7,6 +7,7 @@ import { expect, test } from 'vitest'
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import { startWorker } from './start-worker.js'
 import type { WorkerDeps } from './start-worker.js'
+import { NO_PUBLISHING } from '../tests/no-publishing.js'
 
 // Handlers under test here never open a transaction.
 const services: WorkerDeps['services'] = {
@@ -70,6 +71,7 @@ const services: WorkerDeps['services'] = {
   },
   // the account jobs are not these tests'
   connectors: {},
+  publishing: NO_PUBLISHING,
   connectionTokens: {
     seal: () => Promise.reject(new Error('not used')),
     open: () => Promise.reject(new Error('not used')),

@@ -26,6 +26,9 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'media.process': true,
   'media.publish_copies': true,
   'media.uploads_cleanup': true,
+  'target.prepare': true,
+  'target.publish': true,
+  'scheduler.reconcile': true,
 }
 
 test('each module has its own name', () => {

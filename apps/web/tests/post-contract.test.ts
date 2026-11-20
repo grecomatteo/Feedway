@@ -7,12 +7,14 @@ import {
   POST_LIMITS,
   POST_STATUSES,
   PostVersionRequest,
+  TARGET_STATUSES,
   UpdatePostRequest,
 } from '@app/contracts'
 import {
   CAPTION_TEMPLATE_KINDS,
   LABEL_COLORS,
-  POST_STATUSES as DOMAIN_POST_STATUSES,
+  PUBLISHING_POST_STATUSES,
+  TARGET_STATUSES as DOMAIN_TARGET_STATUSES,
 } from '@app/domain'
 
 // The bodies of the posts' routes are refused before any use case runs (plan 06 Task 4).
@@ -21,8 +23,11 @@ const refused = (schema: { safeParse(v: unknown): { success: boolean } }, body: 
   expect(schema.safeParse(body).success).toBe(false)
 }
 
-test('the states of the contract are the domain’s', () => {
-  expect([...POST_STATUSES]).toEqual([...DOMAIN_POST_STATUSES])
+// the answers are parsed with the contract: a state the worker writes and the contract does not
+// know would make the post unreadable in the panel (plan 07 Task 7)
+test('the states of the contract are the domain’s, with those of the publishing', () => {
+  expect([...POST_STATUSES]).toEqual([...PUBLISHING_POST_STATUSES])
+  expect([...TARGET_STATUSES]).toEqual([...DOMAIN_TARGET_STATUSES])
 })
 
 test('a new draft needs only its type; nothing unknown passes', () => {

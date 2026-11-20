@@ -55,6 +55,12 @@ async function main(): Promise<void> {
       connectors: runtime.connectors,
       connectionTokens: runtime.connectionTokens,
       images: createAvatarProcessor(),
+      publishing: {
+        publishers: runtime.publishers,
+        platformRules: runtime.platformRules,
+        publishingHistory: runtime.publishingHistory,
+        publicUrl: config.publicUrl,
+      },
       media: {
         ...createMediaTools({ maxVideoPixels: config.media.maxVideoPixels }),
         lock: createAdvisoryLock(runtime.pool),

@@ -21,7 +21,40 @@ import {
 /** As the checks take them (`POST_CHECK_LIMITS`): what a post holds, the checks can read. */
 export const POST_LIMITS = POST_CHECK_LIMITS
 
-export const POST_STATUSES = ['draft', 'scheduled', 'cancelled'] as const
+/**
+ * The states of a post, with those of the publishing (plan 07, Scelta 3): the worker moves a
+ * post past `scheduled`, and its reads must still answer. Their labels in the panel come with
+ * Task 9. As `PUBLISHING_POST_STATUSES` of @app/domain (contracts depend on zod only).
+ */
+export const POST_STATUSES = [
+  'draft',
+  'scheduled',
+  'publishing',
+  'partial',
+  'failed',
+  'problem',
+  'published',
+  'paused',
+  'cancelled',
+] as const
+
+/** The states of a destination (§9.3), as `TARGET_STATUSES` of @app/domain. */
+export const TARGET_STATUSES = [
+  'draft',
+  'scheduled',
+  'preparing',
+  'ready',
+  'publishing',
+  'retrying',
+  'unknown',
+  'published',
+  'verifying',
+  'confirmed',
+  'problem',
+  'failed',
+  'paused',
+  'cancelled',
+] as const
 
 /** A day and a time in the post's time zone; null: no date yet. */
 const PostWhenBody = z.strictObject({ localDate: LocalDate, localTime: LocalTime }).nullable()
@@ -109,7 +142,7 @@ export const PostResponse = z.object({
     instagram: z.string().optional(),
     facebook: z.string().optional(),
   }),
-  destinations: z.array(z.object({ accountId: Id, status: z.enum(POST_STATUSES) })),
+  destinations: z.array(z.object({ accountId: Id, status: z.enum(TARGET_STATUSES) })),
   /** the date and time in the post's time zone; null: no date yet */
   when: z.object({ localDate: z.string(), localTime: z.string() }).nullable(),
   scheduledAt: Timestamp.nullable(),

@@ -59,3 +59,25 @@ export function isTooLate(startAt: Date, now: Date): boolean {
 export function recheckAt(scheduledAt: Date, now: Date): Date {
   return latest(plusMinutes(scheduledAt, -RECHECK_LEAD_MINUTES), now)
 }
+
+/** Plan 07 «Lavori pesanti»: preparations on Meta running at once, per agency and per account. */
+export const PREPARE_PER_ORGANIZATION = 3
+export const PREPARE_PER_ACCOUNT = 1
+
+/**
+ * How long a step of the worker may run (pg-boss `expireInSeconds`): the calls to Meta have
+ * their own timeouts, well below.
+ */
+export const TARGET_STEP_EXPIRE_SECONDS = 300
+/** A preparation's claim outlasts its job: a worker gone frees the account after this. */
+export const PREPARE_CLAIM_MINUTES = 6
+/**
+ * A destination still `publishing` this long after the call started was left by a worker that
+ * stopped halfway: the reconciler takes it as an uncertain outcome (`unknown`), never redoes it.
+ */
+export const PUBLISHING_STALE_MINUTES = 6
+/** §9.5: the first search after an uncertain call, 2 minutes later (Task 8). */
+export const UNCERTAIN_FIRST_SEARCH_MINUTES = 2
+/** A preparation waiting for its turn, a file or a copy looks again after this. */
+export const PREPARE_TURN_WAIT_SECONDS = 20
+export const PREPARE_FILE_WAIT_MINUTES = 1

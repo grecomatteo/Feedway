@@ -47,3 +47,12 @@ export type {
   DraftMissing,
   DraftToFinishDto,
 } from './agenda.js'
+export {
+  prepareTarget,
+  publishTarget,
+  reconcilePublishing,
+  type PublishingWorkerDeps,
+  type ReconcileReport,
+  type StepLog,
+  type TargetJob,
+} from './publishing/index.js'

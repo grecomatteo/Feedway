@@ -28,6 +28,7 @@ import type { TestDatabase } from '@app/infrastructure/testing'
 import { createTranslate, loadItalianMessages } from '../i18n.js'
 import type { JobHandlerDeps } from '../job-handler.js'
 import { identityAnonymizationNotice } from './identity-retention.js'
+import { NO_PUBLISHING } from '../../tests/no-publishing.js'
 
 const PANEL = new URL('https://pannello.example.test')
 const DAY = 86_400_000
@@ -118,6 +119,7 @@ async function deliverNotices() {
     panel: { url: PANEL, productName: 'Feedway', defaultTimezone: 'Europe/Rome' },
     // the account jobs are not these tests'
     connectors: {},
+    publishing: NO_PUBLISHING,
     connectionTokens: {
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),

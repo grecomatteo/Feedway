@@ -34,6 +34,18 @@ interface JobDefinitions {
   'media.process': { scope: 'organization'; data: MediaProcessJobData }
   'media.publish_copies': { scope: 'organization'; data: MediaPublishCopiesJobData }
   'media.uploads_cleanup': { scope: 'system'; data: object }
+  'target.prepare': { scope: 'organization'; data: TargetJobData }
+  'target.publish': { scope: 'organization'; data: TargetJobData }
+  'scheduler.reconcile': { scope: 'system'; data: object }
+}
+
+/**
+ * One step of one destination (plan 07 P3): the generation it was queued for. The handler does
+ * nothing once the destination has moved on (a change of the post, another step, a «Riprova»).
+ */
+export interface TargetJobData {
+  targetId: string
+  generation: number
 }
 
 /**

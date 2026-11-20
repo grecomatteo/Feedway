@@ -150,6 +150,9 @@ export const postTargets = pgTable(
     // grows at every move and every new look at a container: the jobs' keys (plan 07 P3)
     generation: integer('generation').notNull().default(0),
     nextAttemptAt: tz('next_attempt_at'),
+    // the preparation running on Meta now, until then: at most 3 per agency and 1 per account
+    // (plan 07 «Lavori pesanti»); a worker gone leaves it to expire
+    claimedUntil: tz('claimed_until'),
     lastErrorCode: text('last_error_code'),
     lastErrorMessage: text('last_error_message'),
     publishedAt: tz('published_at'),
@@ -166,6 +169,10 @@ export const postTargets = pgTable(
     index('post_targets_due_idx').on(t.status, t.nextAttemptAt),
     // the search after an uncertain call and the reels of the last 24 hours
     index('post_targets_account_published_idx').on(t.organizationId, t.accountId, t.publishedAt),
+    // the preparations running in an agency (`claimPrepare`)
+    index('post_targets_claimed_idx')
+      .on(t.organizationId, t.accountId)
+      .where(sql`${t.claimedUntil} is not null`),
     index('post_targets_account_status_idx').on(t.organizationId, t.accountId, t.status),
     index('post_targets_account_fingerprint_idx').on(t.organizationId, t.accountId, t.fingerprint),
     foreignKey({
