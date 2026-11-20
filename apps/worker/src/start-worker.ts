@@ -20,7 +20,13 @@ import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { systemSelftest } from './handlers/system-selftest.js'
-import { schedulerReconcile, targetPrepare, targetPublish } from './handlers/target-steps.js'
+import {
+  schedulerReconcile,
+  targetPrepare,
+  targetPublish,
+  targetReconcile,
+  targetVerify,
+} from './handlers/target-steps.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
 
@@ -108,6 +114,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'media.publish_copies_cleanup': mediaPublishCopiesCleanup,
     'target.prepare': targetPrepare,
     'target.publish': targetPublish,
+    'target.reconcile': targetReconcile,
+    'target.verify': targetVerify,
     'scheduler.reconcile': schedulerReconcile,
     ...deps.handlers,
     'media.process': mediaProcessOnStop,

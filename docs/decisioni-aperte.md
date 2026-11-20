@@ -512,6 +512,19 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Non verificato:** tutto su Meta vera; i valori di `X-App-Usage` e `X-Business-Use-Case-Usage` sono quelli del finto Graph API (scenario `usage_high`).
 - **Stato:** scelte provvisorie, Matteo può cambiarle.
 
+### D-112 · Esito incerto e verifica: le scelte del Task 8
+
+- **Origine:** tappa 7, Task 8, prima PR (`target.reconcile` e `target.verify`, §9.5 e §9.6, Scelta 7).
+- **Scelte provvisorie:**
+  1. **Le tre ricerche** dopo una chiamata incerta si contano dal momento in cui è diventata incerta (2, 5 e 15 minuti); la finestra di Meta va dall'inizio della chiamata a 10 minuti dopo. Inizio e momento si salvano in `post_targets.verification.search`; dopo un riavvio a metà (il riconciliatore porta `publishing` in `unknown`) l'inizio è 6 minuti prima dell'ora scritta con `publishing`. Una ricerca che riceve un errore da Meta, o con l'account non raggiungibile, conta come una ricerca senza risultato: dopo la terza la destinazione va in `failed` con `uncertain_not_found`, e «Riprova» avvertirà di controllare il profilo (Task 9).
+  2. **Trovato** il post, la destinazione va in `published` con l'id e il link trovati e passa dalla verifica come le altre; i giri a 3, 10 e 30 minuti si contano dal momento della ricerca, non da quello della pubblicazione (che resta per la storia), così non sono già tutti passati.
+  3. **La verifica** a 3, 10 e 30 minuti: «Confermato» con il link (se Meta non lo dà, resta quello di prima); un errore di Meta o l'account non raggiungibile valgono come «ancora in elaborazione». Dopo il terzo giro ancora in elaborazione, `problem` con il motivo `still_processing`; un post che non c'è, in errore o del tipo sbagliato è `problem` subito (`not_found`, `failed`, `wrong_type`). Il motivo si salva in `verification.reason` e va nel carico di `post.target_problem`; nessun codice in `last_error_code`, perché il post potrebbe esserci.
+  4. **«Riprova» da `problem`** (la parte del worker; la rotta è nella seconda PR): la destinazione va in `unknown` con il passo `recheck`. Il worker rilegge il post (`verify`): c'è, `confirmed`; ancora in elaborazione o del tipo sbagliato, di nuovo verifica dall'inizio (il post c'è: non si pubblica una seconda volta, e se resta del tipo sbagliato torna `problem`, da segnare a mano o da togliere dal profilo); non c'è o è in errore, lo cerca sull'account. Trovato (anche lo stesso post, se Meta aveva solo rifiutato di leggerlo; non lo stesso se Meta lo dava in errore), verifica; non trovato, `retrying` dalla preparazione, senza gli id di prima: sono di un post uscito, e non si buttano come i container mai pubblicati. Se Meta non risponde si richiede dopo 1, 5 e 15 minuti, poi decide la verifica.
+  5. **Reel di Facebook pubblicato come video:** ricerca e verifica, che non rifanno i controlli, lo riconoscono dalla scelta `publish_as_video` salvata nel post.
+  6. **Agenzia sospesa:** ricerca e verifica leggono soltanto e vanno avanti, e scrivono i loro eventi (`post.target_confirmed`, `post.confirmed`, `post.target_problem`, `post.target_failed`); la tappa 8 non deve mandarli verso i canali di un'agenzia sospesa.
+- **Non verificato:** tutto su Meta vera, in particolare quanto tarda un post a comparire fra gli ultimi dell'account e i campi letti dalla verifica (§9.6: «da confermare nei primi test reali»). Le prove usano il finto Graph API e un orologio finto.
+- **Stato:** scelte provvisorie, Matteo può cambiarle.
+
 ## Ridisegno del pannello
 
 ### D-84 · Funzioni che le schermate mostrano e che non esistono
