@@ -557,7 +557,11 @@ function filesDrop(event: DragEvent) {
   const files = Array.from(event.dataTransfer.files)
   // a folder, or a zip alone: first the window that says what will happen (D-104)
   const folder = folderDrop(event.dataTransfer)
-  if (folder) void folder.then((list) => treeUpload.value?.start({ files: list }))
+  if (folder)
+    folder.then(
+      (list) => treeUpload.value?.start({ files: list }),
+      () => (problem.value = t('treeUpload.dropFailed')),
+    )
   else if (files.length === 1 && files[0] && isZip(files[0]))
     void treeUpload.value?.start({ zip: files[0] })
   else uploader.value?.add(files)
@@ -915,6 +919,7 @@ defineExpose({
           :folders="folders"
           :target-id="uploadFolder"
           @done="treeDone"
+          @changed="lib.load()"
         />
         <input
           ref="folderInput"

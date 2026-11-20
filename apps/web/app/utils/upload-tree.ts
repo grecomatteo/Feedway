@@ -54,7 +54,8 @@ export type TreeProblem =
   | { problem: 'unsafe'; path: string }
   | { problem: 'name'; name: string }
   | { problem: 'files'; count: number; max: number }
-  | { problem: 'depth'; path: string; max: number }
+  /** `left`: the levels still free under the folder chosen */
+  | { problem: 'depth'; path: string; max: number; left: number }
   | { problem: 'folders'; count: number; max: number }
   | { problem: 'empty' }
 
@@ -141,6 +142,8 @@ export function planTree<T extends TreeItem>(
   const children = (parentId: string | null) => opts.existing.filter((f) => f.parentId === parentId)
   const folders = new Map<string, PlannedFolder>()
   const clashes = new Set<string>()
+  /** the names planned under each folder of the plan ('' for the one chosen), lowercase */
+  const planned = new Map<string, Set<string>>()
 
   /** The key of the folder `dirs`, creating it and those above it in the plan. */
   function folderFor(dirs: readonly string[], path: string): string | null {
@@ -153,7 +156,12 @@ export function planTree<T extends TreeItem>(
         throw new TreeError({ problem: 'name', name: raw })
       }
       if (base + level + 1 > FOLDER_MAX_DEPTH)
-        throw new TreeError({ problem: 'depth', path, max: FOLDER_MAX_DEPTH })
+        throw new TreeError({
+          problem: 'depth',
+          path,
+          max: FOLDER_MAX_DEPTH,
+          left: FOLDER_MAX_DEPTH - base,
+        })
       const key: string = parent === null ? lower(name) : `${parent.key}/${lower(name)}`
       let folder = folders.get(key)
       if (!folder) {
@@ -164,13 +172,18 @@ export function planTree<T extends TreeItem>(
             : parent.existingId
               ? children(parent.existingId)
               : []
+        const here = planned.get(parent?.key ?? '') ?? new Set<string>()
+        planned.set(parent?.key ?? '', here)
+        const taken = new Set([...beside.map((f) => lower(f.name)), ...here])
         const same = beside.find((f) => lower(f.name) === lower(name))
         let existingId: string | null = null
         if (same) {
           if (parent === null) clashes.add(same.name)
           if (opts.merge) existingId = same.id
-          else name = freeName(name, new Set(beside.map((f) => lower(f.name))))
-        }
+          else name = freeName(name, taken)
+          // «novembre (2)» of the zip after «novembre» became «novembre (2)»: one more number
+        } else if (here.has(lower(name))) name = freeName(name, taken)
+        here.add(lower(name))
         folder = { key, name, parentKey: parent?.key ?? null, existingId }
         folders.set(key, folder)
       }

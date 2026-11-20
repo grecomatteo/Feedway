@@ -911,5 +911,8 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
      - La scelta «Crea (2)» o «Unisci» vale per tutte le cartelle con lo stesso nome; unendo, anche le sottocartelle con lo stesso nome si uniscono.
      - Un nome di cartella oltre gli 80 caratteri, troppi file, troppi livelli o troppe cartelle fermano l'anteprima con il motivo, senza caricare niente. Lo spazio del cliente non si controlla prima: lo controlla il server su ogni file, come oggi.
      - Un file dello zip più grande del limite, o con meno o più byte di quanti l'indice ne dichiara, si salta e si nomina alla fine; gli altri continuano.
-     - Se la creazione di una cartella non riesce, il caricamento si ferma e le cartelle già create restano vuote.
+     - Se la creazione di una cartella non riesce, il caricamento si ferma e le cartelle già create restano vuote; la libreria le rilegge, e «Carica» di nuovo le unisce o le rinomina come le altre.
+     - Mentre carica, la finestra resta aperta e «Annulla» diventa «Ferma»: non apre più voci dello zip, e i file già in coda continuano (si annullano dal riquadro dei caricamenti).
+     - Le voci dello zip salgono senza l'anteprima presa dal file, e il file si lascia andare appena è sul server: lo zip non resta in memoria. La miniatura arriva dal server quando il file è pronto.
+     - Un nome che nello zip coincide con uno appena rinominato prende anche lui un numero («novembre (2) (2)»).
 - **Stato:** scelte provvisorie; i punti 3 e 6 sono fatti, da provare con la 0.13.0.

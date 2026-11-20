@@ -38,6 +38,8 @@ const CENTRAL = 0x02014b50
 const LOCAL = 0x04034b50
 /** the end record (22 bytes) and a comment of at most 65 535 */
 const TAIL = 22 + 0xffff
+/** the index read whole, at most: 65 535 entries with long names fit */
+const MAX_INDEX_BYTES = 32 * 1024 * 1024
 
 async function bytes(blob: Blob, start: number, end: number) {
   return new DataView(await blob.slice(start, end).arrayBuffer())
@@ -72,6 +74,8 @@ export async function readZipIndex(file: Blob): Promise<ZipEntry[]> {
   if (count === 0xffff || dirSize === 0xffffffff || dirOffset === 0xffffffff)
     throw new ZipError('zip64')
   if (dirOffset + dirSize > from + end) throw new ZipError('broken')
+  // 150 files need a few kB: an index this big is a trap, not a zip of photos
+  if (dirSize > MAX_INDEX_BYTES) throw new ZipError('broken')
 
   const dir = await bytes(file, dirOffset, dirOffset + dirSize)
   const entries: ZipEntry[] = []

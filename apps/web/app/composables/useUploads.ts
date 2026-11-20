@@ -481,6 +481,12 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   }
 
   function settled(item: UploadItem, media: MediaDto) {
+    // all its pieces are on the server: the file is not needed any more (a zip's entry is in memory)
+    const s = sides.get(item.key)
+    if (s) {
+      s.file = null
+      s.first = null
+    }
     const was = item.state
     if (media.status === 'ready') item.state = 'ready'
     else if (media.status === 'failed') item.state = 'failed'
@@ -636,6 +642,8 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     files: readonly File[],
     folderId: string | null,
     onMedia: ((media: MediaDto) => void) | null = null,
+    /** `preview: false`: no picture from the file itself, so nothing keeps it once it is sent (a zip's entries) */
+    options: { preview?: boolean } = {},
   ): Promise<UploadItem[]> {
     // the limits come with the list: a file chosen at once waits for them
     await loading
@@ -667,7 +675,10 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         s.type = check.type
         s.folderId = folderId
         s.onMedia = onMedia
-        if (check.kind === 'video' || PREVIEWABLE_IMAGES.has(check.type))
+        if (
+          options.preview !== false &&
+          (check.kind === 'video' || PREVIEWABLE_IMAGES.has(check.type))
+        )
           item.preview = { url: URL.createObjectURL(file), kind: check.kind }
         started += 1
       }

@@ -13,7 +13,7 @@ const props = defineProps<{
   folders: Folder[]
   targetId: string | null
 }>()
-const emit = defineEmits<{ done: [message: string] }>()
+const emit = defineEmits<{ done: [message: string]; changed: [] }>()
 const { t } = useI18n()
 const { call, failure } = useApi()
 const org = useOrganization()
@@ -80,7 +80,8 @@ const limits = computed(
 )
 const targetId = computed(() => (target.value === 'top' ? null : target.value))
 const planned = computed(() => {
-  if (items.value.length === 0) return null
+  // an empty folder or zip goes through too: the plan says there is nothing to send
+  if (!source.value) return null
   try {
     return {
       plan: planTree(items.value, {
@@ -103,7 +104,8 @@ const problemText = computed(() => {
   if (p.problem === 'unsafe') return t('treeUpload.problem.unsafe', { path: p.path })
   if (p.problem === 'name') return t('treeUpload.problem.name', { name: p.name })
   if (p.problem === 'files') return t('treeUpload.problem.files', { n: p.count, max: p.max })
-  if (p.problem === 'depth') return t('treeUpload.problem.depth', { path: p.path, max: p.max })
+  if (p.problem === 'depth')
+    return t('treeUpload.problem.depth', { path: p.path, max: p.max, left: p.left })
   if (p.problem === 'folders') return t('treeUpload.problem.folders', { max: p.max })
   return t('treeUpload.problem.empty')
 })
@@ -142,24 +144,31 @@ const summary = computed(() => {
 const clash = computed(() => {
   const name = plan.value?.clashes[0]
   if (!name) return null
-  const fresh = planTree(items.value, {
-    existing: props.folders,
-    targetId: targetId.value,
-    merge: false,
-    limits: limits.value,
-  }).folders.find((f) => f.parentKey === null && f.key === name.toLocaleLowerCase('it'))
-  return { name, fresh: fresh?.name ?? name, more: (plan.value?.clashes.length ?? 1) - 1 }
+  let fresh: string | undefined
+  try {
+    fresh = planTree(items.value, {
+      existing: props.folders,
+      targetId: targetId.value,
+      merge: false,
+      limits: limits.value,
+    }).folders.find((f) => f.parentKey === null && f.key === name.toLocaleLowerCase('it'))?.name
+  } catch {
+    // «Crea» would not fit (too many folders): its name is only shown
+  }
+  return { name, fresh: fresh ?? name, more: (plan.value?.clashes.length ?? 1) - 1 }
 })
 const skippedShown = computed(() => plan.value?.skipped.slice(0, 20) ?? [])
 
 // ---- sending: the folders, then the files, a zip's entries only when the uploads have room
 const WAITING: readonly string[] = ['queued', 'hashing', 'uploading', 'offline']
 const waiting = computed(() => uploads.items.value.filter((i) => WAITING.includes(i.state)).length)
+/** «Ferma»: no more entries are opened; those already in the uploads go on (or are cancelled there) */
+const stopped = ref(false)
 function room(): Promise<void> {
-  if (waiting.value < 2) return Promise.resolve()
+  if (waiting.value < 2 || stopped.value) return Promise.resolve()
   return new Promise((resolve) => {
-    const stop = watch(waiting, (n) => {
-      if (n < 2) {
+    const stop = watch([waiting, stopped], ([n, halt]) => {
+      if (n < 2 || halt) {
         stop()
         resolve()
       }
@@ -172,6 +181,7 @@ async function run() {
   const s = source.value
   if (!p || !s || running.value) return
   running.value = true
+  stopped.value = false
   runProblem.value = null
   const ids = new Map<string, string | null>()
   const base = org.api(`/workspaces/${encodeURIComponent(props.workspace.id)}/folders`)
@@ -187,15 +197,19 @@ async function run() {
     // the folders made so far stay, empty (D-110)
     runProblem.value = t('treeUpload.folderFailed', { reason: failure(error).message })
     running.value = false
+    // the library reads its folders again: the plan then joins or renames around them
+    emit('changed')
     return
   }
   const leftOut: string[] = []
   for (const f of p.files) {
+    if (stopped.value) break
     const folderId = f.folderKey === null ? targetId.value : (ids.get(f.folderKey) ?? null)
     let file = f.item.file
     const entry = f.item.entry
     if (!file && entry && s.kind === 'zip') {
       await room()
+      if (stopped.value) break
       const type = declaredTypeOf({ name: f.name, type: '' })
       const limit =
         type && kindOf(type) === 'video' ? limits.value.maxVideoBytes : limits.value.maxImageBytes
@@ -207,16 +221,20 @@ async function run() {
         continue
       }
     }
-    if (file) await uploads.add([file], folderId)
+    // a zip's entry without a preview of its own: nothing keeps it in memory once sent
+    if (file) await uploads.add([file], folderId, null, { preview: !entry })
     sent.value += 1
   }
   running.value = false
   open.value = false
+  const done = stopped.value
+    ? t('treeUpload.stopped', { n: sent.value, total: p.files.length })
+    : t('treeUpload.done', { n: sent.value }, sent.value)
   emit(
     'done',
     leftOut.length === 0
-      ? t('treeUpload.done', { n: sent.value }, sent.value)
-      : t('treeUpload.doneWithout', { n: sent.value, left: leftOut.join(', ') }, sent.value),
+      ? done
+      : `${done} ${t('treeUpload.leftOut', { left: leftOut.join(', ') })}`,
   )
 }
 const reasonText = (reason: SkipReason) => t(`treeUpload.skip.${reason}`)
@@ -239,7 +257,7 @@ const title = computed(() =>
       </p>
       <p v-else-if="readProblem" role="alert" class="text-(--app-danger)">{{ readProblem }}</p>
       <form
-        v-else-if="items.length > 0"
+        v-else-if="source"
         id="tree-upload"
         class="flex flex-col gap-4"
         novalidate
@@ -309,12 +327,17 @@ const title = computed(() =>
           {{ $t('treeUpload.go') }}
         </UButton>
         <UButton
+          v-if="running"
           class="min-h-control"
           color="neutral"
-          variant="ghost"
-          :disabled="running"
-          @click="open = false"
+          variant="outline"
+          :disabled="stopped"
+          data-tree-stop
+          @click="stopped = true"
         >
+          {{ $t('treeUpload.stop') }}
+        </UButton>
+        <UButton v-else class="min-h-control" color="neutral" variant="ghost" @click="open = false">
           {{ $t('security.cancel') }}
         </UButton>
       </div>

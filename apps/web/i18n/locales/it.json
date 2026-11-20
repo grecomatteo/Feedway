@@ -1896,13 +1896,12 @@
     "go": "Carica",
     "running": "Metto in coda {done} di {n} file…",
     "done": "Nessun file caricato. | Un file in caricamento. | {n} file in caricamento.",
-    "doneWithout": "{n} file in caricamento; lasciati fuori perché troppo grandi o rovinati: {left}. | {n} file in caricamento; lasciati fuori perché troppo grandi o rovinati: {left}. | {n} file in caricamento; lasciati fuori perché troppo grandi o rovinati: {left}.",
-    "folderFailed": "Non ho potuto creare le cartelle: {reason} Quelle già create restano, vuote.",
+    "folderFailed": "Non ho potuto creare le cartelle ({reason}). Quelle già create restano, vuote: «Carica» riprova da lì.",
     "problem": {
       "unsafe": "Lo zip non si può aprire: il percorso «{path}» esce dalla cartella. Nessun file è stato caricato.",
       "name": "Il nome «{name}» non va bene per una cartella: al massimo 80 caratteri, senza «/». Rinominala e riprova.",
       "files": "Ci sono {n} file: se ne caricano al massimo {max} alla volta. Dividili in più cartelle.",
-      "depth": "«{path}» è troppo in profondità: le cartelle arrivano al massimo a {max} livelli, contando da quella scelta.",
+      "depth": "«{path}» è troppo in profondità: le cartelle arrivano al massimo a {max} livelli dalla cima della libreria, e qui ne restano {left}.",
       "folders": "Le cartelle del cliente sarebbero più di {max}, il massimo.",
       "empty": "Non c’è nessuna foto o video da caricare."
     },
@@ -1914,7 +1913,11 @@
       "broken": "Lo zip è rovinato: ricrealo e riprova."
     },
     "inTop": "in cima alla libreria",
-    "inFolder": "in «{name}»"
+    "inFolder": "in «{name}»",
+    "leftOut": "Lasciati fuori perché troppo grandi o rovinati: {left}.",
+    "stopped": "Fermato: {n} file di {total} in caricamento.",
+    "stop": "Ferma",
+    "dropFailed": "Non ho potuto leggere la cartella trascinata: prova con «Carica una cartella»."
   },
   "palette": {
     "label": "Colori",

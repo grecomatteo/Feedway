@@ -135,6 +135,7 @@ describe('planTree (a folder or a zip into the library)', () => {
       problem: 'depth',
       path: '1/2/3/4/5/6/a.jpg',
       max: 5,
+      left: 5,
     })
     const existing = [
       { id: 'top', name: 'Clienti', parentId: null },
@@ -143,6 +144,7 @@ describe('planTree (a folder or a zip into the library)', () => {
     expect(plan(['1/2/3/a.jpg'], { existing, targetId: 'mid' }).folders).toHaveLength(3)
     expect(problemOf(() => plan(['1/2/3/4/a.jpg'], { existing, targetId: 'mid' }))).toMatchObject({
       problem: 'depth',
+      left: 3,
     })
   })
 
@@ -175,6 +177,11 @@ describe('planTree (a folder or a zip into the library)', () => {
         { key: 'novembre', name: 'novembre (3)', parentKey: null, existingId: null },
         { key: 'novembre/reel', name: 'reel', parentKey: 'novembre', existingId: null },
       ])
+    })
+
+    it('a folder of the set with the name a renamed one took gets a number too', () => {
+      const p = plan(['novembre/a.jpg', 'Novembre (3)/b.jpg'], { existing })
+      expect(p.folders.map((f) => f.name)).toEqual(['novembre (3)', 'Novembre (3) (2)'])
     })
 
     it('«Unisci» joins it, and the folders under it with the same name', () => {
