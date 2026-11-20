@@ -112,7 +112,7 @@ test('security screens have no a11y violations', async ({ page }) => {
   const person = await newMember()
   await signIn(page.request, person)
   const ready: Record<string, string> = {
-    '/account/sicurezza': 'Cambia password',
+    '/account/sicurezza': 'Gestisci le passkey',
     '/account/dispositivi': 'Esci da tutti i dispositivi',
     '/sicurezza/non-sono-stato-io?t=prova': 'Blocca il mio account',
   }
@@ -123,5 +123,28 @@ test('security screens have no a11y violations', async ({ page }) => {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze()
     expect(results.violations, path).toEqual([])
+  }
+  // the windows of Sicurezza (screen 24): password, passkeys, authenticator app, deletion
+  await page.goto('/account/sicurezza')
+  for (const [button, title] of [
+    ['Cambia', 'Cambia password'],
+    ['Gestisci le passkey', 'Passkey'],
+    ["Attiva l'app di autenticazione", 'App di autenticazione'],
+    ['Elimina', 'Elimina il mio account'],
+  ] as const) {
+    await page.getByRole('button', { name: button, exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: title })
+    await expect(dialog).toBeVisible()
+    // axe reads the colours of a window still fading in as too faint
+    await dialog.evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+    )
+    const results = await new AxeBuilder({ page })
+      .include('[role="dialog"]')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze()
+    expect(results.violations, title).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
   }
 })

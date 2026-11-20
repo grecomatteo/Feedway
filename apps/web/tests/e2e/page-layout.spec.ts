@@ -43,7 +43,7 @@ test('every page of the agency has the same margins and the whole width', async 
     `/${org}/spazi/${client}`,
     `/${org}/libreria?spazio=${client}`,
     `/${org}/utenti`,
-    `/${org}/registro`,
+    `/${org}/impostazioni/registro`,
     `/${org}/impostazioni`,
     '/account',
   ]

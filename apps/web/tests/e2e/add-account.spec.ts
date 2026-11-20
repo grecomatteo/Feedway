@@ -59,7 +59,7 @@ test('add account: the system user token, then the accounts to import', async ({
 
   // the accounts are in, each in its client
   await page.goto(`/${org}/impostazioni/integrazioni/meta`)
-  const list = page.getByRole('list', { name: 'Profili' })
+  const list = page.getByRole('table', { name: 'Profili' })
   await expect(list).toContainText('Studio Rossi')
   await expect(list).toContainText('Bottega Verde')
 })

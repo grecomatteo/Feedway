@@ -53,6 +53,27 @@ const lastFactor = computed(() => {
 // ---- confirmation of identity, asked only when the server wants it
 const { open: reauthOpen, withReauth, done: reauthDone } = useReauth()
 
+// ---- the windows of the rows (screen 24)
+const passwordOpen = ref(false)
+const passkeysOpen = ref(false)
+const totpOpen = ref(false)
+const totpOff = ref(false)
+watch(passwordOpen, (open) => {
+  if (!open) return
+  passwordForm.current = ''
+  passwordForm.next = ''
+  Object.assign(passwordState, { problem: null, field: '' })
+})
+watch(totpOpen, (open) => {
+  if (open) totpOff.value = false
+  // secret and codes leave the page with the window
+  if (!open) resetTotp()
+  totp.problem = null
+})
+const passkeyNames = computed(() =>
+  (factors.value?.passkeys ?? []).map((p) => p.name ?? t('security.passkeys.unnamed')).join(', '),
+)
+
 // ---- password
 const passwordForm = reactive({ current: '', next: '' })
 const passwordState = reactive({
@@ -73,6 +94,7 @@ async function changePassword() {
     passwordForm.current = ''
     passwordForm.next = ''
     Object.assign(passwordState, { done: true, first: false })
+    passwordOpen.value = false
   } catch (e) {
     const f = failure(e)
     passwordState.problem = f.message
@@ -90,6 +112,7 @@ async function setFirstPassword() {
     await withReauth(() => call('POST', '/api/v1/me/password', { password: passwordForm.next }))
     passwordForm.next = ''
     Object.assign(passwordState, { done: true, first: true })
+    passwordOpen.value = false
     await refreshMe()
   } catch (e) {
     if (!(e instanceof ReauthCancelled)) {
@@ -167,6 +190,9 @@ const disableTotp = () =>
       await call('POST', '/api/auth/two-factor/disable', totpBody(password))
       resetTotp()
       await refresh()
+      // the window closes and the group says what happened
+      totpOpen.value = false
+      totpOff.value = true
     }),
   )
 const regenerateCodes = () =>
@@ -183,7 +209,7 @@ const regenerateCodes = () =>
 </script>
 
 <template>
-  <SettingsShell>
+  <SettingsShell :data-ready="factors ? true : undefined">
     <p v-if="!factors && !error" role="status">
       {{ $t('account.loading') }}
     </p>
@@ -192,13 +218,7 @@ const regenerateCodes = () =>
         <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
         {{ signedOut ? $t('account.signedOut') : $t('account.loadError') }}
       </p>
-      <UButton
-        v-if="!signedOut"
-        class="min-h-control"
-        color="neutral"
-        variant="outline"
-        @click="() => refresh()"
-      >
+      <UButton v-if="!signedOut" color="neutral" variant="outline" @click="() => refresh()">
         {{ $t('account.retry') }}
       </UButton>
     </div>
@@ -206,212 +226,323 @@ const regenerateCodes = () =>
     <template v-else-if="factors">
       <p
         v-if="onlyPasskey"
-        class="flex items-start gap-3 rounded-xl border border-(--app-border-strong) bg-(--app-surface-sunken) p-4"
+        class="flex items-start gap-3 rounded-card border border-(--app-border-strong) bg-(--app-surface-sunken) p-4"
       >
         <UIcon name="i-lucide-shield-alert" class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <span>{{ $t('security.onlyPasskey') }}</span>
       </p>
-      <section
-        aria-labelledby="security-password"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      >
-        <h2 id="security-password" class="text-lg">{{ $t('security.password.title') }}</h2>
-        <p v-if="me" class="text-sm text-(--app-text-muted)">
-          <template v-if="firstPassword">{{ $t('security.password.firstExplain') }} </template>
-          {{ me.emailNotices ? $t('security.password.notice') : $t('security.password.noticeOff') }}
-        </p>
-        <form
-          class="max-w-form space-y-4"
-          novalidate
-          @submit.prevent="firstPassword ? setFirstPassword() : changePassword()"
-        >
-          <UFormField
-            v-if="!firstPassword"
-            :label="$t('security.password.current')"
-            name="current-password"
-            required
-            :error="
-              passwordState.field === 'current' ? (passwordState.problem ?? undefined) : undefined
-            "
-          >
-            <UInput
-              v-model="passwordForm.current"
-              type="password"
-              autocomplete="current-password"
-              class="w-full"
-              size="xl"
-            />
-          </UFormField>
-          <UFormField
-            :label="$t('security.password.next')"
-            :help="$t('security.password.nextHelp')"
-            name="new-password"
-            required
-            :error="
-              passwordState.field === 'next' ? (passwordState.problem ?? undefined) : undefined
-            "
-          >
-            <UInput
-              v-model="passwordForm.next"
-              type="password"
-              autocomplete="new-password"
-              class="w-full"
-              size="xl"
-            />
-          </UFormField>
-          <div class="flex flex-wrap items-center gap-3">
-            <UButton type="submit" class="min-h-control" :loading="passwordState.sending">
-              {{
-                firstPassword ? $t('security.password.setSubmit') : $t('security.password.submit')
-              }}
-            </UButton>
-            <p v-if="passwordState.done" role="status" class="text-(--app-success)">
-              {{
-                passwordState.first
-                  ? $t('security.password.firstDone')
-                  : $t('security.password.done')
-              }}
-            </p>
-          </div>
-        </form>
-      </section>
 
-      <section
-        aria-labelledby="security-totp"
-        class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="security-totp" class="text-lg">{{ $t('security.totp.title') }}</h2>
-          <UBadge :color="factors.totpEnabled ? 'success' : 'neutral'" variant="subtle">
-            {{ factors.totpEnabled ? $t('security.totp.on') : $t('security.totp.off') }}
-          </UBadge>
-        </div>
-        <p class="text-sm text-(--app-text-muted)">{{ $t('security.totp.explain') }}</p>
-
-        <div v-if="totp.step === 'scan'" class="space-y-4">
-          <p>{{ $t('security.totp.scan') }}</p>
-          <TotpQrCode :link="totpLink" />
-          <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
-            {{ totpSecret }}
+      <SettingsGroup :title="$t('security.groups.access')">
+        <template #aside>
+          <p role="status" class="text-detail text-(--app-text-muted)">
+            <template v-if="passwordState.done">{{
+              passwordState.first ? $t('security.password.firstDone') : $t('security.password.done')
+            }}</template>
           </p>
+        </template>
+        <SettingsRow
+          :label="$t('security.password.title')"
+          :hint="firstPassword ? $t('security.password.none') : null"
+          inline
+        >
+          <UButton color="neutral" variant="outline" size="sm" @click="passwordOpen = true">
+            {{ firstPassword ? $t('security.password.set') : $t('security.password.change') }}
+          </UButton>
+        </SettingsRow>
+        <SettingsRow
+          :label="$t('security.passkeys.title')"
+          :hint="passkeyNames || $t('security.passkeys.empty')"
+          inline
+        >
           <UButton
-            v-if="totpLink"
-            :to="totpLink"
-            external
-            class="min-h-control"
             color="neutral"
             variant="outline"
+            size="sm"
+            :aria-label="$t('security.passkeys.manage')"
+            @click="passkeysOpen = true"
           >
-            {{ $t('security.totp.openApp') }}
+            {{ $t('security.manage') }}
           </UButton>
-          <form class="max-w-form space-y-4" novalidate @submit.prevent="verifyTotp">
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup :title="$t('security.groups.secondFactor')">
+        <template #aside>
+          <p role="status" class="text-detail text-(--app-text-muted)">
+            <template v-if="totpOff">{{ $t('security.totp.disabled') }}</template>
+          </p>
+        </template>
+        <SettingsRow
+          :label="$t('security.totp.title')"
+          :hint="factors.totpEnabled ? null : $t('security.totp.off')"
+          inline
+        >
+          <StatusDot
+            v-if="factors.totpEnabled"
+            tone="success"
+            :label="$t('security.totp.on')"
+            class="text-(--app-text) max-md:hidden"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :aria-label="
+              factors.totpEnabled ? $t('security.totp.manage') : $t('security.totp.turnOnLabel')
+            "
+            @click="totpOpen = true"
+          >
+            {{ factors.totpEnabled ? $t('security.manage') : $t('security.totp.turnOn') }}
+          </UButton>
+        </SettingsRow>
+        <SettingsRow
+          v-if="factors.totpEnabled"
+          :label="$t('security.totp.codesTitle')"
+          :hint="$t('security.totp.codesHint')"
+          inline
+        >
+          <UButton color="neutral" variant="outline" size="sm" @click="totpOpen = true">
+            {{ $t('security.totp.newCodes') }}
+          </UButton>
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup :title="$t('security.groups.account')">
+        <AccountDeletionPanel row :me="me ?? null" />
+      </SettingsGroup>
+
+      <!-- password: the first one, or a new one -->
+      <UModal
+        v-model:open="passwordOpen"
+        :title="firstPassword ? $t('security.password.setSubmit') : $t('security.password.submit')"
+        :description="$t('security.password.nextHelp')"
+        :close="false"
+        :ui="DIALOG_UI"
+      >
+        <template #body>
+          <form
+            id="password-form"
+            class="grid gap-4"
+            novalidate
+            @submit.prevent="firstPassword ? setFirstPassword() : changePassword()"
+          >
+            <p v-if="me" class="text-detail text-(--app-text-muted)">
+              <template v-if="firstPassword">{{ $t('security.password.firstExplain') }} </template>
+              {{
+                me.emailNotices ? $t('security.password.notice') : $t('security.password.noticeOff')
+              }}
+            </p>
             <UFormField
-              :label="$t('security.totp.code')"
-              name="totp-code"
+              v-if="!firstPassword"
+              :label="$t('security.password.current')"
+              name="current-password"
               required
-              :error="totp.problem ?? undefined"
+              :error="
+                passwordState.field === 'current' ? (passwordState.problem ?? undefined) : undefined
+              "
             >
               <UInput
-                v-model="totp.code"
-                inputmode="numeric"
-                autocomplete="one-time-code"
+                v-model="passwordForm.current"
+                type="password"
+                autocomplete="current-password"
                 class="w-full"
-                size="xl"
               />
             </UFormField>
-            <div class="flex flex-wrap gap-3">
-              <UButton type="submit" class="min-h-control" :loading="totp.sending">
-                {{ $t('security.totp.verify') }}
+            <UFormField
+              :label="$t('security.password.next')"
+              :help="$t('security.password.nextHelp')"
+              name="new-password"
+              required
+              :error="
+                passwordState.field === 'next' ? (passwordState.problem ?? undefined) : undefined
+              "
+            >
+              <UInput
+                v-model="passwordForm.next"
+                type="password"
+                autocomplete="new-password"
+                class="w-full"
+              />
+            </UFormField>
+          </form>
+        </template>
+        <template #footer>
+          <UButton
+            class="max-md:flex-1 max-md:justify-center"
+            color="neutral"
+            variant="outline"
+            @click="passwordOpen = false"
+          >
+            {{ $t('security.cancel') }}
+          </UButton>
+          <UButton
+            type="submit"
+            form="password-form"
+            class="max-md:flex-1 max-md:justify-center"
+            :loading="passwordState.sending"
+          >
+            {{ firstPassword ? $t('security.password.setSubmit') : $t('security.password.submit') }}
+          </UButton>
+        </template>
+      </UModal>
+
+      <!-- passkeys: the list, rename, remove, add -->
+      <UModal
+        v-model:open="passkeysOpen"
+        :title="$t('security.passkeys.title')"
+        :description="$t('security.passkeys.explain')"
+        :close="false"
+        :ui="DIALOG_UI"
+      >
+        <template #body>
+          <PasskeyList
+            bare
+            :passkeys="factors.passkeys"
+            :last-factor="lastFactor"
+            :with-reauth="withReauth"
+            @changed="() => refresh()"
+          />
+        </template>
+        <template #footer>
+          <UButton
+            class="max-md:flex-1 max-md:justify-center"
+            color="neutral"
+            variant="outline"
+            @click="passkeysOpen = false"
+          >
+            {{ $t('accountDeletion.close') }}
+          </UButton>
+        </template>
+      </UModal>
+
+      <!-- the authenticator app: turn it on, new codes, turn it off -->
+      <UModal
+        v-model:open="totpOpen"
+        :title="$t('security.totp.title')"
+        :description="$t('security.totp.explain')"
+        :close="false"
+        :ui="DIALOG_UI"
+      >
+        <template #body>
+          <div class="grid gap-4" data-totp>
+            <p class="text-detail text-(--app-text-muted)">{{ $t('security.totp.explain') }}</p>
+
+            <div v-if="totp.step === 'scan'" class="space-y-4">
+              <p>{{ $t('security.totp.scan') }}</p>
+              <TotpQrCode :link="totpLink" />
+              <p class="font-mono text-lg break-all" :aria-label="$t('security.totp.secretLabel')">
+                {{ totpSecret }}
+              </p>
+              <UButton v-if="totpLink" :to="totpLink" external color="neutral" variant="outline">
+                {{ $t('security.totp.openApp') }}
               </UButton>
-              <UButton class="min-h-control" color="neutral" variant="ghost" @click="resetTotp">
-                {{ $t('security.cancel') }}
+              <form class="space-y-4" novalidate @submit.prevent="verifyTotp">
+                <UFormField
+                  :label="$t('security.totp.code')"
+                  name="totp-code"
+                  required
+                  :error="totp.problem ?? undefined"
+                >
+                  <UInput
+                    v-model="totp.code"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    class="w-full"
+                  />
+                </UFormField>
+                <div class="flex flex-wrap gap-2">
+                  <UButton type="submit" :loading="totp.sending">
+                    {{ $t('security.totp.verify') }}
+                  </UButton>
+                  <UButton color="neutral" variant="outline" @click="resetTotp">
+                    {{ $t('security.cancel') }}
+                  </UButton>
+                </div>
+              </form>
+            </div>
+
+            <div v-else-if="totp.step === 'codes'" class="space-y-3" role="status">
+              <p class="font-semibold">{{ $t('security.totp.codesTitle') }}</p>
+              <p>{{ $t('security.totp.codesExplain') }}</p>
+              <ul
+                class="grid grid-cols-2 gap-2 font-mono"
+                :aria-label="$t('security.totp.codesTitle')"
+              >
+                <li v-for="code in totp.backupCodes" :key="code">{{ code }}</li>
+              </ul>
+              <UButton color="neutral" variant="outline" @click="totpOpen = false">
+                {{ $t('security.totp.codesSaved') }}
               </UButton>
             </div>
-          </form>
-        </div>
 
-        <div v-else-if="totp.step === 'codes'" class="space-y-3" role="status">
-          <p class="font-semibold">{{ $t('security.totp.codesTitle') }}</p>
-          <p>{{ $t('security.totp.codesExplain') }}</p>
-          <ul class="grid grid-cols-2 gap-2 font-mono" :aria-label="$t('security.totp.codesTitle')">
-            <li v-for="code in totp.backupCodes" :key="code">{{ code }}</li>
-          </ul>
-          <UButton class="min-h-control" color="neutral" variant="outline" @click="resetTotp">
-            {{ $t('security.totp.codesSaved') }}
-          </UButton>
-        </div>
-
-        <form v-else class="max-w-form space-y-4" novalidate @submit.prevent>
-          <!-- with passkeys only there is no password to confirm -->
-          <p
-            v-if="me?.hasPassword === false && totp.problem"
-            role="alert"
-            class="text-(--app-danger)"
-          >
-            {{ totp.problem }}
-          </p>
-          <UFormField
-            v-else-if="me?.hasPassword !== false"
-            :label="$t('security.password.current')"
-            :help="$t('security.totp.passwordHelp')"
-            name="totp-password"
-            :error="totp.problem ?? undefined"
-          >
-            <UInput
-              v-model="totp.password"
-              type="password"
-              autocomplete="current-password"
-              class="w-full"
-              size="xl"
-            />
-          </UFormField>
-          <div class="flex flex-wrap gap-3">
-            <UButton
-              v-if="!factors.totpEnabled"
-              class="min-h-control"
-              :loading="totp.sending"
-              @click="startTotp"
-            >
-              {{ $t('security.totp.enable') }}
-            </UButton>
-            <template v-else>
-              <UButton
-                class="min-h-control"
-                color="neutral"
-                variant="outline"
-                :loading="totp.sending"
-                @click="regenerateCodes"
+            <form v-else class="space-y-4" novalidate @submit.prevent>
+              <!-- with passkeys only there is no password to confirm -->
+              <p
+                v-if="me?.hasPassword === false && totp.problem"
+                role="alert"
+                class="text-(--app-danger)"
               >
-                {{ $t('security.totp.regenerate') }}
-              </UButton>
-              <UButton
-                class="min-h-control"
-                color="error"
-                variant="outline"
-                :disabled="lastFactor"
-                :aria-describedby="lastFactor ? 'last-factor-totp' : undefined"
-                @click="disableTotp"
+                {{ totp.problem }}
+              </p>
+              <UFormField
+                v-else-if="me?.hasPassword !== false"
+                :label="$t('security.password.current')"
+                :help="$t('security.totp.passwordHelp')"
+                name="totp-password"
+                :error="totp.problem ?? undefined"
               >
-                {{ $t('security.totp.disable') }}
-              </UButton>
-            </template>
+                <UInput
+                  v-model="totp.password"
+                  type="password"
+                  autocomplete="current-password"
+                  class="w-full"
+                />
+              </UFormField>
+              <div class="flex flex-wrap gap-2">
+                <UButton v-if="!factors.totpEnabled" :loading="totp.sending" @click="startTotp">
+                  {{ $t('security.totp.enable') }}
+                </UButton>
+                <template v-else>
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    :loading="totp.sending"
+                    @click="regenerateCodes"
+                  >
+                    {{ $t('security.totp.regenerate') }}
+                  </UButton>
+                  <UButton
+                    color="error"
+                    variant="outline"
+                    :disabled="lastFactor"
+                    :aria-describedby="lastFactor ? 'last-factor-totp' : undefined"
+                    @click="disableTotp"
+                  >
+                    {{ $t('security.totp.disable') }}
+                  </UButton>
+                </template>
+              </div>
+              <p
+                v-if="factors.totpEnabled && lastFactor"
+                id="last-factor-totp"
+                class="text-detail text-(--app-text-muted)"
+              >
+                {{ $t('security.lastFactor') }}
+              </p>
+            </form>
           </div>
-          <p
-            v-if="factors.totpEnabled && lastFactor"
-            id="last-factor-totp"
-            class="text-sm text-(--app-text-muted)"
+        </template>
+        <template #footer>
+          <UButton
+            class="max-md:flex-1 max-md:justify-center"
+            color="neutral"
+            variant="outline"
+            @click="totpOpen = false"
           >
-            {{ $t('security.lastFactor') }}
-          </p>
-        </form>
-      </section>
-
-      <PasskeyList
-        :passkeys="factors.passkeys"
-        :last-factor="lastFactor"
-        :with-reauth="withReauth"
-        @changed="() => refresh()"
-      />
+            {{ $t('accountDeletion.close') }}
+          </UButton>
+        </template>
+      </UModal>
 
       <ReauthDialog
         v-model:open="reauthOpen"

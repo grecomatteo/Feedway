@@ -21,13 +21,18 @@ const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
 
 /**
- * The logo once it has loaded: the small one in the client selector's square on a computer (D-81);
- * on a phone the large one of the settings, the one the test looks at there.
+ * The logo once it has loaded, the 64 px file: in the client selector's square on a computer
+ * (D-81); on a phone the one beside «Cambia» in the settings, the one the test looks at there.
  */
 async function shownLogo(page: Page, org: string) {
-  const size = phone(page) ? 256 : 64
+  const size = 64
+  const img = `img[src^="/api/v1/orgs/${org}/logo/${String(size)}?v="]`
   const logo = page
-    .locator(`img[src^="/api/v1/orgs/${org}/logo/${String(size)}?v="]`)
+    .locator(
+      phone(page)
+        ? `[data-testid="logo-drop"] ${img}`
+        : `${img}:not([data-testid="logo-drop"] img)`,
+    )
     .locator('visible=true')
   await expect(logo).toBeVisible()
   await expect
@@ -47,8 +52,8 @@ test('the Owner uploads the logo and sees it in the sidebar, whole', async ({
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
   await page.goto(`/${org}/impostazioni`)
-  const section = page.getByRole('region', { name: "Logo dell'agenzia" })
-  await expect(section.getByRole('button', { name: 'Scegli il logo' })).toBeEnabled()
+  const section = page.getByRole('group', { name: "Logo dell'agenzia" })
+  await expect(section.getByRole('button', { name: 'Cambia', exact: true })).toBeEnabled()
   expect((await axe(page)).violations).toEqual([])
 
   await section.getByTestId('logo-file').setInputFiles({
@@ -111,5 +116,5 @@ test('an Admin sees no logo section, only the settings to read', async ({ page }
   await signInWithTotp(page.request, admin)
   await page.goto(`/${admin.organizationSlug}/impostazioni`)
   await expect(page.getByText("Solo l'Owner può cambiarle.")).toBeVisible()
-  await expect(page.getByRole('region', { name: "Logo dell'agenzia" })).toHaveCount(0)
+  await expect(page.getByRole('group', { name: "Logo dell'agenzia" })).toHaveCount(0)
 })

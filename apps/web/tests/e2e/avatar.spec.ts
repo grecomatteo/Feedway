@@ -25,8 +25,8 @@ test('photo chosen from file, cropped with keyboard, shown in the header', async
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  const section = page.getByRole('region', { name: 'Foto profilo' })
-  await expect(section.getByRole('button', { name: 'Scegli foto' })).toBeEnabled()
+  const section = page.getByRole('group', { name: 'Foto profilo' })
+  await expect(section.getByRole('button', { name: 'Cambia', exact: true })).toBeEnabled()
   await section.getByTestId('avatar-file').setInputFiles({
     name: 'vacanze.jpg',
     mimeType: 'image/jpeg',
@@ -69,7 +69,11 @@ test('photo dropped on the uploader works too', async ({ page }) => {
   await signIn(page.request, person)
   await page.goto('/account')
   const drop = page.getByTestId('avatar-drop')
-  await expect(page.getByRole('button', { name: 'Scegli foto' })).toBeEnabled()
+  await expect(
+    page
+      .getByRole('group', { name: 'Foto profilo' })
+      .getByRole('button', { name: 'Cambia', exact: true }),
+  ).toBeEnabled()
   const bytes = [...(await imageFixture('photo.png'))]
   const transfer = await page.evaluateHandle((data) => {
     const dt = new DataTransfer()
@@ -89,8 +93,8 @@ test('a file that is not a photo is refused with the reason', async ({ page }) =
   const person = await newMember()
   await signIn(page.request, person)
   await page.goto('/account')
-  const section = page.getByRole('region', { name: 'Foto profilo' })
-  await expect(section.getByRole('button', { name: 'Scegli foto' })).toBeEnabled()
+  const section = page.getByRole('group', { name: 'Foto profilo' })
+  await expect(section.getByRole('button', { name: 'Cambia', exact: true })).toBeEnabled()
   // the name says JPEG, the bytes say GIF: the server decides from the bytes
   await section.getByTestId('avatar-file').setInputFiles({
     name: 'finta.jpg',

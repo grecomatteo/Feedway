@@ -35,7 +35,9 @@
       "title": "Nome e soprannome",
       "name": "Nome e cognome",
       "nickname": "Soprannome",
-      "nicknameHelp": "Se lo scrivi, il pannello lo mostra al posto del nome; il nome completo resta visibile passandoci sopra. Fino a 30 caratteri."
+      "nicknameHelp": "Se lo scrivi, il pannello lo mostra al posto del nome; il nome completo resta visibile passandoci sopra. Fino a 30 caratteri.",
+      "group": "Profilo",
+      "nameRow": "Nome"
     },
     "preferences": {
       "title": "Preferenze",
@@ -54,7 +56,8 @@
       "submit": "Invia il link di conferma",
       "sent": "Ti abbiamo inviato un link a {email}. Il link scade tra 60 minuti; fino ad allora accedi con l'indirizzo attuale.",
       "notConfigured": "Il cambio dell'email sarà disponibile quando la piattaforma avrà configurato l'invio delle email.",
-      "invalid": "Scrivi un indirizzo email valido, diverso da quello attuale."
+      "invalid": "Scrivi un indirizzo email valido, diverso da quello attuale.",
+      "change": "Cambia email"
     }
   },
   "confirmEmail": {
@@ -81,7 +84,10 @@
       "done": "Password cambiata.",
       "firstDone": "Password impostata: ora puoi accedere anche con email e password.",
       "firstExplain": "Non hai ancora una password: impostala per poter accedere anche senza passkey.",
-      "setSubmit": "Imposta la password"
+      "setSubmit": "Imposta la password",
+      "none": "Non ancora scelta: accedi con le passkey",
+      "set": "Scegli",
+      "change": "Cambia"
     },
     "totp": {
       "title": "App di autenticazione",
@@ -102,7 +108,13 @@
       "codesExplain": "Ognuno vale una volta sola, se non hai l'app a portata di mano. Conservali in un posto sicuro: non li mostreremo più.",
       "codesSaved": "Li ho salvati",
       "regenerate": "Nuovi codici di recupero",
-      "disable": "Disattiva"
+      "disable": "Disattiva",
+      "disabled": "App di autenticazione disattivata.",
+      "manage": "Gestisci l'app di autenticazione",
+      "turnOnLabel": "Attiva l'app di autenticazione",
+      "turnOn": "Attiva",
+      "newCodes": "Nuovi codici",
+      "codesHint": "Servono se non hai l'app a portata di mano"
     },
     "passkeys": {
       "title": "Passkey",
@@ -121,7 +133,14 @@
       "renamed": "Nome salvato.",
       "removed": "Passkey eliminata.",
       "cancelled": "Operazione annullata dal dispositivo. Riprova quando vuoi.",
-      "unsupported": "Questo browser non supporta le passkey."
+      "unsupported": "Questo browser non supporta le passkey.",
+      "manage": "Gestisci le passkey"
+    },
+    "manage": "Gestisci",
+    "groups": {
+      "access": "Accesso",
+      "secondFactor": "Secondo fattore",
+      "account": "Account"
     }
   },
   "devices": {
@@ -176,7 +195,13 @@
     "confirm": "Elimina definitivamente",
     "doneTitle": "Account eliminato",
     "done": "Il tuo account non esiste più: accessi, foto e dispositivi sono stati cancellati e sei uscito da tutte le agenzie.",
-    "signIn": "Vai all'accesso"
+    "signIn": "Vai all'accesso",
+    "rowLabel": "Elimina il tuo account",
+    "rowButton": "Elimina",
+    "short": "Non si può annullare",
+    "ownerShort": "Prima passa l'agenzia a un altro Owner",
+    "platformAdminShort": "Si elimina solo dal server",
+    "close": "Chiudi"
   },
   "reauth": {
     "title": "Conferma che sei tu",
@@ -861,22 +886,21 @@
   },
   "users": {
     "title": "Utenti",
-    "count": "{people} persone, {invites} inviti in attesa",
     "col": {
       "person": "Persona",
-      "agency": "In agenzia",
-      "clients": "Ruoli per cliente",
-      "status": "Stato",
+      "email": "Email",
+      "role": "Ruolo",
+      "clients": "Clienti",
       "lastLogin": "Ultimo accesso",
+      "expires": "Scade",
+      "status": "Stato",
       "actions": "Azioni"
     },
-    "allClients": "Tutti i clienti",
-    "noClients": "Nessun cliente",
-    "roleIn": "{role} di {name}",
+    "allClients": "Tutti",
+    "noClients": "Nessuno",
     "active": "Attivo",
     "disabled": "Disattivato",
     "never": "Mai",
-    "roleOf": "Ruolo di {name} nell'agenzia",
     "reset": "Link di reset",
     "resetOf": "Link di reset per {name}",
     "disable": "Disattiva",
@@ -900,14 +924,38 @@
       "button": "Invita",
       "title": "Invita una persona",
       "explain": "Il link arriva solo alla sua email e vale 72 ore.",
-      "agencyRole": "Ruolo nell'agenzia",
-      "clients": "Clienti e ruoli",
+      "clients": "Clienti",
       "noClients": "Crea prima un cliente per assegnarlo.",
-      "noAccess": "Nessun accesso",
-      "send": "Invia l'invito",
-      "sent": "Invito inviato a {email}."
+      "send": "Manda l'invito",
+      "sent": "Invito inviato a {email}.",
+      "role": "Ruolo",
+      "roleShort": {
+        "admin": "Gestisce clienti, persone e collegamenti",
+        "manager": "Gestisce i suoi clienti e chi ci lavora",
+        "publisher": "Prepara e programma i suoi post",
+        "editor": "Prepara le bozze, non programma",
+        "viewer": "Può solo guardare"
+      },
+      "add": "Aggiungi",
+      "addClient": "Aggiungi un cliente"
     },
-    "anonymizationScheduled": "Dati personali anonimizzati dal {date}, se non viene riattivato"
+    "anonymizationScheduled": "Dati personali anonimizzati dal {date}, se non viene riattivato",
+    "show": "Mostra",
+    "search": "Cerca per nome o email",
+    "tabs": {
+      "active": "Attivi",
+      "invites": "Inviti",
+      "disabled": "Sospesi"
+    },
+    "noMatch": "Nessuna persona per «{q}».",
+    "noInvites": "Nessun invito in attesa.",
+    "noActive": "Nessuna persona attiva.",
+    "noDisabled": "Nessuna persona sospesa.",
+    "now": "adesso",
+    "you": "Sei tu",
+    "noSecondFactor": "Senza secondo fattore",
+    "makeAdmin": "Rendi Admin",
+    "makeMember": "Rendi Membro"
   },
   "transfer": {
     "button": "Passa la proprietà",
@@ -969,6 +1017,21 @@
       "workspace_member_added": "ha aggiunto una persona a un cliente",
       "workspace_member_removed": "ha tolto una persona da un cliente",
       "workspace_member_role_changed": "ha cambiato un ruolo su un cliente"
+    },
+    "show": "Mostra",
+    "search": "Cerca",
+    "noMatch": "Nessuna attività con questi filtri.",
+    "kinds": {
+      "all": "Tutto",
+      "posts": "Post",
+      "people": "Persone",
+      "connections": "Collegamenti"
+    },
+    "col": {
+      "when": "Quando",
+      "who": "Chi",
+      "what": "Cosa",
+      "client": "Cliente"
     }
   },
   "orgSettings": {
@@ -1002,7 +1065,8 @@
       "noLimit": "Nessun limite per questa agenzia."
     },
     "timezone": "Fuso orario dei post",
-    "timezoneHelp": "Vale per i post nuovi di tutti i clienti; quelli già scritti tengono il loro. Se è Roma, l'editor non lo scrive accanto all'ora."
+    "timezoneHelp": "Vale per i post nuovi di tutti i clienti; quelli già scritti tengono il loro. Se è Roma, l'editor non lo scrive accanto all'ora.",
+    "group": "Agenzia"
   },
   "integrations": {
     "back": "Integrazioni",
@@ -1048,7 +1112,13 @@
       "copy": "Nell'app apri Impostazioni → Di base e copia qui App ID e App Secret.",
       "checkup": "Segna la scadenza del Data Use Checkup quando Meta la mostra nella dashboard.",
       "pagePermissions": "Se l'app non ha ancora i permessi delle Pagine non serve aggiungerli a mano: Meta li aggiunge da solo quando generi il token dell'utente di sistema."
-    }
+    },
+    "clearDay": "Togli",
+    "secretSaved": "Salvata il {when}",
+    "secret": "Chiave segreta",
+    "appIdRow": "ID dell'app",
+    "replace": "Sostituisci",
+    "edit": "Modifica l'app Meta"
   },
   "socialAccounts": {
     "list": "Profili",
@@ -1099,7 +1169,22 @@
     "loadError": "Non siamo riusciti a caricare gli account social.",
     "workspaceCount": "Assegnato a {n} cliente | Assegnato a {n} clienti",
     "add": "Aggiungi account",
-    "connectionsError": "Non siamo riusciti a caricare i collegamenti."
+    "connectionsError": "Non siamo riusciti a caricare i collegamenti.",
+    "col": {
+      "connection": "Account Meta",
+      "profiles": "Profili",
+      "expires": "Scadenza del token",
+      "state": "Stato",
+      "profile": "Profilo",
+      "clients": "Clienti"
+    },
+    "since": "Collegato il {when}",
+    "neverExpires": "Non scade",
+    "noConnections": "Nessun collegamento: aggiungi un account per collegare Meta.",
+    "connectionState": {
+      "expired": "Scaduto",
+      "revoked": "Revocato"
+    }
   },
   "addAccount": {
     "title": "Aggiungi account",
@@ -1249,7 +1334,10 @@
     "cancel": "Annulla",
     "save": "Usa questa foto",
     "saved": "Foto profilo salvata.",
-    "removed": "Foto tolta: ora si vedono le tue iniziali."
+    "removed": "Foto tolta: ora si vedono le tue iniziali.",
+    "change": "Cambia",
+    "removeShort": "Togli",
+    "label": "Foto"
   },
   "logo": {
     "title": "Logo dell'agenzia",
@@ -1268,7 +1356,10 @@
     "cancel": "Annulla",
     "save": "Usa questo logo",
     "saved": "Logo salvato: ora è nella barra.",
-    "removed": "Logo tolto: ora si vedono le iniziali dell'agenzia."
+    "removed": "Logo tolto: ora si vedono le iniziali dell'agenzia.",
+    "change": "Cambia",
+    "removeShort": "Togli",
+    "label": "Logo"
   },
   "privacyNotice": {
     "title": "Privacy",
@@ -1305,7 +1396,8 @@
       "theme": "ricorda il tema chiaro o scuro che hai scelto"
     },
     "rightsTitle": "I tuoi diritti",
-    "rights": "Puoi vedere e correggere i tuoi dati da «Impostazioni», scaricarli da «Impostazioni» → «Privacy» ed eliminare l'account. Per gli altri diritti (limitazione, opposizione) scrivi al contatto per la privacy dell'agenzia; puoi anche presentare reclamo al Garante per la protezione dei dati personali."
+    "rights": "Puoi vedere e correggere i tuoi dati da «Impostazioni», scaricarli da «Impostazioni» → «Privacy» ed eliminare l'account. Per gli altri diritti (limitazione, opposizione) scrivi al contatto per la privacy dell'agenzia; puoi anche presentare reclamo al Garante per la protezione dei dati personali.",
+    "ofAgency": "Informativa di {agency}"
   },
   "userMenu": {
     "label": "Il tuo account",
@@ -1320,7 +1412,8 @@
     "groups": {
       "mine": "Il tuo account",
       "agency": "Agenzia"
-    }
+    },
+    "pick": "Pagina delle impostazioni: {page}"
   },
   "lists": {
     "actionsFor": "Azioni per {name}",

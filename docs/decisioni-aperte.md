@@ -613,3 +613,18 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   5. Dopo «Programma» si torna ai post del cliente con la conferma in basso «Programmato per ven 20 nov alle 8:00» e il collegamento «Apri», come la `12`. Prima si restava nell'editor con la frase «Nella 0.12 non esce ancora», che non c'è più. Seguire «Apri» chiude la conferma, così non copre i pulsanti dell'editor sul telefono.
 - **Differenze dalla schermata:** nella `12` del codice l'elenco ha i post creati dalle altre schermate del campione e «domani» al posto della data, perché il server non ha l'orologio fermo; il campanello non ha il punto arancio.
 - **Stato:** provvisorie; Matteo può cambiarle.
+
+### D-95 · Utenti, Impostazioni e differenze dalle schermate 21–26 (Task R8)
+
+- **Origine:** Task R8 del ridisegno, PR «Utenti e Impostazioni» come le schermate `21`–`26` (20/11).
+- **Scelte:**
+  1. «Utenti» è una tabella con le schede «Attivi · Inviti · Sospesi» e la ricerca. Ruolo e clienti si leggono nella riga («Tutti» per Owner e Admin); il cambio di ruolo è nel menu «⋯» della riga («Rendi Admin», «Rendi Membro», solo per l'Owner), con «Link di reset» e «Disattiva». «Passa la proprietà» è nel «⋯» della riga dell'Owner. Sul telefono il «⋯» resta visibile in ogni riga.
+  2. «Invita una persona» chiede un ruolo tra cinque (Admin, Manager, Publisher, Editor, Viewer), non tre come la `22`: sono i ruoli del dominio. Il ruolo scelto vale per tutti i clienti scelti; per ruoli diversi su clienti diversi si cambia dopo, nei membri del cliente.
+  3. Le impostazioni della persona e dell'agenzia sono un solo «Impostazioni» con il menu a sinistra (sul telefono un menu a tendina sopra la pagina). Il gruppo dell'agenzia porta il suo nome. Gli indirizzi restano quelli di prima (`/account/*`, `/<agenzia>/impostazioni/*`); `/<agenzia>/registro` e `/<agenzia>/privacy` portano alle pagine nuove.
+  4. «Profilo e preferenze» salva ogni campo quando lo lasci, senza «Salva». «Cambia email» apre una finestra con il modulo di prima. La riga «Email quando un post non esce» non c'è: arriva con la tappa delle notifiche.
+  5. «Sicurezza» ha le righe Password, Passkey, App di autenticazione, Codici di recupero e «Elimina il tuo account»; ogni «Cambia», «Gestisci» o «Nuovi codici» apre una finestra con il flusso di prima. L'eliminazione dell'account è passata qui da «Privacy». La riga dice «Codici di recupero», non «Codici di riserva», come il resto del pannello.
+  6. «Privacy» della persona mostra i suoi dati e l'informativa dell'agenzia, che prima era una pagina dell'agenzia.
+  7. Integrazioni → Meta: «Collegamenti» è una tabella con «Scadenza del token» al posto di «Ultima sincronizzazione» (il pannello non salva quando è stata l'ultima), e sotto il nome si legge lo stato del collegamento invece di «Collegato da …» (il pannello non salva chi l'ha collegato). «App Meta» è in righe; «Sostituisci» apre il modulo, con «Prova», in una finestra. Sotto resta la tabella «Profili», che la `25` non ha.
+  8. «Registro attività» filtra «Tutto · Post · Persone · Collegamenti» e cerca tra le voci già caricate, non sul server.
+- **Differenze dalla schermata:** nelle `23` e `24` del codice manca il selettore del contesto nella barra (D-87.10); «Cambiata il 3 ottobre», «Attiva dal 12 settembre» e «8 su 10 ancora da usare» non si scrivono perché il pannello non salva quelle date né conta i codici rimasti; l'avatar e il nome di Giulia mostrano il soprannome («G», «Giulia»), mentre le schermate mostrano «GF» e «Giulia Ferri» pur avendo il soprannome «Giulia»; nella `26` le voci sono quelle create dal campione, con «domani» perché il server non ha l'orologio fermo.
+- **Stato:** provvisorie; Matteo può cambiarle.

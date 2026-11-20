@@ -53,9 +53,13 @@ test('download my data, then delete my account', async ({ page }) => {
   ])
   expect(download.suggestedFilename()).toMatch(/^dati-personali-\d{4}-\d{2}-\d{2}\.zip$/)
 
-  const deletion = page.getByRole('region', { name: 'Elimina il mio account' })
-  await deletion.getByRole('button', { name: 'Elimina il mio account' }).click()
-  const confirm = page.getByRole('dialog', { name: "Eliminare l'account?" })
+  // the deletion is a row of Sicurezza, its confirmation a window
+  await page.goto('/account/sicurezza')
+  await page
+    .getByRole('region', { name: 'Account', exact: true })
+    .getByRole('button', { name: 'Elimina', exact: true })
+    .click()
+  const confirm = page.getByRole('dialog', { name: 'Elimina il mio account' })
   const final = confirm.getByRole('button', { name: 'Elimina definitivamente' })
   await expect(final).toBeDisabled()
   await confirm.getByLabel(/Per confermare scrivi la tua email/).fill(person.email.toUpperCase())

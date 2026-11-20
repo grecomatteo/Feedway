@@ -1,9 +1,16 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { libraryFile } from './media.ts'
 import { connectedAgency, newWorkspace } from './meta.ts'
-import { adminQuery, addPerson, newPerson, signInWithTotp, type E2ePerson } from './people.ts'
+import {
+  adminQuery,
+  addPasskeyRow,
+  addPerson,
+  newPerson,
+  signInWithTotp,
+  type E2ePerson,
+} from './people.ts'
 
 // The agency of the design references (D-81, design/esplorazioni/2026-11-19-nuova-direzione):
 // Studio Riva, Giulia Ferri Owner, five clients and an archived one, their profiles, the posts
@@ -182,7 +189,14 @@ export const SAMPLE_POSTS: PostSeed[] = [
 
 /** The team of screen 21. */
 const TEAM = [
-  { name: 'Marco Bassi', email: 'marco@studioriva.example', role: 'admin' as const, clients: [] },
+  {
+    name: 'Marco Bassi',
+    email: 'marco@studioriva.example',
+    role: 'admin' as const,
+    clients: [],
+    lastLogin: '2026-11-19T08:12:00Z',
+    secondFactor: true,
+  },
   {
     name: 'Sara Leoni',
     email: 'sara@studioriva.example',
@@ -191,18 +205,24 @@ const TEAM = [
       ['Forno Luce', 'editor'],
       ['Gelateria Polo', 'editor'],
     ] as const,
+    lastLogin: '2026-11-18T16:40:00Z',
+    secondFactor: true,
   },
   {
     name: 'Davide Conti',
     email: 'davide@studioriva.example',
     role: 'member' as const,
     clients: [['Osteria Bruna', 'editor']] as const,
+    lastLogin: '2026-11-16T10:05:00Z',
+    secondFactor: true,
   },
   {
     name: 'Elena Neri',
     email: 'elena@otticaventi.example',
     role: 'member' as const,
     clients: [['Ottica Venti', 'viewer']] as const,
+    lastLogin: '2026-11-03T15:20:00Z',
+    secondFactor: false,
   },
 ]
 
@@ -246,10 +266,11 @@ export async function designSample(page: Page): Promise<DesignSample> {
   const owner = await newPerson('Giulia Ferri', 'owner')
   const org = owner.organizationSlug
   await adminQuery("update organizations set name = 'Studio Riva' where id = $1", [org])
-  await adminQuery('update users set email = $2 where id = $1', [
-    owner.userId,
-    'giulia@studioriva.example',
-  ])
+  // the profile and the security of screens 23 and 24
+  await adminQuery(
+    "update users set email = $2, nickname = 'Giulia', theme = 'light', timezone = 'Europe/Rome' where id = $1",
+    [owner.userId, 'giulia@studioriva.example'],
+  )
   owner.email = 'giulia@studioriva.example'
   // a second agency, as screen 06 shows «Cambia agenzia»
   const other = randomUUID()
@@ -262,6 +283,13 @@ export async function designSample(page: Page): Promise<DesignSample> {
     [other, owner.userId],
   )
   await signInWithTotp(page.request, owner)
+  // her passkeys, once signed in: with one the password alone would not turn the app on
+  for (const name of ['MacBook di Giulia', 'iPhone'])
+    await adminQuery(
+      `insert into passkeys (id, name, public_key, user_id, credential_id, counter, device_type, backed_up, created_at)
+       values ($1, $2, 'chiave-finta', $3, $4, 0, 'multiDevice', true, now())`,
+      [randomUUID(), name, owner.userId, randomBytes(16).toString('base64url')],
+    )
 
   // the agency's Meta app and its system user, with the sample's profiles in place of the fake
   // Graph API's ones
@@ -439,8 +467,27 @@ export async function designSample(page: Page): Promise<DesignSample> {
       m.role,
       m.clients.map(([name, role]) => ({ workspaceId: clients[name]?.id ?? '', role })),
     )
-    await adminQuery('update users set email = $2 where id = $1', [person.userId, m.email])
+    await adminQuery('update users set email = $2, last_login_at = $3 where id = $1', [
+      person.userId,
+      m.email,
+      m.lastLogin,
+    ])
+    if (m.secondFactor) await addPasskeyRow(person.userId)
   }
+  // the open invite of screen 21 («Inviti 1»)
+  await adminQuery(
+    `insert into invites (id, organization_id, purpose, email, token_hash, invited_by, org_role,
+       memberships, expires_at)
+     values ($1, $2, 'invite', 'luca@studioriva.example', $3, $4, 'member', $5, $6)`,
+    [
+      randomUUID(),
+      org,
+      randomBytes(32),
+      owner.userId,
+      JSON.stringify([{ workspaceId: clients['Forno Luce']?.id, role: 'editor' }]),
+      new Date(DESIGN_NOW.getTime() + 72 * 3_600_000).toISOString(),
+    ],
+  )
 
   for (const c of SAMPLE_CLIENTS.filter((x) => x.archived))
     await adminQuery('update workspaces set archived_at = $2 where id = $1', [

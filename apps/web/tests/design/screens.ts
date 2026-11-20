@@ -67,7 +67,11 @@ async function newPost(page: Page, files: string[], caption: string) {
 /** «Quando» on another day of the month shown, by its number, from the panel's own day field. */
 async function pickDay(page: Page, day: number) {
   await page.locator('[data-day-field]').click()
-  await page.locator('[data-day-picker]').getByRole('button', { name: new RegExp(` ${String(day)} `) }).first().click()
+  await page
+    .locator('[data-day-picker]')
+    .getByRole('button', { name: new RegExp(` ${String(day)} `) })
+    .first()
+    .click()
   // on a phone the state is in the bar at the bottom, «Bozza salvata» over «alle 11:53»
   await page
     .locator('[data-save-state]')
@@ -367,4 +371,33 @@ export const SCREENS: Screen[] = [
       await page.waitForTimeout(400)
     },
   },
+  // people and settings (Task R8)
+  { id: '21-utenti', path: (s) => `/${s.org}/utenti` },
+  {
+    id: '22-invita',
+    path: (s) => `/${s.org}/utenti`,
+    prepare: async (page) => {
+      await page.getByRole('button', { name: 'Invita' }).locator('visible=true').first().click()
+      const dialog = page.getByRole('dialog', { name: 'Invita una persona' })
+      await dialog.getByLabel('Email').fill('luca@studioriva.example')
+      for (const name of ['Forno Luce', 'Osteria Bruna']) {
+        await dialog.getByRole('button', { name: 'Aggiungi un cliente' }).click()
+        // under the stopped clock a click does not tick a Reka menu's box: Enter does
+        await page.getByRole('menuitemcheckbox', { name }).focus()
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('Escape')
+      }
+      // the menu gives the focus back to «Aggiungi» once it has closed: then it is taken away
+      await page.waitForTimeout(400)
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      })
+      await page.mouse.move(0, 0)
+      await page.waitForTimeout(100)
+    },
+  },
+  { id: '23-impostazioni-profilo', path: () => '/account' },
+  { id: '24-impostazioni-sicurezza', path: () => '/account/sicurezza' },
+  { id: '25-impostazioni-meta', path: (s) => `/${s.org}/impostazioni/integrazioni/meta` },
+  { id: '26-registro-attivita', path: (s) => `/${s.org}/impostazioni/registro` },
 ]

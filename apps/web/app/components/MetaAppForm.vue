@@ -24,6 +24,8 @@ const emit = defineEmits<{
 const org = useOrganization()
 const { call, failure } = useApi()
 
+/** «oggi» as a wall date, where the day field opens when no day is set */
+const today = new Date().toLocaleDateString('sv-SE')
 const form = reactive({ appId: '', appSecret: '', businessId: '', dataUseCheckupDueOn: '' })
 // the stored settings only: a test changes just the dates and keeps what was typed
 watch(
@@ -100,7 +102,7 @@ async function runTest() {
 
 <template>
   <div class="space-y-4">
-    <form class="max-w-form space-y-4" novalidate @submit.prevent="submit">
+    <form class="space-y-4" novalidate @submit.prevent="submit">
       <fieldset :disabled="!editable" class="min-w-0 space-y-4">
         <legend class="sr-only">{{ $t('metaIntegration.title') }}</legend>
         <UFormField
@@ -109,13 +111,7 @@ async function runTest() {
           required
           :error="fieldError('appId')"
         >
-          <UInput
-            v-model="form.appId"
-            inputmode="numeric"
-            autocomplete="off"
-            class="w-full"
-            size="xl"
-          />
+          <UInput v-model="form.appId" inputmode="numeric" autocomplete="off" class="w-full" />
         </UFormField>
         <UFormField
           v-if="editable"
@@ -130,7 +126,6 @@ async function runTest() {
             type="password"
             autocomplete="new-password"
             class="w-full"
-            size="xl"
           />
         </UFormField>
         <p v-else class="text-sm">
@@ -143,13 +138,7 @@ async function runTest() {
           name="businessId"
           :error="fieldError('businessId')"
         >
-          <UInput
-            v-model="form.businessId"
-            inputmode="numeric"
-            autocomplete="off"
-            class="w-full"
-            size="xl"
-          />
+          <UInput v-model="form.businessId" inputmode="numeric" autocomplete="off" class="w-full" />
         </UFormField>
         <UFormField
           :label="$t('metaIntegration.dataUseCheckup')"
@@ -157,15 +146,31 @@ async function runTest() {
           name="dataUseCheckupDueOn"
           :error="fieldError('dataUseCheckupDueOn')"
         >
-          <UInput v-model="form.dataUseCheckupDueOn" type="date" class="w-full" size="xl" />
+          <div class="flex items-center gap-2">
+            <DayField
+              v-model="form.dataUseCheckupDueOn"
+              class="flex-1"
+              :label="$t('metaIntegration.dataUseCheckup')"
+              :today="today"
+              :disabled="!editable"
+            />
+            <UButton
+              v-if="editable && form.dataUseCheckupDueOn"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="form.dataUseCheckupDueOn = ''"
+            >
+              {{ $t('metaIntegration.clearDay') }}
+            </UButton>
+          </div>
         </UFormField>
         <p v-if="saveError" role="alert" class="text-(--app-danger)">{{ saveError }}</p>
         <div v-if="editable" class="flex flex-wrap items-center gap-3">
-          <UButton type="submit" class="min-h-control" :loading="save.sending">
+          <UButton type="submit" :loading="save.sending">
             {{ $t('metaIntegration.save') }}
           </UButton>
           <UButton
-            class="min-h-control"
             color="neutral"
             variant="outline"
             :loading="test.sending"

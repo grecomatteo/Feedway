@@ -47,8 +47,7 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     `/${org}/spazi/${client.slug}/libreria`,
     `/${org}/libreria`,
     `/${org}/utenti`,
-    `/${org}/registro`,
-    `/${org}/privacy`,
+    `/${org}/impostazioni/registro`,
     `/${org}/impostazioni`,
     `/${org}/impostazioni/integrazioni`,
     `/${org}/impostazioni/integrazioni/meta`,
@@ -83,7 +82,7 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
       'aria-current',
       'page',
     )
-    await page.goto(`/${org}/registro`)
+    await page.goto(`/${org}/impostazioni/registro`)
     await expect(mainNav(page).getByRole('link', { name: 'Impostazioni' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -299,7 +298,7 @@ test('the old addresses of the accounts land in Integrazioni → Meta, keeping t
   await expect(page).toHaveURL(
     new RegExp(`/${org}/impostazioni/integrazioni/meta\\?spazio=${client.slug}$`),
   )
-  await expect(page.getByRole('heading', { name: 'Meta', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Meta', exact: true, level: 2 })).toBeVisible()
   await page.goto(`/${org}/account/aggiungi`)
   await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta/aggiungi$`))
   await expect(page.getByRole('heading', { name: 'Aggiungi account', level: 2 })).toBeVisible()

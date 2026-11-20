@@ -18,9 +18,7 @@ const under = (to: string) => route.path === to || route.path.startsWith(`${to}/
 const current = (to: string) => (to === org.to() ? route.path === to : under(to))
 const inYou = computed(
   () =>
-    ['/libreria', '/utenti', '/impostazioni', '/registro', '/privacy'].some((p) =>
-      under(org.to(p)),
-    ) || under('/account'),
+    ['/libreria', '/utenti', '/impostazioni'].some((p) => under(org.to(p))) || under('/account'),
 )
 
 // the bar hides while the keyboard is open: the page shrinks well below the window

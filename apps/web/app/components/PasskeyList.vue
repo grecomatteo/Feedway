@@ -10,6 +10,8 @@ const props = defineProps<{
   /** The role requires 2FA and this is the only factor left. */
   lastFactor: boolean
   withReauth: WithReauth
+  /** Inside the window of Sicurezza (screen 24): its title already names the list. */
+  bare?: boolean
 }>()
 const emit = defineEmits<{ changed: [] }>()
 
@@ -78,10 +80,16 @@ const remove = (p: Passkey) =>
 
 <template>
   <section
-    aria-labelledby="security-passkeys"
-    class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+    :aria-labelledby="props.bare ? undefined : 'security-passkeys'"
+    :aria-label="props.bare ? $t('security.passkeys.title') : undefined"
+    class="space-y-4"
+    :class="
+      props.bare ? '' : 'rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6'
+    "
   >
-    <h2 id="security-passkeys" class="text-lg">{{ $t('security.passkeys.title') }}</h2>
+    <h2 v-if="!props.bare" id="security-passkeys" class="text-lg">
+      {{ $t('security.passkeys.title') }}
+    </h2>
     <p class="text-sm text-(--app-text-muted)">{{ $t('security.passkeys.explain') }}</p>
 
     <p v-if="props.passkeys.length === 0">{{ $t('security.passkeys.empty') }}</p>
