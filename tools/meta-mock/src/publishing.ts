@@ -85,10 +85,10 @@ const igError = (code: number, subcode: number, message: string): PublishingAnsw
 })
 
 /** Meta's timestamps: `2026-11-20T16:00:00+0000`. */
-const metaTime = (date: Date) => `${date.toISOString().slice(0, 19)}+0000`
+export const metaTime = (date: Date) => `${date.toISOString().slice(0, 19)}+0000`
 
 /** Takes one use of the first active scenario with uses left; false when there is none. */
-function take(list: { remaining: number }[]): boolean {
+export function take(list: { remaining: number }[]): boolean {
   const hit = list.find((s) => s.remaining > 0)
   if (hit === undefined) return false
   hit.remaining -= 1
@@ -116,7 +116,7 @@ export function downloadableUrl(raw: string): string | null {
   return `${protocol}//${host}${port}${url.pathname}${url.search}`
 }
 
-async function downloads(raw: string): Promise<boolean> {
+export async function downloads(raw: string): Promise<boolean> {
   const url = downloadableUrl(raw)
   if (url === null) return false
   try {

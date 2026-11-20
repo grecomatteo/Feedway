@@ -78,8 +78,9 @@ export class MetaError extends Error {
   }
 }
 
-// Instagram's content publishing (Instagram Error Codes, docs/platforms/meta.md §Pubblicazione)
-const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003])
+// Instagram's content publishing (Instagram Error Codes, docs/platforms/meta.md §Pubblicazione);
+// Facebook's 324 (image missing or invalid), 382 (video too small), 389 (video not fetched)
+const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003, 324, 382, 389])
 // 2207032 and 2207053 (creation failed: make it again) are server errors, transient below
 const CONTAINER_GONE_SUBCODES = new Set([2207020, 2207008])
 

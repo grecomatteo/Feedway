@@ -87,6 +87,8 @@ const files = (items: PublishFiles['items'], cover: PublishFiles['cover'] = null
   cover,
 })
 
+const noFiles: PublishFiles = { items: [], cover: null }
+
 function ctx(signal: AbortSignal = new AbortController().signal): StepContext {
   return {
     signal,
@@ -115,7 +117,7 @@ async function goOut(t: PublishTarget, f: PublishFiles) {
   const prepared = await publisher.prepare(t, f, ctx())
   expect(prepared.outcome).toBe('done')
   const ready = { ...t, metaIds: prepared.metaIds }
-  const published = await publisher.publish(ready, ctx())
+  const published = await publisher.publish(ready, noFiles, ctx())
   expect(published.outcome).toBe('done')
   const out = published as Extract<StepResult, { outcome: 'done' }>
   const verified = await publisher.verify(
@@ -171,7 +173,7 @@ describe('every type reaches a confirmed post', () => {
     expect(parent).toHaveLength(1)
     expect(parent[0]?.params.children?.split(',')).toHaveLength(3)
 
-    const published = await publisher.publish({ ...t, metaIds: done.metaIds }, ctx())
+    const published = await publisher.publish({ ...t, metaIds: done.metaIds }, noFiles, ctx())
     const id = (published as { externalPostId: string }).externalPostId
     const verified = await publisher.verify(
       { ...t, externalPostId: id },
@@ -234,7 +236,7 @@ describe('containers', () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     clock.advance(24 * 3_600_000)
-    const published = await publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx())
+    const published = await publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx())
     expect(published.outcome).toBe('expired')
     expect(posts(`/${ig}/media_publish`)).toHaveLength(0)
     const again = await publisher.prepare(
@@ -261,7 +263,7 @@ describe('containers', () => {
     expect(renewed.outcome).toBe('done')
 
     mock.scenario('container_expired', { times: 1 })
-    const published = await publisher.publish({ ...t, metaIds: renewed.metaIds }, ctx())
+    const published = await publisher.publish({ ...t, metaIds: renewed.metaIds }, noFiles, ctx())
     expect(published.outcome).toBe('expired')
   })
 })
@@ -274,7 +276,7 @@ test('a container already published is uncertain in prepare, never made again', 
   // the container finishes and someone publishes it while the destination waits
   clock.advance(60_000)
   const done = await publisher.prepare({ ...t, metaIds: waiting.metaIds }, files([image()]), ctx())
-  await publisher.publish({ ...t, metaIds: done.metaIds }, ctx())
+  await publisher.publish({ ...t, metaIds: done.metaIds }, noFiles, ctx())
   const stale = {
     ...(done.metaIds as { container: { id: string } }),
     container: {
@@ -293,7 +295,7 @@ describe('publish', () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('quota_exhausted', { igUserId: ig })
-    const result = await publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx())
+    const result = await publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx())
     expect(result).toMatchObject({ outcome: 'wait', reason: 'quota' })
     expect((result as { retryAt: Date }).retryAt.getTime()).toBeGreaterThan(clock.now().getTime())
     expect(posts(`/${ig}/media_publish`)).toHaveLength(0)
@@ -304,7 +306,9 @@ describe('publish', () => {
     const since = clock.now()
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('publish_timeout_but_created', { delayMs: 2_000 })
-    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx()),
+    )
     expect(err.kind).toBe('uncertain')
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
 
@@ -342,6 +346,7 @@ describe('publish', () => {
   test('a destination that has its post is never published again', async () => {
     const result = await publisher.publish(
       target('photo', { externalPostId: '18000000000000009' }),
+      noFiles,
       ctx(),
     )
     expect(result).toMatchObject({ outcome: 'done', externalPostId: '18000000000000009' })
@@ -349,7 +354,7 @@ describe('publish', () => {
   })
 
   test('nothing prepared: publish asks to prepare, without calling Meta', async () => {
-    const result = await publisher.publish(target('photo'), ctx())
+    const result = await publisher.publish(target('photo'), noFiles, ctx())
     expect(result.outcome).toBe('expired')
     expect(mock.calls()).toHaveLength(0)
   })
@@ -363,7 +368,7 @@ describe('publish', () => {
       stop.abort()
     }, 50)
     const err = await failure(
-      publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx(stop.signal)),
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx(stop.signal)),
     )
     expect(err.kind).toBe('uncertain')
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
@@ -373,7 +378,9 @@ describe('publish', () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('transient_error', { path: `/${ig}/media_publish` })
-    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx()),
+    )
     expect(err.kind).toBe('uncertain')
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
   })
@@ -382,7 +389,9 @@ describe('publish', () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('rate_limited', { path: `/${ig}/media_publish`, times: 1 })
-    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx()),
+    )
     expect(err.kind).toBe('transient')
   })
 
@@ -390,20 +399,24 @@ describe('publish', () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     // the first media_publish goes out, its answer never reaches the worker
-    await publisher.publish({ ...t, metaIds: structuredClone(prepared.metaIds) }, ctx())
-    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    await publisher.publish({ ...t, metaIds: structuredClone(prepared.metaIds) }, noFiles, ctx())
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx()),
+    )
     expect(err.kind).toBe('uncertain')
     expect(posts(`/${ig}/media`)).toHaveLength(1)
     // and after 24 hours the old container still says so
     clock.advance(24 * 3_600_000)
-    const late = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    const late = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx()),
+    )
     expect(late.kind).toBe('uncertain')
   })
 
   test('prepare never drops the ids of a post that came out', async () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
-    const published = await publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx())
+    const published = await publisher.publish({ ...t, metaIds: prepared.metaIds }, noFiles, ctx())
     clock.advance(25 * 3_600_000)
     const again = await publisher.prepare(
       { ...t, metaIds: published.metaIds },
@@ -457,7 +470,7 @@ test('appsecret_proof on every call, and no token in the calls or the logs', asy
   const first = await publisher.prepare(t, f, ctx())
   clock.advance(60_000)
   const done = await publisher.prepare({ ...t, metaIds: first.metaIds }, f, ctx())
-  await publisher.publish({ ...t, metaIds: done.metaIds }, ctx())
+  await publisher.publish({ ...t, metaIds: done.metaIds }, noFiles, ctx())
   mock.scenario('error', { code: 190, subcode: 463 })
   await failure(publisher.verify({ ...t, externalPostId: '1' }, new AbortController().signal))
 

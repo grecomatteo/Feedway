@@ -5,7 +5,14 @@ const NAME_KEYS = new Set(['name', 'username', 'application'])
 // Meta's free text (errors) may hold ids and never leaves the client
 const TEXT_KEYS = new Set(['message', 'error_user_msg', 'error_user_title', 'error_data'])
 // the clients' own posts: their text and the links to them stay out of a recording
-const POST_KEYS = new Set(['caption', 'permalink', 'shortcode'])
+const POST_KEYS = new Set([
+  'caption',
+  'permalink',
+  'shortcode',
+  'description',
+  'permalink_url',
+  'upload_url',
+])
 // cursors encode object ids
 const CURSOR_KEYS = new Set(['after', 'before'])
 // Meta's image hosts (fbcdn, cdninstagram, lookaside on fbsbx) put ids in the file name and signatures in many parameters: never kept
@@ -74,11 +81,15 @@ export function createRecordingRedactor(): (value: unknown) => unknown {
     if (key !== null && TEXT_KEYS.has(key) && value !== null) return 'REDACTED'
     if (typeof value === 'object' && value !== null)
       return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redact(v, k)]))
+    // a story's `post_id` may come as a number
+    if (typeof value === 'number' && key !== null && ID_KEY.test(key)) return fakeId(String(value))
     if (typeof value !== 'string' || key === null)
       return typeof value === 'string' ? redactString(value) : value
     if (SECRET_KEY.test(key) || TEXT_KEYS.has(key) || CURSOR_KEYS.has(key) || POST_KEYS.has(key))
       return 'REDACTED'
     if (ID_KEY.test(key)) return fakeId(value)
+    // a story's link (`url`) is the client's post: Meta's CDN pictures are replaced below
+    if (key === 'url' && /^https:\/\/([a-z]+\.)?facebook\.com\//.test(value)) return 'REDACTED'
     if (NAME_KEYS.has(key)) return fakeName(value)
     return redactString(value)
   }

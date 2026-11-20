@@ -49,6 +49,10 @@ const BY_META_CODE: ReadonlyMap<number, PublishErrorCode> = new Map([
   [2207042, 'quota_exhausted'],
   [25, 'account_restricted'],
   [2207050, 'account_restricted'],
+  // Facebook Page photos and videos (not verified)
+  [324, 'media_rejected'],
+  [382, 'media_rejected'],
+  [389, 'media_rejected'],
 ])
 
 /** The Feedway code of a Meta error; Instagram's subcodes (`error_subcode`) count first. */
