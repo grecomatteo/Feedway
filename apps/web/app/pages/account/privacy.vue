@@ -50,7 +50,7 @@ const {
               {{ $t('account.retry') }}
             </UButton>
           </div>
-          <PrivacyNoticeView v-else-if="notice" :notice="notice" class="max-w-prose" />
+          <PrivacyNoticeView v-else-if="notice" :notice="notice" compact class="max-w-prose" />
         </div>
       </SettingsGroup>
     </template>

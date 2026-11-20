@@ -25,6 +25,11 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Etichette:** quadratino di 8 px con l'accento scuro del tema, mai l'arancio del marchio.
 - **Le misure si provano anche a 1280×800 e 1366×768**, i portatili veri, non solo alle misure delle schermate (1440 e 390).
 - **Token:** un token di spazio non si chiama come un'utilità che Tailwind ha già (`block`, `flex`, `full`…), perché ne riscrive la larghezza (`tests/design-tokens.test.ts`).
+- **Un avviso si dice con un punto, non con un riquadro:** ciò che manca in un gruppo di impostazioni è un `StatusDot` accanto al titolo del gruppo («Manca il titolare»), non una fascia colorata. I paragrafi hanno un limite di 75 caratteri: una fascia fatta con un `<p>` si ferma a metà del riquadro.
+- **Impostazioni in gruppi e righe:** ogni pagina delle impostazioni usa `SettingsGroup` e `SettingsRow` (o righe con le stesse misure), mai un riquadro con il titolo dentro; l'aiuto va sotto l'etichetta del campo a cui serve, e un'etichetta sta su una riga nei 200 px.
+- **Un'azione che non risolve un problema va nel «⋯»** della riga (`RowActions`), come «Togli dal cliente».
+- **Le pagine prima del pannello** (accedi, scegli l'agenzia) usano il guscio `auth`: logo e una colonna in mezzo, nessuna barra in alto.
+- **Strumenti di un elenco in una riga sola:** a sinistra il filtro a schede, la ricerca e i filtri; a destra vista e azione. Su un portatile stretto la parte destra va a capo allineata a destra.
 
 ## Tela unica (18 novembre 2026)
 

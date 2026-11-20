@@ -101,8 +101,24 @@ const gridItem = computed(() => {
   const poster = coverImage.value ?? item.poster
   return { ...item, video: false, src: poster, poster: null }
 })
-// off at first, the video clean (screen 09, B2)
+// off at first, the video clean (screen 09, B2); who turns them on finds them on next time, in
+// this browser only: a convenience, so a browser that keeps nothing starts them off
+const ZONES_KEY = 'feedway.preview.zones'
 const zones = ref(false)
+onMounted(() => {
+  try {
+    zones.value = localStorage.getItem(ZONES_KEY) === '1'
+  } catch {
+    // nothing remembered: off
+  }
+  watch(zones, (on) => {
+    try {
+      localStorage.setItem(ZONES_KEY, on ? '1' : '0')
+    } catch {
+      // storage refused: the choice lasts until the page is left
+    }
+  })
+})
 
 const handle = computed(() => {
   const a = account.value

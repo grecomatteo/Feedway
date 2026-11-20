@@ -148,15 +148,18 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               :disabled="sending"
               @update:model-value="(r) => changeRole(m, r as WorkspaceMember['role'])"
             />
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :disabled="sending"
-              :aria-label="$t('workspaceMembers.removeOf', { name: m.displayName })"
-              @click="remove(m)"
-            >
-              {{ $t('workspaceMembers.remove') }}
-            </UButton>
+            <RowActions
+              :name="m.displayName"
+              :items="[
+                {
+                  label: $t('workspaceMembers.remove'),
+                  icon: 'i-lucide-user-minus',
+                  color: 'error',
+                  disabled: sending,
+                  onSelect: () => remove(m),
+                },
+              ]"
+            />
           </span>
           <span v-else class="text-detail text-(--app-text-muted)">{{
             $t(`roles.${m.role}`)
@@ -169,7 +172,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         :aria-label="$t('workspaceMembers.addTitle')"
       >
         <SectionHead :title="$t('workspaceMembers.addTitle')" :level="3" />
-        <div class="space-y-4 rounded-card border border-(--app-border) bg-(--app-surface) p-4">
+        <div class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-4">
           <p v-if="candidates.length === 0" class="text-detail text-(--app-text-muted)">
             {{ $t('workspaceMembers.noCandidates') }}
           </p>
@@ -199,7 +202,15 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               {{ $t('workspaceMembers.add') }}
             </UButton>
           </form>
-          <RoleExplainer />
+          <!-- what each role may do, on request: the names alone say enough most of the time -->
+          <details class="text-detail">
+            <summary
+              class="cursor-pointer text-(--app-text-muted) select-none hover:text-(--app-text)"
+            >
+              {{ $t('workspaceMembers.rolesHelp') }}
+            </summary>
+            <RoleExplainer class="mt-2" />
+          </details>
         </div>
       </section>
 

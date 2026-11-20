@@ -213,13 +213,8 @@ test('on a computer: the bell beside the logo, «Nuovo post», and the menu of s
   await trigger.click()
   const menu = youMenu(page)
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem')).toHaveText([
-    'Libreria',
-    'Utenti',
-    'Impostazioni',
-    'Esci',
-    '',
-  ])
+  // Libreria and Utenti are in the side bar already: the menu does not repeat them (D-87.1)
+  await expect(menu.getByRole('menuitem')).toHaveText(['Impostazioni', 'Esci', ''])
   await expect(menu.locator(`a[href^="/${org}/account"]`)).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 })

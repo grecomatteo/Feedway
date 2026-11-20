@@ -188,7 +188,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             />
           </UFormField>
         </SettingsRow>
-        <SettingsRow :label="$t('orgSettings.require2fa')">
+        <SettingsRow :label="$t('orgSettings.require2fa')" :hint="$t('orgSettings.require2faHint')">
           <UFormField
             name="require2fa"
             :help="data.platformRequire2fa === 'all' ? $t('orgSettings.platformAll') : undefined"
@@ -197,7 +197,7 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               v-model="form.require2fa"
               :items="policyItems"
               :disabled="!org.may.value.editSettings"
-              :aria-label="$t('orgSettings.require2fa')"
+              :aria-label="$t('orgSettings.require2faLabel')"
               orientation="horizontal"
               :ui="{ item: 'min-h-11 items-center' }"
             />
@@ -207,22 +207,23 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 
       <SettingsGroup :title="$t('orgSettings.privacy.title')">
         <template #aside>
+          <!-- what is missing is said once, quietly, where the group starts (D-99) -->
+          <StatusDot
+            v-if="!data.privacy && org.may.value.editSettings"
+            tone="warning"
+            :label="$t('orgSettings.privacy.missing')"
+          />
           <NuxtLink
             to="/account/privacy"
             class="text-detail font-medium underline underline-offset-3"
             >{{ $t('orgSettings.privacy.see') }}</NuxtLink
           >
         </template>
-        <p
-          v-if="!data.privacy && org.may.value.editSettings"
-          class="border-b border-(--app-border) bg-(--app-warning-soft) px-4 py-3"
+        <SettingsRow
+          :label="$t('orgSettings.privacy.controllerName')"
+          :hint="$t('orgSettings.privacy.help')"
+          for="org-controller"
         >
-          {{ $t('orgSettings.privacy.missing') }}
-        </p>
-        <p class="px-4 pt-3 text-detail text-(--app-text-muted)">
-          {{ $t('orgSettings.privacy.help') }}
-        </p>
-        <SettingsRow :label="$t('orgSettings.privacy.controllerName')" for="org-controller">
           <UFormField
             name="privacy.controllerName"
             class="w-full max-w-[360px]"

@@ -27,7 +27,7 @@ const current = (to: string) => route.path === to || route.path.startsWith(`${to
       :aria-current="current(link.to) ? 'page' : undefined"
       class="flex min-h-11 items-center gap-2 rounded-md px-3 text-sm text-(--app-text-muted) hover:bg-(--app-surface-sunken) aria-[current=page]:font-semibold aria-[current=page]:text-(--app-text)"
     >
-      <UserAvatar v-if="link.to === '/account'" :name="me.displayName" :src="me.avatarUrl" />
+      <UserAvatar v-if="link.to === '/account'" :name="me.name" :src="me.avatarUrl" />
       {{ $t(link.label) }}
     </NuxtLink>
     <SignOutButton />

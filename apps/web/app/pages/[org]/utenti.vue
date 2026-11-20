@@ -393,9 +393,10 @@ async function transferred() {
             data-member-row
           >
             <span role="cell" class="flex min-w-0 items-center gap-3">
-              <UserAvatar :name="m.displayName" :src="m.avatarUrl" />
+              <!-- the whole name in the people's list: two «Giulia» are told apart (D-99) -->
+              <UserAvatar :name="m.name" :src="m.avatarUrl" />
               <span class="min-w-0">
-                <span class="block truncate font-semibold">{{ m.displayName }}</span>
+                <span class="block truncate font-semibold">{{ m.name }}</span>
                 <span class="block truncate text-detail text-(--app-text-muted)">{{
                   m.email
                 }}</span>
@@ -432,7 +433,7 @@ async function transferred() {
             <span role="cell" class="flex justify-end md:-me-2">
               <RowActions
                 v-if="memberActions(m).length > 0"
-                :name="m.displayName"
+                :name="m.name"
                 :items="memberActions(m)"
               />
             </span>

@@ -95,102 +95,100 @@ async function download(item: DataExport) {
 </script>
 
 <template>
-  <section
-    aria-labelledby="data-export-heading"
-    class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-  >
-    <h2 id="data-export-heading" class="text-lg">{{ $t('dataExport.heading') }}</h2>
-    <p class="text-sm text-(--app-text-muted)">{{ $t('dataExport.explain') }}</p>
-
-    <template v-if="latest">
-      <ol
-        v-if="preparing || latest.status === 'ready'"
-        :aria-label="$t('dataExport.stepsLabel')"
-        class="flex flex-wrap items-center gap-2 text-sm"
-      >
-        <li
-          class="flex items-center gap-2 rounded-md px-3 py-2"
-          :class="preparing ? 'bg-(--app-surface-sunken) font-semibold' : 'text-(--app-text-muted)'"
-          :aria-current="preparing ? 'step' : undefined"
-        >
-          <UIcon
-            :name="preparing ? 'i-lucide-loader-circle' : 'i-lucide-circle-check'"
-            :class="preparing ? 'animate-spin motion-reduce:animate-none' : ''"
-            aria-hidden="true"
-          />
-          {{ $t('dataExport.stepPreparing') }}
-        </li>
-        <li aria-hidden="true" class="text-(--app-text-muted)">→</li>
-        <li
-          class="flex items-center gap-2 rounded-md px-3 py-2"
-          :class="
-            latest.status === 'ready'
-              ? 'bg-(--app-surface-sunken) font-semibold'
-              : 'text-(--app-text-muted)'
-          "
-          :aria-current="latest.status === 'ready' ? 'step' : undefined"
-        >
-          <UIcon
-            :name="latest.status === 'ready' ? 'i-lucide-circle-check' : 'i-lucide-circle'"
-            aria-hidden="true"
-          />
-          {{ $t('dataExport.stepReady') }}
-        </li>
-      </ol>
-      <p class="text-sm text-(--app-text-muted)">
-        {{ $t('dataExport.requestedAt', { date: when(latest.createdAt) }) }}
-      </p>
-    </template>
-
-    <p
-      ref="statusEl"
-      role="status"
-      aria-live="polite"
-      tabindex="-1"
-      :class="latest?.status === 'failed' ? 'text-(--app-danger)' : ''"
-    >
-      {{ announcement }}
-    </p>
-
-    <div v-if="latest?.status === 'ready'" class="space-y-2">
+  <!-- in the settings' grammar (D-81): a row to ask for the file, a row with where it is -->
+  <SettingsGroup :title="$t('dataExport.heading')">
+    <SettingsRow :label="$t('dataExport.row')" :hint="$t('dataExport.explain')" inline>
       <UButton
-        class="min-h-control"
+        v-if="!preparing"
         color="neutral"
         variant="outline"
-        icon="i-lucide-download"
-        :loading="downloading"
-        @click="download(latest)"
-      >
-        {{ $t('dataExport.download') }}
-      </UButton>
-      <p v-if="latest.expiresAt" class="text-sm text-(--app-text-muted)">
-        {{ $t('dataExport.expires', { date: when(latest.expiresAt) }) }}
-      </p>
-    </div>
-
-    <div v-if="!preparing" class="space-y-2">
-      <UButton
-        class="min-h-control"
-        color="neutral"
-        variant="outline"
+        size="sm"
         :loading="sending"
         @click="request"
       >
         {{ latest ? $t('dataExport.requestAgain') : $t('dataExport.request') }}
       </UButton>
-      <p class="text-sm text-(--app-text-muted)">{{ $t('dataExport.limit') }}</p>
-      <p class="text-sm text-(--app-text-muted)">{{ $t('dataExport.reauth') }}</p>
-    </div>
+    </SettingsRow>
+    <div class="grid gap-2 border-t border-(--app-border) px-4 py-3 text-detail" data-export-state>
+      <div v-if="latest" class="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <ol
+          v-if="preparing || latest.status === 'ready'"
+          :aria-label="$t('dataExport.stepsLabel')"
+          class="flex flex-wrap items-center gap-x-2"
+        >
+          <li
+            class="flex items-center gap-1.5"
+            :class="preparing ? 'font-semibold' : 'text-(--app-text-muted)'"
+            :aria-current="preparing ? 'step' : undefined"
+          >
+            <UIcon
+              :name="preparing ? 'i-lucide-loader-circle' : 'i-lucide-circle-check'"
+              class="size-4"
+              :class="preparing ? 'animate-spin motion-reduce:animate-none' : ''"
+              aria-hidden="true"
+            />
+            {{ $t('dataExport.stepPreparing') }}
+          </li>
+          <li aria-hidden="true" class="text-(--app-text-muted)">→</li>
+          <li
+            class="flex items-center gap-1.5"
+            :class="latest.status === 'ready' ? 'font-semibold' : 'text-(--app-text-muted)'"
+            :aria-current="latest.status === 'ready' ? 'step' : undefined"
+          >
+            <UIcon
+              :name="latest.status === 'ready' ? 'i-lucide-circle-check' : 'i-lucide-circle'"
+              class="size-4"
+              aria-hidden="true"
+            />
+            {{ $t('dataExport.stepReady') }}
+          </li>
+        </ol>
+        <span class="text-(--app-text-muted)">
+          {{ $t('dataExport.requestedAt', { date: when(latest.createdAt) }) }}
+        </span>
+      </div>
 
-    <p v-if="problem" role="alert" class="flex items-center gap-2 text-(--app-danger)">
-      <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
-      {{ problem }}
-    </p>
+      <p
+        ref="statusEl"
+        role="status"
+        aria-live="polite"
+        tabindex="-1"
+        class="empty:sr-only"
+        :class="latest?.status === 'failed' ? 'text-(--app-danger)' : ''"
+      >
+        {{ announcement }}
+      </p>
+
+      <div v-if="latest?.status === 'ready'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          icon="i-lucide-download"
+          :loading="downloading"
+          @click="download(latest)"
+        >
+          {{ $t('dataExport.download') }}
+        </UButton>
+        <span v-if="latest.expiresAt" class="text-(--app-text-muted)">
+          {{ $t('dataExport.expires', { date: when(latest.expiresAt) }) }}
+        </span>
+      </div>
+
+      <p v-if="!preparing" class="text-(--app-text-muted)">
+        {{ $t('dataExport.limit') }} {{ $t('dataExport.reauth') }}
+      </p>
+
+      <p v-if="problem" role="alert" class="flex items-center gap-2 text-(--app-danger)">
+        <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
+        {{ problem }}
+      </p>
+    </div>
 
     <ReauthDialog
       v-model:open="reauthOpen"
       :passkeys="factors?.passkeys.length ?? 0"
       @done="reauthDone"
     />
-  </section>
+  </SettingsGroup>
 </template>

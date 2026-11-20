@@ -138,15 +138,19 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 <template>
   <SettingsShell>
     <div class="flex flex-col gap-section">
-      <div class="space-y-3">
-        <NuxtLink :to="metaPage" class="inline-flex min-h-11 items-center gap-1 text-sm underline">
-          <UIcon name="i-lucide-arrow-left" aria-hidden="true" />
+      <!-- the head of the Meta page (screen 25): the way back, small, then the title -->
+      <div class="-mb-4 grid gap-1">
+        <NuxtLink
+          :to="metaPage"
+          class="mb-1 inline-flex items-center gap-1.5 justify-self-start text-detail text-(--app-text-muted) hover:text-(--app-text)"
+        >
+          <UIcon name="i-lucide-arrow-left" class="size-3.5" aria-hidden="true" />
           {{ $t('addAccount.back') }}
         </NuxtLink>
-        <div class="space-y-1">
-          <h2 class="text-2xl">{{ $t('addAccount.title') }}</h2>
-          <p class="text-(--app-text-muted)">{{ $t('addAccount.explain') }}</p>
-        </div>
+        <h2 class="font-display text-lg font-semibold tracking-[-0.01em]">
+          {{ $t('addAccount.title') }}
+        </h2>
+        <p class="text-detail text-(--app-text-muted)">{{ $t('addAccount.explain') }}</p>
       </div>
 
       <p
@@ -186,9 +190,9 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
       <template v-else>
         <section
           aria-labelledby="add-question"
-          class="space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+          class="space-y-4 rounded-card border border-(--app-border) bg-(--app-surface) p-4"
         >
-          <h3 id="add-question" class="text-lg">{{ $t('addAccount.question') }}</h3>
+          <h3 id="add-question" class="text-base font-semibold">{{ $t('addAccount.question') }}</h3>
           <URadioGroup
             v-model="answer"
             :items="answers"
@@ -200,9 +204,11 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         <section
           v-if="answer === 'personal'"
           aria-labelledby="add-personal"
-          class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+          class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-4"
         >
-          <h3 id="add-personal" class="text-lg">{{ $t('addAccount.personal.title') }}</h3>
+          <h3 id="add-personal" class="text-base font-semibold">
+            {{ $t('addAccount.personal.title') }}
+          </h3>
           <ol class="list-decimal space-y-2 pl-5">
             <li>{{ $t('addAccount.personal.step1') }}</li>
             <li>{{ $t('addAccount.personal.step2') }}</li>
@@ -213,9 +219,11 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         <section
           v-if="answer === 'client'"
           aria-labelledby="add-client"
-          class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+          class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-4"
         >
-          <h3 id="add-client" class="text-lg">{{ $t('addAccount.client.title') }}</h3>
+          <h3 id="add-client" class="text-base font-semibold">
+            {{ $t('addAccount.client.title') }}
+          </h3>
           <p>{{ $t('addAccount.client.explain') }}</p>
           <p
             v-if="businessId === null"
@@ -241,9 +249,9 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         <section
           v-if="answer === 'own' || answer === 'client'"
           aria-labelledby="add-assign"
-          class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
+          class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-4"
         >
-          <h3 id="add-assign" class="text-lg">
+          <h3 id="add-assign" class="text-base font-semibold">
             {{
               answer === 'client'
                 ? $t('addAccount.assign.titleClient')

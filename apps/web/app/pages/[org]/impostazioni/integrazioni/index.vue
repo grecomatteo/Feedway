@@ -55,43 +55,37 @@ const metaDetail = computed(() => {
 
 <template>
   <SettingsShell>
-    <ul class="space-y-3" :aria-label="$t('orgSettings.tabs.integrations')">
-      <li>
-        <NuxtLink
-          :to="{ path: org.to('/impostazioni/integrazioni/meta'), query: context }"
-          class="flex min-h-16 items-center gap-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 hover:border-(--app-border-strong) sm:p-5"
-        >
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-(--app-surface-sunken)"
-            aria-hidden="true"
+    <!-- one group of rows like «Sicurezza» (screens 23–26): the platform, what it holds, its
+         state as a dot and a word, the row leads to its page -->
+    <SettingsGroup :title="$t('orgSettings.tabs.integrations')">
+      <ul :aria-label="$t('orgSettings.tabs.integrations')">
+        <li>
+          <NuxtLink
+            :to="{ path: org.to('/impostazioni/integrazioni/meta'), query: context }"
+            class="group grid min-h-15 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 rounded-card px-4 py-3 hover:bg-(--app-nav-hover) max-md:grid-cols-[minmax(0,1fr)_auto]"
           >
-            <UIcon name="i-lucide-infinity" class="size-5" />
-          </span>
-          <span class="min-w-0 flex-1 space-y-2 sm:flex sm:items-center sm:gap-4 sm:space-y-0">
-            <span class="block min-w-0 space-y-0.5 sm:flex-1">
-              <span class="block font-semibold">{{ $t('metaIntegration.title') }}</span>
-              <span class="block text-sm text-(--app-text-muted)">
+            <span class="min-w-0">
+              <span class="block font-medium">{{ $t('metaIntegration.title') }}</span>
+              <span class="block text-detail text-(--app-text-muted)">
                 {{ $t('integrations.meta.explain') }}
                 <template v-if="metaDetail"> · {{ metaDetail }}</template>
               </span>
             </span>
-            <UBadge
+            <StatusDot
               v-if="meta"
-              :color="meta.tone"
-              variant="subtle"
-              class="shrink-0"
+              :tone="meta.tone === 'error' ? 'danger' : meta.tone"
+              :label="meta.label"
+              class="shrink-0 max-md:col-span-2 max-md:row-start-2"
               data-testid="meta-entry-state"
-            >
-              {{ meta.label }}
-            </UBadge>
-          </span>
-          <UIcon
-            name="i-lucide-chevron-right"
-            class="size-5 shrink-0 text-(--app-text-muted)"
-            aria-hidden="true"
-          />
-        </NuxtLink>
-      </li>
-    </ul>
+            />
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="size-4 shrink-0 text-(--app-text-muted) max-md:col-start-2 max-md:row-start-1"
+              aria-hidden="true"
+            />
+          </NuxtLink>
+        </li>
+      </ul>
+    </SettingsGroup>
   </SettingsShell>
 </template>

@@ -17,8 +17,8 @@ const used = ref(0)
 
 <template>
   <div v-if="client && usesLibrary(client)">
-    <p class="mb-4 text-(--app-text-muted)">
-      {{ $t('library.usage') }}: <span class="tabular-nums">{{ formatBytes(used) }}</span>
+    <p class="mb-3 text-detail text-(--app-text-muted) md:hidden">
+      {{ $t('library.usageOf', { used: formatBytes(used) }) }}
     </p>
     <MediaLibrary :key="client.id" :workspace="client" @usage="used = $event" />
   </div>

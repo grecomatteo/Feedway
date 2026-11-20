@@ -24,6 +24,7 @@ const axe = (page: Page) =>
 
 test('the user menu: who is signed in, the theme, and «Impostazioni» with the sidebar', async ({
   page,
+  isMobile,
 }) => {
   const owner = await newPerson('Olga Menu', 'owner')
   await signInWithTotp(page.request, owner)
@@ -33,8 +34,14 @@ test('the user menu: who is signed in, the theme, and «Impostazioni» with the 
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toHaveCount(0)
 
   const menu = await openUserMenu(page, 'Olga Menu')
-  // the first entry takes the focus (screen 06: Libreria leads, on a phone and on a computer)
-  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
+  // the first entry takes the focus: Libreria on a phone, whose bar has no room for it;
+  // «Impostazioni» on a computer, where the side bar has Libreria and Utenti already (D-87.1)
+  await expect(
+    menu.getByRole('menuitem', { name: isMobile ? 'Libreria' : 'Impostazioni' }),
+  ).toBeFocused()
+  if (!isMobile)
+    for (const name of ['Libreria', 'Utenti'])
+      await expect(menu.getByRole('menuitem', { name })).toHaveCount(0)
   // who is signed in heads the menu, outside its entries
   await expect(page.getByText(owner.email)).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
@@ -134,16 +141,14 @@ test('the user menu works from the keyboard', async ({ page, isMobile }) => {
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}`)
   const menu = await openUserMenu(page, 'Olga Tasti')
-  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
-  await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'Utenti' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
   await page.keyboard.press('End')
   await expect(menu.getByRole('menuitem', { name: /^Passa al tema/ })).toBeFocused()
   await page.keyboard.press('ArrowLeft')
   await expect(menu.getByRole('menuitem', { name: 'Esci' })).toBeFocused()
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowDown')
-  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Impostazioni' })).toBeFocused()
 })
 
 test('«Esci» from the user menu closes the session', async ({ page }) => {
