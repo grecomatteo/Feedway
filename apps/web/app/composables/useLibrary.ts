@@ -22,8 +22,11 @@ export const usesLibrary = (w: Pick<WorkspaceView, 'myRole'>) => w.myRole !== 'v
  */
 export function useLibrary(
   workspaceId: Ref<string>,
-  /** `lazy`: nothing is read until `load()` (the picker of the editor, read when it opens) */
-  opts: { lazy?: boolean } = {},
+  /**
+   * `lazy`: nothing is read until `load()` (the picker of the editor, read when it opens);
+   * `folder`: the folder to open first (the address of the library, D-103)
+   */
+  opts: { lazy?: boolean; folder?: string | null } = {},
 ) {
   const org = useOrganization()
   const { call } = useApi()
@@ -31,7 +34,7 @@ export function useLibrary(
 
   const filter = reactive<LibraryFilter>({
     kind: 'all',
-    folder: null,
+    folder: opts.folder ?? null,
     tag: null,
     q: '',
     inPosts: false,

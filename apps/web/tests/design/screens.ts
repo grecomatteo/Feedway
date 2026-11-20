@@ -447,6 +447,23 @@ export const SCREENS: Screen[] = [
       await page.waitForTimeout(300)
     },
   },
+  // one library (Task 10 of stage 7): the clients' tree, then a client with a folder open
+  {
+    id: '29-libreria-albero',
+    path: (s) => `/${s.org}/libreria`,
+    computerOnly: true,
+    prepare: async (page, s) => {
+      await folders(page, s)
+      await page.getByRole('button', { name: 'Cartelle di Forno Luce' }).click()
+      await page.locator('[data-tree-folder="Reel"]').waitFor()
+      await page.mouse.move(0, 0)
+    },
+  },
+  {
+    id: '30-libreria-cliente',
+    path: (s) => `/${s.org}/libreria?spazio=${s.clients['Forno Luce']?.slug ?? ''}`,
+    prepare: folders,
+  },
   // people and settings (Task R8)
   { id: '21-utenti', path: (s) => `/${s.org}/utenti` },
   {
