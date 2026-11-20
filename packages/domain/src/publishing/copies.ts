@@ -234,6 +234,10 @@ export function withFailedCopies(
   return {
     ...report,
     outcomes: [...report.outcomes, ...added.values()],
+    postKeys: [
+      ...report.postKeys,
+      ...[...added.keys()].filter((k) => !report.postKeys.includes(k)),
+    ],
     destinations: report.destinations.map((d) => ({
       ...d,
       outcomeKeys: [...d.outcomeKeys, ...(touched.get(d.accountId) ?? [])],

@@ -247,18 +247,18 @@ async function makeCopy(
   if (copy.attempts > MEDIA_PROCESS_MAX_ATTEMPTS) return fail('processing_failed')
   const recipe = parseRecipe(copy.purpose, copy.recipe)
   if (!recipe) return fail('processing_failed')
-  const source = await deps.uow.run(scope, async (tx) => {
-    const file = await tx.media.findById(organizationId, copy.mediaId)
-    if (!file || file.status !== 'ready') return null
-    if (file.kind === 'video') return file.storageKey ? { file, key: file.storageKey } : null
-    // a photo's original is gone once processed: its copies start from the master (D-26)
-    const master = (await tx.media.variantsOf(organizationId, [file.id])).find(
-      (v) => v.purpose === 'master',
-    )
-    return master ? { file, key: master.storageKey } : null
-  })
-  if (!source) return fail('media_unavailable')
   try {
+    const source = await deps.uow.run(scope, async (tx) => {
+      const file = await tx.media.findById(organizationId, copy.mediaId)
+      if (!file || file.status !== 'ready') return null
+      if (file.kind === 'video') return file.storageKey ? { file, key: file.storageKey } : null
+      // a photo's original is gone once processed: its copies start from the master (D-26)
+      const master = (await tx.media.variantsOf(organizationId, [file.id])).find(
+        (v) => v.purpose === 'master',
+      )
+      return master ? { file, key: master.storageKey } : null
+    })
+    if (!source) return await fail('media_unavailable')
     const folder = await deps.scratch.open()
     try {
       const made = await transform(deps, recipe, source.file, source.key, folder, signal)

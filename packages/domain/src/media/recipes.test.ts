@@ -36,6 +36,14 @@ describe('the fingerprint of a recipe', () => {
     expect(key).toBe('crop-3333-0-5000-10000')
   })
 
+  test('a box against the edge, at an odd pixel, stays inside once rounded', () => {
+    // 9 px of 1440: x and width both end in .5 ten-thousandths
+    const box = { x: 9 / 1440, y: 9 / 1440, width: 1431 / 1440, height: 1431 / 1440 }
+    const key = recipeKey({ kind: 'crop', box })
+    expect(key).toBe('crop-63-63-9937-9937')
+    expect(parseRecipe('ig_feed', key)).not.toBeNull()
+  })
+
   test('the same choices give the same key, so two posts share one copy', () => {
     const a = recipeKey({ kind: 'crop', box: { x: 0.12341, y: 0, width: 0.8, height: 1 } })
     const b = recipeKey({ kind: 'crop', box: { x: 0.12339, y: 0, width: 0.8, height: 1 } })

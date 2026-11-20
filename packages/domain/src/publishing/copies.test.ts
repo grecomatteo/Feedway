@@ -258,6 +258,8 @@ describe('a copy that could not be made', () => {
     // Facebook publishes the photo whole: its copy is another one
     expect(keysOf(IG)).toContain(added[0]?.key)
     expect(keysOf(FB)).not.toContain(added[0]?.key)
+    // a block about a file of the post, as every other one (`evaluatePost`)
+    expect(blocked.postKeys).toContain(added[0]?.key)
   })
 
   test('on the cover', () => {

@@ -51,7 +51,13 @@ export function recipePurpose(recipe: CopyRecipe): VariantPurpose {
 /** Fractions and ratios in ten-thousandths: under half a pixel on the 4096 px master. */
 const SCALE = 10_000
 const toInt = (n: number) => Math.round(n * SCALE)
-const boxKey = (b: RecipeBox) => [b.x, b.y, b.width, b.height].map(toInt).join('-')
+// a side is rounded with its edge, so that a box against the edge stays inside the file
+const boxKey = (b: RecipeBox) => {
+  const [x, y] = [toInt(b.x), toInt(b.y)]
+  const width = Math.min(toInt(b.width), SCALE - x)
+  const height = Math.min(toInt(b.height), SCALE - y)
+  return [x, y, width, height].join('-')
+}
 
 /** The fingerprint of a recipe, for the row and the storage key (`VARIANT_RECIPE`). */
 export function recipeKey(recipe: CopyRecipe): string {
