@@ -212,9 +212,11 @@ test('pause, resume and cancel, all from the keyboard', async ({ page }) => {
   test.setTimeout(90_000)
   await editorOnLibrary(page)
   const pieces = await holdPieces(page)
-  // «Carica file» opens the file chooser from the keyboard
+  // «Carica», then «Carica file», opens the file chooser from the keyboard
   const chooser = page.waitForEvent('filechooser')
-  await page.getByRole('button', { name: 'Carica file' }).focus()
+  await page.getByRole('button', { name: 'Carica', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('menuitem', { name: 'Carica file' })).toBeFocused()
   await page.keyboard.press('Enter')
   await (await chooser).setFiles([fixture('frame.jpg'), fixture('clip.mp4')])
   await expect.poll(() => pieces.held.length).toBe(2)

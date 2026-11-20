@@ -1,8 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { seed } from '@app/infrastructure/testing'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { libraryFile } from './support/media.ts'
 import { addPerson, adminQuery, newPerson, ownAddress, signIn } from './support/people.ts'
+import { storedZip } from './support/zip.ts'
 
 // The library (plan 04 Task 12, spec §11.8): «Libreria» in the sidebar from Editor up, the files of
 // the chosen client with folders and tags, move with «Sposta in…» and by dragging, the video
@@ -664,4 +668,145 @@ test('one library: the clients with their folders, a client and its folder in th
   } else await page.getByRole('link', { name: 'Tutti i clienti' }).click()
   await expect(page).toHaveURL(new RegExp(`/${org}/libreria$`))
   await expect(page.getByRole('list', { name: 'Oggi' }).getByRole('listitem')).toHaveCount(3)
+})
+
+const frame = readFileSync(new URL('./fixtures/frame.jpg', import.meta.url))
+const clip = readFileSync(new URL('./fixtures/clip.mp4', import.meta.url))
+
+/** Where each upload of the client went: the file's name and its folder's, `null` for none. */
+async function uploadedInto(client: string) {
+  const rows = await adminQuery<{ name: string; folder: string | null }>(
+    `select u.original_name as name, f.name as folder from upload_sessions u
+       left join library_folders f on f.id = u.folder_id
+      where u.workspace_id = $1 order by u.original_name`,
+    [client],
+  )
+  return rows.map((r) => `${r.folder ?? '-'}/${r.name}`).sort()
+}
+
+/** «Carica» and one of its choices, with the files the computer gives. */
+async function uploadFrom(page: Page, choice: string, files: string | string[]) {
+  await page.locator('[data-upload-menu]').click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('menuitem', { name: choice }).click()
+  await (await chooser).setFiles(files)
+}
+
+test('a folder from the computer: its folders made, the files in each, what is not a photo left out (D-104)', async ({
+  page,
+}) => {
+  const { org, client } = await editorWithLibrary(page)
+  const dir = mkdtempSync(join(tmpdir(), 'feedway-tree-'))
+  const root = join(dir, 'novembre')
+  mkdirSync(join(root, 'reel'), { recursive: true })
+  mkdirSync(join(root, 'copertine'))
+  writeFileSync(join(root, 'frame.jpg'), frame)
+  writeFileSync(join(root, 'reel', 'clip.mp4'), clip)
+  writeFileSync(join(root, 'copertine', 'copertina.jpg'), frame)
+  writeFileSync(join(root, '.DS_Store'), 'x')
+  writeFileSync(join(root, 'appunti.txt'), 'x')
+
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
+  await uploadFrom(page, 'Carica una cartella', root)
+
+  const dialog = page.getByRole('dialog', { name: 'Carica una cartella' })
+  await expect(dialog.locator('[data-tree-summary]')).toHaveText(
+    /^Creo 3 cartelle e carico 3 file \(.+\) in cima alla libreria\.$/,
+  )
+  await dialog.getByText('Lascio fuori 2 file').click()
+  await expect(dialog.locator('[data-tree-skipped] li')).toHaveText([
+    'novembre/.DS_Store · aggiunto dal sistema',
+    'novembre/appunti.txt · non è una foto né un video',
+  ])
+  const results = await axe(page)
+  expect(results.violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Carica' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText('3 file in caricamento.')).toBeVisible()
+  await expect
+    .poll(() => uploadedInto(client))
+    .toEqual(['copertine/copertina.jpg', 'novembre/frame.jpg', 'reel/clip.mp4'])
+  await fitsTheScreen(page)
+})
+
+test('a zip: read in the browser, the system’s files and a text left out, «Unisci» to the folder there (D-104)', async ({
+  page,
+}) => {
+  const { org, client } = await editorWithLibrary(page)
+  const zipPath = join(mkdtempSync(join(tmpdir(), 'feedway-zip-')), 'novembre.zip')
+  writeFileSync(
+    zipPath,
+    storedZip([
+      { name: 'novembre/frame.jpg', data: frame },
+      { name: 'novembre/reel/clip.mp4', data: clip },
+      { name: '__MACOSX/novembre/._frame.jpg', data: new Uint8Array([0, 5, 22, 7]) },
+      { name: 'novembre/leggimi.txt', data: new TextEncoder().encode('ciao') },
+    ]),
+  )
+
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
+  // «Novembre» is there already
+  await page
+    .getByRole('button', { name: 'Nuova cartella', exact: true })
+    .locator('visible=true')
+    .click()
+  await page.getByRole('textbox', { name: 'Nome della cartella' }).fill('Novembre')
+  await page.getByRole('button', { name: 'Crea' }).click()
+  await expect(page.getByText('Cartella «Novembre» creata.')).toBeVisible()
+
+  await uploadFrom(page, 'Carica uno zip', zipPath)
+  const dialog = page.getByRole('dialog', { name: 'Carica uno zip' })
+  await expect(dialog.locator('[data-tree-clash]')).toContainText(
+    'C’è già una cartella «Novembre» in cima alla libreria.',
+  )
+  await expect(dialog.getByRole('radio', { name: 'Crea «novembre (2)» accanto' })).toBeChecked()
+  await expect(dialog.locator('[data-tree-summary]')).toHaveText(/^Creo 2 cartelle e carico 2 file/)
+  await dialog.getByRole('radio', { name: 'Unisci a «Novembre»' }).check()
+  await expect(dialog.locator('[data-tree-summary]')).toHaveText(
+    /^Creo 1 cartella e carico 2 file \(.+\) in cima alla libreria\.$/,
+  )
+  await dialog.getByText('Lascio fuori 2 file').click()
+  await expect(dialog.locator('[data-tree-skipped] li')).toHaveText([
+    '__MACOSX/novembre/._frame.jpg · aggiunto dal sistema',
+    'novembre/leggimi.txt · non è una foto né un video',
+  ])
+  await dialog.getByRole('button', { name: 'Carica' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText('2 file in caricamento.')).toBeVisible()
+  await expect
+    .poll(() => uploadedInto(client))
+    .toEqual(['Novembre/frame.jpg', 'reel/clip.mp4'].sort())
+  // one «Novembre», with «reel» inside it
+  const folders = await adminQuery<{ name: string; parent: string | null }>(
+    `select f.name, p.name as parent from library_folders f
+       left join library_folders p on p.id = f.parent_id
+      where f.workspace_id = $1 order by f.name`,
+    [client],
+  )
+  expect(folders).toEqual([
+    { name: 'Novembre', parent: null },
+    { name: 'reel', parent: 'Novembre' },
+  ])
+})
+
+test('a zip that climbs out of its folder is refused whole', async ({ page }) => {
+  const { org, client } = await editorWithLibrary(page)
+  const zipPath = join(mkdtempSync(join(tmpdir(), 'feedway-zip-')), 'cattivo.zip')
+  writeFileSync(
+    zipPath,
+    storedZip([
+      { name: 'ok/frame.jpg', data: frame },
+      { name: '../fuori.jpg', data: frame },
+    ]),
+  )
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await uploadFrom(page, 'Carica uno zip', zipPath)
+  const dialog = page.getByRole('dialog', { name: 'Carica uno zip' })
+  await expect(dialog.getByRole('alert')).toHaveText(
+    'Lo zip non si può aprire: il percorso «../fuori.jpg» esce dalla cartella. Nessun file è stato caricato.',
+  )
+  await expect(dialog.getByRole('button', { name: 'Carica' })).toBeDisabled()
+  expect(await uploadedInto(client)).toEqual([])
 })

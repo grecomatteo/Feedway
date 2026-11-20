@@ -526,7 +526,6 @@ const uploadFolder = computed(() =>
 function chooseFiles() {
   uploader.value?.choose()
 }
-defineExpose({ chooseFiles })
 // files from the computer, not a file of the grid dragged onto a folder
 const dropping = ref(false)
 let depth = 0
@@ -551,12 +550,63 @@ function filesLeave(event: DragEvent) {
   if (depth === 0) dropping.value = false
 }
 function filesDrop(event: DragEvent) {
-  if (!carriesFiles(event)) return
+  if (!carriesFiles(event) || !event.dataTransfer) return
   event.preventDefault()
   depth = 0
   dropping.value = false
-  uploader.value?.add(Array.from(event.dataTransfer?.files ?? []))
+  const files = Array.from(event.dataTransfer.files)
+  // a folder, or a zip alone: first the window that says what will happen (D-104)
+  const folder = folderDrop(event.dataTransfer)
+  if (folder)
+    folder.then(
+      (list) => treeUpload.value?.start({ files: list }),
+      () => (problem.value = t('treeUpload.dropFailed')),
+    )
+  else if (files.length === 1 && files[0] && isZip(files[0]))
+    void treeUpload.value?.start({ zip: files[0] })
+  else uploader.value?.add(files)
 }
+
+// ---- a folder or a zip (D-104): «Carica» opens a menu with them
+const treeUpload = ref<{
+  start: (input: { files: TreeFile[] } | { zip: File }) => Promise<void>
+} | null>(null)
+const folderInput = ref<HTMLInputElement | null>(null)
+const zipInput = ref<HTMLInputElement | null>(null)
+function folderPicked(event: Event) {
+  const el = event.target as HTMLInputElement
+  const list = Array.from(el.files ?? [])
+  el.value = ''
+  if (list.length > 0) void treeUpload.value?.start({ files: filesFromDirectoryInput(list) })
+}
+function zipPicked(event: Event) {
+  const el = event.target as HTMLInputElement
+  const zip = el.files?.[0]
+  el.value = ''
+  if (zip) void treeUpload.value?.start({ zip })
+}
+const uploadItems = computed<DropdownMenuItem[]>(() => [
+  { label: t('upload.choose'), icon: 'i-lucide-image-up', onSelect: chooseFiles },
+  {
+    label: t('upload.chooseFolder'),
+    icon: 'i-lucide-folder-up',
+    onSelect: () => folderInput.value?.click(),
+  },
+  {
+    label: t('upload.chooseZip'),
+    icon: 'i-lucide-file-archive',
+    onSelect: () => zipInput.value?.click(),
+  },
+])
+function treeDone(message: string) {
+  say(message)
+  void lib.load()
+}
+defineExpose({
+  chooseFiles,
+  chooseFolder: () => folderInput.value?.click(),
+  chooseZip: () => zipInput.value?.click(),
+})
 </script>
 
 <template>
@@ -804,17 +854,19 @@ function filesDrop(event: DragEvent) {
               <UIcon :name="o.icon" class="size-4" aria-hidden="true" />
             </button>
           </div>
-          <UButton
-            v-if="!readOnly && !uploadInHeader"
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-upload"
-            class="shrink-0"
-            @click="chooseFiles"
-          >
-            <!-- on a phone the icon alone: the row has the size and the view too -->
-            <span class="max-md:sr-only">{{ $t('upload.choose') }}</span>
-          </UButton>
+          <UDropdownMenu v-if="!readOnly && !uploadInHeader" :items="uploadItems">
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-upload"
+              trailing-icon="i-lucide-chevron-down"
+              class="shrink-0"
+              data-upload-menu
+            >
+              <!-- on a phone the icon alone: the row has the size and the view too -->
+              <span class="max-md:sr-only">{{ $t('upload.menu') }}</span>
+            </UButton>
+          </UDropdownMenu>
         </div>
       </div>
 
@@ -859,6 +911,34 @@ function filesDrop(event: DragEvent) {
         :folder-id="uploadFolder"
         @changed="lib.load()"
       />
+      <template v-if="!readOnly">
+        <TreeUpload
+          :key="workspace.id"
+          ref="treeUpload"
+          :workspace="workspace"
+          :folders="folders"
+          :target-id="uploadFolder"
+          @done="treeDone"
+          @changed="lib.load()"
+        />
+        <input
+          ref="folderInput"
+          type="file"
+          webkitdirectory
+          multiple
+          class="hidden"
+          data-folder-input
+          @change="folderPicked"
+        />
+        <input
+          ref="zipInput"
+          type="file"
+          accept=".zip,application/zip,application/x-zip-compressed"
+          class="hidden"
+          data-zip-input
+          @change="zipPicked"
+        />
+      </template>
 
       <p v-if="done" role="status" class="mb-3 text-sm text-(--app-success)">{{ done }}</p>
       <p v-if="problem" role="alert" class="mb-3 text-sm text-(--app-danger)">{{ problem }}</p>

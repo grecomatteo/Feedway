@@ -1869,7 +1869,59 @@
       "error": "{name}: {reason}",
       "paused": "{name} in pausa.",
       "canceled": "Caricamento di {name} annullato."
-    }
+    },
+    "chooseFolder": "Carica una cartella",
+    "chooseZip": "Carica uno zip",
+    "menu": "Carica"
+  },
+  "treeUpload": {
+    "titleFolder": "Carica una cartella",
+    "titleZip": "Carica uno zip",
+    "reading": "Leggo lo zip…",
+    "target": "Dove",
+    "top": "In cima alla libreria",
+    "summary": "Creo {folders} e carico {files} ({size}) {place}.",
+    "summaryFilesOnly": "Carico {files} ({size}) {place}.",
+    "folders": "nessuna cartella | 1 cartella | {n} cartelle",
+    "files": "nessun file | 1 file | {n} file",
+    "clash": "C’è già una cartella «{name}» {place}.",
+    "clashNew": "Crea «{name}» accanto",
+    "clashMerge": "Unisci a «{name}»",
+    "skipped": "Lascio fuori un file | Lascio fuori un file | Lascio fuori {n} file",
+    "skippedMore": "e altri {n}",
+    "skip": {
+      "system": "aggiunto dal sistema",
+      "hidden": "nascosto",
+      "type": "non è una foto né un video",
+      "empty": "vuoto",
+      "size": "troppo grande"
+    },
+    "zipNote": "Lo zip si apre un file alla volta: lascia aperta la pagina finché non è finito, perché un caricamento da zip non riprende dopo averla ricaricata.",
+    "go": "Carica",
+    "running": "Metto in coda {done} di {n} file…",
+    "done": "Nessun file caricato. | Un file in caricamento. | {n} file in caricamento.",
+    "folderFailed": "Non ho potuto creare le cartelle ({reason}). Quelle già create restano, vuote: «Carica» riprova da lì.",
+    "problem": {
+      "unsafe": "Lo zip non si può aprire: il percorso «{path}» esce dalla cartella. Nessun file è stato caricato.",
+      "name": "Il nome «{name}» non va bene per una cartella: al massimo 80 caratteri, senza «/». Rinominala e riprova.",
+      "files": "Ci sono {n} file: se ne caricano al massimo {max} alla volta. Dividili in più cartelle.",
+      "depth": "«{path}» è troppo in profondità: le cartelle arrivano al massimo a {max} livelli dalla cima della libreria, e qui ne restano {left}.",
+      "folders": "Le cartelle del cliente sarebbero più di {max}, il massimo.",
+      "empty": "Non c’è nessuna foto o video da caricare."
+    },
+    "zip": {
+      "not_zip": "Non è uno zip, o è incompleto.",
+      "zip64": "Lo zip è troppo grande (più di 4 GB o di 65 535 file): carica la cartella invece dello zip.",
+      "encrypted": "Lo zip ha una password: toglila e riprova.",
+      "method": "Lo zip usa una compressione che il browser non apre: ricrealo con lo strumento del computer.",
+      "broken": "Lo zip è rovinato: ricrealo e riprova."
+    },
+    "inTop": "in cima alla libreria",
+    "inFolder": "in «{name}»",
+    "leftOut": "Lasciati fuori perché troppo grandi o rovinati: {left}.",
+    "stopped": "Fermato: {n} file di {total} in caricamento.",
+    "stop": "Ferma",
+    "dropFailed": "Non ho potuto leggere la cartella trascinata: prova con «Carica una cartella»."
   },
   "palette": {
     "label": "Colori",
