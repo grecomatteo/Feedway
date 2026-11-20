@@ -296,6 +296,16 @@ test('the system email page is for the platform administrator only', async ({ pa
   await page.goto('/piattaforma/email')
   // the settings are the platform's, shared by the tests running alongside: any state will do
   await expect(page.getByRole('heading', { name: 'Server SMTP' })).toBeVisible()
+  // outside any agency: the shell of the pages before the panel, with the way back (D-99)
+  await expect(page.locator('main[data-auth]')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Esci' })).toBeVisible()
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze()
+    ).violations,
+  ).toEqual([])
   await page.getByRole('textbox', { name: /^Server/ }).fill('smtp.example.test')
   await page.getByRole('textbox', { name: /^Utente/ }).fill('feedway')
   await page.getByRole('textbox', { name: /^Indirizzo del mittente/ }).fill('noreply@example.test')

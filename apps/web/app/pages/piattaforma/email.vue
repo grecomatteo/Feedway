@@ -2,6 +2,13 @@
 import type { PlatformMailSettings } from '@app/contracts'
 import type { ApiFailure } from '~/composables/useApi'
 
+/**
+ * The platform's mail server, for its administrator only. Outside any agency's panel, so in the
+ * pages-before-the-panel look (D-99), with the wide column a form needs: the server in one group,
+ * the test email in another, «Salva» the only orange button.
+ */
+definePageMeta({ layout: 'auth', authWide: true })
+
 type TestKind =
   | 'sent'
   | 'not_configured'
@@ -27,6 +34,12 @@ const { data, status, error, refresh } = useFetch<{ settings: PlatformMailSettin
   { key: 'platform-mail', server: false, lazy: true },
 )
 const settings = computed(() => data.value?.settings ?? null)
+/** the person's agency, when they have one (a platform administrator may have none) */
+const home = computed(() => {
+  if (session.view.value.state !== 'active') return null
+  const to = session.home(session.view.value.me)
+  return to === '/account' ? null : to
+})
 const passkeys = computed(() =>
   session.view.value.state === 'active' ? session.view.value.me.secondFactor.passkeys : 0,
 )
@@ -121,56 +134,53 @@ async function sendTest() {
 </script>
 
 <template>
-  <PageShell :title="$t('systemEmail.title')" :summary="$t('systemEmail.explain')">
-    <p v-if="status === 'pending' || status === 'idle'" role="status">
-      {{ $t('account.loading') }}
-    </p>
-    <div v-else-if="error" role="alert" class="space-y-3">
-      <p class="flex items-center gap-2 text-(--app-danger)">
-        <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
-        {{ $t('account.loadError') }}
-      </p>
-      <UButton class="min-h-control" color="neutral" variant="outline" @click="() => refresh()">
-        {{ $t('account.retry') }}
-      </UButton>
+  <div class="grid gap-8">
+    <div class="grid gap-1 text-center">
+      <h1>{{ $t('systemEmail.title') }}</h1>
+      <p class="mx-auto text-detail text-(--app-text-muted)">{{ $t('systemEmail.explain') }}</p>
     </div>
+    <ListSkeleton
+      v-if="status === 'pending' || status === 'idle'"
+      :label="$t('account.loading')"
+      :rows="3"
+      :action="false"
+    />
+    <LoadFailed v-else-if="error" :text="$t('account.loadError')" @retry="() => refresh()" />
 
     <template v-else>
-      <section
-        aria-labelledby="system-email-settings"
-        class="max-w-form space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="system-email-settings" class="text-lg">{{ $t('systemEmail.settings') }}</h2>
-          <UBadge :color="settings ? 'success' : 'neutral'" variant="subtle">
-            {{ settings ? $t('systemEmail.configured') : $t('systemEmail.notConfigured') }}
-          </UBadge>
-        </div>
-        <p v-if="settings" class="text-sm text-(--app-text-muted)">
-          {{ $t('systemEmail.updatedAt', { when: formatRelative(settings.updatedAt) }) }}
-          <template v-if="settings.verifiedAt">
-            {{ $t('systemEmail.verifiedAt', { when: formatRelative(settings.verifiedAt) }) }}
-          </template>
-        </p>
-        <form class="max-w-form space-y-4" novalidate @submit.prevent="submit">
+      <SettingsGroup :title="$t('systemEmail.settings')">
+        <template #aside>
+          <StatusDot
+            :tone="settings ? 'success' : 'neutral'"
+            :label="settings ? $t('systemEmail.configured') : $t('systemEmail.notConfigured')"
+            class="text-detail"
+          />
+        </template>
+        <form class="grid gap-4 p-4 sm:p-5" novalidate @submit.prevent="submit">
+          <p v-if="settings" class="text-detail text-(--app-text-muted)">
+            {{ $t('systemEmail.updatedAt', { when: formatRelative(settings.updatedAt) }) }}
+            <template v-if="settings.verifiedAt">
+              {{ $t('systemEmail.verifiedAt', { when: formatRelative(settings.verifiedAt) }) }}
+            </template>
+          </p>
           <UFormField
             :label="$t('systemEmail.host')"
             name="host"
             required
             :error="fieldError('host')"
           >
-            <UInput v-model="form.host" autocomplete="off" class="w-full" size="xl" />
+            <UInput v-model="form.host" autocomplete="off" class="w-full" />
           </UFormField>
           <div class="grid gap-4 sm:grid-cols-2">
             <UFormField :label="$t('systemEmail.port')" name="port" :error="fieldError('port')">
-              <USelect v-model="form.port" :items="portItems" class="w-full" size="xl" />
+              <USelect v-model="form.port" :items="portItems" class="w-full" />
             </UFormField>
             <UFormField
               :label="$t('systemEmail.security')"
               name="security"
               :error="fieldError('security')"
             >
-              <USelect v-model="form.security" :items="securityItems" class="w-full" size="xl" />
+              <USelect v-model="form.security" :items="securityItems" class="w-full" />
             </UFormField>
           </div>
           <UFormField
@@ -179,7 +189,7 @@ async function sendTest() {
             required
             :error="fieldError('username')"
           >
-            <UInput v-model="form.username" autocomplete="off" class="w-full" size="xl" />
+            <UInput v-model="form.username" autocomplete="off" class="w-full" />
           </UFormField>
           <UFormField
             :label="$t('systemEmail.from')"
@@ -188,7 +198,7 @@ async function sendTest() {
             required
             :error="fieldError('from')"
           >
-            <UInput v-model="form.from" type="email" autocomplete="off" class="w-full" size="xl" />
+            <UInput v-model="form.from" type="email" autocomplete="off" class="w-full" />
           </UFormField>
           <UFormField
             :label="$t('systemEmail.password')"
@@ -202,7 +212,6 @@ async function sendTest() {
               type="password"
               autocomplete="new-password"
               class="w-full"
-              size="xl"
             />
           </UFormField>
           <p v-if="saveError" role="alert" class="text-(--app-danger)">{{ saveError }}</p>
@@ -210,31 +219,49 @@ async function sendTest() {
             <UButton type="submit" class="min-h-control" :loading="save.sending">
               {{ $t('account.save') }}
             </UButton>
-            <p v-if="save.done" role="status" class="text-(--app-success)">
+            <p v-if="save.done" role="status" class="flex items-center gap-1.5 text-detail">
+              <UIcon
+                name="i-lucide-circle-check"
+                class="size-4 text-(--app-success)"
+                aria-hidden="true"
+              />
               {{ $t('account.saved') }}
             </p>
           </div>
         </form>
-      </section>
+      </SettingsGroup>
 
-      <section
-        aria-labelledby="system-email-test"
-        class="max-w-form space-y-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-6"
-      >
-        <h2 id="system-email-test" class="text-lg">{{ $t('systemEmail.testTitle') }}</h2>
-        <p class="text-sm text-(--app-text-muted)">{{ $t('systemEmail.testExplain') }}</p>
-        <form class="max-w-form space-y-4" novalidate @submit.prevent="sendTest">
+      <SettingsGroup :title="$t('systemEmail.testTitle')">
+        <form class="grid gap-4 p-4 sm:p-5" novalidate @submit.prevent="sendTest">
+          <p class="text-detail text-(--app-text-muted)">{{ $t('systemEmail.testExplain') }}</p>
           <UFormField
             :label="$t('systemEmail.testTo')"
             name="test-to"
             required
             :error="test.problem ?? undefined"
           >
-            <UInput v-model="test.to" type="email" autocomplete="email" class="w-full" size="xl" />
+            <UInput v-model="test.to" type="email" autocomplete="email" class="w-full" />
           </UFormField>
+          <div v-if="test.result" :role="test.result.ok ? 'status' : 'alert'" class="grid gap-1">
+            <p class="flex items-start gap-2">
+              <UIcon
+                :name="test.result.ok ? 'i-lucide-circle-check' : 'i-lucide-triangle-alert'"
+                class="mt-0.5 size-4 shrink-0"
+                :class="test.result.ok ? 'text-(--app-success)' : 'text-(--app-danger)'"
+                aria-hidden="true"
+              />
+              {{ $t(`systemEmail.testResult.${test.result.kind}`) }}
+            </p>
+            <p
+              v-if="test.result.response"
+              class="font-mono text-detail break-all text-(--app-text-muted)"
+            >
+              {{ test.result.response }}
+            </p>
+          </div>
           <UButton
             type="submit"
-            class="min-h-control"
+            class="min-h-control justify-self-start"
             color="neutral"
             variant="outline"
             :loading="test.sending"
@@ -243,20 +270,19 @@ async function sendTest() {
             {{ $t('systemEmail.testSend') }}
           </UButton>
         </form>
-        <div v-if="test.result" :role="test.result.ok ? 'status' : 'alert'" class="space-y-1">
-          <p :class="test.result.ok ? 'text-(--app-success)' : 'text-(--app-danger)'">
-            {{ $t(`systemEmail.testResult.${test.result.kind}`) }}
-          </p>
-          <p
-            v-if="test.result.response"
-            class="font-mono text-sm break-all text-(--app-text-muted)"
-          >
-            {{ test.result.response }}
-          </p>
-        </div>
-      </section>
+      </SettingsGroup>
 
       <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
     </template>
-  </PageShell>
+    <!-- no bar at the top here: the way back to the panel, the settings and out -->
+    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+      <UButton v-if="home" :to="home" color="neutral" variant="ghost" icon="i-lucide-arrow-left">
+        {{ $t('nav.agency') }}
+      </UButton>
+      <UButton to="/account" color="neutral" variant="ghost" icon="i-lucide-settings">
+        {{ $t('nav.settings') }}
+      </UButton>
+      <SignOutButton />
+    </div>
+  </div>
 </template>

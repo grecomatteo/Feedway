@@ -24,6 +24,7 @@ export interface PostMediaDto {
   status: PostMediaView['status']
   kind: PostMediaView['kind'] | null
   originalName: string | null
+  sizeBytes: number | null
   width: number | null
   height: number | null
   durationMs: number | null
@@ -60,6 +61,7 @@ const gone = (id: string): PostMediaDto => ({
   status: 'deleted',
   kind: null,
   originalName: null,
+  sizeBytes: null,
   width: null,
   height: null,
   durationMs: null,

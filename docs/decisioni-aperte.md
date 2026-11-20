@@ -402,20 +402,12 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 
 Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, `ESITI-prova-0.12.0.md`). La 0.12.0 passa.
 
-### D-80 · Difetti della prova della 0.12.0, nella tappa 7
+### D-80 · Nota per le guide delle prove
 
-- **Origine:** prova della 0.12.0, §2 del report.
-- **I difetti:**
-  1. Un file ancora in preparazione dà blocchi finti (per esempio «Carosello con un file solo»). Finché il file non è pronto bisogna dire «in attesa del file N».
-  2. Un gruppo di account su un post nuovo aggiunge i suoi account a quelli già spuntati, quindi non cambia niente. Deve sostituire la scelta, oppure offrire «Solo questi».
-  3. Una firma inserita a metà testo va a capo prima ma non dopo.
-  4. Il file di un post programmato chiede prima «Non si può annullare» e solo dopo rifiuta. La voce va spenta subito, con il motivo. **Fatto nel ridisegno, Task R6** (scelta di Matteo del 19/11): la regola è `deletionBlock` in `domain/src/media/deletion.ts`, usata dall'eliminazione (409) e dal DTO (`deleteBlockedBy`, `blockedFiles` delle cartelle); «Elimina» è spento con il motivo nel menu «⋯», nel dettaglio e nelle cartelle.
-  5. Su un cliente archiviato compare «Controlli non riusciti: Il cliente è archiviato…». Basta «Il cliente è archiviato: non si programmano post».
-  6. Il titolo della scheda del browser su un post programmato resta «Bozza · …».
-  7. L'etichetta della libreria cambia con il filtro: «In una bozza» in «Tutti i file», «In un post annullato» con «Nei post». **Fatto nel ridisegno, Task R6**: l'uso che conta è `primaryUse` in `domain/src/media/usage.ts` (programmato più vicino, poi bozza modificata per ultima, poi annullato, poi l'id), il repository ordina in SQL nello stesso modo, e il DTO porta il fuso del post e quanti post usano il file (D-91).
-- **Non si fa:** la scritta fissa «nella 0.12 non esce ancora». Con la pubblicazione della tappa 7 non serve più.
+- **Origine:** prova della 0.12.0, §2 del report. I sette difetti sono chiusi: 4 e 7 nel ridisegno (R6), 1, 2, 3, 5 e 6 nel Task 1 della tappa 7 (file in preparazione con «In attesa del file N» e le regole che lo aspettano, il gruppo che sostituisce la scelta, la firma a metà testo con una riga vuota prima e dopo, «Il cliente è archiviato: non si programmano post.», il titolo della scheda «Modifica il post», che non era ancora fatto).
 - **Nelle guide delle prove:** la data proposta è oggi alle 18:00, quindi va ricordato di usare domani.
-- **Stato:** decisa da Matteo il 19/11. **Nessuna 0.12.1**: i difetti si correggono nella tappa 7 e si provano con la 0.13.0.
+- **Scelte provvisorie del Task 1:** un file non pronto è un'attesa, non un errore: una riga neutra con l'icona che gira, e la riga dell'account dice «In attesa» invece di «Bloccato». Un file aggiunto dalla libreria mentre è ancora in preparazione non si aggiorna da solo nell'editor quando diventa pronto (lo fanno i file caricati da quella pagina): basta ricaricare. Non verificato su Meta vera.
+- **Stato:** si toglie dopo la guida della prova della 0.13.0.
 
 ### D-81 · Nuova direzione di design del pannello
 
@@ -721,7 +713,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   13. C1: «Prima configurazione» in «Oggi» è una riga neutra (icona, frase, «Riprendi»). C2: «Salva» di Generali, «Carica file» della libreria del cliente, «Aggiungi» delle persone del cliente, «Scarica i miei dati», «Salva e verifica» dell'app Meta, i passi della prima configurazione e «Aggiungi account» hanno il contorno: l'arancio resta a «Nuovo post» (le misure di fedeltà lo provano su queste pagine).
   14. Stati: «Oggi» in errore usa la riga di `LoadFailed` con l'icona rossa; «Non siamo riusciti a leggere i post.»; Registro e «Chi ci lavora» in errore dicono cosa non si legge, senza il codice che non si vedeva; i Contenuti in errore nascondono le sezioni (niente «0» falsi) e dopo «Riprova» mostrano gli scheletri; «Non hai ancora clienti con una libreria.»
 - **Trovato in R10:** il token `--spacing-block` fa generare a Tailwind una classe `inline-block` che fissa la larghezza a 1rem, così ogni `inline-block` del pannello era largo 16 px (il segno delle etichette era 16×8). Le due occorrenze ora usano `inline-flex`. Il token è stato poi rinominato `--spacing-stack` (D-99), e un test impedisce i nomi che Tailwind usa già.
-- **Restano:** il peso del file in B4; «Aggiungi» della nota dentro il campo (`08`/`17`): ora compare solo con del testo; «Profili» del cliente in errore fuori dalla tavola degli stati. B2 (b), la × dell'etichetta al passaggio, le schede che scorrono, «Per quale cliente?», B13 e `/agenzie` sono fatti con D-99. Non verificati Safari, Firefox e Meta vera.
+- **Restano:** «Aggiungi» della nota dentro il campo (`08`/`17`): ora compare solo con del testo. Il peso del file in B4 («38,8 MB · Convertito in MP4», il DTO del file del post porta `sizeBytes`) e «Profili» del cliente in errore (nella tavola degli stati, con il suo testo, senza «Aggiungi profilo», «Riprova» in fondo alla riga) sono fatti nel Task 1 della tappa 7. B2 (b), la × dell'etichetta al passaggio, le schede che scorrono, «Per quale cliente?», B13 e `/agenzie` sono fatti con D-99. Non verificati Safari, Firefox e Meta vera.
 - **Stato:** fatte in R10 come proposta della revisione, provvisorie; Matteo può cambiarle o togliere una correzione.
 
 ### D-99 · Correzioni dopo il racconto della revisione: editor, righe che si adattano, «Clienti»
@@ -750,7 +742,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   10. Dettagli: la scelta «Zone» dell'anteprima resta ricordata in questo browser; la × di un'etichetta si vede al passaggio o al fuoco, sempre sul telefono; «Aggiungi» di una nota compare quando c'è del testo; la scheda attiva del cliente scorre in vista sul telefono.
 - **Scelte provvisorie della seconda parte:**
   - La libreria del cliente **non è unita** a quella dell'agenzia: hanno la stessa riga di strumenti e lo stesso aspetto, ma restano due componenti. Quella del cliente ha cartelle, spostamenti e trascinamento che quella di tutti i clienti non ha (le cartelle sono di un cliente), e unirle è un lavoro a sé, da fare se serve con la sua PR. La dimensione delle miniature (E-1) resta, accanto alla vista.
-  - Le pagine fuori dal pannello che usano ancora la barra vecchia in alto (`/`, che di solito rimanda subito altrove, `/conferma-email`, `/sicurezza/non-sono-stato-io`, `/piattaforma/email`) non sono state toccate: si vedono di rado e chiedono una scelta sul loro guscio.
+  - Le pagine fuori dal pannello che usavano ancora la barra vecchia in alto (`/`, `/conferma-email`, `/sicurezza/non-sono-stato-io`, `/piattaforma/email`) sono passate al guscio `auth` nel Task 1 della tappa 7, come Accedi e `/agenzie`. Scelta provvisoria: l'email di sistema usa la colonna larga, con due gruppi di impostazioni («Server SMTP» con il punto dello stato, «Email di prova») e sotto i collegamenti all'agenzia, alle impostazioni ed «Esci», perché non ha più la barra in alto. In `/` lo stato del sistema è una riga con il punto, sotto «Accedi al pannello».
 - **Stato:** scelte provvisorie, Matteo può cambiarle.
 
 ## Dalla prova della 0.12.1

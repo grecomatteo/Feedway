@@ -23,12 +23,14 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Una colonna per un'informazione:** due colonne che dicono quasi la stessa cosa diventano una («oggi, 12:00 · 3 in programma»), e lo spazio va a quella che serve a riconoscere la riga.
 - **Nell'editor, quello che manca viene prima:** con una scelta da fare o un blocco, «Controlli» stanno sopra l'anteprima.
 - **Etichette:** quadratino di 8 px con l'accento scuro del tema, mai l'arancio del marchio.
+- **Soglie delle colonne** (R10 e D-99): «Oggi» ha due colonne quando la pagina è larga almeno 928 px (container query: un portatile da 1280 con la barra di scorrimento sempre visibile ci sta); l'elenco dei clienti ha le colonne da 1280 px e sotto è a righe come sul telefono; nei post del cliente la colonna «Autore» non c'è tra 768 e 1280 px; «Ultimi file» del cliente ha caselle di almeno 104 px che riempiono la riga; con il dettaglio del file aperto la libreria si restringe di quanto è largo il dettaglio (da 1024 px).
+- **Nell'editor l'anteprima ha la forma del post** (4:5, 1:1, 1,91:1) e non è più alta dello schermo meno 20 rem, mai più stretta di 16 rem, così a 1440×900 e 1280×800 i «Controlli» si vedono senza scorrere (R10, A1).
 - **Le misure si provano anche a 1280×800 e 1366×768**, i portatili veri, non solo alle misure delle schermate (1440 e 390).
 - **Token:** un token di spazio non si chiama come un'utilità che Tailwind ha già (`block`, `flex`, `full`…), perché ne riscrive la larghezza (`tests/design-tokens.test.ts`).
 - **Un avviso si dice con un punto, non con un riquadro:** ciò che manca in un gruppo di impostazioni è un `StatusDot` accanto al titolo del gruppo («Manca il titolare»), non una fascia colorata. I paragrafi hanno un limite di 75 caratteri: una fascia fatta con un `<p>` si ferma a metà del riquadro.
 - **Impostazioni in gruppi e righe:** ogni pagina delle impostazioni usa `SettingsGroup` e `SettingsRow` (o righe con le stesse misure), mai un riquadro con il titolo dentro; l'aiuto va sotto l'etichetta del campo a cui serve, e un'etichetta sta su una riga nei 200 px.
 - **Un'azione che non risolve un problema va nel «⋯»** della riga (`RowActions`), come «Togli dal cliente».
-- **Le pagine prima del pannello** (accedi, scegli l'agenzia) usano il guscio `auth`: logo e una colonna in mezzo, nessuna barra in alto.
+- **Le pagine fuori dal pannello** (accedi, scegli l'agenzia, la pagina d'ingresso `/`, i link delle email `/conferma-email` e `/sicurezza/non-sono-stato-io`, l'email di sistema `/piattaforma/email`) usano il guscio `auth`: logo e una colonna in mezzo, nessuna barra in alto. Un modulo lungo chiede la colonna larga (`authWide`). Il guscio `default` con la barra in alto resta solo per la pagina di prova dei componenti (`/__test/componenti`).
 - **Strumenti di un elenco in una riga sola:** a sinistra il filtro a schede, la ricerca e i filtri; a destra vista e azione. Su un portatile stretto la parte destra va a capo allineata a destra.
 
 ## Tela unica (18 novembre 2026)
@@ -49,31 +51,35 @@ Studio editoriale visivo: fotografie e copertine dei clienti protagoniste, strut
 
 ## Token (variabili Pencil, da riportare in CSS)
 
+Valori del tema Feedway dopo il ridisegno (R1 e R9, `packages/ui/src/tokens.ts`, che è la fonte: le altre palette cambiano le superfici e l'accento, non gli stati). `paper`, `card` e `groove` dello stile unione non ci sono più: la pagina è `bg`, un elenco o un gruppo è `surface`, il fondo dei filtri e degli scheletri è `surface-sunken`.
+
 | Token | Chiaro | Scuro | Uso |
 |---|---|---|---|
-| `bg` | `#FAF9F6` carta | `#191817` | Fondo pagina |
-| `surface` | `#FFFFFF` | `#242321` | Schede, pannelli |
-| `surface-sunken` | `#F3F1EC` | `#1F1E1C` | Selettori, righe secondarie |
-| `nav-bg` | `#F3F1EC` | `#141312` | Barra laterale |
-| `nav-hover` | `#E9E6DF` | `#22211F` | Riga della barra al passaggio del mouse o con il menu aperto |
-| `paper` | `#F6F3EE` carta Hallmark | `#191817` | Fondo delle pagine in stile unione |
-| `card` | `#FFFDF9` cartoncino | `#242321` | Superficie di un elenco o di una tabella (stile unione) |
-| `groove` | `#EFEBE4` scanalatura | `#1F1E1C` | Fondo del filtro a scanalatura, blocchi degli scheletri |
-| `text` | `#242321` | `#F4F2EE` | Testo |
-| `text-muted` | `#5F5B55` | `#B9B4AC` | Metadati |
-| `border` / `border-strong` | `#E3DFD7` / `#CFCAC0` | `#3A3835` / `#55524D` | Bordi |
-| `field-border` | `#7F7B74` | `#83807A` | Bordo di campi, tendine e pulsanti con contorno (≥ 3:1, WCAG 1.4.11) |
-| `brand` | `#FF762E` | uguale | Azioni principali, selezioni |
+| `bg` | `#FBFAF8` | `#171615` | Fondo pagina |
+| `surface` | `#FFFFFF` | `#1F1E1C` | Elenchi, gruppi di impostazioni, pannelli |
+| `surface-sunken` | `#F4F2EE` | `#1A1918` | Filtri a schede, righe secondarie, scheletri |
+| `nav-bg` | `#F6F4F0` | `#131211` | Barra laterale |
+| `nav-hover` | `#EFECE6` | `#2A2826` | Riga al passaggio del mouse, voce attiva del menu (mai l'accento) |
+| `text` | `#242321` | `#F4F2EE` | Testo; nello scuro anche selezioni, spunte e interruttori (`--ui-bg-inverted`, D-97) |
+| `text-muted` | `#625E58` | `#B4AFA7` | Metadati |
+| `border` / `border-strong` | `#E7E3DC` / `#D5D0C7` | `#32302D` / `#46433F` | Bordi |
+| `field-border` | `#8A857D` | `#827E77` | Bordo di campi, tendine e pulsanti con contorno (≥ 3:1, WCAG 1.4.11) |
+| `brand` | `#FF762E` | uguale | Il solo pulsante arancio della pagina |
 | `on-brand` | `#242321` | uguale | Etichette sui pulsanti arancioni |
-| `brand-hover` | `#FF8F52` | uguale | Pulsante principale sotto il puntatore o premuto (etichetta ≥ 4,5:1) |
-| `brand-soft` | `#FFE8DA` | `#3D2A1F` | Voce di navigazione attiva, scelta selezionata |
+| `brand-hover` | `#FF8A4C` | uguale | Pulsante principale sotto il puntatore o premuto |
+| `brand-soft` | `#FFEFE5` | `#3A281D` | Scelta selezionata |
 | `focus` | `#242321` | `#FF762E` | Anello di focus 2 px |
 | `success` / `-soft` | `#17693F` / `#E3F3EA` | `#6FD39C` / `#173326` | Confermato |
-| `warning` / `-soft` | `#8A5200` / `#FFF1D2` | `#F2B860` / `#3A2C12` | Avviso, da accertare |
+| `warning` / `-soft` | `#8A5200` / `#FFF4DC` | `#F2B860` / `#3A2C12` | Avviso, da accertare |
+| `warning-dot` | `#D98A00` | `#F2B860` | Punto di «Da ricollegare» e degli avvisi |
 | `danger` / `-soft` | `#B5174B` / `#FCE8EC` | `#FF94AE` / `#3D1A24` | Con problema, blocco (cremisi freddo, lontano da ogni accento: D-25) |
 | `info` / `-soft` | `#1F5AA6` / `#E7EFFA` | `#8CB8F2` / `#18273B` | Programmato, in verifica |
+| `neutral-dot` | `#A39E95` | `#7D7972` | Punto di una bozza e di ciò che è in pausa |
+| `toast` / `on-toast` / `toast-icon` | `#242321` / `#FFFFFF` / `#6FD39C` | `#F4F2EE` / `#242321` / `#17693F` | Conferma in fondo alla pagina |
+| `img-outline` | nero al 10% | bianco al 10% | Filo attorno a una foto, perché una foto bianca non si perda |
+| `status-*` | `draft`, `scheduled`, `publishing`, `verifying`, `confirmed`, `problem`, `paused` | | Pallini degli stati dei post |
 
-I colori di stato hanno significato indipendente dal marchio e sono sempre accompagnati da icona e testo. Raggi: 8 per i controlli, 12 per le schede. Spaziatura 4/8/12/16/24/32/40/48, con i ruoli della pagina in «Struttura delle pagine».
+I colori di stato hanno significato indipendente dal marchio e sono sempre accompagnati da icona e testo. Raggi (`main.css`): 6 per le miniature, 8 per i controlli, 10 per elenchi e gruppi, 12 per i menu, 14 per i dialoghi, 16 per i fogli del telefono. Spaziatura 4/8/12/16/24/32/40/48, con i ruoli della pagina in «Struttura delle pagine».
 
 ## Struttura delle pagine (18 novembre 2026; tappa 6, Task 1, D-63)
 

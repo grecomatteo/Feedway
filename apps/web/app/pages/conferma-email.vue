@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { ApiFailure } from '~/composables/useApi'
+
+/** The link of the email that confirms a new address: a page before the panel (D-99). */
+definePageMeta({ layout: 'auth' })
 // a click before the page runs in the browser would be lost
 const ready = useHydrated()
-import type { ApiFailure } from '~/composables/useApi'
 
 const { t } = useI18n()
 const { call, failure } = useApi()
@@ -39,25 +42,44 @@ async function confirm() {
 </script>
 
 <template>
-  <section aria-labelledby="confirm-email" class="space-y-4">
-    <h1 id="confirm-email" class="text-3xl">{{ $t('confirmEmail.title') }}</h1>
+  <section aria-labelledby="confirm-email" class="grid gap-5">
+    <h1 id="confirm-email" class="text-center">{{ $t('confirmEmail.title') }}</h1>
     <template v-if="confirmed">
-      <p role="status" class="flex items-center gap-2 text-(--app-success)">
-        <UIcon name="i-lucide-circle-check" aria-hidden="true" />
+      <p role="status" class="flex items-start gap-2">
+        <UIcon
+          name="i-lucide-circle-check"
+          class="mt-0.5 size-4 shrink-0 text-(--app-success)"
+          aria-hidden="true"
+        />
         {{ $t('confirmEmail.done', { email: confirmed }) }}
       </p>
-      <p>{{ $t('confirmEmail.doneNext') }}</p>
+      <p class="text-(--app-text-muted)">{{ $t('confirmEmail.doneNext') }}</p>
+      <UButton to="/accedi" block size="xl" class="min-h-control">
+        {{ $t('home.signIn') }}
+      </UButton>
     </template>
-    <p v-else-if="token === ''" role="alert" class="text-(--app-danger)">
+    <p v-else-if="token === ''" role="alert" class="flex items-start gap-2">
+      <UIcon
+        name="i-lucide-triangle-alert"
+        class="mt-0.5 size-4 shrink-0 text-(--app-danger)"
+        aria-hidden="true"
+      />
       {{ $t('confirmEmail.missing') }}
     </p>
     <template v-else>
       <p>{{ $t('confirmEmail.intro') }}</p>
-      <p v-if="problem" role="alert" class="flex items-center gap-2 text-(--app-danger)">
-        <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
+      <p v-if="problem" role="alert" class="flex items-start gap-2 text-(--app-danger)">
+        <UIcon name="i-lucide-triangle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         {{ problem.message }}
       </p>
-      <UButton class="min-h-control" :loading="sending" :disabled="!ready" @click="confirm">
+      <UButton
+        block
+        size="xl"
+        class="min-h-control"
+        :loading="sending"
+        :disabled="!ready"
+        @click="confirm"
+      >
         {{ $t('confirmEmail.button') }}
       </UButton>
     </template>

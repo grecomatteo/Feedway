@@ -7,8 +7,9 @@ import { reconnecting, selectable, type PostEditor } from '~/composables/usePost
  * «Dove» (§11.2 point 5; screens 08 and 09): the client's accounts in one list, each with its box,
  * its icon, its name and on the right what it is («Pagina Facebook») or why it cannot be chosen
  * («Da ricollegare», with the box off). From six accounts up a search, «Gruppi» and «Seleziona
- * tutti» stand above the list: with fewer they only take room. «Gruppi» ticks the accounts of a
- * saved group that can be chosen and says which ones it skips (§11.7, design E8c).
+ * tutti» stand above the list: with fewer they only take room. «Gruppi» puts the accounts of a
+ * saved group that can be chosen in place of the ones ticked (D-80.2) and says which ones it
+ * skips (§11.7, design E8c).
  */
 const props = defineProps<{
   editor: PostEditor
@@ -92,10 +93,9 @@ function split(g: AccountGroupDto) {
 const groupNote = ref<string | null>(null)
 function applyGroup(g: AccountGroupDto) {
   const { ok, skipped } = split(g)
-  set(
-    ok.map((a) => a.id),
-    true,
-  )
+  // a group is the choice, not an addition to it (D-80.2): the accounts ticked before go away
+  e.destinations.value = ok.map((a) => a.id)
+  e.touched()
   const done = t('posts.destinations.groups.done', { n: ok.length, name: g.name }, ok.length)
   groupNote.value =
     skipped.length === 0

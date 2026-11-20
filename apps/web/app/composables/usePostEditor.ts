@@ -24,6 +24,8 @@ export interface EditorFile {
   id: string
   kind: 'image' | 'video' | null
   name: string | null
+  /** of the original as uploaded; null when the post does not say it */
+  sizeBytes: number | null
   status: 'uploading' | 'processing' | 'ready' | 'failed' | 'deleted'
   width: number | null
   height: number | null
@@ -49,6 +51,7 @@ export const fromMedia = (m: MediaDto): EditorFile => ({
   id: m.id,
   kind: m.kind,
   name: m.originalName,
+  sizeBytes: m.sizeBytes,
   status: m.status,
   width: m.width,
   height: m.height,
@@ -61,6 +64,7 @@ const fromPostMedia = (m: PostResponse['media'][number]): EditorFile => ({
   id: m.id,
   kind: m.kind,
   name: m.originalName,
+  sizeBytes: m.sizeBytes,
   status: m.status,
   width: m.width,
   height: m.height,
@@ -112,7 +116,21 @@ export function usePostEditor(opts: {
   const { t } = useI18n()
   const workspaceId = opts.client.value.id
   const base = org.api(`/workspaces/${encodeURIComponent(workspaceId)}`)
-  const uploads = useUploads(workspaceId, { shown: true })
+  // a file of the post the worker has just made ready (or failed): its tile and the checks
+  // follow, so «In attesa del file N» does not stay after the file is ready (D-80.1)
+  const uploads = useUploads(workspaceId, {
+    shown: true,
+    onChange: (media) => {
+      if (!media) return
+      let moved = false
+      for (const entry of entries.value)
+        if (entry.file?.id === media.id && entry.file.status !== media.status) {
+          entry.file = fromMedia(media)
+          moved = true
+        }
+      if (moved) askChecks()
+    },
+  })
 
   const role = computed(() => opts.client.value.myRole)
   const may = computed(() => ({
@@ -283,9 +301,11 @@ export function usePostEditor(opts: {
     },
     onBusy: (b) => (checking.value = b),
   })
+  /** nothing is scheduled in an archived client (D-70): no checks to run, the summary says so */
+  const archived = computed(() => opts.client.value.archivedAt !== null)
   function askChecks() {
     const b = body()
-    if (!when.value) return
+    if (!when.value || archived.value) return
     checks.request({
       type: b.type,
       mediaIds: b.mediaIds,
@@ -756,6 +776,7 @@ export function usePostEditor(opts: {
     setLabels,
     timeZone,
     save,
+    archived,
     report,
     reportMedia,
     checking,

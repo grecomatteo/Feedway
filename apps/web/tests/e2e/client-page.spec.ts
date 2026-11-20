@@ -233,3 +233,21 @@ test('an archived client: nothing planned, and no error from the agenda', async 
   await expect(page.getByText('Nessun post in programma.')).toBeVisible()
   await expect(page.getByText('Non siamo riusciti a caricare i prossimi post.')).toHaveCount(0)
 })
+
+test('profiles that cannot be read: one row with «Riprova» at its end, nothing to add (D-98)', async ({
+  page,
+}) => {
+  const { org, client } = await agencyWithClient(page)
+  await page.route(/\/workspaces\/[^/]+\/profiles(\?|$)/, (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+  )
+  await page.goto(`/${org}/spazi/${client.slug}`)
+  const failed = page.locator('[data-load-failed]').filter({ hasText: 'profili del cliente' })
+  await expect(failed).toHaveText(/Non siamo riusciti a caricare i profili del cliente\./)
+  await expect(page.getByRole('button', { name: 'Aggiungi profilo' })).toHaveCount(0)
+  // «Riprova» closes the row, wherever the text ends
+  const row = await failed.boundingBox()
+  const retry = await failed.getByRole('button', { name: 'Riprova' }).boundingBox()
+  expect(row && retry && row.x + row.width - (retry.x + retry.width)).toBeLessThanOrEqual(20)
+  expect((await axe(page)).violations).toEqual([])
+})

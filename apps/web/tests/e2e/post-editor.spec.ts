@@ -119,6 +119,8 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
   await expect(saveState(page)).not.toContainText('Salvataggio')
 
   await page.reload()
+  // the tab of a saved post is «Modifica il post», whatever its state (D-80.6)
+  await expect(page).toHaveTitle(/^Modifica il post · Forno Luce/)
   // a draft is named by the start of its text (review of fidelity, B12)
   await expect(
     page.getByRole('heading', { level: 1, name: 'Il pane di segale è tornato' }),
@@ -220,6 +222,50 @@ test('a reel too short is blocked, and «Programma» stays off', async ({ page }
   await expect(page.locator('[data-outcome="reel_too_short"]')).toBeVisible({ timeout: 15_000 })
   await expect(scheduleButton(page)).toBeDisabled()
   await expect(page.getByRole('button', { name: /Risolvi/ })).toBeVisible()
+})
+
+test('a file still being prepared: «In attesa del file 2», no false blocks (D-80.1)', async ({
+  page,
+}) => {
+  const { org, client, owner } = await clientWithFiles(page)
+  await libraryFile(org, client.id, owner.userId, {
+    kind: 'video',
+    name: 'forno.mov',
+    status: 'processing',
+  })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['pane.jpg', 'forno.mov'])
+  await expect(page.locator('[data-type="carousel"]')).toHaveAttribute('aria-pressed', 'true')
+  const summary = page.locator('[data-checks]').locator('visible=true')
+  await expect(summary.locator('[data-outcome="media_processing"]')).toHaveText(
+    /In attesa del file 2/,
+    { timeout: 15_000 },
+  )
+  // the carousel counts the file, Facebook's choice about the video waits for it
+  await expect(summary.locator('[data-outcome="carousel_too_few"]')).toHaveCount(0)
+  await expect(summary.locator('[data-outcome="carousel_mixed_with_facebook"]')).toHaveCount(0)
+  await expect(summary.locator('[data-missing]')).toHaveCount(0)
+  await expect(summary).toContainText('In attesa di 1 file')
+  await expect(scheduleButton(page)).toBeDisabled()
+})
+
+test('a post of an archived client: the summary says why, never «Controlli non riusciti» (D-80.5)', async ({
+  page,
+}) => {
+  const { org, client, files } = await clientWithFiles(page)
+  const made = await page.request.post(`/api/v1/orgs/${org}/workspaces/${client.id}/posts`, {
+    headers: { origin: new URL(process.env.E2E_BASE_URL ?? '').origin, 'x-app-request': '1' },
+    data: { type: 'photo', caption: { common: 'Il pane di oggi' }, mediaIds: [files.pane] },
+  })
+  expect(made.ok()).toBe(true)
+  const { id } = (await made.json()) as { id: string }
+  await adminQuery('update workspaces set archived_at = now() where id = $1', [client.id])
+  await page.goto(`/${org}/spazi/${client.slug}/post/${id}`)
+  const summary = page.locator('[data-checks]').locator('visible=true')
+  await expect(summary.locator('[data-archived]')).toHaveText(
+    'Il cliente è archiviato: non si programmano post.',
+  )
+  await expect(summary).not.toContainText('Controlli non riusciti')
 })
 
 test('a warning to answer: the choice is saved, then the post can be scheduled', async ({
