@@ -108,6 +108,22 @@ test('between 1024 and 1280 px nothing runs off the page: Utenti, the client pic
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.getByText('Marta Manager').first()).toBeVisible()
     expect(await overflow(), `Utenti a ${String(width)} px`).toBeLessThanOrEqual(0)
+    // inside the row too: the clients stay readable and no cell runs into the next one
+    const row = page.locator('[data-member-row]', { hasText: 'Marta Manager' })
+    const cells = await row.getByRole('cell').evaluateAll((els) =>
+      els.map((el) => ({
+        text: el.textContent.trim(),
+        width: el.getBoundingClientRect().width,
+        spills:
+          getComputedStyle(el).textOverflow !== 'ellipsis' && el.scrollWidth > el.clientWidth + 1,
+      })),
+    )
+    const clients = cells.find((c) => c.text.includes('Forno Luce'))
+    expect(clients?.width ?? 0, `Clienti a ${String(width)} px`).toBeGreaterThanOrEqual(80)
+    expect(
+      cells.filter((c) => c.spills).map((c) => c.text),
+      `Utenti a ${String(width)} px`,
+    ).toEqual([])
   }
   // the list of the client picker scrolls only up and down
   await page.goto(`/${org}`)

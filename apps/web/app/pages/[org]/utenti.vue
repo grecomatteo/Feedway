@@ -232,8 +232,9 @@ const inviteActions = (i: Invite) =>
     { label: t('users.revoke'), icon: 'i-lucide-x', onSelect: () => revoke(i) },
   ])
 
-// the columns give way between 1024 and 1280 px, where the page is narrow beside the sidebar (D-102)
-const COLUMNS = 'minmax(180px,1.6fr) 112px minmax(0,1fr) minmax(0,140px) minmax(0,150px) 30px'
+// under 1280 px the fourth column (last sign-in, expiry) goes, as the author's column of the posts:
+// beside the sidebar the page is too narrow for six (D-102). The narrow grid is in the template.
+const COLUMNS = 'minmax(180px,1.6fr) 112px minmax(96px,1fr) 140px 170px 30px'
 const memberHead = computed(() => [
   t('users.col.person'),
   t('users.col.role'),
@@ -335,12 +336,12 @@ async function transferred() {
           :columns="COLUMNS"
           :head="inviteHead"
           :label="$t('users.invitesTitle')"
-          class="max-md:[&>[data-list-head]]:sr-only"
+          class="max-md:[&>[data-list-head]]:sr-only md:max-xl:[&>[data-list-head]]:grid-cols-[minmax(180px,1.6fr)_112px_minmax(96px,1fr)_170px_30px] md:max-xl:[&>[data-list-head]>:nth-child(4)]:hidden"
         >
           <ListRow
             v-for="i in shownInvites"
             :key="i.id"
-            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto] md:max-xl:grid-cols-[minmax(180px,1.6fr)_112px_minmax(96px,1fr)_170px_30px]"
             data-invite-row
           >
             <span role="cell" class="flex min-w-0 items-center gap-3">
@@ -356,7 +357,7 @@ async function transferred() {
               inviteRole(i)
             }}</span>
             <span role="cell" class="truncate max-md:hidden">{{ inviteClients(i) }}</span>
-            <span role="cell" class="text-(--app-text-muted) max-md:hidden">{{
+            <span role="cell" class="truncate text-(--app-text-muted) max-xl:hidden">{{
               formatRelative(i.expiresAt)
             }}</span>
             <span role="cell" class="max-md:hidden" />
@@ -385,12 +386,12 @@ async function transferred() {
           :columns="COLUMNS"
           :head="memberHead"
           :label="$t('users.title')"
-          class="max-md:[&>[data-list-head]]:sr-only"
+          class="max-md:[&>[data-list-head]]:sr-only md:max-xl:[&>[data-list-head]]:grid-cols-[minmax(180px,1.6fr)_112px_minmax(96px,1fr)_170px_30px] md:max-xl:[&>[data-list-head]>:nth-child(4)]:hidden"
         >
           <ListRow
             v-for="m in shownMembers"
             :key="m.id"
-            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto] md:max-xl:grid-cols-[minmax(180px,1.6fr)_112px_minmax(96px,1fr)_170px_30px]"
             data-member-row
           >
             <span role="cell" class="flex min-w-0 items-center gap-3">
@@ -407,7 +408,9 @@ async function transferred() {
               memberRole(m)
             }}</span>
             <span role="cell" class="truncate max-md:hidden">{{ memberClients(m) }}</span>
-            <span role="cell" class="text-(--app-text-muted) max-md:hidden">{{ lastSeen(m) }}</span>
+            <span role="cell" class="truncate text-(--app-text-muted) max-xl:hidden">{{
+              lastSeen(m)
+            }}</span>
             <span role="cell" class="min-w-0 max-md:hidden">
               <span v-if="m.id === myId" class="text-(--app-text-muted)">{{
                 $t('users.you')
