@@ -148,3 +148,22 @@ test('security screens have no a11y violations', async ({ page }) => {
     await expect(dialog).toBeHidden()
   }
 })
+
+test('the pages outside the panel have its shell: the logo, one column, no bar on top (D-99)', async ({
+  page,
+}) => {
+  for (const path of ['/', '/conferma-email?t=prova', '/sicurezza/non-sono-stato-io?t=prova']) {
+    await page.goto(path)
+    await expect(page.locator('main[data-auth]')).toBeVisible()
+    await expect(page.locator('header nav')).toHaveCount(0)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+      .analyze()
+    expect(results.violations).toEqual([])
+  }
+})

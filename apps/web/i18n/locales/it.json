@@ -1553,6 +1553,7 @@
     "linked": "Collegato",
     "quota": "{used} su {total}",
     "neverSynced": "Mai sincronizzato",
+    "profilesLoadError": "Non siamo riusciti a caricare i profili del cliente.",
     "noProfiles": "Questo cliente non ha ancora profili",
     "noProfilesAdd": "Aggiungi uno dei profili trovati che non sono ancora in un cliente.",
     "noProfilesNone": "Collega un nuovo profilo da Impostazioni → Integrazioni, poi aggiungilo qui.",
@@ -1959,7 +1960,7 @@
     },
     "media_processing": {
       "title": "File ancora in preparazione",
-      "text": "Feedway sta ancora preparando questo file. Quando nella libreria è «Pronto», controlla di nuovo."
+      "text": "Feedway sta preparando il file. I controlli che dipendono da lui ripartono quando è pronto."
     },
     "media_failed": {
       "title": "File non riuscito",
@@ -2221,9 +2222,9 @@
         "button": "Gruppi",
         "none": "Nessun gruppo per questo cliente",
         "gone": "un account non più del cliente",
-        "ticks": "Non spunta nessun account | Spunta 1 account | Spunta {n} account",
-        "ticksSkipping": "Spunta {n} account; salta {skipped}",
-        "done": "«{name}»: nessun account da spuntare. | «{name}»: spuntato 1 account. | «{name}»: spuntati {n} account.",
+        "ticks": "Nessun account da scegliere | Solo il suo account | Solo i suoi {n} account",
+        "ticksSkipping": "Solo i suoi {n} account; salta {skipped}",
+        "done": "«{name}»: nessun account da scegliere. | «{name}»: ora è scelto solo il suo account. | «{name}»: ora sono scelti solo i suoi {n} account.",
         "skippedNote": "Saltato perché non si può scegliere: {skipped}. | Saltati perché non si possono scegliere: {skipped}."
       },
       "offReconnect": "Da ricollegare",
@@ -2273,12 +2274,19 @@
       "missingPhoto": "la foto al {place}",
       "missingVideo": "il video al {place}",
       "missingOn": "Su {account} non esce {what}. Se deve esserci, cambia la scelta o togli il file.",
+      "waiting": "In attesa dei file | In attesa di 1 file | In attesa di {n} file",
+      "archived": "Il cliente è archiviato: non si programmano post.",
+      "waitingFile": "In attesa del file {n}",
+      "waitingShort": "In attesa",
+      "waitingCover": "In attesa della copertina",
+      "waitingUpload": "Si sta caricando. I controlli ripartono quando è nella libreria.",
       "fixes": "Nessuna correzione fatta da Feedway. | 1 correzione fatta da Feedway. | {n} correzioni fatte da Feedway.",
       "showDetails": "Dettagli",
       "hideDetails": "Nascondi",
       "blocks": "Nessun blocco | 1 blocco | {n} blocchi",
       "allReady": "Tutto pronto",
       "postWithPhotos": "Post con foto | Post con 1 foto | Post con {n} foto",
+      "postWithFiles": "Post con file | Post con 1 file | Post con {n} file",
       "photos": "nessuna foto | 1 foto | {n} foto",
       "videos": "nessun video | 1 video | {n} video"
     },
@@ -2325,7 +2333,7 @@
     },
     "editor": {
       "newTitle": "Nuovo post",
-      "editTitle": "Bozza",
+      "editTitle": "Modifica il post",
       "scheduledTitle": "Post programmato",
       "cancelledTitle": "Post annullato",
       "loading": "Carico il post…",

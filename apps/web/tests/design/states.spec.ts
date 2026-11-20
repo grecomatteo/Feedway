@@ -33,7 +33,7 @@ interface StateShot {
 
 const AGENDA = /\/orgs\/[^/]+\/agenda(\?|\/)/
 const CLIENTS = /\/orgs\/[^/]+\/workspaces(\?|$)/
-const CLIENT = /\/orgs\/[^/]+\/(agenda\?|workspaces\/[^/]+\/(accounts|members)(\?|$))/
+const CLIENT = /\/orgs\/[^/]+\/(agenda\?|workspaces\/[^/]+\/(accounts|members|profiles)(\?|$))/
 const POSTS = /\/workspaces\/[^/]+\/posts(\?|$)/
 const CONTENT = /\/workspaces\/[^/]+\/(labels|caption-templates|account-groups)(\?|$)/
 const MEDIA = /\/orgs\/[^/]+\/media(\?|$)/

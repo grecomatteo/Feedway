@@ -8,6 +8,8 @@ export interface PostMediaView {
   status: MediaStatus
   kind: MediaKind
   originalName: string
+  /** of the original as uploaded: «Sostituisci» says it (D-98, B4) */
+  sizeBytes: number
   width: number | null
   height: number | null
   durationMs: number | null
@@ -42,6 +44,7 @@ export async function getMediaForPosts(
         status: m.status,
         kind: m.kind,
         originalName: m.originalName,
+        sizeBytes: m.sizeBytes,
         width: m.width,
         height: m.height,
         durationMs: m.durationMs,

@@ -2,6 +2,7 @@ import { captionStats } from '../../../rules/caption.js'
 import type { PlatformRules, PlatformView, RuleFinding } from '../../../rules/types.js'
 import { facebookFormat } from './content-types.js'
 import { META_LIMITS as L } from './limits.js'
+import { isPendingMedia } from '../../../rules/post-rules.js'
 import { secondsUp } from '../../../rules/seconds.js'
 import { checkReelAndStory, videoOf } from './shared.js'
 
@@ -13,6 +14,8 @@ const skip = { kind: 'skip_platform', platform } as const
 
 function checkCarousel(view: PlatformView): RuleFinding[] {
   if (view.type !== 'carousel') return []
+  // a file not ready yet may be a photo or a video of its own: the choices wait (D-80.1)
+  if (view.media.some((m) => isPendingMedia(m.media))) return []
   const photos = view.media.filter((m) => m.media.kind === 'image').map((m) => m.index)
   const findings: RuleFinding[] = []
   // a Page has no carousel of videos: the only way on is without Facebook
