@@ -753,11 +753,11 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 
 - **Origine:** prova della 0.12.1 (20/11), §2 del report.
 - **Visibili:**
-  1. Il selettore del cliente ha una barra di scorrimento orizzontale. La lista ha `overflow-y-auto`, e la linea di separazione della prima riga esce di 6 px per lato (`before:inset-x-[-6px]`). Rimedio: `overflow-x-hidden` sulla lista, oppure una linea senza margini negativi.
-  2. Utenti esce dalla pagina tra circa 1024 e 1280 px: le colonne della tabella sono fisse, e a 1160 px la pagina scorre di 85 px. Rimedio: colonne flessibili, oppure schede sotto 1280 px come in Clienti.
+  1. Il selettore del cliente ha una barra di scorrimento orizzontale. La lista ha `overflow-y-auto`, e la linea di separazione della prima riga esce di 6 px per lato (`before:inset-x-[-6px]`). **Fatto nel Task 1 della tappa 7:** `overflow-x-hidden` sulla lista, così la linea arriva ai bordi del pannello senza far scorrere.
+  2. Utenti esce dalla pagina tra circa 1024 e 1280 px: le colonne della tabella sono fisse, e a 1160 px la pagina scorre di 85 px. **Fatto nel Task 1 della tappa 7:** tra 768 e 1280 px la colonna «Ultimo accesso» (negli inviti «Scade») non c'è, come «Autore» nei post; persona almeno 180 px, clienti almeno 96 px e tagliati con i puntini, stato 170 px perché «Senza secondo fattore» ci stia. `page-layout.spec.ts` prova 1024, 1160 e 1280 px con una persona di un cliente: niente esce dalla pagina, «Clienti» resta leggibile e nessuna cella invade la vicina. Scelta provvisoria: se l'ultimo accesso serve anche sul portatile, va nel «⋯» o sotto il nome.
 - **Minori:**
   3. Sul telefono le ricerche (clienti, post, libreria, utenti) sono a 14 px e la nota a 15 px. Sotto i 16 px Safari su iPhone ingrandisce la pagina (vedi D-86.4). Da confermare sull'iPhone vero.
-  4. «Data già passata» suggerisce «Pubblica ora», ma il pulsante si chiama «Pubblica subito».
+  4. «Data già passata» suggerisce «Pubblica ora», ma il pulsante si chiama «Pubblica subito». **Fatto nel Task 1 della tappa 7.**
   5. Una bozza salvata senza testo ha il titolo «Nuovo post». Meglio «Bozza senza testo» o il tipo del post.
   6. La colonna «Collegamento» è sempre vuota, in Clienti e nei Profili della Panoramica (segnalato già nella 0.12.0).
   7. La Panoramica non mostra le foto dei profili, solo l'icona della piattaforma: serviva a vedere subito una foto persa.
