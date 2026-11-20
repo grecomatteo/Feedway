@@ -654,8 +654,8 @@ draft → scheduled → preparing → ready → publishing → published → ver
 |---|---|---|
 | `media.process` | Dopo l'upload | Analisi, conversioni, miniature; uno alla volta |
 | `media.publish_copies` | Alla programmazione (piano 07, P4) | Le copie con una ricetta (ritaglio, bande, copia per Facebook, reel adattato, storia, copertina): una alla volta, con lo stesso lucchetto e gli stessi turni tra le agenzie di `media.process`; dopo ogni conversione si sveglia la prossima copia e il prossimo file; la pulizia ogni dieci minuti sveglia le copie rimaste in attesa. Una copia non riuscita è un blocco del controllo prima di pubblicare (`media_copy_failed`) |
-| `target.prepare` | 15 minuti prima (subito se "Pubblica ora" o mancano meno di 15 minuti) | Container IG, upload video FB senza pubblicare |
-| `target.publish` | All'orario | |
+| `target.prepare` | 15 minuti prima (subito se "Pubblica ora" o mancano meno di 15 minuti) | Container IG, upload video FB senza pubblicare. Al massimo 3 preparazioni insieme per organizzazione e 1 per account (`post_targets.claimed_until`, piano 07 D-109); chi aspetta il turno non conta un tentativo |
+| `target.publish` | All'orario | `publishing` scritto prima della chiamata: rimasto oltre 6 minuti, il riconciliatore lo porta in `unknown` |
 | `target.reconcile` | Su esito incerto | §9.5 |
 | `target.verify` | 3 minuti dopo, poi 10 e 30 se serve | §9.6 |
 | `scheduler.reconcile` | Ogni minuto | Ricrea i lavori mancanti |
@@ -668,7 +668,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `heartbeat.external` | Ogni minuto | §16.7 |
 | `maintenance.cleanup` | Ogni notte | §11.9 |
 
-Ogni lavoro ha una chiave di unicità (destinazione + passo). Modificare o annullare un post aggiorna dati e lavori nella stessa transazione; il riconciliatore copre i casi interrotti a metà.
+Ogni lavoro ha una chiave di unicità `<destinazione>:<passo>:<generazione>` (piano 07, P3): `post_targets.generation` cresce a ogni mossa della destinazione e a ogni nuova attesa, e il lavoro porta la generazione per cui è stato mandato, così il gestore non fa nulla se la destinazione è andata avanti. I lavori partono **dopo il commit** (pg-boss usa la sua connessione); `post_targets.next_attempt_at` è l'ora del passo successivo di ogni destinazione, e il riconciliatore ogni minuto manda di nuovo, con la stessa chiave, quelli arrivati alla loro ora: un processo caduto tra commit e invio ritarda il passo di al massimo un minuto. Modificare un post in preparazione riporta le destinazioni a `scheduled` in una generazione nuova; ciò che era pronto su Meta si butta via alla preparazione successiva (`meta_ids._discard`).
 
 ### 9.5 Errori e tentativi
 

@@ -19,6 +19,7 @@ import { mediaProcess } from './handlers/media-process.js'
 import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { systemSelftest } from './handlers/system-selftest.js'
+import { schedulerReconcile, targetPrepare, targetPublish } from './handlers/target-steps.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 import { startHeartbeat } from './heartbeat.js'
 
@@ -50,6 +51,18 @@ export const ACCOUNTS_DAILY_TZ = 'Europe/Rome'
  */
 export const MEDIA_UPLOADS_CLEANUP_CRON = '7-59/10 * * * *'
 export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
+/** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
+export const SCHEDULER_RECONCILE_CRON = '* * * * *'
+
+/**
+ * Jobs of one queue at once in this worker. The preparations are limited per agency in the
+ * database (plan 07 «Lavori pesanti»); the calls that publish are short and must not wait for
+ * each other at 18:00 (CS1).
+ */
+export const QUEUE_CONCURRENCY: Partial<Record<QueueName, number>> = {
+  'target.prepare': 3,
+  'target.publish': 5,
+}
 
 export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<void> }> {
   const { queue, logger, queues } = deps
@@ -89,6 +102,9 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.avatar': accountsAvatar,
     'media.delete_files': mediaDeleteFiles,
     'media.uploads_cleanup': mediaUploadsCleanup,
+    'target.prepare': targetPrepare,
+    'target.publish': targetPublish,
+    'scheduler.reconcile': schedulerReconcile,
     ...deps.handlers,
     'media.process': mediaProcessOnStop,
     'media.publish_copies': mediaPublishCopiesOnStop,
@@ -96,7 +112,12 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
   const handlerDeps: JobHandlerDeps = { ...deps.services, logger, queue }
 
   const consume = async <N extends QueueName>(name: N, handler: JobHandler<N>) => {
-    await queue.work(name, (job) => handler(job, handlerDeps))
+    const concurrency = QUEUE_CONCURRENCY[name]
+    await queue.work(
+      name,
+      (job) => handler(job, handlerDeps),
+      concurrency === undefined ? undefined : { concurrency },
+    )
     logger.info({ queue: name }, 'consuming queue')
   }
   // binds each name to its own handler type; a plain loop over the union does not type-check
@@ -116,6 +137,13 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       {
         tz: MEDIA_UPLOADS_CLEANUP_TZ,
       },
+    )
+  if (queues.includes('scheduler.reconcile'))
+    await queue.schedule(
+      'scheduler.reconcile',
+      SCHEDULER_RECONCILE_CRON,
+      {},
+      { tz: MEDIA_UPLOADS_CLEANUP_TZ },
     )
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })

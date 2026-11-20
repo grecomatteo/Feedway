@@ -1,6 +1,8 @@
 import {
   DomainError,
   checkLimit,
+  distinctCopies,
+  prepareAt,
   instantToZoned,
   parseLimits,
   storedTimeZone,
@@ -10,12 +12,15 @@ import {
 } from '@app/domain'
 import type { PostRecord, PostScope } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
-import { checkPostInTx } from '../rules/index.js'
+import { requestPublishCopies } from '../media/index.js'
+import { checkPostInTx, publishFilesOfPost } from '../rules/index.js'
+import { sendSteps, type StepJob } from './publishing/context.js'
 import type { assertActiveOrganization } from '../workspaces/index.js'
 import {
   cannotChangeScheduled,
   cannotSchedule,
   changeOf,
+  isScheduledForPanel,
   lockedPost,
   mayPublish,
   openPosts,
@@ -75,9 +80,36 @@ async function assertDailyLimit(tx: Tx, organization: Organization, post: PostRe
 }
 
 /**
+ * What a change of the schedule sends after its commit (plan 07 P3): the first step of each
+ * destination, and the worker's wake-up when copies are waiting to be made.
+ */
+export interface AfterSchedule {
+  steps: StepJob[]
+  copiesFor: string | null
+}
+
+export const NOTHING_AFTER: AfterSchedule = { steps: [], copiesFor: null }
+
+/** Sends what the change asked for; a send that fails is sent again by the reconciler. */
+export async function sendAfterSchedule(
+  deps: Pick<PostsDeps, 'queue' | 'logger'>,
+  organizationId: string,
+  after: AfterSchedule,
+): Promise<void> {
+  await sendSteps(deps, after.steps)
+  if (after.copiesFor !== null)
+    await deps.queue
+      .send('media.publish_copies', { organizationId, postId: after.copiesFor })
+      .catch((error: unknown) => {
+        deps.logger.error({ err: error }, 'publish copies wake-up not queued')
+      })
+}
+
+/**
  * The checks of the saved post (`purpose: 'save'`), then its destinations as scheduled: each
- * with the fingerprint of what it publishes (P3); a destination a choice leaves out (another
- * platform skipped) is cancelled, it never goes out.
+ * with the fingerprint of what it publishes (P3) and the time of its preparation (`prepareAt`);
+ * a destination a choice leaves out (another platform skipped) is cancelled, it never goes out.
+ * The copies its files need are asked for now, hours before (Scelta 4).
  */
 async function scheduleSaved(
   tx: Tx,
@@ -87,7 +119,7 @@ async function scheduleSaved(
   scope: PostScope,
   postId: string,
   previousAt: Date | null,
-): Promise<void> {
+): Promise<AfterSchedule> {
   const saved = await tx.posts.find(scope, postId)
   if (!saved) throw postNotFound()
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(saved, 'save'))
@@ -101,6 +133,7 @@ async function scheduleSaved(
   )
     await assertDailyLimit(tx, organization, saved, at)
   const going = new Map(report.destinations.map((d) => [d.accountId, d.fingerprint]))
+  const startAt = prepareAt(at, deps.clock.now())
   await tx.posts.replaceTargets(
     scope,
     saved.id,
@@ -110,10 +143,28 @@ async function scheduleSaved(
             accountId: t.accountId,
             status: 'scheduled',
             fingerprint: going.get(t.accountId) ?? null,
+            nextAttemptAt: startAt,
           }
         : { accountId: t.accountId, status: 'cancelled', fingerprint: null },
     ),
   )
+  const files = await publishFilesOfPost(tx, deps, scope, toCheckInput(saved, 'publish'), report)
+  const asked = await requestPublishCopies(
+    tx,
+    { ids: deps.ids, newPublicToken: deps.newPublicToken },
+    scope,
+    distinctCopies(files),
+  )
+  const steps = (await tx.publishing.targetsOfPost(scope.organizationId, saved.id))
+    .filter((t) => t.status === 'scheduled')
+    .map((t): StepJob => ({
+      name: 'target.prepare',
+      organizationId: scope.organizationId,
+      targetId: t.id,
+      generation: t.generation,
+      startAfter: startAt,
+    }))
+  return { steps, copiesFor: asked > 0 ? saved.id : null }
 }
 
 /** «Programma»: a draft with a date, whose checks pass. */
@@ -123,7 +174,7 @@ export async function schedulePost(
   input: { workspaceId: string; postId: string; version: number },
   request: { ip: string | null },
 ): Promise<PostDto> {
-  return deps.uow.run(
+  const { dto, after } = await deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { current, scope, organization } = await openPosts(tx, actor, input.workspaceId, {
@@ -153,11 +204,13 @@ export async function schedulePost(
         post.version,
       )
       if (version === null) throw versionConflict()
-      await scheduleSaved(tx, deps, current, organization, scope, post.id, null)
+      const after = await scheduleSaved(tx, deps, current, organization, scope, post.id, null)
       await recordPost(tx, current, 'post.scheduled', post, request.ip)
-      return readPost(tx, current, scope, post.id)
+      return { dto: await readPost(tx, current, scope, post.id), after }
     },
   )
+  await sendAfterSchedule(deps, actor.organizationId, after)
+  return dto
 }
 
 /**
@@ -172,7 +225,7 @@ export async function saveScheduled(
   organization: Organization,
   post: PostRecord,
   content: PostContent,
-): Promise<void> {
+): Promise<AfterSchedule> {
   if (!mayPublish(actor, post)) throw cannotChangeScheduled()
   if (content.when === null)
     throw new DomainError('VALIDATION', 'Un post programmato ha bisogno di giorno e ora', {
@@ -188,7 +241,7 @@ export async function saveScheduled(
   )
   if (version === null) throw versionConflict()
   await writeParts(tx, scope, post.id, content, 'scheduled')
-  await scheduleSaved(tx, deps, actor, organization, scope, post.id, post.scheduledAt)
+  return scheduleSaved(tx, deps, actor, organization, scope, post.id, post.scheduledAt)
 }
 
 /** The destinations of the post, all in one state, without fingerprints. */
@@ -220,7 +273,8 @@ async function moveScheduled(
       const post = await lockedPost(tx, scope, input.postId)
       if (!mayPublish(current, post)) throw cannotChangeScheduled()
       if (post.version !== input.version) throw versionConflict()
-      if (post.status !== 'scheduled')
+      // P2: also during the preparation, until a destination is being published
+      if (!(await isScheduledForPanel(tx, post)))
         throw wrongState(post.status, to === 'draft' ? 'unschedule' : 'cancel')
       const version = await tx.posts.update(
         scope,

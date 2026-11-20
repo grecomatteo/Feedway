@@ -418,3 +418,103 @@ test("the outbox: an agency writes and reads its own events, the platform's only
     ),
   ).toMatch(/outbox_events_type/)
 })
+
+test('at most 3 preparations per agency and 1 per account; an expired claim does not count', async () => {
+  // four more accounts of A, one destination each, and one of B
+  const accounts = await seed(tdb.runtimeUrl, async (s) => [
+    await s.account(orgA, { workspaceIds: [wsA] }),
+    await s.account(orgA, { workspaceIds: [wsA] }),
+    await s.account(orgA, { workspaceIds: [wsA] }),
+    await s.account(orgA, { workspaceIds: [wsA] }),
+  ])
+  const ofA = await newPost(
+    orgA,
+    wsA,
+    accounts.map((accountId) => ({ accountId, status: 'scheduled' as const })),
+  )
+  const second = await newPost(orgA, wsA, [
+    { accountId: accounts[0] as string, status: 'scheduled' },
+  ])
+  const ofB = await newPost(orgB, wsB, [{ accountId: igB, status: 'scheduled' }])
+  const now = new Date()
+  const claim = (org: string, targetId: string, at = now) =>
+    uow.run({ organizationId: org, userId: null }, (tx) =>
+      tx.publishing.claimPrepare(org, targetId, {
+        now: at,
+        until: new Date(at.getTime() + 6 * 60_000),
+        perOrganization: 3,
+        perAccount: 1,
+      }),
+    )
+  const [t1, t2, t3, t4] = ofA.targetIds as [string, string, string, string]
+  expect(await claim(orgA, t1)).toBe(true)
+  // the same account is busy with another post
+  expect(await claim(orgA, second.targetIds[0] as string)).toBe(false)
+  expect(await claim(orgA, t2)).toBe(true)
+  expect(await claim(orgA, t3)).toBe(true)
+  // the agency's three places are taken; another agency is not touched by them
+  expect(await claim(orgA, t4)).toBe(false)
+  expect(await claim(orgB, ofB.targetIds[0] as string)).toBe(true)
+  // claiming again its own place is not a fourth one
+  expect(await claim(orgA, t1)).toBe(true)
+  // one given back frees a place
+  await runA((tx) => tx.publishing.saveStep(orgA, t3, { claimedUntil: null }))
+  expect(await claim(orgA, t4)).toBe(true)
+  // seven minutes later the claims have expired: a worker gone frees the agency
+  const later = new Date(now.getTime() + 7 * 60_000)
+  expect(await claim(orgA, second.targetIds[0] as string, later)).toBe(true)
+  // a destination of another agency is never claimed from A
+  expect(await claim(orgA, ofB.targetIds[0] as string)).toBe(false)
+})
+
+test('the panel moving a prepared destination starts a new round and keeps the ids to throw away', async () => {
+  const { postId, targetIds } = await newPost(orgA, wsA, [{ accountId: igA, status: 'ready' }])
+  const id = targetIds[0] as string
+  await runA((tx) =>
+    tx.publishing.saveStep(orgA, id, {
+      step: 'publish',
+      attempts: 2,
+      metaIds: { containerId: '17890' },
+      lastErrorCode: 'rate_limited',
+      claimedUntil: new Date(),
+    }),
+  )
+  const before = await runA((tx) => tx.publishing.lockTarget(orgA, id))
+  const at = new Date(Date.now() + 60 * 60_000)
+  await runA((tx) =>
+    tx.posts.replaceTargets({ organizationId: orgA, workspaceId: wsA }, postId, [
+      { accountId: igA, status: 'scheduled', fingerprint: null, nextAttemptAt: at },
+    ]),
+  )
+  const after = await runA((tx) => tx.publishing.lockTarget(orgA, id))
+  expect(after).toMatchObject({
+    status: 'scheduled',
+    step: null,
+    attempts: 0,
+    lastErrorCode: null,
+    nextAttemptAt: at,
+    metaIds: { _discard: { containerId: '17890' } },
+  })
+  expect(after?.generation).toBe((before?.generation ?? 0) + 1)
+  // moved again before the worker threw them away: still the same ids to throw away
+  await runA((tx) =>
+    tx.posts.replaceTargets({ organizationId: orgA, workspaceId: wsA }, postId, [
+      { accountId: igA, status: 'scheduled', fingerprint: null, nextAttemptAt: at },
+    ]),
+  )
+  expect((await runA((tx) => tx.publishing.lockTarget(orgA, id)))?.metaIds).toEqual({
+    _discard: { containerId: '17890' },
+  })
+})
+
+test('the reconciler reads only the states it asks for', async () => {
+  const past = new Date(Date.now() - 60_000)
+  const { targetIds } = await newPost(orgA, wsA, [
+    { accountId: igA, status: 'published', nextAttemptAt: past },
+    { accountId: fbA, status: 'ready', nextAttemptAt: past },
+  ])
+  const due = await asSystem((tx) => tx.publishing.dueTargets(new Date(), 1000, ['ready']))
+  const ids = due.map((d) => d.targetId)
+  expect(ids).toContain(targetIds[1])
+  expect(ids).not.toContain(targetIds[0])
+})

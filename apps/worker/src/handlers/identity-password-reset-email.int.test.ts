@@ -20,6 +20,7 @@ import type { TestDatabase } from '@app/infrastructure/testing'
 import { createTranslate, loadItalianMessages } from '../i18n.js'
 import type { JobHandlerDeps } from '../job-handler.js'
 import { identityPasswordResetEmail } from './identity-password-reset-email.js'
+import { NO_PUBLISHING } from '../../tests/no-publishing.js'
 
 const PANEL = new URL('https://pannello.example.test')
 const RESET_URL = `${PANEL.origin}/api/auth/reset-password/abc123?callbackURL=%2Freimposta`
@@ -75,6 +76,7 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDe
     panel: { url: PANEL, productName: 'Feedway', defaultTimezone: 'Europe/Rome' },
     // the account jobs are not these tests'
     connectors: {},
+    publishing: NO_PUBLISHING,
     connectionTokens: {
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),

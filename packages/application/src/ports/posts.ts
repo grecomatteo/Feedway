@@ -66,6 +66,8 @@ export interface NewPostTarget {
   accountId: string
   status: PostStatus
   fingerprint: string | null
+  /** when the worker looks at it first: `prepareAt` for a scheduled one, null otherwise */
+  nextAttemptAt?: Date | null
 }
 
 /** An internal note on a post (§11.7): never shown outside the agency. */
@@ -105,7 +107,13 @@ export interface PostRepository {
     mediaIds: readonly string[],
     cover: PostCover | null,
   ): Promise<void>
-  /** The destinations as given; an account already there keeps its row (and its id). */
+  /**
+   * The destinations as given; an account already there keeps its row (and its id). A row
+   * kept starts its round of the worker again (plan 07 P2): a new generation, no step, no
+   * attempt or error, its `nextAttemptAt`; the ids of what was prepared on Meta stay under
+   * `DISCARD_KEY` of `meta_ids`, for the next preparation to throw away. Only for destinations
+   * the panel may move (`canMoveTarget(..., 'panel')`).
+   */
   replaceTargets(scope: PostScope, postId: string, targets: readonly NewPostTarget[]): Promise<void>
   replaceLabels(scope: PostScope, postId: string, labelIds: readonly string[]): Promise<void>
   /** false: no such post. */

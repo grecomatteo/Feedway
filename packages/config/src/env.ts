@@ -45,6 +45,9 @@ export const KNOWN_QUEUES = [
   'media.process',
   'media.publish_copies',
   'media.uploads_cleanup',
+  'target.prepare',
+  'target.publish',
+  'scheduler.reconcile',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

@@ -47,6 +47,7 @@ import { createDiskUploadParts } from './storage/disk-upload-parts.js'
 import { createLocalDiskStorage } from './storage/local-disk-storage.js'
 import { createS3Storage } from './storage/s3-storage.js'
 import { createLogger } from './logging/logger.js'
+import { newPublicToken } from './media/public-token.js'
 import { createPgBossQueue } from './queue/pg-boss-queue.js'
 import { systemClock } from './system/clock.js'
 import { postgresPublishingHistory } from './system/publishing-history.js'
@@ -111,6 +112,8 @@ export interface Runtime {
   publishingHistory: PublishingHistory
   /** Seals and opens the tokens of the connections with the agency's data key. */
   connectionTokens: ConnectionTokens
+  /** The public token of a new copy (`/m/*`): the copies a scheduled post asks for. */
+  newPublicToken: () => string
   /** Closes the database pool. The caller stops the queue first, gracefully if it consumes. */
   close(): Promise<void>
 }
@@ -236,6 +239,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       platformRules: PLATFORM_RULES,
       publishingHistory: postgresPublishingHistory,
       connectionTokens: createConnectionTokens({ keyRing }),
+      newPublicToken,
       close: () => handle.close(),
     }
   } catch (error) {

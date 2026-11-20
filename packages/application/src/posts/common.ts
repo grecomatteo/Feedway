@@ -16,6 +16,9 @@ import { getAccountsForRules } from '../accounts/index.js'
 import { isUuid } from '../identity/index.js'
 import { getMediaForPosts } from '../media/index.js'
 import type { Clock } from '../ports/clock.js'
+import type { IdGenerator } from '../ports/id-generator.js'
+import type { JobQueue } from '../ports/job-queue.js'
+import type { Logger } from '../ports/logger.js'
 import type { PostChange, PostRecord, PostScope } from '../ports/posts.js'
 import type { PublishingHistory } from '../ports/publishing-history.js'
 import type { Tx } from '../ports/tx.js'
@@ -259,6 +262,12 @@ export async function recordPost(
 export interface PostsDeps {
   uow: UnitOfWork
   clock: Clock
+  /** The publishing's jobs, sent after the commit (plan 07 P3), and the copies' wake-up. */
+  queue: Pick<JobQueue, 'send'>
+  logger: Logger
+  /** The copies to publish asked for at the scheduling (Scelta 4). */
+  ids: IdGenerator
+  newPublicToken: () => string
   /** from the composition root (ADR 019): the checks of a scheduled post */
   platformRules: ReadonlyMap<Platform, PlatformRules>
   publishingHistory: PublishingHistory
@@ -325,4 +334,19 @@ export function changeOf(
     scheduledBy: post.scheduledBy,
     updatedBy: by,
   }
+}
+
+/** The destinations the panel may still move (plan 07 P2): none is being published. */
+const IN_PANEL_REACH = new Set<string>(['scheduled', 'preparing', 'ready', 'retrying', 'cancelled'])
+
+/**
+ * A post the panel changes as a scheduled one: scheduled, or in preparation with no destination
+ * publishing or out yet (P2). Its state in the database may be one of the publishing.
+ */
+export async function isScheduledForPanel(tx: Tx, post: PostRecord): Promise<boolean> {
+  const status: string = post.status
+  if (status === 'scheduled') return true
+  if (status !== 'publishing') return false
+  const targets = await tx.publishing.targetsOfPost(post.organizationId, post.id)
+  return targets.every((t) => IN_PANEL_REACH.has(t.status))
 }

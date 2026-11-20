@@ -16,6 +16,14 @@ import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
+import { targetPrepare, targetPublish } from './target-steps.js'
+import {
+  publishingWorld,
+  readyPhoto,
+  scheduledPost,
+  targetsOf,
+  type PublishingWorld,
+} from '../../tests/publishing.js'
 import {
   FORNO_LUCE,
   accountsRuntime,
@@ -187,6 +195,43 @@ async function copiesWorld(): Promise<World> {
   }
 }
 
+/**
+ * A scheduled destination of each agency whose time passed 20 minutes ago (D-77 b): the step
+ * fails it without calling Meta, which is enough to see where it writes.
+ */
+async function targetsWorld(status: 'scheduled' | 'ready'): Promise<World> {
+  const a = await publishingWorld(tdb, runtime)
+  const b = await publishingWorld(tdb, runtime)
+  const ofEach = async (w: PublishingWorld) => {
+    const photo = await readyPhoto(tdb, runtime, admin, w)
+    const { postId } = await scheduledPost(runtime, w, {
+      at: new Date(Date.now() + 40 * 60_000),
+      mediaIds: [photo],
+      accounts: [w.accounts.instagram],
+    })
+    await admin.query(
+      "update posts set scheduled_at = now() - interval '20 minutes' where id = $1",
+      [postId],
+    )
+    if (status === 'ready')
+      await admin.query(
+        "update post_targets set status = 'ready', step = 'publish' where post_id = $1",
+        [postId],
+      )
+    const [target] = await targetsOf(admin, postId)
+    if (!target) throw new Error('no destination')
+    return { targetId: target.id, generation: target.generation }
+  }
+  const ofA = await ofEach(a)
+  const ofB = await ofEach(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, ...ofA },
+    crossing: { organizationId: a.organizationId, ...ofB },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
@@ -194,6 +239,8 @@ const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'media.delete_files': { handler: mediaDeleteFiles, world: mediaWorld },
   'media.process': { handler: mediaProcess, world: processingWorld },
   'media.publish_copies': { handler: mediaPublishCopies, world: copiesWorld },
+  'target.prepare': { handler: targetPrepare, world: () => targetsWorld('scheduled') },
+  'target.publish': { handler: targetPublish, world: () => targetsWorld('ready') },
 }
 
 // every row an agency's job could touch, by agency
@@ -204,6 +251,10 @@ const SNAPSHOT_QUERIES = [
   'select * from media where organization_id = $1 order by id',
   'select * from media_variants where organization_id = $1 order by id',
   'select * from audit_log where organization_id = $1 order by id',
+  'select * from posts where organization_id = $1 order by id',
+  'select * from post_targets where organization_id = $1 order by id',
+  'select * from target_attempts where organization_id = $1 order by id',
+  'select * from outbox_events where organization_id = $1 order by id',
 ]
 
 async function snapshot(of: Agency): Promise<unknown[]> {
