@@ -631,7 +631,8 @@ test('one library: the clients with their folders, a client and its folder in th
     await page.getByRole('combobox', { name: 'Cartella' }).click()
     await page.getByRole('option', { name: /Reel$/ }).click()
   }
-  // the client and the folder are in the address, and the context selector agrees
+  // the client and the folder are in the address (the seed gives a client its id as slug), and
+  // the context selector agrees
   await expect(page).toHaveURL((u) => {
     const q = new URL(u).searchParams
     return q.get('spazio') === forno && q.get('cartella') === reel

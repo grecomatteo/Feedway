@@ -40,8 +40,9 @@ function toggle(client: WorkspaceView) {
 }
 const foldersOf = (client: WorkspaceView) => {
   const list = read[client.id]
-  return Array.isArray(list) ? folderTree(list) : []
+  return Array.isArray(list) ? list : []
 }
+const branchId = (client: WorkspaceView) => `library-tree-${client.id}`
 
 /** The library of a client, or of one of its folders, keeping the rest of the address. */
 function to(client: WorkspaceView, folderId?: string) {
@@ -75,6 +76,7 @@ const row =
             :icon="open.has(c.id) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
             class="size-8 shrink-0 justify-center pointer-coarse:size-11"
             :aria-expanded="open.has(c.id)"
+            :aria-controls="open.has(c.id) ? branchId(c) : undefined"
             :aria-label="t('library.tree.folders', { name: c.name })"
             @click="toggle(c)"
           />
@@ -83,7 +85,7 @@ const row =
             <span class="min-w-0 flex-1 truncate">{{ c.name }}</span>
           </NuxtLink>
         </div>
-        <template v-if="open.has(c.id)">
+        <div v-if="open.has(c.id)" :id="branchId(c)">
           <p
             v-if="read[c.id] === 'pending'"
             class="py-1.5 pl-11 text-caption text-(--app-text-muted)"
@@ -112,26 +114,16 @@ const row =
           >
             {{ $t('library.tree.none') }}
           </p>
-          <ul v-else :aria-label="t('library.tree.foldersOf', { name: c.name })">
-            <li v-for="f in foldersOf(c)" :key="f.id">
-              <NuxtLink
-                :to="to(c, f.id)"
-                :class="row"
-                :style="{ paddingLeft: `${2.25 + f.depth * 0.875}rem` }"
-                :data-tree-folder="f.name"
-              >
-                <UIcon name="i-lucide-folder" class="size-4 shrink-0" aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
-                <span class="text-xs tabular-nums">
-                  <span aria-hidden="true">{{ f.fileCount }}</span>
-                  <span class="sr-only">{{
-                    $t('library.folders.files', { n: f.fileCount }, f.fileCount)
-                  }}</span>
-                </span>
-              </NuxtLink>
-            </li>
-          </ul>
-        </template>
+          <LibraryTreeFolders
+            v-else
+            :aria-label="t('library.tree.foldersOf', { name: c.name })"
+            :folders="foldersOf(c)"
+            :parent-id="null"
+            :depth="0"
+            :to="(id: string) => to(c, id)"
+            :row-class="row"
+          />
+        </div>
       </li>
     </ul>
   </nav>
