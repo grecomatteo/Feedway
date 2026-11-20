@@ -40,12 +40,23 @@ export interface ScenarioOptions {
   /** Every container read or published from now is `EXPIRED`: `media_publish` answers -2/2207020. */
   container_expired: { times?: number }
   /**
-   * `media_publish` publishes, then answers after `delayMs` (15 s, beyond the client timeout):
-   * the uncertain outcome of §9.5. Once by default.
+   * `media_publish` (on Facebook: every call that publishes) publishes, then answers after
+   * `delayMs` (15 s, beyond the client timeout): the uncertain outcome of §9.5. Once by default.
    */
   publish_timeout_but_created: { delayMs?: number; times?: number }
-  /** The files are not downloaded: an image answers 9004/2207052, a video ends in `ERROR`. */
+  /**
+   * The files are not downloaded: on Instagram an image answers 9004/2207052, a video ends in
+   * `ERROR`; on Facebook a photo answers 324, a video 389.
+   */
   media_download_failed: { times?: number }
+  /** Facebook: the next call that publishes answers 506, a duplicate post. */
+  duplicate_post: { times?: number }
+  /** Facebook: videos created from now stay `processing` for `reads` (3) status reads. */
+  video_processing: { reads?: number; times?: number }
+  /** Facebook: videos created from now end in `error` once uploaded. */
+  video_error: { times?: number }
+  /** Facebook: `GET /{page}?fields=access_token` answers without the token (the Page, or all). */
+  page_token_missing: { pageId?: string }
   /** A rate limit error, with the usage headers at 100% and `minutesToRegain` (5) in the business one. */
   rate_limited: Match & { code?: 4 | 17 | 32 | 613 | 80001 | 80002; minutesToRegain?: number }
   /** A temporary error (code 2 by default) as JSON. */

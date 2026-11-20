@@ -335,6 +335,36 @@ test('dry-run reads Meta but never writes: a fake id, a finished container', asy
   expect(mock.calls()).toHaveLength(1)
 })
 
+test('dry-run on a Page: the upload, the finish and the delete never leave', async () => {
+  const dry = createMetaGraphClient({
+    mode: 'dry-run',
+    version: 'v25.0',
+    baseUrl: mock.url,
+    clock: fixedClock(new Date('2026-11-09T12:00:00Z')),
+    logger: memoryLogger(),
+  })
+  const signal = new AbortController().signal
+  const page = META_MOCK.pages.withInstagram
+  const start = await dry.startPageVideoUpload(systemUser, page, 'video_reels', signal)
+  expect(start.data.videoId).toMatch(/^dry-run-/)
+  await dry.uploadHostedVideo(systemUser, start.data.videoId, 'https://x.invalid/v.mp4', signal)
+  const story = await dry.finishPageVideoUpload(
+    systemUser,
+    page,
+    'video_stories',
+    { video_id: start.data.videoId },
+    signal,
+  )
+  expect(story.data).toMatchObject({
+    success: true,
+    postId: expect.stringMatching(/^dry-run-/) as string,
+  })
+  await dry.deleteObject(systemUser, start.data.videoId, signal)
+  const video = await dry.getFacebookVideo(systemUser, start.data.videoId, signal)
+  expect(video.data.publishStatus).toBeNull()
+  expect(mock.calls()).toEqual([])
+})
+
 test('no token, secret, proof or code reaches the log', async () => {
   const code = await codeFromDialog()
   const exchanged = await client.exchangeCode(app, { code, redirectUri: REDIRECT })

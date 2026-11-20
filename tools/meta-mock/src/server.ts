@@ -11,6 +11,7 @@ import {
   type GraphObject,
   type TokenFixture,
 } from './fixtures.ts'
+import { createFacebookPublishing } from './facebook-publishing.ts'
 import { createPublishing, type PublishingAnswer } from './publishing.ts'
 import {
   matches,
@@ -58,6 +59,8 @@ const DEFAULT_LIMIT = 25
 const VERSIONED = /^\/(v\d+\.\d+)(\/.*)$/
 // the profile pictures, served by the mock itself as Meta's CDN serves them (no token)
 const PICTURE = /^\/pictures\/([a-z0-9-]+)\.jpg$/
+// rupload.facebook.com, served by the mock on its own address (plan 07, Task 5)
+const UPLOAD = /^\/video-upload\/(v\d+\.\d+)\/([0-9]{1,32})$/
 const PICTURES_DIR = new URL('../fixtures/pictures/', import.meta.url)
 /** Fixture addresses start with this placeholder: the mock's own address replaces it. */
 const SELF_PLACEHOLDER = '{{mock}}'
@@ -107,6 +110,15 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     quotaTotal: (id) => inlineQuota(id).config?.quota_total ?? 50,
     quotaUsedBefore: (id) => inlineQuota(id).quota_usage ?? 0,
   })
+  const facebook = createFacebookPublishing({
+    scenarios: scenariosNamed,
+    isPage: (id) => typeof data.objects[id]?.category === 'string',
+    pageToken: (pageId) =>
+      Object.entries(data.tokens).find(
+        ([value, t]) => t.subject === pageId && value.startsWith('mock-page-token-'),
+      )?.[0],
+  })
+  const ownerOf = (id: string) => publishing.ownerOf(id) ?? facebook.ownerOf(id)
 
   function send(
     res: ServerResponse,
@@ -399,7 +411,9 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     tokenValue: string | undefined,
     res: ServerResponse,
     self: string,
+    extra: { version: string; upload?: { videoId: string; fileUrl: string | null } },
   ): Promise<void> {
+    const { version } = extra
     if (tokenValue === undefined) {
       sendError(res, {
         message: 'An access token is required to request this resource.',
@@ -430,7 +444,10 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       })
       return
     }
-    if (proof !== createHmac('sha256', data.app.secret).update(tokenValue).digest('hex')) {
+    // the proof is signed over the mock's own copy of the token, never over the request's text:
+    // the same value, but a fake token is not a password to hash (CodeQL js/insufficient-password-hash)
+    const known = Object.keys(data.tokens).find((k) => k === tokenValue) ?? ''
+    if (proof !== createHmac('sha256', data.app.secret).update(known).digest('hex')) {
       sendError(res, {
         message: 'Invalid appsecret_proof provided in the API argument',
         type: 'GraphMethodException',
@@ -474,20 +491,41 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       )
       return
     }
+    if (extra.upload !== undefined) {
+      answer(res, await facebook.upload({ ...extra.upload, tokenSubject: token.subject }), headers)
+      return
+    }
     const [first = '', edge, ...rest] = path.slice(1).split('/')
     const id = first === 'me' ? token.subject : first
-    const owner = publishing.ownerOf(id)
+    const owner = ownerOf(id)
     const canSee = (nodeId: string) =>
       (token.visible.includes(nodeId) ||
-        (publishing.ownerOf(nodeId) !== undefined &&
-          token.visible.includes(publishing.ownerOf(nodeId) ?? ''))) &&
+        (ownerOf(nodeId) !== undefined && token.visible.includes(ownerOf(nodeId) ?? ''))) &&
       !removed.has(nodeId)
     if (canSee(id) && rest.length === 0 && (owner === undefined || !removed.has(owner))) {
-      const published = await publishing.handle({ method, id, edge, params })
+      const published =
+        (await facebook.handle({
+          method,
+          version,
+          id,
+          edge,
+          params,
+          tokenSubject: token.subject,
+        })) ?? (await publishing.handle({ method, id, edge, params }))
       if (published !== null) {
         answer(res, published, headers)
         return
       }
+    }
+    // an object that is not there (deleted, or never seen by the token): as Meta answers a GET
+    if (method === 'DELETE' && !canSee(id)) {
+      sendError(
+        res,
+        { ...unsupportedGet(id), message: unsupportedGet(id).message.replace('get', 'delete') },
+        400,
+        headers,
+      )
+      return
     }
     if (method !== 'GET') {
       sendError(
@@ -685,16 +723,56 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     const header = req.headers.authorization
     const bearer =
       header?.startsWith('Bearer ') === true ? header.slice('Bearer '.length) : undefined
+    const oauth = header?.startsWith('OAuth ') === true ? header.slice('OAuth '.length) : undefined
     const queryToken = self.searchParams.get('access_token') ?? undefined
-    const version = versioned?.[1] ?? ''
-    const path = versioned?.[2] ?? self.pathname
+    const uploadPath = UPLOAD.exec(self.pathname)
+    const version = versioned?.[1] ?? uploadPath?.[1] ?? ''
+    const path =
+      versioned?.[2] ??
+      (uploadPath === null ? self.pathname : `/video-upload/${uploadPath[2] ?? ''}`)
+    const fileUrlHeader = req.headers.file_url
     calls.push({
       method: req.method ?? 'GET',
       version,
       path,
-      params: Object.fromEntries(self.searchParams),
-      tokenIn: bearer !== undefined ? 'header' : queryToken !== undefined ? 'query' : 'none',
+      params: {
+        ...Object.fromEntries(self.searchParams),
+        ...(typeof fileUrlHeader === 'string' && { file_url: fileUrlHeader }),
+      },
+      tokenIn:
+        bearer !== undefined || oauth !== undefined
+          ? 'header'
+          : queryToken !== undefined
+            ? 'query'
+            : 'none',
     })
+    const upload = uploadPath
+    if (upload !== null && (req.method ?? 'GET') === 'POST') {
+      // rupload.facebook.com: the token in `Authorization: OAuth`, the file in `file_url`
+      const fileUrl = req.headers.file_url
+      const run = () => {
+        void graph(
+          'POST',
+          `/video-upload/${upload[2] ?? ''}`,
+          self.searchParams,
+          oauth ?? bearer,
+          res,
+          self.toString(),
+          {
+            version: upload[1] ?? '',
+            upload: {
+              videoId: upload[2] ?? '',
+              fileUrl: typeof fileUrl === 'string' ? fileUrl : null,
+            },
+          },
+        ).catch(() => {
+          sendError(res, { message: 'meta-mock failed', type: 'OAuthException', code: 2 }, 500)
+        })
+      }
+      const uploadToken = data.tokens[oauth ?? bearer ?? '']
+      if (!fault(`/video-upload/${upload[2] ?? ''}`, uploadToken, res, run)) run()
+      return
+    }
     const pictureName = PICTURE.exec(self.pathname)?.[1]
     if (pictureName !== undefined && (req.method ?? 'GET') === 'GET') {
       // the faults apply here too (`path: '/pictures/forno.jpg'`): a CDN that fails or is slow
@@ -722,11 +800,11 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       if (path === '/oauth/access_token') exchange(params, res)
       else if (path === '/debug_token') debugToken(params, bearer ?? queryToken, res)
       else
-        void graph(req.method ?? 'GET', path, params, bearer ?? queryToken, res, fullSelf).catch(
-          () => {
-            sendError(res, { message: 'meta-mock failed', type: 'OAuthException', code: 2 }, 500)
-          },
-        )
+        void graph(req.method ?? 'GET', path, params, bearer ?? queryToken, res, fullSelf, {
+          version,
+        }).catch(() => {
+          sendError(res, { message: 'meta-mock failed', type: 'OAuthException', code: 2 }, 500)
+        })
     }
     const token = data.tokens[bearer ?? queryToken ?? '']
     if (!fault(path, token, res, route)) route()
@@ -745,6 +823,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         removed.clear()
         codes.clear()
         publishing.reset()
+        facebook.reset()
         return
       }
       const opts = (args[0] ?? {}) as ScenarioOptions[N]

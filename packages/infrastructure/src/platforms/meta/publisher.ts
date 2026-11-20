@@ -1,4 +1,5 @@
 import type { PlatformPublishers } from '@app/application'
+import { createFacebookPublisher } from './facebook-publish.js'
 import { createInstagramPublisher } from './instagram-publish.js'
 import type { MetaPublisherDeps } from './publish-support.js'
 
@@ -7,6 +8,5 @@ import type { MetaPublisherDeps } from './publish-support.js'
 export type { MetaPublisherDeps } from './publish-support.js'
 
 export function createMetaPublishers(deps: MetaPublisherDeps): PlatformPublishers {
-  // Facebook joins with Task 5
-  return { instagram: createInstagramPublisher(deps) }
+  return { instagram: createInstagramPublisher(deps), facebook: createFacebookPublisher(deps) }
 }
