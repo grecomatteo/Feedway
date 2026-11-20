@@ -89,7 +89,16 @@ const replaceItems = computed<DropdownMenuItem[]>(() => [
     },
   },
 ])
-defineExpose({ choose: () => picker.value?.click() })
+defineExpose({
+  choose: () => {
+    replacing.value = false
+    picker.value?.click()
+  },
+})
+// a picker closed without a choice ends «Sostituisci»
+watch(picking, (open) => {
+  if (!open) replacing.value = false
+})
 
 const MAX = META_LIMITS.instagramCarouselMaxItems.value
 /** Under the label: «2 di 10», or «1 video» for a reel's only file. */
@@ -391,7 +400,11 @@ function release() {
       ref="picker"
       type="file"
       multiple
-      accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov"
+      :accept="
+        replacing
+          ? 'video/mp4,video/quicktime,.mov'
+          : 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov'
+      "
       class="hidden"
       data-post-input
       @change="picked"

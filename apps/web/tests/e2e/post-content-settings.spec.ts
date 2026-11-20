@@ -75,13 +75,30 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await octx.addCookies(await page.context().cookies())
   const o = await octx.newPage()
   await ownAddress(o)
+  const settingsRead = o.waitForResponse((r) => r.url().endsWith('/settings'))
   await o.goto(`/${org}/spazi/${client.slug}/contenuti`)
+  await settingsRead
   await expect(o.getByRole('combobox', { name: 'I nuovi post partono da' })).toBeVisible()
   await expect(o.getByText(/ora di Roma|fuso/)).toHaveCount(0)
   await octx.close()
+  // from London the same Owner is told the times are Rome's
+  const lctx = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? '',
+    timezoneId: 'Europe/London',
+  })
+  await lctx.addCookies(await page.context().cookies())
+  const l = await lctx.newPage()
+  await ownAddress(l)
+  await l.goto(`/${org}/spazi/${client.slug}/contenuti`)
+  await expect(l.getByText(/ora di Roma/)).toBeVisible()
+  await lctx.close()
 
-  // ---- the Manager, in the client's content settings
-  const mctx = await browser.newContext({ baseURL: process.env.E2E_BASE_URL ?? '' })
+  // ---- the Manager, in the client's content settings (from Rome: the agency's zone is unknown
+  // to them, so the line stays)
+  const mctx = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? '',
+    timezoneId: 'Europe/Rome',
+  })
   const m = await mctx.newPage()
   await ownAddress(m)
   await signIn(m.request, manager)

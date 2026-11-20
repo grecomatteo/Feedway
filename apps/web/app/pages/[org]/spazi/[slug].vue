@@ -77,7 +77,7 @@ const bare = computed(() => route.meta['editor'] === true)
             <span v-if="client">{{ client.name }}</span>
             <span
               v-else
-              class="inline-block h-7 w-48 animate-pulse rounded-md bg-(--app-surface-sunken)"
+              class="inline-flex h-7 w-48 animate-pulse rounded-md bg-(--app-surface-sunken)"
               ><span class="sr-only">{{ $t('client.title') }}</span></span
             >
           </h1>

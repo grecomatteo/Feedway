@@ -8,7 +8,7 @@ const colorOf = useLabelColor()
 
 <template>
   <span
-    class="inline-block size-2 shrink-0 rounded-[2px]"
+    class="inline-flex size-2 shrink-0 rounded-[2px]"
     :style="{ background: colorOf(props.color) }"
     aria-hidden="true"
   />

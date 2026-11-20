@@ -86,7 +86,8 @@ const timeItems = computed(() => {
 })
 // the agency's zone, for whoever may read the agency's settings (Owner and Admin); a Manager
 // cannot, and is told «the agency's zone» rather than a zone that may be wrong
-const zone = ref<string | null>(null)
+// (undefined while it is read, null when it cannot be read)
+const zone = ref<string | null | undefined>(undefined)
 onMounted(async () => {
   try {
     zone.value = (await call<{ timezone: string }>('GET', org.api('/settings'))).timezone
@@ -105,8 +106,8 @@ onMounted(() => {
   }
 })
 const zoneText = computed(() => {
-  if (own.value === undefined || (zone.value ?? 'Europe/Rome') === own.value) return null
-  if (!zone.value) return t('contentSettings.time.agency')
+  if (own.value === undefined || zone.value === undefined || zone.value === own.value) return null
+  if (zone.value === null) return t('contentSettings.time.agency')
   if (zone.value === 'Europe/Rome') return t('contentSettings.time.rome')
   return t('contentSettings.time.zone', { zone: zone.value.replaceAll('_', ' ') })
 })
