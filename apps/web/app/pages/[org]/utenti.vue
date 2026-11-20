@@ -232,7 +232,8 @@ const inviteActions = (i: Invite) =>
     { label: t('users.revoke'), icon: 'i-lucide-x', onSelect: () => revoke(i) },
   ])
 
-const COLUMNS = 'minmax(240px,1.6fr) 120px minmax(160px,1fr) 140px 150px 30px'
+// the columns give way between 1024 and 1280 px, where the page is narrow beside the sidebar (D-102)
+const COLUMNS = 'minmax(180px,1.6fr) 112px minmax(0,1fr) minmax(0,140px) minmax(0,150px) 30px'
 const memberHead = computed(() => [
   t('users.col.person'),
   t('users.col.role'),
