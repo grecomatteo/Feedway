@@ -172,6 +172,7 @@ async function skipPasskey() {
             <NuxtLink
               to="/accedi/password-dimenticata"
               class="text-detail underline underline-offset-2"
+              :aria-label="$t('signIn.forgotLabel')"
             >
               {{ $t('signIn.forgot') }}
             </NuxtLink>

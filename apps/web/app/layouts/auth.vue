@@ -16,9 +16,9 @@ const wide = computed(() => route.meta['authWide'] === true)
       {{ $t('a11y.skipToContent') }}
     </a>
     <!-- the theme before signing in: out of the way, in the corner -->
-    <div class="absolute top-2 right-4 z-10 sm:right-6">
+    <header class="absolute top-2 right-4 z-10 sm:right-6">
       <ThemeSwitcher />
-    </div>
+    </header>
     <main
       id="main"
       class="relative mx-auto flex w-full flex-1 flex-col justify-center px-4 py-16"

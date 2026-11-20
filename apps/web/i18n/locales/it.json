@@ -537,6 +537,7 @@
     "password": "Password",
     "withPassword": "Accedi",
     "forgot": "Dimenticata?",
+    "forgotLabel": "Password dimenticata?",
     "invalid": "Email o password non corretti",
     "tooMany": "Troppi tentativi. Riprova tra qualche minuto.",
     "wait": "Troppi tentativi. Riprova tra {seconds} secondi.",
