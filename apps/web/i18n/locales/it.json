@@ -2073,14 +2073,12 @@
       "manageTemplates": "Gestisci i modelli del cliente"
     },
     "destinations": {
-      "title": "Dove pubblicare",
-      "count": "Nessun account scelto | Un account scelto | {n} account scelti",
+      "title": "Dove",
+      "count": "{on} di {n}",
       "none": "Questo cliente non ha ancora profili collegati.",
       "search": "Cerca un profilo o un {'@'}nome",
       "all": "Seleziona tutti",
       "none_": "Togli tutti",
-      "profile": "Tutti gli account di {name}",
-      "ofProfile": "{on} di {n}",
       "inactive": "Disattivato: non si può scegliere.",
       "reconnect": "Da ricollegare: non si può scegliere finché non viene ricollegato.",
       "kind": {
@@ -2095,7 +2093,10 @@
         "ticksSkipping": "Spunta {n} account; salta {skipped}",
         "done": "«{name}»: nessun account da spuntare. | «{name}»: spuntato 1 account. | «{name}»: spuntati {n} account.",
         "skippedNote": "Saltato perché non si può scegliere: {skipped}. | Saltati perché non si possono scegliere: {skipped}."
-      }
+      },
+      "offReconnect": "Da ricollegare",
+      "offInactive": "Disattivato",
+      "noMatch": "Nessun account con questa ricerca."
     },
     "when": {
       "title": "Quando",
@@ -2105,13 +2106,17 @@
       "day": "Giorno",
       "time": "Ora",
       "zone": "ora di {city}",
-      "sentence": "Esce {day} alle {time} · {zone}.",
-      "default": "{time} è l'orario predefinito di {client}.",
-      "sentenceLocal": "Esce {day} alle {time}."
+      "usual": "Orario abituale di {client}",
+      "noDay": "Scegli il giorno",
+      "prevMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "typeTime": "Scrivi un'ora",
+      "typeTimePlaceholder": "Scrivi un'ora",
+      "wrongTime": "Scrivi l'ora così: 18:30."
     },
     "summary": {
-      "title": "Riepilogo delle destinazioni",
-      "pending": "Nessuna scelta da fare | Una scelta da fare | {n} scelte da fare",
+      "title": "Controlli",
+      "pending": "Nessuna scelta da fare | 1 scelta da fare | {n} scelte da fare",
       "checkFailed": "Controlli non riusciti:",
       "empty": "Scegli i file e gli account: qui vedi cosa esce su ognuno.",
       "unknownAccount": "Account non più del cliente",
@@ -2127,19 +2132,23 @@
       "undoChoice": "Annulla la scelta",
       "switchTo": "Passa a {type}",
       "typeMismatch": "I file non vanno più con il tipo scelto.",
-      "files": "nessun file | un file | {n} file",
+      "files": "nessun file | 1 file | {n} file",
       "ownText": "testo per la piattaforma",
-      "commonText": "testo comune",
       "notGoing": "Non esce",
       "blocked": "Bloccato",
-      "toChoose": "Nessuna scelta | Una scelta da fare | {n} scelte da fare",
+      "toChoose": "Nessuna scelta | 1 scelta da fare | {n} scelte da fare",
       "ready": "Pronto",
       "missingPhoto": "la foto al {place}",
       "missingVideo": "il video al {place}",
       "missingOn": "Su {account} non esce {what}. Se deve esserci, cambia la scelta o togli il file.",
-      "fixes": "Feedway non sistema niente da solo | Feedway sistema da solo una cosa, senza chiederti niente: {what}. | Feedway sistema da solo {n} cose, senza chiederti niente: {what}.",
-      "showDetails": "Mostra i dettagli",
-      "hideDetails": "Nascondi i dettagli"
+      "fixes": "Nessuna correzione fatta da Feedway. | 1 correzione fatta da Feedway. | {n} correzioni fatte da Feedway.",
+      "showDetails": "Dettagli",
+      "hideDetails": "Nascondi",
+      "blocks": "Nessun blocco | 1 blocco | {n} blocchi",
+      "allReady": "Tutto pronto",
+      "postWithPhotos": "Post con foto | Post con 1 foto | Post con {n} foto",
+      "photos": "nessuna foto | 1 foto | {n} foto",
+      "videos": "nessun video | 1 video | {n} video"
     },
     "save": {
       "saving": "Salvataggio…",
@@ -2153,7 +2162,7 @@
     },
     "actions": {
       "saveDraft": "Salva bozza",
-      "schedule": "Programma | Programma su un account | Programma su {n} account",
+      "schedule": "Programma | Programma su 1 account | Programma su {n} account",
       "scheduled": "Post programmato. Nella 0.12 non esce ancora: la pubblicazione arriva con la versione dopo.",
       "cancel": "Annulla programmazione",
       "cancelled": "Post annullato: non esce su nessun account.",
@@ -2200,14 +2209,6 @@
       "back": "Modifica",
       "tabs": "Come esce",
       "account": "Account dell'anteprima",
-      "views": {
-        "instagram_feed": "Instagram · feed",
-        "instagram_reel": "Instagram · reel",
-        "instagram_story": "Instagram · storia",
-        "facebook_post": "Facebook · post",
-        "facebook_reel": "Facebook · reel",
-        "facebook_story": "Facebook · storia"
-      },
       "zones": "Mostra le zone coperte",
       "covered": "Coperto dall'interfaccia",
       "approximate": "Anteprima approssimativa: Meta cambia spesso l'interfaccia. Il ritaglio e le scelte sono quelli veri.",
@@ -2235,7 +2236,21 @@
       "storyReply": "Invia messaggio",
       "storyReplyTo": "Rispondi a {name}…",
       "play": "Avvia il video",
-      "pause": "Ferma il video"
+      "pause": "Ferma il video",
+      "short": {
+        "instagram_feed": "Feed",
+        "instagram_reel": "Reel",
+        "instagram_story": "Storia",
+        "instagram_grid": "Griglia",
+        "facebook_post": "Facebook",
+        "facebook_reel": "Facebook",
+        "facebook_story": "Facebook"
+      },
+      "gridLabel": "Griglia del profilo",
+      "gridKind": {
+        "carousel": "Carosello",
+        "reel": "Reel"
+      }
     },
     "choose": {
       "title": "Nuovo post: per quale cliente?",
@@ -2320,8 +2335,7 @@
       "fromComputer": "Dal computer"
     },
     "labels": {
-      "title": "Etichette e note",
-      "agencyOnly": "Solo per chi lavora nell'agenzia",
+      "title": "Etichette",
       "chosen": "Etichette del post",
       "add": "Etichetta",
       "remove": "Togli l'etichetta {name}",
@@ -2331,7 +2345,7 @@
     },
     "notes": {
       "label": "Nuova nota per il team",
-      "placeholder": "Scrivi una nota per il team…",
+      "placeholder": "Scrivi una nota per il team",
       "beforeDraft": "Le note si aggiungono quando la bozza è salvata",
       "add": "Aggiungi",
       "remove": "Togli la nota",
@@ -2340,7 +2354,8 @@
       "keep": "Annulla",
       "empty": "Nessuna nota.",
       "you": "Tu",
-      "loadError": "Le note non si sono caricate."
+      "loadError": "Le note non si sono caricate.",
+      "title": "Note interne"
     }
   },
   "contentSettings": {

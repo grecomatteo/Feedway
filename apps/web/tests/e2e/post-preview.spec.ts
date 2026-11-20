@@ -107,23 +107,31 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
     .fill('Sulla Pagina: pane da sabato')
 
   // the two tabs of the chosen accounts, the feed first: the three files, the hashtag coloured
-  await expect(tab(page, 'Instagram · feed')).toHaveAttribute('aria-pressed', 'true')
-  await expect(tab(page, 'Facebook · post')).toBeVisible()
-  await expect(tab(page, 'Instagram · reel')).toHaveCount(0)
+  await expect(tab(page, 'Feed')).toHaveAttribute('aria-pressed', 'true')
+  await expect(tab(page, 'Facebook')).toBeVisible()
+  await expect(tab(page, 'Reel')).toHaveCount(0)
+  // «Griglia»: the profile's grid with the post first, cut to 3:4, the carousel's sign on it
+  await tab(page, 'Griglia').click()
+  const first = preview(page).locator('[data-view="instagram_grid"] [data-grid-first]')
+  await expect(first.locator('[data-preview-file="0"]')).toBeVisible()
+  await expect(first.getByText('Carosello')).toBeAttached()
+  const cell = await first.boundingBox()
+  expect(cell && Math.abs(cell.height / cell.width - 4 / 3)).toBeLessThan(0.02)
+  await tab(page, 'Feed').click()
   const feed = preview(page).locator('[data-view="instagram_feed"]')
   await expect(feed.getByText('1/3')).toBeVisible()
   await expect(feed.locator('[data-mark="hashtag"]')).toHaveText('#segale')
 
   // Facebook does not take a video in a post with photos: «solo le foto» leaves it out there
   await page.getByRole('radio', { name: /Solo le foto su Facebook/ }).check()
-  await tab(page, 'Facebook · post').click()
+  await tab(page, 'Facebook').click()
   const post = preview(page).locator('[data-view="facebook_post"]')
   await expect(post.locator('[data-preview-file]')).toHaveCount(2)
   await expect(post.locator('[data-preview-caption]')).toHaveText('Sulla Pagina: pane da sabato')
   expect((await axe(page)).violations).toEqual([])
 
   // back on Instagram, the second file (the video) moves first from the preview
-  await tab(page, 'Instagram · feed').click()
+  await tab(page, 'Feed').click()
   await feed.getByRole('button', { name: 'File successivo' }).click()
   await expect(feed.getByText('2/3')).toBeVisible()
   // the buttons are the panel's, under the frame, not inside Instagram's interface
@@ -138,10 +146,10 @@ test('a mixed carousel on Instagram and Facebook: only the photos on the Page, i
   await feed.getByRole('button', { name: 'File successivo' }).click()
   await feed.getByRole('button', { name: 'File successivo' }).click()
   await expect(feed.getByText('3/3')).toBeVisible()
-  await tab(page, 'Facebook · post').click()
+  await tab(page, 'Facebook').click()
   await page.locator('[data-entry]').last().focus()
   await page.getByRole('button', { name: 'Togli focaccia.jpg dal post' }).click()
-  await tab(page, 'Instagram · feed').click()
+  await tab(page, 'Feed').click()
   await expect(feed.getByText('1/2')).toBeVisible()
   await expect(feed.locator('[data-preview-file]')).toHaveCount(1)
 })
@@ -155,8 +163,8 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   await pickFromLibrary(page, ['impasto.mov'])
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Dietro le quinte')
   // a single video: a reel, on both platforms
-  await expect(tab(page, 'Instagram · reel')).toBeVisible()
-  await expect(tab(page, 'Facebook · reel')).toBeVisible()
+  await expect(tab(page, 'Reel')).toBeVisible()
+  await expect(tab(page, 'Facebook')).toBeVisible()
   const reel = preview(page).locator('[data-view="instagram_reel"]')
   await expect(reel.locator('[data-preview-caption]')).toHaveText('Dietro le quinte')
   await expect(reel.locator('[data-safe-zones]')).toBeVisible()
@@ -178,8 +186,8 @@ test('a story shows no text and the zones the app covers; a reel the same, and t
   await expect(reel.locator('[data-safe-zones]')).toHaveCount(0)
 
   await page.locator('[data-type="story"]').click()
-  await expect(tab(page, 'Instagram · storia')).toBeVisible()
-  await expect(tab(page, 'Facebook · storia')).toBeVisible()
+  await expect(tab(page, 'Storia')).toBeVisible()
+  await expect(tab(page, 'Facebook')).toBeVisible()
   const story = preview(page).locator('[data-view="instagram_story"]')
   await expect(story).toBeVisible()
   await expect(story.locator('[data-preview-caption]')).toHaveCount(0)

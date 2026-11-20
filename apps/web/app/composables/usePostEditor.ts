@@ -577,7 +577,10 @@ export function usePostEditor(opts: {
       const profile =
         list.find((p) => p.key === opts.profileKey) ?? (list.length === 1 ? list[0] : undefined)
       if (!profile) return
-      destinations.value = profile.accounts.filter(selectable).map((a) => a.id)
+      // a profile to reconnect is not ticked: «Dove» shows its accounts off (D-93.2)
+      destinations.value = reconnecting(opts.client.value, profile.key)
+        ? []
+        : profile.accounts.filter(selectable).map((a) => a.id)
       // a ticked profile is not a content: the draft is not born for it
       askChecks()
     },
@@ -757,5 +760,8 @@ export function usePostEditor(opts: {
 
 /** An account the post can go to: connected and working (§11.2 point 5). */
 export const selectable = (a: ProfileAccount) => a.active && a.health !== 'error'
+/** The profile's connection to Meta expired: its accounts wait to be reconnected (D-93.2). */
+export const reconnecting = (client: WorkspaceView, profileKey: string) =>
+  (client.profiles ?? []).some((p) => p.key === profileKey && p.link === 'reconnect')
 
 export type PostEditor = ReturnType<typeof usePostEditor>

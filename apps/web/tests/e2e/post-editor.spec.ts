@@ -111,7 +111,9 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
 
   // the Page off: only Instagram
   await page.locator(`[data-account="${fb}"]`).click()
-  await expect(page.getByText('Un account scelto')).toBeVisible()
+  await expect(
+    page.locator('section[aria-labelledby="post-destinations"] [data-row-detail]'),
+  ).toHaveText(/^1 di \d+$/)
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
   // let the last change reach the server before the reload
   await expect(saveState(page)).not.toContainText('Salvataggio')
@@ -137,8 +139,25 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   await pickFromLibrary(page, ['pane.jpg'])
   await expect(page.locator('[data-type="photo"]')).toHaveAttribute('aria-pressed', 'true')
-  // the date proposed is ahead; Rome, the default zone, is not said (Matteo 18/11)
-  await expect(page.locator('[data-when-sentence]')).toContainText(/^Esce .+ alle \d{1,2}:\d\d\./)
+  // the date proposed is ahead, in the panel's own fields (never the browser's); Rome, the
+  // default zone, is not said (Matteo 18/11)
+  await expect(page.locator('input[type="date"], input[type="time"]')).toHaveCount(0)
+  await expect(page.locator('[data-day-field]')).toHaveAccessibleName(
+    /^Giorno: \p{L}+ \d{1,2} \p{L}+/u,
+  )
+  await expect(page.locator('[data-time-field]')).toHaveAccessibleName(/^Ora: \d{1,2}:\d\d$/)
+  // the next day with the keyboard, then an hour written as people write it
+  const day = await page.locator('[data-day-field]').getAttribute('aria-label')
+  await page.locator('[data-day-field]').click()
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('[data-day-field]')).not.toHaveAccessibleName(day ?? '')
+  await page.locator('[data-time-field]').click()
+  await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('1830')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('[data-time-field]')).toHaveAccessibleName('Ora: 18:30')
+  // two accounts: no search, «Gruppi» or «Seleziona tutti» above them (from six up)
+  await expect(page.locator('[data-destinations-tools]')).toHaveCount(0)
   await expect(page.getByText(/ora di Roma/)).toHaveCount(0)
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await expect(scheduleButton(page)).toHaveText(/Programma su 2 account/)

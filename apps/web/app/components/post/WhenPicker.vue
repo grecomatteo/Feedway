@@ -2,11 +2,12 @@
 import type { PostEditor } from '~/composables/usePostEditor'
 
 /**
- * «Quando» (§11.2 point 6, P1; design E1, E1b): the day and the time in the post's zone. Rome,
- * the default, is not said (Matteo 18/11); another zone set in the agency's settings is said next
- * to the time, so nobody reads it as Rome (D-58). The client's default time is already
- * written. «Pubblica subito» is drawn for who can schedule, off with «Presto» until publishing
- * arrives (stage 7, Matteo 18/11).
+ * «Quando» (§11.2 point 6, P1; screens 08 and 09): «Programma» · «Pubblica subito», then the day
+ * and the time in the post's zone, in the panel's own fields (never the browser's). Rome, the
+ * default, is not said (Matteo 18/11); another zone set in the agency's settings is said next to
+ * the time, so nobody reads it as Rome (D-58). The client's usual time is already written, and
+ * said («Orario abituale di Forno Luce») while it stays. «Pubblica subito» is drawn for who can
+ * schedule, off with «Presto» until publishing arrives (stage 7, Matteo 18/11).
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t } = useI18n()
@@ -37,90 +38,75 @@ const time = computed({
   },
 })
 
-const sentence = computed(() => {
-  const w = e.when.value
-  if (!w?.localDate || !w.localTime) return null
-  const day = formatDay(w.localDate)
-  const time = formatTime(w.localTime)
-  return zone.value
-    ? t('posts.when.sentence', { day, time, zone: zone.value })
-    : t('posts.when.sentenceLocal', { day, time })
-})
 const isDefault = computed(
   () => props.client.defaultPostTime && e.when.value?.localTime === props.client.defaultPostTime,
 )
+/** «oggi» in the post's zone, for the month the day field opens on */
+const today = computed(() => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: e.timeZone.value,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const get = (type: string) => parts.find((x) => x.type === type)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+})
 </script>
 
 <template>
   <PostEditorRow heading="post-when" :label="$t('posts.when.title')">
-    <div class="flex flex-col gap-3">
+    <div class="grid gap-2.5">
       <div
         v-if="e.may.value.publish"
         role="group"
         :aria-label="$t('posts.when.mode')"
-        class="inline-flex self-start rounded-[0.625rem] border border-(--app-border) bg-(--app-groove) p-[3px]"
+        class="inline-flex gap-0.5 self-start justify-self-start rounded-control border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
       >
+        <button
+          type="button"
+          aria-pressed="true"
+          class="inline-flex h-7 items-center gap-1.5 rounded-[5px] bg-(--app-surface) px-2.5 font-semibold shadow-[var(--app-shadow-1),0_0_0_1px_var(--app-border)] max-md:h-9"
+        >
+          <UIcon name="i-lucide-calendar-days" class="size-4" aria-hidden="true" />
+          {{ $t('posts.when.at') }}
+        </button>
         <button
           type="button"
           aria-pressed="false"
           aria-disabled="true"
-          class="flex min-h-11 cursor-not-allowed items-center gap-2 rounded-[0.4375rem] px-3.5 text-sm text-(--app-text-muted) md:min-h-9"
+          class="inline-flex h-7 cursor-not-allowed items-center gap-1.5 rounded-[5px] px-2.5 font-medium text-(--app-text-muted) max-md:h-9"
           :aria-label="`${$t('posts.when.now')} (${$t('client.soon')})`"
+          :title="$t('client.soon')"
         >
           <UIcon name="i-lucide-send" class="size-4" aria-hidden="true" />
           {{ $t('posts.when.now') }}
-          <span class="text-xs" aria-hidden="true">{{ $t('client.soon') }}</span>
-        </button>
-        <button
-          type="button"
-          aria-pressed="true"
-          class="flex min-h-11 items-center gap-2 rounded-[0.4375rem] bg-(--app-card) px-3.5 text-sm font-semibold shadow-[0_1px_2px_rgb(36_35_33/0.15)] md:min-h-9"
-        >
-          <UIcon name="i-lucide-calendar-clock" class="size-4" aria-hidden="true" />
-          {{ $t('posts.when.at') }}
         </button>
       </div>
-      <div class="flex flex-wrap items-end gap-3">
-        <UFormField :label="$t('posts.when.day')" name="post-day">
-          <UInput
-            v-model="date"
-            type="date"
-            :disabled="!e.editable.value"
-            class="min-w-48"
-            :ui="{ base: 'min-h-control' }"
-          />
-        </UFormField>
-        <UFormField :label="$t('posts.when.time')" name="post-time">
-          <UInput
-            v-model="time"
-            type="time"
-            step="60"
-            :disabled="!e.editable.value"
-            class="w-32"
-            :ui="{ base: 'min-h-control' }"
-          />
-        </UFormField>
+      <div class="flex flex-wrap items-center gap-2.5" data-when>
+        <DayField
+          v-model="date"
+          :label="$t('posts.when.day')"
+          :today="today"
+          :disabled="!e.editable.value"
+        />
+        <TimeField v-model="time" :label="$t('posts.when.time')" :disabled="!e.editable.value" />
         <p
           v-if="zone"
-          class="flex min-h-control items-center gap-1.5 text-sm text-(--app-text-muted)"
+          class="flex items-center gap-1.5 text-detail text-(--app-text-muted)"
+          data-when-zone
         >
           <UIcon name="i-lucide-globe" class="size-4" aria-hidden="true" />
           {{ zone }}
         </p>
+        <p
+          v-if="isDefault"
+          class="text-detail text-(--app-text-muted) max-md:hidden"
+          data-when-usual
+        >
+          {{ $t('posts.when.usual', { client: client.name }) }}
+        </p>
       </div>
-      <p
-        v-if="sentence"
-        class="flex items-start gap-2 text-sm text-(--app-text-muted)"
-        data-when-sentence
-      >
-        <UIcon name="i-lucide-calendar" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <span>
-          {{ sentence }}
-          <template v-if="isDefault">
-            {{ $t('posts.when.default', { time: client.defaultPostTime, client: client.name }) }}
-          </template>
-        </span>
-      </p>
     </div>
   </PostEditorRow>
 </template>

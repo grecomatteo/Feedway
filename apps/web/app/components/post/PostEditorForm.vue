@@ -367,6 +367,7 @@ const confirmText = computed(() => {
             />
             <PostDestinationPicker
               :editor="editor"
+              :client="client"
               :profiles="profiles"
               :loading="profilesLoading"
               :groups="settings.groups.value"
@@ -379,7 +380,9 @@ const confirmText = computed(() => {
               :manage-to="manageTo"
               :archived="client.archivedAt !== null"
             />
+            <!-- «Controlli»: under the preview from 1024 px, the last row of the form below -->
             <PostDestinationSummary
+              v-if="!wide"
               :editor="editor"
               :accounts="accounts"
               :show-files="client.myRole !== 'viewer'"
@@ -387,18 +390,32 @@ const confirmText = computed(() => {
             />
           </div>
         </div>
-        <!-- the preview, as on Meta (§11.3, Task 6): always beside the form from 1024 px -->
+        <!-- the preview, as on Meta (§11.3, Task 6), and «Controlli» under it: beside the form
+             from 1024 px, scrolling on its own when taller than the screen (so it takes the
+             keyboard's focus too) -->
         <aside
           :aria-label="$t('posts.preview.title')"
-          class="sticky top-[4.75rem] hidden min-w-0 flex-col gap-3 self-start pt-[1.375rem] lg:flex"
+          class="sticky top-14 hidden max-h-[calc(100dvh-3.5rem)] min-w-0 flex-col gap-5 self-start overflow-y-auto pt-[1.375rem] pb-8 [scrollbar-width:thin] lg:flex"
+          data-editor-column
+          tabindex="0"
         >
-          <h2>{{ $t('posts.preview.title') }}</h2>
-          <PostPreview
-            v-if="wide"
-            :editor="editor"
-            :accounts="accounts"
-            :show-files="client.myRole !== 'viewer'"
-          />
+          <template v-if="wide">
+            <PostPreview
+              :editor="editor"
+              :accounts="accounts"
+              :show-files="client.myRole !== 'viewer'"
+              :heading="$t('posts.preview.title')"
+              width="14.75rem"
+              reserve="22rem"
+            />
+            <PostDestinationSummary
+              placement="column"
+              :editor="editor"
+              :accounts="accounts"
+              :show-files="client.myRole !== 'viewer'"
+              @goto="goto"
+            />
+          </template>
         </aside>
       </div>
     </div>

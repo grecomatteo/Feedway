@@ -4,10 +4,11 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { PostEditor } from '~/composables/usePostEditor'
 
 /**
- * «Etichette e note» (§11.7, design E1): the client's labels as pills, chosen with «+ Etichetta»
- * and saved with the post; the internal notes of the post with their author and time, and a row
- * to write one. Notes go with the saved post, never with the draft's autosave, and never to a
- * client (§11.10). An Editor notes anyone's post and takes off only their own notes.
+ * «Etichette» and «Note interne» (§11.7; screen 08), two rows of the editor: the client's labels
+ * as chips, chosen with «+ Etichetta» and saved with the post; the internal notes of the post
+ * with their author and time, and a field to write one. Notes go with the saved post, never with
+ * the draft's autosave, and never to a client (§11.10). An Editor notes anyone's post and takes
+ * off only their own notes.
  */
 const props = defineProps<{
   editor: PostEditor
@@ -132,48 +133,54 @@ const initials = (name: string) =>
 </script>
 
 <template>
-  <PostEditorRow heading="post-labels-notes" :label="$t('posts.labels.title')">
-    <div class="flex flex-col gap-3">
-      <p class="text-detail text-(--app-text-muted)">{{ $t('posts.labels.agencyOnly') }}</p>
-
-      <ul class="flex flex-wrap items-center gap-2" :aria-label="$t('posts.labels.chosen')">
-        <li
-          v-for="l in chosen"
-          :key="l.id"
-          class="inline-flex min-h-9 items-center gap-2 rounded-full border border-(--app-border) bg-(--app-card) pr-1 pl-3 text-sm"
+  <PostEditorRow heading="post-labels" :label="$t('posts.labels.title')">
+    <ul
+      class="flex min-h-control flex-wrap items-center gap-2"
+      :aria-label="$t('posts.labels.chosen')"
+    >
+      <li
+        v-for="l in chosen"
+        :key="l.id"
+        class="inline-flex h-6 items-center gap-1.5 rounded-thumb border border-(--app-border-strong) bg-(--app-surface) ps-2 text-detail"
+        :class="e.editable.value ? 'pe-0.5' : 'pe-2'"
+        data-label-chip
+      >
+        <ContentLabelDot :color="l.color" class="rounded-[2px]! size-2!" />
+        {{ l.name }}
+        <button
+          v-if="e.editable.value"
+          type="button"
+          class="relative grid size-5 place-items-center rounded-[4px] text-(--app-text-muted) after:absolute after:-inset-2.5 after:content-[''] hover:bg-(--app-surface-sunken) hover:text-(--app-text)"
+          :aria-label="$t('posts.labels.remove', { name: l.name })"
+          @click="toggle(l.id)"
         >
-          <ContentLabelDot :color="l.color" />
-          {{ l.name }}
+          <UIcon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+        </button>
+      </li>
+      <li v-if="e.editable.value">
+        <UDropdownMenu :items="labelItems" :content="{ align: 'start' }">
           <UButton
-            v-if="e.editable.value"
             color="neutral"
             variant="ghost"
-            size="xs"
-            icon="i-lucide-x"
-            class="size-8 justify-center rounded-full relative after:absolute after:-inset-1.5 after:content-['']"
-            :aria-label="$t('posts.labels.remove', { name: l.name })"
-            @click="toggle(l.id)"
-          />
-        </li>
-        <li v-if="e.editable.value">
-          <UDropdownMenu :items="labelItems" :content="{ align: 'start' }">
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-plus"
-              class="min-h-9 rounded-full relative after:absolute after:-inset-x-0 after:-inset-y-1 after:content-['']"
-              :loading="labels === null"
-            >
-              {{ $t('posts.labels.add') }}
-            </UButton>
-          </UDropdownMenu>
-        </li>
-        <li v-else-if="chosen.length === 0" class="text-sm text-(--app-text-muted)">
-          {{ $t('posts.labels.noneOnPost') }}
-        </li>
-      </ul>
-
-      <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
+            size="sm"
+            icon="i-lucide-plus"
+            :loading="labels === null"
+          >
+            {{ $t('posts.labels.add') }}
+          </UButton>
+        </UDropdownMenu>
+      </li>
+      <li v-else-if="chosen.length === 0" class="text-(--app-text-muted)">
+        {{ $t('posts.labels.noneOnPost') }}
+      </li>
+    </ul>
+  </PostEditorRow>
+  <PostEditorRow heading="post-notes" :label="$t('posts.notes.title')">
+    <div class="flex flex-col gap-2.5">
+      <div
+        v-if="notesFailed || (notes && notes.length > 0)"
+        class="overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface)"
+      >
         <p v-if="notesFailed" role="alert" class="px-4 py-3 text-sm text-(--app-danger)">
           {{ $t('posts.notes.loadError') }}
           <UButton color="neutral" variant="link" class="min-h-control" @click="loadNotes">
@@ -204,40 +211,40 @@ const initials = (name: string) =>
             />
           </li>
         </ul>
-        <form
-          v-if="mayWrite"
-          class="flex items-center gap-2 border-t border-(--app-border) px-2 first:border-t-0"
-          novalidate
-          @submit.prevent="add"
-        >
-          <label for="post-note" class="sr-only">{{ $t('posts.notes.label') }}</label>
-          <input
-            id="post-note"
-            v-model="draft"
-            type="text"
-            maxlength="2000"
-            :disabled="!postId"
-            :placeholder="postId ? $t('posts.notes.placeholder') : $t('posts.notes.beforeDraft')"
-            class="min-h-12 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-(--app-text-muted) disabled:cursor-not-allowed"
-          />
-          <UButton
-            type="submit"
-            color="neutral"
-            variant="ghost"
-            class="min-h-control"
-            :loading="sending"
-            :disabled="!postId || draft.trim() === ''"
-          >
-            {{ $t('posts.notes.add') }}
-          </UButton>
-        </form>
-        <p
-          v-else-if="!notes || notes.length === 0"
-          class="px-4 py-3 text-sm text-(--app-text-muted)"
-        >
-          {{ $t('posts.notes.empty') }}
-        </p>
       </div>
+      <form
+        v-if="mayWrite"
+        class="flex h-control items-center gap-1 rounded-control border border-(--app-field-border) bg-(--app-surface) ps-2.5 pe-1 focus-within:border-(--app-text)"
+        novalidate
+        @submit.prevent="add"
+      >
+        <label for="post-note" class="sr-only">{{ $t('posts.notes.label') }}</label>
+        <input
+          id="post-note"
+          v-model="draft"
+          type="text"
+          maxlength="2000"
+          :disabled="!postId"
+          :placeholder="postId ? $t('posts.notes.placeholder') : $t('posts.notes.beforeDraft')"
+          class="h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-(--app-text-muted) disabled:cursor-not-allowed"
+        />
+        <UButton
+          type="submit"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          :loading="sending"
+          :disabled="!postId || draft.trim() === ''"
+        >
+          {{ $t('posts.notes.add') }}
+        </UButton>
+      </form>
+      <p
+        v-else-if="!notes || notes.length === 0"
+        class="flex min-h-control items-center text-(--app-text-muted)"
+      >
+        {{ $t('posts.notes.empty') }}
+      </p>
       <p v-if="problem" role="alert" class="text-sm text-(--app-danger)">{{ problem }}</p>
       <UModal
         :open="removing !== null"

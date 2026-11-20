@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import type { AccountGroupDto } from '@app/contracts'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { selectable, type PostEditor } from '~/composables/usePostEditor'
+import { reconnecting, selectable, type PostEditor } from '~/composables/usePostEditor'
 
 /**
- * «Dove pubblicare» (§11.2 point 5; design E1): the client's profiles with their accounts under
- * them, a search, «Seleziona tutti» of the accounts that can be chosen. An account to reconnect
- * is off, with the reason under its name. «Gruppi» ticks the accounts of a saved group that can
- * be chosen and says which ones it skips (§11.7, design E8c).
+ * «Dove» (§11.2 point 5; screens 08 and 09): the client's accounts in one list, each with its box,
+ * its icon, its name and on the right what it is («Pagina Facebook») or why it cannot be chosen
+ * («Da ricollegare», with the box off). From six accounts up a search, «Gruppi» and «Seleziona
+ * tutti» stand above the list: with fewer they only take room. «Gruppi» ticks the accounts of a
+ * saved group that can be chosen and says which ones it skips (§11.7, design E8c).
  */
 const props = defineProps<{
   editor: PostEditor
+  client: WorkspaceView
   profiles: WorkspaceProfile[]
   loading: boolean
   /** the client's account groups; null while they load */
@@ -26,15 +28,37 @@ const ICON: Record<string, string> = {
 }
 const handleOf = (a: ProfileAccount) =>
   a.platform === 'instagram' && a.username ? `@${a.username}` : a.name
-const matches = (p: WorkspaceProfile) => {
-  const s = q.value.trim().toLowerCase()
-  if (!s) return true
-  return [profileName(p), ...p.accounts.flatMap((a) => [a.name, a.username ?? ''])].some((x) =>
-    x.toLowerCase().includes(s.replace(/^@/, '')),
+/**
+ * Every account of the client, Instagram first (D-51), each with its profile's name for the
+ * search and whether it can be ticked.
+ */
+const accounts = computed(() => {
+  const list = props.profiles.flatMap((p) =>
+    p.accounts.map((a) => ({
+      a,
+      profile: profileName(p),
+      reconnect: reconnecting(props.client, p.key),
+    })),
   )
-}
-const shown = computed(() => props.profiles.filter(matches))
-const all = computed(() => props.profiles.flatMap((p) => p.accounts.filter(selectable)))
+  return [
+    ...list.filter((x) => x.a.platform === 'instagram'),
+    ...list.filter((x) => x.a.platform !== 'instagram'),
+  ]
+})
+const off = computed(() => new Set(accounts.value.filter((x) => x.reconnect).map((x) => x.a.id)))
+/** an account to reconnect is shown off here too, as in «Clienti» (screens 08, 14 and 16) */
+const pickable = (a: ProfileAccount) => selectable(a) && !off.value.has(a.id)
+/** «Gruppi», the search and «Seleziona tutti» from this many accounts up (plan R7) */
+const MANY = 6
+const many = computed(() => accounts.value.length >= MANY)
+const shown = computed(() => {
+  const s = q.value.trim().toLowerCase().replace(/^@/, '')
+  if (!many.value || !s) return accounts.value
+  return accounts.value.filter(({ a, profile }) =>
+    [profile, a.name, a.username ?? ''].some((x) => x.toLowerCase().includes(s)),
+  )
+})
+const all = computed(() => accounts.value.map((x) => x.a).filter(pickable))
 const picked = (a: ProfileAccount) => e.destinations.value.includes(a.id)
 const count = computed(() => e.destinations.value.length)
 
@@ -46,12 +70,6 @@ function set(ids: string[], on: boolean) {
   }
   e.destinations.value = [...now]
   e.touched()
-}
-const stateOf = (p: WorkspaceProfile): boolean | 'indeterminate' => {
-  const ids = p.accounts.filter(selectable).map((a) => a.id)
-  const on = ids.filter((id) => e.destinations.value.includes(id)).length
-  if (on === 0) return false
-  return on === ids.length ? true : 'indeterminate'
 }
 const allPicked = computed(
   () => all.value.length > 0 && all.value.every((a) => e.destinations.value.includes(a.id)),
@@ -66,7 +84,7 @@ function split(g: AccountGroupDto) {
   const skipped: string[] = []
   for (const id of g.accountIds) {
     const a = byId.value.get(id)
-    if (a && selectable(a)) ok.push(a)
+    if (a && pickable(a)) ok.push(a)
     else skipped.push(a ? handleOf(a) : t('posts.destinations.groups.gone'))
   }
   return { ok, skipped }
@@ -114,13 +132,18 @@ const groupItems = computed<DropdownMenuItem[][]>(() => {
 
 const whyOff = (a: ProfileAccount) =>
   !a.active ? t('posts.destinations.inactive') : t('posts.destinations.reconnect')
+const pickedOff = (a: ProfileAccount) => !pickable(a) && picked(a)
+const offWord = (a: ProfileAccount) =>
+  !a.active ? t('posts.destinations.offInactive') : t('posts.destinations.offReconnect')
 </script>
 
 <template>
   <PostEditorRow
     heading="post-destinations"
     :label="$t('posts.destinations.title')"
-    :detail="$t('posts.destinations.count', { n: count }, count)"
+    :detail="
+      accounts.length > 0 ? $t('posts.destinations.count', { on: count, n: accounts.length }) : null
+    "
   >
     <div class="flex flex-col gap-3">
       <ListSkeleton v-if="loading && profiles.length === 0" />
@@ -128,7 +151,7 @@ const whyOff = (a: ProfileAccount) =>
         {{ $t('posts.destinations.none') }}
       </p>
       <template v-else>
-        <div class="flex flex-wrap items-center gap-3">
+        <div v-if="many" class="flex flex-wrap items-center gap-2" data-destinations-tools>
           <SearchField v-model="q" :label="$t('posts.destinations.search')" class="flex-1" />
           <UDropdownMenu
             v-if="e.editable.value"
@@ -139,7 +162,6 @@ const whyOff = (a: ProfileAccount) =>
             <UButton
               color="neutral"
               variant="outline"
-              class="min-h-control"
               icon="i-lucide-users"
               :loading="groups === null"
             >
@@ -150,9 +172,7 @@ const whyOff = (a: ProfileAccount) =>
             v-if="e.editable.value"
             color="neutral"
             variant="ghost"
-            class="min-h-control"
             :icon="allPicked ? 'i-lucide-x' : 'i-lucide-check-check'"
-            trailing
             :disabled="all.length === 0"
             @click="
               set(
@@ -164,62 +184,53 @@ const whyOff = (a: ProfileAccount) =>
             {{ allPicked ? $t('posts.destinations.none_') : $t('posts.destinations.all') }}
           </UButton>
         </div>
-        <p v-if="groupNote" role="status" class="text-sm text-(--app-text-muted)">
+        <p v-if="groupNote" role="status" class="text-detail text-(--app-text-muted)">
           {{ groupNote }}
         </p>
         <ul
-          class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
+          class="overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface)"
+          data-destinations
         >
-          <li v-for="p in shown" :key="p.key" class="flex flex-col gap-1 px-4 py-3">
-            <div class="flex min-h-11 items-center gap-3">
+          <li
+            v-for="{ a } in shown"
+            :key="a.id"
+            class="border-t border-(--app-border) first:border-t-0"
+          >
+            <label
+              class="flex min-h-12 items-center gap-3 px-3.5 max-md:min-h-14"
+              :class="
+                pickable(a) && e.editable.value ? 'cursor-pointer' : 'text-(--app-text-muted)'
+              "
+            >
               <UCheckbox
-                :model-value="stateOf(p)"
-                :disabled="!e.editable.value || p.accounts.filter(selectable).length === 0"
-                :aria-label="$t('posts.destinations.profile', { name: profileName(p) })"
-                @update:model-value="
-                  set(
-                    p.accounts.filter(selectable).map((a) => a.id),
-                    stateOf(p) !== true,
-                  )
-                "
+                :model-value="picked(a)"
+                :disabled="!e.editable.value || (!pickable(a) && !pickedOff(a))"
+                :aria-label="`${handleOf(a)} · ${$t(`posts.destinations.kind.${a.platform}`)}`"
+                :aria-describedby="pickable(a) ? undefined : `why-${a.id}`"
+                :data-account="a.id"
+                :class="pickable(a) ? '' : 'opacity-45'"
+                @update:model-value="set([a.id], $event === true)"
               />
-              <RowAvatar :name="profileName(p)" :src="profilePhoto(p)" />
-              <span class="min-w-0 flex-1 truncate font-medium">{{ profileName(p) }}</span>
-              <span class="text-sm text-(--app-text-muted) tabular-nums">{{
-                $t('posts.destinations.ofProfile', {
-                  on: p.accounts.filter((a) => picked(a)).length,
-                  n: p.accounts.length,
-                })
+              <UIcon
+                :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span class="min-w-0 flex-1 truncate" :class="pickable(a) ? 'font-medium' : ''">{{
+                handleOf(a)
               }}</span>
-            </div>
-            <ul class="flex flex-col pl-9">
-              <li v-for="a in p.accounts" :key="a.id" class="flex min-h-11 items-center gap-3">
-                <UCheckbox
-                  :model-value="picked(a)"
-                  :disabled="!e.editable.value || !selectable(a)"
-                  :aria-label="`${handleOf(a)} · ${$t(`socialAccounts.platform.${a.platform}`)}`"
-                  :aria-describedby="selectable(a) ? undefined : `why-${a.id}`"
-                  :data-account="a.id"
-                  @update:model-value="set([a.id], $event === true)"
-                />
-                <UIcon
-                  :name="ICON[a.platform] ?? 'i-lucide-at-sign'"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="truncate" :class="selectable(a) ? '' : 'text-(--app-text-muted)'">
-                    {{ handleOf(a) }}
-                    <span class="text-xs text-(--app-text-muted)">{{
-                      $t(`posts.destinations.kind.${a.platform}`)
-                    }}</span>
-                  </p>
-                  <p v-if="!selectable(a)" :id="`why-${a.id}`" class="text-xs text-(--app-warning)">
-                    {{ whyOff(a) }}
-                  </p>
-                </div>
-              </li>
-            </ul>
+              <span
+                v-if="pickable(a)"
+                class="shrink-0 text-detail text-(--app-text-muted)"
+                aria-hidden="true"
+                >{{ $t(`posts.destinations.kind.${a.platform}`) }}</span
+              >
+              <StatusDot v-else :label="offWord(a)" tone="warning" class="shrink-0" />
+              <span v-if="!pickable(a)" :id="`why-${a.id}`" class="sr-only">{{ whyOff(a) }}</span>
+            </label>
+          </li>
+          <li v-if="shown.length === 0" class="px-3.5 py-3 text-(--app-text-muted)">
+            {{ $t('posts.destinations.noMatch') }}
           </li>
         </ul>
       </template>
