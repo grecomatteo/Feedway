@@ -7,6 +7,7 @@
  * client in the selector the page is about that client only.
  */
 import type { AgendaIssue, AgendaPost, DraftToFinish } from '@app/contracts'
+import type { StatusTone } from '~/components/StatusDot.vue'
 
 definePageMeta({ layout: 'agency' })
 
@@ -120,6 +121,11 @@ const STATUS_BAR: Record<AgendaPost['status'], string> = {
   draft: 'bg-(--app-neutral-dot)',
   cancelled: 'bg-(--app-neutral-dot)',
 }
+const STATE_TONE: Record<AgendaPost['status'], StatusTone> = {
+  scheduled: 'info',
+  draft: 'neutral',
+  cancelled: 'neutral',
+}
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 /** The groups of the list: today and tomorrow, or the day picked in the strip. */
 const groups = computed(() => {
@@ -137,6 +143,16 @@ const groups = computed(() => {
     }
   })
 })
+/** A state other than «Programmato» in the list: only then the rows keep a column for it. */
+const exceptions = computed(() => posts.value.some((p) => p.status !== 'scheduled'))
+/** The row's columns by its own width: time, picture, title; then the platforms; then the client
+ *  in its column (and the state, when one is not «Programmato»). */
+const rowColumns = computed(() => [
+  'grid-cols-[2.75rem_2.5rem_minmax(0,1fr)] @min-[30rem]:grid-cols-[3rem_2.5rem_minmax(0,1fr)_3.5rem]',
+  exceptions.value
+    ? '@min-[46rem]:grid-cols-[3rem_2.5rem_minmax(0,1fr)_minmax(0,9.5rem)_3.5rem_7.75rem]'
+    : '@min-[46rem]:grid-cols-[3rem_2.5rem_minmax(0,1fr)_minmax(0,9.5rem)_3.5rem]',
+])
 const nothingListed = computed(() => groups.value.every((g) => g.posts.length === 0))
 const timeOf = (p: AgendaPost) => formatTime(p.scheduledAt, { timeZone: p.timezone })
 
@@ -284,267 +300,286 @@ const ready = computed(
         {{ $t('today.issues.none') }}
       </p>
 
-      <div
-        class="grid items-start gap-8 max-[1359px]:gap-7 min-[1360px]:grid-cols-[minmax(0,1fr)_340px]"
-      >
-        <!-- In uscita -->
-        <section
-          :aria-label="$t('today.out.title')"
-          :aria-busy="agendaLoading || undefined"
-          data-today-out
+      <!-- two columns as soon as the page's own width holds them (928 px: a 1280 laptop, even with
+           an always-visible scrollbar): the rows of «In uscita» fit their column, not the screen -->
+      <div class="@container">
+        <div
+          class="grid items-start gap-7 @min-[58rem]:grid-cols-[minmax(0,1fr)_21.25rem] @min-[58rem]:gap-8"
+          data-today-columns
         >
-          <SectionHead :title="$t('today.out.title')" />
-          <div class="rounded-card border border-(--app-border) bg-(--app-surface)">
-            <div
-              class="grid grid-cols-7 border-b border-(--app-border)"
-              role="group"
-              :aria-label="$t('today.week.label')"
-              data-week
-            >
-              <button
-                v-for="d in days"
-                :key="d.key"
-                type="button"
-                :aria-pressed="picked === d.key"
-                :aria-label="
-                  known
-                    ? $t('today.week.dayLabel', { day: d.label, n: d.posts.length }, d.posts.length)
-                    : d.label
-                "
-                class="relative border-s border-(--app-border) px-3.5 pt-2.5 pb-3 text-start first:border-s-0 hover:bg-(--app-nav-hover) aria-pressed:bg-(--app-nav-hover) max-md:px-0 max-md:pt-2 max-md:pb-2.5 max-md:text-center"
-                :data-today="d.today || undefined"
-                @click="pick(d.key, d.today)"
-              >
-                <span class="block text-caption text-(--app-text-muted)">{{ d.weekday }}</span>
-                <span
-                  class="mt-0.5 flex items-baseline gap-1.5 text-[15px] leading-5 font-semibold tabular-nums max-md:justify-center md:max-xl:flex-col md:max-xl:gap-0"
-                  :class="d.past ? 'text-(--app-text-muted)' : ''"
-                >
-                  {{ d.number }}
-                  <span
-                    v-if="known"
-                    class="text-caption font-normal text-(--app-text-muted) max-md:hidden"
-                    >{{
-                      d.posts.length === 0
-                        ? $t('today.week.free')
-                        : $t('today.week.posts', { n: d.posts.length }, d.posts.length)
-                    }}</span
-                  >
-                </span>
-                <span
-                  class="mt-2 flex h-1 gap-[3px] overflow-hidden max-md:justify-center max-md:h-[5px]"
-                >
-                  <i
-                    v-for="p in known ? d.posts : []"
-                    :key="p.id"
-                    class="block w-3.5 shrink-0 rounded-[2px] max-md:size-[5px] max-md:rounded-full"
-                    :class="STATUS_BAR[p.status]"
-                  />
-                </span>
-                <span
-                  v-if="d.today"
-                  class="absolute inset-x-0 -bottom-px h-0.5 bg-(--app-brand)"
-                  aria-hidden="true"
-                  data-accent
-                />
-              </button>
-            </div>
-
-            <!-- the skeletons say nothing to a screen reader: the section is busy meanwhile -->
-            <div v-if="agendaLoading" aria-hidden="true">
+          <!-- In uscita -->
+          <section
+            :aria-label="$t('today.out.title')"
+            :aria-busy="agendaLoading || undefined"
+            class="@container"
+            data-today-out
+          >
+            <SectionHead :title="$t('today.out.title')" />
+            <div class="rounded-card border border-(--app-border) bg-(--app-surface)">
               <div
-                v-for="n in skeletonRows"
-                :key="n"
-                class="flex min-h-row items-center gap-3.5 px-4"
+                class="grid grid-cols-7 border-b border-(--app-border)"
+                role="group"
+                :aria-label="$t('today.week.label')"
+                data-week
               >
-                <USkeleton class="h-4 w-11" />
-                <USkeleton class="size-10 rounded-thumb" />
-                <USkeleton class="h-4 flex-1" />
-              </div>
-            </div>
-            <!-- the row of LoadFailed, inside the surface of «In uscita» (D, state 1) -->
-            <div
-              v-else-if="agenda.error.value"
-              role="alert"
-              class="flex min-h-row items-center gap-3 px-4"
-              data-load-failed
-            >
-              <UIcon
-                name="i-lucide-circle-alert"
-                class="size-4 shrink-0 text-(--app-danger)"
-                aria-hidden="true"
-              />
-              <span class="min-w-0 flex-1">{{ $t('today.out.failed') }}</span>
-              <UButton color="neutral" variant="outline" size="sm" @click="agenda.refresh()">{{
-                $t('account.retry')
-              }}</UButton>
-            </div>
-            <div
-              v-else-if="nothingListed"
-              class="flex min-h-row items-center justify-between gap-3 px-4"
-              data-today-empty
-            >
-              <span class="text-(--app-text-muted)">{{
-                picked ? $t('today.out.emptyDay') : $t('today.out.empty')
-              }}</span>
-              <UButton
-                v-if="newPost.allowed.value"
-                :to="newPost.link.value"
-                color="neutral"
-                variant="outline"
-                icon="i-lucide-plus"
-                class="shrink-0"
-                >{{ $t('client.newPost') }}</UButton
-              >
-            </div>
-            <template v-else>
-              <section
-                v-for="(g, gi) in groups"
-                :key="g.key"
-                :aria-label="g.label"
-                :class="gi > 0 ? 'mt-1.5 border-t border-(--app-border)' : ''"
-                data-day-group
-              >
-                <h3 class="px-4 pt-3.5 pb-1.5 text-caption font-medium text-(--app-text-muted)">
-                  {{ g.label }}
-                </h3>
-                <p v-if="g.posts.length === 0" class="px-4 pb-3 text-(--app-text-muted)">
-                  {{ $t('today.out.none') }}
-                </p>
-                <ul v-else>
-                  <li
-                    v-for="p in g.posts"
-                    :key="p.id"
-                    class="grid min-h-row grid-cols-[48px_40px_minmax(0,1fr)_150px_56px_124px] items-center gap-x-3.5 px-4 max-md:grid-cols-[44px_40px_minmax(0,1fr)] max-md:gap-x-3 max-md:px-3.5"
-                    :data-post="p.id"
+                <button
+                  v-for="d in days"
+                  :key="d.key"
+                  type="button"
+                  :aria-pressed="picked === d.key"
+                  :aria-label="
+                    known
+                      ? $t(
+                          'today.week.dayLabel',
+                          { day: d.label, n: d.posts.length },
+                          d.posts.length,
+                        )
+                      : d.label
+                  "
+                  class="relative border-s border-(--app-border) px-3.5 pt-2.5 pb-3 text-start first:border-s-0 hover:bg-(--app-nav-hover) aria-pressed:bg-(--app-nav-hover) max-md:px-0 max-md:pt-2 max-md:pb-2.5 max-md:text-center"
+                  :data-today="d.today || undefined"
+                  @click="pick(d.key, d.today)"
+                >
+                  <span class="block text-caption text-(--app-text-muted)">{{ d.weekday }}</span>
+                  <span
+                    class="mt-0.5 flex items-baseline gap-1.5 text-[15px] leading-5 font-semibold tabular-nums max-md:items-center max-md:justify-center @max-[44rem]:flex-col @max-[44rem]:gap-0"
+                    :class="d.past ? 'text-(--app-text-muted)' : ''"
                   >
-                    <span class="font-semibold tabular-nums">{{ timeOf(p) }}</span>
+                    {{ d.number }}
                     <span
-                      class="flex size-10 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
+                      v-if="known"
+                      class="text-caption font-normal text-(--app-text-muted) max-md:hidden"
+                      >{{
+                        d.posts.length === 0
+                          ? $t('today.week.free')
+                          : $t('today.week.posts', { n: d.posts.length }, d.posts.length)
+                      }}</span
+                    >
+                  </span>
+                  <span
+                    class="mt-2 flex h-1 gap-[3px] overflow-hidden max-md:justify-center max-md:h-[5px]"
+                  >
+                    <i
+                      v-for="p in known ? d.posts : []"
+                      :key="p.id"
+                      class="block w-3.5 shrink-0 rounded-[2px] max-md:size-[5px] max-md:rounded-full"
+                      :class="STATUS_BAR[p.status]"
+                    />
+                  </span>
+                  <span
+                    v-if="d.today"
+                    class="absolute inset-x-0 -bottom-px h-0.5 bg-(--app-brand)"
+                    aria-hidden="true"
+                    data-accent
+                  />
+                </button>
+              </div>
+
+              <!-- the skeletons say nothing to a screen reader: the section is busy meanwhile -->
+              <div v-if="agendaLoading" aria-hidden="true">
+                <div
+                  v-for="n in skeletonRows"
+                  :key="n"
+                  class="flex min-h-row items-center gap-3.5 px-4"
+                >
+                  <USkeleton class="h-4 w-11" />
+                  <USkeleton class="size-10 rounded-thumb" />
+                  <USkeleton class="h-4 flex-1" />
+                </div>
+              </div>
+              <!-- the row of LoadFailed, inside the surface of «In uscita» (D, state 1) -->
+              <div
+                v-else-if="agenda.error.value"
+                role="alert"
+                class="flex min-h-row items-center gap-3 px-4"
+                data-load-failed
+              >
+                <UIcon
+                  name="i-lucide-circle-alert"
+                  class="size-4 shrink-0 text-(--app-danger)"
+                  aria-hidden="true"
+                />
+                <span class="min-w-0 flex-1">{{ $t('today.out.failed') }}</span>
+                <UButton color="neutral" variant="outline" size="sm" @click="agenda.refresh()">{{
+                  $t('account.retry')
+                }}</UButton>
+              </div>
+              <div
+                v-else-if="nothingListed"
+                class="flex min-h-row items-center justify-between gap-3 px-4"
+                data-today-empty
+              >
+                <span class="text-(--app-text-muted)">{{
+                  picked ? $t('today.out.emptyDay') : $t('today.out.empty')
+                }}</span>
+                <UButton
+                  v-if="newPost.allowed.value"
+                  :to="newPost.link.value"
+                  color="neutral"
+                  variant="outline"
+                  icon="i-lucide-plus"
+                  class="shrink-0"
+                  >{{ $t('client.newPost') }}</UButton
+                >
+              </div>
+              <template v-else>
+                <section
+                  v-for="(g, gi) in groups"
+                  :key="g.key"
+                  :aria-label="g.label"
+                  :class="gi > 0 ? 'mt-1.5 border-t border-(--app-border)' : ''"
+                  data-day-group
+                >
+                  <h3 class="px-4 pt-3.5 pb-1.5 text-caption font-medium text-(--app-text-muted)">
+                    {{ g.label }}
+                  </h3>
+                  <p v-if="g.posts.length === 0" class="px-4 pb-3 text-(--app-text-muted)">
+                    {{ $t('today.out.none') }}
+                  </p>
+                  <ul v-else>
+                    <li
+                      v-for="p in g.posts"
+                      :key="p.id"
+                      class="grid min-h-row items-center gap-x-3 px-3.5 @min-[30rem]:gap-x-3.5 @min-[30rem]:px-4"
+                      :class="rowColumns"
+                      :data-post="p.id"
+                    >
+                      <span class="font-semibold tabular-nums">{{ timeOf(p) }}</span>
+                      <span
+                        class="flex size-10 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
+                      >
+                        <img
+                          v-if="thumbOf(p)"
+                          :src="thumbOf(p)!"
+                          alt=""
+                          class="size-full object-cover"
+                        />
+                        <UIcon v-else :name="TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
+                      </span>
+                      <span class="min-w-0">
+                        <NuxtLink
+                          :to="postPage(p.workspaceId, p.id)"
+                          class="block truncate font-medium underline-offset-3 hover:underline"
+                          >{{ textOf(p) }}</NuxtLink
+                        >
+                        <!-- a narrow row: the client under the title, as on a phone -->
+                        <span
+                          class="flex items-center justify-between gap-2.5 text-detail text-(--app-text-muted) @min-[46rem]:hidden"
+                        >
+                          <span class="truncate">{{ clientName(p.workspaceId) }}</span>
+                          <StatusDot
+                            v-if="p.status !== 'scheduled'"
+                            :tone="STATE_TONE[p.status]"
+                            :label="$t(`posts.list.state.${p.status}`)"
+                            class="shrink-0"
+                          />
+                        </span>
+                      </span>
+                      <span class="hidden truncate text-(--app-text-muted) @min-[46rem]:block">{{
+                        clientName(p.workspaceId)
+                      }}</span>
+                      <!-- in a span: the icons' own `inline-flex` would win over `hidden` -->
+                      <span class="hidden @min-[30rem]:block">
+                        <PlatformIcons :platforms="p.platforms" />
+                      </span>
+                      <!-- «Programmato» is what «In uscita» means: only another state is said -->
+                      <span v-if="exceptions" class="hidden @min-[46rem]:block">
+                        <StatusDot
+                          v-if="p.status !== 'scheduled'"
+                          :tone="STATE_TONE[p.status]"
+                          :label="$t(`posts.list.state.${p.status}`)"
+                        />
+                      </span>
+                    </li>
+                  </ul>
+                </section>
+              </template>
+            </div>
+          </section>
+
+          <div class="flex min-w-0 flex-col gap-7">
+            <!-- Bozze da finire -->
+            <section
+              v-if="draftItems.length > 0"
+              :aria-label="$t('today.drafts.title')"
+              data-today-drafts
+            >
+              <SectionHead
+                :title="$t('today.drafts.title')"
+                :count="drafts.data.value?.total ?? null"
+              >
+                <NuxtLink
+                  v-if="allDrafts"
+                  :to="allDrafts"
+                  class="text-detail underline underline-offset-3"
+                  >{{ $t('today.drafts.all') }}</NuxtLink
+                >
+              </SectionHead>
+              <ListSurface :label="$t('today.drafts.title')">
+                <ListRow v-for="d in draftItems" :key="d.id" class="px-3.5">
+                  <span class="flex min-w-0 items-center gap-3">
+                    <span
+                      class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
                     >
                       <img
-                        v-if="thumbOf(p)"
-                        :src="thumbOf(p)!"
+                        v-if="thumbOf(d)"
+                        :src="thumbOf(d)!"
                         alt=""
                         class="size-full object-cover"
                       />
-                      <UIcon v-else :name="TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
+                      <UIcon v-else name="i-lucide-image" class="size-4" aria-hidden="true" />
                     </span>
                     <span class="min-w-0">
                       <NuxtLink
-                        :to="postPage(p.workspaceId, p.id)"
+                        :to="postPage(d.workspaceId, d.id)"
                         class="block truncate font-medium underline-offset-3 hover:underline"
-                        >{{ textOf(p) }}</NuxtLink
+                        >{{ textOf(d) }}</NuxtLink
                       >
-                      <span
-                        class="hidden items-center justify-between gap-2.5 text-detail text-(--app-text-muted) max-md:flex"
+                      <span class="block truncate text-detail text-(--app-text-muted)"
+                        >{{ clientName(d.workspaceId) }} · {{ missingOf(d) }}</span
                       >
-                        <span class="truncate">{{ clientName(p.workspaceId) }}</span>
-                        <StatusDot
-                          status="scheduled"
-                          :label="$t('posts.list.state.scheduled')"
-                          class="shrink-0"
-                        />
-                      </span>
                     </span>
-                    <span class="truncate text-(--app-text-muted) max-md:hidden">{{
-                      clientName(p.workspaceId)
-                    }}</span>
-                    <PlatformIcons :platforms="p.platforms" class="max-md:hidden" />
-                    <StatusDot
-                      status="scheduled"
-                      :label="$t('posts.list.state.scheduled')"
-                      class="max-md:hidden"
-                    />
-                  </li>
-                </ul>
-              </section>
-            </template>
-          </div>
-        </section>
+                  </span>
+                  <span class="text-detail text-(--app-text-muted)">{{
+                    formatRelative(d.updatedAt, { time: false, now })
+                  }}</span>
+                </ListRow>
+              </ListSurface>
+            </section>
 
-        <div class="flex min-w-0 flex-col gap-7">
-          <!-- Bozze da finire -->
-          <section
-            v-if="draftItems.length > 0"
-            :aria-label="$t('today.drafts.title')"
-            data-today-drafts
-          >
-            <SectionHead
-              :title="$t('today.drafts.title')"
-              :count="drafts.data.value?.total ?? null"
+            <!-- Clienti recenti: only across the clients -->
+            <section
+              v-if="workspaceId === null && recent.length > 0"
+              :aria-label="$t('today.clients.title')"
+              data-today-clients
             >
-              <NuxtLink
-                v-if="allDrafts"
-                :to="allDrafts"
-                class="text-detail underline underline-offset-3"
-                >{{ $t('today.drafts.all') }}</NuxtLink
-              >
-            </SectionHead>
-            <ListSurface :label="$t('today.drafts.title')">
-              <ListRow v-for="d in draftItems" :key="d.id" class="px-3.5">
-                <span class="flex min-w-0 items-center gap-3">
-                  <span
-                    class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
-                  >
-                    <img
-                      v-if="thumbOf(d)"
-                      :src="thumbOf(d)!"
-                      alt=""
-                      class="size-full object-cover"
+              <SectionHead :title="$t('today.clients.title')">
+                <NuxtLink :to="org.to('/spazi')" class="text-detail underline underline-offset-3">{{
+                  $t('today.clients.all')
+                }}</NuxtLink>
+              </SectionHead>
+              <ListSurface :label="$t('today.clients.title')">
+                <ListRow v-for="c in recent" :key="c.workspaceId" class="px-3.5">
+                  <span class="flex min-w-0 items-center gap-3">
+                    <Avatar
+                      :name="clientName(c.workspaceId)"
+                      :src="clientOf(c.workspaceId)?.photoUrl"
                     />
-                    <UIcon v-else name="i-lucide-image" class="size-4" aria-hidden="true" />
-                  </span>
-                  <span class="min-w-0">
                     <NuxtLink
-                      :to="postPage(d.workspaceId, d.id)"
-                      class="block truncate font-medium underline-offset-3 hover:underline"
-                      >{{ textOf(d) }}</NuxtLink
-                    >
-                    <span class="block truncate text-detail text-(--app-text-muted)"
-                      >{{ clientName(d.workspaceId) }} · {{ missingOf(d) }}</span
+                      :to="clientPage(c.workspaceId)"
+                      class="truncate font-medium underline-offset-3 hover:underline"
+                      >{{ clientName(c.workspaceId) }}</NuxtLink
                     >
                   </span>
-                </span>
-                <span class="text-detail text-(--app-text-muted)">{{
-                  formatRelative(d.updatedAt, { time: false, now })
-                }}</span>
-              </ListRow>
-            </ListSurface>
-          </section>
-
-          <!-- Clienti recenti: only across the clients -->
-          <section
-            v-if="workspaceId === null && recent.length > 0"
-            :aria-label="$t('today.clients.title')"
-            data-today-clients
-          >
-            <SectionHead :title="$t('today.clients.title')">
-              <NuxtLink :to="org.to('/spazi')" class="text-detail underline underline-offset-3">{{
-                $t('today.clients.all')
-              }}</NuxtLink>
-            </SectionHead>
-            <ListSurface :label="$t('today.clients.title')">
-              <ListRow v-for="c in recent" :key="c.workspaceId" class="px-3.5">
-                <span class="flex min-w-0 items-center gap-3">
-                  <Avatar
-                    :name="clientName(c.workspaceId)"
-                    :src="clientOf(c.workspaceId)?.photoUrl"
-                  />
-                  <NuxtLink
-                    :to="clientPage(c.workspaceId)"
-                    class="truncate font-medium underline-offset-3 hover:underline"
-                    >{{ clientName(c.workspaceId) }}</NuxtLink
-                  >
-                </span>
-                <span class="text-detail text-(--app-text-muted)">{{
-                  c.scheduled === 0
-                    ? $t('today.clients.none')
-                    : $t('today.clients.scheduled', { n: c.scheduled }, c.scheduled)
-                }}</span>
-              </ListRow>
-            </ListSurface>
-          </section>
+                  <span class="text-detail text-(--app-text-muted)">{{
+                    c.scheduled === 0
+                      ? $t('today.clients.none')
+                      : $t('today.clients.scheduled', { n: c.scheduled }, c.scheduled)
+                  }}</span>
+                </ListRow>
+              </ListSurface>
+            </section>
+          </div>
         </div>
       </div>
     </div>

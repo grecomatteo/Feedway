@@ -80,6 +80,23 @@ const platforms = computed(() => {
   return (['instagram', 'facebook'] as const).filter((p) => set.has(p))
 })
 
+/**
+ * «Controlli» above the preview once the post has something to answer or fix: the choice that
+ * keeps «Programma» off is then on the screen at any height, not under a 420 px reel. They stay
+ * on top after the answer, so the option just picked does not jump away under the pointer.
+ */
+const checksFirst = ref(false)
+watch(
+  () => {
+    const r = e.report.value
+    return !!r && (r.unresolved.length > 0 || r.outcomes.some((o) => o.level === 'block'))
+  },
+  (attention) => {
+    if (attention) checksFirst.value = true
+  },
+  { immediate: true },
+)
+
 const previewOpen = ref(false)
 /** One preview at a time: the column from 1024 px, the full screen below (design E3b). */
 const wide = ref(false)
@@ -126,11 +143,15 @@ const readOnly = computed(() => {
 function goto(section: string) {
   const el = document.getElementById(section)
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  // the ids are on the headings: the first control is in their section
+  // the ids are on the headings: the first control is in their section, and in «Controlli» the
+  // first one of a choice still to make or of a block, not of a warning already answered
   const area = el?.closest('section') ?? el
-  area?.querySelector<HTMLElement>('button:not([disabled]), input, textarea')?.focus({
-    preventScroll: true,
-  })
+  const control = 'button:not([disabled]), input:not([disabled]), textarea'
+  const pending = [...(area?.querySelectorAll<HTMLElement>('[data-unresolved]') ?? [])]
+  const target =
+    pending.map((o) => o.querySelector<HTMLElement>(control)).find(Boolean) ??
+    area?.querySelector<HTMLElement>(control)
+  target?.focus({ preventScroll: true })
 }
 
 /** «Salva ed esci»: leaving saves the draft first, and asks if it cannot (below). */
@@ -412,6 +433,15 @@ const confirmText = computed(() => {
           tabindex="0"
         >
           <template v-if="wide">
+            <PostDestinationSummary
+              v-if="checksFirst"
+              placement="column"
+              :editor="editor"
+              :accounts="accounts"
+              :show-files="client.myRole !== 'viewer'"
+              data-checks-first
+              @goto="goto"
+            />
             <PostPreview
               :editor="editor"
               :accounts="accounts"
@@ -422,6 +452,7 @@ const confirmText = computed(() => {
               feed-reserve="20rem"
             />
             <PostDestinationSummary
+              v-if="!checksFirst"
               placement="column"
               :editor="editor"
               :accounts="accounts"

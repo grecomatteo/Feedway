@@ -83,7 +83,6 @@ test('the clients with their profiles, the summary, search and the archived ones
       'Cliente',
       'Profili',
       'Prossimo post',
-      'In programma',
       'Collegamento',
       'Azioni',
     ])
@@ -183,9 +182,11 @@ test('the next post and how many are planned, only for what is still to come', a
       useInnerText: true,
     })
   } else {
-    await expect(row.getByRole('cell').nth(2)).toHaveText(/^(oggi|domani), \d{1,2}:\d{2}$/)
-    await expect(row.getByRole('cell').nth(3)).toHaveText('2 post')
-    await expect(rowOf(page, 'Bottega').getByRole('cell').nth(3)).toHaveText('—')
+    // one column says both: when the next one goes, and how many are planned
+    await expect(row.getByRole('cell').nth(2)).toHaveText(
+      /^(oggi|domani), \d{1,2}:\d{2} · 2 in programma$/,
+    )
+    await expect(rowOf(page, 'Bottega').getByRole('cell').nth(2)).toHaveText('—')
   }
 })
 

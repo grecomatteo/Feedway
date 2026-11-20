@@ -809,7 +809,6 @@
       "client": "Cliente",
       "profiles": "Profili",
       "next": "Prossimo post",
-      "planned": "In programma",
       "link": "Collegamento",
       "actions": "Azioni"
     },
@@ -839,7 +838,7 @@
     "archivePosts": "Il suo post programmato torna in bozza. | I suoi {n} post programmati tornano in bozza.",
     "archivePostsMany": "I suoi oltre {n} post programmati tornano in bozza.",
     "archivePostsUnknown": "I suoi post programmati tornano in bozza.",
-    "planned": "{n} post",
+    "plannedLong": "{n} in programma",
     "nextShort": "Prossimo: {when}",
     "nothingPlanned": "Nessun post in programma"
   },

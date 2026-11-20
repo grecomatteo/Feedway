@@ -115,6 +115,8 @@ watch(
 const nextPosts = computed(() =>
   archived.value ? [] : (agenda.data.value?.items ?? []).slice(0, 3),
 )
+/** A state other than «Programmato» among them: only then the rows keep a column for it. */
+const nextExceptions = computed(() => nextPosts.value.some((p) => p.status !== 'scheduled'))
 const TYPE_ICON: Record<AgendaPost['type'], string> = {
   photo: 'i-lucide-image',
   carousel: 'i-lucide-gallery-horizontal-end',
@@ -310,13 +312,17 @@ watch(
           </p>
           <ListSurface
             v-else
-            columns="minmax(0, 1fr) 150px 56px 124px"
+            :columns="
+              nextExceptions ? 'minmax(0, 1fr) 150px 56px 124px' : 'minmax(0, 1fr) 150px 56px'
+            "
             :label="$t('client.nextPosts')"
           >
             <ListRow
               v-for="p in nextPosts"
               :key="p.id"
-              class="max-md:grid-cols-[minmax(0,1fr)_auto]"
+              :class="
+                nextExceptions ? 'max-md:grid-cols-[minmax(0,1fr)_auto]' : 'max-md:grid-cols-1'
+              "
               :data-post="p.id"
             >
               <span class="flex min-w-0 items-center gap-3">
@@ -345,7 +351,14 @@ watch(
               </span>
               <span class="max-md:hidden">{{ postWhen(p) }}</span>
               <PlatformIcons :platforms="platformsOf(p)" class="max-md:hidden" />
-              <StatusDot status="scheduled" :label="$t('posts.list.state.scheduled')" />
+              <!-- «Programmato» is what «Prossimi post» means: only another state is said -->
+              <span v-if="nextExceptions">
+                <StatusDot
+                  v-if="p.status !== 'scheduled'"
+                  :tone="p.status === 'draft' || p.status === 'cancelled' ? 'neutral' : 'info'"
+                  :label="$t(`posts.list.state.${p.status}`)"
+                />
+              </span>
             </ListRow>
           </ListSurface>
         </section>

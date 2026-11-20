@@ -12,6 +12,20 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Componenti:** sono raggruppati in Marchio, Barre (barra laterale, barre dell'editor e del telefono), Pulsanti, Campi e filtri, Spunte, scelte e interruttori, Stati ed etichette, Avatar e miniature, Schede. Sono stati presi dalle schermate e le tavole li usano come istanze. Una «variante» è lo stesso componente con una struttura diversa, per esempio la barra laterale senza conteggio.
 - **Icone:** sono le icone Lucide del prototipo (`icons.js`), dalla libreria di Pencil. Due hanno il nome nuovo: `triangle-alert` e `clock-4`.
 
+## Regole del ridisegno per ogni pagina (20 novembre 2026, Matteo)
+
+**Ogni pagina del pannello, anche futura, segue lo stile del ridisegno** (D-81, tela `design/feedway-ui-v2.pen`). Una pagina nuova o toccata non riprende lo stile di prima: si costruisce con i componenti e le regole qui sotto e nella sezione sopra. Le regole nate dalla revisione di fedeltà e dal racconto delle correzioni (D-98, D-99):
+
+- **Un solo arancio per pagina:** il pulsante principale è «Nuovo post» (o l'azione principale della pagina, quando non c'è la barra laterale). Ogni altro pulsante ha il contorno. `design-measures.spec.ts` lo prova sulle pagine elencate.
+- **Pulsanti spenti a metà colore** (opacità 0,5, `app.config.ts`). Un pulsante spento perché manca una scelta porta a quella scelta quando lo si preme (`aria-disabled`, non `disabled`): un pulsante che non risponde sembra rotto.
+- **Righe ed elenchi si adattano al loro spazio, non allo schermo:** container query di Tailwind (`@container`, `@min-[…]`). Una riga stretta porta il dato secondario sotto il titolo, come sul telefono; una larga gli dà una colonna. Le soglie sullo schermo restano per il guscio (barra laterale, telefono).
+- **Lo stato si scrive quando dice qualcosa:** in un elenco che ha già un senso («In uscita», «Prossimi post») lo stato atteso («Programmato») non si ripete su ogni riga; si scrive solo uno stato diverso.
+- **Una colonna per un'informazione:** due colonne che dicono quasi la stessa cosa diventano una («oggi, 12:00 · 3 in programma»), e lo spazio va a quella che serve a riconoscere la riga.
+- **Nell'editor, quello che manca viene prima:** con una scelta da fare o un blocco, «Controlli» stanno sopra l'anteprima.
+- **Etichette:** quadratino di 8 px con l'accento scuro del tema, mai l'arancio del marchio.
+- **Le misure si provano anche a 1280×800 e 1366×768**, i portatili veri, non solo alle misure delle schermate (1440 e 390).
+- **Token:** un token di spazio non si chiama come un'utilità che Tailwind ha già (`block`, `flex`, `full`…), perché ne riscrive la larghezza (`tests/design-tokens.test.ts`).
+
 ## Tela unica (18 novembre 2026)
 
 Dal 19/11 il pannello nuovo è su `design/feedway-ui-v2.pen` (sezione sopra); email, landing, direzione hub e bozze restano solo qui. Il 18/11 c'era un solo file di design, `design/feedway-ui.pen`, solo con l'ultima versione di ogni cosa: marchio, variabili, componenti, pannello, email, landing, direzione hub e bozze delle funzioni future. Ha assorbito `design/feedway-ui-hallmark.pen`; le versioni superate (prima tela del 15/10, coppie Prima/Dopo del 26/10, landing e tavole hub superate dal codice) sono state tolte, con le loro esportazioni, e restano nella storia di Git (Matteo, 18/11). Tavole esportate in `design/tavole/2026-11-18-tela-unica/`.
@@ -68,12 +82,12 @@ Matteo, dopo la prova della 0.11.0: una struttura sola, con margini e spaziature
 | `--spacing-page-top` | `pt-page-top` | 24 | 24 | 32 | Sopra il titolo |
 | `--spacing-header` | `gap-header` | 24 | 24 | 24 | Dalla testata al contenuto |
 | `--spacing-section` | `gap-section` | 32 | 32 | 40 | Tra le sezioni di una pagina |
-| `--spacing-block` | `gap-block` | 16 | 16 | 16 | Dentro una sezione: strumenti, elenco, messaggi |
+| `--spacing-stack` | `gap-stack` | 16 | 16 | 16 | Dentro una sezione: strumenti, elenco, messaggi |
 | `--container-form` | `max-w-form` | 40 rem | | | Campi di un modulo |
 
 - **Componenti:** `PageShell` (testata, poi le sezioni con `gap-section`) e `PageHeader` (titolo 26/30 px, una frase di riepilogo solo se dice qualcosa che il titolo non dice, azione principale a destra). `SettingsShell` usa gli stessi. Il layout dell'agenzia dà il margine; nessuna pagina mette a mano `max-w-*`, `px-*` o `py-*` attorno al contenuto.
 - **Larghezza piena:** la pagina occupa tutto lo spazio accanto alla barra laterale. Restano più stretti solo i campi dei moduli (`max-w-form`) e i paragrafi (al massimo 75 caratteri, regola in `main.css`; i testi lunghi come l'informativa usano `max-w-prose`). Elenchi, tabelle, la griglia della libreria e le schede delle impostazioni si allargano.
-- **Elenchi:** la testata e poi un solo blocco con strumenti, avvisi ed elenco a `gap-block`, così il filtro resta attaccato all'elenco che filtra.
+- **Elenchi:** la testata e poi un solo blocco con strumenti, avvisi ed elenco a `gap-stack`, così il filtro resta attaccato all'elenco che filtra.
 - **Sottotitoli:** via quelli che ripetono il titolo o dicono l'ovvio («Il tuo ruolo: Owner. Da qui raggiungi le pagine dell'agenzia.», «Chi ha fatto cosa e quando, dal più recente.», nome ed email sotto «Impostazioni» nelle schede Sicurezza, Dispositivi e Privacy). Restano quelli che riassumono o spiegano una conseguenza: il riepilogo di Clienti e Utenti, «Solo l'Owner può cambiarle.», la prima configurazione, l'email di sistema, nome ed email in «Profilo e preferenze» (dove si sceglie il soprannome: al passaggio del mouse c'è il nome intero).
 - **Nomi dei file:** al massimo due righe, poi i puntini (`line-clamp-2`), in griglia, in elenco e nei caricamenti; il nome intero resta nel `title` e per lo screen reader.
 - Prova: `apps/web/tests/e2e/page-layout.spec.ts` (stessi margini e larghezza piena su otto pagine, nei progetti Playwright a 1280 px e da telefono a 412 px; la fascia da 640 a 767 px, con il margine di 24 px, non ha ancora una prova). Le caselle che prendono il posto di un elenco vuoto («Nessun cliente trovato») hanno `max-w-none`: sono larghe come l'elenco. Revisione e schermate in `design/reviews/2026-11-18-ritocchi-d63.md`.
@@ -292,7 +306,7 @@ Matteo, 18/11: i caricamenti continuano mentre si gira nel pannello, con un riqu
 
 Disegno del 18 novembre 2026, **approvato da Matteo il 18 novembre 2026** (tutte le tavole, con le cinque risposte qui sotto e «Pubblica subito»): il Task 5 può partire. Tela `design/feedway-ui.pen`, sezione «Editor dei post · tappa 6 · approvata (18/11)», tavole `[Approvata · da costruire]` (a destra del pannello, x ≥ 8000); tavole esportate in `design/tavole/2026-11-18-editor/`; revisione in `design/reviews/2026-11-18-disegno-editor.md`. Esempio fittizio: Forno Luce, con @fornoluce, la Pagina Forno Luce e il profilo Forno Luce Bistrot (Pagina da ricollegare).
 
-**Variabili D-63 sulla tela:** `page-pad` 32, `page-pad-tablet` 24, `page-pad-phone` 16, `page-top` 32 / `page-top-phone` 24, `gap-header` 24, `gap-section` 40 / `gap-section-phone` 32, `gap-block` 16, `form-max` 640, `sp-10` 40. `content-max` non vale più per le pagine.
+**Variabili D-63 sulla tela:** `page-pad` 32, `page-pad-tablet` 24, `page-pad-phone` 16, `page-top` 32 / `page-top-phone` 24, `gap-header` 24, `gap-section` 40 / `gap-section-phone` 32, `gap-block` 16 (nel codice `--spacing-stack`, D-98), `form-max` 640, `sp-10` 40. `content-max` non vale più per le pagine.
 
 ### Scelte adottate
 

@@ -61,7 +61,7 @@ const nextOf = (w: WorkspaceView) => {
 }
 const plannedOf = (w: WorkspaceView) => {
   const n = activityOf(w)?.scheduled ?? 0
-  return n > 0 ? t('workspaces.planned', { n }, n) : null
+  return n > 0 ? t('workspaces.plannedLong', { n }, n) : null
 }
 
 // ---- filter and search
@@ -91,13 +91,14 @@ const head = computed(() => [
   t('workspaces.column.client'),
   t('workspaces.column.profiles'),
   t('workspaces.column.next'),
-  t('workspaces.column.planned'),
   t('workspaces.column.link'),
   { label: t('workspaces.column.actions'), hidden: true as const },
 ])
 /** the tools' line, with «Nuovo cliente» on a computer */
 const tools = computed(() => status.value === 'success' && all.value.length > 0)
-const COLUMNS = 'minmax(0, 1.4fr) minmax(0, 1.6fr) 150px 110px 150px 30px'
+/** «Prossimo post» says how many are planned too («oggi, 12:00 · 3 in programma»): one column
+ *  less, and the room goes to the profiles, which are how a client is recognised. */
+const COLUMNS = 'minmax(0, 1.3fr) minmax(0, 2fr) 200px 150px 30px'
 const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)
 /** «Ricollega» only for whoever manages the connections, only where it is the thing to do. */
 const canReconnect = (w: WorkspaceView) =>
@@ -424,15 +425,11 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
             </template>
             <span v-else class="text-(--app-text-muted)">{{ $t('workspaces.noProfile') }}</span>
           </span>
-          <span
-            role="cell"
-            class="max-xl:hidden"
-            :class="nextOf(w) ? '' : 'text-(--app-text-muted)'"
-          >
-            {{ nextOf(w) ?? '—' }}
-          </span>
-          <span role="cell" class="text-(--app-text-muted) max-xl:hidden">
-            {{ plannedOf(w) ?? '—' }}
+          <span role="cell" class="min-w-0 truncate max-xl:hidden">
+            <template v-if="nextOf(w)">
+              {{ nextOf(w) }}<span class="text-(--app-text-muted)"> · {{ plannedOf(w) }}</span>
+            </template>
+            <span v-else class="text-(--app-text-muted)">—</span>
           </span>
           <span role="cell" class="min-w-0">
             <StatusDot v-if="stateOf(w)" :tone="stateOf(w)!.tone" :label="stateOf(w)!.label" />

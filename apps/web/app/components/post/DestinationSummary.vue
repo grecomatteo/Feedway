@@ -156,6 +156,18 @@ const ICON: Record<string, string> = {
 }
 const TONE = { ok: 'success', warning: 'warning', block: 'danger' } as const
 const pending = computed(() => report.value?.unresolved.length ?? 0)
+/** The shape warnings whose options get a drawing: the file's shape and the frame it goes in. */
+function shapes(o: Outcome): { source: number; target: number } | null {
+  const w = Number(o.params?.width)
+  const h = Number(o.params?.height)
+  if (!w || !h) return null
+  const source = w / h
+  if (o.code === 'reel_aspect_ratio' || o.code === 'cover_aspect_ratio')
+    return { source, target: 9 / 16 }
+  if (o.code === 'photo_aspect_ratio')
+    return { source, target: Math.min(1.91, Math.max(0.8, source)) }
+  return null
+}
 defineExpose({ proposal })
 const switchTo = (type: PostType) => e.chooseType(type)
 
@@ -273,6 +285,7 @@ const crop = computed(() => {
           v-for="o in warnings"
           :key="o.key"
           :data-outcome="o.code"
+          :data-unresolved="!o.chosen || undefined"
           class="grid gap-2.5 rounded-card border p-3.5"
           :class="
             o.chosen
@@ -310,9 +323,20 @@ const crop = computed(() => {
               :disabled="!e.editable.value"
               @change="pick(o, option)"
             />
+            <!-- one width for every drawing, so the words of the options line up -->
+            <span v-if="shapes(o)" class="flex w-10 shrink-0 justify-center">
+              <PostChoiceSketch
+                :source="shapes(o)!.source"
+                :target="shapes(o)!.target"
+                :option="option"
+              />
+            </span>
             <span>
               {{ msg(o).options[i] }}
-              <span v-if="o.recommended === option" class="text-caption text-(--app-text-muted)">
+              <span
+                v-if="o.recommended === option"
+                class="text-caption whitespace-nowrap text-(--app-text-muted)"
+              >
                 · {{ $t('posts.summary.recommended') }}</span
               >
             </span>
@@ -339,6 +363,7 @@ const crop = computed(() => {
           v-for="o in blocks"
           :key="o.key"
           :data-outcome="o.code"
+          data-unresolved
           class="grid gap-2 rounded-card border border-(--app-danger) bg-(--app-danger-soft) p-3.5"
         >
           <p class="flex items-center gap-2 font-semibold">

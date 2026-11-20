@@ -484,3 +484,77 @@ test('a cover cropped, then changed: the box of the old photo does nothing, the 
   await expect(cropOption).toBeChecked()
   await expect(failed).toHaveCount(0)
 })
+
+test('a choice to make comes before the preview, whole on a laptop screen, and «Programma» leads to it', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the column of the computer')
+  const { owner, org, client, ig } = await clientWithFiles(page)
+  const wide = await libraryFile(org, client.id, owner.userId, { kind: 'video', name: 'sala.mov' })
+  await analysed(wide, 'video', 1920, 1080)
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['sala.mov'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('La sala di sera')
+  await page.locator(`[data-account="${ig}"]`).click()
+  const choice = page.locator('aside [data-outcome="reel_aspect_ratio"]')
+  await expect(choice).toBeVisible()
+
+  // the checks first in the column, every option on the screen without scrolling it (09)
+  await expect(page.locator('aside [data-checks-first]')).toHaveCount(1)
+  const options = choice.getByRole('radio')
+  await expect(options).toHaveCount(3)
+  for (const option of await options.all()) {
+    const box = await option.boundingBox()
+    expect(box && box.y + box.height).toBeLessThanOrEqual(800)
+  }
+  // each option draws what it does to the video
+  await expect(choice.locator('[data-choice-sketch]')).toHaveCount(3)
+
+  // «Programma» reads as off, and a click on it goes to the choice
+  const schedule = page.locator('[data-schedule]').filter({ visible: true }).first()
+  await expect(schedule).toBeDisabled()
+  await schedule.click({ force: true })
+  await expect(options.first()).toBeFocused()
+
+  // answered, the checks stay where they are: the option does not jump away under the pointer
+  await choice.getByRole('radio', { name: /Intero, con le bande/ }).check()
+  await expect(page.locator('aside [data-checks-first]')).toHaveCount(1)
+  await expect(schedule).toBeEnabled()
+  expect((await axe(page)).violations).toEqual([])
+})
+
+test('«Programma» leads to the choice still to make, not to one already answered', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the column of the computer')
+  const { owner, org, client } = await clientWithFiles(page)
+  // a carousel opened by a photo too tall for the feed, then a square one: two warnings
+  const tall = await libraryFile(org, client.id, owner.userId, { kind: 'image', name: 'alta.jpg' })
+  await analysed(tall, 'image', 1000, 2000)
+  const square = await libraryFile(org, client.id, owner.userId, {
+    kind: 'image',
+    name: 'quadrata.jpg',
+  })
+  await analysed(square, 'image', 1000, 1000)
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['alta.jpg', 'quadrata.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il bancone')
+  // Instagram is already ticked for photos
+  await expect(page.getByRole('checkbox', { name: /Instagram/ })).toBeChecked()
+  const first = page.locator('aside [data-outcome="photo_aspect_ratio"]')
+  const second = page.locator('aside [data-outcome="carousel_mixed_ratios"]')
+  await expect(first).toBeVisible()
+  await expect(second).toBeVisible()
+
+  // the first one answered, the second one still open
+  await first.getByRole('radio').nth(1).check()
+  await expect(first).not.toHaveAttribute('data-unresolved')
+  const schedule = page.locator('[data-schedule]').filter({ visible: true }).first()
+  await expect(schedule).toBeDisabled()
+  await schedule.click({ force: true })
+  await expect(second.getByRole('radio').first()).toBeFocused()
+})

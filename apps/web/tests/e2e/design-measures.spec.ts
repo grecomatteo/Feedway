@@ -253,8 +253,9 @@ test('the pages not redrawn keep one orange', async ({ page }) => {
   expect(look.background).toBe(look.surface)
 })
 
-// laptops between 1024 and 1360 (review of fidelity, A2 and A3): the week of «Oggi» keeps its
-// words inside each day, and a client's name in «Clienti» is not cut to a letter
+// laptops between 1024 and 1366 (review of fidelity, A2 and A3): the week of «Oggi» keeps its
+// words inside each day, «Oggi» has its two columns from a 1280 laptop (the rows fit their
+// column, not the screen), and a client's name in «Clienti» is not cut to a letter
 test('Oggi and Clienti on a laptop: nothing squeezed out of its place', async ({
   page,
   isMobile,
@@ -263,10 +264,14 @@ test('Oggi and Clienti on a laptop: nothing squeezed out of its place', async ({
   const owner = await newPerson('Mara Portatile', 'owner')
   await signInWithTotp(page.request, owner)
   await newWorkspace(page.request, owner.organizationSlug, 'Panificio Lungavilla')
-  for (const width of [1024, 1100, 1280]) {
+  for (const width of [1024, 1100, 1280, 1366]) {
     await page.setViewportSize({ width, height: 800 })
     await page.goto(`/${owner.organizationSlug}`)
     await expect(page.locator('[data-ready]')).toHaveCount(1)
+    const columns = await page
+      .locator('[data-today-columns]')
+      .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length)
+    expect(columns, `columns of «Oggi» at ${String(width)}`).toBe(width >= 1280 ? 2 : 1)
     const outside = await page.locator('[data-week] button').evaluateAll(
       (days) =>
         days.filter((day) => {

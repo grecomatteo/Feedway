@@ -246,6 +246,10 @@ test('on a phone: one column, the week with dots, nothing sideways', async ({ pa
   await expect(
     section(page, 'In uscita').getByText('Forno Prova', { exact: true }).locator('visible=true'),
   ).toHaveCount(1)
+  // a row is time, picture and text: the platforms stay off it, never on a line of their own
+  await expect(
+    section(page, 'In uscita').locator('[data-post] [data-platforms]').locator('visible=true'),
+  ).toHaveCount(0)
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
