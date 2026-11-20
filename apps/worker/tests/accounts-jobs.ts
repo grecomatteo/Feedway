@@ -74,6 +74,12 @@ export function handlerDeps(
     },
     connectors: { meta_system_user: connector, meta_business_login: connector },
     connectionTokens: runtime.connectionTokens,
+    publishing: {
+      publishers: runtime.publishers,
+      platformRules: runtime.platformRules,
+      publishingHistory: runtime.publishingHistory,
+      publicUrl: null,
+    },
     images: createAvatarProcessor(),
     media: mediaToolsFor(runtime),
   }

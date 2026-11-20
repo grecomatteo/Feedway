@@ -58,7 +58,11 @@ export type TargetStepPatch = Partial<
     | 'verifiedAt'
     | 'verification'
   >
-> & { renew?: boolean }
+> & {
+  renew?: boolean
+  /** the preparation's claim (`claimPrepare`); null gives it back */
+  claimedUntil?: Date | null
+}
 
 /** One call of a step (`target_attempts`): codes and a duration, never a text or a token. */
 export interface NewTargetAttempt {
@@ -112,11 +116,23 @@ export interface PublishingRepository {
   ): Promise<{ generation: number; postStatus: PublishingPostStatus } | null>
   recordAttempt(attempt: NewTargetAttempt): Promise<void>
   /**
+   * Claims a preparation on Meta for the destination until `until`, if its agency has fewer than
+   * `perOrganization` and its account fewer than `perAccount` running (plan 07 «Lavori
+   * pesanti»): claims of the agency go one at a time, and an expired claim no longer counts.
+   * false: the destination waits for its turn.
+   */
+  claimPrepare(
+    organizationId: string,
+    targetId: string,
+    claim: { now: Date; until: Date; perOrganization: number; perAccount: number },
+  ): Promise<boolean>
+  /**
    * The destinations of every agency in a step of the worker whose `next_attempt_at` has come,
    * the oldest first. Only in the system scope (the reconciler); a scheduled destination is due
-   * once its scheduling wrote `next_attempt_at` (`prepareAt`).
+   * once its scheduling wrote `next_attempt_at` (`prepareAt`). `statuses`: only these (the
+   * steps the reconciler has a job for), every state of the worker when left out.
    */
-  dueTargets(now: Date, limit: number): Promise<DueTarget[]>
+  dueTargets(now: Date, limit: number, statuses?: readonly TargetStatus[]): Promise<DueTarget[]>
   /** The destinations of a post of the agency, in the order they were added. */
   targetsOfPost(organizationId: string, postId: string): Promise<PublishingTargetRecord[]>
   /** The destinations of the account published in `[from, to)`, the latest first. */

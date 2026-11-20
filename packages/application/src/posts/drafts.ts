@@ -7,6 +7,7 @@ import {
   changeOf,
   lockedPost,
   mergeContent,
+  isScheduledForPanel,
   mayEditContent,
   openPosts,
   postNotFound,
@@ -21,7 +22,7 @@ import {
   type UpdatePostInput,
 } from './common.js'
 import { readPost, type PostDto } from './read.js'
-import { saveScheduled } from './schedule.js'
+import { NOTHING_AFTER, saveScheduled, sendAfterSchedule } from './schedule.js'
 
 // Drafts (spec §11.2, plan 06 Task 4): a draft saves with any problem, the checks are the
 // editor's to show. Writing takes `post.draft` on one's own drafts, `post.manage_others` on
@@ -126,7 +127,7 @@ export async function updatePost(
   input: UpdatePostInput,
   request: { ip: string | null },
 ): Promise<PostDto> {
-  return deps.uow.run(
+  const { dto, after } = await deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
       const { current, scope, organization } = await openPosts(tx, actor, input.workspaceId, {
@@ -137,13 +138,14 @@ export async function updatePost(
       if (post.version !== input.version) throw versionConflict()
       const content = mergeContent(post, input)
       await assertReferences(tx, scope, content, post)
-      if (post.status === 'scheduled') {
+      // P2: a post in preparation is changed as a scheduled one, and prepared again
+      if (await isScheduledForPanel(tx, post)) {
         if (!organization) throw postNotFound()
-        await saveScheduled(tx, deps, current, organization, post, content)
+        const after = await saveScheduled(tx, deps, current, organization, post, content)
         if (input.labelIds !== undefined) await writeLabels(tx, scope, post.id, input.labelIds)
         // what goes out changes: unlike a draft's autosave, the log keeps it
         await recordPost(tx, current, 'post.updated', post, request.ip)
-        return readPost(tx, current, scope, post.id)
+        return { dto: await readPost(tx, current, scope, post.id), after }
       }
       if (post.status !== 'draft') throw wrongState(post.status, 'edit')
       const version = await tx.posts.update(
@@ -155,9 +157,11 @@ export async function updatePost(
       if (version === null) throw versionConflict()
       await writeParts(tx, scope, post.id, content, 'draft')
       if (input.labelIds !== undefined) await writeLabels(tx, scope, post.id, input.labelIds)
-      return readPost(tx, current, scope, post.id)
+      return { dto: await readPost(tx, current, scope, post.id), after: NOTHING_AFTER }
     },
   )
+  await sendAfterSchedule(deps, actor.organizationId, after)
+  return dto
 }
 
 /** A draft or a cancelled post, by its author or by someone who may change anyone's. */
@@ -171,7 +175,9 @@ export async function deletePost(
     const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
     const post = await lockedPost(tx, scope, input.postId)
     if (!mayEditContent(current, post)) throw cannotEdit()
-    if (post.status === 'scheduled') throw wrongState(post.status, 'delete')
+    // a post of the worker's (plan 07) is not deleted either: only drafts and cancelled ones
+    if (post.status !== 'draft' && post.status !== 'cancelled')
+      throw wrongState(post.status, 'delete')
     if (!(await tx.posts.delete(scope, post.id))) throw postNotFound()
     await recordPost(tx, current, 'post.deleted', post, request.ip)
   })

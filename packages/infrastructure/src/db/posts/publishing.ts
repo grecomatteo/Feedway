@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, inArray, lt, lte, ne, sql } from 'drizzle-orm'
 import type {
   IdGenerator,
   PublishingRepository,
@@ -148,7 +148,38 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
         durationMs: Math.max(0, Math.round(attempt.durationMs)),
       })
     },
-    async dueTargets(now, limit) {
+    async claimPrepare(organizationId, targetId, claim) {
+      // one claim at a time in the agency: two workers never both take the last place
+      await db.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`publishing_prepare:${organizationId}`}))`,
+      )
+      const [target] = await db
+        .select({ accountId: postTargets.accountId })
+        .from(postTargets)
+        .where(targetKey(organizationId, targetId))
+      if (!target) return false
+      const running = await db
+        .select({ accountId: postTargets.accountId })
+        .from(postTargets)
+        .where(
+          and(
+            eq(postTargets.organizationId, organizationId),
+            ne(postTargets.id, targetId),
+            gt(postTargets.claimedUntil, claim.now),
+          ),
+        )
+      if (
+        running.length >= claim.perOrganization ||
+        running.filter((r) => r.accountId === target.accountId).length >= claim.perAccount
+      )
+        return false
+      await db
+        .update(postTargets)
+        .set({ claimedUntil: claim.until })
+        .where(targetKey(organizationId, targetId))
+      return true
+    },
+    async dueTargets(now, limit, statuses = WORKER_STATES) {
       const rows = await db
         .select({
           organizationId: postTargets.organizationId,
@@ -161,7 +192,13 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
         })
         .from(postTargets)
         .where(
-          and(inArray(postTargets.status, [...WORKER_STATES]), lte(postTargets.nextAttemptAt, now)),
+          and(
+            inArray(
+              postTargets.status,
+              statuses.filter((s) => WORKER_STATES.includes(s)),
+            ),
+            lte(postTargets.nextAttemptAt, now),
+          ),
         )
         .orderBy(asc(postTargets.nextAttemptAt), asc(postTargets.id))
         .limit(limit)

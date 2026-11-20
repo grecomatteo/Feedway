@@ -1,5 +1,5 @@
 import type { QueueName, QueueScopes } from '@app/application'
-import { MEDIA_PROCESS_EXPIRE_SECONDS } from '@app/domain'
+import { MEDIA_PROCESS_EXPIRE_SECONDS, TARGET_STEP_EXPIRE_SECONDS } from '@app/domain'
 
 export interface QueueDefinition<N extends QueueName = QueueName> {
   name: N
@@ -122,6 +122,27 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     policy: 'singleton',
     scope: 'system',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
+  // ids and a generation (plan 07 P3): the state is in post_targets, and the reconciler sends a
+  // job lost or dropped again within a minute; a finished one is kept a day, so a key sent
+  // twice is one job
+  'target.prepare': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+    expireInSeconds: TARGET_STEP_EXPIRE_SECONDS,
+  },
+  'target.publish': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+    expireInSeconds: TARGET_STEP_EXPIRE_SECONDS,
+  },
+  // every minute, one run at a time; a run that waited is replaced by the next one
+  'scheduler.reconcile': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
   },
 }
 

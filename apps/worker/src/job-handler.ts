@@ -10,6 +10,8 @@ import type {
   Logger,
   Mailer,
   PlatformConnectors,
+  PlatformPublishers,
+  PublishingHistory,
   QueueName,
   RateLimiter,
   SignedTokens,
@@ -19,6 +21,7 @@ import type {
   UploadParts,
   ZipWriter,
 } from '@app/application'
+import type { Platform, PlatformRules } from '@app/domain'
 
 /** What a handler may use; built by the composition root (createRuntime). */
 export interface JobHandlerDeps {
@@ -48,6 +51,14 @@ export interface JobHandlerDeps {
   connectionTokens: ConnectionTokens
   /** sharp, for the pictures of the social accounts (plan 04 Task 4). */
   images: AvatarProcessor
+  /** The publishing of the posts (plan 07 Task 7): the platforms and what the checks read. */
+  publishing: {
+    publishers: PlatformPublishers
+    platformRules: ReadonlyMap<Platform, PlatformRules>
+    publishingHistory: PublishingHistory
+    /** PUBLIC_URL: where Meta downloads the copies; null: the public host is off. */
+    publicUrl: URL | null
+  }
   /** ffmpeg, ffprobe and sharp for the files of the library, one at a time (plan 04 Task 10). */
   media: Pick<
     MediaProcessDeps,

@@ -22,6 +22,7 @@ import {
   identityAccountLockedNotice,
   identityAccountLockedNoticeEmail,
 } from './identity-account-locked-notice.js'
+import { NO_PUBLISHING } from '../../tests/no-publishing.js'
 
 const PANEL = new URL('https://pannello.example.test')
 // 19:20 in Rome
@@ -95,6 +96,7 @@ function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
     panel: { url: PANEL, productName: 'Feedway', defaultTimezone: 'Europe/Rome' },
     // the account jobs are not these tests'
     connectors: {},
+    publishing: NO_PUBLISHING,
     connectionTokens: {
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),

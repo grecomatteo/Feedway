@@ -17,6 +17,7 @@ import type { TestDatabase } from '@app/infrastructure/testing'
 import { createTranslate, loadItalianMessages } from '../i18n.js'
 import type { JobHandlerDeps } from '../job-handler.js'
 import { identityDataExport } from './identity-data-export.js'
+import { NO_PUBLISHING } from '../../tests/no-publishing.js'
 
 let tdb: TestDatabase
 let runtime: Runtime
@@ -64,6 +65,7 @@ const deps = (): JobHandlerDeps => ({
   },
   // the account jobs are not these tests'
   connectors: {},
+  publishing: NO_PUBLISHING,
   connectionTokens: {
     seal: () => Promise.reject(new Error('not used')),
     open: () => Promise.reject(new Error('not used')),

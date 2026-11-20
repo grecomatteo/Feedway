@@ -6,7 +6,7 @@ import type {
   PostScope,
   PostTargetRecord,
 } from '@app/application'
-import { compareUses, type MediaUse } from '@app/domain'
+import { DISCARD_KEY, compareUses, type MediaUse } from '@app/domain'
 import type { Platform, PostCover, PostOptions, PostStatus, PostType } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
@@ -135,6 +135,29 @@ async function complete(
   })
 }
 
+/** The destinations' states the panel may still move (plan 07 P2); the others are going out. */
+const PANEL_REACH: readonly string[] = ['scheduled', 'preparing', 'ready', 'retrying', 'cancelled']
+
+/**
+ * A new round of the worker on a destination the panel moves (plan 07 P2): the jobs of the old
+ * one find nothing to do, and what was prepared on Meta, which holds the old files and text,
+ * waits under `DISCARD_KEY` to be thrown away by the next preparation.
+ */
+const NEW_ROUND = {
+  generation: sql`${postTargets.generation} + 1`,
+  step: null,
+  attempts: 0,
+  claimedUntil: null,
+  lastErrorCode: null,
+  lastErrorMessage: null,
+  metaIds: sql`case
+    when ${postTargets.metaIds} is null or (${postTargets.metaIds} - ${DISCARD_KEY}) = '{}'::jsonb
+      then ${postTargets.metaIds}
+    else jsonb_build_object(${DISCARD_KEY}::text, ${postTargets.metaIds} - ${DISCARD_KEY})
+  end`,
+  updatedAt: sql`now()`,
+}
+
 export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
   const findOne = async (scope: PostScope, postId: string, lock: boolean) => {
     const query = db
@@ -221,7 +244,15 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       if (accountIds.length === 0) return
       await db
         .insert(postTargets)
-        .values([...byAccount.values()].map((t) => ({ id: ids.newId(), ...scope, postId, ...t })))
+        .values(
+          [...byAccount.values()].map((t) => ({
+            id: ids.newId(),
+            ...scope,
+            postId,
+            ...t,
+            nextAttemptAt: t.nextAttemptAt ?? null,
+          })),
+        )
         .onConflictDoUpdate({
           target: [postTargets.organizationId, postTargets.postId, postTargets.accountId],
           // never a row of another workspace's post: its key would not take this one
@@ -229,7 +260,8 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           set: {
             status: sql`excluded.status`,
             fingerprint: sql`excluded.fingerprint`,
-            updatedAt: sql`now()`,
+            ...NEW_ROUND,
+            nextAttemptAt: sql`excluded.next_attempt_at`,
           },
         })
     },
@@ -261,21 +293,49 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       )
     },
     async unscheduleAll(scope, updatedBy) {
-      const moved = await db
-        .update(posts)
-        .set({ status: 'draft', updatedBy, version: sql`${posts.version} + 1` })
-        .where(and(inScope(scope), eq(posts.status, 'scheduled')))
-        .returning({ id: posts.id })
-      const postIds = moved.map((r) => r.id)
+      // also those in preparation (plan 07 P2); one being published goes on. The posts are
+      // locked first, as `lockTarget` does: a step holding one is waited for, and the states of
+      // the destinations are read after, in a statement of their own, so a step that has just
+      // taken one as `publishing` is seen (a subquery of one UPDATE would read the old ones)
+      const candidates = await db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(inScope(scope), inArray(posts.status, ['scheduled', 'publishing'])))
+        .orderBy(posts.id)
+        .for('update')
+      if (candidates.length === 0) return []
+      const candidateIds = candidates.map((r) => r.id)
+      const targets = await db
+        .select({ postId: postTargets.postId, status: postTargets.status })
+        .from(postTargets)
+        .where(
+          and(
+            eq(postTargets.organizationId, scope.organizationId),
+            eq(postTargets.workspaceId, scope.workspaceId),
+            inArray(postTargets.postId, candidateIds),
+          ),
+        )
+        .orderBy(postTargets.id)
+        .for('update')
+      const going = new Set(
+        targets.filter((t) => !PANEL_REACH.includes(t.status)).map((t) => t.postId),
+      )
+      const postIds = candidateIds.filter((id) => !going.has(id))
       if (postIds.length === 0) return []
       await db
+        .update(posts)
+        .set({ status: 'draft', updatedBy, version: sql`${posts.version} + 1` })
+        .where(and(inScope(scope), inArray(posts.id, postIds)))
+      await db
         .update(postTargets)
-        .set({ status: 'draft', fingerprint: null, updatedAt: sql`now()` })
+        .set({ status: 'draft', fingerprint: null, ...NEW_ROUND, nextAttemptAt: null })
         .where(
           and(
             eq(postTargets.organizationId, scope.organizationId),
             eq(postTargets.workspaceId, scope.workspaceId),
             inArray(postTargets.postId, postIds),
+            // a second barrier: a destination out of the panel's reach is never touched
+            inArray(postTargets.status, [...PANEL_REACH]),
           ),
         )
       return postIds

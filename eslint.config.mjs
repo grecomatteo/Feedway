@@ -17,6 +17,8 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/media/uploads-cleanup.ts',
   'packages/application/src/media/process-turn.ts',
   'packages/application/src/media/public-file.ts',
+  // plan 07 Task 7: the destinations due across the agencies, then each in its own scope
+  'packages/application/src/posts/publishing/reconcile.ts',
 ]
 
 export default tseslint.config(
