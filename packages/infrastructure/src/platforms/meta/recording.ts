@@ -88,6 +88,8 @@ export function createRecordingRedactor(): (value: unknown) => unknown {
     if (SECRET_KEY.test(key) || TEXT_KEYS.has(key) || CURSOR_KEYS.has(key) || POST_KEYS.has(key))
       return 'REDACTED'
     if (ID_KEY.test(key)) return fakeId(value)
+    // a story's link (`url`) is the client's post: Meta's CDN pictures are replaced below
+    if (key === 'url' && /^https:\/\/([a-z]+\.)?facebook\.com\//.test(value)) return 'REDACTED'
     if (NAME_KEYS.has(key)) return fakeName(value)
     return redactString(value)
   }

@@ -264,7 +264,6 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
   }
 
   const processed = (v: Video) => v.uploaded && !v.failed && v.pendingReads === 0
-  const isOut = (v: Video) => v.finished && processed(v)
   const videoLink = (v: Video) =>
     v.edge === 'video_reels' ? `/reel/${v.id}` : `/${v.pageId}/videos/${v.id}/`
 
@@ -293,12 +292,14 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
                 ? 'in_progress'
                 : 'complete',
         },
+        // `finish` marks it published at once, before the processing ends (not verified):
+        // the check must also wait for `ready`
         publishing_phase: {
-          status: isOut(v) ? 'complete' : 'not_started',
-          publish_status: isOut(v) ? 'published' : 'not_published',
+          status: v.finished ? 'complete' : 'not_started',
+          publish_status: v.finished ? 'published' : 'not_published',
         },
       },
-      ...(isOut(v) && { permalink_url: videoLink(v) }),
+      ...(v.finished && { permalink_url: videoLink(v) }),
     }
   }
 

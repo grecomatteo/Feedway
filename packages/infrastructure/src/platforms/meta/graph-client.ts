@@ -428,8 +428,11 @@ const fbStorySchema = z.object({
 })
 
 /** A story's time may come as Meta's text or as Unix seconds (the reference shows neither). */
-const storyDate = (value: string | number | undefined) =>
-  typeof value === 'number' ? new Date(value * 1000) : metaDate(value)
+function storyDate(value: string | number | undefined): Date | null {
+  if (typeof value !== 'number') return metaDate(value)
+  const date = new Date(value * 1000)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 const CONTAINER_STATUSES = ['EXPIRED', 'ERROR', 'FINISHED', 'IN_PROGRESS', 'PUBLISHED'] as const
 
@@ -1220,9 +1223,14 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           credentials,
           signal,
         },
-        listSchema(fbPostSchema),
+        listSchema(z.unknown()),
       )
-      return { data: result.data.data.map(toFbPost), usage: result.usage }
+      // one odd item is left out: it must not stop the search of the others (§9.5)
+      const items = result.data.data.flatMap((item) => {
+        const parsed = fbPostSchema.safeParse(item)
+        return parsed.success ? [toFbPost(parsed.data)] : []
+      })
+      return { data: items, usage: result.usage }
     },
 
     async listPageStories(credentials, pageId, limit, signal) {
@@ -1234,10 +1242,14 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           credentials,
           signal,
         },
-        listSchema(fbStorySchema),
+        listSchema(z.unknown()),
       )
+      const stories = result.data.data.flatMap((item) => {
+        const parsed = fbStorySchema.safeParse(item)
+        return parsed.success ? [parsed.data] : []
+      })
       return {
-        data: result.data.data.map((s) => ({
+        data: stories.map((s) => ({
           postId: s.post_id,
           status: s.status ?? null,
           createdAt: storyDate(s.creation_time),

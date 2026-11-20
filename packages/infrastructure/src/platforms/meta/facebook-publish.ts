@@ -38,7 +38,7 @@ const FIND_LIMIT = 25
 const CLOCK_SKEW_MS = 2 * 60_000
 
 /** Meta's ids, and a Page post's `{page}_{post}`; `dry-run-…` in `META_MODE=dry-run`. */
-const metaId = z.string().regex(/^[0-9A-Za-z_-]{1,64}$/)
+const metaId = z.string().regex(/^[0-9A-Za-z_-]{1,80}$/)
 
 /** What `post_targets.meta_ids` holds for a Facebook destination. */
 const idsSchema = z.object({
@@ -51,6 +51,12 @@ const idsSchema = z.object({
   video: z.object({ id: metaId, uploaded: z.boolean() }).nullable(),
   /** The published post, video or story. */
   postId: metaId.nullable(),
+  /**
+   * Written just before the call that publishes, and cleared only when Meta said for sure that
+   * it did nothing: a step found with it and without `postId` may be out (§9.5), so nothing on
+   * it is ever repeated or thrown away, only searched.
+   */
+  publishingAt: z.iso.datetime().nullable().default(null),
 })
 type FacebookIds = z.infer<typeof idsSchema>
 
@@ -60,6 +66,7 @@ const freshIds = (now: Date): FacebookIds => ({
   photos: [],
   video: null,
   postId: null,
+  publishingAt: null,
 })
 
 /**
@@ -92,7 +99,11 @@ function safePermalink(value: string | null): string | null {
   if (value === null) return null
   try {
     const url = new URL(value, 'https://www.facebook.com')
-    return url.protocol === 'https:' && /^((www|m|web)\.)?facebook\.com$/.test(url.hostname)
+    return url.protocol === 'https:' &&
+      /^((www|m|web)\.)?facebook\.com$/.test(url.hostname) &&
+      url.port === '' &&
+      url.username === '' &&
+      url.password === ''
       ? url.toString()
       : null
   } catch {
@@ -100,11 +111,18 @@ function safePermalink(value: string | null): string | null {
   }
 }
 
-/** Saved ids that do not read as ours but say a post came out: never start again from them. */
+/**
+ * Saved ids that do not read as ours but say a post came out, or was being published: never
+ * start again from them.
+ */
 const hasPostId = (ids: unknown) =>
   typeof ids === 'object' &&
   ids !== null &&
-  typeof (ids as { postId?: unknown }).postId === 'string'
+  (typeof (ids as { postId?: unknown }).postId === 'string' ||
+    typeof (ids as { publishingAt?: unknown }).publishingAt === 'string')
+
+/** The call that publishes was sent and its answer never came: only the search can tell. */
+const lostAnswer = () => new PublishError({ kind: 'uncertain', code: 'meta_error' })
 
 const NO_USAGE: MetaUsage = { app: null, business: [] }
 
@@ -119,7 +137,13 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
   }
   const expired = (ids: FacebookIds) =>
     clock.now().getTime() - new Date(ids.createdAt).getTime() >= PREPARED_LIFETIME_MS
-  const pageOf = (target: PublishTarget) => target.account.pageId ?? target.account.externalId
+  /** A Page id is digits: anything else would change the address of the calls. */
+  const pageOf = (target: PublishTarget) => {
+    const page = target.account.pageId ?? target.account.externalId
+    if (!/^[0-9]{1,32}$/.test(page))
+      throw new PublishError({ kind: 'permanent', code: 'permission_missing' })
+    return page
+  }
 
   /** The Page token, read with the connection's token for this step only (§8.5). */
   async function pageCredentials(
@@ -157,10 +181,11 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       permalink: null,
       ...stepUsage(usage),
     })
+    const page = pageOf(target)
+    // read for every shape: a Page without a task fails here, not at the minute of the post
+    const credentials = await pageCredentials(target, ctx.signal)
     // one call publishes these: the file is fetched by Meta then (§8.5)
     if (shape === 'photo' || shape === 'video') return done()
-    const page = pageOf(target)
-    const credentials = await pageCredentials(target, ctx.signal)
 
     if (shape === 'multi_photo' || shape === 'photo_story') {
       const items = shape === 'photo_story' ? files.items.slice(0, 1) : files.items
@@ -222,7 +247,7 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       )
       const kind = shape === 'video_story' ? 'video' : 'photo'
       return stories.data
-        .filter((s) => s.mediaType === null || s.mediaType === kind)
+        .filter((s) => s.mediaType === null || s.mediaType.toLowerCase() === kind)
         .map((s) => ({
           id: s.postId,
           message: null,
@@ -250,8 +275,8 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
           permalink: null,
           ...stepUsage(NO_USAGE),
         }
-      if (known === null && hasPostId(target.metaIds))
-        throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+      if ((known === null && hasPostId(target.metaIds)) || known?.publishingAt != null)
+        throw lostAnswer()
       const ids = known === null || expired(known) ? freshIds(clock.now()) : known
       if (ids !== known) await ctx.saveIds(ids)
       return prepareRound(target, files, ctx, ids)
@@ -263,13 +288,13 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       if (target.externalPostId !== null || (known?.postId ?? null) !== null)
         return {
           outcome: 'done',
-          metaIds: known ?? {},
+          metaIds: known ?? target.metaIds ?? {},
           externalPostId: target.externalPostId ?? known?.postId ?? null,
           permalink: null,
           ...stepUsage(NO_USAGE),
         }
-      if (known === null && hasPostId(target.metaIds))
-        throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+      if ((known === null && hasPostId(target.metaIds)) || known?.publishingAt != null)
+        throw lostAnswer()
       const shape = shapeOf(target, files, known)
       const oneCall = shape === 'photo' || shape === 'video'
       const again = (): StepResult => ({
@@ -280,23 +305,38 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       // what prepare left is missing or too old: prepare again (the files are fetched again)
       if (!oneCall && (known === null || expired(known))) return again()
       const ids = known ?? freshIds(clock.now())
+      // every file of the post is on Meta, never a part of them (a prepare stopped halfway)
+      const photosNeeded = shape === 'photo_story' ? 1 : files.items.length
       const prepared =
         oneCall ||
-        ((shape === 'multi_photo' || shape === 'photo_story') && ids.photos.length > 0) ||
-        ids.video?.uploaded === true
+        ((shape === 'multi_photo' || shape === 'photo_story') &&
+          ids.photos.length === photosNeeded) ||
+        ((shape === 'reel' || shape === 'video_story') && ids.video?.uploaded === true)
       if (!prepared) return again()
 
       const page = pageOf(target)
       const credentials = await pageCredentials(target, ctx.signal)
+      // from here a worker that stops leaves a mark: the next run searches, never publishes
+      ids.publishingAt = clock.now().toISOString()
+      await ctx.saveIds(ids)
       let out: { id: string | null; usage: MetaUsage }
       try {
         out = await publishCall(credentials, page, target, files, shape, ids, ctx.signal)
       } catch (err) {
-        if (err instanceof MetaError) throw publishCallError(err, clock.now())
-        throw err
+        if (!(err instanceof MetaError)) throw lostAnswer()
+        const e = publishCallError(err, clock.now())
+        if (e.kind === 'uncertain') throw e
+        // Meta said it did nothing: the mark goes, so the step can be tried again
+        ids.publishingAt = null
+        try {
+          await ctx.saveIds(ids)
+        } catch {
+          throw lostAnswer()
+        }
+        throw e
       }
       // Meta said yes without the id: the post is out, only the search can name it
-      if (out.id === null) throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+      if (out.id === null) throw lostAnswer()
       ids.postId = out.id
       try {
         await ctx.saveIds(ids)
@@ -315,6 +355,8 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
     async discard(target, signal) {
       const ids = parse(target)
       if (ids === null || ids.postId !== null || target.externalPostId !== null) return
+      // maybe published: what it used may be the post itself
+      if (ids.publishingAt !== null) throw lostAnswer()
       const objects = [...ids.photos, ...(ids.video === null ? [] : [ids.video.id])]
       if (objects.length === 0) return
       const credentials = await pageCredentials(target, signal)
@@ -342,16 +384,17 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       const story = shape === 'photo_story' || shape === 'video_story'
       const match = found.find((p) => {
         // the reel's own upload session: it is that reel, whatever its text
-        if (ids?.video != null && p.id === ids.video.id) return p.createdAt !== null
+        if (ids?.video != null && p.id === ids.video.id) return true
         const at = p.createdAt?.getTime()
-        if (at === undefined || at < from || at > to) return false
+        if (at === undefined || !Number.isFinite(at) || at < from || at > to) return false
         return story || normalizeCaption(p.message ?? '') === caption
       })
-      if (match?.createdAt == null) return null
+      if (match === undefined) return null
       return {
         externalPostId: match.id,
         permalink: safePermalink(match.permalink),
-        publishedAt: match.createdAt,
+        // the reel's own upload may come without a time: it went out within the step
+        publishedAt: match.createdAt ?? clock.now(),
       } satisfies FoundPost
     },
 
@@ -377,12 +420,16 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
           if (
             v.videoStatus === 'error' ||
             v.videoStatus === 'expired' ||
-            v.processingStatus === 'error'
+            v.uploadingStatus === 'error' ||
+            v.processingStatus === 'error' ||
+            v.publishingStatus === 'error'
           )
             return { outcome: 'problem', reason: 'failed', ...usage }
+          // processing and publishing both done (§9.6): `published` alone may come first
           const out =
-            v.publishStatus === 'published' ||
-            (v.videoStatus === 'ready' && v.publishingStatus === 'complete')
+            v.videoStatus === 'ready' &&
+            v.processingStatus !== 'in_progress' &&
+            (v.publishStatus === 'published' || v.publishingStatus === 'complete')
           if (!out) return { outcome: 'pending', ...usage }
           return { outcome: 'confirmed', permalink: safePermalink(v.permalink), ...usage }
         }

@@ -135,10 +135,10 @@ describe('every type reaches a confirmed post', () => {
         }) as object,
       }),
     ])
-    // the Page token comes from the connection's token, at the step
+    // the Page token comes from the connection's token, at each step
     expect(
       mock.calls().filter((c) => c.path === `/${page}` && c.params.fields === 'access_token'),
-    ).toHaveLength(1)
+    ).toHaveLength(2)
     expect(await publisher.verify(ready, signal())).toMatchObject({
       outcome: 'confirmed',
       permalink: expect.stringMatching(/^https:\/\/www\.facebook\.com\//) as string,
@@ -250,10 +250,25 @@ describe('prepare', () => {
     expect(err).toMatchObject({ kind: 'permanent', code: 'media_rejected', platformCode: '389' })
   })
 
-  test('a photo and a plain video have nothing to prepare', async () => {
+  test('a photo and a plain video have nothing to prepare but the Page token check', async () => {
     const result = await publisher.prepare(target('photo'), files([image()]), ctx())
     expect(result.outcome).toBe('done')
-    expect(mock.calls()).toHaveLength(0)
+    expect(mock.calls().map((c) => c.path)).toEqual([`/${page}`])
+    mock.scenario('page_token_missing')
+    const err = await failure(
+      publisher.prepare(target('reel', { asVideo: true }), files([video()]), ctx()),
+    )
+    expect(err.code).toBe('permission_missing')
+  })
+
+  test('a multi-photo prepared halfway is never published with part of its photos', async () => {
+    const t = target('carousel')
+    const f = files([image(), image(), image()])
+    // one photo of three on Meta (a prepare stopped halfway): never enough
+    const ok = await publisher.prepare(t, files([image()]), ctx())
+    const result = await publisher.publish({ ...t, metaIds: ok.metaIds }, f, ctx())
+    expect(result.outcome).toBe('expired')
+    expect(calls('POST', `/${page}/feed`)).toHaveLength(0)
   })
 
   test('saved ids that say the post is out are never prepared again', async () => {
@@ -296,6 +311,40 @@ describe('publish', () => {
     const err = await failure(publisher.publish(target('photo'), files([image()]), ctx()))
     expect(err.kind).toBe('uncertain')
     expect(calls('POST', `/${page}/photos`)).toHaveLength(1)
+  })
+
+  test('a run that stopped after the call is never published again, only searched', async () => {
+    const t = target('photo')
+    mock.scenario('publish_timeout_but_created', { delayMs: 2_000 })
+    await failure(publisher.publish(t, files([image()]), ctx()))
+    // the worker died before it marked the step: the saved ids carry the mark
+    const marked = saved.at(-1) ?? null
+    expect(marked).toMatchObject({ publishingAt: expect.any(String) as string, postId: null })
+    const again = await failure(
+      publisher.publish({ ...t, metaIds: marked }, files([image()]), ctx()),
+    )
+    expect(again.kind).toBe('uncertain')
+    const discard = await failure(publisher.discard({ ...t, metaIds: marked }, signal()))
+    expect(discard.kind).toBe('uncertain')
+    expect(calls('POST', `/${page}/photos`)).toHaveLength(1)
+  })
+
+  test('a refusal before acting clears the mark: the step can be tried again', async () => {
+    const t = target('photo')
+    mock.scenario('rate_limited', { path: `/${page}/photos`, code: 32, times: 1 })
+    const err = await failure(publisher.publish(t, files([image()]), ctx()))
+    expect(err).toMatchObject({ kind: 'transient', code: 'rate_limited' })
+    const after = saved.at(-1) ?? null
+    expect(after).toMatchObject({ publishingAt: null })
+    const out = await publisher.publish({ ...t, metaIds: after }, files([image()]), ctx())
+    expect(out.outcome).toBe('done')
+  })
+
+  test('a Page id that is not digits never reaches an address', async () => {
+    const t = target('photo', { account: { platform: 'facebook', externalId: '..', pageId: '..' } })
+    const err = await failure(publisher.publish(t, files([image()]), ctx()))
+    expect(err.kind).toBe('permanent')
+    expect(mock.calls()).toHaveLength(0)
   })
 
   test('the search of a reel finds its own upload, whatever the text', async () => {
@@ -343,6 +392,35 @@ describe('discard', () => {
     const { ready } = await goOut(target('story'), files([image()]))
     await publisher.discard(ready, signal())
     expect(mock.calls().filter((c) => c.method === 'DELETE')).toHaveLength(0)
+  })
+})
+
+describe('stories', () => {
+  test('the uncertain search finds a story by type and time; verify by its id', async () => {
+    const t = target('story')
+    const since = clock.now()
+    const { ready } = await goOut(t, files([image()]))
+    const found = await publisher.findPublished({ ...ready, externalPostId: null }, since, signal())
+    expect(found?.externalPostId).toBe(ready.externalPostId)
+    const gone = await publisher.verify({ ...ready, externalPostId: '7300999' }, signal())
+    expect(gone).toMatchObject({ outcome: 'problem', reason: 'not_found' })
+  })
+
+  test('a video story session is thrown away by discard; a reel round expires after a day', async () => {
+    const t = target('story')
+    const prepared = await publisher.prepare(t, files([video()]), ctx())
+    await publisher.discard({ ...t, metaIds: prepared.metaIds }, signal())
+    expect(mock.calls().filter((c) => c.method === 'DELETE')).toHaveLength(1)
+
+    const reel = target('reel')
+    const round = await publisher.prepare(reel, files([video()]), ctx())
+    clock.advance(23 * 3_600_000)
+    const late = await publisher.publish(
+      { ...reel, metaIds: round.metaIds },
+      files([video()]),
+      ctx(),
+    )
+    expect(late.outcome).toBe('expired')
   })
 })
 
