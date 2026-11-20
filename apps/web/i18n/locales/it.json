@@ -1575,7 +1575,11 @@
       "useMore": "e altri {n}",
       "newPost": "Usa in un nuovo post",
       "download": "Scarica",
-      "technical": "Dettagli tecnici"
+      "technical": "Dettagli tecnici",
+      "addTag": "Tag",
+      "addTagLong": "Aggiungi un tag",
+      "newTag": "Nuovo tag",
+      "removeTag": "Togli il tag «{tag}»"
     },
     "fix": {
       "convert_to_jpeg": "Convertito in JPEG",
