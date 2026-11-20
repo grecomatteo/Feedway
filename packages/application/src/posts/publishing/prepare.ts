@@ -32,9 +32,12 @@ import {
   openAccount,
   pauseTarget,
   plusMinutes,
+  latestOf,
   publisherOf,
+  recordReadings,
   sendSteps,
   skipped,
+  slowDownOf,
   waitTarget,
   type PublishingWorkerDeps,
   type StepJob,
@@ -137,6 +140,12 @@ async function decide(
     }
   }
 
+  // above 80% of Meta's usage the account, or the agency, waits (§8.6): not an attempt
+  const slowUntil = await slowDownOf(tx, target, 'prepare', now)
+  if (slowUntil) {
+    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down')
+    return done(wait.log, [wait.job])
+  }
   const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
   if (!opened) return done(await failTarget(tx, target, 'token_invalid'))
   const claimed = await tx.publishing.claimPrepare(target.organizationId, target.id, {
@@ -243,6 +252,7 @@ async function settle(
   now: Date,
 ): Promise<{ log: StepLog; jobs: StepJob[] }> {
   const { organizationId } = target
+  await recordReadings(tx, target, result, now)
   if (!(result instanceof PublishError)) {
     await tx.connections.recordUsage(organizationId, call.connectionId, result.usage)
     const metaIds = withRoundIds(target.metaIds, result.metaIds)
@@ -306,7 +316,8 @@ async function settle(
   const attempt = target.attempts + 1
   const next = nextAttemptAt(now, attempt)
   if (next === null) return { log: await failTarget(tx, target, result.code), jobs: [] }
-  const at = result.retryAt && result.retryAt > next ? result.retryAt : next
+  // not before Meta serves the account again (§8.6): the answer said how busy it is
+  const at = latestOf(next, result.retryAt, await slowDownOf(tx, target, 'prepare', now))
   const generation = await moveTarget(tx, target, 'retrying', {
     step: 'prepare',
     attempts: attempt,

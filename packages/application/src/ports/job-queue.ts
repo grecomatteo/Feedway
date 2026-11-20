@@ -34,6 +34,7 @@ interface JobDefinitions {
   'media.process': { scope: 'organization'; data: MediaProcessJobData }
   'media.publish_copies': { scope: 'organization'; data: MediaPublishCopiesJobData }
   'media.uploads_cleanup': { scope: 'system'; data: object }
+  'media.publish_copies_cleanup': { scope: 'system'; data: object }
   'target.prepare': { scope: 'organization'; data: TargetJobData }
   'target.publish': { scope: 'organization'; data: TargetJobData }
   'scheduler.reconcile': { scope: 'system'; data: object }

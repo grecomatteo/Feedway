@@ -1,4 +1,10 @@
-import type { AccountHealth, ConnectionKind, ConnectionStatus, Platform } from '@app/domain'
+import type {
+  AccountHealth,
+  ConnectionKind,
+  ConnectionStatus,
+  Platform,
+  UsageReading,
+} from '@app/domain'
 
 /** A row of `social_accounts`. */
 export interface SocialAccountRecord {
@@ -135,6 +141,28 @@ export interface SocialAccountsRepository {
     id: string,
     update: AccountHealthUpdate,
   ): Promise<boolean>
+  /** Meta's usage at the account's last call of the publishing (§8.6), replacing the last one. */
+  recordUsageReading(organizationId: string, id: string, reading: UsageReading): Promise<void>
+  /**
+   * What the slowing down reads (plan 07 «Rallentamento»): the account's last reading, and the
+   * agency's latest one that says the app's usage, whichever account it came from.
+   */
+  usageReadings(
+    organizationId: string,
+    id: string,
+  ): Promise<{ account: UsageReading | null; agency: UsageReading | null }>
+  /** The quota as the publishing just read it from the platform. */
+  recordQuota(
+    organizationId: string,
+    id: string,
+    quota: { used: number; total: number },
+    at: Date,
+  ): Promise<void>
+  /**
+   * Notes that the account was told nearly out of quota at `at`, unless it was after `since`
+   * already (the quota's window): true when this call noted it, so the event is written once.
+   */
+  markQuotaLow(organizationId: string, id: string, at: Date, since: Date): Promise<boolean>
 }
 
 /** A row of `account_connections` without its token. */

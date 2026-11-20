@@ -140,13 +140,30 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     send(res, status, { error: { ...error, fbtrace_id: fbtraceId() } }, headers)
   }
 
+  const percent = (value: number): Usage => ({
+    call_count: value,
+    total_cputime: value,
+    total_time: value,
+  })
+
   function usageHeaders(token: TokenFixture | undefined, full: boolean, minutes = 0) {
-    const usage = full ? FULL_USAGE : NORMAL_USAGE
-    const headers: Record<string, string> = { 'x-app-usage': JSON.stringify(usage) }
+    const high = full ? undefined : scenariosNamed('usage_high')[0]
+    const app = full
+      ? FULL_USAGE
+      : high?.opts.app !== undefined
+        ? percent(high.opts.app)
+        : NORMAL_USAGE
+    const business = full
+      ? FULL_USAGE
+      : high?.opts.business !== undefined
+        ? percent(high.opts.business)
+        : NORMAL_USAGE
+    const regain = full ? minutes : (high?.opts.minutesToRegain ?? 0)
+    const headers: Record<string, string> = { 'x-app-usage': JSON.stringify(app) }
     if (token !== undefined)
       headers['x-business-use-case-usage'] = JSON.stringify({
         [token.business]: [
-          { type: 'instagram', ...usage, estimated_time_to_regain_access: full ? minutes : 0 },
+          { type: 'instagram', ...business, estimated_time_to_regain_access: regain },
         ],
       })
     return headers

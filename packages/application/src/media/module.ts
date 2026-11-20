@@ -4,5 +4,11 @@ import type { ModuleDefinition } from '../module-definition.js'
 export const mediaModule: ModuleDefinition = {
   name: 'media',
   permissions: ['media.upload'],
-  queues: ['media.delete_files', 'media.process', 'media.publish_copies', 'media.uploads_cleanup'],
+  queues: [
+    'media.delete_files',
+    'media.process',
+    'media.publish_copies',
+    'media.publish_copies_cleanup',
+    'media.uploads_cleanup',
+  ],
 }

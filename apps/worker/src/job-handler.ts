@@ -58,6 +58,8 @@ export interface JobHandlerDeps {
     publishingHistory: PublishingHistory
     /** PUBLIC_URL: where Meta downloads the copies; null: the public host is off. */
     publicUrl: URL | null
+    /** MEDIA_RETENTION_DAYS: the copies of an ended post stay this long (Scelta 5). */
+    copiesKeptDays: number
   }
   /** ffmpeg, ffprobe and sharp for the files of the library, one at a time (plan 04 Task 10). */
   media: Pick<

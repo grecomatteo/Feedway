@@ -402,17 +402,19 @@ test('a suspended agency: paused and no event', async () => {
   expect(events.rowCount).toBe(0)
 })
 
-test('a temporary error before publishing is tried again after 1 minute; the third in a row fails', async () => {
+test('a temporary error before publishing is tried again when Meta serves the account again', async () => {
   const { world, at, post } = await setUp({ accounts: 'instagram' })
   const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
   mock.scenario('rate_limited', { path: /\/media$/, times: 1 })
   await runSteps(world, post.postId, clock, 'prepare')
   const [retrying] = await targetsOf(admin, post.postId)
   expect(retrying).toMatchObject({ status: 'retrying', step: 'prepare', attempts: 1 })
-  expect(retrying?.next_attempt_at?.getTime()).toBe(clock.now().getTime() + MINUTE)
+  // the rate limit said the account is at 100% and is served again in 5 minutes (§8.6): the
+  // next attempt is then, not after 1 minute, so it is not slowed down a second time
+  expect(retrying?.next_attempt_at?.getTime()).toBe(clock.now().getTime() + 5 * MINUTE)
   expect(retrying?.claimed_until).toBeNull()
   mock.scenario('default')
-  clock.set(new Date(clock.now().getTime() + MINUTE))
+  clock.set(new Date(clock.now().getTime() + 5 * MINUTE))
   await prepareTarget(workerDeps(runtime, clock, host.url), job(world, retrying as TargetRow))
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready', attempts: 0 })
 })

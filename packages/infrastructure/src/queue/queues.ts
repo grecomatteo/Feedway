@@ -123,6 +123,13 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
   },
+  // every night, one run at a time (plan 07 Scelta 5): the copies are rows of media_variants, so
+  // a night missed is done by the next one
+  'media.publish_copies_cleanup': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 7 * 86_400 },
+  },
   // ids and a generation (plan 07 P3): the state is in post_targets, and the reconciler sends a
   // job lost or dropped again within a minute; a finished one is kept a day, so a key sent
   // twice is one job

@@ -536,6 +536,35 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .returning({ key: mediaVariants.storageKey })
       return rows.map((r) => r.key)
     },
+    async recipeCopiesBefore(organizationId, createdBefore) {
+      const rows = await db
+        .select(copyColumns)
+        .from(mediaVariants)
+        .where(
+          and(
+            eq(mediaVariants.organizationId, organizationId),
+            ne(mediaVariants.recipe, ''),
+            lt(mediaVariants.createdAt, createdBefore),
+          ),
+        )
+        .orderBy(mediaVariants.mediaId, mediaVariants.purpose, mediaVariants.recipe)
+      return rows.map(copyOf)
+    },
+    async dropCopies(organizationId, ids) {
+      if (ids.length === 0) return []
+      const rows = await db
+        .delete(mediaVariants)
+        .where(
+          and(
+            eq(mediaVariants.organizationId, organizationId),
+            inArray(mediaVariants.id, [...ids]),
+            // never a copy made with its file: only those of a post
+            ne(mediaVariants.recipe, ''),
+          ),
+        )
+        .returning({ key: mediaVariants.storageKey })
+      return rows.map((r) => r.key)
+    },
     async markReady(organizationId, mediaId, ready) {
       const rows = await db
         .update(media)

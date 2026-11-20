@@ -8,4 +8,5 @@ export const NO_PUBLISHING: JobHandlerDeps['publishing'] = {
     forDestinations: () => Promise.reject(new Error('not used')),
   },
   publicUrl: null,
+  copiesKeptDays: 7,
 }

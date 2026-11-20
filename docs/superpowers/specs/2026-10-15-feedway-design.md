@@ -523,7 +523,7 @@ Ogni passo salva gli ID ricevuti prima del successivo, così si riprende dal pun
 
 - Funzioni tipizzate per ogni chiamata, versione API fissata in configurazione e aggiornata con una PR e test.
 - Timeout su ogni richiesta; tentativi con attesa crescente e casuale solo per errori temporanei.
-- Lettura di `X-App-Usage` e `X-Business-Use-Case-Usage`: sopra l'80% il worker rallenta da solo, per account e per organizzazione.
+- Lettura di `X-App-Usage` e `X-Business-Use-Case-Usage`: sopra l'80% il worker rallenta da solo, per account e per organizzazione (piano 07, D-111). L'uso letto si salva sull'account dopo ogni passo; sopra l'80% dell'account i passi aspettano quanto dice Meta (`estimated_time_to_regain_access`, da 1 a 5 minuti), sopra l'80% dell'app tutti gli account dell'agenzia aspettano 1 minuto. La pubblicazione all'ora del post aspetta solo sopra il 95%, così un post non manca l'ora per un limite ancora lontano.
 - Classificazione di ogni errore: **temporaneo**, **definitivo** o **incerto**.
 - `appsecret_proof` su ogni chiamata; token mai nei log.
 - Modalità `live`, `mock` (finto Graph API) e `dry-run` per sviluppo e prove.
@@ -658,7 +658,8 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `target.publish` | All'orario | `publishing` scritto prima della chiamata: rimasto oltre 6 minuti, il riconciliatore lo porta in `unknown` |
 | `target.reconcile` | Su esito incerto | §9.5 |
 | `target.verify` | 3 minuti dopo, poi 10 e 30 se serve | §9.6 |
-| `scheduler.reconcile` | Ogni minuto | Ricrea i lavori mancanti |
+| `scheduler.reconcile` | Ogni minuto | Ricrea i lavori mancanti; ricontrolla 3 ore prima (o subito, se ne mancano meno) ogni destinazione ancora programmata (`post_targets.recheck_at`, piano 07 Scelta 4): con un blocco scrive `post.file_wont_publish` |
+| `media.publish_copies_cleanup` | Ogni notte, alle 04:30 | Toglie le copie da pubblicare che nessun post usa più (§11.9, piano 07 Scelta 5) |
 | `bulk.import` | Su richiesta | §11.6 |
 | `plan.due_soon` | Al momento della notifica di §11.12 | Uno per contenuto pianificato (chiave: id del contenuto), con `organizationId`; creato o sostituito nella stessa transazione di ogni modifica del contenuto o del fuso dell'organizzazione, tolto quando il contenuto è tolto o preparato; il gestore rilegge contenuto e post e non fa nulla se non serve più |
 | `notify.dispatch` / `notify.deliver` | Per ogni evento / destinatario e canale | §12 |
@@ -876,16 +877,16 @@ I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre ve
 
 ### 11.8 Libreria media
 
-Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinandoli su una cartella. I file **salvati in libreria** restano disponibili per il riuso; tutti gli altri vengono cancellati dopo la pubblicazione (§11.9). Lo spazio occupato è visibile per spazio.
+Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinandoli su una cartella. Ogni file resta disponibile per il riuso finché qualcuno non lo elimina; dopo la pubblicazione si tolgono solo le copie da pubblicare (§11.9). Lo spazio occupato è visibile per spazio.
 
-**I file dei post** (D-18, piano 06 P8): i file caricati dall'editor entrano nella libreria del cliente come gli altri. Ogni file dice il post che lo usa (`usedIn`, prima quello programmato), per l'etichetta «Nel post del …» o «In una bozza». Un file di un post programmato non si cancella (409 con il giorno del post), né la cartella che lo contiene; un file di una bozza sì, e la bozza lo mostra «non disponibile». Quando togliere i file dopo la pubblicazione si decide nella tappa 7.
+**I file dei post** (D-18, piano 06 P8): i file caricati dall'editor entrano nella libreria del cliente come gli altri. Ogni file dice il post che lo usa (`usedIn`, prima quello programmato), per l'etichetta «Nel post del …» o «In una bozza». Un file di un post programmato non si cancella (409 con il giorno del post), né la cartella che lo contiene; un file di una bozza sì, e la bozza lo mostra «non disponibile». Dopo la pubblicazione (piano 07, Scelta 5) i file restano nella libreria del cliente, con l'etichetta «Pubblicato il …», finché qualcuno non li elimina: «Salva in libreria» non serve. Si tolgono da soli solo le **copie da pubblicare** (quelle con una ricetta: ritaglio, bande, storia, copertina), come dice §11.9.
 
 ### 11.9 Modifica, annullamento e pulizia
 
 - Un post programmato si modifica o annulla finché nessuna destinazione è in `preparing`; poi si annullano solo le destinazioni non ancora pubblicate.
 - Un post pubblicato non si modifica dal pannello; resta il link al post.
 - **Modifiche concorrenti**: se due persone modificano lo stesso post, il secondo salvataggio riceve "modificato da un altro utente, ricarica". Ogni scrittura porta la `version` letta; se è cambiata la risposta è 409 con il motivo `post_version_conflict` e il testo «Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova» (piano 06, Task 4).
-- File non in libreria cancellati `MEDIA_RETENTION_DAYS` (default 7) dopo che tutte le destinazioni sono concluse; resta una miniatura. Bozze abbandonate: 30 giorni.
+- **Copie da pubblicare** (piano 07, Scelta 5): il lavoro notturno `media.publish_copies_cleanup` toglie le copie con una ricetta di un post concluso da `MEDIA_RETENTION_DAYS` (default 7): ogni destinazione `confirmed` o `cancelled`, oppure `failed` o `problem` da 7 giorni senza un «Riprova», così «Riprova» le trova ancora. Toglie anche la copia di una ricetta vecchia (il post è stato modificato) che nessun post programmato usa più. I file originali restano nella libreria. Bozze abbandonate: 30 giorni.
 - Le anteprime dei post programmati restano fino alla pubblicazione, per calendario e link cliente.
 - **Cliente archiviato** (D-70, Matteo 18/11): archiviare un cliente riporta in bozza, nella stessa transazione, i suoi post programmati (il post e le destinazioni, senza impronte), con una voce `post.unscheduled` per post; la finestra di archiviazione dice quanti sono. I post di un cliente archiviato si leggono e non si modificano (409). Ripristinando il cliente le bozze restano bozze, da riprogrammare.
 
