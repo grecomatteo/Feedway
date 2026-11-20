@@ -200,6 +200,11 @@ export function useLibrary(
     await call('PATCH', `${base.value}/folders/${encodeURIComponent(folder.id)}`, { name })
     await reloadFolders()
   }
+  /** Moves a folder, with all it holds, inside another one (null: to the top of the library). */
+  async function moveFolder(folder: Folder, parentId: string | null) {
+    await call('PATCH', `${base.value}/folders/${encodeURIComponent(folder.id)}`, { parentId })
+    await reloadFolders()
+  }
   async function deleteFolder(folder: Folder) {
     const gone = [folder.id, ...foldersBelow(folders.value, folder.id).map((f) => f.id)]
     await call('DELETE', `${base.value}/folders/${encodeURIComponent(folder.id)}?confirm=true`)
@@ -230,6 +235,7 @@ export function useLibrary(
     retry,
     createFolder,
     renameFolder,
+    moveFolder,
     deleteFolder,
     fileUrl,
   }

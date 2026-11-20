@@ -114,6 +114,32 @@ async function tick(page: Page, names: RegExp[]) {
   })
 }
 
+/**
+ * The folders of Forno Luce for the screen of the client's library (Task 10 of stage 7): «Novembre»
+ * with «Reel» and «Copertine» inside, and «Archivio»; once only, the phone finds them made.
+ */
+async function folders(page: Page, s: DesignSample) {
+  const client = s.clients['Forno Luce']?.id ?? ''
+  const base = `/api/v1/orgs/${s.org}/workspaces/${client}/folders`
+  const headers = { origin: new URL(page.url()).origin, 'x-app-request': '1' }
+  const list = (await (await page.request.get(base, { headers })).json()) as {
+    items: { id: string; name: string }[]
+  }
+  const make = async (name: string, parentId: string | null) => {
+    const found = list.items.find((f) => f.name === name)
+    if (found) return found.id
+    const res = await page.request.post(base, { headers, data: { name, parentId } })
+    return ((await res.json()) as { id: string }).id
+  }
+  const novembre = await make('Novembre', null)
+  await make('Reel', novembre)
+  await make('Copertine', novembre)
+  await make('Archivio', null)
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await page.mouse.move(0, 0)
+}
+
 const asset = (name: string) =>
   readFile(new URL(`../../../../design/feedway-ui-assets/${name}`, import.meta.url))
 const ASSETS = {
@@ -400,6 +426,25 @@ export const SCREENS: Screen[] = [
         .click()
       await page.getByRole('dialog', { name: 'pane-lunedi-01.jpg' }).waitFor()
       await page.waitForTimeout(400)
+    },
+  },
+  // the folders of a client's library (Task 10 of stage 7), no reference: before and after
+  {
+    id: '27-libreria-cartelle',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/libreria`,
+    prepare: folders,
+  },
+  {
+    id: '28-libreria-cartella-azioni',
+    path: (s) => `/${s.org}/spazi/${s.clients['Forno Luce']?.slug ?? ''}/libreria`,
+    computerOnly: true,
+    prepare: async (page, s) => {
+      await folders(page, s)
+      const column = page.getByRole('navigation', { name: 'Cartelle' })
+      await column.locator('[data-folder="Novembre"]').hover()
+      await column.getByRole('button', { name: 'Azioni per la cartella Novembre' }).click()
+      await page.getByRole('menu').waitFor()
+      await page.waitForTimeout(300)
     },
   },
   // people and settings (Task R8)
