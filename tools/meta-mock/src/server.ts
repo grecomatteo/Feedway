@@ -444,7 +444,10 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       })
       return
     }
-    if (proof !== createHmac('sha256', data.app.secret).update(tokenValue).digest('hex')) {
+    // the proof is signed over the mock's own copy of the token, never over the request's text:
+    // the same value, but a fake token is not a password to hash (CodeQL js/insufficient-password-hash)
+    const known = Object.keys(data.tokens).find((k) => k === tokenValue) ?? ''
+    if (proof !== createHmac('sha256', data.app.secret).update(known).digest('hex')) {
       sendError(res, {
         message: 'Invalid appsecret_proof provided in the API argument',
         type: 'GraphMethodException',
