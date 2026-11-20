@@ -29,17 +29,25 @@ const loadFailed = ref(false)
 const problem = ref<string | null>(null)
 const busy = ref<string | null>(null)
 
+/** Every read and action takes a number: an answer older than the latest is dropped. */
+let latest = 0
+let reading = false
 async function read() {
+  const mine = ++latest
+  reading = true
   try {
     const [p, o] = await Promise.all([
       call<PostResponse>('GET', postApi.value),
       call<PostOutcomeResponse>('GET', `${postApi.value}/outcome`),
     ])
+    if (mine !== latest) return
     current.value = p
     outcome.value = o
     loadFailed.value = false
   } catch {
-    loadFailed.value = true
+    if (mine === latest) loadFailed.value = true
+  } finally {
+    if (mine === latest) reading = false
   }
 }
 
@@ -49,7 +57,8 @@ const moving = computed(() =>
 )
 let timer: ReturnType<typeof setInterval> | null = null
 function tick() {
-  if (document.visibilityState === 'visible' && moving.value && busy.value === null) void read()
+  if (document.visibilityState === 'visible' && moving.value && busy.value === null && !reading)
+    void read()
 }
 onMounted(() => {
   void read()
@@ -165,7 +174,7 @@ const meta = computed(() => {
 })
 // «Pubblica subito» leaves the post scheduled for now until the worker takes it
 const state = computed(() =>
-  current.value.status === 'scheduled'
+  current.value.status === 'scheduled' && isDue(current.value)
     ? { label: t('posts.state.publishing'), tone: 'info' as const }
     : postStateOf(current.value, t),
 )
@@ -198,6 +207,8 @@ const activity = computed(() =>
 async function act(key: string, path: string, body?: unknown) {
   busy.value = key
   problem.value = null
+  // a poll still on its way must not write back the state from before the action
+  latest++
   try {
     current.value = await call<PostResponse>('POST', `${postApi.value}/${path}`, body)
     await read()
@@ -237,6 +248,7 @@ const resumeWhen = ref<{ localDate: string; localTime: string } | null>(null)
 async function resume() {
   busy.value = 'resume'
   problem.value = null
+  latest++
   try {
     current.value = await call<PostResponse>('POST', `${postApi.value}/resume`, {
       version: current.value.version,
@@ -265,7 +277,17 @@ const resumeTime = computed({
     if (resumeWhen.value) resumeWhen.value.localTime = v.slice(0, 5)
   },
 })
-const today = new Date().toISOString().slice(0, 10)
+/** «oggi» in the post's zone, the first day «Riprendi» may take */
+const today = computed(() => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: current.value.timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const get = (type: string) => parts.find((x) => x.type === type)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+})
 const cancelPaused = ref(false)
 async function cancelPausedConfirmed() {
   cancelPaused.value = false
@@ -289,7 +311,9 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
         </NuxtLink>
         <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
           <h1 class="min-w-0 truncate text-title" data-outcome-title>{{ title }}</h1>
-          <StatusDot :label="state.label" :tone="state.tone" data-outcome-state />
+          <span aria-live="polite"
+            ><StatusDot :label="state.label" :tone="state.tone" data-outcome-state
+          /></span>
         </div>
       </div>
 
@@ -442,6 +466,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                       icon="i-lucide-rotate-cw"
                       class="max-md:min-h-control"
                       :loading="busy === `retry-${row.accountId}`"
+                      :aria-label="$t('posts.outcome.retryOn', { account: row.name })"
                       data-outcome-retry
                       @click="retry(row)"
                     >
@@ -455,6 +480,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                       icon="i-lucide-check"
                       class="max-md:min-h-control"
                       :loading="busy === `verified-${row.accountId}`"
+                      :aria-label="$t('posts.outcome.markVerifiedOn', { account: row.name })"
                       @click="verify(row.accountId)"
                     >
                       {{ $t('posts.outcome.markVerified') }}
@@ -466,6 +492,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                       size="sm"
                       class="max-md:min-h-control"
                       :loading="busy === `cancel-${row.accountId}`"
+                      :aria-label="$t('posts.outcome.cancelOneOn', { account: row.name })"
                       @click="cancelOne = row.accountId"
                     >
                       {{ $t('posts.outcome.cancelOne') }}

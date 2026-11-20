@@ -185,7 +185,7 @@ async function schedule() {
 watch(
   () => e.post.value,
   (p) => {
-    if (p && isOutcomeStatus(p.status)) emit('outcome', p)
+    if (p && opensOnOutcome(p)) emit('outcome', p)
   },
 )
 

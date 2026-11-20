@@ -12,7 +12,20 @@ type Translate = (key: string, named?: Record<string, unknown>, plural?: number)
 export type PostStatus = PostResponse['status']
 export type TargetStatus = PostResponse['destinations'][number]['status']
 
-/** A post past «Programmato»: it opens on the page of the outcome, not in the editor (Scelta 6). */
+/** Scheduled for a time already here: «Pubblica subito», or a post the worker has not taken yet. */
+export const isDue = (post: Pick<PostResponse, 'status' | 'scheduledAt'>, now = Date.now()) =>
+  post.status === 'scheduled' &&
+  post.scheduledAt !== null &&
+  new Date(post.scheduledAt).getTime() <= now
+
+/**
+ * A post past «Programmato», or scheduled for a time already here: it opens on the page of the
+ * outcome, not in the editor (Scelta 6), so «Pubblica subito» is never undone from the editor.
+ */
+export const opensOnOutcome = (post: Pick<PostResponse, 'status' | 'scheduledAt'>) =>
+  isOutcomeStatus(post.status) || isDue(post)
+
+/** A post past «Programmato» (Scelta 6). */
 export const isOutcomeStatus = (status: PostStatus) =>
   status === 'publishing' ||
   status === 'partial' ||
