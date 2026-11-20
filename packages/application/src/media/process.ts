@@ -33,7 +33,7 @@ import type {
 } from '../ports/media-processing.js'
 import type { Storage } from '../ports/storage.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { nextMediaTurn } from './process-turn.js'
+import { nextMediaTurn, wakeMediaWork } from './process-turn.js'
 
 // `media.process` (RF-31, RF-38; plan 04 Task 10, ADR 021). The job is a wake-up: one
 // conversion at a time for the whole installation (an advisory lock), and the file processed
@@ -110,14 +110,8 @@ export async function processNextMedia(
     .finally(async () => {
       // after the lock is free, even after a failure: a wake-up that came meanwhile found it
       // taken and left, so the next file (of another agency, maybe) waits for this one
-      if (!processed) return
-      try {
-        const next = await nextMediaTurn(deps.uow)
-        if (next) await deps.queue.send('media.process', next, { dedupeKey: `after:${job.jobId}` })
-      } catch (error) {
-        // the clean-up, every ten minutes, wakes files left waiting
-        deps.logger.error({ err: error }, 'next media wake-up not queued')
-      }
+      // the copies to publish wait for the same lock (plan 07 Task 6): they are woken too
+      if (processed) await wakeMediaWork(deps, `after:${job.jobId}`)
     })
   if (!held.acquired) return { outcome: 'busy' }
   return held.value
@@ -131,13 +125,8 @@ export async function processNextMedia(
 export async function wakeMediaProcessing(
   deps: Pick<MediaProcessDeps, 'uow' | 'queue' | 'logger'>,
 ): Promise<void> {
-  try {
-    const next = await nextMediaTurn(deps.uow)
-    if (next) await deps.queue.send('media.process', next)
-  } catch (error) {
-    // the clean-up wakes files left waiting
-    deps.logger.error({ err: error }, 'media wake-up at start not queued')
-  }
+  // the copies to publish too (plan 07 Task 6)
+  await wakeMediaWork(deps)
 }
 
 class FileGone extends Error {}

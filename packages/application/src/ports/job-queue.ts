@@ -32,6 +32,7 @@ interface JobDefinitions {
   'accounts.avatar': { scope: 'organization'; data: AccountAvatarJobData }
   'media.delete_files': { scope: 'organization'; data: MediaDeleteFilesJobData }
   'media.process': { scope: 'organization'; data: MediaProcessJobData }
+  'media.publish_copies': { scope: 'organization'; data: MediaPublishCopiesJobData }
   'media.uploads_cleanup': { scope: 'system'; data: object }
 }
 
@@ -41,6 +42,15 @@ interface JobDefinitions {
  */
 export interface MediaProcessJobData {
   mediaId: string
+}
+
+/**
+ * A wake-up for the copies to publish (plan 07 Task 6): the post that asked for them, for the
+ * logs (null: woken by another conversion). The handler makes the next copy at its agency's
+ * turn, whatever post it is for.
+ */
+export interface MediaPublishCopiesJobData {
+  postId: string | null
 }
 
 /** The files of one deleted media (plan 04 Task 8): its id only. */

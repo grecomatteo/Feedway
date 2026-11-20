@@ -184,3 +184,17 @@ export function copyVideoBitrate(
   const max = Math.max(500_000, Math.min(REEL_ENCODE.maxBitrate, budget))
   return { bitrate: Math.min(REEL_ENCODE.videoBitrate, max), maxBitrate: max }
 }
+
+/** The most a story video may weigh (§9.2, «IG User Media»: 100 MB). */
+export const STORY_VIDEO_MAX_BYTES = 100_000_000
+/** The most a reel's cover may weigh (§9.2, «IG User Media», cover_url: 8 MB). */
+export const COVER_MAX_BYTES = 8_000_000
+
+/** Why a copy to publish could not be made (`media_variants.failure`). */
+export const COPY_FAILURES = [
+  'unreadable',
+  'timeout',
+  'processing_failed',
+  'media_unavailable',
+] as const
+export type CopyFailure = (typeof COPY_FAILURES)[number]
