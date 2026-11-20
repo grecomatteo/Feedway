@@ -91,7 +91,9 @@ const rows = async <T extends pg.QueryResultRow>(sql: string, params: unknown[] 
 const ownRows = (table: string, more = '') =>
   rows(`select * from ${table} where organization_id = $1 ${more}`, [owner.organizationId])
 
-async function agencyWithOwner(opts: { app?: boolean } = {}): Promise<OrgActor> {
+async function agencyWithOwner(
+  opts: { app?: boolean; businessId?: string } = {},
+): Promise<OrgActor> {
   const { organizationId, userId } = await seed(tdb.runtimeUrl, async (s) => {
     const org = await s.organization()
     const user = await s.user()
@@ -105,7 +107,7 @@ async function agencyWithOwner(opts: { app?: boolean } = {}): Promise<OrgActor> 
         config: {
           appId: META_MOCK.app.id,
           configId: null,
-          businessId: null,
+          businessId: opts.businessId ?? null,
           dataUseCheckupDueOn: null,
         },
         secret: META_MOCK.app.secret,
@@ -211,7 +213,12 @@ test('a valid token: green permissions, every assigned account once, pending', a
     ['instagram', instagram.agencyOnly, null, 'to_import'],
     ['instagram', instagram.shared, null, 'to_import'],
   ])
-  expect(result.connection).toMatchObject({ kind: 'meta_system_user', status: 'pending' })
+  // the system user's Business, from `me/businesses` (B11 of the redesign review)
+  expect(result.connection).toMatchObject({
+    kind: 'meta_system_user',
+    status: 'pending',
+    businessName: 'Agenzia Demo',
+  })
   expect(result.connection?.expiresAt).toBeNull()
   const [stored] = await rows<{
     external_user_id: string
@@ -232,6 +239,30 @@ test('a valid token: green permissions, every assigned account once, pending', a
       owner.organizationId,
     ]),
   ).toEqual([{ data: { kind: 'meta_system_user' } }])
+})
+
+test('a new token whose Business name cannot be read keeps the name read before', async () => {
+  await connect()
+  mock.scenario('error', { code: 100, status: 400, path: '/me/businesses' })
+  const replaced = await connect()
+  expect(replaced.outcome).toBe('replaced')
+  expect(replaced.connection?.businessName).toBe('Agenzia Demo')
+  expect(await ownRows('account_connections')).toEqual([
+    expect.objectContaining({ business_name: 'Agenzia Demo' }),
+  ])
+})
+
+test('with the Business written in the integration, its name is read by its id', async () => {
+  owner = await agencyWithOwner({ businessId: META_MOCK.businesses.agency })
+  const before = mock.calls().length
+  const result = await connect()
+  expect(result.connection?.businessName).toBe('Agenzia Demo')
+  const paths = mock
+    .calls()
+    .slice(before)
+    .map((c) => c.path)
+  expect(paths).toContain(`/${META_MOCK.businesses.agency}`)
+  expect(paths).not.toContain('/me/businesses')
 })
 
 test('a page Meta gives without its token is shown as not importable: no role on it', async () => {
@@ -333,6 +364,7 @@ test('the connections of the agency, a pending one too, never with their token',
       kind: 'meta_system_user',
       status: 'pending',
       expiresAt: null,
+      businessName: 'Agenzia Demo',
       createdAt: expect.any(Date) as Date,
     },
   ])

@@ -61,7 +61,10 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await expect(reminders).toContainText('tra 10 giorni')
 
   const connections = page.getByRole('region', { name: 'Collegamenti' })
-  await expect(connections).toContainText('Utente di sistema Meta')
+  // the Business of the system user is the row's name, the kind goes under it (B11)
+  await expect(connections).toContainText('Agenzia Demo')
+  await expect(connections).toContainText('Utente di sistema Meta ·')
+  await page.screenshot({ path: test.info().outputPath('collegamenti.png'), fullPage: true })
   const sync = connections.getByRole('button', { name: 'Sincronizza' })
   // a second tab opened before the sync still offers it: the server says it is too soon
   const other = await page.context().newPage()
@@ -86,7 +89,7 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await expect(connections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
   await expect(sync).toBeDisabled()
 
-  await connections.getByRole('button', { name: 'Azioni per Utente di sistema Meta' }).click()
+  await connections.getByRole('button', { name: 'Azioni per Agenzia Demo' }).click()
   await page.getByRole('menuitem', { name: 'Sostituisci token' }).click()
   const dialog = page.getByRole('dialog', { name: 'Sostituisci token' })
   await dialog.getByLabel("Token dell'utente di sistema").fill(META_MOCK.tokens.systemUser)
@@ -105,9 +108,18 @@ test('social accounts: a system user without accounts yet is listed as waiting',
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
   await connectedAgency(page.request, org, { importAccounts: false })
+  // a Business name Meta did not give (none, or more than one): the row reads as before B11
+  await adminQuery(
+    'update account_connections set business_name = null where organization_id = $1',
+    [org],
+  )
   await page.goto(meta(org))
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   await expect(connections).toContainText('Utente di sistema Meta')
+  await expect(connections).not.toContainText('Agenzia Demo')
+  await expect(
+    connections.getByRole('button', { name: 'Azioni per Utente di sistema Meta' }),
+  ).toBeVisible()
   await expect(connections).toContainText('in attesa dei primi account')
   await expect(page.getByText('Nessun account collegato')).toBeVisible()
 })

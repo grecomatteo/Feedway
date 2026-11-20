@@ -134,6 +134,15 @@ export interface MetaGraphClient {
   getMe(
     credentials: MetaTokenCredentials,
   ): Promise<MetaResult<{ id: string; name: string | null; clientBusinessId: string | null }>>
+  /** `me/businesses`: the Business Manager the system user belongs to (plan 07, Task 5, B11). */
+  listUserBusinesses(
+    credentials: MetaTokenCredentials,
+  ): Promise<MetaResult<{ id: string; name: string | null }[]>>
+  /** `GET /{business-id}?fields=name`: the Business the Owner named in the integration (B11). */
+  getBusiness(
+    credentials: MetaTokenCredentials,
+    businessId: string,
+  ): Promise<MetaResult<{ id: string; name: string | null }>>
   listUserPages(
     credentials: MetaTokenCredentials,
     page?: { after?: string; limit?: number },
@@ -859,6 +868,35 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         data: { id: me.id, name: me.name ?? null, clientBusinessId: me.client_business_id ?? null },
         usage: result.usage,
       }
+    },
+
+    async listUserBusinesses(credentials) {
+      const result = await call(
+        {
+          name: 'me/businesses',
+          path: '/me/businesses',
+          params: { fields: 'id,name', limit: '2' },
+          credentials,
+        },
+        listSchema(z.object({ id: z.string(), name: z.string().optional() })),
+      )
+      return {
+        data: result.data.data.map((b) => ({ id: b.id, name: b.name ?? null })),
+        usage: result.usage,
+      }
+    },
+
+    async getBusiness(credentials, businessId) {
+      const result = await call(
+        {
+          name: 'business',
+          path: `/${encodeURIComponent(businessId)}`,
+          params: { fields: 'id,name' },
+          credentials,
+        },
+        z.object({ id: z.string(), name: z.string().optional() }),
+      )
+      return { data: { id: result.data.id, name: result.data.name ?? null }, usage: result.usage }
     },
 
     async listUserPages(credentials, page) {

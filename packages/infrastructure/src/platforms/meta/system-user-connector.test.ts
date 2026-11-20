@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import type {
   MetaFacebookPage,
   MetaGraphClient,
@@ -9,6 +9,7 @@ import type {
 import { MetaError } from './errors.js'
 import {
   MAX_LIST_REQUESTS,
+  businessNameOf,
   classifiedListing,
   createMetaSystemUserConnector,
   listMetaAccounts,
@@ -136,6 +137,11 @@ const checkWith = (info: MetaTokenInfo) =>
   createMetaSystemUserConnector({
     client: {
       debugToken: () => Promise.resolve({ data: info, usage: USAGE }),
+      listUserBusinesses: () =>
+        Promise.resolve({
+          data: [{ id: '3000000000000001', name: '  Studio  Riva ' }],
+          usage: USAGE,
+        }),
     } as unknown as MetaGraphClient,
     integrations: { credentials: () => Promise.resolve(null) },
     pictures: () => Promise.reject(new Error('not used')),
@@ -146,6 +152,56 @@ test('a valid system user token passes, and does not expire', async () => {
     ok: true,
     externalUserId: VALID.userId,
     expiresAt: null,
+    businessName: 'Studio Riva',
+  })
+})
+
+describe('the name of the Business', () => {
+  const reading = (answer: () => Promise<unknown>) =>
+    businessNameOf({ listUserBusinesses: answer } as unknown as MetaGraphClient, {
+      accessToken: 't',
+      appSecret: 's',
+    })
+
+  test('one Business gives its name; none, more than one or an empty name give nothing', async () => {
+    const list =
+      (...names: (string | null)[]) =>
+      () =>
+        Promise.resolve({ data: names.map((name, i) => ({ id: String(i), name })), usage: USAGE })
+    expect(await reading(list('Studio Riva'))).toBe('Studio Riva')
+    expect(await reading(list())).toBeNull()
+    expect(await reading(list('A', 'B'))).toBeNull()
+    expect(await reading(list('  '))).toBeNull()
+    expect(await reading(list(null))).toBeNull()
+    expect(await reading(list('x'.repeat(300)))).toHaveLength(200)
+  })
+
+  test('the Business named in the integration is read by its id, not guessed', async () => {
+    const asked: string[] = []
+    const client = {
+      getBusiness: (_c: unknown, id: string) => {
+        asked.push(id)
+        return Promise.resolve({ data: { id, name: ' Agenzia  Nord ' }, usage: USAGE })
+      },
+      listUserBusinesses: () => Promise.reject(new Error('not used')),
+    } as unknown as MetaGraphClient
+    expect(
+      await businessNameOf(client, { accessToken: 't', appSecret: 's' }, '3000000000000009'),
+    ).toBe('Agenzia Nord')
+    expect(asked).toEqual(['3000000000000009'])
+    const failing = {
+      getBusiness: () =>
+        Promise.reject(new MetaError({ kind: 'permanent', reason: 'permission_missing' })),
+    } as unknown as MetaGraphClient
+    expect(
+      await businessNameOf(failing, { accessToken: 't', appSecret: 's' }, '3000000000000009'),
+    ).toBeNull()
+  })
+
+  test('a failed read leaves it unknown and never stops the connection', async () => {
+    const failed = () =>
+      Promise.reject(new MetaError({ kind: 'permanent', reason: 'permission_missing' }))
+    expect(await reading(failed)).toBeNull()
   })
 })
 
