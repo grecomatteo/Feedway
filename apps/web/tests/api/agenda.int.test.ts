@@ -518,6 +518,25 @@ describe('posts that need a hand', () => {
     const gino_ = await get<IssuesJson>('owner', `/agenda/issues?workspaceId=${gino}`)
     expect(gino_.items.flatMap((i) => (i.kind === 'post' ? [i.postId] : []))).toEqual([none])
   })
+
+  test('more posts in pause than the limit never hide one not out', async () => {
+    const many = await Promise.all(
+      Array.from({ length: 51 }, (_, n) =>
+        moved(gino, 'paused', [{ account: igGino, status: 'paused' }], { when: at(10 + n) }),
+      ),
+    )
+    try {
+      const { items } = await get<IssuesJson>('owner', '/agenda/issues')
+      const posts = items.flatMap((i) => (i.kind === 'post' ? [i.postId] : []))
+      expect(posts.slice(0, 2)).toEqual([none, half])
+      expect(posts).toHaveLength(50)
+    } finally {
+      await env.admin.pool.query(
+        `update posts set status = 'cancelled' where id = any($1::uuid[])`,
+        [many],
+      )
+    }
+  })
 })
 
 describe('clients', () => {

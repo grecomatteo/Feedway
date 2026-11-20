@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, gte, inArray, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import type {
   IdGenerator,
   PostRecord,
@@ -7,7 +21,14 @@ import type {
   PostTargetRecord,
 } from '@app/application'
 import { DISCARD_KEY, compareUses, type MediaUse } from '@app/domain'
-import type { Platform, PostCover, PostOptions, PostStatus, PostType } from '@app/domain'
+import type {
+  Platform,
+  PostCover,
+  PostOptions,
+  PostStatus,
+  PostType,
+  PublishingPostStatus,
+} from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
 
@@ -396,9 +417,15 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
             inArray(posts.status, [...statuses]),
+            isNotNull(posts.scheduledAt),
           ),
         )
-        .orderBy(desc(posts.scheduledAt), desc(posts.id))
+        // the red ones first (not out), so the limit cuts the amber ones, never them
+        .orderBy(
+          sql`case when ${posts.status} in ('failed', 'partial') then 0 else 1 end`,
+          desc(posts.scheduledAt),
+          desc(posts.id),
+        )
         .limit(limit)
       return complete(db, organizationId, rows)
     },
@@ -582,7 +609,10 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
                    then ${posts.scheduledAt} end asc nulls last`,
           sql`case when ${posts.status} in ('published', 'partial', 'problem')
                    then ${posts.scheduledAt} end desc nulls last`,
-          sql`${posts.updatedAt} desc`,
+          sql`case when ${posts.status} = 'draft'
+                     or ${posts.status} not in ('scheduled', 'publishing', 'paused', 'published',
+                                                'partial', 'problem')
+                   then ${posts.updatedAt} end desc nulls last`,
           asc(posts.id),
         )
       const uses = new Map<string, MediaUse & { mediaId: string }>()
@@ -592,7 +622,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             uses.set(`${mediaId}:${r.postId}`, {
               mediaId,
               postId: r.postId,
-              status: r.status as PostStatus,
+              status: r.status as PublishingPostStatus,
               scheduledAt: r.scheduledAt,
               timezone: r.timezone,
               updatedAt: r.updatedAt,

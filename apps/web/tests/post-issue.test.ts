@@ -67,6 +67,12 @@ describe('postIssueTitle (plan 07 Scelta 8, screen 02)', () => {
   })
 })
 
+describe('postIssueTitle without an account', () => {
+  it('says Meta when no account of the post is known any more', () => {
+    expect(postIssueTitle(issue({ platforms: [] }), t, now)).toContain('"where":"Meta"')
+  })
+})
+
 describe('postIssueReason', () => {
   it('the reason in a few words, by its code; a code without words says to open the post', () => {
     expect(postIssueReason(issue(), t, te)).toBe(

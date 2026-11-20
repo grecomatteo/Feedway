@@ -37,7 +37,7 @@ export const isGoingOut = (status: PublishingPostStatus) => USE_RANK[status] ===
 /**
  * A total order on the uses of a file: going out first, the nearest date first (a scheduled post
  * without a date after the dated ones); then drafts, the one changed last first; then the posts
- * gone out, the latest date first; then the rest, the one changed last first; on a tie, the post
+ * gone out, the latest date first (one without a date last); then the rest, the one changed last first; on a tie, the post
  * id.
  */
 export function compareUses(a: MediaUse, b: MediaUse): number {
@@ -47,10 +47,16 @@ export function compareUses(a: MediaUse, b: MediaUse): number {
     USE_RANK[a.status] === 0
       ? compareDates(a.scheduledAt, b.scheduledAt)
       : USE_RANK[a.status] === 2
-        ? compareDates(b.scheduledAt, a.scheduledAt)
+        ? latestFirst(a.scheduledAt, b.scheduledAt)
         : b.updatedAt.getTime() - a.updatedAt.getTime()
   if (at !== 0) return at
   return a.postId < b.postId ? -1 : a.postId > b.postId ? 1 : 0
+}
+
+/** Later first, null last. */
+function latestFirst(a: Date | null, b: Date | null): number {
+  if (a === null || b === null) return compareDates(a, b)
+  return b.getTime() - a.getTime()
 }
 
 /** Earlier first, null last. */

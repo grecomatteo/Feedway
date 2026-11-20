@@ -13,8 +13,9 @@ const PLATFORM_NAME = { instagram: 'Instagram', facebook: 'Facebook' } as const
 /** The types whose name is feminine in Italian: «la foto non uscita», «la storia non uscita». */
 const FEMININE = new Set<PostIssue['type']>(['photo', 'story'])
 
-/** «Instagram e Facebook» */
-const whereOf = (i: PostIssue) => i.platforms.map((p) => PLATFORM_NAME[p]).join(' e ')
+/** «Instagram e Facebook»; «Meta» when no account is known any more (taken off the client). */
+const whereOf = (i: PostIssue) =>
+  i.platforms.length === 0 ? 'Meta' : i.platforms.map((p) => PLATFORM_NAME[p]).join(' e ')
 
 /**
  * «delle 9:30» for a post of today, «del 12 novembre» for another day, in the post's own zone

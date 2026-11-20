@@ -133,3 +133,9 @@ describe('when a file is not deleted (D-18, D-80.4)', () => {
     expect(deletionBlock([scheduledSoon, { ...scheduledSoon }])?.count).toBe(1)
   })
 })
+
+test('a post gone out without a date comes after the dated ones of its group', () => {
+  const dated = use('d', 'published', { scheduledAt: day('2026-11-10') })
+  const undated = use('a', 'published')
+  for (const rows of orders([undated, dated])) expect(primaryUse(rows)).toBe(dated)
+})
