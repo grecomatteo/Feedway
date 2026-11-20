@@ -802,9 +802,9 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 
 - **Origine:** piano della tappa 7, Task 10 (20/11), dalle indicazioni di D-104.
 - **Scelte provvisorie** (Matteo può cambiarle prima della PR 3 del Task 10):
-  1. **Limiti:** al massimo 500 file e 5 livelli di cartelle per caricamento; lo zip fino a 10 GB, letto a flusso nel browser (non resta tutto in memoria); ogni file con i limiti di oggi. Oltre, l'anteprima dice cosa supera e non parte.
+  1. **Limiti:** al massimo 150 file per caricamento: ogni file costa almeno tre chiamate (inizio, pezzo, fine), e il limite di oggi è 600 chiamate ogni 10 minuti per persona; per salire serve alzare quel limite. Le cartelle seguono le regole che ci sono già: 5 livelli contati dalla cima della libreria e 500 per cliente. Lo zip fino a 4 GB (oltre servirebbe Zip64, non provato: si carica la cartella), letto dall'indice e decompresso una voce alla volta; ogni file con i limiti di oggi, contati sui byte veri, e il tutto dentro lo spazio del cliente. Oltre, l'anteprima dice cosa supera e non parte. Un caricamento da zip non riprende dopo un ricaricamento della pagina.
   2. **Cartella con lo stesso nome già nella cartella di arrivo:** l'anteprima propone «Crea novembre (2)», con «Unisci a novembre» come alternativa. Unendo, un file con lo stesso contenuto già nella cartella si segnala come doppione, come oggi.
   3. **Libreria per lo zip:** `fflate`, già nel repo per l'esportazione dei dati, aggiunta al pannello con l'ADR 022. Alternativa: solo la cartella trascinata, senza zip.
-  4. **File saltati:** `__MACOSX`, `.DS_Store`, `Thumbs.db`, i nomi che iniziano con un punto e ogni file che non è una foto o un video accettati; un percorso con `..` o assoluto rifiuta lo zip intero.
+  4. **File saltati:** `__MACOSX`, `.DS_Store`, `Thumbs.db`, i nomi che iniziano con un punto e ogni file che non è una foto o un video accettati; un percorso con `..`, assoluto o con una lettera di unità (anche scritto con `\`) rifiuta lo zip intero.
   5. **«Dalla libreria» dell'editor:** l'ultima cartella usata si ricorda in questo browser per ogni cliente, come la scelta delle zone (D-99).
 - **Stato:** scelte provvisorie.
