@@ -7,7 +7,7 @@
 withDefaults(
   defineProps<{
     label: string
-    options: { value: T; label: string; count?: number; disabled?: boolean }[]
+    options: { value: T; label: string; count?: number; disabled?: boolean; icon?: string }[]
     /** Every choice as wide as the others, on the whole width (the editor's «Tipo»). */
     wide?: boolean
   }>(),
@@ -39,6 +39,7 @@ const model = defineModel<T>({ required: true })
       ]"
       @click="model = o.value"
     >
+      <UIcon v-if="o.icon" :name="o.icon" class="size-4 shrink-0" aria-hidden="true" />
       <slot name="option" :option="o">{{ o.label }}</slot>
       <span v-if="o.count !== undefined" class="font-normal text-(--app-text-muted) tabular-nums">{{
         o.count

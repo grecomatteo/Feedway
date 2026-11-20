@@ -39,12 +39,26 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   const owner = await newPerson('Olga Contenuti', 'owner')
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
-  await connectedAgency(page.request, org)
+  const { connectionId } = await connectedAgency(page.request, org)
   const client = await newWorkspace(page.request, org, 'Forno Luce')
   const ig = await accountId(org, 'Forno Luce', 'instagram')
   const fb = await accountId(org, 'Forno Luce', 'facebook')
   await assignAccount(page.request, org, client.id, fb)
   await assignAccount(page.request, org, client.id, ig)
+  // «Gruppi» stands above the accounts from six up (plan R7): four more Pages of the client
+  for (const n of [1, 2, 3, 4]) {
+    const externalId = String(Math.floor(Math.random() * 1e15))
+    const [row] = await adminQuery<{ id: string }>(
+      `insert into social_accounts (id, organization_id, platform, external_id, name, page_id,
+                                    connection_id, health)
+       values (gen_random_uuid(), $1, 'facebook', $2, $3, $2, $4, 'ok') returning id`,
+      [org, externalId, `Forno Luce ${String(n)}`, connectionId],
+    )
+    await adminQuery(
+      'insert into workspace_accounts (organization_id, workspace_id, account_id) values ($1, $2, $3)',
+      [org, client.id, row?.id],
+    )
+  }
   await adminQuery("update social_accounts set health = 'ok' where organization_id = $1", [org])
   const manager = await addPerson(org, 'Marta Manager', 'member', [
     { workspaceId: client.id, role: 'manager' },
@@ -106,7 +120,7 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await e.goto(`/${org}/spazi/${client.slug}`)
   await expect(e.getByRole('link', { name: 'Contenuti', exact: true })).toHaveCount(0)
   await e.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
-  await expect(e.getByLabel('Ora', { exact: true })).toHaveValue('09:30')
+  await expect(e.locator('[data-time-field]')).toHaveAccessibleName('Ora: 9:30')
 
   const text = e.getByRole('textbox', { name: 'Testo comune' })
   await text.fill('Il pane di oggi')

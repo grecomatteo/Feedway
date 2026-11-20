@@ -57,6 +57,12 @@ async function newPost(page: Page, files: string[], caption: string) {
   await page.mouse.move(0, 0)
   await page.waitForTimeout(300)
 }
+/** «Quando» on another day of the month shown, by its number, from the panel's own day field. */
+async function pickDay(page: Page, day: number) {
+  await page.locator('[data-day-field]').click()
+  await page.locator('[data-day-picker]').getByRole('button', { name: new RegExp(` ${String(day)} `) }).first().click()
+  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+}
 /** The accounts chosen in «Dove», by their name; then back to the top of the page. */
 async function tick(page: Page, names: RegExp[]) {
   for (const name of names) {
@@ -199,8 +205,7 @@ export const SCREENS: Screen[] = [
       await page.waitForTimeout(300)
     },
   },
-  // the editor (Task R5): the top part, the form's rows; the right column and «Dove», «Quando»
-  // are redrawn by Task R7
+  // the editor (Tasks R5 and R7): the day is Friday 20 as in 08, so the post is not in the past
   {
     id: '08-editor-carosello',
     path: (s) => `/${s.org}/spazi/${forno(s).slug}/post/nuovo`,
@@ -210,6 +215,13 @@ export const SCREENS: Screen[] = [
         ['pane.jpg', 'banco.jpg'],
         'Il pane del lunedì è appena uscito dal forno.\nVi aspettiamo in via Roma 12, dalle 7.',
       )
+      await page.getByRole('button', { name: 'Etichetta', exact: true }).click()
+      // with the keyboard: under the stopped clock a click on a menu's checkbox does not tick it
+      for (const name of ['Prodotto', 'Natale'])
+        await page.getByRole('menuitemcheckbox', { name }).press('Enter')
+      await page.keyboard.press('Escape')
+      await page.locator('[data-label-chip]').nth(1).waitFor({ timeout: 10_000 })
+      await pickDay(page, 20)
       await tick(page, [/^@fornoluce ·/, /^Forno Luce ·/])
       await page.mouse.move(0, 0)
       await page.waitForTimeout(300)
@@ -252,6 +264,7 @@ export const SCREENS: Screen[] = [
         ['sfoglia-dietro-il-banco.mov'],
         'Dietro il banco: come nasce la sfoglia.\nOgni mattina, dalle 5.',
       )
+      await pickDay(page, 20)
       // only Instagram, as in the reference
       await tick(page, [/^@fornoluce ·/])
       await page.locator('[data-missing]').locator('visible=true').waitFor()
