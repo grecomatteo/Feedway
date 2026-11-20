@@ -284,6 +284,7 @@ const connectionColumns = {
   status: accountConnections.status,
   lastRefreshedAt: accountConnections.lastRefreshedAt,
   lastUsage: accountConnections.lastUsage,
+  businessName: accountConnections.businessName,
   createdAt: accountConnections.createdAt,
   updatedAt: accountConnections.updatedAt,
 }
@@ -360,6 +361,7 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
           expiresAt: token.expiresAt,
           status: token.status,
           lastRefreshedAt: token.at,
+          ...(token.businessName !== undefined && { businessName: token.businessName }),
         })
         .where(connectionKey(organizationId, id))
         .returning({ id: accountConnections.id })

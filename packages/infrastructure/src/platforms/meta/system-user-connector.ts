@@ -28,7 +28,11 @@ import type { MetaPictureDownloader } from './picture-download.js'
 
 /** The agency's app as the Meta connectors carry it, opaque to the accounts module. */
 /** The app as the jobs use it, with the version of the settings it was read from. */
-export type MetaConnectorApp = MetaAppCredentials & { version: Date }
+export type MetaConnectorApp = MetaAppCredentials & {
+  version: Date
+  /** The Business Manager the Owner wrote in the integration, if any: only for its name (B11). */
+  businessId?: string | null
+}
 
 /** At most this many requests for one listing: 50 items each, far more than an agency holds. */
 export const MAX_LIST_REQUESTS = 40
@@ -143,6 +147,39 @@ export async function listMetaAccounts(
       accounts.push(instagramOf(ig, null))
     }
   return accounts
+}
+
+/** Longer names are cut: the panel shows one line. */
+const MAX_BUSINESS_NAME = 200
+
+/**
+ * The name of the system user's Business, shown on its connection (B11 of the redesign
+ * review). Information only: a failed read leaves it unknown and never stops the connection.
+ * The Business the Owner named in the integration comes first: on real Meta `me/businesses`
+ * answered empty to the system user (2026-11-11). Without it, `me/businesses` with exactly one
+ * Business: with more than one the name says nothing sure. Not verified on real Meta.
+ */
+export async function businessNameOf(
+  client: Pick<MetaGraphClient, 'listUserBusinesses' | 'getBusiness'>,
+  credentials: MetaTokenCredentials,
+  businessId: string | null = null,
+): Promise<string | null> {
+  try {
+    let name: string | null
+    if (businessId !== null) {
+      name = (await client.getBusiness(credentials, businessId)).data.name
+    } else {
+      const { data } = await client.listUserBusinesses(credentials)
+      const [only, ...others] = data
+      if (only === undefined || others.length > 0) return null
+      name = only.name
+    }
+    const clean = name?.replaceAll(/\s+/g, ' ').trim() ?? ''
+    return clean === '' ? null : clean.slice(0, MAX_BUSINESS_NAME)
+  } catch (error) {
+    if (error instanceof MetaError) return null
+    throw error
+  }
 }
 
 /** The token itself stopped working: the whole connection is concerned, not one account. */
@@ -287,7 +324,12 @@ export function createMetaSystemUserConnector(deps: {
     async loadAppCredentials(tx, organizationId) {
       const found = await deps.integrations.credentials(tx, organizationId, 'meta')
       if (found === null) return null
-      return { appId: found.config.appId, appSecret: found.secret, version: found.updatedAt }
+      return {
+        appId: found.config.appId,
+        appSecret: found.secret,
+        version: found.updatedAt,
+        businessId: found.config.businessId ?? null,
+      }
     },
 
     async markAppRejected(tx, organizationId, credentials, at) {
@@ -328,6 +370,11 @@ export function createMetaSystemUserConnector(deps: {
       return {
         ok: true,
         externalUserId: info.userId,
+        businessName: await businessNameOf(
+          client,
+          { accessToken: token, appSecret: credentials.appSecret },
+          credentials.businessId ?? null,
+        ),
         // `never`, and `unknown` (no date given): treated as not expiring; a token that stops
         // working is found by the daily health check (Task 10). Not verified on real Meta.
         expiresAt: info.expiresAt instanceof Date ? info.expiresAt : null,

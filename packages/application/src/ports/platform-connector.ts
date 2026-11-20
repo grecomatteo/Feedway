@@ -89,6 +89,8 @@ export type TokenCheck =
       /** null: the token does not expire. */
       expiresAt: Date | null
       permissions: PermissionCheck[]
+      /** The name the platform gives the owner of the token (Meta: its Business); null: unknown. */
+      businessName: string | null
     }
   | {
       ok: false

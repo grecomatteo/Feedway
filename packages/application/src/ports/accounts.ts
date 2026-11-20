@@ -148,6 +148,8 @@ export interface ConnectionRecord {
   status: ConnectionStatus
   lastRefreshedAt: Date | null
   lastUsage: unknown
+  /** The platform's name for the token's owner (Meta: the Business); null: not known. */
+  businessName: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -167,6 +169,7 @@ export interface NewConnection {
   tokenEnc: string
   keyVersion: number
   expiresAt: Date | null
+  businessName?: string | null
 }
 
 export interface ConnectionsRepository {
@@ -196,6 +199,8 @@ export interface ConnectionsRepository {
       expiresAt: Date | null
       status: ConnectionStatus
       at: Date
+      /** Left out: the name stays as it was. */
+      businessName?: string
     },
   ): Promise<boolean>
   setStatus(organizationId: string, id: string, status: ConnectionStatus): Promise<boolean>
