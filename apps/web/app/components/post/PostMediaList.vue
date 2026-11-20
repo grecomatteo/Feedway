@@ -22,11 +22,26 @@ const focused = ref<string | null>(null)
 const dragOver = ref(false)
 const said = ref('')
 
+/** A reel's only video (screen 09, B4): no «Aggiungi», but «Sostituisci» under the tile. */
+const single = computed(
+  () =>
+    e.type.value === 'reel' && e.entries.value.length === 1 && e.kinds.value[0]?.kind === 'video',
+)
+/** the file picked or chosen next takes the video's place */
+const replacing = ref(false)
+/** a video not sent as MP4 is published from its MP4 copy (D-40) */
+const converted = computed(() => {
+  const name = e.entries.value[0]?.file?.name ?? ''
+  return single.value && e.entries.value[0]?.file?.status === 'ready' && !/\.mp4$/i.test(name)
+})
+
 function picked(event: Event) {
   const input = event.target as HTMLInputElement
   const list = Array.from(input.files ?? [])
   input.value = ''
-  void e.addFiles(list)
+  if (replacing.value) void e.replaceFiles(list)
+  else void e.addFiles(list)
+  replacing.value = false
 }
 function dropped(event: DragEvent) {
   dragOver.value = false
@@ -52,9 +67,38 @@ onMounted(() => document.addEventListener('paste', pasted))
 onBeforeUnmount(() => document.removeEventListener('paste', pasted))
 function fromLibrary(list: MediaDto[]) {
   picking.value = false
-  e.addFromLibrary(list)
+  if (replacing.value) e.replaceFromLibrary(list)
+  else e.addFromLibrary(list)
+  replacing.value = false
 }
-defineExpose({ choose: () => picker.value?.click() })
+const replaceItems = computed<DropdownMenuItem[]>(() => [
+  {
+    label: t('posts.media.upload'),
+    icon: 'i-lucide-upload',
+    onSelect: () => {
+      replacing.value = true
+      picker.value?.click()
+    },
+  },
+  {
+    label: t('posts.media.fromLibrary'),
+    icon: 'i-lucide-images',
+    onSelect: () => {
+      replacing.value = true
+      picking.value = true
+    },
+  },
+])
+defineExpose({
+  choose: () => {
+    replacing.value = false
+    picker.value?.click()
+  },
+})
+// a picker closed without a choice ends «Sostituisci»
+watch(picking, (open) => {
+  if (!open) replacing.value = false
+})
 
 const MAX = META_LIMITS.instagramCarouselMaxItems.value
 /** Under the label: «2 di 10», or «1 video» for a reel's only file. */
@@ -68,12 +112,18 @@ const addItems = computed<DropdownMenuItem[]>(() => [
   {
     label: t('posts.media.upload'),
     icon: 'i-lucide-upload',
-    onSelect: () => picker.value?.click(),
+    onSelect: () => {
+      replacing.value = false
+      picker.value?.click()
+    },
   },
   {
     label: t('posts.media.fromLibrary'),
     icon: 'i-lucide-images',
-    onSelect: () => (picking.value = true),
+    onSelect: () => {
+      replacing.value = false
+      picking.value = true
+    },
   },
 ])
 const clock = (ms: number) => {
@@ -283,7 +333,11 @@ function release() {
           </div>
         </li>
       </ol>
-      <UDropdownMenu v-if="e.editable.value" :items="addItems" :content="{ align: 'start' }">
+      <UDropdownMenu
+        v-if="e.editable.value && !single"
+        :items="addItems"
+        :content="{ align: 'start' }"
+      >
         <button
           type="button"
           class="flex h-30 w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed text-xs text-(--app-text-muted) hover:text-(--app-text)"
@@ -300,13 +354,33 @@ function release() {
         </button>
       </UDropdownMenu>
     </div>
-    <div v-if="e.editable.value" class="mt-2.5 flex flex-wrap items-center gap-2 max-md:hidden">
+    <div v-if="e.editable.value && single" class="mt-2.5 flex flex-wrap items-center gap-2">
+      <UDropdownMenu :items="replaceItems" :content="{ align: 'start' }">
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          :aria-label="$t('posts.media.replaceLabel')"
+          data-replace-file
+        >
+          {{ $t('posts.media.replace') }}
+        </UButton>
+      </UDropdownMenu>
+      <span v-if="converted" class="text-detail text-(--app-text-muted)">{{
+        $t('posts.media.converted')
+      }}</span>
+    </div>
+    <div
+      v-else-if="e.editable.value"
+      class="mt-2.5 flex flex-wrap items-center gap-2 max-md:hidden"
+    >
       <UButton
         color="neutral"
         variant="outline"
         size="sm"
         icon="i-lucide-upload"
-        @click="picker?.click()"
+        @click="((replacing = false), picker?.click())"
       >
         {{ $t('posts.media.upload') }}
       </UButton>
@@ -315,7 +389,7 @@ function release() {
         variant="outline"
         size="sm"
         icon="i-lucide-images"
-        @click="picking = true"
+        @click="((replacing = false), (picking = true))"
       >
         {{ $t('posts.media.fromLibrary') }}
       </UButton>
@@ -326,7 +400,11 @@ function release() {
       ref="picker"
       type="file"
       multiple
-      accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov"
+      :accept="
+        replacing
+          ? 'video/mp4,video/quicktime,.mov'
+          : 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mov'
+      "
       class="hidden"
       data-post-input
       @change="picked"

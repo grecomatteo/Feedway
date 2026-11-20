@@ -86,7 +86,8 @@ const timeItems = computed(() => {
 })
 // the agency's zone, for whoever may read the agency's settings (Owner and Admin); a Manager
 // cannot, and is told «the agency's zone» rather than a zone that may be wrong
-const zone = ref<string | null>(null)
+// (undefined while it is read, null when it cannot be read)
+const zone = ref<string | null | undefined>(undefined)
 onMounted(async () => {
   try {
     zone.value = (await call<{ timezone: string }>('GET', org.api('/settings'))).timezone
@@ -94,8 +95,19 @@ onMounted(async () => {
     zone.value = null
   }
 })
+/** the zone of whoever reads the page: the line about the agency's zone only when it differs */
+// (read in the browser: the server's zone is not the person's)
+const own = ref<string | null | undefined>(undefined)
+onMounted(() => {
+  try {
+    own.value = Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    own.value = null
+  }
+})
 const zoneText = computed(() => {
-  if (!zone.value) return t('contentSettings.time.agency')
+  if (own.value === undefined || zone.value === undefined || zone.value === own.value) return null
+  if (zone.value === null) return t('contentSettings.time.agency')
   if (zone.value === 'Europe/Rome') return t('contentSettings.time.rome')
   return t('contentSettings.time.zone', { zone: zone.value.replaceAll('_', ' ') })
 })
@@ -233,12 +245,12 @@ const actions = (edit: () => void, remove: () => void) => [
             v-model="timeChoice"
             :items="timeItems"
             icon="i-lucide-clock"
-            class="w-30"
+            class="w-44"
             :disabled="!manages || timeState === 'saving'"
             :aria-label="$t('contentSettings.time.label')"
             :loading="timeState === 'saving'"
           />
-          <span class="text-detail text-(--app-text-muted)">{{ zoneText }}</span>
+          <span v-if="zoneText" class="text-detail text-(--app-text-muted)">{{ zoneText }}</span>
           <span
             v-if="timeState === 'saved' && !timeChanged"
             role="status"
@@ -255,191 +267,198 @@ const actions = (edit: () => void, remove: () => void) => [
 
     <LoadFailed v-if="failed" :text="$t('contentSettings.loadError')" @retry="settings.load()" />
 
-    <!-- Etichette -->
-    <section :aria-label="$t('contentSettings.labels.title')" data-content-labels>
-      <SectionHead
-        :title="$t('contentSettings.labels.title')"
-        :count="labels ? labels.length : null"
-        :level="3"
-      >
-        <UButton
-          v-if="manages"
-          size="sm"
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-plus"
-          @click="openLabel(null)"
+    <!-- nothing was read: no «0» and no «Nuova…» under the error (D, state 4) -->
+    <template v-if="!failed">
+      <!-- Etichette -->
+      <section :aria-label="$t('contentSettings.labels.title')" data-content-labels>
+        <SectionHead
+          :title="$t('contentSettings.labels.title')"
+          :count="labels ? labels.length : null"
+          :level="3"
         >
-          {{ $t('contentSettings.labels.new') }}
-        </UButton>
-      </SectionHead>
-      <ListSkeleton v-if="!labels && !failed" :rows="2" :action="false" />
-      <EmptyState
-        v-else-if="!failed && labels && labels.length === 0"
-        :title="$t('contentSettings.labels.empty')"
-        :text="$t('contentSettings.labels.emptyText')"
-        icon="i-lucide-tag"
-      />
-      <ListSurface
-        v-else-if="labels && (labels.length || !failed)"
-        columns="minmax(0, 1fr) 100px 30px"
-        :label="$t('contentSettings.labels.title')"
-      >
-        <ListRow v-for="l in labels" :key="l.id" class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]">
-          <span class="min-w-0">
-            <span
-              class="inline-flex max-w-full items-center gap-1.5 rounded-control border border-(--app-border-strong) px-2 py-0.5 text-detail"
-              data-label
-            >
-              <ContentLabelDot :color="l.color" /><span class="truncate">{{ l.name }}</span>
+          <UButton
+            v-if="manages"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-plus"
+            @click="openLabel(null)"
+          >
+            {{ $t('contentSettings.labels.new') }}
+          </UButton>
+        </SectionHead>
+        <ListSkeleton v-if="!labels && !failed" :rows="2" :action="false" />
+        <EmptyState
+          v-else-if="!failed && labels && labels.length === 0"
+          :title="$t('contentSettings.labels.empty')"
+          :text="$t('contentSettings.labels.emptyText')"
+          icon="i-lucide-tag"
+        />
+        <ListSurface
+          v-else-if="labels && (labels.length || !failed)"
+          columns="minmax(0, 1fr) 100px 30px"
+          :label="$t('contentSettings.labels.title')"
+        >
+          <ListRow
+            v-for="l in labels"
+            :key="l.id"
+            class="max-md:grid-cols-[minmax(0,1fr)_auto_auto]"
+          >
+            <span class="min-w-0">
+              <span
+                class="inline-flex max-w-full items-center gap-1.5 rounded-control border border-(--app-border-strong) px-2 py-0.5 text-detail"
+                data-label
+              >
+                <ContentLabelDot :color="l.color" /><span class="truncate">{{ l.name }}</span>
+              </span>
             </span>
-          </span>
-          <span class="text-(--app-text-muted) tabular-nums">{{
-            $t('contentSettings.labels.posts', { n: l.postCount }, l.postCount)
-          }}</span>
-          <span class="flex justify-end md:-me-2">
-            <RowActions
-              v-if="manages"
-              :name="l.name"
-              :items="
-                actions(
-                  () => openLabel(l),
-                  () => removeLabel(l),
-                )
-              "
-            />
-          </span>
-        </ListRow>
-      </ListSurface>
-    </section>
+            <span class="text-(--app-text-muted) tabular-nums">{{
+              $t('contentSettings.labels.posts', { n: l.postCount }, l.postCount)
+            }}</span>
+            <span class="flex justify-end md:-me-2">
+              <RowActions
+                v-if="manages"
+                :name="l.name"
+                :items="
+                  actions(
+                    () => openLabel(l),
+                    () => removeLabel(l),
+                  )
+                "
+              />
+            </span>
+          </ListRow>
+        </ListSurface>
+      </section>
 
-    <!-- Modelli -->
-    <section :aria-label="$t('contentSettings.templates.title')" data-content-templates>
-      <SectionHead
-        :title="$t('contentSettings.templates.title')"
-        :count="templates ? templates.length : null"
-        :level="3"
-      >
-        <UButton
-          v-if="manages"
-          size="sm"
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-plus"
-          @click="openTemplate(null)"
+      <!-- Modelli -->
+      <section :aria-label="$t('contentSettings.templates.title')" data-content-templates>
+        <SectionHead
+          :title="$t('contentSettings.templates.title')"
+          :count="templates ? templates.length : null"
+          :level="3"
         >
-          {{ $t('contentSettings.templates.new') }}
-        </UButton>
-      </SectionHead>
-      <ListSkeleton v-if="!templates && !failed" :rows="2" :action="false" />
-      <EmptyState
-        v-else-if="!failed && templates && templates.length === 0"
-        :title="$t('contentSettings.templates.empty')"
-        :text="$t('contentSettings.templates.emptyText')"
-        icon="i-lucide-file-text"
-      />
-      <ListSurface
-        v-else-if="templates && (templates.length || !failed)"
-        columns="110px minmax(0, 1fr) 30px"
-        :label="$t('contentSettings.templates.title')"
-      >
-        <ListRow
-          v-for="x in templates"
-          :key="x.id"
-          class="max-md:grid-cols-[88px_minmax(0,1fr)_auto]"
+          <UButton
+            v-if="manages"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-plus"
+            @click="openTemplate(null)"
+          >
+            {{ $t('contentSettings.templates.new') }}
+          </UButton>
+        </SectionHead>
+        <ListSkeleton v-if="!templates && !failed" :rows="2" :action="false" />
+        <EmptyState
+          v-else-if="!failed && templates && templates.length === 0"
+          :title="$t('contentSettings.templates.empty')"
+          :text="$t('contentSettings.templates.emptyText')"
+          icon="i-lucide-file-text"
+        />
+        <ListSurface
+          v-else-if="templates && (templates.length || !failed)"
+          columns="110px minmax(0, 1fr) 30px"
+          :label="$t('contentSettings.templates.title')"
         >
-          <span class="truncate text-(--app-text-muted)" :title="x.name">{{
-            $t(`contentSettings.templates.kind.${x.kind}`)
-          }}</span>
-          <span class="min-w-0">
-            <span class="block truncate">{{ oneLine(x.body) }}</span>
-            <span class="sr-only">{{ x.name }}</span>
-          </span>
-          <span class="flex justify-end md:-me-2">
-            <RowActions
-              v-if="manages"
-              :name="x.name"
-              :items="
-                actions(
-                  () => openTemplate(x),
-                  () => removeTemplate(x),
-                )
-              "
-            />
-          </span>
-        </ListRow>
-      </ListSurface>
-    </section>
+          <ListRow
+            v-for="x in templates"
+            :key="x.id"
+            class="max-md:grid-cols-[88px_minmax(0,1fr)_auto]"
+          >
+            <span class="truncate text-(--app-text-muted)" :title="x.name">{{
+              $t(`contentSettings.templates.kind.${x.kind}`)
+            }}</span>
+            <span class="min-w-0">
+              <span class="block truncate">{{ oneLine(x.body) }}</span>
+              <span class="sr-only">{{ x.name }}</span>
+            </span>
+            <span class="flex justify-end md:-me-2">
+              <RowActions
+                v-if="manages"
+                :name="x.name"
+                :items="
+                  actions(
+                    () => openTemplate(x),
+                    () => removeTemplate(x),
+                  )
+                "
+              />
+            </span>
+          </ListRow>
+        </ListSurface>
+      </section>
 
-    <!-- Gruppi di account -->
-    <section :aria-label="$t('contentSettings.groups.title')" data-content-groups>
-      <SectionHead
-        :title="$t('contentSettings.groups.title')"
-        :count="groups ? groups.length : null"
-        :level="3"
-      >
-        <UButton
-          v-if="manages"
-          size="sm"
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-plus"
-          :disabled="accounts.size === 0"
-          @click="openGroup(null)"
+      <!-- Gruppi di account -->
+      <section :aria-label="$t('contentSettings.groups.title')" data-content-groups>
+        <SectionHead
+          :title="$t('contentSettings.groups.title')"
+          :count="groups ? groups.length : null"
+          :level="3"
         >
-          {{ $t('contentSettings.groups.new') }}
-        </UButton>
-      </SectionHead>
-      <ListSkeleton v-if="!groups && !failed" :rows="2" :action="false" />
-      <EmptyState
-        v-else-if="!failed && groups && groups.length === 0"
-        :title="$t('contentSettings.groups.empty')"
-        :text="
-          accounts.size === 0
-            ? $t('contentSettings.groups.noAccounts')
-            : $t('contentSettings.groups.emptyText')
-        "
-        icon="i-lucide-users"
-      />
-      <ListSurface
-        v-else-if="groups && (groups.length || !failed)"
-        columns="minmax(0, 1fr) auto 30px"
-        :label="$t('contentSettings.groups.title')"
-      >
-        <ListRow v-for="g in groups" :key="g.id">
-          <span class="min-w-0">
-            <span class="block truncate font-medium">{{ g.name }}</span>
-            <StatusDot
-              v-if="groupState(g)"
-              tone="warning"
-              :label="groupState(g) ?? ''"
-              class="text-detail"
-            />
-          </span>
-          <span class="flex min-w-0 items-center gap-3 text-(--app-text-muted) max-md:hidden">
-            <PlatformIcons
-              v-for="a in groupAccounts(g)"
-              :key="a.id"
-              :platforms="[a.platform]"
-              :label="handleOf(a)"
-            />
-            <span v-if="groupAccounts(g).length === 0">—</span>
-          </span>
-          <span class="flex justify-end md:-me-2">
-            <RowActions
-              v-if="manages"
-              :name="g.name"
-              :items="
-                actions(
-                  () => openGroup(g),
-                  () => removeGroup(g),
-                )
-              "
-            />
-          </span>
-        </ListRow>
-      </ListSurface>
-    </section>
+          <UButton
+            v-if="manages"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-plus"
+            :disabled="accounts.size === 0"
+            @click="openGroup(null)"
+          >
+            {{ $t('contentSettings.groups.new') }}
+          </UButton>
+        </SectionHead>
+        <ListSkeleton v-if="!groups && !failed" :rows="2" :action="false" />
+        <EmptyState
+          v-else-if="!failed && groups && groups.length === 0"
+          :title="$t('contentSettings.groups.empty')"
+          :text="
+            accounts.size === 0
+              ? $t('contentSettings.groups.noAccounts')
+              : $t('contentSettings.groups.emptyText')
+          "
+          icon="i-lucide-users"
+        />
+        <ListSurface
+          v-else-if="groups && (groups.length || !failed)"
+          columns="minmax(0, 1fr) auto 30px"
+          :label="$t('contentSettings.groups.title')"
+        >
+          <ListRow v-for="g in groups" :key="g.id">
+            <span class="min-w-0">
+              <span class="block truncate font-medium">{{ g.name }}</span>
+              <StatusDot
+                v-if="groupState(g)"
+                tone="warning"
+                :label="groupState(g) ?? ''"
+                class="text-detail"
+              />
+            </span>
+            <span class="flex min-w-0 items-center gap-3 text-(--app-text-muted) max-md:hidden">
+              <PlatformIcons
+                v-for="a in groupAccounts(g)"
+                :key="a.id"
+                :platforms="[a.platform]"
+                :label="handleOf(a)"
+              />
+              <span v-if="groupAccounts(g).length === 0">—</span>
+            </span>
+            <span class="flex justify-end md:-me-2">
+              <RowActions
+                v-if="manages"
+                :name="g.name"
+                :items="
+                  actions(
+                    () => openGroup(g),
+                    () => removeGroup(g),
+                  )
+                "
+              />
+            </span>
+          </ListRow>
+        </ListSurface>
+      </section>
+    </template>
 
     <template v-if="manages && base">
       <ContentLabelDialog

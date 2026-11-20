@@ -129,6 +129,22 @@ const PAGES: MeasuredPage[] = [
   },
 ]
 
+/** How many things on the screen stand on the accent's orange. */
+const oranges = (page: Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement('i')
+    probe.style.background = 'var(--app-brand)'
+    document.body.append(probe)
+    const brand = getComputedStyle(probe).backgroundColor
+    probe.remove()
+    return [...document.querySelectorAll<HTMLElement>('body *')].filter(
+      (el) =>
+        !el.closest('[data-swatch], [data-count], [data-accent]') &&
+        el.checkVisibility() &&
+        getComputedStyle(el).backgroundColor === brand,
+    ).length
+  })
+
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
@@ -191,20 +207,7 @@ for (const p of PAGES) {
 
     // one orange per screen: the action that moves the work on (the count of «Da sistemare» and
     // the colour samples of the board are not actions)
-    const orange = await page.evaluate(() => {
-      const probe = document.createElement('i')
-      probe.style.background = 'var(--app-brand)'
-      document.body.append(probe)
-      const brand = getComputedStyle(probe).backgroundColor
-      probe.remove()
-      return [...document.querySelectorAll<HTMLElement>('body *')].filter(
-        (el) =>
-          !el.closest('[data-swatch], [data-count], [data-accent]') &&
-          el.checkVisibility() &&
-          getComputedStyle(el).backgroundColor === brand,
-      ).length
-    })
-    expect(orange, 'elements on the orange').toBeLessThanOrEqual(1)
+    expect(await oranges(page), 'elements on the orange').toBeLessThanOrEqual(1)
 
     // nothing goes past the content width or sideways on a phone
     const overflow = await page.evaluate(
@@ -214,6 +217,91 @@ for (const p of PAGES) {
     expect((await axe(page)).violations).toEqual([])
   })
 }
+
+// the pages the redesign did not draw again still keep one orange, «Nuovo post» (review of
+// fidelity, C1 and C2): their own actions are outlined, the first setup is a quiet row
+test('the pages not redrawn keep one orange', async ({ page }) => {
+  const owner = await newPerson('Mara Arancio', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const ws = await newWorkspace(page.request, org, 'Cliente Arancio')
+  for (const path of [
+    `/${org}`,
+    `/${org}/configurazione`,
+    `/${org}/impostazioni`,
+    `/${org}/impostazioni/integrazioni/meta`,
+    `/${org}/spazi/${ws.slug}/libreria`,
+    `/${org}/spazi/${ws.slug}/membri`,
+    '/account/privacy',
+  ]) {
+    await page.goto(path)
+    await page.waitForLoadState('networkidle')
+    expect(await oranges(page), `elements on the orange in ${path}`).toBeLessThanOrEqual(1)
+  }
+  // the first setup on «Oggi»: a row on the surface, not a peach box with an orange border
+  await page.goto(`/${org}`)
+  const setup = page.locator('[data-first-setup]')
+  await expect(setup.getByRole('link', { name: 'Riprendi la prima configurazione' })).toBeVisible()
+  const look = await setup.evaluate((el) => {
+    const probe = document.createElement('i')
+    probe.style.color = 'var(--app-surface)'
+    el.append(probe)
+    const surface = getComputedStyle(probe).color
+    probe.remove()
+    return { background: getComputedStyle(el).backgroundColor, surface }
+  })
+  expect(look.background).toBe(look.surface)
+})
+
+// laptops between 1024 and 1360 (review of fidelity, A2 and A3): the week of «Oggi» keeps its
+// words inside each day, and a client's name in «Clienti» is not cut to a letter
+test('Oggi and Clienti on a laptop: nothing squeezed out of its place', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'computer widths only')
+  const owner = await newPerson('Mara Portatile', 'owner')
+  await signInWithTotp(page.request, owner)
+  await newWorkspace(page.request, owner.organizationSlug, 'Panificio Lungavilla')
+  for (const width of [1024, 1100, 1280]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto(`/${owner.organizationSlug}`)
+    await expect(page.locator('[data-ready]')).toHaveCount(1)
+    const outside = await page.locator('[data-week] button').evaluateAll(
+      (days) =>
+        days.filter((day) => {
+          const box = day.getBoundingClientRect()
+          return [...day.querySelectorAll('span:not([data-accent])')].some((s) => {
+            const r = s.getBoundingClientRect()
+            return r.width > 0 && (r.right > box.right + 0.5 || r.bottom > box.bottom + 0.5)
+          })
+        }).length,
+    )
+    expect(outside, `days with words outside at ${String(width)}`).toBe(0)
+
+    await page.goto(`/${owner.organizationSlug}/spazi`)
+    const name = page.getByRole('link', { name: 'Panificio Lungavilla' })
+    await expect(name).toBeVisible()
+    // a long name may end in «…» (fonts differ between machines), never down to a letter
+    expect(
+      await name.evaluate((el) => el.clientWidth),
+      `the name has room at ${String(width)}`,
+    ).toBeGreaterThanOrEqual(120)
+  }
+})
+
+// a button that cannot be pressed yet reads as off: half its colour, as `.btn[disabled]` of
+// base.css, not the library's 0.75 that made «Programma» look ready (review of fidelity, A5)
+test('Editor: «Programma» with nothing chosen is clearly off', async ({ page }) => {
+  const owner = await newPerson('Mara Spento', 'owner')
+  await signInWithTotp(page.request, owner)
+  const ws = await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
+  await page.goto(`/${owner.organizationSlug}/spazi/${ws.slug}/post/nuovo`)
+  await expect(page.locator('[data-ready]')).toHaveCount(1)
+  const schedule = page.locator('[data-schedule]').filter({ visible: true })
+  await expect(schedule.first()).toBeDisabled()
+  expect(await schedule.first().evaluate((el) => getComputedStyle(el).opacity)).toBe('0.5')
+})
 
 // what a screen reader reads of a row of the board: the platforms by name, the «…» column named
 test('system board: the list reads as a table with its platforms', async ({ page }) => {

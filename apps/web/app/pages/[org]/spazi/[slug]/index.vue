@@ -471,7 +471,7 @@ watch(
           />
           <LoadFailed
             v-else-if="membersError"
-            :text="failure(membersError).message"
+            :text="$t('client.peopleLoadError')"
             @retry="refreshMembers()"
           />
           <p

@@ -680,8 +680,7 @@
       "empty": "Niente in programma oggi e domani.",
       "emptyDay": "Niente in programma questo giorno.",
       "none": "Niente in programma.",
-      "failed": "Non siamo riusciti a leggere i post in uscita.",
-      "again": "Riprova"
+      "failed": "Non siamo riusciti a leggere i post in uscita."
     },
     "drafts": {
       "title": "Bozze da finire",
@@ -966,6 +965,7 @@
   },
   "audit": {
     "title": "Registro attività",
+    "loadError": "Non siamo riusciti a caricare il registro attività.",
     "empty": "Nessuna attività registrata.",
     "more": "Mostra altre",
     "actions": {
@@ -1014,7 +1014,34 @@
       "workspace_archived": "ha archiviato un cliente",
       "workspace_member_added": "ha aggiunto una persona a un cliente",
       "workspace_member_removed": "ha tolto una persona da un cliente",
-      "workspace_member_role_changed": "ha cambiato un ruolo su un cliente"
+      "workspace_member_role_changed": "ha cambiato un ruolo su un cliente",
+      "member_added": "ha aggiunto una persona a un cliente",
+      "member_removed": "ha tolto una persona da un cliente",
+      "member_role_changed": "ha cambiato un ruolo su un cliente"
+    },
+    "detailed": {
+      "post_scheduled": "ha programmato un post per {when}",
+      "user_invited": "ha invitato una persona come {role}",
+      "member_added": "ha aggiunto una persona al cliente come {role}",
+      "member_role_changed": "ha cambiato un ruolo sul cliente in {role}",
+      "user_role_changed": "ha cambiato un ruolo in {role}"
+    },
+    "settings": {
+      "label": {
+        "created": "ha creato un'etichetta",
+        "updated": "ha modificato un'etichetta",
+        "deleted": "ha eliminato un'etichetta"
+      },
+      "caption_template": {
+        "created": "ha creato un modello di testo",
+        "updated": "ha modificato un modello di testo",
+        "deleted": "ha eliminato un modello di testo"
+      },
+      "account_group": {
+        "created": "ha creato un gruppo di account",
+        "updated": "ha modificato un gruppo di account",
+        "deleted": "ha eliminato un gruppo di account"
+      }
     },
     "show": "Mostra",
     "search": "Cerca",
@@ -1249,6 +1276,7 @@
     "explain": "Cinque passi per collegare Feedway a Meta con l'utente di sistema. Puoi fermarti quando vuoi: ripartiamo dal punto a cui sei arrivato.",
     "home": "Sei al passo {n} di 5: collega Feedway a Meta per pubblicare sugli account dei clienti.",
     "resume": "Riprendi la prima configurazione",
+    "resumeShort": "Riprendi",
     "progress": "Avanzamento",
     "steps": "Passi",
     "state": {
@@ -1540,6 +1568,7 @@
     "pickNoneLink": "Collegane uno da Integrazioni",
     "people": "Chi ci lavora",
     "loadingPeople": "Carico le persone del cliente",
+    "peopleLoadError": "Non siamo riusciti a caricare chi ci lavora.",
     "noPeople": "Per ora ci lavorano solo Owner e Admin dell'agenzia, che vedono ogni cliente.",
     "managePeople": "Gestisci le persone",
     "syncedShort": "sincronizzato {when}",
@@ -1558,7 +1587,7 @@
     "summaryEmpty": "Nessun file · {used} occupati",
     "chooseClient": "Scegli un cliente",
     "chooseClientText": "La libreria è di ogni cliente: scegli di chi vuoi vedere foto e video.",
-    "noClients": "Non lavori in nessun cliente che ha una libreria.",
+    "noClients": "Non hai ancora clienti con una libreria.",
     "loading": "Carico la libreria",
     "loadError": "Non siamo riusciti a caricare la libreria.",
     "kind": {
@@ -2010,8 +2039,13 @@
       "text": "{platform} taglia tutti i file del carosello sulla forma del primo: le parti che escono non si vedranno."
     },
     "reel_aspect_ratio": {
-      "title": "Video non verticale per un reel",
-      "text": "Un reel è verticale (9:16), e questo video è {width}×{height}. Puoi pubblicarlo così, con delle bande o ritagliato al centro."
+      "title": "Il video non ha la forma di un reel",
+      "text": "Un reel è verticale (9:16), questo video è {width}×{height}. Scegli come pubblicarlo.",
+      "options": {
+        "keep": "Così com'è, senza modifiche",
+        "pad": "Intero, con le bande sopra e sotto",
+        "crop_center": "Ritagliato al centro, a tutto schermo"
+      }
     },
     "story_too_long": {
       "title": "Video troppo lungo per una storia",
@@ -2130,7 +2164,10 @@
       "detail": "{n} di {max}",
       "oneVideo": "1 video",
       "add": "Aggiungi",
-      "addLabel": "Aggiungi file"
+      "addLabel": "Aggiungi file",
+      "replace": "Sostituisci",
+      "replaceLabel": "Sostituisci il video",
+      "converted": "Convertito in MP4"
     },
     "library": {
       "title": "Scegli dalla libreria",
@@ -2315,9 +2352,6 @@
       "carousel": "carosello",
       "previous": "File precedente",
       "next": "File successivo",
-      "moveBefore": "Sposta prima",
-      "moveAfter": "Sposta dopo",
-      "likes": "Piace a 0 persone",
       "more": "altro",
       "moreFacebook": "Altro",
       "firstReaction": "Sii il primo a reagire",
@@ -2358,7 +2392,7 @@
       "title": "Post",
       "titleOf": "Post di {name}",
       "loading": "Carico i post…",
-      "failed": "Non riesco a leggere i post.",
+      "failed": "Non siamo riusciti a leggere i post.",
       "retry": "Riprova",
       "empty": "Ancora nessun post per questo cliente.",
       "search": "Cerca nel testo o in un profilo",
@@ -2428,7 +2462,7 @@
       "failed": "La copertina non si è caricata: riprova.",
       "uploading": "Carico {name}…",
       "shareToFeed": "Mostra anche nel feed",
-      "shareToFeedHelp": "Il reel compare anche nella griglia del profilo, oltre che tra i Reels.",
+      "shareToFeedHelp": "Anche nella griglia del profilo",
       "fromComputer": "Dal computer"
     },
     "labels": {
@@ -2468,7 +2502,7 @@
     "edit": "Modifica",
     "remove": "Elimina",
     "colors": {
-      "feedway": "Arancio",
+      "feedway": "Ambra",
       "blu": "Blu",
       "verde": "Verde",
       "viola": "Viola",

@@ -106,11 +106,12 @@ onBeforeUnmount(() => {
   desktopQuery?.removeEventListener('change', onDesktop)
 })
 
+/** A draft is named by the first line of its text, «Nuovo post» while it has none (B12). */
 const title = computed(() => {
-  if (!props.postId && !e.save.value.postId) return t('posts.editor.newTitle')
   if (e.status.value === 'scheduled') return t('posts.editor.scheduledTitle')
   if (e.status.value === 'cancelled') return t('posts.editor.cancelledTitle')
-  return t('posts.editor.editTitle')
+  const text = e.caption.common || e.caption.instagram || e.caption.facebook || ''
+  return text.trim().split('\n')[0]?.trim() || t('posts.editor.newTitle')
 })
 /** Why this person reads the post and does not change it. */
 const readOnly = computed(() => {
@@ -418,6 +419,7 @@ const confirmText = computed(() => {
               :heading="$t('posts.preview.title')"
               width="14.75rem"
               reserve="22rem"
+              feed-reserve="20rem"
             />
             <PostDestinationSummary
               placement="column"

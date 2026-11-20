@@ -2,8 +2,9 @@
 import type { LibraryFile } from '~/composables/useLibrary'
 
 /**
- * «Ultimi file» in a client's Panoramica (screen 16): the six newest files of its library in a
- * grid of three, with the way into «Libreria» (which says the space they take).
+ * «Ultimi file» in a client's Panoramica (screen 16): the six newest files of its library, three
+ * on a row in the side column and up to six where the page has one column (tiles never grow
+ * past ~140 px), with the way into «Libreria» (which says the space they take).
  */
 const props = defineProps<{ workspace: WorkspaceView }>()
 const org = useOrganization()
@@ -38,7 +39,7 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
       v-else-if="!page"
       :aria-label="$t('library.loading')"
       aria-busy="true"
-      class="grid grid-cols-3 gap-2"
+      class="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2"
     >
       <li v-for="n in 6" :key="n" class="skeleton aspect-square rounded-lg" aria-hidden="true" />
     </ul>
@@ -48,7 +49,11 @@ const libraryPage = computed(() => org.to(`/spazi/${props.workspace.slug}/librer
     >
       {{ $t('library.noRecent') }}
     </p>
-    <ul v-else :aria-label="$t('library.recent')" class="grid grid-cols-3 gap-2">
+    <ul
+      v-else
+      :aria-label="$t('library.recent')"
+      class="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2"
+    >
       <li v-for="f in page.items" :key="f.id" class="min-w-0">
         <NuxtLink
           :to="libraryPage"

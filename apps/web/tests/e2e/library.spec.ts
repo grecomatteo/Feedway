@@ -106,6 +106,26 @@ test('«Libreria» shows the files of the clients by day, filtered by type, use 
     await page.getByRole('option', { name: 'Solo in bozze' }).click()
     await expect(today.getByRole('listitem')).toHaveCount(1)
     await expect(today.getByRole('listitem')).toContainText('cornetti.jpg')
+    await page.getByRole('combobox', { name: 'Nei post' }).click()
+    await page.getByRole('option', { name: 'Nei post: tutti' }).click()
+    await expect(today.getByRole('listitem')).toHaveCount(3)
+
+    // the detail open: the files make room beside it, none under it (screen 20, B7)
+    await today
+      .getByRole('listitem')
+      .first()
+      .getByRole('button', { name: /\.(jpg|mov)/ })
+      .first()
+      .click()
+    const detail = page.getByRole('dialog')
+    await expect(detail).toBeVisible()
+    const panel = await detail.boundingBox()
+    for (const item of await today.getByRole('listitem').all()) {
+      const box = await item.boundingBox()
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(panel?.x ?? 0)
+    }
+    await page.keyboard.press('Escape')
+    await expect(detail).toHaveCount(0)
   }
 
   const results = await axe(page)

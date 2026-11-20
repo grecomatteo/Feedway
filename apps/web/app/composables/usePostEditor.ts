@@ -329,8 +329,18 @@ export function usePostEditor(opts: {
   }
   const refused = ref<UploadItem[]>([])
 
+  /** Uploads taken out of the post that may still finish: they must not come back in. */
+  const dropped = new Set<string>()
+  function dropUpload(item: UploadItem | null) {
+    if (!item || item.media) return
+    dropped.add(item.key)
+    void uploads.cancel(item)
+  }
+
   /** A file of this editor reached the library. */
   function attached(media: MediaDto) {
+    const gone = uploads.items.value.find((i) => dropped.has(i.key) && i.media?.id === media.id)
+    if (gone) return
     if (!alive) {
       attachLater(media)
       return
@@ -389,6 +399,34 @@ export function usePostEditor(opts: {
     touched()
   }
 
+  /**
+   * «Sostituisci» of a reel's only video (screen 09, B4): the new file takes the place of every
+   * file of the post, and the type stays. A file refused by the browser's checks leaves the post
+   * as it was; one that fails later shows its error, and the old video is still in the library.
+   */
+  function dropEntries() {
+    for (const x of entries.value) dropUpload(uploadItem(x))
+    entries.value = []
+  }
+  async function replaceFiles(list: readonly File[]) {
+    if (!editable.value || list.length === 0) return
+    const items = await uploads.add(list.slice(0, 1), null, (media) => {
+      attached(media)
+    })
+    refused.value = items.filter((i) => i.state === 'rejected')
+    const ok = items.filter((i) => i.state !== 'rejected')
+    if (ok.length === 0) return
+    dropEntries()
+    for (const item of ok) entries.value.push({ key: newKey(), file: null, upload: item.key })
+    followFiles()
+    touched()
+  }
+  function replaceFromLibrary(list: readonly MediaDto[]) {
+    if (!editable.value || list.length === 0) return
+    dropEntries()
+    addFromLibrary(list.slice(0, 1))
+  }
+
   function move(key: string, by: -1 | 1) {
     const i = entries.value.findIndex((e) => e.key === key)
     const j = i + by
@@ -411,9 +449,8 @@ export function usePostEditor(opts: {
   function removeEntry(key: string) {
     const e = entries.value.find((x) => x.key === key)
     if (!e) return
-    const item = uploadItem(e)
     // a file still uploading stops; one already in the library stays there
-    if (item && !item.media) void uploads.cancel(item)
+    dropUpload(uploadItem(e))
     entries.value = entries.value.filter((x) => x.key !== key)
     followFiles()
     touched()
@@ -731,6 +768,8 @@ export function usePostEditor(opts: {
     chooseType,
     addFiles,
     addFromLibrary,
+    replaceFiles,
+    replaceFromLibrary,
     move,
     moveTo,
     removeEntry,

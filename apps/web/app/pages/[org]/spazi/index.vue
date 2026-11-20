@@ -378,7 +378,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
       </p>
       <ListSurface
         v-else
-        class="max-lg:[&>[data-list-head]]:sr-only"
+        class="max-xl:[&>[data-list-head]]:sr-only"
         :columns="COLUMNS"
         :head="head"
         :label="$t('workspaces.title')"
@@ -386,7 +386,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         <ListRow
           v-for="w in visible"
           :key="w.id"
-          class="max-lg:grid-cols-[minmax(0,1fr)_auto_auto]"
+          class="max-xl:grid-cols-[minmax(0,1fr)_auto_auto]"
           :data-client="w.slug"
         >
           <span role="cell" class="flex min-w-0 items-center gap-3">
@@ -397,14 +397,14 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
                 class="block truncate font-semibold underline-offset-3 hover:underline"
                 >{{ w.name }}</NuxtLink
               >
-              <span class="block truncate text-detail text-(--app-text-muted) lg:hidden">{{
+              <span class="block truncate text-detail text-(--app-text-muted) xl:hidden">{{
                 nextOf(w)
                   ? $t('workspaces.nextShort', { when: nextOf(w) })
                   : $t('workspaces.nothingPlanned')
               }}</span>
             </span>
           </span>
-          <span role="cell" class="flex min-w-0 items-center gap-x-3.5 max-lg:hidden">
+          <span role="cell" class="flex min-w-0 items-center gap-x-3.5 max-xl:hidden">
             <template v-if="shownAccounts(w).length > 0">
               <PlatformIcons
                 v-for="a in shownAccounts(w)"
@@ -426,18 +426,18 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
           </span>
           <span
             role="cell"
-            class="max-lg:hidden"
+            class="max-xl:hidden"
             :class="nextOf(w) ? '' : 'text-(--app-text-muted)'"
           >
             {{ nextOf(w) ?? '—' }}
           </span>
-          <span role="cell" class="text-(--app-text-muted) max-lg:hidden">
+          <span role="cell" class="text-(--app-text-muted) max-xl:hidden">
             {{ plannedOf(w) ?? '—' }}
           </span>
           <span role="cell" class="min-w-0">
             <StatusDot v-if="stateOf(w)" :tone="stateOf(w)!.tone" :label="stateOf(w)!.label" />
           </span>
-          <span role="cell" class="flex justify-end lg:-me-2">
+          <span role="cell" class="flex justify-end xl:-me-2">
             <RowActions :name="w.name" :items="actions(w)" />
           </span>
         </ListRow>

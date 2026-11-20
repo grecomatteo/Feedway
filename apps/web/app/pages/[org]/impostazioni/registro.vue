@@ -14,12 +14,14 @@ interface AuditItem {
   source: 'panel' | 'api' | 'mcp' | 'system'
   workspaceId: string | null
   createdAt: string
+  entity: string | null
+  data: Record<string, unknown> | null
 }
 
 const org = useOrganization()
 const route = useRoute()
 const { t, te } = useI18n()
-const { call, failure } = useApi()
+const { call } = useApi()
 const { data: spaces } = useWorkspaces()
 
 useHead({ title: () => t('audit.title') })
@@ -53,7 +55,8 @@ async function load(more = false) {
     cursor.value = r.nextCursor
     loaded.value = true
   } catch (e) {
-    problem.value = failure(e).message
+    // the server's words ask for a code the page does not show (D, state 3)
+    problem.value = t('audit.loadError')
   } finally {
     loading.value = false
   }
@@ -61,15 +64,18 @@ async function load(more = false) {
 onMounted(() => load())
 watch(workspaceId, () => load())
 
-const actionLabel = (action: string) =>
-  te(`audit.actions.${action.replaceAll('.', '_')}`)
-    ? t(`audit.actions.${action.replaceAll('.', '_')}`)
-    : action
+/** «ha programmato un post per ven 20 nov, 8:00» (screen 26, B9) */
+const actionLabel = (item: AuditItem) =>
+  auditLine(item, {
+    t: (key, values) => t(key, values ?? {}),
+    has: (key) => te(key),
+    when: (at) => formatShort(at),
+  })
 
 type Kind = 'all' | 'posts' | 'people' | 'connections'
 const KINDS: Record<Exclude<Kind, 'all'>, RegExp> = {
   posts: /^(post|media)\./,
-  people: /^(user|auth|session|workspace\.member)/,
+  people: /^(user|auth|session|member)\./,
   connections: /^(connection|accounts?|integration)\./,
 }
 const kind = ref<Kind>('all')
@@ -89,7 +95,7 @@ const shown = computed(() => {
   return items.value.filter((item) => {
     if (kind.value !== 'all' && !KINDS[kind.value].test(item.action)) return false
     if (q === '') return true
-    return [item.authorName, actionLabel(item.action), clientOf(item) ?? ''].some((x) =>
+    return [item.authorName, actionLabel(item), clientOf(item) ?? ''].some((x) =>
       x.toLocaleLowerCase('it').includes(q),
     )
   })
@@ -142,7 +148,7 @@ const head = computed(() => [
           <span role="cell" class="min-w-0">
             <span
               ><span class="font-semibold md:hidden">{{ `${item.authorName} ` }}</span
-              >{{ actionLabel(item.action) }}</span
+              >{{ actionLabel(item) }}</span
             >
             <span class="block text-detail text-(--app-text-muted) md:hidden"
               >{{ formatRelative(item.createdAt)

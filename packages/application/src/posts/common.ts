@@ -236,10 +236,11 @@ export async function recordPost(
     | 'post.unscheduled'
     | 'post.cancelled'
     | 'post.deleted',
-  post: { id: string; workspaceId: string },
+  post: { id: string; workspaceId: string; scheduledAt?: Date | null },
   ip: string | null,
 ) {
-  // nothing of the text: it can name people
+  // nothing of the text: it can name people. A post scheduled says for when, so the log reads
+  // «ha programmato un post per ven 20 nov, 8:00» (screen 26)
   await tx.audit.record({
     organizationId: actor.organizationId,
     actorId: actor.userId,
@@ -249,6 +250,9 @@ export async function recordPost(
     entityId: post.id,
     workspaceId: post.workspaceId,
     ip,
+    ...(action === 'post.scheduled' && post.scheduledAt
+      ? { data: { scheduledAt: post.scheduledAt.toISOString() } }
+      : {}),
   })
 }
 

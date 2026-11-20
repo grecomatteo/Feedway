@@ -286,7 +286,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             </p>
             <template v-else-if="connectionId === null">
               <p>{{ $t('addAccount.noSystemUser') }}</p>
-              <UButton class="min-h-control" icon="i-lucide-key-round" @click="tokenOpen = true">
+              <UButton
+                class="min-h-control"
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-key-round"
+                @click="tokenOpen = true"
+              >
                 {{ $t('addAccount.connectSystemUser') }}
               </UButton>
             </template>
@@ -307,6 +313,8 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
               <div class="flex flex-wrap gap-3">
                 <UButton
                   class="min-h-control"
+                  color="neutral"
+                  variant="outline"
                   icon="i-lucide-search"
                   :loading="search.sending"
                   @click="searchAgain"

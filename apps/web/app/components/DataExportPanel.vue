@@ -155,6 +155,8 @@ async function download(item: DataExport) {
     <div v-if="latest?.status === 'ready'" class="space-y-2">
       <UButton
         class="min-h-control"
+        color="neutral"
+        variant="outline"
         icon="i-lucide-download"
         :loading="downloading"
         @click="download(latest)"
@@ -169,8 +171,8 @@ async function download(item: DataExport) {
     <div v-if="!preparing" class="space-y-2">
       <UButton
         class="min-h-control"
-        :color="latest?.status === 'ready' ? 'neutral' : 'primary'"
-        :variant="latest?.status === 'ready' ? 'outline' : 'solid'"
+        color="neutral"
+        variant="outline"
         :loading="sending"
         @click="request"
       >

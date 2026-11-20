@@ -80,7 +80,7 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Foto verticale 9:16 nel feed di Instagram (fuori da 4:5–1,91:1) | **Avviso** · Instagram: **Foto troppo alta o troppo larga per il feed**. Nel feed di Instagram una foto va dalla verticale 4:5 all'orizzontale 1,91:1, e questa è 1080×1920. Scegli se ritagliarla, spostando il riquadro dove vuoi, o aggiungere delle bande. | Ritaglia (consigliata) · Aggiungi le bande |
 | Foto esattamente 4:5 e 1,91:1: nessun avviso | Nessun esito: si può programmare. | — |
 | Carosello con una foto 4:5 e una quadrata | **Avviso** · Instagram: **File di forme diverse nel carosello**. Instagram taglia tutti i file del carosello sulla forma del primo: le parti che escono non si vedranno. | Va bene (consigliata) |
-| Reel quadrato | **Avviso**: **Video non verticale per un reel**. Un reel è verticale (9:16), e questo video è 1080×1080. Puoi pubblicarlo così, con delle bande o ritagliato al centro. | Usa così (consigliata) · Aggiungi le bande · Ritaglia al centro |
+| Reel quadrato | **Avviso**: **Il video non ha la forma di un reel**. Un reel è verticale (9:16), questo video è 1080×1080. Scegli come pubblicarlo. | Così com'è, senza modifiche (consigliata) · Intero, con le bande sopra e sotto · Ritagliato al centro, a tutto schermo |
 | Reel di 2,9 secondi | **Blocco**: **Video troppo corto per un reel**. Un reel dura almeno 3 secondi, e questo video ne dura 2,9. Scegli un video più lungo. | — |
 | Reel di 2,96 secondi: il testo dice 2,9, non 3 | **Blocco**: **Video troppo corto per un reel**. Un reel dura almeno 3 secondi, e questo video ne dura 2,9. Scegli un video più lungo. | — |
 | Reel di esattamente 3 secondi | Nessun esito: si può programmare. | — |

@@ -197,7 +197,12 @@ function clearFilters() {
 </script>
 
 <template>
-  <div :data-ready="status === 'success' ? '' : undefined">
+  <!-- with the detail open the files make room for it, so none hides under it (screen 20, B7) -->
+  <div
+    :data-ready="status === 'success' ? '' : undefined"
+    :class="detailOpen ? 'lg:pe-[23rem]' : ''"
+    data-library
+  >
     <div class="mb-5 flex flex-wrap items-center gap-3 max-md:gap-2" data-library-tools>
       <SegmentedFilter
         v-model="filter.kind"

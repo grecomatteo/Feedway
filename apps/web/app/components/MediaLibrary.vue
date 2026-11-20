@@ -561,6 +561,8 @@ function filesDrop(event: DragEvent) {
           />
           <UButton
             v-if="!readOnly && !uploadInHeader"
+            color="neutral"
+            variant="outline"
             icon="i-lucide-upload"
             class="min-h-control shrink-0 lg:order-last"
             @click="chooseFiles"

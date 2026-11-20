@@ -267,7 +267,11 @@ const insertItems = computed<DropdownMenuItem[][]>(() => {
           </span>
         </div>
       </div>
-      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <!-- with one platform there is nothing to tell apart (screen 09, B5) -->
+      <div
+        v-if="e.split.value || platforms.length !== 1"
+        class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2"
+      >
         <USwitch
           :model-value="e.split.value"
           :label="$t('posts.caption.split')"

@@ -279,11 +279,18 @@ const mayDraft = computed(
       >
         {{ query ? $t('posts.list.noMatch') : $t(`posts.list.none.${filter}`) }}
       </p>
-      <ListSurface v-else :columns="COLUMNS" :head="head" :label="$t('posts.list.title')">
+      <!-- under 1280 the author's column goes, so the text keeps its room (review of fidelity) -->
+      <ListSurface
+        v-else
+        :columns="COLUMNS"
+        :head="head"
+        :label="$t('posts.list.title')"
+        class="md:max-xl:[&>[data-list-head]]:grid-cols-[minmax(0,1fr)_150px_60px_140px_30px] md:max-xl:[&>[data-list-head]>:nth-child(5)]:hidden"
+      >
         <ListRow
           v-for="row in visible"
           :key="row.id"
-          class="max-md:grid-cols-[minmax(0,1fr)_auto]"
+          class="max-md:grid-cols-[minmax(0,1fr)_auto] md:max-xl:grid-cols-[minmax(0,1fr)_150px_60px_140px_30px]"
           :data-post="row.id"
         >
           <span role="cell" class="flex min-w-0 items-center gap-3">
@@ -307,7 +314,7 @@ const mayDraft = computed(
                 <span
                   v-for="l in labelsOf(row)"
                   :key="l.id"
-                  class="inline-flex min-w-0 items-center gap-1.5"
+                  class="inline-flex min-w-0 items-center gap-1.5 max-md:hidden"
                   data-label
                 >
                   <ContentLabelDot :color="l.color" /><span class="truncate">{{ l.name }}</span>
@@ -329,7 +336,7 @@ const mayDraft = computed(
           <span role="cell">
             <StatusDot :label="stateOf(row).label" :tone="stateOf(row).tone" />
           </span>
-          <span role="cell" class="truncate text-(--app-text-muted) max-md:hidden">{{
+          <span role="cell" class="truncate text-(--app-text-muted) max-xl:hidden">{{
             authorOf(row)
           }}</span>
           <span role="cell" class="flex justify-end max-md:hidden md:-me-2">

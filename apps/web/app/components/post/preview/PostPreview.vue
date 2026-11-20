@@ -25,6 +25,8 @@ const props = defineProps<{
   reserve?: string
   /** a reel or a story's frame is never wider than this (the column: 236 px, screen 09) */
   width?: string
+  /** the screen's height kept around the feed's photo, where the feed must fit the screen */
+  feedReserve?: string
   /** in the column: «Anteprima» as a heading, with the tabs on its line on the right */
   heading?: string
 }>()
@@ -99,7 +101,8 @@ const gridItem = computed(() => {
   const poster = coverImage.value ?? item.poster
   return { ...item, video: false, src: poster, poster: null }
 })
-const zones = ref(true)
+// off at first, the video clean (screen 09, B2)
+const zones = ref(false)
 
 const handle = computed(() => {
   const a = account.value
@@ -180,16 +183,6 @@ const at = computed(() => {
   if (!w) return null
   return new Date(`${w.localDate}T12:00:00Z`)
 })
-const day = computed(() =>
-  at.value
-    ? new Intl.DateTimeFormat(locale.value, {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        timeZone: 'UTC',
-      }).format(at.value)
-    : '',
-)
 const fbWhen = computed(() =>
   at.value && e.when.value
     ? t('posts.preview.fbWhen', {
@@ -202,7 +195,7 @@ const fbWhen = computed(() =>
       })
     : '',
 )
-/** the file the feed's carousel shows: «Sposta prima/dopo» under the frame move it */
+/** the file the feed's carousel shows */
 const feedAt = ref(0)
 // another tab or account starts from the first file; fewer files never leave it past the last
 watch([view, accountId], () => (feedAt.value = 0))
@@ -210,30 +203,6 @@ watch(
   () => items.value.length,
   (n) => (feedAt.value = Math.min(feedAt.value, Math.max(0, n - 1))),
 )
-const canMove = computed(
-  () =>
-    view.value === 'instagram_feed' && items.value.length > 1 && e.editable.value && fresh.value,
-)
-function moveShown(by: -1 | 1) {
-  const item = items.value[feedAt.value]
-  if (!item) return
-  move(item.index, by)
-  feedAt.value += by
-}
-
-/** The report was made on the files as they are now: its positions can be moved. */
-const fresh = computed(() => e.reportMedia.value.join() === e.files.value.map((f) => f.id).join())
-/** The file shown goes before or after its neighbour in the preview, not in the whole list. */
-function move(index: number, by: -1 | 1) {
-  if (!fresh.value) return
-  const pos = indices.value.indexOf(index)
-  const id = e.reportMedia.value[index]
-  const neighbour = indices.value[pos + by]
-  const other = neighbour === undefined ? undefined : e.reportMedia.value[neighbour]
-  const entry = e.entries.value.find((x) => x.file?.id === id)
-  const to = e.entries.value.findIndex((x) => x.file?.id === other)
-  if (entry && to >= 0) e.moveTo(entry.key, to)
-}
 
 // a file dropped on the preview joins the post, as on the files' area (Task 6)
 const dropping = ref(false)
@@ -277,7 +246,7 @@ function over(event: DragEvent) {
         <span class="sr-only">{{ t('posts.preview.account') }}</span>
         <select
           v-model="accountId"
-          class="min-h-11 rounded-lg border border-(--app-border) bg-(--app-surface) px-3"
+          class="min-h-11 rounded-lg border border-(--app-border) bg-(--app-surface) px-3 md:min-h-control"
           data-preview-account
         >
           <option v-for="id in tab.accountIds" :key="id" :value="id">
@@ -285,7 +254,16 @@ function over(event: DragEvent) {
           </option>
         </select>
       </label>
-      <PostPreviewFrame :vertical="vertical" :reserve="reserve" :width="width">
+      <PostPreviewFrame
+        :vertical="vertical"
+        :reserve="reserve"
+        :width="width"
+        :feed="
+          feedReserve && view === 'instagram_feed' && !grid
+            ? { ratio: feedRatio, reserve: feedReserve }
+            : undefined
+        "
+      >
         <PostPreviewInstagramGrid
           v-if="grid"
           :name="handle"
@@ -300,7 +278,6 @@ function over(event: DragEvent) {
           :frame-ratio="feedRatio"
           :caption="destination?.caption ?? ''"
           v-model:at="feedAt"
-          :day="day"
         />
         <PostPreviewFacebookPost
           v-else-if="view === 'facebook_post'"
@@ -322,26 +299,6 @@ function over(event: DragEvent) {
         />
       </PostPreviewFrame>
       <USwitch v-if="vertical" v-model="zones" :label="t('posts.preview.zones')" class="min-h-11" />
-      <div v-if="canMove && !grid" class="flex flex-wrap gap-2" data-preview-move>
-        <UButton
-          color="neutral"
-          variant="outline"
-          size="sm"
-          icon="i-lucide-arrow-left"
-          :label="t('posts.preview.moveBefore')"
-          :disabled="feedAt === 0"
-          @click="moveShown(-1)"
-        />
-        <UButton
-          color="neutral"
-          variant="outline"
-          size="sm"
-          trailing-icon="i-lucide-arrow-right"
-          :label="t('posts.preview.moveAfter')"
-          :disabled="feedAt === items.length - 1"
-          @click="moveShown(1)"
-        />
-      </div>
     </template>
     <div
       v-else

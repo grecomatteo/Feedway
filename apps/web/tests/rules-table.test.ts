@@ -3,7 +3,8 @@ import { expect, test } from 'vitest'
 import { RULE_CODES, RULE_OPTIONS } from '@app/domain'
 import { FACEBOOK_FORMATS, INSTAGRAM_FORMATS } from '@app/domain/platforms/meta'
 import { RULE_CASES } from '@app/domain/testing'
-import { CODES_WITHOUT_CASE, buildRulesTable, message } from './rules-table.ts'
+import { ruleMessage } from '../app/utils/rule-message.ts'
+import { CODES_WITHOUT_CASE, buildRulesTable, message, translate } from './rules-table.ts'
 
 // The table Matteo reads, and the completeness of the texts (plan 05 Task 2, «Codici, non
 // testi»). With RULES_TABLE_WRITE=1 (`pnpm rules:table`) the document is written again.
@@ -71,4 +72,22 @@ test('the texts use no character vue-i18n would read as its own syntax', () => {
   walk(message('rules'))
   // `@` starts a linked message and `|` splits plural forms
   expect(texts.filter((t) => /[@|$%]/.test(t))).toEqual([])
+})
+
+// screen 09 (review of fidelity, B6): each choice says what happens to the video
+test("a reel's video that is not 9:16 names its choices by what they do", () => {
+  const m = ruleMessage(
+    {
+      code: 'reel_aspect_ratio',
+      params: { width: 1920, height: 1080 },
+      options: ['keep', 'pad', 'crop_center'],
+    },
+    translate,
+  )
+  expect(m.title).toBe('Il video non ha la forma di un reel')
+  expect(m.options).toEqual([
+    "Così com'è, senza modifiche",
+    'Intero, con le bande sopra e sotto',
+    'Ritagliato al centro, a tutto schermo',
+  ])
 })

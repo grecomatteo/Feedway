@@ -290,7 +290,9 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
         {{ state.problem }}
       </p>
       <div v-if="org.may.value.editSettings" class="-mt-4 flex flex-wrap items-center gap-3">
-        <UButton type="submit" :loading="state.sending">{{ $t('account.save') }}</UButton>
+        <UButton type="submit" color="neutral" variant="outline" :loading="state.sending">{{
+          $t('account.save')
+        }}</UButton>
         <p v-if="state.done" role="status" class="text-(--app-success)">
           {{ $t('account.saved') }}
         </p>

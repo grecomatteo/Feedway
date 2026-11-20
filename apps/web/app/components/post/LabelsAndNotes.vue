@@ -145,7 +145,7 @@ const initials = (name: string) =>
         :class="e.editable.value ? 'pe-0.5' : 'pe-2'"
         data-label-chip
       >
-        <ContentLabelDot :color="l.color" class="rounded-[2px]! size-2!" />
+        <ContentLabelDot :color="l.color" />
         {{ l.name }}
         <button
           v-if="e.editable.value"

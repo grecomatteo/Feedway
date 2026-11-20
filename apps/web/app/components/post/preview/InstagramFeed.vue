@@ -4,7 +4,8 @@ import type { PreviewItem } from '~/utils/post-preview'
 /**
  * A photo or a carousel in Instagram's feed (design E4): the frame takes the first file's
  * proportions, a carousel scrolls with the arrows and the dots, the text is cut after two lines
- * with «… altro». The file shown is a model: the panel moves it from outside the frame (Task 6).
+ * with «… altro». The file shown is a model. No likes and no date under it: the column stays short
+ * enough for «Controlli» (review of fidelity, A1).
  */
 const props = defineProps<{
   name: string
@@ -12,7 +13,6 @@ const props = defineProps<{
   items: PreviewItem[]
   frameRatio: number
   caption: string
-  day: string
 }>()
 const { t } = useI18n()
 
@@ -42,8 +42,9 @@ function go(by: -1 | 1) {
       <span class="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">{{ name }}</span>
       <UIcon name="i-lucide-ellipsis" class="size-4" aria-hidden="true" />
     </div>
+    <!-- overflow-hidden: without it a tall photo stretches the box past its 4:5 -->
     <div
-      class="relative w-full"
+      class="relative w-full overflow-hidden"
       :style="{ aspectRatio: String(frameRatio) }"
       :aria-roledescription="many ? t('posts.preview.carousel') : undefined"
     >
@@ -91,7 +92,6 @@ function go(by: -1 | 1) {
       <UIcon name="i-lucide-bookmark" class="size-5" />
     </div>
     <div class="flex flex-col gap-1 px-3 pt-2">
-      <p class="text-[0.78125rem] font-semibold">{{ t('posts.preview.likes') }}</p>
       <PostPreviewCaption
         v-if="caption"
         :text="caption"
@@ -100,7 +100,6 @@ function go(by: -1 | 1) {
         :more="t('posts.preview.more')"
         tone="instagram"
       />
-      <p class="text-[0.625rem] text-[#737373]">{{ day }}</p>
     </div>
   </div>
 </template>

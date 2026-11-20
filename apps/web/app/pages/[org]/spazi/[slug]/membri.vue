@@ -189,7 +189,13 @@ const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
             <UFormField :label="$t('workspaceMembers.role')" name="role">
               <USelect v-model="add.role" :items="roleItems" class="w-36" />
             </UFormField>
-            <UButton type="submit" :loading="sending" :disabled="add.userId === ''">
+            <UButton
+              type="submit"
+              color="neutral"
+              variant="outline"
+              :loading="sending"
+              :disabled="add.userId === ''"
+            >
               {{ $t('workspaceMembers.add') }}
             </UButton>
           </form>

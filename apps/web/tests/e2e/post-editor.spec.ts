@@ -119,7 +119,10 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
   await expect(saveState(page)).not.toContainText('Salvataggio')
 
   await page.reload()
-  await expect(page.getByRole('heading', { level: 1, name: 'Bozza' })).toBeVisible()
+  // a draft is named by the start of its text (review of fidelity, B12)
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Il pane di segale è tornato' }),
+  ).toBeVisible()
   await expect(page.locator('[data-entry]').first()).toHaveAccessibleName(/File 1: focaccia\.jpg/)
   await expect(page.locator('[data-type="carousel"]')).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('tab', { name: 'Instagram' }).click()
@@ -174,7 +177,7 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   // a change not saved yet is kept when the post goes back to draft
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il pane del martedì')
   await page.getByRole('button', { name: 'Riporta in bozza' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Bozza' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Il pane del martedì' })).toBeVisible()
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
   await page.reload()
   await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
