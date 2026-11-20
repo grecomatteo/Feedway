@@ -2,11 +2,16 @@ import {
   DomainError,
   VARIANT_PURPOSES,
   can,
+  deletionBlock,
+  postCount,
+  primaryUse,
+  type DeletionBlock,
   type MediaChecks,
   type MediaFailure,
   type MediaKind,
   type MediaProgress,
   type MediaStatus,
+  type MediaUse,
   type OrgActor,
   type PostStatus,
   type VariantPurpose,
@@ -55,23 +60,41 @@ export interface MediaDto {
   folderId: string | null
   tags: string[]
   variants: MediaVariantDto[]
-  /** a post that uses the file, the scheduled one first (D-18): «Nel post del …» */
-  usedIn: { postId: string; status: PostStatus; scheduledAt: string | null } | null
+  /** the post that uses the file and counts (`primaryUse`, D-80.7): «Nel post di …» */
+  usedIn: {
+    postId: string
+    status: PostStatus
+    scheduledAt: string | null
+    timezone: string
+    /** how many posts use the file */
+    count: number
+  } | null
+  /** why the file is not deleted (`deletionBlock`, D-80.4): what the deletion answers 409 by */
+  deleteBlockedBy: {
+    reason: DeletionBlock['reason']
+    postId: string
+    scheduledAt: string | null
+    timezone: string
+    count: number
+  } | null
 }
 
-type MediaUse = Awaited<ReturnType<Tx['posts']['usingMedia']>>[number]
-
-/** The first post that uses each file: the repository gives the scheduled ones first. */
-async function usesOf(
+/** The posts that use each file, all of them: the rules of the domain pick from them. */
+export async function usesOf(
   tx: Tx,
   organizationId: string,
   mediaIds: readonly string[],
-): Promise<Map<string, MediaUse>> {
-  const uses = new Map<string, MediaUse>()
-  for (const use of await tx.posts.usingMedia(organizationId, mediaIds))
-    if (!uses.has(use.mediaId)) uses.set(use.mediaId, use)
+): Promise<Map<string, MediaUse[]>> {
+  const uses = new Map<string, MediaUse[]>()
+  for (const use of await tx.posts.usingMedia(organizationId, mediaIds)) {
+    const list = uses.get(use.mediaId) ?? []
+    list.push(use)
+    uses.set(use.mediaId, list)
+  }
   return uses
 }
+
+const iso = (at: Date | null) => (at === null ? null : at.toISOString())
 
 export const mediaNotFound = () => new DomainError('NOT_FOUND', 'File non trovato')
 
@@ -80,17 +103,22 @@ const MAX_PAGE = 100
 export function toDto(
   record: MediaRecord,
   variants: readonly MediaVariantRecord[],
-  uses: ReadonlyMap<string, MediaUse>,
+  uses: ReadonlyMap<string, readonly MediaUse[]>,
 ): MediaDto {
-  const use = uses.get(record.id)
+  const all = uses.get(record.id) ?? []
+  const use = primaryUse(all)
+  const block = deletionBlock(all)
   return {
     usedIn: use
       ? {
           postId: use.postId,
           status: use.status,
-          scheduledAt: use.scheduledAt === null ? null : use.scheduledAt.toISOString(),
+          scheduledAt: iso(use.scheduledAt),
+          timezone: use.timezone,
+          count: postCount(all),
         }
       : null,
+    deleteBlockedBy: block && { ...block, scheduledAt: iso(block.scheduledAt) },
     id: record.id,
     kind: record.kind,
     status: record.status,
@@ -264,13 +292,12 @@ export async function deleteMedia(
     const found = await liveMedia(tx, organizationId, workspace.id, input.mediaId)
     // the same lock as scheduling: a post is not scheduled with a file deleted meanwhile
     await tx.posts.lockSchedule(organizationId)
-    const scheduled = (await tx.posts.usingMedia(organizationId, [found.id])).find(
-      (use) => use.status === 'scheduled',
-    )
-    if (scheduled)
+    // the rule the file's DTO shows (D-80.4): the panel says it before anyone tries
+    const block = deletionBlock(await tx.posts.usingMedia(organizationId, [found.id]))
+    if (block)
       throw new DomainError(
         'CONFLICT',
-        `Questo file è nel post programmato del ${dayOf(scheduled.scheduledAt, scheduled.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`,
+        `Questo file è nel post programmato del ${dayOf(block.scheduledAt, block.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`,
         { reason: 'media_in_scheduled_post' },
       )
     if (!(await tx.media.markDeleted(organizationId, workspace.id, found.id, deps.clock.now())))

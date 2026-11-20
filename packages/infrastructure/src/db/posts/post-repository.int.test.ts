@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { PostChange, Tx, UnitOfWork } from '@app/application'
-import { EMPTY_POST_OPTIONS } from '@app/domain'
+import { EMPTY_POST_OPTIONS, compareUses } from '@app/domain'
 import { createDb, type DbHandle } from '../client.js'
 import { createUnitOfWork } from '../unit-of-work.js'
 import { createLogger } from '../../logging/logger.js'
@@ -336,4 +336,28 @@ test('labels are replaced, each once', async () => {
   )
   await run((tx) => tx.posts.replaceLabels(scope(), id, [label, label]))
   expect((await run((tx) => tx.posts.find(scope(), id)))?.labelIds).toEqual([label])
+})
+
+test('the uses of a file come in the order of `compareUses`, with what it needs (D-80.7)', async () => {
+  const file = await seed(tdb.runtimeUrl, (s) => s.media(org, ws, { uploadedBy: user }))
+  const withFile = async (status: 'draft' | 'scheduled' | 'cancelled', at: Date | null = null) => {
+    const id = await newPost()
+    await run(async (tx) => {
+      await tx.posts.replaceMedia(scope(), id, [file], null)
+      if (status !== 'draft')
+        await tx.posts.update(scope(), id, change({ status, scheduledAt: at }), 1)
+    })
+    return id
+  }
+  // written in an order that is not the expected one
+  const cancelled = await withFile('cancelled', new Date('2026-12-01T17:00:00Z'))
+  const olderDraft = await withFile('draft')
+  const later = await withFile('scheduled', new Date('2026-12-09T17:00:00Z'))
+  const newerDraft = await withFile('draft')
+  const sooner = await withFile('scheduled', new Date('2026-12-03T17:00:00Z'))
+  const uses = await run((tx) => tx.posts.usingMedia(org, [file]))
+  expect(uses.map((u) => u.postId)).toEqual([sooner, later, newerDraft, olderDraft, cancelled])
+  expect([...uses].sort(compareUses)).toEqual(uses)
+  expect(uses[0]?.timezone).toBe('Europe/Rome')
+  expect(uses[0]?.updatedAt).toBeInstanceOf(Date)
 })

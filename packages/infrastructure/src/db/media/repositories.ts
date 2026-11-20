@@ -501,7 +501,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
     async mediaInFolders(organizationId, workspaceId, folderIds) {
       if (folderIds.length === 0) return []
       const rows = await db
-        .select({ id: libraryItems.mediaId })
+        .select({ mediaId: libraryItems.mediaId, folderId: libraryItems.folderId })
         .from(libraryItems)
         .where(
           and(
@@ -510,7 +510,7 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
             inArray(libraryItems.folderId, [...folderIds]),
           ),
         )
-      return rows.map((r) => r.id)
+      return rows.flatMap((r) => (r.folderId === null ? [] : [{ ...r, folderId: r.folderId }]))
     },
     async deleteFolders(organizationId, workspaceId, folderIds) {
       if (folderIds.length === 0) return

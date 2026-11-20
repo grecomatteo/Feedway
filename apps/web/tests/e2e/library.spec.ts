@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { seed } from '@app/infrastructure/testing'
 import { libraryFile } from './support/media.ts'
-import { addPerson, newPerson, ownAddress, signIn } from './support/people.ts'
+import { addPerson, adminQuery, newPerson, ownAddress, signIn } from './support/people.ts'
 
 // The library (plan 04 Task 12, spec §11.8): «Libreria» in the sidebar from Editor up, the files of
 // the chosen client with folders and tags, move with «Sposta in…» and by dragging, the video
@@ -327,4 +327,122 @@ test('a Viewer sees no «Libreria» and the address gives «Pagina non trovata»
   await expect(page.getByRole('link', { name: 'Libreria' })).toHaveCount(0)
   await page.goto(`/${org}/libreria`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
+})
+
+/** A post of the client with these files, written by the Editor and then put in a state. */
+async function postWith(
+  page: Page,
+  org: string,
+  client: string,
+  mediaIds: string[],
+  status: 'draft' | 'scheduled' | 'cancelled',
+) {
+  const res = await page.request.post(`/api/v1/orgs/${org}/workspaces/${client}/posts`, {
+    headers: { origin: new URL(process.env.E2E_BASE_URL ?? '').origin, 'x-app-request': '1' },
+    data: { type: 'photo', mediaIds, caption: { common: `Pane ${status}` } },
+  })
+  expect(res.status()).toBeLessThan(300)
+  const { id } = (await res.json()) as { id: string }
+  if (status !== 'draft') await setStatus(id, status)
+  return id
+}
+/** A post scheduled, or cancelled, from elsewhere: on 10 June 2027 at 18:00 in Rome. */
+const setStatus = (postId: string, status: 'scheduled' | 'cancelled') =>
+  adminQuery(
+    `update posts set status = $2, scheduled_at = '2027-06-10T16:00:00Z', updated_at = now(),
+            scheduled_by = case when $2 = 'scheduled' then created_by end
+      where id = $1`,
+    [postId, status],
+  )
+
+test('the post a file is in is said the same way with every filter (D-80.7)', async ({ page }) => {
+  const { org, client } = await editorWithLibrary(page)
+  const [file] = await adminQuery<{ id: string }>(
+    "select id from media where workspace_id = $1 and original_name = 'pane-01.jpg'",
+    [client],
+  )
+  const id = file?.id ?? ''
+  await postWith(page, org, client, [id], 'cancelled')
+  await postWith(page, org, client, [id], 'scheduled')
+  await postWith(page, org, client, [id], 'draft')
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  const label = /Nel post di gio 10 giu 2027, 18:00/
+  await expect(tile(page, 'pane-01.jpg')).toContainText(label)
+
+  await page.getByRole('button', { name: 'Nei post' }).click()
+  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
+  await expect(tile(page, 'pane-01.jpg')).toContainText(label)
+
+  await page.getByRole('button', { name: 'Nei post' }).click()
+  await page.getByRole('searchbox', { name: 'Cerca per nome' }).fill('pane')
+  await expect(grid(page).getByRole('listitem')).toHaveCount(1)
+  await expect(tile(page, 'pane-01.jpg')).toContainText(label)
+})
+
+test('the file of a scheduled post says it is not deleted, without asking first (D-80.4)', async ({
+  page,
+}) => {
+  const { org, client } = await editorWithLibrary(page)
+  const [file] = await adminQuery<{ id: string }>(
+    "select id from media where workspace_id = $1 and original_name = 'cornetti.jpg'",
+    [client],
+  )
+  await postWith(page, org, client, [file?.id ?? ''], 'scheduled')
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  const reason = 'Non si può eliminare: è in un post programmato per gio 10 giu 2027 alle 18:00.'
+
+  // «⋯»: the item is off, with the reason
+  await tile(page, 'cornetti.jpg').getByRole('button', { name: 'Azioni per cornetti.jpg' }).click()
+  const item = page.getByRole('menuitem', { name: /Elimina/ })
+  await expect(item).toBeDisabled()
+  await expect(item).toContainText(reason)
+  await page.keyboard.press('Escape')
+
+  // the detail: off, the reason and the way to the post
+  await tile(page, 'cornetti.jpg')
+    .getByRole('button', { name: /cornetti\.jpg/ })
+    .first()
+    .click()
+  const detail = page.getByRole('dialog', { name: 'cornetti.jpg' })
+  await expect(detail.getByRole('button', { name: 'Elimina' })).toBeDisabled()
+  await expect(detail.getByText(reason)).toBeVisible()
+  await expect(
+    detail.getByRole('link', { name: 'Toglilo dal post o annulla il post per eliminarlo.' }),
+  ).toHaveAttribute('href', new RegExp(`/spazi/${client}/post/`))
+  await expect(page.getByRole('dialog', { name: /Eliminare/ })).toHaveCount(0)
+  const results = await axe(page)
+  expect(results.violations).toEqual([])
+})
+
+test('a post scheduled after the page was read: the refusal says why, and the file follows', async ({
+  page,
+}) => {
+  const { org, client } = await editorWithLibrary(page)
+  const [file] = await adminQuery<{ id: string }>(
+    "select id from media where workspace_id = $1 and original_name = 'cornetti.jpg'",
+    [client],
+  )
+  const post = await postWith(page, org, client, [file?.id ?? ''], 'draft')
+  await page.goto(`/${org}/spazi/${client}/libreria`)
+  await expect(tile(page, 'cornetti.jpg')).toContainText('In una bozza')
+
+  await tile(page, 'cornetti.jpg')
+    .getByRole('button', { name: /cornetti\.jpg/ })
+    .first()
+    .click()
+  const detail = page.getByRole('dialog', { name: 'cornetti.jpg' })
+  await setStatus(post, 'scheduled')
+  await detail.getByRole('button', { name: 'Elimina' }).click()
+  await page
+    .getByRole('dialog', { name: 'Eliminare «cornetti.jpg»?' })
+    .getByRole('button', { name: 'Elimina' })
+    .click()
+  const reason = 'Non si può eliminare: è in un post programmato per gio 10 giu 2027 alle 18:00.'
+  await expect(page.getByText(reason).first()).toBeVisible()
+  // the detail read again: off, with the reason
+  await expect(detail.getByRole('button', { name: 'Elimina' })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('alert').filter({ hasText: reason })).toBeVisible()
+  await expect(tile(page, 'cornetti.jpg')).toContainText('Nel post di gio 10 giu 2027, 18:00')
+  await expect(grid(page).getByRole('listitem')).toHaveCount(3)
 })

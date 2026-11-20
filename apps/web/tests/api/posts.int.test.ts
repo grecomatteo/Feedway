@@ -686,6 +686,8 @@ describe('files of the posts in the library', () => {
       postId: scheduled.id,
       status: 'scheduled',
       scheduledAt: scheduled.scheduledAt,
+      timezone: 'Europe/Rome',
+      count: 1,
     })
     const error = await expectError(
       call('editor', 'DELETE', `${library}/${fileId}`),
@@ -731,6 +733,82 @@ describe('files of the posts in the library', () => {
       call('editor', 'GET', `${library}?limit=100`),
     )
     expect(all.items.map((m) => m.id)).toContain(loose)
+  })
+
+  test('the use of a file is the same with every filter (D-80.7)', async () => {
+    const ws = `/api/v1/orgs/${org.slug}/workspaces/${forno}`
+    const fileId = await video()
+    const folder = await expectOk<{ id: string }>(
+      call('manager', 'POST', `${ws}/folders`, {
+        name: `Uso ${randomUUID().slice(0, 6)}`,
+        parentId: null,
+      }),
+    )
+    await expectOk(
+      call('manager', 'PATCH', `${ws}/media/${fileId}`, { folderId: folder.id, tags: ['uso'] }),
+    )
+    // a cancelled post, then a draft: the draft is the use that counts
+    const toCancel = await expectOk(
+      schedule('manager', await draft('editor', { mediaIds: [fileId] })),
+    )
+    await expectOk(
+      call('manager', 'POST', `${base()}/${toCancel.id}/cancel`, { version: toCancel.version }),
+    )
+    const inDraft = await draft('editor', { mediaIds: [fileId] })
+    const expected = {
+      postId: inDraft.id,
+      status: 'draft',
+      scheduledAt: inDraft.scheduledAt,
+      timezone: 'Europe/Rome',
+      count: 2,
+    }
+    for (const query of ['', 'inPosts=true', `folder=${folder.id}`, 'tag=uso', 'kind=video']) {
+      const listed = await expectOk<{ items: { id: string; usedIn: unknown }[] }>(
+        call('editor', 'GET', `${ws}/media?limit=100&${query}`),
+      )
+      expect(listed.items.find((m) => m.id === fileId)?.usedIn, query).toEqual(expected)
+    }
+    const one = await expectOk<{ usedIn: unknown }>(call('editor', 'GET', `${ws}/media/${fileId}`))
+    expect(one.usedIn).toEqual(expected)
+  })
+
+  test('the file says it is not deleted exactly when the deletion is refused (D-80.4)', async () => {
+    const ws = `/api/v1/orgs/${org.slug}/workspaces/${forno}`
+    type Seen = { deleteBlockedBy: unknown }
+    const scheduled = await expectOk(schedule('manager', await draft()))
+    const blocked = scheduled.media[0]?.id ?? ''
+    const free = (await draft()).media[0]?.id ?? ''
+    const folder = await expectOk<{ id: string }>(
+      call('manager', 'POST', `${ws}/folders`, {
+        name: `Blocco ${randomUUID().slice(0, 6)}`,
+        parentId: null,
+      }),
+    )
+    await expectOk(call('manager', 'PATCH', `${ws}/media/${blocked}`, { folderId: folder.id }))
+    await expectOk(call('manager', 'PATCH', `${ws}/media/${free}`, { folderId: folder.id }))
+
+    const before = await expectOk<Seen>(call('editor', 'GET', `${ws}/media/${blocked}`))
+    expect(before.deleteBlockedBy).toEqual({
+      reason: 'in_scheduled_post',
+      postId: scheduled.id,
+      scheduledAt: scheduled.scheduledAt,
+      timezone: 'Europe/Rome',
+      count: 1,
+    })
+    const folders = await expectOk<{ items: { id: string; blockedFiles: number }[] }>(
+      call('editor', 'GET', `${ws}/folders`),
+    )
+    expect(folders.items.find((f) => f.id === folder.id)?.blockedFiles).toBe(1)
+    const error = await expectError(
+      call('editor', 'DELETE', `${ws}/media/${blocked}`),
+      409,
+      'CONFLICT',
+    )
+    expect(error).toMatchObject({ reason: 'media_in_scheduled_post' })
+
+    const freeSeen = await expectOk<Seen>(call('editor', 'GET', `${ws}/media/${free}`))
+    expect(freeSeen.deleteBlockedBy).toBeNull()
+    await expectOk(call('editor', 'DELETE', `${ws}/media/${free}`))
   })
 
   test('a folder with a file of a scheduled post is not deleted (409)', async () => {

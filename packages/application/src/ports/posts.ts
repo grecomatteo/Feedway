@@ -1,4 +1,4 @@
-import type { Post, PostCover, PostStatus, PublishingHistoryFacts } from '@app/domain'
+import type { MediaUse, Post, PostCover, PostStatus, PublishingHistoryFacts } from '@app/domain'
 
 // The posts of a workspace (spec §13, plan 06 Task 3). Every method takes the agency and the
 // workspace, and filters by them in SQL as well: row level security is the second barrier. The
@@ -131,22 +131,14 @@ export interface PostRepository {
   /** What `PublishingHistory` answers, read from the scheduled destinations. */
   publishingFacts(query: PublishingHistoryQuery): Promise<PublishingHistoryFacts>
   /**
-   * The posts of the agency, not deleted, that use the file (as a file or as a cover), the
-   * scheduled ones first: a file of a scheduled post is not deleted (D-18).
+   * The posts of the agency, not deleted, that use the file (as a file or as a cover), each post
+   * once per file, in the order of `compareUses` (D-80.7): `primaryUse` and `deletionBlock`
+   * decide what the library says and whether a file is deleted (D-18).
    */
   usingMedia(
     organizationId: string,
     mediaIds: readonly string[],
-  ): Promise<
-    {
-      mediaId: string
-      postId: string
-      status: PostStatus
-      scheduledAt: Date | null
-      /** the post's own (D-58), for the day a message names */
-      timezone: string
-    }[]
-  >
+  ): Promise<(MediaUse & { mediaId: string })[]>
   /**
    * The posts of these workspaces with one of these states and a time in `[from, to)`, by time
    * (the agenda of «Oggi», redesign R3); at most `limit`.
