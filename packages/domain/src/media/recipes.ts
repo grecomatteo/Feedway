@@ -1,4 +1,5 @@
 import { VARIANT_RECIPE, type VariantPurpose } from './media.js'
+import { REEL_ENCODE, REEL_MAX_FPS } from './reel.js'
 
 // The copies to publish made when a post is scheduled (plan 07 P4, Task 6): what the post's
 // choices ask of a file. The recipe is written in the copy's row and in its storage key as a
@@ -157,4 +158,29 @@ export function fittedSize(
   }
   const scale = Math.min(1, STORY_WIDTH / w, STORY_HEIGHT / h)
   return { width: even(w * scale), height: even(h * scale) }
+}
+
+/** The frame rate of a converted copy: Meta takes 23 to 60 (§9.2), 30 is what it proposes. */
+export function copyFps(fps: number): number {
+  if (fps > REEL_MAX_FPS) return REEL_MAX_FPS
+  if (fps < COPY_MIN_FPS) return COPY_PROPOSED_FPS
+  return fps
+}
+const COPY_MIN_FPS = 23
+const COPY_PROPOSED_FPS = 30
+
+/**
+ * The video bitrate of a converted copy: the reel's (D-40), lower when the copy must stay under
+ * `maxBytes` (a story, 100 MB): the sound and a tenth of slack come off the budget.
+ */
+export function copyVideoBitrate(
+  durationMs: number,
+  maxBytes: number | null,
+): { bitrate: number; maxBitrate: number } {
+  const seconds = durationMs / 1000
+  if (maxBytes === null || seconds <= 0)
+    return { bitrate: REEL_ENCODE.videoBitrate, maxBitrate: REEL_ENCODE.maxBitrate }
+  const budget = Math.floor((maxBytes * 8 * 0.9) / seconds) - REEL_ENCODE.audioBitrate
+  const max = Math.max(500_000, Math.min(REEL_ENCODE.maxBitrate, budget))
+  return { bitrate: Math.min(REEL_ENCODE.videoBitrate, max), maxBitrate: max }
 }

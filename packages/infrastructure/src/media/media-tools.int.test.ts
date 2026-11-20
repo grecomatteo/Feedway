@@ -414,6 +414,208 @@ describe('videos', () => {
 })
 
 /** One field of the video stream, per line of ffprobe's output. */
+describe('copies to publish (plan 07 Task 6)', () => {
+  /** A JPEG of `width` × `height`, left half red and right half blue, as the master is. */
+  async function halves(name: string, width: number, height: number) {
+    const left = await sharp({
+      create: { width: Math.floor(width / 2), height, channels: 3, background: '#ff0000' },
+    })
+      .png()
+      .toBuffer()
+    const bytes = await sharp({
+      create: { width, height, channels: 3, background: '#0000ff' },
+    })
+      .composite([{ input: left, left: 0, top: 0 }])
+      .jpeg({ quality: 95 })
+      .toBuffer()
+    return file(name, bytes)
+  }
+  const pixel = async (path: string, x: number, y: number) => {
+    const { data, info } = await sharp(path).raw().toBuffer({ resolveWithObject: true })
+    const at = (y * info.width + x) * info.channels
+    return [data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]
+  }
+  const near = (rgb: number[], target: number[]) =>
+    rgb.every((v, i) => Math.abs(v - (target[i] ?? 0)) < 40)
+  const RED = [255, 0, 0]
+  const BLUE = [0, 0, 255]
+  const photoOpts = { format: 'jpeg' as const, maxPixels: 50_000_000, maxBytes: 8_000_000 }
+
+  test('a photo cut to its box: the part of the box, at its proportions, sRGB, no profile', async () => {
+    const path = await halves('box.jpg', 1000, 2000)
+    // the left half's top: all red, 4:5
+    const made = await transformer.photo(path, join(dir, 'box-out.jpg'), {
+      ...photoOpts,
+      maxWidth: 1440,
+      crop: { x: 0, y: 0, width: 0.5, height: 0.3125 },
+    })
+    expect(made).toMatchObject({ ok: true, file: { width: 500, height: 625 } })
+    if (!made.ok) return
+    expect(near(await pixel(made.file.path, 490, 600), RED)).toBe(true)
+    const meta = await sharp(made.file.path).metadata()
+    expect(meta.format).toBe('jpeg')
+    expect(meta.icc).toBeUndefined()
+    expect(meta.exif).toBeUndefined()
+  })
+
+  test('a photo with white bands to 4:5, at most 1440 wide', async () => {
+    const path = await halves('pad.jpg', 2000, 4000)
+    const made = await transformer.photo(path, join(dir, 'pad-out.jpg'), {
+      ...photoOpts,
+      maxWidth: 1440,
+      pad: { ratio: 4 / 5, background: 'white' },
+    })
+    expect(made).toMatchObject({ ok: true, file: { width: 1440, height: 1800 } })
+    if (!made.ok) return
+    expect(near(await pixel(made.file.path, 5, 900), [255, 255, 255])).toBe(true)
+    expect(near(await pixel(made.file.path, 1434, 900), [255, 255, 255])).toBe(true)
+    expect(near(await pixel(made.file.path, 500, 900), RED)).toBe(true)
+  })
+
+  test('a story photo: 9:16 inside 1080×1920, black bands', async () => {
+    const path = await halves('story.jpg', 1600, 1200)
+    const made = await transformer.photo(path, join(dir, 'story-out.jpg'), {
+      ...photoOpts,
+      maxWidth: 1080,
+      maxHeight: 1920,
+      pad: { ratio: 9 / 16, background: 'black' },
+    })
+    expect(made).toMatchObject({ ok: true, file: { width: 1080, height: 1920 } })
+    if (!made.ok) return
+    expect(near(await pixel(made.file.path, 540, 20), [0, 0, 0])).toBe(true)
+    expect(near(await pixel(made.file.path, 1000, 960), BLUE)).toBe(true)
+  })
+
+  test('the copy for Facebook stays under its 4 MB', async () => {
+    const noise = await sharp({
+      create: {
+        width: 1440,
+        height: 1800,
+        channels: 3,
+        noise: { type: 'gaussian', mean: 128, sigma: 90 },
+      },
+    })
+      .jpeg({ quality: 100 })
+      .toBuffer()
+    const path = await file('noise.jpg', noise)
+    const made = await transformer.photo(path, join(dir, 'fb-out.jpg'), {
+      ...photoOpts,
+      maxWidth: 1440,
+      maxBytes: 4_000_000,
+    })
+    expect(made.ok && made.file.sizeBytes <= 4_000_000).toBe(true)
+  })
+
+  const wideOpts = { width: 640, height: 360, durationMs: 3000, sizeBytes: 100_000, fps: 25 }
+
+  test('a 16:9 reel with bands: 9:16, the picture whole between black bands', async () => {
+    const path = makeVideo(dir, 'wide.mp4')
+    const out = join(dir, 'reel-pad.mp4')
+    const made = await transformer.videoFit(path, out, {
+      ...wideOpts,
+      fit: 'pad',
+      trimMs: null,
+      maxBytes: null,
+    })
+    expect(made).toMatchObject({ ok: true, file: { mime: 'video/mp4', width: 640, height: 1136 } })
+    expect(ffprobeField(out, 'stream=codec_name,profile,width,height,pix_fmt')).toEqual([
+      'h264,High,640,1136,yuv420p',
+    ])
+    expect(audioField(out, 'stream=codec_name,sample_rate')).toEqual(['aac,48000'])
+    expect(await moovBeforeMdat(out)).toBe(true)
+    const frame = join(dir, 'reel-pad.jpg')
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', out, '-frames:v', '1', frame])
+    expect(near(await pixel(frame, 320, 10), [0, 0, 0])).toBe(true)
+    expect(near(await pixel(frame, 320, 1125), [0, 0, 0])).toBe(true)
+  })
+
+  test('a 16:9 reel cut at the centre: 9:16 of its height', async () => {
+    const path = makeVideo(dir, 'wide.mp4')
+    const out = join(dir, 'reel-crop.mp4')
+    const made = await transformer.videoFit(path, out, {
+      ...wideOpts,
+      fit: 'crop',
+      trimMs: null,
+      maxBytes: null,
+    })
+    expect(made).toMatchObject({ ok: true, file: { width: 202, height: 360 } })
+    expect(ffprobeField(out, 'stream=width,height')).toEqual(['202,360'])
+  })
+
+  test('a story over 60 seconds is cut to its first 60, under its 100 MB', async () => {
+    const path = makeVideo(dir, 'story-65s.mp4')
+    const out = join(dir, 'story-cut.mp4')
+    const made = await transformer.videoFit(path, out, {
+      width: 90,
+      height: 160,
+      durationMs: 65_000,
+      sizeBytes: 1_000_000,
+      fps: 25,
+      fit: 'pad',
+      trimMs: 60_000,
+      maxBytes: 100_000_000,
+    })
+    expect(made).toMatchObject({ ok: true, file: { width: 90, height: 160 } })
+    const seconds = Number(
+      execFileSync(
+        'ffprobe',
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out],
+        {
+          encoding: 'utf8',
+        },
+      ),
+    )
+    expect(seconds).toBeGreaterThan(59.5)
+    expect(seconds).toBeLessThan(60.5)
+  })
+
+  test('an HDR video converted to fit comes out SDR', async () => {
+    const path = makeVideo(dir, 'hdr-hlg.mov')
+    const out = join(dir, 'fit-hdr.mp4')
+    const made = await transformer.videoFit(path, out, {
+      width: 1080,
+      height: 2000,
+      durationMs: 1000,
+      sizeBytes: 1_000_000,
+      fps: 30,
+      fit: 'crop',
+      trimMs: null,
+      maxBytes: null,
+    })
+    expect(made.ok).toBe(true)
+    expect(ffprobeField(out, 'stream=codec_name,pix_fmt,color_transfer')).toEqual([
+      'h264,yuv420p,bt709',
+    ])
+  })
+
+  test('a frame of the original at the last true frame, then the cover cut to 9:16', async () => {
+    const path = makeVideo(dir, 'wide.mp4')
+    // 3 s at 25 fps: the last frame starts at 2960 ms
+    const still = await transformer.videoStill(path, join(dir, 'still.jpg'), {
+      ...wideOpts,
+      atMs: 2960,
+    })
+    expect(still).toMatchObject({ ok: true, file: { mime: 'image/jpeg', width: 640, height: 360 } })
+    if (!still.ok) return
+    const cover = await transformer.photo(still.file.path, join(dir, 'cover.jpg'), {
+      ...photoOpts,
+      maxWidth: 1080,
+      maxHeight: 1920,
+      crop: { x: (1 - 0.31640625) / 2, y: 0, width: 0.31640625, height: 1 },
+    })
+    expect(cover).toMatchObject({ ok: true, file: { width: 203, height: 360 } })
+  })
+
+  test('past the end of the video there is no frame: refused, not an empty file', async () => {
+    const path = makeVideo(dir, 'wide.mp4')
+    const still = await transformer.videoStill(path, join(dir, 'still-past.jpg'), {
+      ...wideOpts,
+      atMs: 10_000,
+    })
+    expect(still).toEqual({ ok: false, reason: 'unreadable' })
+  })
+})
+
 function ffprobeField(path: string, entries: string): string[] {
   return execFileSync(
     'ffprobe',
