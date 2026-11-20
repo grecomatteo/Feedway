@@ -7,6 +7,7 @@ import type {
 } from '@app/application'
 import {
   postStatusFromTargets,
+  type AttemptOutcome,
   type PostType,
   type TargetStatus,
   type TargetStep,
@@ -248,6 +249,39 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
         .where(and(eq(postTargets.organizationId, organizationId), eq(postTargets.postId, postId)))
         .orderBy(asc(postTargets.createdAt), asc(postTargets.id))
       return rows.map(targetOf)
+    },
+    async attemptsOfPost(organizationId, postId, limit) {
+      const rows = await db
+        .select({
+          targetId: targetAttempts.targetId,
+          accountId: postTargets.accountId,
+          step: targetAttempts.step,
+          outcome: targetAttempts.outcome,
+          errorCode: targetAttempts.errorCode,
+          createdAt: targetAttempts.createdAt,
+        })
+        .from(targetAttempts)
+        .innerJoin(
+          postTargets,
+          and(
+            eq(postTargets.organizationId, targetAttempts.organizationId),
+            eq(postTargets.id, targetAttempts.targetId),
+          ),
+        )
+        .where(
+          and(
+            eq(targetAttempts.organizationId, organizationId),
+            eq(postTargets.postId, postId),
+            inArray(targetAttempts.outcome, ['done', 'permanent', 'uncertain']),
+          ),
+        )
+        .orderBy(desc(targetAttempts.createdAt), desc(targetAttempts.id))
+        .limit(limit)
+      return rows.map((row) => ({
+        ...row,
+        step: row.step as TargetStep,
+        outcome: row.outcome as AttemptOutcome,
+      }))
     },
     async publishedNear(organizationId, accountId, { from, to }) {
       const rows = await db

@@ -3,10 +3,12 @@
 export { createDraft, createPost, deletePost, updatePost } from './drafts.js'
 export type { CreateDraftInput } from './drafts.js'
 export type { PostContent, PostsDeps, PostWhenInput, UpdatePostInput } from './common.js'
-export { cancelPost, schedulePost, unschedulePost } from './schedule.js'
+export { cancelPost, publishNow, schedulePost, unschedulePost } from './schedule.js'
 export { getPost, listPosts } from './read.js'
 export type { PostDto, PostMediaDto } from './read.js'
 export { getStatuses } from './statuses.js'
+export { ACTIVITY_KINDS, getPostOutcome } from './outcome.js'
+export type { ActivityDto, DestinationOutcomeDto, PostOutcomeDto } from './outcome.js'
 export { toCheckInput } from './to-check-input.js'
 // The content settings of a workspace and the notes of a post (plan 06 Task 7).
 export { createLabel, deleteLabel, listLabels, updateLabel } from './labels.js'

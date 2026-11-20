@@ -139,6 +139,18 @@ describe('toErrorResponse', () => {
     expect(unknown.body.error).not.toHaveProperty('reason')
   })
 
+  test('«Riprendi» with the time passed tells the panel to ask for a new one (plan 07 Task 9)', () => {
+    const r = toErrorResponse(
+      new DomainError('VALIDATION', 'L’ora del post è passata: scegli quando pubblicarlo', {
+        field: 'when',
+        reason: 'paused_time_passed',
+      }),
+      REQUEST_ID,
+    )
+    expect(r.status).toBe(422)
+    expect(r.body.error).toMatchObject({ reason: 'paused_time_passed' })
+  })
+
   test('a post that cannot be scheduled carries its checks, as post-checks answers them', () => {
     const report = {
       outcomes: [

@@ -124,12 +124,16 @@ export const mayPublish = (actor: OrgActor, post: PostRecord) =>
 /** A move the post's state does not allow (§9.3, P7). */
 export function wrongState(
   status: PostStatus,
-  action: 'schedule' | 'edit' | 'unschedule' | 'cancel' | 'delete',
+  action: 'schedule' | 'publishNow' | 'edit' | 'unschedule' | 'cancel' | 'delete',
 ) {
   const messages: Record<typeof action, Partial<Record<PostStatus, string>>> = {
     schedule: {
       scheduled: 'Il post è già programmato',
       cancelled: 'Il post è annullato: non si programma di nuovo',
+    },
+    publishNow: {
+      scheduled: 'Il post è già programmato: riportalo in bozza per pubblicarlo subito',
+      cancelled: 'Il post è annullato: non si pubblica',
     },
     edit: { cancelled: 'Il post è annullato: non si modifica' },
     unschedule: {
@@ -238,7 +242,8 @@ export async function recordPost(
     | 'post.scheduled'
     | 'post.unscheduled'
     | 'post.cancelled'
-    | 'post.deleted',
+    | 'post.deleted'
+    | 'post.published_now',
   post: { id: string; workspaceId: string; scheduledAt?: Date | null },
   ip: string | null,
 ) {

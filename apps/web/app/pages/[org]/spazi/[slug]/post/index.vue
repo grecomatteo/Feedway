@@ -7,13 +7,15 @@ import type { StatusTone } from '~/components/StatusDot.vue'
 /**
  * «Post», a tab of the client's page (plan 06 Scelta 6, DESIGN.md «Scheda Post del cliente»): every
  * post of the client until the calendar arrives (stage 9), which keeps this list as its «Elenco».
- * «Tutti» first (Matteo 18/11), then Bozze · Programmati · Annullati, and a search on the text.
+ * «Tutti» first (Matteo 18/11), then Bozze · Programmati · Annullati («Pubblicati» in its place
+ * once some are out, D-89.18), and a search on the text.
  * Everyone who sees the client reads it; the Viewer sees no thumbnails (D-72, provisional (c)).
  */
 definePageMeta({ layout: 'agency' })
 
 type Status = PostResponse['status']
-type Filter = 'all' | Status
+/** «Pubblicati»: every post past «Programmato», out or on its way (D-89.18) */
+type Filter = 'all' | 'draft' | 'scheduled' | 'out' | 'cancelled'
 
 const org = useOrganization()
 const route = useRoute()
@@ -157,20 +159,14 @@ const whenOf = (p: PostResponse) => {
 const PLATFORMS: Platform[] = ['instagram', 'facebook']
 const platformsOf = (p: PostResponse) =>
   PLATFORMS.filter((pl) => destinationsOf(p).some((a) => a.platform === pl))
-const STATE: Record<Status, StatusTone> = {
-  draft: 'neutral',
-  scheduled: 'info',
-  cancelled: 'neutral',
-}
-const stateOf = (p: PostResponse) => ({
-  label: t(`posts.list.state.${p.status}`),
-  tone: STATE[p.status],
-})
+const stateOf = (p: PostResponse): { label: string; tone: StatusTone } => postStateOf(p, t)
+const filterOf = (s: Status): Filter => (isOutcomeStatus(s) ? 'out' : s)
 
 // ---- filter and search
 const filter = ref<Filter>('all')
 const query = ref('')
-const countOf = (s: Status) => (posts.value ?? []).filter((p) => p.status === s).length
+const countOf = (f: Filter) => (posts.value ?? []).filter((p) => filterOf(p.status) === f).length
+// «Pubblicati» takes the place of «Annullati» once there are some (D-89.18)
 const options = computed(() => [
   { value: 'all' as const, label: t('posts.list.filter.all'), count: posts.value?.length ?? 0 },
   { value: 'draft' as const, label: t('posts.list.filter.draft'), count: countOf('draft') },
@@ -179,16 +175,18 @@ const options = computed(() => [
     label: t('posts.list.filter.scheduled'),
     count: countOf('scheduled'),
   },
-  {
-    value: 'cancelled' as const,
-    label: t('posts.list.filter.cancelled'),
-    count: countOf('cancelled'),
-  },
+  countOf('out') > 0
+    ? { value: 'out' as const, label: t('posts.list.filter.out'), count: countOf('out') }
+    : {
+        value: 'cancelled' as const,
+        label: t('posts.list.filter.cancelled'),
+        count: countOf('cancelled'),
+      },
 ])
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 const visible = computed(() => {
   const rows = (posts.value ?? []).filter(
-    (p) => filter.value === 'all' || p.status === filter.value,
+    (p) => filter.value === 'all' || filterOf(p.status) === filter.value,
   )
   const q = fold(query.value.trim()).replace(/^@/, '')
   if (!q) return rows

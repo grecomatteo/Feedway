@@ -264,6 +264,73 @@ export const cancelPostRoute = defineContract({
   scope: 'organization',
 })
 
+export const publishNowRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/publish-now',
+  summary:
+    'Pubblica subito una bozza: i controlli del salvataggio, senza quello della data (422 con il loro esito)',
+  request: { params: PostParams, body: PostVersionRequest },
+  response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+/** What the page of the outcome tells (plan 07 Scelta 6), as `ACTIVITY_KINDS` of the posts. */
+export const POST_ACTIVITY_KINDS = [
+  'post.created',
+  'post.updated',
+  'post.scheduled',
+  'post.published_now',
+  'post.unscheduled',
+  'post.cancelled',
+  'post.retried',
+  'post.verified_manually',
+  'post.target_cancelled',
+  'post.resumed',
+  'target.published',
+  'target.failed',
+  'target.uncertain',
+] as const
+
+export const PostOutcomeResponse = z.object({
+  destinations: z.array(
+    z.object({
+      accountId: Id,
+      status: z.enum(TARGET_STATUSES),
+      permalink: z.string().nullable(),
+      publishedAt: Timestamp.nullable(),
+      verifiedAt: Timestamp.nullable(),
+      /** Feedway's code of the last error, never Meta's message */
+      errorCode: z.string().nullable(),
+      /** why Meta does not confirm a post it has: `not_found`, `failed`, `wrong_type`… */
+      problem: z.string().nullable(),
+      nextAttemptAt: Timestamp.nullable(),
+    }),
+  ),
+  /** the latest first */
+  activity: z.array(
+    z.object({
+      at: Timestamp,
+      kind: z.enum(POST_ACTIVITY_KINDS),
+      /** null: the worker */
+      actorName: z.string().nullable(),
+      accountId: Id.nullable(),
+      errorCode: z.string().nullable(),
+    }),
+  ),
+})
+export type PostOutcomeResponse = z.infer<typeof PostOutcomeResponse>
+
+export const getPostOutcomeRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/outcome',
+  summary: 'L’esito di ogni destinazione di un post e la sua attività',
+  request: { params: PostParams },
+  response: PostOutcomeResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
 const DestinationParams = z.strictObject({ org: OrgSlug, id: Id, postId: Id, accountId: Id })
 
 // After the worker (plan 07 Task 8): a destination is named by its account, one per post
@@ -331,6 +398,8 @@ export const postRoutes = [
   schedulePostRoute,
   unschedulePostRoute,
   cancelPostRoute,
+  publishNowRoute,
+  getPostOutcomeRoute,
   retryTargetRoute,
   markVerifiedRoute,
   cancelTargetRoute,

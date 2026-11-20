@@ -16,7 +16,9 @@ const ready = useHydrated()
 const many = computed(() => (me.value?.organizations.length ?? 0) > 1)
 // the editor of a post is a page with no side bar and no shell rows: its own row at the top
 // (screens 08 and 09)
-const editor = computed(() => route.meta['editor'] === true)
+// (screens 08 and 09); the page of a post's outcome keeps them (screen 13)
+const outcomePage = usePostOutcomePage()
+const editor = computed(() => route.meta['editor'] === true && !outcomePage.value)
 
 // A suspension made by the platform must show without a reload: ask again who the person is
 // when the tab comes back to the front and when they move to another agency.

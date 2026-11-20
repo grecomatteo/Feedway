@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MediaDto } from '@app/contracts'
+import type { MediaDto, PostResponse } from '@app/contracts'
 import { usePostEditor } from '~/composables/usePostEditor'
 
 /**
@@ -18,6 +18,10 @@ const props = defineProps<{
   profiles: WorkspaceProfile[]
   profilesLoading: boolean
   back: string
+}>()
+const emit = defineEmits<{
+  /** a post that is out or on its way: the page of the outcome takes over (Scelta 6) */
+  outcome: [post: PostResponse]
 }>()
 const { t } = useI18n()
 const flash = useFlash()
@@ -177,6 +181,36 @@ async function schedule() {
   })
   await navigateTo(props.back)
 }
+// a post past «Programmato» is read on the page of the outcome, not changed here
+watch(
+  () => e.post.value,
+  (p) => {
+    if (p && isOutcomeStatus(p.status)) emit('outcome', p)
+  },
+)
+
+/** «Pubblica subito» (Scelta 2, screen 11): asks first, with what goes out where. */
+const asking = ref(false)
+const going = computed(() =>
+  (e.report.value?.destinations ?? []).flatMap((d) => {
+    const a = accounts.value.get(d.accountId)
+    if (!a) return []
+    return [
+      {
+        id: a.id,
+        platform: a.platform,
+        name: a.platform === 'instagram' && a.username ? `@${a.username}` : a.name,
+        what: d.format && d.platform ? e.whatGoesOut(d.platform, d.format, d.media) : '',
+      },
+    ]
+  }),
+)
+async function publishNow() {
+  asking.value = false
+  const p = await e.publishNow()
+  if (p) emit('outcome', p)
+}
+
 const confirm = ref<null | 'cancel' | 'remove' | 'leave'>(null)
 let leaveTo: (() => void) | null = null
 async function confirmed() {
@@ -276,6 +310,7 @@ const confirmText = computed(() => {
         :editor="editor"
         :accounts-count="e.destinations.value.length"
         @schedule="schedule"
+        @publish-now="asking = true"
         @cancel="confirm = 'cancel'"
         @remove="confirm = 'remove'"
         @exit="exit"
@@ -471,6 +506,7 @@ const confirmText = computed(() => {
       :editor="editor"
       :accounts-count="e.destinations.value.length"
       @schedule="schedule"
+      @publish-now="asking = true"
       @cancel="confirm = 'cancel'"
       @remove="confirm = 'remove'"
       @exit="exit"
@@ -510,6 +546,43 @@ const confirmText = computed(() => {
             :show-files="client.myRole !== 'viewer'"
             reserve="13rem"
           />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="asking"
+      :title="$t('posts.confirm.publishTitle')"
+      :description="$t('posts.confirm.publishText')"
+      :ui="{ description: 'sr-only' }"
+    >
+      <template #body>
+        <ul
+          class="divide-y divide-(--app-border) rounded-card border border-(--app-border)"
+          data-publish-now-list
+        >
+          <li v-for="d in going" :key="d.id" class="flex min-h-11 items-center gap-3 px-3 py-2">
+            <PlatformIcons :platforms="[d.platform]" />
+            <span class="min-w-0 flex-1 truncate font-medium">{{ d.name }}</span>
+            <span class="shrink-0 text-detail text-(--app-text-muted)">{{ d.what }}</span>
+          </li>
+        </ul>
+        <p class="mt-4 text-(--app-text-muted)">{{ $t('posts.confirm.publishText') }}</p>
+      </template>
+      <template #footer>
+        <div class="flex w-full flex-wrap justify-end gap-3">
+          <UButton color="neutral" variant="outline" class="min-h-control" @click="asking = false">
+            {{ $t('posts.confirm.back') }}
+          </UButton>
+          <UButton
+            icon="i-lucide-send"
+            class="min-h-control"
+            :loading="e.acting.value === 'publishNow'"
+            data-publish-now-confirm
+            @click="publishNow"
+          >
+            {{ $t('posts.confirm.publish') }}
+          </UButton>
         </div>
       </template>
     </UModal>

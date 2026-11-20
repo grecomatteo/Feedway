@@ -80,6 +80,16 @@ export interface NewTargetAttempt {
   durationMs: number
 }
 
+/** One call of a destination of a post, as the page of the outcome reads it. */
+export interface PostAttempt {
+  targetId: string
+  accountId: string
+  step: TargetStep
+  outcome: AttemptOutcome
+  errorCode: string | null
+  createdAt: Date
+}
+
 /** A destination whose time has come, for the reconciler. */
 export interface DueTarget {
   organizationId: string
@@ -159,6 +169,12 @@ export interface PublishingRepository {
   ): Promise<{ postId: string; workspaceId: string }[]>
   /** The destinations of a post of the agency, in the order they were added. */
   targetsOfPost(organizationId: string, postId: string): Promise<PublishingTargetRecord[]>
+  /**
+   * The calls of the destinations of a post that ended a step or failed it for good (`done`,
+   * `permanent`, `uncertain`), the latest first, at most `limit`: the activity of the page of the
+   * outcome (plan 07 Scelta 6).
+   */
+  attemptsOfPost(organizationId: string, postId: string, limit: number): Promise<PostAttempt[]>
   /** The destinations of the account published in `[from, to)`, the latest first. */
   publishedNear(
     organizationId: string,

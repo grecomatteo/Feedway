@@ -154,6 +154,8 @@ export function usePostEditor(opts: {
   const split = ref(false)
   const destinations = ref<string[]>([])
   const when = ref<{ localDate: string; localTime: string } | null>(null)
+  /** «Programma» or «Pubblica subito» (Scelta 2): not saved, the date stays for «Programma» */
+  const mode = ref<'at' | 'now'>('at')
   const shareToFeed = ref(true)
   const choices = ref<ChoiceBody[]>([])
   const cover = ref<DraftBody['cover']>(null)
@@ -175,7 +177,9 @@ export function usePostEditor(opts: {
   const checkProblem = ref<string | null>(null)
   /** the answer of a «Programma» or «Salva modifiche» the server refused */
   const actionProblem = ref<string | null>(null)
-  const acting = ref<null | 'schedule' | 'unschedule' | 'cancel' | 'delete' | 'saveScheduled'>(null)
+  const acting = ref<
+    null | 'schedule' | 'publishNow' | 'unschedule' | 'cancel' | 'delete' | 'saveScheduled'
+  >(null)
 
   const status = computed(() => post.value?.status ?? 'draft')
   const mine = computed(() => !post.value || post.value.createdBy === org.me.value?.id)
@@ -305,13 +309,14 @@ export function usePostEditor(opts: {
   const archived = computed(() => opts.client.value.archivedAt !== null)
   function askChecks() {
     const b = body()
-    if (!when.value || archived.value) return
+    if (archived.value) return
+    if (mode.value === 'at' && !when.value) return
     checks.request({
       type: b.type,
       mediaIds: b.mediaIds,
       caption: b.caption,
       destinations: b.destinations,
-      when: { mode: 'at', ...when.value },
+      when: mode.value === 'now' || !when.value ? { mode: 'now' } : { mode: 'at', ...when.value },
       shareToFeed: b.shareToFeed,
       choices: b.choices,
       ...(b.cover ? { cover: b.cover } : {}),
@@ -657,12 +662,14 @@ export function usePostEditor(opts: {
   // ---- actions ----
   /** the files of the post when an action left: a refusal's report points into these */
   let sent: string[] | null = null
-  async function act(what: 'schedule' | 'unschedule' | 'cancel'): Promise<PostResponse | null> {
+  async function act(
+    what: 'schedule' | 'publishNow' | 'unschedule' | 'cancel',
+  ): Promise<PostResponse | null> {
     sent = null
     actionProblem.value = null
     acting.value = what
     try {
-      if (what === 'schedule') {
+      if (what === 'schedule' || what === 'publishNow') {
         await autosave.flush()
         if (save.value.status !== 'saved') return null
       }
@@ -674,7 +681,7 @@ export function usePostEditor(opts: {
       const keep = what === 'unschedule' && save.value.dirty
       const p = await call<PostResponse>(
         'POST',
-        `${base}/posts/${encodeURIComponent(id)}/${what}`,
+        `${base}/posts/${encodeURIComponent(id)}/${what === 'publishNow' ? 'publish-now' : what}`,
         { version },
       )
       if (keep) {
@@ -733,7 +740,29 @@ export function usePostEditor(opts: {
     }
     if (isConflict(e)) save.value = { ...save.value, status: 'conflict' }
     actionProblem.value =
-      b?.reason === 'post_not_schedulable' ? t('posts.actions.notSchedulable') : failure(e).message
+      b?.reason === 'post_not_schedulable'
+        ? t(mode.value === 'now' ? 'posts.actions.notPublishable' : 'posts.actions.notSchedulable')
+        : failure(e).message
+  }
+
+  /** «Carosello, 2 foto», «Post con 2 foto», «Reel»: what goes out on an account (screen 08). */
+  function whatGoesOut(platform: string, format: string, media: readonly number[]): string {
+    // the indices are of the files the report was made on, not of the editor's tiles
+    const kinds = media.map((i) => files.value.find((f) => f.id === reportMedia.value[i])?.kind)
+    const photos = kinds.filter((k) => k === 'image').length
+    if (format === 'multi_photo')
+      return photos === kinds.length
+        ? t('posts.summary.postWithPhotos', { n: photos }, photos)
+        : t('posts.summary.postWithFiles', { n: kinds.length }, kinds.length)
+    const label = t(`rules.formats.${platform}.${format}`)
+    if (format !== 'carousel') return label
+    const count =
+      photos === kinds.length
+        ? t('posts.summary.photos', { n: photos }, photos)
+        : kinds.every((k) => k === 'video')
+          ? t('posts.summary.videos', { n: kinds.length }, kinds.length)
+          : t('posts.summary.files', { n: kinds.length }, kinds.length)
+    return `${label}, ${count}`
   }
 
   // ---- the page around ----
@@ -770,6 +799,14 @@ export function usePostEditor(opts: {
     split,
     destinations,
     when,
+    mode,
+    /** «Programma» · «Pubblica subito»: the checks change with it */
+    setMode: (next: 'at' | 'now') => {
+      if (mode.value === next) return
+      mode.value = next
+      actionProblem.value = null
+      askChecks()
+    },
     shareToFeed,
     choices,
     cover,
@@ -810,6 +847,8 @@ export function usePostEditor(opts: {
     },
     reload,
     schedule: () => act('schedule'),
+    publishNow: () => act('publishNow'),
+    whatGoesOut,
     unschedule: () => act('unschedule'),
     cancel: () => act('cancel'),
     saveScheduled,
