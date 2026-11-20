@@ -370,7 +370,7 @@ watch(
             :count="profiles.data.value ? list.length : null"
           >
             <UButton
-              v-if="canChange && orphans.length > 0"
+              v-if="canChange && orphans.length > 0 && !profiles.error.value"
               size="sm"
               color="neutral"
               variant="outline"
@@ -388,7 +388,7 @@ watch(
           />
           <LoadFailed
             v-else-if="profiles.error.value"
-            :text="$t('workspaceAccounts.loadError')"
+            :text="$t('client.profilesLoadError')"
             @retry="profiles.refresh()"
           />
           <EmptyState

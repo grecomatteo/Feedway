@@ -44,7 +44,8 @@ const ordinal = (n: number) => t('posts.summary.place', { n })
 /** «File 3», «su Instagram, @fornoluce»: whom an outcome is about. */
 function subject(o: Outcome): string {
   const parts: string[] = []
-  if (o.subject.kind === 'media') parts.push(t('posts.summary.file', { n: o.subject.index + 1 }))
+  if (o.subject.kind === 'media')
+    parts.push(t('posts.summary.file', { n: placeOf(o.subject.index) }))
   if (o.subject.kind === 'cover') parts.push(t('posts.summary.cover'))
   if (o.subject.kind === 'destination') parts.push(handleOf(o.subject.accountId))
   else if (o.platform) {
@@ -75,20 +76,66 @@ function fixAt(o: Outcome): { section: string; label: string } | null {
 }
 const proposal = computed(() => (e.type.value ? properType(e.type.value, e.kinds.value) : null))
 
+/** The place of a file of the report (its index among the files sent) in the post, from 1. */
+function placeOf(index: number): number {
+  const id = e.reportMedia.value[index]
+  const at = e.entries.value.findIndex((x) => x.file?.id === id)
+  return at === -1 ? index + 1 : at + 1
+}
+/**
+ * Files still uploading from this browser (D-80.1): the server knows nothing of them yet, so
+ * a report would count the post without them («Carosello con un file solo»). Until each has
+ * reached the library the summary says «In attesa del file N» and nothing else.
+ */
+const uploading = computed(() =>
+  e.entries.value.flatMap((x, i) => {
+    if (x.file) return []
+    const state = e.uploadItem(x)?.state
+    return state === 'error' || state === 'rejected' ? [] : [i + 1]
+  }),
+)
+/** A file not ready yet is a wait, not a fault: a quiet row, not a red block. */
+const waiting = computed(() => [
+  ...uploading.value.map((n) => ({
+    key: `upload:${String(n)}`,
+    title: t('posts.summary.waitingFile', { n }),
+    text: t('posts.summary.waitingUpload'),
+  })),
+  ...(uploading.value.length > 0 ? [] : blocks.value)
+    .filter((o) => o.code === 'media_processing')
+    .map((o) => ({
+      key: o.key,
+      title:
+        o.subject.kind === 'media'
+          ? t('posts.summary.waitingFile', { n: placeOf(o.subject.index) })
+          : t('posts.summary.waitingCover'),
+      text: msg(o).text,
+    })),
+])
+const faults = computed(() => blocks.value.filter((o) => o.code !== 'media_processing'))
+
 const rows = computed(() =>
   (report.value?.destinations ?? []).map((d) => {
     const keys = new Set(d.outcomeKeys)
     const mine = outcomes.value.filter(
       (o) => keys.has(o.key) || report.value?.postKeys.includes(o.key),
     )
-    const blocked = mine.some((o) => o.level === 'block') || d.format === null
+    // a file not ready yet is a wait: the row says so, not «Bloccato» (D-80.1)
+    const waits = mine.some((o) => o.code === 'media_processing')
+    const blocked =
+      mine.some((o) => o.level === 'block' && o.code !== 'media_processing') || d.format === null
     const open = mine.filter((o) => o.level === 'warning' && !o.chosen).length
     const missing =
       d.format === null || e.type.value === null
         ? []
-        : missingFiles(e.kinds.value, d.media).map((m) =>
+        : missingFiles(
+            e.reportMedia.value.map((id) => ({
+              kind: e.files.value.find((f) => f.id === id)?.kind ?? null,
+            })),
+            d.media,
+          ).map((m) =>
             t(m.kind === 'video' ? 'posts.summary.missingVideo' : 'posts.summary.missingPhoto', {
-              place: ordinal(m.index + 1),
+              place: ordinal(placeOf(m.index)),
             }),
           )
     return {
@@ -101,20 +148,26 @@ const rows = computed(() =>
         (e.caption[d.platform] ?? '').trim() !== '' &&
         e.caption[d.platform] !== e.caption.common,
       missing,
-      tone: blocked ? 'block' : open > 0 ? 'warning' : 'ok',
+      tone: blocked ? 'block' : waits || open > 0 ? 'warning' : 'ok',
       state: blocked
         ? t('posts.summary.blocked')
-        : open > 0
-          ? t('posts.summary.toChoose', { n: open }, open)
-          : t('posts.summary.ready'),
+        : waits
+          ? t('posts.summary.waitingShort')
+          : open > 0
+            ? t('posts.summary.toChoose', { n: open }, open)
+            : t('posts.summary.ready'),
     }
   }),
 )
 /** «Carosello, 2 foto», «Post con 2 foto», «Reel»: what goes out on an account (screen 08). */
 function whatOf(platform: string, format: string, media: readonly number[]): string {
-  const kinds = media.map((i) => e.kinds.value[i]?.kind)
+  // the indices are of the files the report was made on, not of the editor's tiles
+  const kinds = media.map((i) => e.files.value.find((f) => f.id === e.reportMedia.value[i])?.kind)
   const photos = kinds.filter((k) => k === 'image').length
-  if (format === 'multi_photo') return t('posts.summary.postWithPhotos', { n: photos }, photos)
+  if (format === 'multi_photo')
+    return photos === kinds.length
+      ? t('posts.summary.postWithPhotos', { n: photos }, photos)
+      : t('posts.summary.postWithFiles', { n: kinds.length }, kinds.length)
   const label = t(`rules.formats.${platform}.${format}`)
   if (format !== 'carousel') return label
   const files =
@@ -127,8 +180,17 @@ function whatOf(platform: string, format: string, media: readonly number[]): str
 }
 /** How the post stands, beside «Controlli». */
 const overall = computed<{ label: string; tone: 'success' | 'warning' | 'danger' } | null>(() => {
+  if (e.archived.value) return null
+  if (
+    uploading.value.length > 0 ||
+    (report.value && waiting.value.length > 0 && faults.value.length === 0)
+  )
+    return {
+      label: t('posts.summary.waiting', { n: waiting.value.length }, waiting.value.length),
+      tone: 'warning',
+    }
   if (!report.value) return null
-  const blocked = blocks.value.length + (proposal.value ? 1 : 0)
+  const blocked = faults.value.length + (proposal.value ? 1 : 0)
   if (blocked > 0)
     return { label: t('posts.summary.blocks', { n: blocked }, blocked), tone: 'danger' }
   if (pending.value > 0)
@@ -274,10 +336,36 @@ const crop = computed(() => {
       <StatusDot v-if="overall" :label="overall.label" :tone="overall.tone" class="text-detail" />
     </div>
     <div class="flex flex-col gap-3">
-      <p v-if="e.checkProblem.value" role="alert" class="text-detail text-(--app-danger)">
+      <p
+        v-if="e.checkProblem.value && !e.archived.value"
+        role="alert"
+        class="text-detail text-(--app-danger)"
+      >
         {{ $t('posts.summary.checkFailed') }} {{ e.checkProblem.value }}
       </p>
-      <ListSkeleton v-if="!report && e.checking.value" />
+      <!-- the files not ready yet: what they wait for, before anything else -->
+      <div
+        v-for="w in e.archived.value ? [] : waiting"
+        :key="w.key"
+        data-outcome="media_processing"
+        data-unresolved
+        class="grid gap-1.5 rounded-card border border-(--app-border) bg-(--app-surface) p-3.5"
+      >
+        <p class="flex items-center gap-2 font-semibold">
+          <UIcon
+            name="i-lucide-loader"
+            class="size-4 shrink-0 text-(--app-text-muted)"
+            aria-hidden="true"
+          />
+          {{ w.title }}
+        </p>
+        <p class="text-(--app-text-muted)">{{ w.text }}</p>
+      </div>
+      <p v-if="e.archived.value" data-archived class="text-(--app-text-muted)">
+        {{ $t('posts.summary.archived') }}
+      </p>
+      <template v-else-if="uploading.length > 0" />
+      <ListSkeleton v-else-if="!report && e.checking.value" />
       <p v-else-if="!report" class="text-(--app-text-muted)">{{ $t('posts.summary.empty') }}</p>
       <template v-else>
         <!-- the warnings to answer -->
@@ -360,7 +448,7 @@ const crop = computed(() => {
 
         <!-- the blocks -->
         <div
-          v-for="o in blocks"
+          v-for="o in faults"
           :key="o.key"
           :data-outcome="o.code"
           data-unresolved

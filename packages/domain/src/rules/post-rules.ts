@@ -97,6 +97,14 @@ function paramsOf(item: FileFix | FileWarning): RuleParams {
   return params
 }
 
+/**
+ * A file still uploading or being prepared (D-80.1): it is in the post all the same, and the
+ * rules that depend on what it is (photos and videos together, the photos Facebook takes, the
+ * proportions of a carousel) wait for it. Its only outcome is `media_processing`.
+ */
+export const isPendingMedia = (media: Pick<DraftMedia, 'status'>) =>
+  media.status === 'uploading' || media.status === 'processing'
+
 /** A file is usable only once the worker made it `ready` (R5); its checks are the worker's. */
 function fileRules(
   media: DraftMedia,
