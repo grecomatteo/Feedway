@@ -297,16 +297,11 @@ watch(
             :rows="2"
             :action="false"
           />
-          <p
+          <LoadFailed
             v-else-if="!archived && agenda.error.value"
-            role="alert"
-            class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
-          >
-            <span class="flex-1">{{ $t('client.postsError') }}</span>
-            <UButton color="neutral" variant="outline" @click="() => agenda.refresh()">
-              {{ $t('account.retry') }}
-            </UButton>
-          </p>
+            :text="$t('client.postsError')"
+            @retry="agenda.refresh()"
+          />
           <p
             v-else-if="nextPosts.length === 0"
             class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"
@@ -378,16 +373,11 @@ watch(
             :rows="2"
             :action="false"
           />
-          <p
+          <LoadFailed
             v-else-if="profiles.error.value"
-            role="alert"
-            class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4"
-          >
-            <span class="flex-1">{{ $t('workspaceAccounts.loadError') }}</span>
-            <UButton color="neutral" variant="outline" @click="() => profiles.refresh()">
-              {{ $t('account.retry') }}
-            </UButton>
-          </p>
+            :text="$t('workspaceAccounts.loadError')"
+            @retry="profiles.refresh()"
+          />
           <EmptyState
             v-else-if="list.length === 0"
             icon="i-lucide-at-sign"
@@ -479,9 +469,11 @@ watch(
             :rows="2"
             :action="false"
           />
-          <p v-else-if="membersError" role="alert" class="text-(--app-danger)">
-            {{ failure(membersError).message }}
-          </p>
+          <LoadFailed
+            v-else-if="membersError"
+            :text="failure(membersError).message"
+            @retry="refreshMembers()"
+          />
           <p
             v-else-if="members && members.items.length === 0"
             class="rounded-card border border-(--app-border) bg-(--app-surface) px-4 py-4 text-(--app-text-muted)"

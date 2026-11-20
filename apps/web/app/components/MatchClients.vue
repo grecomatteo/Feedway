@@ -301,7 +301,7 @@ const columns = computed<DataColumn[]>(() => [
 
     <p
       v-if="rows.length === 0"
-      class="max-w-none rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+      class="max-w-none rounded-xl border border-(--app-border) bg-(--app-surface) px-4 py-5 text-(--app-text-muted)"
     >
       {{ $t('clients.match.none') }}
     </p>
@@ -402,7 +402,7 @@ const columns = computed<DataColumn[]>(() => [
 
     <div
       v-if="already.length > 0"
-      class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
+      class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-surface)"
     >
       <details class="group" :open="alreadyOpen">
         <summary
@@ -429,7 +429,7 @@ const columns = computed<DataColumn[]>(() => [
 
     <div
       v-if="blocked.length > 0"
-      class="rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-3 text-sm"
+      class="rounded-xl border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm"
     >
       <p class="font-semibold text-(--app-text-muted)">{{ $t('clients.match.blocked') }}</p>
       <ul class="mt-1 space-y-1">
@@ -453,7 +453,7 @@ const columns = computed<DataColumn[]>(() => [
 
     <div
       v-if="rows.length > 0"
-      class="flex items-center justify-between gap-3 rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-[60px] max-md:z-10 max-md:flex-col max-md:items-stretch max-md:gap-1 max-md:rounded-none max-md:border-x-0 max-md:border-b-0 max-md:py-2.5"
+      class="flex items-center justify-between gap-3 rounded-xl border border-(--app-border) bg-(--app-surface) px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-[60px] max-md:z-10 max-md:flex-col max-md:items-stretch max-md:gap-1 max-md:rounded-none max-md:border-x-0 max-md:border-b-0 max-md:py-2.5"
     >
       <UButton
         class="min-h-control max-md:hidden"

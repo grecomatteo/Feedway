@@ -468,7 +468,7 @@ function filesDrop(event: DragEvent) {
     >
       <!-- in view however long the library is -->
       <div
-        class="sticky top-[35vh] mx-auto flex w-fit max-w-full flex-col items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-card) px-6 py-5 text-center shadow-lg"
+        class="sticky top-[35vh] mx-auto flex w-fit max-w-full flex-col items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface) px-6 py-5 text-center shadow-lg"
       >
         <UIcon name="i-lucide-upload" class="size-7 text-(--app-brand)" aria-hidden="true" />
         <p class="text-lg font-semibold">{{ $t('upload.dropHere') }}</p>
@@ -629,7 +629,7 @@ function filesDrop(event: DragEvent) {
         <li v-for="sub in subfoldersOf(current.id)" :key="sub.id">
           <button
             type="button"
-            class="flex min-h-11 items-center gap-2 rounded-[10px] border border-(--app-border) bg-(--app-card) px-3 text-sm hover:bg-(--app-surface-sunken)"
+            class="flex min-h-11 items-center gap-2 rounded-[10px] border border-(--app-border) bg-(--app-surface) px-3 text-sm hover:bg-(--app-surface-sunken)"
             :class="dropOn === sub.id ? 'ring-2 ring-(--app-brand)' : ''"
             @click="filter.folder = sub.id"
             @dragover="dragOver($event, sub.id)"
@@ -669,27 +669,22 @@ function filesDrop(event: DragEvent) {
         <li
           v-for="n in 8"
           :key="n"
-          class="rounded-xl border border-(--app-border) bg-(--app-card) p-2"
+          class="rounded-xl border border-(--app-border) bg-(--app-surface) p-2"
         >
           <div class="skeleton aspect-square rounded-lg" />
           <div class="skeleton mt-2 h-4 w-3/4 rounded" />
           <div class="skeleton mt-1.5 h-3 w-1/3 rounded" />
         </li>
       </ul>
-      <div
+      <LoadFailed
         v-else-if="status === 'error'"
-        role="alert"
-        class="space-y-3 rounded-xl border border-(--app-border) bg-(--app-card) p-5"
-      >
-        <p>{{ $t('library.loadError') }}</p>
-        <UButton class="min-h-control" color="neutral" variant="outline" @click="lib.load()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+        :text="$t('library.loadError')"
+        @retry="lib.load()"
+      />
       <template v-else-if="files.length === 0">
         <div
           v-if="filtering"
-          class="flex flex-wrap items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-card) px-4 py-5 text-(--app-text-muted)"
+          class="flex min-h-row flex-wrap items-center gap-3 rounded-card border border-(--app-border) bg-(--app-surface) px-4 py-3 text-(--app-text-muted)"
         >
           <span class="flex-1">{{ $t('library.noMatch') }}</span>
           <UButton class="min-h-control" color="neutral" variant="outline" @click="clearFilters">
@@ -732,7 +727,7 @@ function filesDrop(event: DragEvent) {
           <div
             role="group"
             :aria-label="$t('library.view.label')"
-            class="inline-flex shrink-0 rounded-[0.625rem] border border-(--app-border) bg-(--app-groove) p-[3px]"
+            class="inline-flex shrink-0 rounded-[0.625rem] border border-(--app-border) bg-(--app-surface-sunken) p-[3px]"
           >
             <button
               v-for="o in layoutOptions"
@@ -744,7 +739,7 @@ function filesDrop(event: DragEvent) {
               class="flex size-11 items-center justify-center rounded-[0.4375rem] transition-colors md:size-9"
               :class="
                 view.layout === o.value
-                  ? 'bg-(--app-card) text-(--app-text) shadow-[0_1px_2px_rgb(36_35_33/0.15)]'
+                  ? 'bg-(--app-surface) text-(--app-text) shadow-1'
                   : 'text-(--app-text-muted) hover:text-(--app-text)'
               "
               @click="view.layout = o.value"

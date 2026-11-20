@@ -65,7 +65,7 @@ async function remove(index: number) {
       <li
         v-for="(tag, i) in modelValue"
         :key="tag"
-        class="group inline-flex h-6 max-w-full items-center gap-1 rounded-[6px] border border-(--app-border-strong) bg-(--app-card) px-2 text-[0.8125rem]"
+        class="group inline-flex h-6 max-w-full items-center gap-1 rounded-[6px] border border-(--app-border-strong) bg-(--app-surface) px-2 text-[0.8125rem]"
       >
         <span class="truncate">{{ tag }}</span>
         <button
@@ -89,7 +89,7 @@ async function remove(index: number) {
         :maxlength="maxLength"
         :aria-label="t('library.detail.newTag')"
         :placeholder="t('library.detail.newTag')"
-        class="h-7.5 w-36 rounded-control border border-(--app-border-strong) bg-(--app-card) px-2 text-[0.8125rem] outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus)"
+        class="h-7.5 w-36 rounded-control border border-(--app-border-strong) bg-(--app-surface) px-2 text-[0.8125rem] outline-none focus-visible:ring-2 focus-visible:ring-(--app-focus)"
         @keydown.enter.prevent="add()"
         @keydown.esc.stop.prevent="close()"
         @blur="leave"

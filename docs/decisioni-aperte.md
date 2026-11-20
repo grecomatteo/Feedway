@@ -462,8 +462,8 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 
 - **Origine:** Task R1 del ridisegno, PR «token e date» (19/11).
 - **Scelte:**
-  1. I token tengono i nomi di oggi (`surface-sunken`, `nav-bg`, `nav-hover`, `text-muted`) con i valori di `base.css` (`sunken`, `nav`, `hover`, `muted`): rinominarli toccava 280 righe senza cambiare niente a schermo. `paper`, `card` e `groove` sono alias dei nuovi fondi in `main.css` e si tolgono nel Task R9. Nuovi: `warning-dot`, `neutral-dot`, `toast`, `on-toast`, `toast-icon`, `img-outline`.
-  2. Blu, Verde, Viola e Grafite prendono la stessa schiarita di Feedway (stesso passo di luminosità OKLab per ogni fondo e neutro, con la loro tinta); l'accento resta il loro. Contrasto provato in `contrast.test.ts`; l'aspetto si rifinisce nel Task R9.
+  1. I token tengono i nomi di oggi (`surface-sunken`, `nav-bg`, `nav-hover`, `text-muted`) con i valori di `base.css` (`sunken`, `nav`, `hover`, `muted`): rinominarli toccava 280 righe senza cambiare niente a schermo. `paper`, `card` e `groove` erano alias dei nuovi fondi in `main.css`: tolti nel Task R9. Nuovi: `warning-dot`, `neutral-dot`, `toast`, `on-toast`, `toast-icon`, `img-outline`.
+  2. Blu, Verde, Viola e Grafite prendono la stessa schiarita di Feedway (stesso passo di luminosità OKLab per ogni fondo e neutro, con la loro tinta); l'accento resta il loro. Contrasto provato in `contrast.test.ts`; l'aspetto è stato rivisto nel Task R9 (D-97).
   3. I campi di data e ora del browser restano dove sono finché non si ridisegna la loro pagina: «Quando» dell'editor (Task R7), l'orario predefinito dei contenuti (Task R4), la scadenza del Data Use Checkup (Task R8). Tutte le date **mostrate** passano già da `utils/format-date.ts`.
   4. Sul telefono il testo dei campi è 16 px, non 15 come in `base.css`: sotto i 16 Safari su iPhone ingrandisce la pagina quando si tocca il campo.
   5. L'anteprima dell'editor scrive le date come le app di Meta («20 novembre alle 18:00»), non con le regole del pannello; «sincronizzato 3 ore fa» della pagina del cliente resta fino al Task R4.
@@ -471,7 +471,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   7. Sora viene dal kit del marchio (`07-Font`, licenza OFL) ed è servita dal pannello stesso (`/fonts/Sora-Variable.ttf`): prima la scaricava la build da Google, e dove la rete non c'era i titoli uscivano nel carattere di sistema.
   8. Le scelte del filtro a schede (`SegmentedFilter`) sono alte 36 sul telefono, come in `base.css` e nelle schermate, non 44 come chiede il «Review Focus» del piano per le aree di tocco: il pozzetto intorno è alto 44. Il filtro riempie la riga solo dentro una `Toolbar` (come `.tools > .seg` di `base.css`), così Libreria e scelta dei file non cambiano prima dei loro task.
   9. `h3` è nel carattere di sistema, 14 semigrassetto, come dice il piano (R1, `main.css`); `base.css` lo vuole in Sora 16 per i titoli delle finestre. Si rivede con le finestre del Task R4 (nuovo cliente) e del Task R8.
-- **Stato:** provvisorie; Matteo può cambiarle, il Task R9 rivede 1 e 2.
+- **Stato:** provvisorie; Matteo può cambiarle. Il Task R9 ha rivisto 1 e 2 (D-97): alias tolti, palette lasciate come sono.
 
 ### D-87 · Scelte provvisorie del guscio (Task R2)
 
@@ -637,4 +637,17 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   2. Le altre pagine prima del pannello (password dimenticata, verifica, secondo fattore, attivazione, nuova password, account eliminato, informativa) usano la stessa colonna senza riquadro e il titolo al centro. L'informativa ha una colonna più larga perché è un testo lungo.
   3. La frase «Accesso solo su invito della tua agenzia.» e il suggerimento sotto «Password dimenticata?» non ci sono più, come nella `01`.
 - **Differenze dalla schermata:** restano il pulsante del tema nell'angolo in alto a destra (serve a chi non ha ancora un profilo) e il collegamento «Informativa privacy» in fondo alla finestra, che la `01` non mostra.
+- **Stato:** provvisorie; Matteo può cambiarle.
+
+### D-97 · Tema scuro, palette e stati (Task R9)
+
+- **Origine:** Task R9 del ridisegno (20/11). Le schermate di riferimento sono solo chiare: scuro, palette e stati non hanno un disegno da copiare.
+- **Scelte:**
+  1. Scuro e palette restano con i valori di R1: le tavole in `scuro-e-stati/` (tutte le pagine in scuro, le pagine principali in Blu, Verde, Viola e Grafite, chiaro e scuro) non mostrano niente che non regga, e `contrast.test.ts` prova già tutte le palette nei due temi. Selezioni, spunte e interruttori in carbone diventano chiari nello scuro (`--ui-bg-inverted` = testo).
+  2. Il logo del marchio resta arancio nello scuro e carbone nel chiaro con ogni palette (guida del marchio): con Blu, Verde, Viola e Grafite l'arancio del logo convive con l'accento della palette.
+  3. Il vuoto di un elenco è una riga sulla superficie dell'elenco, come «Niente da sistemare.» della `03`: icona, cosa manca, un suggerimento sotto e a destra l'azione che lo riempie (`EmptyState`). Niente più riquadro tratteggiato.
+  4. Una lettura non riuscita è la stessa riga con l'icona rossa, cosa non si è caricato e «Riprova» (`LoadFailed`, `role="alert"`): Clienti, cliente (post, profili, persone), post del cliente, contenuti, libreria, Utenti, Registro e Meta. Quando i contenuti non si caricano non si leggono più anche «Ancora nessuna etichetta» e simili. In «Utenti» il messaggio era quello dell'account («Non siamo riusciti a caricare il tuo account.»): ora dice «Non siamo riusciti a caricare le persone dell'agenzia.».
+  5. Gli scheletri hanno le righe dei nuovi elenchi (52 al computer, 60 al telefono) e la superficie con il raggio delle liste, invece delle righe di 56/64 delle tabelle vecchie (`DataTable` resta solo in «Abbina i profili» e nel primo post).
+  6. Tastiera e zoom al 200% sono provati su Oggi, Clienti, editor e Libreria (`keyboard-zoom.spec.ts`): ogni fermata del tasto Tab è sullo schermo e mostra il fuoco, e a 640×400 niente esce di lato.
+- **Da vedere con Matteo:** le tavole degli stati (`stati-chiaro/`, `stati-scuro/`) e di scuro e palette.
 - **Stato:** provvisorie; Matteo può cambiarle.

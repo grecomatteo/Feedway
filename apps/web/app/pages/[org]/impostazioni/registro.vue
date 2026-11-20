@@ -115,16 +115,7 @@ const head = computed(() => [
         :columns="head"
         :rows="5"
       />
-      <div
-        v-else-if="problem && !loaded"
-        role="alert"
-        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
-      >
-        <p class="text-(--app-danger)">{{ problem }}</p>
-        <UButton color="neutral" variant="outline" @click="load()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+      <LoadFailed v-else-if="problem && !loaded" :text="problem" @retry="load()" />
       <p
         v-else-if="shown.length === 0"
         class="flex min-h-row items-center rounded-card border border-(--app-border) bg-(--app-surface) px-4 text-(--app-text-muted)"

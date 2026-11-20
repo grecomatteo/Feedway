@@ -343,16 +343,7 @@ function actions(w: WorkspaceView): DropdownMenuItem[][] {
         ]"
         :rows="4"
       />
-      <div
-        v-else-if="error"
-        role="alert"
-        class="space-y-3 rounded-card border border-(--app-border) bg-(--app-surface) p-5"
-      >
-        <p>{{ $t('workspaces.loadError') }}</p>
-        <UButton color="neutral" variant="outline" @click="() => refresh()">
-          {{ $t('account.retry') }}
-        </UButton>
-      </div>
+      <LoadFailed v-else-if="error" :text="$t('workspaces.loadError')" @retry="refresh()" />
       <EmptyState
         v-else-if="all.length === 0"
         :title="$t('workspaces.empty')"

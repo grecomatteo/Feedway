@@ -67,7 +67,7 @@ async function placeIn(w: WorkspaceView) {
       <ul
         v-else
         :aria-label="$t('clients.fix.title')"
-        class="divide-y divide-(--app-border) rounded-xl border border-(--app-border) bg-(--app-card)"
+        class="divide-y divide-(--app-border) rounded-xl border border-(--app-border) bg-(--app-surface)"
       >
         <li v-for="p in profiles" :key="p.key" class="space-y-3 px-4 py-3">
           <div class="flex items-center gap-3">

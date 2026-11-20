@@ -125,12 +125,8 @@
   --ui-text-inverted: var(--app-surface);
 }
 
-/* The names of the paper and card style (14/11) now point to the new surfaces; the pages that still
-   use them move to the new names in the redesign, and these go in Task R9. */
+/* the shadows of a surface and of a menu: stronger on dark, where a soft one would not show */
 :root {
-  --app-paper: var(--app-bg);
-  --app-card: var(--app-surface);
-  --app-groove: var(--app-surface-sunken);
   --app-shadow-1: 0 1px 2px rgb(36 35 33 / 0.06);
   --app-shadow-2: 0 8px 24px -6px rgb(36 35 33 / 0.18), 0 2px 6px rgb(36 35 33 / 0.08);
 }

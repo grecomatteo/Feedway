@@ -237,7 +237,7 @@ function clearFilters() {
           class="flex h-7 w-8 items-center justify-center rounded-[6px] text-(--app-text-muted)"
           :class="
             view.layout === o.value
-              ? 'bg-(--app-card) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]'
+              ? 'bg-(--app-surface) text-(--app-text) shadow-[0_0_0_1px_var(--app-border)]'
               : ''
           "
           :aria-label="o.label"
@@ -288,18 +288,11 @@ function clearFilters() {
       :label="$t('library.loading')"
       :rows="3"
     />
-    <EmptyState
+    <LoadFailed
       v-else-if="status === 'error'"
-      :title="$t('library.loadError')"
-      icon="i-lucide-images"
-    >
-      <UButton
-        color="neutral"
-        variant="outline"
-        :label="$t('library.detail.retry')"
-        @click="lib.load()"
-      />
-    </EmptyState>
+      :text="$t('library.loadError')"
+      @retry="lib.load()"
+    />
     <EmptyState
       v-else-if="files.length === 0"
       :title="filtering ? $t('library.noMatch') : $t('library.empty')"

@@ -6,13 +6,15 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'shots.spec.ts',
+  testMatch: /(shots|states)\.spec\.ts/,
   globalSetup: '../e2e/global-setup.ts',
   workers: 1,
-  timeout: 300_000,
+  timeout: 1_200_000,
   reporter: 'list',
   use: {
     colorScheme: 'light',
+    // a step that cannot happen fails in seconds, not at the end of the whole run
+    actionTimeout: 20_000,
     locale: 'it-IT',
     timezoneId: 'Europe/Rome',
     launchOptions: executablePath ? { executablePath } : {},

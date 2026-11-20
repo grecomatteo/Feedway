@@ -30,7 +30,7 @@ const keyOf = (row: T) => props.rowKey(row)
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)">
+  <div class="overflow-hidden rounded-xl border border-(--app-border) bg-(--app-surface)">
     <table class="w-full border-collapse text-sm" :class="$slots.mobile ? 'max-md:hidden' : ''">
       <caption class="sr-only">
         {{

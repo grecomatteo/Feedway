@@ -131,12 +131,18 @@ watch(editing, (open) => {
         >
           {{ $t('account.loading') }}
         </div>
-        <div v-else-if="error" role="alert" class="space-y-3 px-4 py-3">
-          <p class="flex items-center gap-2 text-(--app-danger)">
-            <UIcon name="i-lucide-triangle-alert" aria-hidden="true" />
-            {{ $t('account.loadError') }}
-          </p>
-          <UButton color="neutral" variant="outline" @click="() => refresh()">
+        <div
+          v-else-if="error"
+          role="alert"
+          class="flex min-h-row flex-wrap items-center gap-3 px-4 py-3"
+        >
+          <UIcon
+            name="i-lucide-circle-alert"
+            class="size-4 shrink-0 text-(--app-danger)"
+            aria-hidden="true"
+          />
+          <p class="min-w-0 flex-1">{{ $t('metaIntegration.loadError') }}</p>
+          <UButton color="neutral" variant="outline" size="sm" @click="() => refresh()">
             {{ $t('account.retry') }}
           </UButton>
         </div>

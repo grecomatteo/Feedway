@@ -253,12 +253,7 @@ const actions = (edit: () => void, remove: () => void) => [
       </p>
     </section>
 
-    <p v-if="failed" role="alert" class="space-y-2">
-      <span class="block text-(--app-danger)">{{ $t('contentSettings.loadError') }}</span>
-      <UButton color="neutral" variant="outline" @click="settings.load()">
-        {{ $t('account.retry') }}
-      </UButton>
-    </p>
+    <LoadFailed v-if="failed" :text="$t('contentSettings.loadError')" @retry="settings.load()" />
 
     <!-- Etichette -->
     <section :aria-label="$t('contentSettings.labels.title')" data-content-labels>
@@ -280,7 +275,7 @@ const actions = (edit: () => void, remove: () => void) => [
       </SectionHead>
       <ListSkeleton v-if="!labels && !failed" :rows="2" :action="false" />
       <EmptyState
-        v-else-if="labels && labels.length === 0"
+        v-else-if="!failed && labels && labels.length === 0"
         :title="$t('contentSettings.labels.empty')"
         :text="$t('contentSettings.labels.emptyText')"
         icon="i-lucide-tag"
@@ -338,7 +333,7 @@ const actions = (edit: () => void, remove: () => void) => [
       </SectionHead>
       <ListSkeleton v-if="!templates && !failed" :rows="2" :action="false" />
       <EmptyState
-        v-else-if="templates && templates.length === 0"
+        v-else-if="!failed && templates && templates.length === 0"
         :title="$t('contentSettings.templates.empty')"
         :text="$t('contentSettings.templates.emptyText')"
         icon="i-lucide-file-text"
@@ -397,7 +392,7 @@ const actions = (edit: () => void, remove: () => void) => [
       </SectionHead>
       <ListSkeleton v-if="!groups && !failed" :rows="2" :action="false" />
       <EmptyState
-        v-else-if="groups && groups.length === 0"
+        v-else-if="!failed && groups && groups.length === 0"
         :title="$t('contentSettings.groups.empty')"
         :text="
           accounts.size === 0

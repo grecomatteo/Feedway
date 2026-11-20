@@ -6,7 +6,7 @@ defineProps<{ label: string }>()
 <template>
   <ul
     :aria-label="label"
-    class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-card)"
+    class="divide-y divide-(--app-border) overflow-hidden rounded-xl border border-(--app-border) bg-(--app-surface)"
   >
     <slot />
   </ul>

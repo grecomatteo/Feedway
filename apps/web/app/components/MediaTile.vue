@@ -151,14 +151,14 @@ function dragStart(event: DragEvent) {
     <!-- «⋯» over the picture, at the pointer or the keyboard; on a touch screen the detail has
          every action -->
     <div
-      class="absolute top-1 right-1 z-10 rounded-lg bg-(--app-card)/90 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
+      class="absolute top-1 right-1 z-10 rounded-lg bg-(--app-surface)/90 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden"
     >
       <RowActions :name="file.originalName" :items="actions" />
     </div>
   </li>
   <li
     v-else
-    class="group relative flex min-w-0 items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-card) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
+    class="group relative flex min-w-0 items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-surface) p-2 transition-shadow focus-within:ring-2 focus-within:ring-(--app-focus) hover:shadow-[0_2px_8px_rgb(36_35_33/0.12)]"
     draggable="true"
     :data-media-id="file.id"
     data-layout="list"
