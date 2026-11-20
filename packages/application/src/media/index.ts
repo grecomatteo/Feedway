@@ -53,3 +53,16 @@ export { getMediaForPosts } from './for-posts.js'
 export type { PostMediaView } from './for-posts.js'
 export { getFailedMedia } from './failed.js'
 export type { FailedMediaView } from './failed.js'
+export {
+  makeNextPublishCopy,
+  publishCopiesOf,
+  publishFileFacts,
+  requestPublishCopies,
+} from './publish-copies.js'
+export { wakeMediaWork } from './process-turn.js'
+export type {
+  PublishCopiesDeps,
+  PublishCopiesJob,
+  PublishCopiesOutcome,
+  PublishCopyState,
+} from './publish-copies.js'

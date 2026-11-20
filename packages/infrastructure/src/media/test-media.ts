@@ -26,8 +26,50 @@ export type VideoFixture =
   | 'vfr.mp4'
   /** 120 frames a second, as a slow motion: over the 60 of Reels */
   | 'fps-120.mp4'
+  /** 16:9, 640×360 at 25 fps, 3 s, with sound: a reel that is not 9:16 (plan 07 Task 6) */
+  | 'wide.mp4'
+  /** 9:16, 90×160 at 25 fps, 65 s, with sound: a story over its 60 seconds */
+  | 'story-65s.mp4'
 
 const SOURCES: Record<VideoFixture, string[]> = {
+  'wide.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=640x360:rate=25',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440',
+    '-t',
+    '3',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-shortest',
+  ],
+  'story-65s.mp4': [
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=90x160:rate=25',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440',
+    '-t',
+    '65',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-shortest',
+  ],
   'h264-moov-end.mp4': [
     '-f',
     'lavfi',

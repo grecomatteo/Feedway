@@ -20,6 +20,7 @@ test('every registered queue declares a scope', () => {
     ['accounts.avatar', 'organization'],
     ['media.delete_files', 'organization'],
     ['media.process', 'organization'],
+    ['media.publish_copies', 'organization'],
     ['media.uploads_cleanup', 'system'],
   ])
   expect(QUEUE_NAMES).toEqual([
@@ -39,6 +40,7 @@ test('every registered queue declares a scope', () => {
     'accounts.avatar',
     'media.delete_files',
     'media.process',
+    'media.publish_copies',
     'media.uploads_cleanup',
   ])
 })
@@ -93,4 +95,8 @@ test('a queue definition cannot declare a scope other than its payload scope', (
 
 test('media.process outlives its two long ffmpeg commands (ADR 021)', () => {
   expect(QUEUES.find((q) => q.name === 'media.process')?.expireInSeconds).toBe(2 * 3600 + 15 * 60)
+  // a copy to publish converts a whole video once at most
+  expect(QUEUES.find((q) => q.name === 'media.publish_copies')?.expireInSeconds).toBe(
+    2 * 3600 + 15 * 60,
+  )
 })

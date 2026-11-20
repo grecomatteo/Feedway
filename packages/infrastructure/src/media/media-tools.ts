@@ -71,6 +71,8 @@ export function createMediaTools(options: MediaToolsOptions = {}): {
       videoPreview: (input, output, opts) => ffmpeg.preview(input, output, opts),
       videoReel: (input, output, opts) => ffmpeg.reel(input, output, opts),
       videoFrame: (input, output, opts) => ffmpeg.frame(input, output, opts),
+      videoFit: (input, output, opts) => ffmpeg.fit(input, output, opts),
+      videoStill: (input, output, opts) => ffmpeg.still(input, output, opts),
     },
   }
 }

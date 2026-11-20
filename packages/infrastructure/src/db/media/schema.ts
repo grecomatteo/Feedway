@@ -124,12 +124,20 @@ export const mediaVariants = pgTable(
     status: text('status').notNull().default('ready'),
     // why a copy with a recipe could not be made (a code)
     failure: text('failure'),
+    // the worker's turns on a copy with a recipe (plan 07 Task 6), as for the files: the last
+    // start of an agency's copies says when it was served; a copy picked too often fails
+    attempts: integer('attempts').notNull().default(0),
+    startedAt: tz('started_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     unique('media_variants_one_per_recipe').on(t.organizationId, t.mediaId, t.purpose, t.recipe),
     unique('media_variants_token_unique').on(t.publicToken),
+    index('media_variants_pending_idx')
+      .on(t.createdAt)
+      .where(sql`status = 'pending'`),
+    index('media_variants_started_idx').on(t.organizationId, t.startedAt),
     foreignKey({
       name: 'media_variants_media_fk',
       columns: [t.organizationId, t.mediaId],
@@ -150,6 +158,7 @@ export const mediaVariants = pgTable(
     check('media_variants_recipe', sql.raw(`recipe ~ '${VARIANT_RECIPE.source}'`)),
     check('media_variants_status', inList('status', VARIANT_STATUSES)),
     check('media_variants_failure', sql`${t.status} <> 'failed' or ${t.failure} is not null`),
+    check('media_variants_attempts', sql`${t.attempts} >= 0`),
   ],
 )
 

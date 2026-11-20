@@ -1,4 +1,4 @@
-import type { FileAnalysis, ReelPlan } from '@app/domain'
+import type { FileAnalysis, RecipeBox, ReelPlan } from '@app/domain'
 
 // The worker's tools for the files (plan 04 Task 10). Paths are opaque: they come from
 // `MediaScratch` and go back to the tools, never from input. A file the tools refuse is an
@@ -63,6 +63,14 @@ export interface MediaTransformer {
       maxWidth: number
       maxBytes: number
       maxPixels: number
+      /**
+       * For a copy to publish (plan 07 Task 6), from a JPEG in sRGB the transformer made (the
+       * master, a frame): the box kept, in fractions of the picture (D-61); bands at the centre
+       * to `pad.ratio` (width over height); the most it may be tall.
+       */
+      crop?: RecipeBox | undefined
+      pad?: { ratio: number; background: 'white' | 'black' } | undefined
+      maxHeight?: number | undefined
     },
   ): Promise<ToolResult<{ file: MadeFile }>>
   /**
@@ -118,6 +126,43 @@ export interface MediaTransformer {
       onProgress?: (fraction: number) => void
     },
   ): Promise<ToolResult<{ file: MadeFile; plan: ReelPlan }>>
+  /**
+   * A video to publish converted from the original (plan 07 Task 6): H.264 and AAC in MP4 with
+   * `faststart`, no metadata, 23–60 fps, SDR. `pad`: in the 9:16 frame with black bands;
+   * `crop`: the 9:16 box at the centre; `convert`: its own proportions, inside 1080×1920.
+   * `trimMs` cuts it there; `maxBytes` lowers the bitrate so it stays under.
+   */
+  videoFit(
+    input: string,
+    output: string,
+    opts: ToolOptions & {
+      fit: 'pad' | 'crop' | 'convert'
+      width: number
+      height: number
+      durationMs: number
+      sizeBytes: number
+      fps: number
+      trimMs: number | null
+      maxBytes: number | null
+      onProgress?: (fraction: number) => void
+    },
+  ): Promise<ToolResult<{ file: MadeFile }>>
+  /**
+   * One frame of the original video at `atMs`, upright, at its size, HDR made SDR: a JPEG in
+   * sRGB for `photo` to frame as a reel's cover (D-60). Past the last frame: `unreadable`.
+   */
+  videoStill(
+    input: string,
+    output: string,
+    opts: ToolOptions & {
+      atMs: number
+      width: number
+      height: number
+      durationMs: number
+      sizeBytes: number
+      fps: number
+    },
+  ): Promise<ToolResult<{ file: MadeFile }>>
   /** A JPEG of one frame, at `atMs`, of a video the transformer made. */
   videoFrame(
     input: string,
