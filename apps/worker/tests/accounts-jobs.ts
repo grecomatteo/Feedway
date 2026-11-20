@@ -79,6 +79,7 @@ export function handlerDeps(
       platformRules: runtime.platformRules,
       publishingHistory: runtime.publishingHistory,
       publicUrl: null,
+      copiesKeptDays: 7,
     },
     images: createAvatarProcessor(),
     media: mediaToolsFor(runtime),

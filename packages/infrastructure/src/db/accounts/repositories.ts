@@ -2,14 +2,17 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   exists,
   gt,
   inArray,
+  isNotNull,
   isNull,
   lt,
   lte,
   notExists,
+  or,
   sql,
 } from 'drizzle-orm'
 import type {
@@ -22,7 +25,13 @@ import type {
   SocialAccountsRepository,
   WorkspaceAccountsRepository,
 } from '@app/application'
-import type { AccountHealth, ConnectionKind, ConnectionStatus, Platform } from '@app/domain'
+import type {
+  AccountHealth,
+  ConnectionKind,
+  ConnectionStatus,
+  Platform,
+  UsageReading,
+} from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import {
   accountConnections,
@@ -271,7 +280,85 @@ export function drizzleSocialAccounts(db: DbExecutor, ids: IdGenerator): SocialA
         .returning({ id: socialAccounts.id })
       return rows.length > 0
     },
+    async recordUsageReading(organizationId, id, reading) {
+      const percent = (n: number | null) => (n === null ? null : Math.max(0, Math.round(n)))
+      await db
+        .update(socialAccounts)
+        .set({
+          usageAccountPercent: percent(reading.accountPercent),
+          usageAppPercent: percent(reading.appPercent),
+          usageRegainMinutes: Math.max(0, Math.ceil(reading.regainMinutes)),
+          usageReadAt: reading.readAt,
+        })
+        .where(and(eq(socialAccounts.organizationId, organizationId), eq(socialAccounts.id, id)))
+    },
+    async usageReadings(organizationId, id) {
+      const columns = {
+        accountPercent: socialAccounts.usageAccountPercent,
+        appPercent: socialAccounts.usageAppPercent,
+        regainMinutes: socialAccounts.usageRegainMinutes,
+        readAt: socialAccounts.usageReadAt,
+      }
+      const of = (row: UsageRow | undefined): UsageReading | null =>
+        row?.readAt
+          ? {
+              accountPercent: row.accountPercent,
+              appPercent: row.appPercent,
+              regainMinutes: row.regainMinutes ?? 0,
+              readAt: row.readAt,
+            }
+          : null
+      const [account] = await db
+        .select(columns)
+        .from(socialAccounts)
+        .where(and(eq(socialAccounts.organizationId, organizationId), eq(socialAccounts.id, id)))
+      const [agency] = await db
+        .select(columns)
+        .from(socialAccounts)
+        .where(
+          and(
+            eq(socialAccounts.organizationId, organizationId),
+            isNotNull(socialAccounts.usageAppPercent),
+            isNotNull(socialAccounts.usageReadAt),
+          ),
+        )
+        .orderBy(desc(socialAccounts.usageReadAt))
+        .limit(1)
+      return { account: of(account), agency: of(agency) }
+    },
+    async recordQuota(organizationId, id, quota, at) {
+      await db
+        .update(socialAccounts)
+        .set({
+          quotaUsed: Math.max(0, quota.used),
+          quotaTotal: Math.max(0, quota.total),
+          quotaCheckedAt: at,
+        })
+        .where(and(eq(socialAccounts.organizationId, organizationId), eq(socialAccounts.id, id)))
+    },
+    async markQuotaLow(organizationId, id, at, since) {
+      // one statement: two steps at once never both write the event
+      const rows = await db
+        .update(socialAccounts)
+        .set({ quotaLowAt: at })
+        .where(
+          and(
+            eq(socialAccounts.organizationId, organizationId),
+            eq(socialAccounts.id, id),
+            or(isNull(socialAccounts.quotaLowAt), lte(socialAccounts.quotaLowAt, since)),
+          ),
+        )
+        .returning({ id: socialAccounts.id })
+      return rows.length > 0
+    },
   }
+}
+
+interface UsageRow {
+  accountPercent: number | null
+  appPercent: number | null
+  regainMinutes: number | null
+  readAt: Date | null
 }
 
 const connectionColumns = {

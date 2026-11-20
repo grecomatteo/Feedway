@@ -292,6 +292,10 @@ export interface MediaRepository {
   failCopy(organizationId: string, variantId: string, failure: string): Promise<boolean>
   /** Removes the copies' rows; returns their keys, for the storage. */
   dropVariants(organizationId: string, mediaId: string): Promise<string[]>
+  /** The agency's copies with a recipe made before `createdBefore`, for their clean-up (Scelta 5). */
+  recipeCopiesBefore(organizationId: string, createdBefore: Date): Promise<PublishCopyRecord[]>
+  /** Removes these copies with a recipe; returns the keys of those removed, for the storage. */
+  dropCopies(organizationId: string, ids: readonly string[]): Promise<string[]>
   /**
    * A file still `processing` becomes `ready`, with what the analysis read; `forgetOriginal`
    * clears its key (a photo's original goes). false: it is no longer `processing` (deleted).

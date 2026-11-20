@@ -3,6 +3,7 @@ import {
   checkLimit,
   distinctCopies,
   prepareAt,
+  recheckAt,
   instantToZoned,
   parseLimits,
   storedTimeZone,
@@ -133,7 +134,10 @@ async function scheduleSaved(
   )
     await assertDailyLimit(tx, organization, saved, at)
   const going = new Map(report.destinations.map((d) => [d.accountId, d.fingerprint]))
-  const startAt = prepareAt(at, deps.clock.now())
+  const now = deps.clock.now()
+  const startAt = prepareAt(at, now)
+  // checked again 3 hours before, or at once when fewer are left (Scelta 4)
+  const checkAt = recheckAt(at, now)
   await tx.posts.replaceTargets(
     scope,
     saved.id,
@@ -144,6 +148,7 @@ async function scheduleSaved(
             status: 'scheduled',
             fingerprint: going.get(t.accountId) ?? null,
             nextAttemptAt: startAt,
+            recheckAt: checkAt,
           }
         : { accountId: t.accountId, status: 'cancelled', fingerprint: null },
     ),

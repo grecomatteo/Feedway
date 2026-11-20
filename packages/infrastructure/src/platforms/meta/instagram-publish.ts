@@ -359,6 +359,12 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
         () => client.getPublishingLimit(credentials, ig, ctx.signal),
         { uncertainAs: 'transient' },
       )
+      // the quota as read, with this post once it is out (`account.quota_low`)
+      const quota = (published: number) => ({
+        used: Math.min(limit.data.quotaTotal, limit.data.quotaUsage + published),
+        total: limit.data.quotaTotal,
+        windowSeconds: limit.data.quotaDurationSeconds,
+      })
       const quotaWait = async (usage: MetaUsage): Promise<StepResult> => ({
         outcome: 'wait',
         reason: 'quota',
@@ -370,6 +376,7 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
           ctx.signal,
         ),
         ...stepUsage(usage),
+        quota: { ...quota(0), used: limit.data.quotaTotal },
       })
       if (limit.data.quotaUsage >= limit.data.quotaTotal) return quotaWait(limit.usage)
       const container = ids.container.id
@@ -392,6 +399,7 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
           externalPostId: published.data.id,
           permalink: null,
           ...stepUsage(published.usage),
+          quota: quota(1),
         }
       } catch (err) {
         if (!(err instanceof MetaError)) throw err

@@ -202,6 +202,7 @@ export { PublishError } from './ports/platform-publisher.js'
 export type {
   FoundPost,
   PlatformLoad,
+  PlatformQuota,
   PlatformPublisher,
   PlatformPublishers,
   PublishFile,

@@ -86,6 +86,15 @@ export const socialAccounts = pgTable(
     quotaUsed: integer('quota_used'),
     quotaTotal: integer('quota_total'),
     quotaCheckedAt: tz('quota_checked_at'),
+    // when the publishing last told that the quota is nearly over (`account.quota_low`): once
+    // per window of the quota (plan 07 «Eventi»)
+    quotaLowAt: tz('quota_low_at'),
+    // Meta's usage at the account's last call of the publishing (§8.6, plan 07
+    // «Rallentamento»), in percent; null: the answer did not say
+    usageAccountPercent: integer('usage_account_percent'),
+    usageAppPercent: integer('usage_app_percent'),
+    usageRegainMinutes: integer('usage_regain_minutes'),
+    usageReadAt: tz('usage_read_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -95,6 +104,10 @@ export const socialAccounts = pgTable(
     // target of the composite foreign key from workspace_accounts
     unique('social_accounts_organization_id').on(t.organizationId, t.id),
     index('social_accounts_connection_idx').on(t.organizationId, t.connectionId),
+    // the agency's latest reading of the app's usage (`usageReadings`)
+    index('social_accounts_usage_idx')
+      .on(t.organizationId, t.usageReadAt)
+      .where(sql`${t.usageAppPercent} is not null`),
     foreignKey({
       name: 'social_accounts_connection_fk',
       columns: [t.organizationId, t.connectionId],

@@ -22,6 +22,7 @@ test('every registered queue declares a scope', () => {
     ['media.process', 'organization'],
     ['media.publish_copies', 'organization'],
     ['media.uploads_cleanup', 'system'],
+    ['media.publish_copies_cleanup', 'system'],
     ['target.prepare', 'organization'],
     ['target.publish', 'organization'],
     ['scheduler.reconcile', 'system'],
@@ -45,6 +46,7 @@ test('every registered queue declares a scope', () => {
     'media.process',
     'media.publish_copies',
     'media.uploads_cleanup',
+    'media.publish_copies_cleanup',
     'target.prepare',
     'target.publish',
     'scheduler.reconcile',
@@ -55,6 +57,7 @@ test('a step of the publishing is aborted before its preparation claim expires',
   for (const name of ['target.prepare', 'target.publish'])
     expect(QUEUES.find((q) => q.name === name)?.expireInSeconds).toBe(300)
   expect(QUEUES.find((q) => q.name === 'scheduler.reconcile')?.policy).toBe('singleton')
+  expect(QUEUES.find((q) => q.name === 'media.publish_copies_cleanup')?.policy).toBe('singleton')
 })
 
 test('the jobs of one connection, or of one account, wait for each other, one waiting at most', () => {

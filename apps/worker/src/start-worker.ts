@@ -17,6 +17,7 @@ import { identitySecurityEmail } from './handlers/identity-security-email.js'
 import { mediaDeleteFiles } from './handlers/media-delete-files.js'
 import { mediaProcess } from './handlers/media-process.js'
 import { mediaPublishCopies } from './handlers/media-publish-copies.js'
+import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import { schedulerReconcile, targetPrepare, targetPublish } from './handlers/target-steps.js'
@@ -51,6 +52,8 @@ export const ACCOUNTS_DAILY_TZ = 'Europe/Rome'
  */
 export const MEDIA_UPLOADS_CLEANUP_CRON = '7-59/10 * * * *'
 export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
+/** Every day at 04:30, Italian time: the copies to publish no post needs (plan 07 Scelta 5). */
+export const PUBLISH_COPIES_CLEANUP_CRON = '30 4 * * *'
 /** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
 export const SCHEDULER_RECONCILE_CRON = '* * * * *'
 
@@ -102,6 +105,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'accounts.avatar': accountsAvatar,
     'media.delete_files': mediaDeleteFiles,
     'media.uploads_cleanup': mediaUploadsCleanup,
+    'media.publish_copies_cleanup': mediaPublishCopiesCleanup,
     'target.prepare': targetPrepare,
     'target.publish': targetPublish,
     'scheduler.reconcile': schedulerReconcile,
@@ -137,6 +141,13 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       {
         tz: MEDIA_UPLOADS_CLEANUP_TZ,
       },
+    )
+  if (queues.includes('media.publish_copies_cleanup'))
+    await queue.schedule(
+      'media.publish_copies_cleanup',
+      PUBLISH_COPIES_CLEANUP_CRON,
+      {},
+      { tz: MEDIA_UPLOADS_CLEANUP_TZ },
     )
   if (queues.includes('scheduler.reconcile'))
     await queue.schedule(

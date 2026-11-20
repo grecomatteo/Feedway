@@ -68,6 +68,8 @@ export interface NewPostTarget {
   fingerprint: string | null
   /** when the worker looks at it first: `prepareAt` for a scheduled one, null otherwise */
   nextAttemptAt?: Date | null
+  /** when it is checked again, 3 hours before (Scelta 4); null otherwise */
+  recheckAt?: Date | null
 }
 
 /** An internal note on a post (§11.7): never shown outside the agency. */
