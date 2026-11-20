@@ -458,7 +458,8 @@ const RULES: Record<string, readonly Rule[]> = {
     },
   ],
   // after the worker (plan 07 Task 8, §10.2 «Riprovare pubblicazioni fallite», P5, P6): the
-  // case's post is someone else's, so «Riprova» and «Segna come verificato» take the Manager;
+  // case's post is someone else's, so «Riprova» and «Segna come verificato» (`post.retry`, the
+  // Publisher on own posts only) take what `post.manage_others` gives: the Manager and above;
   // the Publisher cancels a destination of anyone's post, as the whole post
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/destinations/{accountId}/retry': [
     {

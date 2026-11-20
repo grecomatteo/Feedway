@@ -10,8 +10,10 @@ import {
   resumePaused,
   retryTarget,
   searchTarget,
+  updatePost,
   type PlatformPublisher,
 } from '@app/application'
+import { instantToZoned } from '@app/domain'
 import type { Runtime } from '@app/infrastructure'
 import { seed, startTestDatabase, withScope, type TestDatabase } from '@app/infrastructure/testing'
 import { startMetaMock, type MetaMock } from '@app/meta-mock'
@@ -435,4 +437,58 @@ test('an uncertain call, not found, then «Riprova»: prepared and published', a
   await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
   expect((await targetOn(post.postId, ig)).status).toBe('published')
   expect(publishCalls()).toBe(before + 1)
+})
+
+test('«Riprova», then the post moved to another day: its preparation is not too late', async () => {
+  const { world, at, post, panel, input } = await setUp({ accounts: 'instagram' })
+  const ig = world.accounts.instagram
+  const late = plus(at, 20)
+  const deps = workerDeps(runtime, testClock(late), host.url)
+  await runAll(world, post.postId, deps, 'prepare')
+  panel.clock.set(late)
+  await retryTarget(panel, world.actor, input(ig), { ip: null })
+  // the person moves it two days later instead (a new round, P2)
+  const moved = new Date(Math.ceil((Date.now() + 2 * 24 * 60 * MINUTE) / MINUTE) * MINUTE)
+  const { localDate, localTime } = instantToZoned(moved, 'Europe/Rome')
+  await updatePost(
+    postsDeps(runtime),
+    world.actor,
+    post.postId,
+    {
+      workspaceId: world.workspaceId,
+      version: await versionOf(post.postId),
+      when: { localDate, localTime },
+    },
+    { ip: null },
+  )
+  const scheduled = await targetOn(post.postId, ig)
+  expect(scheduled.status).toBe('scheduled')
+  await prepareTarget(
+    workerDeps(runtime, testClock(plus(moved, -15)), host.url),
+    job(world, scheduled),
+  )
+  expect((await targetOn(post.postId, ig)).status).toBe('ready')
+})
+
+test('a Publisher retries the posts they created, not those of others (P6)', async () => {
+  const { world, post, panel, input } = await setUp({ accounts: 'instagram' })
+  const ig = world.accounts.instagram
+  const userId = await scheduledByPublisher(world, post.postId)
+  const publisher = {
+    userId,
+    platformRole: null,
+    organizationId: world.organizationId,
+    orgRole: 'member' as const,
+    memberships: new Map([[world.workspaceId, 'publisher' as const]]),
+  }
+  await admin.query(
+    "update post_targets set status = 'failed', generation = generation + 1 where post_id = $1",
+    [post.postId],
+  )
+  await expect(retryTarget(panel, publisher, input(ig), { ip: null })).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  await admin.query('update posts set created_by = $2 where id = $1', [post.postId, userId])
+  await retryTarget(panel, publisher, input(ig), { ip: null })
+  expect((await targetOn(post.postId, ig)).status).toBe('scheduled')
 })

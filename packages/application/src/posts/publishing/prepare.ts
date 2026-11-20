@@ -107,7 +107,10 @@ async function decide(
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // D-77 (b): only the first start; a preparation under way or tried again goes on
   // after a «Riprova» the 15 minutes count from it (Scelta 1): the post keeps its time
-  if (target.status === 'scheduled' && isTooLate(retriedAtOf(target) ?? post.scheduledAt, now))
+  if (
+    target.status === 'scheduled' &&
+    isTooLate(latestOf(post.scheduledAt, retriedAtOf(target)), now)
+  )
     return done(await failTarget(tx, target, 'too_late'))
 
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))

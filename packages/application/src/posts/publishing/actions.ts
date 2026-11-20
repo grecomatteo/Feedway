@@ -42,9 +42,7 @@ const resourceOf = (post: PostRecord) => ({
  * §10.2 «Riprovare pubblicazioni fallite» (P6): the Manager and above on every post, the
  * Publisher on the posts they created.
  */
-const mayRetry = (actor: OrgActor, post: PostRecord) =>
-  can(actor, 'post.manage_others', resourceOf(post)) ||
-  (can(actor, 'post.publish', resourceOf(post)) && post.createdBy === actor.userId)
+const mayRetry = (actor: OrgActor, post: PostRecord) => can(actor, 'post.retry', resourceOf(post))
 
 /** P5: a post in pause is resumed or cancelled by whoever manages the posts of others. */
 const mayManage = (actor: OrgActor, post: PostRecord) =>

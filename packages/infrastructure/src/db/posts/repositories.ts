@@ -150,6 +150,8 @@ const NEW_ROUND = {
   claimedUntil: null,
   lastErrorCode: null,
   lastErrorMessage: null,
+  // what a round of the worker noted (a «Riprova», a search) is of the old round
+  verification: null,
   metaIds: sql`case
     when ${postTargets.metaIds} is null or (${postTargets.metaIds} - ${DISCARD_KEY}) = '{}'::jsonb
       then ${postTargets.metaIds}
