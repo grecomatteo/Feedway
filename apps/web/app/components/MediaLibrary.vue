@@ -532,7 +532,7 @@ function filesDrop(event: DragEvent) {
           variant="ghost"
           size="sm"
           icon="i-lucide-folder-plus"
-          class="min-h-8 font-medium"
+          class="min-h-8 font-medium pointer-coarse:min-h-11"
           data-new-folder
           @click="startCreate(null)"
         >
@@ -570,7 +570,7 @@ function filesDrop(event: DragEvent) {
         <li v-for="f in tree" :key="f.id" class="group/folder relative">
           <button
             type="button"
-            :class="[folderClass(f.id), readOnly ? '' : 'pointer-coarse:pr-10']"
+            :class="[folderClass(f.id), readOnly ? '' : 'pointer-coarse:h-11 pointer-coarse:pr-12']"
             :style="{ paddingLeft: `${0.625 + f.depth * 0.875}rem` }"
             :aria-current="isCurrent(f.id) ? 'true' : undefined"
             :data-folder="f.name"
@@ -587,15 +587,16 @@ function filesDrop(event: DragEvent) {
             />
             <span class="min-w-0 flex-1 truncate">{{ f.name }}</span>
             <!-- the «⋯» takes the count's place on hover (on touch it has its own) -->
-            <span
-              class="text-xs text-(--app-text-muted) tabular-nums"
-              :class="
-                readOnly
-                  ? ''
-                  : 'group-focus-within/folder:invisible group-hover/folder:invisible group-has-[[data-state=open]]/folder:invisible pointer-coarse:visible!'
-              "
-            >
-              <span aria-hidden="true">{{ f.fileCount }}</span>
+            <span class="text-xs text-(--app-text-muted) tabular-nums">
+              <span
+                aria-hidden="true"
+                :class="
+                  readOnly
+                    ? ''
+                    : 'group-focus-within/folder:invisible group-hover/folder:invisible group-has-[[data-state=open]]/folder:invisible pointer-coarse:visible!'
+                "
+                >{{ f.fileCount }}</span
+              >
               <span class="sr-only">{{
                 $t('library.folders.files', { n: f.fileCount }, f.fileCount)
               }}</span>
@@ -604,7 +605,7 @@ function filesDrop(event: DragEvent) {
           <!-- «⋯» of every folder (D-103): in view on hover, with the keyboard and on touch -->
           <span
             v-if="!readOnly"
-            class="absolute top-1/2 right-0.5 -translate-y-1/2 opacity-0 transition-opacity group-hover/folder:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100 pointer-coarse:opacity-100"
+            class="absolute top-1/2 right-0.5 -translate-y-1/2 opacity-0 transition-opacity group-focus-within/folder:opacity-100 group-hover/folder:opacity-100 has-[[data-state=open]]:opacity-100 pointer-coarse:opacity-100"
             data-folder-actions
           >
             <RowActions
