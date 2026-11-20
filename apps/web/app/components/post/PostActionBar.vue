@@ -275,7 +275,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         color="neutral"
         variant="outline"
         size="sm"
-        class="shrink-0"
+        class="shrink-0 max-md:min-h-control"
         @click="e.flush()"
       >
         {{ $t('posts.save.retry') }}
@@ -285,7 +285,7 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         color="neutral"
         variant="outline"
         size="sm"
-        class="shrink-0"
+        class="shrink-0 max-md:min-h-control"
         @click="e.reload()"
       >
         {{ $t('posts.save.reload') }}

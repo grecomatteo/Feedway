@@ -26,7 +26,13 @@ function arm() {
   if (import.meta.client && open.value && !held.value && props.duration > 0)
     timer = setTimeout(() => (open.value = false), props.duration)
 }
-watch(open, arm)
+// a closed toast is no longer held: its link may have gone with the focus on it, and a removed
+// element sends no focusout; a new message starts the five seconds again
+watch(open, (now) => {
+  if (!now) held.value = false
+  arm()
+})
+watch(() => props.message, arm)
 onMounted(arm)
 onBeforeUnmount(() => clearTimeout(timer))
 
@@ -70,7 +76,7 @@ function leaveFocus(e: FocusEvent) {
       <NuxtLink
         v-if="to && linkLabel"
         :to="to"
-        class="inline-flex h-8 items-center rounded-thumb px-2.5 font-semibold underline underline-offset-3"
+        class="inline-flex h-8 items-center rounded-thumb max-md:h-11 px-2.5 font-semibold underline underline-offset-3"
         @click="open = false"
         >{{ linkLabel }}</NuxtLink
       >

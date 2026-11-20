@@ -167,6 +167,8 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   const toast = page.locator('[data-toast]')
   await expect(toast).toContainText(/Programmato per \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:30/u)
   await toast.getByRole('link', { name: 'Apri' }).click()
+  // followed, the confirmation goes: on a phone it would cover the editor's buttons
+  await expect(toast).toHaveCount(0)
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
 
   // a change not saved yet is kept when the post goes back to draft
