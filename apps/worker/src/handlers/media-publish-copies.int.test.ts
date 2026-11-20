@@ -192,11 +192,8 @@ test('a photo cut to its box: 4:5, JPEG sRGB without metadata, served by /m/*', 
     name: `${row?.public_token ?? ''}.jpg`,
     range: null,
   })
-  expect(served).toMatchObject({
-    kind: 'whole',
-    contentType: 'image/jpeg',
-    etag: expect.stringContaining(row?.id ?? '-'),
-  })
+  expect(served).toMatchObject({ kind: 'whole', contentType: 'image/jpeg' })
+  expect(served?.etag).toBe(row?.id)
   // the next file or copy waiting gets its wake-up: none here
   expect(d.queue.sent).toEqual([])
 })

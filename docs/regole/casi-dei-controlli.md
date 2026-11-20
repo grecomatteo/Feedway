@@ -157,4 +157,5 @@ Con Instagram e Facebook non capitano; il testo è pronto per quando servirà.
 
 | Esito | Perché non c’è un caso | Messaggio (con valori d’esempio) |
 |---|---|---|
+| `media_copy_failed` | Non è del motore: lo aggiunge il controllo prima di pubblicare (`purpose: publish`) quando la copia da pubblicare di un file non si è potuta fare (tappa 7, Task 6; provato in `copies.test.ts`). | **Blocco**: **Copia da pubblicare non riuscita**. Feedway non è riuscito a preparare la copia di questo file con le scelte del post. La preparazione ha richiesto troppo tempo: riprogramma il post per riprovare, oppure usa un file più leggero. |
 | `type_not_supported` | Instagram e Facebook hanno tutti e quattro i tipi di post: capita solo con una piattaforma futura che non ne ha uno (provato in `evaluate-post.test.ts` con regole finte). | **Blocco** · Facebook: **Facebook non ha questo tipo di post**. Su Facebook non si può pubblicare «Storia». Togli gli account di Facebook, o cambia il tipo di post. |

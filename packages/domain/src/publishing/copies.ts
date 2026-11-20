@@ -7,6 +7,7 @@ import {
   recipePurpose,
   type CopyRecipe,
 } from '../media/recipes.js'
+import { coverKey, mediaKeys, outcomeKey } from '../rules/evaluate-post.js'
 import type {
   PostType,
   RuleChoice,
@@ -186,4 +187,57 @@ export function distinctCopies(files: readonly DestinationFiles[]): CopyRequest[
     for (const c of [...d.media, ...(d.cover ? [d.cover] : [])])
       seen.set(`${c.mediaId}/${c.purpose}/${c.recipe}`, c)
   return [...seen.values()]
+}
+
+/**
+ * The report with a block for every copy that could not be made (Task 6: a failure is a block
+ * for the check with `publish`, before a destination is prepared): on its file, or on the
+ * cover, for each destination that publishes it. `reason`: the copy's `failure`.
+ */
+export function withFailedCopies(
+  post: PublishPost,
+  report: RuleReport,
+  files: readonly DestinationFiles[],
+  failed: readonly { request: CopyRequest; failure: string }[],
+): RuleReport {
+  if (failed.length === 0) return report
+  const keys = mediaKeys(post.media)
+  const cover = coverKey(
+    post.cover?.source === 'image'
+      ? { source: 'image', mediaId: post.cover.file.mediaId }
+      : post.cover,
+  )
+  const same = (a: CopyRequest, b: CopyRequest) =>
+    a.mediaId === b.mediaId && a.purpose === b.purpose && a.recipe === b.recipe
+  const added = new Map<string, RuleOutcome>()
+  const touched = new Map<string, Set<string>>()
+  const block = (accountId: string, subject: RuleSubject, reason: string) => {
+    const finding = { code: 'media_copy_failed' as const, subject }
+    const key = outcomeKey(finding, keys, cover)
+    added.set(key, { level: 'block', ...finding, params: { reason }, key })
+    touched.set(accountId, (touched.get(accountId) ?? new Set()).add(key))
+  }
+  const failure = (r: CopyRequest) => failed.find((f) => same(f.request, r))?.failure
+  for (const d of files) {
+    const coverFailure = d.cover ? failure(d.cover) : undefined
+    if (coverFailure !== undefined) block(d.accountId, { kind: 'cover' }, coverFailure)
+    // `d.media` follows the indices of the destination's summary, one for one
+    const indices = report.destinations.find((x) => x.accountId === d.accountId)?.media ?? []
+    d.media.forEach((r, i) => {
+      const index = indices[i]
+      const reason = failure(r)
+      if (index !== undefined && reason !== undefined)
+        block(d.accountId, { kind: 'media', index }, reason)
+    })
+  }
+  if (added.size === 0) return report
+  return {
+    ...report,
+    outcomes: [...report.outcomes, ...added.values()],
+    destinations: report.destinations.map((d) => ({
+      ...d,
+      outcomeKeys: [...d.outcomeKeys, ...(touched.get(d.accountId) ?? [])],
+    })),
+    canSchedule: false,
+  }
 }

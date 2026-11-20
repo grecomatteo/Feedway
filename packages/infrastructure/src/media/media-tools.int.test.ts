@@ -492,6 +492,7 @@ describe('copies to publish (plan 07 Task 6)', () => {
         width: 1440,
         height: 1800,
         channels: 3,
+        background: '#808080',
         noise: { type: 'gaussian', mean: 128, sigma: 90 },
       },
     })

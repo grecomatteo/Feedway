@@ -2,7 +2,13 @@ import { describe, expect, test } from 'vitest'
 import { FB, IG, context, draft, photo, video } from '../rules/cases.js'
 import { evaluatePost } from '../rules/evaluate-post.js'
 import type { DraftMedia, PostDraft, RuleChoice } from '../rules/types.js'
-import { distinctCopies, publishFilesOf, type PublishFile, type PublishPost } from './copies.js'
+import {
+  distinctCopies,
+  publishFilesOf,
+  withFailedCopies,
+  type PublishFile,
+  type PublishPost,
+} from './copies.js'
 
 const LIMITS = new Map([
   ['instagram', 8_000_000],
@@ -223,4 +229,58 @@ test('the copies of all destinations, once each', () => {
     { mediaId: p.mediaId, purpose: 'ig_feed', recipe: '' },
     { mediaId: p.mediaId, purpose: 'fb_photo', recipe: 'fb' },
   ])
+})
+
+describe('a copy that could not be made', () => {
+  test('blocks the check before publishing, on its file, for the destinations that use it', () => {
+    const tall = photo({ width: 1000, height: 2000 })
+    const choices: RuleChoice[] = [
+      { key: `photo_aspect_ratio:media:${tall.mediaId}:instagram`, option: 'pad' },
+    ]
+    const d = draft({ media: [tall], choices })
+    const { files, report } = filesOf(d)
+    const post: PublishPost = { type: d.type, media: d.media.map((m) => fileOf(m)), choices }
+    const request = { mediaId: tall.mediaId, purpose: 'ig_feed' as const, recipe: 'pad-8000' }
+    const blocked = withFailedCopies(post, report, files, [{ request, failure: 'timeout' }])
+    expect(blocked.canSchedule).toBe(false)
+    const added = blocked.outcomes.filter((o) => o.code === 'media_copy_failed')
+    expect(added).toEqual([
+      {
+        level: 'block',
+        code: 'media_copy_failed',
+        subject: { kind: 'media', index: 0 },
+        params: { reason: 'timeout' },
+        key: `media_copy_failed:media:${tall.mediaId}`,
+      },
+    ])
+    const keysOf = (accountId: string) =>
+      blocked.destinations.find((x) => x.accountId === accountId)?.outcomeKeys ?? []
+    // Facebook publishes the photo whole: its copy is another one
+    expect(keysOf(IG)).toContain(added[0]?.key)
+    expect(keysOf(FB)).not.toContain(added[0]?.key)
+  })
+
+  test('on the cover', () => {
+    const v = video(20_000)
+    const d = draft({ type: 'reel', media: [v], cover: { source: 'frame', offsetMs: 100 } })
+    const { files, report } = filesOf(d)
+    const post: PublishPost = {
+      type: 'reel',
+      media: [fileOf(v)],
+      cover: { source: 'frame', offsetMs: 100 },
+      choices: [],
+    }
+    const request = { mediaId: v.mediaId, purpose: 'cover' as const, recipe: 'frame-100-crop' }
+    const blocked = withFailedCopies(post, report, files, [{ request, failure: 'unreadable' }])
+    expect(blocked.outcomes.find((o) => o.code === 'media_copy_failed')).toMatchObject({
+      subject: { kind: 'cover' },
+      key: 'media_copy_failed:cover',
+    })
+  })
+
+  test('none failed: the report as it was', () => {
+    const { files, report } = filesOf(draft())
+    const post: PublishPost = { type: 'photo', media: [], choices: [] }
+    expect(withFailedCopies(post, report, files, [])).toBe(report)
+  })
 })
