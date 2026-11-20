@@ -9,6 +9,8 @@ export const PUBLISH_ERROR_CODES = [
   'media_rejected',
   'duplicate',
   'rate_limited',
+  'quota_exhausted',
+  'account_restricted',
   'meta_error',
   // from Feedway
   'too_late',
@@ -36,6 +38,17 @@ const BY_META_CODE: ReadonlyMap<number, PublishErrorCode> = new Map([
   [341, 'rate_limited'],
   [80001, 'rate_limited'],
   [80002, 'rate_limited'],
+  // Instagram Error Codes: codes and subcodes of the content publishing API (not verified)
+  [2207027, 'media_processing'],
+  [2207052, 'media_rejected'],
+  [352, 'media_rejected'],
+  [36000, 'media_rejected'],
+  [36001, 'media_rejected'],
+  [36003, 'media_rejected'],
+  [9, 'quota_exhausted'],
+  [2207042, 'quota_exhausted'],
+  [25, 'account_restricted'],
+  [2207050, 'account_restricted'],
 ])
 
 /** The Feedway code of a Meta error; Instagram's subcodes (`error_subcode`) count first. */

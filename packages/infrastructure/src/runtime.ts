@@ -13,6 +13,7 @@ import type {
   MetaAppCredentials,
   PlatformConnector,
   PlatformConnectors,
+  PlatformPublishers,
   PublishingHistory,
   RateLimiter,
   SignedTokens,
@@ -36,6 +37,7 @@ import { createIntegrationStore } from './db/integrations/integration-store.js'
 import { createConnectionTokens } from './db/accounts/connection-tokens.js'
 import { createMetaGraphClient } from './platforms/meta/graph-client.js'
 import { createMetaPictureDownloader } from './platforms/meta/picture-download.js'
+import { createMetaPublishers } from './platforms/meta/publisher.js'
 import { createMetaSystemUserConnector } from './platforms/meta/system-user-connector.js'
 import { createDb } from './db/client.js'
 import type { Db, DbHandle } from './db/client.js'
@@ -101,6 +103,8 @@ export interface Runtime {
   meta: Pick<PlatformConnector<MetaAppCredentials>, 'verifyApp'>
   /** The registry of the platforms (ADR 019): `connection kind → PlatformConnector`. */
   connectors: PlatformConnectors
+  /** The publishers of the platforms (ADR 019, plan 07 Task 4): `platform → PlatformPublisher`. */
+  publishers: PlatformPublishers
   /** The rules of the platforms (ADR 019, plan 05 R2): `platform → PlatformRules`. */
   platformRules: ReadonlyMap<Platform, PlatformRules>
   /** What is published or scheduled, for the checks (plan 05 R4): none until stages 6–7. */
@@ -124,10 +128,10 @@ const META_NOT_CONFIGURED: Runtime['meta'] = {
 function createMeta(
   config: RuntimeConfig,
   deps: { clock: Clock; logger: Logger; integrations: IntegrationStore },
-): Pick<Runtime, 'meta' | 'connectors'> {
+): Pick<Runtime, 'meta' | 'connectors' | 'publishers'> {
   const { metaMode: mode, metaGraphVersion: version } = config
   if (mode === undefined || version === undefined)
-    return { meta: META_NOT_CONFIGURED, connectors: {} }
+    return { meta: META_NOT_CONFIGURED, connectors: {}, publishers: {} }
   const client = createMetaGraphClient({
     mode,
     version,
@@ -148,7 +152,11 @@ function createMeta(
     pictures,
   })
   // the unified login (meta_business_login) joins with plan 03 Task 7
-  return { meta: systemUser, connectors: { meta_system_user: systemUser } }
+  return {
+    meta: systemUser,
+    connectors: { meta_system_user: systemUser },
+    publishers: createMetaPublishers({ client, clock: deps.clock }),
+  }
 }
 
 export interface MailerDeps {

@@ -70,6 +70,23 @@ export interface MetaPublishingLimit {
   quotaDurationSeconds: number
 }
 
+/** An Instagram container's state (§8.7: read at most once a minute). */
+export interface MetaContainerStatus {
+  statusCode: 'EXPIRED' | 'ERROR' | 'FINISHED' | 'IN_PROGRESS' | 'PUBLISHED' | 'UNKNOWN'
+  /** With `ERROR`, Meta's subcode as text; never shown, kept only as a code. */
+  status: string | null
+}
+
+/** A published Instagram media, with the fields of §9.5 and §9.6. */
+export interface MetaInstagramMedia {
+  id: string
+  caption: string | null
+  timestamp: Date | null
+  mediaType: string | null
+  mediaProductType: string | null
+  permalink: string | null
+}
+
 export interface MetaGraphClient {
   loginDialogUrl(input: {
     appId: string
@@ -113,7 +130,39 @@ export interface MetaGraphClient {
   getPublishingLimit(
     credentials: MetaTokenCredentials,
     igUserId: string,
+    signal?: AbortSignal,
   ): Promise<MetaResult<MetaPublishingLimit>>
+  /** `POST /{ig}/media`: a container, not yet published. */
+  createInstagramContainer(
+    credentials: MetaTokenCredentials,
+    igUserId: string,
+    params: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ id: string }>>
+  getContainerStatus(
+    credentials: MetaTokenCredentials,
+    containerId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaContainerStatus>>
+  /** `POST /{ig}/media_publish`: never repeated by the client, a timeout is uncertain. */
+  publishInstagramContainer(
+    credentials: MetaTokenCredentials,
+    igUserId: string,
+    containerId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ id: string }>>
+  /** The latest media of the account (`media`) or its stories (`stories`), newest first. */
+  listInstagramMedia(
+    credentials: MetaTokenCredentials,
+    igUserId: string,
+    input: { edge: 'media' | 'stories'; limit: number },
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaInstagramMedia[]>>
+  getInstagramMedia(
+    credentials: MetaTokenCredentials,
+    mediaId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaInstagramMedia>>
 }
 
 export interface MetaGraphClientOptions {
@@ -188,10 +237,42 @@ const debugSchema = z.object({
   }),
 })
 
+const igMediaFields = 'id,caption,timestamp,media_type,media_product_type,permalink'
+
+/** Meta's ids are digits (or `dry-run`'s fake ones): never a dot, a slash or a comma. */
+const objectId = z.string().regex(/^([0-9]{1,32}|dry-run-[0-9a-f]{16})$/)
+
+const igMediaSchema = z.object({
+  id: objectId,
+  caption: z.string().optional(),
+  timestamp: z.string().optional(),
+  media_type: z.string().optional(),
+  media_product_type: z.string().optional(),
+  permalink: z.string().optional(),
+})
+
+const CONTAINER_STATUSES = ['EXPIRED', 'ERROR', 'FINISHED', 'IN_PROGRESS', 'PUBLISHED'] as const
+
+/** Meta writes `2026-11-20T16:00:00+0000`, which `Date` reads only with a colon in the offset. */
+function metaDate(value: string | undefined): Date | null {
+  if (value === undefined) return null
+  const date = new Date(value.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const toIgMedia = (m: z.infer<typeof igMediaSchema>): MetaInstagramMedia => ({
+  id: m.id,
+  caption: m.caption ?? null,
+  timestamp: metaDate(m.timestamp),
+  mediaType: m.media_type ?? null,
+  mediaProductType: m.media_product_type ?? null,
+  permalink: m.permalink ?? null,
+})
+
 const errorSchema = z.object({
   error: z.object({
-    code: z.number(),
-    error_subcode: z.number().optional(),
+    code: z.number().int(),
+    error_subcode: z.number().int().optional(),
     fbtrace_id: z.string().optional(),
   }),
 })
@@ -306,6 +387,10 @@ interface CallSpec {
   appToken?: string
   /** False for calls that must not run twice: the authorization code works only once. */
   retry?: boolean
+  /** GET by default; a POST sends `params` as a form body. */
+  method?: 'GET' | 'POST' | 'DELETE'
+  /** The job's signal: aborting it stops the call (and the waits between attempts). */
+  signal?: AbortSignal | undefined
 }
 
 export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphClient {
@@ -343,9 +428,33 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     }
   }
 
+  /**
+   * `dry-run` (plan 03): reads go to Meta, writes never leave and give a fake id; a read of a
+   * fake id is answered here (a finished container, a media without fields).
+   */
+  function dryRun<T>(spec: CallSpec, schema: z.ZodType<T>): MetaResult<T> | null {
+    if (opts.mode !== 'dry-run') return null
+    const method = spec.method ?? 'GET'
+    const fakeRead = method === 'GET' && spec.path.includes('/dry-run-')
+    if (method === 'GET' && !fakeRead) return null
+    const body = fakeRead
+      ? { id: spec.path.split('/').pop() ?? '', status_code: 'FINISHED' }
+      : { id: `dry-run-${randomBytes(8).toString('hex')}` }
+    opts.logger.info({ metaCall: spec.name, method }, 'meta call skipped (dry-run)')
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) throw new MetaError({ kind: 'uncertain', reason: 'invalid_response' })
+    return { data: parsed.data, usage: { app: null, business: [] } }
+  }
+
   async function attempt<T>(spec: CallSpec, schema: z.ZodType<T>): Promise<MetaResult<T>> {
+    const skipped = dryRun(spec, schema)
+    if (skipped !== null) return skipped
     const url = new URL(`${graphBase}${spec.path}`)
-    for (const [k, v] of Object.entries(spec.params ?? {})) url.searchParams.set(k, v)
+    const method = spec.method ?? 'GET'
+    const form = new URLSearchParams()
+    for (const [k, v] of Object.entries(spec.params ?? {}))
+      if (method === 'POST') form.set(k, v)
+      else url.searchParams.set(k, v)
     const headers: Record<string, string> = { accept: 'application/json' }
     if (spec.credentials !== undefined) {
       headers.authorization = `Bearer ${spec.credentials.accessToken}`
@@ -361,9 +470,21 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     let text: string
     const started = opts.clock.now().getTime()
     try {
-      res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) })
+      const timeout = AbortSignal.timeout(timeoutMs)
+      res = await fetch(url, {
+        method,
+        headers,
+        ...(method === 'POST' && { body: form }),
+        signal: spec.signal === undefined ? timeout : AbortSignal.any([timeout, spec.signal]),
+      })
       text = await res.text()
     } catch (err) {
+      // stopped from outside (the worker shuts down): like a timeout, the request may have acted
+      if (spec.signal?.aborted === true)
+        throw new MetaError({
+          kind: spec.retry === false ? 'uncertain' : 'transient',
+          reason: 'aborted',
+        })
       // Meta may have acted on a request that timed out: never retried (plan 03, Task 3)
       if (err instanceof DOMException && err.name === 'TimeoutError')
         throw new MetaError({ kind: 'uncertain', reason: 'timeout' })
@@ -437,10 +558,25 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         )
         // Rate limits and blocks are transient too, but waiting seconds does not help: the
         // caller waits with Retry-After or the usage headers (spec §8.6, from stage 7)
-        if (err.reason !== 'meta_unavailable' || spec.retry === false || n >= MAX_ATTEMPTS)
+        if (
+          err.reason !== 'meta_unavailable' ||
+          spec.retry === false ||
+          n >= MAX_ATTEMPTS ||
+          spec.signal?.aborted === true
+        )
           throw err
         const wait = baseDelay * 2 ** (n - 1) * (0.5 + Math.random())
-        await new Promise((resolve) => setTimeout(resolve, wait))
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, wait)
+          spec.signal?.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer)
+              resolve()
+            },
+            { once: true },
+          )
+        })
       }
     }
   }
@@ -598,13 +734,14 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
       return { data: toIgAccount(result.data), usage: result.usage }
     },
 
-    async getPublishingLimit(credentials, igUserId) {
+    async getPublishingLimit(credentials, igUserId, signal) {
       const result = await call(
         {
           name: 'ig_user/content_publishing_limit',
           path: `/${encodeURIComponent(igUserId)}/content_publishing_limit`,
           params: { fields: 'quota_usage,config' },
           credentials,
+          signal,
         },
         z.object({
           data: z
@@ -627,6 +764,84 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         },
         usage: result.usage,
       }
+    },
+
+    async createInstagramContainer(credentials, igUserId, params, signal) {
+      return call(
+        {
+          name: 'ig_user/media',
+          method: 'POST',
+          path: `/${encodeURIComponent(igUserId)}/media`,
+          params,
+          credentials,
+          signal,
+        },
+        z.object({ id: objectId }),
+      )
+    },
+
+    async getContainerStatus(credentials, containerId, signal) {
+      const result = await call(
+        {
+          name: 'ig_container',
+          path: `/${encodeURIComponent(containerId)}`,
+          params: { fields: 'status_code,status' },
+          credentials,
+          signal,
+        },
+        z.object({ status_code: z.string().optional(), status: z.string().optional() }),
+      )
+      const code = result.data.status_code
+      return {
+        data: {
+          statusCode: CONTAINER_STATUSES.find((s) => s === code) ?? 'UNKNOWN',
+          status: result.data.status ?? null,
+        },
+        usage: result.usage,
+      }
+    },
+
+    async publishInstagramContainer(credentials, igUserId, containerId, signal) {
+      return call(
+        {
+          name: 'ig_user/media_publish',
+          method: 'POST',
+          retry: false,
+          path: `/${encodeURIComponent(igUserId)}/media_publish`,
+          params: { creation_id: containerId },
+          credentials,
+          signal,
+        },
+        z.object({ id: objectId }),
+      )
+    },
+
+    async listInstagramMedia(credentials, igUserId, { edge, limit }, signal) {
+      const result = await call(
+        {
+          name: `ig_user/${edge}`,
+          path: `/${encodeURIComponent(igUserId)}/${edge}`,
+          params: { fields: igMediaFields, limit: String(limit) },
+          credentials,
+          signal,
+        },
+        listSchema(igMediaSchema),
+      )
+      return { data: result.data.data.map(toIgMedia), usage: result.usage }
+    },
+
+    async getInstagramMedia(credentials, mediaId, signal) {
+      const result = await call(
+        {
+          name: 'ig_media',
+          path: `/${encodeURIComponent(mediaId)}`,
+          params: { fields: igMediaFields },
+          credentials,
+          signal,
+        },
+        igMediaSchema,
+      )
+      return { data: toIgMedia(result.data), usage: result.usage }
     },
   }
 }

@@ -195,4 +195,19 @@ export type {
   WorkspaceAccountsRepository,
 } from './ports/accounts.js'
 export type { ConnectionTokens } from './ports/connection-tokens.js'
+export { PublishError } from './ports/platform-publisher.js'
+export type {
+  FoundPost,
+  PlatformLoad,
+  PlatformPublisher,
+  PlatformPublishers,
+  PublishFile,
+  PublishFiles,
+  PublishMetaIds,
+  PublishTarget,
+  StepContext,
+  StepResult,
+  StepUsage,
+  VerifyResult,
+} from './ports/platform-publisher.js'
 export * from './platforms/meta/index.js'
