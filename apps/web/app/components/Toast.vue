@@ -4,7 +4,8 @@
  * link to what was just done. It goes away by itself after `duration` ms (D-45: five seconds),
  * but not while the pointer or the focus is on it, so the link can be reached.
  * Keep it mounted and drive it with `v-model:open`: the live region must already be on the page
- * when the message arrives, or a screen reader does not announce it.
+ * when the message arrives, or a screen reader does not announce it. Closed, it is only that
+ * empty region (no `status` role), so a page's own status line stays the only one.
  */
 const props = withDefaults(
   defineProps<{
@@ -48,7 +49,7 @@ function leaveFocus(e: FocusEvent) {
 
 <template>
   <div
-    role="status"
+    :role="open ? 'status' : undefined"
     aria-live="polite"
     :class="
       inline
