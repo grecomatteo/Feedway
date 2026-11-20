@@ -87,6 +87,38 @@ export interface MetaInstagramMedia {
   permalink: string | null
 }
 
+/** A Facebook video or reel's processing (§9.6), from `GET /{video}?fields=status`. */
+export interface MetaFacebookVideo {
+  id: string
+  /** `ready`, `processing`, `expired`, `error`; null when Meta left it out. */
+  videoStatus: string | null
+  uploadingStatus: string | null
+  processingStatus: string | null
+  publishingStatus: string | null
+  /** `published` or `not_published`. */
+  publishStatus: string | null
+  /** Often a path (`/reel/…`), not a whole address. */
+  permalink: string | null
+}
+
+/** A published Page post, video or reel, for the uncertain search (§9.5) and the check (§9.6). */
+export interface MetaFacebookPost {
+  id: string
+  message: string | null
+  createdAt: Date | null
+  isPublished: boolean | null
+  permalink: string | null
+}
+
+export interface MetaFacebookStory {
+  postId: string
+  status: string | null
+  createdAt: Date | null
+  /** `photo` or `video`. */
+  mediaType: string | null
+  permalink: string | null
+}
+
 export interface MetaGraphClient {
   loginDialogUrl(input: {
     appId: string
@@ -172,12 +204,103 @@ export interface MetaGraphClient {
     mediaId: string,
     signal: AbortSignal,
   ): Promise<MetaResult<MetaInstagramMedia>>
+  /** `GET /{page}?fields=access_token`: the Page token, never kept (plan 07, Task 5). */
+  getPageAccessToken(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ accessToken: string | null }>>
+  /**
+   * `POST /{page}/photos`. With `published=false` the photo waits for a post (and the call
+   * may be repeated); otherwise it is the call that publishes, never repeated.
+   */
+  createPagePhoto(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    params: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ id: string; postId: string | null }>>
+  /** `POST /{page}/feed`: publishes, never repeated. */
+  createPageFeedPost(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    params: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ id: string }>>
+  /** `POST /{page}/video_reels|video_stories` with `upload_phase=start`. */
+  startPageVideoUpload(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    edge: 'video_reels' | 'video_stories',
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ videoId: string }>>
+  /** The hosted upload on `rupload.facebook.com`: Meta downloads `fileUrl`. */
+  uploadHostedVideo(
+    credentials: MetaTokenCredentials,
+    videoId: string,
+    fileUrl: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ success: boolean }>>
+  /** `upload_phase=finish`: publishes, never repeated. */
+  finishPageVideoUpload(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    edge: 'video_reels' | 'video_stories',
+    params: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ success: boolean; postId: string | null }>>
+  /** `POST /{page}/videos` with `file_url`: publishes, never repeated. */
+  createPageVideo(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    params: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ id: string }>>
+  /** `POST /{page}/photo_stories` from an unpublished photo: publishes, never repeated. */
+  createPagePhotoStory(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    photoId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ success: boolean; postId: string | null }>>
+  getFacebookVideo(
+    credentials: MetaTokenCredentials,
+    videoId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaFacebookVideo>>
+  getFacebookPost(
+    credentials: MetaTokenCredentials,
+    postId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaFacebookPost>>
+  /** The latest posts (`published_posts`), videos or reels of the Page, newest first. */
+  listPagePublished(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    input: { edge: 'published_posts' | 'videos' | 'video_reels'; limit: number },
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaFacebookPost[]>>
+  listPageStories(
+    credentials: MetaTokenCredentials,
+    pageId: string,
+    limit: number,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaFacebookStory[]>>
+  /** `DELETE /{object}`: an unpublished photo or video thrown away (plan 07, P2). */
+  deleteObject(
+    credentials: MetaTokenCredentials,
+    objectId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ success: boolean }>>
 }
 
 export interface MetaGraphClientOptions {
   mode: MetaMode
   version: string
-  /** Required in `mock` (the fake Graph API serves both the API and the login dialog). */
+  /**
+   * Required in `mock` (the fake Graph API serves the API, the login dialog and the video
+   * uploads of `rupload.facebook.com`).
+   */
   baseUrl?: string
   clock: Clock
   logger: Logger
@@ -190,6 +313,7 @@ export interface MetaGraphClientOptions {
 
 const GRAPH_HOST = 'https://graph.facebook.com'
 const DIALOG_HOST = 'https://www.facebook.com'
+const UPLOAD_HOST = 'https://rupload.facebook.com'
 const MAX_ATTEMPTS = 3
 const DEFAULT_LIMIT = 50
 
@@ -259,6 +383,65 @@ const igMediaSchema = z.object({
   media_product_type: z.string().optional(),
   permalink: z.string().optional(),
 })
+
+/** A Page post id is `{page}_{post}`; a story's may come as a number. */
+const postId = z
+  .union([z.string(), z.number().int().nonnegative()])
+  .transform(String)
+  .pipe(z.string().regex(/^([0-9]{1,32}(_[0-9]{1,32})?|dry-run-[0-9a-f]{16})$/))
+
+const fbPostFields = 'id,message,created_time,is_published,permalink_url'
+const fbVideoListFields = 'id,description,created_time,updated_time,permalink_url'
+
+const fbPostSchema = z.object({
+  id: postId,
+  message: z.string().optional(),
+  description: z.string().optional(),
+  created_time: z.string().optional(),
+  updated_time: z.string().optional(),
+  is_published: z.boolean().optional(),
+  permalink_url: z.string().optional(),
+})
+
+const toFbPost = (p: z.infer<typeof fbPostSchema>): MetaFacebookPost => ({
+  id: p.id,
+  message: p.message ?? p.description ?? null,
+  createdAt: metaDate(p.created_time ?? p.updated_time),
+  isPublished: p.is_published ?? null,
+  permalink: p.permalink_url ?? null,
+})
+
+const phaseSchema = z.object({ status: z.string().optional() }).optional()
+
+const fbVideoSchema = z.object({
+  id: objectId,
+  status: z
+    .object({
+      video_status: z.string().optional(),
+      uploading_phase: phaseSchema,
+      processing_phase: phaseSchema,
+      publishing_phase: z
+        .object({ status: z.string().optional(), publish_status: z.string().optional() })
+        .optional(),
+    })
+    .optional(),
+  permalink_url: z.string().optional(),
+})
+
+const fbStorySchema = z.object({
+  post_id: postId,
+  status: z.string().optional(),
+  creation_time: z.union([z.string(), z.number()]).optional(),
+  media_type: z.string().optional(),
+  url: z.string().optional(),
+})
+
+/** A story's time may come as Meta's text or as Unix seconds (the reference shows neither). */
+function storyDate(value: string | number | undefined): Date | null {
+  if (typeof value !== 'number') return metaDate(value)
+  const date = new Date(value * 1000)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 const CONTAINER_STATUSES = ['EXPIRED', 'ERROR', 'FINISHED', 'IN_PROGRESS', 'PUBLISHED'] as const
 
@@ -400,6 +583,12 @@ interface CallSpec {
   method?: 'GET' | 'POST' | 'DELETE'
   /** The job's signal: aborting it stops the call (and the waits between attempts). */
   signal?: AbortSignal | undefined
+  /**
+   * `upload`: `rupload.facebook.com`, with the token as `Authorization: OAuth` (Reels
+   * publishing guide) and `headers` (`file_url`).
+   */
+  host?: 'graph' | 'upload'
+  headers?: Record<string, string>
 }
 
 export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphClient {
@@ -407,6 +596,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     throw new Error('META_MODE=mock needs the address of the fake Graph API')
   const graphBase = `${opts.baseUrl ?? GRAPH_HOST}/${opts.version}`
   const dialogBase = `${opts.baseUrl ?? DIALOG_HOST}/${opts.version}`
+  const uploadBase = `${opts.baseUrl ?? UPLOAD_HOST}/video-upload/${opts.version}`
   const timeoutMs = opts.timeoutMs ?? 10_000
   const baseDelay = opts.retryBaseDelayMs ?? 500
   const recordDir = opts.mode === 'live' ? (opts.recordDir ?? null) : null
@@ -448,7 +638,11 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     if (method === 'GET' && !fakeRead) return null
     const body = fakeRead
       ? { id: spec.path.split('/').pop() ?? '', status_code: 'FINISHED' }
-      : { id: `dry-run-${randomBytes(8).toString('hex')}` }
+      : (() => {
+          const id = `dry-run-${randomBytes(8).toString('hex')}`
+          // every write's answer: an id, Facebook's video sessions and stories, a success
+          return { id, video_id: id, post_id: id, success: true }
+        })()
     opts.logger.info({ metaCall: spec.name, method }, 'meta call skipped (dry-run)')
     const parsed = schema.safeParse(body)
     if (!parsed.success) throw new MetaError({ kind: 'uncertain', reason: 'invalid_response' })
@@ -458,15 +652,15 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
   async function attempt<T>(spec: CallSpec, schema: z.ZodType<T>): Promise<MetaResult<T>> {
     const skipped = dryRun(spec, schema)
     if (skipped !== null) return skipped
-    const url = new URL(`${graphBase}${spec.path}`)
+    const url = new URL(`${spec.host === 'upload' ? uploadBase : graphBase}${spec.path}`)
     const method = spec.method ?? 'GET'
     const form = new URLSearchParams()
     for (const [k, v] of Object.entries(spec.params ?? {}))
       if (method === 'POST') form.set(k, v)
       else url.searchParams.set(k, v)
-    const headers: Record<string, string> = { accept: 'application/json' }
+    const headers: Record<string, string> = { accept: 'application/json', ...spec.headers }
     if (spec.credentials !== undefined) {
-      headers.authorization = `Bearer ${spec.credentials.accessToken}`
+      headers.authorization = `${spec.host === 'upload' ? 'OAuth' : 'Bearer'} ${spec.credentials.accessToken}`
       url.searchParams.set(
         'appsecret_proof',
         createHmac('sha256', spec.credentials.appSecret)
@@ -483,7 +677,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
       res = await fetch(url, {
         method,
         headers,
-        ...(method === 'POST' && { body: form }),
+        ...(method === 'POST' && spec.host !== 'upload' && { body: form }),
         signal: spec.signal === undefined ? timeout : AbortSignal.any([timeout, spec.signal]),
       })
       text = await res.text()
@@ -880,6 +1074,241 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         igMediaSchema,
       )
       return { data: toIgMedia(result.data), usage: result.usage }
+    },
+
+    async getPageAccessToken(credentials, pageId, signal) {
+      const result = await call(
+        {
+          name: 'page/access_token',
+          path: `/${encodeURIComponent(pageId)}`,
+          params: { fields: 'access_token' },
+          credentials,
+          signal,
+        },
+        z.object({ access_token: z.string().min(1).optional() }),
+      )
+      return { data: { accessToken: result.data.access_token ?? null }, usage: result.usage }
+    },
+
+    async createPagePhoto(credentials, pageId, params, signal) {
+      const result = await call(
+        {
+          name: 'page/photos',
+          method: 'POST',
+          // a published photo is a post: never twice
+          retry: params.published === 'false',
+          path: `/${encodeURIComponent(pageId)}/photos`,
+          params,
+          credentials,
+          signal,
+        },
+        z.object({ id: objectId, post_id: postId.optional() }),
+      )
+      return {
+        data: { id: result.data.id, postId: result.data.post_id ?? null },
+        usage: result.usage,
+      }
+    },
+
+    async createPageFeedPost(credentials, pageId, params, signal) {
+      return call(
+        {
+          name: 'page/feed',
+          method: 'POST',
+          retry: false,
+          path: `/${encodeURIComponent(pageId)}/feed`,
+          params,
+          credentials,
+          signal,
+        },
+        z.object({ id: postId }),
+      )
+    },
+
+    async startPageVideoUpload(credentials, pageId, edge, signal) {
+      // the answer's `upload_url` is not followed: the address is built here (`uploadHostedVideo`)
+      const result = await call(
+        {
+          name: `page/${edge}/start`,
+          method: 'POST',
+          path: `/${encodeURIComponent(pageId)}/${edge}`,
+          params: { upload_phase: 'start' },
+          credentials,
+          signal,
+        },
+        z.object({ video_id: objectId }),
+      )
+      return { data: { videoId: result.data.video_id }, usage: result.usage }
+    },
+
+    async uploadHostedVideo(credentials, videoId, fileUrl, signal) {
+      return call(
+        {
+          name: 'video-upload',
+          method: 'POST',
+          host: 'upload',
+          path: `/${encodeURIComponent(videoId)}`,
+          headers: { file_url: fileUrl },
+          credentials,
+          signal,
+        },
+        z.object({ success: z.boolean() }),
+      )
+    },
+
+    async finishPageVideoUpload(credentials, pageId, edge, params, signal) {
+      const result = await call(
+        {
+          name: `page/${edge}/finish`,
+          method: 'POST',
+          retry: false,
+          path: `/${encodeURIComponent(pageId)}/${edge}`,
+          params: { ...params, upload_phase: 'finish' },
+          credentials,
+          signal,
+        },
+        z.object({ success: z.boolean(), post_id: postId.optional() }),
+      )
+      return {
+        data: { success: result.data.success, postId: result.data.post_id ?? null },
+        usage: result.usage,
+      }
+    },
+
+    async createPageVideo(credentials, pageId, params, signal) {
+      return call(
+        {
+          name: 'page/videos',
+          method: 'POST',
+          retry: false,
+          path: `/${encodeURIComponent(pageId)}/videos`,
+          params,
+          credentials,
+          signal,
+        },
+        z.object({ id: objectId }),
+      )
+    },
+
+    async createPagePhotoStory(credentials, pageId, photoId, signal) {
+      const result = await call(
+        {
+          name: 'page/photo_stories',
+          method: 'POST',
+          retry: false,
+          path: `/${encodeURIComponent(pageId)}/photo_stories`,
+          params: { photo_id: photoId },
+          credentials,
+          signal,
+        },
+        z.object({ success: z.boolean(), post_id: postId.optional() }),
+      )
+      return {
+        data: { success: result.data.success, postId: result.data.post_id ?? null },
+        usage: result.usage,
+      }
+    },
+
+    async getFacebookVideo(credentials, videoId, signal) {
+      const result = await call(
+        {
+          name: 'fb_video',
+          path: `/${encodeURIComponent(videoId)}`,
+          params: { fields: 'status,permalink_url' },
+          credentials,
+          signal,
+        },
+        fbVideoSchema,
+      )
+      const v = result.data
+      return {
+        data: {
+          id: v.id,
+          videoStatus: v.status?.video_status ?? null,
+          uploadingStatus: v.status?.uploading_phase?.status ?? null,
+          processingStatus: v.status?.processing_phase?.status ?? null,
+          publishingStatus: v.status?.publishing_phase?.status ?? null,
+          publishStatus: v.status?.publishing_phase?.publish_status ?? null,
+          permalink: v.permalink_url ?? null,
+        },
+        usage: result.usage,
+      }
+    },
+
+    async getFacebookPost(credentials, id, signal) {
+      const result = await call(
+        {
+          name: 'fb_post',
+          path: `/${encodeURIComponent(id)}`,
+          params: { fields: 'is_published,permalink_url' },
+          credentials,
+          signal,
+        },
+        fbPostSchema,
+      )
+      return { data: toFbPost(result.data), usage: result.usage }
+    },
+
+    async listPagePublished(credentials, pageId, { edge, limit }, signal) {
+      const result = await call(
+        {
+          name: `page/${edge}`,
+          path: `/${encodeURIComponent(pageId)}/${edge}`,
+          params: {
+            fields: edge === 'published_posts' ? fbPostFields : fbVideoListFields,
+            limit: String(limit),
+          },
+          credentials,
+          signal,
+        },
+        listSchema(z.unknown()),
+      )
+      // one odd item is left out: it must not stop the search of the others (§9.5)
+      const items = result.data.data.flatMap((item) => {
+        const parsed = fbPostSchema.safeParse(item)
+        return parsed.success ? [toFbPost(parsed.data)] : []
+      })
+      return { data: items, usage: result.usage }
+    },
+
+    async listPageStories(credentials, pageId, limit, signal) {
+      const result = await call(
+        {
+          name: 'page/stories',
+          path: `/${encodeURIComponent(pageId)}/stories`,
+          params: { limit: String(limit) },
+          credentials,
+          signal,
+        },
+        listSchema(z.unknown()),
+      )
+      const stories = result.data.data.flatMap((item) => {
+        const parsed = fbStorySchema.safeParse(item)
+        return parsed.success ? [parsed.data] : []
+      })
+      return {
+        data: stories.map((s) => ({
+          postId: s.post_id,
+          status: s.status ?? null,
+          createdAt: storyDate(s.creation_time),
+          mediaType: s.media_type ?? null,
+          permalink: s.url ?? null,
+        })),
+        usage: result.usage,
+      }
+    },
+
+    async deleteObject(credentials, objectId, signal) {
+      return call(
+        {
+          name: 'object/delete',
+          method: 'DELETE',
+          path: `/${encodeURIComponent(objectId)}`,
+          credentials,
+          signal,
+        },
+        z.object({ success: z.boolean() }),
+      )
     },
   }
 }
