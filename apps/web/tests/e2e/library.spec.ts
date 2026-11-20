@@ -202,6 +202,11 @@ test('the detail plays the video, saves the tags and deletes the file', async ({
   await chips.getByRole('listitem').filter({ hasText: 'natale' }).hover()
   await detail.getByRole('button', { name: 'Togli il tag «natale»' }).click()
   await expect(chips.getByRole('listitem')).toHaveText(['forno'])
+  // the focus stays on the tags: the next «×», then «+ Tag»
+  await expect(detail.getByRole('button', { name: 'Togli il tag «forno»' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(chips).toHaveCount(0)
+  await expect(detail.getByRole('button', { name: 'Aggiungi un tag' })).toBeFocused()
 
   const results = await axe(page)
   expect(results.violations).toEqual([])

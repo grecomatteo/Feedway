@@ -1579,7 +1579,8 @@
       "addTag": "Tag",
       "addTagLong": "Aggiungi un tag",
       "newTag": "Nuovo tag",
-      "removeTag": "Togli il tag «{tag}»"
+      "removeTag": "Togli il tag «{tag}»",
+      "tagsFull": "Al massimo {n} tag."
     },
     "fix": {
       "convert_to_jpeg": "Convertito in JPEG",
