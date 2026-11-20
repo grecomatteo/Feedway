@@ -11,7 +11,7 @@ import {
 } from '@app/application'
 import type { MetaUsage } from '@app/domain/platforms/meta'
 import { z } from 'zod'
-import { MetaError, type MetaErrorReason } from './errors.js'
+import { MetaError } from './errors.js'
 import type {
   MetaContainerStatus,
   MetaInstagramMedia,
@@ -21,6 +21,7 @@ import {
   classified,
   FIND_WINDOW_MS,
   normalizeCaption,
+  publishCallError,
   publishErrorOf,
   stepUsage,
   tokenCredentials,
@@ -100,22 +101,6 @@ const hasMediaId = (ids: unknown) =>
   typeof ids === 'object' &&
   ids !== null &&
   typeof (ids as { mediaId?: unknown }).mediaId === 'string'
-
-// Errors of `media_publish` that say Meta refused before doing anything: safe to try again.
-const REFUSED_BEFORE_ACTING: ReadonlySet<MetaErrorReason> = new Set([
-  'rate_limited',
-  'blocked',
-  'media_not_ready',
-  'quota_exhausted',
-])
-
-const fieldsOf = (e: PublishError) => ({
-  kind: e.kind,
-  code: e.code,
-  platformCode: e.platformCode,
-  retryAt: e.retryAt,
-  load: e.load,
-})
 
 /** The search starts a little before the step: the two clocks may not agree (Scelta 7). */
 const CLOCK_SKEW_MS = 2 * 60_000
@@ -332,7 +317,7 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
       }
     },
 
-    async publish(target, ctx) {
+    async publish(target, _files, ctx) {
       const ids = parse(target)
       const noUsage = stepUsage({ app: null, business: [] })
       // published already: never twice (§9.5)
@@ -414,14 +399,12 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
         if (err.reason === 'quota_exhausted') return quotaWait(err.usage ?? limit.usage)
         // only a refusal that says Meta did nothing is safe to try again; a server error or an
         // unreadable answer may come after the post went out (D-105.11)
-        if (err.kind === 'transient' && !REFUSED_BEFORE_ACTING.has(err.reason))
-          throw new PublishError({
-            ...fieldsOf(publishErrorOf(err, clock.now())),
-            kind: 'uncertain',
-          })
-        throw publishErrorOf(err, clock.now())
+        throw publishCallError(err, clock.now())
       }
     },
+
+    // a container never published expires by itself in 24 hours (plan 07, P2)
+    discard: () => Promise.resolve(),
 
     async findPublished(target, since, signal) {
       const credentials = tokenCredentials(target.credentials)

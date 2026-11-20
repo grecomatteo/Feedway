@@ -262,6 +262,40 @@ Dalla pagina [Instagram Error Codes](https://developers.facebook.com/docs/instag
 
 I codici negativi si scrivono in `target_attempts` con il solo sottocodice (D-105.7).
 
+### Facebook (Task 5)
+
+Fonti (lette il 2026-11-20): [Reels publishing](https://developers.facebook.com/docs/video-api/guides/reels-publishing/), [Page stories](https://developers.facebook.com/docs/page-stories-api/), [Page photos](https://developers.facebook.com/docs/graph-api/reference/page/photos/), [Page feed](https://developers.facebook.com/docs/graph-api/reference/page/feed/), [Page videos](https://developers.facebook.com/docs/graph-api/reference/page/videos/), [Page published_posts](https://developers.facebook.com/docs/graph-api/reference/page/published_posts/). Tutto **non verificato** su Meta vera; le scelte provvisorie sono in D-106.
+
+Ogni passo inizia con `GET /{page}?fields=access_token` fatto con il token del collegamento: il token della Pagina vale solo per quel passo, non si salva e non va nei log (le registrazioni oscurano `access_token`). Senza token nella risposta la destinazione fallisce con `permission_missing`.
+
+| Tipo | `prepare` | `publish` (la chiamata che pubblica, mai ripetuta) |
+|---|---|---|
+| Foto | niente | `POST /{page}/photos` con `url` e `caption` → `id` e `post_id` |
+| Multi-foto | ogni foto `POST /{page}/photos` con `url` e `published=false`, id salvato dopo ognuna | `POST /{page}/feed` con `message` e `attached_media[i]={"media_fbid":"…"}` → `id` del post (`{page}_{post}`) |
+| Reel | `POST /{page}/video_reels` con `upload_phase=start` → `video_id`; `POST https://rupload.facebook.com/video-upload/{versione}/{video_id}` con `Authorization: OAuth <token della Pagina>` e `file_url` | `POST /{page}/video_reels` con `upload_phase=finish`, `video_id`, `video_state=PUBLISHED`, `description` → `success` |
+| Video (reel oltre la durata, scelta `publish_as_video`) | niente | `POST /{page}/videos` con `file_url` e `description` → `id` |
+| Storia foto | una foto con `published=false` | `POST /{page}/photo_stories` con `photo_id` → `success`, `post_id` |
+| Storia video | `POST /{page}/video_stories` `upload_phase=start` e caricamento ospitato come il reel | `POST /{page}/video_stories` con `upload_phase=finish` e `video_id` → `success`, `post_id` |
+
+- **Copertina del reel:** la guida dei reel non ha un parametro per la copertina: non si manda, l'avviso `cover_on_facebook` resta (§11.2).
+- **Limite:** 30 reel pubblicati con l'API ogni 24 ore mobili per Pagina, applicato su `POST /{page}/video_reels`; Feedway li conta dal suo database.
+- **Requisiti dei file:** reel da 3 a 90 s, almeno 540×960 (consigliato 1080×1920), da 24 a 60 fps; storia video fino a 60 s; foto delle storie JPEG, BMP, PNG, GIF o TIFF fino a 10 MB. Gli host dei file ospitati devono lasciar passare `facebookexternalhit` in `robots.txt`; gli indirizzi di fbcdn sono rifiutati. Un file usato in un post già pubblicato non si può riusare in una storia.
+- **Ciò che resta su Meta:** le foto non pubblicate restano circa un giorno; Feedway rifà il giro dopo 23 ore. Una modifica del post scarta foto e video non pubblicati con `DELETE /{oggetto}` (`discard`, P2).
+- **Esito incerto:** come Instagram (D-105.11); la ricerca legge gli ultimi 25 `published_posts` (`id,message,created_time,is_published,permalink_url`), `videos` o `video_reels` (`id,description,created_time,updated_time,permalink_url`; la guida dei reel elenca solo `id`, `updated_time`, `description`) e, per le storie, `GET /{page}/stories` (`post_id`, `status`, `creation_time`, `media_type`, `media_id`, `url`).
+- **Verifica (§9.6):** foto e multi-foto con `GET /{post}?fields=is_published,permalink_url`; reel e video con `GET /{video}?fields=status,permalink_url`, dove `status` ha `video_status` (`ready`, `processing`, `expired`, `error`) e le fasi `uploading_phase`, `processing_phase`, `publishing_phase` (con `publish_status` `published` o `not_published`); storie per `post_id` tra le storie della Pagina. Un `permalink_url` dato come percorso si completa con `https://www.facebook.com`.
+
+### Errori della pubblicazione su Facebook
+
+| Codice | Significato | Classe | Codice di Feedway |
+|---|---|---|---|
+| 506 | Post duplicato | `permanent` | `duplicate` |
+| 324 | Immagine mancante o non valida | `permanent` | `media_rejected` |
+| 382 | Video troppo piccolo | `permanent` | `media_rejected` |
+| 389 | Il video non si scarica dall'indirizzo | `permanent` | `media_rejected` |
+| 200 | Serve il token della Pagina, o manca un permesso | `permanent` | `permission_missing` |
+| 368 | Bloccato per abuso | `transient` | `meta_error` (blocco) |
+| 6001 | Problema nel caricamento del video | dalla tabella generale (`rejected`) | `meta_error`, da rivedere con la prova |
+
 ## Da provare su Meta vera
 
 Fatti il 2026-11-11: scambio del codice con `redirect_uri`; `debug_token` del token dell'accesso unificato (salvo il valore grezzo di `expires_at`); la strada «Continua con Facebook»; `me/businesses` e i permessi della pubblicità per l'utente di sistema (non servono).
@@ -277,3 +311,9 @@ Restano, tutti per l'accesso unificato (Task 7, rinviato):
 
 E per l'utente di sistema:
 6. Se generare un token nuovo lascia valido quello vecchio: «Revoca token» li revoca tutti insieme, quindi non si prova dal Business Manager.
+
+E per la pubblicazione su Facebook (Task 5, guida della 0.13.0):
+7. Che `GET /{page}?fields=access_token` con il token dell'utente di sistema dia il token della Pagina.
+8. Ogni tipo di §8.5 su una Pagina vera, con le risposte registrate: in particolare il caricamento ospitato su `rupload.facebook.com` con `appsecret_proof`, la forma di `attached_media` in un modulo, il `post_id` delle storie (testo o numero) e il `permalink_url` di reel e video (percorso o indirizzo).
+9. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
+10. `DELETE` di una foto non pubblicata e di un video caricato e non finito.

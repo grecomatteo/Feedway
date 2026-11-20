@@ -94,3 +94,35 @@ test("a recorded post keeps neither the client's text nor the link to it", () =>
   )
   for (const kept of ['Pane caldo', 'AbC123', '17900000000000001']) expect(out).not.toContain(kept)
 })
+
+test('a Page token answer and a Facebook post leave nothing real', () => {
+  const redact = createRecordingRedactor()
+  const out = JSON.stringify([
+    redact({ id: '5000000000000001', access_token: 'EAAPageToken' }),
+    redact({
+      data: [
+        {
+          id: '5000000000000001_7100000000000001',
+          message: 'Pane caldo alle 7',
+          description: 'Il reel del forno',
+          permalink_url: 'https://www.facebook.com/5000000000000001/posts/7100000000000001',
+        },
+      ],
+    }),
+    redact({ success: true, post_id: 7300000000000001 }),
+    redact({
+      video_id: '7400000000000001',
+      upload_url: 'https://rupload.facebook.com/video-upload/v25.0/7400000000000001',
+    }),
+  ])
+  for (const kept of [
+    'EAAPageToken',
+    'Pane caldo',
+    'Il reel',
+    '5000000000000001',
+    '7100000000000001',
+    '7300000000000001',
+    '7400000000000001',
+  ])
+    expect(out).not.toContain(kept)
+})

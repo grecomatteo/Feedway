@@ -137,8 +137,17 @@ export class PublishError extends Error {
 export interface PlatformPublisher {
   /** Everything before the post goes out: uploads, containers, waits for the processing. */
   prepare(target: PublishTarget, files: PublishFiles, ctx: StepContext): Promise<StepResult>
-  /** The call that publishes. Never repeated by itself: a timeout is `uncertain`. */
-  publish(target: PublishTarget, ctx: StepContext): Promise<StepResult>
+  /**
+   * The call that publishes. Never repeated by itself: a timeout is `uncertain`. The files are
+   * those of `prepare`: a Facebook photo or video goes out in one call that fetches its file.
+   */
+  publish(target: PublishTarget, files: PublishFiles, ctx: StepContext): Promise<StepResult>
+  /**
+   * Throws away what `prepare` left on the platform and never published, after the post was
+   * changed (plan 07, P2): Facebook's unpublished photos and videos. Never touches a published
+   * post; what is already gone counts as thrown away.
+   */
+  discard(target: PublishTarget, signal: AbortSignal): Promise<void>
   /** The post of this destination on the account, published from `since` to 10 minutes later. */
   findPublished(target: PublishTarget, since: Date, signal: AbortSignal): Promise<FoundPost | null>
   /** Whether the published post exists, of the right type and done processing (§9.6). */

@@ -106,6 +106,30 @@ export async function classified<T>(
   }
 }
 
+/**
+ * Errors of a call that publishes that say Meta refused before doing anything: safe to try
+ * again. Any other transient answer may come after the post went out: uncertain (D-105.11).
+ */
+export const REFUSED_BEFORE_ACTING: ReadonlySet<MetaErrorReason> = new Set([
+  'rate_limited',
+  'blocked',
+  'media_not_ready',
+  'quota_exhausted',
+])
+
+/** A Meta error of a call that publishes, with the rule above. */
+export function publishCallError(err: MetaError, now: Date): PublishError {
+  const e = publishErrorOf(err, now)
+  if (err.kind !== 'transient' || REFUSED_BEFORE_ACTING.has(err.reason)) return e
+  return new PublishError({
+    kind: 'uncertain',
+    code: e.code,
+    platformCode: e.platformCode,
+    retryAt: e.retryAt,
+    load: e.load,
+  })
+}
+
 /** Spaces and line breaks do not count: Meta may change them (plan 07, Scelta 7). */
 export const normalizeCaption = (text: string) => text.replaceAll(/\s+/g, ' ').trim()
 
