@@ -62,7 +62,8 @@ export function useAgencyLibrary(initial: { workspaceId: string | null }) {
     }
   }
   async function more(): Promise<boolean> {
-    if (!next.value) return true
+    // a new filter is loading: its first page replaces the list, the old cursor is stale
+    if (!next.value || status.value === 'pending') return true
     const mine = asked
     loadingMore.value = true
     try {
