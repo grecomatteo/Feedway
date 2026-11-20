@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, gte, inArray, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import type {
   IdGenerator,
   PostRecord,
@@ -7,7 +21,14 @@ import type {
   PostTargetRecord,
 } from '@app/application'
 import { DISCARD_KEY, compareUses, type MediaUse } from '@app/domain'
-import type { Platform, PostCover, PostOptions, PostStatus, PostType } from '@app/domain'
+import type {
+  Platform,
+  PostCover,
+  PostOptions,
+  PostStatus,
+  PostType,
+  PublishingPostStatus,
+} from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
 
@@ -386,6 +407,28 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .limit(limit)
       return complete(db, organizationId, rows)
     },
+    async listWithStatuses(organizationId, workspaceIds, statuses, limit) {
+      if (workspaceIds.length === 0 || statuses.length === 0) return []
+      const rows = await db
+        .select(postColumns)
+        .from(posts)
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.workspaceId, [...workspaceIds]),
+            inArray(posts.status, [...statuses]),
+            isNotNull(posts.scheduledAt),
+          ),
+        )
+        // the red ones first (not out), so the limit cuts the amber ones, never them
+        .orderBy(
+          sql`case when ${posts.status} in ('failed', 'partial') then 0 else 1 end`,
+          desc(posts.scheduledAt),
+          desc(posts.id),
+        )
+        .limit(limit)
+      return complete(db, organizationId, rows)
+    },
     async listLatestDrafts(organizationId, workspaceIds, limit) {
       if (workspaceIds.length === 0) return []
       const rows = await db
@@ -554,12 +597,22 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             or(inArray(postMedia.mediaId, ids), inArray(postMedia.coverMediaId, ids)),
           ),
         )
-        // the order of `compareUses` (D-80.7): scheduled by date, then drafts and cancelled
-        // posts by their last change, then the id; the sort below makes sure of it
+        // the order of `compareUses` (D-80.7, plan 07 Scelta 5): going out by date, drafts by
+        // their last change, gone out by date (the latest first), the rest by their last change,
+        // then the id; the sort of the use case makes sure of it
         .orderBy(
-          sql`case ${posts.status} when 'scheduled' then 0 when 'draft' then 1 else 2 end`,
-          sql`case when ${posts.status} = 'scheduled' then ${posts.scheduledAt} end asc nulls last`,
-          sql`case when ${posts.status} <> 'scheduled' then ${posts.updatedAt} end desc nulls last`,
+          sql`case when ${posts.status} in ('scheduled', 'publishing', 'paused') then 0
+                   when ${posts.status} = 'draft' then 1
+                   when ${posts.status} in ('published', 'partial', 'problem') then 2
+                   else 3 end`,
+          sql`case when ${posts.status} in ('scheduled', 'publishing', 'paused')
+                   then ${posts.scheduledAt} end asc nulls last`,
+          sql`case when ${posts.status} in ('published', 'partial', 'problem')
+                   then ${posts.scheduledAt} end desc nulls last`,
+          sql`case when ${posts.status} = 'draft'
+                     or ${posts.status} not in ('scheduled', 'publishing', 'paused', 'published',
+                                                'partial', 'problem')
+                   then ${posts.updatedAt} end desc nulls last`,
           asc(posts.id),
         )
       const uses = new Map<string, MediaUse & { mediaId: string }>()
@@ -569,7 +622,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             uses.set(`${mediaId}:${r.postId}`, {
               mediaId,
               postId: r.postId,
-              status: r.status as PostStatus,
+              status: r.status as PublishingPostStatus,
               scheduledAt: r.scheduledAt,
               timezone: r.timezone,
               updatedAt: r.updatedAt,

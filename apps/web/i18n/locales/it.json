@@ -666,7 +666,38 @@
       "retry": "Riprova",
       "retryOf": "Riprova a preparare {name}",
       "retried": "{name} si sta preparando di nuovo",
-      "openLibrary": "Apri la libreria"
+      "openLibrary": "Apri la libreria",
+      "post": {
+        "failed": {
+          "m": "{type} {when} non uscito su {where}",
+          "f": "{type} {when} non uscita su {where}"
+        },
+        "paused": "{type} {when} in pausa",
+        "problem": "{type} {when} con un problema su {where}",
+        "open": "Apri il post",
+        "openOf": "Apri il post: {title}",
+        "reason": {
+          "token_invalid": "il profilo va ricollegato",
+          "permission_missing": "mancano i permessi per pubblicare",
+          "media_processing": "{platform} non ha preparato il file in tempo",
+          "media_rejected": "un file non va bene per {platform}",
+          "duplicate": "uguale a un post appena uscito",
+          "rate_limited": "{platform} ha chiesto di rallentare",
+          "quota_exhausted": "finiti i post permessi in 24 ore",
+          "account_restricted": "{platform} ha limitato l’account",
+          "meta_error": "un errore di {platform}",
+          "too_late": "l’ora era passata da più di 15 minuti",
+          "uncertain_not_found": "da controllare sul profilo prima di riprovare",
+          "file_wont_publish": "un file non si può preparare per {platform}",
+          "author_lost_permission": "chi l’ha programmato non può più pubblicare",
+          "organization_suspended": "l’agenzia è sospesa",
+          "not_found": "{platform} non lo trova più",
+          "failed": "{platform} dice che non è riuscito",
+          "wrong_type": "uscito in un formato diverso",
+          "still_processing": "{platform} lo elabora ancora dopo 30 minuti",
+          "other": "il motivo è nel post"
+        }
+      }
     },
     "week": {
       "label": "La settimana",
@@ -784,7 +815,10 @@
       "reconnect": "un profilo da ricollegare",
       "error": "un profilo con un problema",
       "warning": "un profilo da controllare",
-      "media": "un file non caricato"
+      "media": "un file non caricato",
+      "notOut": "un post non uscito",
+      "paused": "un post in pausa",
+      "postProblem": "un post con un problema"
     }
   },
   "agencies": {
@@ -845,7 +879,12 @@
     "archivePostsUnknown": "I suoi post programmati tornano in bozza.",
     "plannedLong": "{n} in programma",
     "nextShort": "Prossimo: {when}",
-    "nothingPlanned": "Nessun post in programma"
+    "nothingPlanned": "Nessun post in programma",
+    "postTrouble": {
+      "notOut": "Nessun post non uscito | 1 post non uscito | {n} post non usciti",
+      "paused": "Nessun post in pausa | 1 post in pausa | {n} post in pausa",
+      "problem": "Nessun post con un problema | 1 post con un problema | {n} post con un problema"
+    }
   },
   "workspaceAccounts": {
     "title": "Account del cliente",
@@ -1722,6 +1761,8 @@
       "useScheduled": "Post di {when}",
       "useDraft": "Bozza",
       "useCancelled": "Post annullato",
+      "usePublished": "Pubblicato il {day}",
+      "useNotOut": "Post non uscito",
       "useMore": "e altri {n}",
       "newPost": "Usa in un nuovo post",
       "download": "Scarica",
@@ -1777,7 +1818,9 @@
       "scheduled": "Nel post di {when}",
       "draft": "In una bozza",
       "cancelled": "In un post annullato",
-      "many": "In {n} post"
+      "many": "In {n} post",
+      "published": "Pubblicato il {day}",
+      "notOut": "In un post non uscito"
     },
     "all": "Tutti",
     "photos": "Foto",

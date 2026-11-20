@@ -1,4 +1,4 @@
-import type { PostStatus } from '../posts/post.js'
+import type { PublishingPostStatus } from '../publishing/post-status.js'
 
 // Which post a file of the library is «in» (spec §11.8, D-18; D-80.7). The library shows one use
 // per file, and that use must not depend on the order the rows come in, nor on the filter: the
@@ -7,31 +7,56 @@ import type { PostStatus } from '../posts/post.js'
 /** A post that uses a file, as a file or as a reel's cover. */
 export interface MediaUse {
   postId: string
-  status: PostStatus
+  status: PublishingPostStatus
   scheduledAt: Date | null
   /** the post's own (D-58), for the day the panel names */
   timezone: string
   updatedAt: Date
 }
 
-const RANK: Readonly<Record<PostStatus, number>> = { scheduled: 0, draft: 1, cancelled: 2 }
+/**
+ * The groups of the uses, in order: still going out (scheduled, on its way, paused), drafts, gone
+ * out (all or in part, or out with a problem: «Pubblicato il …», plan 07 Scelta 5), the rest (not
+ * out, cancelled).
+ */
+export const USE_RANK: Readonly<Record<PublishingPostStatus, number>> = {
+  scheduled: 0,
+  publishing: 0,
+  paused: 0,
+  draft: 1,
+  published: 2,
+  partial: 2,
+  problem: 2,
+  failed: 3,
+  cancelled: 3,
+}
+
+/** A post that will still go out without anyone's hand: its files stay (D-18). */
+export const isGoingOut = (status: PublishingPostStatus) => USE_RANK[status] === 0
 
 /**
- * A total order on the uses of a file: scheduled first, the nearest date first (a scheduled post
- * without a date after the dated ones); then drafts, the one changed last first; then cancelled
- * posts, the same way; on a tie, the post id.
+ * A total order on the uses of a file: going out first, the nearest date first (a scheduled post
+ * without a date after the dated ones); then drafts, the one changed last first; then the posts
+ * gone out, the latest date first (one without a date last); then the rest, the one changed last first; on a tie, the post
+ * id.
  */
 export function compareUses(a: MediaUse, b: MediaUse): number {
-  const rank = RANK[a.status] - RANK[b.status]
+  const rank = USE_RANK[a.status] - USE_RANK[b.status]
   if (rank !== 0) return rank
-  if (a.status === 'scheduled') {
-    const at = compareDates(a.scheduledAt, b.scheduledAt)
-    if (at !== 0) return at
-  } else {
-    const at = b.updatedAt.getTime() - a.updatedAt.getTime()
-    if (at !== 0) return at
-  }
+  const at =
+    USE_RANK[a.status] === 0
+      ? compareDates(a.scheduledAt, b.scheduledAt)
+      : USE_RANK[a.status] === 2
+        ? latestFirst(a.scheduledAt, b.scheduledAt)
+        : b.updatedAt.getTime() - a.updatedAt.getTime()
+  if (at !== 0) return at
   return a.postId < b.postId ? -1 : a.postId > b.postId ? 1 : 0
+}
+
+/** Later first, null last. */
+function latestFirst(a: Date | null, b: Date | null): number {
+  if (a === null || b === null) return compareDates(a, b)
+  return b.getTime() - a.getTime()
 }
 
 /** Earlier first, null last. */

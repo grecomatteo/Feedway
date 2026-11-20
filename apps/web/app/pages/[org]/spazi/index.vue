@@ -35,9 +35,24 @@ const TONE: Record<Exclude<Link, 'ok'>, StatusTone> = {
   error: 'danger',
   warning: 'warning',
 }
-const stateOf = (w: WorkspaceView) => {
+// the posts of «Da sistemare» (plan 07 Scelta 8): the same read as «Oggi» and the selector
+const issues = useAgendaIssues()
+onMounted(() => void issues.refresh())
+/**
+ * The column «Collegamento» (screen 14): a post that did not go out first, in red; else the
+ * worst link of its profiles; else a post paused or with a problem, in amber; else nothing.
+ */
+const stateOf = (w: WorkspaceView): { tone: StatusTone; label: string } | null => {
+  const posts =
+    w.archivedAt === null ? clientPostTrouble(issues.data.value?.items ?? [], w.id) : null
+  const postState = posts && {
+    tone: posts.status === 'notOut' ? ('danger' as const) : ('warning' as const),
+    label: t(`workspaces.postTrouble.${posts.status}`, { n: posts.count }, posts.count),
+  }
+  if (postState?.tone === 'danger') return postState
   const link = linkOf(w)
-  return link === 'ok' ? null : { link, tone: TONE[link], label: t(`workspaces.link.${link}`) }
+  if (link !== 'ok') return { tone: TONE[link], label: t(`workspaces.link.${link}`) }
+  return postState
 }
 
 // ---- profiles: the first two accounts, the Instagram ones first, then «+N» for the others

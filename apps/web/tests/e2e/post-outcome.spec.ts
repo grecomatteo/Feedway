@@ -206,3 +206,93 @@ test('on a phone: the outcome under the post, with the bar at the bottom', async
   expect((await axe(page)).violations).toEqual([])
   if (shots) await page.screenshot({ path: `${shots}/13-esito-telefono.png`, fullPage: true })
 })
+
+test('where people already look: «Oggi», the selector, «Clienti» and the library (Scelte 5 and 8)', async ({
+  page,
+  isMobile,
+}) => {
+  const { owner, org, client, ig, fb, photo } = await clientWithPhoto(page)
+  // out on Instagram, refused by Facebook: «1 non uscito»
+  const half = await publishedNow(page, org, client.id, photo, [ig, fb])
+  await worker(half, ig, 'confirmed', { permalink: 'https://www.instagram.com/p/AbC123/' })
+  await worker(half, fb, 'failed', { code: 'media_rejected' })
+  await postIs(half, 'partial')
+  // a second client with a post in pause: amber
+  const bruna = await newWorkspace(page.request, org, 'Osteria Bruna')
+  await assignAccount(page.request, org, bruna.id, ig)
+  const brunaPhoto = await libraryFile(org, bruna.id, owner.userId, {
+    kind: 'image',
+    name: 'osteria.jpg',
+  })
+  const stopped = await publishedNow(page, org, bruna.id, brunaPhoto, [ig])
+  await worker(stopped, ig, 'paused', { code: 'author_lost_permission' })
+  await postIs(stopped, 'paused')
+
+  // «Oggi»: the post not out first, in red, then the one in pause, in amber
+  await page.goto(`/${org}`)
+  const issues = page.locator('[data-today-issues]')
+  await expect(issues.locator('[data-issue="post"]')).toHaveCount(2)
+  const first = issues.locator('[data-issue="post"]').first()
+  await expect(first).toContainText(/Foto (delle|dell’|del) .+ non uscita su Facebook/)
+  await expect(first).toContainText('Forno Luce · un file non va bene per Facebook')
+  await expect(first.locator('[data-tone="danger"]')).toHaveCount(1)
+  const second = issues.locator('[data-issue="post"]').nth(1)
+  await expect(second).toContainText('in pausa')
+  await expect(second).toContainText('chi l’ha programmato non può più pubblicare')
+  await expect(second.locator('[data-tone="warning"]')).toHaveCount(1)
+  const row = page.locator(`[data-post="${half}"]`)
+  await expect(row.getByText('1 non uscito').locator('visible=true')).toBeVisible()
+  await expect(
+    page.locator(`[data-post="${stopped}"]`).getByText('In pausa').locator('visible=true'),
+  ).toBeVisible()
+  expect((await axe(page)).violations).toEqual([])
+  if (shots)
+    await page.screenshot({
+      path: `${shots}/02-oggi${isMobile ? '-telefono' : ''}.png`,
+      fullPage: true,
+    })
+  await first.getByRole('link', { name: /^Apri il post/ }).click()
+  await expect(page.locator('[data-outcome-state]')).toHaveText('1 non uscito')
+
+  // the selector: a red dot on Forno Luce, an amber one on Osteria Bruna (screen 04, D-87.3)
+  await page.goto(`/${org}/spazi`)
+  await page
+    .getByRole('button', { name: /^Contesto:/ })
+    .locator('visible=true')
+    .click()
+  const list = page.getByRole('listbox', { name: 'Contesto' })
+  await expect(
+    list.getByRole('option', { name: /Forno Luce ?, un post non uscito$/ }),
+  ).toBeVisible()
+  await expect(list.locator('[data-problem="notOut"]')).toHaveCount(1)
+  await expect(
+    list.getByRole('option', { name: /Osteria Bruna ?, un post in pausa$/ }),
+  ).toBeVisible()
+  expect((await axe(page)).violations).toEqual([])
+  if (shots)
+    await page.screenshot({ path: `${shots}/04-selettore${isMobile ? '-telefono' : ''}.png` })
+  await page.keyboard.press('Escape')
+
+  // «Clienti»: the column «Collegamento» (screen 14)
+  await page.goto(`/${org}/spazi`)
+  const fornoRow = page.getByRole('row', { name: /Forno Luce/ })
+  await expect(fornoRow.getByText('1 post non uscito')).toBeVisible()
+  await expect(fornoRow.locator('[data-tone="danger"]')).toHaveCount(1)
+  await expect(
+    page.getByRole('row', { name: /Osteria Bruna/ }).getByText('1 post in pausa'),
+  ).toBeVisible()
+  expect((await axe(page)).violations).toEqual([])
+  if (shots)
+    await page.screenshot({
+      path: `${shots}/14-clienti${isMobile ? '-telefono' : ''}.png`,
+      fullPage: true,
+    })
+
+  // the library: the photo of the post gone out says so (Scelta 5)
+  await page.goto(`/${org}/spazi/${client.slug}/libreria`)
+  await expect(page.locator('[data-used-in]').locator('visible=true').first()).toContainText(
+    /^Pubblicato il \d+ \p{L}+/u,
+  )
+  if (shots)
+    await page.screenshot({ path: `${shots}/19-libreria${isMobile ? '-telefono' : ''}.png` })
+})

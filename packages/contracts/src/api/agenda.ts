@@ -29,6 +29,8 @@ export const AgendaPost = z.object({
   platforms: z.array(Platform),
   mediaCount: z.number().int(),
   thumbnail: AgendaThumbnail,
+  /** its destinations that did not go out: «1 non uscito» (plan 07 Scelta 3) */
+  notOut: z.number().int(),
 })
 export type AgendaPost = z.infer<typeof AgendaPost>
 
@@ -79,7 +81,25 @@ export const agendaDraftsRoute = defineContract({
   scope: 'organization',
 })
 
+/** The states of a post that needs a hand (plan 07 Scelta 8): red when not out, amber otherwise. */
+export const POST_ISSUE_STATUSES = ['failed', 'partial', 'problem', 'paused'] as const
+
 export const AgendaIssue = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('post'),
+    workspaceId: Id,
+    postId: Id,
+    type: z.enum(POST_CHECK_TYPES),
+    status: z.enum(POST_ISSUE_STATUSES),
+    scheduledAt: Timestamp,
+    timezone: z.string(),
+    /** the platforms of the destinations that need the hand, each once */
+    platforms: z.array(Platform),
+    /** Feedway's code of the first of them (an error, the reason of `problem`), or null */
+    reason: z.string().nullable(),
+    /** its destinations that did not go out */
+    notOut: z.number().int(),
+  }),
   z.object({
     kind: z.literal('profile'),
     workspaceId: Id,
@@ -107,7 +127,7 @@ export const agendaIssuesRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/agenda/issues',
   summary:
-    'Da sistemare: profili da ricollegare e file non riusciti (questi solo per chi usa la libreria)',
+    'Da sistemare: post non usciti o in pausa, profili da ricollegare e file non riusciti (questi solo per chi usa la libreria)',
   request: {
     params: OrgParams,
     query: z.strictObject({

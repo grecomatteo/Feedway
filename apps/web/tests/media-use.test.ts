@@ -49,6 +49,26 @@ describe('mediaUseLabel (D-80.7)', () => {
   })
 })
 
+describe('mediaUseLabel of the publishing (plan 07 Scelta 5)', () => {
+  it('a post on its way or paused is named as a scheduled one', () => {
+    expect(mediaUseLabel(use({ status: 'publishing' }), t, now)).toBe(
+      'library.inPosts.scheduled {"when":"oggi, 18:00"}',
+    )
+    expect(mediaUseLabel(use({ status: 'paused' }), t, now)).toBe(
+      'library.inPosts.scheduled {"when":"oggi, 18:00"}',
+    )
+  })
+  it('a post gone out says the day, in the post’s zone, whatever the count', () => {
+    for (const status of ['published', 'partial', 'problem'] as const)
+      expect(
+        mediaUseLabel(use({ status, scheduledAt: '2026-11-17T23:30:00Z', count: 2 }), t, now),
+      ).toBe('library.inPosts.published {"day":"18 novembre"}')
+  })
+  it('a post that did not go out', () => {
+    expect(mediaUseLabel(use({ status: 'failed' }), t, now)).toBe('library.inPosts.notOut')
+  })
+})
+
 describe('deleteBlockText (D-80.4)', () => {
   const block = {
     reason: 'in_scheduled_post' as const,

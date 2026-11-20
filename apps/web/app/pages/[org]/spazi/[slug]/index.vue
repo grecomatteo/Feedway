@@ -122,6 +122,8 @@ const nextPosts = computed(() =>
 )
 /** A state other than «Programmato» among them: only then the rows keep a column for it. */
 const nextExceptions = computed(() => nextPosts.value.some((p) => p.status !== 'scheduled'))
+/** «In pubblicazione», «1 non uscito», «In pausa»… (plan 07 Scelta 3) */
+const nextState = (p: AgendaPost) => postStateLabel(p, t)
 const TYPE_ICON: Record<AgendaPost['type'], string> = {
   photo: 'i-lucide-image',
   carousel: 'i-lucide-gallery-horizontal-end',
@@ -360,8 +362,8 @@ watch(
               <span v-if="nextExceptions">
                 <StatusDot
                   v-if="p.status !== 'scheduled'"
-                  :tone="p.status === 'draft' || p.status === 'cancelled' ? 'neutral' : 'info'"
-                  :label="$t(`posts.list.state.${p.status}`)"
+                  :tone="nextState(p).tone"
+                  :label="nextState(p).label"
                 />
               </span>
             </ListRow>

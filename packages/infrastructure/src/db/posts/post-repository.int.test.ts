@@ -361,3 +361,24 @@ test('the uses of a file come in the order of `compareUses`, with what it needs 
   expect(uses[0]?.timezone).toBe('Europe/Rome')
   expect(uses[0]?.updatedAt).toBeInstanceOf(Date)
 })
+
+test('the posts of the publishing among the uses, in the order of `compareUses` (Scelta 5)', async () => {
+  const file = await seed(tdb.runtimeUrl, (s) => s.media(org, ws, { uploadedBy: user }))
+  const withFile = async (status: string, at: Date) => {
+    const id = await newPost()
+    await run((tx) => tx.posts.replaceMedia(scope(), id, [file], null))
+    // as the worker leaves it
+    await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+      c.query(`update posts set status = $2, scheduled_at = $3 where id = $1`, [id, status, at]),
+    )
+    return id
+  }
+  const outOld = await withFile('published', new Date('2026-11-01T17:00:00Z'))
+  const failed = await withFile('failed', new Date('2026-11-05T17:00:00Z'))
+  const paused = await withFile('paused', new Date('2026-12-05T17:00:00Z'))
+  const outNew = await withFile('partial', new Date('2026-11-10T17:00:00Z'))
+  const going = await withFile('publishing', new Date('2026-11-20T17:00:00Z'))
+  const uses = await run((tx) => tx.posts.usingMedia(org, [file]))
+  expect(uses.map((u) => u.postId)).toEqual([going, paused, outNew, outOld, failed])
+  expect([...uses].sort(compareUses)).toEqual(uses)
+})
