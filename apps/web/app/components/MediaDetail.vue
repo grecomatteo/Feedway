@@ -169,10 +169,12 @@ const folderValue = computed({
     v-model:open="open"
     :title="file?.originalName ?? $t('library.detail.title')"
     :description="$t('library.detail.title')"
+    :overlay="false"
     :ui="{
-      content: 'md:max-w-[25rem]',
-      header: 'min-h-14 py-0 pr-3 pl-5 border-b border-(--app-border)',
-      title: 'truncate font-display text-[0.9375rem] font-semibold',
+      content: 'md:max-w-[25rem] bg-(--app-surface)',
+      header: 'min-h-14 py-0 pr-12 pl-5 border-b border-(--app-border)',
+      title: 'truncate font-display text-base font-semibold',
+      close: 'top-7 end-3 -translate-y-1/2',
       description: 'sr-only',
       body: 'p-5 sm:p-5',
     }"
@@ -258,20 +260,9 @@ const folderValue = computed({
               />
             </dd>
           </template>
-          <dt class="pt-1 text-(--app-text-muted)">
-            <label for="media-tags">{{ $t('library.detail.tags') }}</label>
-          </dt>
+          <dt class="pt-0.5 text-(--app-text-muted)">{{ $t('library.detail.tags') }}</dt>
           <dd>
-            <UInputTags
-              id="media-tags"
-              v-model="tagList"
-              :disabled="readOnly"
-              :max-length="40"
-              :aria-label="$t('library.detail.tags')"
-              :placeholder="readOnly ? undefined : '+ Tag'"
-              class="w-full"
-              @update:model-value="saveTags"
-            />
+            <TagChips v-model="tagList" :read-only="readOnly" @update:model-value="saveTags" />
           </dd>
         </dl>
 
