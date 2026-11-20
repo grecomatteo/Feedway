@@ -524,3 +524,37 @@ test('a choice to make comes before the preview, whole on a laptop screen, and �
   await expect(schedule).toBeEnabled()
   expect((await axe(page)).violations).toEqual([])
 })
+
+test('«Programma» leads to the choice still to make, not to one already answered', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the column of the computer')
+  const { owner, org, client } = await clientWithFiles(page)
+  // a carousel opened by a photo too tall for the feed, then a square one: two warnings
+  const tall = await libraryFile(org, client.id, owner.userId, { kind: 'image', name: 'alta.jpg' })
+  await analysed(tall, 'image', 1000, 2000)
+  const square = await libraryFile(org, client.id, owner.userId, {
+    kind: 'image',
+    name: 'quadrata.jpg',
+  })
+  await analysed(square, 'image', 1000, 1000)
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  await pickFromLibrary(page, ['alta.jpg', 'quadrata.jpg'])
+  await page.getByRole('textbox', { name: 'Testo comune' }).fill('Il bancone')
+  // Instagram is already ticked for photos
+  await expect(page.getByRole('checkbox', { name: /Instagram/ })).toBeChecked()
+  const first = page.locator('aside [data-outcome="photo_aspect_ratio"]')
+  const second = page.locator('aside [data-outcome="carousel_mixed_ratios"]')
+  await expect(first).toBeVisible()
+  await expect(second).toBeVisible()
+
+  // the first one answered, the second one still open
+  await first.getByRole('radio').nth(1).check()
+  await expect(first).not.toHaveAttribute('data-unresolved')
+  const schedule = page.locator('[data-schedule]').filter({ visible: true }).first()
+  await expect(schedule).toBeDisabled()
+  await schedule.click({ force: true })
+  await expect(second.getByRole('radio').first()).toBeFocused()
+})

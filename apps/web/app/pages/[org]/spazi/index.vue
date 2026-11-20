@@ -96,7 +96,7 @@ const head = computed(() => [
 ])
 /** the tools' line, with «Nuovo cliente» on a computer */
 const tools = computed(() => status.value === 'success' && all.value.length > 0)
-/** «Prossimo post» says how many follow it too («oggi, 12:00 · 3 in programma»): one column
+/** «Prossimo post» says how many are planned too («oggi, 12:00 · 3 in programma»): one column
  *  less, and the room goes to the profiles, which are how a client is recognised. */
 const COLUMNS = 'minmax(0, 1.3fr) minmax(0, 2fr) 200px 150px 30px'
 const pageOf = (w: WorkspaceView) => org.to(`/spazi/${w.slug}`)

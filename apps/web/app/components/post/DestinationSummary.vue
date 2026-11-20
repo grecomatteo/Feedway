@@ -285,6 +285,7 @@ const crop = computed(() => {
           v-for="o in warnings"
           :key="o.key"
           :data-outcome="o.code"
+          :data-unresolved="!o.chosen || undefined"
           class="grid gap-2.5 rounded-card border p-3.5"
           :class="
             o.chosen
@@ -362,6 +363,7 @@ const crop = computed(() => {
           v-for="o in blocks"
           :key="o.key"
           :data-outcome="o.code"
+          data-unresolved
           class="grid gap-2 rounded-card border border-(--app-danger) bg-(--app-danger-soft) p-3.5"
         >
           <p class="flex items-center gap-2 font-semibold">

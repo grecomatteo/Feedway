@@ -143,11 +143,15 @@ const readOnly = computed(() => {
 function goto(section: string) {
   const el = document.getElementById(section)
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  // the ids are on the headings: the first control is in their section
+  // the ids are on the headings: the first control is in their section, and in «Controlli» the
+  // first one of a choice still to make or of a block, not of a warning already answered
   const area = el?.closest('section') ?? el
-  area?.querySelector<HTMLElement>('button:not([disabled]), input, textarea')?.focus({
-    preventScroll: true,
-  })
+  const control = 'button:not([disabled]), input:not([disabled]), textarea'
+  const pending = [...(area?.querySelectorAll<HTMLElement>('[data-unresolved]') ?? [])]
+  const target =
+    pending.map((o) => o.querySelector<HTMLElement>(control)).find(Boolean) ??
+    area?.querySelector<HTMLElement>(control)
+  target?.focus({ preventScroll: true })
 }
 
 /** «Salva ed esci»: leaving saves the draft first, and asks if it cannot (below). */

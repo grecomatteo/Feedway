@@ -300,11 +300,11 @@ const ready = computed(
         {{ $t('today.issues.none') }}
       </p>
 
-      <!-- two columns as soon as the page's own width holds them (960 px, a 1280 laptop): the rows
-           of «In uscita» fit their column below, they do not need the screen -->
+      <!-- two columns as soon as the page's own width holds them (928 px: a 1280 laptop, even with
+           an always-visible scrollbar): the rows of «In uscita» fit their column, not the screen -->
       <div class="@container">
         <div
-          class="grid items-start gap-7 @min-[60rem]:grid-cols-[minmax(0,1fr)_21.25rem] @min-[60rem]:gap-8"
+          class="grid items-start gap-7 @min-[58rem]:grid-cols-[minmax(0,1fr)_21.25rem] @min-[58rem]:gap-8"
           data-today-columns
         >
           <!-- In uscita -->
