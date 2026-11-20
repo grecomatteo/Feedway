@@ -141,7 +141,7 @@ const rows = computed(() =>
     return {
       id: d.accountId,
       platform: d.platform,
-      what: d.format && d.platform ? whatOf(d.platform, d.format, d.media) : null,
+      what: d.format && d.platform ? e.whatGoesOut(d.platform, d.format, d.media) : null,
       own:
         d.platform !== null &&
         e.split.value &&
@@ -159,25 +159,6 @@ const rows = computed(() =>
     }
   }),
 )
-/** «Carosello, 2 foto», «Post con 2 foto», «Reel»: what goes out on an account (screen 08). */
-function whatOf(platform: string, format: string, media: readonly number[]): string {
-  // the indices are of the files the report was made on, not of the editor's tiles
-  const kinds = media.map((i) => e.files.value.find((f) => f.id === e.reportMedia.value[i])?.kind)
-  const photos = kinds.filter((k) => k === 'image').length
-  if (format === 'multi_photo')
-    return photos === kinds.length
-      ? t('posts.summary.postWithPhotos', { n: photos }, photos)
-      : t('posts.summary.postWithFiles', { n: kinds.length }, kinds.length)
-  const label = t(`rules.formats.${platform}.${format}`)
-  if (format !== 'carousel') return label
-  const files =
-    photos === kinds.length
-      ? t('posts.summary.photos', { n: photos }, photos)
-      : kinds.every((k) => k === 'video')
-        ? t('posts.summary.videos', { n: kinds.length }, kinds.length)
-        : t('posts.summary.files', { n: kinds.length }, kinds.length)
-  return `${label}, ${files}`
-}
 /** How the post stands, beside «Controlli». */
 const overall = computed<{ label: string; tone: 'success' | 'warning' | 'danger' } | null>(() => {
   if (e.archived.value) return null

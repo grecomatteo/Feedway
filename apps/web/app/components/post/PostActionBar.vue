@@ -16,6 +16,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{
   schedule: []
+  publishNow: []
   cancel: []
   remove: []
   exit: []
@@ -83,8 +84,11 @@ const canSchedule = computed(
  * what is missing, as «Manca 1 scelta» does: an off button that answers nothing reads as broken.
  */
 const leadsToMissing = computed(() => !canSchedule.value && !!missing.value?.warn)
+/** «Pubblica subito» (Scelta 2): the same button, which asks first */
+const now = computed(() => e.mode.value === 'now')
 function scheduleOrShow() {
   if (leadsToMissing.value) emit('goto', 'post-summary')
+  else if (now.value) emit('publishNow')
   else emit('schedule')
 }
 const draft = computed(() => e.status.value === 'draft')
@@ -187,15 +191,21 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         </UButton>
         <UButton
           v-if="e.may.value.publish"
-          icon="i-lucide-calendar-check"
+          :icon="now ? 'i-lucide-send' : 'i-lucide-calendar-check'"
           :disabled="!canSchedule && !leadsToMissing"
           :aria-disabled="leadsToMissing || undefined"
           :class="{ 'aria-disabled:cursor-pointer': leadsToMissing }"
-          :loading="e.acting.value === 'schedule'"
+          :loading="e.acting.value === 'schedule' || e.acting.value === 'publishNow'"
           data-schedule
           @click="scheduleOrShow"
         >
-          {{ $t('posts.actions.schedule', { n: accountsCount }, accountsCount) }}
+          {{
+            $t(
+              now ? 'posts.actions.publishNow' : 'posts.actions.schedule',
+              { n: accountsCount },
+              accountsCount,
+            )
+          }}
         </UButton>
       </template>
       <template v-else-if="scheduled && e.editable.value">
@@ -306,18 +316,22 @@ const scheduled = computed(() => e.status.value === 'scheduled')
       <template v-if="draft && e.editable.value">
         <UButton
           v-if="e.may.value.publish"
-          icon="i-lucide-calendar-check"
+          :icon="now ? 'i-lucide-send' : 'i-lucide-calendar-check'"
           :disabled="!canSchedule && !leadsToMissing"
           :aria-disabled="leadsToMissing || undefined"
           :class="{ 'aria-disabled:cursor-pointer': leadsToMissing }"
-          :loading="e.acting.value === 'schedule'"
+          :loading="e.acting.value === 'schedule' || e.acting.value === 'publishNow'"
           data-schedule
           @click="scheduleOrShow"
         >
           {{
             showMissing
-              ? $t('posts.actions.scheduleShort')
-              : $t('posts.actions.schedule', { n: accountsCount }, accountsCount)
+              ? $t(now ? 'posts.actions.publishShort' : 'posts.actions.scheduleShort')
+              : $t(
+                  now ? 'posts.actions.publishNow' : 'posts.actions.schedule',
+                  { n: accountsCount },
+                  accountsCount,
+                )
           }}
         </UButton>
         <UButton v-else @click="emit('exit')">

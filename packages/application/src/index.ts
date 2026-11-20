@@ -81,6 +81,7 @@ export type {
   OutboxEvent,
   PublishedTarget,
   PublishingRepository,
+  PostAttempt,
   PublishingTargetRecord,
   TargetStepPatch,
 } from './ports/publishing.js'

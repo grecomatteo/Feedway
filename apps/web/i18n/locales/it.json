@@ -249,7 +249,9 @@
     "upload_parts_missing": "Mancano dei pezzi del file",
     "post_version_conflict": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova",
     "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
-    "media_in_scheduled_post": "Questo file è in un post programmato: toglilo dal post o annulla il post prima di eliminarlo"
+    "media_in_scheduled_post": "Questo file è in un post programmato: toglilo dal post o annulla il post prima di eliminarlo",
+    "paused_time_passed": "L'ora del post è passata: scegli quando pubblicarlo",
+    "target_wrong_state": "Questa destinazione non si può più cambiare così"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -1004,6 +1006,7 @@
       "post_verified_manually": "ha segnato come verificato un post",
       "post_target_cancelled": "ha annullato un post su un account",
       "post_resumed": "ha ripreso un post in pausa",
+      "post_published_now": "ha pubblicato subito un post",
       "session_revoked": "ha scollegato dei dispositivi",
       "user_activated": "ha attivato l'account",
       "user_disabled": "ha disattivato un utente",
@@ -2330,7 +2333,8 @@
       "nextMonth": "Mese successivo",
       "typeTime": "Scrivi un'ora",
       "typeTimePlaceholder": "Scrivi un'ora",
-      "wrongTime": "Scrivi l'ora così: 18:30."
+      "wrongTime": "Scrivi l'ora così: 18:30.",
+      "nowHint": "Esce appena confermi, su ogni account scelto. Il giorno e l'ora restano per «Programma»."
     },
     "summary": {
       "title": "Controlli",
@@ -2404,7 +2408,10 @@
       "scheduledFor": "Programmato per {when}",
       "scheduledShort": "Post programmato",
       "open": "Apri",
-      "scheduleShort": "Programma"
+      "scheduleShort": "Programma",
+      "publishNow": "Pubblica | Pubblica su 1 account | Pubblica su {n} account",
+      "publishShort": "Pubblica",
+      "notPublishable": "Non si può pubblicare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo."
     },
     "confirm": {
       "cancelTitle": "Annullare il post?",
@@ -2414,7 +2421,11 @@
       "leaveTitle": "Uscire senza salvare?",
       "leaveText": "Le ultime modifiche non sono salvate. Se esci le perdi.",
       "leave": "Esci lo stesso",
-      "stay": "Resta qui"
+      "stay": "Resta qui",
+      "publishTitle": "Pubblicare adesso?",
+      "publishText": "Dopo non si può annullare: il post si può solo togliere dal profilo.",
+      "publish": "Pubblica adesso",
+      "back": "Annulla"
     },
     "editor": {
       "newTitle": "Nuovo post",
@@ -2504,6 +2515,7 @@
         "all": "Tutti",
         "draft": "Bozze",
         "scheduled": "Programmati",
+        "out": "Pubblicati",
         "cancelled": "Annullati"
       },
       "column": {
@@ -2516,6 +2528,12 @@
       "state": {
         "draft": "Bozza",
         "scheduled": "Programmato",
+        "publishing": "In pubblicazione",
+        "partial": "In parte non uscito",
+        "failed": "Non uscito",
+        "problem": "Con problema",
+        "published": "Pubblicato",
+        "paused": "In pausa",
         "cancelled": "Annullato"
       },
       "noText": "Senza testo",
@@ -2583,6 +2601,100 @@
       "you": "Tu",
       "loadError": "Le note non si sono caricate.",
       "title": "Note interne"
+    },
+    "state": {
+      "draft": "Bozza",
+      "scheduled": "Programmato",
+      "publishing": "In pubblicazione",
+      "partial": "Nessuno non uscito | 1 non uscito | {n} non usciti",
+      "failed": "Non uscito",
+      "problem": "Con problema",
+      "published": "Pubblicato",
+      "paused": "In pausa",
+      "cancelled": "Annullato"
+    },
+    "outcome": {
+      "title": "Esito",
+      "back": "Post di {name}",
+      "thePost": "Il post",
+      "by": "di {name}",
+      "loadFailed": "Non riesco a leggere l'esito. Riprova tra poco.",
+      "unknownAccount": "Account non più collegato",
+      "open": "Apri su {platform}",
+      "retry": "Riprova",
+      "markVerified": "Segna come verificato",
+      "cancelOne": "Annulla su questo account",
+      "retryOn": "Riprova su {account}",
+      "markVerifiedOn": "Segna come verificato su {account}",
+      "cancelOneOn": "Annulla su {account}",
+      "cancelOneTitle": "Annullare il post su {account}?",
+      "cancelOneText": "Su questo account non esce. Gli altri account restano come sono.",
+      "retryAt": "Nuovo tentativo alle {time}.",
+      "searching": "{platform} non ha risposto in tempo: controlliamo sul profilo se il post è uscito.",
+      "checkFirstTitle": "Controlla il profilo prima",
+      "checkFirstText": "Meta potrebbe averlo pubblicato lo stesso. Se il post è già sul profilo, riprovare lo pubblica due volte.",
+      "pausedTitle": "In pausa.",
+      "pausedText": "Chi l'aveva programmato non può più pubblicare su questo cliente, oppure l'agenzia è sospesa. Riprendilo a tuo nome o annullalo.",
+      "pausedAskManager": "Può riprenderlo o annullarlo chi gestisce i post degli altri: chiedi a un Manager.",
+      "resume": "Riprendi",
+      "resumeWhen": "L'ora del post è passata: scegli quando deve uscire.",
+      "cancelPaused": "Annulla il post",
+      "cancelPausedTitle": "Annullare il post in pausa?",
+      "cancelPausedText": "Non esce sugli account in pausa. Ciò che è già uscito resta sul profilo.",
+      "state": {
+        "draft": "Bozza",
+        "scheduled": "In attesa",
+        "preparing": "In preparazione",
+        "ready": "Pronto",
+        "publishing": "In pubblicazione",
+        "retrying": "Nuovo tentativo",
+        "unknown": "Da verificare",
+        "published": "Pubblicato",
+        "verifying": "In verifica",
+        "confirmed": "Pubblicato",
+        "problem": "Con problema",
+        "failed": "Non uscito",
+        "paused": "In pausa",
+        "cancelled": "Annullato"
+      },
+      "reason": {
+        "token_invalid": "{platform} non accetta più l'accesso di Feedway: ricollega il profilo, poi riprova.",
+        "permission_missing": "Mancano i permessi per pubblicare su questo account: ricollega il profilo con il controllo completo, poi riprova.",
+        "media_processing": "{platform} non ha finito di preparare il file in tempo. Riprova tra qualche minuto.",
+        "media_rejected": "{platform} ha rifiutato un file: formato, misure o durata non vanno bene. Cambialo nel post, poi riprova.",
+        "duplicate": "{platform} l'ha rifiutato perché uguale a un post appena uscito.",
+        "rate_limited": "{platform} ci ha chiesto di rallentare. Riprova tra qualche minuto.",
+        "quota_exhausted": "Il profilo ha finito i post che Instagram permette in 24 ore. Riprova più tardi.",
+        "account_restricted": "{platform} ha limitato questo account: controllalo da Meta, poi riprova.",
+        "meta_error": "{platform} non ha pubblicato il post per un suo errore. Riprova tra poco.",
+        "too_late": "Non uscito: l'ora era passata da più di 15 minuti. «Riprova» lo pubblica subito.",
+        "uncertain_not_found": "{platform} non ha confermato e sul profilo non l'abbiamo trovato. Controlla il profilo prima di riprovare.",
+        "file_wont_publish": "Un file del post non si può preparare per {platform}. Cambialo nel post, poi riprova.",
+        "author_lost_permission": "Chi l'aveva programmato non può più pubblicare su questo cliente.",
+        "organization_suspended": "L'agenzia è sospesa: non si pubblica finché non torna attiva."
+      },
+      "problem": {
+        "not_found": "Il post è uscito, ma {platform} ora non lo trova più. Controlla il profilo: se c'è, segnalo come verificato.",
+        "failed": "{platform} dice che il post non è riuscito. Controlla il profilo: se c'è, segnalo come verificato; se no, riprova.",
+        "wrong_type": "Il post è uscito in un formato diverso da quello scelto. Controlla il profilo.",
+        "still_processing": "{platform} lo sta ancora elaborando dopo 30 minuti. Controlla il profilo: se c'è, segnalo come verificato."
+      },
+      "activityTitle": "Attività",
+      "activity": {
+        "post_created": "{name} ha creato la bozza",
+        "post_updated": "{name} l'ha modificato",
+        "post_scheduled": "{name} l'ha programmato",
+        "post_published_now": "{name} l'ha pubblicato subito",
+        "post_unscheduled": "{name} l'ha riportato in bozza",
+        "post_cancelled": "{name} l'ha annullato",
+        "post_retried": "{name} ha riprovato su {account}",
+        "post_verified_manually": "{name} l'ha segnato come verificato su {account}",
+        "post_target_cancelled": "{name} l'ha annullato su {account}",
+        "post_resumed": "{name} l'ha ripreso",
+        "target_published": "Pubblicato su {account}",
+        "target_failed": "{platform} non ha pubblicato il post su {account}",
+        "target_uncertain": "{platform} non ha risposto in tempo su {account}"
+      }
     }
   },
   "contentSettings": {

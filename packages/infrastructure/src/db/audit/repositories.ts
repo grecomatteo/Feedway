@@ -97,6 +97,8 @@ export function drizzleAuditLog(db: DbExecutor, ids: IdGenerator, ctx: TxContext
       if (q.actorId !== undefined) where.push(eq(auditLog.actorId, q.actorId))
       if (q.action !== undefined) where.push(eq(auditLog.action, q.action))
       if (q.source !== undefined) where.push(eq(auditLog.source, q.source))
+      if (q.entity !== undefined) where.push(eq(auditLog.entity, q.entity))
+      if (q.entityId !== undefined) where.push(eq(auditLog.entityId, q.entityId))
       if (q.from !== undefined) where.push(gte(auditLog.createdAt, q.from))
       if (q.to !== undefined) where.push(lt(auditLog.createdAt, q.to))
       if (q.after !== undefined) where.push(...olderThan(q.after))

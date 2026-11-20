@@ -13,7 +13,7 @@ function headers() {
   }
 }
 
-async function send(
+export async function send(
   request: APIRequestContext,
   method: 'POST' | 'PUT',
   path: string,

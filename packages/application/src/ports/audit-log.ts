@@ -69,6 +69,7 @@ export const AUDIT_ACTIONS = [
   'post.verified_manually',
   'post.target_cancelled',
   'post.resumed',
+  'post.published_now',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
@@ -122,6 +123,9 @@ export interface AuditQuery {
   actorId?: string
   action?: AuditAction
   source?: AuditSource
+  /** The entries of one thing (a post), with `entity`. */
+  entity?: string
+  entityId?: string
   /** Inclusive. */
   from?: Date
   /** Exclusive. */

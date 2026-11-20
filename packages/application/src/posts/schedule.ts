@@ -120,10 +120,18 @@ async function scheduleSaved(
   scope: PostScope,
   postId: string,
   previousAt: Date | null,
+  opts: { now?: boolean } = {},
 ): Promise<AfterSchedule> {
   const saved = await tx.posts.find(scope, postId)
   if (!saved) throw postNotFound()
-  const report = await checkPostInTx(tx, deps, actor, toCheckInput(saved, 'save'))
+  // «Pubblica subito» (Scelta 2): the checks of a save, without the rule of the date
+  const input = toCheckInput(saved, 'save')
+  const report = await checkPostInTx(
+    tx,
+    deps,
+    actor,
+    opts.now ? { ...input, when: { mode: 'now' } } : input,
+  )
   if (!report.canSchedule) throw notSchedulable(report)
   const at = saved.scheduledAt
   if (at === null) throw noDate()
@@ -136,8 +144,9 @@ async function scheduleSaved(
   const going = new Map(report.destinations.map((d) => [d.accountId, d.fingerprint]))
   const now = deps.clock.now()
   const startAt = prepareAt(at, now)
-  // checked again 3 hours before, or at once when fewer are left (Scelta 4)
-  const checkAt = recheckAt(at, now)
+  // checked again 3 hours before, or at once when fewer are left (Scelta 4); not a post that
+  // goes now, checked just above
+  const checkAt = opts.now ? null : recheckAt(at, now)
   await tx.posts.replaceTargets(
     scope,
     saved.id,
@@ -211,6 +220,58 @@ export async function schedulePost(
       if (version === null) throw versionConflict()
       const after = await scheduleSaved(tx, deps, current, organization, scope, post.id, null)
       await recordPost(tx, current, 'post.scheduled', post, request.ip)
+      return { dto: await readPost(tx, current, scope, post.id), after }
+    },
+  )
+  await sendAfterSchedule(deps, actor.organizationId, after)
+  return dto
+}
+
+/**
+ * «Pubblica subito» (§11.2 point 6, plan 07 Scelta 2): a draft goes at once, on every
+ * destination its checks keep. The checks are those of a save, without the date's: the date
+ * becomes now, and the preparation starts at once (`prepareAt` of a time already here). It takes
+ * `post.publish`, as «Programma», and writes who gave the go in `scheduled_by` (P6).
+ */
+export async function publishNow(
+  deps: PostsDeps,
+  actor: OrgActor,
+  input: { workspaceId: string; postId: string; version: number },
+  request: { ip: string | null },
+): Promise<PostDto> {
+  const { dto, after } = await deps.uow.run(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    async (tx) => {
+      const { current, scope, organization } = await openPosts(tx, actor, input.workspaceId, {
+        write: true,
+      })
+      if (!organization) throw postNotFound()
+      const post = await lockedPost(tx, scope, input.postId)
+      if (!mayPublish(current, post)) throw cannotSchedule()
+      if (post.version !== input.version) throw versionConflict()
+      if (post.status !== 'draft') throw wrongState(post.status, 'publishNow')
+      await tx.posts.lockSchedule(scope.organizationId)
+      const now = deps.clock.now()
+      const version = await tx.posts.update(
+        scope,
+        post.id,
+        {
+          type: post.type,
+          caption: post.caption,
+          captionByPlatform: post.captionByPlatform,
+          scheduledAt: now,
+          status: 'scheduled',
+          options: post.options,
+          scheduledBy: current.userId,
+          updatedBy: current.userId,
+        },
+        post.version,
+      )
+      if (version === null) throw versionConflict()
+      const after = await scheduleSaved(tx, deps, current, organization, scope, post.id, null, {
+        now: true,
+      })
+      await recordPost(tx, current, 'post.published_now', post, request.ip)
       return { dto: await readPost(tx, current, scope, post.id), after }
     },
   )

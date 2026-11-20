@@ -443,6 +443,12 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/schedule': [
     { permission: 'post.publish', level: 'workspace', prepare: (ids) => schedulable(ids) },
   ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/publish-now': [
+    { permission: 'post.publish', level: 'workspace', prepare: (ids) => schedulable(ids) },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/outcome': [
+    { permission: 'workspace.view', level: 'workspace' },
+  ],
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': [
     {
       permission: 'post.publish',
@@ -858,6 +864,7 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'post.verified_manually': ['accountId'],
   'post.target_cancelled': ['accountId'],
   'post.resumed': ['scheduledAt'],
+  'post.published_now': [],
 }
 
 /**
@@ -972,6 +979,22 @@ async function produceEveryAction() {
   const posts = `${org}/workspaces/${ids.workspace}/posts`
   const ownDraft = JSON.parse(await ok('POST', posts, { type: 'photo' })) as { id: string }
   await ok('DELETE', `${posts}/${ownDraft.id}`)
+  // «Pubblica subito» (plan 07 Task 9): a draft like the case's post, out at once
+  const { rows: like } = await env.admin.pool.query<{ type: string; caption: string }>(
+    'select type, caption from posts where id = $1',
+    [ids.post],
+  )
+  const now = JSON.parse(
+    await ok('POST', posts, {
+      type: like[0]?.type,
+      mediaIds: [ids.media],
+      caption: { common: like[0]?.caption ?? '' },
+      destinations: [{ accountId: ids.account }],
+    }),
+  ) as { id: string; version: number }
+  await ok('POST', `${posts}/${now.id}/publish-now`, { version: now.version })
+  // gone, as if never: it holds the file the case deletes below
+  await env.admin.pool.query('delete from posts where id = $1', [now.id])
   await ok('POST', `${posts}/${ids.post}/schedule`, { version: 1 })
   await ok('PATCH', `${posts}/${ids.post}`, {
     version: 2,
