@@ -106,6 +106,13 @@ export function drizzlePublishing(db: DbExecutor, ids: IdGenerator): PublishingR
           generation: postTargets.generation,
         })
       if (!row) return null
+      // the post's row, held by `lockTarget` already: without it, two destinations moving
+      // together would each read the other's old state and save a wrong post state
+      await db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(eq(posts.organizationId, organizationId), eq(posts.id, row.postId)))
+        .for('update')
       const statuses = await db
         .select({ status: postTargets.status })
         .from(postTargets)
