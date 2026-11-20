@@ -132,6 +132,7 @@ Oltre al piano generale §8:
 - **D-99, pagine fuori dal pannello con la barra vecchia** (`/`, `/conferma-email`, `/sicurezza/non-sono-stato-io`, `/piattaforma/email`): passano al guscio delle pagine prima del pannello, come Accedi e `/agenzie` (regola «ogni pagina segue il ridisegno»).
 
 - **Resti del rilascio 0.12.1** (D-83: la 0.12.1 è uscita senza revisione di fine tappa, e le correzioni rimaste vengono qui): in `DESIGN.md` la tabella dei token senza `paper` e `groove` (tolti in R9) e con le regole di R10 che mancano (etichette, un solo arancio per pagina, soglie delle colonne); i punti 4 e 6 di «Cosa resta» dell'handoff di R10 già chiusi da D-99 si verificano e si segnano.
+- **D-102, difetti della prova della 0.12.1:** la barra orizzontale del selettore e Utenti tra 1024 e 1280 px prima di tutto, poi i punti minori 3–10. Le richieste sulle cartelle (D-103) e sullo zip (D-104) non sono in questa tappa.
 
 **Test:** unit delle regole (file in preparazione in un carosello, in un post misto, su Facebook); componente o E2E del gruppo che sostituisce, della firma a metà testo e del cliente archiviato; E2E delle pagine portate nel guscio (390 e 1440, chiaro e scuro, axe).
 
