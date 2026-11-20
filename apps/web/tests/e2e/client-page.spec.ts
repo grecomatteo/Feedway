@@ -124,7 +124,7 @@ test('«Ricollega» opens its connection in Integrazioni → Meta', async ({ pag
     new RegExp(`/${org}/impostazioni/integrazioni/meta\\?(.+&)?account=[^&]+$`),
   )
   // the connection of the profile, in view and with the focus, with «Ricollega» on it
-  const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('li[aria-current]')
+  const connection = page.getByRole('region', { name: 'Collegamenti' }).locator('[aria-current]')
   await expect(connection).toBeFocused()
   await expect(connection).toBeInViewport()
   await expect(connection.getByRole('button', { name: 'Ricollega' })).toBeVisible()

@@ -34,7 +34,7 @@ test('social accounts: empty before anything is connected', async ({ page }) => 
   const owner = await newPerson('Olga Vuota', 'owner')
   await signInWithTotp(page.request, owner)
   await page.goto(`/${owner.organizationSlug}/impostazioni/integrazioni/meta`)
-  await expect(page.getByRole('heading', { name: 'Meta', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Meta', exact: true, level: 2 })).toBeVisible()
   await expect(page.getByText('Nessun account collegato')).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
 })
@@ -46,12 +46,12 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await connectedAgency(page.request, org, { dataUseCheckupDueOn: dayFromNow(10) })
 
   await page.goto(meta(org))
-  const list = page.getByRole('list', { name: 'Profili' })
-  // the page with its Instagram is one profile; the accounts are not checked yet (no worker)
-  const fornoLuce = list.getByRole('listitem').filter({ hasText: 'Forno Luce' }).first()
-  await expect(fornoLuce.getByRole('heading', { level: 4 })).toHaveText('Forno Luce')
-  await expect(fornoLuce.getByTestId(`account-${META_MOCK.pages.withInstagram}`)).toBeVisible()
-  await expect(fornoLuce.getByTestId(`account-${META_MOCK.instagram.ofPage}`)).toContainText(
+  const list = page.getByRole('table', { name: 'Profili' })
+  // a row for each account, the page and its Instagram; not checked yet (no worker)
+  await expect(list.getByTestId(`account-${META_MOCK.pages.withInstagram}`)).toContainText(
+    'Forno Luce',
+  )
+  await expect(list.getByTestId(`account-${META_MOCK.instagram.ofPage}`)).toContainText(
     'Da controllare',
   )
   await expect(list).toContainText('Non assegnato a nessun cliente')
@@ -86,12 +86,15 @@ test('social accounts: profiles, reminders, sync and a new token', async ({ page
   await expect(connections).toContainText(/Puoi sincronizzare di nuovo tra [1-5] minut/)
   await expect(sync).toBeDisabled()
 
-  await connections.getByRole('button', { name: 'Sostituisci token' }).click()
+  await connections.getByRole('button', { name: 'Azioni per Utente di sistema Meta' }).click()
+  await page.getByRole('menuitem', { name: 'Sostituisci token' }).click()
   const dialog = page.getByRole('dialog', { name: 'Sostituisci token' })
   await dialog.getByLabel("Token dell'utente di sistema").fill(META_MOCK.tokens.systemUser)
   await dialog.getByRole('button', { name: 'Verifica e salva' }).click()
   // the reauth of the setup is recent: no "Conferma che sei tu"
   await expect(page.getByText('Token sostituito: il collegamento funziona di nuovo.')).toBeVisible()
+  // the window has closed, its fading out would read as faint text
+  await expect(page.getByRole('dialog', { includeHidden: true })).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 })
 
@@ -129,7 +132,7 @@ test('social accounts: an inactive account says why, and a dead token says it pl
   await page.goto(meta(org))
   const connections = page.getByRole('region', { name: 'Collegamenti' })
   // only the active accounts count; the inactive one is named apart
-  await expect(connections).toContainText(`${String((total?.n ?? 0) - 1)} account, 1 inattivo`)
+  await expect(connections).toContainText(`${String((total?.n ?? 0) - 1)} · 1 inattivo`)
   const inactive = page.getByTestId(`account-${META_MOCK.instagram.agencyOnly}`)
   await expect(inactive).toContainText('Inattivo')
   await expect(inactive).toContainText("Non è più assegnato all'utente di sistema su Meta")
@@ -164,7 +167,7 @@ test('social accounts: an admin connects and syncs from Integrazioni, a member n
 
   await page.goto(`/${org}/impostazioni/integrazioni`)
   await page.getByRole('link', { name: /Meta/ }).click()
-  await expect(page.getByRole('heading', { name: 'Profili', level: 3 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Profili', level: 2 })).toBeVisible()
   await page.getByRole('link', { name: 'Aggiungi account' }).first().click()
   await expect(page).toHaveURL(new RegExp(`/${org}/impostazioni/integrazioni/meta/aggiungi$`))
   await page.getByRole('radio', { name: /Sì, è nel Business Manager dell'agenzia/ }).check()
@@ -188,7 +191,8 @@ test('social accounts: an admin connects and syncs from Integrazioni, a member n
   await connections.getByRole('button', { name: 'Sincronizza' }).click()
   await expect(connections.getByRole('status')).toContainText('Sincronizzazione avviata')
   // the app is the Owner's: the Admin reads it
-  await expect(page.getByLabel('App ID')).toBeDisabled()
+  await expect(page.getByRole('region', { name: 'App Meta' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sostituisci', exact: true })).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 
   const member = await addPerson(org, 'Mario Membro', 'member')
