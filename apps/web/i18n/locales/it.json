@@ -1123,7 +1123,7 @@
     "appSecretKeep": "È impostato. Lascia vuoto per tenerlo; scrivine uno nuovo per sostituirlo.",
     "appSecretSet": "impostato (non si rilegge mai)",
     "businessId": "ID del Business Manager",
-    "businessIdHelp": "Facoltativo: con questo i link delle guide aprono direttamente il tuo Business Manager. Lo trovi in Impostazioni del business → Informazioni sul business.",
+    "businessIdHelp": "Facoltativo: con questo i link delle guide aprono direttamente il tuo Business Manager e i Collegamenti mostrano il suo nome. Lo trovi in Impostazioni del business → Informazioni sul business.",
     "dataUseCheckup": "Scadenza del Data Use Checkup",
     "dataUseCheckupHelp": "Facoltativa. La data entro cui Meta chiede la verifica annuale sull'uso dei dati: la trovi nella dashboard dell'app. Ti avvisiamo 30 giorni prima.",
     "save": "Salva e verifica",

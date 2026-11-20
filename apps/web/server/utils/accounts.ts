@@ -30,6 +30,7 @@ export const connectionDto = (c: ConnectionView) => ({
   kind: c.kind,
   status: c.status,
   expiresAt: c.expiresAt?.toISOString() ?? null,
+  businessName: c.businessName,
   createdAt: c.createdAt.toISOString(),
 })
 

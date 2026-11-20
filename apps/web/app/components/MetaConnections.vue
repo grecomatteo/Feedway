@@ -108,6 +108,7 @@ const {
     status: ConnectionStatus
     syncRetryAfterSeconds: number | null
     expiresAt: string | null
+    businessName: string | null
     createdAt: string
   }[]
 }>(() => org.api('/connections'), {
@@ -285,7 +286,7 @@ watch(
       </p>
       <ListSurface
         v-else
-        columns="minmax(0,1.4fr) 110px 170px 150px auto"
+        columns="minmax(0,1fr) 72px 120px 110px 148px"
         :head="connectionHead"
         :label="$t('socialAccounts.connections')"
         class="max-md:[&>[data-list-head]]:sr-only"
@@ -303,9 +304,13 @@ watch(
             <UIcon name="i-lucide-facebook" class="size-[18px] shrink-0" aria-hidden="true" />
             <span class="min-w-0">
               <span class="block truncate font-semibold">{{
-                $t(`socialAccounts.kind.${c.kind}`)
+                c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)
               }}</span>
               <span class="block truncate text-detail text-(--app-text-muted)">
+                <!-- with the Business as the title, the kind moves here (B11 of the redesign review) -->
+                <template v-if="c.businessName !== null"
+                  >{{ $t(`socialAccounts.kind.${c.kind}`) }} ·
+                </template>
                 <template v-if="broken(c.status) || c.status === 'pending'">{{
                   $t(`socialAccounts.connectionStatus.${c.status}`)
                 }}</template>
@@ -359,7 +364,7 @@ watch(
               </UButton>
               <RowActions
                 v-if="c.kind === 'meta_system_user'"
-                :name="$t(`socialAccounts.kind.${c.kind}`)"
+                :name="c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)"
                 :items="[
                   {
                     label: $t('socialAccounts.replaceToken'),

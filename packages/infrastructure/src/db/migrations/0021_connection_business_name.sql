@@ -1,0 +1,1 @@
+ALTER TABLE "account_connections" ADD COLUMN "business_name" text;

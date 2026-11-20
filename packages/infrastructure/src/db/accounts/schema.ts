@@ -43,6 +43,9 @@ export const accountConnections = pgTable(
     lastUsage: jsonb('last_usage'),
     // when `last_usage` was read: the slowing down of the publishing (plan 07 «Rallentamento»)
     lastUsageAt: tz('last_usage_at'),
+    // the platform's name for the token's owner (Meta: the system user's Business), shown on
+    // the connection; null: not read (connections made before 0.13.0) or not known
+    businessName: text('business_name'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

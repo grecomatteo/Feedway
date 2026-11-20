@@ -16,6 +16,8 @@ export const Connection = z.object({
   status: ConnectionStatus,
   /** null: the token does not expire. */
   expiresAt: Timestamp.nullable(),
+  /** The Business of the system user, as Meta names it; null: not known. */
+  businessName: z.string().max(200).nullable(),
   createdAt: Timestamp,
 })
 
