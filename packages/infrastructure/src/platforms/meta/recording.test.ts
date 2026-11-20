@@ -77,3 +77,20 @@ test("a picture on Meta's CDN leaves no id or signature: the whole address is re
     expect(text).not.toContain(real)
   expect(text).toContain('https://scontent.example.invalid/picture.jpg')
 })
+
+test("a recorded post keeps neither the client's text nor the link to it", () => {
+  const redact = createRecordingRedactor()
+  const out = JSON.stringify(
+    redact({
+      data: [
+        {
+          id: '17900000000000001',
+          caption: 'Pane caldo alle 7',
+          permalink: 'https://www.instagram.com/p/AbC123/',
+          shortcode: 'AbC123',
+        },
+      ],
+    }),
+  )
+  for (const kept of ['Pane caldo', 'AbC123', '17900000000000001']) expect(out).not.toContain(kept)
+})

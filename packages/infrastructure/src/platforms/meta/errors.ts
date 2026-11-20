@@ -16,6 +16,12 @@ export type MetaErrorReason =
   | 'timeout'
   | 'invalid_response'
   | 'rejected'
+  | 'media_not_ready'
+  | 'media_rejected'
+  | 'container_expired'
+  | 'quota_exhausted'
+  | 'account_restricted'
+  | 'aborted'
 
 // Fixed Feedway texts: Meta's own message never leaves the client (plan 03, Task 3).
 const MESSAGES: Record<MetaErrorReason, string> = {
@@ -31,6 +37,12 @@ const MESSAGES: Record<MetaErrorReason, string> = {
   timeout: 'Meta did not answer in time',
   invalid_response: 'Meta answered in an unexpected format',
   rejected: 'Meta rejected the request',
+  media_not_ready: 'Meta is still processing the media',
+  media_rejected: 'Meta could not download or read the media',
+  container_expired: 'The prepared media is no longer there: it must be created again',
+  quota_exhausted: 'The account has no posts left in its publishing window',
+  account_restricted: 'The account is restricted or must be confirmed on the platform',
+  aborted: 'The call was stopped before Meta answered',
 }
 
 export class MetaError extends Error {
@@ -66,6 +78,11 @@ export class MetaError extends Error {
   }
 }
 
+// Instagram's content publishing (Instagram Error Codes, docs/platforms/meta.md §Pubblicazione)
+const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003])
+// 2207032 and 2207053 (creation failed: make it again) are server errors, transient below
+const CONTAINER_GONE_SUBCODES = new Set([2207020, 2207008])
+
 const RATE_LIMIT_CODES = new Set([4, 17, 32, 341, 613, 80001, 80002])
 
 /**
@@ -82,6 +99,14 @@ export function classifyMetaError(
     if (subcode === 492) return { kind: 'permanent', reason: 'page_role_missing' }
     return { kind: 'permanent', reason: 'token_invalid' }
   }
+  if (subcode !== null && CONTAINER_GONE_SUBCODES.has(subcode))
+    return { kind: 'permanent', reason: 'container_expired' }
+  if (code === 9007) return { kind: 'transient', reason: 'media_not_ready' }
+  if (MEDIA_REJECTED_CODES.has(code)) return { kind: 'permanent', reason: 'media_rejected' }
+  if (code === 9 && subcode === 2207042) return { kind: 'transient', reason: 'quota_exhausted' }
+  if (code === 25) return { kind: 'permanent', reason: 'account_restricted' }
+  // -1 and -2: Instagram's server error and download timeout, "try again"
+  if (code === -1 || code === -2) return { kind: 'transient', reason: 'meta_unavailable' }
   if (code === 3 || code === 10 || (code >= 200 && code <= 299))
     return { kind: 'permanent', reason: 'permission_missing' }
   // not in Meta's table: from the Postiz/OpenPost research, not verified

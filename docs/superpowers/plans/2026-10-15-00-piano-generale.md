@@ -173,7 +173,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `Mailer` | 2 (in memoria, file, "non configurato", SMTP della piattaforma: ADR 017) | `isConfigured()`, `send(message)` |
 | `AvatarProcessor` / `ZipWriter` | 2 | foto profilo (sharp, libheif-js) ed esportazione dei dati (fflate) |
 | `MediaProbe` / `MediaTransformer` | 4 | analisi e conversioni |
-| `PlatformPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo, implementata da `platforms/meta` (ADR 019) |
+| `PlatformPublisher` | 7 | passi `prepare`/`publish`/`verify` per piattaforma e tipo, implementata da `platforms/meta` (ADR 019); firma fissata nel Task 4 della tappa 7 in `application/src/ports/platform-publisher.ts` (D-105) |
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
 | Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
 | Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |

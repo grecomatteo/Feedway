@@ -27,6 +27,19 @@ describe('publishErrorCodeOfMeta (the table of §9.5)', () => {
   it('Instagram error subcodes travel as Meta codes too', () => {
     expect(publishErrorCodeOfMeta(100, 2207026)).toBe('media_rejected')
   })
+  // Instagram Error Codes (docs/platforms/meta.md §Pubblicazione), not verified on Meta
+  it.each([
+    [9007, 2207027, 'media_processing'],
+    [9004, 2207052, 'media_rejected'],
+    [352, 2207026, 'media_rejected'],
+    [36000, 2207004, 'media_rejected'],
+    [36001, 2207005, 'media_rejected'],
+    [36003, 2207009, 'media_rejected'],
+    [9, 2207042, 'quota_exhausted'],
+    [25, 2207050, 'account_restricted'],
+  ] as const)('Instagram %i/%i → %s', (meta, subcode, code) => {
+    expect(publishErrorCodeOfMeta(meta, subcode)).toBe(code)
+  })
 })
 
 describe('publishErrorMessage', () => {
