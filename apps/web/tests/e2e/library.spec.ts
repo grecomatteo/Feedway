@@ -220,6 +220,7 @@ test('every folder has its «⋯»: new folder inside, rename, move and delete (
   await expect(page.getByRole('option', { name: 'Reel di novembre' })).toHaveCount(0)
   await page.getByRole('option', { name: 'Novembre' }).click()
   await move.getByRole('button', { name: 'Sposta' }).click()
+  await expect(move).toHaveCount(0)
   await expect(page.getByText('Cartella «Reel di novembre» spostata in «Novembre».')).toBeVisible()
   if (!isPhone(page))
     await expect(
