@@ -241,6 +241,17 @@ test('a valid token: green permissions, every assigned account once, pending', a
   ).toEqual([{ data: { kind: 'meta_system_user' } }])
 })
 
+test('a new token whose Business name cannot be read keeps the name read before', async () => {
+  await connect()
+  mock.scenario('error', { code: 100, status: 400, path: '/me/businesses' })
+  const replaced = await connect()
+  expect(replaced.outcome).toBe('replaced')
+  expect(replaced.connection?.businessName).toBe('Agenzia Demo')
+  expect(await ownRows('account_connections')).toEqual([
+    expect.objectContaining({ business_name: 'Agenzia Demo' }),
+  ])
+})
+
 test('with the Business written in the integration, its name is read by its id', async () => {
   owner = await agencyWithOwner({ businessId: META_MOCK.businesses.agency })
   const before = mock.calls().length

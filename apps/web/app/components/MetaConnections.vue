@@ -286,7 +286,7 @@ watch(
       </p>
       <ListSurface
         v-else
-        columns="minmax(0,1fr) 64px 120px 110px 148px"
+        columns="minmax(0,1fr) 72px 120px 110px 148px"
         :head="connectionHead"
         :label="$t('socialAccounts.connections')"
         class="max-md:[&>[data-list-head]]:sr-only"
