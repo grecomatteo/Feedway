@@ -14,6 +14,9 @@ describe('publishErrorCodeOfMeta (the table of §9.5)', () => {
     [17, 'rate_limited'],
     [32, 'rate_limited'],
     [613, 'rate_limited'],
+    [341, 'rate_limited'],
+    [80001, 'rate_limited'],
+    [80002, 'rate_limited'],
   ] as const)('%i → %s', (meta, code) => {
     expect(publishErrorCodeOfMeta(meta)).toBe(code)
   })

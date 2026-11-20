@@ -6,7 +6,8 @@ export type TargetMover = 'panel' | 'worker'
 type Moves = ReadonlyMap<TargetStatus, readonly TargetStatus[]>
 
 // §9.3 split by who makes each move. The panel never moves a destination into the steps of the
-// worker and never touches one that is publishing (P2); the worker never schedules, cancels or
+// worker, except «Riprova» from `problem` (to `unknown`), and never touches one that is
+// publishing (P2); the worker never schedules, cancels or
 // brings back to draft. Staying in the same state (a new look at a container, a second round
 // of verification) is not a move.
 const PANEL: Moves = new Map<TargetStatus, TargetStatus[]>([
@@ -30,11 +31,15 @@ const WORKER: Moves = new Map<TargetStatus, TargetStatus[]>([
   ['scheduled', ['preparing', 'failed', 'paused']],
   ['preparing', ['ready', 'retrying', 'failed', 'paused']],
   // back to `preparing`: an Instagram container expired and is made again (§9.5)
-  ['ready', ['publishing', 'preparing', 'failed', 'paused']],
+  // `retrying`: a short call before publishing (the Page token) failed for a while
+  ['ready', ['publishing', 'preparing', 'retrying', 'failed', 'paused']],
   ['publishing', ['published', 'retrying', 'failed', 'unknown']],
-  ['retrying', ['preparing', 'publishing', 'paused']],
-  // found, not found after the searches, or not on Meta after a «Riprova» from `problem`
-  ['unknown', ['published', 'retrying', 'failed']],
+  // `failed`: the checks before the step find a permanent problem (copies, token, rules)
+  ['retrying', ['preparing', 'publishing', 'failed', 'paused']],
+  // found after an uncertain call (`published`, then verified) or after a «Riprova» from
+  // `problem` (`confirmed`, it was already verified once); not found after the searches
+  // (`failed`), or not on Meta after a «Riprova» from `problem` (`retrying`, republish)
+  ['unknown', ['published', 'confirmed', 'retrying', 'failed']],
   ['published', ['verifying']],
   ['verifying', ['confirmed', 'problem']],
 ])

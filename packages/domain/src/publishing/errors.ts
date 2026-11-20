@@ -32,6 +32,10 @@ const BY_META_CODE: ReadonlyMap<number, PublishErrorCode> = new Map([
   [17, 'rate_limited'],
   [32, 'rate_limited'],
   [613, 'rate_limited'],
+  // also rate limits for the Meta client (`classifyMetaError`, docs/platforms/meta.md)
+  [341, 'rate_limited'],
+  [80001, 'rate_limited'],
+  [80002, 'rate_limited'],
 ])
 
 /** The Feedway code of a Meta error; Instagram's subcodes (`error_subcode`) count first. */

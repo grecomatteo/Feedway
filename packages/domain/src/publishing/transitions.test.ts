@@ -38,6 +38,7 @@ const ALLOWED: Record<TargetMover, [TargetStatus, TargetStatus][]> = {
     ['preparing', 'paused'],
     ['ready', 'publishing'],
     ['ready', 'preparing'],
+    ['ready', 'retrying'],
     ['ready', 'failed'],
     ['ready', 'paused'],
     ['publishing', 'published'],
@@ -46,8 +47,10 @@ const ALLOWED: Record<TargetMover, [TargetStatus, TargetStatus][]> = {
     ['publishing', 'unknown'],
     ['retrying', 'preparing'],
     ['retrying', 'publishing'],
+    ['retrying', 'failed'],
     ['retrying', 'paused'],
     ['unknown', 'published'],
+    ['unknown', 'confirmed'],
     ['unknown', 'retrying'],
     ['unknown', 'failed'],
     ['published', 'verifying'],
@@ -76,7 +79,7 @@ describe('canMoveTarget', () => {
     }
   })
 
-  it('the panel never moves a destination into the steps of the worker', () => {
+  it('the panel never moves a destination into the steps of the worker (unknown only from problem)', () => {
     const steps: TargetStatus[] = [
       'preparing',
       'ready',
