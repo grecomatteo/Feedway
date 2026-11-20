@@ -17,6 +17,8 @@ export interface Screen {
   prepare?: (page: Page, s: DesignSample) => Promise<void>
   /** only on a computer (00-sistema has no phone version) */
   computerOnly?: boolean
+  /** only on a phone (10-editor-anteprima has no computer version) */
+  phoneOnly?: boolean
 }
 
 /** Opens a menu of the shell: the client selector or the person's menu, on either size. */
@@ -51,7 +53,12 @@ async function newPost(page: Page, files: string[], caption: string) {
   await dialog.getByRole('button', { name: /^Aggiungi/ }).click()
   await dialog.waitFor({ state: 'detached' })
   await page.getByRole('textbox', { name: 'Testo comune' }).fill(caption)
-  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+  // on a phone the state is in the bar at the bottom, «Bozza salvata» over «alle 11:53»
+  await page
+    .locator('[data-save-state]')
+    .filter({ hasText: /Bozza salvata\s*alle/ })
+    .first()
+    .waitFor({ state: 'attached' })
   await page.waitForLoadState('networkidle')
   await page.locator('h1').click()
   await page.mouse.move(0, 0)
@@ -61,7 +68,12 @@ async function newPost(page: Page, files: string[], caption: string) {
 async function pickDay(page: Page, day: number) {
   await page.locator('[data-day-field]').click()
   await page.locator('[data-day-picker]').getByRole('button', { name: new RegExp(` ${String(day)} `) }).first().click()
-  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+  // on a phone the state is in the bar at the bottom, «Bozza salvata» over «alle 11:53»
+  await page
+    .locator('[data-save-state]')
+    .filter({ hasText: /Bozza salvata\s*alle/ })
+    .first()
+    .waitFor({ state: 'attached' })
 }
 /** The accounts chosen in «Dove», by their name; then back to the top of the page. */
 async function tick(page: Page, names: RegExp[]) {
@@ -69,7 +81,12 @@ async function tick(page: Page, names: RegExp[]) {
     const box = page.getByRole('checkbox', { name })
     if ((await box.getAttribute('aria-checked')) !== 'true') await box.click()
   }
-  await page.locator('[data-save-state]').getByText('Bozza salvata alle').waitFor()
+  // on a phone the state is in the bar at the bottom, «Bozza salvata» over «alle 11:53»
+  await page
+    .locator('[data-save-state]')
+    .filter({ hasText: /Bozza salvata\s*alle/ })
+    .first()
+    .waitFor({ state: 'attached' })
   await page.waitForLoadState('networkidle')
   await page.evaluate(() => {
     window.scrollTo(0, 0)
@@ -269,6 +286,56 @@ export const SCREENS: Screen[] = [
       await tick(page, [/^@fornoluce ·/])
       await page.locator('[data-missing]').locator('visible=true').waitFor()
       await page.mouse.move(0, 0)
+      await page.waitForTimeout(300)
+    },
+  },
+  {
+    // the preview full screen on a phone, from «Anteprima» at the top of the editor
+    id: '10-editor-anteprima',
+    phoneOnly: true,
+    path: (s) => `/${s.org}/spazi/${forno(s).slug}/post/nuovo`,
+    prepare: async (page) => {
+      await newPost(
+        page,
+        ['pane.jpg', 'banco.jpg'],
+        'Il pane del lunedì è appena uscito dal forno.\nVi aspettiamo in via Roma 12, dalle 7.',
+      )
+      await pickDay(page, 20)
+      await tick(page, [/^@fornoluce ·/, /^Forno Luce ·/])
+      await page.getByRole('button', { name: 'Anteprima' }).click()
+      await page.locator('[data-preview-bar]').waitFor()
+      await page.waitForLoadState('networkidle')
+      await page.mouse.move(0, 0)
+      await page.waitForTimeout(300)
+    },
+  },
+  {
+    // after «Programma»: back to the client's posts, with the confirmation and «Apri»
+    id: '12-dopo-programma',
+    path: (s) => `/${s.org}/spazi/${forno(s).slug}/post/nuovo`,
+    prepare: async (page) => {
+      await newPost(page, ['pane.jpg'], 'Il pane del lunedì è appena uscito dal forno.')
+      await pickDay(page, 20)
+      await page.locator('[data-time-field]').click()
+      await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('800')
+      await page.keyboard.press('Enter')
+      await tick(page, [/^@fornoluce ·/, /^Forno Luce ·/])
+      const schedule = page.locator('[data-schedule]').locator('visible=true')
+      await schedule.waitFor()
+      await page.waitForFunction(
+        () =>
+          [...document.querySelectorAll<HTMLButtonElement>('[data-schedule]')].some(
+            (b) => b.offsetParent !== null && !b.disabled,
+          ),
+        undefined,
+        { timeout: 15_000 },
+      )
+      await schedule.click()
+      const toast = page.locator('[data-toast]')
+      await toast.waitFor()
+      await page.waitForLoadState('networkidle')
+      // the pointer on the confirmation keeps it there (it goes away by itself after 5 s)
+      await toast.locator('span').first().hover()
       await page.waitForTimeout(300)
     },
   },

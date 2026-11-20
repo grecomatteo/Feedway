@@ -5,6 +5,7 @@ import {
   formatRelative,
   formatShort,
   formatTime,
+  formatWallSentence,
   formatWallShort,
 } from '../app/utils/format-date.ts'
 
@@ -152,4 +153,10 @@ describe('edge cases', () => {
       formatShort('2026-11-20T17:00:00Z', { timeZone: 'Europa/Nowhere', now }),
     ).not.toThrow()
   })
+})
+
+test('a wall date and time inside a sentence', () => {
+  const now = new Date('2026-11-19T09:00:00Z')
+  expect(formatWallSentence('2026-11-20', '08:00', now)).toBe('ven 20 nov alle 8:00')
+  expect(formatWallSentence('2027-01-04', '18:30', now)).toBe('lun 4 gen 2027 alle 18:30')
 })

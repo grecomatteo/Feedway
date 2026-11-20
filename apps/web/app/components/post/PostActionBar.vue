@@ -3,12 +3,12 @@ import type { PostEditor } from '~/composables/usePostEditor'
 
 /**
  * The actions of the editor: in the row at the top on a computer (screens 08 and 09), in a bar
- * fixed at the bottom on a phone (design E1, E6g–E6k). The state of the save («Salvataggio…»,
+ * at the bottom on a phone (screens 08, 09 and 11). The state of the save («Salvataggio…»,
  * «Bozza salvata alle 18:04», «Non salvata: riprova»), what is missing («Manca 1 scelta»), then
  * the buttons. At the top a draft has «Salva ed esci» and «Programma su N account» (an Editor
- * only «Salva ed esci»); at the bottom «Salva bozza» stays until the phone's bar is redrawn
- * (Task R7). A scheduled post has «Annulla programmazione», «Riporta in bozza» and «Salva
- * modifiche»; a cancelled one only «Elimina post».
+ * only «Salva ed esci»); at the bottom only «Programma» (the draft saves by itself), or «Salva ed
+ * esci» for an Editor. A scheduled post has «Annulla programmazione», «Riporta in bozza» and
+ * «Salva modifiche»; a cancelled one only «Elimina post».
  */
 const props = withDefaults(
   defineProps<{ editor: PostEditor; accountsCount: number; placement?: 'top' | 'bottom' }>(),
@@ -79,6 +79,36 @@ const canSchedule = computed(
     e.save.value.status !== 'conflict',
 )
 const draft = computed(() => e.status.value === 'draft')
+/** «Bozza salvata» over «alle 11:53», at the bottom on a phone */
+const saved = computed(
+  () => e.save.value.status === 'saved' && savedAt.value !== null && !e.save.value.dirty,
+)
+/** At the bottom, what is missing takes the place of the state, unless the save failed. */
+const showMissing = computed(
+  () =>
+    !!missing.value &&
+    e.editable.value &&
+    e.may.value.publish &&
+    draft.value &&
+    e.save.value.status !== 'failed' &&
+    e.save.value.status !== 'conflict',
+)
+/** How much the open keyboard covers at the bottom: the bar stays above it (plan R7). */
+const keyboard = ref(0)
+function measure() {
+  const v = window.visualViewport
+  keyboard.value = v ? Math.max(0, Math.round(window.innerHeight - v.height - v.offsetTop)) : 0
+}
+onMounted(() => {
+  if (props.placement !== 'bottom') return
+  measure()
+  window.visualViewport?.addEventListener('resize', measure)
+  window.visualViewport?.addEventListener('scroll', measure)
+})
+onBeforeUnmount(() => {
+  window.visualViewport?.removeEventListener('resize', measure)
+  window.visualViewport?.removeEventListener('scroll', measure)
+})
 const scheduled = computed(() => e.status.value === 'scheduled')
 </script>
 
@@ -194,116 +224,127 @@ const scheduled = computed(() => e.status.value === 'scheduled')
     </div>
   </template>
 
-  <!-- at the bottom, on a phone -->
+  <!-- at the bottom, on a phone (screens 08, 09 and 11): the state on the left, one button on the
+       right; above the keyboard when it is open -->
   <div
     v-else
-    class="sticky bottom-0 z-30 border-t border-(--app-border) bg-(--app-surface) px-gutter py-3"
+    class="sticky z-30 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-(--app-border) bg-(--app-surface) pt-2.5 pe-3 pb-3.5 ps-4"
+    :style="{ bottom: `${keyboard}px` }"
     data-action-bar
   >
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <p
-        v-if="saveLine"
-        class="flex min-w-0 items-center gap-2 text-sm"
-        :class="TONE[saveLine.tone]"
-        role="status"
-        data-save-state
-      >
-        <UIcon :name="saveLine.icon" class="size-4 shrink-0" aria-hidden="true" />
-        <span>{{ saveLine.text }}</span>
-        <UButton
-          v-if="e.save.value.status === 'failed'"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          class="min-h-10"
-          @click="e.flush()"
-        >
-          {{ $t('posts.save.retry') }}
-        </UButton>
-        <UButton
-          v-if="e.save.value.status === 'conflict'"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          class="min-h-10"
-          @click="e.reload()"
-        >
-          {{ $t('posts.save.reload') }}
-        </UButton>
-      </p>
-      <span class="flex-1 max-sm:hidden" />
+    <div class="flex min-w-0 flex-1 items-center gap-2">
       <button
-        v-if="missing && e.editable.value && e.may.value.publish"
+        v-if="showMissing && missing"
         type="button"
-        class="min-h-10 text-sm underline-offset-2 hover:underline"
+        class="inline-flex min-h-11 min-w-0 items-center gap-1.5 text-detail font-medium"
         :class="missing.warn ? 'text-(--app-warning)' : 'text-(--app-text-muted)'"
         data-missing
         @click="emit('goto', 'post-summary')"
       >
-        {{ missing.text }}
+        <UIcon
+          :name="missing.warn ? 'i-lucide-triangle-alert' : 'i-lucide-info'"
+          class="size-4 shrink-0"
+          aria-hidden="true"
+        />
+        <span class="truncate">{{ missing.text }}</span>
       </button>
-      <div class="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
-        <template v-if="draft && e.editable.value">
-          <UButton
-            :color="e.may.value.publish ? 'neutral' : 'primary'"
-            :variant="e.may.value.publish ? 'outline' : 'solid'"
-            class="min-h-control max-sm:flex-1 max-sm:justify-center"
-            :loading="e.save.value.status === 'saving'"
-            @click="e.flush()"
-          >
-            {{ $t('posts.actions.saveDraft') }}
-          </UButton>
-          <UButton
-            v-if="e.may.value.publish"
-            class="min-h-control max-sm:flex-1 max-sm:justify-center"
-            icon="i-lucide-calendar-check"
-            :disabled="!canSchedule"
-            :loading="e.acting.value === 'schedule'"
-            data-schedule
-            @click="emit('schedule')"
-          >
-            {{ $t('posts.actions.schedule', { n: accountsCount }, accountsCount) }}
-          </UButton>
-        </template>
-        <template v-else-if="scheduled && e.editable.value">
-          <UButton
-            color="error"
-            variant="ghost"
-            class="min-h-control"
-            :loading="e.acting.value === 'cancel'"
-            @click="emit('cancel')"
-          >
-            {{ $t('posts.actions.cancel') }}
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="outline"
-            class="min-h-control"
-            :loading="e.acting.value === 'unschedule'"
-            @click="e.unschedule()"
-          >
-            {{ $t('posts.actions.unschedule') }}
-          </UButton>
-          <UButton
-            class="min-h-control"
-            :disabled="!e.save.value.dirty"
-            :loading="e.acting.value === 'saveScheduled'"
-            @click="e.saveScheduled()"
-          >
-            {{ $t('posts.actions.saveChanges') }}
-          </UButton>
-        </template>
+      <!-- what is missing takes its place on the screen; a screen reader still hears it -->
+      <p
+        v-if="saveLine"
+        class="flex min-w-0 items-center gap-1.5 text-detail"
+        :class="[saveLine.tone === 'danger' ? TONE.danger : TONE.muted, { 'sr-only': showMissing }]"
+        role="status"
+        data-save-state
+      >
+        <UIcon
+          :name="saveLine.icon"
+          class="size-4 shrink-0"
+          :class="TONE[saveLine.tone]"
+          aria-hidden="true"
+        />
+        <span v-if="saved" class="min-w-0 leading-4">
+          {{ $t('posts.save.savedShort') }}
+          <small class="block text-caption">{{
+            $t('posts.save.savedAt', { time: savedAt })
+          }}</small>
+        </span>
+        <span v-else class="min-w-0">{{ saveLine.text }}</span>
+      </p>
+      <UButton
+        v-if="e.save.value.status === 'failed'"
+        color="neutral"
+        variant="outline"
+        size="sm"
+        class="shrink-0 max-md:min-h-control"
+        @click="e.flush()"
+      >
+        {{ $t('posts.save.retry') }}
+      </UButton>
+      <UButton
+        v-if="e.save.value.status === 'conflict'"
+        color="neutral"
+        variant="outline"
+        size="sm"
+        class="shrink-0 max-md:min-h-control"
+        @click="e.reload()"
+      >
+        {{ $t('posts.save.reload') }}
+      </UButton>
+    </div>
+    <div class="ms-auto flex min-w-0 flex-wrap justify-end gap-2">
+      <template v-if="draft && e.editable.value">
         <UButton
-          v-else-if="e.mayDelete.value"
-          color="error"
-          variant="outline"
-          class="min-h-control"
-          :loading="e.acting.value === 'delete'"
-          @click="emit('remove')"
+          v-if="e.may.value.publish"
+          icon="i-lucide-calendar-check"
+          :disabled="!canSchedule"
+          :loading="e.acting.value === 'schedule'"
+          data-schedule
+          @click="emit('schedule')"
         >
-          {{ $t('posts.actions.delete') }}
+          {{
+            showMissing
+              ? $t('posts.actions.scheduleShort')
+              : $t('posts.actions.schedule', { n: accountsCount }, accountsCount)
+          }}
         </UButton>
-      </div>
+        <UButton v-else @click="emit('exit')">
+          {{ $t('posts.actions.saveAndExit') }}
+        </UButton>
+      </template>
+      <template v-else-if="scheduled && e.editable.value">
+        <UButton
+          color="error"
+          variant="ghost"
+          :loading="e.acting.value === 'cancel'"
+          @click="emit('cancel')"
+        >
+          {{ $t('posts.actions.cancel') }}
+        </UButton>
+        <UButton
+          color="neutral"
+          variant="outline"
+          :loading="e.acting.value === 'unschedule'"
+          @click="e.unschedule()"
+        >
+          {{ $t('posts.actions.unschedule') }}
+        </UButton>
+        <UButton
+          :disabled="!e.save.value.dirty"
+          :loading="e.acting.value === 'saveScheduled'"
+          @click="e.saveScheduled()"
+        >
+          {{ $t('posts.actions.saveChanges') }}
+        </UButton>
+      </template>
+      <UButton
+        v-else-if="e.mayDelete.value"
+        color="error"
+        variant="outline"
+        :loading="e.acting.value === 'delete'"
+        @click="emit('remove')"
+      >
+        {{ $t('posts.actions.delete') }}
+      </UButton>
     </div>
   </div>
 </template>

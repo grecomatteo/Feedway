@@ -112,6 +112,7 @@ test('design shots', async ({ browser }) => {
     await mkdir(new URL(`${size}/`, CODE), { recursive: true })
     for (const screen of screens) {
       if (screen.computerOnly && size !== 'computer') continue
+      if (screen.phoneOnly && size === 'computer') continue
       const code = await shoot(page, screen, size, sample)
       await writeFile(new URL(`${size}/${screen.id}.png`, CODE), code)
       const ref = new URL(`${size}/${screen.id}.png`, REFERENCE)
