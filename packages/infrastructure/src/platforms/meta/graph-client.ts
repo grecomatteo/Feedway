@@ -239,8 +239,11 @@ const debugSchema = z.object({
 
 const igMediaFields = 'id,caption,timestamp,media_type,media_product_type,permalink'
 
+/** Meta's ids are digits (or `dry-run`'s fake ones): never a dot, a slash or a comma. */
+const objectId = z.string().regex(/^([0-9]{1,32}|dry-run-[0-9a-f]{16})$/)
+
 const igMediaSchema = z.object({
-  id: z.string(),
+  id: objectId,
   caption: z.string().optional(),
   timestamp: z.string().optional(),
   media_type: z.string().optional(),
@@ -268,8 +271,8 @@ const toIgMedia = (m: z.infer<typeof igMediaSchema>): MetaInstagramMedia => ({
 
 const errorSchema = z.object({
   error: z.object({
-    code: z.number(),
-    error_subcode: z.number().optional(),
+    code: z.number().int(),
+    error_subcode: z.number().int().optional(),
     fbtrace_id: z.string().optional(),
   }),
 })
@@ -425,7 +428,27 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     }
   }
 
+  /**
+   * `dry-run` (plan 03): reads go to Meta, writes never leave and give a fake id; a read of a
+   * fake id is answered here (a finished container, a media without fields).
+   */
+  function dryRun<T>(spec: CallSpec, schema: z.ZodType<T>): MetaResult<T> | null {
+    if (opts.mode !== 'dry-run') return null
+    const method = spec.method ?? 'GET'
+    const fakeRead = method === 'GET' && spec.path.includes('/dry-run-')
+    if (method === 'GET' && !fakeRead) return null
+    const body = fakeRead
+      ? { id: spec.path.split('/').pop() ?? '', status_code: 'FINISHED' }
+      : { id: `dry-run-${randomBytes(8).toString('hex')}` }
+    opts.logger.info({ metaCall: spec.name, method }, 'meta call skipped (dry-run)')
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) throw new MetaError({ kind: 'uncertain', reason: 'invalid_response' })
+    return { data: parsed.data, usage: { app: null, business: [] } }
+  }
+
   async function attempt<T>(spec: CallSpec, schema: z.ZodType<T>): Promise<MetaResult<T>> {
+    const skipped = dryRun(spec, schema)
+    if (skipped !== null) return skipped
     const url = new URL(`${graphBase}${spec.path}`)
     const method = spec.method ?? 'GET'
     const form = new URLSearchParams()
@@ -543,7 +566,17 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         )
           throw err
         const wait = baseDelay * 2 ** (n - 1) * (0.5 + Math.random())
-        await new Promise((resolve) => setTimeout(resolve, wait))
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, wait)
+          spec.signal?.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer)
+              resolve()
+            },
+            { once: true },
+          )
+        })
       }
     }
   }
@@ -743,7 +776,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           credentials,
           signal,
         },
-        z.object({ id: z.string() }),
+        z.object({ id: objectId }),
       )
     },
 
@@ -779,7 +812,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           credentials,
           signal,
         },
-        z.object({ id: z.string() }),
+        z.object({ id: objectId }),
       )
     },
 

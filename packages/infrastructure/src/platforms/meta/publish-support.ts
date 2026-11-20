@@ -44,6 +44,12 @@ export const stepUsage = (usage: MetaUsage): StepUsage => ({ usage, load: loadOf
  * codes (-1, -2) keep only their subcode, which is Instagram's own and unique (D-105).
  */
 export function platformCodeOf(err: MetaError): string | null {
+  const code = rawPlatformCode(err)
+  // whatever Meta sends, only what the column accepts is written
+  return code !== null && /^[0-9]{1,10}(\/[0-9]{1,10})?$/.test(code) ? code : null
+}
+
+function rawPlatformCode(err: MetaError): string | null {
   if (err.metaCode === null) return null
   if (err.metaCode < 0) return err.subcode === null ? null : String(err.subcode)
   return err.subcode === null

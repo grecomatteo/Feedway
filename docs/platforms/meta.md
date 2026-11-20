@@ -237,7 +237,7 @@ Fonti (lette il 2026-11-20): [Content publishing](https://developers.facebook.co
 - **Stato del contenitore:** `GET /{container}?fields=status_code,status`; valori `EXPIRED`, `ERROR`, `FINISHED`, `IN_PROGRESS`, `PUBLISHED`. Meta chiede di leggerlo «once per minute, for no more than 5 minutes»: Feedway lo legge al massimo una volta al minuto per contenitore e risponde `wait` al worker, che ripianifica. Con `ERROR` il campo `status` porta il sottocodice.
 - **Scadenza:** un contenitore non pubblicato entro 24 ore diventa `EXPIRED`; 400 contenitori ogni 24 ore per account. Feedway ricrea da capo i contenitori scaduti (in `prepare`) e, se scadono prima di `media_publish`, risponde `expired` perché il worker prepari di nuovo.
 - **Quota:** 100 post pubblicati con l'API ogni 24 ore mobili secondo la sezione dei limiti (la sezione del carosello dice 50), contati su `media_publish`; un carosello vale uno. Feedway legge `content_publishing_limit` prima di ogni `media_publish`; senza quota la destinazione aspetta (D-105.4).
-- **Esito incerto:** `media_publish` non si ripete mai da solo: un timeout, un'interruzione del lavoro o un errore di rete sono incerti. La ricerca legge gli ultimi 25 post (`GET /{ig}/media`) o le storie (`GET /{ig}/stories`) con `id,caption,timestamp,media_type,media_product_type,permalink`: il riferimento dell'arco elenca solo `id`, gli altri campi vengono dalla guida e sono **non verificati**.
+- **Esito incerto:** `media_publish` non si ripete mai da solo: un timeout, un'interruzione del lavoro, un errore di rete o del server sono incerti (D-105.11). La ricerca legge gli ultimi 25 post (`GET /{ig}/media`) o le storie (`GET /{ig}/stories`) con `id,caption,timestamp,media_type,media_product_type,permalink`: il riferimento dell'arco elenca solo `id`, gli altri campi vengono dalla guida e sono **non verificati**.
 - **Verifica (§9.6):** `GET /{media-id}?fields=id,caption,timestamp,media_type,media_product_type,permalink`. Un reel pubblicato ha `media_type` `VIDEO` e `media_product_type` `REELS`; una storia `STORY`; un carosello `CAROUSEL_ALBUM`.
 - **Corpo:** i parametri dei POST vanno in un modulo, con il token nell'intestazione e `appsecret_proof` nell'indirizzo (D-105.9).
 - **File:** solo JPEG per le foto, al massimo 8 MB, rapporto da 4:5 a 1,91:1, larghezza da 320 a 1440; reel MOV o MP4, da 3 s a 15 min, 300 MB; storia video da 3 a 60 s, 100 MB. I file devono essere su un indirizzo pubblico quando Meta li scarica.
@@ -252,10 +252,9 @@ Dalla pagina [Instagram Error Codes](https://developers.facebook.com/docs/instag
 | 9004 / 2207052 | Il file non si scarica dall'indirizzo | `permanent` | `media_rejected` |
 | 352 / 2207026 | Formato video non supportato (MOV o MP4) | `permanent` | `media_rejected` |
 | 36000 / 2207004, 36001 / 2207005, 36003 / 2207009 | Foto oltre 8 MiB, formato o rapporto non ammessi | `permanent` | `media_rejected` |
-| -2 / 2207020 | Contenitore scaduto: crearne uno nuovo | `permanent` (`container_expired`) | si prepara di nuovo |
+| -2 / 2207020 | Contenitore scaduto: crearne uno nuovo | `permanent` (`container_expired`) | si prepara di nuovo, se il contenitore non risulta pubblicato (D-105.12) |
 | 24 / 2207008 | Il contenitore non esiste o è scaduto | `permanent` (`container_expired`) | si prepara di nuovo |
-| -1 / 2207032, -1 / 2207053 | Creazione del contenitore fallita: rifarlo | `permanent` (`container_expired`) | si prepara di nuovo |
-| -1 / 2207001, -2 / 2207003 | Errore del server o scaricamento scaduto: riprovare | `transient` | `meta_error` |
+| -1 / 2207001, -1 / 2207032, -1 / 2207053, -2 / 2207003 | Errore del server, creazione del contenitore fallita o scaricamento scaduto: riprovare | `transient` | `meta_error`; su `media_publish` vale incerto (D-105.11) |
 | 9 / 2207042 | Raggiunto il massimo di post del giorno | `transient` | `quota_exhausted`, si aspetta la finestra |
 | 25 / 2207050 | Account professionale inattivo, bloccato o limitato | `permanent` | `account_restricted` |
 | 24 / 2207006 | Media non trovato (permesso mancante o token scaduto) | `permanent` | `meta_error` |

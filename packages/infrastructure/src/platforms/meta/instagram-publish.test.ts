@@ -317,6 +317,12 @@ describe('publish', () => {
       new AbortController().signal,
     )
     expect(other).toBeNull()
+    const otherType = await publisher.findPublished(
+      { ...t, type: 'reel' },
+      since,
+      new AbortController().signal,
+    )
+    expect(otherType).toBeNull()
     const later = await publisher.findPublished(
       t,
       new Date(since.getTime() + 11 * 60_000),
@@ -363,13 +369,57 @@ describe('publish', () => {
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
   })
 
-  test('a server error on media_publish is not retried by the client', async () => {
+  test('a server error on media_publish is uncertain, never retried by the client', async () => {
     const t = target('photo')
     const prepared = await publisher.prepare(t, files([image()]), ctx())
     mock.scenario('transient_error', { path: `/${ig}/media_publish` })
     const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
-    expect(err.kind).toBe('transient')
+    expect(err.kind).toBe('uncertain')
     expect(posts(`/${ig}/media_publish`)).toHaveLength(1)
+  })
+
+  test('a rate limit on media_publish is a refusal: safe to try again', async () => {
+    const t = target('photo')
+    const prepared = await publisher.prepare(t, files([image()]), ctx())
+    mock.scenario('rate_limited', { path: `/${ig}/media_publish`, times: 1 })
+    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    expect(err.kind).toBe('transient')
+  })
+
+  test('publishing again a container whose answer was lost is uncertain, never a new post', async () => {
+    const t = target('photo')
+    const prepared = await publisher.prepare(t, files([image()]), ctx())
+    // the first media_publish goes out, its answer never reaches the worker
+    await publisher.publish({ ...t, metaIds: structuredClone(prepared.metaIds) }, ctx())
+    const err = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    expect(err.kind).toBe('uncertain')
+    expect(posts(`/${ig}/media`)).toHaveLength(1)
+    // and after 24 hours the old container still says so
+    clock.advance(24 * 3_600_000)
+    const late = await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx()))
+    expect(late.kind).toBe('uncertain')
+  })
+
+  test('prepare never drops the ids of a post that came out', async () => {
+    const t = target('photo')
+    const prepared = await publisher.prepare(t, files([image()]), ctx())
+    const published = await publisher.publish({ ...t, metaIds: prepared.metaIds }, ctx())
+    clock.advance(25 * 3_600_000)
+    const again = await publisher.prepare(
+      { ...t, metaIds: published.metaIds },
+      files([image()]),
+      ctx(),
+    )
+    expect(again).toMatchObject({ outcome: 'done', metaIds: published.metaIds })
+    expect(posts(`/${ig}/media`)).toHaveLength(1)
+    const unreadable = await failure(
+      publisher.prepare(
+        { ...t, metaIds: { mediaId: '18000000000000001' } },
+        files([image()]),
+        ctx(),
+      ),
+    )
+    expect(unreadable.kind).toBe('uncertain')
   })
 
   test('a rate limit carries when to try again and the load of the account', async () => {

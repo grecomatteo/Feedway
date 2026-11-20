@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { afterEach, beforeEach, expect, test } from 'vitest'
 import { META_MOCK, startMetaMock, type MetaMock } from './index.ts'
+import { downloadableUrl } from './publishing.ts'
 
 // The Instagram publishing calls of the fake Graph API (plan 07, Task 4).
 
@@ -144,4 +145,17 @@ test('stories are listed apart, and the containers of another token stay hidden'
     headers: { authorization: `Bearer ${other}` },
   })
   expect(((await res.json()) as Answer).error).toMatchObject({ code: 100 })
+})
+
+test('the mock downloads only from this machine', () => {
+  expect(downloadableUrl('http://127.0.0.1:4010/m/abc.jpg')).not.toBeNull()
+  expect(downloadableUrl('http://localhost/m/abc.jpg')).not.toBeNull()
+  for (const away of [
+    'https://example.com/m/abc.jpg',
+    'http://169.254.169.254/latest/meta-data',
+    'file:///etc/passwd',
+    'http://user:pw@127.0.0.1/m/abc.jpg',
+    'not an address',
+  ])
+    expect(downloadableUrl(away)).toBeNull()
 })

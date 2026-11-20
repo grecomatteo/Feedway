@@ -95,9 +95,37 @@ function take(list: { remaining: number }[]): boolean {
   return true
 }
 
-async function downloads(url: string): Promise<boolean> {
+// Only the machine the mock runs on, as in tests and development (`META_MODE=mock`): the mock
+// never fetches an address it is handed on the open network. More hosts (a panel reached through
+// another name) go in META_MOCK_DOWNLOAD_HOSTS, separated by commas.
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]'])
+
+function allowedHosts(): Set<string> {
+  const extra = (process.env.META_MOCK_DOWNLOAD_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter((h) => h !== '')
+  return new Set([...LOOPBACK, ...extra])
+}
+
+/** The address to download, if the mock may reach it; null otherwise. */
+export function downloadableUrl(raw: string): URL | null {
+  let url: URL
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+    url = new URL(raw)
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+  if (url.username !== '' || url.password !== '') return null
+  return allowedHosts().has(url.hostname.toLowerCase()) ? url : null
+}
+
+async function downloads(raw: string): Promise<boolean> {
+  const url = downloadableUrl(raw)
+  if (url === null) return false
+  try {
+    const res = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(10_000) })
     await res.arrayBuffer()
     return res.ok
   } catch {

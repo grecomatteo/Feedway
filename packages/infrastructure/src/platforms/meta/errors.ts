@@ -80,7 +80,8 @@ export class MetaError extends Error {
 
 // Instagram's content publishing (Instagram Error Codes, docs/platforms/meta.md §Pubblicazione)
 const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003])
-const CONTAINER_GONE_SUBCODES = new Set([2207020, 2207008, 2207032, 2207053])
+// 2207032 and 2207053 (creation failed: make it again) are server errors, transient below
+const CONTAINER_GONE_SUBCODES = new Set([2207020, 2207008])
 
 const RATE_LIMIT_CODES = new Set([4, 17, 32, 341, 613, 80001, 80002])
 
