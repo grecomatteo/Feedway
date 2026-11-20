@@ -20,6 +20,7 @@ In sviluppo: `pnpm --filter @app/meta-mock start` (porta `META_MOCK_PORT`, 4010 
 - Token in `Authorization: Bearer` o in `access_token`. `appsecret_proof` è obbligatorio, come con **Require App Secret** attivo; non serve nello scambio del codice né in `debug_token`, che usa il token dell'app (`docs/platforms/meta.md`).
 - Dialogo dell'accesso unificato su `<url>/<versione>/dialog/oauth`: controlla `client_id` e `config_id` e rimanda subito a `redirect_uri` con `code` e `state`. Il codice vale una volta sola e solo con lo stesso `redirect_uri`.
 - `GET /oauth/access_token` (scambio del codice) e `GET /debug_token`.
+- **Pubblicazione su Instagram** (piano della tappa 7, Task 4, `src/publishing.ts`): `POST /{ig}/media` (contenitori di foto, video, reel, storie, elementi e contenitore del carosello), `GET /{container}?fields=status_code,status`, `POST /{ig}/media_publish`, `GET /{ig}/media`, `GET /{ig}/stories` e `GET /{media-id}`. I parametri dei POST si leggono dall'indirizzo, da un modulo o da un corpo JSON, come fa la Graph API. Il mock **scarica davvero** `image_url` e `video_url` (prova che l'host pubblico risponde); una foto che non si scarica risponde 9004/2207052, un video finisce in `ERROR`. Un contenitore si pubblica una volta sola; `content_publishing_limit` sale a ogni `media_publish` e, a quota piena, `media_publish` risponde 9/2207042. Contenitori e post sono visibili solo ai token che vedono l'account. **Scritto a mano e non verificato** su Meta vera: risposte, codici d'errore e permalink vengono dalla documentazione (`docs/platforms/meta.md` §Pubblicazione).
 - Le foto dei profili su `<url>/pictures/<nome>.jpg`, senza token, come le serve il CDN di Meta. Nelle fixture gli indirizzi iniziano con `{{mock}}`, che il mock sostituisce con il proprio indirizzo; le immagini stanno in `fixtures/pictures/`. Un nome che non c'è risponde 404, come un indirizzo di Meta scaduto.
 
 ## Dati iniziali
@@ -37,7 +38,7 @@ Gli id sono in `META_MOCK` (`src/index.ts`).
 
 ## Scenari
 
-`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted`, `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`, e per le foto `picture_changed` (un nodo cambia foto e indirizzo), `picture_not_image` e `picture_redirect`. Gli errori dell'infrastruttura raggiungono le foto solo se il loro `path` le nomina (`/pictures/forno.jpg`). Le opzioni sono descritte in `src/scenarios.ts`; `token_expired` accetta anche `subcode` (458: il cliente ha tolto l'autorizzazione). Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
+`token_expired`, `permission_missing`, `asset_removed`, `quota_exhausted` (anche `media_publish` risponde 9/2207042), `rate_limited`, `transient_error`, `error` (qualsiasi codice della tabella degli errori), `timeout`, `malformed`, `html_5xx`, `access_denied`, `personal_ig_profile`, `page_without_token`, per la pubblicazione `container_in_progress` (i contenitori nuovi, solo video o `all`, restano `IN_PROGRESS` per `reads` letture), `container_error`, `container_expired` (`media_publish` risponde -2/2207020), `publish_timeout_but_created` (pubblica e risponde dopo `delayMs`: l'esito incerto; una volta, se `times` manca) e `media_download_failed`, e per le foto `picture_changed` (un nodo cambia foto e indirizzo), `picture_not_image` e `picture_redirect`. Gli errori dell'infrastruttura raggiungono le foto solo se il loro `path` le nomina (`/pictures/forno.jpg`). Le opzioni sono descritte in `src/scenarios.ts`; `token_expired` accetta anche `subcode` (458: il cliente ha tolto l'autorizzazione). Gli errori dell'infrastruttura accettano `path` (senza versione, per esempio `/me/accounts`) e `times`.
 
 ## Fixture
 
@@ -50,7 +51,7 @@ Sono nate **scritte a mano** dalla documentazione di Meta. Il 2026-11-12 la prov
 - un errore 190 risponde con HTTP 401; un `appsecret_proof` fatto con un secret vecchio dà 400, codice 100, senza sottocodice;
 - la prova dell'app (`debug_token` con l'App ID come `input_token`) dà 200 con `is_valid: false` e l'errore 190; con un secret sbagliato, 401 e 190.
 
-Restano scritte a mano, e **non verificate**, le risposte dell'accesso unificato (Task 7, rinviato) e gli scenari di errore che la prova non ha incontrato. Le registrazioni originali non sono nel repository: si aggiornano i file qui sopra, senza cambiare il codice.
+Restano scritte a mano, e **non verificate**, le risposte dell'accesso unificato (Task 7, rinviato), tutte le chiamate della pubblicazione (tappa 7) e gli scenari di errore che la prova non ha incontrato. Le registrazioni originali non sono nel repository: si aggiornano i file qui sopra, senza cambiare il codice.
 
 ## Registrare le risposte di Meta vera
 

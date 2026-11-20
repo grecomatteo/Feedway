@@ -2584,6 +2584,8 @@
       "media_rejected": "Meta non riesce a scaricare il file o il formato non è valido",
       "duplicate": "Facebook ha rifiutato il post perché duplicato",
       "rate_limited": "Troppe richieste: ritento più tardi",
+      "quota_exhausted": "Il profilo Instagram ha finito i post del giorno: ritento quando si liberano",
+      "account_restricted": "Il profilo Instagram è limitato o da confermare: accedi all'app di Instagram e risolvi, poi riprova",
       "meta_error": "Meta ha rifiutato la pubblicazione",
       "too_late": "L'ora era passata da più di 15 minuti",
       "uncertain_not_found": "Meta non ha confermato la pubblicazione e il post non si trova sul profilo. Controlla il profilo prima di riprovare: Meta potrebbe averlo pubblicato",
