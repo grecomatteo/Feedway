@@ -2575,5 +2575,21 @@
       "removeTitle": "Eliminare «{name}»?",
       "removeText": "Gli account restano dove sono: sparisce solo il gruppo."
     }
+  },
+  "publishing": {
+    "errors": {
+      "token_invalid": "Il token Meta non è più valido: sostituiscilo da Impostazioni → Integrazioni → Meta",
+      "permission_missing": "Permesso mancante per questo account: controlla gli asset assegnati all'utente di sistema",
+      "media_processing": "Instagram sta ancora elaborando il video (ritento in automatico)",
+      "media_rejected": "Meta non riesce a scaricare il file o il formato non è valido",
+      "duplicate": "Facebook ha rifiutato il post perché duplicato",
+      "rate_limited": "Troppe richieste: ritento più tardi",
+      "meta_error": "Meta ha rifiutato la pubblicazione",
+      "too_late": "L'ora era passata da più di 15 minuti",
+      "uncertain_not_found": "Meta non ha confermato la pubblicazione e il post non si trova sul profilo. Controlla il profilo prima di riprovare: Meta potrebbe averlo pubblicato",
+      "file_wont_publish": "Un file del post non si può pubblicare: apri il post per vedere quale",
+      "author_lost_permission": "Chi ha programmato il post non può più pubblicare su questo cliente",
+      "organization_suspended": "L'agenzia è sospesa: nessun post esce finché non torna attiva"
+    }
   }
 }
