@@ -1902,6 +1902,12 @@
       }
     },
     "reasons": {
+      "media_copy_failed": {
+        "unreadable": "Il file non si legge più come all'inizio: caricalo di nuovo e sostituiscilo nel post.",
+        "timeout": "La preparazione ha richiesto troppo tempo: riprogramma il post per riprovare, oppure usa un file più leggero.",
+        "processing_failed": "La preparazione si è fermata più volte: riprogramma il post per riprovare, oppure sostituisci il file.",
+        "media_unavailable": "Il file non è più nella libreria: sostituiscilo nel post."
+      },
       "account_unhealthy": {
         "inactive": "L'account non risulta più tra quelli collegati a Feedway.",
         "unchecked": "Feedway non ha ancora controllato l'account: di solito basta aspettare qualche minuto.",
@@ -1972,7 +1978,7 @@
     },
     "scheduled_in_past": {
       "title": "Data già passata",
-      "text": "Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica ora»."
+      "text": "Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica subito»."
     },
     "type_not_supported": {
       "title": "{platform} non ha questo tipo di post",
@@ -2134,6 +2140,10 @@
     "media_unused": {
       "title": "File che non esce su nessun account",
       "text": "Con le scelte fatte questo file non esce su nessun account. Toglilo dal post o cambia le scelte, così il post esce come l'hai pensato."
+    },
+    "media_copy_failed": {
+      "title": "Copia da pubblicare non riuscita",
+      "text": "Feedway non è riuscito a preparare la copia di questo file con le scelte del post. {reason}"
     }
   },
   "posts": {

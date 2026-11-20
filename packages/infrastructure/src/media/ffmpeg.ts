@@ -3,9 +3,16 @@ import type { MadeFile, ToolResult } from '@app/application'
 import {
   PROBE_TIMEOUT_MS,
   REEL_ENCODE,
+  STORY_HEIGHT,
+  STORY_WIDTH,
+  centerBox,
+  copyFps,
+  copyVideoBitrate,
+  fittedSize,
   ffmpegTimeoutMs,
   previewSize,
   reelPlan,
+  reelSize,
   videoWorkTimeoutMs,
   type FileAnalysis,
   type ReelPlan,
@@ -496,6 +503,197 @@ export function createFfmpeg(
           : { width: video.width, height: video.height }
       const file = await made(run, output, { mime: 'video/mp4', ...size })
       return file.ok ? { ...file, plan } : file
+    },
+
+    /**
+     * A copy to publish converted from the original (plan 07 Task 6): H.264 High and AAC in MP4
+     * with `faststart`, no metadata, at 23–60 fps, HDR made SDR. `pad` puts the picture in the
+     * 9:16 frame with black bands, `crop` keeps the 9:16 box at its centre, `convert` keeps its
+     * proportions (inside 1080×1920). `trimMs` cuts it; `maxBytes` lowers the bitrate to fit.
+     */
+    async fit(
+      path: string,
+      output: string,
+      opts: {
+        fit: 'pad' | 'crop' | 'convert'
+        width: number
+        height: number
+        durationMs: number
+        sizeBytes: number
+        fps: number
+        trimMs: number | null
+        maxBytes: number | null
+        signal?: AbortSignal | undefined
+        onProgress?: ((fraction: number) => void) | undefined
+      },
+    ): Promise<ToolResult<{ file: MadeFile }>> {
+      const source = await reelSource(path, opts)
+      if (!source.ok) return source
+      const { hdr, audio } = source.source
+      const fps = copyFps(opts.fps)
+      const durationMs =
+        opts.trimMs === null ? opts.durationMs : Math.min(opts.durationMs, opts.trimMs)
+      const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2)
+      let size: { width: number; height: number }
+      let frame: string[]
+      if (opts.fit === 'convert') {
+        size = reelSize(opts.width, opts.height)
+        frame = [`scale=${String(size.width)}:${String(size.height)}`]
+      } else if (opts.fit === 'pad') {
+        size = fittedSize(opts.width, opts.height, 'pad')
+        const w = String(size.width)
+        const h = String(size.height)
+        frame = [
+          `scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2`,
+          `pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black`,
+        ]
+      } else {
+        size = fittedSize(opts.width, opts.height, 'crop')
+        const box = centerBox(opts.width, opts.height, STORY_WIDTH / STORY_HEIGHT)
+        const cw = even(box.width * opts.width)
+        const ch = even(box.height * opts.height)
+        frame = [
+          `crop=${String(cw)}:${String(ch)}`,
+          `scale=${String(size.width)}:${String(size.height)}`,
+        ]
+      }
+      const rate = copyVideoBitrate(durationMs, opts.maxBytes)
+      const run = await runTool(
+        commands.ffmpeg,
+        [
+          ...global(limits.threads),
+          ...decodeInput(path),
+          ...(opts.trimMs === null ? [] : ['-t', (opts.trimMs / 1000).toFixed(3)]),
+          '-map',
+          '0:v:0',
+          '-map',
+          '0:a:0?',
+          '-map_metadata',
+          '-1',
+          '-map_metadata:s:v',
+          '-1',
+          '-map_metadata:s:a',
+          '-1',
+          '-map_chapters',
+          '-1',
+          '-vf',
+          [
+            `fps=${String(fps)}`,
+            ...frame,
+            ...(hdr ? TONE_MAP : []),
+            'setsar=1',
+            'format=yuv420p',
+          ].join(','),
+          '-c:v',
+          'libx264',
+          '-preset',
+          'veryfast',
+          '-profile:v',
+          'high',
+          '-level:v',
+          '4.2',
+          '-b:v',
+          String(rate.bitrate),
+          '-maxrate',
+          String(rate.maxBitrate),
+          '-bufsize',
+          String(2 * rate.maxBitrate),
+          '-g',
+          String(Math.max(1, Math.round(fps * REEL_ENCODE.gopSeconds))),
+          ...(hdr
+            ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
+            : []),
+          ...(audio === null
+            ? []
+            : [
+                '-c:a',
+                'aac',
+                '-b:a',
+                String(REEL_ENCODE.audioBitrate),
+                '-ar',
+                String(REEL_ENCODE.sampleRate),
+                '-ac',
+                '2',
+              ]),
+          '-threads',
+          threads,
+          '-movflags',
+          '+faststart',
+          '-progress',
+          'pipe:1',
+          '-nostats',
+          '-f',
+          'mp4',
+          '-y',
+          `file:${output}`,
+        ],
+        {
+          timeoutMs: videoWorkTimeoutMs({ ...opts, durationMs }),
+          signal: opts.signal,
+          watchStderr: OVER_MAX_PIXELS,
+          onLine: (line) => {
+            const match = /^out_time_us=(\d+)$/.exec(line)
+            if (match?.[1] && opts.onProgress && durationMs > 0)
+              opts.onProgress(Math.min(1, Number(match[1]) / 1000 / durationMs))
+          },
+        },
+      )
+      if (run.outcome === 'exited' && run.code === 0 && run.stderrMatched)
+        return { ok: false, reason: 'unreadable' } as const
+      return made(run, output, { mime: 'video/mp4', ...size })
+    },
+
+    /**
+     * One frame of the original at `atMs`, upright and at its own size, HDR made SDR: the
+     * picture of a reel's cover (D-60), framed afterwards as a photo.
+     */
+    async still(
+      path: string,
+      output: string,
+      opts: {
+        atMs: number
+        width: number
+        height: number
+        durationMs: number
+        sizeBytes: number
+        fps: number
+        signal?: AbortSignal | undefined
+      },
+    ): Promise<ToolResult<{ file: MadeFile }>> {
+      const source = await reelSource(path, opts)
+      if (!source.ok) return source
+      const run = await runTool(
+        commands.ffmpeg,
+        [
+          ...GLOBAL,
+          '-ss',
+          (opts.atMs / 1000).toFixed(3),
+          ...input(path),
+          '-frames:v',
+          '1',
+          ...(source.source.hdr ? ['-vf', [...TONE_MAP, 'format=yuvj420p'].join(',')] : []),
+          '-q:v',
+          '2',
+          '-threads',
+          '1',
+          '-f',
+          'image2',
+          '-c:v',
+          'mjpeg',
+          '-update',
+          '1',
+          '-y',
+          `file:${output}`,
+        ],
+        { timeoutMs: PROBE_TIMEOUT_MS, signal: opts.signal, watchStderr: OVER_MAX_PIXELS },
+      )
+      if (run.outcome === 'exited' && run.code === 0 && run.stderrMatched)
+        return { ok: false, reason: 'unreadable' } as const
+      // past the last frame ffmpeg writes nothing and still ends well
+      const written = await stat(output).catch(() => null)
+      if (run.outcome === 'exited' && run.code === 0 && (written === null || written.size === 0))
+        return { ok: false, reason: 'unreadable' } as const
+      return made(run, output, { mime: 'image/jpeg', width: opts.width, height: opts.height })
     },
 
     /** One frame as a JPEG, from a video ffmpeg made. */

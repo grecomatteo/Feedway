@@ -38,12 +38,13 @@ const tone = computed(() => (props.status ? TONE_OF[props.status] : props.tone))
 
 <template>
   <span
-    class="inline-flex items-center gap-2 whitespace-nowrap"
+    class="inline-flex max-w-full items-center gap-2 whitespace-nowrap"
     :class="WORD[tone]"
     :data-tone="tone"
     :data-status="status"
   >
     <span class="size-2 shrink-0 rounded-full" :class="DOT[tone]" aria-hidden="true" />
-    {{ label }}
+    <!-- in a narrow column the word ends with an ellipsis instead of running into the next one -->
+    <span class="min-w-0 truncate">{{ label }}</span>
   </span>
 </template>

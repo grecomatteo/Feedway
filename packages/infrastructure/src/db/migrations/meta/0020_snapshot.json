@@ -1,5 +1,5 @@
 {
-  "id": "62221b84-86ec-469c-9bdf-32d2c8a55e3a",
+  "id": "7ea92b69-8d73-4a0a-ad7b-6c2ace913a6e",
   "prevId": "cebc30bb-ba99-46bd-ae00-49c7d39d5276",
   "version": "7",
   "dialect": "postgresql",
@@ -2181,12 +2181,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "business_name": {
-          "name": "business_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3397,6 +3391,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3412,7 +3419,45 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "media_variants_pending_idx": {
+          "name": "media_variants_pending_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "status = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_variants_started_idx": {
+          "name": "media_variants_started_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "media_variants_media_fk": {
           "name": "media_variants_media_fk",
@@ -3479,6 +3524,10 @@
         "media_variants_failure": {
           "name": "media_variants_failure",
           "value": "\"media_variants\".\"status\" <> 'failed' or \"media_variants\".\"failure\" is not null"
+        },
+        "media_variants_attempts": {
+          "name": "media_variants_attempts",
+          "value": "\"media_variants\".\"attempts\" >= 0"
         }
       },
       "isRLSEnabled": false

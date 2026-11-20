@@ -133,10 +133,10 @@ Letti sulla documentazione pubblica di Meta; nessuno è ancora provato su un acc
 | Account di una piattaforma di cui l’installazione non ha le regole (qui Facebook) | **Blocco**: **Facebook non è ancora gestito**. Feedway non sa ancora pubblicare su Facebook. Togli questo account dalle destinazioni. | — |
 | Account Instagram da ricollegare (salute in rosso) | **Blocco**: **Account da sistemare**. L'account ha un problema di collegamento. Finché non è a posto il post non può uscire qui: controllalo in «Account social» o toglilo dalle destinazioni. | — |
 | Account Facebook disattivato | **Blocco**: **Account da sistemare**. L'account non risulta più tra quelli collegati a Feedway. Finché non è a posto il post non può uscire qui: controllalo in «Account social» o toglilo dalle destinazioni. | — |
-| Data nel passato (ieri alle 18:00) | **Blocco**: **Data già passata**. Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica ora». | — |
+| Data nel passato (ieri alle 18:00) | **Blocco**: **Data già passata**. Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica subito». | — |
 | Data nel passato controllata dal worker al momento di pubblicare (D-54) | Nessun esito: si può programmare. | — |
-| Programmato per il minuto in corso (11:00 a Roma alle 11:00:30) | **Blocco**: **Data già passata**. Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica ora». | — |
-| «Pubblica ora»: la regola della data non vale | Nessun esito: si può programmare. | — |
+| Programmato per il minuto in corso (11:00 a Roma alle 11:00:30) | **Blocco**: **Data già passata**. Il giorno e l'ora scelti sono già passati. Scegli un momento futuro, oppure usa «Pubblica subito». | — |
+| «Pubblica subito»: la regola della data non vale | Nessun esito: si può programmare. | — |
 | Alle 02:30 del 28 marzo 2027, ora che non esiste | **Avviso**: **Ora che quel giorno non esiste**. Quella notte gli orologi vanno avanti di un'ora per il cambio dell'ora, quindi l'ora scelta non esiste. Il post uscirà alle 03:30 (ora legale dell’Europa centrale). Va bene, oppure scegli un'altra ora. | Va bene (consigliata) |
 | Alle 02:30 del 25 ottobre 2026, ora che c’è due volte | **Avviso**: **Ora che quel giorno capita due volte**. Quella notte gli orologi tornano indietro di un'ora per il cambio dell'ora, quindi l'ora scelta capita due volte. Il post uscirà la prima volta, alle 02:30 (ora legale dell’Europa centrale). Va bene, oppure scegli un'altra ora. | Va bene (consigliata) |
 | Quota di Instagram: 96 post su 100 nelle 24 ore | **Avviso** · Instagram: **Pochi post rimasti su Instagram**. A quell'ora questo account potrà pubblicare ancora 4 post dei 100 che Instagram permette in 24 ore. Puoi programmarlo, ma evita di programmarne altri nelle stesse ore. | Va bene (consigliata) |
@@ -161,4 +161,5 @@ Con Instagram e Facebook non capitano; il testo è pronto per quando servirà.
 
 | Esito | Perché non c’è un caso | Messaggio (con valori d’esempio) |
 |---|---|---|
+| `media_copy_failed` | Non è del motore: lo aggiunge il controllo prima di pubblicare (`purpose: publish`) quando la copia da pubblicare di un file non si è potuta fare (tappa 7, Task 6; provato in `copies.test.ts`). | **Blocco**: **Copia da pubblicare non riuscita**. Feedway non è riuscito a preparare la copia di questo file con le scelte del post. La preparazione ha richiesto troppo tempo: riprogramma il post per riprovare, oppure usa un file più leggero. |
 | `type_not_supported` | Instagram e Facebook hanno tutti e quattro i tipi di post: capita solo con una piattaforma futura che non ne ha uno (provato in `evaluate-post.test.ts` con regole finte). | **Blocco** · Facebook: **Facebook non ha questo tipo di post**. Su Facebook non si può pubblicare «Storia». Togli gli account di Facebook, o cambia il tipo di post. |

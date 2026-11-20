@@ -40,6 +40,10 @@ export const translate: Translate = (key, values = {}) => {
 export const CODES_WITHOUT_CASE: Readonly<
   Record<string, { why: string; outcome: Pick<RuleOutcome, 'code' | 'params' | 'platform'> }>
 > = {
+  media_copy_failed: {
+    why: 'Non è del motore: lo aggiunge il controllo prima di pubblicare (`purpose: publish`) quando la copia da pubblicare di un file non si è potuta fare (tappa 7, Task 6; provato in `copies.test.ts`).',
+    outcome: { code: 'media_copy_failed', params: { reason: 'timeout' } },
+  },
   type_not_supported: {
     why: 'Instagram e Facebook hanno tutti e quattro i tipi di post: capita solo con una piattaforma futura che non ne ha uno (provato in `evaluate-post.test.ts` con regole finte).',
     outcome: {
