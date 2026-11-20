@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.12.1](https://github.com/grecomatteo/Feedway/compare/v0.12.0...v0.12.1) (2026-11-20)
+
+
+### Novità
+
+* **design:** «Accedi» come la schermata 01, pagine prima del pannello senza riquadro ([#267](https://github.com/grecomatteo/Feedway/issues/267)) ([5e6e487](https://github.com/grecomatteo/Feedway/commit/5e6e4872d1c6a4b12475960551c18c4c48cc0e4d))
+* **design:** «Clienti» e «Nuovo cliente» come le schermate 14 e 15 ([#258](https://github.com/grecomatteo/Feedway/issues/258)) ([1cac309](https://github.com/grecomatteo/Feedway/commit/1cac309c9757a015b5e4ecf47dcd4013556beda9))
+* **design:** «Dove», «Quando», anteprima e «Controlli» dell'editor come le schermate 08 e 09 ([#263](https://github.com/grecomatteo/Feedway/issues/263)) ([be95d28](https://github.com/grecomatteo/Feedway/commit/be95d28fe133e53d799d4febdc1809ad1618b053))
+* **design:** «Oggi» come le schermate 02 e 03, con il conteggio nella barra laterale ([#257](https://github.com/grecomatteo/Feedway/issues/257)) ([739ee5f](https://github.com/grecomatteo/Feedway/commit/739ee5fcdb5b1de294d808915c2c0ff2cda654b2))
+* **design:** barra del telefono e ritorno dopo «Programma» come le schermate 10, 11 e 12 ([#265](https://github.com/grecomatteo/Feedway/issues/265)) ([66c762b](https://github.com/grecomatteo/Feedway/commit/66c762bffa66d6dcee405727f50f7edac1ddea53))
+* **design:** componenti base, tavola del sistema e strumenti di fedeltà ([#254](https://github.com/grecomatteo/Feedway/issues/254)) ([5c52a41](https://github.com/grecomatteo/Feedway/commit/5c52a4147f28f0d3aed3b9901cb248c1eb126e12))
+* **design:** guscio della nuova direzione: barra laterale, telefono, selettore e menu della persona ([#255](https://github.com/grecomatteo/Feedway/issues/255)) ([76c5427](https://github.com/grecomatteo/Feedway/commit/76c5427991e627ab93a4570bab0e6b96764b51dd))
+* **design:** pagina del cliente come le schermate 16, 17 e 18 ([#259](https://github.com/grecomatteo/Feedway/issues/259)) ([4e7aed7](https://github.com/grecomatteo/Feedway/commit/4e7aed7aac6aea305b33706517e76cf574998617))
+* **design:** parte alta dell'editor come le schermate 08 e 09 ([#260](https://github.com/grecomatteo/Feedway/issues/260)) ([3257550](https://github.com/grecomatteo/Feedway/commit/3257550e8f3bf2c97f05658d7aa6c5d73e0e2897))
+* **design:** tema scuro, palette e stati del pannello (Task R9) ([#268](https://github.com/grecomatteo/Feedway/issues/268)) ([12acbd6](https://github.com/grecomatteo/Feedway/commit/12acbd644b13aa5b8b44dd5cbe339b4d4d6b9e98))
+* **design:** token, misure e date della nuova direzione ([#251](https://github.com/grecomatteo/Feedway/issues/251)) ([50bee43](https://github.com/grecomatteo/Feedway/commit/50bee43aaf63bd0e80d4f7109b1bb8173f8165be))
+* **design:** Utenti e Impostazioni come le schermate 21–26 ([#266](https://github.com/grecomatteo/Feedway/issues/266)) ([8a675a9](https://github.com/grecomatteo/Feedway/commit/8a675a90575bc78604c100f7ecbbca20569a836e))
+* **media:** Libreria di tutti i clienti e dettaglio del file (schermate 19 e 20) ([#262](https://github.com/grecomatteo/Feedway/issues/262)) ([8a9e747](https://github.com/grecomatteo/Feedway/commit/8a9e74766a759f60a78c94c708a26549a3713f7c))
+* **posts:** letture di «Oggi»: post del periodo, bozze, da sistemare, clienti ([#256](https://github.com/grecomatteo/Feedway/issues/256)) ([895ee12](https://github.com/grecomatteo/Feedway/commit/895ee12bf48455cec98195e135964c035a838cf3))
+
+
+### Correzioni
+
+* **design:** correzioni della revisione di fedeltà (Task R10) ([#270](https://github.com/grecomatteo/Feedway/issues/270)) ([49b6def](https://github.com/grecomatteo/Feedway/commit/49b6defec9b17ad6d5c1decbbdefd937c81e0201))
+* **design:** editor con le scelte in vista, righe di Oggi che si adattano, colonne di Clienti ([#271](https://github.com/grecomatteo/Feedway/issues/271)) ([12dba07](https://github.com/grecomatteo/Feedway/commit/12dba07b324f9cb1a3463c8a79ac9d5d4e0bd7b9))
+* **design:** pagine rimaste vecchie nello stile del ridisegno ([#272](https://github.com/grecomatteo/Feedway/issues/272)) ([aaf6c24](https://github.com/grecomatteo/Feedway/commit/aaf6c24a945960bdd99d21bcb5dc7271fbb3ae01))
+* **media:** tag del dettaglio come pillole con «+ Tag», pannello senza velo (schermata 20) ([#264](https://github.com/grecomatteo/Feedway/issues/264)) ([3c50e4d](https://github.com/grecomatteo/Feedway/commit/3c50e4d27f45c0805abe6d92aa2c22253e63986b))
+* **media:** uso del file e blocco dell'eliminazione decisi nel dominio (D-80.4, D-80.7) ([#261](https://github.com/grecomatteo/Feedway/issues/261)) ([acb5d91](https://github.com/grecomatteo/Feedway/commit/acb5d91381753d15260f7bae5bbc070e34fff779))
+
+
+### Documentazione
+
+* **design:** D-98, correzioni della revisione di fedeltà del ridisegno ([#269](https://github.com/grecomatteo/Feedway/issues/269)) ([849fbf1](https://github.com/grecomatteo/Feedway/commit/849fbf190d68d8ca628e7fe4f271a70f6a900ed1))
+* **design:** piano del ridisegno del pannello ([#250](https://github.com/grecomatteo/Feedway/issues/250)) ([bab7eab](https://github.com/grecomatteo/Feedway/commit/bab7eab682110948b5d01e3f601f533d3630e7f9))
+* **design:** revisione critica e nuova direzione del pannello ([#249](https://github.com/grecomatteo/Feedway/issues/249)) ([3cae4a0](https://github.com/grecomatteo/Feedway/commit/3cae4a00b1109c7a534aca06cd38a5837d56a0bb))
+* **design:** rilascio 0.12.1 e due difetti della libreria nel ridisegno ([#252](https://github.com/grecomatteo/Feedway/issues/252)) ([3cbebca](https://github.com/grecomatteo/Feedway/commit/3cbebcafe3c5fa8222b02b5837ca0c91c95064fc))
+* **design:** tela Pencil della nuova direzione ([#253](https://github.com/grecomatteo/Feedway/issues/253)) ([eb1044c](https://github.com/grecomatteo/Feedway/commit/eb1044cec00ba45c9a2b0de1c79be2837f48ce3b))
+* **posts:** esiti della prova della 0.12.0 e voci aperte ([#247](https://github.com/grecomatteo/Feedway/issues/247)) ([a72c34f](https://github.com/grecomatteo/Feedway/commit/a72c34fbc1aa73bfe98d9b8ce9c7b51630a51cc6))
+* rilascio della 0.12.1 con il ridisegno, senza revisione di fine tappa (D-83) ([#273](https://github.com/grecomatteo/Feedway/issues/273)) ([f6d1b17](https://github.com/grecomatteo/Feedway/commit/f6d1b175fcf0c32d23f3616670905797f84b9afc))
+
 ## [0.12.0](https://github.com/grecomatteo/Feedway/compare/v0.11.0...v0.12.0) (2026-11-18)
 
 
