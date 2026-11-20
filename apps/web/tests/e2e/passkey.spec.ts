@@ -240,7 +240,7 @@ test('passkey is proposed after password sign-in, then signs in without password
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
   await page.context().clearCookies()
   await page.goto('/accedi')
-  await page.getByRole('button', { name: 'Accedi con passkey' }).click()
+  await page.getByRole('button', { name: 'Accedi con una passkey' }).click()
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
   expect((await sessionsOf(person.userId)).map((s) => s.auth_method)).toContain('passkey')
 })
@@ -325,7 +325,7 @@ test('a passkey cancelled at activation can be tried again, then signs in alone'
   // leaving and coming back takes the passkey alone
   await page.context().clearCookies()
   await page.goto('/accedi')
-  await page.getByRole('button', { name: 'Accedi con passkey' }).click()
+  await page.getByRole('button', { name: 'Accedi con una passkey' }).click()
   await expect(page).toHaveURL(new RegExp(`/${organizationSlug}$`))
 })
 

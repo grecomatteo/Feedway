@@ -58,7 +58,12 @@ async function compose(browser: Browser, reference: Buffer, code: Buffer, title:
   return out
 }
 
-async function shoot(page: Page, screen: Screen, size: Size, sample: Awaited<ReturnType<typeof designSample>>) {
+async function shoot(
+  page: Page,
+  screen: Screen,
+  size: Size,
+  sample: Awaited<ReturnType<typeof designSample>>,
+) {
   const s = SIZES[size]
   await page.setViewportSize({ width: s.width, height: s.height })
   await page.goto(screen.path(sample))
@@ -75,26 +80,27 @@ async function shoot(page: Page, screen: Screen, size: Size, sample: Awaited<Ret
   await page.evaluate(() => document.fonts.ready)
   // the caret and the transitions would make two shots of the same page differ
   await page.addStyleTag({
-    content: '*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}',
+    content:
+      '*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}',
   })
   return page.screenshot({ fullPage: s.fullPage })
 }
 
 test('design shots', async ({ browser }) => {
   // one context per size: the phone needs touch and its own user agent
+  const newContext = (size: Size) => {
+    const s = SIZES[size]
+    return browser.newContext({
+      viewport: { width: s.width, height: s.height },
+      deviceScaleFactor: 1,
+      isMobile: s.isMobile,
+      hasTouch: s.isMobile,
+      ...(process.env.E2E_BASE_URL && { baseURL: process.env.E2E_BASE_URL }),
+    })
+  }
   const contexts = Object.fromEntries(
     await Promise.all(
-      (Object.keys(SIZES) as Size[]).map(async (size) => {
-        const s = SIZES[size]
-        const context = await browser.newContext({
-          viewport: { width: s.width, height: s.height },
-          deviceScaleFactor: 1,
-          isMobile: s.isMobile,
-          hasTouch: s.isMobile,
-          ...(process.env.E2E_BASE_URL && { baseURL: process.env.E2E_BASE_URL }),
-        })
-        return [size, context] as const
-      }),
+      (Object.keys(SIZES) as Size[]).map(async (size) => [size, await newContext(size)] as const),
     ),
   ) as Record<Size, Awaited<ReturnType<Browser['newContext']>>>
 
@@ -113,7 +119,16 @@ test('design shots', async ({ browser }) => {
     for (const screen of screens) {
       if (screen.computerOnly && size !== 'computer') continue
       if (screen.phoneOnly && size === 'computer') continue
-      const code = await shoot(page, screen, size, sample)
+      let code: Buffer
+      if (screen.signedOut) {
+        // a context of its own, without the sample's cookies
+        const out = await newContext(size)
+        const outPage = await out.newPage()
+        await ownAddress(outPage)
+        await outPage.clock.setFixedTime(DESIGN_NOW)
+        code = await shoot(outPage, screen, size, sample)
+        await out.close()
+      } else code = await shoot(page, screen, size, sample)
       await writeFile(new URL(`${size}/${screen.id}.png`, CODE), code)
       const ref = new URL(`${size}/${screen.id}.png`, REFERENCE)
       if (!existsSync(ref)) continue

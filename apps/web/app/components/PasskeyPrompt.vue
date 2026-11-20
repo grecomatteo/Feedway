@@ -24,7 +24,7 @@ async function create() {
 
 <template>
   <section aria-labelledby="passkey-prompt" class="space-y-4">
-    <h1 id="passkey-prompt" class="text-2xl">{{ $t('passkeyPrompt.title') }}</h1>
+    <h1 id="passkey-prompt" class="text-center">{{ $t('passkeyPrompt.title') }}</h1>
     <p>{{ $t('passkeyPrompt.explain') }}</p>
     <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
     <div class="flex flex-wrap gap-3">

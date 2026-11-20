@@ -40,7 +40,7 @@ async function submit() {
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl">{{ $t('forgot.title') }}</h1>
+    <h1 class="text-center">{{ $t('forgot.title') }}</h1>
     <p v-if="outcome === 'sent'" role="status">{{ $t('forgot.sent') }}</p>
     <p v-else-if="outcome === 'no_mail'" role="status">{{ $t('forgot.noMail') }}</p>
     <template v-else>

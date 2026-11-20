@@ -19,6 +19,8 @@ export interface Screen {
   computerOnly?: boolean
   /** only on a phone (10-editor-anteprima has no computer version) */
   phoneOnly?: boolean
+  /** shot without the sample's session (01-accedi) */
+  signedOut?: boolean
 }
 
 /** Opens a menu of the shell: the client selector or the person's menu, on either size. */
@@ -190,6 +192,20 @@ const forno = (s: DesignSample) => s.clients['Forno Luce'] ?? { id: '', slug: ''
 
 export const SCREENS: Screen[] = [
   { id: '00-sistema', path: () => '/__test/sistema', computerOnly: true },
+  // the sign-in (Task R8), with the email and a password typed as in the reference
+  {
+    id: '01-accedi',
+    path: () => '/accedi',
+    signedOut: true,
+    prepare: async (page) => {
+      await page.getByLabel('Email').fill('giulia@studioriva.example')
+      await page.getByLabel('Password').fill('una-password!')
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      })
+      await page.mouse.move(0, 0)
+    },
+  },
   // the shell (Task R2): the pages inside it are redrawn by their own tasks
   { id: '02-oggi', path: (s) => `/${s.org}` },
   // the same morning with nothing to fix: the issues' read answers empty, the sample stays as it is

@@ -126,14 +126,15 @@ async function skipPasskey() {
 
 <template>
   <PasskeyPrompt v-if="offerPasskey" @done="skipPasskey" />
-  <div v-else class="space-y-5">
-    <h1 class="text-2xl">{{ $t('signIn.title') }}</h1>
-    <p v-if="notice" role="status" class="text-(--app-success)">{{ notice }}</p>
+  <div v-else class="grid gap-4">
+    <h1 class="mb-1 text-center">{{ $t('signIn.title') }}</h1>
+    <p v-if="notice" role="status" class="text-center text-(--app-success)">{{ notice }}</p>
 
     <UButton
       block
-      size="xl"
-      class="min-h-12"
+      color="neutral"
+      variant="outline"
+      class="h-11 bg-(--app-surface) font-semibold"
       icon="i-lucide-key-round"
       :loading="sending === 'passkey'"
       :disabled="sending !== null || !ready"
@@ -142,39 +143,56 @@ async function skipPasskey() {
       {{ $t('signIn.withPasskey') }}
     </UButton>
 
-    <div class="flex items-center gap-3 text-sm text-(--app-text-muted)" aria-hidden="true">
+    <div
+      class="my-1 flex items-center gap-3 text-detail text-(--app-text-muted)"
+      aria-hidden="true"
+    >
       <span class="h-px flex-1 bg-(--app-border)" />{{ $t('signIn.or')
       }}<span class="h-px flex-1 bg-(--app-border)" />
     </div>
 
-    <form class="space-y-4" novalidate @submit.prevent="withPassword">
-      <fieldset :disabled="!ready" class="min-w-0 space-y-4">
-        <UFormField :label="$t('signIn.email')" name="email" required>
+    <form novalidate @submit.prevent="withPassword">
+      <fieldset :disabled="!ready" class="grid min-w-0 gap-4">
+        <div class="grid gap-2">
+          <label for="sign-in-email" class="font-medium">{{ $t('signIn.email') }}</label>
           <UInput
+            id="sign-in-email"
             v-model="form.email"
             type="email"
+            name="email"
+            required
             autocomplete="username webauthn"
             class="w-full"
-            size="xl"
+            :ui="{ base: 'h-11! bg-(--app-surface)' }"
           />
-        </UFormField>
-        <UFormField :label="$t('signIn.password')" name="password" required>
+        </div>
+        <div class="grid gap-2">
+          <div class="flex items-baseline justify-between gap-3">
+            <label for="sign-in-password" class="font-medium">{{ $t('signIn.password') }}</label>
+            <NuxtLink
+              to="/accedi/password-dimenticata"
+              class="text-detail underline underline-offset-2"
+              :aria-label="$t('signIn.forgotLabel')"
+            >
+              {{ $t('signIn.forgot') }}
+            </NuxtLink>
+          </div>
           <UInput
+            id="sign-in-password"
             v-model="form.password"
             type="password"
+            name="password"
+            required
             autocomplete="current-password"
             class="w-full"
-            size="xl"
+            :ui="{ base: 'h-11! bg-(--app-surface)' }"
           />
-        </UFormField>
+        </div>
         <p v-if="problemText" role="alert" class="text-(--app-danger)">{{ problemText }}</p>
         <UButton
           type="submit"
           block
-          size="xl"
-          color="neutral"
-          variant="outline"
-          class="min-h-12"
+          class="h-11 font-semibold"
           :loading="sending === 'password'"
           :disabled="sending !== null"
         >
@@ -183,14 +201,11 @@ async function skipPasskey() {
       </fieldset>
     </form>
 
-    <p class="text-sm text-(--app-text-muted)">
-      <NuxtLink to="/accedi/password-dimenticata" class="underline">
-        {{ $t('signIn.forgot') }}
-      </NuxtLink>
-      {{ $t('signIn.forgotHint') }}
-    </p>
-    <p class="text-sm">
-      <NuxtLink to="/privacy" class="underline">{{ $t('privacyNotice.link') }}</NuxtLink>
+    <!-- at the foot of the window, so the column stays in the middle as in screen 01 -->
+    <p class="absolute inset-x-0 bottom-6 text-center text-detail text-(--app-text-muted)">
+      <NuxtLink to="/privacy" class="underline underline-offset-2">{{
+        $t('privacyNotice.link')
+      }}</NuxtLink>
     </p>
   </div>
 </template>

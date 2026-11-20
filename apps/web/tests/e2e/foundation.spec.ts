@@ -17,7 +17,7 @@ test('home leads to sign-in', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Accedi al pannello' }).click()
   await expect(page).toHaveURL(/\/accedi$/)
-  await expect(page.getByRole('button', { name: 'Accedi con la password' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Accedi', exact: true })).toBeVisible()
 })
 
 test('home has no accessibility violations', async ({ page }) => {
@@ -58,9 +58,12 @@ test('the theme follows the system, then one click turns it to the other and it 
   await page.reload()
   if (systemDark) await expect(html).not.toHaveClass(/dark/)
   else await expect(html).toHaveClass(/dark/)
-  await toggle.click()
-  if (systemDark) await expect(html).toHaveClass(/dark/)
-  else await expect(html).not.toHaveClass(/dark/)
+  // after the reload too, a click before the page is interactive is lost: click until it turns back
+  await expect(async () => {
+    if (await turned()) await toggle.click()
+    if (systemDark) await expect(html).toHaveClass(/dark/, { timeout: 2000 })
+    else await expect(html).not.toHaveClass(/dark/, { timeout: 2000 })
+  }).toPass()
 })
 
 test('the tab shows the Feedway icon, from the brand kit', async ({ page, request }) => {

@@ -628,3 +628,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   8. «Registro attività» filtra «Tutto · Post · Persone · Collegamenti» e cerca tra le voci già caricate, non sul server.
 - **Differenze dalla schermata:** nelle `23` e `24` del codice manca il selettore del contesto nella barra (D-87.10); «Cambiata il 3 ottobre», «Attiva dal 12 settembre» e «8 su 10 ancora da usare» non si scrivono perché il pannello non salva quelle date né conta i codici rimasti; l'avatar e il nome di Giulia mostrano il soprannome («G», «Giulia»), mentre le schermate mostrano «GF» e «Giulia Ferri» pur avendo il soprannome «Giulia»; nella `26` le voci sono quelle create dal campione, con «domani» perché il server non ha l'orologio fermo.
 - **Stato:** provvisorie; Matteo può cambiarle.
+
+### D-96 · «Accedi» e le pagine prima del pannello (Task R8)
+
+- **Origine:** Task R8 del ridisegno, seconda PR, come la schermata `01` (20/11).
+- **Scelte:**
+  1. «Accedi» è una colonna di 380 px al centro della finestra, senza riquadro: logo, titolo «Accedi», «Accedi con una passkey» (contornato, per primo), «oppure», Email, Password con «Dimenticata?» a destra dell'etichetta e il pulsante arancio «Accedi». Campi e pulsanti alti 44 su ogni schermo.
+  2. Le altre pagine prima del pannello (password dimenticata, verifica, secondo fattore, attivazione, nuova password, account eliminato, informativa) usano la stessa colonna senza riquadro e il titolo al centro. L'informativa ha una colonna più larga perché è un testo lungo.
+  3. La frase «Accesso solo su invito della tua agenzia.» e il suggerimento sotto «Password dimenticata?» non ci sono più, come nella `01`.
+- **Differenze dalla schermata:** restano il pulsante del tema nell'angolo in alto a destra (serve a chi non ha ancora un profilo) e il collegamento «Informativa privacy» in fondo alla finestra, che la `01` non mostra.
+- **Stato:** provvisorie; Matteo può cambiarle.

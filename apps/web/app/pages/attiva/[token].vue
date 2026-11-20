@@ -258,7 +258,7 @@ const signInTo = computed(() => ({ path: '/accedi', query: { dopo: `/attiva/${HI
     <BackupFactorOffer v-else-if="step === 'backup'" @later="goIn" />
 
     <section v-else-if="step === 'method'" aria-labelledby="activate-method" class="space-y-4">
-      <h1 id="activate-method" class="text-2xl">{{ $t('activate.methodTitle') }}</h1>
+      <h1 id="activate-method" class="text-center">{{ $t('activate.methodTitle') }}</h1>
       <p v-if="formError" role="alert" class="text-(--app-danger)">{{ formError }}</p>
       <p>{{ $t('activate.methodExplain') }}</p>
       <form v-if="choosingPassword" class="space-y-4" novalidate @submit.prevent="savePassword">
@@ -313,7 +313,7 @@ const signInTo = computed(() => ({ path: '/accedi', query: { dopo: `/attiva/${HI
     </section>
 
     <template v-else>
-      <h1 class="text-2xl">{{ heading }}</h1>
+      <h1 class="text-center">{{ heading }}</h1>
 
       <p v-if="!link && !linkProblem" role="status">{{ $t('activate.loading') }}</p>
       <p v-else-if="linkProblem" role="alert" class="text-(--app-danger)">
