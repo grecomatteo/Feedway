@@ -40,6 +40,17 @@ function showOutcome(post: PostResponse) {
     )
 }
 onBeforeUnmount(() => (outcomePage.value = false))
+/** «Modifica» of a post in preparation (R13): the editor, on the post of the outcome */
+const editingId = ref<string | null>(null)
+function edit(post: PostResponse) {
+  editingId.value = post.id
+  outcome.value = null
+  outcomePage.value = false
+}
+function outcomeAgain(post: PostResponse) {
+  editingId.value = null
+  showOutcome(post)
+}
 
 useHead({
   title: () =>
@@ -60,18 +71,20 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
       :post="outcome"
       :profiles="profileList"
       :back="back"
+      @edit="edit"
     />
     <PostEditorForm
       v-else-if="client"
-      :key="client.id"
+      :key="`${client.id}-${editingId ?? ''}`"
       :client="client"
-      :post-id="firstId"
+      :post-id="editingId ?? firstId"
       :profile-key="typeof route.query['profilo'] === 'string' ? route.query['profilo'] : null"
       :file-id="typeof route.query['file'] === 'string' ? route.query['file'] : null"
       :profiles="profileList"
       :profiles-loading="profiles.status.value === 'pending' || profiles.status.value === 'idle'"
       :back="back"
-      @outcome="showOutcome"
+      :editing="editingId !== null"
+      @outcome="outcomeAgain"
     />
     <div v-else class="px-gutter pt-page-top"><ListSkeleton /></div>
     <template #fallback>

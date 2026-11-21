@@ -2676,6 +2676,7 @@
     },
     "outcome": {
       "title": "Esito",
+      "edit": "Modifica",
       "back": "Post di {name}",
       "thePost": "Il post",
       "by": "di {name}",

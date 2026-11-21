@@ -18,6 +18,8 @@ const props = defineProps<{
   profiles: WorkspaceProfile[]
   profilesLoading: boolean
   back: string
+  /** opened with «Modifica» from the page of the outcome (R13): a post in preparation stays */
+  editing?: boolean
 }>()
 const emit = defineEmits<{
   /** a post that is out or on its way: the page of the outcome takes over (Scelta 6) */
@@ -181,11 +183,12 @@ async function schedule() {
   })
   await navigateTo(props.back)
 }
-// a post past «Programmato» is read on the page of the outcome, not changed here
+// a post past «Programmato» is read on the page of the outcome, not changed here; one in
+// preparation opened with «Modifica» stays while no destination has started (R13)
 watch(
   () => e.post.value,
   (p) => {
-    if (p && opensOnOutcome(p)) emit('outcome', p)
+    if (p && opensOnOutcome(p) && !(props.editing && isPanelEditable(p))) emit('outcome', p)
   },
 )
 

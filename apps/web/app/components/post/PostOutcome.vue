@@ -8,13 +8,18 @@ import type { PostOutcomeResponse, PostResponse } from '@app/contracts'
  * be done («Riprova», «Segna come verificato», «Annulla su questo account»); under it «Attività».
  * A post in pause says so at the top, with «Riprendi» and «Annulla» for whoever manages the
  * posts of others (P5). While a destination is on its way, the page reads itself every 10 seconds.
- * «Modifica per Facebook» and «Duplica» of the screen come later (D-101, stage 9).
+ * A post still in preparation (P2) has «Modifica», which opens the editor (R13). «Modifica per
+ * Facebook» and «Duplica» of the screen come later (D-101, stage 9).
  */
 const props = defineProps<{
   client: WorkspaceView
   post: PostResponse
   profiles: WorkspaceProfile[]
   back: string
+}>()
+const emit = defineEmits<{
+  /** «Modifica» of a post still in preparation (P2, R13): the editor takes over */
+  edit: [post: PostResponse]
 }>()
 const { t, te } = useI18n()
 const org = useOrganization()
@@ -79,6 +84,8 @@ const mayRetry = computed(
     (manager.value || (publisher.value && current.value.createdBy === org.me.value?.id)),
 )
 const mayCancel = computed(() => !archived.value && publisher.value)
+/** «Modifica» (R13): who may change this scheduled post, while no destination has started */
+const mayEdit = computed(() => mayRetry.value && isPanelEditable(current.value))
 const mayManage = computed(() => !archived.value && manager.value)
 
 // ---- the accounts, by id
@@ -314,6 +321,17 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
           <span aria-live="polite"
             ><StatusDot :label="state.label" :tone="state.tone" data-outcome-state
           /></span>
+          <UButton
+            v-if="mayEdit"
+            class="ml-auto"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-pencil"
+            data-outcome-edit
+            @click="emit('edit', current)"
+          >
+            {{ $t('posts.outcome.edit') }}
+          </UButton>
         </div>
       </div>
 

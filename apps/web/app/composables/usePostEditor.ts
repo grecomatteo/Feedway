@@ -181,7 +181,12 @@ export function usePostEditor(opts: {
     null | 'schedule' | 'publishNow' | 'unschedule' | 'cancel' | 'delete' | 'saveScheduled'
   >(null)
 
-  const status = computed(() => post.value?.status ?? 'draft')
+  // a post in preparation opened with «Modifica» (R13) is changed as a scheduled one
+  const status = computed(() => {
+    const p = post.value
+    if (!p) return 'draft'
+    return p.status === 'publishing' && isPanelEditable(p) ? 'scheduled' : p.status
+  })
   const mine = computed(() => !post.value || post.value.createdBy === org.me.value?.id)
   /** what this person may change of this post (§10.2) */
   const editable = computed(() => {
