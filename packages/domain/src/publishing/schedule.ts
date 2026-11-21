@@ -61,10 +61,11 @@ export function prepareAt(scheduledAt: Date, now: Date): Date {
 }
 
 /**
- * D-77 (b): more than 15 minutes after the time, the first start of a publication does not
- * happen. Only the first start: the attempts after an error do not ask. `startAt` is the post's
- * time, or the time of the «Riprova» after `too_late` (Scelta 1: that one publishes at once,
- * and the post keeps its time for the history).
+ * D-77 (b) and D-118: more than 15 minutes after the time, nothing of a publication starts or
+ * goes on, the attempts after an error too; only a file still being processed since a
+ * preparation that started in time waits longer (up to `isPastLatestStart`). `startAt` is the
+ * post's time, or the time of the «Riprova» after `too_late` (Scelta 1: that one publishes at
+ * once, and the post keeps its time for the history).
  */
 export function isTooLate(startAt: Date, now: Date): boolean {
   return now.getTime() - startAt.getTime() > MAX_LATENESS_MINUTES * MINUTE_MS

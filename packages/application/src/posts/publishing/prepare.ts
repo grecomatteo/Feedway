@@ -50,12 +50,7 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
-import {
-  preparingSinceOf,
-  retriedAfterNotFound,
-  retriedAtOf,
-  withPreparingSince,
-} from './retry-mark.js'
+import { processingOf, retriedAfterNotFound, retriedAtOf, withProcessing } from './retry-mark.js'
 
 // `target.prepare` (plan 07 Task 7): everything before the post goes out, from 15 minutes
 // before its time: the checks again, the person who scheduled, the copies, a place among the
@@ -122,12 +117,15 @@ async function decide(
   // R4: never more than 60 minutes late, whatever held the preparation (a worker stopped, the
   // attempts, the quota)
   if (isPastLatestStart(startAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
-  // D-77 (b): only the first start; a preparation under way, waiting for Feedway's own files
-  // or its turn since it started in time (R8), or tried again goes on
-  if (target.status === 'scheduled' && preparingSinceOf(target) === null && isTooLate(startAt, now))
-    return done(await failTarget(tx, target, 'too_late'))
-  /** A wait of a preparation that started: not a late start when it looks again (R8). */
-  const started = { verification: withPreparingSince(target, now) }
+  // D-77 (b) and D-118: past the 15 minutes nothing starts or goes on, whatever held it (an
+  // error, a worker stopped, its turn, Meta's load); only a file still being processed since a
+  // preparation that started in time (`processing`), up to the 60 minutes above
+  if (isTooLate(startAt, now) && !processingOf(target))
+    return done(await failTarget(tx, target, lateCodeOf(target)))
+  /** A wait for a file being processed: it goes on past the 15 minutes (D-118). */
+  const processing = { verification: withProcessing(target, true) }
+  /** Any other wait: it does not. */
+  const waiting = { verification: withProcessing(target, false) }
 
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const blocks = blocksOf(report, target.accountId)
@@ -138,7 +136,7 @@ async function decide(
       'target.prepare',
       plusMinutes(now, PREPARE_FILE_WAIT_MINUTES),
       'file processing',
-      started,
+      processing,
     )
     return done(wait.log, [wait.job])
   }
@@ -155,7 +153,7 @@ async function decide(
       'target.prepare',
       plusMinutes(now, PREPARE_FILE_WAIT_MINUTES),
       'copies being made',
-      started,
+      processing,
     )
     return {
       kind: 'done',
@@ -168,7 +166,7 @@ async function decide(
   // above 80% of Meta's usage the account, or the agency, waits (§8.6): not an attempt
   const slowUntil = await slowDownOf(tx, target, 'prepare', now)
   if (slowUntil) {
-    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down', started)
+    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down', waiting)
     return done(wait.log, [wait.job])
   }
   const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
@@ -187,7 +185,7 @@ async function decide(
       'target.prepare',
       new Date(now.getTime() + PREPARE_TURN_WAIT_SECONDS * 1000),
       'waiting for its turn',
-      started,
+      waiting,
     )
     return done(wait.log, [wait.job])
   }
@@ -201,6 +199,8 @@ async function decide(
   const generation = await moveTarget(tx, target, 'preparing', {
     step: 'prepare',
     nextAttemptAt: plusMinutes(now, PREPARE_CLAIM_MINUTES),
+    // a worker stopped during the call is not a file being processed (D-118)
+    ...waiting,
     // saved with the claim: a step stopped before the platform saves its own finds them again
     ...(afterNotFound ? { metaIds: keptIds(target.metaIds, metaIds) } : {}),
   })
@@ -343,6 +343,8 @@ async function settle(
     // `expired` starts again from the start: what was prepared is thrown away first
     const wait = await waitTarget(tx, target, 'target.prepare', at, result.outcome, {
       metaIds: result.outcome === 'expired' ? { [DISCARD_KEY]: roundIds(metaIds) ?? {} } : metaIds,
+      // a container Meta is still processing goes on past the 15 minutes (D-118)
+      verification: withProcessing(target, result.outcome === 'wait'),
     })
     return { log: wait.log, jobs: [wait.job] }
   }

@@ -99,15 +99,15 @@ async function decide(
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // an archived client publishes nothing (D-70, R7)
   if (await clientArchived(tx, target)) return done(await cancelArchived(tx, target))
+  const startAt = latestOf(post.scheduledAt, retriedAtOf(target))
   // R4: never more than 60 minutes after the time (or the «Riprova»), whatever held it
-  if (isPastLatestStart(latestOf(post.scheduledAt, retriedAtOf(target)), now))
-    return done(await failTarget(tx, target, lateCodeOf(target)))
-  // D-77 (b): a worker stopped past the time does not publish late; the attempts after an
-  // error go on (`retrying`), and a preparation that ended late is measured from its end
-  // (`next_attempt_at` of `ready`: the time, or the end of a preparation past it)
-  const dueAt = target.nextAttemptAt ?? post.scheduledAt
-  if (target.status === 'ready' && isTooLate(dueAt, now))
-    return done(await failTarget(tx, target, 'too_late'))
+  if (isPastLatestStart(startAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
+  // D-77 (b) and D-118: past the 15 minutes nothing goes out, a worker stopped or an attempt
+  // after an error. Only a preparation that ended late (a file being processed, the only wait
+  // allowed past them) counts from its end: `next_attempt_at` of `ready`
+  const readyAt = target.nextAttemptAt ?? post.scheduledAt
+  const dueAt = target.status === 'ready' && isTooLate(startAt, readyAt) ? readyAt : startAt
+  if (isTooLate(dueAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
   // only above 95% of Meta's usage (§8.6): at 85% the post still goes out at its time. At most
   // 5 minutes after the post's time, whatever the waits: a wait moves `next_attempt_at`, so
   // without this bound waits one after the other would publish late without end (D-77 b)
