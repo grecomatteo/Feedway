@@ -94,7 +94,7 @@ describe('prepareAt (§9.4: 15 minutes before, at once when fewer are left)', ()
   })
 })
 
-describe('isTooLate (D-77 b: 15 minutes, first start only)', () => {
+describe('isTooLate (D-77 b and D-118: 15 minutes)', () => {
   const scheduledAt = at('2026-11-20T12:00:00Z')
   it('in time up to the 15th minute, late from then on', () => {
     expect(isTooLate(scheduledAt, plus(scheduledAt, -1))).toBe(false)

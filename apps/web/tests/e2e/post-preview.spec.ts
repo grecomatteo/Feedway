@@ -392,6 +392,10 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await expect(page.locator('[data-entry]')).toHaveAccessibleName(/impasto\.mov/)
   const section = page.locator('[data-cover]')
   await expect(section.getByRole('heading', { name: 'Copertina' })).toBeVisible()
+  // Feedway sends the cover to Instagram only (0.13.0 test): the row says so
+  await expect(section.locator('[data-cover-facebook]')).toHaveText(
+    'Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram.',
+  )
   const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })
   // 18 s at 30 fps: the cursor stops on the last true frame
   await expect(frame).toHaveAttribute('max', '17966')

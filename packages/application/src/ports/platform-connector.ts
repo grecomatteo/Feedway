@@ -30,6 +30,11 @@ export interface PlatformConnector<AppCredentials = unknown> {
   /** The accounts the connection sees now, read live. */
   listAccounts(credentials: ConnectionCredentials<AppCredentials>): Promise<AccountListing>
   /**
+   * The name the platform gives the owner of the token (Meta: its Business), read again by the
+   * sync (D-108); null: not known now, the one read before stays. Information only, never fails.
+   */
+  businessName?(credentials: ConnectionCredentials<AppCredentials>): Promise<string | null>
+  /**
    * A new token before this one expires. Left out by the kinds whose token cannot be renewed
    * (the system user's does not expire): such a connection expires with its token.
    */

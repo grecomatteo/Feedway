@@ -51,6 +51,7 @@ beforeEach(async () => {
     clock,
     logger: memoryLogger(),
     timeoutMs: 300,
+    fileTimeoutMs: 300,
     retryBaseDelayMs: 1,
   })
   const ready = createMetaPublishers({ client, clock }).instagram

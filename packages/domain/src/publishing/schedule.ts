@@ -61,10 +61,11 @@ export function prepareAt(scheduledAt: Date, now: Date): Date {
 }
 
 /**
- * D-77 (b): more than 15 minutes after the time, the first start of a publication does not
- * happen. Only the first start: the attempts after an error do not ask. `startAt` is the post's
- * time, or the time of the «Riprova» after `too_late` (Scelta 1: that one publishes at once,
- * and the post keeps its time for the history).
+ * D-77 (b) and D-118: more than 15 minutes after the time, nothing of a publication starts or
+ * goes on, the attempts after an error too; only a file still being processed since a
+ * preparation that started in time waits longer (up to `isPastLatestStart`). `startAt` is the
+ * post's time, or the time of the «Riprova» after `too_late` (Scelta 1: that one publishes at
+ * once, and the post keeps its time for the history).
  */
 export function isTooLate(startAt: Date, now: Date): boolean {
   return now.getTime() - startAt.getTime() > MAX_LATENESS_MINUTES * MINUTE_MS
@@ -85,8 +86,10 @@ export const PREPARE_PER_ORGANIZATION = 3
 export const PREPARE_PER_ACCOUNT = 1
 
 /**
- * How long a step of the worker may run (pg-boss `expireInSeconds`): the calls to Meta have
- * their own timeouts, well below.
+ * How long a step of the worker may run (pg-boss `expireInSeconds`). Each call to Meta has its
+ * own timeout, below; a carousel makes its containers one after the other in one step, so a
+ * very slow Meta can reach this: the step then stops as a temporary error, with the ids made so
+ * far saved (D-118).
  */
 export const TARGET_STEP_EXPIRE_SECONDS = 300
 /** A preparation's claim outlasts its job: a worker gone frees the account after this. */

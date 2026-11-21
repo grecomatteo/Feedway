@@ -524,23 +524,21 @@ test('R4: a quota that frees up past the 60 minutes fails the destination at onc
   })
 })
 
-test('R4: a quota wait that brings the publication past the 60 minutes ends with its reason', async () => {
+test('D-118: a quota that frees up past the 15 minutes ends the destination at once, with its reason', async () => {
   const { world, at, post } = await setUp({ accounts: 'instagram' })
   const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
   await runSteps(world, post.postId, clock, 'prepare')
   clock.set(new Date(at.getTime() + 5 * MINUTE))
   mock.scenario('quota_exhausted')
-  await runSteps(world, post.postId, clock, 'publish')
-  const [waiting] = await targetsOf(admin, post.postId)
-  expect(waiting).toMatchObject({ status: 'retrying', last_error_code: 'quota_exhausted' })
-  // the worker was stopped: it comes back past the hour
-  clock.set(new Date(at.getTime() + 61 * MINUTE))
   const published = callsTo('/media_publish')
-  await publishTarget(workerDeps(runtime, clock, host.url), job(world, waiting as TargetRow))
+  await runSteps(world, post.postId, clock, 'publish')
+  // Meta's window frees up later than 15 minutes after the time: never a wait for nothing
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
     status: 'failed',
     last_error_code: 'quota_exhausted',
+    next_attempt_at: null,
   })
+  // the quota is read before publishing: nothing was published
   expect(callsTo('/media_publish')).toBe(published)
 })
 
@@ -592,23 +590,127 @@ test('R7: an archived client with a post half out: what is left is cancelled, no
   await admin.query('update workspaces set archived_at = null where id = $1', [world.workspaceId])
 })
 
-test('a preparation that ends after the time still publishes: D-77 (b) is for the first start only', async () => {
+test('a preparation that ends after an error within the 15 minutes publishes at once', async () => {
   const { world, at, post } = await setUp({ accounts: 'instagram' })
   const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
   mock.scenario('rate_limited', { path: /\/media$/, times: 1 })
   await runSteps(world, post.postId, clock, 'prepare')
   mock.scenario('default')
-  // the attempt after the error, and turns waited: ready 14 minutes after the time
+  // the attempt after the error: ready 14 minutes after the time, published at once
   clock.set(new Date(at.getTime() + 14 * MINUTE))
   await runSteps(world, post.postId, clock, 'prepare')
   const [ready] = await targetsOf(admin, post.postId)
   expect(ready).toMatchObject({ status: 'ready' })
   expect(ready?.next_attempt_at?.getTime()).toBe(clock.now().getTime())
-  clock.set(new Date(at.getTime() + 17 * MINUTE))
   const published = callsTo('/media_publish')
   await runSteps(world, post.postId, clock, 'publish')
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
   expect(callsTo('/media_publish')).toBe(published + 1)
+})
+
+test('0.13.0 test: an attempt after an error with the worker stopped past the 15 minutes never publishes', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  // the preparation 6 minutes before the time goes wrong, then the worker stops
+  const clock = testClock(new Date(at.getTime() - 6 * MINUTE))
+  mock.scenario('rate_limited', { path: /\/media$/, times: 1 })
+  await runSteps(world, post.postId, clock, 'prepare')
+  mock.scenario('default')
+  const [retrying] = await targetsOf(admin, post.postId)
+  expect(retrying).toMatchObject({ status: 'retrying', step: 'prepare' })
+  // back 20 minutes after the time: the attempt does not start, nothing goes out
+  clock.set(new Date(at.getTime() + 20 * MINUTE))
+  const made = callsTo('/media')
+  const published = callsTo('/media_publish')
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    next_attempt_at: null,
+  })
+  expect(callsTo('/media')).toBe(made)
+  expect(callsTo('/media_publish')).toBe(published)
+})
+
+test('ready in time, the worker stopped until 17 minutes after the time: not published', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  clock.set(new Date(at.getTime() + 17 * MINUTE))
+  const published = callsTo('/media_publish')
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    last_error_code: 'too_late',
+  })
+  expect(callsTo('/media_publish')).toBe(published)
+})
+
+test('a container Meta is still processing past the 15 minutes publishes when it is ready', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  mock.scenario('container_in_progress', { reads: 1, all: true })
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'preparing' })
+  // Meta finishes it 20 minutes after the time: it goes out, from the end of the preparation
+  // (the publisher reads the status by its own clock: the last read is made old)
+  await admin.query(
+    `update post_targets set meta_ids = jsonb_set(meta_ids, '{checkedAt}', '{}') where post_id = $1`,
+    [post.postId],
+  )
+  clock.set(new Date(at.getTime() + 20 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready' })
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
+})
+
+test('a container still processing waits for its turn past the 15 minutes and still goes out', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  mock.scenario('container_in_progress', { reads: 1, all: true })
+  await runSteps(world, post.postId, clock, 'prepare')
+  // another post of the same account holds the account's only place among the preparations
+  const other = await scheduledPost(runtime, world, {
+    at,
+    mediaIds: [await readyPhoto(tdb, runtime, admin, world)],
+    accounts: [world.accounts.instagram],
+  })
+  await admin.query('update post_targets set claimed_until = $2 where post_id = $1', [
+    other.postId,
+    new Date(at.getTime() + 30 * MINUTE),
+  ])
+  await admin.query(
+    `update post_targets set meta_ids = jsonb_set(meta_ids, '{checkedAt}', '{}') where post_id = $1`,
+    [post.postId],
+  )
+  clock.set(new Date(at.getTime() + 20 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'preparing' })
+  // its turn comes: the container is ready, and it goes out
+  await admin.query('update post_targets set claimed_until = null where post_id = $1', [
+    other.postId,
+  ])
+  clock.set(new Date(at.getTime() + 21 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready' })
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
+})
+
+test('a publish tried again past the 15 minutes does not go out', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  clock.set(at)
+  mock.scenario('rate_limited', { path: /\/media_publish$/, times: 1 })
+  await runSteps(world, post.postId, clock, 'publish')
+  mock.scenario('default')
+  const [retrying] = await targetsOf(admin, post.postId)
+  expect(retrying).toMatchObject({ status: 'retrying', step: 'publish' })
+  clock.set(new Date(at.getTime() + 16 * MINUTE))
+  const published = callsTo('/media_publish')
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'failed' })
+  expect(callsTo('/media_publish')).toBe(published)
 })
 
 test('an unexpected error of the preparation counts as an attempt, so it has an end', async () => {

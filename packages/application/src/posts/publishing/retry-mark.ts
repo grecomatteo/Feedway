@@ -7,9 +7,9 @@ import type { PublishingTargetRecord } from '../../ports/publishing.js'
 //   minutes of D-77 (b) count from the «Riprova», not from the post's time, which stays for the
 //   history; after `uncertain_not_found` the platform decides what of the old round is kept
 //   (`idsAfterNotFound`, review R2).
-// - A preparation that started in time and waits for Feedway's own files, its turn or Meta's
-//   load stays `scheduled`: it is not a late start (review R8), only the 60 minutes of
-//   `isPastLatestStart` still hold.
+// - Past the 15 minutes nothing goes on (D-118, Matteo after the 0.13.0 test): only a file still
+//   being processed, by Feedway or by Meta, since a preparation started in time (`processing`);
+//   then only the 60 minutes of `isPastLatestStart` still hold.
 
 type Verification = Pick<PublishingTargetRecord, 'verification'>
 
@@ -40,14 +40,16 @@ export const retriedAtOf = (target: Verification): Date | null =>
 export const retriedAfterNotFound = (target: Verification): boolean =>
   fieldsOf(target)['afterNotFound'] === true
 
-/** When the preparation started in time, if it is waiting since then. */
-export const preparingSinceOf = (target: Verification): Date | null =>
-  dateOf(fieldsOf(target)['preparingSince'])
+/** The preparation, started in time, is waiting for a file being processed (D-118). */
+export const processingOf = (target: Verification): boolean =>
+  fieldsOf(target)['processing'] === true
 
-/** The notes with the start of a preparation that waits; the first start stays. */
-export const withPreparingSince = (target: Verification, at: Date): Record<string, unknown> => {
-  const fields = fieldsOf(target)
-  return preparingSinceOf(target) === null
-    ? { ...fields, preparingSince: at.toISOString() }
-    : fields
+/** The notes with (or without) the wait for a file being processed; the others stay. */
+export const withProcessing = (
+  target: Verification,
+  processing: boolean,
+): Record<string, unknown> => {
+  const fields = { ...fieldsOf(target) }
+  delete fields['processing']
+  return processing ? { ...fields, processing: true } : fields
 }

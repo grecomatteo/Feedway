@@ -2313,6 +2313,7 @@
       "upload": "Carica",
       "fromLibrary": "Dalla libreria",
       "detail": "{n} di {max}",
+      "detailOver": "{n} file, al massimo {max}",
       "oneVideo": "1 video",
       "add": "Aggiungi",
       "addLabel": "Aggiungi file",
@@ -2638,7 +2639,8 @@
       "uploading": "Carico {name}…",
       "shareToFeed": "Mostra anche nel feed",
       "shareToFeedHelp": "Anche nella griglia del profilo",
-      "fromComputer": "Dal computer"
+      "fromComputer": "Dal computer",
+      "facebookFirstFrame": "Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram."
     },
     "labels": {
       "title": "Etichette",

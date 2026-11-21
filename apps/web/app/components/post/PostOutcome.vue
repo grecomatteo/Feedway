@@ -146,7 +146,9 @@ const tiles = computed(() =>
   current.value.media
     .filter((m) => m.status !== 'deleted')
     .map((m) => {
-      const variant = ['preview', 'ig_feed', 'thumbnail'].find((v) => m.variants.includes(v))
+      // a video's `preview` is the MP4: the tile shows its picture (0.13.0 test)
+      const order = m.kind === 'video' ? ['thumbnail'] : ['preview', 'ig_feed', 'thumbnail']
+      const variant = order.find((v) => m.variants.includes(v))
       return {
         id: m.id,
         kind: m.kind,

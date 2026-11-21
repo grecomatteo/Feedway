@@ -462,6 +462,14 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
         .returning({ id: accountConnections.id })
       return rows.length > 0
     },
+    async setBusinessName(organizationId, id, name) {
+      const rows = await db
+        .update(accountConnections)
+        .set({ businessName: name })
+        .where(connectionKey(organizationId, id))
+        .returning({ id: accountConnections.id })
+      return rows.length > 0
+    },
     async recordUsage(organizationId, id, usage) {
       await db
         .update(accountConnections)

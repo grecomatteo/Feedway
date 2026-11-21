@@ -117,12 +117,12 @@ watch(picking, (open) => {
 })
 
 const MAX = META_LIMITS.instagramCarouselMaxItems.value
-/** Under the label: «2 di 10», or «1 video» for a reel's only file. */
+/** Under the label: «2 di 10», «11 file, al massimo 10», or «1 video» for a reel's only file. */
 const detail = computed(() => {
   const n = e.entries.value.length
   if (n === 0) return null
   if (n === 1 && e.kinds.value[0]?.kind === 'video') return t('posts.media.oneVideo')
-  return t('posts.media.detail', { n, max: MAX })
+  return t(n > MAX ? 'posts.media.detailOver' : 'posts.media.detail', { n, max: MAX })
 })
 const addItems = computed<DropdownMenuItem[]>(() => [
   {
