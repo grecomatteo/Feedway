@@ -346,12 +346,13 @@ const IN_PANEL_REACH = new Set<string>(['scheduled', 'preparing', 'ready', 'retr
 
 /**
  * A post the panel changes as a scheduled one: scheduled, or in preparation with no destination
- * publishing or out yet (P2). Its state in the database may be one of the publishing.
+ * publishing or out yet (P2). Its state in the database may be one of the publishing. A
+ * `scheduled` post is checked too (R6): one destination back to `scheduled` by «Riprova» next to
+ * one already out was written as `scheduled` before the fix, and must never be moved again.
  */
 export async function isScheduledForPanel(tx: Tx, post: PostRecord): Promise<boolean> {
   const status: string = post.status
-  if (status === 'scheduled') return true
-  if (status !== 'publishing') return false
+  if (status !== 'scheduled' && status !== 'publishing') return false
   const targets = await tx.publishing.targetsOfPost(post.organizationId, post.id)
   return targets.every((t) => IN_PANEL_REACH.has(t.status))
 }

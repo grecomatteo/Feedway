@@ -28,13 +28,17 @@ const OUT = new Set<TargetStatus>(['published', 'verifying', 'confirmed'])
 
 /**
  * The state of a post from its destinations, in the order of Scelta 3, without the cancelled
- * ones: a failure is never hidden behind «Programmato».
+ * ones: a failure is never hidden behind «Programmato». A destination scheduled again («Riprova»)
+ * next to one that ended makes the post «In pubblicazione»: part of it is out or did not go out,
+ * so it is no longer a post the panel edits as a scheduled one.
  */
 export function postStatusFromTargets(targets: readonly TargetStatus[]): PublishingPostStatus {
   const live = targets.filter((s) => s !== 'cancelled')
   if (live.length === 0) return targets.length > 0 ? 'cancelled' : 'draft'
   if (live.includes('paused')) return 'paused'
   if (live.some((s) => ON_ITS_WAY.has(s))) return 'publishing'
+  if (live.includes('scheduled') && live.some((s) => s !== 'scheduled' && s !== 'draft'))
+    return 'publishing'
   if (live.includes('failed')) return live.every((s) => s === 'failed') ? 'failed' : 'partial'
   if (live.includes('problem')) return 'problem'
   if (live.every((s) => OUT.has(s))) return 'published'

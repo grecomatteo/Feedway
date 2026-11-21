@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, expect, test } from 'vitest'
 import {
   PublishError,
   cancelPaused,
+  cancelPost,
   cancelTarget,
   markVerified,
   prepareTarget,
@@ -10,6 +11,7 @@ import {
   resumePaused,
   retryTarget,
   searchTarget,
+  unschedulePost,
   updatePost,
   type PlatformPublisher,
 } from '@app/application'
@@ -249,6 +251,49 @@ test('one destination cancelled while the other is already out', async () => {
   await expect(
     cancelTarget(panel, world.actor, input(world.accounts.instagram), { ip: null }),
   ).rejects.toMatchObject({ code: 'CONFLICT' })
+})
+
+test('«Riprova» next to a destination already out: the post is publishing, never moved again (R6)', async () => {
+  const { world, at, post, panel, input } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await runAll(world, post.postId, deps, 'prepare')
+  clock.set(at)
+  await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
+  await admin.query(
+    `update post_targets set status = 'failed', last_error_code = 'too_late',
+            generation = generation + 1
+      where post_id = $1 and account_id = $2`,
+    [post.postId, fb],
+  )
+  panel.clock.set(plus(at, 20))
+  await retryTarget(panel, world.actor, input(fb), { ip: null })
+  expect((await targetOn(post.postId, fb)).status).toBe('scheduled')
+  expect(await postStatusOf(admin, post.postId)).toBe('publishing')
+  // a row written so before the fix: still out of the panel's reach
+  for (const status of ['publishing', 'scheduled']) {
+    await admin.query('update posts set status = $2 where id = $1', [post.postId, status])
+    const version = await versionOf(post.postId)
+    const ref = { workspaceId: world.workspaceId, postId: post.postId, version }
+    await expect(unschedulePost(panel, world.actor, ref, { ip: null })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(cancelPost(panel, world.actor, ref, { ip: null })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(
+      updatePost(
+        panel,
+        world.actor,
+        post.postId,
+        { workspaceId: world.workspaceId, version, caption: 'Un altro testo' },
+        { ip: null },
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  }
+  expect((await targetOn(post.postId, ig)).status).toBe('published')
 })
 
 /** A Publisher of the client who schedules the post: the one the pause looks at (P6). */
