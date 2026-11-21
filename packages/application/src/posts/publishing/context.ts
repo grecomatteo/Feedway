@@ -1,5 +1,6 @@
 import {
   LATEST_START_MINUTES,
+  MAX_LATENESS_MINUTES,
   PUBLISH_ERROR_CODES,
   can,
   canMoveTarget,
@@ -294,6 +295,15 @@ export async function cancelArchived(tx: Tx, target: PublishingTargetRecord): Pr
   })
   return { outcome: 'moved', to: 'cancelled', code: 'client_archived' }
 }
+
+/**
+ * D-118: the moment past which nothing of a publication goes on, but a file being processed;
+ * a wait or a new attempt set after it fails at once instead of waiting for nothing.
+ */
+export const lateLimitOf = (
+  scheduledAt: Date,
+  target: Pick<PublishingTargetRecord, 'verification'>,
+): Date => plusMinutes(latestOf(scheduledAt, retriedAtOf(target)), MAX_LATENESS_MINUTES)
 
 /** R4: the moment past which nothing of the first publication starts any more. */
 export const latestStartOf = (

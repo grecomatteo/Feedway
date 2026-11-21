@@ -86,8 +86,10 @@ export const PREPARE_PER_ORGANIZATION = 3
 export const PREPARE_PER_ACCOUNT = 1
 
 /**
- * How long a step of the worker may run (pg-boss `expireInSeconds`): the calls to Meta have
- * their own timeouts, well below.
+ * How long a step of the worker may run (pg-boss `expireInSeconds`). Each call to Meta has its
+ * own timeout, below; a carousel makes its containers one after the other in one step, so a
+ * very slow Meta can reach this: the step then stops as a temporary error, with the ids made so
+ * far saved (D-118).
  */
 export const TARGET_STEP_EXPIRE_SECONDS = 300
 /** A preparation's claim outlasts its job: a worker gone frees the account after this. */

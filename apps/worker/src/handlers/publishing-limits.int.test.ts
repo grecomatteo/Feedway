@@ -296,7 +296,11 @@ test('the quota nearly over is told once per window, and saved on the account', 
   if (!ready) throw new Error('no destination')
   clock.set(at)
   mock.scenario('quota_exhausted')
-  expect(await publishTarget(deps, job(world, ready))).toMatchObject({ to: 'retrying' })
+  // the window frees up past the 15 minutes: not out at once (D-118), the event told anyway
+  expect(await publishTarget(deps, job(world, ready))).toMatchObject({
+    to: 'failed',
+    code: 'quota_exhausted',
+  })
   expect(await eventsOf(world.organizationId, 'account.quota_low')).toEqual([
     { accountId: world.accounts.instagram, left: 0, total: 50 },
   ])
@@ -305,11 +309,15 @@ test('the quota nearly over is told once per window, and saved on the account', 
     [world.accounts.instagram],
   )
   expect(rows[0]).toEqual({ quota_used: 50, quota_total: 50 })
-  // the next try, in the same window: no second event
-  const [retrying] = await targetsOf(admin, postId)
-  if (!retrying?.next_attempt_at) throw new Error('no retry')
-  clock.set(retrying.next_attempt_at)
-  await publishTarget(deps, job(world, retrying))
+  // the next try, in the same window (ready again, as after «Riprova»): no second event
+  await admin.query(
+    "update post_targets set status = 'ready', generation = generation + 1, last_error_code = null where id = $1",
+    [target.id],
+  )
+  const [again] = await targetsOf(admin, postId)
+  if (!again) throw new Error('no destination')
+  clock.set(new Date(at.getTime() + 2 * MINUTE))
+  await publishTarget(deps, job(world, again))
   expect(await eventsOf(world.organizationId, 'account.quota_low')).toHaveLength(1)
 })
 

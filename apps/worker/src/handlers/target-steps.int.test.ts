@@ -524,23 +524,21 @@ test('R4: a quota that frees up past the 60 minutes fails the destination at onc
   })
 })
 
-test('R4: a quota wait that brings the publication past the 60 minutes ends with its reason', async () => {
+test('D-118: a quota that frees up past the 15 minutes ends the destination at once, with its reason', async () => {
   const { world, at, post } = await setUp({ accounts: 'instagram' })
   const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
   await runSteps(world, post.postId, clock, 'prepare')
   clock.set(new Date(at.getTime() + 5 * MINUTE))
   mock.scenario('quota_exhausted')
-  await runSteps(world, post.postId, clock, 'publish')
-  const [waiting] = await targetsOf(admin, post.postId)
-  expect(waiting).toMatchObject({ status: 'retrying', last_error_code: 'quota_exhausted' })
-  // the worker was stopped: it comes back past the hour
-  clock.set(new Date(at.getTime() + 61 * MINUTE))
   const published = callsTo('/media_publish')
-  await publishTarget(workerDeps(runtime, clock, host.url), job(world, waiting as TargetRow))
+  await runSteps(world, post.postId, clock, 'publish')
+  // Meta's window frees up later than 15 minutes after the time: never a wait for nothing
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
     status: 'failed',
     last_error_code: 'quota_exhausted',
+    next_attempt_at: null,
   })
+  // the quota is read before publishing: nothing was published
   expect(callsTo('/media_publish')).toBe(published)
 })
 
@@ -660,16 +658,39 @@ test('a container Meta is still processing past the 15 minutes publishes when it
   )
   clock.set(new Date(at.getTime() + 20 * MINUTE))
   await runSteps(world, post.postId, clock, 'prepare')
-  console.log(
-    'DEBUG',
-    JSON.stringify((await targetsOf(admin, post.postId))[0]),
-    JSON.stringify(
-      mock
-        .calls()
-        .map((c) => c.method + ' ' + c.path)
-        .slice(-6),
-    ),
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready' })
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
+})
+
+test('a container still processing waits for its turn past the 15 minutes and still goes out', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  mock.scenario('container_in_progress', { reads: 1, all: true })
+  await runSteps(world, post.postId, clock, 'prepare')
+  // another post of the same account holds the account's only place among the preparations
+  const other = await scheduledPost(runtime, world, {
+    at,
+    mediaIds: [await readyPhoto(tdb, runtime, admin, world)],
+    accounts: [world.accounts.instagram],
+  })
+  await admin.query('update post_targets set claimed_until = $2 where post_id = $1', [
+    other.postId,
+    new Date(at.getTime() + 30 * MINUTE),
+  ])
+  await admin.query(
+    `update post_targets set meta_ids = jsonb_set(meta_ids, '{checkedAt}', '{}') where post_id = $1`,
+    [post.postId],
   )
+  clock.set(new Date(at.getTime() + 20 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'preparing' })
+  // its turn comes: the container is ready, and it goes out
+  await admin.query('update post_targets set claimed_until = null where post_id = $1', [
+    other.postId,
+  ])
+  clock.set(new Date(at.getTime() + 21 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready' })
   await runSteps(world, post.postId, clock, 'publish')
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })

@@ -32,7 +32,7 @@ import {
   clientArchived,
   failTarget,
   lateCodeOf,
-  latestStartOf,
+  lateLimitOf,
   moveTarget,
   openAccount,
   pauseTarget,
@@ -124,8 +124,11 @@ async function decide(
     return done(await failTarget(tx, target, lateCodeOf(target)))
   /** A wait for a file being processed: it goes on past the 15 minutes (D-118). */
   const processing = { verification: withProcessing(target, true) }
-  /** Any other wait: it does not. */
-  const waiting = { verification: withProcessing(target, false) }
+  /**
+   * Its turn or Meta's load, between two reads of a container being processed: what the
+   * destination was waiting for stays as it was (only a file being processed goes on).
+   */
+  const keep = {}
 
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const blocks = blocksOf(report, target.accountId)
@@ -166,7 +169,7 @@ async function decide(
   // above 80% of Meta's usage the account, or the agency, waits (§8.6): not an attempt
   const slowUntil = await slowDownOf(tx, target, 'prepare', now)
   if (slowUntil) {
-    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down', waiting)
+    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down', keep)
     return done(wait.log, [wait.job])
   }
   const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
@@ -185,7 +188,7 @@ async function decide(
       'target.prepare',
       new Date(now.getTime() + PREPARE_TURN_WAIT_SECONDS * 1000),
       'waiting for its turn',
-      waiting,
+      keep,
     )
     return done(wait.log, [wait.job])
   }
@@ -200,7 +203,7 @@ async function decide(
     step: 'prepare',
     nextAttemptAt: plusMinutes(now, PREPARE_CLAIM_MINUTES),
     // a worker stopped during the call is not a file being processed (D-118)
-    ...waiting,
+    verification: withProcessing(target, false),
     // saved with the claim: a step stopped before the platform saves its own finds them again
     ...(afterNotFound ? { metaIds: keptIds(target.metaIds, metaIds) } : {}),
   })
@@ -316,8 +319,8 @@ async function settle(
     // a container still processing, or no posts left in the window: not an attempt
     const at = result.outcome === 'wait' ? result.retryAt : now
     const quota = result.outcome === 'wait' && result.reason === 'quota'
-    // R4: a window that frees up past the 60 minutes: not out, and «Riprova» later
-    if (quota && at.getTime() > latestStartOf(call.scheduledAt, target).getTime())
+    // R4 and D-118: a window that frees up past the 15 minutes: not out, and «Riprova» later
+    if (quota && at.getTime() > lateLimitOf(call.scheduledAt, target).getTime())
       return { log: await failTarget(tx, target, 'quota_exhausted'), jobs: [] }
     if (quota) {
       const generation = await moveTarget(tx, target, 'retrying', {
@@ -356,6 +359,9 @@ async function settle(
   if (next === null) return { log: await failTarget(tx, target, result.code), jobs: [] }
   // not before Meta serves the account again (§8.6): the answer said how busy it is
   const at = latestOf(next, result.retryAt, await slowDownOf(tx, target, 'prepare', now))
+  // D-118: an attempt past the 15 minutes would not start: the destination ends now
+  if (at.getTime() > lateLimitOf(call.scheduledAt, target).getTime())
+    return { log: await failTarget(tx, target, result.code), jobs: [] }
   const generation = await moveTarget(tx, target, 'retrying', {
     step: 'prepare',
     attempts: attempt,

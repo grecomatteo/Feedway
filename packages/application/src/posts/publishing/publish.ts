@@ -28,7 +28,7 @@ import {
   clientArchived,
   failTarget,
   lateCodeOf,
-  latestStartOf,
+  lateLimitOf,
   moveTarget,
   openAccount,
   pauseTarget,
@@ -46,7 +46,7 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
-import { retriedAtOf } from './retry-mark.js'
+import { processingOf, retriedAtOf, withProcessing } from './retry-mark.js'
 import { uncertainSearch } from './search.js'
 
 // `target.publish` (plan 07 Task 7): the call that publishes, at the post's time. `publishing`
@@ -103,11 +103,13 @@ async function decide(
   // R4: never more than 60 minutes after the time (or the «Riprova»), whatever held it
   if (isPastLatestStart(startAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
   // D-77 (b) and D-118: past the 15 minutes nothing goes out, a worker stopped or an attempt
-  // after an error. Only a preparation that ended late (a file being processed, the only wait
-  // allowed past them) counts from its end: `next_attempt_at` of `ready`
+  // after an error; a file being processed waits up to the 60 minutes above. A preparation
+  // that ended late (a file being processed, or a call that ran over the 15 minutes) counts
+  // from its end: `next_attempt_at` of `ready`
   const readyAt = target.nextAttemptAt ?? post.scheduledAt
   const dueAt = target.status === 'ready' && isTooLate(startAt, readyAt) ? readyAt : startAt
-  if (isTooLate(dueAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
+  if (!processingOf(target) && isTooLate(dueAt, now))
+    return done(await failTarget(tx, target, lateCodeOf(target)))
   // only above 95% of Meta's usage (§8.6): at 85% the post still goes out at its time. At most
   // 5 minutes after the post's time, whatever the waits: a wait moves `next_attempt_at`, so
   // without this bound waits one after the other would publish late without end (D-77 b)
@@ -128,6 +130,7 @@ async function decide(
   const generation = await moveTarget(tx, target, 'publishing', {
     step: 'publish',
     nextAttemptAt: plusMinutes(now, PUBLISHING_STALE_MINUTES),
+    verification: withProcessing(target, false),
   })
   return {
     kind: 'call',
@@ -241,17 +244,16 @@ async function settle(
     }
     // no posts left in the window, or a file still processing: not an attempt
     const at = result.retryAt
-    // R4: a window that frees up past the 60 minutes: not out, and «Riprova» later
-    if (
-      result.reason === 'quota' &&
-      at.getTime() > latestStartOf(call.scheduledAt, target).getTime()
-    )
+    // R4 and D-118: a window that frees up past the 15 minutes: not out, and «Riprova» later
+    if (result.reason === 'quota' && at.getTime() > lateLimitOf(call.scheduledAt, target).getTime())
       return { log: await failTarget(tx, target, 'quota_exhausted'), jobs: [] }
     const generation = await moveTarget(tx, target, 'retrying', {
       step: 'publish',
       metaIds,
       nextAttemptAt: at,
       lastErrorCode: result.reason === 'quota' ? 'quota_exhausted' : null,
+      // a file being processed goes on past the 15 minutes (D-118)
+      verification: withProcessing(target, result.reason === 'processing'),
     })
     return { log: { outcome: 'moved', to: 'retrying' }, jobs: [again(generation, at)] }
   }
@@ -278,6 +280,9 @@ async function settle(
   if (next === null) return { log: await failTarget(tx, target, result.code), jobs: [] }
   // not before Meta serves the account again (§8.6): the answer said how busy it is
   const at = latestOf(next, result.retryAt, await slowDownOf(tx, target, 'publish', now))
+  // D-118: an attempt past the 15 minutes would not go out: the destination ends now
+  if (at.getTime() > lateLimitOf(call.scheduledAt, target).getTime())
+    return { log: await failTarget(tx, target, result.code), jobs: [] }
   const generation = await moveTarget(tx, target, 'retrying', {
     step: 'publish',
     attempts: attempt,
