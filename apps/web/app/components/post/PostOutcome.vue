@@ -185,11 +185,16 @@ const state = computed(() =>
     ? { label: t('posts.state.publishing'), tone: 'info' as const }
     : postStateOf(current.value, t),
 )
-const when = computed(() =>
-  current.value.scheduledAt
-    ? formatRelative(current.value.scheduledAt, { timeZone: current.value.timezone })
-    : null,
-)
+// the time of the latest destination out, once one is (R18: after a «Riprova» of the next day
+// the post's own time would say the day before); until then the post's time
+const when = computed(() => {
+  const out = (outcome.value?.destinations ?? [])
+    .flatMap((d) => (d.publishedAt ? [d.publishedAt] : []))
+    .sort()
+    .at(-1)
+  const at = out ?? current.value.scheduledAt
+  return at ? formatRelative(at, { timeZone: current.value.timezone }) : null
+})
 
 // ---- the activity
 // in the post's zone, as «Esito» above: never a mix of two clocks on one page
@@ -449,16 +454,22 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
               <li
                 v-for="row in rows"
                 :key="row.accountId"
-                class="flex gap-3 px-4 py-3.5"
+                class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 px-4 py-3.5"
                 :data-outcome-row="row.accountId"
                 :data-status="row.status"
               >
-                <PlatformIcons :platforms="[row.platform]" class="mt-0.5 self-start" />
-                <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <div class="flex min-w-0 items-center justify-between gap-3">
-                    <span class="min-w-0 truncate font-medium">{{ row.name }}</span>
-                    <StatusDot :label="row.state" :tone="row.tone" />
-                  </div>
+                <!-- the icon on the line of the name, as in screen 13 (R18) -->
+                <PlatformIcons :platforms="[row.platform]" />
+                <div class="flex min-w-0 items-center justify-between gap-3">
+                  <span class="min-w-0 truncate font-medium">{{ row.name }}</span>
+                  <StatusDot :label="row.state" :tone="row.tone" />
+                </div>
+                <div
+                  v-if="
+                    row.permalink || row.reason || row.canRetry || row.canVerify || row.canCancel
+                  "
+                  class="col-start-2 flex min-w-0 flex-col gap-1.5"
+                >
                   <a
                     v-if="row.permalink"
                     :href="row.permalink"

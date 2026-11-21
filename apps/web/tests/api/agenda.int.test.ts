@@ -41,7 +41,7 @@ async function status(who: Who, path: string) {
 async function post(
   workspaceId: string,
   opts: {
-    status?: 'draft' | 'scheduled' | 'cancelled'
+    status?: 'draft' | 'scheduled' | 'publishing' | 'cancelled'
     when?: Date | null
     caption?: string
     type?: 'photo' | 'carousel' | 'reel'
@@ -579,5 +579,19 @@ describe('clients', () => {
       scheduled: 0,
       nextAt: null,
     })
+  })
+
+  test('a post being published is still in programma, going out now (R18)', async () => {
+    const sole = await seed(env.tdb.runtimeUrl, (s) => s.workspace(org.id, { name: 'Bar Sole' }))
+    // its time passed a few minutes ago: the worker is publishing it
+    await post(sole, { status: 'publishing', when: new Date(Date.now() - 3 * 60_000) })
+    await post(sole, { when: at(30) })
+    const now = new Date()
+    const owner = await get<{
+      items: { workspaceId: string; scheduled: number; nextAt: string | null }[]
+    }>('owner', `/agenda/clients?from=${now.toISOString()}`)
+    const row = owner.items.find((c) => c.workspaceId === sole)
+    expect(row?.scheduled).toBe(2)
+    expect(row?.nextAt).toBe(now.toISOString())
   })
 })

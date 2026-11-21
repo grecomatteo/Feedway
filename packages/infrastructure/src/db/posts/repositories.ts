@@ -540,12 +540,17 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     },
     async activityOf(organizationId, workspaceIds, from) {
       if (workspaceIds.length === 0) return []
-      const ahead = sql`${posts.status} = 'scheduled' and ${posts.scheduledAt} >= ${from}`
+      // a post being published is still «in programma» (R18): it goes out now, so its time,
+      // if already past, is the panel's moment
+      const ahead = sql`(${posts.status} = 'scheduled' and ${posts.scheduledAt} >= ${from})
+        or ${posts.status} = 'publishing'`
       const rows = await db
         .select({
           workspaceId: posts.workspaceId,
           scheduled: sql<number>`(count(*) filter (where ${ahead}))::int`,
-          nextAt: sql<string | null>`min(${posts.scheduledAt}) filter (where ${ahead})`,
+          nextAt: sql<
+            string | null
+          >`min(greatest(${posts.scheduledAt}, ${from})) filter (where ${ahead})`,
           changedAt: sql<string>`max(${posts.updatedAt})`,
         })
         .from(posts)
