@@ -1,7 +1,10 @@
 import {
   DomainError,
   can,
+  checkLimit,
   instantToZoned,
+  parseLimits,
+  storedTimeZone,
   zonedToInstant,
   type OrgActor,
   type Platform,
@@ -201,7 +204,11 @@ export function contentOf(post: PostRecord, when: PostWhenInput): PostContent {
     mediaIds: post.mediaIds,
     cover: post.cover,
     caption: { common: post.caption, ...post.captionByPlatform },
-    destinations: post.targets.map((t) => ({ accountId: t.accountId })),
+    // an account a person cancelled on the page of the outcome is not scheduled again by a
+    // save that does not name the destinations (a move in the calendar, review M1)
+    destinations: post.targets
+      .filter((t) => !t.cancelledInPanel)
+      .map((t) => ({ accountId: t.accountId })),
     when,
     shareToFeed: post.options.shareToFeed,
     choices: post.options.choices,
@@ -346,12 +353,51 @@ const IN_PANEL_REACH = new Set<string>(['scheduled', 'preparing', 'ready', 'retr
 
 /**
  * A post the panel changes as a scheduled one: scheduled, or in preparation with no destination
- * publishing or out yet (P2). Its state in the database may be one of the publishing.
+ * publishing or out yet (P2). Its state in the database may be one of the publishing. A
+ * `scheduled` post is checked too (R6): one destination back to `scheduled` by «Riprova» next to
+ * one already out was written as `scheduled` before the fix, and must never be moved again.
  */
 export async function isScheduledForPanel(tx: Tx, post: PostRecord): Promise<boolean> {
   const status: string = post.status
-  if (status === 'scheduled') return true
-  if (status !== 'publishing') return false
+  if (status !== 'scheduled' && status !== 'publishing') return false
   const targets = await tx.publishing.targetsOfPost(post.organizationId, post.id)
   return targets.every((t) => IN_PANEL_REACH.has(t.status))
+}
+
+/** The agency of the posts, as `assertActiveOrganization` reads it. */
+export type AgencyOfPosts = Awaited<ReturnType<typeof assertActiveOrganization>>
+
+const nextDay = (localDate: string) => {
+  const [y, m, d] = localDate.split('-').map(Number) as [number, number, number]
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+}
+
+/** The agency's day of the instant, in the agency's time zone: the limit is the agency's. */
+export function agencyDay(at: Date, timeZone: string) {
+  const { localDate } = instantToZoned(at, timeZone)
+  return {
+    localDate,
+    from: zonedToInstant(localDate, '00:00', timeZone).instant,
+    to: zonedToInstant(nextDay(localDate), '00:00', timeZone).instant,
+  }
+}
+
+/** `posts_per_day`: the scheduled posts of the agency on that day, this one left out. */
+export async function assertDailyLimit(
+  tx: Tx,
+  organization: AgencyOfPosts,
+  post: PostRecord,
+  at: Date,
+) {
+  const limits = parseLimits(organization.limits)
+  if (limits.posts_per_day === undefined) return
+  const day = agencyDay(at, storedTimeZone(organization.settings))
+  const count = await tx.posts.countScheduled(organization.id, day, post.id)
+  const check = checkLimit(limits, 'posts_per_day', count)
+  if (!check.ok)
+    throw new DomainError(
+      'LIMIT_REACHED',
+      `L’agenzia ha già ${String(check.limit)} post programmati in quel giorno: è il massimo`,
+      { limit: check.limit },
+    )
 }

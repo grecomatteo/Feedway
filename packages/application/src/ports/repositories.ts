@@ -460,6 +460,11 @@ export interface WorkspacesRepository {
    * lock with the changes above, so an archiving that commits first is seen.
    */
   findForShare(organizationId: string, id: string): Promise<WorkspaceRecord | null>
+  /**
+   * One workspace of the agency, read without a lock and without a person: the worker's look at
+   * whether a client is archived (D-70, R7), which must not wait on an archiving holding the row.
+   */
+  findById(organizationId: string, id: string): Promise<WorkspaceRecord | null>
   countActive(organizationId: string): Promise<number>
   /** Archived workspaces keep their slug. */
   slugExists(organizationId: string, slug: string): Promise<boolean>

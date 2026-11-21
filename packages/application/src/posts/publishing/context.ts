@@ -1,4 +1,6 @@
 import {
+  LATEST_START_MINUTES,
+  PUBLISH_ERROR_CODES,
   can,
   canMoveTarget,
   publishedCaption,
@@ -30,6 +32,7 @@ import type { PublishingTargetRecord, TargetStepPatch } from '../../ports/publis
 import type { PublishingHistory } from '../../ports/publishing-history.js'
 import type { Tx } from '../../ports/tx.js'
 import type { UnitOfWork } from '../../ports/unit-of-work.js'
+import { retriedAtOf } from './retry-mark.js'
 
 // What the jobs of the publishing share (plan 07 Task 7): who published, the way to the
 // platform, the moves of a destination with their events. Every step reads its destination
@@ -265,6 +268,50 @@ export async function pauseTarget(
       payload: eventOf(target, code),
     })
   return { outcome: 'moved', to: 'paused', code }
+}
+
+/**
+ * The client of the destination was archived (D-70): it publishes nothing. A plain read, not
+ * through the author's visibility: the archiving waits for the post this step holds, and then
+ * brings back to draft what is still in the panel's reach. A client not found publishes nothing
+ * either.
+ */
+export async function clientArchived(tx: Tx, target: PublishingTargetRecord): Promise<boolean> {
+  const workspace = await tx.workspaces.findById(target.organizationId, target.workspaceId)
+  return workspace === null || workspace.archivedAt !== null
+}
+
+/**
+ * `cancelled` (review R7): a destination of an archived client that has not started publishing,
+ * left by the archiving because another destination of its post was already out. No event: the
+ * person who archived knows.
+ */
+export async function cancelArchived(tx: Tx, target: PublishingTargetRecord): Promise<StepLog> {
+  await moveTarget(tx, target, 'cancelled', {
+    nextAttemptAt: null,
+    claimedUntil: null,
+    recheckAt: null,
+  })
+  return { outcome: 'moved', to: 'cancelled', code: 'client_archived' }
+}
+
+/** R4: the moment past which nothing of the first publication starts any more. */
+export const latestStartOf = (
+  scheduledAt: Date,
+  target: Pick<PublishingTargetRecord, 'verification'>,
+): Date => plusMinutes(latestOf(scheduledAt, retriedAtOf(target)), LATEST_START_MINUTES)
+
+const KNOWN_CODES = new Set<string>(PUBLISH_ERROR_CODES)
+
+/**
+ * Why a destination past the 60 minutes did not go out (R4): the error it was trying again
+ * after, if any (the quota, Meta's load), else `too_late`.
+ */
+export function lateCodeOf(target: PublishingTargetRecord): PublishErrorCode {
+  const last = target.lastErrorCode
+  return target.status === 'retrying' && last !== null && KNOWN_CODES.has(last)
+    ? (last as PublishErrorCode)
+    : 'too_late'
 }
 
 /** The step looks again at `at`, in a new generation: the job of this one has been used. */

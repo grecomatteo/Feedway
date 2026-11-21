@@ -35,8 +35,8 @@ const post = (over: Partial<PostRecord> = {}): PostRecord => ({
   mediaIds: ['m1', 'm2'],
   cover: { source: 'frame', offsetMs: 1500 },
   targets: [
-    { id: 't1', accountId: 'a1', status: 'draft', fingerprint: null },
-    { id: 't2', accountId: 'a2', status: 'draft', fingerprint: null },
+    { id: 't1', accountId: 'a1', status: 'draft', fingerprint: null, cancelledInPanel: false },
+    { id: 't2', accountId: 'a2', status: 'draft', fingerprint: null, cancelledInPanel: false },
   ],
   labelIds: [],
   ...over,

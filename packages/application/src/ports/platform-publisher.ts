@@ -163,8 +163,25 @@ export interface PlatformPublisher {
    * what was prepared holds the old files and text (an Instagram container too).
    */
   discard(target: PublishTarget, signal: AbortSignal): Promise<void>
-  /** The post of this destination on the account, published from `since` to 10 minutes later. */
-  findPublished(target: PublishTarget, since: Date, signal: AbortSignal): Promise<FoundPost | null>
+  /**
+   * The post of this destination on the account, published from `since` to 10 minutes later.
+   * `exclude`: the posts other destinations of the account already are (review R3), never taken
+   * for this one. More than one post that fits, and none of them surely this one's: null, so a
+   * person looks at the profile rather than a wrong «Pubblicato».
+   */
+  findPublished(
+    target: PublishTarget,
+    since: Date,
+    signal: AbortSignal,
+    exclude?: readonly string[],
+  ): Promise<FoundPost | null>
+  /**
+   * The ids a «Riprova» starts from after an uncertain call never found on the account
+   * (`uncertain_not_found`, §9.5; review R2): what of the old round is safe to keep. Instagram
+   * keeps its container, which Meta never publishes twice; Facebook starts a new round, since
+   * the mark of its call would make every preparation uncertain. null: a new round.
+   */
+  idsAfterNotFound(metaIds: PublishMetaIds | null): PublishMetaIds | null
   /** Whether the published post exists, of the right type and done processing (§9.6). */
   verify(target: PublishTarget, signal: AbortSignal): Promise<VerifyResult>
 }

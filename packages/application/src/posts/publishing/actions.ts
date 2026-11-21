@@ -14,6 +14,7 @@ import type { PostRecord, PostScope } from '../../ports/posts.js'
 import type { PublishingTargetRecord, TargetStepPatch } from '../../ports/publishing.js'
 import type { Tx } from '../../ports/tx.js'
 import {
+  assertDailyLimit,
   lockedPost,
   openPosts,
   scheduledAtOf,
@@ -23,7 +24,7 @@ import {
 } from '../common.js'
 import { readPost, type PostDto } from '../read.js'
 import { confirmTarget, sendSteps, type StepJob } from './context.js'
-import { retryMark } from './retry-mark.js'
+import { CANCELLED_IN_PANEL, retryMark } from './retry-mark.js'
 
 // What a person does on a destination after the worker (plan 07 Task 8, §9.3, §10.2): «Riprova»,
 // «Segna come verificato», «Annulla» of one destination, and «Riprendi» or «Annulla» of a post in
@@ -149,8 +150,8 @@ const stepJob = (
 /**
  * A call that publishes refused by Meta used what was prepared (an Instagram container in error):
  * the next round prepares again, and what Facebook kept unpublished is thrown away. Not after
- * `too_late` (nothing was called) nor `uncertain_not_found` (the post may be out: the same
- * container answers «already published» instead of a second post).
+ * `too_late` (nothing was called) nor `uncertain_not_found` (the post may be out: nothing of it
+ * is thrown away, and the platform says what is kept, `idsAfterNotFound`, review R2).
  */
 const spentRound = (target: PublishingTargetRecord) =>
   target.step === 'publish' &&
@@ -184,7 +185,7 @@ export function retryTarget(
         nextAttemptAt: now,
         lastErrorCode: null,
         lastErrorMessage: null,
-        verification: retryMark(now),
+        verification: retryMark(now, target.lastErrorCode === 'uncertain_not_found'),
       })
       job = stepJob(target, 'target.prepare', generation, now)
     } else if (target.status === 'problem') {
@@ -270,6 +271,7 @@ export function cancelTarget(
       nextAttemptAt: null,
       claimedUntil: null,
       recheckAt: null,
+      verification: CANCELLED_IN_PANEL,
     })
     await audit(
       tx,
@@ -322,6 +324,13 @@ export function resumePaused(
           : 'L’ora del post è passata: scegli quando pubblicarlo',
         { field: 'when', reason: 'paused_time_passed' },
       )
+    // a new day takes a place of that day, as «Programma» (R19); one at a time with scheduling
+    if (input.when) {
+      await tx.posts.lockSchedule(post.organizationId)
+      const organization = await tx.organizations.findById(post.organizationId)
+      if (!organization) throw new DomainError('NOT_FOUND', 'Agenzia non trovata')
+      await assertDailyLimit(tx, organization, post, at)
+    }
     const version = await tx.posts.update(
       scope,
       post.id,
@@ -366,7 +375,11 @@ export function cancelPaused(
   return onPost(deps, actor, input, async (tx, current, post) => {
     const paused = await pausedOf(tx, current, post, input.version)
     for (const target of paused) {
-      await movePanel(tx, target, 'cancelled', { nextAttemptAt: null, recheckAt: null })
+      await movePanel(tx, target, 'cancelled', {
+        nextAttemptAt: null,
+        recheckAt: null,
+        verification: CANCELLED_IN_PANEL,
+      })
       await audit(
         tx,
         current,

@@ -257,6 +257,31 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
     }
   }
 
+  /**
+   * The finished container of an old round was never published (review R15). Published: the
+   * post is out and only a person can tell where, so the destination fails with the reason that
+   * says to look at the profile; a container Meta no longer has is gone, a new round starts.
+   */
+  async function assertNotPublished(
+    credentials: MetaTokenCredentials,
+    ids: InstagramIds,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const old = ids.container
+    if (old === null || !old.finished) return
+    let status: MetaContainerStatus['statusCode']
+    try {
+      status = (await client.getContainerStatus(credentials, old.id, signal)).data.statusCode
+    } catch (err) {
+      if (err instanceof MetaError && err.reason === 'not_found_or_forbidden') return
+      if (err instanceof MetaError)
+        throw publishErrorOf(err, clock.now(), { uncertainAs: 'transient' })
+      throw err
+    }
+    if (status === 'PUBLISHED')
+      throw new PublishError({ kind: 'permanent', code: 'uncertain_not_found' })
+  }
+
   /** When a slot frees up: the oldest post of the window leaves it (Meta does not say). */
   async function quotaFreesAt(
     credentials: MetaTokenCredentials,
@@ -298,6 +323,10 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
         }
       if (known === null && hasMediaId(target.metaIds))
         throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+      // a round gone past its 24 hours (a «Riprova» the day after an uncertain call): its
+      // container is read first, as `publish` does, never made again over a post that is out
+      if (known !== null && expired(known))
+        await assertNotPublished(tokenCredentials(target.credentials), known, ctx.signal)
       let ids = known === null || expired(known) ? freshIds(clock.now()) : known
       if (ids !== known) await ctx.saveIds(ids)
       try {
@@ -414,7 +443,10 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
     // a container never published expires by itself in 24 hours (plan 07, P2)
     discard: () => Promise.resolve(),
 
-    async findPublished(target, since, signal) {
+    // the same container: Meta never publishes it twice, a post already out says so (D-112.8)
+    idsAfterNotFound: (metaIds) => metaIds,
+
+    async findPublished(target, since, signal, exclude = []) {
       const credentials = tokenCredentials(target.credentials)
       const story = target.type === 'story'
       const found = await classified(
@@ -432,12 +464,16 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
       const from = since.getTime() - CLOCK_SKEW_MS
       const to = since.getTime() + FIND_WINDOW_MS
       const caption = normalizeCaption(target.caption)
-      const match = found.data.find((m) => {
+      const others = new Set(exclude)
+      const fits = found.data.filter((m) => {
         const at = m.timestamp?.getTime()
         if (at === undefined || at < from || at > to || !typeMatches(target, m)) return false
+        if (others.has(m.id)) return false
         return story || normalizeCaption(m.caption ?? '') === caption
       })
-      if (match?.timestamp == null) return null
+      // two that fit (stories have no text, a twin post of the client): not sure, a person looks
+      const [match] = fits
+      if (fits.length !== 1 || match?.timestamp == null) return null
       return {
         externalPostId: match.id,
         permalink: safePermalink(match.permalink),

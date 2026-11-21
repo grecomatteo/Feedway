@@ -68,6 +68,13 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
         .for('share')
       return row ?? null
     },
+    async findById(organizationId, id) {
+      const [row] = await db
+        .select(workspaceColumns)
+        .from(workspaces)
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
+      return row ?? null
+    },
     async countActive(organizationId) {
       const [row] = await db
         .select({ n: count() })

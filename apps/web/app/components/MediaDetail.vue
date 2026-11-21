@@ -45,6 +45,9 @@ const { t } = useI18n()
 const blocked = computed(() =>
   props.file?.deleteBlockedBy ? deleteBlockText(props.file.deleteBlockedBy, t) : null,
 )
+const blockFix = computed(() =>
+  props.file?.deleteBlockedBy ? deleteBlockFix(props.file.deleteBlockedBy, t) : null,
+)
 
 const has = (purpose: string) => props.file?.variants.some((v) => v.purpose === purpose) ?? false
 const image = computed(() => {
@@ -312,7 +315,7 @@ const folderValue = computed({
           <ULink
             :to="postTo(file, file.deleteBlockedBy.postId)"
             class="text-(--app-text) underline underline-offset-2"
-            >{{ $t('library.deleteBlocked.fix') }}</ULink
+            >{{ blockFix }}</ULink
           >
         </p>
 

@@ -32,6 +32,8 @@ export interface PostTargetRecord {
   status: PostStatus
   /** hex sha256 of `postFingerprint` after the choices (P3); null until scheduled */
   fingerprint: string | null
+  /** cancelled by a person on the page of the outcome: a save of the post leaves it out */
+  cancelledInPanel: boolean
 }
 
 /** A post with its files (in order), its cover, its destinations and its labels. */

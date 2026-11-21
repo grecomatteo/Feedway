@@ -32,15 +32,19 @@ const ALLOWED: Record<TargetMover, [TargetStatus, TargetStatus][]> = {
     ['scheduled', 'preparing'],
     ['scheduled', 'failed'],
     ['scheduled', 'paused'],
+    // the client was archived (D-70): what has not gone out does not
+    ['scheduled', 'cancelled'],
     ['preparing', 'ready'],
     ['preparing', 'retrying'],
     ['preparing', 'failed'],
     ['preparing', 'paused'],
+    ['preparing', 'cancelled'],
     ['ready', 'publishing'],
     ['ready', 'preparing'],
     ['ready', 'retrying'],
     ['ready', 'failed'],
     ['ready', 'paused'],
+    ['ready', 'cancelled'],
     ['publishing', 'published'],
     ['publishing', 'retrying'],
     ['publishing', 'failed'],
@@ -49,6 +53,7 @@ const ALLOWED: Record<TargetMover, [TargetStatus, TargetStatus][]> = {
     ['retrying', 'publishing'],
     ['retrying', 'failed'],
     ['retrying', 'paused'],
+    ['retrying', 'cancelled'],
     ['unknown', 'published'],
     ['unknown', 'confirmed'],
     ['unknown', 'retrying'],
@@ -99,10 +104,16 @@ describe('canMoveTarget', () => {
         expect(canMoveTarget(from, to, 'panel'), `${from} → ${to}`).toBe(false)
   })
 
-  it('the worker never schedules, cancels or brings back to draft', () => {
+  it('the worker never schedules or brings back to draft', () => {
     for (const from of TARGET_STATUSES)
-      for (const to of ['draft', 'scheduled', 'cancelled'] as const)
+      for (const to of ['draft', 'scheduled'] as const)
         expect(canMoveTarget(from, to, 'worker'), `${from} → ${to}`).toBe(false)
+  })
+
+  it('the worker cancels only what has not started publishing (an archived client, D-70)', () => {
+    const before = new Set<TargetStatus>(['scheduled', 'preparing', 'ready', 'retrying'])
+    for (const from of TARGET_STATUSES)
+      expect(canMoveTarget(from, 'cancelled', 'worker'), from).toBe(before.has(from))
   })
 
   it('a destination never stays where it is through a move', () => {

@@ -95,10 +95,33 @@ describe('the posts of the publishing (plan 07 Scelta 5)', () => {
       expect([...rows].sort(compareUses)).toEqual([draftNew, outNew, outOld, notOut, cancelled])
   })
 
-  test('a file in a post on its way or paused is not deleted', () => {
-    expect(deletionBlock([outNew, going])).toMatchObject({ postId: 'g', count: 1 })
-    expect(deletionBlock([paused, scheduledLater])).toMatchObject({ postId: 'h', count: 2 })
-    expect(deletionBlock([outNew, outOld, notOut])).toBeNull()
+  test('a file in a post on its way or paused is not deleted, with the reason of that post', () => {
+    expect(deletionBlock([outOld, going])).toMatchObject({
+      reason: 'in_publishing_post',
+      postId: 'g',
+      count: 1,
+    })
+    expect(deletionBlock([paused, scheduledLater])).toMatchObject({
+      reason: 'in_paused_post',
+      postId: 'h',
+      count: 2,
+    })
+    expect(deletionBlock([outOld, cancelled])).toBeNull()
+  })
+
+  test('a post not out on an account keeps its files for «Riprova» (R11)', () => {
+    expect(deletionBlock([outOld, notOut])).toMatchObject({
+      reason: 'in_failed_post',
+      postId: 'n',
+      count: 1,
+    })
+    expect(deletionBlock([outNew, notOut])).toMatchObject({ reason: 'in_failed_post', count: 2 })
+    // a post still going out comes first, and says why
+    expect(deletionBlock([notOut, scheduledSoon])).toMatchObject({
+      reason: 'in_scheduled_post',
+      postId: 'p3',
+      count: 2,
+    })
   })
 })
 

@@ -20,7 +20,13 @@ import type {
   PostScope,
   PostTargetRecord,
 } from '@app/application'
-import { DISCARD_KEY, compareUses, type MediaUse } from '@app/domain'
+import {
+  CANCELLED_IN_PANEL_KEY,
+  DISCARD_KEY,
+  compareUses,
+  postStatusFromTargets,
+  type MediaUse,
+} from '@app/domain'
 import type {
   Platform,
   PostCover,
@@ -28,6 +34,7 @@ import type {
   PostStatus,
   PostType,
   PublishingPostStatus,
+  TargetStatus,
 } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
@@ -115,6 +122,7 @@ async function complete(
         accountId: postTargets.accountId,
         status: postTargets.status,
         fingerprint: postTargets.fingerprint,
+        cancelledInPanel: sql<boolean>`coalesce((${postTargets.verification} -> ${CANCELLED_IN_PANEL_KEY}::text) = 'true'::jsonb, false)`,
       })
       .from(postTargets)
       .where(and(eq(postTargets.organizationId, organizationId), inArray(postTargets.postId, ids)))
@@ -150,6 +158,7 @@ async function complete(
           accountId: t.accountId,
           status: t.status as PostStatus,
           fingerprint: t.fingerprint,
+          cancelledInPanel: t.cancelledInPanel,
         })),
       labelIds: labels.filter((l) => l.postId === row.id).map((l) => l.labelId),
     }
@@ -158,6 +167,43 @@ async function complete(
 
 /** The destinations' states the panel may still move (plan 07 P2); the others are going out. */
 const PANEL_REACH: readonly string[] = ['scheduled', 'preparing', 'ready', 'retrying', 'cancelled']
+
+/** The destinations the worker has not started publishing: an archived client cancels them. */
+const NOT_STARTED = ['scheduled', 'preparing', 'ready', 'retrying'] as const
+
+/**
+ * The states of a post that take its place of the day (`posts_per_day`): going out or gone out,
+ * all or in part (review R5). A post that did not go out, a draft or a cancelled one does not.
+ */
+const TAKES_ITS_DAY: readonly string[] = [
+  'scheduled',
+  'publishing',
+  'paused',
+  'published',
+  'partial',
+  'problem',
+]
+
+/**
+ * The destinations the checks of a new post read (review R5): scheduled, on their way, paused,
+ * or out (with a problem too). One that did not go out, a draft or a cancelled one used nothing
+ * on Meta and is not a twin to avoid.
+ */
+const IN_HISTORY: readonly string[] = [
+  'scheduled',
+  'preparing',
+  'ready',
+  'publishing',
+  'retrying',
+  'unknown',
+  'paused',
+  'published',
+  'verifying',
+  'confirmed',
+  'problem',
+]
+/** Of those, the ones out: what an archived client had out still counts on its accounts. */
+const OUT: readonly string[] = ['published', 'verifying', 'confirmed', 'problem']
 
 /**
  * A new round of the worker on a destination the panel moves (plan 07 P2): the jobs of the old
@@ -190,6 +236,44 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     const rows = lock ? await query.for('update') : await query
     const [post] = await complete(db, scope.organizationId, rows)
     return post ?? null
+  }
+  /** The destinations not started of posts already going out: cancelled, the posts' state again. */
+  const cancelWaiting = async (scope: PostScope, postIds: string[]) => {
+    const ofPosts = and(
+      eq(postTargets.organizationId, scope.organizationId),
+      eq(postTargets.workspaceId, scope.workspaceId),
+      inArray(postTargets.postId, postIds),
+    )
+    await db
+      .update(postTargets)
+      .set({
+        status: 'cancelled',
+        generation: sql`${postTargets.generation} + 1`,
+        claimedUntil: null,
+        nextAttemptAt: null,
+        recheckAt: null,
+        updatedAt: sql`now()`,
+      })
+      .where(and(ofPosts, inArray(postTargets.status, NOT_STARTED)))
+    const rows = await db
+      .select({ postId: postTargets.postId, status: postTargets.status })
+      .from(postTargets)
+      .where(ofPosts)
+    for (const postId of postIds) {
+      const status = postStatusFromTargets(
+        rows.filter((r) => r.postId === postId).map((r) => r.status as TargetStatus),
+      )
+      await db
+        .update(posts)
+        .set({ status })
+        .where(
+          and(
+            inScope(scope),
+            eq(posts.id, postId),
+            sql`${posts.status} is distinct from ${status}`,
+          ),
+        )
+    }
   }
   return {
     async insert(post) {
@@ -325,7 +409,14 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const candidates = await db
         .select({ id: posts.id })
         .from(posts)
-        .where(and(inScope(scope), inArray(posts.status, ['scheduled', 'publishing'])))
+        // `partial` and `paused` too: a destination failed or paused next to one still waiting
+        // (review L1); those posts are going out, never back to draft
+        .where(
+          and(
+            inScope(scope),
+            inArray(posts.status, ['scheduled', 'publishing', 'partial', 'paused']),
+          ),
+        )
         .orderBy(posts.id)
         .for('update')
       if (candidates.length === 0) return []
@@ -345,6 +436,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const going = new Set(
         targets.filter((t) => !PANEL_REACH.includes(t.status)).map((t) => t.postId),
       )
+      // R7: of a post already going out, what has not started is cancelled, as the worker
+      // would at its step; what is out or being published stays
+      if (going.size > 0) await cancelWaiting(scope, [...going])
       const postIds = candidateIds.filter((id) => !going.has(id))
       if (postIds.length === 0) return []
       await db
@@ -381,7 +475,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             // an archived client's posts never go out (D-70): they take no place of the day
             sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
                   and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
-            eq(posts.status, 'scheduled'),
+            inArray(posts.status, [...TAKES_ITS_DAY]),
             gte(posts.scheduledAt, from),
             lt(posts.scheduledAt, to),
             excludePostId === undefined ? undefined : ne(posts.id, excludePostId),
@@ -461,12 +555,17 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     },
     async activityOf(organizationId, workspaceIds, from) {
       if (workspaceIds.length === 0) return []
-      const ahead = sql`${posts.status} = 'scheduled' and ${posts.scheduledAt} >= ${from}`
+      // a post being published is still «in programma» (R18): it goes out now, so its time,
+      // if already past, is the panel's moment
+      const ahead = sql`(${posts.status} = 'scheduled' and ${posts.scheduledAt} >= ${from})
+        or ${posts.status} = 'publishing'`
       const rows = await db
         .select({
           workspaceId: posts.workspaceId,
           scheduled: sql<number>`(count(*) filter (where ${ahead}))::int`,
-          nextAt: sql<string | null>`min(${posts.scheduledAt}) filter (where ${ahead})`,
+          nextAt: sql<
+            string | null
+          >`min(greatest(${posts.scheduledAt}, ${from})) filter (where ${ahead})`,
           changedAt: sql<string>`max(${posts.updatedAt})`,
         })
         .from(posts)
@@ -530,12 +629,14 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const weekBefore = new Date(at.getTime() - 7 * DAY)
       const weekAfter = new Date(at.getTime() + 7 * DAY)
       const dayBefore = new Date(at.getTime() - DAY)
+      // when it went out, or when it goes: a post out late after a «Riprova» counts then
+      const when = sql<Date | null>`coalesce(${postTargets.publishedAt}, ${posts.scheduledAt})`
       const rows = await db
         .select({
           accountId: postTargets.accountId,
           fingerprint: postTargets.fingerprint,
           type: posts.type,
-          scheduledAt: posts.scheduledAt,
+          scheduledAt: when.mapWith(posts.scheduledAt),
         })
         .from(postTargets)
         .innerJoin(
@@ -549,13 +650,17 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(postTargets.organizationId, organizationId),
             inArray(postTargets.accountId, [...accountIds]),
-            eq(postTargets.status, 'scheduled'),
-            // as `countScheduled`: an archived client's posts never go out (D-70)
-            sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
-                  and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            inArray(postTargets.status, [...IN_HISTORY]),
+            // as `countScheduled`: an archived client's posts never go out (D-70), but what it
+            // had out is on the account
+            or(
+              inArray(postTargets.status, [...OUT]),
+              sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
+                    and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            ),
             excludePostId === undefined ? undefined : ne(postTargets.postId, excludePostId),
-            gte(posts.scheduledAt, weekBefore),
-            lte(posts.scheduledAt, weekAfter),
+            gte(when, weekBefore),
+            lte(when, weekAfter),
           ),
         )
       for (const r of rows) {
@@ -565,7 +670,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           facts.recentFingerprints.set(r.accountId, set)
         }
         // the 24 hours before the instant, the instant included
-        if (r.scheduledAt === null || r.scheduledAt <= dayBefore || r.scheduledAt > at) continue
+        if (r.scheduledAt <= dayBefore || r.scheduledAt > at) continue
         facts.scheduledNear.set(r.accountId, (facts.scheduledNear.get(r.accountId) ?? 0) + 1)
         if (r.type === 'reel')
           facts.reelsLast24h.set(r.accountId, (facts.reelsLast24h.get(r.accountId) ?? 0) + 1)

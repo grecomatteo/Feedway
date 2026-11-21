@@ -59,6 +59,9 @@ export async function cleanupPublishCopies(
     failed: 0,
   }
   for (const { id: organizationId } of organizations) {
+    // the copies whose bytes went: if the transaction is lost after that, their rows come back
+    // as `ready` with no bytes, and Meta would get a 404 (review R17)
+    let bytesGone: string[] = []
     try {
       const keys = await deps.uow.run({ organizationId, userId: null }, async (tx) => {
         const copies = await tx.media.recipeCopiesBefore(organizationId, createdBefore)
@@ -75,6 +78,7 @@ export async function cleanupPublishCopies(
         )
         // the bytes go before the commit: the deleted rows stay locked until then, so a copy
         // asked for again meanwhile (its key is the same) waits, and its new bytes come after
+        bytesGone = unused.map((c) => c.id)
         for (const key of dropped)
           await deps.storage.delete(key).catch((error: unknown) => {
             deps.logger.warn({ err: error, organizationId }, 'publish copy bytes not deleted')
@@ -85,9 +89,31 @@ export async function cleanupPublishCopies(
     } catch (error) {
       report.failed += 1
       deps.logger.error({ err: error, organizationId }, 'publish copies clean-up failed')
+      if (bytesGone.length > 0) await dropAgain(deps, organizationId, bytesGone)
     }
   }
   if (report.failed > 0)
     throw new Error(`publish copies clean-up failed for ${String(report.failed)} agencies`)
   return report
+}
+
+/**
+ * The rows of copies whose bytes are gone, dropped again in a transaction of their own: a copy
+ * missing is asked for again by the preparation, one without bytes would fail on Meta.
+ */
+async function dropAgain(
+  deps: PublishCopiesCleanupDeps,
+  organizationId: string,
+  ids: string[],
+): Promise<void> {
+  try {
+    await deps.uow.run({ organizationId, userId: null }, (tx) =>
+      tx.media.dropCopies(organizationId, ids),
+    )
+  } catch (error) {
+    deps.logger.error(
+      { err: error, organizationId, copies: ids.length },
+      'publish copies without bytes left in place',
+    )
+  }
 }

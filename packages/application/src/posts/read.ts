@@ -89,7 +89,11 @@ export function toPostDto(
     media: post.mediaIds.map(file),
     cover: post.cover,
     caption: { common: post.caption, ...post.captionByPlatform },
-    destinations: post.targets.map((t) => ({ accountId: t.accountId, status: t.status })),
+    destinations: post.targets.map((t) => ({
+      accountId: t.accountId,
+      status: t.status,
+      cancelledInPanel: t.cancelledInPanel,
+    })),
     when:
       post.scheduledAt === null
         ? null

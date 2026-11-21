@@ -282,7 +282,7 @@ test('«Riprova» from problem with the post on Meta: confirmed, nothing publish
   expect(publishCalls()).toBe(before)
 })
 
-test('«Riprova» from problem with the post gone from Meta: prepared and published again, once', async () => {
+test('«Riprova» from problem the next day with the post gone from Meta: prepared and published again, once', async () => {
   const { world, post, clock, deps, out } = await publishedNow()
   await admin.query(
     `update post_targets set status = 'unknown', step = 'recheck', attempts = 0,
@@ -302,7 +302,8 @@ test('«Riprova» from problem with the post gone from Meta: prepared and publis
       }),
     findPublished: () => Promise.resolve(null),
   }
-  clock.set(plus(clock.now(), 40))
+  // «Riprova» the next day: the 60 minutes of R4 count from it, not from the post's time
+  clock.set(plus(clock.now(), 24 * 60))
   expect(
     await searchTarget(
       { ...deps, publishers: { instagram: gone } },

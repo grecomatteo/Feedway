@@ -2,7 +2,9 @@ import pg from 'pg'
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest'
 import {
   PublishError,
+  archiveWorkspace,
   cancelPaused,
+  cancelPost,
   cancelTarget,
   markVerified,
   prepareTarget,
@@ -10,6 +12,7 @@ import {
   resumePaused,
   retryTarget,
   searchTarget,
+  unschedulePost,
   updatePost,
   type PlatformPublisher,
 } from '@app/application'
@@ -251,6 +254,133 @@ test('one destination cancelled while the other is already out', async () => {
   ).rejects.toMatchObject({ code: 'CONFLICT' })
 })
 
+test('«Riprova» next to a destination already out: the post is publishing, never moved again (R6)', async () => {
+  const { world, at, post, panel, input } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await runAll(world, post.postId, deps, 'prepare')
+  clock.set(at)
+  await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
+  await admin.query(
+    `update post_targets set status = 'failed', last_error_code = 'too_late',
+            generation = generation + 1
+      where post_id = $1 and account_id = $2`,
+    [post.postId, fb],
+  )
+  panel.clock.set(plus(at, 20))
+  await retryTarget(panel, world.actor, input(fb), { ip: null })
+  expect((await targetOn(post.postId, fb)).status).toBe('scheduled')
+  expect(await postStatusOf(admin, post.postId)).toBe('publishing')
+  // a row written so before the fix: still out of the panel's reach
+  for (const status of ['publishing', 'scheduled']) {
+    await admin.query('update posts set status = $2 where id = $1', [post.postId, status])
+    const version = await versionOf(post.postId)
+    const ref = { workspaceId: world.workspaceId, postId: post.postId, version }
+    await expect(unschedulePost(panel, world.actor, ref, { ip: null })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(cancelPost(panel, world.actor, ref, { ip: null })).rejects.toMatchObject({
+      code: 'CONFLICT',
+    })
+    await expect(
+      updatePost(
+        panel,
+        world.actor,
+        post.postId,
+        { workspaceId: world.workspaceId, version, caption: { common: 'Un altro testo' } },
+        { ip: null },
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
+  }
+  expect((await targetOn(post.postId, ig)).status).toBe('published')
+})
+
+test('a client archived while one destination is out: the one not started is cancelled (R7)', async () => {
+  const { world, at, post, panel } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await runAll(world, post.postId, deps, 'prepare')
+  clock.set(at)
+  await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
+  const waiting = await targetOn(post.postId, fb)
+  expect(waiting.status).toBe('ready')
+  await archiveWorkspace(panel, world.actor, world.workspaceId, { ip: null })
+  const cancelled = await targetOn(post.postId, fb)
+  expect(cancelled).toMatchObject({ status: 'cancelled', next_attempt_at: null })
+  expect(cancelled.generation).toBe(waiting.generation + 1)
+  expect((await targetOn(post.postId, ig)).status).toBe('published')
+  expect(await postStatusOf(admin, post.postId)).toBe('published')
+  // its job, sent before, does nothing
+  await publishTarget(deps, job(world, waiting))
+  expect((await targetOn(post.postId, fb)).status).toBe('cancelled')
+})
+
+test('a client archived while one destination failed and one waits: the waiting one is cancelled (L1)', async () => {
+  const { world, post, panel } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  await admin.query(
+    `update post_targets set status = 'failed', last_error_code = 'file_wont_publish',
+            generation = generation + 1
+      where post_id = $1 and account_id = $2`,
+    [post.postId, ig],
+  )
+  await admin.query(`update posts set status = 'partial' where id = $1`, [post.postId])
+  await archiveWorkspace(panel, world.actor, world.workspaceId, { ip: null })
+  expect((await targetOn(post.postId, fb)).status).toBe('cancelled')
+  expect((await targetOn(post.postId, ig)).status).toBe('failed')
+  expect(await postStatusOf(admin, post.postId)).not.toBe('draft')
+})
+
+test('a save of a post on its way leaves out the account cancelled by a person, not one a choice cancelled (M1)', async () => {
+  const { world, post, panel, input } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const cancelled = await cancelTarget(panel, world.actor, input(fb), { ip: null })
+  expect(cancelled.destinations).toContainEqual({
+    accountId: fb,
+    status: 'cancelled',
+    cancelledInPanel: true,
+  })
+  expect(cancelled.destinations).toContainEqual({
+    accountId: ig,
+    status: 'scheduled',
+    cancelledInPanel: false,
+  })
+  // moved in the calendar: the save names no destinations
+  const move = async (days: number) => {
+    const moved = new Date(Math.ceil((Date.now() + days * 24 * 60 * MINUTE) / MINUTE) * MINUTE)
+    const { localDate, localTime } = instantToZoned(moved, 'Europe/Rome')
+    return updatePost(
+      postsDeps(runtime),
+      world.actor,
+      post.postId,
+      {
+        workspaceId: world.workspaceId,
+        version: await versionOf(post.postId),
+        when: { localDate, localTime },
+      },
+      { ip: null },
+    )
+  }
+  const saved = await move(1)
+  expect(saved.destinations.map((d) => d.accountId)).toEqual([ig])
+  expect((await targetOn(post.postId, ig)).status).toBe('scheduled')
+  // one a choice of the post cancelled (no mark): the checks of the save look at it again
+  await admin.query(
+    `insert into post_targets (id, organization_id, workspace_id, post_id, account_id, status)
+     select gen_random_uuid(), organization_id, workspace_id, id, $2, 'cancelled'
+       from posts where id = $1`,
+    [post.postId, fb],
+  )
+  await move(2)
+  expect((await targetOn(post.postId, fb)).status).toBe('scheduled')
+})
+
 /** A Publisher of the client who schedules the post: the one the pause looks at (P6). */
 async function scheduledByPublisher(world: PublishingWorld, postId: string): Promise<string> {
   const userId = await seed(tdb.runtimeUrl, async (s) => {
@@ -329,7 +459,7 @@ test.each(CAUSES)(
 )
 
 test('a suspended agency pauses with no event; lifting it does not resume by itself', async () => {
-  const { world, at, post, panel } = await setUp({ accounts: 'instagram' })
+  const { world, at, post, panel, photo } = await setUp({ accounts: 'instagram' })
   const setStatus = (status: 'suspended' | 'active') =>
     withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
       c.query('update organizations set status = $2, suspended_at = $3 where id = $1', [
@@ -373,17 +503,31 @@ test('a suspended agency pauses with no event; lifting it does not resume by its
     ),
   ).rejects.toMatchObject({ details: { reason: 'paused_time_passed' } })
   await expect(resume()).rejects.toMatchObject({ code: 'CONFLICT' })
-  const dto = await resumePaused(
-    panel,
-    world.actor,
-    {
-      workspaceId: world.workspaceId,
-      postId: post.postId,
-      version,
-      when: { localDate: '2099-01-15', localTime: '10:00' },
-    },
-    { ip: null },
+  // a day already full for the agency: refused, as «Programma» would (R19)
+  await scheduledPost(runtime, world, {
+    at: new Date('2099-01-14T08:00:00Z'),
+    mediaIds: [photo],
+    accounts: [world.accounts.instagram],
+  })
+  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query(`update organizations set limits = '{"posts_per_day": 1}' where id = $1`, [
+      world.organizationId,
+    ]),
   )
+  const resumeOn = (localDate: string) =>
+    resumePaused(
+      panel,
+      world.actor,
+      {
+        workspaceId: world.workspaceId,
+        postId: post.postId,
+        version,
+        when: { localDate, localTime: '10:00' },
+      },
+      { ip: null },
+    )
+  await expect(resumeOn('2099-01-14')).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
+  const dto = await resumeOn('2099-01-15')
   expect(dto.status).toBe('scheduled')
   expect((await targetsOf(admin, post.postId))[0]?.status).toBe('scheduled')
 })
@@ -437,6 +581,44 @@ test('an uncertain call, not found, then «Riprova»: prepared and published', a
   await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
   expect((await targetOn(post.postId, ig)).status).toBe('published')
   expect(publishCalls()).toBe(before + 1)
+})
+
+test('Facebook: an uncertain call, not found, then «Riprova»: a new round, published once (R2)', async () => {
+  const { world, at, post, panel, input } = await setUp()
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await prepareTarget(deps, job(world, await targetOn(post.postId, fb)))
+  clock.set(at)
+  // the call leaves its mark, then the answer is lost
+  const real = runtime.publishers.facebook as PlatformPublisher
+  const lost: PlatformPublisher = {
+    ...real,
+    publish: async (target, _files, ctx) => {
+      await ctx.saveIds({ ...(target.metaIds ?? {}), publishingAt: clock.now().toISOString() })
+      throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+    },
+  }
+  await publishTarget(
+    { ...deps, publishers: { facebook: lost } },
+    job(world, await targetOn(post.postId, fb)),
+  )
+  for (const minutes of [2, 5, 15]) {
+    clock.set(plus(at, minutes))
+    await searchTarget(deps, job(world, await targetOn(post.postId, fb)))
+  }
+  expect((await targetOn(post.postId, fb)).last_error_code).toBe('uncertain_not_found')
+  panel.clock.set(plus(at, 20))
+  clock.set(plus(at, 20))
+  await retryTarget(panel, world.actor, input(fb), { ip: null })
+  const photos = () =>
+    mock.calls().filter((c) => c.method === 'POST' && c.path.endsWith('/photos')).length
+  const before = photos()
+  await prepareTarget(deps, job(world, await targetOn(post.postId, fb)))
+  expect((await targetOn(post.postId, fb)).status).toBe('ready')
+  await publishTarget(deps, job(world, await targetOn(post.postId, fb)))
+  expect((await targetOn(post.postId, fb)).status).toBe('published')
+  expect(photos()).toBe(before + 1)
 })
 
 test('«Riprova», then the post moved to another day: its preparation is not too late', async () => {

@@ -466,6 +466,37 @@ test('Scelta 5: a post whose author may no longer publish keeps every copy of it
   expect(await copiesOf(photo)).toHaveLength(2)
 })
 
+test('R17: a clean-up whose transaction is lost after the bytes went leaves no copy without bytes', async () => {
+  const { world, photo } = await setUp({ type: 'story' })
+  await admin.query(
+    "update media_variants set created_at = now() - interval '2 hours' where media_id = $1",
+    [photo],
+  )
+  const old = await recipeCopy(world, photo, 'lostrecipe', 2 * 60 * MINUTE)
+  const deps = { ...handlerDeps(runtime, recordingQueue()), clock: { now: () => new Date() } }
+  // the transaction of this agency is lost after its work: as a commit that fails
+  let lost = false
+  const losing: typeof deps.uow = {
+    ...deps.uow,
+    run: (scope, work) =>
+      deps.uow.run(scope, async (tx) => {
+        const done = await work(tx)
+        if (!lost && 'organizationId' in scope && scope.organizationId === world.organizationId) {
+          lost = true
+          throw new Error('commit lost')
+        }
+        return done
+      }),
+  }
+  await expect(
+    mediaPublishCopiesCleanup({ id: 'cleanup', data: {} }, { ...deps, uow: losing }),
+  ).rejects.toThrow('clean-up failed')
+  expect(lost).toBe(true)
+  expect(await runtime.storage.get(old.key)).toBeNull()
+  // its row went again: the preparation asks for the copy anew, Meta never gets a 404
+  expect(await copiesOf(photo)).not.toContain('lostrecipe')
+})
+
 /** The post of a destination. */
 async function postOf(targetId: string): Promise<string> {
   const { rows } = await admin.query<{ post_id: string }>(

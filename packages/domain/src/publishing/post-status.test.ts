@@ -51,12 +51,18 @@ describe('postStatusFromTargets', () => {
     expect(postStatusFromTargets(['scheduled', 'failed'])).not.toBe('scheduled')
   })
 
+  it('a destination scheduled again next to one already out: on its way, never «Programmato»', () => {
+    // «Riprova» on one account while the other is out or did not go out (review R6)
+    expect(postStatusFromTargets(['scheduled', 'confirmed'])).toBe('publishing')
+    expect(postStatusFromTargets(['scheduled', 'published'])).toBe('publishing')
+    expect(postStatusFromTargets(['scheduled', 'problem'])).toBe('publishing')
+    expect(postStatusFromTargets(['scheduled', 'confirmed', 'cancelled'])).toBe('publishing')
+  })
+
   it('then the rules of stage 6', () => {
     expect(postStatusFromTargets(['scheduled', 'scheduled'])).toBe('scheduled')
     expect(postStatusFromTargets(['scheduled', 'cancelled'])).toBe('scheduled')
     expect(postStatusFromTargets(['draft', 'draft'])).toBe('draft')
     expect(postStatusFromTargets(['draft', 'cancelled'])).toBe('draft')
-    // one retried destination waits while the other is already out
-    expect(postStatusFromTargets(['scheduled', 'confirmed'])).toBe('scheduled')
   })
 })

@@ -6,6 +6,7 @@ import {
   PREPARE_PER_ORGANIZATION,
   PREPARE_TURN_WAIT_SECONDS,
   idsToDiscard,
+  isPastLatestStart,
   isTooLate,
   nextAttemptAt,
   roundIds,
@@ -27,7 +28,11 @@ import { toCheckInput } from '../to-check-input.js'
 import {
   assertTargetJob,
   blocksOf,
+  cancelArchived,
+  clientArchived,
   failTarget,
+  lateCodeOf,
+  latestStartOf,
   moveTarget,
   openAccount,
   pauseTarget,
@@ -45,7 +50,12 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
-import { retriedAtOf } from './retry-mark.js'
+import {
+  preparingSinceOf,
+  retriedAfterNotFound,
+  retriedAtOf,
+  withPreparingSince,
+} from './retry-mark.js'
 
 // `target.prepare` (plan 07 Task 7): everything before the post goes out, from 15 minutes
 // before its time: the checks again, the person who scheduled, the copies, a place among the
@@ -105,13 +115,19 @@ async function decide(
     return done(await pauseTarget(tx, target, 'organization_suspended'))
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
-  // D-77 (b): only the first start; a preparation under way or tried again goes on
-  // after a «Riprova» the 15 minutes count from it (Scelta 1): the post keeps its time
-  if (
-    target.status === 'scheduled' &&
-    isTooLate(latestOf(post.scheduledAt, retriedAtOf(target)), now)
-  )
+  // an archived client publishes nothing (D-70): what has not gone out is cancelled (R7)
+  if (await clientArchived(tx, target)) return done(await cancelArchived(tx, target))
+  // after a «Riprova» the minutes count from it (Scelta 1): the post keeps its time
+  const startAt = latestOf(post.scheduledAt, retriedAtOf(target))
+  // R4: never more than 60 minutes late, whatever held the preparation (a worker stopped, the
+  // attempts, the quota)
+  if (isPastLatestStart(startAt, now)) return done(await failTarget(tx, target, lateCodeOf(target)))
+  // D-77 (b): only the first start; a preparation under way, waiting for Feedway's own files
+  // or its turn since it started in time (R8), or tried again goes on
+  if (target.status === 'scheduled' && preparingSinceOf(target) === null && isTooLate(startAt, now))
     return done(await failTarget(tx, target, 'too_late'))
+  /** A wait of a preparation that started: not a late start when it looks again (R8). */
+  const started = { verification: withPreparingSince(target, now) }
 
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const blocks = blocksOf(report, target.accountId)
@@ -122,6 +138,7 @@ async function decide(
       'target.prepare',
       plusMinutes(now, PREPARE_FILE_WAIT_MINUTES),
       'file processing',
+      started,
     )
     return done(wait.log, [wait.job])
   }
@@ -129,6 +146,8 @@ async function decide(
 
   const copies = await destinationCopies(tx, deps, post, report, target.accountId)
   if (copies.status === 'failed') return done(await failTarget(tx, target, 'file_wont_publish'))
+  if (copies.status === 'no_public_host')
+    return done(await failTarget(tx, target, 'public_host_off'))
   if (copies.status === 'pending') {
     const wait = await waitTarget(
       tx,
@@ -136,6 +155,7 @@ async function decide(
       'target.prepare',
       plusMinutes(now, PREPARE_FILE_WAIT_MINUTES),
       'copies being made',
+      started,
     )
     return {
       kind: 'done',
@@ -148,7 +168,7 @@ async function decide(
   // above 80% of Meta's usage the account, or the agency, waits (§8.6): not an attempt
   const slowUntil = await slowDownOf(tx, target, 'prepare', now)
   if (slowUntil) {
-    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down')
+    const wait = await waitTarget(tx, target, 'target.prepare', slowUntil, 'slowing down', started)
     return done(wait.log, [wait.job])
   }
   const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
@@ -167,14 +187,22 @@ async function decide(
       'target.prepare',
       new Date(now.getTime() + PREPARE_TURN_WAIT_SECONDS * 1000),
       'waiting for its turn',
+      started,
     )
     return done(wait.log, [wait.job])
   }
   const destination = report.destinations.find((d) => d.accountId === target.accountId)
+  // R2: after «Riprova» on an uncertain call never found, the platform says what is kept
+  const afterNotFound = target.status === 'scheduled' && retriedAfterNotFound(target)
+  const metaIds = afterNotFound
+    ? opened.publisher.idsAfterNotFound(roundIds(target.metaIds))
+    : roundIds(target.metaIds)
   // the reconciler sends the step again if the worker stops: after the claim, not during it
   const generation = await moveTarget(tx, target, 'preparing', {
     step: 'prepare',
     nextAttemptAt: plusMinutes(now, PREPARE_CLAIM_MINUTES),
+    // saved with the claim: a step stopped before the platform saves its own finds them again
+    ...(afterNotFound ? { metaIds: keptIds(target.metaIds, metaIds) } : {}),
   })
   return {
     kind: 'call',
@@ -194,7 +222,7 @@ async function decide(
         asVideo: destination?.format === 'video',
         caption: post.type === 'story' ? '' : (destination?.caption ?? ''),
         shareToFeed: post.options.shareToFeed,
-        metaIds: roundIds(target.metaIds),
+        metaIds,
         externalPostId: target.externalPostId,
       },
     },
@@ -288,6 +316,9 @@ async function settle(
     // a container still processing, or no posts left in the window: not an attempt
     const at = result.outcome === 'wait' ? result.retryAt : now
     const quota = result.outcome === 'wait' && result.reason === 'quota'
+    // R4: a window that frees up past the 60 minutes: not out, and «Riprova» later
+    if (quota && at.getTime() > latestStartOf(call.scheduledAt, target).getTime())
+      return { log: await failTarget(tx, target, 'quota_exhausted'), jobs: [] }
     if (quota) {
       const generation = await moveTarget(tx, target, 'retrying', {
         step: 'prepare',
@@ -397,4 +428,14 @@ export async function prepareTarget(deps: PublishingWorkerDeps, job: TargetJob):
   })
   await sendSteps(deps, settled.jobs)
   return settled.log
+}
+
+/** The ids a round keeps (R2), with those of an old round still to throw away. */
+function keptIds(
+  saved: Readonly<Record<string, unknown>> | null,
+  kept: Readonly<Record<string, unknown>> | null,
+): Record<string, unknown> | null {
+  const discard = idsToDiscard(saved)
+  if (kept === null) return discard === null ? null : { [DISCARD_KEY]: discard }
+  return withRoundIds(saved, kept)
 }

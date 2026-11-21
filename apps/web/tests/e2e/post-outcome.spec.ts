@@ -189,6 +189,61 @@ test('a post in pause: a Manager resumes it, a Publisher is told to ask', async 
   await expect(page.locator('[data-outcome-resume]')).toBeDisabled()
 })
 
+test('a post in preparation: «Modifica» opens the editor and saves it as a scheduled one (R13)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'the same page on the phone')
+  const { org, client, ig, fb, photo } = await clientWithPhoto(page)
+  const base = `/api/v1/orgs/${org}/workspaces/${client.id}/posts`
+  const ahead = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10)
+  const draft = (await send(page.request, 'POST', base, {
+    type: 'photo',
+    mediaIds: [photo],
+    caption: { common: 'Il pane del lunedì' },
+    destinations: [{ accountId: ig }, { accountId: fb }],
+    when: { localDate: ahead, localTime: '18:00' },
+  })) as { id: string; version: number }
+  await send(page.request, 'POST', `${base}/${draft.id}/schedule`, { version: draft.version })
+  // Facebook cancelled on the page of the outcome; the worker took Instagram 15 minutes before
+  await send(page.request, 'POST', `${base}/${draft.id}/destinations/${fb}/cancel`)
+  await worker(draft.id, ig, 'ready')
+  await postIs(draft.id, 'publishing')
+  await page.goto(`/${org}/spazi/${client.slug}/post/${draft.id}`)
+  await expect(page.locator('[data-outcome-state]')).toHaveText('In pubblicazione')
+  await page.locator('[data-outcome-edit]').click()
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
+  const text = page.getByRole('textbox', { name: 'Testo comune' })
+  await expect(text).toHaveValue('Il pane del lunedì')
+  await text.fill('Il pane del lunedì, con il sesamo')
+  await page.getByRole('button', { name: 'Salva modifiche' }).first().click()
+  await expect
+    .poll(
+      async () =>
+        (
+          await adminQuery<{ caption: string; status: string }>(
+            'select caption, status from posts where id = $1',
+            [draft.id],
+          )
+        )[0],
+    )
+    .toEqual({ caption: 'Il pane del lunedì, con il sesamo', status: 'scheduled' })
+  // the account cancelled stays out: saving does not schedule it again
+  const targets = await adminQuery<{ account_id: string; status: string }>(
+    'select account_id, status from post_targets where post_id = $1',
+    [draft.id],
+  )
+  expect(targets.find((t) => t.account_id === ig)?.status).toBe('scheduled')
+  expect(targets.find((t) => t.account_id === fb)?.status ?? 'cancelled').not.toBe('scheduled')
+
+  // one destination being published: no «Modifica» any more
+  await worker(draft.id, ig, 'publishing')
+  await postIs(draft.id, 'publishing')
+  await page.goto(`/${org}/spazi/${client.slug}/post/${draft.id}`)
+  await expect(page.locator('[data-outcome-state]')).toHaveText('In pubblicazione')
+  await expect(page.locator('[data-outcome-title]')).toBeVisible()
+  await expect(page.locator('[data-outcome-edit]')).toHaveCount(0)
+})
+
 test('on a phone: the outcome under the post, with the bar at the bottom', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   const { org, client, ig, fb, photo } = await clientWithPhoto(page)
@@ -199,7 +254,7 @@ test('on a phone: the outcome under the post, with the bar at the bottom', async
   await page.goto(`/${org}/spazi/${client.slug}/post/${postId}`)
   await expect(page.locator('[data-outcome-state]')).toHaveText('1 non uscito')
   await expect(page.locator(`[data-outcome-row="${fb}"] [data-outcome-reason]`)).toContainText(
-    'più di 15 minuti',
+    'troppo tempo',
   )
   const width = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(width).toBeLessThanOrEqual(390)

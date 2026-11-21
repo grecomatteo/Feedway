@@ -18,6 +18,8 @@ export const PUBLISH_ERROR_CODES = [
   'file_wont_publish',
   'author_lost_permission',
   'organization_suspended',
+  // PUBLIC_URL is not set: Meta reaches no file of Feedway (review R9)
+  'public_host_off',
 ] as const
 export type PublishErrorCode = (typeof PUBLISH_ERROR_CODES)[number]
 

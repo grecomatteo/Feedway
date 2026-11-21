@@ -2,6 +2,9 @@ ALTER TABLE "post_targets" ADD COLUMN "claimed_until" timestamp with time zone;-
 CREATE INDEX "post_targets_claimed_idx" ON "post_targets" USING btree ("organization_id","account_id") WHERE "post_targets"."claimed_until" is not null;--> statement-breakpoint
 -- plan 07 Task 7: the scheduled destinations already in the database get the time of their
 -- preparation (`prepareAt`: 15 minutes before the post, or now), so the reconciler finds them
+-- row level security is forced on these tables, the owner too: only the system scope sees
+-- every agency's rows (as in 0019), and it is cleared after the update (review of stage 7, R1)
+SELECT set_config('app.scope', 'system', true);--> statement-breakpoint
 UPDATE "post_targets" AS t
    SET "next_attempt_at" = greatest(p."scheduled_at" - interval '15 minutes', now())
   FROM "posts" AS p
@@ -9,4 +12,5 @@ UPDATE "post_targets" AS t
    AND p."id" = t."post_id"
    AND t."status" = 'scheduled'
    AND t."next_attempt_at" IS NULL
-   AND p."scheduled_at" IS NOT NULL;
+   AND p."scheduled_at" IS NOT NULL;--> statement-breakpoint
+SELECT set_config('app.scope', '', true);

@@ -6,7 +6,7 @@ import { createUnitOfWork } from '../unit-of-work.js'
 import { createLogger } from '../../logging/logger.js'
 import { uuidV7Generator } from '../../system/id-generator.js'
 import { postgresPublishingHistory } from '../../system/publishing-history.js'
-import { seed, startTestDatabase, type TestDatabase } from '../../testing/index.js'
+import { seed, startTestDatabase, withScope, type TestDatabase } from '../../testing/index.js'
 
 // What the checks read of the scheduled posts (plan 06 Task 3): fingerprints within 7 days,
 // reels and posts in the 24 hours before the instant, by account, the post itself left out.
@@ -158,6 +158,56 @@ test('thirty reels on a Facebook page in the 24 hours are all counted', async ()
   for (let i = 0; i < 30; i++)
     await scheduled(new Date(AT.getTime() - (i + 1) * 10 * 60 * 1000), [page], { type: 'reel' })
   expect((await facts([page])).reelsLast24h.get(page)).toBe(30)
+})
+
+test('a post on its way, out or with a problem counts too; one not out or cancelled does not (R5)', async () => {
+  const page = await seed(tdb.runtimeUrl, (s) =>
+    s.account(org, { platform: 'facebook', workspaceIds: [ws] }),
+  )
+  const states = {
+    preparing: null,
+    paused: null,
+    published: 90,
+    confirmed: 90,
+    problem: 90,
+    failed: null,
+    cancelled: null,
+  } as const
+  const prints = new Map<string, string>()
+  for (const [i, [status, outMinutes]] of Object.entries(states).entries()) {
+    const print = String(i).repeat(64)
+    prints.set(status, print)
+    const id = await scheduled(new Date(AT.getTime() - 2 * HOUR), [page], {
+      type: 'reel',
+      fingerprint: print,
+    })
+    await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+      c.query(
+        `update post_targets set status = $2,
+           published_at = case when $3::int is null then null
+                               else $4::timestamptz - make_interval(mins => $3::int) end
+         where post_id = $1`,
+        [id, status, outMinutes, AT],
+      ),
+    )
+  }
+  // scheduled long ago, out with a «Riprova» two hours before: counted when it went out
+  const late = await scheduled(new Date(AT.getTime() - 30 * HOUR), [page], { type: 'reel' })
+  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query(
+      `update post_targets set status = 'confirmed', published_at = $2::timestamptz - interval '2 hours'
+       where post_id = $1`,
+      [late, AT],
+    ),
+  )
+  const { recentFingerprints, reelsLast24h, scheduledNear } = await facts([page])
+  expect(reelsLast24h.get(page)).toBe(6)
+  expect(scheduledNear.get(page)).toBe(6)
+  const seen = recentFingerprints.get(page) ?? new Set<string>()
+  for (const status of ['preparing', 'paused', 'published', 'confirmed', 'problem'])
+    expect(seen.has(prints.get(status) ?? ''), status).toBe(true)
+  for (const status of ['failed', 'cancelled'])
+    expect(seen.has(prints.get(status) ?? ''), status).toBe(false)
 })
 
 test('the post being checked is never counted, nor a duplicate of itself', async () => {

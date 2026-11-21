@@ -181,7 +181,12 @@ export function usePostEditor(opts: {
     null | 'schedule' | 'publishNow' | 'unschedule' | 'cancel' | 'delete' | 'saveScheduled'
   >(null)
 
-  const status = computed(() => post.value?.status ?? 'draft')
+  // a post in preparation opened with «Modifica» (R13) is changed as a scheduled one
+  const status = computed(() => {
+    const p = post.value
+    if (!p) return 'draft'
+    return p.status === 'publishing' && isPanelEditable(p) ? 'scheduled' : p.status
+  })
   const mine = computed(() => !post.value || post.value.createdBy === org.me.value?.id)
   /** what this person may change of this post (§10.2) */
   const editable = computed(() => {
@@ -612,7 +617,10 @@ export function usePostEditor(opts: {
       delete caption.instagram
       delete caption.facebook
     }
-    destinations.value = p.destinations.map((d) => d.accountId)
+    // an account a person cancelled on the page of the outcome stays out: «Salva modifiche»
+    // would schedule it again (R13). One a choice cancelled (another platform skipped) stays
+    // in: the checks of the save cancel it again
+    destinations.value = p.destinations.filter((d) => !d.cancelledInPanel).map((d) => d.accountId)
     when.value = p.when
     shareToFeed.value = p.shareToFeed
     choices.value = p.choices.map((c) => ({ ...c }))

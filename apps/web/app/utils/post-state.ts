@@ -25,6 +25,29 @@ export const isDue = (post: Pick<PostResponse, 'status' | 'scheduledAt'>, now = 
 export const opensOnOutcome = (post: Pick<PostResponse, 'status' | 'scheduledAt'>) =>
   isOutcomeStatus(post.status) || isDue(post)
 
+/** The destinations the panel may still move (P2): none is being published or out. */
+const IN_PANEL_REACH = new Set<TargetStatus>([
+  'scheduled',
+  'preparing',
+  'ready',
+  'retrying',
+  'cancelled',
+])
+
+/**
+ * A post in preparation still changed in the editor as a scheduled one (P2, review R13): before
+ * its time, and with no destination being published or out yet. The same rule as the server's
+ * `isScheduledForPanel`, which answers 409 when it no longer holds.
+ */
+export const isPanelEditable = (
+  post: Pick<PostResponse, 'status' | 'scheduledAt' | 'destinations'>,
+  now = Date.now(),
+) =>
+  (post.status === 'scheduled' || post.status === 'publishing') &&
+  post.scheduledAt !== null &&
+  new Date(post.scheduledAt).getTime() > now &&
+  post.destinations.every((d) => IN_PANEL_REACH.has(d.status))
+
 /** A post past «Programmato» (Scelta 6). */
 export const isOutcomeStatus = (status: PostStatus) =>
   status === 'publishing' ||
