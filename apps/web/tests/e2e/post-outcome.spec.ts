@@ -204,13 +204,14 @@ test('a post in preparation: «Modifica» opens the editor and saves it as a sch
     when: { localDate: ahead, localTime: '18:00' },
   })) as { id: string; version: number }
   await send(page.request, 'POST', `${base}/${draft.id}/schedule`, { version: draft.version })
-  // the worker took it 15 minutes before: one ready, one still preparing
+  // the worker took it 15 minutes before: Instagram ready; Facebook cancelled on this page
   await worker(draft.id, ig, 'ready')
-  await worker(draft.id, fb, 'preparing')
+  await worker(draft.id, fb, 'cancelled')
   await postIs(draft.id, 'publishing')
   await page.goto(`/${org}/spazi/${client.slug}/post/${draft.id}`)
   await expect(page.locator('[data-outcome-state]')).toHaveText('In pubblicazione')
   await page.locator('[data-outcome-edit]').click()
+  await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
   const text = page.getByRole('textbox', { name: 'Testo comune' })
   await expect(text).toHaveValue('Il pane del lunedì')
   await text.fill('Il pane del lunedì, con il sesamo')
@@ -226,11 +227,13 @@ test('a post in preparation: «Modifica» opens the editor and saves it as a sch
         )[0],
     )
     .toEqual({ caption: 'Il pane del lunedì, con il sesamo', status: 'scheduled' })
-  const targets = await adminQuery<{ status: string }>(
-    'select status from post_targets where post_id = $1',
+  // the account cancelled stays out: saving does not schedule it again
+  const targets = await adminQuery<{ account_id: string; status: string }>(
+    'select account_id, status from post_targets where post_id = $1',
     [draft.id],
   )
-  expect(targets.map((t) => t.status)).toEqual(['scheduled', 'scheduled'])
+  expect(targets.find((t) => t.account_id === ig)?.status).toBe('scheduled')
+  expect(targets.find((t) => t.account_id === fb)?.status ?? 'cancelled').not.toBe('scheduled')
 
   // one destination being published: no «Modifica» any more
   await worker(draft.id, ig, 'publishing')

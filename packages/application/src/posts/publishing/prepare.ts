@@ -193,14 +193,16 @@ async function decide(
   }
   const destination = report.destinations.find((d) => d.accountId === target.accountId)
   // R2: after «Riprova» on an uncertain call never found, the platform says what is kept
-  const metaIds =
-    target.status === 'scheduled' && retriedAfterNotFound(target)
-      ? opened.publisher.idsAfterNotFound(roundIds(target.metaIds))
-      : roundIds(target.metaIds)
+  const afterNotFound = target.status === 'scheduled' && retriedAfterNotFound(target)
+  const metaIds = afterNotFound
+    ? opened.publisher.idsAfterNotFound(roundIds(target.metaIds))
+    : roundIds(target.metaIds)
   // the reconciler sends the step again if the worker stops: after the claim, not during it
   const generation = await moveTarget(tx, target, 'preparing', {
     step: 'prepare',
     nextAttemptAt: plusMinutes(now, PREPARE_CLAIM_MINUTES),
+    // saved with the claim: a step stopped before the platform saves its own finds them again
+    ...(afterNotFound ? { metaIds: keptIds(target.metaIds, metaIds) } : {}),
   })
   return {
     kind: 'call',
@@ -426,4 +428,14 @@ export async function prepareTarget(deps: PublishingWorkerDeps, job: TargetJob):
   })
   await sendSteps(deps, settled.jobs)
   return settled.log
+}
+
+/** The ids a round keeps (R2), with those of an old round still to throw away. */
+function keptIds(
+  saved: Readonly<Record<string, unknown>> | null,
+  kept: Readonly<Record<string, unknown>> | null,
+): Record<string, unknown> | null {
+  const discard = idsToDiscard(saved)
+  if (kept === null) return discard === null ? null : { [DISCARD_KEY]: discard }
+  return withRoundIds(saved, kept)
 }

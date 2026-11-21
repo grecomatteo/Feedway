@@ -29,6 +29,7 @@ describe('postStatusFromTargets', () => {
     expect(postStatusFromTargets(['failed', 'published'])).toBe('partial')
     expect(postStatusFromTargets(['failed', 'verifying'])).toBe('partial')
     expect(postStatusFromTargets(['failed', 'problem'])).toBe('partial')
+    expect(postStatusFromTargets(['failed', 'scheduled'])).toBe('partial')
   })
 
   it('failed when no destination came out, cancelled ones aside', () => {
@@ -50,11 +51,10 @@ describe('postStatusFromTargets', () => {
     expect(postStatusFromTargets(['scheduled', 'failed'])).not.toBe('scheduled')
   })
 
-  it('a destination scheduled again next to one that ended: on its way, never «Programmato»', () => {
+  it('a destination scheduled again next to one already out: on its way, never «Programmato»', () => {
     // «Riprova» on one account while the other is out or did not go out (review R6)
     expect(postStatusFromTargets(['scheduled', 'confirmed'])).toBe('publishing')
     expect(postStatusFromTargets(['scheduled', 'published'])).toBe('publishing')
-    expect(postStatusFromTargets(['scheduled', 'failed'])).toBe('publishing')
     expect(postStatusFromTargets(['scheduled', 'problem'])).toBe('publishing')
     expect(postStatusFromTargets(['scheduled', 'confirmed', 'cancelled'])).toBe('publishing')
   })

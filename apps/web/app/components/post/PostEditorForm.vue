@@ -183,6 +183,16 @@ async function schedule() {
   })
   await navigateTo(props.back)
 }
+// «Modifica» from the page of the outcome: the focus goes to the editor's title, not to the
+// page's body, once the post is read (R13)
+const heading = useTemplateRef<HTMLElement>('heading')
+watch(
+  () => e.loadState.value,
+  (state) => {
+    if (props.editing && state === 'ready') void nextTick(() => heading.value?.focus())
+  },
+  { immediate: true },
+)
 // a post past «Programmato» is read on the page of the outcome, not changed here; one in
 // preparation opened with «Modifica» stays while no destination has started (R13)
 watch(
@@ -303,7 +313,9 @@ const confirmText = computed(() => {
       </span>
       <span class="h-5 w-px shrink-0 bg-(--app-border-strong) max-lg:hidden" aria-hidden="true" />
       <h1
-        class="min-w-0 shrink truncate text-[0.9375rem] leading-5 tracking-[-0.01em] max-md:text-base"
+        ref="heading"
+        tabindex="-1"
+        class="min-w-0 shrink truncate text-[0.9375rem] leading-5 tracking-[-0.01em] outline-none max-md:text-base"
       >
         {{ title }}
       </h1>

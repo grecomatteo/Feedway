@@ -617,7 +617,12 @@ export function usePostEditor(opts: {
       delete caption.instagram
       delete caption.facebook
     }
-    destinations.value = p.destinations.map((d) => d.accountId)
+    // an account cancelled on the page of the outcome stays out: «Salva modifiche» of a post
+    // on its way would schedule it again (R13)
+    const goingOut = p.status === 'scheduled' || p.status === 'publishing'
+    destinations.value = p.destinations
+      .filter((d) => !(goingOut && d.status === 'cancelled'))
+      .map((d) => d.accountId)
     when.value = p.when
     shareToFeed.value = p.shareToFeed
     choices.value = p.choices.map((c) => ({ ...c }))
