@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.13.0](https://github.com/grecomatteo/Feedway/compare/v0.12.1...v0.13.0) (2026-11-21)
+
+
+### Novità
+
+* **accounts:** nome del Business nei Collegamenti di Meta ([#285](https://github.com/grecomatteo/Feedway/issues/285)) ([3c50d5a](https://github.com/grecomatteo/Feedway/commit/3c50d5a77c6d5cdbe0affe7fc2025f2b4c84b8f5))
+* **media:** carica una cartella o uno zip in libreria, con l'anteprima (D-104) ([#293](https://github.com/grecomatteo/Feedway/issues/293)) ([f876d78](https://github.com/grecomatteo/Feedway/commit/f876d78cc8aa4e39ce4d5e3934fd15909f0c67cd))
+* **media:** cartelle gestibili dalla colonna, con «⋯» su ognuna (D-103) ([#289](https://github.com/grecomatteo/Feedway/issues/289)) ([26d457c](https://github.com/grecomatteo/Feedway/commit/26d457c856e8747f9087a11fad0c13c1f723033d))
+* **media:** copie da pubblicare con le scelte del post ([#283](https://github.com/grecomatteo/Feedway/issues/283)) ([bf1230b](https://github.com/grecomatteo/Feedway/commit/bf1230b6c0f1f28ce73af1a5fd8bbff6255f2179))
+* **media:** una libreria sola e le cartelle in «Dalla libreria» (D-103) ([#291](https://github.com/grecomatteo/Feedway/issues/291)) ([a42470e](https://github.com/grecomatteo/Feedway/commit/a42470e932ca14fb29a093faaec8fcc0c464f0b2))
+* **posts:** «Modifica» dalla pagina dell'esito finché nessun account sta pubblicando (R13) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** «Pubblica subito» e la pagina dell'esito del post ([#295](https://github.com/grecomatteo/Feedway/issues/295)) ([ebb6b26](https://github.com/grecomatteo/Feedway/commit/ebb6b2632d4d315b61069a120f0b41858e18b3ba))
+* **posts:** «Riprova», «Segna come verificato», annullare una destinazione e la pausa ([#294](https://github.com/grecomatteo/Feedway/issues/294)) ([bc43a6a](https://github.com/grecomatteo/Feedway/commit/bc43a6a82d76249ed1d4f4f50ab66e2ce0e00907))
+* **posts:** esito incerto cercato sull'account e verifica dopo la pubblicazione ([#292](https://github.com/grecomatteo/Feedway/issues/292)) ([237e327](https://github.com/grecomatteo/Feedway/commit/237e3270681b63a08ee786a076799a818307bda6))
+* **posts:** macchina a stati e regole della pubblicazione ([#276](https://github.com/grecomatteo/Feedway/issues/276)) ([7108ae3](https://github.com/grecomatteo/Feedway/commit/7108ae3a80ec9640f1dac16518f7423124b7c621))
+* **posts:** stati della pubblicazione in Oggi, nel selettore, in Clienti e in libreria ([#296](https://github.com/grecomatteo/Feedway/issues/296)) ([1c5ee79](https://github.com/grecomatteo/Feedway/commit/1c5ee79fc12ae03fb386a028a531fb49a4399a8b))
+* **posts:** tabelle, repository e outbox della pubblicazione ([#278](https://github.com/grecomatteo/Feedway/issues/278)) ([0a40acf](https://github.com/grecomatteo/Feedway/commit/0a40acfc723bad390f035b557222facd364ed68c))
+* **publishing:** PlatformPublisher e pubblicazione su Instagram ([#282](https://github.com/grecomatteo/Feedway/issues/282)) ([dc7aa22](https://github.com/grecomatteo/Feedway/commit/dc7aa22b72e0898896f59e00cd5f4bd1e4e87d79))
+* **publishing:** pubblicazione su Facebook ([#284](https://github.com/grecomatteo/Feedway/issues/284)) ([e5aa083](https://github.com/grecomatteo/Feedway/commit/e5aa083a0bdb3ec46eb4651323becf1a1babe69c))
+* **publishing:** rallentamento, ricontrollo 3 ore prima e pulizia delle copie ([#290](https://github.com/grecomatteo/Feedway/issues/290)) ([151a9d1](https://github.com/grecomatteo/Feedway/commit/151a9d14e0b43a4a72c08648833098757e64c154))
+* **publishing:** worker della preparazione e della pubblicazione ([#288](https://github.com/grecomatteo/Feedway/issues/288)) ([bfba469](https://github.com/grecomatteo/Feedway/commit/bfba469abc592d4e5852a561ef63c2482c8aab40))
+
+
+### Correzioni
+
+* **design:** altri difetti della prova 0.12.1 (D-102) ([#286](https://github.com/grecomatteo/Feedway/issues/286)) ([e1113d5](https://github.com/grecomatteo/Feedway/commit/e1113d5fc428570dce2f7b3d5381102f494868b1))
+* **design:** Utenti e selettore del cliente senza scorrimento di lato (D-102) ([#281](https://github.com/grecomatteo/Feedway/issues/281)) ([7c8dfdc](https://github.com/grecomatteo/Feedway/commit/7c8dfdc22edc25821d7f7fd0c58b962513862be2))
+* **media:** un file resta finché un post può pubblicarlo, e il motivo dice cosa fare (R10, R11) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **media:** una pulizia persa dopo aver cancellato i byte non lascia copie senza file (R17) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** «Riprendi» su un altro giorno rispetta il limite dei post del giorno (R19) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** correzioni ereditate dalla prova della 0.12.0 e dal ridisegno ([#277](https://github.com/grecomatteo/Feedway/issues/277)) ([9aab5e9](https://github.com/grecomatteo/Feedway/commit/9aab5e9543c850a2b57a619e2ac15f9c8b295aac))
+* **posts:** i limiti del giorno e lo storico contano anche i post in uscita e già usciti (R5) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** le migrazioni 0022 e 0023 riempiono i programmati con la RLS forzata (R1) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** un account annullato a mano resta fuori, uno saltato da una scelta resta (M1, L1) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** un post con una destinazione già uscita non si modifica più come programmato (R6) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **posts:** un post in pubblicazione è ancora in programma, l'esito dice l'ora dell'uscita (R18) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **publishing:** le chiamate in cui Meta scarica il file aspettano fino a due minuti (R14) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **publishing:** nessun doppione dopo un esito incerto e niente pubblicazioni oltre 60 minuti (R2-R4, R8, R9, R12, R15) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+* **workspaces:** un cliente archiviato non pubblica più nulla (R7) ([033d74f](https://github.com/grecomatteo/Feedway/commit/033d74fa50fe05c1bdbf5829261ba9a62642f266))
+
+
+### Documentazione
+
+* esiti della prova della 0.12.1, difetti e richieste sulle cartelle (D-102…D-104) ([#279](https://github.com/grecomatteo/Feedway/issues/279)) ([c01f3fd](https://github.com/grecomatteo/Feedway/commit/c01f3fda029551386033ffa7a5d19bd3fd73ca0c))
+* **media:** cartelle e caricamento di una cartella o di uno zip come Task 10 della tappa 7 ([#287](https://github.com/grecomatteo/Feedway/issues/287)) ([8b471cc](https://github.com/grecomatteo/Feedway/commit/8b471cc9441bafb7b7594378e5a426e6d6d62d49))
+* **posts:** piano della tappa 7, la pubblicazione ([#274](https://github.com/grecomatteo/Feedway/issues/274)) ([bce20c1](https://github.com/grecomatteo/Feedway/commit/bce20c12a62a59158ab04d7ea20eb188d987dfa8))
+* rilascio della 0.13.0 con la pubblicazione, guida della prova (D-117) ([#298](https://github.com/grecomatteo/Feedway/issues/298)) ([dd946ce](https://github.com/grecomatteo/Feedway/commit/dd946ce0f425c4ccad8f55978749cf3f60b9e3d3))
+
 ## [0.12.1](https://github.com/grecomatteo/Feedway/compare/v0.12.0...v0.12.1) (2026-11-20)
 
 
