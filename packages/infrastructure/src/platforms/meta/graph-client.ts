@@ -595,7 +595,10 @@ interface CallSpec {
    */
   host?: 'graph' | 'upload'
   headers?: Record<string, string>
-  /** Meta fetches a file before it answers: the longer timeout (`fileTimeoutMs`). */
+  /**
+   * Meta fetches a file before it answers, or is known to be slow to answer (Instagram's
+   * publish): the longer timeout (`fileTimeoutMs`).
+   */
   fetchesFile?: boolean
 }
 
@@ -1012,6 +1015,8 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         {
           name: 'ig_user/media',
           method: 'POST',
+          // Instagram fetches the file while it makes the container (0.13.0 test: 10 s were not enough)
+          fetchesFile: true,
           path: `/${encodeURIComponent(igUserId)}/media`,
           params,
           credentials,
@@ -1048,6 +1053,8 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           name: 'ig_user/media_publish',
           method: 'POST',
           retry: false,
+          // a ready container still took more than 10 s to publish in the 0.13.0 test
+          fetchesFile: true,
           path: `/${encodeURIComponent(igUserId)}/media_publish`,
           params: { creation_id: containerId },
           credentials,

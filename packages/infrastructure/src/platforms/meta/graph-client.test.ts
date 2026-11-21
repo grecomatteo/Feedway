@@ -296,6 +296,25 @@ describe('error classification', () => {
       new AbortController().signal,
     )
     expect(photo.data.id).toEqual(expect.any(String))
+    // the 0.13.0 test: Instagram fetches the file while it makes the container, and the
+    // publish of a ready container took more than 10 s too
+    const ig = META_MOCK.instagram.ofPage
+    const signal = new AbortController().signal
+    mock.scenario('timeout', { delayMs: 500 })
+    const container = await patient.createInstagramContainer(
+      systemUser,
+      ig,
+      { image_url: `${mock.url}/pictures/forno.jpg` },
+      signal,
+    )
+    mock.scenario('timeout', { delayMs: 500 })
+    const published = await patient.publishInstagramContainer(
+      systemUser,
+      ig,
+      container.data.id,
+      signal,
+    )
+    expect(published.data.id).toEqual(expect.any(String))
     // the other calls keep the short one
     mock.scenario('timeout', { delayMs: 500 })
     const err = await failure(patient.listUserPages(systemUser))
