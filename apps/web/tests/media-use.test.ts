@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { deleteBlockText, folderBlockText, mediaUseLabel } from '../app/utils/media-use.ts'
+import {
+  deleteBlockFix,
+  deleteBlockText,
+  folderBlockText,
+  mediaUseLabel,
+} from '../app/utils/media-use.ts'
 
 // a translator that shows the key and what it was given
 const t = (key: string, named: Record<string, unknown> = {}) =>
@@ -79,11 +84,20 @@ describe('deleteBlockText (D-80.4)', () => {
   }
   it('says why the file is not deleted, before anyone tries', () => {
     expect(deleteBlockText(block, t, now)).toBe(
-      'library.deleteBlocked.one {"when":"oggi alle 18:00"}',
+      'library.deleteBlocked.in_scheduled_post.one {"when":"oggi alle 18:00"}',
     )
     expect(deleteBlockText({ ...block, count: 2 }, t, now)).toBe(
-      'library.deleteBlocked.many {"n":2,"when":"oggi alle 18:00"}',
+      'library.deleteBlocked.in_scheduled_post.many {"n":2,"when":"oggi alle 18:00"}',
     )
+    expect(deleteBlockFix(block, t)).toBe('library.deleteBlocked.in_scheduled_post.fix')
+  })
+  it('says what to do by the post that keeps the file (R10)', () => {
+    for (const reason of ['in_publishing_post', 'in_paused_post', 'in_failed_post'] as const) {
+      expect(deleteBlockText({ ...block, reason }, t, now)).toMatch(
+        `library.deleteBlocked.${reason}.one`,
+      )
+      expect(deleteBlockFix({ ...block, reason }, t)).toBe(`library.deleteBlocked.${reason}.fix`)
+    }
   })
   it('says how many files keep a folder', () => {
     expect(folderBlockText(1, t)).toBe('library.folders.deleteBlocked.one')

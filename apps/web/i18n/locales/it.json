@@ -249,7 +249,7 @@
     "upload_parts_missing": "Mancano dei pezzi del file",
     "post_version_conflict": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova",
     "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
-    "media_in_scheduled_post": "Questo file è in un post programmato: toglilo dal post o annulla il post prima di eliminarlo",
+    "media_in_scheduled_post": "Questo file serve ancora a un post da pubblicare o da riprovare: non si può eliminare adesso",
     "paused_time_passed": "L'ora del post è passata: scegli quando pubblicarlo",
     "target_wrong_state": "Questa destinazione non si può più cambiare così"
   },
@@ -1677,8 +1677,8 @@
       "deleteTitle": "Eliminare «{name}»?",
       "deleteEmpty": "La cartella è vuota.",
       "deleteBlocked": {
-        "one": "Non si può eliminare: un file è in un post programmato.",
-        "many": "Non si può eliminare: {n} file sono in post programmati."
+        "one": "Non si può eliminare: un file serve ancora a un post da pubblicare o da riprovare.",
+        "many": "Non si può eliminare: {n} file servono ancora a post da pubblicare o da riprovare."
       },
       "deleteFull": "Contiene {what}.",
       "and": "e",
@@ -1725,9 +1725,26 @@
     "deleteTitle": "Eliminare «{name}»?",
     "deleteText": "Il file sparisce dalla libreria e le sue copie vengono cancellate. Non si può annullare.",
     "deleteBlocked": {
-      "one": "Non si può eliminare: è in un post programmato per {when}.",
-      "many": "Non si può eliminare: è in {n} post programmati, il primo per {when}.",
-      "fix": "Toglilo dal post o annulla il post per eliminarlo."
+      "in_scheduled_post": {
+        "one": "Non si può eliminare: è in un post programmato per {when}.",
+        "many": "Non si può eliminare: è in {n} post da pubblicare, il primo per {when}.",
+        "fix": "Toglilo dal post o annulla il post per eliminarlo."
+      },
+      "in_publishing_post": {
+        "one": "Non si può eliminare: è in un post che si sta pubblicando.",
+        "many": "Non si può eliminare: è in {n} post da pubblicare, uno si sta pubblicando ora.",
+        "fix": "Apri il post: quando è uscito, il file si può eliminare."
+      },
+      "in_paused_post": {
+        "one": "Non si può eliminare: è in un post in pausa.",
+        "many": "Non si può eliminare: è in {n} post da pubblicare, il primo è in pausa.",
+        "fix": "Riprendi o annulla il post per eliminarlo."
+      },
+      "in_failed_post": {
+        "one": "Non si può eliminare: è in un post non uscito che si può ancora riprovare.",
+        "many": "Non si può eliminare: è in {n} post non usciti che si possono ancora riprovare.",
+        "fix": "Riprova o annulla le destinazioni non uscite per eliminarlo."
+      }
     },
     "deleted": "«{name}» eliminato.",
     "detail": {

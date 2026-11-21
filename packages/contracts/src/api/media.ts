@@ -79,11 +79,18 @@ export const MediaDto = z.object({
     .nullable(),
   /**
    * Why the file is not deleted (`deletionBlock`, D-18, D-80.4): the same rule the deletion
-   * answers 409 by. `postId`: the nearest scheduled post; `count`: how many scheduled posts.
+   * answers 409 by. `reason`: the state of the nearest post that keeps the file (scheduled, being
+   * published, paused, or not out where «Riprova» would publish it); `postId`: that post;
+   * `count`: how many posts keep the file.
    */
   deleteBlockedBy: z
     .object({
-      reason: z.literal('in_scheduled_post'),
+      reason: z.enum([
+        'in_scheduled_post',
+        'in_publishing_post',
+        'in_paused_post',
+        'in_failed_post',
+      ]),
       postId: Id,
       scheduledAt: Timestamp.nullable(),
       timezone: z.string(),

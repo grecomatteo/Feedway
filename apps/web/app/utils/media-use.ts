@@ -23,6 +23,8 @@ export interface MediaUseView {
 }
 
 export interface DeleteBlockView {
+  /** the state of the nearest post that keeps the file (R10) */
+  reason: 'in_scheduled_post' | 'in_publishing_post' | 'in_paused_post' | 'in_failed_post'
   scheduledAt: string | null
   timezone: string
   count: number
@@ -57,9 +59,13 @@ export function deleteBlockText(block: DeleteBlockView, t: Translate, now = new 
     ? formatRelative(block.scheduledAt, { timeZone: block.timezone, sentence: true, now })
     : '—'
   return block.count > 1
-    ? t('library.deleteBlocked.many', { n: block.count, when })
-    : t('library.deleteBlocked.one', { when })
+    ? t(`library.deleteBlocked.${block.reason}.many`, { n: block.count, when })
+    : t(`library.deleteBlocked.${block.reason}.one`, { when })
 }
+
+/** What to do so the file can be deleted, by the post that keeps it (R10). */
+export const deleteBlockFix = (block: DeleteBlockView, t: Translate): string =>
+  t(`library.deleteBlocked.${block.reason}.fix`)
 
 /** Why a folder is not deleted: how many of its files are in scheduled posts. */
 export function folderBlockText(files: number, t: Translate): string {

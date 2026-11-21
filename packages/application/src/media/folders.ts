@@ -226,15 +226,15 @@ export async function deleteFolder(
     const files = (await tx.media.mediaInFolders(organizationId, workspace.id, tree)).map(
       (f) => f.mediaId,
     )
-    // as deleting one file: never a file of a scheduled post (D-18), one at a time with scheduling
+    // as deleting one file: never a file a post still needs (D-18, R11), one at a time with scheduling
     await tx.posts.lockSchedule(organizationId)
     const blocked = blockedFiles(await usesOf(tx, organizationId, files))
     if (blocked > 0)
       throw new DomainError(
         'CONFLICT',
         blocked === 1
-          ? 'La cartella ha un file in un post programmato: toglilo dal post o annulla il post prima di eliminarla'
-          : `La cartella ha ${String(blocked)} file in post programmati: toglili dai post o annulla i post prima di eliminarla`,
+          ? 'La cartella ha un file che serve ancora a un post da pubblicare o da riprovare: toglilo dal post, o chiudi il post, prima di eliminarla'
+          : `La cartella ha ${String(blocked)} file che servono ancora a post da pubblicare o da riprovare: toglili dai post, o chiudi i post, prima di eliminarla`,
         { reason: 'media_in_scheduled_post' },
       )
     if (!input.confirm && (files.length > 0 || tree.length > 1))

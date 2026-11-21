@@ -868,7 +868,10 @@ describe('files of the posts in the library', () => {
     expect(seenOut.deleteBlockedBy).toBeNull()
     const seenStopped = await expectOk<Seen>(call('editor', 'GET', `${library}/${stoppedFile}`))
     expect(seenStopped.usedIn).toMatchObject({ status: 'paused' })
-    expect(seenStopped.deleteBlockedBy).toMatchObject({ postId: stopped.id })
+    expect(seenStopped.deleteBlockedBy).toMatchObject({
+      reason: 'in_paused_post',
+      postId: stopped.id,
+    })
     const ids = async (use: string) =>
       (
         await expectOk<{ items: { id: string }[] }>(
@@ -878,8 +881,34 @@ describe('files of the posts in the library', () => {
     const going = await ids('scheduled')
     expect(going).toContain(stoppedFile)
     expect(going).not.toContain(outFile)
-    await expectError(call('editor', 'DELETE', `${library}/${stoppedFile}`), 409, 'CONFLICT')
+    const kept = await expectError(
+      call('editor', 'DELETE', `${library}/${stoppedFile}`),
+      409,
+      'CONFLICT',
+    )
+    expect(kept).toMatchObject({ message: expect.stringContaining('in pausa') })
     await expectOk(call('editor', 'DELETE', `${library}/${outFile}`))
+  })
+
+  test('a file of a post not out on an account stays until it is retried or cancelled (R11)', async () => {
+    const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
+    const notOut = await expectOk(schedule('manager', await draft()))
+    // as the worker leaves it: one account out, the other not
+    await env.admin.pool.query(`update posts set status = 'partial' where id = $1`, [notOut.id])
+    const fileId = notOut.media[0]?.id ?? ''
+    const seen = await expectOk<{ deleteBlockedBy: unknown }>(
+      call('editor', 'GET', `${library}/${fileId}`),
+    )
+    expect(seen.deleteBlockedBy).toMatchObject({ reason: 'in_failed_post', postId: notOut.id })
+    const error = await expectError(
+      call('editor', 'DELETE', `${library}/${fileId}`),
+      409,
+      'CONFLICT',
+    )
+    expect(error).toMatchObject({ reason: 'media_in_scheduled_post' })
+    // the destination not out cancelled, the post is out: the file can go
+    await env.admin.pool.query(`update posts set status = 'published' where id = $1`, [notOut.id])
+    await expectOk(call('editor', 'DELETE', `${library}/${fileId}`))
   })
 
   test('a folder with a file of a scheduled post is not deleted (409)', async () => {

@@ -360,11 +360,7 @@ export async function deleteMedia(
     // the rule the file's DTO shows (D-80.4): the panel says it before anyone tries
     const block = deletionBlock(await tx.posts.usingMedia(organizationId, [found.id]))
     if (block)
-      throw new DomainError(
-        'CONFLICT',
-        `Questo file è nel post programmato del ${dayOf(block.scheduledAt, block.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`,
-        { reason: 'media_in_scheduled_post' },
-      )
+      throw new DomainError('CONFLICT', blockMessage(block), { reason: 'media_in_scheduled_post' })
     if (!(await tx.media.markDeleted(organizationId, workspace.id, found.id, deps.clock.now())))
       throw mediaNotFound()
     // no file name: it can be a person's
@@ -389,6 +385,20 @@ export async function deleteMedia(
 }
 
 /** The day of a post for a message, in the post's time zone. */
+/** What the 409 of a kept file says: what to do depends on the post that keeps it (R10). */
+function blockMessage(block: DeletionBlock): string {
+  switch (block.reason) {
+    case 'in_scheduled_post':
+      return `Questo file è nel post programmato del ${dayOf(block.scheduledAt, block.timezone)}: toglilo dal post o annulla il post prima di eliminarlo`
+    case 'in_publishing_post':
+      return 'Questo file è in un post che si sta pubblicando: si può eliminare quando è uscito'
+    case 'in_paused_post':
+      return 'Questo file è in un post in pausa: riprendilo o annullalo prima di eliminare il file'
+    case 'in_failed_post':
+      return 'Questo file è in un post non uscito che si può ancora riprovare: annulla le destinazioni non uscite prima di eliminarlo'
+  }
+}
+
 function dayOf(at: Date | null, timeZone: string): string {
   if (at === null) return '—'
   return new Intl.DateTimeFormat('it-IT', {
