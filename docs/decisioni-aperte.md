@@ -585,7 +585,8 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   2. **Cosa non si prova a comando:** R15 (contenitore di Instagram già pubblicato, solo dopo 24 ore da un esito incerto), «Con problema» e `public_host_off` (servirebbe svuotare `PUBLIC_URL`): la guida dice come riconoscerli se capitano. D-62 (foto 3:4) non si prova dal pannello, perché la regola (a) non la manda a Meta.
   3. **Le note «Cosa provare»** sono nella guida e nella descrizione della PR di documentazione, non nel testo della release, che scrive release-please.
   4. **Programmati della 0.12.1:** la guida li fa annullare prima dell'aggiornamento (scelta di Matteo), oltre alla migrazione di D-77 che riporta in bozza quelli con l'ora passata.
-- **Chiude:** D-80 (la nota «usa domani» è nella guida).
+  5. **Dal Task 1 (erano in D-80, da confermare):** un file non pronto è un'attesa, non un errore (una riga neutra con l'icona che gira, e la riga dell'account dice «In attesa» invece di «Bloccato»); un file aggiunto dalla libreria mentre è ancora in preparazione non si aggiorna da solo nell'editor quando diventa pronto (lo fanno i file caricati da quella pagina): basta ricaricare. Non verificato su Meta vera.
+- **Chiude:** D-80 (la nota «usa domani» è nella guida, le scelte provvisorie del Task 1 sono il punto 5; i punti D-80.1–7 sono nel piano 07, Task 1).
 - **Stato:** scelte provvisorie; si chiude con gli esiti della prova.
 
 ## Ridisegno del pannello
