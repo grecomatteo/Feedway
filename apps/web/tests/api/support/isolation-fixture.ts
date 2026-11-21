@@ -421,6 +421,9 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   posts: 'select * from posts',
   post_media: 'select * from post_media',
   post_targets: 'select * from post_targets',
+  // what the worker and the events write: a route of the other agency must not touch them either
+  target_attempts: 'select * from target_attempts',
+  outbox_events: 'select * from outbox_events',
   post_labels: 'select * from post_labels',
   post_notes: 'select * from post_notes',
   labels: 'select * from labels',
