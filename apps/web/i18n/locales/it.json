@@ -2313,6 +2313,7 @@
       "upload": "Carica",
       "fromLibrary": "Dalla libreria",
       "detail": "{n} di {max}",
+      "detailOver": "{n} file, al massimo {max}",
       "oneVideo": "1 video",
       "add": "Aggiungi",
       "addLabel": "Aggiungi file",
