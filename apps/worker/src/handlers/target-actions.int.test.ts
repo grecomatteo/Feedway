@@ -289,7 +289,7 @@ test('«Riprova» next to a destination already out: the post is publishing, nev
         panel,
         world.actor,
         post.postId,
-        { workspaceId: world.workspaceId, version, caption: 'Un altro testo' },
+        { workspaceId: world.workspaceId, version, caption: { common: 'Un altro testo' } },
         { ip: null },
       ),
     ).rejects.toMatchObject({ code: 'CONFLICT' })

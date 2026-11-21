@@ -481,7 +481,7 @@ test('R17: a clean-up whose transaction is lost after the bytes went leaves no c
     run: (scope, work) =>
       deps.uow.run(scope, async (tx) => {
         const done = await work(tx)
-        if (!lost && scope.organizationId === world.organizationId) {
+        if (!lost && 'organizationId' in scope && scope.organizationId === world.organizationId) {
           lost = true
           throw new Error('commit lost')
         }

@@ -655,7 +655,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           facts.recentFingerprints.set(r.accountId, set)
         }
         // the 24 hours before the instant, the instant included
-        if (r.scheduledAt === null || r.scheduledAt <= dayBefore || r.scheduledAt > at) continue
+        if (r.scheduledAt <= dayBefore || r.scheduledAt > at) continue
         facts.scheduledNear.set(r.accountId, (facts.scheduledNear.get(r.accountId) ?? 0) + 1)
         if (r.type === 'reel')
           facts.reelsLast24h.set(r.accountId, (facts.reelsLast24h.get(r.accountId) ?? 0) + 1)

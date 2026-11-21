@@ -886,7 +886,7 @@ describe('files of the posts in the library', () => {
       409,
       'CONFLICT',
     )
-    expect(kept).toMatchObject({ message: expect.stringContaining('in pausa') })
+    expect(kept.message).toContain('in pausa')
     await expectOk(call('editor', 'DELETE', `${library}/${outFile}`))
   })
 
