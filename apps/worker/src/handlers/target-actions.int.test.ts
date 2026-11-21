@@ -2,6 +2,7 @@ import pg from 'pg'
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest'
 import {
   PublishError,
+  archiveWorkspace,
   cancelPaused,
   cancelPost,
   cancelTarget,
@@ -294,6 +295,28 @@ test('«Riprova» next to a destination already out: the post is publishing, nev
     ).rejects.toMatchObject({ code: 'CONFLICT' })
   }
   expect((await targetOn(post.postId, ig)).status).toBe('published')
+})
+
+test('a client archived while one destination is out: the one not started is cancelled (R7)', async () => {
+  const { world, at, post, panel } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await runAll(world, post.postId, deps, 'prepare')
+  clock.set(at)
+  await publishTarget(deps, job(world, await targetOn(post.postId, ig)))
+  const waiting = await targetOn(post.postId, fb)
+  expect(waiting.status).toBe('ready')
+  await archiveWorkspace(panel, world.actor, world.workspaceId, { ip: null })
+  const cancelled = await targetOn(post.postId, fb)
+  expect(cancelled).toMatchObject({ status: 'cancelled', next_attempt_at: null })
+  expect(cancelled.generation).toBe(waiting.generation + 1)
+  expect((await targetOn(post.postId, ig)).status).toBe('published')
+  expect(await postStatusOf(admin, post.postId)).toBe('published')
+  // its job, sent before, does nothing
+  await publishTarget(deps, job(world, waiting))
+  expect((await targetOn(post.postId, fb)).status).toBe('cancelled')
 })
 
 /** A Publisher of the client who schedules the post: the one the pause looks at (P6). */

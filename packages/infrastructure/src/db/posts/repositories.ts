@@ -20,7 +20,7 @@ import type {
   PostScope,
   PostTargetRecord,
 } from '@app/application'
-import { DISCARD_KEY, compareUses, type MediaUse } from '@app/domain'
+import { DISCARD_KEY, compareUses, postStatusFromTargets, type MediaUse } from '@app/domain'
 import type {
   Platform,
   PostCover,
@@ -28,6 +28,7 @@ import type {
   PostStatus,
   PostType,
   PublishingPostStatus,
+  TargetStatus,
 } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { postLabels, postMedia, postNotes, posts, postTargets } from './schema.js'
@@ -159,6 +160,9 @@ async function complete(
 /** The destinations' states the panel may still move (plan 07 P2); the others are going out. */
 const PANEL_REACH: readonly string[] = ['scheduled', 'preparing', 'ready', 'retrying', 'cancelled']
 
+/** The destinations the worker has not started publishing: an archived client cancels them. */
+const NOT_STARTED = ['scheduled', 'preparing', 'ready', 'retrying'] as const
+
 /**
  * The states of a post that take its place of the day (`posts_per_day`): going out or gone out,
  * all or in part (review R5). A post that did not go out, a draft or a cancelled one does not.
@@ -224,6 +228,44 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     const rows = lock ? await query.for('update') : await query
     const [post] = await complete(db, scope.organizationId, rows)
     return post ?? null
+  }
+  /** The destinations not started of posts already going out: cancelled, the posts' state again. */
+  const cancelWaiting = async (scope: PostScope, postIds: string[]) => {
+    const ofPosts = and(
+      eq(postTargets.organizationId, scope.organizationId),
+      eq(postTargets.workspaceId, scope.workspaceId),
+      inArray(postTargets.postId, postIds),
+    )
+    await db
+      .update(postTargets)
+      .set({
+        status: 'cancelled',
+        generation: sql`${postTargets.generation} + 1`,
+        claimedUntil: null,
+        nextAttemptAt: null,
+        recheckAt: null,
+        updatedAt: sql`now()`,
+      })
+      .where(and(ofPosts, inArray(postTargets.status, NOT_STARTED)))
+    const rows = await db
+      .select({ postId: postTargets.postId, status: postTargets.status })
+      .from(postTargets)
+      .where(ofPosts)
+    for (const postId of postIds) {
+      const status = postStatusFromTargets(
+        rows.filter((r) => r.postId === postId).map((r) => r.status as TargetStatus),
+      )
+      await db
+        .update(posts)
+        .set({ status })
+        .where(
+          and(
+            inScope(scope),
+            eq(posts.id, postId),
+            sql`${posts.status} is distinct from ${status}`,
+          ),
+        )
+    }
   }
   return {
     async insert(post) {
@@ -379,6 +421,9 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const going = new Set(
         targets.filter((t) => !PANEL_REACH.includes(t.status)).map((t) => t.postId),
       )
+      // R7: of a post already going out, what has not started is cancelled, as the worker
+      // would at its step; what is out or being published stays
+      if (going.size > 0) await cancelWaiting(scope, [...going])
       const postIds = candidateIds.filter((id) => !going.has(id))
       if (postIds.length === 0) return []
       await db
