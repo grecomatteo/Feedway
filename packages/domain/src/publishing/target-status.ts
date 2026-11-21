@@ -33,3 +33,10 @@ export type TargetStep = (typeof TARGET_STEPS)[number]
  */
 export const ATTEMPT_OUTCOMES = ['done', 'wait', 'transient', 'permanent', 'uncertain'] as const
 export type AttemptOutcome = (typeof ATTEMPT_OUTCOMES)[number]
+
+/**
+ * The key a person's «Annulla» leaves in `post_targets.verification` (review M1 of R13): a save
+ * of the post on its way leaves that account out, while one a choice cancelled (another platform
+ * skipped) is checked again. A new round clears it with the rest of the notes.
+ */
+export const CANCELLED_IN_PANEL_KEY = 'cancelledInPanel'

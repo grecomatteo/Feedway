@@ -319,6 +319,68 @@ test('a client archived while one destination is out: the one not started is can
   expect((await targetOn(post.postId, fb)).status).toBe('cancelled')
 })
 
+test('a client archived while one destination failed and one waits: the waiting one is cancelled (L1)', async () => {
+  const { world, post, panel } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  await admin.query(
+    `update post_targets set status = 'failed', last_error_code = 'file_wont_publish',
+            generation = generation + 1
+      where post_id = $1 and account_id = $2`,
+    [post.postId, ig],
+  )
+  await admin.query(`update posts set status = 'partial' where id = $1`, [post.postId])
+  await archiveWorkspace(panel, world.actor, world.workspaceId, { ip: null })
+  expect((await targetOn(post.postId, fb)).status).toBe('cancelled')
+  expect((await targetOn(post.postId, ig)).status).toBe('failed')
+  expect(await postStatusOf(admin, post.postId)).not.toBe('draft')
+})
+
+test('a save of a post on its way leaves out the account cancelled by a person, not one a choice cancelled (M1)', async () => {
+  const { world, post, panel, input } = await setUp()
+  const ig = world.accounts.instagram
+  const fb = world.accounts.facebook
+  const cancelled = await cancelTarget(panel, world.actor, input(fb), { ip: null })
+  expect(cancelled.destinations).toContainEqual({
+    accountId: fb,
+    status: 'cancelled',
+    cancelledInPanel: true,
+  })
+  expect(cancelled.destinations).toContainEqual({
+    accountId: ig,
+    status: 'scheduled',
+    cancelledInPanel: false,
+  })
+  // moved in the calendar: the save names no destinations
+  const move = async (days: number) => {
+    const moved = new Date(Math.ceil((Date.now() + days * 24 * 60 * MINUTE) / MINUTE) * MINUTE)
+    const { localDate, localTime } = instantToZoned(moved, 'Europe/Rome')
+    return updatePost(
+      postsDeps(runtime),
+      world.actor,
+      post.postId,
+      {
+        workspaceId: world.workspaceId,
+        version: await versionOf(post.postId),
+        when: { localDate, localTime },
+      },
+      { ip: null },
+    )
+  }
+  const saved = await move(1)
+  expect(saved.destinations.map((d) => d.accountId)).toEqual([ig])
+  expect((await targetOn(post.postId, ig)).status).toBe('scheduled')
+  // one a choice of the post cancelled (no mark): the checks of the save look at it again
+  await admin.query(
+    `insert into post_targets (id, organization_id, workspace_id, post_id, account_id, status)
+     select gen_random_uuid(), organization_id, workspace_id, id, $2, 'cancelled'
+       from posts where id = $1`,
+    [post.postId, fb],
+  )
+  await move(2)
+  expect((await targetOn(post.postId, fb)).status).toBe('scheduled')
+})
+
 /** A Publisher of the client who schedules the post: the one the pause looks at (P6). */
 async function scheduledByPublisher(world: PublishingWorld, postId: string): Promise<string> {
   const userId = await seed(tdb.runtimeUrl, async (s) => {

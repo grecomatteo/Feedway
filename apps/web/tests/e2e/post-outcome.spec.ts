@@ -204,9 +204,9 @@ test('a post in preparation: «Modifica» opens the editor and saves it as a sch
     when: { localDate: ahead, localTime: '18:00' },
   })) as { id: string; version: number }
   await send(page.request, 'POST', `${base}/${draft.id}/schedule`, { version: draft.version })
-  // the worker took it 15 minutes before: Instagram ready; Facebook cancelled on this page
+  // Facebook cancelled on the page of the outcome; the worker took Instagram 15 minutes before
+  await send(page.request, 'POST', `${base}/${draft.id}/destinations/${fb}/cancel`)
   await worker(draft.id, ig, 'ready')
-  await worker(draft.id, fb, 'cancelled')
   await postIs(draft.id, 'publishing')
   await page.goto(`/${org}/spazi/${client.slug}/post/${draft.id}`)
   await expect(page.locator('[data-outcome-state]')).toHaveText('In pubblicazione')

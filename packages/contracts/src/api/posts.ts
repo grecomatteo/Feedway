@@ -142,7 +142,14 @@ export const PostResponse = z.object({
     instagram: z.string().optional(),
     facebook: z.string().optional(),
   }),
-  destinations: z.array(z.object({ accountId: Id, status: z.enum(TARGET_STATUSES) })),
+  destinations: z.array(
+    z.object({
+      accountId: Id,
+      status: z.enum(TARGET_STATUSES),
+      /** cancelled by a person on the page of the outcome: the editor leaves it out */
+      cancelledInPanel: z.boolean(),
+    }),
+  ),
   /** the date and time in the post's time zone; null: no date yet */
   when: z.object({ localDate: z.string(), localTime: z.string() }).nullable(),
   scheduledAt: Timestamp.nullable(),

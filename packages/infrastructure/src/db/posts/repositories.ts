@@ -20,7 +20,13 @@ import type {
   PostScope,
   PostTargetRecord,
 } from '@app/application'
-import { DISCARD_KEY, compareUses, postStatusFromTargets, type MediaUse } from '@app/domain'
+import {
+  CANCELLED_IN_PANEL_KEY,
+  DISCARD_KEY,
+  compareUses,
+  postStatusFromTargets,
+  type MediaUse,
+} from '@app/domain'
 import type {
   Platform,
   PostCover,
@@ -116,6 +122,7 @@ async function complete(
         accountId: postTargets.accountId,
         status: postTargets.status,
         fingerprint: postTargets.fingerprint,
+        cancelledInPanel: sql<boolean>`coalesce((${postTargets.verification} -> ${CANCELLED_IN_PANEL_KEY}::text) = 'true'::jsonb, false)`,
       })
       .from(postTargets)
       .where(and(eq(postTargets.organizationId, organizationId), inArray(postTargets.postId, ids)))
@@ -151,6 +158,7 @@ async function complete(
           accountId: t.accountId,
           status: t.status as PostStatus,
           fingerprint: t.fingerprint,
+          cancelledInPanel: t.cancelledInPanel,
         })),
       labelIds: labels.filter((l) => l.postId === row.id).map((l) => l.labelId),
     }
@@ -401,7 +409,14 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const candidates = await db
         .select({ id: posts.id })
         .from(posts)
-        .where(and(inScope(scope), inArray(posts.status, ['scheduled', 'publishing'])))
+        // `partial` and `paused` too: a destination failed or paused next to one still waiting
+        // (review L1); those posts are going out, never back to draft
+        .where(
+          and(
+            inScope(scope),
+            inArray(posts.status, ['scheduled', 'publishing', 'partial', 'paused']),
+          ),
+        )
         .orderBy(posts.id)
         .for('update')
       if (candidates.length === 0) return []

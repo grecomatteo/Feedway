@@ -24,7 +24,7 @@ import {
 } from '../common.js'
 import { readPost, type PostDto } from '../read.js'
 import { confirmTarget, sendSteps, type StepJob } from './context.js'
-import { retryMark } from './retry-mark.js'
+import { CANCELLED_IN_PANEL, retryMark } from './retry-mark.js'
 
 // What a person does on a destination after the worker (plan 07 Task 8, §9.3, §10.2): «Riprova»,
 // «Segna come verificato», «Annulla» of one destination, and «Riprendi» or «Annulla» of a post in
@@ -271,6 +271,7 @@ export function cancelTarget(
       nextAttemptAt: null,
       claimedUntil: null,
       recheckAt: null,
+      verification: CANCELLED_IN_PANEL,
     })
     await audit(
       tx,
@@ -374,7 +375,11 @@ export function cancelPaused(
   return onPost(deps, actor, input, async (tx, current, post) => {
     const paused = await pausedOf(tx, current, post, input.version)
     for (const target of paused) {
-      await movePanel(tx, target, 'cancelled', { nextAttemptAt: null, recheckAt: null })
+      await movePanel(tx, target, 'cancelled', {
+        nextAttemptAt: null,
+        recheckAt: null,
+        verification: CANCELLED_IN_PANEL,
+      })
       await audit(
         tx,
         current,

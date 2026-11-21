@@ -47,7 +47,15 @@ describe('draftMissing', () => {
     mediaIds: ['m'],
     caption: 'Testo',
     captionByPlatform: {},
-    targets: [{ id: 't', accountId: 'a', status: 'draft' as const, fingerprint: null }],
+    targets: [
+      {
+        id: 't',
+        accountId: 'a',
+        status: 'draft' as const,
+        fingerprint: null,
+        cancelledInPanel: false,
+      },
+    ],
   }
 
   test('nothing: ready to schedule', () => {

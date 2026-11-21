@@ -1,3 +1,4 @@
+import { CANCELLED_IN_PANEL_KEY } from '@app/domain'
 import type { PublishingTargetRecord } from '../../ports/publishing.js'
 
 // What a round of the worker notes in `post_targets.verification` before anything is published,
@@ -28,6 +29,9 @@ export const retryMark = (at: Date, afterNotFound = false) => ({
   retriedAt: at.toISOString(),
   ...(afterNotFound ? { afterNotFound: true } : {}),
 })
+
+/** A person's «Annulla»: a save of the post on its way leaves the account out (review M1). */
+export const CANCELLED_IN_PANEL = { [CANCELLED_IN_PANEL_KEY]: true }
 
 export const retriedAtOf = (target: Verification): Date | null =>
   dateOf(fieldsOf(target)['retriedAt'])

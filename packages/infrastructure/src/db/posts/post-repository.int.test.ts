@@ -194,6 +194,7 @@ test('destinations are replaced; an account already there keeps its row', async 
     accountId: ig,
     status: 'scheduled',
     fingerprint,
+    cancelledInPanel: false,
   })
   await run((tx) => tx.posts.replaceTargets(scope(), id, []))
   expect((await run((tx) => tx.posts.find(scope(), id)))?.targets).toEqual([])

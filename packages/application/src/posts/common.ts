@@ -204,7 +204,11 @@ export function contentOf(post: PostRecord, when: PostWhenInput): PostContent {
     mediaIds: post.mediaIds,
     cover: post.cover,
     caption: { common: post.caption, ...post.captionByPlatform },
-    destinations: post.targets.map((t) => ({ accountId: t.accountId })),
+    // an account a person cancelled on the page of the outcome is not scheduled again by a
+    // save that does not name the destinations (a move in the calendar, review M1)
+    destinations: post.targets
+      .filter((t) => !t.cancelledInPanel)
+      .map((t) => ({ accountId: t.accountId })),
     when,
     shareToFeed: post.options.shareToFeed,
     choices: post.options.choices,
