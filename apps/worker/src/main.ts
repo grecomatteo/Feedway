@@ -79,6 +79,9 @@ async function main(): Promise<void> {
         : QUEUE_NAMES.filter((name) => config.workerQueues.includes(name)),
   })
   logger.info({}, 'worker started')
+  // R9: without a public address Meta cannot fetch the files, and every destination fails
+  if (config.publicUrl === null)
+    logger.warn({}, 'PUBLIC_URL is empty: posts cannot be published until it is set')
 
   const shutdown = (signal: string) => {
     logger.info({ signal }, 'stopping worker')

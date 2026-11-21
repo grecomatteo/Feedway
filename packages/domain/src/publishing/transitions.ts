@@ -7,8 +7,8 @@ type Moves = ReadonlyMap<TargetStatus, readonly TargetStatus[]>
 
 // §9.3 split by who makes each move. The panel never moves a destination into the steps of the
 // worker, except «Riprova» from `problem` (to `unknown`), and never touches one that is
-// publishing (P2); the worker never schedules, cancels or
-// brings back to draft. Staying in the same state (a new look at a container, a second round
+// publishing (P2); the worker never schedules or brings back to draft, and cancels only what
+// has not started publishing, of a client archived meanwhile (D-70). Staying in the same state (a new look at a container, a second round
 // of verification) is not a move.
 const PANEL: Moves = new Map<TargetStatus, TargetStatus[]>([
   ['draft', ['scheduled']],
@@ -28,14 +28,14 @@ const PANEL: Moves = new Map<TargetStatus, TargetStatus[]>([
 
 const WORKER: Moves = new Map<TargetStatus, TargetStatus[]>([
   // `failed` here and from `ready`: too late to start (D-77 b)
-  ['scheduled', ['preparing', 'failed', 'paused']],
-  ['preparing', ['ready', 'retrying', 'failed', 'paused']],
+  ['scheduled', ['preparing', 'failed', 'paused', 'cancelled']],
+  ['preparing', ['ready', 'retrying', 'failed', 'paused', 'cancelled']],
   // back to `preparing`: an Instagram container expired and is made again (§9.5)
   // `retrying`: a short call before publishing (the Page token) failed for a while
-  ['ready', ['publishing', 'preparing', 'retrying', 'failed', 'paused']],
+  ['ready', ['publishing', 'preparing', 'retrying', 'failed', 'paused', 'cancelled']],
   ['publishing', ['published', 'retrying', 'failed', 'unknown']],
   // `failed`: the checks before the step find a permanent problem (copies, token, rules)
-  ['retrying', ['preparing', 'publishing', 'failed', 'paused']],
+  ['retrying', ['preparing', 'publishing', 'failed', 'paused', 'cancelled']],
   // found after an uncertain call (`published`, then verified) or after a «Riprova» from
   // `problem` (`confirmed`, it was already verified once); not found after the searches
   // (`failed`), or not on Meta after a «Riprova» from `problem` (`retrying`, republish)

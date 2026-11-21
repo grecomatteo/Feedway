@@ -3,6 +3,7 @@ import {
   PUBLISHING_STALE_MINUTES,
   SLOW_DOWN_MAX_MINUTES,
   UNCERTAIN_FIRST_SEARCH_MINUTES,
+  isPastLatestStart,
   isTooLate,
   nextAttemptAt,
   roundIds,
@@ -23,7 +24,11 @@ import { checkPostInTx } from '../../rules/index.js'
 import { toCheckInput } from '../to-check-input.js'
 import {
   assertTargetJob,
+  cancelArchived,
+  clientArchived,
   failTarget,
+  lateCodeOf,
+  latestStartOf,
   moveTarget,
   openAccount,
   pauseTarget,
@@ -41,6 +46,7 @@ import {
   type TargetJob,
 } from './context.js'
 import { destinationCopies } from './files.js'
+import { retriedAtOf } from './retry-mark.js'
 import { uncertainSearch } from './search.js'
 
 // `target.publish` (plan 07 Task 7): the call that publishes, at the post's time. `publishing`
@@ -57,6 +63,8 @@ interface Call {
   generation: number
   /** when the step began: the uncertain search looks from here (§9.5) */
   startedAt: Date
+  /** the post's time: past 60 minutes after it nothing starts (R4) */
+  scheduledAt: Date
 }
 
 type Decision = { kind: 'done'; log: StepLog; jobs: StepJob[] } | { kind: 'call'; call: Call }
@@ -89,6 +97,11 @@ async function decide(
     return done(await pauseTarget(tx, target, 'organization_suspended'))
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
+  // an archived client publishes nothing (D-70, R7)
+  if (await clientArchived(tx, actor, target)) return done(await cancelArchived(tx, target))
+  // R4: never more than 60 minutes after the time (or the «Riprova»), whatever held it
+  if (isPastLatestStart(latestOf(post.scheduledAt, retriedAtOf(target)), now))
+    return done(await failTarget(tx, target, lateCodeOf(target)))
   // D-77 (b): a worker stopped past the time does not publish late; the attempts after an
   // error go on (`retrying`), and a preparation that ended late is measured from its end
   // (`next_attempt_at` of `ready`: the time, or the end of a preparation past it)
@@ -106,6 +119,8 @@ async function decide(
   }
   const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
   const copies = await destinationCopies(tx, deps, post, report, target.accountId)
+  if (copies.status === 'no_public_host')
+    return done(await failTarget(tx, target, 'public_host_off'))
   if (copies.status !== 'ready') return done(await failTarget(tx, target, 'file_wont_publish'))
   const opened = await openAccount(tx, deps, target.organizationId, target.accountId)
   if (!opened) return done(await failTarget(tx, target, 'token_invalid'))
@@ -120,6 +135,7 @@ async function decide(
       record: target,
       generation,
       startedAt: now,
+      scheduledAt: post.scheduledAt,
       connectionId: opened.connectionId,
       publisher: opened.publisher,
       files: copies.files,
@@ -225,6 +241,12 @@ async function settle(
     }
     // no posts left in the window, or a file still processing: not an attempt
     const at = result.retryAt
+    // R4: a window that frees up past the 60 minutes: not out, and «Riprova» later
+    if (
+      result.reason === 'quota' &&
+      at.getTime() > latestStartOf(call.scheduledAt, target).getTime()
+    )
+      return { log: await failTarget(tx, target, 'quota_exhausted'), jobs: [] }
     const generation = await moveTarget(tx, target, 'retrying', {
       step: 'publish',
       metaIds,

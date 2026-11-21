@@ -686,11 +686,12 @@
           "quota_exhausted": "finiti i post permessi in 24 ore",
           "account_restricted": "{platform} ha limitato l’account",
           "meta_error": "un errore di {platform}",
-          "too_late": "l’ora era passata da più di 15 minuti",
+          "too_late": "l’ora era passata da troppo tempo",
           "uncertain_not_found": "da controllare sul profilo prima di riprovare",
           "file_wont_publish": "un file non si può preparare per {platform}",
           "author_lost_permission": "chi l’ha programmato non può più pubblicare",
           "organization_suspended": "l’agenzia è sospesa",
+          "public_host_off": "Meta non raggiunge i file di Feedway",
           "not_found": "{platform} non lo trova più",
           "failed": "{platform} dice che non è riuscito",
           "wrong_type": "uscito in un formato diverso",
@@ -2710,11 +2711,12 @@
         "quota_exhausted": "Il profilo ha finito i post che Instagram permette in 24 ore. Riprova più tardi.",
         "account_restricted": "{platform} ha limitato questo account: controllalo da Meta, poi riprova.",
         "meta_error": "{platform} non ha pubblicato il post per un suo errore. Riprova tra poco.",
-        "too_late": "Non uscito: l'ora era passata da più di 15 minuti. «Riprova» lo pubblica subito.",
+        "too_late": "L'ora del post era passata da troppo tempo e non l'abbiamo pubblicato in ritardo. «Riprova» lo pubblica subito.",
         "uncertain_not_found": "{platform} non ha confermato e sul profilo non l'abbiamo trovato. Controlla il profilo prima di riprovare.",
         "file_wont_publish": "Un file del post non si può preparare per {platform}. Cambialo nel post, poi riprova.",
         "author_lost_permission": "Chi l'aveva programmato non può più pubblicare su questo cliente.",
-        "organization_suspended": "L'agenzia è sospesa: non si pubblica finché non torna attiva."
+        "organization_suspended": "L'agenzia è sospesa: non si pubblica finché non torna attiva.",
+        "public_host_off": "Meta non può scaricare i file: Feedway non ha un indirizzo pubblico (PUBLIC_URL). Va attivato sul server, poi riprova."
       },
       "problem": {
         "not_found": "Il post è uscito, ma {platform} ora non lo trova più. Controlla il profilo: se c'è, segnalo come verificato.",
@@ -2836,11 +2838,12 @@
       "quota_exhausted": "Il profilo Instagram ha finito i post del giorno: ritento quando si liberano",
       "account_restricted": "Il profilo Instagram è limitato o da confermare: accedi all'app di Instagram e risolvi, poi riprova",
       "meta_error": "Meta ha rifiutato la pubblicazione",
-      "too_late": "L'ora era passata da più di 15 minuti",
+      "too_late": "L'ora del post era passata da troppo tempo",
       "uncertain_not_found": "Meta non ha confermato la pubblicazione e il post non si trova sul profilo. Controlla il profilo prima di riprovare: Meta potrebbe averlo pubblicato",
       "file_wont_publish": "Un file del post non si può pubblicare: apri il post per vedere quale",
       "author_lost_permission": "Chi ha programmato il post non può più pubblicare su questo cliente",
-      "organization_suspended": "L'agenzia è sospesa: nessun post esce finché non torna attiva"
+      "organization_suspended": "L'agenzia è sospesa: nessun post esce finché non torna attiva",
+      "public_host_off": "Feedway non ha un indirizzo pubblico (PUBLIC_URL): Meta non può scaricare i file"
     }
   }
 }

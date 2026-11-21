@@ -13,6 +13,12 @@ export const VERIFY_DELAYS_MINUTES = [3, 10, 30] as const
 export const PREPARE_LEAD_MINUTES = 15
 /** D-77 (b): a publication does not start more than 15 minutes after its time. */
 export const MAX_LATENESS_MINUTES = 15
+/**
+ * Review of stage 7 (R4): a first publication never goes out more than 60 minutes after its time
+ * (or its «Riprova»), whatever held it on the way: a worker stopped during the preparation, the
+ * attempts after an error, an Instagram quota. The attempts of §9.5 (1, 5, 15 minutes) fit in.
+ */
+export const LATEST_START_MINUTES = 60
 /** Scelta 4: the post is checked again 3 hours before it goes out. */
 export const RECHECK_LEAD_MINUTES = 180
 
@@ -62,6 +68,11 @@ export function prepareAt(scheduledAt: Date, now: Date): Date {
  */
 export function isTooLate(startAt: Date, now: Date): boolean {
   return now.getTime() - startAt.getTime() > MAX_LATENESS_MINUTES * MINUTE_MS
+}
+
+/** R4: past this, nothing of a first publication starts any more; `startAt` as `isTooLate`. */
+export function isPastLatestStart(startAt: Date, now: Date): boolean {
+  return now.getTime() - startAt.getTime() > LATEST_START_MINUTES * MINUTE_MS
 }
 
 /** Scelta 4: 3 hours before the post, or now when fewer are left. */

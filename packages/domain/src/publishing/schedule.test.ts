@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { instantToZoned, zonedToInstant } from '../time/index.js'
-import { isTooLate, nextAttemptAt, prepareAt, recheckAt, searchAt, verifyAt } from './schedule.js'
+import {
+  isPastLatestStart,
+  isTooLate,
+  nextAttemptAt,
+  prepareAt,
+  recheckAt,
+  searchAt,
+  verifyAt,
+} from './schedule.js'
 
 const MIN = 60_000
 const at = (iso: string) => new Date(iso)
@@ -94,6 +102,18 @@ describe('isTooLate (D-77 b: 15 minutes, first start only)', () => {
     expect(isTooLate(scheduledAt, plus(scheduledAt, 15))).toBe(false)
     expect(isTooLate(scheduledAt, new Date(scheduledAt.getTime() + 15 * MIN + 1))).toBe(true)
     expect(isTooLate(scheduledAt, plus(scheduledAt, 16))).toBe(true)
+  })
+})
+
+describe('isPastLatestStart (review R4: 60 minutes, whatever stopped it)', () => {
+  const scheduledAt = at('2026-11-20T12:00:00Z')
+  it('still in time up to the 60th minute, never after', () => {
+    expect(isPastLatestStart(scheduledAt, plus(scheduledAt, 20))).toBe(false)
+    expect(isPastLatestStart(scheduledAt, plus(scheduledAt, 60))).toBe(false)
+    expect(isPastLatestStart(scheduledAt, new Date(scheduledAt.getTime() + 60 * MIN + 1))).toBe(
+      true,
+    )
+    expect(isPastLatestStart(scheduledAt, plus(scheduledAt, 240))).toBe(true)
   })
 })
 

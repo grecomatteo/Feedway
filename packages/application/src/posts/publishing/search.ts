@@ -69,6 +69,22 @@ interface Look {
   record: PublishingTargetRecord
   generation: number
   read: { target: PublishTarget; publisher: PlatformPublisher; connectionId: string } | null
+  /** the posts other destinations of the account already are: never this one's (R3) */
+  exclude: string[]
+}
+
+/** How far around the call the other destinations' posts are read: wider than the search. */
+const EXCLUDE_AROUND_MINUTES = 60
+
+/** The posts of the account's other destinations published around `at` (R3). */
+async function othersNear(tx: Tx, target: PublishingTargetRecord, at: Date): Promise<string[]> {
+  const near = await tx.publishing.publishedNear(target.organizationId, target.accountId, {
+    from: plusMinutes(at, -EXCLUDE_AROUND_MINUTES),
+    to: plusMinutes(at, EXCLUDE_AROUND_MINUTES),
+  })
+  return near.flatMap((t) =>
+    t.targetId !== target.id && t.externalPostId !== null ? [t.externalPostId] : [],
+  )
 }
 
 type Answer =
@@ -81,10 +97,13 @@ async function decide(tx: Tx, deps: PublishingWorkerDeps, job: TargetJob): Promi
   const scope = { organizationId: target.organizationId, workspaceId: target.workspaceId }
   const post = await tx.posts.find(scope, target.postId)
   if (!post) return skipped('post gone')
+  const since =
+    target.step === 'recheck' ? (target.publishedAt ?? new Date(0)) : searchOf(target).since
   return {
     record: target,
     generation: target.generation,
     read: await readTargetOf(tx, deps, target, post),
+    exclude: await othersNear(tx, target, since),
   }
 }
 
@@ -102,6 +121,7 @@ async function lookFor(look: Look, signal: AbortSignal): Promise<Answer> {
         read.target,
         record.publishedAt ?? new Date(0),
         signal,
+        look.exclude,
       )
       // the same post Meta said failed is not the one looked for; the same post Meta said it
       // could not read (`not_found` may be a refusal for a while) is there: verified again
@@ -113,7 +133,12 @@ async function lookFor(look: Look, signal: AbortSignal): Promise<Answer> {
             : found,
       }
     }
-    const found = await read.publisher.findPublished(read.target, searchOf(record).since, signal)
+    const found = await read.publisher.findPublished(
+      read.target,
+      searchOf(record).since,
+      signal,
+      look.exclude,
+    )
     return { verified: null, found }
   } catch (error) {
     if (error instanceof PublishError) return { error }

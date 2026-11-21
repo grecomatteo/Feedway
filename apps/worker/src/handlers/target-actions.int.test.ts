@@ -439,6 +439,44 @@ test('an uncertain call, not found, then «Riprova»: prepared and published', a
   expect(publishCalls()).toBe(before + 1)
 })
 
+test('Facebook: an uncertain call, not found, then «Riprova»: a new round, published once (R2)', async () => {
+  const { world, at, post, panel, input } = await setUp()
+  const fb = world.accounts.facebook
+  const clock = testClock(plus(at, -15))
+  const deps = workerDeps(runtime, clock, host.url)
+  await prepareTarget(deps, job(world, await targetOn(post.postId, fb)))
+  clock.set(at)
+  // the call leaves its mark, then the answer is lost
+  const real = runtime.publishers.facebook as PlatformPublisher
+  const lost: PlatformPublisher = {
+    ...real,
+    publish: async (target, _files, ctx) => {
+      await ctx.saveIds({ ...(target.metaIds ?? {}), publishingAt: clock.now().toISOString() })
+      throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
+    },
+  }
+  await publishTarget(
+    { ...deps, publishers: { facebook: lost } },
+    job(world, await targetOn(post.postId, fb)),
+  )
+  for (const minutes of [2, 5, 15]) {
+    clock.set(plus(at, minutes))
+    await searchTarget(deps, job(world, await targetOn(post.postId, fb)))
+  }
+  expect((await targetOn(post.postId, fb)).last_error_code).toBe('uncertain_not_found')
+  panel.clock.set(plus(at, 20))
+  clock.set(plus(at, 20))
+  await retryTarget(panel, world.actor, input(fb), { ip: null })
+  const photos = () =>
+    mock.calls().filter((c) => c.method === 'POST' && c.path.endsWith('/photos')).length
+  const before = photos()
+  await prepareTarget(deps, job(world, await targetOn(post.postId, fb)))
+  expect((await targetOn(post.postId, fb)).status).toBe('ready')
+  await publishTarget(deps, job(world, await targetOn(post.postId, fb)))
+  expect((await targetOn(post.postId, fb)).status).toBe('published')
+  expect(photos()).toBe(before + 1)
+})
+
 test('«Riprova», then the post moved to another day: its preparation is not too late', async () => {
   const { world, at, post, panel, input } = await setUp({ accounts: 'instagram' })
   const ig = world.accounts.instagram

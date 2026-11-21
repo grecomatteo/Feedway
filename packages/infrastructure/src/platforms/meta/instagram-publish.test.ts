@@ -354,6 +354,38 @@ describe('publish', () => {
     expect(found).not.toBeNull()
   })
 
+  test('the search leaves out the posts of other destinations; two that fit are not sure', async () => {
+    const t = target('story')
+    const since = clock.now()
+    const first = await goOut(t, files([image()]))
+    const second = await goOut({ ...t, targetId: 'target-2' }, files([image()]))
+    const signal = new AbortController().signal
+    // two stories of the account in the window: either may be this one's (review R3)
+    expect(await publisher.findPublished(t, since, signal)).toBeNull()
+    const found = await publisher.findPublished(t, since, signal, [
+      first.published.externalPostId ?? '',
+    ])
+    expect(found?.externalPostId).toBe(second.published.externalPostId)
+  })
+
+  test('«Riprova» after a search that found nothing keeps the container (review R2)', () => {
+    const ids = { platform: 'instagram', container: { id: '17900000000000001', finished: true } }
+    expect(publisher.idsAfterNotFound(ids)).toEqual(ids)
+  })
+
+  test('a round past its 24 hours whose container was published fails, never a second post', async () => {
+    const t = target('photo')
+    const prepared = await publisher.prepare(t, files([image()]), ctx())
+    // media_publish went out and its answer was lost; the search did not see it
+    await publisher.publish({ ...t, metaIds: structuredClone(prepared.metaIds) }, noFiles, ctx())
+    clock.advance(25 * 3_600_000)
+    const err = await failure(
+      publisher.prepare({ ...t, metaIds: prepared.metaIds }, files([image()]), ctx()),
+    )
+    expect([err.kind, err.code]).toEqual(['permanent', 'uncertain_not_found'])
+    expect(posts(`/${ig}/media`)).toHaveLength(1)
+  })
+
   test('a destination that has its post is never published again', async () => {
     const result = await publisher.publish(
       target('photo', { externalPostId: '18000000000000009' }),

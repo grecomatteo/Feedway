@@ -352,6 +352,10 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       }
     },
 
+    // a new round: the mark of the lost call would make every preparation uncertain, and what
+    // the old round left (photos, an upload) is never thrown away, it may be the post itself
+    idsAfterNotFound: () => null,
+
     async discard(target, signal) {
       const ids = parse(target)
       if (ids === null || ids.postId !== null || target.externalPostId !== null) return
@@ -373,7 +377,7 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       }
     },
 
-    async findPublished(target, since, signal) {
+    async findPublished(target, since, signal, exclude = []) {
       const ids = parse(target)
       const shape = shapeOf(target, null, ids)
       const credentials = await pageCredentials(target, signal)
@@ -382,13 +386,17 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       const to = since.getTime() + FIND_WINDOW_MS
       const caption = normalizeCaption(target.caption)
       const story = shape === 'photo_story' || shape === 'video_story'
-      const match = found.find((p) => {
-        // the reel's own upload session: it is that reel, whatever its text
-        if (ids?.video != null && p.id === ids.video.id) return true
+      const others = new Set(exclude)
+      // the reel's own upload session: it is that reel, whatever its text
+      const own = ids?.video == null ? undefined : found.find((p) => p.id === ids.video?.id)
+      const fits = found.filter((p) => {
         const at = p.createdAt?.getTime()
         if (at === undefined || !Number.isFinite(at) || at < from || at > to) return false
+        if (others.has(p.id)) return false
         return story || normalizeCaption(p.message ?? '') === caption
       })
+      // two that fit (stories have no text, a twin post of the Page): not sure, a person looks
+      const match = own ?? (fits.length === 1 ? fits[0] : undefined)
       if (match === undefined) return null
       return {
         externalPostId: match.id,

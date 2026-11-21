@@ -49,6 +49,7 @@ beforeEach(async () => {
     clock,
     logger: memoryLogger(),
     timeoutMs: 300,
+    fileTimeoutMs: 300,
     retryBaseDelayMs: 1,
   })
   const ready = createMetaPublishers({ client, clock }).facebook
@@ -329,6 +330,21 @@ describe('publish', () => {
     expect(calls('POST', `/${page}/photos`)).toHaveLength(1)
   })
 
+  test('«Riprova» after a search that found nothing starts a new round (review R2)', async () => {
+    const t = target('carousel')
+    const f = files([image(), image()])
+    const prepared = await publisher.prepare(t, f, ctx())
+    mock.scenario('publish_timeout_but_created', { delayMs: 2_000 })
+    await failure(publisher.publish({ ...t, metaIds: prepared.metaIds }, f, ctx()))
+    const marked = saved.at(-1) ?? null
+    expect(marked).toMatchObject({ publishingAt: expect.any(String) as string })
+    // with the mark, every preparation would be uncertain: the platform starts again
+    expect(publisher.idsAfterNotFound(marked)).toBeNull()
+    const again = await publisher.prepare({ ...t, metaIds: null }, f, ctx())
+    expect(again.outcome).toBe('done')
+    expect(again.metaIds).toMatchObject({ publishingAt: null, postId: null })
+  })
+
   test('a refusal before acting clears the mark: the step can be tried again', async () => {
     const t = target('photo')
     mock.scenario('rate_limited', { path: `/${page}/photos`, code: 32, times: 1 })
@@ -404,6 +420,20 @@ describe('stories', () => {
     expect(found?.externalPostId).toBe(ready.externalPostId)
     const gone = await publisher.verify({ ...ready, externalPostId: '7300999' }, signal())
     expect(gone).toMatchObject({ outcome: 'problem', reason: 'not_found' })
+  })
+
+  test('the search leaves out the stories of other destinations; two that fit are not sure', async () => {
+    const t = target('story')
+    const since = clock.now()
+    const first = await goOut(t, files([image()]))
+    const second = await goOut({ ...t, targetId: 'target-2' }, files([image()]))
+    const looking = { ...t, metaIds: second.ready.metaIds }
+    // review R3: either story may be this one's
+    expect(await publisher.findPublished(looking, since, signal())).toBeNull()
+    const found = await publisher.findPublished(looking, since, signal(), [
+      first.out.externalPostId ?? '',
+    ])
+    expect(found?.externalPostId).toBe(second.out.externalPostId)
   })
 
   test('a video story session is thrown away by discard; a reel round expires after a day', async () => {

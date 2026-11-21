@@ -149,8 +149,8 @@ const stepJob = (
 /**
  * A call that publishes refused by Meta used what was prepared (an Instagram container in error):
  * the next round prepares again, and what Facebook kept unpublished is thrown away. Not after
- * `too_late` (nothing was called) nor `uncertain_not_found` (the post may be out: the same
- * container answers «already published» instead of a second post).
+ * `too_late` (nothing was called) nor `uncertain_not_found` (the post may be out: nothing of it
+ * is thrown away, and the platform says what is kept, `idsAfterNotFound`, review R2).
  */
 const spentRound = (target: PublishingTargetRecord) =>
   target.step === 'publish' &&
@@ -184,7 +184,7 @@ export function retryTarget(
         nextAttemptAt: now,
         lastErrorCode: null,
         lastErrorMessage: null,
-        verification: retryMark(now),
+        verification: retryMark(now, target.lastErrorCode === 'uncertain_not_found'),
       })
       job = stepJob(target, 'target.prepare', generation, now)
     } else if (target.status === 'problem') {

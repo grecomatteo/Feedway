@@ -473,6 +473,125 @@ test('CS1: six destinations of one agency at the same time all go out within the
 
 class WorkerDied extends Error {}
 
+test('R4: a worker stopped during the preparation for hours never publishes late', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  const deps = workerDeps(runtime, clock, host.url)
+  const [scheduled] = await targetsOf(admin, post.postId)
+  if (!scheduled) throw new Error('no destination')
+  // the container is made on Meta, then the process dies before writing the outcome
+  await expect(
+    prepareTarget({ ...deps, uow: diesAfterCall(deps.uow) }, job(world, scheduled)),
+  ).rejects.toThrow(WorkerDied)
+  const [left] = await targetsOf(admin, post.postId)
+  expect(left?.status).toBe('preparing')
+  // back four hours later: the reconciler sends the preparation again
+  clock.set(new Date(at.getTime() + 4 * 60 * MINUTE))
+  const published = callsTo('/media_publish')
+  await prepareTarget(deps, job(world, left as TargetRow))
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    last_error_code: 'too_late',
+  })
+  expect(callsTo('/media_publish')).toBe(published)
+})
+
+test('R4: a quota that frees up past the 60 minutes fails the destination at once', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  clock.set(new Date(at.getTime() + 5 * MINUTE))
+  mock.scenario('quota_exhausted')
+  // Meta's window frees up 75 minutes after the time
+  const real = runtime.publishers.instagram as PlatformPublisher
+  const lateWindow: PlatformPublisher = {
+    ...real,
+    publish: async (target, files, ctx) => {
+      const result = await real.publish(target, files, ctx)
+      return result.outcome === 'wait'
+        ? { ...result, retryAt: new Date(at.getTime() + 75 * MINUTE) }
+        : result
+    },
+  }
+  const deps = workerDeps(runtime, clock, host.url)
+  const [ready] = await targetsOf(admin, post.postId)
+  if (!ready) throw new Error('no destination')
+  await publishTarget({ ...deps, publishers: { instagram: lateWindow } }, job(world, ready))
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    last_error_code: 'quota_exhausted',
+    next_attempt_at: null,
+  })
+})
+
+test('R4: a quota wait that brings the publication past the 60 minutes ends with its reason', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  clock.set(new Date(at.getTime() + 5 * MINUTE))
+  mock.scenario('quota_exhausted')
+  await runSteps(world, post.postId, clock, 'publish')
+  const [waiting] = await targetsOf(admin, post.postId)
+  expect(waiting).toMatchObject({ status: 'retrying', last_error_code: 'quota_exhausted' })
+  // the worker was stopped: it comes back past the hour
+  clock.set(new Date(at.getTime() + 61 * MINUTE))
+  const published = callsTo('/media_publish')
+  await publishTarget(workerDeps(runtime, clock, host.url), job(world, waiting as TargetRow))
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    last_error_code: 'quota_exhausted',
+  })
+  expect(callsTo('/media_publish')).toBe(published)
+})
+
+test('R8: a preparation waiting for its copies past the 15 minutes still publishes', async () => {
+  const { world, photo, at, post } = await setUp({ accounts: 'instagram' })
+  // «Pubblica subito» of a long video: the copies are still being made at the time
+  await admin.query("update media_variants set status = 'pending' where media_id = $1", [photo])
+  const clock = testClock(at)
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'scheduled' })
+  await admin.query("update media_variants set status = 'ready' where media_id = $1", [photo])
+  clock.set(new Date(at.getTime() + 20 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready' })
+  await runSteps(world, post.postId, clock, 'publish')
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'published' })
+})
+
+test('R9: without PUBLIC_URL the destination fails with its reason, never waits in silence', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const deps = { ...workerDeps(runtime, testClock(new Date(at.getTime() - 15 * MINUTE)), host.url) }
+  const [scheduled] = await targetsOf(admin, post.postId)
+  await prepareTarget({ ...deps, publicUrl: null }, job(world, scheduled as TargetRow))
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({
+    status: 'failed',
+    last_error_code: 'public_host_off',
+  })
+})
+
+test('R7: an archived client with a post half out: what is left is cancelled, no endless error', async () => {
+  const { world, at, post } = await setUp()
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  await runSteps(world, post.postId, clock, 'prepare')
+  clock.set(at)
+  const [facebook, instagram] = await targetsOf(admin, post.postId)
+  const deps = workerDeps(runtime, clock, host.url)
+  await publishTarget(deps, job(world, instagram as TargetRow))
+  // archived meanwhile, as the archiving leaves a post with a destination out
+  await admin.query('update workspaces set archived_at = now() where id = $1', [world.workspaceId])
+  const photos = callsTo('/photos')
+  expect(await publishTarget(deps, job(world, facebook as TargetRow))).toMatchObject({
+    outcome: 'moved',
+    to: 'cancelled',
+  })
+  expect(callsTo('/photos')).toBe(photos)
+  const after = await targetsOf(admin, post.postId)
+  expect(after.map((t) => t.status)).toEqual(['cancelled', 'published'])
+  expect(await postStatusOf(admin, post.postId)).toBe('published')
+  await admin.query('update workspaces set archived_at = null where id = $1', [world.workspaceId])
+})
+
 test('a preparation that ends after the time still publishes: D-77 (b) is for the first start only', async () => {
   const { world, at, post } = await setUp({ accounts: 'instagram' })
   const clock = testClock(new Date(at.getTime() - 15 * MINUTE))

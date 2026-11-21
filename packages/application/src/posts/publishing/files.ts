@@ -15,6 +15,8 @@ export type DestinationCopies =
   /** still being made, or asked for again now: the worker is woken by the caller */
   | { status: 'pending'; asked: number }
   | { status: 'failed' }
+  /** PUBLIC_URL is not set: Meta reaches no file (review R9), a setting of the server to fix */
+  | { status: 'no_public_host' }
 
 export async function destinationCopies(
   tx: Tx,
@@ -47,8 +49,8 @@ export async function destinationCopies(
     return asked === 0 ? { status: 'failed' } : { status: 'pending', asked }
   }
   if (states.some((s) => s.state.status === 'pending')) return { status: 'pending', asked: 0 }
-  // without the public host Meta reaches no file: a setting to fix, not the post's fault
-  if (deps.publicUrl === null) throw new Error('PUBLIC_URL is not set: Meta cannot download')
+  // without the public host Meta reaches no file: the destination says so, never waits silently
+  if (deps.publicUrl === null) return { status: 'no_public_host' }
   const base = deps.publicUrl
   const urls = states.map(({ state }) => {
     if (state.status !== 'ready' || state.copy.publicToken === null)
