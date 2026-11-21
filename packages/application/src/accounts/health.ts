@@ -168,6 +168,9 @@ export async function syncConnection(
     throw new Error(`account listing ${listing.reason}`)
   }
   const seen = new Map(listing.accounts.map((a) => [keyOf(a), a]))
+  // D-108: the Business's id may have been written after connecting (the 0.13.0 test)
+  const businessName =
+    (await opened.connector.businessName?.({ app: opened.app, token: opened.token })) ?? null
   const now = deps.clock.now()
   const { organizationId, connectionId } = job
 
@@ -175,6 +178,8 @@ export async function syncConnection(
     // the import's lock: an account imported meanwhile is not closed by an older list
     await tx.accounts.lockImport(organizationId)
     if (!(await lockSame(tx, opened))) return null
+    if (businessName !== null && businessName !== opened.connection.businessName)
+      await tx.connections.setBusinessName(organizationId, connectionId, businessName)
     let updated = 0
     const gone: string[] = []
     // the accounts whose picture to copy again (Meta signs its addresses for a few days)

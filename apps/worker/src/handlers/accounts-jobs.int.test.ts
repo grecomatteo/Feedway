@@ -133,6 +133,41 @@ test('the sync refreshes names and closes what the owner no longer sees; another
   ])
 })
 
+test('the sync reads the name of the Business written in the integration after connecting (D-108)', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  const nameOf = async () =>
+    (
+      await admin.query<{ business_name: string | null }>(
+        'select business_name from account_connections where id = $1',
+        [a.id],
+      )
+    ).rows[0]?.business_name
+  expect(await nameOf()).toBeNull()
+  // the Owner writes the Business's id once the connection is there (the 0.13.0 test)
+  await runtime.uow.run({ organizationId: of.organizationId, userId: of.ownerId }, async (tx) => {
+    const current = await runtime.integrations.get(tx, of.organizationId, 'meta')
+    await runtime.integrations.replace(tx, of.organizationId, 'meta', {
+      config: {
+        appId: META_MOCK.app.id,
+        configId: null,
+        businessId: META_MOCK.businesses.agency,
+        dataUseCheckupDueOn: null,
+      },
+      secret: META_MOCK.app.secret,
+      updatedBy: of.ownerId,
+      expectedVersion: current?.updatedAt ?? null,
+      verifiedAt: new Date(),
+    })
+  })
+  await accountsSync(job(of, a.id), handlerDeps(runtime, recordingQueue()))
+  expect(await nameOf()).toBe('Agenzia Demo')
+  // a read that fails keeps the name
+  mock.scenario('error', { code: 100, status: 400, path: `/${META_MOCK.businesses.agency}` })
+  await accountsSync(job(of, a.id), handlerDeps(runtime, recordingQueue()))
+  expect(await nameOf()).toBe('Agenzia Demo')
+})
+
 test('the health check: green with the quota, the page green, the usage kept', async () => {
   const of = await agency(tdb, runtime)
   const a = await connection(runtime, of, { accounts: FORNO_LUCE })

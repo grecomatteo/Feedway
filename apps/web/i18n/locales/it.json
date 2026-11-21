@@ -2639,7 +2639,8 @@
       "uploading": "Carico {name}…",
       "shareToFeed": "Mostra anche nel feed",
       "shareToFeedHelp": "Anche nella griglia del profilo",
-      "fromComputer": "Dal computer"
+      "fromComputer": "Dal computer",
+      "facebookFirstFrame": "Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram."
     },
     "labels": {
       "title": "Etichette",

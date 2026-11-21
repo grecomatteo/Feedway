@@ -382,6 +382,14 @@ export function createMetaSystemUserConnector(deps: {
       }
     },
 
+    businessName({ app: credentials, token }) {
+      return businessNameOf(
+        client,
+        { accessToken: token, appSecret: credentials.appSecret },
+        credentials.businessId ?? null,
+      )
+    },
+
     listAccounts({ app: credentials, token }) {
       return classifiedListing(() =>
         listMetaAccounts(client, { accessToken: token, appSecret: credentials.appSecret }),

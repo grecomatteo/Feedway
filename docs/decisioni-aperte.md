@@ -597,6 +597,10 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Scelte provvisorie:**
   1. **Cosa resta fuori dall'eccezione:** il turno tra le preparazioni dell'agenzia e il rallentamento oltre l'80% di Meta, che prima (R8) andavano avanti. Una pubblicazione che riprova dopo un errore conta dall'ora del post, anche se la preparazione era finita tardi per l'elaborazione.
   2. **Timeout di Instagram (difetto 2):** `ig_user/media` e `ig_user/media_publish` aspettano fino a 2 minuti, come le chiamate di Facebook della R14 (nella prova sono andate in timeout a 10 secondi 9 e 4 volte).
+  3. **Più file del massimo (difetto 3, parte):** l'editor scrive «11 file, al massimo 10» invece di «11 di 10». Cosa fa «Solo le prime 10» con le foto in più che nessun account pubblica (D-48 contro D-56) è chiesto a Matteo.
+  4. **Copertina dei reel su Facebook (difetto 4):** la copertina scelta va solo a Instagram; sotto «Copertina», con un account di Facebook che pubblica il post, l'editor dice «Su Facebook la copertina è il primo fotogramma del video». Caricare la copertina anche su Facebook (`POST /{video-id}/thumbnails`, con i permessi `pages_manage_engagement` e `pages_read_user_content`) è per la tappa 8.
+  5. **Pagina dell'esito (difetto 6):** il riquadro di un video mostra la sua miniatura (`thumbnail`), non più il file MP4 in un `<img>`. L'anteprima sfogliabile e riproducibile è la richiesta di design 1, per la tappa 8.
+  6. **D-108 (difetto 12):** il nome del Business si rilegge a ogni sincronizzazione (D-108 punto 2).
 - **Non verificato** su Meta vera: si prova con la 0.13.1.
 - **Stato:** il punto deciso è fatto; le scelte provvisorie si confermano con la prova.
 
@@ -978,7 +982,7 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 - **Origine:** tappa 7, Task 5 (B11 b della revisione di fedeltà del ridisegno, 20/11). **Non verificato** su Meta vera: si prova nella guida della 0.13.0 (Task 10).
 - **Scelte provvisorie:**
   1. **Da dove viene il nome:** se l'Owner ha scritto l'ID del Business Manager nell'integrazione, `GET /{business-id}?fields=name`; altrimenti `me/businesses`, solo se risponde con un Business solo. Il 2026-11-11 `me/businesses` ha risposto vuoto all'utente di sistema: senza l'ID nell'integrazione, su Meta vera il nome probabilmente non arriva e la riga resta «Utente di sistema Meta».
-  2. **Quando si legge:** al collegamento e con «Sostituisci token»; una lettura che non riesce lascia il nome com'era (vuoto al primo collegamento) e non ferma mai il collegamento. La sincronizzazione non lo rilegge.
+  2. **Quando si legge:** al collegamento, con «Sostituisci token» e, dalla 0.13.1, a ogni sincronizzazione (anche «Aggiorna»), così un ID del Business scritto dopo il collegamento basta (prova della 0.13.0, D-118); una lettura che non riesce lascia il nome com'era (vuoto al primo collegamento) e non ferma mai il collegamento né la sincronizzazione.
   3. **Come si mostra:** il nome è il titolo della riga, il tipo («Utente di sistema Meta ·») va nella riga sotto, prima della data; senza nome la riga è come prima. Spazi ripetuti ridotti a uno, al massimo 200 caratteri.
   4. **Colonne dei Collegamenti:** al computer la prima colonna era schiacciata a 29 px (il nome non si vedeva, già prima di questa PR) perché la colonna delle azioni era `auto` in ogni riga. Ora le colonne sono fisse (`1fr 72px 120px 110px 148px`): a 1280 px il nome ha circa 160 px. Con degli account inattivi il conteggio («12 · 3 inattivi») va su due righe e la riga si alza: è il caso raro, il nome viene prima e la testata si allinea alle righe.
 - **Stato:** provvisorie; il punto 1 si conferma con la prova su Meta vera.

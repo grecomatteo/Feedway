@@ -232,6 +232,8 @@ export interface ConnectionsRepository {
     },
   ): Promise<boolean>
   setStatus(organizationId: string, id: string, status: ConnectionStatus): Promise<boolean>
+  /** The owner's name as the platform gives it now (D-108). false: no such connection. */
+  setBusinessName(organizationId: string, id: string, name: string): Promise<boolean>
   /** The platform's usage counters from the last call. */
   recordUsage(organizationId: string, id: string, usage: unknown): Promise<void>
   /**
