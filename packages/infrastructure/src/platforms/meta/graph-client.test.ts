@@ -275,6 +275,33 @@ describe('error classification', () => {
     expect(mock.calls()).toHaveLength(1)
   })
 
+  test('a call where Meta fetches the file waits longer than the others (review R14)', async () => {
+    const page = META_MOCK.pages.withInstagram
+    const pageToken = { accessToken: META_MOCK.tokens.page(page), appSecret: META_MOCK.app.secret }
+    const patient = createMetaGraphClient({
+      mode: 'mock',
+      version: 'v25.0',
+      baseUrl: mock.url,
+      clock: fixedClock(new Date('2026-11-09T12:00:00Z')),
+      logger: memoryLogger(),
+      timeoutMs: 200,
+      fileTimeoutMs: 2_000,
+      retryBaseDelayMs: 1,
+    })
+    mock.scenario('timeout', { delayMs: 500 })
+    const photo = await patient.createPagePhoto(
+      pageToken,
+      page,
+      { url: `${mock.url}/pictures/forno.jpg` },
+      new AbortController().signal,
+    )
+    expect(photo.data.id).toEqual(expect.any(String))
+    // the other calls keep the short one
+    mock.scenario('timeout', { delayMs: 500 })
+    const err = await failure(patient.listUserPages(systemUser))
+    expect([err.kind, err.reason]).toEqual(['uncertain', 'timeout'])
+  })
+
   test('a transient error is retried, then the client gives up after three attempts', async () => {
     mock.scenario('transient_error', { times: 1 })
     const pages = await client.listUserPages(systemUser)

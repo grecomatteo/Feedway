@@ -305,6 +305,12 @@ export interface MetaGraphClientOptions {
   clock: Clock
   logger: Logger
   timeoutMs?: number
+  /**
+   * The calls where Meta fetches the file before it answers (a Page's photos and videos, the
+   * hosted upload of a reel): a large file needs longer than the other calls (review R14).
+   * 120 s by default, well below the step's 300 s.
+   */
+  fileTimeoutMs?: number
   /** First wait between attempts; grows and is randomized. */
   retryBaseDelayMs?: number
   /** META_RECORD_DIR: redacted answers for Task 13. Used only in `live`. */
@@ -589,6 +595,8 @@ interface CallSpec {
    */
   host?: 'graph' | 'upload'
   headers?: Record<string, string>
+  /** Meta fetches a file before it answers: the longer timeout (`fileTimeoutMs`). */
+  fetchesFile?: boolean
 }
 
 export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphClient {
@@ -598,6 +606,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
   const dialogBase = `${opts.baseUrl ?? DIALOG_HOST}/${opts.version}`
   const uploadBase = `${opts.baseUrl ?? UPLOAD_HOST}/video-upload/${opts.version}`
   const timeoutMs = opts.timeoutMs ?? 10_000
+  const fileTimeoutMs = opts.fileTimeoutMs ?? 120_000
   const baseDelay = opts.retryBaseDelayMs ?? 500
   const recordDir = opts.mode === 'live' ? (opts.recordDir ?? null) : null
   const redact = createRecordingRedactor()
@@ -673,7 +682,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     let text: string
     const started = opts.clock.now().getTime()
     try {
-      const timeout = AbortSignal.timeout(timeoutMs)
+      const timeout = AbortSignal.timeout(spec.fetchesFile === true ? fileTimeoutMs : timeoutMs)
       res = await fetch(url, {
         method,
         headers,
@@ -1097,6 +1106,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           method: 'POST',
           // a published photo is a post: never twice
           retry: params.published === 'false',
+          fetchesFile: true,
           path: `/${encodeURIComponent(pageId)}/photos`,
           params,
           credentials,
@@ -1147,6 +1157,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           name: 'video-upload',
           method: 'POST',
           host: 'upload',
+          fetchesFile: true,
           path: `/${encodeURIComponent(videoId)}`,
           headers: { file_url: fileUrl },
           credentials,
@@ -1181,6 +1192,7 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
           name: 'page/videos',
           method: 'POST',
           retry: false,
+          fetchesFile: true,
           path: `/${encodeURIComponent(pageId)}/videos`,
           params,
           credentials,
