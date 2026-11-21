@@ -204,6 +204,24 @@ test('a post still ahead and a draft stay as they are', async () => {
   expect(target).toEqual({ status: 'scheduled', generation: 0 })
 })
 
+test('the destination still ahead gets the times of the worker (0022, 0023): it is not forgotten', async () => {
+  // the backfills run under row level security forced on the owner: without the system scope
+  // they would change no row, and the post would never be prepared (review of stage 7, R1)
+  const [target] = await query<{ next_attempt_at: Date | null; recheck_at: Date | null }>(
+    'select next_attempt_at, recheck_at from post_targets where id = $1',
+    [aheadTarget],
+  )
+  const [post] = await query<{ scheduled_at: Date }>(
+    'select scheduled_at from posts where id = $1',
+    [ahead],
+  )
+  if (!target || !post) throw new Error('rows missing')
+  expect(target.next_attempt_at?.getTime()).toBe(post.scheduled_at.getTime() - 15 * 60_000)
+  // two hours ahead: fewer than three are left, so the check is due at once
+  expect(target.recheck_at).not.toBeNull()
+  expect(target.recheck_at?.getTime()).toBeLessThanOrEqual(Date.now())
+})
+
 test('the system scope of the migration does not outlive it', async () => {
   const c = new pg.Client({ connectionString: url.runtime })
   await c.connect()
