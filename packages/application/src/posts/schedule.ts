@@ -1,13 +1,9 @@
 import {
   DomainError,
-  checkLimit,
   distinctCopies,
   prepareAt,
   recheckAt,
-  instantToZoned,
-  parseLimits,
   storedTimeZone,
-  zonedToInstant,
   type OrgActor,
   type RuleReport,
 } from '@app/domain'
@@ -16,8 +12,9 @@ import type { Tx } from '../ports/tx.js'
 import { requestPublishCopies } from '../media/index.js'
 import { checkPostInTx, publishFilesOfPost } from '../rules/index.js'
 import { sendSteps, type StepJob } from './publishing/context.js'
-import type { assertActiveOrganization } from '../workspaces/index.js'
 import {
+  agencyDay,
+  assertDailyLimit,
   cannotChangeScheduled,
   cannotSchedule,
   changeOf,
@@ -30,6 +27,7 @@ import {
   versionConflict,
   writeParts,
   wrongState,
+  type AgencyOfPosts,
   type PostContent,
   type PostsDeps,
 } from './common.js'
@@ -41,44 +39,12 @@ import { noDate, toCheckInput } from './to-check-input.js'
 // back to draft and cancelling take `post.publish`, which the Publisher holds on every post of
 // the workspace; `scheduled_by` says who did it.
 
-type Organization = Awaited<ReturnType<typeof assertActiveOrganization>>
-
 /** 422 with the checks of the saved post: the editor shows what to fix. */
 export const notSchedulable = (report: RuleReport) =>
   new DomainError('VALIDATION', 'Il post ha dei problemi da risolvere prima di programmarlo', {
     reason: 'post_not_schedulable',
     report,
   })
-
-const nextDay = (localDate: string) => {
-  const [y, m, d] = localDate.split('-').map(Number) as [number, number, number]
-  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
-}
-
-/** The agency's day of the instant, in the agency's time zone: the limit is the agency's. */
-function agencyDay(at: Date, timeZone: string) {
-  const { localDate } = instantToZoned(at, timeZone)
-  return {
-    localDate,
-    from: zonedToInstant(localDate, '00:00', timeZone).instant,
-    to: zonedToInstant(nextDay(localDate), '00:00', timeZone).instant,
-  }
-}
-
-/** `posts_per_day`: the scheduled posts of the agency on that day, this one left out. */
-async function assertDailyLimit(tx: Tx, organization: Organization, post: PostRecord, at: Date) {
-  const limits = parseLimits(organization.limits)
-  if (limits.posts_per_day === undefined) return
-  const day = agencyDay(at, storedTimeZone(organization.settings))
-  const count = await tx.posts.countScheduled(organization.id, day, post.id)
-  const check = checkLimit(limits, 'posts_per_day', count)
-  if (!check.ok)
-    throw new DomainError(
-      'LIMIT_REACHED',
-      `L’agenzia ha già ${String(check.limit)} post programmati in quel giorno: è il massimo`,
-      { limit: check.limit },
-    )
-}
 
 /**
  * What a change of the schedule sends after its commit (plan 07 P3): the first step of each
@@ -116,7 +82,7 @@ async function scheduleSaved(
   tx: Tx,
   deps: PostsDeps,
   actor: OrgActor,
-  organization: Organization,
+  organization: AgencyOfPosts,
   scope: PostScope,
   postId: string,
   previousAt: Date | null,
@@ -288,7 +254,7 @@ export async function saveScheduled(
   tx: Tx,
   deps: PostsDeps,
   actor: OrgActor,
-  organization: Organization,
+  organization: AgencyOfPosts,
   post: PostRecord,
   content: PostContent,
 ): Promise<AfterSchedule> {

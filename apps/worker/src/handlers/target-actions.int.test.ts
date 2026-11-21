@@ -397,7 +397,7 @@ test.each(CAUSES)(
 )
 
 test('a suspended agency pauses with no event; lifting it does not resume by itself', async () => {
-  const { world, at, post, panel } = await setUp({ accounts: 'instagram' })
+  const { world, at, post, panel, photo } = await setUp({ accounts: 'instagram' })
   const setStatus = (status: 'suspended' | 'active') =>
     withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
       c.query('update organizations set status = $2, suspended_at = $3 where id = $1', [
@@ -441,17 +441,31 @@ test('a suspended agency pauses with no event; lifting it does not resume by its
     ),
   ).rejects.toMatchObject({ details: { reason: 'paused_time_passed' } })
   await expect(resume()).rejects.toMatchObject({ code: 'CONFLICT' })
-  const dto = await resumePaused(
-    panel,
-    world.actor,
-    {
-      workspaceId: world.workspaceId,
-      postId: post.postId,
-      version,
-      when: { localDate: '2099-01-15', localTime: '10:00' },
-    },
-    { ip: null },
+  // a day already full for the agency: refused, as «Programma» would (R19)
+  await scheduledPost(runtime, world, {
+    at: new Date('2099-01-14T08:00:00Z'),
+    mediaIds: [photo],
+    accounts: [world.accounts.instagram],
+  })
+  await withScope(tdb.runtimeUrl, { kind: 'system' }, (c) =>
+    c.query(`update organizations set limits = '{"posts_per_day": 1}' where id = $1`, [
+      world.organizationId,
+    ]),
   )
+  const resumeOn = (localDate: string) =>
+    resumePaused(
+      panel,
+      world.actor,
+      {
+        workspaceId: world.workspaceId,
+        postId: post.postId,
+        version,
+        when: { localDate, localTime: '10:00' },
+      },
+      { ip: null },
+    )
+  await expect(resumeOn('2099-01-14')).rejects.toMatchObject({ code: 'LIMIT_REACHED' })
+  const dto = await resumeOn('2099-01-15')
   expect(dto.status).toBe('scheduled')
   expect((await targetsOf(admin, post.postId))[0]?.status).toBe('scheduled')
 })

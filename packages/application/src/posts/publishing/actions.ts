@@ -14,6 +14,7 @@ import type { PostRecord, PostScope } from '../../ports/posts.js'
 import type { PublishingTargetRecord, TargetStepPatch } from '../../ports/publishing.js'
 import type { Tx } from '../../ports/tx.js'
 import {
+  assertDailyLimit,
   lockedPost,
   openPosts,
   scheduledAtOf,
@@ -322,6 +323,12 @@ export function resumePaused(
           : 'L’ora del post è passata: scegli quando pubblicarlo',
         { field: 'when', reason: 'paused_time_passed' },
       )
+    // a new day takes a place of that day, as «Programma» (R19); one at a time with scheduling
+    if (input.when) {
+      await tx.posts.lockSchedule(post.organizationId)
+      const organization = await tx.organizations.findById(post.organizationId)
+      if (organization) await assertDailyLimit(tx, organization, post, at)
+    }
     const version = await tx.posts.update(
       scope,
       post.id,
