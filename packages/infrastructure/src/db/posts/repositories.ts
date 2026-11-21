@@ -160,6 +160,40 @@ async function complete(
 const PANEL_REACH: readonly string[] = ['scheduled', 'preparing', 'ready', 'retrying', 'cancelled']
 
 /**
+ * The states of a post that take its place of the day (`posts_per_day`): going out or gone out,
+ * all or in part (review R5). A post that did not go out, a draft or a cancelled one does not.
+ */
+const TAKES_ITS_DAY: readonly string[] = [
+  'scheduled',
+  'publishing',
+  'paused',
+  'published',
+  'partial',
+  'problem',
+]
+
+/**
+ * The destinations the checks of a new post read (review R5): scheduled, on their way, paused,
+ * or out (with a problem too). One that did not go out, a draft or a cancelled one used nothing
+ * on Meta and is not a twin to avoid.
+ */
+const IN_HISTORY: readonly string[] = [
+  'scheduled',
+  'preparing',
+  'ready',
+  'publishing',
+  'retrying',
+  'unknown',
+  'paused',
+  'published',
+  'verifying',
+  'confirmed',
+  'problem',
+]
+/** Of those, the ones out: what an archived client had out still counts on its accounts. */
+const OUT: readonly string[] = ['published', 'verifying', 'confirmed', 'problem']
+
+/**
  * A new round of the worker on a destination the panel moves (plan 07 P2): the jobs of the old
  * one find nothing to do, and what was prepared on Meta, which holds the old files and text,
  * waits under `DISCARD_KEY` to be thrown away by the next preparation.
@@ -381,7 +415,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             // an archived client's posts never go out (D-70): they take no place of the day
             sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
                   and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
-            eq(posts.status, 'scheduled'),
+            inArray(posts.status, [...TAKES_ITS_DAY]),
             gte(posts.scheduledAt, from),
             lt(posts.scheduledAt, to),
             excludePostId === undefined ? undefined : ne(posts.id, excludePostId),
@@ -530,12 +564,14 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const weekBefore = new Date(at.getTime() - 7 * DAY)
       const weekAfter = new Date(at.getTime() + 7 * DAY)
       const dayBefore = new Date(at.getTime() - DAY)
+      // when it went out, or when it goes: a post out late after a «Riprova» counts then
+      const when = sql<Date | null>`coalesce(${postTargets.publishedAt}, ${posts.scheduledAt})`
       const rows = await db
         .select({
           accountId: postTargets.accountId,
           fingerprint: postTargets.fingerprint,
           type: posts.type,
-          scheduledAt: posts.scheduledAt,
+          scheduledAt: when.mapWith(posts.scheduledAt),
         })
         .from(postTargets)
         .innerJoin(
@@ -549,13 +585,17 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(postTargets.organizationId, organizationId),
             inArray(postTargets.accountId, [...accountIds]),
-            eq(postTargets.status, 'scheduled'),
-            // as `countScheduled`: an archived client's posts never go out (D-70)
-            sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
-                  and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            inArray(postTargets.status, [...IN_HISTORY]),
+            // as `countScheduled`: an archived client's posts never go out (D-70), but what it
+            // had out is on the account
+            or(
+              inArray(postTargets.status, [...OUT]),
+              sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
+                    and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            ),
             excludePostId === undefined ? undefined : ne(postTargets.postId, excludePostId),
-            gte(posts.scheduledAt, weekBefore),
-            lte(posts.scheduledAt, weekAfter),
+            gte(when, weekBefore),
+            lte(when, weekAfter),
           ),
         )
       for (const r of rows) {

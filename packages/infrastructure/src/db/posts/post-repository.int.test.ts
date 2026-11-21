@@ -291,6 +291,13 @@ test('statuses and the day count stay in the agency; an archived client does not
   expect([...statuses.keys()]).toEqual([ours])
   expect(await run((tx) => tx.posts.countScheduled(org, day))).toBe(1)
   expect(await run((tx) => tx.posts.countScheduled(org, day, ours))).toBe(0)
+  // a post of the day already out or on its way keeps its place; one not out frees it (R5)
+  for (const status of ['publishing', 'published', 'paused', 'failed', 'cancelled'])
+    await withScope(tdb.runtimeUrl, { kind: 'system' }, async (c) => {
+      const id = await scheduledIn(org, ws, user)
+      await c.query('update posts set status = $2 where id = $1', [id, status])
+    })
+  expect(await run((tx) => tx.posts.countScheduled(org, day))).toBe(4)
 })
 
 test('the posts that use a file, as a file or as a cover, the scheduled ones first', async () => {
