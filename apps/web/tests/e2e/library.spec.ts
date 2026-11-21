@@ -225,6 +225,9 @@ test('every folder has its «⋯»: new folder inside, rename, move and delete (
   await page.getByRole('option', { name: 'Novembre' }).click()
   await move.getByRole('button', { name: 'Sposta' }).click()
   await expect(move).toHaveCount(0)
+  // while it fades out the dialog loses its name (the folder is cleared), so `move` is gone
+  // before the dialog is: axe would read the half-transparent title
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Cartella «Reel di novembre» spostata in «Novembre».')).toBeVisible()
   if (!isPhone(page))
     await expect(
