@@ -271,17 +271,14 @@ export async function pauseTarget(
 }
 
 /**
- * The client of the destination was archived (D-70): it publishes nothing. A plain read: the
- * archiving waits for the post this step holds, and then brings back to draft what is still in
- * the panel's reach.
+ * The client of the destination was archived (D-70): it publishes nothing. A plain read, not
+ * through the author's visibility: the archiving waits for the post this step holds, and then
+ * brings back to draft what is still in the panel's reach. A client not found publishes nothing
+ * either.
  */
-export async function clientArchived(
-  tx: Tx,
-  actor: OrgActor,
-  target: PublishingTargetRecord,
-): Promise<boolean> {
-  const workspace = await tx.workspaces.findVisibleById(actor, target.workspaceId)
-  return workspace !== null && workspace.archivedAt !== null
+export async function clientArchived(tx: Tx, target: PublishingTargetRecord): Promise<boolean> {
+  const workspace = await tx.workspaces.findById(target.organizationId, target.workspaceId)
+  return workspace === null || workspace.archivedAt !== null
 }
 
 /**

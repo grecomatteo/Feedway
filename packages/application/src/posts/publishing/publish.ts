@@ -98,7 +98,7 @@ async function decide(
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // an archived client publishes nothing (D-70, R7)
-  if (await clientArchived(tx, actor, target)) return done(await cancelArchived(tx, target))
+  if (await clientArchived(tx, target)) return done(await cancelArchived(tx, target))
   // R4: never more than 60 minutes after the time (or the «Riprova»), whatever held it
   if (isPastLatestStart(latestOf(post.scheduledAt, retriedAtOf(target)), now))
     return done(await failTarget(tx, target, lateCodeOf(target)))

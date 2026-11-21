@@ -327,7 +327,8 @@ export function resumePaused(
     if (input.when) {
       await tx.posts.lockSchedule(post.organizationId)
       const organization = await tx.organizations.findById(post.organizationId)
-      if (organization) await assertDailyLimit(tx, organization, post, at)
+      if (!organization) throw new DomainError('NOT_FOUND', 'Agenzia non trovata')
+      await assertDailyLimit(tx, organization, post, at)
     }
     const version = await tx.posts.update(
       scope,

@@ -116,7 +116,7 @@ async function decide(
   const actor = await publisherOf(tx, post)
   if (!actor) return done(await pauseTarget(tx, target, 'author_lost_permission'))
   // an archived client publishes nothing (D-70): what has not gone out is cancelled (R7)
-  if (await clientArchived(tx, actor, target)) return done(await cancelArchived(tx, target))
+  if (await clientArchived(tx, target)) return done(await cancelArchived(tx, target))
   // after a «Riprova» the minutes count from it (Scelta 1): the post keeps its time
   const startAt = latestOf(post.scheduledAt, retriedAtOf(target))
   // R4: never more than 60 minutes late, whatever held the preparation (a worker stopped, the

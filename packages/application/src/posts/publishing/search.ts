@@ -24,6 +24,7 @@ import {
   type StepLog,
   type TargetJob,
 } from './context.js'
+import { retryMark } from './retry-mark.js'
 
 // `target.reconcile` (§9.5; plan 07 Scelta 7, Task 8): a destination in `unknown` is looked for
 // on its account before anything else, so «Riprova» never publishes it twice.
@@ -275,7 +276,8 @@ async function afterRecheck(
     permalink: null,
     publishedAt: null,
     verifiedAt: null,
-    verification: null,
+    // the «Riprova» that led here: the 60 minutes (R4) count from now, not from the post's time
+    verification: retryMark(now),
     attempts: 0,
     nextAttemptAt: now,
     lastErrorCode: null,
