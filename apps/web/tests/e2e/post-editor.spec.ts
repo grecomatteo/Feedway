@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { libraryFile } from './support/media.ts'
@@ -139,7 +140,7 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
   expect(overflow).toBeLessThanOrEqual(0)
 })
 
-test('at most 10 files: the library stops at 10, and a file over them is left out (D-118)', async ({
+test('at most 10 files: the library stops at 10, and the files over them are left out (D-118)', async ({
   page,
 }) => {
   const { owner, org, client } = await clientWithFiles(page)
@@ -166,8 +167,29 @@ test('at most 10 files: the library stops at 10, and a file over them is left ou
   await focaccia.click({ force: true })
   await expect(focaccia).toHaveAttribute('aria-pressed', 'false')
   expect((await axe(page)).violations).toEqual([])
-  await dialog.getByRole('button', { name: 'Aggiungi 9 file' }).click()
+  // one ticked off: one place again; 9 files go in
+  await dialog.getByRole('button', { name: 'foto-9.jpg' }).click()
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Puoi sceglierne ancora uno: un post ha al massimo 10 file.',
+  )
+  await dialog.getByRole('button', { name: 'Aggiungi 8 file' }).click()
   await expect(dialog).toHaveCount(0)
+  await expect(page.locator('[data-entry]')).toHaveCount(9)
+
+  // three files for the last place: the one the browser refuses takes none, the second goes
+  // in, the third is left out and said
+  const jpeg = await readFile(new URL('./fixtures/frame.jpg', import.meta.url))
+  await page.locator('[data-post-input]').setInputFiles([
+    { name: 'nota.txt', mimeType: 'text/plain', buffer: Buffer.from('ciao') },
+    { name: 'forno.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+    { name: 'vetrina.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+  ])
+  await expect(page.locator('[data-media-left-out]')).toHaveText(
+    'Un file non aggiunto: un post ha al massimo 10 file.',
+  )
+  await expect(page.getByRole('alert').filter({ hasText: 'nota.txt' })).toBeVisible()
+  await expect(page.locator('[data-entry]')).toHaveCount(10)
+  await expect(page.locator('[data-entry]').last()).toHaveAccessibleName(/forno\.jpg/)
 
   const files = page.getByRole('region', { name: 'File' })
   await expect(files).toContainText('10 di 10')
@@ -175,14 +197,6 @@ test('at most 10 files: the library stops at 10, and a file over them is left ou
   await expect(page.locator('[data-media-full]')).toHaveText(
     'Il post ha già 10 file, il massimo. Per aggiungerne un altro, togline uno.',
   )
-  // a drop or a paste over the 10 is not sent, and says so
-  await page
-    .locator('[data-post-input]')
-    .setInputFiles(new URL('./fixtures/frame.jpg', import.meta.url).pathname)
-  await expect(page.locator('[data-media-left-out]')).toHaveText(
-    'Un file non aggiunto: un post ha al massimo 10 file.',
-  )
-  await expect(page.locator('[data-entry]')).toHaveCount(10)
   expect((await axe(page)).violations).toEqual([])
 
   // one taken out: there is room again

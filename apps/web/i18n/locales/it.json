@@ -2315,6 +2315,7 @@
       "detail": "{n} di {max}",
       "detailOver": "{n} file, al massimo {max}",
       "full": "Il post ha già {max} file, il massimo. Per aggiungerne un altro, togline uno.",
+      "over": "Il post ha {n} file e il massimo è {max}: togli quelli in più.",
       "leftOut": "Un file non aggiunto: un post ha al massimo {max} file. | {n} file non aggiunti: un post ha al massimo {max} file.",
       "oneVideo": "1 video",
       "add": "Aggiungi",

@@ -256,6 +256,7 @@ function uploaded(event: Event) {
               variant="outline"
               icon="i-lucide-upload"
               class="min-h-control"
+              :disabled="full"
               @click="input?.click()"
             >
               {{ $t('library.upload') }}

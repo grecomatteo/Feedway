@@ -426,7 +426,12 @@ function release() {
       class="mt-2 text-sm text-(--app-text-muted)"
       data-media-full
     >
-      {{ $t('posts.media.full', { max: MAX }) }}
+      {{
+        $t(e.entries.value.length > MAX ? 'posts.media.over' : 'posts.media.full', {
+          n: e.entries.value.length,
+          max: MAX,
+        })
+      }}
     </p>
     <input
       v-if="e.editable.value"

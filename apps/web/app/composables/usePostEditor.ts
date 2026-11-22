@@ -352,18 +352,27 @@ export function usePostEditor(opts: {
    */
   async function addFiles(list: readonly File[], folderId: string | null = null) {
     if (!editable.value || list.length === 0) return
-    // files of an earlier «Carica» still being checked count too
-    const { kept, leftOut: out } = roomFor(list, entries.value.length + sending, MAX_FILES)
-    leftOut.value = out
-    if (kept.length === 0) return
-    sending += kept.length
+    // the files of an earlier «Carica» still being checked count too; a file the browser
+    // refuses takes no place, so the cut is made by the uploads, after their checks
+    const free = Math.max(0, MAX_FILES - entries.value.length - sending)
+    if (free === 0) {
+      leftOut.value = list.length
+      return
+    }
+    sending += free
     const items = await uploads
-      .add(kept, folderId, (media) => {
-        attached(media)
-      })
+      .add(
+        list,
+        folderId,
+        (media) => {
+          attached(media)
+        },
+        { room: free },
+      )
       .finally(() => {
-        sending -= kept.length
+        sending -= free
       })
+    leftOut.value = list.length - items.length
     for (const item of items)
       if (item.state !== 'rejected')
         entries.value.push({ key: newKey(), file: null, upload: item.key })
@@ -427,7 +436,8 @@ export function usePostEditor(opts: {
         }
         for (let tries = 0; tries < 2; tries++) {
           const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
-          if (now.status !== 'draft') return
+          // a draft filled meanwhile in another editor keeps its 10 (D-118): the file stays in the library
+          if (now.status !== 'draft' || now.media.length >= MAX_FILES) return
           try {
             await call<PostResponse>('PATCH', `${base}/posts/${encodeURIComponent(id)}`, {
               version: now.version,
