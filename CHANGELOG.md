@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.1](https://github.com/grecomatteo/Feedway/compare/v0.13.0...v0.13.1) (2026-11-22)
+
+
+### Correzioni
+
+* **posts:** al massimo 10 file in un post, e blocco oltre 10 foto su Facebook ([#303](https://github.com/grecomatteo/Feedway/issues/303)) ([f31f895](https://github.com/grecomatteo/Feedway/commit/f31f8956a4fa84031be3b58942647070228e3384))
+* **publishing:** correzioni della prova della 0.13.0 (D-118) ([#301](https://github.com/grecomatteo/Feedway/issues/301)) ([38a4ab3](https://github.com/grecomatteo/Feedway/commit/38a4ab36287aec11c02a4fc07c0e9d3b5fca3b6f))
+
 ## [0.13.0](https://github.com/grecomatteo/Feedway/compare/v0.12.1...v0.13.0) (2026-11-21)
 
 
