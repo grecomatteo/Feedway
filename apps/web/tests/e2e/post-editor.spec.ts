@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { libraryFile } from './support/media.ts'
@@ -137,6 +138,72 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
   expect(overflow).toBeLessThanOrEqual(0)
+})
+
+test('at most 10 files: the library stops at 10, and the files over them are left out (D-118)', async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const more = Array.from({ length: 9 }, (_, i) => `foto-${String(i + 1)}.jpg`)
+  for (const name of more) await libraryFile(org, client.id, owner.userId, { kind: 'image', name })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+
+  await pickFromLibrary(page, ['pane.jpg'])
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.locator('[data-add-file]').click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Puoi sceglierne ancora 9: un post ha al massimo 10 file.',
+  )
+  for (const name of more) await dialog.getByRole('button', { name }).click()
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Hai scelto tutti i file che il post può avere: al massimo 10.',
+  )
+  // the 11th cannot be ticked
+  const focaccia = dialog.getByRole('button', { name: 'focaccia.jpg' })
+  await expect(focaccia).toHaveAttribute('aria-disabled', 'true')
+  await focaccia.click({ force: true })
+  await expect(focaccia).toHaveAttribute('aria-pressed', 'false')
+  expect((await axe(page)).violations).toEqual([])
+  // one ticked off: one place again; 9 files go in
+  await dialog.getByRole('button', { name: 'foto-9.jpg' }).click()
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Puoi sceglierne ancora uno: un post ha al massimo 10 file.',
+  )
+  await dialog.getByRole('button', { name: 'Aggiungi 8 file' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('[data-entry]')).toHaveCount(9)
+
+  // three files for the last place: the one the browser refuses takes none, the second goes
+  // in, the third is left out and said
+  const jpeg = await readFile(new URL('./fixtures/frame.jpg', import.meta.url))
+  await page.locator('[data-post-input]').setInputFiles([
+    { name: 'nota.txt', mimeType: 'text/plain', buffer: Buffer.from('ciao') },
+    { name: 'forno.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+    { name: 'vetrina.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+  ])
+  await expect(page.locator('[data-media-left-out]')).toHaveText(
+    'Un file non aggiunto: un post ha al massimo 10 file.',
+  )
+  await expect(page.getByRole('alert').filter({ hasText: 'nota.txt' })).toBeVisible()
+  await expect(page.locator('[data-entry]')).toHaveCount(10)
+  await expect(page.locator('[data-entry]').last()).toHaveAccessibleName(/forno\.jpg/)
+
+  const files = page.getByRole('region', { name: 'File' })
+  await expect(files).toContainText('10 di 10')
+  await expect(page.locator('[data-add-file]')).toBeDisabled()
+  await expect(page.locator('[data-media-full]')).toHaveText(
+    'Il post ha già 10 file, il massimo. Per aggiungerne un altro, togline uno.',
+  )
+  expect((await axe(page)).violations).toEqual([])
+
+  // one taken out: there is room again
+  await page.locator('[data-entry]').first().focus()
+  await page.getByRole('button', { name: 'Togli pane.jpg dal post' }).click()
+  await expect(page.locator('[data-add-file]')).toBeEnabled()
+  await expect(page.locator('[data-media-left-out]')).toHaveCount(0)
 })
 
 test('schedule, back to draft, cancel: the actions of a Publisher and up', async ({ page }) => {

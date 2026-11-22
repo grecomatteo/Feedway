@@ -1,5 +1,6 @@
 import type { MediaDto, PostCheckResponse, PostResponse } from '@app/contracts'
 import { publishedFps } from '@app/domain'
+import { META_LIMITS } from '@app/domain/platforms/meta'
 import type { FetchError } from 'ofetch'
 import type { UploadItem } from './useUploads'
 import {
@@ -7,6 +8,7 @@ import {
   createCheckRunner,
   keepEditorKey,
   nextType,
+  roomFor,
   type ChoiceBody,
   type DraftBody,
   type PostType,
@@ -344,12 +346,33 @@ export function usePostEditor(opts: {
   const newKey = () => `e${String(++entryKeys)}`
   let alive = true
 
-  /** Files from the computer into the post; into `folderId` of the library when given (D-103). */
+  /**
+   * Files from the computer into the post; into `folderId` of the library when given (D-103).
+   * Only as many as fit in the 10 of a post (D-118): the others are not sent, and said.
+   */
   async function addFiles(list: readonly File[], folderId: string | null = null) {
     if (!editable.value || list.length === 0) return
-    const items = await uploads.add(list, folderId, (media) => {
-      attached(media)
-    })
+    // the files of an earlier «Carica» still being checked count too; a file the browser
+    // refuses takes no place, so the cut is made by the uploads, after their checks
+    const free = Math.max(0, MAX_FILES - entries.value.length - sending)
+    if (free === 0) {
+      leftOut.value = list.length
+      return
+    }
+    sending += free
+    const items = await uploads
+      .add(
+        list,
+        folderId,
+        (media) => {
+          attached(media)
+        },
+        { room: free },
+      )
+      .finally(() => {
+        sending -= free
+      })
+    leftOut.value = list.length - items.length
     for (const item of items)
       if (item.state !== 'rejected')
         entries.value.push({ key: newKey(), file: null, upload: item.key })
@@ -359,6 +382,13 @@ export function usePostEditor(opts: {
     touched()
   }
   const refused = ref<UploadItem[]>([])
+  /** At most 10 files in a post, as on Instagram and Facebook (D-48, D-51, D-118). */
+  const MAX_FILES = META_LIMITS.instagramCarouselMaxItems.value
+  /** the files of the last «Carica» or choice that did not fit in the post */
+  const leftOut = ref(0)
+  let sending = 0
+  /** how many files the post still takes */
+  const room = computed(() => Math.max(0, MAX_FILES - entries.value.length))
 
   /** Uploads taken out of the post that may still finish: they must not come back in. */
   const dropped = new Set<string>()
@@ -406,7 +436,8 @@ export function usePostEditor(opts: {
         }
         for (let tries = 0; tries < 2; tries++) {
           const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
-          if (now.status !== 'draft') return
+          // a draft filled meanwhile in another editor keeps its 10 (D-118): the file stays in the library
+          if (now.status !== 'draft' || now.media.length >= MAX_FILES) return
           try {
             await call<PostResponse>('PATCH', `${base}/posts/${encodeURIComponent(id)}`, {
               version: now.version,
@@ -424,8 +455,13 @@ export function usePostEditor(opts: {
   function addFromLibrary(list: readonly MediaDto[]) {
     if (!editable.value) return
     const have = new Set(files.value.map((f) => f.id))
-    for (const m of list)
-      if (!have.has(m.id)) entries.value.push({ key: newKey(), file: fromMedia(m), upload: null })
+    const { kept, leftOut: out } = roomFor(
+      list.filter((m) => !have.has(m.id)),
+      entries.value.length + sending,
+      MAX_FILES,
+    )
+    leftOut.value = out
+    for (const m of kept) entries.value.push({ key: newKey(), file: fromMedia(m), upload: null })
     followFiles()
     touched()
   }
@@ -483,6 +519,7 @@ export function usePostEditor(opts: {
     // a file still uploading stops; one already in the library stays there
     dropUpload(uploadItem(e))
     entries.value = entries.value.filter((x) => x.key !== key)
+    leftOut.value = 0
     followFiles()
     touched()
   }
@@ -830,6 +867,9 @@ export function usePostEditor(opts: {
     actionProblem,
     acting,
     refused,
+    leftOut,
+    room,
+    maxFiles: MAX_FILES,
     uploads,
     uploadItem,
     chooseType,

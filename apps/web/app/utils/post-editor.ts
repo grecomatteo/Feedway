@@ -83,6 +83,20 @@ export function properType(type: PostType, media: readonly { kind: Kind }[]): Po
 
 // ---- the body the editor saves ----
 
+/**
+ * A post has at most `max` files (D-118, Matteo 22/11: «mi faccia già mettere e selezionare solo
+ * 10 foto»): of `list`, the first that still fit after the `have` already there, and how many
+ * are left out.
+ */
+export function roomFor<T>(
+  list: readonly T[],
+  have: number,
+  max: number,
+): { kept: T[]; leftOut: number } {
+  const room = Math.max(0, max - have)
+  return { kept: list.slice(0, room), leftOut: Math.max(0, list.length - room) }
+}
+
 export interface CaptionBody {
   common: string
   instagram?: string

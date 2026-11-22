@@ -636,14 +636,16 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   /**
    * Files chosen, dropped or pasted: each is checked on its own, the good ones start. `onMedia`
    * hears each file as soon as it is in the library, even after the page that added it closed.
-   * Gives the items, in the order of the files.
+   * Gives the items, in the order of the files. With `room`, only that many good files start:
+   * the good ones after them are not sent and give no item (a post takes 10 files, D-118); a
+   * refused file always gives its item, with why.
    */
   async function add(
     files: readonly File[],
     folderId: string | null,
     onMedia: ((media: MediaDto) => void) | null = null,
     /** `preview: false`: no picture from the file itself, so nothing keeps it once it is sent (a zip's entries) */
-    options: { preview?: boolean } = {},
+    options: { preview?: boolean; room?: number } = {},
   ): Promise<UploadItem[]> {
     // the limits come with the list: a file chosen at once waits for them
     await loading
@@ -651,7 +653,10 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     const added: UploadItem[] = []
     // the pieces' sha-256 needs a secure page (HTTPS): without it nothing could be sent
     const secure = (globalThis.crypto.subtle as SubtleCrypto | undefined) !== undefined
+    const fileLimits = limits.value ?? { maxImageBytes: Infinity, maxVideoBytes: Infinity }
     for (const file of files) {
+      const check = checkUploadFile(file, fileLimits)
+      if (secure && check.ok && options.room !== undefined && started >= options.room) continue
       const item = newItem(file, file.name, file.size)
       const s = sides.get(item.key)
       if (!s) continue
@@ -662,10 +667,6 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         added.push(item)
         continue
       }
-      const check = checkUploadFile(
-        file,
-        limits.value ?? { maxImageBytes: Infinity, maxVideoBytes: Infinity },
-      )
       if (!check.ok) {
         item.state = 'rejected'
         item.message = refusal(check, file.size)

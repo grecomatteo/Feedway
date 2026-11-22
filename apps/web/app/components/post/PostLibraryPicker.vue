@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MediaDto } from '@app/contracts'
+import { META_LIMITS } from '@app/domain/platforms/meta'
 
 /**
  * «Dalla libreria» (§11.2 point 3): the client's library in a window, to choose one or more
@@ -7,16 +8,20 @@ import type { MediaDto } from '@app/contracts'
  * the path back above the files, D-103), opened again on the folder used last for that client in
  * this browser; the search looks in the folder open, or in the whole client. «Carica» (when the
  * editor allows it) sends files from the computer into the folder open, and into the post.
+ * With `max`, no more than that many can be ticked: a post has at most 10 files (D-118).
  */
 const props = defineProps<{
   client: WorkspaceView
   exclude: string[]
   /** «Carica» from the computer: the editor uploads them into this folder and adds them */
   canUpload?: boolean
+  /** how many files the post still takes; none means no limit here */
+  max?: number
 }>()
 const emit = defineEmits<{ pick: [MediaDto[]]; upload: [File[], string | null] }>()
 const open = defineModel<boolean>('open', { required: true })
 const { t } = useI18n()
+const maxFiles = META_LIMITS.instagramCarouselMaxItems.value
 
 const workspaceId = computed(() => props.client.id)
 const lib = useLibrary(workspaceId, { lazy: true })
@@ -103,8 +108,14 @@ const shown = computed(() =>
   lib.files.value.filter((f) => !props.exclude.includes(f.id) && f.status !== 'uploading'),
 )
 const isChosen = (f: MediaDto) => chosen.value.some((c) => c.id === f.id)
+/** the files ticked fill what the post takes: the others wait until one is unticked */
+const full = computed(() => props.max !== undefined && chosen.value.length >= props.max)
+const left = computed(() =>
+  props.max === undefined ? null : Math.max(0, props.max - chosen.value.length),
+)
 function toggle(f: MediaDto) {
-  chosen.value = isChosen(f) ? chosen.value.filter((c) => c.id !== f.id) : [...chosen.value, f]
+  if (isChosen(f)) chosen.value = chosen.value.filter((c) => c.id !== f.id)
+  else if (!full.value) chosen.value = [...chosen.value, f]
 }
 const thumb = (f: MediaDto) => {
   const variant = thumbnailOf(f)
@@ -245,6 +256,7 @@ function uploaded(event: Event) {
               variant="outline"
               icon="i-lucide-upload"
               class="min-h-control"
+              :disabled="full"
               @click="input?.click()"
             >
               {{ $t('library.upload') }}
@@ -257,6 +269,14 @@ function uploaded(event: Event) {
             :label="$t('posts.library.everywhere', { client: client.name })"
             data-picker-everywhere
           />
+          <p
+            v-if="left !== null"
+            class="text-sm text-(--app-text-muted)"
+            aria-live="polite"
+            data-picker-room
+          >
+            {{ $t('posts.library.room', { n: left, max: maxFiles }, left) }}
+          </p>
           <ListSkeleton v-if="lib.status.value === 'pending' && shown.length === 0" />
           <p v-else-if="lib.status.value === 'error'" role="alert" class="text-(--app-danger)">
             {{ $t('posts.library.error') }}
@@ -273,8 +293,9 @@ function uploaded(event: Event) {
               <button
                 type="button"
                 :aria-pressed="isChosen(f)"
+                :aria-disabled="full && !isChosen(f) ? 'true' : undefined"
                 :aria-label="f.originalName"
-                class="relative block aspect-[4/5] w-full overflow-hidden rounded-lg border-2 bg-(--app-surface-sunken)"
+                class="relative block aspect-[4/5] w-full overflow-hidden rounded-lg border-2 bg-(--app-surface-sunken) aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                 :class="isChosen(f) ? 'border-(--app-brand)' : 'border-transparent'"
                 @click="toggle(f)"
               >

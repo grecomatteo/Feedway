@@ -2220,7 +2220,7 @@
     },
     "facebook_too_many_photos": {
       "title": "Troppe foto per {platform}",
-      "text": "Un post di {platform} ha al massimo {limit} foto, e qui ce ne sono {found}. Puoi pubblicare su {platform} solo le prime {limit}, o non pubblicarlo su {platform}."
+      "text": "Un post di {platform} ha al massimo {limit} foto, e qui ce ne sono {found}. Togli quelle in più, o dividile in due post."
     },
     "carousel_videos_with_facebook": {
       "title": "Un carosello di soli video non va su {platform}",
@@ -2314,6 +2314,9 @@
       "fromLibrary": "Dalla libreria",
       "detail": "{n} di {max}",
       "detailOver": "{n} file, al massimo {max}",
+      "full": "Il post ha già {max} file, il massimo. Per aggiungerne un altro, togline uno.",
+      "over": "Il post ha {n} file e il massimo è {max}: togli quelli in più.",
+      "leftOut": "Un file non aggiunto: un post ha al massimo {max} file. | {n} file non aggiunti: un post ha al massimo {max} file.",
       "oneVideo": "1 video",
       "add": "Aggiungi",
       "addLabel": "Aggiungi file",
@@ -2334,6 +2337,7 @@
       "error": "Non riesco a leggere la libreria. Riprova tra poco.",
       "empty": "Nessun file da aggiungere.",
       "more": "Mostra altri",
+      "room": "Hai scelto tutti i file che il post può avere: al massimo {max}. | Puoi sceglierne ancora uno: un post ha al massimo {max} file. | Puoi sceglierne ancora {n}: un post ha al massimo {max} file.",
       "add": "Aggiungi | Aggiungi un file | Aggiungi {n} file"
     },
     "caption": {

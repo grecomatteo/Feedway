@@ -5,6 +5,7 @@ import {
   hasContent,
   missingFiles,
   nextType,
+  roomFor,
   typeHint,
   typeOptions,
   type DraftBody,
@@ -66,6 +67,25 @@ const body = (over: Partial<DraftBody> = {}): DraftBody => ({
   cover: null,
   labelIds: [],
   ...over,
+})
+
+describe('at most 10 files in a post (D-118, Matteo 22/11)', () => {
+  test('the files that still fit go in, the others are counted', () => {
+    expect(roomFor(['a', 'b', 'c'], 0, 10)).toEqual({ kept: ['a', 'b', 'c'], leftOut: 0 })
+    expect(roomFor(['a', 'b', 'c'], 8, 10)).toEqual({ kept: ['a', 'b'], leftOut: 1 })
+    expect(
+      roomFor(
+        Array.from({ length: 11 }, (_, i) => i),
+        0,
+        10,
+      ).leftOut,
+    ).toBe(1)
+  })
+
+  test('a post already full, or over from before, takes nothing', () => {
+    expect(roomFor(['a'], 10, 10)).toEqual({ kept: [], leftOut: 1 })
+    expect(roomFor(['a', 'b'], 12, 10)).toEqual({ kept: [], leftOut: 2 })
+  })
 })
 
 test('a draft is born with its first content, not when the page opens', () => {

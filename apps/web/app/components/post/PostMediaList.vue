@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MediaDto } from '@app/contracts'
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { META_LIMITS } from '@app/domain/platforms/meta'
 import type { EditorEntry, PostEditor } from '~/composables/usePostEditor'
 
 /**
@@ -9,7 +8,8 @@ import type { EditorEntry, PostEditor } from '~/composables/usePostEditor'
  * tiles with their number and handle, the bar while they upload and their state; «Aggiungi» is
  * the last tile. The order changes by dragging the handle (mouse or touch) or with «Sposta
  * prima» and «Sposta dopo», shown under the tile that has the focus. Files come from «Carica»,
- * a drop, a paste or «Dalla libreria».
+ * a drop, a paste or «Dalla libreria». No more than 10 (D-118): with 10 the ways to add are
+ * off, and the files over them are left out and said.
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t } = useI18n()
@@ -116,7 +116,9 @@ watch(picking, (open) => {
   if (!open) replacing.value = false
 })
 
-const MAX = META_LIMITS.instagramCarouselMaxItems.value
+const MAX = e.maxFiles
+/** the post has all the files it can take */
+const full = computed(() => e.room.value === 0)
 /** Under the label: «2 di 10», «11 file, al massimo 10», or «1 video» for a reel's only file. */
 const detail = computed(() => {
   const n = e.entries.value.length
@@ -353,10 +355,13 @@ function release() {
         v-if="e.editable.value && !single"
         :items="addItems"
         :content="{ align: 'start' }"
+        :disabled="full"
       >
         <button
           type="button"
-          class="flex h-30 w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed text-xs text-(--app-text-muted) hover:text-(--app-text)"
+          :disabled="full"
+          :aria-describedby="full ? 'post-media-full' : undefined"
+          class="flex h-30 w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed text-xs text-(--app-text-muted) not-disabled:hover:text-(--app-text) disabled:cursor-not-allowed disabled:opacity-50"
           :class="
             dragOver
               ? 'border-(--app-text) bg-(--app-surface-sunken)'
@@ -396,6 +401,7 @@ function release() {
         variant="outline"
         size="sm"
         icon="i-lucide-upload"
+        :disabled="full"
         @click="((replacing = false), picker?.click())"
       >
         {{ $t('posts.media.upload') }}
@@ -405,12 +411,28 @@ function release() {
         variant="outline"
         size="sm"
         icon="i-lucide-images"
+        :disabled="full"
         @click="((replacing = false), (picking = true))"
       >
         {{ $t('posts.media.fromLibrary') }}
       </UButton>
-      <span class="text-detail text-(--app-text-muted)">{{ $t('posts.media.dropHere') }}</span>
+      <span v-if="!full" class="text-detail text-(--app-text-muted)">{{
+        $t('posts.media.dropHere')
+      }}</span>
     </div>
+    <p
+      v-if="e.editable.value && full && !single"
+      id="post-media-full"
+      class="mt-2 text-sm text-(--app-text-muted)"
+      data-media-full
+    >
+      {{
+        $t(e.entries.value.length > MAX ? 'posts.media.over' : 'posts.media.full', {
+          n: e.entries.value.length,
+          max: MAX,
+        })
+      }}
+    </p>
     <input
       v-if="e.editable.value"
       ref="picker"
@@ -425,17 +447,24 @@ function release() {
       data-post-input
       @change="picked"
     />
-    <ul v-if="e.refused.value.length > 0" class="mt-2 flex flex-col gap-1" role="alert">
-      <li v-for="r in e.refused.value" :key="r.key" class="text-sm text-(--app-danger)">
-        {{ r.name }}: {{ r.message }}
-      </li>
-    </ul>
+    <!-- the alert around the list: on the <ul> itself the role would hide the list -->
+    <div v-if="e.refused.value.length > 0 || e.leftOut.value > 0" role="alert">
+      <ul class="mt-2 flex flex-col gap-1">
+        <li v-if="e.leftOut.value > 0" class="text-sm text-(--app-danger)" data-media-left-out>
+          {{ $t('posts.media.leftOut', { n: e.leftOut.value, max: MAX }, e.leftOut.value) }}
+        </li>
+        <li v-for="r in e.refused.value" :key="r.key" class="text-sm text-(--app-danger)">
+          {{ r.name }}: {{ r.message }}
+        </li>
+      </ul>
+    </div>
     <PostLibraryPicker
       v-if="e.editable.value"
       v-model:open="picking"
       :client="client"
       :exclude="e.files.value.map((f) => f.id)"
       :can-upload="!replacing"
+      :max="replacing ? undefined : e.room.value"
       @pick="fromLibrary"
       @upload="fromComputer"
     />

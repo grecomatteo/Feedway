@@ -608,7 +608,7 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 | Caption Facebook oltre il limite della piattaforma (valore **da verificare** al primo contatto reale) | Blocco |
 | Carosello con meno di 2 o più di 10 elementi | Blocco |
 | Carosello misto con FB scelto | Avviso (§9.1) |
-| Post multi-foto FB oltre il limite di foto (da verificare) | Avviso |
+| Post multi-foto FB oltre il limite di foto (10, D-48; l'editor non ne fa aggiungere di più, D-118) | Blocco |
 | Nessun account, o account fuori dallo spazio | Blocco |
 | Account non sano | Blocco |
 | Data nel passato | Blocco ("Pubblica ora"); non per il worker all'ora di pubblicazione (scopo `publish`, D-54) |
@@ -1750,7 +1750,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 |---|---|---|
 | Permessi esatti del token (`ads_management` sì o no) | Medio | Controllo automatico nel passo 4; guida aggiornabile |
 | Limite giornaliero IG (50 o 100) | Basso | Quota letta dall'API |
-| Numero massimo di foto in un post multi-foto FB | Basso | Avviso; verifica nei test reali |
+| Numero massimo di foto in un post multi-foto FB | Basso | 10 e blocco oltre (D-118); verifica nei test reali |
 | Durata massima reel FB via API | Basso | 90 s finché non verificato |
 | Verifica del Business richiesta da Meta | Medio | Guida nel passo 1 se necessaria |
 | Banda di Tailscale Funnel con file grandi | Medio | Test con reel da 300 MB; passaggio a Cloudflare Tunnel |

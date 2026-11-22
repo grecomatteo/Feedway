@@ -753,7 +753,7 @@ export const RULE_CASES: RuleCase[] = [
     'post',
     'Post di 12 foto solo su Facebook',
     carousel(photos(12), { destinations: onlyFb }),
-    [warning('facebook_too_many_photos', 'post', 'facebook')],
+    [block('facebook_too_many_photos', 'post', 'facebook')],
   ),
   c('type-mismatch', 'post', 'Tipo «foto» con un video', draft({ media: [video(10_000)] }), [
     block('media_not_matching_type', 'post'),
@@ -970,21 +970,15 @@ export const RULE_CASES: RuleCase[] = [
     [{ accountId: IG, format: 'carousel', media: [0, 1] }],
   ),
   c(
-    'choice-first-10',
+    'first-10-saved-before',
     'post',
-    'Post di 12 foto su Facebook: «solo le prime 10»',
+    'Post di 12 foto su Facebook con «solo le prime 10» scelta sulla 0.13.0',
     carousel(photos(12), {
       destinations: onlyFb,
       choices: [{ key: 'facebook_too_many_photos:post:facebook', option: 'first_files' }],
     }),
-    // D-56: the two photos nobody publishes block, to be taken out
-    [
-      chose(warning('facebook_too_many_photos', 'post', 'facebook'), 'first_files'),
-      block('media_unused', 'media:10'),
-      block('media_unused', 'media:11'),
-    ],
-    ctx,
-    [{ accountId: FB, format: 'multi_photo', media: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] }],
+    // D-118: the choice is not offered any more, so it is not applied, and the post stays blocked
+    [block('facebook_too_many_photos', 'post', 'facebook')],
   ),
   c(
     'choice-fb-video',

@@ -141,6 +141,17 @@ describe('choices', () => {
     expect(report.canSchedule).toBe(false)
   })
 
+  test('a choice saved for a warning that became a block is not invalid: the block shows (D-118)', () => {
+    const saved = RULE_CASES.find((c) => c.id === 'first-10-saved-before')
+    if (!saved) throw new Error('case missing')
+    const report = evaluatePost(saved.draft, saved.context)
+    expect(report.invalidChoices).toEqual([])
+    expect(report.outcomes.map((o) => [o.level, o.code])).toEqual([
+      ['block', 'facebook_too_many_photos'],
+    ])
+    expect(report.canSchedule).toBe(false)
+  })
+
   test('a valid choice says no invalid choice', () => {
     const key = 'photo_aspect_ratio:media:p1:instagram'
     const d = draft({

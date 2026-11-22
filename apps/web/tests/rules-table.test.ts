@@ -32,7 +32,8 @@ test('every code of the rules has a case, or says why it has none', () => {
 
 test('every option that changes the post or answers a warning is chosen in some case', () => {
   const chosen = new Set(RULE_CASES.flatMap((c) => c.expected.flatMap((e) => e.chosen ?? [])))
-  const changing = ['photos_only', 'first_files', 'publish_as_video', 'skip_platform']
+  // first_files: offered by no rule since D-118, kept for the drafts of 0.13.0
+  const changing = ['photos_only', 'publish_as_video', 'skip_platform']
   expect(changing.filter((o) => !chosen.has(o as (typeof RULE_OPTIONS)[number]))).toEqual([])
 })
 

@@ -266,7 +266,9 @@ function runPass(
       (given.option === 'crop'
         ? given.crop === undefined || (f.crop !== undefined && isValidCrop(given.crop, f.crop))
         : given.crop === undefined)
-    if (given !== undefined && !valid) invalid.push(given)
+    // a finding with nothing to choose ignores a choice saved for it: facebook_too_many_photos
+    // was a warning up to 0.13.0, and its drafts must show the block, not a refused answer (D-118)
+    if (given !== undefined && !valid && f.options !== undefined) invalid.push(given)
     const chosen = valid ? given.option : undefined
     const { effects: fx, crop, ...rest } = f
     outcomes.set(key, {
