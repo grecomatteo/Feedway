@@ -139,6 +139,59 @@ test('a carousel from the library, reordered, a text for Instagram, one account 
   expect(overflow).toBeLessThanOrEqual(0)
 })
 
+test('at most 10 files: the library stops at 10, and a file over them is left out (D-118)', async ({
+  page,
+}) => {
+  const { owner, org, client } = await clientWithFiles(page)
+  const more = Array.from({ length: 9 }, (_, i) => `foto-${String(i + 1)}.jpg`)
+  for (const name of more) await libraryFile(org, client.id, owner.userId, { kind: 'image', name })
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+
+  await pickFromLibrary(page, ['pane.jpg'])
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.locator('[data-add-file]').click()
+    await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
+  } else await page.getByRole('button', { name: 'Dalla libreria' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Scegli dalla libreria' })
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Puoi sceglierne ancora 9: un post ha al massimo 10 file.',
+  )
+  for (const name of more) await dialog.getByRole('button', { name }).click()
+  await expect(dialog.locator('[data-picker-room]')).toHaveText(
+    'Hai scelto tutti i file che il post può avere: al massimo 10.',
+  )
+  // the 11th cannot be ticked
+  const focaccia = dialog.getByRole('button', { name: 'focaccia.jpg' })
+  await expect(focaccia).toHaveAttribute('aria-disabled', 'true')
+  await focaccia.click({ force: true })
+  await expect(focaccia).toHaveAttribute('aria-pressed', 'false')
+  expect((await axe(page)).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Aggiungi 9 file' }).click()
+  await expect(dialog).toHaveCount(0)
+
+  const files = page.getByRole('region', { name: 'File' })
+  await expect(files).toContainText('10 di 10')
+  await expect(page.locator('[data-add-file]')).toBeDisabled()
+  await expect(page.locator('[data-media-full]')).toHaveText(
+    'Il post ha già 10 file, il massimo. Per aggiungerne un altro, togline uno.',
+  )
+  // a drop or a paste over the 10 is not sent, and says so
+  await page
+    .locator('[data-post-input]')
+    .setInputFiles(new URL('./fixtures/frame.jpg', import.meta.url).pathname)
+  await expect(page.locator('[data-media-left-out]')).toHaveText(
+    'Un file non aggiunto: un post ha al massimo 10 file.',
+  )
+  await expect(page.locator('[data-entry]')).toHaveCount(10)
+  expect((await axe(page)).violations).toEqual([])
+
+  // one taken out: there is room again
+  await page.locator('[data-entry]').first().focus()
+  await page.getByRole('button', { name: 'Togli pane.jpg dal post' }).click()
+  await expect(page.locator('[data-add-file]')).toBeEnabled()
+  await expect(page.locator('[data-media-left-out]')).toHaveCount(0)
+})
+
 test('schedule, back to draft, cancel: the actions of a Publisher and up', async ({ page }) => {
   const { org, client } = await clientWithFiles(page)
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)

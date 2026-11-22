@@ -50,7 +50,10 @@ export const RULE_OPTIONS = [
   'accept',
   /** on the outcome's platform, only the photos of the carousel */
   'photos_only',
-  /** on the outcome's platform, only the first `limit` files */
+  /**
+   * on the outcome's platform, only the first `limit` files. No rule offers it since D-118:
+   * it stays so a draft that saved it on 0.13.0 still opens (the choice is then not applied).
+   */
   'first_files',
   /** the outcome's platform as a normal video instead of a reel */
   'publish_as_video',

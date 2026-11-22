@@ -21,7 +21,7 @@ test('63.206 characters pass, 63.207 do not (D-47)', () => {
   expect(codes(view('photo', [photo()], 'a'.repeat(63_207)))).toEqual(['caption_too_long'])
 })
 
-test('10 photos pass, 11 are a warning (D-48)', () => {
+test('10 photos pass, 11 are a block (D-48, D-118)', () => {
   const photos = (n: number) => Array.from({ length: n }, () => photo())
   expect(codes(view('carousel', photos(10)))).toEqual([])
   expect(codes(view('carousel', photos(11)))).toEqual(['facebook_too_many_photos'])

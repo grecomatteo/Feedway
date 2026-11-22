@@ -46,20 +46,16 @@ function checkCarousel(view: PlatformView): RuleFinding[] {
         skip_platform: skip,
       },
     })
+  // a block, as Instagram's carousel_too_many: «Solo le prime 10» left the others in a post
+  // that D-56 then blocked, and the editor takes no more than 10 (D-118, Matteo 22/11)
   const limit = L.facebookMultiPhotoMax.value
   if (photos.length > limit)
     findings.push({
-      level: 'warning',
+      level: 'block',
       code: 'facebook_too_many_photos',
       subject: { kind: 'post' },
       platform,
       params: { platform, limit, found: photos.length },
-      options: ['first_files', 'skip_platform'],
-      recommended: 'first_files',
-      effects: {
-        first_files: { kind: 'keep_media', platform, indices: photos.slice(0, limit) },
-        skip_platform: skip,
-      },
     })
   return findings
 }
