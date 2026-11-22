@@ -288,7 +288,7 @@ test('where people already look: «Oggi», the selector, «Clienti» and the lib
   const issues = page.locator('[data-today-issues]')
   await expect(issues.locator('[data-issue="post"]')).toHaveCount(2)
   const first = issues.locator('[data-issue="post"]').first()
-  await expect(first).toContainText(/Foto (delle|dell’|del) .+ non uscita su Facebook/)
+  await expect(first).toContainText(/Foto (delle |dell’|del ).+ non uscita su Facebook/)
   await expect(first).toContainText('Forno Luce · un file non va bene per Facebook')
   await expect(first.locator('[data-tone="danger"]')).toHaveCount(1)
   const second = issues.locator('[data-issue="post"]').nth(1)
