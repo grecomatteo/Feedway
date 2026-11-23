@@ -53,10 +53,6 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   const org = owner.organizationSlug
   // the token is sealed with the agency's data key, as Meta's secret
   await addDataKey(org)
-  // one bot serves one agency only: a run before this one (a retry) lets it go
-  await adminQuery("delete from integrations where kind = 'telegram' and config->>'botId' = $1", [
-    String(TELEGRAM_MOCK.bots.agency.id),
-  ])
   await page.goto(`/${org}/impostazioni/integrazioni`)
   const entry = page
     .getByRole('list', { name: 'Integrazioni' })
