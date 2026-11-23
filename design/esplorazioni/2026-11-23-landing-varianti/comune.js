@@ -8,10 +8,43 @@ ScrollTrigger.create({
   onToggle: (self) => header.classList.toggle('scrolled', self.isActive),
 });
 
+// Header: mark the section in view.
+document.querySelectorAll('.site-header nav a[href^="#"]').forEach((a) => {
+  const target = document.querySelector(a.getAttribute('href'));
+  if (!target) return;
+  ScrollTrigger.create({
+    trigger: target,
+    start: 'top 50%',
+    end: 'bottom 50%',
+    onToggle: (self) => a.setAttribute('aria-current', self.isActive ? 'true' : 'false'),
+  });
+});
+
 const mm = gsap.matchMedia();
 window.motionOK = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 mm.add('(prefers-reduced-motion: no-preference)', () => {
+  // Problem: the loose tools are pulled into the one panel while scrolling.
+  const hub = document.querySelector('.converge .hub');
+  if (hub) {
+    const pull = gsap.timeline({
+      scrollTrigger: { trigger: '.converge', start: 'top 65%', end: 'center 35%', scrub: 0.8 },
+    });
+    pull.from(hub, { scale: 0.94, duration: 0.4, ease: 'power2.out' }, 0);
+    gsap.utils.toArray('.converge .tool').forEach((t, i) => {
+      pull.to(t, { '--x': '0%', '--y': '0%', '--r': '0deg', opacity: 0, duration: 0.6, ease: 'power2.in' }, 0.25 + i * 0.05);
+    });
+    pull.from('.hub li', { opacity: 0, x: -8, stagger: 0.08, duration: 0.2 }, 0.75);
+  }
+
+  // Client: the approval notice arrives once the phone is in view.
+  if (document.querySelector('.notice')) {
+    gsap.from('.notice', {
+      y: 16, opacity: 0, duration: 0.6, ease: 'power3.out',
+      scrollTrigger: { trigger: '.client .phone-stage', start: 'top 55%', once: true },
+    });
+  }
+
   // Publication timeline: the orange line follows the scroll, steps light up.
   const tl = document.querySelector('.timeline');
   if (tl) {
@@ -95,14 +128,6 @@ tabs.forEach((t, i) => {
 });
 
 mm.add('(prefers-reduced-motion: no-preference) and (min-width: 861px)', () => {
-  // Problem: the six apps drift in and lean towards the one panel.
-  if (document.querySelector('.funnel')) {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: '.funnel', start: 'top 75%', once: true } });
-    tl.from('.apps li', { x: -40, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.07 })
-      .from('.funnel-arrow', { x: -12, opacity: 0, duration: 0.4, ease: 'power3.out' }, '-=0.2')
-      .from('.one', { scale: 0.94, opacity: 0, duration: 0.6, ease: 'power3.out' }, '-=0.25')
-      .from('.one li', { x: -8, opacity: 0, duration: 0.35, ease: 'power3.out', stagger: 0.08 }, '-=0.3');
-  }
   // Outcome cards rise as one pair; roles follow the scroll one row at a time.
   if (document.querySelector('.outcomes')) {
     gsap.from('.outcome', {

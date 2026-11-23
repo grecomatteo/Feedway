@@ -309,7 +309,7 @@ async function start() {
           gsap.to(state, {
             p: 1,
             ease: 'none',
-            scrollTrigger: { trigger: '.hero-a', start: 'top 68px', end: '+=170%', pin: true, scrub: 0.8 },
+            scrollTrigger: { trigger: '.hero-a', start: 'top 68px', end: '+=170%', pin: true, scrub: 0.8, refreshPriority: 1 },
           });
         } else {
           // phone: no pinning, the scene plays once when it comes into view
@@ -324,7 +324,10 @@ async function start() {
     );
   }
   // triggers created before the pin need their positions recomputed
-  if (!reduce) ScrollTrigger.refresh();
+  if (!reduce) {
+    ScrollTrigger.sort();
+    ScrollTrigger.refresh();
+  }
   window.__heroState = state; // used by the screenshot script
 }
 

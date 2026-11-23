@@ -172,27 +172,24 @@ FAQ = """
 
 PROBLEM = """
 <section class="section problem" aria-labelledby="problem-title">
-  <div class="wrap split">
-    <div class="section-head">
+  <div class="wrap problem-grid">
+    <div class="problem-copy">
       <h2 id="problem-title">Sei app aperte, nessuna che sappia cosa fanno le altre.</h2>
-      <p class="lead">I file del cliente in una chat, il piano in un foglio, le attività su un'altra app, la pubblicazione su Meta un profilo alla volta. La sera nessuno sa con certezza se il post delle 18 è uscito.</p>
+      <p class="lead">I messaggi dei clienti in chat, i file su Drive, le ore su un foglio, i post su Meta. Il cliente scrive alle 23, il file giusto è in una conversazione di tre settimane fa e nessuno sa se il post di ieri è uscito davvero.</p>
     </div>
-    <div class="funnel" aria-hidden="true">
-      <ul class="apps">
-        <li><i data-icon="message-circle"></i>Chat dei clienti</li>
-        <li><i data-icon="images"></i>Cartelle dei file</li>
-        <li><i data-icon="layout-list"></i>Foglio del piano</li>
-        <li><i data-icon="mail"></i>Email</li>
-        <li><i data-icon="list-checks"></i>App delle attività</li>
-        <li><i data-icon="send"></i>Pubblicazione, cliente per cliente</li>
-      </ul>
-      <i data-icon="arrow-right" class="funnel-arrow"></i>
-      <div class="one">
+    <div class="converge" aria-hidden="true">
+      <span class="tool" style="--x:-34%;--y:-38%;--r:-4deg"><i data-icon="message-square"></i>Chat dei clienti</span>
+      <span class="tool" style="--x:30%;--y:-42%;--r:3deg"><i data-icon="folder-open"></i>Cartelle dei file</span>
+      <span class="tool" style="--x:-42%;--y:-2%;--r:2deg"><i data-icon="sheet"></i>Foglio delle ore</span>
+      <span class="tool" style="--x:40%;--y:2%;--r:-3deg"><i data-icon="mail"></i>Email</span>
+      <span class="tool" style="--x:-30%;--y:38%;--r:-2deg"><i data-icon="sticky-note"></i>Note sul telefono</span>
+      <span class="tool" style="--x:32%;--y:40%;--r:4deg"><i data-icon="send"></i>Un post alla volta su Meta</span>
+      <div class="hub">
         <img src="img/feedway-horizontal-carbone.svg" alt="" width="124" height="36">
         <ul>
-          <li><i data-icon="check"></i>Piano e calendario</li>
+          <li><i data-icon="check"></i>Clienti e messaggi</li>
           <li><i data-icon="check"></i>File e materiali</li>
-          <li><i data-icon="check"></i>Attività del team</li>
+          <li><i data-icon="check"></i>Ore e attività</li>
           <li><i data-icon="check"></i>Pubblicazione verificata</li>
         </ul>
       </div>
@@ -264,69 +261,69 @@ TEAM = """
       <div><dt>Grafico</dt><dd>«Cosa devo produrre, con quali materiali?»</dd><dd class="where">La libreria e le sue attività</dd></div>
       <div><dt>Collaboratore esterno</dt><dd>«Cosa mi tocca, e niente altro.»</dd><dd class="where">Solo il cliente per cui è invitato</dd></div>
     </dl>
-    <p class="foot-note"><i data-icon="shield"></i>Ruoli e permessi controllati su ogni azione. Chi non segue un cliente non lo vede.</p>
   </div>
 </section>
 """
 
 CLIENT_A = """
-<section class="section peach client" id="cliente" aria-labelledby="client-title">
+<section class="section client" id="cliente" aria-labelledby="client-title">
   <div class="wrap client-grid">
-    <div class="phone-stage">
-      <div class="phone"><img src="img/tel-condiviso.webp" alt="Il calendario condiviso con il cliente, aperto sul telefono." loading="lazy" width="780" height="1688"></div>
-    </div>
     <div class="section-head">
-      <h2 id="client-title">Il tuo cliente ha il suo spazio. E approva dal telefono.</h2>
-      <p class="lead">Basta rincorrere il cliente in chat per sapere se un post va bene. Gli mandi un link e da lì trova quello che esce, con le anteprime. Non vede mai le note interne né gli altri clienti.</p>
-      <ul class="feat">
-        <li>Un link al suo calendario, senza account <span class="soon">In arrivo</span></li>
-        <li>«Approva» o «Chiedi una modifica» <span class="soon">In arrivo</span></li>
-        <li>Caricamento di foto e video <span class="soon">In arrivo</span></li>
-        <li>Report del mese <span class="soon">In arrivo</span></li>
+      <h2 id="client-title">Il tuo cliente ha il suo spazio. Con il tuo marchio.</h2>
+      <p class="lead">Vede il calendario, approva, carica le foto e legge il report del mese. Le vostre conversazioni interne non le vede mai.</p>
+      <ul class="checks">
+        <li><i data-icon="link"></i>Un link al suo calendario, con password e scadenza <span class="soon">In arrivo</span></li>
+        <li><i data-icon="thumbs-up"></i>Approvazioni dal telefono, attivabili per cliente <span class="soon">In arrivo</span></li>
+        <li><i data-icon="upload"></i>Materiali caricati dal cliente nella sua libreria <span class="soon">In arrivo</span></li>
       </ul>
+    </div>
+    <div class="phone-stage">
+      <div class="notice"><i data-icon="bell"></i><div><small>Adesso</small>Paola di Orto Vivo ha approvato il carosello del 19 ottobre.</div></div>
+      <div class="phone"><img src="img/tel-condiviso.webp" alt="Il calendario condiviso con il cliente, aperto sul telefono." loading="lazy" width="780" height="1688"></div>
     </div>
   </div>
 </section>
 """
 
 
-def outcome(title, pill, cls, rows, note):
-    lis = ''.join(
-        f'<li class="{c}"><i data-icon="{ic}"></i><span>{n}</span><em>{st}</em></li>' for ic, n, st, c in rows)
-    return f"""
-      <article class="outcome">
-        <header><strong>{title}</strong><span class="pill {cls}">{pill}</span></header>
-        <ul>{lis}</ul>
-        <p>{note}</p>
-      </article>"""
-
-
-PUBLISH_A = f"""
+PUBLISH_A = """
 <section class="section carbon" id="pubblicazione" aria-labelledby="publish-title">
-  <div class="wrap">
-    <div class="publish">
-      <div class="section-head">
-        <h2 id="publish-title">Lo sai quando un post è uscito. Davvero.</h2>
-        <p class="lead">Prima di programmare, Feedway controlla file, formati e limiti di ogni profilo. All'ora giusta pubblica, poi torna a guardare dopo 3, 10 e 30 minuti.</p>
-        <ul class="platforms"><li>Instagram</li><li>Facebook</li><li>TikTok <span class="soon">In arrivo</span></li><li>LinkedIn <span class="soon">In arrivo</span></li></ul>
-      </div>
-      <ol class="timeline" aria-label="Il percorso di un post">
-        <li><span class="t num">17:58</span><div><strong>Programmato</strong><p>Copie pronte per ogni profilo, nel formato giusto.</p></div></li>
-        <li><span class="t num">18:00</span><div><strong>In pubblicazione</strong><p>Feedway manda il post a Instagram e a Facebook.</p></div></li>
-        <li><span class="t num">18:03</span><div><strong>Verifica</strong><p>Chiede a Meta se il post è davvero sul profilo.</p></div></li>
-        <li class="done"><span class="t num">18:03</span><div><strong><i data-icon="circle-check"></i>Pubblicato</strong><p>Con il link al post su Instagram e su Facebook.</p></div></li>
-      </ol>
+  <div class="wrap publish">
+    <div class="section-head">
+      <h2 id="publish-title">Lo sai quando un post è uscito. Davvero.</h2>
+      <p class="lead">Dopo l'ora programmata Feedway chiede a Meta se il post c'è. Se manca, lo scrive con il motivo e ti dice cosa fare. Con «Riprova» pubblica solo dove non è uscito.</p>
+      <p class="platforms"><span><i data-icon="instagram"></i>Instagram</span><span><i data-icon="facebook"></i>Facebook</span><span class="later">TikTok <span class="soon">In arrivo</span></span><span class="later">LinkedIn <span class="soon">In arrivo</span></span></p>
     </div>
-    <div class="outcomes">{outcome('Reel, mer 14 ottobre, 18:00', '4 pubblicati · 1 con problema', 'bad', [
-        ('instagram', 'Forno Luce Centro', 'Pubblicato', 'ok'), ('facebook', 'Forno Luce Centro', 'Pubblicato', 'ok'),
-        ('instagram', 'Forno Luce Nord', 'Pubblicato', 'ok'), ('facebook', 'Forno Luce Nord', 'Pubblicato', 'ok'),
-        ('instagram', 'Forno Luce Lab', 'Con problema', 'bad')],
-        'Permesso revocato su Forno Luce Lab. Ricollega il profilo e riprova solo lì: gli altri quattro non ricevono il post due volte.')}{outcome('Foto, mar 13 ottobre, 18:00', '4 pubblicati · 1 da accertare', 'warn', [
-        ('instagram', 'Forno Luce Centro', 'Pubblicato', 'ok'), ('facebook', 'Forno Luce Centro', 'Pubblicato', 'ok'),
-        ('instagram', 'Forno Luce Nord', 'Pubblicato', 'ok'), ('facebook', 'Forno Luce Nord', 'Pubblicato', 'ok'),
-        ('instagram', 'Forno Luce Lab', 'Da accertare', 'warn')],
-        'Meta non ha ancora risposto per Forno Luce Lab. Feedway lo dice e blocca un nuovo invio finché non è chiaro.')}
-    </div>
+    <ol class="timeline" aria-label="Il percorso di un post">
+      <li><span class="t num">11:58</span><div><strong>Programmato</strong><p>Copie pronte per @fornoluce e la Pagina Forno Luce.</p></div></li>
+      <li><span class="t num">12:00</span><div><strong>In pubblicazione</strong><p>Feedway manda il post a Instagram e a Facebook.</p></div></li>
+      <li><span class="t num">12:01</span><div><strong>Verifica</strong><p>Chiede a Meta se il post è davvero sul profilo.</p></div></li>
+      <li class="done"><span class="t num">12:01</span><div><strong><i data-icon="circle-check"></i>Pubblicato su 2 profili</strong><p>Con il link al post su Instagram e su Facebook.</p></div></li>
+    </ol>
+  </div>
+  <div class="wrap outcomes">
+    <article class="outcome">
+      <header><strong>Reel, mer 14 ottobre, 18:00</strong><span class="pill bad">4 confermate · 1 con problema</span></header>
+      <ul>
+        <li><i data-icon="instagram"></i>Forno Luce Centro<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="facebook"></i>Forno Luce Centro<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="instagram"></i>Forno Luce Nord<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="facebook"></i>Forno Luce Nord<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li class="row-bad"><i data-icon="instagram"></i>Forno Luce Lab<span class="st bad"><i data-icon="circle-alert"></i>Con problema</span></li>
+      </ul>
+      <p>Permesso revocato su Forno Luce Lab. Ricolleghi l'account e riprovi solo lì: le altre quattro destinazioni non ricevono il post due volte.</p>
+    </article>
+    <article class="outcome">
+      <header><strong>Foto, mar 13 ottobre, 18:00</strong><span class="pill warn">4 confermate · 1 da accertare</span></header>
+      <ul>
+        <li><i data-icon="instagram"></i>Forno Luce Centro<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="facebook"></i>Forno Luce Centro<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="instagram"></i>Forno Luce Nord<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li><i data-icon="facebook"></i>Forno Luce Nord<span class="st ok"><i data-icon="circle-check"></i>Confermato</span></li>
+        <li class="row-warn"><i data-icon="instagram"></i>Forno Luce Lab<span class="st warn"><i data-icon="clock"></i>Da accertare</span></li>
+      </ul>
+      <p>Meta non ha ancora risposto per Forno Luce Lab. Feedway lo scrive come «da accertare» e blocca un nuovo invio finché non è chiaro.</p>
+    </article>
   </div>
 </section>
 """
@@ -393,6 +390,24 @@ FAQ_ITEMS = [
 
 FAQ_A = '<section class="section sunken faq" id="domande" aria-labelledby="faq-title"><div class="wrap split"><h2 id="faq-title">Domande frequenti</h2><div>' + ''.join(
     f'<details{" open" if k == 0 else ""}><summary>{q} <i data-icon="chevron-down"></i></summary><p>{a}</p></details>' for k, (q, a) in enumerate(FAQ_ITEMS)) + '</div></div></section>'
+
+
+OLD_FOOTER = """<footer class="site-footer">
+  <div class="wrap">
+    <span>© 2026 Feedway · Questo sito non usa cookie.</span>
+    <span><a href="#">Privacy</a><a href="#">Cancellazione dei dati</a><a href="#">Termini</a></span>
+  </div>
+  <div class="wrap"><img class="giant" src="img/feedway-wordmark-arancio.svg" alt="" width="444" height="128"></div>
+</footer>"""
+
+BIG_FOOTER = """<footer class="site-footer big">
+  <div class="wrap foot-row">
+    <img src="img/feedway-horizontal-bianco.svg" alt="Feedway" width="124" height="36">
+    <nav aria-label="Pagine"><a href="#prodotto">Prodotto</a><a href="#pubblicazione">Pubblicazione</a><a href="#cliente">Clienti</a><a href="#domande">Domande</a></nav>
+    <nav aria-label="Note legali" class="legal"><a href="#">Privacy</a><a href="#">Cancellazione dei dati</a><a href="#">Termini</a><span>Nessun cookie</span></nav>
+  </div>
+  <div class="wordmark" aria-hidden="true"><img src="img/feedway-wordmark-arancio.svg" alt="" width="444" height="128"></div>
+</footer>"""
 
 
 def page(letter, name, hero, product, script, extra_css, middle=None, foot=None):
@@ -516,7 +531,7 @@ PRODUCT_C = """
 
 page('a', '3D', HERO_A, '', '<script type="module" src="a.js"></script>', 'a.css',
      middle=PROBLEM + PRODUCT_A + TEAM + CLIENT_A + PUBLISH_A + COSTS + START + TRUST + FAQ_A,
-     foot=FOOT.replace('Vediamo Feedway con i tuoi clienti.', 'Smetti di cercare. Inizia a lavorare.').replace("Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.", 'Tutta la tua agenzia, in un solo posto.'))
+     foot=FOOT.replace('Vediamo Feedway con i tuoi clienti.', 'Smetti di cercare. Inizia a lavorare.').replace("Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.", 'Tutta la tua agenzia, in un solo posto.').replace(OLD_FOOTER, BIG_FOOTER))
 page('b', 'Prospettiva', HERO_B, PRODUCT_B, '<script src="b.js"></script>', 'b.css')
 page('c', 'Editoriale', HERO_C, PRODUCT_C, '<script src="c.js"></script>', 'c.css')
 print('ok')
