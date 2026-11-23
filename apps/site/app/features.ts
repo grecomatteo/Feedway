@@ -5,10 +5,19 @@ export const SHIPPED = {
   notifications: false, // tappa 8
   calendar: false, // tappa 9
   editorialPlan: false, // tappa 9
+  calendarSync: false, // calendar on Google or Apple
+  shootings: false,
   clientLink: false, // tappa 10
   clientApproval: false, // version 1.1
+  clientUploads: false,
   stats: false, // version 1.3
+  reports: false, // monthly report with the agency's logo
+  bestTime: false,
+  costs: false, // hours, contracts and margin per client
   tasks: false, // version 1.5
+  notes: false, // notes, internal guides, client card
+  dailyDigest: false,
+  pushNotifications: false,
   tiktok: false,
   linkedin: false,
 } as const satisfies Record<string, boolean>
