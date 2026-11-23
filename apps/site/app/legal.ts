@@ -4,19 +4,21 @@
  */
 export const LEGAL = {
   /** Who decides why and how the data is processed: a person's name or a company name. */
-  controllerName: 'DA COMPLETARE',
+  controllerName: 'Matteo Greco',
   /** Tax number or address, if Matteo wants it shown. Empty: not shown. */
   controllerDetails: '',
   /** The address that receives privacy and deletion requests. */
-  privacyEmail: 'DA COMPLETARE',
+  privacyEmail: 'matteogr03@gmail.com',
   /** Who runs the server of the panel and where, e.g. «Hetzner Online GmbH, Germania». */
-  hostingProvider: 'DA COMPLETARE',
+  hostingProvider: 'Oracle Cloud Infrastructure (Oracle)',
   /** Where the panel's backups go, e.g. «Google Drive (Google Ireland Ltd.)», copies encrypted or not. */
-  backupProvider: 'DA COMPLETARE',
+  backupProvider: 'Google Drive (Google Ireland Ltd.), con copie cifrate',
+  /** The mailbox that receives the demo requests and the privacy email. */
+  mailboxProvider: 'Gmail (Google Ireland Ltd.)',
   /** Who sends the panel's emails (SMTP), e.g. «Brevo (Sendinblue SAS, Francia)». */
-  emailProvider: 'DA COMPLETARE',
+  emailProvider: 'Sweego (Sweego SAS, Francia)',
   /** Courts for disputes in the terms, with the preposition, e.g. «di Bologna». */
-  court: 'DA COMPLETARE',
+  court: 'di Salerno',
   /** Date of the last change of the notice, ISO. */
   updatedOn: '2026-11-23',
 } as const

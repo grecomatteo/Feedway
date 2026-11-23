@@ -43,14 +43,22 @@ useSeoMeta({
       </li>
       <li>
         Entro 30 giorni cancelliamo il codice di accesso, l’identificativo, il nome e la foto della
-        Pagina o dell’account, gli identificativi dei post pubblicati e le foto e i video ancora
-        conservati per quell’account.
+        Pagina o dell’account e gli identificativi e i link dei post che Feedway ha pubblicato lì.
       </li>
-      <li>Ti scriviamo quando la cancellazione è fatta.</li>
+      <li>
+        Ti scriviamo quando la cancellazione è fatta, e lo diciamo all’agenzia che l’aveva
+        collegato.
+      </li>
+      <li>
+        Le foto e i video che l’agenzia ha caricato in Feedway sono suoi: se vuoi che li cancelli,
+        giriamo la richiesta all’agenzia.
+      </li>
     </ul>
     <p>
       Teniamo solo una nota con la data della richiesta e della cancellazione, per poter dimostrare
-      di averla eseguita; non contiene i dati cancellati.
+      di averla eseguita; non contiene i dati cancellati. Nelle copie di sicurezza cifrate i dati
+      restano al massimo 3 mesi, finché la rotazione non le sovrascrive, e non si usano se non per
+      ripristinare il servizio dopo un guasto.
     </p>
     <p>
       I post già pubblicati su Facebook e Instagram restano lì: li gestisci tu da Facebook o
