@@ -176,6 +176,7 @@ test('a duplicate answers 506', async () => {
 test("a reel's cover: an image as the `source` file, preferred, with the Page token", async () => {
   const start = await call('POST', `/${page}/video_reels`, { upload_phase: 'start' })
   const videoId = String(start.body.video_id)
+  await upload(videoId, picture())
   const cover = async (form: FormData, token = pageToken) => {
     const url = new URL(`${mock.url}/v25.0/${videoId}/thumbnails`)
     url.searchParams.set('appsecret_proof', proofOf(token))
@@ -189,6 +190,13 @@ test("a reel's cover: an image as the `source` file, preferred, with the Page to
   const form = new FormData()
   form.set('is_preferred', 'true')
   form.set('source', new Blob([new Uint8Array(42)], { type: 'image/jpeg' }), 'cover.jpg')
+  // not before the reel is out
+  expect((await cover(form)).error?.code).toBe(100)
+  await call('POST', `/${page}/video_reels`, {
+    upload_phase: 'finish',
+    video_id: videoId,
+    video_state: 'PUBLISHED',
+  })
   expect(await cover(form)).toEqual({ success: true })
   expect(mock.calls().at(-1)?.params).toMatchObject({
     is_preferred: 'true',

@@ -79,8 +79,6 @@ export interface ConnectionCredentials<AppCredentials = unknown> {
 export interface PermissionCheck {
   name: string
   granted: boolean
-  /** Not needed to publish: only for one feature (Meta: the cover of a Facebook reel). */
-  optional?: boolean
 }
 
 /**

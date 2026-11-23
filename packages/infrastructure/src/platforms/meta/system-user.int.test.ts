@@ -204,13 +204,9 @@ afterAll(async () => {
 test('a valid token: green permissions, every assigned account once, pending', async () => {
   const result = await connect(` ${TOKEN}\n`)
   expect(result.outcome).toBe('connected')
-  expect(result.permissions).toHaveLength(8)
-  expect(result.permissions.filter((p) => p.optional !== true).every((p) => p.granted)).toBe(true)
-  // the two of the cover of a Facebook reel are optional: not given, the connection still works
-  expect(result.permissions.filter((p) => p.optional === true)).toEqual([
-    { name: 'pages_manage_engagement', granted: false, optional: true },
-    { name: 'pages_read_user_content', granted: false, optional: true },
-  ])
+  // the two of the cover of a Facebook reel are not among them: not given, it still connects
+  expect(result.permissions).toHaveLength(6)
+  expect(result.permissions.every((p) => p.granted)).toBe(true)
   // Forno Luce's Instagram comes from the page and from the assigned ones: listed once, paired
   expect(result.accounts.map((a) => [a.platform, a.externalId, a.pageId, a.state])).toEqual([
     ['facebook', pages.withInstagram, pages.withInstagram, 'to_import'],
@@ -302,7 +298,7 @@ test('a missing permission is shown red and nothing is saved', async () => {
   mock.scenario('permission_missing', { permission: 'business_management' })
   const result = await connect()
   expect(result).toMatchObject({ outcome: 'permissions_missing', connection: null, accounts: [] })
-  expect(result.permissions.filter((p) => !p.granted && p.optional !== true)).toEqual([
+  expect(result.permissions.filter((p) => !p.granted)).toEqual([
     { name: 'business_management', granted: false },
   ])
   expect(await ownRows('account_connections')).toEqual([])

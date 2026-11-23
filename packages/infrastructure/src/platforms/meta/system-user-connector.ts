@@ -10,11 +10,7 @@ import type {
   PlatformConnector,
   TokenCheck,
 } from '@app/application'
-import {
-  META_COVER_PERMISSIONS,
-  META_REQUIRED_PERMISSIONS,
-  type MetaUsage,
-} from '@app/domain/platforms/meta'
+import { META_REQUIRED_PERMISSIONS, type MetaUsage } from '@app/domain/platforms/meta'
 import { createMetaAppConnector } from './app-connector.js'
 import { MetaError, type MetaErrorReason } from './errors.js'
 import type {
@@ -356,15 +352,12 @@ export function createMetaSystemUserConnector(deps: {
         }
       }
       const scopes = new Set(info.scopes)
-      const permissions: PermissionCheck[] = [
-        ...META_REQUIRED_PERMISSIONS.map((name) => ({ name, granted: scopes.has(name) })),
-        // only for the cover of a Facebook reel: their absence never stops the connection
-        ...META_COVER_PERMISSIONS.map((name) => ({
-          name,
-          granted: scopes.has(name),
-          optional: true,
-        })),
-      ]
+      // the two of the cover of a Facebook reel are not listed: their absence never stops the
+      // connection, and the panel shows them apart (`scopes`, D-120.9)
+      const permissions: PermissionCheck[] = META_REQUIRED_PERMISSIONS.map((name) => ({
+        name,
+        granted: scopes.has(name),
+      }))
       // a token of another app would also fail every call, its proof made with our secret; a
       // page or app token is no user's (Meta's documented types, the system user's one is not
       // verified: end of Task 7)
@@ -376,7 +369,7 @@ export function createMetaSystemUserConnector(deps: {
         info.type === 'APP'
       )
         return { ok: false, reason: 'rejected', permissions: [] }
-      if (permissions.some((p) => p.optional !== true && !p.granted))
+      if (permissions.some((p) => !p.granted))
         return { ok: false, reason: 'permissions_missing', permissions }
       return {
         ok: true,

@@ -81,11 +81,15 @@ export async function destinationCopies(
 /** A cover is a small image: a bigger object is not one of ours, and is not sent. */
 const COVER_MAX_BYTES = 10 * 1024 * 1024
 
-async function readCover(storage: Pick<Storage, 'get'>, key: string): Promise<CoverImage | null> {
+export async function readCover(
+  storage: Pick<Storage, 'get'>,
+  key: string,
+): Promise<CoverImage | null> {
   const object = await storage.get(key)
-  if (object === null || object.size > COVER_MAX_BYTES) return null
+  if (object === null) return null
   const parts: Uint8Array[] = []
   let size = 0
+  // leaving the loop early closes the stream, as the port asks
   for await (const part of object.body) {
     size += part.byteLength
     if (size > COVER_MAX_BYTES) return null

@@ -274,6 +274,8 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
   function thumbnail(videoId: string, params: URLSearchParams): PublishingAnswer {
     const video = videos.get(videoId)
     if (video === undefined || video.edge === 'video_stories') return notFound(videoId)
+    // only a video already published: a cover sent before `finish` is a mistake of ours
+    if (!video.finished) return paramError('The video is not published yet')
     // the server writes a multipart file as `file:<type>:<bytes>`
     const file = /^file:(image\/(?:jpeg|png)):(\d+)$/.exec(params.get('source') ?? '')
     if (file === null) return paramError('The parameter source is required as an image file')
