@@ -15,6 +15,7 @@ const onDemo = computed(() => route.path.startsWith('/richiedi-una-demo'))
       <nav v-if="route.path === '/'" aria-label="Sezioni" class="anchors">
         <a href="#prodotto">Prodotto</a>
         <a href="#pubblicazione">Pubblicazione</a>
+        <a href="#cliente">Clienti</a>
         <a href="#domande">Domande</a>
       </nav>
       <div class="actions">

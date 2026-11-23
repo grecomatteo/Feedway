@@ -17,7 +17,7 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 
 La landing di `apps/site` segue lo stile del ridisegno, con le due libertà che il brief 04 concede: una fascia carbone e una campitura arancio. Revisione del giro 3 e proposta in `design/reviews/2026-11-23-landing/revisione-giro-3.md`; scelte provvisorie in D-122.
 
-- **Solo ciò che c'è:** le sezioni mostrano le funzioni che Feedway ha oggi; le altre stanno in un solo elenco «In arrivo» (Matteo, 23/11). A fine di ogni tappa con funzioni nuove si aggiornano landing e README.
+- **Il prodotto finito, con il segno «In arrivo»:** la landing descrive e mostra anche le funzioni previste, ognuna con la sua anteprima; finché non è costruita porta un piccolo segno «In arrivo» (componente `SoonMark`, elenco in `apps/site/app/features.ts`). A fine di ogni tappa con funzioni nuove si toglie il segno e si aggiorna il README (Matteo, 23/11).
 - **Superfici:** fondo `bg`, sezioni separate dal filo `border`, una sezione `surface-sunken`; nessuna ombra sulle card. L'unica ombra è quella della cornice dell'app nell'apertura e nelle schede, che fa da finestra.
 - **Un solo arancio per schermata:** «Richiedi una demo» in testata e nell'apertura (la stessa azione), poi la chiusura su campitura arancio con il pulsante carbone. Nella pagina del modulo la testata non ha il pulsante: c'è quello del modulo.
 - **Un solo momento:** nella fascia carbone, l'esito di un post su cinque destinazioni che diventano «Confermato» una alla volta, e una «Non uscito» con il motivo. Parte una volta quando la sezione entra nello schermo; con il movimento ridotto o senza JavaScript si vede lo stato finale.

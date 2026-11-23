@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Feature } from '~/features'
+
 useSeoMeta({
   title: 'Feedway · Tutta la tua agenzia, in un solo posto',
   description:
@@ -9,10 +11,29 @@ useSeoMeta({
   ogType: 'website',
 })
 
-const TABS = [
+interface Tab {
+  id: string
+  label: string
+  feature?: Feature
+  title: string
+  text: string
+  shot: string
+  alt: string
+}
+
+const TABS: readonly Tab[] = [
+  {
+    id: 'pianifica',
+    label: 'Pianifica',
+    feature: 'editorialPlan',
+    title: 'Il piano del mese, scritto come su un’agenda',
+    text: 'Decidi cosa esce e quando: «il 10 il reel, il 12 il carosello del menu». Per ogni giorno scrivi tipo, titolo e una nota per chi prepara. Chi carica i file vede subito cosa manca e per quando, e con un clic il contenuto diventa un post già compilato.',
+    shot: '/shots/piano.webp',
+    alt: 'Il piano editoriale di dicembre per Forno Luce, con i contenuti del mese e il modulo per aggiungerne uno.',
+  },
   {
     id: 'prepara',
-    label: 'Prepara il post',
+    label: 'Prepara',
     title: 'Un post per più profili, con l’anteprima vera',
     text: 'Scegli i file, scrivi il testo una volta e cambialo per Instagram o Facebook solo se serve. L’anteprima mostra il post come lo vedrà chi lo segue, e i controlli dicono subito cosa manca: un video troppo lungo, una foto troppo alta, un profilo da ricollegare.',
     shot: '/shots/editor.webp',
@@ -20,23 +41,42 @@ const TABS = [
   },
   {
     id: 'libreria',
-    label: 'Tieni i file in ordine',
+    label: 'Libreria',
     title: 'La libreria di ogni cliente, con le cartelle',
     text: 'Foto e video di ogni cliente in un posto solo, con cartelle e tag. Carichi anche una cartella intera o uno zip dal computer; Feedway prepara le copie giuste per Instagram e Facebook e toglie la posizione e i dati della fotocamera.',
     shot: '/shots/libreria.webp',
     alt: 'La libreria di Feedway con le foto dei clienti divise per cartelle.',
   },
   {
-    id: 'clienti',
-    label: 'Segui ogni cliente',
-    title: 'Ogni cliente con i suoi profili e i suoi post',
-    text: 'Per ogni cliente vedi i profili collegati, i post in programma e quelli usciti, la libreria e chi del team ci lavora. Un post appartiene a un solo cliente e usa solo i suoi profili: niente post sulla Pagina sbagliata.',
-    shot: '/shots/cliente.webp',
-    alt: 'La pagina di un cliente in Feedway con i profili collegati e i prossimi post.',
+    id: 'calendario',
+    label: 'Calendario',
+    feature: 'calendar',
+    title: 'Tutti i clienti in un solo calendario',
+    text: 'Il mese, la settimana o l’elenco, per tutti i clienti o per uno solo. Ogni post ha il suo stato: programmato, pubblicato, non uscito. I contenuti del piano ancora da preparare si vedono tratteggiati, e diventano gialli quando mancano meno di 36 ore.',
+    shot: '/shots/calendario.webp',
+    alt: 'Il calendario di novembre con i post di cinque clienti, uno non uscito e due bozze.',
   },
-] as const
+  {
+    id: 'avvisi',
+    label: 'Avvisi',
+    feature: 'notifications',
+    title: 'Se qualcosa non va, lo sai subito',
+    text: 'Un post non uscito, un profilo da ricollegare, un contenuto da preparare entro domani: arriva nel pannello, per email o su Telegram, a chi deve sistemarlo. Alle 8 un riepilogo della giornata. Scegli tu cosa ricevere e le ore di silenzio; gli errori passano sempre.',
+    shot: '/shots/notifiche.webp',
+    alt: 'Le notifiche di Feedway: un reel non uscito, una Pagina da ricollegare, un post pubblicato.',
+  },
+  {
+    id: 'attivita',
+    label: 'Attività',
+    feature: 'tasks',
+    title: 'Le attività dell’agenzia, accanto ai post',
+    text: 'Lo shooting di giovedì, i testi da scrivere, il report da mandare: ogni attività ha una scadenza, le persone a cui è assegnata e, se serve, il post o il cliente a cui si riferisce. Vedi le tue, quelle dell’agenzia o quelle di un cliente, e le scadenze compaiono anche nel calendario.',
+    shot: '/shots/attivita.webp',
+    alt: 'L’elenco delle attività: una in ritardo, tre per oggi, due nei prossimi giorni.',
+  },
+]
 
-const active = ref<(typeof TABS)[number]['id']>('prepara')
+const active = ref('pianifica')
 const tabRefs = ref<HTMLButtonElement[]>([])
 
 function onTabKey(event: KeyboardEvent, index: number) {
@@ -81,15 +121,6 @@ const TRUST = [
   ],
 ] as const
 
-const SOON = [
-  ['Notifiche', 'un avviso quando un post non esce o un profilo va ricollegato.'],
-  ['Calendario', 'il mese e la settimana di tutti i clienti in una vista.'],
-  ['Piano editoriale', 'le idee del mese prima che diventino post.'],
-  ['Calendario per il cliente', 'un link da mandare al cliente per fargli vedere cosa esce.'],
-  ['Approvazione del cliente', 'il cliente approva o chiede una modifica dal telefono.'],
-  ['TikTok e LinkedIn', 'uno alla volta, dopo Instagram e Facebook.'],
-] as const
-
 const FAQ = [
   [
     'Serve una Pagina Facebook?',
@@ -98,6 +129,10 @@ const FAQ = [
   [
     'Che succede se un post non esce?',
     'Feedway te lo dice in Oggi e nella pagina del post, con il motivo scritto in chiaro e cosa fare. Con «Riprova» pubblica solo dove non è uscito: le altre destinazioni non ricevono il post due volte.',
+  ],
+  [
+    'Il cliente deve registrarsi?',
+    'No. Riceve un link al suo calendario, con password e scadenza se vuoi, e da lì approva i post. Il link per il cliente è tra le funzioni in arrivo.',
   ],
   [
     'Posso usarlo dal telefono?',
@@ -109,7 +144,7 @@ const FAQ = [
   ],
   [
     'Funziona con TikTok e LinkedIn?',
-    'Non ancora. Oggi Feedway pubblica su Instagram e Facebook; le altre piattaforme arriveranno una alla volta.',
+    'Non ancora. Oggi Feedway pubblica su Instagram e Facebook; TikTok e LinkedIn arriveranno uno alla volta.',
   ],
   [
     'Dove stanno i dati?',
@@ -126,8 +161,9 @@ const FAQ = [
         <div class="hero-copy">
           <h1 id="hero-title">Tutta la tua agenzia, in un solo posto.</h1>
           <p class="hero-lead">
-            Feedway è il pannello dove l’agenzia prepara, programma e pubblica i post di tutti i
-            clienti su Instagram e Facebook. E dopo l’uscita controlla che siano online davvero.
+            Clienti, team, contenuti e pubblicazioni: Feedway mette in ordine il lavoro di ogni
+            giorno, dentro e fuori l’agenzia. E quando un post esce, controlla che sia online
+            davvero.
           </p>
           <div class="hero-cta">
             <NuxtLink to="/richiedi-una-demo" class="btn btn-primary btn-lg"
@@ -176,7 +212,9 @@ const FAQ = [
     <!-- 3 · Il prodotto -->
     <section id="prodotto" class="band" aria-labelledby="product-title">
       <div class="wrap">
-        <h2 id="product-title" class="section-title">Dal file al post, senza cambiare app.</h2>
+        <h2 id="product-title" class="section-title">
+          Ogni cosa al suo posto. Ogni persona sa cosa fare.
+        </h2>
         <div class="tabs" role="tablist" aria-label="Cosa fai con Feedway">
           <button
             v-for="(tab, i) in TABS"
@@ -192,6 +230,7 @@ const FAQ = [
             @keydown="onTabKey($event, i)"
           >
             {{ tab.label }}
+            <SoonMark :feature="tab.feature" />
           </button>
         </div>
         <div
@@ -204,6 +243,7 @@ const FAQ = [
           :aria-labelledby="`tab-${tab.id}`"
         >
           <div class="tab-copy">
+            <SoonMark :feature="tab.feature" />
             <h3>{{ tab.title }}</h3>
             <p>{{ tab.text }}</p>
           </div>
@@ -227,6 +267,12 @@ const FAQ = [
             Se qualcosa non è uscito te lo dice, con il motivo e il modo di rimediare. Il testo può
             essere diverso per Instagram e per Facebook.
           </p>
+          <ul class="platforms" aria-label="Dove pubblica">
+            <li><SiteIcon name="instagram" />Instagram</li>
+            <li><SiteIcon name="facebook" />Facebook</li>
+            <li>TikTok <SoonMark feature="tiktok" /></li>
+            <li>LinkedIn <SoonMark feature="linkedin" /></li>
+          </ul>
         </div>
         <PublishOutcome />
       </div>
@@ -271,26 +317,97 @@ const FAQ = [
       </div>
     </section>
 
-    <!-- 7 · In arrivo -->
-    <section class="band" aria-labelledby="soon-title">
-      <div class="wrap split">
+    <!-- 7 · Il cliente -->
+    <section id="cliente" class="band" aria-labelledby="client-title">
+      <div class="wrap split split-wide feature-split">
         <div>
-          <h2 id="soon-title">Le prossime cose che arrivano.</h2>
+          <h2 id="client-title">Il tuo cliente vede il suo calendario. E approva dal telefono.</h2>
           <p class="section-lead">
-            Feedway cresce un pezzo alla volta, e mostriamo solo quello che c’è. Queste sono le
-            prossime funzioni in programma.
+            Basta rincorrere il cliente su WhatsApp per sapere se un post va bene. Gli mandi un link
+            e da lì trova tutto quello che esce, con le anteprime.
           </p>
+          <ul class="points">
+            <li>
+              <h3>Un link, nessun account <SoonMark feature="clientLink" /></h3>
+              <p>
+                Il calendario del solo suo spazio, con password e scadenza se vuoi. Vede i post e
+                gli orari, mai le note interne o gli altri clienti.
+              </p>
+            </li>
+            <li>
+              <h3>«Approva» o «Chiedi una modifica» <SoonMark feature="clientApproval" /></h3>
+              <p>
+                Il cliente risponde dal telefono, con un commento se chiede una modifica. Tu lo sai
+                subito, e il post mostra chi ha approvato e quando.
+              </p>
+            </li>
+          </ul>
         </div>
-        <dl class="soon">
-          <div v-for="[title, text] in SOON" :key="title">
-            <dt>{{ title }}</dt>
-            <dd>{{ text }}</dd>
-          </div>
-        </dl>
+        <figure class="frame phone-frame">
+          <img
+            src="/shots/tel-condiviso.webp"
+            width="780"
+            height="1688"
+            loading="lazy"
+            decoding="async"
+            alt="Il calendario di dicembre visto dal cliente sul telefono: un reel da approvare, un carosello approvato, una foto in preparazione."
+          />
+        </figure>
       </div>
     </section>
 
-    <!-- 8 · Domande -->
+    <!-- 8 · I numeri -->
+    <section id="numeri" class="band" aria-labelledby="numbers-title">
+      <div class="wrap">
+        <div class="numbers-head">
+          <h2 id="numbers-title">
+            Il report del mese, pronto da mandare. <SoonMark feature="stats" />
+          </h2>
+          <p class="section-lead">
+            Per ogni cliente: post pubblicati, persone raggiunte, interazioni, nuovi follower e i
+            post che sono andati meglio. Lo scarichi con il tuo logo e lo mandi così com’è.
+          </p>
+        </div>
+        <figure class="frame">
+          <img
+            src="/shots/statistiche.webp"
+            width="2000"
+            height="1250"
+            loading="lazy"
+            decoding="async"
+            alt="Le statistiche di novembre per Forno Luce: 18 post, 24.310 persone raggiunte, le settimane e i post migliori."
+          />
+        </figure>
+      </div>
+    </section>
+
+    <!-- 9 · Come si comincia -->
+    <section class="band" aria-labelledby="start-title">
+      <div class="wrap split">
+        <h2 id="start-title">Come si comincia.</h2>
+        <ol class="steps">
+          <li>
+            <h3>Ci sentiamo per la demo</h3>
+            <p>
+              Mezz’ora in videochiamata: ci racconti come lavora l’agenzia e ti mostriamo Feedway.
+            </p>
+          </li>
+          <li>
+            <h3>Prepariamo la tua agenzia</h3>
+            <p>Creiamo lo spazio per l’agenzia e i clienti. Tu inviti il team con i suoi ruoli.</p>
+          </li>
+          <li>
+            <h3>Colleghi i profili</h3>
+            <p>
+              Instagram e Facebook dei clienti si collegano da Meta, con i permessi che concedi tu.
+              Il primo collegamento lo facciamo insieme.
+            </p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 10 · Domande -->
     <section id="domande" class="band" aria-labelledby="faq-title">
       <div class="wrap split">
         <h2 id="faq-title">Domande frequenti</h2>
@@ -306,7 +423,7 @@ const FAQ = [
       </div>
     </section>
 
-    <!-- 9 · Chiusura -->
+    <!-- 11 · Chiusura -->
     <section class="closing" aria-labelledby="closing-title">
       <div class="wrap closing-grid">
         <div>

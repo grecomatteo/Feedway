@@ -113,3 +113,12 @@ test('the publication moment ends with four confirmed and one not published', as
   await expect(page.getByText('4 confermati · 1 non uscito')).toBeVisible({ timeout: 8000 })
   await expect(page.locator('[data-status="failed"]')).toHaveCount(1)
 })
+
+test('planned features carry the «In arrivo» mark, shipped ones do not', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('tab', { name: /^Pianifica/ })).toContainText('In arrivo')
+  await expect(page.getByRole('tab', { name: /^Prepara/ })).not.toContainText('In arrivo')
+  await page.getByRole('tab', { name: /^Prepara/ }).click()
+  await expect(page.getByRole('tabpanel')).toContainText('Un post per più profili')
+  await expect(page.locator('#cliente .soon-mark')).toHaveCount(2)
+})
