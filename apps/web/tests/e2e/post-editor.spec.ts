@@ -462,6 +462,53 @@ test('the network falls during the save: «Non salvata: riprova», never «Salva
   await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
 })
 
+test('a save that reached the server but lost its answer: the next one is not a conflict (D-120.1)', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  const text = page.getByRole('textbox', { name: 'Testo comune' })
+  await text.fill('Prima')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  // the network falls after the server saved: the answer never comes back
+  let lost = 0
+  await page.route('**/posts/*', async (route) => {
+    if (route.request().method() !== 'PATCH' || lost > 0) return route.continue()
+    lost++
+    await route.fetch()
+    await route.abort('internetdisconnected')
+  })
+  await text.fill('Seconda, arrivata')
+  await expect(saveState(page)).toContainText('Non salvata: riprova', { timeout: 10_000 })
+  await text.fill('Terza, dopo la rete')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await expect(page.getByText('Modificato da un')).toHaveCount(0)
+  await page.reload()
+  await expect(text).toHaveValue('Terza, dopo la rete')
+})
+
+test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  // 20:30 UTC, evening in Rome: today's 18:00 is gone, the editor proposes tomorrow
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
+  await page.clock.setFixedTime(new Date(`${today}T20:30:00Z`))
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  const line = page.locator('[data-when-tomorrow]')
+  await expect(line).toHaveText(/Domani, \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:00$/u)
+  // a time still ahead tonight, on tomorrow, is not «because of the evening»
+  await page.locator('[data-time-field]').click()
+  await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('2300')
+  await page.keyboard.press('Enter')
+  await expect(line).toHaveCount(0)
+  await page.locator('[data-time-field]').click()
+  await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('0930')
+  await page.keyboard.press('Enter')
+  await expect(line).toContainText('alle 9:30')
+  expect((await axe(page)).violations).toEqual([])
+})
+
 // P1 of the stage 6 review: «Esci lo stesso» leaves, and the post stays as it was
 test('a scheduled post changed: «Esci lo stesso» leaves, and the post stays as it was', async ({
   page,
