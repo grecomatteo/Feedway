@@ -52,7 +52,7 @@ FOOT = """
     <span>© 2026 Feedway · Questo sito non usa cookie.</span>
     <span><a href="#">Privacy</a><a href="#">Cancellazione dei dati</a><a href="#">Termini</a></span>
   </div>
-  <div class="wrap"><img class="giant" src="img/feedway-wordmark-arancio.svg" alt="" loading="lazy"></div>
+  <div class="wrap"><img class="giant" src="img/feedway-wordmark-arancio.svg" alt="" width="444" height="128"></div>
 </footer>
 <nav class="variant-switch" aria-label="Varianti">
   <a href="a.html"{cur_a}>A · 3D</a><a href="b.html"{cur_b}>B · Prospettiva</a><a href="c.html"{cur_c}>C · Editoriale</a>

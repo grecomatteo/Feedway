@@ -110,10 +110,4 @@ mm.add('(prefers-reduced-motion: no-preference) and (min-width: 861px)', () => {
       scrollTrigger: { trigger: '.outcomes', start: 'top 82%', once: true },
     });
   }
-  if (document.querySelector('.giant')) {
-    gsap.from('.giant', {
-      yPercent: 45, ease: 'none',
-      scrollTrigger: { trigger: '.site-footer', start: 'top bottom', end: 'bottom bottom', scrub: 0.6 },
-    });
-  }
 });

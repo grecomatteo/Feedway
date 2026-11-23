@@ -323,6 +323,8 @@ async function start() {
       },
     );
   }
+  // triggers created before the pin need their positions recomputed
+  if (!reduce) ScrollTrigger.refresh();
   window.__heroState = state; // used by the screenshot script
 }
 

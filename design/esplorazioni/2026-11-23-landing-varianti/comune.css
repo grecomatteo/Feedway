@@ -409,9 +409,11 @@ section {
 }
 
 .site-footer .giant {
+  display: block;
   width: 100%;
+  height: auto;
   margin-top: 3rem;
-  margin-bottom: -4%;
+  padding-bottom: 2rem;
 }
 
 .closing {
