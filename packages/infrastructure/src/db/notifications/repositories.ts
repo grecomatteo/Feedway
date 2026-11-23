@@ -220,6 +220,15 @@ export function drizzleNotifications(
         .returning({ id: notifications.id })
       return rows.length
     },
+
+    async deleteAllForUser(userId) {
+      // the deliveries go with their notification (on delete cascade)
+      const rows = await db
+        .delete(notifications)
+        .where(eq(notifications.userId, userId))
+        .returning({ id: notifications.id })
+      return rows.length
+    },
   }
 }
 
