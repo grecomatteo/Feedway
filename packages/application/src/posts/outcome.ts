@@ -81,6 +81,9 @@ function problemOf(status: TargetStatus, verification: unknown): string | null {
   return typeof reason === 'string' ? reason : null
 }
 
+/** A call and the worker's entry written in the same step are a few moments apart at most. */
+const SAME_MOMENT_MS = 60_000
+
 const ATTEMPT_KIND: Record<string, ActivityKind | undefined> = {
   permanent: 'target.failed',
   uncertain: 'target.uncertain',
@@ -137,13 +140,6 @@ export async function getPostOutcome(
               ? e.data['code']
               : null,
         }))
-      // a destination not out is told once, by the worker's entry (D-120.8); a call refused
-      // before that entry existed is still told by the call
-      const toldNotOut = new Set(
-        fromLog.flatMap((e) =>
-          e.kind === 'post.target_failed' && e.accountId ? [e.accountId] : [],
-        ),
-      )
       const fromCalls = attempts.flatMap((a): ActivityDto[] => {
         const kind =
           a.outcome === 'done'
@@ -152,7 +148,6 @@ export async function getPostOutcome(
               : undefined
             : ATTEMPT_KIND[a.outcome]
         if (!kind) return []
-        if (kind === 'target.failed' && toldNotOut.has(a.accountId)) return []
         return [
           {
             at: a.createdAt.toISOString(),
@@ -163,6 +158,19 @@ export async function getPostOutcome(
           },
         ]
       })
+      // a refusal of the platform is told by its call, with the platform's name; the worker's
+      // entry of the same moment then says nothing more. Without a call (too late, a file, the
+      // token), the worker's entry tells it (D-120.8)
+      const refused = fromCalls.filter((c) => c.kind === 'target.failed')
+      const sameMoment = (a: ActivityDto, b: ActivityDto) =>
+        Math.abs(Date.parse(a.at) - Date.parse(b.at)) <= SAME_MOMENT_MS
+      const told = fromLog.filter(
+        (e) =>
+          e.kind !== 'post.target_failed' ||
+          !refused.some(
+            (c) => c.accountId === e.accountId && c.errorCode === e.errorCode && sameMoment(c, e),
+          ),
+      )
       // the page reads itself again every 10 s while something moves: the versions only once
       const preview =
         input.preview === false
@@ -186,7 +194,7 @@ export async function getPostOutcome(
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
           cover: coverOutcomeOf(t.metaIds),
         })),
-        activity: [...fromLog, ...fromCalls]
+        activity: [...told, ...fromCalls]
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
           .slice(0, ACTIVITY_MAX),
       }
