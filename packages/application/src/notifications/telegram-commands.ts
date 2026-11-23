@@ -1,10 +1,21 @@
 import { storedTimeZone, type OrgActor, type PublishingPostStatus } from '@app/domain'
-import { timeOfDay, dayAndTime, capitalize } from '../mail/index.js'
+import { timeOfDay, dayAndTime } from '../mail/index.js'
 import { agencyDay, listAgenda, listAgendaIssues, type AgendaIssueDto } from '../posts/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { TelegramBotOwner } from '../ports/notifications.js'
 import type { Translate } from '../ports/translator.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import {
+  bold,
+  fitMessage,
+  italic,
+  joinHtml,
+  link,
+  plain,
+  shorten,
+  type TelegramHtml,
+  type TelegramSection,
+} from './telegram-format.js'
 
 // The answers of `/oggi` and `/problemi` (plan 08 Task 7): each agency of the bot is read inside
 // `uow.run({ organizationId, userId })` of the person linked to the chat, so the person hears
@@ -46,21 +57,29 @@ async function agenciesOf(
   for (const m of memberships) {
     if (m.status !== 'active' || m.organizationStatus !== 'active') continue
     if (owner === null ? agencyBots.has(m.organizationId) : m.organizationId !== owner) continue
-    const organization = await deps.uow.run({ organizationId: m.organizationId, userId }, (tx) =>
-      tx.organizations.findById(m.organizationId),
-    )
-    if (organization?.status !== 'active') continue
+    // read again inside the agency, with the clients the person works on (as `resolveOrgActor`)
+    const inside = await deps.uow.run({ organizationId: m.organizationId, userId }, async (tx) => {
+      const current = await tx.orgMembers.find(m.organizationId, userId)
+      const organization = await tx.organizations.findById(m.organizationId)
+      if (current?.status !== 'active' || organization?.status !== 'active') return null
+      return {
+        organization,
+        orgRole: current.role,
+        memberships: await tx.workspaceMembers.rolesOf(m.organizationId, userId),
+      }
+    })
+    if (inside === null) continue
     agencies.push({
       actor: {
         userId,
         platformRole: user.platformRole,
         organizationId: m.organizationId,
-        orgRole: m.role,
-        memberships: new Map(),
+        orgRole: inside.orgRole,
+        memberships: inside.memberships,
       },
       name: m.name,
       slug: m.slug,
-      timeZone: storedTimeZone(organization.settings),
+      timeZone: storedTimeZone(inside.organization.settings),
     })
   }
   return agencies
@@ -75,17 +94,26 @@ const clientNames = async (deps: TelegramCommandDeps, actor: OrgActor) =>
     ).map((w) => [w.id, w.name]),
   )
 
-function limited(t: Translate, lines: string[]): string[] {
-  if (lines.length <= ANSWER_LINES_MAX) return lines
-  return [
-    ...lines.slice(0, ANSWER_LINES_MAX),
-    t('notify.telegram.more', { n: String(lines.length - ANSWER_LINES_MAX) }),
-  ]
+/** A mark for each state, so a long list reads at a glance. */
+const STATE_MARK: Readonly<Record<PublishingPostStatus, string>> = {
+  scheduled: '🕒',
+  publishing: '⏳',
+  partial: '🟠',
+  failed: '🔴',
+  problem: '⚠️',
+  published: '✅',
+  paused: '⏸️',
+  draft: '📝',
+  cancelled: '🚫',
 }
 
-const stateOf = (t: Translate, status: PublishingPostStatus) => t(`notify.telegram.state.${status}`)
+const stateOf = (t: Translate, status: PublishingPostStatus) =>
+  `${STATE_MARK[status]} ${t(`notify.telegram.state.${status}`)}`
 
-async function todayOf(deps: TelegramCommandDeps, agency: Agency): Promise<string[]> {
+/** How much of a post's text a line of `/oggi` shows. */
+export const ANSWER_TEXT_MAX = 90
+
+async function todayOf(deps: TelegramCommandDeps, agency: Agency): Promise<TelegramHtml[]> {
   const { t } = deps
   const day = agencyDay(deps.clock.now(), agency.timeZone)
   const { items } = await listAgenda(deps, agency.actor, {
@@ -94,47 +122,57 @@ async function todayOf(deps: TelegramCommandDeps, agency: Agency): Promise<strin
   })
   const names = await clientNames(deps, agency.actor)
   return items.map((p) =>
-    t('notify.telegram.today.line', {
-      time: timeOfDay(new Date(p.scheduledAt), agency.timeZone),
-      client: names.get(p.workspaceId) ?? '',
-      state: stateOf(t, p.status),
-      text: p.text === '' ? t('notify.post.noText') : p.text,
-    }),
+    joinHtml([
+      joinHtml(
+        [
+          bold(timeOfDay(new Date(p.scheduledAt), agency.timeZone)),
+          plain(names.get(p.workspaceId) ?? ''),
+          plain(stateOf(t, p.status)),
+        ],
+        ' · ',
+      ),
+      italic(p.text === '' ? t('notify.post.noText') : `«${shorten(p.text, ANSWER_TEXT_MAX)}»`),
+    ]),
   )
 }
 
-function issueLine(t: Translate, item: AgendaIssueDto, client: string, timeZone: string): string {
+function issueLine(t: Translate, item: AgendaIssueDto, timeZone: string): string {
   switch (item.kind) {
     case 'post': {
       const { day, time } = dayAndTime(new Date(item.scheduledAt), timeZone)
       return t('notify.telegram.issues.post', {
-        client,
         state: stateOf(t, item.status),
-        when: `${day} ${time}`,
+        when: `${day}, ${time}`,
       })
     }
     case 'profile':
       return t('notify.telegram.issues.profile', {
-        client,
         name: item.name,
         what: t(`notify.telegram.issues.link.${item.link}`),
       })
     case 'media':
-      return t('notify.telegram.issues.media', { client, name: item.name })
+      return t('notify.telegram.issues.media', { name: item.name })
   }
 }
 
-async function issuesOf(deps: TelegramCommandDeps, agency: Agency): Promise<string[]> {
+async function issuesOf(deps: TelegramCommandDeps, agency: Agency): Promise<TelegramHtml[]> {
   const { items } = await listAgendaIssues(deps, agency.actor, {})
   const names = await clientNames(deps, agency.actor)
   return items.map((item) =>
-    issueLine(deps.t, item, names.get(item.workspaceId) ?? '', agency.timeZone),
+    joinHtml(
+      [
+        bold(`• ${names.get(item.workspaceId) ?? ''}`),
+        plain(issueLine(deps.t, item, agency.timeZone)),
+      ],
+      ' · ',
+    ),
   )
 }
 
 /**
- * The answer to `/oggi` or `/problemi` for the person linked to the chat: one block per agency
- * (its name when there are more), each with a link to its «Oggi».
+ * The answer to `/oggi` or `/problemi` for the person linked to the chat (parse_mode HTML): one
+ * section per agency (its name when there are more), each with a link to its «Oggi», within
+ * Telegram's limit.
  */
 export async function answerTelegramQuery(
   deps: TelegramCommandDeps,
@@ -145,39 +183,46 @@ export async function answerTelegramQuery(
     agencyBots: ReadonlySet<string>
     query: TelegramQuery
   },
-): Promise<string> {
+): Promise<TelegramHtml> {
   const { t } = deps
   const agencies = await agenciesOf(deps, input.userId, input.owner, input.agencyBots)
-  if (agencies.length === 0) return t('notify.telegram.noAgency')
-  const first = agencies[0]
-  const heading =
-    input.query === 'today'
-      ? t('notify.telegram.today.title', {
-          day: capitalize(dayAndTime(deps.clock.now(), first?.timeZone ?? 'Europe/Rome').day),
-        })
-      : t('notify.telegram.issues.title')
-  const blocks: string[] = [heading]
+  if (agencies.length === 0) return plain(t('notify.telegram.noAgency'))
+  const today = input.query === 'today'
+  const sections: TelegramSection[] = []
+  let total = 0
   for (const agency of agencies) {
-    const lines =
-      input.query === 'today' ? await todayOf(deps, agency) : await issuesOf(deps, agency)
-    const link = new URL(agency.slug, deps.panelUrl).toString()
-    const body =
-      lines.length === 0
-        ? [
-            t(
-              input.query === 'today'
-                ? 'notify.telegram.today.none'
-                : 'notify.telegram.issues.none',
-            ),
-          ]
-        : limited(t, lines)
-    blocks.push(
-      [
-        ...(agencies.length > 1 ? [agency.name] : []),
-        ...body,
-        t('notify.telegram.open', { url: link }),
-      ].join('\n'),
-    )
+    const lines = today ? await todayOf(deps, agency) : await issuesOf(deps, agency)
+    total += lines.length
+    const shown = lines.slice(0, ANSWER_LINES_MAX)
+    sections.push({
+      ...(agencies.length > 1 ? { title: bold(`🏢 ${agency.name}`) } : {}),
+      lines:
+        lines.length === 0
+          ? [plain(t(today ? 'notify.telegram.today.none' : 'notify.telegram.issues.none'))]
+          : shown,
+      hidden: lines.length - shown.length,
+      spaced: today,
+      footer: link(
+        new URL(agency.slug, deps.panelUrl).toString(),
+        t(today ? 'notify.telegram.today.open' : 'notify.telegram.issues.open'),
+      ),
+    })
   }
-  return blocks.join('\n\n')
+  // the day of the first agency: the person's agencies are, nearly always, in one time zone
+  const first = agencies[0]
+  const heading = today
+    ? joinHtml([
+        bold(
+          `📅 ${t('notify.telegram.today.title', {
+            day: dayAndTime(deps.clock.now(), first?.timeZone ?? 'Europe/Rome').day,
+          })}`,
+        ),
+        ...(total > 0 ? [plain(t('notify.telegram.today.count', { n: String(total) }))] : []),
+      ])
+    : bold(`⚠️ ${t('notify.telegram.issues.title')}`)
+  return fitMessage({
+    head: [heading],
+    sections,
+    more: (n) => italic(t('notify.telegram.more', { n: String(n) })),
+  })
 }

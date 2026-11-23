@@ -235,8 +235,13 @@ export interface IntegrationStore {
     organizationId: string,
     kind: K,
   ): Promise<(IntegrationCredentials<K> & { updatedAt: Date }) | null>
-  /** The system scope only: every Telegram bot with its token opened. */
-  telegramBots(tx: OrganizationIntegrationTx): Promise<TelegramBotCredentials[]>
+  /**
+   * The system scope only: every Telegram bot with its token opened, and the owners of the bots
+   * whose token cannot be opened (a key lost, a row damaged).
+   */
+  telegramBots(
+    tx: OrganizationIntegrationTx,
+  ): Promise<{ bots: TelegramBotCredentials[]; unreadable: (string | null)[] }>
 }
 
 /** What `telegram.poll` keeps on a bot's row between runs. */

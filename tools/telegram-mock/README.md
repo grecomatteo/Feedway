@@ -18,7 +18,7 @@ In sviluppo: `pnpm --filter @app/telegram-mock start` (porta `TELEGRAM_MOCK_PORT
 ## Cosa risponde
 
 - `POST|GET <url>/bot<token>/<metodo>`, parametri dall'indirizzo, da un modulo o da un corpo JSON, risposte `{ ok, result }` o `{ ok: false, error_code, description, parameters }` come Telegram.
-- `getMe`; `getUpdates` con `offset` (gli aggiornamenti prima sono confermati e dimenticati), `limit` e `timeout` (long polling fino a 50 s, risponde appena qualcuno scrive); `sendMessage` (testo vuoto o oltre 4096 caratteri: 400).
+- `getMe`; `getUpdates` con `offset` (gli aggiornamenti prima sono confermati e dimenticati), `limit` e `timeout` (long polling fino a 50 s, risponde appena qualcuno scrive); `sendMessage` (testo vuoto o oltre 4096 caratteri visibili: 400; con `parse_mode: HTML` controlla i tag e le entità come Telegram, più severo sul `&` non scritto `&amp;`: «can't parse entities», 400).
 - Errori: token sconosciuto o revocato (`revoke`) 401, chat bloccata (`block`) 403, `rateLimit({ retryAfter, times, method })` 429 con `retry_after`, `unavailable({ times, method })` 502.
 - `calls()` nomina il bot, mai il token.
 

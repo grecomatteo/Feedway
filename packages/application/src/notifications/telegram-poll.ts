@@ -15,10 +15,11 @@ import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { TelegramTargets } from './telegram-channel.js'
 import { telegramOwnerOf } from './telegram-channel.js'
 import { answerTelegramQuery, type TelegramQuery } from './telegram-commands.js'
+import { bold, joinHtml, link, plain, type TelegramHtml } from './telegram-format.js'
 import { linkCodeHash } from './telegram-links.js'
 
-// `telegram.poll` (plan 08 Task 7): every minute, for each bot, one worker holds its lock and
-// long-polls `getUpdates` for about 50 seconds, the offset kept in `integrations.state`. The bots'
+// `telegram.poll` (plan 08 Task 7): every minute one worker holds the lock and long-polls
+// `getUpdates` of every bot for about 50 seconds, the offset kept in `integrations.state`. The bots'
 // tokens are read only here, in the system scope (and for the channel's sends, below). A chat is
 // found in the system scope too; each answer is then computed in the scope of the person linked.
 
@@ -55,20 +56,27 @@ async function botsAndCleanUp(
   deps: TelegramPollDeps,
 ): Promise<{ bots: TelegramBotCredentials[]; cleaned: number }> {
   return deps.uow.runAsSystem('telegram.poll: the bots and their links', async (tx) => {
-    const bots = await deps.integrations.telegramBots(tx)
+    const { bots, unreadable } = await deps.integrations.telegramBots(tx)
+    for (const organizationId of unreadable)
+      deps.logger.error({ organizationId }, 'telegram bot token cannot be opened: bot not polled')
     let cleaned = 0
     for (const bot of bots) {
       if (bot.state.botId === bot.botId) continue
-      // another bot with the same owner: its chats are not this bot's, and its offset neither
-      if (bot.state.botId !== undefined)
-        cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId)
+      // another bot with the same owner: its chats are not this bot's, and its offset neither.
+      // A bot never polled (just saved, maybe after another was removed) has no chat yet: the
+      // chats there are of the bot before; a code just started may be for this one.
+      cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId, {
+        linkedOnly: bot.state.botId === undefined,
+      })
       const state = { botId: bot.botId }
       if (await tx.integrations.saveState(bot.organizationId, 'telegram', state, bot.updatedAt))
         bot.state = state
     }
+    // a bot not read this time is still there: its links stay
+    const owners = [...bots.map((b) => b.organizationId), ...unreadable]
     cleaned += await tx.telegramLinks.deleteOrphans({
-      agencyBots: bots.flatMap((b) => (b.organizationId === null ? [] : [b.organizationId])),
-      platformBot: bots.some((b) => b.organizationId === null),
+      agencyBots: owners.filter((o): o is string => o !== null),
+      platformBot: owners.includes(null),
     })
     return { bots, cleaned }
   })
@@ -80,12 +88,29 @@ export function parseCommand(text: string): { command: string; argument: string 
   return { command: head.split('@')[0]?.toLowerCase() ?? '', argument: rest.join(' ') }
 }
 
+/** Where the person links, or links again, Telegram: «Profilo e preferenze». */
+const accountLink = (deps: TelegramPollDeps) =>
+  link(new URL('account', deps.panelUrl).toString(), deps.t('notify.telegram.account'))
+
+/** A short answer: a bold first line, a sentence, and what to do next. */
+const note = (title: string, body: string, ...after: TelegramHtml[]) =>
+  joinHtml([joinHtml([bold(title), plain(body)]), ...after], '\n\n')
+
+function commands(t: Translate): TelegramHtml {
+  return joinHtml([
+    bold(t('notify.telegram.help')),
+    plain(`/oggi · ${t('notify.telegram.commands.today')}`),
+    plain(`/problemi · ${t('notify.telegram.commands.issues')}`),
+    plain(`/stop · ${t('notify.telegram.commands.stop')}`),
+  ])
+}
+
 async function answer(
   deps: TelegramPollDeps,
   bot: TelegramBotCredentials,
   agencyBots: ReadonlySet<string>,
   message: { chatId: number; text: string },
-): Promise<string> {
+): Promise<TelegramHtml> {
   const { t } = deps
   const owner = bot.organizationId
   const { command, argument } = parseCommand(message.text)
@@ -97,37 +122,67 @@ async function answer(
         chatId: message.chatId,
         now: deps.clock.now(),
       })
-      return done === null ? null : await tx.users.findById(done.userId)
+      if (done === null) return null
+      // read again: someone disabled, or out of the bot's agency, since the code was made
+      const user = await tx.users.findById(done.userId)
+      const member =
+        owner === null || (await tx.orgMembers.find(owner, done.userId))?.status === 'active'
+      if (user?.status === 'active' && member) return user
+      await tx.telegramLinks.deleteByChat(owner, message.chatId)
+      return null
     })
     return linked
-      ? t('notify.telegram.start.linked', { name: displayName(linked) })
-      : t('notify.telegram.start.invalid')
+      ? note(
+          `✅ ${t('notify.telegram.start.linked', { name: displayName(linked) })}`,
+          t('notify.telegram.start.linkedBody'),
+          commands(t),
+        )
+      : note(
+          `⏱️ ${t('notify.telegram.start.invalid')}`,
+          t('notify.telegram.start.invalidBody'),
+          accountLink(deps),
+        )
   }
   if (command === '/stop') {
     const gone = await deps.uow.runAsSystem('telegram.poll: a /stop', (tx) =>
       tx.telegramLinks.deleteByChat(owner, message.chatId),
     )
-    return t(gone > 0 ? 'notify.telegram.stop' : 'notify.telegram.notLinked')
+    return gone > 0
+      ? note(`👋 ${t('notify.telegram.stop')}`, t('notify.telegram.stopBody'), accountLink(deps))
+      : notLinked(deps)
   }
   const who = await deps.uow.runAsSystem('telegram.poll: who the chat is', (tx) =>
     tx.telegramLinks.findByChat(owner, message.chatId),
   )
   if (who === null)
-    return t(command === '/start' ? 'notify.telegram.start.missing' : 'notify.telegram.notLinked')
+    return command === '/start'
+      ? note(
+          `👋 ${t('notify.telegram.start.missing')}`,
+          t('notify.telegram.start.missingBody'),
+          accountLink(deps),
+        )
+      : notLinked(deps)
   const query = COMMANDS[command]
-  if (query === undefined) return t('notify.telegram.help')
+  if (query === undefined) return commands(t)
   return answerTelegramQuery(deps, { userId: who.userId, owner, agencyBots, query })
 }
+
+const notLinked = (deps: TelegramPollDeps) =>
+  note(
+    `🔗 ${deps.t('notify.telegram.notLinked')}`,
+    deps.t('notify.telegram.notLinkedBody'),
+    accountLink(deps),
+  )
 
 async function reply(
   deps: TelegramPollDeps,
   bot: TelegramBotCredentials,
   chatId: number,
-  text: string,
+  text: TelegramHtml,
   signal?: AbortSignal,
 ): Promise<void> {
   try {
-    await deps.telegram.sendMessage(bot.token, { chatId, text }, signal)
+    await deps.telegram.sendMessage(bot.token, { chatId, html: text }, signal)
   } catch (error) {
     if (!(error instanceof TelegramApiError)) throw error
     if (error.kind === 'blocked')
@@ -196,7 +251,11 @@ async function pollBot(
   return updates.length
 }
 
-/** One run of `telegram.poll`: every bot not refused, each under its own lock. */
+/**
+ * One run of `telegram.poll`: every bot not refused, long-polled together under one lock for the
+ * whole installation. One lock, not one per bot: a session lock holds a database connection for
+ * the ~50 s of the wait, and the worker's pool is small.
+ */
 export async function pollTelegram(
   deps: TelegramPollDeps,
   signal?: AbortSignal,
@@ -205,19 +264,27 @@ export async function pollTelegram(
   const agencyBots = new Set(
     bots.flatMap((b) => (b.organizationId === null ? [] : [b.organizationId])),
   )
-  const report: TelegramPollReport = { bots: 0, busy: 0, updates: 0, cleaned }
-  await Promise.all(
-    bots
-      .filter((bot) => bot.rejectedAt === null)
-      .map(async (bot) => {
-        report.bots += 1
-        const run = await deps.lock.tryRun(`telegram.poll:${String(bot.botId)}`, () =>
-          pollBot(deps, bot, agencyBots, signal),
+  const polled = bots.filter((bot) => bot.rejectedAt === null)
+  const report: TelegramPollReport = { bots: polled.length, busy: 0, updates: 0, cleaned }
+  if (polled.length === 0) return report
+  const run = await deps.lock.tryRun('telegram.poll', async () => {
+    const results = await Promise.allSettled(
+      polled.map((bot) => pollBot(deps, bot, agencyBots, signal)),
+    )
+    let updates = 0
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') updates += result.value
+      // one bot that fails (its offset not saved) does not stop the others
+      else
+        deps.logger.error(
+          { bot: polled[i]?.botUsername, err: result.reason as unknown },
+          'telegram poll of a bot failed',
         )
-        if (run.acquired) report.updates += run.value
-        else report.busy += 1
-      }),
-  )
+    })
+    return updates
+  })
+  if (run.acquired) report.updates = run.value
+  else report.busy = polled.length
   return report
 }
 

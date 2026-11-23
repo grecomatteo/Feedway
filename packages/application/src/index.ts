@@ -220,6 +220,8 @@ export {
   LINK_CODE_MINUTES,
   TELEGRAM_TEXT_MAX,
   answerTelegramQuery,
+  escapeHtml,
+  fitMessage,
   createTelegramChannel,
   createTelegramTargets,
   listTelegramLinks,
@@ -236,6 +238,8 @@ export {
   type TelegramPollDeps,
   type TelegramPollReport,
   type TelegramTargets,
+  type TelegramHtml,
+  type TelegramSection,
 } from './notifications/index.js'
 export { postHeadline } from './posts/notification-messages.js'
 export type {

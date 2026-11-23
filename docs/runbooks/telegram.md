@@ -43,7 +43,9 @@ Ognuno, da **Profilo e preferenze** → **Telegram**: una riga per ogni bot che 
 
 Un link vale una volta sola. Se un'altra persona preme **Avvia** dalla stessa chat Telegram, il collegamento passa a lei. Se qualcuno blocca il bot su Telegram, Feedway lo scollega alla prima notifica che non arriva.
 
-Il bot risponde solo nelle chat private, entro circa un minuto: il worker legge i messaggi in long polling, senza indirizzi da aprire.
+Il bot risponde solo nelle chat private, entro circa un minuto: il worker legge i messaggi in long polling, senza indirizzi da aprire. I messaggi sono formattati (grassetto, simboli per lo stato, link in fondo): un esempio è nell'anteprima della tappa 8.
+
+Dopo il cambio di bot, il bot nuovo risponde anche ai messaggi che gli sono stati scritti nelle 24 ore prima.
 
 ## Se il token smette di funzionare
 

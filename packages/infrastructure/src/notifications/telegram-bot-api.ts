@@ -113,7 +113,8 @@ export function createTelegramBotApi(options: TelegramBotApiOptions): TelegramBo
         'sendMessage',
         {
           chat_id: message.chatId,
-          text: message.text,
+          text: message.html,
+          parse_mode: 'HTML',
           link_preview_options: { is_disabled: true },
         },
         0,

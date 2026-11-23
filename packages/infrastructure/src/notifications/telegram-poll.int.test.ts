@@ -30,7 +30,7 @@ import { createTelegramBotApi } from './telegram-bot-api.js'
 
 // Telegram's linking, commands and channel (plan 08 Task 7), against the fake Bot API only.
 // Pia works in two agencies: Alfa has a bot of its own, Beta uses the platform's. Quinto works
-// only in Beta, without its client: the commands never tell him of what he does not see.
+// only in Beta, on one client: the commands tell him of that one, never of the others.
 
 let tdb: TestDatabase
 let handle: DbHandle
@@ -39,6 +39,7 @@ let mock: TelegramMock
 let poll: TelegramPollDeps
 let links: TelegramLinkDeps
 let alfa: string, beta: string, pia: string, quinto: string, clientA: string, clientB: string
+let clientQ: string
 
 const PLATFORM = TELEGRAM_MOCK.bots.platform
 const AGENCY = TELEGRAM_MOCK.bots.agency
@@ -101,23 +102,30 @@ beforeAll(async () => {
         async (tx) => (await integrations.getPlatform(tx, 'telegram'))?.config.botUsername ?? null,
       ),
   }
-  ;({ alfa, beta, pia, quinto, clientA, clientB } = await seed(tdb.runtimeUrl, async (s) => {
-    const a = await s.organization()
-    const b = await s.organization()
-    const p = await s.user({ name: 'Pia' })
-    const q = await s.user({ name: 'Quinto' })
-    await s.member(a, p, 'owner')
-    await s.member(b, p, 'owner')
-    await s.member(b, q, 'member')
-    return {
-      alfa: a,
-      beta: b,
-      pia: p,
-      quinto: q,
-      clientA: await s.workspace(a, { name: 'Cliente Alfa' }),
-      clientB: await s.workspace(b, { name: 'Cliente Beta' }),
-    }
-  }))
+  ;({ alfa, beta, pia, quinto, clientA, clientB, clientQ } = await seed(
+    tdb.runtimeUrl,
+    async (s) => {
+      const a = await s.organization()
+      const b = await s.organization()
+      const p = await s.user({ name: 'Pia' })
+      const q = await s.user({ name: 'Quinto' })
+      await s.member(a, p, 'owner')
+      await s.member(b, p, 'owner')
+      await s.member(b, q, 'member')
+      // Quinto works on one client of Beta only
+      const own = await s.workspace(b, { name: 'Cliente di Quinto' })
+      await s.workspaceMember(b, own, q, 'editor')
+      return {
+        clientQ: own,
+        alfa: a,
+        beta: b,
+        pia: p,
+        quinto: q,
+        clientA: await s.workspace(a, { name: 'Cliente Alfa' }),
+        clientB: await s.workspace(b, { name: 'Cliente Beta' }),
+      }
+    },
+  ))
   await admin.query("update organizations set name = 'Alfa' where id = $1", [alfa])
   await admin.query("update organizations set name = 'Beta' where id = $1", [beta])
   await uow.run({ organizationId: alfa, userId: pia }, (tx) =>
@@ -192,8 +200,10 @@ test('the link: «Avvia» with the code joins the chat once; the code is kept on
     text: `/start ${new URL(forAlfa.url).searchParams.get('start') ?? ''}`,
   })
   await run()
-  expect(lastTo(102)).toBe('notify.telegram.start.invalid')
-  expect(lastTo(103)).toBe('notify.telegram.start.invalid')
+  expect(lastTo(102)).toContain('<b>')
+  expect(lastTo(102)).toContain('notify.telegram.start.invalid')
+  expect(lastTo(103)).toContain('<b>')
+  expect(lastTo(103)).toContain('notify.telegram.start.invalid')
   expect(await chatOf(pia, alfa)).toBeNull()
 })
 
@@ -208,7 +218,8 @@ test('an expired code links nothing', async () => {
     text: `/start ${new URL(url).searchParams.get('start') ?? ''}`,
   })
   await run()
-  expect(lastTo(101)).toBe('notify.telegram.start.invalid')
+  expect(lastTo(101)).toContain('<b>')
+  expect(lastTo(101)).toContain('notify.telegram.start.invalid')
   expect(await chatOf(pia, null)).toBeNull()
 })
 
@@ -230,6 +241,7 @@ test('/oggi and /problemi: each bot speaks for its agencies, each person of what
   await post(alfa, clientA, 'scheduled', 'Il post di Alfa')
   await post(beta, clientB, 'scheduled', 'Il post di Beta')
   await post(beta, clientB, 'failed', 'Il post non uscito di Beta')
+  await post(beta, clientQ, 'scheduled', 'Il post <del> cliente di Quinto & co')
   await link(pia, 'platform', 101, PLATFORM.token)
   await link(pia, alfa, 201, AGENCY.token)
   await link(quinto, 'platform', 301, PLATFORM.token)
@@ -243,9 +255,10 @@ test('/oggi and /problemi: each bot speaks for its agencies, each person of what
   expect(lastTo(101)).toContain('https://pannello.example/')
   expect(lastTo(201)).toContain('Il post di Alfa')
   expect(lastTo(201)).not.toContain('Beta')
-  // Quinto is in Beta, but not in its client: nothing of it
+  // Quinto is in Beta, on his client only: that one, and nothing of the others
   expect(lastTo(301)).not.toContain('Il post di Beta')
-  expect(lastTo(301)).toContain('notify.telegram.today.none')
+  expect(lastTo(301)).toContain('Cliente di Quinto')
+  expect(lastTo(301)).toContain('<i>«Il post &lt;del&gt; cliente di Quinto &amp; co»</i>')
 
   mock.userWrites(PLATFORM.token, { chatId: 101, text: '/problemi' })
   mock.userWrites(PLATFORM.token, { chatId: 301, text: '/problemi' })
@@ -255,18 +268,43 @@ test('/oggi and /problemi: each bot speaks for its agencies, each person of what
   expect(lastTo(301)).toContain('notify.telegram.issues.none')
 })
 
+test('a long day still fits one message: lines go, the link stays', async () => {
+  for (let i = 0; i < 60; i += 1)
+    await admin.query(
+      `insert into posts (id, organization_id, workspace_id, type, status, scheduled_at, caption,
+                          options, created_by, updated_by)
+       values ($1, $2, $3, 'photo', 'scheduled', now(), $4,
+               '{"shareToFeed":true,"choices":[]}', $5, $5)`,
+      [uuidV7Generator.newId(), beta, clientB, `Post ${String(i)} ${'lungo '.repeat(40)}`, pia],
+    )
+  await link(pia, 'platform', 101, PLATFORM.token)
+  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
+  await run()
+  // the mock refuses what Telegram would: a text too long or HTML it cannot read
+  expect(lastTo(101)).toContain('notify.telegram.more')
+  expect(lastTo(101)).toContain('<a href="https://pannello.example/')
+  await admin.query('delete from posts where organization_id = $1 and caption like $2', [
+    beta,
+    'Post %',
+  ])
+})
+
 test('/stop unlinks; an unknown chat or command gets the way to link, or the help', async () => {
   await link(pia, 'platform', 101, PLATFORM.token)
   mock.userWrites(PLATFORM.token, { chatId: 101, text: 'ciao' })
   mock.userWrites(PLATFORM.token, { chatId: 999, text: '/oggi' })
   mock.userWrites(PLATFORM.token, { chatId: 998, text: '/start' })
   await run()
-  expect(lastTo(101)).toBe('notify.telegram.help')
-  expect(lastTo(999)).toBe('notify.telegram.notLinked')
-  expect(lastTo(998)).toBe('notify.telegram.start.missing')
+  expect(lastTo(101)).toContain('<b>')
+  expect(lastTo(101)).toContain('notify.telegram.help')
+  expect(lastTo(999)).toContain('<b>')
+  expect(lastTo(999)).toContain('notify.telegram.notLinked')
+  expect(lastTo(998)).toContain('<b>')
+  expect(lastTo(998)).toContain('notify.telegram.start.missing')
   mock.userWrites(PLATFORM.token, { chatId: 101, text: '/stop' })
   await run()
-  expect(lastTo(101)).toBe('notify.telegram.stop')
+  expect(lastTo(101)).toContain('<b>')
+  expect(lastTo(101)).toContain('notify.telegram.stop')
   expect(await chatOf(pia, null)).toBeNull()
 })
 
@@ -351,7 +389,9 @@ test('the channel: through the agency’s bot or the platform’s; a block unlin
     ).toEqual({ outcome: 'sent' })
     expect(lastTo(chat)).toContain('Un post non è uscito')
     expect(lastTo(chat)).toContain('• Instagram · «Ciao»')
-    expect(lastTo(chat)).toContain('Apri il post: https://pannello.example/beta/post/1')
+    expect(lastTo(chat)).toContain(
+      '<a href="https://pannello.example/beta/post/1">Apri il post →</a>',
+    )
   }
   // Quinto never linked: nothing to send to
   expect(
@@ -381,4 +421,60 @@ test('the person unlinks from the panel', async () => {
   await expect(unlinkTelegram(links, pia, 'non-un-bot')).rejects.toMatchObject({
     code: 'NOT_FOUND',
   })
+})
+
+test('a code of someone disabled since links nothing', async () => {
+  const { url } = await startTelegramLink(links, quinto, 'platform')
+  await admin.query("update users set status = 'disabled', disabled_at = now() where id = $1", [
+    quinto,
+  ])
+  try {
+    mock.userWrites(PLATFORM.token, {
+      chatId: 301,
+      text: `/start ${new URL(url).searchParams.get('start') ?? ''}`,
+    })
+    await run()
+    expect(lastTo(301)).toContain('notify.telegram.start.invalid')
+    expect(lastTo(301)).not.toContain('Quinto')
+    expect(await chatOf(quinto, null)).toBeNull()
+  } finally {
+    await admin.query("update users set status = 'active', disabled_at = null where id = $1", [
+      quinto,
+    ])
+  }
+})
+
+test('a bot whose token cannot be opened stops only itself, and keeps its links', async () => {
+  await link(pia, 'platform', 101, PLATFORM.token)
+  await link(pia, alfa, 201, AGENCY.token)
+  await admin.query(
+    "update integrations set secret_enc = 'rotto' where kind = 'telegram' and organization_id = $1",
+    [alfa],
+  )
+  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
+  const report = await run()
+  expect(report.bots).toBe(1)
+  expect(lastTo(101)).toContain('notify.telegram.today.title')
+  expect(await chatOf(pia, alfa)).toBe('201')
+})
+
+test('a bot saved after another was removed starts without the old chats', async () => {
+  await link(pia, alfa, 201, AGENCY.token)
+  // removed and saved again (here: the same bot) before the next run: never polled yet
+  await admin.query(
+    "update integrations set state = '{}' where kind = 'telegram' and organization_id = $1",
+    [alfa],
+  )
+  await startTelegramLink(links, quinto, 'platform')
+  expect((await run()).cleaned).toBe(1)
+  expect(await chatOf(pia, alfa)).toBeNull()
+  // a code not yet used stays (here, of the other bot): Pia links again to the new bot
+  expect((await listTelegramLinks(links, quinto))[0]?.pendingUntil).not.toBeNull()
+  const again = await startTelegramLink(links, pia, alfa)
+  mock.userWrites(AGENCY.token, {
+    chatId: 202,
+    text: `/start ${new URL(again.url).searchParams.get('start') ?? ''}`,
+  })
+  await run()
+  expect(await chatOf(pia, alfa)).toBe('202')
 })

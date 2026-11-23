@@ -3029,19 +3029,24 @@
         "failed": "Non uscito",
         "problem": "Con problema",
         "published": "Pubblicato",
-        "paused": "In pausa"
+        "paused": "In pausa",
+        "draft": "Bozza",
+        "cancelled": "Annullato"
       },
       "today": {
         "title": "Oggi, {day}",
-        "line": "{time} · {client} · {state} · «{text}»",
-        "none": "Oggi non esce niente."
+        "count": "{n} post",
+        "line": "{time} · {client}",
+        "none": "Oggi non esce niente.",
+        "open": "Apri «Oggi» in Feedway"
       },
       "issues": {
         "title": "Da sistemare",
-        "post": "{client} · {state} · {when}",
-        "profile": "{client} · {name}: {what}",
-        "media": "{client} · il file «{name}» non è pronto",
+        "post": "{state} · {when}",
+        "profile": "{name}: {what}",
+        "media": "il file «{name}» non è pronto",
         "none": "Niente da sistemare.",
+        "open": "Apri «Oggi» in Feedway",
         "link": {
           "reconnect": "da ricollegare",
           "error": "non può pubblicare",
@@ -3049,15 +3054,17 @@
         }
       },
       "more": "e altri {n}",
-      "open": "Apri: {url}",
       "start": {
-        "linked": "Collegato, {name}: qui arrivano le notifiche di Feedway. Scrivi /oggi per i post di oggi, /problemi per cosa c'è da sistemare, /stop per scollegarti.",
-        "invalid": "Questo collegamento non vale più: dura 15 minuti e si usa una volta. Apri Feedway → Profilo e preferenze → Collega Telegram per averne uno nuovo.",
-        "missing": "Per ricevere qui le notifiche apri Feedway → Profilo e preferenze → Collega Telegram."
+        "linked": "Collegato, {name}",
+        "linkedBody": "Da ora qui arrivano le notifiche di Feedway che hai scelto per Telegram.",
+        "invalid": "Collegamento scaduto",
+        "invalidBody": "Un collegamento dura 15 minuti e si usa una volta sola. Chiedine uno nuovo da Profilo e preferenze.",
+        "missing": "Ciao!",
+        "missingBody": "Per ricevere qui le notifiche, collega Telegram da Profilo e preferenze."
       },
-      "stop": "Scollegato: qui non arriva più niente. Per tornare, Collega Telegram in Profilo e preferenze.",
-      "notLinked": "Questa chat non è collegata a Feedway. Apri Profilo e preferenze → Collega Telegram.",
-      "help": "Comandi: /oggi i post di oggi, /problemi cosa c'è da sistemare, /stop per scollegarti.",
+      "stop": "Scollegato",
+      "notLinked": "Chat non collegata",
+      "help": "Comandi",
       "noAgency": "Non lavori più in un'agenzia che usa questo bot.",
       "errors": {
         "blocked": "Il bot è stato bloccato su Telegram: il collegamento è tolto. Collega di nuovo Telegram da Profilo e preferenze.",
@@ -3065,6 +3072,14 @@
         "unavailable": "Telegram non risponde: si riprova",
         "unauthorized": "Telegram rifiuta il token del bot",
         "bad_request": "Telegram ha rifiutato il messaggio"
+      },
+      "stopBody": "Qui non arriva più niente. Per tornare, collega di nuovo Telegram da Profilo e preferenze.",
+      "notLinkedBody": "Questa chat non è collegata a Feedway. Collegala da Profilo e preferenze.",
+      "account": "Apri Profilo e preferenze",
+      "commands": {
+        "today": "i post di oggi",
+        "issues": "cosa c'è da sistemare",
+        "stop": "scollegati"
       }
     }
   },

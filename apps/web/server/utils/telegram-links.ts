@@ -28,4 +28,10 @@ export function telegramLinkDto(link: TelegramBotLink) {
 }
 
 /** Each link is a new code: a few a minute are plenty. */
-export const TELEGRAM_LINK_RATE_LIMIT = { name: 'telegram-link', limit: 10, windowMs: 60_000 }
+export const TELEGRAM_LINK_RATE_LIMIT = {
+  name: 'telegram-link',
+  limit: 10,
+  windowMs: 60_000,
+  // per person: an office behind one address must not share ten codes a minute
+  by: 'user',
+} as const

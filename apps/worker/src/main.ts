@@ -8,6 +8,7 @@ import {
   createMediaTools,
   newPublicToken,
   createCredentialEraser,
+  createDb,
   createRuntime,
   createZipWriter,
   QUEUE_NAMES,
@@ -31,6 +32,10 @@ async function main(): Promise<void> {
   }
 
   const runtime = await createRuntime(config, 'worker')
+  const telegramLockDb = createDb(config.databaseUrl, {
+    max: 1,
+    applicationName: 'worker-telegram',
+  })
   const { logger, queue, uow, clock, ids, storage, mailer, signedTokens } = runtime
   const worker = await startWorker({
     queue,
@@ -62,7 +67,8 @@ async function main(): Promise<void> {
         api: runtime.telegram,
         integrations: runtime.integrations,
         tokens: runtime.tokens,
-        lock: createAdvisoryLock(runtime.pool),
+        // its own connection: the lock is held for the whole ~50 s wait of `telegram.poll`
+        lock: createAdvisoryLock(telegramLockDb.pool),
       },
       images: createAvatarProcessor(),
       publishing: {
@@ -97,7 +103,7 @@ async function main(): Promise<void> {
     logger.info({ signal }, 'stopping worker')
     worker
       .stop()
-      .then(() => runtime.close())
+      .then(() => Promise.all([runtime.close(), telegramLockDb.close()]))
       .then(
         () => process.exit(0),
         (error: unknown) => {

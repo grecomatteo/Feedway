@@ -41,13 +41,19 @@ export {
   type TelegramLinkDeps,
 } from './telegram-links.js'
 export {
-  TELEGRAM_TEXT_MAX,
   createTelegramChannel,
   telegramText,
   type TelegramChannelDeps,
   type TelegramTargets,
 } from './telegram-channel.js'
 export { answerTelegramQuery, type TelegramCommandDeps } from './telegram-commands.js'
+export {
+  TELEGRAM_TEXT_MAX,
+  escapeHtml,
+  fitMessage,
+  type TelegramHtml,
+  type TelegramSection,
+} from './telegram-format.js'
 export {
   createTelegramTargets,
   parseCommand,

@@ -164,8 +164,14 @@ export interface TelegramLinksRepository {
   deleteFor(organizationId: TelegramBotOwner, userId: string): Promise<boolean>
   /** The system scope only: a chat that blocked the bot or wrote `/stop`. Returns how many went. */
   deleteByChat(organizationId: TelegramBotOwner, chatId: number): Promise<number>
-  /** The system scope only: every link with a bot removed or replaced by another bot. */
-  deleteForBot(organizationId: TelegramBotOwner): Promise<number>
+  /**
+   * The system scope only: every link with a bot removed or replaced by another bot; with
+   * `linkedOnly`, only the chats already joined (a code just started is the new bot's).
+   */
+  deleteForBot(
+    organizationId: TelegramBotOwner,
+    options?: { linkedOnly?: boolean },
+  ): Promise<number>
   /**
    * The system scope only: the links with a bot that is no more, those of an agency not in
    * `agencyBots` and, without `platformBot`, those with the platform's.

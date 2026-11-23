@@ -417,11 +417,15 @@ export function drizzleTelegramLinks(
       return rows.length
     },
 
-    async deleteForBot(organizationId) {
+    async deleteForBot(organizationId, options) {
       assertSystem(ctx, 'deleteForBot')
       const rows = await db
         .delete(telegramLinks)
-        .where(ofBot(organizationId))
+        .where(
+          options?.linkedOnly === true
+            ? and(ofBot(organizationId), isNotNull(telegramLinks.chatId))
+            : ofBot(organizationId),
+        )
         .returning({ id: telegramLinks.id })
       return rows.length
     },

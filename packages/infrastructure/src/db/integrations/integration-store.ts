@@ -8,6 +8,7 @@ import type {
   OrganizationIntegrationKind,
   PlatformIntegrationKind,
   TelegramBotCredentials,
+  TelegramConfig,
   TelegramPollState,
 } from '@app/application'
 import { DomainError } from '@app/domain'
@@ -156,16 +157,25 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
     async telegramBots(tx) {
       const rows = await tx.integrations.listTelegram()
       const bots: TelegramBotCredentials[] = []
+      const unreadable: (string | null)[] = []
       for (const row of rows) {
         const { organizationId } = row
-        const config = storedConfig('telegram', row)
-        const secret =
-          organizationId === null
-            ? box().open(row.secretEnc, aadFor('telegram'))
-            : (await deps.keyRing.forOrganization(tx, organizationId)).open(
-                row.secretEnc,
-                orgAadFor(organizationId, 'telegram'),
-              )
+        let secret: string
+        let config: TelegramConfig
+        try {
+          config = storedConfig('telegram', row)
+          secret =
+            organizationId === null
+              ? box().open(row.secretEnc, aadFor('telegram'))
+              : (await deps.keyRing.forOrganization(tx, organizationId)).open(
+                  row.secretEnc,
+                  orgAadFor(organizationId, 'telegram'),
+                )
+        } catch {
+          // a key lost or a row damaged stops this bot only, never the others
+          unreadable.push(organizationId)
+          continue
+        }
         bots.push({
           organizationId,
           ...config,
@@ -175,7 +185,7 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
           updatedAt: row.updatedAt,
         })
       }
-      return bots
+      return { bots, unreadable }
     },
   }
 }

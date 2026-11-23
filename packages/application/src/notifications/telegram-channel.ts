@@ -1,3 +1,4 @@
+import type { Level } from '@app/domain'
 import type {
   ChannelRecipient,
   NotificationChannel,
@@ -10,15 +11,21 @@ import {
   type TelegramFailureKind,
 } from '../ports/telegram-bot-api.js'
 import type { Translate } from '../ports/translator.js'
+import {
+  bold,
+  fitMessage,
+  italic,
+  joinHtml,
+  link,
+  plain,
+  type TelegramHtml,
+} from './telegram-format.js'
 import type { Tx } from '../ports/tx.js'
 
-// The Telegram channel (§12.3, plan 08 Task 7): a short message, plain text, one per group of
+// The Telegram channel (§12.3, plan 08 Task 7): a short message (HTML: bold title, lines, link), one per group of
 // notifications (Scelta 7). The bot is the agency's own when it has one, the platform's
 // otherwise. A chat that blocked the bot (403) is unlinked: the delivery's error says so where
 // the notification is shown.
-
-/** Telegram's limit for a message's text. */
-export const TELEGRAM_TEXT_MAX = 4096
 
 /** Where the chat and the bot's token of a recipient are read (system scope: `telegram-poll.ts`). */
 export interface TelegramTargets {
@@ -49,22 +56,32 @@ export async function telegramOwnerOf(
   return own === null ? null : organizationId
 }
 
-/** The message as Telegram shows it: the title, the context, one line each, then the link. */
-export function telegramText(t: Translate, message: RenderedMessage): string {
-  const head = [message.title, ...(message.context ? [message.context] : [])].join('\n')
-  const listed = [
-    ...message.lines.map((l) => `• ${l}`),
-    ...(message.more > 0 ? [t('notify.more', { n: String(message.more) })] : []),
-  ]
-  const link = message.link ? `${message.link.label}: ${message.link.url}` : ''
-  const parts = [head, listed.join('\n'), link].filter((p) => p !== '')
-  const text = parts.join('\n\n')
-  if (text.length <= TELEGRAM_TEXT_MAX) return text
-  // too long for one message: the lines are cut, the link always stays
-  const room = TELEGRAM_TEXT_MAX - head.length - link.length - 6
-  return [head, `${listed.join('\n').slice(0, Math.max(room, 0))}…`, link]
-    .filter((p) => p !== '')
-    .join('\n\n')
+/** A mark for each level, so the message reads at a glance on the lock screen. */
+const LEVEL_MARK: Readonly<Record<Level, string>> = {
+  info: 'ℹ️',
+  success: '✅',
+  warning: '⚠️',
+  error: '❌',
+  critical: '🚨',
+  security: '🔐',
+}
+
+/**
+ * The message as Telegram shows it (parse_mode HTML): the title in bold with its mark, the
+ * context in italics, one line each, then the link, within Telegram's limit.
+ */
+export function telegramText(t: Translate, message: RenderedMessage): TelegramHtml {
+  return fitMessage({
+    head: [
+      joinHtml([
+        bold(`${LEVEL_MARK[message.level]} ${message.title}`),
+        ...(message.context ? [italic(message.context)] : []),
+      ]),
+    ],
+    sections: [{ lines: message.lines.map((l) => plain(`• ${l}`)), hidden: message.more }],
+    tail: message.link ? [link(message.link.url, `${message.link.label} →`)] : [],
+    more: (n) => italic(t('notify.more', { n: String(n) })),
+  })
 }
 
 export function createTelegramChannel(deps: TelegramChannelDeps): NotificationChannel {
@@ -83,7 +100,7 @@ export function createTelegramChannel(deps: TelegramChannelDeps): NotificationCh
       try {
         await deps.telegram.sendMessage(
           target.token,
-          { chatId: target.chatId, text: telegramText(t, message) },
+          { chatId: target.chatId, html: telegramText(t, message) },
           signal,
         )
         return { outcome: 'sent' }
