@@ -131,8 +131,8 @@ test('a notification is written once per person and event, with its deliveries',
       },
     ],
   }
-  expect(await uow.run(scope(), (tx) => tx.notifications.create(notification))).toBe(true)
-  expect(await uow.run(scope(), (tx) => tx.notifications.create(notification))).toBe(false)
+  expect(await uow.run(scope(), (tx) => tx.notifications.create(notification))).not.toBeNull()
+  expect(await uow.run(scope(), (tx) => tx.notifications.create(notification))).toBeNull()
   const rows = await withScope(
     tdb.runtimeUrl,
     { kind: 'system' },

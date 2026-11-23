@@ -9,5 +9,6 @@ export const accountsDaily: JobHandler<'accounts.daily'> = async (_job, deps) =>
     clock: deps.clock,
     queue: deps.queue,
     logger: deps.logger,
+    reminders: { ...deps.metaReminders, timeZone: deps.panel.defaultTimezone },
   })
 }

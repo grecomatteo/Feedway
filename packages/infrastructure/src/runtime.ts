@@ -200,7 +200,15 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
   const handle = createDb(config.databaseUrl, { max: POOL_SIZE[role], applicationName: role })
   try {
     // Synchronous services first: the queue is started last so a failure above never leaves it running.
-    const uow = createUnitOfWork({ db: handle.db, ids, logger })
+    // the queue starts last: until then a commit that wrote an event wakes nobody, and the
+    // dispatcher's every-minute run takes it (plan 08 P2)
+    let wakeDispatcher: (() => Promise<void>) | null = null
+    const uow = createUnitOfWork({
+      db: handle.db,
+      ids,
+      logger,
+      afterEventsCommitted: () => wakeDispatcher?.() ?? Promise.resolve(),
+    })
     const keyRing = createKeyRing({ platformKey: config.encryptionKey, clock })
     const rateLimiter = createPgRateLimiter({ db: handle.db, clock })
     const storage = createStorage(config)
@@ -217,6 +225,9 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       logger,
       role: role === 'worker' ? 'consumer' : 'producer',
     })
+    wakeDispatcher = async () => {
+      await queue.send('notify.dispatch', {})
+    }
     return {
       logger,
       db: handle.db,

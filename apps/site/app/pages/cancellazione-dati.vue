@@ -24,8 +24,8 @@ useSeoMeta({
     </ol>
     <p>
       Se l’account è stato collegato dal Business Manager dell’agenzia, chiedi all’agenzia di
-      toglierlo, oppure togli all’agenzia l’accesso alla Pagina o all’account Instagram dalle
-      impostazioni di Meta Business.
+      togliere a Feedway l’accesso dal suo Business Manager, oppure togli all’agenzia l’accesso alla
+      Pagina o all’account Instagram dalle impostazioni di Meta Business.
     </p>
 
     <h2 id="richiesta">2. Chiedi la cancellazione</h2>
@@ -42,11 +42,18 @@ useSeoMeta({
         è tuo.
       </li>
       <li>
-        Entro 30 giorni cancelliamo il codice di accesso, l’identificativo, il nome e la foto della
-        Pagina o dell’account, gli identificativi dei post pubblicati e le foto e i video ancora
-        conservati per quell’account.
+        Entro 30 giorni cancelliamo l’identificativo, il nome e la foto della Pagina o dell’account,
+        gli identificativi e i link dei post che Feedway ha pubblicato lì e il codice di accesso, se
+        serviva solo a quella Pagina o a quell’account.
       </li>
-      <li>Ti scriviamo quando la cancellazione è fatta.</li>
+      <li>
+        Ti scriviamo quando la cancellazione è fatta, e lo diciamo all’agenzia che l’aveva
+        collegato.
+      </li>
+      <li>
+        Le foto e i video che l’agenzia ha caricato in Feedway sono suoi: se vuoi che li cancelli,
+        giriamo la richiesta all’agenzia.
+      </li>
     </ul>
     <p>
       Teniamo solo una nota con la data della richiesta e della cancellazione, per poter dimostrare

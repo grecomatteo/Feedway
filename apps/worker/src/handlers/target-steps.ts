@@ -66,7 +66,13 @@ export const targetVerify: JobHandler<'target.verify'> = async (job, deps) => {
 }
 
 export const schedulerReconcile: JobHandler<'scheduler.reconcile'> = async (job, deps) => {
-  const report = await reconcilePublishing(publishingDeps(deps))
-  if (report.sent > 0 || report.uncertain > 0 || report.rechecked > 0)
-    deps.logger.info({ jobId: job.id, ...report }, 'publishing reconciled')
+  // plan 08 P2: the notifications' dispatcher runs every minute too, for what no commit woke,
+  // even when the publishing's reconciliation fails
+  try {
+    const report = await reconcilePublishing(publishingDeps(deps))
+    if (report.sent > 0 || report.uncertain > 0 || report.rechecked > 0)
+      deps.logger.info({ jobId: job.id, ...report }, 'publishing reconciled')
+  } finally {
+    await deps.queue.send('notify.dispatch', {})
+  }
 }

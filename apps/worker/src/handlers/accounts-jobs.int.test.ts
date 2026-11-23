@@ -76,6 +76,20 @@ const accountsOf = async (of: Agency) =>
     )
   ).rows
 
+/** The account events of stage 8 (plan 08 Task 4): type, payload and key, oldest first. */
+const eventsOf = async (of: Agency) =>
+  (
+    await admin.query<{
+      type: string
+      payload: Record<string, unknown>
+      dedupe_key: string | null
+    }>(
+      `select type, payload, dedupe_key from outbox_events
+        where organization_id = $1 and type like 'account.%' order by created_at, id`,
+      [of.organizationId],
+    )
+  ).rows
+
 const byId = async (of: Agency) =>
   Object.fromEntries((await accountsOf(of)).map((a) => [a.external_id, a]))
 
@@ -224,6 +238,79 @@ test('a token Meta calls expired: the connection is expired and its accounts red
   const calls = mock.calls().length
   await accountsHealth(job(of, a.id), handlerDeps(runtime))
   expect(mock.calls()).toHaveLength(calls)
+})
+
+test('a token that stops working: one account.token_invalid, not again on the next check', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  mock.scenario('token_expired', { token: META_MOCK.tokens.systemUser, subcode: 458 })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  // the accounts turned red with the connection: the token's event says it, not one per account
+  expect(await eventsOf(of)).toEqual([
+    {
+      type: 'account.token_invalid',
+      payload: { connectionId: a.id, status: 'revoked' },
+      dedupe_key: null,
+    },
+  ])
+})
+
+test('an account that falls ill writes one account.unhealthy; one that stays ill does not', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect(await eventsOf(of)).toEqual([])
+
+  mock.scenario('quota_exhausted', { igUserId: instagram.ofPage })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  const { rows } = await admin.query<{ id: string }>(
+    'select id from social_accounts where organization_id = $1 and external_id = $2',
+    [of.organizationId, instagram.ofPage],
+  )
+  const accountId = rows[0]?.id
+  const events = await eventsOf(of)
+  expect(events).toEqual([
+    {
+      type: 'account.unhealthy',
+      payload: {
+        accountId,
+        connectionId: a.id,
+        health: 'warning',
+        problem: 'quota_exhausted',
+      },
+      dedupe_key: expect.stringMatching(new RegExp(`^${String(accountId)}:warning:`)) as unknown,
+    },
+  ])
+
+  // healthy again, then ill again: a new change, a new event
+  mock.scenario('default')
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  mock.scenario('quota_exhausted', { igUserId: instagram.ofPage })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await eventsOf(of)).map((e) => e.type)).toEqual([
+    'account.unhealthy',
+    'account.unhealthy',
+  ])
+})
+
+test('a token that stops working and is replaced: a problem of the new token is told', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  mock.scenario('token_expired', { token: META_MOCK.tokens.systemUser })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await connectionRow(a.id))?.status).toBe('expired')
+  // «Sostituisci token»: the connection works again, its accounts are still the token's red
+  await admin.query("update account_connections set status = 'active' where id = $1", [a.id])
+  mock.scenario('default')
+  mock.scenario('quota_exhausted', { igUserId: instagram.ofPage })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await eventsOf(of)).map((e) => [e.type, e.payload.health ?? e.payload.status])).toEqual([
+    ['account.token_invalid', 'expired'],
+    // the page turns green, the Instagram yellow: only the yellow is a problem
+    ['account.unhealthy', 'warning'],
+  ])
 })
 
 test('the client took the access away: revoked', async () => {

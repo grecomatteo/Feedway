@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import {
   canTakeOver,
+  healthWorsened,
   connectionNeedsRefresh,
   formProfiles,
   isSelectable,
@@ -133,4 +134,20 @@ test('the worst link comes first', () => {
   expect(worstLink(['ok', 'warning', 'reconnect', 'error'])).toBe('reconnect')
   expect(worstLink(['ok', 'warning'])).toBe('warning')
   expect(worstLink([])).toBe('ok')
+})
+
+test.each([
+  [null, 'ok', false],
+  [null, 'warning', true],
+  [null, 'error', true],
+  ['ok', 'ok', false],
+  ['ok', 'warning', true],
+  ['ok', 'error', true],
+  ['warning', 'warning', false],
+  ['warning', 'error', true],
+  ['warning', 'ok', false],
+  ['error', 'error', false],
+  ['error', 'warning', false],
+] as const)('healthWorsened(%s, %s) is %s', (before, after, worse) => {
+  expect(healthWorsened(before, after)).toBe(worse)
 })

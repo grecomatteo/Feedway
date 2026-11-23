@@ -9,7 +9,11 @@ import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
 import type { ContentSettingsRepository } from './content-settings.js'
 import type { PostRepository } from './posts.js'
-import type { NotificationPrefsRepository, NotificationsRepository } from './notifications.js'
+import type {
+  NotificationPrefsRepository,
+  NotificationsRepository,
+  TelegramLinksRepository,
+} from './notifications.js'
 import type { Outbox, PublishingRepository } from './publishing.js'
 import type { UploadSessionsRepository } from './uploads.js'
 import type {
@@ -65,6 +69,7 @@ export interface Tx {
   outbox: Outbox
   notifications: NotificationsRepository
   notificationPrefs: NotificationPrefsRepository
+  telegramLinks: TelegramLinksRepository
   contentSettings: ContentSettingsRepository
   audit: AuditLog
 }
