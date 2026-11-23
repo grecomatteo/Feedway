@@ -125,7 +125,9 @@ test('reel: start, hosted upload, finish; processing shows in the status', async
     video_state: 'PUBLISHED',
     description: 'Il reel',
   })
-  expect(finish.body).toEqual({ success: true })
+  // a post id of its own beside the video's, as on Meta vera
+  expect(finish.body).toMatchObject({ success: true })
+  expect(typeof (finish.body as { post_id?: unknown }).post_id).toBe('string')
   const first = await call('GET', `/${videoId}`, { fields: 'status,permalink_url' })
   expect(first.body).toMatchObject({ status: { video_status: 'processing' } })
   const second = await call('GET', `/${videoId}`, { fields: 'status,permalink_url' })

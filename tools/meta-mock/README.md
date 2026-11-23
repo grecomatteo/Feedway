@@ -52,7 +52,16 @@ Sono nate **scritte a mano** dalla documentazione di Meta. Il 2026-11-12 la prov
 - un errore 190 risponde con HTTP 401; un `appsecret_proof` fatto con un secret vecchio dà 400, codice 100, senza sottocodice;
 - la prova dell'app (`debug_token` con l'App ID come `input_token`) dà 200 con `is_valid: false` e l'errore 190; con un secret sbagliato, 401 e 190.
 
-Restano scritte a mano, e **non verificate**, le risposte dell'accesso unificato (Task 7, rinviato), tutte le chiamate della pubblicazione (tappa 7) e gli scenari di errore che la prova non ha incontrato. Le registrazioni originali non sono nel repository: si aggiornano i file qui sopra, senza cambiare il codice.
+Dal 21 al 23 novembre 2026 la prova della 0.13.0 e della 0.13.1 su Meta vera ha registrato **236 risposte della pubblicazione**: Instagram (contenitori di foto, video, reel, storie e caroselli, `media_publish`, letture dei post e delle storie, `content_publishing_limit`) e Facebook (token della Pagina, foto pubblicate e non, `feed` con più foto, reel e storie video a fasi con il caricamento ospitato, video, storie di foto, letture), più `business` (D-108). Tutte con stato 200: nessun errore e nessun timeout è stato registrato, perché un timeout non ha risposta. Rilette una per una: nessun dato reale. La pubblicazione del mock era già della stessa forma; le differenze trovate sono state corrette nel codice (`src/publishing.ts`, `src/facebook-publishing.ts`):
+
+- `GET /{page}/stories`: `status` in minuscolo (`published`) e `creation_time` come **testo di secondi** («1795276588»), non come data. Feedway lo leggeva come data e la ricerca di una storia dall'esito incerto non la trovava mai: corretto in `graph-client.ts`;
+- `GET /{container}`: accanto a `status_code` c'è sempre il testo `status` («Finished: …», «In Progress: …»);
+- `video_reels` con `upload_phase=finish` risponde anche con un `post_id` diverso dall'id del video (Feedway tiene quello del video);
+- `POST /{page}/feed` risponde anche `post_supports_client_mutation_id: true`.
+
+Su Meta vera anche il contenitore di una foto o di un carosello può restare `IN_PROGRESS` per una lettura: nel mock lo fa lo scenario `container_in_progress` con `all`.
+
+Restano scritte a mano, e **non verificate**: le risposte dell'accesso unificato (Task 7, rinviato), gli errori della pubblicazione (codici, sottocodici, rifiuti di Meta), `DELETE` di foto e video non pubblicati e le forme di `permalink`, `permalink_url` e testi, che la registrazione oscura. Le registrazioni originali non sono nel repository: si aggiornano i file e il codice qui sopra.
 
 ## Registrare le risposte di Meta vera
 

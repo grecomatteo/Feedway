@@ -313,11 +313,14 @@ Restano, tutti per l'accesso unificato (Task 7, rinviato):
 E per l'utente di sistema:
 6. Se generare un token nuovo lascia valido quello vecchio: «Revoca token» li revoca tutti insieme, quindi non si prova dal Business Manager.
 
-E per la pubblicazione su Facebook (Task 5, guida della 0.13.0):
-7. Che `GET /{page}?fields=access_token` con il token dell'utente di sistema dia il token della Pagina.
-8. Ogni tipo di §8.5 su una Pagina vera, con le risposte registrate: in particolare il caricamento ospitato su `rupload.facebook.com` con `appsecret_proof`, la forma di `attached_media` in un modulo, il `post_id` delle storie (testo o numero) e il `permalink_url` di reel e video (percorso o indirizzo).
-9. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
-10. `DELETE` di una foto non pubblicata e di un video caricato e non finito.
+Fatti dal 21 al 23 novembre 2026 con la prova della 0.13.0 e della 0.13.1 (236 risposte registrate, `tools/meta-mock/README.md`):
+- `GET /{page}?fields=access_token` con il token dell'utente di sistema dà il token della Pagina;
+- ogni tipo di §8.5 su una Pagina e un Instagram veri: foto, più foto con `attached_media` in un modulo, reel e storie video con il caricamento ospitato e `appsecret_proof`, video, storie di foto, caroselli, reel e storie su Instagram;
+- `GET /{page}/stories` dà `creation_time` come testo di secondi e `status` in minuscolo (corretto il 23/11);
+- `GET /{business-id}?fields=name` risponde all'utente di sistema con il nome del Business (D-108), con «Sincronizza».
 
-E per il nome del Business (Task 5, D-108):
-11. Se `GET /{business-id}?fields=name` risponde all'utente di sistema con il nome del Business (D-108), con l'ID del Business Manager scritto nell'integrazione.
+E per la pubblicazione su Facebook (Task 5):
+7. Il `post_id` delle storie (testo o numero) e il `permalink_url` di reel e video (percorso o indirizzo): la registrazione li oscura, Feedway accetta tutte e due le forme.
+8. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
+9. `DELETE` di una foto non pubblicata e di un video caricato e non finito: nella prova non è servito.
+10. Gli errori della pubblicazione: nessun errore di Meta è stato registrato.

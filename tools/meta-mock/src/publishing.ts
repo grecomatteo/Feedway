@@ -292,6 +292,13 @@ export function createPublishing(deps: Deps): Publishing {
           body: {
             id,
             status_code: status,
+            // the texts Meta vera wrote beside the code (0.13.0 test)
+            ...(status === 'FINISHED' && {
+              status: 'Finished: Media has been uploaded and it is ready to be published.',
+            }),
+            ...(status === 'IN_PROGRESS' && {
+              status: 'In Progress: Media is still being processed.',
+            }),
             ...(status === 'ERROR' && { status: 'Error: 2207026' }),
           },
         }

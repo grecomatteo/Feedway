@@ -181,7 +181,7 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     if (take(deps.scenarios('duplicate_post'))) return duplicate()
     const post = newPost(pageId, message)
     for (const item of attached) item.usedIn = post.id
-    return published({ id: post.id })
+    return published({ id: post.id, post_supports_client_mutation_id: true })
   }
 
   function newVideo(pageId: string, edge: VideoEdge, uploaded: boolean): Video {
@@ -234,7 +234,8 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     if (take(deps.scenarios('duplicate_post'))) return duplicate()
     video.finished = true
     video.description = params.get('description') ?? ''
-    if (edge === 'video_reels') return published({ success: true })
+    // Meta vera gives a reel's post its own id too (0.13.0 test); Feedway keeps the video's
+    if (edge === 'video_reels') return published({ success: true, post_id: nextId('7400') })
     return published({ success: true, post_id: newStory(pageId, 'video', video.id).postId })
   }
 
@@ -314,10 +315,12 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     permalink_url: postLink(p),
   })
 
+  // as recorded on Meta vera (0.13.0 test, 21/11): the status in lower case and the time as a
+  // string of seconds, not Meta's usual date
   const renderStory = (s: Story) => ({
     post_id: s.postId,
-    status: 'PUBLISHED',
-    creation_time: metaTime(s.createdAt),
+    status: 'published',
+    creation_time: String(Math.floor(s.createdAt.getTime() / 1000)),
     media_type: s.mediaType,
     media_id: s.mediaId,
     url: `https://www.facebook.com/stories/${s.pageId}/${s.postId}/`,
