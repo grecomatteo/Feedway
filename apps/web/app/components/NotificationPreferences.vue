@@ -117,6 +117,21 @@ function toggleDay(day: number) {
     return { ...s, digest: { ...s.digest, days, enabled: days.length > 0 && s.digest.enabled } }
   })
 }
+const DIGEST_CHANNELS = ['email', 'telegram'] as const
+type DigestChannel = (typeof DIGEST_CHANNELS)[number]
+function toggleDigestChannel(channel: DigestChannel, on: boolean) {
+  saveSettings((s) => {
+    const channels = DIGEST_CHANNELS.filter((c) =>
+      c === channel ? on : s.digest.channels.includes(c),
+    )
+    // the last one stays: a digest goes somewhere, or it is turned off
+    return channels.length === 0 ? s : { ...s, digest: { ...s.digest, channels } }
+  })
+}
+const onlyDigestChannel = (channel: DigestChannel) => {
+  const channels = prefs.value?.settings.digest.channels ?? []
+  return channels.length === 1 && channels[0] === channel
+}
 const everything = computed({
   get: () => prefs.value?.settings.everythingEverywhere ?? false,
   set: (everythingEverywhere: boolean) => saveSettings((s) => ({ ...s, everythingEverywhere })),
@@ -233,6 +248,21 @@ const kindName = (kind: NotificationKindName) => t(`notifications.kinds.${kindKe
               {{ $t(`notifications.prefs.days.${day}`) }}
             </button>
           </div>
+          <fieldset
+            class="m-0 flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-2 border-0 p-0"
+            data-digest-channels
+          >
+            <legend class="sr-only">{{ $t('notifications.prefs.digestChannels') }}</legend>
+            <UCheckbox
+              v-for="channel in DIGEST_CHANNELS"
+              :key="channel"
+              :model-value="prefs.settings.digest.channels.includes(channel)"
+              :disabled="onlyDigestChannel(channel)"
+              :label="$t(`notifications.channels.${channel}`)"
+              :data-channel="channel"
+              @update:model-value="(on) => toggleDigestChannel(channel, on === true)"
+            />
+          </fieldset>
         </template>
       </SettingsRow>
       <SettingsRow

@@ -999,13 +999,13 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
 - **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Impostazioni" → "Il tuo account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
 - **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
-- **Preferenze per utente**: i canali di ogni tipo di evento, salvati (`notification_prefs`) solo per i tipi dove la persona ha cambiato qualcosa: senza riga valgono i canali predefiniti di §12.2, che così cambiano con il codice senza migrazioni (piano 08, P4); nessun canale spegne il tipo. Un livello minimo per persona, sotto il quale la notifica resta nel pannello; "tutto ovunque" per i test. Livello minimo, ore di silenzio, ora e giorni del riepilogo stanno in `notification_settings`, una riga per persona.
+- **Preferenze per utente**: i canali di ogni tipo di evento, salvati (`notification_prefs`) solo per i tipi dove la persona ha cambiato qualcosa: senza riga valgono i canali predefiniti di §12.2, che così cambiano con il codice senza migrazioni (piano 08, P4); nessun canale spegne il tipo. Un livello minimo per persona, sotto il quale la notifica resta nel pannello; "tutto ovunque" per i test. Livello minimo, ore di silenzio, ora, giorni e canali del riepilogo stanno in `notification_settings`, una riga per persona.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
 - **Raggruppamento**: più eventi simili nello stesso minuto diventano un solo messaggio con l'elenco.
 
 ### 12.4 Riepilogo giornaliero
 
-Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3); il lavoro di sistema avvia solo i riepiloghi, e ogni sezione si calcola dentro `uow.run({ organizationId, userId })` del destinatario. Il lavoro di sistema `report.daily` gira ogni minuto, perché ogni persona ha la sua ora e il suo fuso (senza, quello della sua prima agenzia, poi `TZ_DEFAULT`); «ieri» e «oggi» si contano nel fuso dell'agenzia. Un riepilogo parte fino a un'ora dopo l'orario scelto, un messaggio per agenzia e canale (email e Telegram); senza niente da dire non parte. Ogni sezione si calcola in una sua transazione: una che fallisce va nel log e le altre partono (piano 08 P7, D-121 punto 13).
+Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3); il lavoro di sistema avvia solo i riepiloghi, e ogni sezione si calcola dentro `uow.run({ organizationId, userId })` del destinatario. Il lavoro di sistema `report.daily` gira ogni minuto, perché ogni persona ha la sua ora e il suo fuso (senza, quello della sua prima agenzia, poi `TZ_DEFAULT`); «ieri» e «oggi» si contano nel fuso dell'agenzia. Un riepilogo parte fino a un'ora dopo l'orario scelto, un messaggio per agenzia e canale, sui canali che la persona sceglie in «Profilo e preferenze» (email, Telegram o tutti e due; di partenza tutti e due, Matteo, 24/11), e su Telegram solo se l'ha collegato; senza niente da dire non parte. Ogni sezione si calcola in una sua transazione: una che fallisce va nel log e le altre partono (piano 08 P7, D-121 punto 13).
 
 ---
 
@@ -1175,7 +1175,8 @@ notification_deliveries id, organization_id, user_id, notification_id, kind,
 notification_prefs  user_id, kind, channels   (una riga solo dove la persona ha cambiato
                     qualcosa; senza, i canali predefiniti di §12.2; piano 08, P4)
 notification_settings user_id (PK), min_level, quiet_start, quiet_end, digest_enabled,
-                    digest_time, digest_days, everything_everywhere
+                    digest_time, digest_days, digest_channels (email, telegram; almeno uno),
+                    everything_everywhere
 telegram_links      organization_id (null = bot della piattaforma), user_id, chat_id,
                     linked_at, link_code_hash, link_code_expires_at
                     -- notifiche, consegne e collegamenti: con l'ambito della persona solo le
