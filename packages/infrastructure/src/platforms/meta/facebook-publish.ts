@@ -1,5 +1,6 @@
 import {
   PublishError,
+  type CoverImage,
   type FoundPost,
   type PlatformPublisher,
   type PublishFiles,
@@ -8,7 +9,7 @@ import {
   type StepResult,
   type VerifyResult,
 } from '@app/application'
-import type { MetaUsage } from '@app/domain/platforms/meta'
+import { hasCoverPermissions, type MetaUsage } from '@app/domain/platforms/meta'
 import { z } from 'zod'
 import { MetaError } from './errors.js'
 import type { MetaFacebookPost, MetaResult, MetaTokenCredentials } from './graph-client.js'
@@ -57,6 +58,12 @@ const idsSchema = z.object({
    * it is ever repeated or thrown away, only searched.
    */
   publishingAt: z.iso.datetime().nullable().default(null),
+  /**
+   * The reel's cover, sent once the reel is out (D-120.9): `done`, `failed` (Meta refused it,
+   * or the image was gone), `no_permission` (the connection lacks the two permissions of the
+   * cover). null: no cover chosen, or not tried. Never makes the post fail.
+   */
+  cover: z.enum(['done', 'failed', 'no_permission']).nullable().default(null),
 })
 type FacebookIds = z.infer<typeof idsSchema>
 
@@ -67,6 +74,7 @@ const freshIds = (now: Date): FacebookIds => ({
   video: null,
   postId: null,
   publishingAt: null,
+  cover: null,
 })
 
 /**
@@ -343,6 +351,15 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       } catch {
         // the post is out: the result carries the ids, the worker saves them with the outcome
       }
+      // the reel is out: its cover goes after it, and what happens to it never undoes the post
+      if (shape === 'reel' && files.cover !== null && 'read' in files.cover) {
+        ids.cover = await uploadCover(credentials, target, out.id, files.cover, ctx.signal)
+        try {
+          await ctx.saveIds(ids)
+        } catch {
+          // carried by the result as above
+        }
+      }
       return {
         outcome: 'done',
         metaIds: ids,
@@ -455,6 +472,30 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
         throw err
       }
     },
+  }
+
+  /**
+   * The cover of a reel just out (`/{video-id}/thumbnails`, D-120.9): only with the two
+   * permissions the last check read; any failure is told on the outcome, never thrown.
+   */
+  async function uploadCover(
+    credentials: MetaTokenCredentials,
+    target: PublishTarget,
+    videoId: string,
+    cover: { read: () => Promise<CoverImage | null> },
+    signal: AbortSignal,
+  ): Promise<'done' | 'failed' | 'no_permission'> {
+    if (!hasCoverPermissions(target.account.scopes)) return 'no_permission'
+    try {
+      const image = await cover.read()
+      if (image === null) return 'failed'
+      const sent = await client.uploadVideoThumbnail(credentials, videoId, image, signal)
+      return sent.data.success ? 'done' : 'failed'
+    } catch (err) {
+      // a permission taken away since the last check
+      if (err instanceof MetaError && err.reason === 'permission_missing') return 'no_permission'
+      return 'failed'
+    }
   }
 
   /** The call that publishes, by shape; `id` null when Meta said yes without one. */

@@ -61,6 +61,7 @@ test('the 30 reels of a day count only for reels', () => {
     health: 'ok' as const,
     inWorkspace: true,
     quota: null,
+    scopes: null,
   }
   expect(
     FACEBOOK_RULES.checkAccount(view('photo', [photo()]), account, history, new Date()),

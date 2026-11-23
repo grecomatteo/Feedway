@@ -56,6 +56,8 @@ interface Usage {
 const NORMAL_USAGE: Usage = { call_count: 4, total_cputime: 2, total_time: 3 }
 const FULL_USAGE: Usage = { call_count: 100, total_cputime: 100, total_time: 100 }
 const DEFAULT_LIMIT = 25
+/** The permissions of the cover of a Facebook reel (D-120.9), added by `permissions_added`. */
+const COVER_PERMISSIONS = ['pages_manage_engagement', 'pages_read_user_content']
 const VERSIONED = /^\/(v\d+\.\d+)(\/.*)$/
 // the profile pictures, served by the mock itself as Meta's CDN serves them (no token)
 const PICTURE = /^\/pictures\/([a-z0-9-]+)\.jpg$/
@@ -262,6 +264,14 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
         error: { code: 190, message: 'Invalid OAuth access token.' },
       }
     const debug: DebugData = structuredClone(token.debug)
+    for (const s of scenariosNamed('permissions_added')) {
+      if (s.opts.token !== undefined && s.opts.token !== input) continue
+      for (const permission of s.opts.permissions ?? COVER_PERMISSIONS)
+        if (!debug.scopes.includes(permission)) {
+          debug.scopes.push(permission)
+          debug.granular_scopes.push({ scope: permission })
+        }
+    }
     for (const s of scenariosNamed('permission_missing')) {
       if (s.opts.token !== undefined && s.opts.token !== input) continue
       const permission = s.opts.permission ?? 'instagram_content_publish'
@@ -575,7 +585,7 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     if (edge === 'permissions' && first === 'me') {
       const debug = debugDataFor(tokenValue, token) as { scopes?: string[] }
       const granted = new Set(debug.scopes ?? [])
-      const all = token.debug?.scopes ?? []
+      const all = [...new Set([...(token.debug?.scopes ?? []), ...granted])]
       send(
         res,
         200,
@@ -720,15 +730,51 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
     return [...new URLSearchParams(text)]
   }
 
+  /**
+   * A `multipart/form-data` body (the cover of `/{video}/thumbnails`): a text field as it is, a
+   * file as `file:<type>:<bytes>`, so the calls list what was sent without the bytes.
+   */
+  function multipartParams(body: Buffer, type: string): [string, string][] {
+    const boundary = /boundary=(?:"([^"]+)"|([^;]+))/.exec(type)
+    const mark = boundary?.[1] ?? boundary?.[2]
+    if (mark === undefined) return []
+    const delimiter = Buffer.from(`--${mark}`)
+    const params: [string, string][] = []
+    let at = body.indexOf(delimiter)
+    while (at !== -1) {
+      const next = body.indexOf(delimiter, at + delimiter.length)
+      if (next === -1) break
+      // each part: CRLF, its headers, an empty line, its bytes, CRLF before the next delimiter
+      const part = body.subarray(at + delimiter.length + 2, next - 2)
+      const split = part.indexOf('\r\n\r\n')
+      if (split !== -1) {
+        const headers = part.subarray(0, split).toString('utf8')
+        const bytes = part.subarray(split + 4)
+        const name = /name="([^"]*)"/.exec(headers)?.[1]
+        const file = /filename="/.test(headers)
+        const contentType = /content-type:\s*([^\r\n]+)/i.exec(headers)?.[1]?.trim() ?? ''
+        if (name !== undefined)
+          params.push([
+            name,
+            file ? `file:${contentType}:${String(bytes.length)}` : bytes.toString('utf8'),
+          ])
+      }
+      at = next
+    }
+    return params
+  }
+
   function receive(req: IncomingMessage, res: ServerResponse): void {
     const chunks: Buffer[] = []
     req.on('data', (chunk: Buffer) => chunks.push(chunk))
     req.on('end', () => {
-      handle(
-        req,
-        res,
-        bodyParams(Buffer.concat(chunks).toString('utf8'), req.headers['content-type']),
-      )
+      const body = Buffer.concat(chunks)
+      const type = req.headers['content-type']
+      if (type?.startsWith('multipart/form-data') === true) {
+        handle(req, res, multipartParams(body, type))
+        return
+      }
+      handle(req, res, bodyParams(body.toString('utf8'), type))
     })
   }
 

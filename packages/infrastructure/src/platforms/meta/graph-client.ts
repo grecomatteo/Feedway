@@ -241,6 +241,17 @@ export interface MetaGraphClient {
     fileUrl: string,
     signal: AbortSignal,
   ): Promise<MetaResult<{ success: boolean }>>
+  /**
+   * The cover of a Page video or reel (`POST /{video-id}/thumbnails`, D-120.9): the image goes
+   * as the `source` file, `is_preferred=true` makes it the one shown. Needs
+   * `pages_manage_engagement` and `pages_read_user_content`; not verified on real Meta.
+   */
+  uploadVideoThumbnail(
+    credentials: MetaTokenCredentials,
+    videoId: string,
+    image: { bytes: Uint8Array; contentType: string },
+    signal: AbortSignal,
+  ): Promise<MetaResult<{ success: boolean }>>
   /** `upload_phase=finish`: publishes, never repeated. */
   finishPageVideoUpload(
     credentials: MetaTokenCredentials,
@@ -600,6 +611,8 @@ interface CallSpec {
    */
   host?: 'graph' | 'upload'
   headers?: Record<string, string>
+  /** A POST with a file: `params` and the file go as `multipart/form-data`. */
+  file?: { field: string; name: string; bytes: Uint8Array; contentType: string }
   /**
    * Meta fetches a file before it answers, or is known to be slow to answer (Instagram's
    * publish): the longer timeout (`fileTimeoutMs`).
@@ -671,10 +684,17 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
     if (skipped !== null) return skipped
     const url = new URL(`${spec.host === 'upload' ? uploadBase : graphBase}${spec.path}`)
     const method = spec.method ?? 'GET'
-    const form = new URLSearchParams()
+    const form = spec.file === undefined ? new URLSearchParams() : new FormData()
     for (const [k, v] of Object.entries(spec.params ?? {}))
       if (method === 'POST') form.set(k, v)
       else url.searchParams.set(k, v)
+    if (spec.file !== undefined && form instanceof FormData)
+      form.set(
+        spec.file.field,
+        // a copy on its own ArrayBuffer, as Blob takes it
+        new Blob([new Uint8Array(spec.file.bytes)], { type: spec.file.contentType }),
+        spec.file.name,
+      )
     const headers: Record<string, string> = { accept: 'application/json', ...spec.headers }
     if (spec.credentials !== undefined) {
       headers.authorization = `${spec.host === 'upload' ? 'OAuth' : 'Bearer'} ${spec.credentials.accessToken}`
@@ -1177,6 +1197,27 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         },
         z.object({ success: z.boolean() }),
       )
+    },
+
+    async uploadVideoThumbnail(credentials, videoId, image, signal) {
+      const result = await call(
+        {
+          name: 'video/thumbnails',
+          method: 'POST',
+          path: `/${encodeURIComponent(videoId)}/thumbnails`,
+          params: { is_preferred: 'true' },
+          file: {
+            field: 'source',
+            name: image.contentType === 'image/png' ? 'cover.png' : 'cover.jpg',
+            bytes: image.bytes,
+            contentType: image.contentType,
+          },
+          credentials,
+          signal,
+        },
+        z.object({ success: z.boolean() }),
+      )
+      return result
     },
 
     async finishPageVideoUpload(credentials, pageId, edge, params, signal) {

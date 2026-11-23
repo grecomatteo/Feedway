@@ -26,6 +26,11 @@ export interface ScenarioOptions {
     token?: string
     code?: 10 | 200
   }
+  /**
+   * The permissions join `debug_token` and `me/permissions` (the token, or all): by default the
+   * two of the cover of a Facebook reel, `pages_manage_engagement` and `pages_read_user_content`.
+   */
+  permissions_added: { permissions?: string[]; token?: string }
   /** The node disappears from every list and its own id answers 100/33. */
   asset_removed: { id: string }
   /** `content_publishing_limit` reports the whole quota used, and `media_publish` answers 9/2207042. */

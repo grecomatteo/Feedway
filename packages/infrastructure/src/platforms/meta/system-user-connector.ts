@@ -213,14 +213,15 @@ export async function checkMetaHealth(
   const credentials = { accessToken: token, appSecret: app.appSecret }
   let usage: MetaUsage
   let missingPermission: boolean
+  let scopes: string[]
   try {
     const debug = await client.debugToken(app, token)
     usage = debug.usage
     if (!debug.data.isValid)
       // 190/458 in debug_token: the user took the authorization away (docs/platforms/meta.md)
       return { ok: false, reason: debug.data.error?.subcode === 458 ? 'revoked' : 'expired' }
-    const scopes = new Set(debug.data.scopes)
-    missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.has(p))
+    scopes = [...debug.data.scopes]
+    missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.includes(p))
   } catch (error) {
     if (!(error instanceof MetaError)) throw error
     // debug_token authenticates the app: a refusal is about the app, not the token
@@ -243,6 +244,7 @@ export async function checkMetaHealth(
       ok: true,
       accounts: targets.map((t) => report(t, 'error', 'permission_missing')),
       usage,
+      scopes,
     }
 
   let seen: PlatformAccount[]
@@ -273,7 +275,7 @@ export async function checkMetaHealth(
     if (error instanceof TokenEndedError) return { ok: false, reason: error.ended }
     throw error
   }
-  return { ok: true, accounts, usage }
+  return { ok: true, accounts, usage, scopes }
 
   async function instagramHealth(target: HealthTarget): Promise<AccountHealthReport> {
     try {
@@ -350,6 +352,8 @@ export function createMetaSystemUserConnector(deps: {
         }
       }
       const scopes = new Set(info.scopes)
+      // the two of the cover of a Facebook reel are not listed: their absence never stops the
+      // connection, and the panel shows them apart (`scopes`, D-120.9)
       const permissions: PermissionCheck[] = META_REQUIRED_PERMISSIONS.map((name) => ({
         name,
         granted: scopes.has(name),
@@ -379,6 +383,7 @@ export function createMetaSystemUserConnector(deps: {
         // working is found by the daily health check (Task 10). Not verified on real Meta.
         expiresAt: info.expiresAt instanceof Date ? info.expiresAt : null,
         permissions,
+        scopes: [...scopes],
       }
     },
 
