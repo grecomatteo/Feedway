@@ -1,8 +1,10 @@
 import type { Clock } from '../ports/clock.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { Logger } from '../ports/logger.js'
+import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { connectionJobKey } from './health.js'
+import { metaReminderEvent, readMetaReminders, type MetaReminderSources } from './reminders.js'
 
 // `accounts.daily` (§8.4, plan 03 Task 11): the system job of the accounts module. The system
 // scope only lists the agencies; each agency's clean-up and queue run in its own scope, so a
@@ -13,6 +15,8 @@ export interface AccountsDailyDeps {
   clock: Clock
   queue: Pick<JobQueue, 'send'>
   logger: Logger
+  /** The Meta reminders' sources (plan 08 Task 4): integration, Graph version, calendar. */
+  reminders: MetaReminderSources
 }
 
 export interface AccountsDailyReport {
@@ -21,6 +25,8 @@ export interface AccountsDailyReport {
   queued: number
   attemptsDeleted: number
   pendingDeleted: number
+  /** `meta.reminder` events written now; the ones already written before are not counted. */
+  reminders: number
   /** Agencies whose step failed: logged, and the job fails at the end to be retried. */
   failed: number
 }
@@ -29,10 +35,35 @@ export interface AccountsDailyReport {
 export const PENDING_CONNECTION_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 /**
+ * One `meta.reminder` per reminder and due date (plan 08 Task 4): the run computes them every
+ * day, the outbox's key keeps the ones already written from being written again.
+ */
+async function recordMetaReminders(
+  tx: Tx,
+  deps: AccountsDailyDeps,
+  organizationId: string,
+  now: Date,
+): Promise<number> {
+  const { reminders, appRejectedAt } = await readMetaReminders(
+    tx,
+    deps.reminders,
+    organizationId,
+    now,
+  )
+  let written = 0
+  for (const reminder of reminders) {
+    const event = metaReminderEvent(organizationId, reminder, appRejectedAt)
+    if (event === null) continue
+    if (await tx.outbox.record({ organizationId, type: 'meta.reminder', ...event })) written += 1
+  }
+  return written
+}
+
+/**
  * For every active agency: deletes the expired login attempts and the abandoned `pending`
- * connections, then queues the sync of every `active` connection. Running it again the same
- * day queues nothing new: one sync per connection and day (UTC), and the queue keeps one
- * waiting per connection anyway.
+ * connections, writes the Meta reminders not yet told, then queues the sync of every `active`
+ * connection. Running it again the same day queues nothing new: one sync per connection and day
+ * (UTC), and the queue keeps one waiting per connection anyway.
  */
 export async function runAccountsDaily(deps: AccountsDailyDeps): Promise<AccountsDailyReport> {
   const now = deps.clock.now()
@@ -47,6 +78,7 @@ export async function runAccountsDaily(deps: AccountsDailyDeps): Promise<Account
     queued: 0,
     attemptsDeleted: 0,
     pendingDeleted: 0,
+    reminders: 0,
     failed: 0,
   }
   for (const { id: organizationId } of organizations) {
@@ -60,11 +92,18 @@ export async function runAccountsDaily(deps: AccountsDailyDeps): Promise<Account
           new Date(now.getTime() - PENDING_CONNECTION_MAX_AGE_MS),
         )
         const connections = await tx.connections.list(organizationId)
-        return { attempts, pending, active: connections.filter((c) => c.status === 'active') }
+        const reminders = await recordMetaReminders(tx, deps, organizationId, now)
+        return {
+          attempts,
+          pending,
+          reminders,
+          active: connections.filter((c) => c.status === 'active'),
+        }
       })
       // counted once the transaction is committed
       report.attemptsDeleted += cleaned.attempts
       report.pendingDeleted += cleaned.pending
+      report.reminders += cleaned.reminders
       const { active } = cleaned
       for (const connection of active) {
         const job = { organizationId, connectionId: connection.id }

@@ -121,3 +121,14 @@ export function profileLink(
 export function worstLink(links: readonly ProfileLink[]): ProfileLink {
   return PROFILE_LINKS.find((l) => links.includes(l)) ?? 'ok'
 }
+
+const HEALTH_RANK: Record<AccountHealth, number> = { ok: 0, warning: 1, error: 2 }
+
+/**
+ * Whether a check found the account worse than before (`account.unhealthy`, plan 08 Task 4):
+ * green to yellow or red, yellow to red. Never checked counts as green, so a first check that
+ * finds a problem tells it; one that finds it still the same, or better, tells nothing.
+ */
+export function healthWorsened(before: AccountHealth | null, after: AccountHealth): boolean {
+  return HEALTH_RANK[after] > HEALTH_RANK[before ?? 'ok']
+}

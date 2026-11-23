@@ -2,6 +2,7 @@ import type {
   IdGenerator,
   NotificationPrefsRepository,
   NotificationsRepository,
+  TelegramLinksRepository,
 } from '@app/application'
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
@@ -17,6 +18,7 @@ import {
   notificationPrefs,
   notificationSettings,
   notifications,
+  telegramLinks,
 } from './schema.js'
 
 export function drizzleNotifications(db: DbExecutor, ids: IdGenerator): NotificationsRepository {
@@ -44,6 +46,15 @@ export function drizzleNotifications(db: DbExecutor, ids: IdGenerator): Notifica
           })),
         )
       return true
+    },
+
+    async deleteAllForUser(userId) {
+      // the deliveries go with their notification (on delete cascade)
+      const rows = await db
+        .delete(notifications)
+        .where(eq(notifications.userId, userId))
+        .returning({ id: notifications.id })
+      return rows.length
     },
   }
 }
@@ -113,6 +124,23 @@ export function drizzleNotificationPrefs(db: DbExecutor): NotificationPrefsRepos
           target: [notificationPrefs.userId, notificationPrefs.kind],
           set: { channels },
         })
+    },
+
+    async deleteAllForUser(userId) {
+      await db.delete(notificationPrefs).where(eq(notificationPrefs.userId, userId))
+      await db.delete(notificationSettings).where(eq(notificationSettings.userId, userId))
+    },
+  }
+}
+
+export function drizzleTelegramLinks(db: DbExecutor): TelegramLinksRepository {
+  return {
+    async deleteAllForUser(userId) {
+      const rows = await db
+        .delete(telegramLinks)
+        .where(eq(telegramLinks.userId, userId))
+        .returning({ id: telegramLinks.id })
+      return rows.length
     },
   }
 }
