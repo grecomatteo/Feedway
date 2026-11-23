@@ -232,9 +232,11 @@ const PERMISSIONS = [
         lavoro svolto.
       </li>
       <li>
-        Account delle persone: finché la persona li usa. Con «Elimina il mio account» nome, email,
-        foto e credenziali si cancellano subito e al loro posto resta «Utente rimosso». Un account
-        disattivato si cancella allo stesso modo dopo 24 mesi, e l’agenzia lo sa 30 giorni prima.
+        Account delle persone: finché non vengono eliminati. Con «Elimina il mio account», o su
+        richiesta a noi se non puoi più accedere, nome, email, foto e credenziali si cancellano
+        subito e al loro posto resta «Utente rimosso». Se un’agenzia ti toglie, perdi l’accesso a
+        quell’agenzia, ma l’account resta finché non lo elimini. Un account bloccato da noi si
+        cancella allo stesso modo dopo 24 mesi, e le agenzie lo sanno 30 giorni prima.
       </li>
       <li>
         Sessioni scadute: cancellate dopo 30 giorni. Dispositivi da cui si accede: cancellati dopo
