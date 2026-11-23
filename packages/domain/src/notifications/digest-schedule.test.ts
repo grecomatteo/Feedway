@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest'
-import { DEFAULT_DIGEST, digestTimeZone, nextDigestAt } from './digest-schedule.js'
+import {
+  DEFAULT_DIGEST,
+  DIGEST_CATCH_UP_MS,
+  digestTimeZone,
+  dueDigest,
+  nextDigestAt,
+} from './digest-schedule.js'
 
 const ROME = 'Europe/Rome'
 
@@ -44,4 +50,41 @@ test("the person's zone comes first, then their first agency's, then the default
   expect(digestTimeZone('Europe/London', ['Europe/Rome'], 'UTC')).toBe('Europe/London')
   expect(digestTimeZone(null, ['America/New_York', 'Europe/Rome'], 'UTC')).toBe('America/New_York')
   expect(digestTimeZone(null, [], 'Europe/Rome')).toBe('Europe/Rome')
+})
+
+test('a digest is due from its time until the catch-up window has passed', () => {
+  // Monday 2026-11-23, 8:00 in Rome is 07:00Z
+  const due = (iso: string) => dueDigest(DEFAULT_DIGEST, new Date(iso), ROME)
+  expect(due('2026-11-23T06:59:59Z')).toBeNull()
+  expect(due('2026-11-23T07:00:00Z')).toEqual({
+    date: '2026-11-23',
+    at: new Date('2026-11-23T07:00:00Z'),
+  })
+  // a worker that comes back within the hour still sends it
+  expect(due('2026-11-23T07:59:00Z')?.date).toBe('2026-11-23')
+  expect(due('2026-11-23T08:00:01Z')).toBeNull()
+  expect(DIGEST_CATCH_UP_MS).toBe(3_600_000)
+})
+
+test('the digest is due at 8:00 on the days the clocks change', () => {
+  expect(dueDigest(DEFAULT_DIGEST, new Date('2026-10-25T07:00:30Z'), ROME)?.date).toBe('2026-10-25')
+  expect(dueDigest(DEFAULT_DIGEST, new Date('2026-10-25T06:00:30Z'), ROME)).toBeNull()
+  expect(dueDigest(DEFAULT_DIGEST, new Date('2027-03-28T06:00:30Z'), ROME)?.date).toBe('2027-03-28')
+  expect(dueDigest(DEFAULT_DIGEST, new Date('2027-03-28T07:00:30Z'), ROME)).toBeNull()
+})
+
+test('no digest is due on a day left out, or when it is off', () => {
+  const sunday = new Date('2026-11-22T07:00:30Z')
+  expect(dueDigest({ ...DEFAULT_DIGEST, days: [1, 2, 3, 4, 5] }, sunday, ROME)).toBeNull()
+  expect(dueDigest({ ...DEFAULT_DIGEST, enabled: false }, sunday, ROME)).toBeNull()
+})
+
+test('the date of the digest is the person’s, not UTC’s', () => {
+  // 00:30 in Tokyo on Tuesday is still Monday in UTC
+  const tokyo = dueDigest(
+    { ...DEFAULT_DIGEST, time: '00:30' },
+    new Date('2026-11-23T15:30:00Z'),
+    'Asia/Tokyo',
+  )
+  expect(tokyo?.date).toBe('2026-11-24')
 })

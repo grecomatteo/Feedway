@@ -30,6 +30,16 @@ export function notificationEmail(
       ? [...message.lines, t('notify.more', { n: String(message.more) })]
       : message.lines
   if (listed.length > 0) blocks.push({ kind: 'paragraph', text: listed.join('\n') })
+  // the digest: a bold heading per section and its lines below
+  for (const section of message.sections ?? [])
+    blocks.push({
+      kind: 'list',
+      title: section.title,
+      items:
+        section.more > 0
+          ? [...section.lines, t('notify.more', { n: String(section.more) })]
+          : section.lines,
+    })
   if (message.link)
     blocks.push({
       kind: 'button',
@@ -44,7 +54,7 @@ export function notificationEmail(
   })
   const { html, text } = renderEmail({
     ...emailFrame(t, deps.productName),
-    preheader: message.lines[0] ?? message.title,
+    preheader: message.lines[0] ?? message.sections?.[0]?.title ?? message.title,
     title: message.title,
     blocks,
     footerReason: t('notify.email.footer', { product: deps.productName }),

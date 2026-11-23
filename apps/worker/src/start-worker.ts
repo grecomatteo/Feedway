@@ -20,6 +20,7 @@ import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
 import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './handlers/notify.js'
+import { reportDaily, reportDigest } from './handlers/report.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import {
   schedulerReconcile,
@@ -63,6 +64,10 @@ export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
 export const PUBLISH_COPIES_CLEANUP_CRON = '30 4 * * *'
 /** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
 export const SCHEDULER_RECONCILE_CRON = '* * * * *'
+/** Every minute: each person has their own time and zone (plan 08 P7). */
+export const REPORT_DAILY_CRON = '* * * * *'
+/** Every minute is every minute in any zone: each digest is due in its person's zone. */
+export const REPORT_DAILY_TZ = 'Europe/Rome'
 
 /**
  * Jobs of one queue at once in this worker. The preparations are limited per agency in the
@@ -121,6 +126,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'notify.dispatch': notifyDispatch,
     'notify.deliver': notifyDeliver,
     'notify.deliver_platform': notifyDeliverPlatform,
+    'report.daily': reportDaily,
+    'report.digest': reportDigest,
     ...deps.handlers,
     'media.process': mediaProcessOnStop,
     'media.publish_copies': mediaPublishCopiesOnStop,
@@ -168,6 +175,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       {},
       { tz: MEDIA_UPLOADS_CLEANUP_TZ },
     )
+  if (queues.includes('report.daily'))
+    await queue.schedule('report.daily', REPORT_DAILY_CRON, {}, { tz: REPORT_DAILY_TZ })
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
