@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Stato** | Accettata (Matteo, 2026-10-16) |
+| **Stato** | Accettata (Matteo, 2026-10-16); il punto sulla modalità sviluppo è sostituito da [ADR 022](022-app-meta-in-live.md) |
 | **Data** | 2026-10-16 |
 | **Specifica** | v9, §8 |
 

@@ -118,6 +118,7 @@ export async function agency(tdb: TestDatabase, runtime: Runtime): Promise<Agenc
         configId: null,
         businessId: null,
         dataUseCheckupDueOn: null,
+        appLive: false,
       },
       secret: META_MOCK.app.secret,
       updatedBy: ownerId,

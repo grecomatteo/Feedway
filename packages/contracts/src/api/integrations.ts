@@ -14,6 +14,11 @@ export const MetaIntegration = z.object({
   businessId: z.string().nullable(),
   /** YYYY-MM-DD; may stay empty while the app is in development. */
   dataUseCheckupDueOn: z.string().nullable(),
+  /**
+   * The Owner says the app is Live (ADR 022): Graph has no documented field for it. False while in
+   * development, when Facebook shows the posts only to who has a role in the app.
+   */
+  appLive: z.boolean(),
   /** The last time Meta accepted App ID and secret. */
   verifiedAt: Timestamp.nullable(),
   /** Meta refused App ID and secret (a test, or a job's call) since the last save or success. */
@@ -42,6 +47,8 @@ export const ReplaceMetaIntegrationBody = z.strictObject({
   configId: MetaId.nullable().optional(),
   businessId: MetaId.nullable().optional(),
   dataUseCheckupDueOn: z.string().max(10).nullable().optional(),
+  /** Left out: as stored. */
+  appLive: z.boolean().optional(),
 })
 
 export const replaceMetaIntegrationRoute = defineContract({
