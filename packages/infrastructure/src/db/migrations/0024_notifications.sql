@@ -116,7 +116,7 @@ CREATE INDEX "system_heartbeats_last_beat_idx" ON "system_heartbeats" USING btre
 CREATE UNIQUE INDEX "telegram_links_code_idx" ON "telegram_links" USING btree ("link_code_hash") WHERE "telegram_links"."link_code_hash" is not null;--> statement-breakpoint
 CREATE INDEX "telegram_links_user_idx" ON "telegram_links" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "telegram_links_organization_chat_idx" ON "telegram_links" USING btree ("organization_id","chat_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "outbox_events_dedupe_idx" ON "outbox_events" USING btree ("dedupe_key") WHERE "outbox_events"."dedupe_key" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "outbox_events_dedupe_idx" ON "outbox_events" USING btree ("organization_id","dedupe_key") WHERE "outbox_events"."dedupe_key" is not null;--> statement-breakpoint
 ALTER TABLE "integrations" ADD CONSTRAINT "integrations_heartbeat_platform_only" CHECK ("integrations"."kind" <> 'heartbeat' or "integrations"."organization_id" is null);--> statement-breakpoint
 ALTER TABLE "integrations" ADD CONSTRAINT "integrations_kind" CHECK (kind in ('smtp', 'meta', 'telegram', 'heartbeat'));--> statement-breakpoint
 ALTER TABLE "outbox_events" ADD CONSTRAINT "outbox_events_type" CHECK (type in ('post.target_confirmed', 'post.confirmed', 'post.target_failed', 'post.target_problem', 'post.paused', 'post.file_wont_publish', 'account.quota_low', 'account.token_invalid', 'account.unhealthy', 'meta.reminder', 'system.worker_down', 'system.worker_up', 'system.backup_failed'));--> statement-breakpoint
@@ -157,7 +157,31 @@ CREATE POLICY own_update ON notifications FOR UPDATE
               OR organization_id IN (SELECT organization_id FROM organization_members
                  WHERE user_id = nullif(current_setting('app.user_id', true), '')::uuid
                    AND status = 'active')))
-  WITH CHECK (user_id = nullif(current_setting('app.user_id', true), '')::uuid);--> statement-breakpoint
+  WITH CHECK (nullif(current_setting('app.organization_id', true), '') IS NULL
+         AND user_id = nullif(current_setting('app.user_id', true), '')::uuid
+         AND (organization_id IS NULL
+              OR organization_id IN (SELECT organization_id FROM organization_members
+                 WHERE user_id = nullif(current_setting('app.user_id', true), '')::uuid
+                   AND status = 'active')));--> statement-breakpoint
+-- and in that scope only `read_at` moves: a person cannot rewrite what the row says, nor move it
+-- to an agency or a platform row of their choice (review of Task 4)
+CREATE FUNCTION notifications_person_columns_guard() RETURNS trigger
+  LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
+BEGIN
+  IF current_setting('app.scope', true) IS DISTINCT FROM 'system'
+     AND nullif(current_setting('app.organization_id', true), '') IS NULL
+     AND (NEW.id, NEW.organization_id, NEW.user_id, NEW.event_id, NEW.kind, NEW.level,
+          NEW.workspace_id, NEW.payload, NEW.created_at)
+         IS DISTINCT FROM
+         (OLD.id, OLD.organization_id, OLD.user_id, OLD.event_id, OLD.kind, OLD.level,
+          OLD.workspace_id, OLD.payload, OLD.created_at) THEN
+    RAISE EXCEPTION 'a person changes only read_at of a notification'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $$;--> statement-breakpoint
+CREATE TRIGGER notifications_person_columns_guard BEFORE UPDATE ON notifications
+  FOR EACH ROW EXECUTE FUNCTION notifications_person_columns_guard();--> statement-breakpoint
 -- A person's preferences and settings: their own, in any scope of theirs, and the system's.
 DO $$
 DECLARE t text;

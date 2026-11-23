@@ -52,12 +52,24 @@ test('an event with a key already written is not written again', async () => {
   } as const
   expect(await uow.run(scope(), (tx) => tx.outbox.record(event))).toBe(true)
   expect(await uow.run(scope(), (tx) => tx.outbox.record(event))).toBe(false)
+  // the same key in another agency is another event
+  const other = await seed(tdb.runtimeUrl, (s) => s.organization())
+  expect(
+    await uow.run({ organizationId: other, userId: null }, (tx) =>
+      tx.outbox.record({ ...event, organizationId: other }),
+    ),
+  ).toBe(true)
   // without a key, every event is written
   const plain = { organizationId: org, type: 'post.confirmed', payload: {} } as const
   expect(await uow.run(scope(), (tx) => tx.outbox.record(plain))).toBe(true)
   expect(await uow.run(scope(), (tx) => tx.outbox.record(plain))).toBe(true)
   const pending = await uow.runAsSystem('test', (tx) => tx.outbox.takePending(10))
-  expect(pending.map((e) => e.type)).toEqual(['meta.reminder', 'post.confirmed', 'post.confirmed'])
+  expect(pending.map((e) => e.type)).toEqual([
+    'meta.reminder',
+    'meta.reminder',
+    'post.confirmed',
+    'post.confirmed',
+  ])
   expect(pending[0]?.dedupeKey).toBe(event.dedupeKey)
 })
 

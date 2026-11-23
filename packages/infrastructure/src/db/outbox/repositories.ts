@@ -22,7 +22,7 @@ export function drizzleOutbox(db: DbExecutor, ids: IdGenerator, ctx: TxContext):
           dedupeKey: event.dedupeKey ?? null,
         })
         .onConflictDoNothing({
-          target: outboxEvents.dedupeKey,
+          target: [outboxEvents.organizationId, outboxEvents.dedupeKey],
           where: sql`${outboxEvents.dedupeKey} is not null`,
         })
         .returning({ id: outboxEvents.id })

@@ -30,8 +30,9 @@ export const outboxEvents = pgTable(
       .on(t.createdAt)
       .where(sql`${t.dispatchedAt} is null`),
     index('outbox_events_organization_idx').on(t.organizationId, t.createdAt),
+    // per agency: a key of one agency never hides another's event
     uniqueIndex('outbox_events_dedupe_idx')
-      .on(t.dedupeKey)
+      .on(t.organizationId, t.dedupeKey)
       .where(sql`${t.dedupeKey} is not null`),
     check('outbox_events_type', inList('type', OUTBOX_EVENT_TYPES)),
   ],

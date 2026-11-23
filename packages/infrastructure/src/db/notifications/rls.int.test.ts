@@ -134,10 +134,24 @@ test('notifications: a person marks their own as read, not another’s, and writ
   await expect(asUser(u2, (c) => insertNotification(c, randomUUID(), null, u2))).rejects.toThrow(
     /row-level security/,
   )
+  // nor moved to another agency, to the platform, or rewritten: only `read_at` moves
+  for (const change of [
+    ['organization_id = $1', orgA],
+    ['organization_id = null', null],
+    ["payload = '{}'::jsonb || jsonb_build_object('x', 1)", null],
+  ] as const)
+    await expect(
+      asUser(u2, (c) =>
+        c.query(
+          `update notifications set ${change[0]} where id = '${n.u2B}'`,
+          change[1] === orgA ? [orgA] : [],
+        ),
+      ),
+    ).rejects.toThrow(/only read_at/)
   // a row cannot be handed to someone else
   await expect(
     asUser(u2, (c) => c.query('update notifications set user_id = $1 where id = $2', [u1, n.u2B])),
-  ).rejects.toThrow(/row-level security/)
+  ).rejects.toThrow(/only read_at/)
 })
 
 test('preferences and settings: each person reaches only their own, the system everyone’s', async () => {

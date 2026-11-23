@@ -1,5 +1,5 @@
 {
-  "id": "8b352abb-1452-4d5f-baa2-d4c017a0ee57",
+  "id": "e8ac9cde-e380-4f11-b301-6046ef0023e5",
   "prevId": "14389307-f577-4f9a-b21b-3f05143b6550",
   "version": "7",
   "dialect": "postgresql",
@@ -5426,6 +5426,12 @@
         "outbox_events_dedupe_idx": {
           "name": "outbox_events_dedupe_idx",
           "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "dedupe_key",
               "isExpression": false,
