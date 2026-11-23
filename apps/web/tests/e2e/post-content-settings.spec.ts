@@ -180,6 +180,9 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await e.getByRole('button', { name: 'Aggiungi', exact: true }).click()
   await expect(e.getByText('Il prezzo lo conferma Marta')).toBeVisible()
   await expect(e.getByText(/^Tu · oggi alle/)).toBeVisible()
+  // axe reads a control scrolled under the sticky bar at the top as too close to its links:
+  // where the note leaves the page depends on the lines above it (in the evening «Domani, …»)
+  await e.evaluate(() => window.scrollTo(0, 0))
   expect((await axe(e)).violations).toEqual([])
 
   // all there after a reload
