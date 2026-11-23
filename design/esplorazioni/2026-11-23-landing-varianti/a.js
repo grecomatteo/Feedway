@@ -165,16 +165,14 @@ function shadowTexture() {
 
 const UNIT = 1 / 400; // texture px to world units
 
-function plane(tex, renderer, solid = false) {
+function plane(tex, renderer) {
   const t = new THREE.CanvasTexture(tex.canvas);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  // cards write depth (alphaTest cuts the rounded corners) so the fan sorts itself
-  const m = solid
-    ? new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5 })
-    : new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(tex.w * UNIT, tex.h * UNIT), m);
-  return mesh;
+  // transparent planes: three sorts them back to front, so the fan and the
+  // stack overlap correctly and the rounded corners stay smooth
+  const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
+  return new THREE.Mesh(new THREE.PlaneGeometry(tex.w * UNIT, tex.h * UNIT), m);
 }
 
 async function start() {
@@ -213,7 +211,8 @@ async function start() {
 
   const cards = specs.map((s, i) => {
     const holder = new THREE.Group();
-    const card = plane(s.tex, renderer, true);
+    const card = plane(s.tex, renderer);
+    card.renderOrder = 1;
     const sh = new THREE.Mesh(
       new THREE.PlaneGeometry(s.tex.w * UNIT * 1.5, s.tex.h * UNIT * 1.35),
       new THREE.MeshBasicMaterial({ map: shadowMap, transparent: true, depthWrite: false }),
@@ -223,7 +222,7 @@ async function start() {
     const b = plane(badge(s.ok), renderer);
     b.position.set(0, -(s.tex.h * UNIT) / 2 - 0.2, 0.1);
     b.scale.setScalar(0.001);
-    b.renderOrder = 20;
+    b.renderOrder = 1;
     holder.add(sh, card, b);
     holder.scale.setScalar(1.12);
     world.add(holder);
@@ -286,17 +285,43 @@ async function start() {
   requestAnimationFrame(frame);
 
   if (!reduce) {
+    // entrance: the stack rises into place while the copy is read
+    world.position.y = -0.5;
+    gsap.to(world.position, { y: 0, duration: 1.4, ease: 'power3.out' });
+    cards.forEach(({ holder }, i) =>
+      holder.children.forEach((m) => {
+        const to = m.material.opacity;
+        m.material.opacity = 0;
+        gsap.to(m.material, { opacity: to, duration: 0.9, delay: 0.1 + i * 0.06, ease: 'power2.out' });
+      }),
+    );
     if (matchMedia('(pointer: fine)').matches) {
       addEventListener('pointermove', (e) => {
         pointer.x = e.clientX / innerWidth - 0.5;
         pointer.y = e.clientY / innerHeight - 0.5;
       });
     }
-    gsap.to(state, {
-      p: 1,
-      ease: 'none',
-      scrollTrigger: { trigger: '.hero-a', start: 'top 68px', end: '+=170%', pin: true, scrub: 0.8 },
-    });
+    gsap.matchMedia().add(
+      { desk: '(min-width: 861px)', phone: '(max-width: 860px)' },
+      (c) => {
+        if (c.conditions.desk) {
+          // computer: the scroll drives the scene while the hero is pinned
+          gsap.to(state, {
+            p: 1,
+            ease: 'none',
+            scrollTrigger: { trigger: '.hero-a', start: 'top 68px', end: '+=170%', pin: true, scrub: 0.8 },
+          });
+        } else {
+          // phone: no pinning, the scene plays once when it comes into view
+          gsap.to(state, {
+            p: 1,
+            duration: 3.6,
+            ease: 'power1.inOut',
+            scrollTrigger: { trigger: stage, start: 'top 75%' },
+          });
+        }
+      },
+    );
   }
   window.__heroState = state; // used by the screenshot script
 }

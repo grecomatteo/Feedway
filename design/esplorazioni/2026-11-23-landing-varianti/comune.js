@@ -12,20 +12,6 @@ const mm = gsap.matchMedia();
 window.motionOK = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 mm.add('(prefers-reduced-motion: no-preference)', () => {
-  // Section reveals: one batch per screen, short stagger, ease-out.
-  ScrollTrigger.batch('.reveal', {
-    start: 'top 88%',
-    once: true,
-    onEnter: (els) =>
-      gsap.to(els, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.08 }),
-  });
-  ScrollTrigger.batch('.reveal-list > li', {
-    start: 'top 90%',
-    once: true,
-    onEnter: (els) =>
-      gsap.to(els, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.06 }),
-  });
-
   // Publication timeline: the orange line follows the scroll, steps light up.
   const tl = document.querySelector('.timeline');
   if (tl) {

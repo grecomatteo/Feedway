@@ -67,9 +67,8 @@ FOOT = """
 """
 
 HERO_COPY = """
-      <p class="eyebrow">Per le agenzie di comunicazione</p>
       <h1 id="hero-title">Tutta la tua agenzia, in un solo posto.</h1>
-      <p class="lead">Clienti, team, contenuti e pubblicazioni. Prepari i post di tutti i clienti, li programmi su Instagram e Facebook e sai se sono usciti davvero.</p>
+      <p class="lead">Prepari i post di tutti i clienti, li programmi su Instagram e Facebook e sai se sono usciti davvero.</p>
       <div class="cta">
         <a class="btn btn-primary btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
         <a class="btn btn-outline btn-lg" href="#prodotto">Guarda il prodotto</a>
@@ -80,8 +79,7 @@ FEATURES = """
 <section class="section" id="prodotto" aria-labelledby="product-title">
   <div class="wrap">
     <div class="section-head reveal">
-      <p class="eyebrow">Il prodotto</p>
-      <h2 id="product-title">Ogni cosa al suo posto. Ogni persona sa cosa fare.</h2>
+      <h2 id="product-title">Dal piano del mese al post pubblicato.</h2>
     </div>
     <div class="bento">
       <article class="tile tile-wide reveal tilt">
@@ -127,8 +125,7 @@ PUBLISH = """
 <section class="section carbon" id="pubblicazione" aria-labelledby="publish-title">
   <div class="wrap publish">
     <div class="section-head reveal">
-      <p class="eyebrow">Pubblicazione</p>
-      <h2 id="publish-title">Lo sai quando un post è uscito. Davvero.</h2>
+      <h2 id="publish-title">Sai sempre se un post è uscito.</h2>
       <p class="lead">Dopo l'ora programmata Feedway chiede a Meta se il post c'è. Se manca, lo scrive con il motivo e ti dice cosa fare.</p>
     </div>
     <ol class="timeline" aria-label="Il percorso di un post">
@@ -145,8 +142,7 @@ CLIENT = """
 <section class="section client" id="cliente" aria-labelledby="client-title">
   <div class="wrap client-grid">
     <div class="section-head reveal">
-      <p class="eyebrow">Per i tuoi clienti</p>
-      <h2 id="client-title">Il cliente vede il suo calendario. E approva dal telefono.</h2>
+      <h2 id="client-title">Il cliente vede il suo calendario e approva dal telefono.</h2>
       <p class="lead">Un link per cliente, senza account e senza password. Vede cosa esce e quando, e lascia un commento o un ok.</p>
       <p><span class="soon">In arrivo</span></p>
     </div>
@@ -175,6 +171,15 @@ def page(letter, name, hero, product, script, extra_css):
     html += hero + product + PUBLISH + CLIENT + FAQ
     html += FOOT.format(script=script, cur_a=cur['a'], cur_b=cur['b'], cur_c=cur['c'])
     (HERE / f'{letter}.html').write_text(html)
+    if letter == 'a':
+        # page for the shared preview link: no document wrapper, no variant switch
+        body = html[html.index('<header class="site-header">'):html.index('</body>')]
+        body = body[:body.index('<nav class="variant-switch"')] + body[body.index('</nav>', body.index('<nav class="variant-switch"')) + 6:]
+        top = ('<title>Landing Feedway</title>\n'
+               '<script>document.documentElement.classList.add(\'js\')</script>\n'
+               '<link rel="icon" href="img/favicon.svg">\n'
+               '<link rel="stylesheet" href="comune.css">\n<link rel="stylesheet" href="a.css">\n')
+        (HERE / 'landing-a.html').write_text(top + body)
 
 
 HERO_A = f"""
@@ -217,8 +222,7 @@ PRODUCT_B = """
   <div class="wrap tour">
     <div class="tour-text">
       <div class="section-head">
-        <p class="eyebrow">Il prodotto</p>
-        <h2 id="product-title">Ogni cosa al suo posto. Ogni persona sa cosa fare.</h2>
+        <h2 id="product-title">Dal piano del mese al post pubblicato.</h2>
       </div>
       <article class="tour-step" data-shot="0"><h3><i data-icon="notebook-pen"></i>Pianifica <span class="soon">In arrivo</span></h3><p>Il piano del mese scritto come su un'agenda. Chi carica i file vede subito cosa manca e per quando.</p></article>
       <article class="tour-step" data-shot="1"><h3><i data-icon="send"></i>Prepara</h3><p>Un post per più profili, con l'anteprima vera e i controlli che dicono cosa manca prima di programmare.</p></article>
@@ -245,10 +249,9 @@ PRODUCT_B = """
 HERO_C = f"""
 <section class="hero hero-c" aria-labelledby="hero-title">
   <div class="wrap">
-    <p class="eyebrow">Per le agenzie di comunicazione</p>
     <h1 id="hero-title" class="split">Tutta la tua agenzia,<br>in un solo posto.</h1>
     <div class="hero-foot">
-      <p class="lead">Clienti, team, contenuti e pubblicazioni. Prepari i post di tutti i clienti, li programmi su Instagram e Facebook e sai se sono usciti davvero.</p>
+      <p class="lead">Prepari i post di tutti i clienti, li programmi su Instagram e Facebook e sai se sono usciti davvero.</p>
       <div class="cta">
         <a class="btn btn-primary btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
         <a class="btn btn-outline btn-lg" href="#prodotto">Guarda il prodotto</a>
@@ -267,7 +270,6 @@ PRODUCT_C = """
 <section class="hscroll" id="prodotto" aria-labelledby="product-title">
   <div class="hs-pin">
     <div class="wrap hs-head">
-      <p class="eyebrow">Il prodotto</p>
       <h2 id="product-title">Dal piano al report, in cinque passi.</h2>
       <div class="hs-progress" aria-hidden="true"><span></span></div>
     </div>

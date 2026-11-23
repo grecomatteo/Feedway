@@ -147,7 +147,7 @@ p {
 /* Header: logo left, section links centred on the page, action right. */
 .site-header {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 30;
   background: color-mix(in srgb, var(--paper) 82%, transparent);
   backdrop-filter: blur(14px) saturate(1.4);
@@ -691,17 +691,17 @@ h3 .icon {
   max-width: 60ch;
 }
 
-/* JS adds .js on <html>; without it everything is visible. */
-.js .reveal,
-.js .reveal-list > li {
-  opacity: 0;
-  transform: translateY(24px);
+/* Browser surfaces carry the palette too. */
+::selection {
+  background: var(--peach);
+  color: var(--ink);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .js .reveal,
-  .js .reveal-list > li {
-    opacity: 1;
-    transform: none;
-  }
+html {
+  caret-color: var(--orange);
+  scrollbar-color: var(--line-strong) var(--paper);
+}
+
+a {
+  text-underline-offset: 0.2em;
 }

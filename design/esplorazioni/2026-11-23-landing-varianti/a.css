@@ -28,6 +28,10 @@
   justify-items: start;
 }
 
+.hero-a .lead {
+  max-width: 40ch;
+}
+
 .hero-copy .cta {
   margin-top: 0.5rem;
 }
@@ -113,11 +117,14 @@
   .hero-grid {
     grid-template-columns: 1fr;
   }
+  .hero-a {
+    min-height: 0;
+    padding-block: 2.5rem 3rem;
+  }
   .stage {
-    aspect-ratio: 1;
-    order: -1;
-    margin-inline: auto;
-    max-width: 26rem;
+    aspect-ratio: 1.35;
+    width: 100%;
+    margin-top: 0.5rem;
   }
   .steps {
     display: none;
