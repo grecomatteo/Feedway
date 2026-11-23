@@ -349,6 +349,9 @@ export function fill(path: string, values: Record<string, string>): string {
 }
 
 const PLACEHOLDER_STAGING = randomUUID()
+const PLACEHOLDER_COPY = randomUUID()
+/** The `preview` copy of each case's video: `{copyId}` follows `{mediaId}`, of A or of B. */
+const copyOfMedia = new Map<string, string>()
 
 /** The path values of an agency's case. */
 export const pathValues = (ids: SampleIds): Record<string, string> => ({
@@ -360,6 +363,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   accountId: ids.account,
   mediaId: ids.media,
   variant: 'preview',
+  copyId: copyOfMedia.get(ids.media) ?? PLACEHOLDER_COPY,
   uploadId: ids.upload,
   folderId: ids.folder,
   postId: ids.post,
@@ -551,6 +555,17 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
        values ($1, $2, $3, 'preview', $4, 'video/mp4', $5)`,
       [randomUUID(), organizationId, id, key, size],
     )
+    // a copy made to publish a reel, as the page of the outcome shows it (plan 08 Task 10)
+    const copyId = randomUUID()
+    const copyKey = `org/${organizationId}/media/${id}/reel-battery.mp4`
+    await storage.put(copyKey, SAMPLE_PREVIEW, { contentType: 'video/mp4' })
+    await env.admin.pool.query(
+      `insert into media_variants (id, organization_id, media_id, purpose, recipe, storage_key,
+                                   mime, size_bytes)
+       values ($1, $2, $3, 'reel', 'battery', $4, 'video/mp4', $5)`,
+      [copyId, organizationId, id, copyKey, size],
+    )
+    copyOfMedia.set(id, copyId)
     return id
   }
 

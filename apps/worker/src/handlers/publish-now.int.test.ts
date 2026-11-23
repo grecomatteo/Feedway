@@ -119,6 +119,21 @@ test('«Pubblica subito» from a draft with no date: scheduled now, prepared at 
   )
   expect(audit.rows.map((r) => r.action)).toEqual(['post.created', 'post.published_now'])
 
+  // before it goes out: the versions, never «the copies were taken away»
+  const before = await getPostOutcome(panel, world.actor, {
+    workspaceId: world.workspaceId,
+    postId: draft.id,
+  })
+  expect(before.preview?.versions).toHaveLength(2)
+  expect(before.preview?.originals).toBe(false)
+  // the page's own reads while something moves: without the versions
+  const again = await getPostOutcome(panel, world.actor, {
+    workspaceId: world.workspaceId,
+    postId: draft.id,
+    preview: false,
+  })
+  expect(again.preview).toBeNull()
+
   const deps = workerDeps(runtime, testClock(now), host.url)
   await runSteps(world, draft.id, deps)
   expect(await postStatusOf(admin, draft.id)).toBe('published')
@@ -133,6 +148,30 @@ test('«Pubblica subito» from a draft with no date: scheduled now, prepared at 
     expect(d.publishedAt).not.toBeNull()
     expect(d.errorCode).toBeNull()
   }
+  // the post as each account received it, from the copies that went out (plan 08 Task 10)
+  expect(outcome.preview?.originals).toBe(false)
+  expect(outcome.preview?.versions.map((v) => [v.platform, v.format]).sort()).toEqual([
+    ['facebook', 'photo'],
+    ['instagram', 'feed_photo'],
+  ])
+  for (const v of outcome.preview?.versions ?? []) {
+    expect(v.caption).toBe('Pane caldo adesso')
+    expect(v.files).toHaveLength(1)
+    expect(v.files[0]?.mediaId).toBe(photo)
+    expect(v.files[0]?.copyId).not.toBeNull()
+    expect(v.cover).toBeNull()
+  }
+  // the copies made for the post thrown away (plan 07 Scelta 5): the originals, and it says so
+  await admin.query(
+    "update media_variants set status = 'pending' where organization_id = $1 and media_id = $2 and purpose = 'ig_feed'",
+    [world.organizationId, photo],
+  )
+  const later = await getPostOutcome(panel, world.actor, {
+    workspaceId: world.workspaceId,
+    postId: draft.id,
+  })
+  expect(later.preview?.originals).toBe(true)
+  for (const v of later.preview?.versions ?? []) expect(v.files[0]?.copyId).toBeNull()
   const kinds = outcome.activity.map((a) => a.kind)
   expect(kinds).toContain('post.created')
   expect(kinds).toContain('post.published_now')

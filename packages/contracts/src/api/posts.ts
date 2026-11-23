@@ -299,7 +299,41 @@ export const POST_ACTIVITY_KINDS = [
   'target.uncertain',
 ] as const
 
+/** A file as the account received it: the copy published, or the original once it is gone. */
+const OutcomeFile = z.object({
+  mediaId: Id,
+  kind: z.enum(['image', 'video']),
+  copyId: Id.nullable(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+})
+
 export const PostOutcomeResponse = z.object({
+  /** the post as each account received it (plan 08 Task 10); null: read from the post */
+  preview: z
+    .object({
+      /** some copy published is gone: the files are the originals */
+      originals: z.boolean(),
+      versions: z.array(
+        z.object({
+          accountId: Id,
+          platform: z.enum(['instagram', 'facebook']),
+          format: z.string(),
+          caption: z.string(),
+          files: z.array(OutcomeFile),
+          /** the reel's cover as the account shows it; null: the platform's own */
+          cover: z
+            .object({
+              /** the file the cover's copy is made of: the image chosen, or the video */
+              mediaId: Id,
+              copyId: Id.nullable(),
+              offsetMs: z.number().int().nullable(),
+            })
+            .nullable(),
+        }),
+      ),
+    })
+    .nullable(),
   destinations: z.array(
     z.object({
       accountId: Id,
@@ -332,7 +366,11 @@ export const getPostOutcomeRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/outcome',
   summary: 'L’esito di ogni destinazione di un post e la sua attività',
-  request: { params: PostParams },
+  request: {
+    params: PostParams,
+    // `preview=0`: without the versions, for the page's own reads while something moves
+    query: z.strictObject({ preview: z.enum(['0', '1']).optional() }),
+  },
   response: PostOutcomeResponse,
   auth: 'session',
   scope: 'organization',
