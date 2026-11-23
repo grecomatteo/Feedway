@@ -21,6 +21,8 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/posts/publishing/reconcile.ts',
   // plan 07 Scelta 5: the agencies listed, then each one's copies cleaned in its own scope
   'packages/application/src/media/publish-copies-cleanup.ts',
+  // plan 08 Task 4: a person's notifications are in every agency and in the platform's
+  'packages/application/src/notifications/anonymize.ts',
 ]
 
 export default tseslint.config(

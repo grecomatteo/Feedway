@@ -35,6 +35,11 @@ export interface NotificationsRepository {
    * (a dispatch run again), nothing written.
    */
   create(notification: NewNotification): Promise<boolean>
+  /**
+   * The system scope only (anonymization, §10.4): every notification of the person in every
+   * agency and the platform's, with their deliveries. Returns how many went.
+   */
+  deleteAllForUser(userId: string): Promise<number>
 }
 
 /** A person's choices (P4): without a row, the defaults. */
@@ -45,4 +50,15 @@ export interface NotificationPrefsRepository {
   listPrefs(userId: string): Promise<Map<OutboxEventType, NotificationPref>>
   /** null: back to the kind's defaults, the row is removed. */
   setPref(userId: string, kind: OutboxEventType, pref: NotificationPref | null): Promise<void>
+  /** The anonymization (§10.4): the person's settings and every changed kind. */
+  deleteAllForUser(userId: string): Promise<void>
+}
+
+/**
+ * A person's Telegram chats with the bots (§12.3, plan 08 Scelta 8). Task 7 adds the link and the
+ * commands; the anonymization needs only the removal.
+ */
+export interface TelegramLinksRepository {
+  /** The system scope only: the person's links with every bot. Returns how many went. */
+  deleteAllForUser(userId: string): Promise<number>
 }

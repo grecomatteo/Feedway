@@ -2,6 +2,7 @@ import { accountsModule } from './accounts/module.js'
 import { auditModule } from './audit/module.js'
 import { identityModule } from './identity/module.js'
 import { mediaModule } from './media/module.js'
+import { notificationsModule } from './notifications/module.js'
 import type { ModuleDefinition, UserAnonymizedHandler } from './module-definition.js'
 import { organizationsModule } from './organizations/module.js'
 import { platformModule } from './platform/module.js'
@@ -19,6 +20,7 @@ export const MODULES: readonly ModuleDefinition[] = [
   mediaModule,
   rulesModule,
   postsModule,
+  notificationsModule,
   auditModule,
 ]
 

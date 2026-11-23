@@ -29,7 +29,11 @@ import { drizzleUploadSessions } from './media/upload-sessions.js'
 import { drizzleContentSettings } from './posts/content-settings.js'
 import { drizzlePosts } from './posts/repositories.js'
 import { drizzlePublishing } from './posts/publishing.js'
-import { drizzleNotificationPrefs, drizzleNotifications } from './notifications/repositories.js'
+import {
+  drizzleNotificationPrefs,
+  drizzleNotifications,
+  drizzleTelegramLinks,
+} from './notifications/repositories.js'
 import { drizzleOutbox } from './outbox/repositories.js'
 import { drizzlePlatformSettings } from './platform/repositories.js'
 import type { TxContext } from './tx-context.js'
@@ -71,6 +75,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     outbox: drizzleOutbox(db, ids, ctx),
     notifications: drizzleNotifications(db, ids),
     notificationPrefs: drizzleNotificationPrefs(db),
+    telegramLinks: drizzleTelegramLinks(db),
     contentSettings: drizzleContentSettings(db),
     audit: drizzleAuditLog(db, ids, ctx),
   }

@@ -1,6 +1,7 @@
 import {
   can,
   connectionNeedsRefresh,
+  healthWorsened,
   DomainError,
   type ConnectionStatus,
   type OrgActor,
@@ -74,6 +75,8 @@ const ENDED_MESSAGES: Record<'expired' | 'revoked', string> = {
   expired: 'Il token del collegamento non vale più: collegalo di nuovo',
   revoked: 'Il cliente ha tolto l’accesso a Meta: chiedigli di nuovo l’accesso e ricollega',
 }
+
+const ENDED_TEXTS: ReadonlySet<string> = new Set(Object.values(ENDED_MESSAGES))
 
 const works = (status: ConnectionStatus) => status === 'active' || status === 'pending'
 const keyOf = (a: { platform: Platform; externalId: string }) => `${a.platform}:${a.externalId}`
@@ -244,6 +247,13 @@ async function endConnection(
   const done = await deps.uow.run(scopeOf(job), async (tx) => {
     if (!(await lockSame(tx, opened))) return false
     await tx.connections.setStatus(organizationId, connectionId, status)
+    // one event for the connection: its accounts turn red with it, not one event each (§12.2).
+    // lockSame let it through only while it worked, so it is written once per change.
+    await tx.outbox.record({
+      organizationId,
+      type: 'account.token_invalid',
+      payload: { connectionId, status },
+    })
     for (const account of opened.accounts)
       await tx.accounts.setHealth(organizationId, connectionId, account.id, {
         health: 'error',
@@ -342,6 +352,16 @@ export async function checkConnectionHealth(
   const { organizationId, connectionId } = job
   const written = await deps.uow.run(scopeOf(job), async (tx) => {
     if (!(await lockSame(tx, opened))) return null
+    // the health as it is now, under the connection's lock: what a sync or another check wrote
+    // while Meta answered is what this check is compared with (plan 08 Task 4). The red that
+    // `endConnection` wrote is the token's, already told by `account.token_invalid`: after the
+    // token is replaced it counts as never checked, so a problem the new token has is told.
+    const before = new Map(
+      (await tx.accounts.listOwnedBy(organizationId, connectionId)).map((a) => [
+        a.id,
+        a.healthMessage !== null && ENDED_TEXTS.has(a.healthMessage) ? null : a.health,
+      ]),
+    )
     let checked = 0
     for (const account of opened.accounts) {
       const report = reports.get(keyOf(account))
@@ -353,6 +373,19 @@ export async function checkConnectionHealth(
         at,
       })
       checked += 1
+      // only when it turns worse, not at every check that finds it still ill
+      if (healthWorsened(before.get(account.id) ?? null, report.health))
+        await tx.outbox.record({
+          organizationId,
+          type: 'account.unhealthy',
+          payload: {
+            accountId: account.id,
+            connectionId,
+            health: report.health,
+            problem: report.problem,
+          },
+          dedupeKey: `${account.id}:${report.health}:${at.toISOString()}`,
+        })
     }
     await tx.connections.recordUsage(organizationId, connectionId, check.usage)
     await tx.connections.setScopes(organizationId, connectionId, check.scopes)

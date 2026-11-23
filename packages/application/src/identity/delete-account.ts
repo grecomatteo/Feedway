@@ -178,7 +178,7 @@ export async function anonymizeUser(
   await deps.storage.deletePrefix(`users/${userId}/`)
 
   // (5) the other modules
-  for (const handler of deps.onUserAnonymized) await handler({ userId, source })
+  for (const handler of deps.onUserAnonymized) await handler({ userId, source }, { uow: deps.uow })
   deps.logger.info({ userId, source }, 'user anonymized')
   return true
 }

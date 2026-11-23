@@ -2,6 +2,7 @@ import type { ModuleDefinition } from '../module-definition.js'
 
 export type {
   AnonymizationSource,
+  UserAnonymizedDeps,
   UserAnonymizedEvent,
   UserAnonymizedHandler,
 } from '../module-definition.js'

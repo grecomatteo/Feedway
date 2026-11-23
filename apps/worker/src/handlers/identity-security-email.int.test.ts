@@ -83,6 +83,10 @@ function depsWith(mailer: Mailer, logger: Logger = runtime.logger): JobHandlerDe
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),
     },
+    metaReminders: {
+      integrations: { get: () => Promise.reject(new Error('not used')) },
+      graph: { version: 'v24.0', sunset: '2099-12-31' },
+    },
     images: createAvatarProcessor(),
     media: unusedMediaTools,
   }
