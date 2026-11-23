@@ -983,7 +983,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 | Destinazione in pausa | Avviso | Pannello + Telegram, ai Manager |
 | Programmazione in blocco completata | Info | Pannello |
 | Contenuto pianificato da preparare entro domani (§11.12) | Avviso | Pannello + Telegram, a chi può prepararlo nello spazio |
-| Token non valido, account non sano, promemoria Meta | Critico / Avviso | Tutti, a Owner e Admin |
+| Token non valido (quando il collegamento smette di funzionare), account non sano (quando la salute peggiora, non a ogni controllo), promemoria Meta (una volta per promemoria e scadenza, da `accounts.daily`) | Critico / Avviso | Tutti, a Owner e Admin |
 | Quota IG quasi esaurita | Avviso | Pannello |
 | Worker fermo da più di 2 minuti | Critico | Telegram + email all'amministratore della piattaforma (inviato dal web) |
 | Backup fallito | Critico | Tutti, all'amministratore della piattaforma |
