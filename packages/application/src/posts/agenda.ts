@@ -249,6 +249,15 @@ const thumbnailOf = (
 }
 
 /**
+ * The destinations a row shows: an account cancelled on its own is left out, so the platforms
+ * beside «Pubblicato» are those it went to (D-120.7); a post cancelled whole keeps them all.
+ */
+export function shownTargets<T extends { status: string }>(targets: readonly T[]): T[] {
+  const live = targets.filter((t) => t.status !== 'cancelled')
+  return live.length > 0 ? live : [...targets]
+}
+
+/**
  * The files and the accounts of the posts, read client by client as the posts module always reads
  * them. The files only where the person uses the library: the Viewer sees no thumbnail (D-72).
  */
@@ -277,13 +286,13 @@ async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]
     thumbnail: (p: PostRecord) => thumbnailOf(p, media),
     /** each destination's account with its platform */
     accounts: (p: PostRecord): [string, Platform][] =>
-      p.targets.flatMap((t) => {
+      shownTargets(p.targets).flatMap((t) => {
         const platform = platforms.get(t.accountId)
         return platform ? [[t.accountId, platform] as [string, Platform]] : []
       }),
     platforms: (p: PostRecord) => [
       ...new Set(
-        p.targets.flatMap((t) => {
+        shownTargets(p.targets).flatMap((t) => {
           const platform = platforms.get(t.accountId)
           return platform ? [platform] : []
         }),
