@@ -1,6 +1,7 @@
 import { captionStats } from '../../../rules/caption.js'
 import type { PlatformRules, PlatformView, RuleFinding } from '../../../rules/types.js'
 import { facebookFormat } from './content-types.js'
+import { hasCoverPermissions } from '../permissions.js'
 import { META_LIMITS as L } from './limits.js'
 import { isPendingMedia } from '../../../rules/post-rules.js'
 import { secondsUp } from '../../../rules/seconds.js'
@@ -102,16 +103,6 @@ function checkReel(view: PlatformView): RuleFinding[] {
         effects: { skip_platform: skip },
       })
   }
-  if (view.cover)
-    findings.push({
-      level: 'warning',
-      code: 'cover_on_facebook',
-      subject: { kind: 'cover' },
-      platform,
-      params: { platform },
-      options: ['accept'],
-      recommended: 'accept',
-    })
   return findings
 }
 
@@ -135,18 +126,30 @@ export const FACEBOOK_RULES: PlatformRules = {
   },
   // the 30 reels are counted in the 24 hours before the instant by `history.reelsLast24h` (D-69)
   checkAccount(view, account, history) {
-    if (view.format !== 'reel') return []
+    const findings: RuleFinding[] = []
+    // the cover goes up only with its two permissions (D-120.9): one Page without them is enough
+    // for the warning, which keeps the key of the post's cover (a choice made before stays)
+    if (view.cover && view.format === 'reel' && !hasCoverPermissions(account.scopes))
+      findings.push({
+        level: 'warning',
+        code: 'cover_on_facebook',
+        subject: { kind: 'cover' },
+        platform,
+        params: { platform },
+        options: ['accept'],
+        recommended: 'accept',
+      })
+    if (view.format !== 'reel') return findings
     const reels = history.reelsLast24h.get(account.id) ?? 0
     const limit = L.facebookReelsPer24h.value
-    if (reels < limit) return []
-    return [
-      {
-        level: 'block',
-        code: 'facebook_reels_limit',
-        subject: { kind: 'destination', accountId: account.id },
-        platform,
-        params: { platform, limit },
-      },
-    ]
+    if (reels < limit) return findings
+    findings.push({
+      level: 'block',
+      code: 'facebook_reels_limit',
+      subject: { kind: 'destination', accountId: account.id },
+      platform,
+      params: { platform, limit },
+    })
+    return findings
   },
 }

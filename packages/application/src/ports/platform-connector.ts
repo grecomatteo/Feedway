@@ -79,6 +79,8 @@ export interface ConnectionCredentials<AppCredentials = unknown> {
 export interface PermissionCheck {
   name: string
   granted: boolean
+  /** Not needed to publish: only for one feature (Meta: the cover of a Facebook reel). */
+  optional?: boolean
 }
 
 /**
@@ -96,6 +98,8 @@ export type TokenCheck =
       permissions: PermissionCheck[]
       /** The name the platform gives the owner of the token (Meta: its Business); null: unknown. */
       businessName: string | null
+      /** Every permission the token has, as the platform gave them (D-120.9). */
+      scopes: string[]
     }
   | {
       ok: false
@@ -160,5 +164,11 @@ export interface AccountHealthReport {
  * `app_rejected`: the agency's app is refused; `unavailable`: no answer, nothing is known.
  */
 export type HealthCheck =
-  | { ok: true; accounts: AccountHealthReport[]; usage: unknown }
+  | {
+      ok: true
+      accounts: AccountHealthReport[]
+      usage: unknown
+      /** Every permission the token has now: a permission added later counts from here. */
+      scopes: string[]
+    }
   | { ok: false; reason: 'expired' | 'revoked' | 'app_rejected' | 'unavailable' }

@@ -10,7 +10,11 @@ import type {
   PlatformConnector,
   TokenCheck,
 } from '@app/application'
-import { META_REQUIRED_PERMISSIONS, type MetaUsage } from '@app/domain/platforms/meta'
+import {
+  META_COVER_PERMISSIONS,
+  META_REQUIRED_PERMISSIONS,
+  type MetaUsage,
+} from '@app/domain/platforms/meta'
 import { createMetaAppConnector } from './app-connector.js'
 import { MetaError, type MetaErrorReason } from './errors.js'
 import type {
@@ -213,14 +217,15 @@ export async function checkMetaHealth(
   const credentials = { accessToken: token, appSecret: app.appSecret }
   let usage: MetaUsage
   let missingPermission: boolean
+  let scopes: string[]
   try {
     const debug = await client.debugToken(app, token)
     usage = debug.usage
     if (!debug.data.isValid)
       // 190/458 in debug_token: the user took the authorization away (docs/platforms/meta.md)
       return { ok: false, reason: debug.data.error?.subcode === 458 ? 'revoked' : 'expired' }
-    const scopes = new Set(debug.data.scopes)
-    missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.has(p))
+    scopes = [...debug.data.scopes]
+    missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.includes(p))
   } catch (error) {
     if (!(error instanceof MetaError)) throw error
     // debug_token authenticates the app: a refusal is about the app, not the token
@@ -243,6 +248,7 @@ export async function checkMetaHealth(
       ok: true,
       accounts: targets.map((t) => report(t, 'error', 'permission_missing')),
       usage,
+      scopes,
     }
 
   let seen: PlatformAccount[]
@@ -273,7 +279,7 @@ export async function checkMetaHealth(
     if (error instanceof TokenEndedError) return { ok: false, reason: error.ended }
     throw error
   }
-  return { ok: true, accounts, usage }
+  return { ok: true, accounts, usage, scopes }
 
   async function instagramHealth(target: HealthTarget): Promise<AccountHealthReport> {
     try {
@@ -350,10 +356,15 @@ export function createMetaSystemUserConnector(deps: {
         }
       }
       const scopes = new Set(info.scopes)
-      const permissions: PermissionCheck[] = META_REQUIRED_PERMISSIONS.map((name) => ({
-        name,
-        granted: scopes.has(name),
-      }))
+      const permissions: PermissionCheck[] = [
+        ...META_REQUIRED_PERMISSIONS.map((name) => ({ name, granted: scopes.has(name) })),
+        // only for the cover of a Facebook reel: their absence never stops the connection
+        ...META_COVER_PERMISSIONS.map((name) => ({
+          name,
+          granted: scopes.has(name),
+          optional: true,
+        })),
+      ]
       // a token of another app would also fail every call, its proof made with our secret; a
       // page or app token is no user's (Meta's documented types, the system user's one is not
       // verified: end of Task 7)
@@ -365,7 +376,7 @@ export function createMetaSystemUserConnector(deps: {
         info.type === 'APP'
       )
         return { ok: false, reason: 'rejected', permissions: [] }
-      if (permissions.some((p) => !p.granted))
+      if (permissions.some((p) => p.optional !== true && !p.granted))
         return { ok: false, reason: 'permissions_missing', permissions }
       return {
         ok: true,
@@ -379,6 +390,7 @@ export function createMetaSystemUserConnector(deps: {
         // working is found by the daily health check (Task 10). Not verified on real Meta.
         expiresAt: info.expiresAt instanceof Date ? info.expiresAt : null,
         permissions,
+        scopes: [...scopes],
       }
     },
 

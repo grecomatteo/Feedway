@@ -8,6 +8,7 @@ import {
 } from '@app/domain'
 import { publishedFilesOf } from '../media/index.js'
 import type { Logger } from '../ports/logger.js'
+import { coverOutcomeOf } from '../ports/platform-publisher.js'
 import type { PostRecord } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
 import { copyKey } from './publishing/copies-in-use.js'
@@ -40,7 +41,7 @@ export interface OutcomeVersionDto {
   /**
    * The reel's cover as the account shows it: the copy published, made of `mediaId` (the image
    * chosen, or the video at `offsetMs`). null: the platform's own (Facebook takes the first
-   * frame, D-120.8).
+   * frame, D-120.8, unless the cover was sent after the reel, D-120.9).
    */
   cover: { mediaId: string; copyId: string | null; offsetMs: number | null } | null
 }
@@ -65,7 +66,11 @@ export async function outcomePreview(
   input: {
     actor: OrgActor
     post: PostRecord
-    targets: readonly { accountId: string; publishedAt: Date | null }[]
+    targets: readonly {
+      accountId: string
+      publishedAt: Date | null
+      metaIds: Record<string, unknown> | null
+    }[]
     /** the reader sees the files (`media.upload`): a Viewer gets no copy (D-72) */
     mayReadFiles: boolean
   },
@@ -109,10 +114,11 @@ export async function outcomePreview(
   const out = new Map(input.targets.map((t) => [t.accountId, t] as const))
   const versions = report.destinations.flatMap((d): OutcomeVersionDto[] => {
     const f = files.find((x) => x.accountId === d.accountId)
-    if (!out.has(d.accountId) || !f || d.platform === null || d.format === null) return []
+    const target = out.get(d.accountId)
+    if (!target || !f || d.platform === null || d.format === null) return []
     const cover =
-      // Facebook takes the first frame of a reel: the cover chosen goes only to Instagram
-      f.cover === null || f.platform === 'facebook'
+      // Facebook shows its first frame unless the cover was sent after the reel (D-120.9)
+      f.cover === null || (f.platform === 'facebook' && coverOutcomeOf(target.metaIds) !== 'done')
         ? null
         : {
             mediaId: f.cover.mediaId,

@@ -18,6 +18,7 @@ import { isUuid } from '../../identity/index.js'
 import type { ConnectionTokens } from '../../ports/connection-tokens.js'
 import type { Clock } from '../../ports/clock.js'
 import type { IdGenerator } from '../../ports/id-generator.js'
+import type { Storage } from '../../ports/storage.js'
 import type { JobQueue, TargetJobData } from '../../ports/job-queue.js'
 import type { Logger } from '../../ports/logger.js'
 import type { ConnectionCredentials, PlatformConnectors } from '../../ports/platform-connector.js'
@@ -53,6 +54,8 @@ export interface PublishingWorkerDeps {
   publicUrl: URL | null
   ids: IdGenerator
   newPublicToken: () => string
+  /** Where the copies are: a cover is read from here when the platform takes its bytes. */
+  storage: Pick<Storage, 'get'>
 }
 
 /** A job of one step, as the worker hands it. */
@@ -178,7 +181,12 @@ export async function openAccount(
     tokenEnc: connection.tokenEnc,
   })
   return {
-    account: { platform: account.platform, externalId: account.externalId, pageId: account.pageId },
+    account: {
+      platform: account.platform,
+      externalId: account.externalId,
+      pageId: account.pageId,
+      scopes: connection.scopes,
+    },
     connectionId: connection.id,
     credentials: { app, token },
     publisher,

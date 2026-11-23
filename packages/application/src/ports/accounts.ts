@@ -178,6 +178,11 @@ export interface ConnectionRecord {
   lastUsage: unknown
   /** The platform's name for the token's owner (Meta: the Business); null: not known. */
   businessName: string | null
+  /**
+   * The token's permissions as the platform gave them at the last check (Meta: `debug_token`);
+   * null: never read (connections made before stage 8).
+   */
+  scopes: string[] | null
   createdAt: Date
   updatedAt: Date
 }
@@ -198,6 +203,7 @@ export interface NewConnection {
   keyVersion: number
   expiresAt: Date | null
   businessName?: string | null
+  scopes?: string[] | null
 }
 
 export interface ConnectionsRepository {
@@ -229,11 +235,15 @@ export interface ConnectionsRepository {
       at: Date
       /** Left out: the name stays as it was. */
       businessName?: string
+      /** Left out: the permissions stay as they were. */
+      scopes?: string[]
     },
   ): Promise<boolean>
   setStatus(organizationId: string, id: string, status: ConnectionStatus): Promise<boolean>
   /** The owner's name as the platform gives it now (D-108). false: no such connection. */
   setBusinessName(organizationId: string, id: string, name: string): Promise<boolean>
+  /** The token's permissions as the daily check read them (D-120.9). */
+  setScopes(organizationId: string, id: string, scopes: string[]): Promise<void>
   /** The platform's usage counters from the last call. */
   recordUsage(organizationId: string, id: string, usage: unknown): Promise<void>
   /**

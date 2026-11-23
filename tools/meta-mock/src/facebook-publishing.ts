@@ -26,6 +26,8 @@ interface Video {
   finished: boolean
   description: string
   createdAt: Date
+  /** The covers sent with `POST /{video}/thumbnails`, the preferred one last (D-120.9). */
+  thumbnails: { contentType: string; size: number; preferred: boolean }[]
 }
 
 interface Post {
@@ -197,6 +199,7 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
       finished: false,
       description: '',
       createdAt: new Date(),
+      thumbnails: [],
     }
     videos.set(video.id, video)
     return video
@@ -262,6 +265,21 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     const story = newStory(pageId, 'photo', item.id)
     item.usedIn = story.postId
     return published({ success: true, post_id: story.postId })
+  }
+
+  /**
+   * The cover of a video (`/{video-id}/thumbnails`, Page videos reference): a `source` image as a
+   * multipart file, `is_preferred` to show it. Not verified on the real Graph API.
+   */
+  function thumbnail(videoId: string, params: URLSearchParams): PublishingAnswer {
+    const video = videos.get(videoId)
+    if (video === undefined || video.edge === 'video_stories') return notFound(videoId)
+    // the server writes a multipart file as `file:<type>:<bytes>`
+    const file = /^file:(image\/(?:jpeg|png)):(\d+)$/.exec(params.get('source') ?? '')
+    if (file === null) return paramError('The parameter source is required as an image file')
+    const preferred = params.get('is_preferred') === 'true'
+    video.thumbnails.push({ contentType: file[1] ?? '', size: Number(file[2]), preferred })
+    return { status: 200, body: { success: true } }
   }
 
   const processed = (v: Video) => v.uploaded && !v.failed && v.pendingReads === 0
@@ -406,6 +424,10 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
         )
       }
       const owner = ownerOf(id)
+      if (owner !== undefined && edge === 'thumbnails' && method === 'POST') {
+        if (tokenSubject !== owner) return needsPageToken()
+        return thumbnail(id, params)
+      }
       if (owner === undefined || edge !== undefined) return null
       if (tokenSubject !== owner) return needsPageToken()
       if (method === 'DELETE') return remove(id, owner)
