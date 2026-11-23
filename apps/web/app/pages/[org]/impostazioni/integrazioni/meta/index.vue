@@ -72,6 +72,37 @@ function appSaved() {
 watch(editing, (open) => {
   if (open) saved.value = false
 })
+
+/**
+ * «L'app è in Live» (ADR 022): Graph has no documented field for the app's mode, so the Owner
+ * says it. Saved like the rest of the app (PUT, with a recent confirmation), the stored values
+ * as they are; the switch shows the new state while it is sent and goes back on a failure.
+ */
+const { call, failure } = useApi()
+const live = reactive({ sending: false, value: null as boolean | null, problem: '' })
+const appLive = computed(() => live.value ?? integration.value?.appLive ?? false)
+async function setLive(value: boolean) {
+  const i = integration.value
+  if (!i || live.sending) return
+  Object.assign(live, { sending: true, value, problem: '' })
+  saved.value = false
+  try {
+    await withReauth(async () => {
+      const r = await call<{ integration: MetaIntegration }>('PUT', org.api('/integrations/meta'), {
+        appId: i.appId,
+        configId: i.configId,
+        businessId: i.businessId,
+        dataUseCheckupDueOn: i.dataUseCheckupDueOn,
+        appLive: value,
+      })
+      data.value = { integration: r.integration }
+    })
+  } catch (e) {
+    if (!(e instanceof ReauthCancelled)) live.problem = failure(e).message
+  } finally {
+    Object.assign(live, { sending: false, value: null })
+  }
+}
 </script>
 
 <template>
@@ -123,6 +154,12 @@ watch(editing, (open) => {
           <p v-if="saved" role="status" class="text-detail text-(--app-success)">
             {{ $t('metaIntegration.saved') }}
           </p>
+          <StatusDot
+            v-if="integration && editable && !appLive"
+            tone="warning"
+            :label="$t('metaIntegration.inDevelopment')"
+            data-testid="meta-app-development"
+          />
         </template>
         <div
           v-if="!data && !error && (status === 'pending' || status === 'idle')"
@@ -164,6 +201,39 @@ watch(editing, (open) => {
               {{ $t('metaIntegration.replace') }}
             </UButton>
           </SettingsRow>
+          <SettingsRow
+            inline
+            :for="editable ? 'meta-app-live' : undefined"
+            :label="$t('metaIntegration.live')"
+          >
+            <template #hint>
+              <span id="meta-app-live-hint" class="block text-detail text-(--app-text-muted)">
+                {{ $t(appLive ? 'metaIntegration.liveHint' : 'metaIntegration.developmentHint') }}
+              </span>
+            </template>
+            <USwitch
+              v-if="editable"
+              id="meta-app-live"
+              aria-describedby="meta-app-live-hint"
+              :model-value="appLive"
+              :loading="live.sending"
+              :disabled="live.sending"
+              data-testid="meta-app-live"
+              @update:model-value="setLive"
+            />
+            <StatusDot
+              v-else
+              :tone="appLive ? 'success' : 'warning'"
+              :label="$t(appLive ? 'metaIntegration.isLive' : 'metaIntegration.inDevelopment')"
+            />
+          </SettingsRow>
+          <p
+            v-if="live.problem"
+            role="alert"
+            class="border-t border-(--app-border) px-4 py-3 text-(--app-danger)"
+          >
+            {{ live.problem }}
+          </p>
           <SettingsRow v-if="integration.businessId" :label="$t('metaIntegration.businessId')">
             <span class="tabular-nums">{{ integration.businessId }}</span>
           </SettingsRow>

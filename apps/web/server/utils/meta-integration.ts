@@ -13,6 +13,7 @@ export function metaIntegrationDto(view: MetaIntegrationView) {
     configId: view.configId,
     businessId: view.businessId,
     dataUseCheckupDueOn: view.dataUseCheckupDueOn,
+    appLive: view.appLive,
     verifiedAt: view.verifiedAt?.toISOString() ?? null,
     rejectedAt: view.rejectedAt?.toISOString() ?? null,
     updatedAt: view.updatedAt.toISOString(),
