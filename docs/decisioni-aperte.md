@@ -623,6 +623,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   4. **Funzioni non ancora fatte:** si mostrano tutte, con l'anteprima, e un segno «In arrivo» gestito da un solo elenco nel codice del sito, tolto a ogni fine tappa con l'aggiornamento di README e landing. L'informativa descrive solo i trattamenti che esistono (Platform Terms 4.c; Developer Policy 1.4).
   5. **Conservazione delle richieste di demo** nella casella email: quanti mesi.
 - **Proposta:** 2 (a) termini brevi, 3 istruzioni ora, 4 come scritto.
+- **Dati del titolare (punto 1) e mesi del punto 5:** Matteo li passa più avanti (23/11). Fino ad allora il sito si costruisce con segnaposto ben visibili (`✎ Titolare`, `✎ email privacy`, `✎ P.IVA`) raccolti in un solo file di configurazione del sito, e un controllo della CI o del rilascio impedisce di pubblicare finché ne resta uno. Si inseriscono prima di pubblicare il sito e di passare l'app Meta a Live.
 - **Stato:** aperta, da decidere prima di pubblicare il sito.
 
 ## Ridisegno del pannello
