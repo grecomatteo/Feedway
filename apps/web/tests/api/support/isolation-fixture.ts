@@ -349,6 +349,9 @@ export function fill(path: string, values: Record<string, string>): string {
 }
 
 const PLACEHOLDER_STAGING = randomUUID()
+const PLACEHOLDER_COPY = randomUUID()
+/** The `preview` copy of each case's video: `{copyId}` follows `{mediaId}`, of A or of B. */
+const copyOfMedia = new Map<string, string>()
 
 /** The path values of an agency's case. */
 export const pathValues = (ids: SampleIds): Record<string, string> => ({
@@ -360,6 +363,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   accountId: ids.account,
   mediaId: ids.media,
   variant: 'preview',
+  copyId: copyOfMedia.get(ids.media) ?? PLACEHOLDER_COPY,
   uploadId: ids.upload,
   folderId: ids.folder,
   postId: ids.post,
@@ -545,12 +549,14 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     )
     const key = `org/${organizationId}/media/${id}/preview.mp4`
     const { size } = await storage.put(key, SAMPLE_PREVIEW, { contentType: 'video/mp4' })
+    const copyId = randomUUID()
     await env.admin.pool.query(
       `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
                                    size_bytes)
        values ($1, $2, $3, 'preview', $4, 'video/mp4', $5)`,
-      [randomUUID(), organizationId, id, key, size],
+      [copyId, organizationId, id, key, size],
     )
+    copyOfMedia.set(id, copyId)
     return id
   }
 

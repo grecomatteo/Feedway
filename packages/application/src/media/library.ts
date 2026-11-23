@@ -490,6 +490,29 @@ export async function readMediaFile(
   return readCopy(deps.storage, variant, input.range)
 }
 
+/**
+ * A copy made to publish (plan 08 Task 10), by its id among the copies of the file: what the
+ * page of the outcome shows of a destination. null as for `readMediaFile`, and for a copy not
+ * ready or already thrown away.
+ */
+export async function readMediaCopy(
+  deps: { uow: UnitOfWork; storage: Storage },
+  actor: OrgActor,
+  input: { workspaceId: string; mediaId: string; copyId: string; range: ByteRange | null },
+): Promise<MediaFile | null> {
+  const { organizationId } = actor
+  const copy = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const { workspace } = await openLibrary(tx, actor, input.workspaceId)
+    if (!isUuid(input.mediaId) || !isUuid(input.copyId)) return null
+    const found = await tx.media.findById(organizationId, input.mediaId)
+    if (found?.workspaceId !== workspace.id || found.status === 'deleted') return null
+    const copies = await tx.media.copiesOf(organizationId, [found.id])
+    return copies.find((c) => c.id === input.copyId && c.status === 'ready') ?? null
+  })
+  if (!copy || !SERVED_TYPES.includes(copy.mime)) return null
+  return readCopy(deps.storage, copy, input.range)
+}
+
 /** A stored copy, whole or the byte range asked; null when its file is gone from the storage. */
 export async function readCopy(
   storage: Storage,

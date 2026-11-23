@@ -6,6 +6,7 @@ export {
   listMedia,
   mediaNotFound,
   openLibrary,
+  readMediaCopy,
   readMediaFile,
 } from './library.js'
 export type {

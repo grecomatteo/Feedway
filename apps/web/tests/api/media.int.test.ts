@@ -269,3 +269,33 @@ test('a file refused for good, or not failed, cannot be tried again', async () =
       .status,
   ).toBe(404)
 })
+
+test('a copy that was published is served by its id, only with its own file (plan 08 Task 10)', async () => {
+  const id = await video(w1)
+  const other = await video(w1)
+  const storage = createLocalDiskStorage({ root: env.web.mediaRoot })
+  const copyId = randomUUID()
+  const key = `org/${org.id}/media/${id}/reel-abc.mp4`
+  await storage.put(key, PREVIEW, { contentType: 'video/mp4' })
+  await env.admin.pool.query(
+    `insert into media_variants (id, organization_id, media_id, purpose, recipe, storage_key,
+                                 mime, size_bytes, public_token)
+     values ($1, $2, $3, 'reel', 'abc', $4, 'video/mp4', $5, $6)`,
+    [copyId, org.id, id, key, PREVIEW.length, randomBytes(24).toString('base64url')],
+  )
+  const copy = (mediaId: string) => `${base(w1)}/${mediaId}/copies/${copyId}`
+  const whole = await get(copy(id), cookies.editor)
+  expect(whole.status).toBe(200)
+  expect(whole.headers.get('content-type')).toBe('video/mp4')
+  expect(Buffer.from(await whole.arrayBuffer())).toEqual(PREVIEW)
+  const part = await get(copy(id), cookies.editor, { range: 'bytes=10-19' })
+  expect(part.status).toBe(206)
+  expect(Buffer.from(await part.arrayBuffer())).toEqual(PREVIEW.subarray(10, 20))
+  // through another file, another workspace or by the Viewer: as if it did not exist
+  expect((await get(copy(other), cookies.editor)).status).toBe(404)
+  expect((await get(`${base(w2)}/${id}/copies/${copyId}`, cookies.editor)).status).toBe(404)
+  expect((await get(copy(id), cookies.viewer)).status).toBe(404)
+  // a copy not made yet, or thrown away
+  await env.admin.pool.query("update media_variants set status = 'pending' where id = $1", [copyId])
+  expect((await get(copy(id), cookies.editor)).status).toBe(404)
+})

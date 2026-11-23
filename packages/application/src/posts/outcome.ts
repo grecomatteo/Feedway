@@ -2,7 +2,9 @@ import { displayName, type OrgActor, type TargetStatus } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { AuditAction } from '../ports/audit-log.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import type { CheckPostDeps } from '../rules/index.js'
 import { openPosts, postNotFound } from './common.js'
+import { outcomePreview, type OutcomePreviewDto } from './outcome-preview.js'
 
 // The page of the outcome (plan 07 Task 9, Scelta 6): every destination of a post with its link
 // or its reason, and the activity, from the log and from the calls to the platform. Every member
@@ -53,6 +55,8 @@ export interface ActivityDto {
 
 export interface PostOutcomeDto {
   destinations: DestinationOutcomeDto[]
+  /** the post as each account received it (plan 08 Task 10); null: read from the post itself */
+  preview: OutcomePreviewDto | null
   /** the latest first */
   activity: ActivityDto[]
 }
@@ -75,7 +79,7 @@ const ATTEMPT_KIND: Record<string, ActivityKind | undefined> = {
 }
 
 export async function getPostOutcome(
-  deps: { uow: UnitOfWork },
+  deps: { uow: UnitOfWork } & Omit<CheckPostDeps, 'uow'>,
   actor: OrgActor,
   input: { workspaceId: string; postId: string },
 ): Promise<PostOutcomeDto> {
@@ -135,7 +139,15 @@ export async function getPostOutcome(
           },
         ]
       })
+      const preview = await outcomePreview(
+        tx,
+        deps,
+        actor,
+        post,
+        targets.map((t) => t.accountId),
+      )
       return {
+        preview,
         destinations: targets.map((t) => ({
           accountId: t.accountId,
           status: t.status,

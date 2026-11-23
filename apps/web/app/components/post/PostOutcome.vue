@@ -142,6 +142,12 @@ const rows = computed(() =>
 
 // ---- the left column
 const showsFiles = computed(() => role.value !== 'viewer')
+/** the post as each account received it; without it (not readable now) the post's own files */
+const preview = computed(() =>
+  outcome.value?.preview && outcome.value.preview.versions.length > 0
+    ? outcome.value.preview
+    : null,
+)
 const tiles = computed(() =>
   current.value.media
     .filter((m) => m.status !== 'deleted')
@@ -394,8 +400,18 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
       >
         <!-- the post as it went -->
         <section class="flex min-w-0 flex-col gap-4" :aria-label="$t('posts.outcome.thePost')">
+          <!-- the post as each account received it, as the editor's preview (Task 10) -->
+          <PostOutcomePreview
+            v-if="preview"
+            class="w-full max-w-[26rem]"
+            :preview="preview"
+            :post="current"
+            :accounts="accounts"
+            :api="api"
+            :show-files="showsFiles"
+          />
           <ul
-            v-if="showsFiles && tiles.length > 0"
+            v-else-if="showsFiles && tiles.length > 0"
             class="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:thin]"
             data-outcome-files
           >
@@ -419,7 +435,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
               />
             </li>
           </ul>
-          <p v-if="text" class="max-w-[35rem] whitespace-pre-line" data-outcome-text>
+          <p v-if="text && !preview" class="max-w-[35rem] whitespace-pre-line" data-outcome-text>
             {{ text }}
           </p>
           <div class="flex flex-wrap items-center gap-2 text-detail text-(--app-text-muted)">
