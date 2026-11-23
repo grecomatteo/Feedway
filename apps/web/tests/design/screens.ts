@@ -232,6 +232,76 @@ async function libraryLikeTheScreen(page: Page, s: DesignSample) {
 
 const forno = (s: DesignSample) => s.clients['Forno Luce'] ?? { id: '', slug: '' }
 
+/**
+ * The bell of screen 05 (plan 08 Task 6): the notifications of that morning as the dispatcher
+ * writes them, two unread (the reel that did not go out, the Page to connect again), then
+ * yesterday's post out everywhere and Monday's reminder, read. The centre words them now.
+ */
+async function notificationsLikeTheScreen(page: Page, s: DesignSample) {
+  const [seeded] = await adminQuery<{ n: number }>(
+    'select count(*)::int as n from notifications where user_id = $1',
+    [s.owner.userId],
+  )
+  if (!seeded?.n) await seedNotifications(s)
+  await page.reload()
+  await page.locator('[data-ready]').first().waitFor()
+  const bell = page.getByRole('button', { name: /^Notifiche, 2 da leggere/ }).locator('visible=true')
+  await bell.click({ timeout: 15_000 })
+  await page.locator('[data-notification]').locator('visible=true').first().waitFor()
+  await page.mouse.move(0, 0)
+  await page.waitForTimeout(400)
+}
+
+async function seedNotifications(s: DesignSample) {
+  const account = async (name: string, platform: string) =>
+    (
+      await adminQuery<{ id: string }>(
+        'select id from social_accounts where organization_id = $1 and name = $2 and platform = $3',
+        [s.org, name, platform],
+      )
+    )[0]?.id ?? null
+  const add = async (
+    kind: string,
+    level: string,
+    at: string,
+    read: boolean,
+    workspaceId: string | null,
+    payload: Record<string, unknown>,
+  ) => {
+    const id = crypto.randomUUID()
+    await adminQuery(
+      `insert into notifications (id, organization_id, user_id, event_id, kind, level, workspace_id, payload, created_at, read_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, case when $10::boolean then $9::timestamptz end)`,
+      [id, s.org, s.owner.userId, crypto.randomUUID(), kind, level, workspaceId, payload, at, read],
+    )
+    await adminQuery(
+      `insert into notification_deliveries (id, organization_id, user_id, notification_id, kind, channel, status, sent_at)
+       values ($1, $2, $3, $4, $5, 'panel', 'sent', $6)`,
+      [crypto.randomUUID(), s.org, s.owner.userId, id, kind, at],
+    )
+  }
+  const osteria = s.clients['Osteria Bruna']?.id ?? null
+  await add('meta.reminder', 'warning', '2026-11-16T08:15:00Z', true, null, {
+    reminder: 'data_use_checkup',
+    dueOn: '2026-12-10',
+  })
+  await add('post.confirmed', 'success', '2026-11-18T16:40:00Z', true, forno(s).id, {
+    postId: s.posts['Il pane del lunedì è appena uscito dal forno'],
+    workspaceId: forno(s).id,
+  })
+  await add('account.unhealthy', 'warning', '2026-11-19T07:02:00Z', false, null, {
+    accountId: await account('Forno Luce Bistrot', 'facebook'),
+    health: 'error',
+    problem: 'token_invalid',
+  })
+  await add('post.target_failed', 'error', '2026-11-19T08:31:00Z', false, osteria, {
+    postId: s.posts['Il pranzo del giovedì: tagliatelle al ragù bianco'],
+    workspaceId: osteria,
+    accountId: await account('Osteria Bruna', 'facebook'),
+    code: 'media_rejected',
+  })
+}
+
 export const SCREENS: Screen[] = [
   { id: '00-sistema', path: () => '/__test/sistema', computerOnly: true },
   // the sign-in (Task R8), with the email and a password typed as in the reference
@@ -267,6 +337,7 @@ export const SCREENS: Screen[] = [
     path: (s) => `/${s.org}`,
     prepare: (p) => openShell(p, 'selector'),
   },
+  { id: '05-notifiche', path: (s) => `/${s.org}`, prepare: notificationsLikeTheScreen },
   { id: '06-menu-utente', path: (s) => `/${s.org}`, prepare: (p) => openShell(p, 'person') },
   { id: '14-clienti', path: (s) => `/${s.org}/spazi` },
   // «Nuovo cliente» with the name typed and the two profiles in no client ticked

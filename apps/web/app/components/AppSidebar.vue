@@ -45,17 +45,8 @@ const entry =
         :aria-label="$t('agency.nav.home')"
         ><BrandLogo size="bar"
       /></NuxtLink>
-      <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
-      <button
-        v-if="org.active.value"
-        type="button"
-        aria-disabled="true"
-        :aria-label="`${$t('agency.nav.notifications')} (${$t('client.soon')})`"
-        :title="$t('client.soon')"
-        class="flex size-control-sm items-center justify-center rounded-control text-(--app-text) hover:bg-(--app-nav-hover)"
-      >
-        <UIcon name="i-lucide-bell" class="size-4" aria-hidden="true" />
-      </button>
+      <!-- the notifications open from the bell (Matteo, 14/11; plan 08 Task 6) -->
+      <NotificationBell v-if="org.active.value" />
     </div>
 
     <template v-if="org.active.value">

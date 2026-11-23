@@ -100,6 +100,17 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'POST /api/v1/security/lock': () => ({ token: 'link-non-valido' }),
   'POST /api/v1/email-change/confirm': () => ({ token: 'link-non-valido' }),
   'PATCH /api/v1/me': () => ({ theme: 'dark' }),
+  // the notification centre's choices (plan 08 Task 6): the person's own
+  'PUT /api/v1/me/notifications/preferences': () => ({
+    minLevel: 'warning',
+    quietHours: null,
+    digest: { enabled: true, time: '08:00', days: [1, 2, 3, 4, 5] },
+    everythingEverywhere: false,
+  }),
+  'PUT /api/v1/me/notifications/preferences/kinds': () => ({
+    kind: 'post.confirmed',
+    channels: ['panel'],
+  }),
   'POST /api/v1/me/password': () => ({ password: PASSWORD }),
   // a preview nobody uploaded: the personal battery crops a real one of the caller
   'POST /api/v1/me/avatar/crop': () => ({ stagingId: randomUUID(), x: 0, y: 0, size: 64 }),

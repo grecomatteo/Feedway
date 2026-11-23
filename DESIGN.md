@@ -160,6 +160,14 @@ Logo orizzontale e simbolo (tracciati degli SVG originali), pulsante primario (a
 - Calendario cliente: «Stampa o salva PDF», A4 orizzontale, un mese per pagina, solo pubblicazioni da oggi in poi; i contenuti pianificati compaiono come «In preparazione».
 - Piano editoriale (proposta): sezione separata nel menu con mese da riempire e scelta del cliente; nel calendario principale schede tratteggiate «Da preparare» e selettore Tutto · Solo post · Solo piano; stampa del piano con schede piene e loghi. Dettagli in design/proposta-piano-editoriale.md.
 
+## Centro notifiche (23 novembre 2026; tappa 8, Task 6)
+
+- **Campanella:** accanto al logo al computer, in alto a destra sul telefono; un punto arancio da 8 px quando c'è qualcosa da leggere (schermata 05). Il numero lo dicono il lettore di schermo e il titolo del riquadro («Notifiche 2»).
+- **Riquadro (computer) e foglio (telefono):** largo 400 px accanto alla barra laterale; «Notifiche» in Sora con «Segna tutte come lette» come link a destra; le ultime 8 righe; in fondo «Tutte le notifiche».
+- **Riga:** icona del tipo da 18 px nel colore del testo (mai colorata), titolo semigrassetto con il punto arancio attaccato all'ultima parola finché non è letta, sotto la riga del messaggio e il cliente in `text-muted` (al massimo due righe), a destra l'ora oggi e il giorno prima («ieri», «lun 16 nov»). Aprirla la segna come letta.
+- **Pagina `/<agenzia>/notifiche`:** titolo con il numero da leggere, «Segna tutte come lette» con il contorno, filtri in una riga (Tutte / Da leggere, livello, tipo, agenzia), elenco su una superficie, sotto ogni riga cosa è successo fuori dal pannello («Email mandata», «Telegram non collegato»), «Mostra altre».
+- **Preferenze:** in «Profilo e preferenze», gruppi «Notifiche» (una riga per tipo, tre caselle) e «Quando arrivano» (livello, ore di silenzio, riepilogo con i giorni come pulsanti tondi, «Tutto ovunque»). «Email quando un post non esce» sta in «Preferenze», accesa e non modificabile (schermata 23).
+
 ## Menu dell'utente (13 novembre 2026, Matteo)
 
 - In fondo alla barra laterale una riga sola: foto, nome e sotto, in piccolo, «Ruolo · Agenzia». Nessuna freccia: al passaggio del mouse la riga si scurisce appena (`nav-hover`).
@@ -239,7 +247,7 @@ Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Ac
 
 - Barra in basso: Home, Calendario, + (Nuovo post, al centro), Clienti, Tu. Calendario e + si vedono disattivati con «Presto» finché non esistono; un Viewer non vede il +.
 - «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti (per chi li gestisce), Impostazioni, Registro attività (per chi lo vede), Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
-- In alto a destra la campanella delle notifiche (Matteo, 14/11), disattivata con «Presto» fino al centro notifiche (tappa 8).
+- In alto a destra la campanella delle notifiche (Matteo, 14/11). Dalla tappa 8 (Task 6) apre il centro notifiche: un foglio dal basso con le ultime 8 e «Tutte le notifiche»; un punto arancio quando c'è qualcosa da leggere.
 - Fatto nella tappa 4, Task 6b: voci da 60 px, icona da 20 px ed etichetta da 12 px; la voce attiva in grassetto e `text`, le altre `text-muted`. Calendario a metà opacità con una pillola «Presto» sull'icona; il + è un cerchio arancio da 40 px con filetto `text`, a metà opacità con «Presto» sotto. «Tu» ha la foto da 24 px. Il nome per lo screen reader è «Tu, menu di <nome>»; le voci disattivate si leggono «Calendario (Presto)» e «Nuovo post (Presto)». La barra si nasconde quando la tastiera riduce la pagina sotto i tre quarti. In un'agenzia sospesa non c'è la barra: «Tu» sta in alto al posto della campanella.
 - Menu dell'agenzia su computer: Home, Clienti, Utenti (per chi li gestisce). Il menu dell'utente su computer resta com'era (Impostazioni, Registro, Privacy…); Utenti è nella barra laterale.
 - Schermate in `schermate/tappa-4-menu-telefono/` nella cartella del progetto.
