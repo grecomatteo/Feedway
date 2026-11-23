@@ -198,6 +198,24 @@ test('the same settings again change nothing and do not call Meta', async () => 
   expect(again.updatedAt.getTime()).toBe(first.updatedAt.getTime())
 })
 
+test('the Owner says the app is Live: tried with Meta, named in the activity, kept by later saves (ADR 022)', async () => {
+  const first = await save(APP)
+  expect(first.appLive).toBe(false)
+  const calls = verifyCalls.length
+  const live = await save({ appId: APP.appId, appLive: true })
+  expect(live.appLive).toBe(true)
+  expect(verifyCalls).toHaveLength(calls + 1)
+  expect((await auditRows('integration.meta_changed')).at(-1)?.data).toEqual({
+    fields: ['appLive'],
+  })
+  // «Sostituisci» does not carry the switch: what is stored stays
+  const replaced = await save({ appId: APP.appId, businessId: '3000000000000001' })
+  expect(replaced.appLive).toBe(true)
+  expect(
+    (await save({ appId: APP.appId, businessId: '3000000000000001', appLive: false })).appLive,
+  ).toBe(false)
+})
+
 test('a pasted secret is trimmed', async () => {
   await save({ appId: APP.appId, appSecret: `  ${APP.appSecret}\n` })
   expect(await storedSecret(owner.organizationId)).toBe(APP.appSecret)
@@ -350,7 +368,9 @@ test('the activity entries hold field names and outcomes, never a secret', async
   expect(rows).toEqual([
     {
       action: 'integration.meta_changed',
-      data: { fields: ['appId', 'configId', 'businessId', 'dataUseCheckupDueOn', 'appSecret'] },
+      data: {
+        fields: ['appId', 'configId', 'businessId', 'dataUseCheckupDueOn', 'appLive', 'appSecret'],
+      },
     },
     { action: 'integration.meta_tested', data: { ok: true, result: 'verified' } },
   ])

@@ -151,3 +151,50 @@ test('meta integration: an admin sees that the owner has not set it up yet', asy
   await expect(page.getByLabel('App ID')).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
 })
+
+test('meta integration: the owner says the app is Live, the warning goes, the admin reads it (ADR 022)', async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const owner = await newPerson('Olga Live', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await addDataKey(org)
+  await page.goto(`/${org}/impostazioni/integrazioni/meta`)
+  await page.getByLabel('App ID').fill(META_MOCK.app.id)
+  await page.getByLabel('App Secret').fill(META_MOCK.app.secret)
+  await page.getByRole('button', { name: 'Salva e verifica' }).click()
+  await confirmWithPassword(page)
+  const app = page.getByRole('region', { name: 'App Meta' })
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
+  // a new app is in development: Facebook shows its posts only to who has a role in it
+  await expect(page.getByTestId('meta-app-development')).toHaveText('In Sviluppo')
+  await expect(app).toContainText('i post su Facebook li vede solo chi ha un ruolo nell')
+  const live = app.getByRole('switch', { name: "L'app è in Live" })
+  await expect(live).not.toBeChecked()
+  expect((await axe(page)).violations).toEqual([])
+
+  await live.click()
+  await expect(live).toBeChecked()
+  await expect(page.getByTestId('meta-app-development')).toHaveCount(0)
+  await expect(app).toContainText('I post su Facebook sono pubblici')
+  await page.reload()
+  await expect(app.getByRole('switch', { name: "L'app è in Live" })).toBeChecked()
+  expect((await axe(page)).violations).toEqual([])
+
+  const admin = await addPerson(org, 'Ada Live', 'admin')
+  const context = await browser.newContext({ baseURL: baseURL ?? '' })
+  const adminPage = await context.newPage()
+  await ownAddress(adminPage)
+  await signInWithTotp(adminPage.request, admin)
+  await adminPage.goto(`/${org}/impostazioni/integrazioni/meta`)
+  const adminApp = adminPage.getByRole('region', { name: 'App Meta' })
+  await expect(adminApp).toContainText('In Live')
+  await expect(adminApp.getByRole('switch')).toHaveCount(0)
+  await context.close()
+
+  // back in development on Meta: switched off, the warning returns
+  await app.getByRole('switch', { name: "L'app è in Live" }).click()
+  await expect(page.getByTestId('meta-app-development')).toHaveText('In Sviluppo')
+})

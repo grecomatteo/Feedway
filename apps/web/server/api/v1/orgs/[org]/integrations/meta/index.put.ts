@@ -4,7 +4,7 @@ import { replaceMetaIntegrationRoute } from '@app/contracts'
 export default defineApiRoute(
   replaceMetaIntegrationRoute,
   async ({ actor, session, body, ip }) => {
-    const { appSecret, configId, businessId, dataUseCheckupDueOn, appId } = body
+    const { appSecret, configId, businessId, dataUseCheckupDueOn, appId, appLive } = body
     const view = await replaceMetaIntegration(
       metaIntegrationDeps(useDeps()),
       actor,
@@ -15,6 +15,7 @@ export default defineApiRoute(
         ...(configId !== undefined && { configId }),
         ...(businessId !== undefined && { businessId }),
         ...(dataUseCheckupDueOn !== undefined && { dataUseCheckupDueOn }),
+        ...(appLive !== undefined && { appLive }),
       },
       { ip },
     )
