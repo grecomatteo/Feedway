@@ -1,3 +1,4 @@
+import { accountsDigestSections } from './digest.js'
 import { accountKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
@@ -36,4 +37,6 @@ export const accountsModule: ModuleDefinition = {
       defaultChannels: ['panel', 'telegram', 'email'],
     }),
   ],
+  // §12.4: the morning digest (plan 08 Task 8)
+  digestSections: accountsDigestSections,
 }

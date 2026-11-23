@@ -8,6 +8,12 @@ import { anonymizeNotifications } from './anonymize.js'
 export const notificationsModule: ModuleDefinition = {
   name: 'notifications',
   permissions: [],
-  queues: ['notify.dispatch', 'notify.deliver', 'notify.deliver_platform'],
+  queues: [
+    'notify.dispatch',
+    'notify.deliver',
+    'notify.deliver_platform',
+    'report.daily',
+    'report.digest',
+  ],
   onUserAnonymized: anonymizeNotifications,
 }

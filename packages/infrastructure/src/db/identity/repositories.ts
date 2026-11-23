@@ -208,6 +208,27 @@ export function drizzleUsers(db: DbExecutor, ctx: TxContext): UsersRepository {
         throw new Error('a security lock is cleared only in the system scope')
       await db.update(users).set({ securityLockedAt: null }).where(eq(users.id, id))
     },
+    async listActiveMembersWithZones() {
+      systemOnly(ctx, 'listActiveMembersWithZones')
+      const { rows } = await db.execute<{
+        user_id: string
+        timezone: string | null
+        agency_time_zones: (string | null)[]
+      }>(sql`
+        select u.id as user_id, u.timezone,
+               array_agg(o.settings->>'timezone' order by m.created_at, o.id) as agency_time_zones
+          from users u
+          join organization_members m on m.user_id = u.id and m.status = 'active'
+          join organizations o on o.id = m.organization_id and o.status = 'active'
+         where u.status = 'active' and u.anonymized_at is null
+         group by u.id, u.timezone
+         order by u.id`)
+      return rows.map((r) => ({
+        userId: r.user_id,
+        timeZone: r.timezone,
+        agencyTimeZones: r.agency_time_zones,
+      }))
+    },
     async listActivePlatformAdmins() {
       if (ctx.kind !== 'system')
         throw new Error('platform administrators are listed only in the system scope')

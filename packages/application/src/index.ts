@@ -4,6 +4,7 @@ export type { Logger, LogLevel } from './ports/logger.js'
 export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
   NotifyDeliverJobData,
+  ReportDigestJobData,
   AccountLockedNoticeData,
   AccountLockedNoticeEmailData,
   AccountRecoveryEmailData,
@@ -169,6 +170,7 @@ export type {
   SessionRecord,
   SessionsRepository,
   UserOrganizationRecord,
+  MemberZones,
   UserRecord,
   UsersRepository,
   UserSummary,
@@ -187,7 +189,7 @@ export * from './media/index.js'
 export * from './rules/index.js'
 export * from './posts/index.js'
 export type { PublishingHistory, PublishingHistoryQuery } from './ports/publishing-history.js'
-export { MODULES, notificationKinds, userAnonymizedHandlers } from './modules.js'
+export { MODULES, digestSections, notificationKinds, userAnonymizedHandlers } from './modules.js'
 export type { ModuleDefinition, NotificationKind } from './module-definition.js'
 export type {
   ChannelRecipient,
@@ -213,7 +215,17 @@ export {
   replaceAgencyTelegramBot,
   type AgencyTelegramBotDeps,
   type TelegramBotView,
+  DIGEST_LOCK,
+  sendDigest,
+  startDigests,
+  type DigestDeps,
+  type DigestJob,
+  type DigestReport,
+  type DigestStartDeps,
+  type DigestStartReport,
 } from './notifications/index.js'
+export type { DigestBlock, DigestContext, DigestSection } from './module-definition.js'
+export type { MessageSection } from './ports/notification-channel.js'
 export { postHeadline } from './posts/notification-messages.js'
 export type {
   AccountHealthReport,
