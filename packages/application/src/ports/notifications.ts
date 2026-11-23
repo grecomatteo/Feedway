@@ -1,5 +1,6 @@
 import type {
   Channel,
+  DigestSchedule,
   Level,
   NotificationPref,
   NotificationSettings,
@@ -114,6 +115,21 @@ export interface NotificationPrefsRepository {
   setPref(userId: string, kind: OutboxEventType, pref: NotificationPref | null): Promise<void>
   /** The anonymization (§10.4): the person's settings and every changed kind. */
   deleteAllForUser(userId: string): Promise<void>
+  /**
+   * The system scope only (`report.daily`, P7): every active person, not anonymized, with an
+   * active membership in an active agency, and their digest schedule.
+   */
+  listDigestCandidates(): Promise<DigestCandidate[]>
+}
+
+/** Who may get a morning digest, with what its time is read in (Scelta 9). */
+export interface DigestCandidate {
+  userId: string
+  /** `users.timezone`; null: not chosen */
+  timeZone: string | null
+  /** `settings.timezone` of each active agency, the oldest membership first; null: not set */
+  agencyTimeZones: readonly (string | null)[]
+  digest: DigestSchedule
 }
 
 /**

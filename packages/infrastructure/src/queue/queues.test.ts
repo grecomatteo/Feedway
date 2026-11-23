@@ -31,6 +31,8 @@ test('every registered queue declares a scope', () => {
     ['notify.dispatch', 'system'],
     ['notify.deliver', 'organization'],
     ['notify.deliver_platform', 'system'],
+    ['report.daily', 'system'],
+    ['report.digest', 'user'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -60,6 +62,8 @@ test('every registered queue declares a scope', () => {
     'notify.dispatch',
     'notify.deliver',
     'notify.deliver_platform',
+    'report.daily',
+    'report.digest',
   ])
 })
 

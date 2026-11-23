@@ -43,6 +43,19 @@ interface JobDefinitions {
   'notify.dispatch': { scope: 'system'; data: object }
   'notify.deliver': { scope: 'organization'; data: NotifyDeliverJobData }
   'notify.deliver_platform': { scope: 'system'; data: NotifyDeliverJobData }
+  'report.daily': { scope: 'system'; data: object }
+  'report.digest': { scope: 'user'; data: ReportDigestJobData }
+}
+
+/**
+ * One person's morning digest (§12.4, plan 08 P7): the person's calendar day it is for and when
+ * it was due, never a text. Sent once per person and day (`<userId>:<date>`).
+ */
+export interface ReportDigestJobData {
+  /** YYYY-MM-DD in the person's zone */
+  date: string
+  /** ISO 8601: a job that waited past the catch-up window sends nothing */
+  dueAt: string
 }
 
 /**

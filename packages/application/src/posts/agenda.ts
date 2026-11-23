@@ -219,7 +219,7 @@ export function momentOf(clock: Clock, from?: string): Date {
  * The clients the read covers: those the person sees and that are not archived, or the one asked
  * (not found when the person does not see it).
  */
-async function clientsOf(tx: Tx, actor: OrgActor, workspaceId: string | undefined) {
+export async function clientsOf(tx: Tx, actor: OrgActor, workspaceId: string | undefined) {
   const current = await currentActor(tx, actor)
   const { organizationId } = current
   const visible = (await tx.workspaces.listVisible(current)).filter(
@@ -427,7 +427,7 @@ export async function listAgendaIssues(
 }
 
 /** The posts of «Da sistemare», with the platforms and the reason of what needs the hand. */
-async function postIssuesOf(
+export async function postIssuesOf(
   tx: Tx,
   actor: OrgActor,
   workspaceIds: readonly string[],

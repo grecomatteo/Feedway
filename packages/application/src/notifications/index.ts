@@ -24,3 +24,10 @@ export {
   type DispatchReport,
 } from './dispatch.js'
 export { createEmailChannel, notificationEmail } from './email-channel.js'
+export {
+  DIGEST_LOCK,
+  startDigests,
+  type DigestStartDeps,
+  type DigestStartReport,
+} from './digest-start.js'
+export { sendDigest, type DigestDeps, type DigestJob, type DigestReport } from './digest.js'
