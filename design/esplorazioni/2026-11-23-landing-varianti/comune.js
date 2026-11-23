@@ -37,6 +37,15 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
     pull.from('.hub li', { opacity: 0, x: -8, stagger: 0.08, duration: 0.2 }, 0.75);
   }
 
+  // Start steps: the top rule fades in as each step arrives.
+  gsap.utils.toArray('.start-steps li').forEach((li) => {
+    gsap.fromTo(
+      li,
+      { borderTopColor: 'rgba(36,35,33,0)' },
+      { borderTopColor: 'rgba(36,35,33,1)', duration: 0.8, scrollTrigger: { trigger: li, start: 'top 85%', once: true } },
+    );
+  });
+
   // Client: the approval notice arrives once the phone is in view.
   if (document.querySelector('.notice')) {
     gsap.from('.notice', {

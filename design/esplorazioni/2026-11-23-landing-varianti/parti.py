@@ -329,23 +329,13 @@ PUBLISH_A = """
 """
 
 COSTS = """
-<section class="section" id="numeri" aria-labelledby="costs-title">
-  <div class="wrap">
+<section class="section numbers" id="numeri" aria-labelledby="numbers-title">
+  <div class="wrap numbers-grid">
     <div class="section-head">
-      <h2 id="costs-title">Sai quanto ti costa ogni cliente. <span class="soon">In arrivo</span></h2>
-      <p class="lead">Ore lavorate, contratti, rinnovi e pacchetto del mese per ogni cliente.</p>
+      <h2 id="numbers-title">Sai quanto ti costa ogni cliente. <span class="soon">In arrivo</span></h2>
+      <p class="lead">Ore lavorate, contratti, rinnovi e margine per cliente. A fine mese il report di cosa è uscito e come è andato, con il tuo logo.</p>
     </div>
-    <div class="table-wrap">
-      <table class="costs">
-        <thead><tr><th>Cliente</th><th>Pacchetto di ottobre</th><th>Ore</th><th>Rinnovo</th><th>Stato</th></tr></thead>
-        <tbody>
-          <tr><th>Forno Luce</th><td class="num">10 di 12 post</td><td class="num">18 h</td><td>31 gennaio</td><td>In regola</td></tr>
-          <tr><th>Studio Forma</th><td class="num">6 di 8 post</td><td class="num">9 h</td><td>15 novembre</td><td>Rinnovo vicino</td></tr>
-          <tr><th>Orto Vivo</th><td class="num">4 di 8 post</td><td class="num">12 h</td><td>30 marzo</td><td>In ritardo sul pacchetto</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="foot-note">Esempio con dati inventati.</p>
+    <figure class="numbers-shot"><div class="window"><img src="img/statistiche.webp" alt="Il report di novembre di Forno Luce con i post pubblicati e le visualizzazioni." loading="lazy" width="2000" height="1250"></div></figure>
   </div>
 </section>
 """
@@ -353,11 +343,13 @@ COSTS = """
 START = """
 <section class="section sunken" aria-labelledby="start-title">
   <div class="wrap">
-    <div class="section-head"><h2 id="start-title">Come si comincia.</h2></div>
-    <ol class="start">
-      <li><h3>Ci sentiamo per la demo</h3><p>Mezz'ora in videochiamata: ci racconti come lavora l'agenzia e ti mostriamo Feedway.</p></li>
-      <li><h3>Prepariamo la tua agenzia</h3><p>Creiamo lo spazio per l'agenzia e i clienti. Tu inviti il team, ognuno con il suo ruolo.</p></li>
-      <li><h3>Colleghi i profili</h3><p>Instagram e Facebook dei clienti si collegano da Meta. Il primo collegamento lo facciamo insieme.</p></li>
+    <div class="section-head">
+      <h2 id="start-title">Pronto in un pomeriggio.</h2>
+    </div>
+    <ol class="start-steps">
+      <li><span class="num">1</span><h3>Ci sentiamo per la demo</h3><p>Mezz'ora in videochiamata: ci racconti come lavorate e quanti clienti seguite.</p></li>
+      <li><span class="num">2</span><h3>Prepariamo la tua agenzia</h3><p>Crei l'agenzia e inviti il team: ognuno riceve un'email con il suo ruolo.</p></li>
+      <li><span class="num">3</span><h3>Colleghi i profili</h3><p>Instagram e Pagine Facebook con le API ufficiali di Meta. Il primo lo facciamo insieme.</p></li>
     </ol>
   </div>
 </section>
@@ -408,6 +400,27 @@ BIG_FOOTER = """<footer class="site-footer big">
   </div>
   <div class="wordmark" aria-hidden="true"><img src="img/feedway-wordmark-arancio.svg" alt="" width="444" height="128"></div>
 </footer>"""
+
+
+OLD_CLOSING = """<section class="section closing" id="demo" aria-labelledby="closing-title">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <h2 id="closing-title">Vediamo Feedway con i tuoi clienti.</h2>
+      <p class="lead">Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.</p>
+      <a class="btn btn-primary btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
+    </div>
+  </div>
+</section>"""
+
+ORANGE_CLOSING = """<section class="closing-orange" id="demo" aria-labelledby="closing-title">
+  <div class="wrap closing-grid">
+    <div>
+      <h2 id="closing-title">Smetti di cercare. Inizia a lavorare.</h2>
+      <p class="lead">Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.</p>
+    </div>
+    <a class="btn btn-ink btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
+  </div>
+</section>"""
 
 
 def page(letter, name, hero, product, script, extra_css, middle=None, foot=None):
@@ -531,7 +544,7 @@ PRODUCT_C = """
 
 page('a', '3D', HERO_A, '', '<script type="module" src="a.js"></script>', 'a.css',
      middle=PROBLEM + PRODUCT_A + TEAM + CLIENT_A + PUBLISH_A + COSTS + START + TRUST + FAQ_A,
-     foot=FOOT.replace('Vediamo Feedway con i tuoi clienti.', 'Smetti di cercare. Inizia a lavorare.').replace("Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.", 'Tutta la tua agenzia, in un solo posto.').replace(OLD_FOOTER, BIG_FOOTER))
+     foot=FOOT.replace(OLD_CLOSING, ORANGE_CLOSING).replace(OLD_FOOTER, BIG_FOOTER))
 page('b', 'Prospettiva', HERO_B, PRODUCT_B, '<script src="b.js"></script>', 'b.css')
 page('c', 'Editoriale', HERO_C, PRODUCT_C, '<script src="c.js"></script>', 'c.css')
 print('ok')
