@@ -602,13 +602,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Origine:** piano della tappa 8 (`docs/superpowers/plans/2026-10-15-08-notifiche.md`, «Scelte di questa tappa», 23/11). Le scelte 1 (D-119) e 2 (D-120) hanno la loro voce.
 - **Scelte provvisorie:**
   1. **Eventi vecchi (D-116, che si chiude con il Task 4):** la migrazione segna come mandati, senza notifiche, gli eventi più vecchi di 6 ore; i più recenti si mandano.
-  2. **Destinatari:** gli esiti a chi ha programmato (`scheduled_by`); errori, problemi e file che non escono anche ai Manager dello spazio; la pausa ai Manager; account e promemoria di Meta a Owner e Admin; worker fermo e backup agli amministratori della piattaforma. L'email di D-74 a chi ha programmato parte sempre.
+  2. **Destinatari:** gli esiti a chi ha programmato (`scheduled_by`); errori, problemi e file che non escono anche ai Manager dello spazio; la pausa ai Manager; la quota di Instagram quasi finita a chi ha programmato su quell'account nelle 24 ore e ai Manager di ogni spazio a cui l'account è assegnato; account e promemoria di Meta a Owner e Admin; worker fermo e backup agli amministratori della piattaforma. L'email di D-74 a chi ha programmato parte sempre.
   3. **Campanella senza connessione aperta:** il contatore si legge ogni 30 s con la scheda visibile; niente SSE né WebSocket.
   4. **Ore di silenzio:** spente di default; accese, sotto il livello «errore» non si manda su Telegram e per email, e non si manda dopo: resta nel centro notifiche.
   5. **Raggruppamento:** 60 s per persona, canale e tipo, fino a 10 righe e poi «e altre N».
   6. **Telegram:** il bot della piattaforma è il predefinito, un'agenzia può metterne uno suo; codice di collegamento di 15 minuti; `/oggi` e `/problemi` solo con ciò che la persona vede.
-  7. **Riepilogo:** alle 8:00 di Roma tutti i giorni, modificabile per persona; un riepilogo vuoto non parte.
-  8. **Battito:** il worker scrive `system_heartbeats` ogni 30 s e tiene il file per Docker; il web avvisa dopo 2 minuti, una volta, e quando il worker riparte.
+  7. **Riepilogo:** alle 8:00 nel fuso della persona (senza, quello della sua agenzia, poi Roma) tutti i giorni, modificabile per persona; «ieri» e «oggi» nel fuso dell'agenzia; un riepilogo vuoto non parte.
+  8. **Battito:** il worker scrive `system_heartbeats` ogni 30 s e tiene il file per Docker; il web avvisa quando nessun worker batte da 2 minuti, una volta, e quando il worker riparte; per farlo il web esce su internet per l'email e Telegram della piattaforma.
 - **Stato:** scelte provvisorie, Matteo può cambiarle prima del task che le usa.
 
 ## Ridisegno del pannello
