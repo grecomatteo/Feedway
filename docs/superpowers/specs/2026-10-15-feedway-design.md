@@ -113,6 +113,7 @@ Esclusi: commenti liberi dei clienti fuori dall'approvazione, modifica della cap
 | **Utente di sistema** | Utente tecnico creato in Business Manager; il suo token permette a Feedway di pubblicare senza login ripetuti. È uno dei tre tipi di collegamento (§8.0). |
 | **Collegamento** | Il modo in cui Feedway ottiene l'accesso a un account social: login Facebook, login Instagram o utente di sistema (§8.0). Ogni account ne ha uno. |
 | **Container** | Su Instagram, il contenuto preparato da Meta prima della pubblicazione. Scade dopo 24 ore. |
+| **Live** (app Meta) | La modalità in cui i contenuti pubblicati dall'app sono visibili a tutti. In **Sviluppo** su Facebook li vede solo chi ha un ruolo nell'app. Il Live con accesso standard basta per gli account del Business dell'agenzia; l'accesso avanzato, con la revisione di Meta, serve per gli altri (§8.0, ADR 022). |
 | **Host pubblico** | Indirizzo raggiungibile da internet che serve solo i file per Meta (`/m/*`) e i link cliente (`/share/*`). |
 | **Pannello** | L'interfaccia per il team, privata (Tailscale o Cloudflare Access). |
 | **Sito pubblico** | Le pagine di presentazione di Feedway (landing e pagine legali), statiche e separate dal pannello, con il pulsante "Accedi" che porta al pannello (§14.5). |
@@ -450,7 +451,7 @@ Ogni account ha un collegamento di un tipo (ADR 015). L'elenco dei collegamenti 
 | **Login Instagram** | Profili Instagram professionali senza Pagina | «Collega solo Instagram» | Il profilo deve essere Business o Creator; con l'app in modalità sviluppo va aggiunto come tester Instagram (da verificare) |
 | **Utente di sistema** | Account nel Business Manager dell'agenzia | Procedura in 5 passi (§8.1) | Token che non scade; opzione per chi preferisce la stabilità |
 
-- Con l'app Meta in modalità sviluppo possono collegare solo le persone con un ruolo nell'app; chi collega vede solo gli account a cui ha già accesso. Nessuna revisione necessaria per l'uso interno; serve per aprire ad altre agenzie (§18.2).
+- Con l'app Meta in modalità sviluppo possono collegare solo le persone con un ruolo nell'app; chi collega vede solo gli account a cui ha già accesso. **Su Facebook, in Sviluppo, i post con il testo li vede solo chi ha un ruolo nell'app** (prova della 0.13.0, D-119): per l'uso vero l'app va in **Live con accesso standard**, che chiede un'informativa privacy pubblica (sul sito, §16) ma nessuna revisione e basta per gli account del Business dell'agenzia. L'**accesso avanzato** (verifica dell'azienda e App Review) si chiede prima del primo cliente vero con account fuori da quel Business, e per aprire ad altre agenzie (§18.2) (ADR 022, che sostituisce un punto dell'ADR 015). Meta non fa leggere la modalità dell'app: l'Owner la dice con «L'app è in Live» in Integrazioni → Meta, e finché è spento il pannello mostra «In Sviluppo» in ambra. Guida: `docs/runbooks/meta-app-live.md`.
 - Altre piattaforme (per esempio TikTok) si aggiungono come nuovo tipo di collegamento, con login, rinnovo e salute propri. Nella 1.0 si costruiscono solo i tipi Meta.
 - Non verificato su Meta vera: login in modalità sviluppo, rinnovo dei token e inviti dei tester Instagram (verifica in tappa 3 con gli account di prova).
 
@@ -1698,6 +1699,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 | Contenuto | Stessi media su tutte le destinazioni, con controlli e avvisi; caption comune con testo diverso facoltativo per Instagram e Facebook, nella 1.0 (deciso il 2026-10-26) | Matteo |
 | Storie | Nella 1.0 | Matteo |
 | Reel nel feed | Attivo di default, disattivabile | Matteo |
+| App Meta | In Live con accesso standard per l'uso vero su Facebook; accesso avanzato e App Review prima del primo cliente vero; informativa privacy pubblica sul sito (ADR 022, D-119 deciso il 2026-11-23) | Matteo |
 | Notifiche | Pannello, Telegram (solo team), email; verifica dopo la pubblicazione | Matteo |
 | Link cliente | Solo visione nella 1.0; dalla 1.1 approvazione dei post attivabile per cliente (§18.7, deciso il 2026-10-26) | Matteo |
 | Telefono | Responsive e installabile | Matteo |
@@ -1765,7 +1767,7 @@ Le versioni in cui entrano si fissano quando si scrive il piano di ogni versione
 | Token di sessione di Better Auth salvato in chiaro nel database (verificato, ADR 012) | Basso | Rete interna, backup cifrati, tabella `sessions` letta solo dal modulo identity, revoca immediata (`cookieCache` spento) |
 | Dati di un'agenzia visibili a un'altra | Alto | Doppia barriera applicazione + RLS, test di isolamento su ogni rotta e lavoro (§6.5) |
 | Un'iniezione SQL può impostare da sola `app.scope = 'system'` o un altro `app.organization_id` (il ruolo dell'app può scrivere queste variabili) | Alto | Solo query con parametri (Drizzle, mai SQL composto con testo dell'utente), `runAsSystem` limitato ai moduli ammessi dalla regola ESLint; rischio accettato nella tappa 2 |
-| Piattaforma aperta (2.0): revisione dell'app Meta e verifica dell'azienda | Alto per la 2.0 | Nella 1.x ogni agenzia usa la propria app e il proprio utente di sistema, che non richiedono revisione |
+| Piattaforma aperta (2.0): revisione dell'app Meta e verifica dell'azienda | Alto per la 2.0 | Nella 1.x ogni agenzia usa la propria app e il proprio utente di sistema: l'app va in Live con accesso standard, senza revisione, per i suoi account; l'accesso avanzato, con verifica e revisione, prima del primo cliente con account fuori dal Business dell'agenzia (ADR 022, da verificare su Meta vera) |
 | Limiti Meta condivisi da un'unica app (2.0) | Medio | Rallentamento per account e per organizzazione già nel client Meta (§8.6) |
 
 ---

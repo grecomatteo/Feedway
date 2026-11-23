@@ -6,6 +6,7 @@ const valid = {
   configId: '2000000000000001',
   businessId: '3000000000000001',
   dataUseCheckupDueOn: '2027-03-31',
+  appLive: true,
 }
 
 test('a complete config passes as it is', () => {
@@ -20,6 +21,7 @@ test('only the App ID is required: the others may be null or left out', () => {
       configId: null,
       businessId: null,
       dataUseCheckupDueOn: null,
+      appLive: false,
     },
   })
   expect(checkMetaIntegrationConfig({ ...valid, configId: '', businessId: null })).toMatchObject({
@@ -36,6 +38,7 @@ test.each([
   ['businessId', { ...valid, businessId: 'act_123' }],
   ['dataUseCheckupDueOn', { ...valid, dataUseCheckupDueOn: '31/03/2027' }],
   ['dataUseCheckupDueOn', { ...valid, dataUseCheckupDueOn: '2027-02-30' }],
+  ['appLive', { ...valid, appLive: 'yes' }],
 ] as const)('%s refused: %j', (field, input) => {
   expect(checkMetaIntegrationConfig(input)).toEqual({ ok: false, field })
 })
@@ -45,5 +48,15 @@ test('anything that is not the config is refused, extra keys included', () => {
   expect(checkMetaIntegrationConfig({ ...valid, appSecret: 'x' })).toEqual({
     ok: false,
     field: 'appSecret',
+  })
+})
+
+test('a row stored before the Live switch reads as an app in development (ADR 022)', () => {
+  const stored: Partial<typeof valid> = { ...valid }
+  delete stored.appLive
+  expect(checkMetaIntegrationConfig(stored)).toMatchObject({ ok: true, value: { appLive: false } })
+  expect(checkMetaIntegrationConfig({ ...valid, appLive: null })).toMatchObject({
+    ok: true,
+    value: { appLive: false },
   })
 })

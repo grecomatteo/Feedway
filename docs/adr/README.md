@@ -18,10 +18,11 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [012](012-better-auth.md) | Accesso e account con Better Auth | Accettata (Matteo, 2026-10-15) |
 | [013](013-sito-pubblico-statico.md) | Sito pubblico statico separato dal pannello | Accettata (Matteo, 2026-10-15); in parte modificata da ADR 016 |
 | [014](014-worker-impacchettato-con-esbuild.md) | Worker e migrazione impacchettati con esbuild | Accettata (Matteo, 2026-10-17) |
-| [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16) |
+| [015](015-collegamenti-account-multipli.md) | Collegamenti account multipli (login Facebook, login Instagram, utente di sistema) | Accettata (Matteo, 2026-10-16); un punto sostituito da ADR 022 |
 | [016](016-modulo-richiesta-demo.md) | Modulo "Richiedi una demo" sul sito pubblico (modifica due punti di ADR 013) | Accettata (Matteo, 2026-10-29) |
 | [017](017-invio-email-via-smtp.md) | Invio email via SMTP della piattaforma (anticipato dalla tappa 3; modifica un punto di ADR 007) | Proposta |
 | [018](018-niente-filtro-xss-sugli-input.md) | Niente filtro anti-XSS sugli input: la difesa sta in uscita | Accettata (Matteo, 2026-10-30) |
 | [019](019-modulo-piattaforma.md) | Confini del modulo piattaforma: `accounts` generico e `platforms/meta` | Accettata (Matteo, 2026-11-03) |
 | [020](020-accesso-unificato-meta.md) | Accesso unificato di Meta al posto dei login Facebook e Instagram (modifica alcuni punti di ADR 015 e 019) | Proposta |
 | [021](021-storage-a-oggetti-e-caricamento-a-pezzi.md) | Storage a oggetti (client S3) e caricamento a pezzi: protocollo, pezzi sul disco del web, conversioni a turno tra le agenzie (completa ADR 008) | Accettata (Matteo, 2026-11-13) |
+| [022](022-app-meta-in-live.md) | App Meta in Live con accesso standard; l'accesso avanzato prima del primo cliente vero (sostituisce un punto di ADR 015) | Proposta |

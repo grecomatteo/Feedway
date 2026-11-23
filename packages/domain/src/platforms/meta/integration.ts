@@ -3,6 +3,7 @@
  * is required: the unified login needs `configId` (Task 7, postponed), `businessId` is kept but
  * no longer used by the system user's listing (real Meta, 2026-11-11, docs/platforms/meta.md), and
  * the Data Use Checkup has no API, so the Owner types its due date (empty while in development).
+ * Whether the app is Live has no documented Graph field either: the Owner says it (ADR 022).
  */
 export interface MetaIntegrationConfig {
   appId: string
@@ -10,6 +11,8 @@ export interface MetaIntegrationConfig {
   businessId: string | null
   /** YYYY-MM-DD */
   dataUseCheckupDueOn: string | null
+  /** The Owner says the app is Live; false (development) until then, and in rows stored before. */
+  appLive: boolean
 }
 
 export type MetaIntegrationField = keyof MetaIntegrationConfig
@@ -22,6 +25,7 @@ const FIELDS: readonly MetaIntegrationField[] = [
   'configId',
   'businessId',
   'dataUseCheckupDueOn',
+  'appLive',
 ]
 
 // Meta's ids are numbers written as strings; 32 digits leave room above today's 15–17.
@@ -65,5 +69,10 @@ export function checkMetaIntegrationConfig(value: unknown): MetaIntegrationCheck
   const dueOn = optionalText(record.dataUseCheckupDueOn)
   if (dueOn === undefined || (dueOn !== null && !isCalendarDate(dueOn)))
     return { ok: false, field: 'dataUseCheckupDueOn' }
-  return { ok: true, value: { appId, configId, businessId, dataUseCheckupDueOn: dueOn } }
+  const live = record.appLive ?? false
+  if (typeof live !== 'boolean') return { ok: false, field: 'appLive' }
+  return {
+    ok: true,
+    value: { appId, configId, businessId, dataUseCheckupDueOn: dueOn, appLive: live },
+  }
 }
