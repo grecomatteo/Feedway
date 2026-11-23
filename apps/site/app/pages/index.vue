@@ -268,8 +268,8 @@ const FAQ = [
             essere diverso per Instagram e per Facebook.
           </p>
           <ul class="platforms" aria-label="Dove pubblica">
-            <li><SiteIcon name="instagram" />Instagram</li>
-            <li><SiteIcon name="facebook" />Facebook</li>
+            <li>Instagram</li>
+            <li>Facebook</li>
             <li>TikTok <SoonMark feature="tiktok" /></li>
             <li>LinkedIn <SoonMark feature="linkedin" /></li>
           </ul>

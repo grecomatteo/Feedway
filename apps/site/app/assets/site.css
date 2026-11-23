@@ -1117,3 +1117,42 @@ main:has(.closing) + .site-footer {
   font: 600 1.0625rem/1.5rem var(--font-display);
   color: var(--app-text-muted);
 }
+
+/* Privacy notice: contents and the permission list */
+.legal-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 1rem;
+  padding: 1rem 0;
+  margin: 1.5rem 0 0;
+  border-block: 1px solid var(--app-border);
+  font-size: 0.9375rem;
+}
+
+.legal-permissions {
+  margin: 1rem 0;
+  border-top: 1px solid var(--app-border);
+}
+
+.legal-permissions > div {
+  display: grid;
+  gap: 0.25rem 1.25rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--app-border);
+}
+
+@media (min-width: 36rem) {
+  .legal-permissions > div {
+    grid-template-columns: 14rem 1fr;
+  }
+}
+
+.legal-permissions dd {
+  margin: 0;
+  color: var(--app-text-muted);
+}
+
+.legal-permissions code {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}

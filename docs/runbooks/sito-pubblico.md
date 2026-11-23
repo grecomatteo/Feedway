@@ -1,6 +1,6 @@
 # Sito pubblico: pubblicarlo su Cloudflare e darlo a Meta
 
-Il sito pubblico (`apps/site`, ADR 013 e 016) ha la landing, l'informativa privacy (`/privacy`), le istruzioni per la cancellazione dei dati (`/cancellazione-dati`) e il modulo «Richiedi una demo». Questa guida dice cosa fare, una volta sola, per metterlo online e per dare a Meta gli indirizzi che chiede per il passaggio dell'app a Live (D-119).
+Il sito pubblico (`apps/site`, ADR 013 e 016) ha la landing, l'informativa privacy (`/privacy`), le istruzioni per la cancellazione dei dati (`/cancellazione-dati`), i termini di servizio (`/termini`) e il modulo «Richiedi una demo». Questa guida dice cosa fare, una volta sola, per metterlo online e per dare a Meta gli indirizzi che chiede per il passaggio dell'app a Live (D-119).
 
 I passi segnati **(non verificato)** sono scritti dalla documentazione di Cloudflare e non sono ancora stati provati: se un menu ha un altro nome, cerca la voce più simile e scrivilo in D-122.
 
@@ -10,8 +10,13 @@ I passi segnati **(non verificato)** sono scritti dalla documentazione di Cloudf
    - `controllerName`: il tuo nome e cognome, o la ragione sociale della ditta;
    - `controllerDetails` (facoltativo): partita IVA o sede, se vuoi mostrarle;
    - `privacyEmail`: l'indirizzo che riceve le richieste sulla privacy e sulla cancellazione;
+   - `hostingProvider`: chi ospita il server del pannello e dove (per esempio «Hetzner Online GmbH, Germania»);
+   - `backupProvider`: dove vanno le copie di sicurezza (per esempio «Google Drive, copie cifrate»);
+   - `emailProvider`: chi manda le email del pannello (il servizio SMTP);
+   - `court`: la città del foro per i termini;
    - `updatedOn`: la data di oggi.
-2. Fai una PR con la modifica (o chiedi al thread del sito di farla). Finché c'è «DA COMPLETARE», il workflow di pubblicazione si ferma con un errore: è voluto.
+2. Fai rileggere `/privacy` e `/termini` a chi ti segue sulla privacy (D-122 punto 12).
+3. Fai una PR con la modifica (o chiedi al thread del sito di farla). Finché c'è «DA COMPLETARE», il workflow di pubblicazione si ferma con un errore: è voluto.
 
 ## 1. Cloudflare Pages
 
@@ -55,16 +60,21 @@ Nella [dashboard dell'app Meta](https://developers.facebook.com/apps) → la tua
 
 - **URL dell'informativa sulla privacy:** `https://<sito>/privacy`
 - **URL delle istruzioni per l'eliminazione dei dati** (scegli «Istruzioni per l'eliminazione dei dati», non «URL di callback»): `https://<sito>/cancellazione-dati`
+- **URL dei termini di servizio:** `https://<sito>/termini` (obbligatorio per passare a Live)
+- **Domini dell'app:** il dominio del sito (per esempio `feedway.pages.dev` o `tuodominio.it`)
+- **Categoria:** «Business e pagine» o la più simile; **email di contatto:** una che leggi davvero
 - **Icona dell'app** 1024 × 1024: `design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/` (cartella `04-Web` o `05-Social`).
 
-Salva. Il resto del passaggio a Live è nella guida della tappa 8 (`docs/runbooks/meta-app-live.md`, quando c'è).
+Salva, poi controlla che Meta legga le pagine: apri il [Debugger di condivisione](https://developers.facebook.com/tools/debug/), incolla `https://<sito>/privacy` e premi «Debug». Deve rispondere 200; ripeti per `/cancellazione-dati` e `/termini`. Se risponde 403, c'è una protezione di Cloudflare che blocca i bot (passo 3.5): toglila da quelle pagine.
+
+Il resto del passaggio a Live è nella guida della tappa 8 (`docs/runbooks/meta-app-live.md`, quando c'è).
 
 **Prima di dare l'indirizzo a Meta**: l'informativa promette la cancellazione entro 30 giorni. Oggi la cancellazione si fa a mano (D-122 punto 9): tieni a portata di mano la procedura prima di passare a Live.
 
 ## Controlli
 
 - `https://<sito>/` si apre da telefono e computer, senza banner dei cookie.
-- `https://<sito>/privacy` e `/cancellazione-dati` mostrano titolare ed email, senza «DA COMPLETARE».
+- `https://<sito>/privacy`, `/cancellazione-dati` e `/termini` mostrano titolare ed email, senza «DA COMPLETARE».
 - Strumenti per sviluppatori del browser → Applicazione → Cookie: nessun cookie per il sito.
 - `https://<sito>/robots.txt` e `/sitemap.xml` rispondono.
 - Il modulo della demo manda l'email (solo con il passo 3 fatto).

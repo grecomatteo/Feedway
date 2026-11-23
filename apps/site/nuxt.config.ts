@@ -26,7 +26,7 @@ export default defineNuxtConfig({
   features: { inlineStyles: true },
   experimental: { payloadExtraction: false },
   nitro: {
-    prerender: { crawlLinks: true, routes: ['/', '/privacy', '/cancellazione-dati'] },
+    prerender: { crawlLinks: true, routes: ['/', '/privacy', '/cancellazione-dati', '/termini'] },
     externals: { inline: [/^@app\//] },
   },
 })

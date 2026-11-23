@@ -49,6 +49,10 @@ useSeoMeta({
       <li>Ti scriviamo quando la cancellazione è fatta.</li>
     </ul>
     <p>
+      Teniamo solo una nota con la data della richiesta e della cancellazione, per poter dimostrare
+      di averla eseguita; non contiene i dati cancellati.
+    </p>
+    <p>
       I post già pubblicati su Facebook e Instagram restano lì: li gestisci tu da Facebook o
       Instagram. Cosa tratta Feedway e perché è spiegato nell’<NuxtLink to="/privacy"
         >informativa privacy</NuxtLink

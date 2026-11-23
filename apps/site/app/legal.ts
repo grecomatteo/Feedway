@@ -9,6 +9,14 @@ export const LEGAL = {
   controllerDetails: '',
   /** The address that receives privacy and deletion requests. */
   privacyEmail: 'DA COMPLETARE',
+  /** Who runs the server of the panel and where, e.g. «Hetzner Online GmbH, Germania». */
+  hostingProvider: 'DA COMPLETARE',
+  /** Where the panel's backups go, e.g. «Google Drive (Google Ireland Ltd.)», copies encrypted or not. */
+  backupProvider: 'DA COMPLETARE',
+  /** Who sends the panel's emails (SMTP), e.g. «Brevo (Sendinblue SAS, Francia)». */
+  emailProvider: 'DA COMPLETARE',
+  /** Courts for disputes in the terms, e.g. «Bologna». */
+  court: 'DA COMPLETARE',
   /** Date of the last change of the notice, ISO. */
   updatedOn: '2026-11-23',
 } as const

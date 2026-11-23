@@ -9,10 +9,13 @@ import { LEGAL, PLACEHOLDER } from '~/legal'
       <nav aria-label="Note legali" class="foot-links">
         <NuxtLink to="/privacy">Informativa privacy</NuxtLink>
         <NuxtLink to="/cancellazione-dati">Cancellazione dei dati</NuxtLink>
+        <NuxtLink to="/termini">Termini di servizio</NuxtLink>
       </nav>
       <p class="muted">
         © {{ new Date().getFullYear() }}
-        {{ LEGAL.controllerName === PLACEHOLDER ? 'Feedway' : LEGAL.controllerName }}
+        {{ LEGAL.controllerName === PLACEHOLDER ? 'Feedway' : LEGAL.controllerName
+        }}<template v-if="LEGAL.controllerDetails"> · {{ LEGAL.controllerDetails }}</template>
+        · Questo sito non usa cookie.
       </p>
     </div>
   </footer>

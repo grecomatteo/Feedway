@@ -5,6 +5,7 @@ const PAGES = [
   '/',
   '/privacy/',
   '/cancellazione-dati/',
+  '/termini/',
   '/richiedi-una-demo/',
   '/richiedi-una-demo/inviata/',
 ]
