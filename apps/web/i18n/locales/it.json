@@ -2998,6 +2998,136 @@
       "connection": "La connessione con il server dell'email non è riuscita",
       "rejected": "Il server dell'email ha rifiutato il messaggio",
       "other": "L'invio non è riuscito"
+    },
+    "centre": {
+      "noAccess": "Non vedi più ciò di cui parla questa notifica",
+      "gone": "Ciò di cui parlava questa notifica non c'è più"
+    }
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "bell": "Notifiche",
+    "bellUnread": "Notifiche, nessuna da leggere | Notifiche, {n} da leggere | Notifiche, {n} da leggere",
+    "unreadCount": "nessuna da leggere | {n} da leggere | {n} da leggere",
+    "unread": "Da leggere",
+    "markAll": "Segna tutte come lette",
+    "markRead": "Segna come letta",
+    "seeAll": "Tutte le notifiche",
+    "more": "Mostra altre",
+    "empty": "Nessuna notifica",
+    "emptyHelp": "Qui arrivano gli esiti dei post e gli avvisi sugli account.",
+    "emptyUnread": "Nessuna notifica da leggere",
+    "noMatch": "Nessuna notifica con questi filtri",
+    "loadError": "Le notifiche non si sono caricate.",
+    "actionError": "Non è stato possibile segnarla come letta. Riprova.",
+    "show": "Mostra",
+    "filters": {
+      "all": "Tutte",
+      "unread": "Da leggere",
+      "level": "Livello",
+      "anyLevel": "Tutti i livelli",
+      "kind": "Tipo",
+      "anyKind": "Tutti i tipi",
+      "agency": "Agenzia",
+      "thisAgency": "Solo {name}",
+      "allAgencies": "Tutte le agenzie"
+    },
+    "levels": {
+      "info": "Informazione",
+      "success": "Successo",
+      "warning": "Avviso",
+      "error": "Errore",
+      "critical": "Critico",
+      "security": "Sicurezza"
+    },
+    "channels": {
+      "panel": "Pannello",
+      "telegram": "Telegram",
+      "email": "Email"
+    },
+    "delivery": {
+      "email": {
+        "sent": "Email mandata",
+        "pending": "Email in arrivo",
+        "sending": "Email in invio",
+        "failed": "Email non mandata"
+      },
+      "telegram": {
+        "sent": "Telegram mandato",
+        "pending": "Telegram in arrivo",
+        "sending": "Telegram in invio",
+        "failed": "Telegram non mandato"
+      }
+    },
+    "kinds": {
+      "post_target_confirmed": "Pubblicazione confermata su un account",
+      "post_confirmed": "Post uscito su tutti gli account",
+      "post_target_failed": "Post non uscito",
+      "post_target_problem": "Post uscito con un problema",
+      "post_paused": "Pubblicazione in pausa",
+      "post_file_wont_publish": "File che non si può pubblicare",
+      "account_quota_low": "Post di Instagram quasi finiti",
+      "account_token_invalid": "Collegamento con Meta che smette di funzionare",
+      "account_unhealthy": "Account con un problema",
+      "meta_reminder": "Promemoria di Meta",
+      "system_worker_down": "Worker fermo",
+      "system_worker_up": "Worker ripartito",
+      "system_backup_failed": "Backup non riuscito"
+    },
+    "groups": {
+      "post": "Post",
+      "account": "Account e Meta",
+      "system": "Piattaforma"
+    },
+    "prefs": {
+      "title": "Notifiche",
+      "help": "Dove arriva ogni notifica. Il pannello le tiene tutte; senza canali il tipo è spento.",
+      "kindChannels": "Canali per «{kind}»",
+      "off": "Spenta",
+      "reset": "Predefinite",
+      "resetLabel": "Torna ai canali predefiniti per «{kind}»",
+      "when": "Quando arrivano",
+      "minLevel": "Fuori dal pannello",
+      "minLevelHelp": "Sotto questo livello restano solo nel pannello.",
+      "minLevels": {
+        "info": "Tutte",
+        "success": "Dai successi in su",
+        "warning": "Dagli avvisi in su",
+        "error": "Solo errori e critici",
+        "critical": "Solo critici",
+        "security": "Solo sicurezza"
+      },
+      "quiet": "Ore di silenzio",
+      "quietHelp": "Telegram ed email tacciono; errori e critici passano sempre.",
+      "quietFrom": "Dalle",
+      "quietTo": "alle",
+      "digest": "Riepilogo del mattino",
+      "digestHelp": "Post di ieri, cosa esce oggi e i problemi aperti, per email e Telegram.",
+      "digestAt": "Alle",
+      "digestDays": "Giorni del riepilogo",
+      "days": {
+        "1": "L",
+        "2": "M",
+        "3": "M",
+        "4": "G",
+        "5": "V",
+        "6": "S",
+        "7": "D"
+      },
+      "dayNames": {
+        "1": "lunedì",
+        "2": "martedì",
+        "3": "mercoledì",
+        "4": "giovedì",
+        "5": "venerdì",
+        "6": "sabato",
+        "7": "domenica"
+      },
+      "everything": "Tutto ovunque",
+      "everythingHelp": "Per le prove: ogni notifica su ogni canale, anche sotto il livello scelto.",
+      "emailPostFails": "Email quando un post non esce",
+      "emailPostFailsHelp": "Arriva sempre a chi ha programmato il post: non si può spegnere.",
+      "loadError": "Le preferenze delle notifiche non si sono caricate."
     }
   }
 }

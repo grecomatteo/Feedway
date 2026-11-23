@@ -60,6 +60,45 @@ export type DeliveryOutcome =
   | { status: 'pending'; nextAttemptAt: Date; error: string }
   | { status: 'failed' | 'skipped'; error: string }
 
+/** What the notification centre narrows to (plan 08 Task 6, §12.3). */
+export interface NotificationFilter {
+  /** The agencies the person sees now (active member, active agency); the platform's when asked */
+  organizationIds: readonly string[]
+  /** The platform's notifications too (null agency), for a platform administrator */
+  platform: boolean
+  /** Only this agency's (one of `organizationIds`); null: every one of them */
+  organizationId?: string | null
+  workspaceId?: string | null
+  level?: Level | null
+  kind?: OutboxEventType | null
+  unreadOnly?: boolean
+}
+
+/** One row of the centre (P6): ids and codes, the words are built when it is read (P3). */
+export interface CentreNotification {
+  id: string
+  organizationId: string | null
+  eventId: string
+  kind: OutboxEventType
+  level: Level
+  workspaceId: string | null
+  payload: OutboxPayload
+  readAt: Date | null
+  createdAt: Date
+  deliveries: readonly {
+    channel: Channel
+    status: DeliveryRef['status']
+    error: string | null
+    sentAt: Date | null
+  }[]
+}
+
+/** Where a page of the centre ends: the next starts after it (newest first). */
+export interface CentreCursor {
+  createdAt: Date
+  id: string
+}
+
 export interface NotificationsRepository {
   /**
    * Writes the notification and its deliveries. null: the person already has this event's
@@ -97,6 +136,29 @@ export interface NotificationsRepository {
   }): Promise<ClaimedDelivery[]>
   /** Saves how the claim ended; only rows still under this claim. Returns how many. */
   finishClaim(ids: readonly string[], claimedUntil: Date, outcome: DeliveryOutcome): Promise<number>
+  /**
+   * The person's own scope (P6): their notifications, newest first, with every delivery.
+   * Only rows of `filter.organizationIds` and, with `filter.platform`, the platform's.
+   */
+  listForUser(
+    userId: string,
+    filter: NotificationFilter,
+    page: { after: CentreCursor | null; limit: number },
+  ): Promise<CentreNotification[]>
+  /** The person's own scope: one of their notifications, or null (another's is null too). */
+  findForUser(userId: string, id: string): Promise<CentreNotification | null>
+  /** The person's own scope: how many are unread, for the bell. */
+  countUnread(userId: string, filter: NotificationFilter): Promise<number>
+  /**
+   * The person's own scope: marks these as read (the ones already read keep their time).
+   * Returns how many changed.
+   */
+  markRead(
+    userId: string,
+    filter: NotificationFilter,
+    ids: readonly string[] | 'all',
+    at: Date,
+  ): Promise<number>
   /**
    * The system scope only (anonymization, §10.4): every notification of the person in every
    * agency and the platform's, with their deliveries. Returns how many went.
