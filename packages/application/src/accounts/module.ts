@@ -1,3 +1,4 @@
+import { accountKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
 /** Social accounts and their connections (ADR 019), with their sync and health jobs, the
@@ -9,30 +10,30 @@ export const accountsModule: ModuleDefinition = {
   notificationKinds: [
     // who scheduled posts on the account in the next 24 hours, and the Managers of each
     // workspace it is assigned to (plan 08, Scelta 4)
-    {
+    accountKind({
       type: 'account.quota_low',
       level: 'warning',
       recipients: ['scheduler', 'workspace_managers'],
       defaultChannels: ['panel'],
-    },
+    }),
     // §12.2: «Token non valido, account non sano, promemoria Meta», to Owner and Admin
-    {
+    accountKind({
       type: 'account.token_invalid',
       level: 'critical',
       recipients: ['org_admins'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
-    {
+    }),
+    accountKind({
       type: 'account.unhealthy',
       level: 'critical',
       recipients: ['org_admins'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
-    {
+    }),
+    accountKind({
       type: 'meta.reminder',
       level: 'warning',
       recipients: ['org_admins'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
+    }),
   ],
 }
