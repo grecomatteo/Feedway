@@ -154,6 +154,13 @@ export interface IntegrationsRepository {
     at: Date,
     version: Date,
   ): Promise<boolean>
+  /**
+   * What a job keeps on a platform row between runs (`integrations.state`, never a secret): the
+   * last outcome of the external watch. null: no row.
+   */
+  platformState(kind: PlatformIntegrationKind): Promise<unknown>
+  /** Replaces the state of the platform row, if there is one; `updatedAt` does not move. */
+  savePlatformState(kind: PlatformIntegrationKind, state: object): Promise<boolean>
 }
 
 /** What the store needs of a transaction. */

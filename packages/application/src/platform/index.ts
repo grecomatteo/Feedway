@@ -41,3 +41,28 @@ export type {
   PlatformTestEmailKind,
   PlatformTestEmailResult,
 } from './mail-settings.js'
+export {
+  WORKER_PROCESS,
+  WORKER_WATCH_LOCK,
+  beatsWithHealth,
+  recordWorkerBeat,
+  watchWorker,
+} from './worker-watch.js'
+export type {
+  ProcessBeat,
+  WorkerBeatDeps,
+  WorkerWatchDeps,
+  WorkerWatchOutcome,
+  WorkerWatchReport,
+} from './worker-watch.js'
+export {
+  EXTERNAL_WATCH_LOCK,
+  callExternalWatch,
+  parseExternalWatchState,
+  pingExternalWatch,
+} from './external-watch.js'
+export type {
+  ExternalWatchDeps,
+  ExternalWatchReport,
+  ExternalWatchState,
+} from './external-watch.js'

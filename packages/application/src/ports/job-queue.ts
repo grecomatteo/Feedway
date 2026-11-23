@@ -45,6 +45,7 @@ interface JobDefinitions {
   'notify.deliver_platform': { scope: 'system'; data: NotifyDeliverJobData }
   'report.daily': { scope: 'system'; data: object }
   'report.digest': { scope: 'user'; data: ReportDigestJobData }
+  'heartbeat.external': { scope: 'system'; data: object }
 }
 
 /**

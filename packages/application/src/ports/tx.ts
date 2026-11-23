@@ -5,6 +5,7 @@ import type {
   WorkspaceAccountsRepository,
 } from './accounts.js'
 import type { AuditLog } from './audit-log.js'
+import type { SystemHeartbeatsRepository } from './heartbeats.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
 import type { ContentSettingsRepository } from './content-settings.js'
@@ -71,5 +72,6 @@ export interface Tx {
   notificationPrefs: NotificationPrefsRepository
   telegramLinks: TelegramLinksRepository
   contentSettings: ContentSettingsRepository
+  heartbeats: SystemHeartbeatsRepository
   audit: AuditLog
 }

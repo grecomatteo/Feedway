@@ -70,8 +70,9 @@ export interface NotificationsRepository {
   /**
    * The system scope only (P2): `pending` deliveries whose time has come, oldest first. The
    * dispatcher sends their job again, under the same key while it is the same attempt.
+   * `platform`: only the platform's, which the web sends while the worker is down (Scelta 10).
    */
-  listDue(now: Date, limit: number): Promise<DeliveryRef[]>
+  listDue(now: Date, limit: number, only?: 'all' | 'platform'): Promise<DeliveryRef[]>
   /**
    * The system scope only (P2): groups left `sending` by a process that fell before saving go
    * back to `pending`, with one more attempt and due now, and are returned; those that used up

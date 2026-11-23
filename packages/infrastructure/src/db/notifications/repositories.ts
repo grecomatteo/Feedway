@@ -94,12 +94,13 @@ export function drizzleNotifications(
       }))
     },
 
-    async listDue(now, limit) {
+    async listDue(now, limit, only = 'all') {
       assertSystem(ctx, 'the deliveries due are read')
+      const platform = only === 'platform' ? sql`and organization_id is null` : sql``
       const { rows } = await db.execute<DeliveryRow>(sql`
         select id, organization_id, user_id, channel, status, attempts, next_attempt_at
           from notification_deliveries
-         where status = 'pending' and next_attempt_at <= ${now}
+         where status = 'pending' and next_attempt_at <= ${now} ${platform}
          order by next_attempt_at, id
          limit ${limit}`)
       return rows.map(refOf)
