@@ -109,6 +109,7 @@ async function agencyWithOwner(
           configId: null,
           businessId: opts.businessId ?? null,
           dataUseCheckupDueOn: null,
+          appLive: false,
         },
         secret: META_MOCK.app.secret,
         updatedBy: userId,

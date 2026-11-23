@@ -153,6 +153,7 @@ test('the sync reads the name of the Business written in the integration after c
         configId: null,
         businessId: META_MOCK.businesses.agency,
         dataUseCheckupDueOn: null,
+        appLive: false,
       },
       secret: META_MOCK.app.secret,
       updatedBy: of.ownerId,

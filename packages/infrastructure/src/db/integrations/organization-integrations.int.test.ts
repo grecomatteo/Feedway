@@ -28,6 +28,7 @@ const config = (over: Partial<MetaIntegrationConfig> = {}): MetaIntegrationConfi
   configId: '2000000000000001',
   businessId: null,
   dataUseCheckupDueOn: null,
+  appLive: false,
   ...over,
 })
 const SECRET = 'segreto-app-meta-agenzia-a'

@@ -1195,7 +1195,12 @@
     "loadError": "Non siamo riusciti a caricare l’app Meta dell’agenzia.",
     "appIdRow": "ID dell'app",
     "replace": "Sostituisci",
-    "edit": "Modifica l'app Meta"
+    "edit": "Modifica l'app Meta",
+    "live": "L'app è in Live",
+    "isLive": "In Live",
+    "inDevelopment": "In Sviluppo",
+    "developmentHint": "L'app Meta è in modalità Sviluppo: i post su Facebook li vede solo chi ha un ruolo nell'app. Accendi quando su Meta l'hai portata in Live.",
+    "liveHint": "I post su Facebook sono pubblici. Spegni se su Meta l'app torna in Sviluppo."
   },
   "socialAccounts": {
     "list": "Profili",
