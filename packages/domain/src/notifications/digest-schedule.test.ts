@@ -4,8 +4,9 @@ import { DEFAULT_DIGEST, digestTimeZone, nextDigestAt } from './digest-schedule.
 const ROME = 'Europe/Rome'
 
 test('the digest is at 8:00 in Rome on the day the clocks go back', () => {
-  // 2026-10-25: from 03:00 Rome is UTC+1
-  expect(nextDigestAt(DEFAULT_DIGEST, new Date('2026-10-25T01:00:00Z'), ROME)).toEqual(
+  // 2026-10-25: at 03:00 summer time the clocks go back to 02:00, and Rome is UTC+1; from 01:00
+  // summer time, the offset of that moment would give 06:00Z
+  expect(nextDigestAt(DEFAULT_DIGEST, new Date('2026-10-24T23:00:00Z'), ROME)).toEqual(
     new Date('2026-10-25T07:00:00Z'),
   )
 })
