@@ -28,6 +28,7 @@ export default {
         'ops',
         'agenti',
         'design',
+        'site',
       ],
     ],
     'subject-case': [0],

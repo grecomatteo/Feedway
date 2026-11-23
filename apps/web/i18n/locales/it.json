@@ -1195,7 +1195,12 @@
     "loadError": "Non siamo riusciti a caricare l’app Meta dell’agenzia.",
     "appIdRow": "ID dell'app",
     "replace": "Sostituisci",
-    "edit": "Modifica l'app Meta"
+    "edit": "Modifica l'app Meta",
+    "live": "L'app è in Live",
+    "isLive": "In Live",
+    "inDevelopment": "In Sviluppo",
+    "developmentHint": "L'app Meta è in modalità Sviluppo: i post su Facebook li vede solo chi ha un ruolo nell'app. Accendi quando su Meta l'hai portata in Live.",
+    "liveHint": "I post su Facebook sono pubblici. Spegni se su Meta l'app torna in Sviluppo."
   },
   "socialAccounts": {
     "list": "Profili",
@@ -2524,6 +2529,7 @@
       "loading": "Preparo l'anteprima…",
       "dropHere": "Rilascia qui per aggiungere i file al post",
       "carousel": "carosello",
+      "carouselAt": "File {at} di {n}: sfoglia con le frecce",
       "previous": "File precedente",
       "next": "File successivo",
       "more": "altro",
@@ -2685,6 +2691,8 @@
       "edit": "Modifica",
       "back": "Post di {name}",
       "thePost": "Il post",
+      "asItWent": "Com'è uscito",
+      "originals": "Le copie pubblicate sono state tolte: questa è l'anteprima dei file originali.",
       "by": "di {name}",
       "loadFailed": "Non riesco a leggere l'esito. Riprova tra poco.",
       "unknownAccount": "Account non più collegato",

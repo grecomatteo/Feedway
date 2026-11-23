@@ -15,4 +15,44 @@ export const postsModule: ModuleDefinition = {
     'target.verify',
     'scheduler.reconcile',
   ],
+  // plan 08, Scelta 4: «who scheduled» is `posts.scheduled_by`
+  notificationKinds: [
+    {
+      type: 'post.target_confirmed',
+      level: 'info',
+      recipients: ['scheduler'],
+      defaultChannels: ['panel'],
+    },
+    {
+      type: 'post.confirmed',
+      level: 'success',
+      recipients: ['scheduler'],
+      defaultChannels: ['panel', 'telegram'],
+    },
+    {
+      type: 'post.target_failed',
+      level: 'error',
+      recipients: ['scheduler', 'workspace_managers'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+    },
+    {
+      type: 'post.target_problem',
+      level: 'error',
+      recipients: ['scheduler', 'workspace_managers'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+    },
+    {
+      type: 'post.file_wont_publish',
+      level: 'error',
+      recipients: ['scheduler', 'workspace_managers'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+      alwaysEmail: 'scheduler',
+    },
+    {
+      type: 'post.paused',
+      level: 'warning',
+      recipients: ['workspace_managers'],
+      defaultChannels: ['panel', 'telegram'],
+    },
+  ],
 }

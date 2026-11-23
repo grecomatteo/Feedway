@@ -3,8 +3,9 @@ import type { PreviewItem } from '~/utils/post-preview'
 
 /**
  * A photo or a carousel in Instagram's feed (design E4): the frame takes the first file's
- * proportions, a carousel scrolls with the arrows and the dots, the text is cut after two lines
- * with «… altro». The file shown is a model. No likes and no date under it: the column stays short
+ * proportions, a carousel scrolls with the arrows and the dots (and with the keyboard's arrows
+ * once it has the focus, plan 08 Task 10), the text is cut after two lines with «… altro». The
+ * file shown is a model. No likes and no date under it: the column stays short
  * enough for «Controlli» (review of fidelity, A1).
  */
 const props = defineProps<{
@@ -47,6 +48,14 @@ function go(by: -1 | 1) {
       class="relative w-full overflow-hidden"
       :style="{ aspectRatio: String(frameRatio) }"
       :aria-roledescription="many ? t('posts.preview.carousel') : undefined"
+      :aria-label="
+        many ? t('posts.preview.carouselAt', { at: at + 1, n: items.length }) : undefined
+      "
+      :role="many ? 'group' : undefined"
+      :tabindex="many ? 0 : undefined"
+      data-preview-carousel
+      @keydown.left.prevent="go(-1)"
+      @keydown.right.prevent="go(1)"
     >
       <PostPreviewMedia v-if="current" :key="current.index" :item="current" />
       <span

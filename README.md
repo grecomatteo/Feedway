@@ -89,6 +89,7 @@ flowchart LR
   W --> DB[(PostgreSQL 18<br>dati con RLS · coda pg-boss)]
   K[apps/worker<br>pubblicazione · verifica · email] --> DB
   K -->|Graph API| M[Meta<br>Instagram · Facebook]
+  V[Visitatore] -->|HTTPS| S[apps/site<br>landing · privacy · Cloudflare Pages]
 ```
 
 - **Livelli**: `domain → application → infrastructure / apps`. Il dominio non importa nulla di esterno e dependency-cruiser blocca la CI se un confine viene violato.
@@ -185,7 +186,7 @@ Prerequisiti, accessi finché il repository è privato, segreti e backup: [runbo
 | [Stack](docs/stack.md) | Componenti, versioni e alternative valutate |
 | [Convenzioni](docs/convenzioni.md) · [Moduli](docs/moduli.md) | Regole di codice e ricetta per un modulo nuovo |
 | [Flusso Git](docs/flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci |
-| [Runbook](docs/runbooks/) | Installazione, email di sistema, impostazioni GitHub |
+| [Runbook](docs/runbooks/) | Installazione, email di sistema, impostazioni GitHub, sito pubblico |
 | [Design](DESIGN.md) · [Prodotto](PRODUCT.md) · [Marchio](design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md) | Scelte grafiche, contesto di prodotto, guida del marchio |
 | [Indice completo](docs/README.md) | Tutti gli altri documenti |
 
