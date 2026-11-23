@@ -14,6 +14,10 @@ export type SessionView =
   | { state: 'second_factor'; me: Me | null; useExisting: boolean }
   | { state: 'active'; me: Me }
 
+/** The person read again in the background: at most once every 30 s, one at a time (D-120.7). */
+const BACKGROUND_GAP_MS = 30_000
+let backgroundLoad: (() => Promise<void>) | null = null
+
 export function useSession() {
   const view = useState<SessionView>('session', () => ({ state: 'unknown' }))
   const colorMode = useColorMode()
@@ -97,6 +101,17 @@ export function useSession() {
     return view.value
   }
 
+  /**
+   * Read again in the background (the tab back in front, another agency, a suspension met by a
+   * call): never two at once nor more than once every 30 s, so a slow network is not filled with
+   * them. A failure keeps what is known.
+   */
+  function reload(): Promise<void> {
+    if (import.meta.server) return Promise.resolve()
+    backgroundLoad ??= quietReload(() => load(), BACKGROUND_GAP_MS)
+    return backgroundLoad()
+  }
+
   /** Loaded once per visit; sign-in and sign-out load it again. */
   async function current(): Promise<SessionView> {
     return view.value.state === 'unknown' ? load() : view.value
@@ -152,5 +167,5 @@ export function useSession() {
     clearNuxtData()
   }
 
-  return { view, load, current, home, signOut, forget, applyTheme, saveTheme }
+  return { view, load, reload, current, home, signOut, forget, applyTheme, saveTheme }
 }
