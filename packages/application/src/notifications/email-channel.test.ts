@@ -85,3 +85,24 @@ test('a failure that may pass is retried, one that needs a person is not', async
     retry: false,
   })
 })
+
+test('the digest has a heading per section, its lines and «e altre N»', async () => {
+  const { m, sent } = mailer(() => Promise.resolve('sent'))
+  const digest: RenderedMessage = {
+    level: 'info',
+    title: 'Il riepilogo di lunedì 23 novembre',
+    context: 'Agenzia Luce',
+    lines: [],
+    more: 0,
+    link: null,
+    sections: [
+      { title: 'Ieri sono usciti 2 post', lines: ['Forno Luce · «Pane caldo»'], more: 0 },
+      { title: 'Da sistemare', lines: ['Forno Luce · «Torta»: non è uscito'], more: 3 },
+    ],
+  }
+  await channel(m).send(recipient, digest, new AbortController().signal)
+  const [email] = sent
+  expect(email?.text).toMatch(/Ieri sono usciti 2 post[\s\S]*«Pane caldo»[\s\S]*Da sistemare/)
+  expect(email?.text).toContain('notify.more {"n":"3"}')
+  expect(email?.html).toContain('Da sistemare')
+})

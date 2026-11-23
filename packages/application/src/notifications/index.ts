@@ -61,3 +61,10 @@ export {
   type TelegramPollDeps,
   type TelegramPollReport,
 } from './telegram-poll.js'
+export {
+  DIGEST_LOCK,
+  startDigests,
+  type DigestStartDeps,
+  type DigestStartReport,
+} from './digest-start.js'
+export { sendDigest, type DigestDeps, type DigestJob, type DigestReport } from './digest.js'

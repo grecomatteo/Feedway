@@ -67,18 +67,27 @@ const LEVEL_MARK: Readonly<Record<Level, string>> = {
 }
 
 /**
- * The message as Telegram shows it (parse_mode HTML): the title in bold with its mark, the
- * context in italics, one line each, then the link, within Telegram's limit.
+ * The message as Telegram shows it (parse_mode HTML): the title in bold with its mark (☀️ for
+ * the morning digest), the context in italics, one line each, the digest's sections under their
+ * headings, then the link, within Telegram's limit.
  */
 export function telegramText(t: Translate, message: RenderedMessage): TelegramHtml {
   return fitMessage({
     head: [
       joinHtml([
-        bold(`${LEVEL_MARK[message.level]} ${message.title}`),
+        bold(`${message.sections ? '☀️' : LEVEL_MARK[message.level]} ${message.title}`),
         ...(message.context ? [italic(message.context)] : []),
       ]),
     ],
-    sections: [{ lines: message.lines.map((l) => plain(`• ${l}`)), hidden: message.more }],
+    sections: [
+      { lines: message.lines.map((l) => plain(`• ${l}`)), hidden: message.more },
+      // the morning digest's parts, each under its heading
+      ...(message.sections ?? []).map((section) => ({
+        title: bold(section.title),
+        lines: section.lines.map((l) => plain(`• ${l}`)),
+        hidden: section.more,
+      })),
+    ].filter((section) => section.lines.length > 0 || section.hidden > 0 || 'title' in section),
     tail: message.link ? [link(message.link.url, `${message.link.label} →`)] : [],
     more: (n) => italic(t('notify.more', { n: String(n) })),
   })

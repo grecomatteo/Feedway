@@ -112,6 +112,7 @@ describe('escaping', () => {
         { kind: 'lead', lead: hostile, text: hostile },
         { kind: 'box', title: hostile, text: hostile },
         { kind: 'details', rows: [{ label: hostile, value: hostile }] },
+        { kind: 'list', title: hostile, items: [hostile] },
       ],
     })
     expect(html).not.toContain('<script>')
@@ -191,4 +192,16 @@ describe('plain text', () => {
     )
     expect(html).toMatch(/font-weight:600[^>]*>Sei stato tu\?<\/p>/)
   })
+})
+
+test('a list has its heading on a line of its own and an item per line, in both versions', () => {
+  const { html, text } = renderEmail({
+    ...base,
+    blocks: [
+      { kind: 'list', title: 'Oggi escono 2 post', items: ['18:00 · Forno', '19:00 · Riva'] },
+    ],
+  })
+  expect(text).toContain('Oggi escono 2 post\n- 18:00 · Forno\n- 19:00 · Riva')
+  expect(html).toContain('font-weight:600;color:#242321;">Oggi escono 2 post</p>')
+  expect(html).toContain('18:00 · Forno</p>')
 })

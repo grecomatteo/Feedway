@@ -216,6 +216,8 @@ test('a post in preparation: «Modifica» opens the editor and saves it as a sch
   await expect(text).toHaveValue('Il pane del lunedì')
   await text.fill('Il pane del lunedì, con il sesamo')
   await page.getByRole('button', { name: 'Salva modifiche' }).first().click()
+  // the post stays on the page: a short confirmation says it is saved (D-120.6)
+  await expect(page.locator('[data-toast]')).toContainText('Modifiche salvate')
   await expect
     .poll(
       async () =>

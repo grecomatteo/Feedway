@@ -93,7 +93,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext, marks?: TxMar
       },
     },
     notifications: drizzleNotifications(db, ids, ctx),
-    notificationPrefs: drizzleNotificationPrefs(db),
+    notificationPrefs: drizzleNotificationPrefs(db, ctx),
     telegramLinks: drizzleTelegramLinks(db, ids, ctx),
     contentSettings: drizzleContentSettings(db),
     audit: drizzleAuditLog(db, ids, ctx),

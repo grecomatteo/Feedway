@@ -43,6 +43,8 @@ export interface EditorEntry {
   file: EditorFile | null
   /** the upload's key in the workspace's store, while the file has no media yet */
   upload: string | null
+  /** the file uploaded here is the same as one already in the library (D-120.3) */
+  duplicateOf?: { id: string; name: string } | null
 }
 
 export type WorkspaceRoleName = WorkspaceView['myRole']
@@ -116,6 +118,7 @@ export function usePostEditor(opts: {
   const org = useOrganization()
   const { call, failure } = useApi()
   const { t } = useI18n()
+  const notice = useNotice()
   const workspaceId = opts.client.value.id
   const base = org.api(`/workspaces/${encodeURIComponent(workspaceId)}`)
   // a file of the post the worker has just made ready (or failed): its tile and the checks
@@ -261,6 +264,17 @@ export function usePostEditor(opts: {
         }),
       ),
     isConflict,
+    isLost: (e) => failure(e).status === 0,
+    // a save of this tab whose answer was lost (slow network, D-120.1): the post saved by this
+    // person exactly one version ahead is this tab's own (the lost saves all carried the same
+    // version, so only one can have been written); anything else is a conflict
+    recover: async (id, version) => {
+      const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
+      const mine = org.me.value?.id
+      return mine !== undefined && now.updatedBy === mine && now.version === version + 1
+        ? { id: now.id, version: now.version }
+        : null
+    },
     onState: (s) => {
       save.value = s
       // the address follows the draft once it exists, without a new page
@@ -408,6 +422,7 @@ export function usePostEditor(opts: {
     }
     const entry = entries.value.find((e) => uploadItem(e)?.media?.id === media.id)
     if (entry) {
+      entry.duplicateOf = uploadItem(entry)?.duplicateOf ?? null
       entry.file = fromMedia(media)
       entry.upload = null
     } else entries.value.push({ key: newKey(), file: fromMedia(media), upload: null })
@@ -755,6 +770,9 @@ export function usePostEditor(opts: {
     try {
       await autosave.flush()
       if (save.value.status === 'failed') failed(save.value.error)
+      // the post stays on the page: a short confirmation, as the others (D-120.6, D-45)
+      else if (save.value.status === 'saved' && !save.value.dirty)
+        notice.show({ message: t('posts.actions.changesSaved') })
     } finally {
       autosave.pause(status.value !== 'draft')
       acting.value = null

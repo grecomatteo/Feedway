@@ -81,3 +81,26 @@ test('sections share the room: the one with most lines gives them up first', () 
   expect(b.match(/y{300}/g)).toHaveLength(2)
   expect(text).toMatch(/<i>e altri \d+<\/i>/)
 })
+
+test('the morning digest: each section under its bold heading, the link last', () => {
+  const text = telegramText(t, {
+    level: 'info',
+    title: 'Il riepilogo di martedì 24 novembre · Agenzia Beta',
+    context: null,
+    lines: [],
+    more: 0,
+    sections: [
+      { title: 'Ieri sono usciti 2 post', lines: ['Bar Centrale · Instagram, 8:00'], more: 1 },
+      { title: 'Oggi escono 3 post', lines: ['9:30 · Palestra FitUp · «Pilates <3»'], more: 0 },
+    ],
+    link: { label: 'Apri Oggi', url: 'https://feedway.test/beta' },
+  })
+  expect(text).toBe(
+    [
+      '<b>☀️ Il riepilogo di martedì 24 novembre · Agenzia Beta</b>',
+      '<b>Ieri sono usciti 2 post</b>\n• Bar Centrale · Instagram, 8:00\n<i>notify.more(1)</i>',
+      '<b>Oggi escono 3 post</b>\n• 9:30 · Palestra FitUp · «Pilates &lt;3»',
+      '<a href="https://feedway.test/beta">Apri Oggi →</a>',
+    ].join('\n\n'),
+  )
+})
