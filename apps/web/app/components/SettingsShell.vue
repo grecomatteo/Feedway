@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * One «Impostazioni» for everything (Matteo, 13/11; screens 23–26): the person's own pages and,
- * for who may see them, the agency's, in a menu on the left; on a phone the menu is a drop-down
- * above the page. The addresses stay where they were (`/account/*`, `/<agenzia>/impostazioni/*`),
+ * for who may see them, the agency's, in a menu on the left; below 1024 px (a phone, a tablet, a
+ * narrow window beside the side bar) the menu is a drop-down above the page (D-120.8). The addresses stay where they were (`/account/*`, `/<agenzia>/impostazioni/*`),
  * so the links in the emails keep working; only the shell around them is shared. `wide` lets the
  * page use the whole width (a table: Integrazioni, Registro attività), otherwise it stops at 720.
  */
@@ -95,11 +95,11 @@ const menu = computed(() =>
     </template>
 
     <div
-      class="grid gap-12 max-md:block"
-      :class="wide ? 'md:grid-cols-[208px_minmax(0,1fr)]' : 'md:grid-cols-[208px_minmax(0,720px)]'"
+      class="grid gap-12 max-lg:block"
+      :class="wide ? 'lg:grid-cols-[208px_minmax(0,1fr)]' : 'lg:grid-cols-[208px_minmax(0,720px)]'"
       data-settings
     >
-      <nav :aria-label="$t('settings.title')" class="grid content-start gap-0.5 max-md:hidden">
+      <nav :aria-label="$t('settings.title')" class="grid content-start gap-0.5 max-lg:hidden">
         <template v-for="(group, g) in groups" :key="group.id">
           <p
             :id="group.id"
@@ -131,7 +131,7 @@ const menu = computed(() =>
         >
           <button
             type="button"
-            class="mb-5 flex h-11 w-full items-center gap-2 rounded-control border border-(--app-field-border) bg-(--app-surface) px-3 text-left md:hidden"
+            class="mb-5 flex h-11 w-full items-center gap-2 rounded-control border border-(--app-field-border) bg-(--app-surface) px-3 text-left md:max-w-sm lg:hidden"
             :aria-label="$t('settings.pick', { page: currentTab?.label ?? '' })"
             data-settings-pick
           >
