@@ -3,7 +3,12 @@ import { auditModule } from './audit/module.js'
 import { identityModule } from './identity/module.js'
 import { mediaModule } from './media/module.js'
 import { notificationsModule } from './notifications/module.js'
-import type { ModuleDefinition, UserAnonymizedHandler } from './module-definition.js'
+import type {
+  ModuleDefinition,
+  NotificationKind,
+  UserAnonymizedHandler,
+} from './module-definition.js'
+import type { OutboxEventType } from '@app/domain'
 import { organizationsModule } from './organizations/module.js'
 import { platformModule } from './platform/module.js'
 import { postsModule } from './posts/module.js'
@@ -30,4 +35,9 @@ export const MODULES: readonly ModuleDefinition[] = [
  */
 export function userAnonymizedHandlers(): readonly UserAnonymizedHandler[] {
   return MODULES.flatMap((m) => (m.onUserAnonymized ? [m.onUserAnonymized] : []))
+}
+
+/** Every kind of notification the modules register, by its event type (§7.3). */
+export function notificationKinds(): ReadonlyMap<OutboxEventType, NotificationKind> {
+  return new Map(MODULES.flatMap((m) => m.notificationKinds ?? []).map((k) => [k.type, k]))
 }

@@ -3,6 +3,7 @@ export type { IdGenerator } from './ports/id-generator.js'
 export type { Logger, LogLevel } from './ports/logger.js'
 export { SECURITY_EMAIL_KINDS } from './ports/job-queue.js'
 export type {
+  NotifyDeliverJobData,
   AccountLockedNoticeData,
   AccountLockedNoticeEmailData,
   AccountRecoveryEmailData,
@@ -119,6 +120,9 @@ export type { PasswordHasher } from './ports/password-hasher.js'
 export type { SignedTokenPurpose, SignedTokens, TokenService } from './ports/token-service.js'
 export type { OrganizationKeyRecord, OrganizationKeysRepository, Tx } from './ports/tx.js'
 export type {
+  ClaimedDelivery,
+  DeliveryOutcome,
+  DeliveryRef,
   NewDeliveryStatus,
   NewNotification,
   NotificationPrefsRepository,
@@ -176,8 +180,29 @@ export * from './media/index.js'
 export * from './rules/index.js'
 export * from './posts/index.js'
 export type { PublishingHistory, PublishingHistoryQuery } from './ports/publishing-history.js'
-export { MODULES, userAnonymizedHandlers } from './modules.js'
-export type { ModuleDefinition } from './module-definition.js'
+export { MODULES, notificationKinds, userAnonymizedHandlers } from './modules.js'
+export type { ModuleDefinition, NotificationKind } from './module-definition.js'
+export type {
+  ChannelRecipient,
+  NotificationChannel,
+  RenderedMessage,
+  SendResult,
+} from './ports/notification-channel.js'
+export {
+  createEmailChannel,
+  deliverNotification,
+  deliverPlatformNotification,
+  dispatchNotifications,
+  notificationEmail,
+  type DeliverDeps,
+  type DeliverJob,
+  type DeliverReport,
+  type DispatchDeps,
+  type DispatchReport,
+  type MessageContext,
+  type NotifiedEvent,
+} from './notifications/index.js'
+export { postHeadline } from './posts/notification-messages.js'
 export type {
   AccountHealthReport,
   AccountListing,

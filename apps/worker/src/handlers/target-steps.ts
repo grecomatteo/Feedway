@@ -68,4 +68,6 @@ export const schedulerReconcile: JobHandler<'scheduler.reconcile'> = async (job,
   const report = await reconcilePublishing(publishingDeps(deps))
   if (report.sent > 0 || report.uncertain > 0 || report.rechecked > 0)
     deps.logger.info({ jobId: job.id, ...report }, 'publishing reconciled')
+  // plan 08 P2: the notifications' dispatcher runs every minute too, for what no commit woke
+  await deps.queue.send('notify.dispatch', {})
 }

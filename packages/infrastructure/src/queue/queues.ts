@@ -163,6 +163,25 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
   },
+  // after every commit that wrote an event, and every minute (plan 08 P2): one queued and one
+  // running; the state is in the outbox and the deliveries, so a run lost is the next one's
+  'notify.dispatch': {
+    policy: 'stately',
+    scope: 'system',
+    retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
+  },
+  // ids only (P1): the state is in notification_deliveries and the dispatcher sends a job lost or
+  // dropped again within a minute; a finished one is kept a day, so a key sent twice is one job
+  'notify.deliver': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+  },
+  'notify.deliver_platform': {
+    policy: 'standard',
+    scope: 'system',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

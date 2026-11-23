@@ -29,12 +29,69 @@ export interface NewNotification {
   }[]
 }
 
+/** A delivery the dispatcher sends a job for (P1, P2). */
+export interface DeliveryRef {
+  id: string
+  organizationId: string | null
+  userId: string
+  channel: Channel
+  status: NewDeliveryStatus | 'sending' | 'sent' | 'failed'
+  attempts: number
+  nextAttemptAt: Date | null
+}
+
+/** One delivery of a claimed group, with its notification's event (P3: ids and codes only). */
+export interface ClaimedDelivery {
+  id: string
+  notificationId: string
+  kind: OutboxEventType
+  channel: Channel
+  attempts: number
+  eventId: string
+  workspaceId: string | null
+  payload: OutboxPayload
+  createdAt: Date
+}
+
+/** How a claimed group ended (plan 08, «Ogni invio in transazione corta»). */
+export type DeliveryOutcome =
+  | { status: 'sent' }
+  /** a failure with tries left: `attempts` goes up by one */
+  | { status: 'pending'; nextAttemptAt: Date; error: string }
+  | { status: 'failed' | 'skipped'; error: string }
+
 export interface NotificationsRepository {
   /**
-   * Writes the notification and its deliveries. false: the person already has this event's
+   * Writes the notification and its deliveries. null: the person already has this event's
    * (a dispatch run again), nothing written.
    */
-  create(notification: NewNotification): Promise<boolean>
+  create(notification: NewNotification): Promise<DeliveryRef[] | null>
+  /**
+   * The system scope only (P2): `pending` deliveries whose time has come, oldest first. The
+   * dispatcher sends their job again, under the same key while it is the same attempt.
+   */
+  listDue(now: Date, limit: number): Promise<DeliveryRef[]>
+  /**
+   * The system scope only (P2): groups left `sending` by a process that fell before saving go
+   * back to `pending`, with one more attempt and due now. Returns them.
+   */
+  releaseExpiredClaims(now: Date): Promise<DeliveryRef[]>
+  /**
+   * Claims the group of `deliveryId` (P1), with `FOR UPDATE SKIP LOCKED`: if it is `pending` and
+   * due, it and the other `pending` ones of the same person, agency, channel and kind not
+   * waiting for a retry become `sending` until `claimedUntil`. Empty: nothing to send (another
+   * job of the group took it, or it is not due).
+   */
+  claimGroup(input: {
+    deliveryId: string
+    userId: string
+    /** the job's agency, null for the platform's: a delivery of another is never claimed */
+    organizationId: string | null
+    now: Date
+    claimedUntil: Date
+  }): Promise<ClaimedDelivery[]>
+  /** Saves how the claim ended; only rows still under this claim. Returns how many. */
+  finishClaim(ids: readonly string[], claimedUntil: Date, outcome: DeliveryOutcome): Promise<number>
   /**
    * The system scope only (anonymization, §10.4): every notification of the person in every
    * agency and the platform's, with their deliveries. Returns how many went.

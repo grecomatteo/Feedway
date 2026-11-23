@@ -16,6 +16,7 @@ import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
+import { notifyDeliver } from './notify.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
   publishingWorld,
@@ -244,6 +245,44 @@ async function targetsWorld(
   }
 }
 
+/** An email to send of each agency's Owner, due a minute ago (plan 08 Task 5). */
+async function deliveriesWorld(): Promise<World> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const deliveryOf = (of: Agency) =>
+    runtime.uow.run({ organizationId: of.organizationId, userId: of.ownerId }, async (tx) => {
+      const created = await tx.notifications.create({
+        organizationId: of.organizationId,
+        userId: of.ownerId,
+        eventId: runtime.ids.newId(),
+        kind: 'account.quota_low',
+        level: 'warning',
+        workspaceId: null,
+        payload: { accountId: runtime.ids.newId(), left: 1, total: 50 },
+        deliveries: [
+          {
+            channel: 'email',
+            status: 'pending',
+            nextAttemptAt: new Date(Date.now() - 60_000),
+            error: null,
+          },
+        ],
+      })
+      const [delivery] = created ?? []
+      if (!delivery) throw new Error('no delivery')
+      return delivery.id
+    })
+  const ofA = await deliveryOf(a)
+  const ofB = await deliveryOf(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, deliveryId: ofA, recipientUserId: a.ownerId },
+    // A's agency naming B's delivery, for B's Owner
+    crossing: { organizationId: a.organizationId, deliveryId: ofB, recipientUserId: b.ownerId },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
@@ -255,6 +294,7 @@ const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'target.publish': { handler: targetPublish, world: () => targetsWorld('ready') },
   'target.reconcile': { handler: targetReconcile, world: () => targetsWorld('unknown') },
   'target.verify': { handler: targetVerify, world: () => targetsWorld('published') },
+  'notify.deliver': { handler: notifyDeliver, world: deliveriesWorld },
 }
 
 // every row an agency's job could touch, by agency
@@ -269,6 +309,8 @@ const SNAPSHOT_QUERIES = [
   'select * from post_targets where organization_id = $1 order by id',
   'select * from target_attempts where organization_id = $1 order by id',
   'select * from outbox_events where organization_id = $1 order by id',
+  'select * from notifications where organization_id = $1 order by id',
+  'select * from notification_deliveries where organization_id = $1 order by id',
 ]
 
 async function snapshot(of: Agency): Promise<unknown[]> {

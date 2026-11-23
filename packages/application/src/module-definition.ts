@@ -4,7 +4,9 @@ import type {
   Permission,
   PlatformPermission,
 } from '@app/domain'
+import type { MessageContext, NotifiedEvent } from './notifications/message.js'
 import type { QueueName } from './ports/job-queue.js'
+import type { RenderedMessage } from './ports/notification-channel.js'
 import type { Tx } from './ports/tx.js'
 import type { UnitOfWork } from './ports/unit-of-work.js'
 
@@ -33,10 +35,13 @@ export type UserAnonymizedHandler = (
 
 /**
  * A kind of notification a module registers for an outbox event it writes (§7.3, §12.1 punto 5):
- * level, recipients and default channels. Stage 8's delivery (plan 08, Task 5) adds the message
- * each channel builds when it sends (P3).
+ * level, recipients, default channels, and the message, built when it is sent from the data of
+ * now in the recipient's scope (P3). One message for a group of events of the kind (Scelta 7).
  */
-export type NotificationKind = NotificationKindRule
+export interface NotificationKind extends NotificationKindRule {
+  /** null: nothing left to say (every post of the group gone and nothing else to tell) */
+  message(ctx: MessageContext, events: readonly NotifiedEvent[]): Promise<RenderedMessage | null>
+}
 
 /** What one section of the morning digest is computed for: one agency of one person (§12.4). */
 export interface DigestContext {

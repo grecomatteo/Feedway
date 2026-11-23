@@ -19,6 +19,7 @@ import { mediaProcess } from './handlers/media-process.js'
 import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
+import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './handlers/notify.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import {
   schedulerReconcile,
@@ -117,6 +118,9 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'target.reconcile': targetReconcile,
     'target.verify': targetVerify,
     'scheduler.reconcile': schedulerReconcile,
+    'notify.dispatch': notifyDispatch,
+    'notify.deliver': notifyDeliver,
+    'notify.deliver_platform': notifyDeliverPlatform,
     ...deps.handlers,
     'media.process': mediaProcessOnStop,
     'media.publish_copies': mediaPublishCopiesOnStop,
