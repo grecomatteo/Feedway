@@ -58,6 +58,16 @@ async function stagedPhoto(cookie: string): Promise<{ stagingId: string; preview
 
 /** Routes whose request needs something of the caller first (a file, a preview). */
 const PREPARED_BODY: Record<string, (cookie: string) => Promise<unknown>> = {
+  // a bot of the platform to link to (its token is never opened here)
+  'POST /api/v1/me/telegram/links': async () => {
+    await fx.env.admin.pool.query(
+      `insert into integrations (id, organization_id, kind, config, secret_enc, key_version)
+       values ($1, null, 'telegram', '{"botId":1000000001,"botUsername":"feedway_mock_bot"}', 'x', 1)
+       on conflict do nothing`,
+      [randomUUID()],
+    )
+    return { bot: 'platform' }
+  },
   'POST /api/v1/me/avatar': () => photoForm(),
   'POST /api/v1/me/avatar/crop': async (cookie) => ({
     stagingId: (await stagedPhoto(cookie)).stagingId,
@@ -81,6 +91,25 @@ const OWNED_BY_ANOTHER: Record<
   string,
   (fx: IsolationFixture) => Promise<{ values: Record<string, string>; untouched(): Promise<void> }>
 > = {
+  // the chat of a person of A with A's own bot: B's member names A's bot
+  'DELETE /api/v1/me/telegram/links/{bot}': async (f) => {
+    const userId = f.a.people.viewer.userId
+    await f.env.admin.pool.query(
+      `insert into telegram_links (id, organization_id, user_id, chat_id, linked_at)
+       values ($1, $2, $3, 4242, now())`,
+      [randomUUID(), f.a.id, userId],
+    )
+    return {
+      values: { bot: f.a.id },
+      async untouched() {
+        const { rows } = await f.env.admin.pool.query(
+          'select 1 from telegram_links where user_id = $1 and organization_id = $2',
+          [userId, f.a.id],
+        )
+        expect(rows).toHaveLength(1)
+      },
+    }
+  },
   'DELETE /api/v1/me/sessions/{id}': async (f) => {
     const cookie = await f.env.signIn(f.a.people.viewer)
     const { rows } = await f.env.admin.pool.query<{ id: string }>(

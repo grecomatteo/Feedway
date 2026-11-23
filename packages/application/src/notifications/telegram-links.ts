@@ -147,5 +147,11 @@ export async function unlinkTelegram(
 ): Promise<void> {
   if (bot !== 'platform' && !isUuid(bot)) throw unknownBot()
   const owner = ownerOf(bot)
+  // an agency's bot only for an agency of the person: another agency is not even named
+  if (owner !== null) {
+    const memberships = await deps.uow.run({ userId }, (tx) => tx.orgMembers.listForUser(userId))
+    if (!memberships.some((m) => m.organizationId === owner && m.status === 'active'))
+      throw unknownBot()
+  }
   await deps.uow.run(scopeOf(userId, owner), (tx) => tx.telegramLinks.deleteFor(owner, userId))
 }
