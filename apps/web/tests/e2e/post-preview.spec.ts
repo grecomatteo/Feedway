@@ -392,10 +392,8 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await expect(page.locator('[data-entry]')).toHaveAccessibleName(/impasto\.mov/)
   const section = page.locator('[data-cover]')
   await expect(section.getByRole('heading', { name: 'Copertina' })).toBeVisible()
-  // Feedway sends the cover to Instagram only (0.13.0 test): the row says so
-  await expect(section.locator('[data-cover-facebook]')).toHaveText(
-    'Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram.',
-  )
+  // no cover chosen yet: Facebook and Instagram both start from the first frame
+  await expect(section.locator('[data-cover-facebook]')).toHaveCount(0)
   const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })
   // 18 s at 30 fps: the cursor stops on the last true frame
   await expect(frame).toHaveAttribute('max', '17966')
@@ -408,6 +406,10 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
     /1,0 s · fotogramma 32 di 539|1 s · fotogramma 32 di 539/,
   )
   await expect(section.locator('[data-cover-state]')).toHaveText('Fotogramma a 0:01')
+  // without the two permissions of the cover (D-120.9) it goes to Instagram only: the row says so
+  await expect(section.locator('[data-cover-facebook]')).toHaveText(
+    'Su Facebook la copertina è il primo fotogramma del video: per mandare quella scelta servono due permessi in più dell’utente di sistema, da aggiungere in Integrazioni → Meta.',
+  )
   // «Mostra anche nel feed» on by default
   await expect(section.getByRole('switch', { name: 'Mostra anche nel feed' })).toHaveAttribute(
     'aria-checked',

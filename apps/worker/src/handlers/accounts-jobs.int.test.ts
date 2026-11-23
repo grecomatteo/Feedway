@@ -101,8 +101,9 @@ const connectionRow = async (id: string) =>
       expires_at: Date | null
       last_refreshed_at: Date | null
       last_usage: unknown
+      scopes: string[] | null
     }>(
-      'select status, token_enc, expires_at, last_refreshed_at, last_usage from account_connections where id = $1',
+      'select status, token_enc, expires_at, last_refreshed_at, last_usage, scopes from account_connections where id = $1',
       [id],
     )
   ).rows[0]
@@ -198,6 +199,17 @@ test('the health check: green with the quota, the page green, the usage kept', a
   expect((await connectionRow(a.id))?.last_usage).toMatchObject({
     business: expect.any(Array) as unknown,
   })
+  expect((await connectionRow(a.id))?.scopes).not.toContain('pages_manage_engagement')
+})
+
+test('the health check keeps the permissions: the cover ones added later count (D-120.9)', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  mock.scenario('permissions_added')
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await connectionRow(a.id))?.scopes).toEqual(
+    expect.arrayContaining(['pages_manage_engagement', 'pages_read_user_content']),
+  )
 })
 
 test('a token Meta calls expired: the connection is expired and its accounts red; another connection goes on', async () => {

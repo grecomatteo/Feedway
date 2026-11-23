@@ -127,6 +127,7 @@ Descrizioni e dipendenze dal [Permissions Reference](https://developers.facebook
 | `instagram_content_publish` | Pubblicare foto e video nel feed | — |
 | `business_management` | Leggere e scrivere con la Business Manager API | — |
 | `ads_management`, `ads_read` | Pubblicità | — |
+| `pages_manage_engagement`, `pages_read_user_content` | Facoltativi, solo per la copertina di un reel su Facebook (`POST /{video-id}/thumbnails`, D-120.9) | `pages_read_engagement`, `pages_show_list` (non verificato) |
 
 ### Per tipo di collegamento
 
@@ -278,7 +279,7 @@ Ogni passo inizia con `GET /{page}?fields=access_token` fatto con il token del c
 | Storia foto | una foto con `published=false` | `POST /{page}/photo_stories` con `photo_id` → `success`, `post_id` |
 | Storia video | `POST /{page}/video_stories` `upload_phase=start` e caricamento ospitato come il reel | `POST /{page}/video_stories` con `upload_phase=finish` e `video_id` → `success`, `post_id` |
 
-- **Copertina del reel:** la guida dei reel non ha un parametro per la copertina: non si manda, l'avviso `cover_on_facebook` resta (§11.2).
+- **Copertina del reel (tappa 8, Task 11, D-120.9):** la guida dei reel non ha un parametro per la copertina. Dopo `finish`, nello stesso passo `publish` e con l'id del reel già salvato, Feedway manda la copertina con `POST /{video-id}/thumbnails` ([Video thumbnails](https://developers.facebook.com/docs/graph-api/reference/video/thumbnails/)): `multipart/form-data` con il file `source` (la copia `cover` della copertina, letta dal disco, JPEG o PNG fino a 10 MB) e `is_preferred=true`, risposta `success`. Solo se l'ultimo controllo del token (`debug_token`, alla connessione e ogni giorno) ha dato `pages_manage_engagement` e `pages_read_user_content`: senza, non si chiama e l'esito dice «Copertina non caricata su Facebook». Un errore qui **non** fa fallire il post: la destinazione resta pubblicata e `meta_ids.cover` dice `done`, `failed` o `no_permission`; un worker fermato tra `finish` e la copertina non la rimanda. Con i permessi l'avviso `cover_on_facebook` sparisce. **Non verificato su Meta vera:** la chiamata, i permessi che chiede davvero, se accetta un reel ancora in elaborazione subito dopo `finish`, e il limite di peso.
 - **Limite:** 30 reel pubblicati con l'API ogni 24 ore mobili per Pagina, applicato su `POST /{page}/video_reels`; Feedway li conta dal suo database.
 - **Requisiti dei file:** reel da 3 a 90 s, almeno 540×960 (consigliato 1080×1920), da 24 a 60 fps; storia video fino a 60 s; foto delle storie JPEG, BMP, PNG, GIF o TIFF fino a 10 MB. Gli host dei file ospitati devono lasciar passare `facebookexternalhit` in `robots.txt`; gli indirizzi di fbcdn sono rifiutati. Un file usato in un post già pubblicato non si può riusare in una storia.
 - **Ciò che resta su Meta:** le foto non pubblicate restano circa un giorno; Feedway rifà il giro dopo 23 ore. Una modifica del post scarta foto e video non pubblicati con `DELETE /{oggetto}` (`discard`, P2).

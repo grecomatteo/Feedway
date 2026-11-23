@@ -66,7 +66,12 @@ afterEach(async () => {
 function target(type: PostType, over: Partial<PublishTarget> = {}): PublishTarget {
   return {
     targetId: 'target-1',
-    account: { platform: 'instagram', externalId: ig, pageId: META_MOCK.pages.withInstagram },
+    account: {
+      platform: 'instagram',
+      externalId: ig,
+      pageId: META_MOCK.pages.withInstagram,
+      scopes: null,
+    },
     credentials: {
       app: { appId: META_MOCK.app.id, appSecret: META_MOCK.app.secret, version: new Date() },
       token,
@@ -207,7 +212,10 @@ describe('every type reaches a confirmed post', () => {
   test('reel with an uploaded cover, out of the feed', async () => {
     await goOut(
       target('reel', { shareToFeed: false }),
-      files([video()], { url: `${mock.url}/pictures/bottega.jpg` }),
+      files([video()], {
+        url: `${mock.url}/pictures/bottega.jpg`,
+        read: () => Promise.resolve(null),
+      }),
     )
     expect(posts(`/${ig}/media`)[0]?.params).toMatchObject({
       share_to_feed: 'false',

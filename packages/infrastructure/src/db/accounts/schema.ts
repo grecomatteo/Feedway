@@ -46,6 +46,9 @@ export const accountConnections = pgTable(
     // the platform's name for the token's owner (Meta: the system user's Business), shown on
     // the connection; null: not read (connections made before 0.13.0) or not known
     businessName: text('business_name'),
+    // the token's permissions as the platform gave them at the last check (Meta: `debug_token`);
+    // null: never read, connections made before stage 8 (D-120.9, the cover on Facebook)
+    scopes: text('scopes').array(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

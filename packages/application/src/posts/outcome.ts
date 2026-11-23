@@ -2,6 +2,7 @@ import { can, displayName, type OrgActor, type TargetStatus } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { AuditAction } from '../ports/audit-log.js'
 import type { Logger } from '../ports/logger.js'
+import { coverOutcomeOf, type CoverOutcome } from '../ports/platform-publisher.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { CheckPostDeps } from '../rules/index.js'
 import { openPosts, postNotFound } from './common.js'
@@ -24,6 +25,8 @@ export interface DestinationOutcomeDto {
   problem: string | null
   /** the next try of a destination `retrying` */
   nextAttemptAt: string | null
+  /** the reel's cover sent after the post (Facebook, D-120.9); null: none, or not sent */
+  cover: CoverOutcome | null
 }
 
 /** What the activity tells, from the log of the panel or from the calls of the worker. */
@@ -169,6 +172,7 @@ export async function getPostOutcome(
           errorCode: t.lastErrorCode,
           problem: problemOf(t.status, t.verification),
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
+          cover: coverOutcomeOf(t.metaIds),
         })),
         activity: [...fromLog, ...fromCalls]
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))

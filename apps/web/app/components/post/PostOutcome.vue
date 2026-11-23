@@ -133,6 +133,11 @@ const rows = computed(() =>
       state: state.label,
       tone: state.tone,
       reason,
+      // the reel is out: its cover on Facebook did not follow (D-120.9)
+      coverNote:
+        d.status !== 'cancelled' && (d.cover === 'no_permission' || d.cover === 'failed')
+          ? t(`posts.outcome.cover.${d.cover}`)
+          : null,
       canRetry: mayRetry.value && (d.status === 'failed' || d.status === 'problem'),
       canVerify: mayRetry.value && d.status === 'problem',
       canCancel: mayCancel.value && CANCELLABLE.has(d.status) && current.value.status !== 'paused',
@@ -485,7 +490,12 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                 </div>
                 <div
                   v-if="
-                    row.permalink || row.reason || row.canRetry || row.canVerify || row.canCancel
+                    row.permalink ||
+                    row.reason ||
+                    row.coverNote ||
+                    row.canRetry ||
+                    row.canVerify ||
+                    row.canCancel
                   "
                   class="col-start-2 flex min-w-0 flex-col gap-1.5"
                 >
@@ -501,6 +511,13 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                   </a>
                   <p v-if="row.reason" class="text-detail text-(--app-text)" data-outcome-reason>
                     {{ row.reason }}
+                  </p>
+                  <p
+                    v-if="row.coverNote"
+                    class="text-detail text-(--app-text-muted)"
+                    data-outcome-cover
+                  >
+                    {{ row.coverNote }}
                   </p>
                   <div
                     v-if="row.canRetry || row.canVerify || row.canCancel"

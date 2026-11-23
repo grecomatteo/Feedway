@@ -189,6 +189,7 @@ export function workerDeps(
     platformRules: runtime.platformRules,
     publishingHistory: runtime.publishingHistory,
     publicUrl,
+    storage: runtime.storage,
   }
 }
 

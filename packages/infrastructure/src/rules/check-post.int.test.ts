@@ -374,6 +374,28 @@ describe('what is not the workspace’s', () => {
 })
 
 describe('the accounts', () => {
+  test("the cover on Facebook: warned until the connection has the cover's permissions", async () => {
+    const onFacebook = reel({
+      destinations: [{ accountId: fb }],
+      cover: { source: 'frame', offsetMs: 1_000 },
+    })
+    expect(codes(await checkPost(deps, actor(people.editor), onFacebook))).toEqual([
+      'warning cover_on_facebook cover_on_facebook:cover:facebook',
+    ])
+    const scopes = (value: string[] | null) =>
+      admin.query(
+        `update account_connections set scopes = $2
+         where id = (select connection_id from social_accounts where id = $1)`,
+        [fb, value],
+      )
+    await scopes(['pages_manage_posts', 'pages_manage_engagement', 'pages_read_user_content'])
+    try {
+      expect(codes(await checkPost(deps, actor(people.editor), onFacebook))).toEqual([])
+    } finally {
+      await scopes(null)
+    }
+  })
+
   test('a red account blocks; 96 of 100 posts warns; 100 of 100 blocks', async () => {
     const report = await checkPost(
       deps,
