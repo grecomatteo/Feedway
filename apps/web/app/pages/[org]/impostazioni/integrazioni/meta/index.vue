@@ -155,7 +155,7 @@ async function setLive(value: boolean) {
             {{ $t('metaIntegration.saved') }}
           </p>
           <StatusDot
-            v-if="integration && !integration.appLive"
+            v-if="integration && editable && !appLive"
             tone="warning"
             :label="$t('metaIntegration.inDevelopment')"
             data-testid="meta-app-development"
@@ -205,11 +205,16 @@ async function setLive(value: boolean) {
             inline
             :for="editable ? 'meta-app-live' : undefined"
             :label="$t('metaIntegration.live')"
-            :hint="$t(appLive ? 'metaIntegration.liveHint' : 'metaIntegration.developmentHint')"
           >
+            <template #hint>
+              <span id="meta-app-live-hint" class="block text-detail text-(--app-text-muted)">
+                {{ $t(appLive ? 'metaIntegration.liveHint' : 'metaIntegration.developmentHint') }}
+              </span>
+            </template>
             <USwitch
               v-if="editable"
               id="meta-app-live"
+              aria-describedby="meta-app-live-hint"
               :model-value="appLive"
               :loading="live.sending"
               :disabled="live.sending"
