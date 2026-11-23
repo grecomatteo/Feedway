@@ -409,9 +409,7 @@ const folderTargets = computed(() => {
   const allowed = new Set(folderMoveTargets(tree.value, folder.id))
   return [
     ...(allowed.has(null) ? [{ value: 'top', label: t('library.folders.moveTop') }] : []),
-    ...tree.value
-      .filter((f) => allowed.has(f.id))
-      .map((f) => ({ value: f.id, label: f.path })),
+    ...tree.value.filter((f) => allowed.has(f.id)).map((f) => ({ value: f.id, label: f.path })),
   ]
 })
 function startMoveFolder(folder: Folder) {
