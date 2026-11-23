@@ -43,6 +43,8 @@ export interface EditorEntry {
   file: EditorFile | null
   /** the upload's key in the workspace's store, while the file has no media yet */
   upload: string | null
+  /** the file uploaded here is the same as one already in the library (D-120.3) */
+  duplicateOf?: { id: string; name: string } | null
 }
 
 export type WorkspaceRoleName = WorkspaceView['myRole']
@@ -408,6 +410,7 @@ export function usePostEditor(opts: {
     }
     const entry = entries.value.find((e) => uploadItem(e)?.media?.id === media.id)
     if (entry) {
+      entry.duplicateOf = uploadItem(entry)?.duplicateOf ?? null
       entry.file = fromMedia(media)
       entry.upload = null
     } else entries.value.push({ key: newKey(), file: fromMedia(media), upload: null })

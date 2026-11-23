@@ -166,14 +166,25 @@ const thumbOf = (entry: EditorEntry) => {
   const preview = e.uploadItem(entry)?.preview
   return preview ? { url: preview.url, video: preview.kind === 'video' } : null
 }
+/** The files uploaded here that were already in the library, said under the tiles. */
+const duplicates = computed(() =>
+  e.entries.value.flatMap((entry) =>
+    entry.duplicateOf && entry.file
+      ? [{ key: entry.key, name: nameOf(entry), other: entry.duplicateOf.name }]
+      : [],
+  ),
+)
 /** What the tile says under the name: the upload, or the state of the file. */
 function stateOf(entry: EditorEntry): { text: string; tone: string } | null {
   const item = e.uploadItem(entry)
   if (item && !entry.file) return { text: line(item), tone: tone(item) }
   const f = entry.file
-  if (!f || f.status === 'ready') return null
+  if (!f) return null
   if (f.status === 'deleted') return { text: t('posts.media.deleted'), tone: 'text-(--app-danger)' }
   if (f.status === 'failed') return { text: t('upload.state.failed'), tone: 'text-(--app-danger)' }
+  // said under the tiles too, with the file already in the library (D-120.3)
+  if (entry.duplicateOf) return { text: t('posts.media.duplicate'), tone: 'text-(--app-warning)' }
+  if (f.status === 'ready') return null
   return { text: t('upload.state.processing'), tone: 'text-(--app-text-muted)' }
 }
 
@@ -458,6 +469,18 @@ function release() {
         </li>
       </ul>
     </div>
+    <ul v-if="duplicates.length > 0" class="mt-2 flex flex-col gap-1" data-media-duplicates>
+      <li
+        v-for="d in duplicates"
+        :key="d.key"
+        class="flex items-start gap-1.5 text-sm text-(--app-warning)"
+      >
+        <UIcon name="i-lucide-copy" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span class="min-w-0 break-words">{{
+          $t('posts.media.duplicateOf', { name: d.name, other: d.other })
+        }}</span>
+      </li>
+    </ul>
     <PostLibraryPicker
       v-if="e.editable.value"
       v-model:open="picking"
