@@ -62,6 +62,8 @@ export interface ConnectionView {
   expiresAt: Date | null
   /** The platform's name for the token's owner (Meta: the Business); null: not known. */
   businessName: string | null
+  /** The token's permissions at the last check; null: never read. */
+  scopes: string[] | null
   createdAt: Date
 }
 
@@ -145,6 +147,7 @@ const viewOf = (c: ConnectionRecord): ConnectionView => ({
   status: c.status,
   expiresAt: c.expiresAt,
   businessName: c.businessName,
+  scopes: c.scopes,
   createdAt: c.createdAt,
 })
 

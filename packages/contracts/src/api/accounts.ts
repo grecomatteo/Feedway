@@ -18,6 +18,11 @@ export const Connection = z.object({
   expiresAt: Timestamp.nullable(),
   /** The Business of the system user, as Meta names it; null: not known. */
   businessName: z.string().max(200).nullable(),
+  /**
+   * The token's permissions at the last check; null: never read. The panel names from here the
+   * optional ones still missing (the cover of a Facebook reel, D-120.9).
+   */
+  scopes: z.array(z.string().max(100)).max(200).nullable(),
   createdAt: Timestamp,
 })
 
