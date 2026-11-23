@@ -13,7 +13,7 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 | Rotte | `apps/web/server/api/v1/orgs/[org]/<modulo>/` | Adattatori sottili: validano, chiamano il caso d'uso, traducono |
 | Lavori | `apps/worker/src/handlers/<modulo>-<lavoro>.ts` | Gestori sottili dei lavori in coda |
 | Pagine | `apps/web/app/pages/[org]/…` | Percorsi in italiano (`/[org]/calendario`) |
-| Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, reazione all'anonimizzazione di un utente. Eventi, notifiche, menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
+| Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, tipi di notifica (`notificationKinds`), sezioni del riepilogo (`digestSections`), reazione all'anonimizzazione di un utente. Menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
 
 ## 2. Regole
 
@@ -34,7 +34,7 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 4. **Casi d'uso** in TDD: `can()` per primo, `uow.run` con ambito, `tx.audit.record` per ogni azione rilevante, eventi nell'outbox per gli effetti verso altri moduli.
 5. **Contratti** Zod e **rotte** registrate nel registro OpenAPI: entrano da sole nella batteria di **isolamento tra agenzie**.
 6. **Lavori in coda**: i dati portano `organizationId` e il gestore apre `uow.run({ organizationId, userId: null })`: il lavoro non agisce per una persona. Ogni coda con ambito `organization` entra nella batteria dei lavori (`apps/worker/src/handlers/isolation.int.test.ts`), che fallisce se ne manca il caso. Un lavoro di sistema va dichiarato tale nel registro delle code e usa `runAsSystem` (consentito solo se il modulo è in `RUN_AS_SYSTEM_ALLOWED` di `eslint.config.mjs`).
-7. **Notifiche**: tipi di evento con livello e destinatari, testi in `apps/web/i18n/locales/it.json`.
+7. **Notifiche** (tappa 8): il tipo dell'evento entra nell'elenco del modulo in `packages/domain/src/<modulo>/events.ts` (`as const`), che `OUTBOX_EVENT_TYPES` unisce (`domain/src/notifications/events.ts`) e il vincolo `check` di `outbox_events` usa, quindi serve una migrazione; poi il `module.ts` del modulo registra un `NotificationKind` in `notificationKinds`, con livello, destinatari (`scheduler`, `workspace_managers`, `org_admins`, `platform_admins`), canali predefiniti di §12.2 e, se serve, `alwaysEmail`. `modules.test.ts` fallisce se un tipo non ha esattamente un `NotificationKind`, e `notification-kinds.test.ts` tiene la tabella dei destinatari e dei canali. Il `payload` ha solo id e codici; i testi sono in `apps/web/i18n/locales/it.json` e il canale li costruisce all'invio (piano 08, P3). Un evento che non va scritto due volte porta una `dedupeKey`. Le sezioni del riepilogo si registrano in `digestSections`.
 8. **Schermate** con tutti gli stati, da telefono e computer, axe verde; voci di menu e del calendario registrate in `module.ts`.
 9. **Strumenti MCP** (dalla 1.4), registrati in `module.ts` con gli stessi casi d'uso e permessi.
 10. **Documentazione**: sezione della specifica aggiornata, voce in questo file se la ricetta cambia.

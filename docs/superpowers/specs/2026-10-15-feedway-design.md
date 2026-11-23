@@ -1157,27 +1157,41 @@ plan_items          id, workspace_id, local_date, local_time (facoltativa),
 
 -- Notifiche e condivisione
 outbox_events       id, organization_id (null = piattaforma), type, payload (jsonb),
-                    created_at, dispatched_at
+                    dedupe_key (unico dove c'è), created_at, dispatched_at
                     -- payload: solo id e codici; un evento della piattaforma lo legge solo il
-                    -- sistema; indice parziale sugli eventi da mandare (dispatched_at null)
-notifications       id, user_id, event_id, kind, level, workspace_id, payload (jsonb), read_at
-notification_deliveries id, notification_id, channel (panel|telegram|email),
-                    status (pending|sent|failed), attempts, error, sent_at
-notification_prefs  user_id, event_kind, channels, min_level, quiet_hours (jsonb)
+                    -- sistema; indice parziale sugli eventi da mandare (dispatched_at null);
+                    -- la stessa dedupe_key non si scrive due volte (meta.reminder,
+                    -- account.unhealthy)
+notifications       id, organization_id (null = piattaforma), user_id, event_id (unico con
+                    user_id), kind, level, workspace_id, payload (jsonb), read_at
+notification_deliveries id, organization_id, user_id, notification_id, kind,
+                    channel (panel|telegram|email), status (pending|sending|sent|failed|
+                    skipped), attempts, next_attempt_at, claimed_until, error, sent_at
+                    -- una riga per canale; il lavoro di consegna prende il gruppo con
+                    -- FOR UPDATE SKIP LOCKED (piano 08, P1)
+notification_prefs  user_id, kind, channels   (una riga solo dove la persona ha cambiato
+                    qualcosa; senza, i canali predefiniti di §12.2; piano 08, P4)
+notification_settings user_id (PK), min_level, quiet_start, quiet_end, digest_enabled,
+                    digest_time, digest_days, everything_everywhere
 telegram_links      organization_id (null = bot della piattaforma), user_id, chat_id,
                     linked_at, link_code_hash, link_code_expires_at
+                    -- notifiche, consegne e collegamenti: con l'ambito della persona solo le
+                    -- sue righe delle agenzie in cui è membro attiva (piano 08, P6)
 share_links         id, workspace_id, token_hash, label, created_by, options (jsonb),
                     password_hash, expires_at, revoked_at, last_viewed_at, view_count
 
 -- Sistema
 integrations        organization_id (null = predefinita della piattaforma; smtp solo
                     della piattaforma, ADR 017), kind (meta|telegram|smtp|heartbeat),
-                    config (jsonb), secret_enc, key_version, updated_by, verified_at
+                    config (jsonb), secret_enc, key_version, updated_by, verified_at,
+                    state (jsonb, senza segreti: offset di Telegram, ultimo esito del
+                    battito esterno); heartbeat solo della piattaforma
 branding            organization_id (PK, una riga per agenzia), logo_key,
                     updated_by; primary_color, email_footer e il branding della
                     piattaforma arrivano con la tappa 10 (piano 04, M1)
 settings            key, value (jsonb), updated_by   (solo piattaforma)
-system_heartbeats   process, instance, last_beat_at, details (jsonb)   (solo piattaforma)
+system_heartbeats   process, instance, last_beat_at, details (jsonb)   (solo piattaforma,
+                    senza RLS come settings)
 audit_log           id, organization_id (null = piattaforma), actor_id,
                     source (panel|api|mcp|system), action, entity,
                     entity_id, workspace_id, ip, data (jsonb), created_at
