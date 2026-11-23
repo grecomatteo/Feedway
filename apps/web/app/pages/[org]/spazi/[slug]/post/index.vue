@@ -159,11 +159,10 @@ const thumbOf = (p: PostResponse) => {
 /** «lunedì 24 novembre, 18:00»: the day and time in the post's zone, as the editor says them. */
 const whenOf = (p: PostResponse) => {
   if (!p.when) return null
-  // «oggi, 18:00» for what is still to come; a past date or a wall date keeps «ven 20 nov, 8:00»,
-  // since a past day without its hour would lose it
-  return p.scheduledAt && new Date(p.scheduledAt).getTime() >= Date.now()
-    ? formatRelative(p.scheduledAt, { timeZone: p.timezone })
-    : formatWallShort(p.when.localDate, p.when.localTime)
+  // «ieri, 09:00», «oggi, 18:00», «domani, 08:00» and the days to come, also for a post already
+  // out (D-120.8); an older day keeps «ven 20 nov, 08:00», since it would lose its hour
+  const near = p.scheduledAt ? formatRelative(p.scheduledAt, { timeZone: p.timezone }) : null
+  return near?.includes(':') ? near : formatWallShort(p.when.localDate, p.when.localTime)
 }
 const PLATFORMS: Platform[] = ['instagram', 'facebook']
 const platformsOf = (p: PostResponse) =>

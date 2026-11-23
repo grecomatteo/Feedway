@@ -41,6 +41,7 @@ export const ACTIVITY_KINDS = [
   'post.verified_manually',
   'post.target_cancelled',
   'post.resumed',
+  'post.target_failed',
   'target.published',
   'target.failed',
   'target.uncertain',
@@ -131,8 +132,18 @@ export async function getPostOutcome(
           kind: e.action as ActivityKind & AuditAction,
           actorName: e.actorId === null ? null : (people.get(e.actorId) ?? null),
           accountId: typeof e.data['accountId'] === 'string' ? e.data['accountId'] : null,
-          errorCode: null,
+          errorCode:
+            e.action === 'post.target_failed' && typeof e.data['code'] === 'string'
+              ? e.data['code']
+              : null,
         }))
+      // a destination not out is told once, by the worker's entry (D-120.8); a call refused
+      // before that entry existed is still told by the call
+      const toldNotOut = new Set(
+        fromLog.flatMap((e) =>
+          e.kind === 'post.target_failed' && e.accountId ? [e.accountId] : [],
+        ),
+      )
       const fromCalls = attempts.flatMap((a): ActivityDto[] => {
         const kind =
           a.outcome === 'done'
@@ -141,6 +152,7 @@ export async function getPostOutcome(
               : undefined
             : ATTEMPT_KIND[a.outcome]
         if (!kind) return []
+        if (kind === 'target.failed' && toldNotOut.has(a.accountId)) return []
         return [
           {
             at: a.createdAt.toISOString(),

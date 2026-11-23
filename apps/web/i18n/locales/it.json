@@ -1045,6 +1045,7 @@
       "post_retried": "ha riprovato la pubblicazione di un post",
       "post_verified_manually": "ha segnato come verificato un post",
       "post_target_cancelled": "ha annullato un post su un account",
+      "post_target_failed": "ha segnato un post come non uscito su un account",
       "post_resumed": "ha ripreso un post in pausa",
       "post_published_now": "ha pubblicato subito un post",
       "session_revoked": "ha scollegato dei dispositivi",
@@ -2775,6 +2776,8 @@
         "post_verified_manually": "{name} l'ha segnato come verificato su {account}",
         "post_target_cancelled": "{name} l'ha annullato su {account}",
         "post_resumed": "{name} l'ha ripreso",
+        "post_target_failed": "Non uscito su {account}",
+        "post_target_failed_too_late": "Non uscito su {account}: era troppo tardi",
         "target_published": "Pubblicato su {account}",
         "target_failed": "{platform} non ha pubblicato il post su {account}",
         "target_uncertain": "{platform} non ha risposto in tempo su {account}"
