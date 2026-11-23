@@ -191,6 +191,7 @@ Le tabelle seguono la tappa che le introduce (§5); nessuna tappa crea tabelle "
 4. Note di rilascio con "cosa provare" per Matteo.
 5. Installata sulla VPS con `update.sh` e provata da Matteo.
 6. Il piano della tappa successiva è scritto sul codice reale e approvato.
+7. **Landing e README aggiornati** (Matteo, 23/11): per ogni funzione arrivata nella tappa si toglie il segno «In arrivo» in `apps/site/app/features.ts`, si aggiornano testi e anteprime della landing se cambiano, e il README descrive cosa fa ora Feedway. Si fa nella PR di chiusura della tappa, prima della PR di rilascio.
 
 ## 8. Punti d'attenzione trasversali
 
