@@ -44,7 +44,9 @@ function onTabKey(event: KeyboardEvent, index: number) {
   if (step === 0) return
   event.preventDefault()
   const next = (index + step + TABS.length) % TABS.length
-  active.value = TABS[next]!.id
+  const tab = TABS[next]
+  if (!tab) return
+  active.value = tab.id
   tabRefs.value[next]?.focus()
 }
 

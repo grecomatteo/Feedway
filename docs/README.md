@@ -32,5 +32,6 @@ Si scrivono insieme al codice che descrivono, così non restano mai indietro:
 | [`runbooks/meta-collegamento-account.md`](runbooks/meta-collegamento-account.md) | 3 |
 | [`runbooks/media.md`](runbooks/media.md) | 4 |
 | [`runbooks/violazione-dati.md`](runbooks/violazione-dati.md) | 2 (anticipato) |
+| [`runbooks/sito-pubblico.md`](runbooks/sito-pubblico.md): pubblicare il sito su Cloudflare e dare a Meta gli indirizzi dell'informativa | 10 (anticipato) |
 | `runbooks/ripristino-backup.md`, `runbooks/incidenti.md` | 11 |
 | `CHANGELOG.md` (alla radice) | Generato da release-please a ogni rilascio |

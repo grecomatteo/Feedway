@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDemoEmail, MIN_FILL_MS, parseDemoRequest } from './demo-request'
+import { buildDemoEmail, MIN_FILL_MS, parseDemoRequest } from './demo-request.ts'
 
 const now = 1_800_000_000_000
 const valid = {
@@ -85,9 +85,10 @@ describe('buildDemoEmail', () => {
     expect(raw).toContain('Reply-To: paola@example.com\r\n')
     expect(raw).toContain('Content-Type: text/plain; charset=utf-8\r\n')
     expect(raw).toMatch(/Subject: =\?utf-8\?B\?[A-Za-z0-9+/=]+\?=\r\n/)
-    const body = Buffer.from(raw.split('\r\n\r\n')[1]!.replace(/\r\n/g, ''), 'base64').toString(
-      'utf8',
-    )
+    const body = Buffer.from(
+      (raw.split('\r\n\r\n')[1] ?? '').replace(/\r\n/g, ''),
+      'base64',
+    ).toString('utf8')
     expect(body).toContain('Agenzia: Studio «Aurora»')
     expect(body).toContain('Clienti gestiti: 12')
     expect(body).toContain('Telefono: —')

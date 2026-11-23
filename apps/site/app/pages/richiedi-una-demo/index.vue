@@ -49,7 +49,8 @@ async function submit(event: Event) {
   try {
     const res = await fetch(form.action, {
       method: 'POST',
-      body: data,
+      // urlencoded like the no-JS post, so the function reads one format
+      body: new URLSearchParams([...data.entries()].map(([k, v]) => [k, String(v)])),
       headers: { accept: 'application/json' },
     })
     const body = (await res.json()) as { ok: boolean; errors?: typeof errors.value }
@@ -132,7 +133,7 @@ function describedBy(field: DemoField, hint?: boolean) {
             :aria-describedby="describedBy(field)"
           />
           <p v-if="errors[field]" :id="`${field}-errore`" class="field-error">
-            {{ MESSAGES[errors[field]!] }}
+            {{ MESSAGES[errors[field] ?? 'required'] }}
           </p>
         </div>
       </div>

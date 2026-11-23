@@ -12,6 +12,20 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Componenti:** sono raggruppati in Marchio, Barre (barra laterale, barre dell'editor e del telefono), Pulsanti, Campi e filtri, Spunte, scelte e interruttori, Stati ed etichette, Avatar e miniature, Schede. Sono stati presi dalle schermate e le tavole li usano come istanze. Una «variante» è lo stesso componente con una struttura diversa, per esempio la barra laterale senza conteggio.
 - **Icone:** sono le icone Lucide del prototipo (`icons.js`), dalla libreria di Pencil. Due hanno il nome nuovo: `triangle-alert` e `clock-4`.
 
+
+## Sito pubblico (23 novembre 2026)
+
+La landing di `apps/site` segue lo stile del ridisegno, con le due libertà che il brief 04 concede: una fascia carbone e una campitura arancio. Revisione del giro 3 e proposta in `design/reviews/2026-11-23-landing/revisione-giro-3.md`; scelte provvisorie in D-122.
+
+- **Solo ciò che c'è:** le sezioni mostrano le funzioni che Feedway ha oggi; le altre stanno in un solo elenco «In arrivo» (Matteo, 23/11). A fine di ogni tappa con funzioni nuove si aggiornano landing e README.
+- **Superfici:** fondo `bg`, sezioni separate dal filo `border`, una sezione `surface-sunken`; nessuna ombra sulle card. L'unica ombra è quella della cornice dell'app nell'apertura e nelle schede, che fa da finestra.
+- **Un solo arancio per schermata:** «Richiedi una demo» in testata e nell'apertura (la stessa azione), poi la chiusura su campitura arancio con il pulsante carbone. Nella pagina del modulo la testata non ha il pulsante: c'è quello del modulo.
+- **Un solo momento:** nella fascia carbone, l'esito di un post su cinque destinazioni che diventano «Confermato» una alla volta, e una «Non uscito» con il motivo. Parte una volta quando la sezione entra nello schermo; con il movimento ridotto o senza JavaScript si vede lo stato finale.
+- **Immagini del prodotto:** schermate dell'esplorazione del 19/11 (stessi dati fittizi della tela), a 2x in WebP; sul telefono l'apertura mostra Oggi del telefono in una cornice carbone.
+- **Tipografia:** Sora 650 per i titoli (h1 fino a 68 px, h2 fino a 44 px, tracking −0,03/−0,035 em), corpo nel carattere di sistema a 16–20 px. Nessun sopratitolo, nessun numero di sezione.
+- **Niente «Accedi»** finché il pannello è dentro Tailscale; niente iscrizione né acquisto: ogni pulsante porta al modulo «Richiedi una demo».
+- **Pagine legali:** una colonna di lettura da 42 rem con titolo, data di aggiornamento e sezioni con ancore.
+
 ## Regole del ridisegno per ogni pagina (20 novembre 2026, Matteo)
 
 **Ogni pagina del pannello, anche futura, segue lo stile del ridisegno** (D-81, tela `design/feedway-ui-v2.pen`). Una pagina nuova o toccata non riprende lo stile di prima: si costruisce con i componenti e le regole qui sotto e nella sezione sopra. Le regole nate dalla revisione di fedeltà e dal racconto delle correzioni (D-98, D-99):

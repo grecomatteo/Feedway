@@ -169,6 +169,8 @@ module.exports = {
           '(^|/)main\\.ts$',
           // Nuxt loads these by convention, nothing imports them
           '(^|/)apps/web/(app|server)/',
+          // the public site: Nuxt pages and components, and the Cloudflare Pages functions
+          '(^|/)apps/site/(app|functions)/',
         ],
       },
       to: {},
@@ -176,7 +178,7 @@ module.exports = {
   ],
   options: {
     // node_modules stays in the graph (not followed) so rules on packages see resolved imports
-    exclude: { path: ['(^|/)\\.(nuxt|output)/'] },
+    exclude: { path: ['(^|/)\\.(nuxt|output)/', '(^|/)apps/site/dist/'] },
     doNotFollow: { path: 'node_modules' },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {
