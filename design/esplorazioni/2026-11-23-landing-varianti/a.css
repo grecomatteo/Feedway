@@ -861,3 +861,7 @@
 .start-steps p {
   margin: 0;
 }
+
+.start-steps li {
+  align-content: start;
+}
