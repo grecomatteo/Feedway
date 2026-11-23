@@ -22,4 +22,4 @@ In sviluppo: `pnpm --filter @app/telegram-mock start` (porta `TELEGRAM_MOCK_PORT
 - Errori: token sconosciuto o revocato (`revoke`) 401, chat bloccata (`block`) 403, `rateLimit({ retryAfter, times, method })` 429 con `retry_after`, `unavailable({ times, method })` 502.
 - `calls()` nomina il bot, mai il token.
 
-Bot iniziali in `TELEGRAM_MOCK.bots`: `platform` (`@feedway_mock_bot`) e `agency` (`@agenzia_mock_bot`), con token finti. Scritto a mano dalla documentazione della Bot API: **non confrontato** con risposte vere.
+Bot iniziali in `TELEGRAM_MOCK.bots`: `platform` (`@feedway_mock_bot`) e `agency` (`@agenzia_mock_bot`), con token finti; più `moreAgencyBot(0…7)` (`@agenzia_N_mock_bot`), per i test che girano insieme, ognuno con un'agenzia sua (un bot serve un'agenzia sola). Scritto a mano dalla documentazione della Bot API: **non confrontato** con risposte vere.
