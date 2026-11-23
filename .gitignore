@@ -44,3 +44,6 @@ Thumbs.db
 # Task R9: the shots in dark, in the other palettes and of the states (boards in the project files)
 design/reviews/ridisegno/varianti/
 design/reviews/ridisegno/stati/
+
+# nuxt generate's link to .output/public
+apps/site/dist

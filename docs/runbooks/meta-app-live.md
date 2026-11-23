@@ -10,9 +10,10 @@ Le voci della dashboard di Meta cambiano spesso nome: qui sono scritte come le m
 - Il ruolo **Owner** in Feedway, per l'interruttore «L'app è in Live».
 - Gli indirizzi pubblici del sito di Feedway, pubblicato dal thread del sito (D-119 decisa (b)):
   - informativa privacy: `https://feedway.pages.dev/privacy`;
-  - istruzioni per la cancellazione dei dati: `https://feedway.pages.dev/cancellazione-dati`.
+  - istruzioni per la cancellazione dei dati: `https://feedway.pages.dev/cancellazione-dati`;
+  - termini di servizio: `https://feedway.pages.dev/termini` (Meta li chiede per il Live).
 
-  Sono ancora **provvisori**: se usi un dominio tuo cambia solo la parte prima di `/privacy`. Apri tutti e due in una finestra anonima prima di darli a Meta: devono aprirsi senza accesso e senza Tailscale.
+  Sono ancora **provvisori**: se usi un dominio tuo cambia solo la parte prima di `/privacy`. Apri tutti e tre in una finestra anonima prima di darli a Meta: devono aprirsi senza accesso e senza Tailscale.
 - Un'icona quadrata **1024×1024** in PNG o JPG: il simbolo di Feedway del kit del marchio (`design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/`), su fondo pieno.
 
 ## 1. Togli i post di prova
@@ -28,10 +29,11 @@ Su [developers.facebook.com/apps](https://developers.facebook.com/apps) apri l'a
 
 1. **URL dell'informativa sulla privacy** (*Privacy Policy URL*): l'indirizzo dell'informativa.
 2. **Eliminazione dei dati dell'utente** (*User data deletion*): scegli **URL delle istruzioni per l'eliminazione dei dati** (*Data deletion instructions URL*) e incolla l'indirizzo delle istruzioni. Feedway non ha una callback di cancellazione: le istruzioni dicono come chiederla.
-3. **Icona dell'app** (*App icon*): carica l'icona 1024×1024.
-4. **Categoria** (*Category*): **Business e pagine** (*Business and pages*), o la più vicina che Meta propone.
-5. **Email di contatto** (*Contact email*): un indirizzo che leggi.
-6. Premi **Salva modifiche**.
+3. **URL dei termini di servizio** (*Terms of Service URL*): l'indirizzo dei termini.
+4. **Icona dell'app** (*App icon*): carica l'icona 1024×1024.
+5. **Categoria** (*Category*): **Business e pagine** (*Business and pages*), o la più vicina che Meta propone.
+6. **Email di contatto** (*Contact email*): un indirizzo che leggi.
+7. Premi **Salva modifiche**.
 
 ## 3. Uso aziendale e Data Use Checkup
 

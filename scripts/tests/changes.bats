@@ -7,24 +7,28 @@ setup() {
 @test "application code runs the tests but not the arm64 image" {
   run "$script" <<<"apps/web/server/api/session.ts"
   [ "$status" -eq 0 ]
-  [ "$output" = $'code=true\narm64=false' ]
+  [ "$output" = $'code=true\narm64=false\nsite=false' ]
 }
 
 @test "documentation only skips the tests and the arm64 image" {
   run "$script" <<<$'docs/flusso-git.md\ndesign/reviews/n1.md\nREADME.md\n.claude/settings.json'
   [ "$status" -eq 0 ]
-  [ "$output" = $'code=false\narm64=false' ]
+  [ "$output" = $'code=false\narm64=false\nsite=false' ]
 }
 
 @test "a markdown file inside the code counts as code" {
   run "$script" <<<"packages/core/README.md"
-  [ "$output" = $'code=true\narm64=false' ]
+  [ "$output" = $'code=true\narm64=false\nsite=false' ]
 }
 
 @test "dependencies, Dockerfile, Node version and this workflow run the arm64 image" {
-  for file in pnpm-lock.yaml apps/worker/package.json docker/Dockerfile .nvmrc .github/workflows/ci.yml; do
+  for file in apps/worker/package.json docker/Dockerfile; do
     run "$script" <<<"$file"
-    [ "$output" = $'code=true\narm64=true' ]
+    [ "$output" = $'code=true\narm64=true\nsite=false' ]
+  done
+  for file in pnpm-lock.yaml .nvmrc .github/workflows/ci.yml; do
+    run "$script" <<<"$file"
+    [ "$output" = $'code=true\narm64=true\nsite=true' ]
   done
 }
 
@@ -36,11 +40,19 @@ setup() {
   git mv apps/x.ts docs/x.ts && git commit -q -m move
   run env GITHUB_EVENT_NAME=pull_request GITHUB_OUTPUT=/dev/null "$(dirname "$script")/changes-step.sh"
   [ "$status" -eq 0 ]
-  [ "$output" = $'code=true\narm64=false' ]
+  [ "$output" = $'code=true\narm64=false\nsite=false' ]
 }
 
 @test "an unreadable diff runs everything" {
   run "$script" </dev/null
   [ "$status" -eq 0 ]
-  [ "$output" = $'code=true\narm64=true' ]
+  [ "$output" = $'code=true\narm64=true\nsite=true' ]
+}
+
+@test "the public site, the tokens and the product name run the site check" {
+  for file in apps/site/app/pages/index.vue packages/ui/tokens.css packages/config/src/product.ts .github/workflows/site-deploy.yml; do
+    run "$script" <<<"$file"
+    [ "$status" -eq 0 ]
+    [ "${lines[2]}" = "site=true" ]
+  done
 }
