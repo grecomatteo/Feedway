@@ -362,3 +362,53 @@ test('a suspended agency is left out of the digest', async () => {
     await setStatus(b.organizationId, 'active')
   }
 })
+
+test('an agency that fails is logged, the others are sent once, and the job does not throw', async () => {
+  const h = harness()
+  const [email] = h.deps.channels
+  if (!email) throw new Error('no email channel')
+  const deps = {
+    ...h.deps,
+    channels: [
+      {
+        ...email,
+        isAvailable: (
+          tx: Parameters<typeof email.isAvailable>[0],
+          r: { organizationId: string | null },
+        ) =>
+          r.organizationId === b.organizationId
+            ? Promise.reject(new Error('database gone'))
+            : email.isAvailable(tx, r as Parameters<typeof email.isAvailable>[1]),
+        send: email.send.bind(email),
+      },
+    ],
+  }
+  expect(await sendDigest(deps, job(person))).toMatchObject({ sent: 1, failed: 1 })
+  expect(h.mail.sent).toHaveLength(1)
+  expect(h.logger.errors).toEqual(['digest of an agency failed'])
+})
+
+test('who left an agency, or was taken off its client, gets nothing of it', async () => {
+  await admin.query(
+    "update organization_members set status = 'disabled' where organization_id = $1 and user_id = $2",
+    [b.organizationId, person],
+  )
+  await admin.query('delete from workspace_members where workspace_id = $1 and user_id = $2', [
+    a.workspaceId,
+    person,
+  ])
+  try {
+    const h = harness()
+    expect(await sendDigest(h.deps, job(person))).toMatchObject({ agencies: 0, sent: 0 })
+    expect(h.mail.sent).toEqual([])
+  } finally {
+    await admin.query(
+      "update organization_members set status = 'active' where organization_id = $1 and user_id = $2",
+      [b.organizationId, person],
+    )
+    await admin.query(
+      "insert into workspace_members (organization_id, workspace_id, user_id, role) values ($1, $2, $3, 'editor')",
+      [a.organizationId, a.workspaceId, person],
+    )
+  }
+})

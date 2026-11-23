@@ -1,4 +1,4 @@
-import { digestTimeZone, dueDigest, storedTimeZone } from '@app/domain'
+import { DEFAULT_DIGEST, digestTimeZone, dueDigest, storedTimeZone } from '@app/domain'
 import { usableTimeZone } from '../mail/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { JobQueue } from '../ports/job-queue.js'
@@ -35,24 +35,30 @@ export const DIGEST_LOCK = 'report.daily'
 export async function startDigests(deps: DigestStartDeps): Promise<DigestStartReport> {
   const run = await deps.lock.tryRun(DIGEST_LOCK, async () => {
     const now = deps.clock.now()
-    const candidates = await deps.uow.runAsSystem('report.daily: who has the digest due', (tx) =>
-      tx.notificationPrefs.listDigestCandidates(),
+    const { people, schedules } = await deps.uow.runAsSystem(
+      'report.daily: who has the digest due',
+      async (tx) => {
+        const members = await tx.users.listActiveMembersWithZones()
+        const chosen = await tx.notificationPrefs.listDigestSchedules(members.map((m) => m.userId))
+        return { people: members, schedules: chosen }
+      },
     )
     let due = 0
     let sent = 0
-    for (const person of candidates) {
-      const timeZone = usableTimeZone(
-        digestTimeZone(
-          person.timeZone,
-          person.agencyTimeZones.map((timezone) => storedTimeZone({ timezone })),
-          deps.defaultTimezone,
-        ),
-        deps.defaultTimezone,
-      )
-      const digest = dueDigest(person.digest, now, timeZone)
-      if (!digest) continue
-      due++
+    for (const person of people) {
+      // one person's odd data or a refused send does not stop the others; the next minute retries
       try {
+        const timeZone = usableTimeZone(
+          digestTimeZone(
+            person.timeZone,
+            person.agencyTimeZones.map((timezone) => storedTimeZone({ timezone })),
+            deps.defaultTimezone,
+          ),
+          deps.defaultTimezone,
+        )
+        const digest = dueDigest(schedules.get(person.userId) ?? DEFAULT_DIGEST, now, timeZone)
+        if (!digest) continue
+        due++
         const id = await deps.queue.send(
           'report.digest',
           { userId: person.userId, date: digest.date, dueAt: digest.at.toISOString() },
@@ -60,10 +66,9 @@ export async function startDigests(deps: DigestStartDeps): Promise<DigestStartRe
         )
         if (id !== null) sent++
       } catch (error) {
-        // one refused send does not stop the others; the next minute sends it again
         deps.logger.error(
-          { err: error, userId: person.userId },
-          'report.daily could not send a digest job',
+          { error: error instanceof Error ? error.name : typeof error, userId: person.userId },
+          'report.daily could not start a digest',
         )
       }
     }

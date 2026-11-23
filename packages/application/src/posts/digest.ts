@@ -10,6 +10,7 @@ import type { DigestBlock, DigestContext, DigestSection } from '../module-defini
 import type { PostRecord } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
 import { clientsOf, postIssuesOf } from './agenda.js'
+import { platformName } from '../notifications/index.js'
 import { postHeadline } from './notification-messages.js'
 
 // The posts' sections of the morning digest (§12.4, plan 08 Task 8): what went out yesterday,
@@ -129,7 +130,12 @@ async function issues(tx: Tx, ctx: DigestContext): Promise<DigestBlock | null> {
     let why: string | null = null
     if (issue.reason !== null)
       try {
-        why = ctx.t(`today.issues.post.reason.${issue.reason}`, { platform: 'Meta' })
+        why = ctx.t(`today.issues.post.reason.${issue.reason}`, {
+          platform:
+            issue.platforms.length === 1 && issue.platforms[0]
+              ? platformName(ctx.t, issue.platforms[0])
+              : 'Meta',
+        })
       } catch {
         // a code newer than the texts: the state alone, the post says the rest
       }

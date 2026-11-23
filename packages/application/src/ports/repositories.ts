@@ -55,6 +55,15 @@ export interface UserSummary {
   passkeys: number
 }
 
+/** A person who works for an agency, and the zones their digest is read in (Scelta 9). */
+export interface MemberZones {
+  userId: string
+  /** `users.timezone`; null: not chosen */
+  timeZone: string | null
+  /** `settings.timezone` of each active agency, the oldest membership first; null: not set */
+  agencyTimeZones: readonly (string | null)[]
+}
+
 export interface UsersRepository {
   findById(id: string): Promise<UserRecord | null>
   /**
@@ -86,6 +95,11 @@ export interface UsersRepository {
   clearSecurityLock(id: string): Promise<void>
   /** Platform administrators who can act: active, not anonymized. System scope only. */
   listActivePlatformAdmins(): Promise<UserRecord[]>
+  /**
+   * Every active person, not anonymized, with an active membership in an active agency, with
+   * their zone and their agencies' (`report.daily`, plan 08 P7). System scope only.
+   */
+  listActiveMembersWithZones(): Promise<MemberZones[]>
   setPlatformAdmin(id: string): Promise<void>
   setNickname(id: string, nickname: string | null): Promise<void>
   /** Only the fields given change. The person's own scope. */

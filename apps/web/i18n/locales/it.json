@@ -3001,7 +3001,7 @@
     }
   },
   "digest": {
-    "title": "Il riepilogo di {day}",
+    "title": "Il riepilogo di {day} · {agency}",
     "open": "Apri Oggi",
     "posts": {
       "line": "{time} · {client} · «{post}»",

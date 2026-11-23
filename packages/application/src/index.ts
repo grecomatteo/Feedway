@@ -127,7 +127,6 @@ export type {
   NewDeliveryStatus,
   NewNotification,
   NotificationPrefsRepository,
-  DigestCandidate,
   NotificationsRepository,
   TelegramLinksRepository,
 } from './ports/notifications.js'
@@ -164,6 +163,7 @@ export type {
   SessionRecord,
   SessionsRepository,
   UserOrganizationRecord,
+  MemberZones,
   UserRecord,
   UsersRepository,
   UserSummary,

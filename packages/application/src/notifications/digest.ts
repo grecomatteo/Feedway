@@ -1,6 +1,6 @@
 import { DIGEST_CATCH_UP_MS, storedTimeZone } from '@app/domain'
 import { isUuid } from '../identity/index.js'
-import { dayAndTime, usableTimeZone } from '../mail/index.js'
+import { dayAndTime } from '../mail/index.js'
 import type { DigestBlock, DigestReminderSources, DigestSection } from '../module-definition.js'
 import type { Clock } from '../ports/clock.js'
 import type { Logger } from '../ports/logger.js'
@@ -134,8 +134,9 @@ async function blocksOf(
       if (block && block.lines.length > 0) blocks.push(block)
     } catch (error) {
       errors++
+      // the kind and code only: a database error's detail can hold the rows' values
       deps.logger.error(
-        { err: error, section: section.id, organizationId: agency.organizationId, userId },
+        { ...errorKind(error), section: section.id, organizationId: agency.organizationId, userId },
         'digest section failed',
       )
     }
@@ -143,17 +144,24 @@ async function blocksOf(
   return { blocks, errors }
 }
 
+const errorKind = (error: unknown) => ({
+  error: error instanceof Error ? error.name : typeof error,
+  code: typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : null,
+})
+
+/** The digest's day as the person reads it: its date, not the moment the job ran. */
+const dayOf = (date: string) => dayAndTime(new Date(`${date}T12:00:00Z`), 'UTC').day
+
 function digestMessage(
   deps: DigestDeps,
   agency: Agency,
   blocks: readonly DigestBlock[],
-  now: Date,
-  timeZone: string,
+  date: string,
 ): RenderedMessage {
-  const { day } = dayAndTime(now, timeZone)
   return {
     level: 'info',
-    title: deps.t('digest.title', { day }),
+    // the agency in the subject too: who works for two gets two emails the same morning
+    title: deps.t('digest.title', { day: dayOf(date), agency: agency.name }),
     context: agency.name,
     lines: [],
     more: 0,
@@ -162,6 +170,51 @@ function digestMessage(
       url: panelLink({ panelUrl: deps.panelUrl }, agency.slug),
     },
     sections: blocks.map((b) => ({ title: b.title, lines: b.lines, more: b.more })),
+  }
+}
+
+type Counts = { agencies: number; sent: number; failed: number; sectionErrors: number }
+
+/** One agency's digest, sent on every channel the person can be reached on. */
+async function digestOfAgency(
+  deps: DigestDeps,
+  job: DigestJob,
+  organizationId: string,
+  now: Date,
+  signal: AbortSignal,
+  report: Counts,
+): Promise<void> {
+  const found = await agencyOf(deps, job.userId, organizationId)
+  if (!found) return
+  const { agency, user } = found
+  const { blocks, errors } = await blocksOf(deps, job.userId, agency, now)
+  report.sectionErrors += errors
+  if (blocks.length === 0) return
+  report.agencies++
+  const message = digestMessage(deps, agency, blocks, job.date)
+  const recipient = recipientOf(user, agency.organizationId)
+  for (const channel of deps.channels) {
+    const available = await deps.uow.run({ organizationId, userId: job.userId }, (tx) =>
+      channel.isAvailable(tx, recipient),
+    )
+    if (!available) continue
+    // outside any transaction, as every send (plan 08 «Ogni invio in transazione corta»)
+    let ok = false
+    try {
+      ok = (await channel.send(recipient, message, signal)).outcome === 'sent'
+    } catch (error) {
+      deps.logger.error({ ...errorKind(error), channel: channel.name }, 'digest channel threw')
+    }
+    if (ok) report.sent++
+    else {
+      // not tried again: the job would send the other agencies and channels twice, and the
+      // next morning brings a new digest (D-121 punto 13)
+      report.failed++
+      deps.logger.warn(
+        { channel: channel.name, organizationId, userId: job.userId },
+        'digest not sent',
+      )
+    }
   }
 }
 
@@ -181,42 +234,16 @@ export async function sendDigest(
   if (!person.settings.digest.enabled) return { outcome: 'skipped', reason: 'off' }
   const report = { outcome: 'done' as const, agencies: 0, sent: 0, failed: 0, sectionErrors: 0 }
   for (const membership of person.memberships) {
-    const found = await agencyOf(deps, job.userId, membership.organizationId)
-    if (!found) continue
-    const { agency, user } = found
-    const { blocks, errors } = await blocksOf(deps, job.userId, agency, now)
-    report.sectionErrors += errors
-    if (blocks.length === 0) continue
-    report.agencies++
-    const timeZone = usableTimeZone(user.timezone, agency.timeZone)
-    const message = digestMessage(deps, agency, blocks, now, timeZone)
-    const recipient = recipientOf(user, agency.organizationId)
-    for (const channel of deps.channels) {
-      const available = await deps.uow.run(
-        { organizationId: agency.organizationId, userId: job.userId },
-        (tx) => channel.isAvailable(tx, recipient),
+    // a failure in one agency is logged and the job goes on: thrown, pg-boss would run it again
+    // and send the agencies already done twice (D-121 punto 13)
+    try {
+      await digestOfAgency(deps, job, membership.organizationId, now, signal, report)
+    } catch (error) {
+      report.failed++
+      deps.logger.error(
+        { ...errorKind(error), organizationId: membership.organizationId, userId: job.userId },
+        'digest of an agency failed',
       )
-      if (!available) continue
-      // outside any transaction, as every send (plan 08 «Ogni invio in transazione corta»)
-      let ok = false
-      try {
-        ok = (await channel.send(recipient, message, signal)).outcome === 'sent'
-      } catch (error) {
-        deps.logger.error(
-          { error: error instanceof Error ? error.name : typeof error, channel: channel.name },
-          'digest channel threw',
-        )
-      }
-      if (ok) report.sent++
-      else {
-        // not tried again: the job would send the other agencies and channels twice, and the
-        // next morning brings a new digest (D-121 punto 13)
-        report.failed++
-        deps.logger.warn(
-          { channel: channel.name, organizationId: agency.organizationId, userId: job.userId },
-          'digest not sent',
-        )
-      }
     }
   }
   return report

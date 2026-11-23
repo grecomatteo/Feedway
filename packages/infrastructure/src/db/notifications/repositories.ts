@@ -298,38 +298,25 @@ export function drizzleNotificationPrefs(
       await db.delete(notificationSettings).where(eq(notificationSettings.userId, userId))
     },
 
-    async listDigestCandidates() {
-      assertSystem(ctx, 'listDigestCandidates')
-      const result = await db.execute<{
-        user_id: string
-        timezone: string | null
-        agency_time_zones: (string | null)[]
-        digest_enabled: boolean | null
-        digest_time: string | null
-        digest_days: number[] | null
-      }>(sql`
-        select u.id as user_id, u.timezone,
-               array_agg(o.settings->>'timezone' order by m.created_at, o.id) as agency_time_zones,
-               s.digest_enabled, s.digest_time, s.digest_days
-          from users u
-          join organization_members m on m.user_id = u.id and m.status = 'active'
-          join organizations o on o.id = m.organization_id and o.status = 'active'
-          left join notification_settings s on s.user_id = u.id
-         where u.status = 'active' and u.anonymized_at is null
-         group by u.id, u.timezone, s.digest_enabled, s.digest_time, s.digest_days
-         order by u.id`)
-      const fallback = DEFAULT_NOTIFICATION_SETTINGS.digest
-      return result.rows.map((r) => ({
-        userId: r.user_id,
-        timeZone: r.timezone,
-        agencyTimeZones: r.agency_time_zones,
-        digest: {
-          enabled: r.digest_enabled ?? fallback.enabled,
-          time: r.digest_time ?? fallback.time,
-          // the check constraint holds the list
-          days: (r.digest_days ?? fallback.days) as Weekday[],
-        },
-      }))
+    async listDigestSchedules(userIds) {
+      assertSystem(ctx, 'listDigestSchedules')
+      if (userIds.length === 0) return new Map()
+      const rows = await db
+        .select({
+          userId: notificationSettings.userId,
+          enabled: notificationSettings.digestEnabled,
+          time: notificationSettings.digestTime,
+          days: notificationSettings.digestDays,
+        })
+        .from(notificationSettings)
+        .where(inArray(notificationSettings.userId, [...userIds]))
+      return new Map(
+        // the check constraint holds the days
+        rows.map((r) => [
+          r.userId,
+          { enabled: r.enabled, time: r.time, days: r.days as Weekday[] },
+        ]),
+      )
     },
   }
 }
