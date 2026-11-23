@@ -102,8 +102,8 @@ export function useSession() {
   }
 
   /**
-   * Read again in the background (the tab back in front): never two at once nor more than once every 30 s, so a slow network is not filled with
-   * them. A failure keeps what is known.
+   * Read again in the background (the tab back in front): never two at once nor more than once
+   * every 30 s, so a slow network is not filled with them. A failure keeps what is known.
    */
   function reload(): Promise<void> {
     if (import.meta.server) return Promise.resolve()

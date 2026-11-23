@@ -505,7 +505,7 @@ test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)
   await page.locator('[data-time-field]').click()
   await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('0930')
   await page.keyboard.press('Enter')
-  await expect(line).toContainText('alle 9:30')
+  await expect(line).toContainText('alle 09:30')
   expect((await axe(page)).violations).toEqual([])
 })
 
