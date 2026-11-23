@@ -28,7 +28,7 @@ Quello che non è ancora stato provato su Meta vera è scritto **non verificato*
 
 Non serve aggiungere a mano i permessi delle Pagine: Meta li aggiunge da solo quando generi il token dell'utente di sistema (passo 3).
 
-**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). Su Instagram i post sono pubblici. **Su Facebook no:** con l'app in sviluppo i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app (prova della 0.13.0, 21–23/11; la finestra anonima del 2026-11-12 aveva dato un esito diverso). Prima del primo cliente vero l'app va quindi in **Live** ([D-119](../decisioni-aperte.md)). Prima del Live togli i post di prova, che altrimenti diventano pubblici.
+**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). Su Instagram i post sono pubblici. **Su Facebook no:** con l'app in sviluppo i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app (prova della 0.13.0, 21–23/11; la finestra anonima del 2026-11-12 aveva dato un esito diverso). Prima di pubblicare davvero su Facebook, anche sulle Pagine dell'agenzia, l'app va quindi in **Live** ([D-119](../decisioni-aperte.md)). Prima del Live togli i post di prova, che altrimenti diventano pubblici.
 
 ## 2. L'app in Feedway
 
@@ -115,7 +115,7 @@ L'accesso unificato è il pulsante «Continua con Facebook» o «Continua con In
 ### Ruoli e tester
 Finché l'app è in sviluppo, ogni persona che fa l'accesso, anche un cliente, deve avere un ruolo nell'app: nella dashboard dell'app, **Ruoli dell'app** → «Aggiungi persone», ruolo **Tester**, e la persona deve accettare l'invito. **Non verificato:** i nomi esatti delle voci di menu e l'invito di un tester che entra con un profilo Instagram invece che con Facebook.
 
-L'utente di sistema non ha bisogno di tester: i passi 1–4 funzionano anche in sviluppo.
+L'utente di sistema non ha bisogno di tester: i passi 1–4 funzionano anche in sviluppo, ma su Facebook i post con il testo restano visibili solo a chi ha un ruolo nell'app (D-119).
 
 ## Se un account è rosso
 
