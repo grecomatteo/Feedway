@@ -384,7 +384,11 @@ export async function receiveUploadPart(
 export const UPLOAD_COMPLETION_HOLD_MS = 30 * 60 * 1000
 
 /** The file made, and one with the same content already in the library (D-42). */
-export type CompletedUpload = MediaDto & { duplicateOf: { id: string; name: string } | null }
+export type CompletedUpload = MediaDto & {
+  duplicateOf: { id: string; name: string } | null
+  /** the file with the same content already in the folder, kept instead of a new one */
+  reused: boolean
+}
 
 /**
  * Joins the pieces into one stream to the storage, with the sha256 of the whole file, and makes
@@ -396,19 +400,30 @@ export type CompletedUpload = MediaDto & { duplicateOf: { id: string; name: stri
 export async function completeUpload(
   deps: UploadDeps,
   actor: OrgActor,
-  input: { workspaceId: string; uploadId: string },
+  /** `reuseInFolder` («Unisci», D-120.2): a file with the same content already in the folder of
+   * the upload is the answer, and none is made */
+  input: { workspaceId: string; uploadId: string; reuseInFolder?: boolean },
 ): Promise<CompletedUpload> {
   await limitUploads(deps, actor)
   const { organizationId } = actor
   const scope = { organizationId, userId: actor.userId }
-  const media = async (mediaId: string): Promise<CompletedUpload> => {
+  const media = async (mediaId: string, reused = false): Promise<CompletedUpload> => {
     const made = await getMedia(deps, actor, { workspaceId: input.workspaceId, mediaId })
+    if (reused) return { ...made, duplicateOf: null, reused }
     const same = await deps.uow.run(scope, async (tx) => {
       const row = await tx.media.findById(organizationId, mediaId)
       if (!row?.sha256) return null
       return tx.media.sameContent(organizationId, row.workspaceId, row.sha256, mediaId)
     })
-    return { ...made, duplicateOf: same && { id: same.id, name: same.originalName } }
+    return { ...made, duplicateOf: same && { id: same.id, name: same.originalName }, reused }
+  }
+  const removeParts = async (uploadId: string) => {
+    try {
+      await deps.uploadParts.remove(organizationId, uploadId)
+    } catch (error) {
+      // the hourly clean-up removes them with the session
+      deps.logger.error({ err: error, uploadId }, 'upload pieces not removed')
+    }
   }
   const session = await deps.uow.run(scope, async (tx) => {
     const { workspace } = await openLibrary(tx, actor, input.workspaceId)
@@ -439,7 +454,7 @@ export async function completeUpload(
     if (stored) await deps.storage.deletePrefix(mediaPrefix(organizationId, mediaId))
   }
   let sniffed: SniffedMedia | null
-  let winner: { id: string; created: boolean }
+  let winner: { id: string; created: boolean; reused?: boolean }
   try {
     sniffed = sniffMedia(await deps.uploadParts.head(organizationId, session.id, SNIFF_BYTES))
     if (sniffed) {
@@ -471,6 +486,18 @@ export async function completeUpload(
       // a completion whose hold ran out made the file first: that file is the one
       if (locked.mediaId !== null) return { id: locked.mediaId, created: false }
       if (locked.expiresAt <= now) throw uploadNotFound()
+      if (input.reuseInFolder && stored) {
+        const same = await tx.media.sameContentInFolder(
+          organizationId,
+          locked.workspaceId,
+          locked.folderId,
+          stored.sha256,
+        )
+        if (same) {
+          await tx.uploads.complete(organizationId, session.id, same.id, now)
+          return { id: same.id, created: false, reused: true }
+        }
+      }
       await tx.media.create({
         id: mediaId,
         organizationId,
@@ -508,14 +535,13 @@ export async function completeUpload(
   }
   if (!winner.created) {
     await forget()
+    if (winner.reused) {
+      await removeParts(session.id)
+      return media(winner.id, true)
+    }
     return media(winner.id)
   }
-  try {
-    await deps.uploadParts.remove(organizationId, session.id)
-  } catch (error) {
-    // the hourly clean-up removes them with the session
-    deps.logger.error({ err: error, uploadId: session.id }, 'upload pieces not removed')
-  }
+  await removeParts(session.id)
   if (sniffed)
     try {
       await deps.queue.send('media.process', { organizationId, mediaId })

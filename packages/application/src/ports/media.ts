@@ -222,6 +222,16 @@ export interface MediaRepository {
     exceptId: string,
   ): Promise<{ id: string; originalName: string } | null>
   /**
+   * The oldest file of this folder (null: the top of the library), being prepared or ready,
+   * with this sha256: what «Unisci» keeps instead of making it again (D-120.2).
+   */
+  sameContentInFolder(
+    organizationId: string,
+    workspaceId: string,
+    folderId: string | null,
+    sha256: string,
+  ): Promise<{ id: string } | null>
+  /**
    * The files `failed` of these workspaces, the latest first (the «Da sistemare» of «Oggi»):
    * `hasOriginal` tells whether «Riprova» can prepare it again. At most `limit`.
    */

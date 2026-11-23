@@ -51,7 +51,14 @@ const base = (orgSlug = org.slug, ws = workspace) =>
 
 async function start(
   file: Buffer,
-  opts: { cookie?: string; name?: string; type?: string; orgSlug?: string; ws?: string } = {},
+  opts: {
+    cookie?: string
+    name?: string
+    type?: string
+    orgSlug?: string
+    ws?: string
+    folderId?: string
+  } = {},
 ): Promise<Upload> {
   const r = await env.call(
     'POST',
@@ -61,6 +68,7 @@ async function start(
       type: opts.type ?? 'video/mp4',
       sizeBytes: file.length,
       firstPartSha256: sha256(file.subarray(0, PART)),
+      ...(opts.folderId ? { folderId: opts.folderId } : {}),
     },
     { cookie: opts.cookie ?? cookies.editor },
   )
@@ -136,8 +144,8 @@ async function refusedPut(
   }
 }
 
-const complete = (upload: Upload, cookie = cookies.editor) =>
-  env.call('POST', `${base()}/${upload.id}/complete`, undefined, { cookie })
+const complete = (upload: Upload, cookie = cookies.editor, query = '') =>
+  env.call('POST', `${base()}/${upload.id}/complete${query}`, undefined, { cookie })
 
 const state = async (upload: Upload, cookie = cookies.editor) => {
   const r = await env.call('GET', `${base()}/${upload.id}`, undefined, { cookie })
@@ -650,4 +658,52 @@ test('the same file uploaded again is taken, and the answer names the one alread
   ).toBe(200)
   const third = await upload('IMG_0221 ancora.mov')
   expect(third.duplicateOf).toEqual({ id: second.id, name: 'IMG_0221 copia.mov' })
+}, 120_000)
+
+test('«Unisci»: the same file already in the folder is not made again, and the answer says so (D-120.2)', async () => {
+  const wsBase = `/api/v1/orgs/${org.slug}/workspaces/${workspace}`
+  const newFolder = async (name: string) => {
+    const made = await env.call(
+      'POST',
+      `${wsBase}/folders`,
+      { name: `${name} ${randomBytes(3).toString('hex')}`, parentId: null },
+      { cookie: cookies.editor },
+    )
+    expect(made.status).toBe(200)
+    return ((await made.json()) as { id: string }).id
+  }
+  const novembre = await newFolder('novembre')
+  const dicembre = await newFolder('dicembre')
+  const file = mp4Like(3100)
+  type Done = { id: string; reused: boolean; duplicateOf: { id: string } | null }
+  const upload = async (folderId: string, query = '') => {
+    const u = await start(file, { name: 'IMG_0300.mov', folderId })
+    expect((await put(u, 1, file)).status).toBe(200)
+    const r = await complete(u, cookies.editor, query)
+    expect(r.status).toBe(200)
+    return { upload: u, done: (await r.json()) as Done }
+  }
+  const first = await upload(novembre)
+  expect(first.done.reused).toBe(false)
+  // the same file into the same folder, with «Unisci»: the file already there is the answer
+  const again = await upload(novembre, '?sameInFolder=reuse')
+  expect(again.done).toMatchObject({ id: first.done.id, reused: true })
+  expect(piecesOnDisk(again.upload)).toEqual([])
+  const inFolder = await env.admin.pool.query<{ n: string }>(
+    `select count(*) as n from media m join library_items i on i.organization_id = m.organization_id
+       and i.media_id = m.id where i.folder_id = $1 and m.status <> 'deleted'`,
+    [novembre],
+  )
+  expect(Number(inFolder.rows[0]?.n)).toBe(1)
+  // a second call gives the same file
+  const twice = await complete(again.upload, cookies.editor, '?sameInFolder=reuse')
+  expect(((await twice.json()) as Done).id).toBe(first.done.id)
+  // another folder: a new file, said a duplicate as before (D-42)
+  const elsewhere = await upload(dicembre, '?sameInFolder=reuse')
+  expect(elsewhere.done.id).not.toBe(first.done.id)
+  expect(elsewhere.done).toMatchObject({ reused: false, duplicateOf: { id: first.done.id } })
+  // without the option the file is made again, as before
+  const plain = await upload(novembre)
+  expect(plain.done.id).not.toBe(first.done.id)
+  expect(plain.done.reused).toBe(false)
 }, 120_000)

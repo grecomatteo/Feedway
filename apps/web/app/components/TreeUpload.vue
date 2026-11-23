@@ -222,7 +222,12 @@ async function run() {
       }
     }
     // a zip's entry without a preview of its own: nothing keeps it in memory once sent
-    if (file) await uploads.add([file], folderId, null, { preview: !entry })
+    // «Unisci»: a file already in its folder is not made again (D-120.2)
+    if (file)
+      await uploads.add([file], folderId, null, {
+        preview: !entry,
+        reuseInFolder: merge.value === 'merge',
+      })
     sent.value += 1
   }
   running.value = false
