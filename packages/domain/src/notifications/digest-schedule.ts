@@ -9,12 +9,19 @@ export interface DigestSchedule {
   /** `HH:MM` in the person's zone */
   time: string
   days: readonly Weekday[]
+  /** where it goes, at least one; a channel that cannot reach the person is skipped */
+  channels: readonly DigestChannel[]
 }
+
+/** The channels a digest can go on: the panel keeps the events, not the digest. */
+export const DIGEST_CHANNELS = ['email', 'telegram'] as const
+export type DigestChannel = (typeof DIGEST_CHANNELS)[number]
 
 export const DEFAULT_DIGEST: DigestSchedule = {
   enabled: true,
   time: '08:00',
   days: [1, 2, 3, 4, 5, 6, 7],
+  channels: DIGEST_CHANNELS,
 }
 
 const DAY_MS = 86_400_000

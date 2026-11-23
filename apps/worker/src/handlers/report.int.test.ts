@@ -7,6 +7,7 @@ import {
   type Logger,
   type Mailer,
   type MailMessage,
+  type NotificationChannel,
 } from '@app/application'
 import { instantToZoned, zonedToInstant } from '@app/domain'
 import type { Runtime } from '@app/infrastructure'
@@ -242,6 +243,45 @@ test('a person in two agencies gets each agency’s digest, with only what they 
   // a member is not told of the accounts
   expect(ofA).not.toContain('account e Meta')
   expect(h.mail.sent[0]?.subject).toMatch(/^Il riepilogo di /)
+})
+
+/** A Telegram that reaches everyone and keeps what it is given. */
+function fakeTelegram() {
+  const sent: { userId: string; title: string }[] = []
+  const channel: NotificationChannel = {
+    name: 'telegram',
+    unavailable: '',
+    isAvailable: () => Promise.resolve(true),
+    send(recipient, message) {
+      sent.push({ userId: recipient.userId, title: message.title })
+      return Promise.resolve({ outcome: 'sent' })
+    },
+  }
+  return { sent, channel }
+}
+
+test('the digest goes only on the channels the person chose', async () => {
+  const telegram = fakeTelegram()
+  const h = harness()
+  const deps = { ...h.deps, channels: [...h.deps.channels, telegram.channel] }
+  // nothing chosen: email and Telegram
+  expect(await sendDigest(deps, job(person))).toMatchObject({ agencies: 2, sent: 4 })
+  expect(h.mail.sent).toHaveLength(2)
+  expect(telegram.sent).toHaveLength(2)
+
+  await admin.query(
+    "insert into notification_settings (user_id, digest_channels) values ($1, '{telegram}')",
+    [person],
+  )
+  try {
+    h.mail.sent.length = 0
+    telegram.sent.length = 0
+    expect(await sendDigest(deps, job(person))).toMatchObject({ agencies: 2, sent: 2, failed: 0 })
+    expect(h.mail.sent).toEqual([])
+    expect(telegram.sent.map((m) => m.userId)).toEqual([person, person])
+  } finally {
+    await admin.query('delete from notification_settings where user_id = $1', [person])
+  }
 })
 
 test('the Owner sees every client and the accounts to fix', async () => {

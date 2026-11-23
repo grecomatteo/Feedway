@@ -159,7 +159,7 @@ test('settings and preferences: the defaults without a row, then what the person
   const saved = {
     minLevel: 'warning',
     quietHours: { start: '22:00', end: '07:00' },
-    digest: { enabled: true, time: '07:30', days: [1, 2, 3, 4, 5] },
+    digest: { enabled: true, time: '07:30', days: [1, 2, 3, 4, 5], channels: ['telegram'] },
     everythingEverywhere: false,
   } as const
   await uow.run(mine, (tx) => tx.notificationPrefs.saveSettings(user, saved))

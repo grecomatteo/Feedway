@@ -12,6 +12,7 @@ import {
   type Level,
   type OutboxEventType,
   type OutboxPayload,
+  type DigestChannel,
   type Weekday,
 } from '@app/domain'
 import { and, eq, inArray, sql } from 'drizzle-orm'
@@ -245,6 +246,7 @@ export function drizzleNotificationPrefs(
           enabled: row.digestEnabled,
           time: row.digestTime,
           days: row.digestDays as Weekday[],
+          channels: row.digestChannels as DigestChannel[],
         },
         everythingEverywhere: row.everythingEverywhere,
       }
@@ -258,6 +260,7 @@ export function drizzleNotificationPrefs(
         digestEnabled: s.digest.enabled,
         digestTime: s.digest.time,
         digestDays: [...s.digest.days],
+        digestChannels: [...s.digest.channels],
         everythingEverywhere: s.everythingEverywhere,
       }
       await db
@@ -307,14 +310,20 @@ export function drizzleNotificationPrefs(
           enabled: notificationSettings.digestEnabled,
           time: notificationSettings.digestTime,
           days: notificationSettings.digestDays,
+          channels: notificationSettings.digestChannels,
         })
         .from(notificationSettings)
         .where(inArray(notificationSettings.userId, [...userIds]))
       return new Map(
-        // the check constraint holds the days
+        // the check constraints hold the days and the channels
         rows.map((r) => [
           r.userId,
-          { enabled: r.enabled, time: r.time, days: r.days as Weekday[] },
+          {
+            enabled: r.enabled,
+            time: r.time,
+            days: r.days as Weekday[],
+            channels: r.channels as DigestChannel[],
+          },
         ]),
       )
     },
