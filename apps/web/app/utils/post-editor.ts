@@ -274,6 +274,8 @@ export function createAutosave(o: AutosaveOptions) {
       }
       if (own === null) throw error
       lost = 0
+      // the version this tab owns now: a retry whose answer is lost again counts from it
+      state.version = own.version
       return o.update(postId, own.version, body)
     }
   }

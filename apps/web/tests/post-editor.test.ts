@@ -252,6 +252,35 @@ describe('saving by itself (Scelta 7)', () => {
     expect(s.state()).toMatchObject({ status: 'saved', version: 3, dirty: false })
   })
 
+  test('the retry after a recover loses its answer too: the next 409 counts from the version taken', async () => {
+    const conflict = Object.assign(new Error('409'), { conflict: true })
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(new Error('network')) // v1 → server v2, answer lost
+      .mockRejectedValueOnce(conflict) // sent v1
+      .mockRejectedValueOnce(new Error('network')) // retry with v2 → server v3, answer lost
+      .mockRejectedValueOnce(conflict) // sent v2
+      .mockImplementation((_id, version) => Promise.resolve({ id: 'p1', version: version + 1 }))
+    const recover = vi
+      .fn<(id: string, version: number, lost: number) => Promise<{ id: string; version: number }>>()
+      .mockResolvedValueOnce({ id: 'p1', version: 2 })
+      .mockResolvedValueOnce({ id: 'p1', version: 3 })
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    await s.flush()
+    expect(s.state().status).toBe('failed')
+    await s.flush()
+    expect(recover).toHaveBeenLastCalledWith('p1', 2, 1)
+    expect(s.state()).toMatchObject({ status: 'saved', version: 4 })
+  })
+
   test('a 409 after a save that failed, with a version not its own, stays a conflict', async () => {
     const conflict = Object.assign(new Error('409'), { conflict: true })
     const update = vi

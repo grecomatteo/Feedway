@@ -491,7 +491,7 @@ test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)
   page,
 }) => {
   const { org, client } = await clientWithFiles(page)
-  // 21:30 in Rome: today's 18:00 is gone, the editor proposes tomorrow
+  // 20:30 UTC, evening in Rome: today's 18:00 is gone, the editor proposes tomorrow
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
   await page.clock.setFixedTime(new Date(`${today}T20:30:00Z`))
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
