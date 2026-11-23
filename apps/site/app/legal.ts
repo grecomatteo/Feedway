@@ -11,8 +11,6 @@ export const LEGAL = {
   privacyEmail: 'matteogr03@gmail.com',
   /** Who runs the server of the panel and where, e.g. «Hetzner Online GmbH, Germania». */
   hostingProvider: 'Oracle Cloud Infrastructure (Oracle)',
-  /** Where the panel's backups go, e.g. «Google Drive (Google Ireland Ltd.)», copies encrypted or not. */
-  backupProvider: 'Google Drive (Google Ireland Ltd.), con copie cifrate',
   /** The mailbox that receives the demo requests and the privacy email. */
   mailboxProvider: 'Gmail (Google Ireland Ltd.)',
   /** Who sends the panel's emails (SMTP), e.g. «Brevo (Sendinblue SAS, Francia)». */

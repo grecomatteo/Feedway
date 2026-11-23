@@ -21,6 +21,11 @@ const PERMISSIONS = [
     'instagram_content_publish',
     'pubblicare sull’account Instagram i post che l’agenzia ha programmato.',
   ],
+  ['pages_manage_engagement', 'facoltativo: caricare su Facebook la copertina scelta per un reel.'],
+  [
+    'pages_read_user_content',
+    'facoltativo: caricare su Facebook la copertina scelta per un reel (Meta lo chiede insieme al precedente).',
+  ],
 ] as const
 </script>
 
@@ -66,7 +71,8 @@ const PERMISSIONS = [
     </ul>
     <p>
       In tutti e due i casi puoi chiedere a noi la cancellazione dei dati che Feedway ha ricevuto da
-      Facebook o Instagram: ce ne occupiamo noi e avvisiamo l’agenzia.
+      Facebook o Instagram: riceviamo la richiesta, avvisiamo l’agenzia e cancelliamo i dati come
+      previsto dall’accordo con lei.
     </p>
 
     <h2 id="sito">Questo sito</h2>
@@ -92,17 +98,17 @@ const PERMISSIONS = [
       email, attraverso Cloudflare, nella nostra casella (<LegalValue
         :value="LEGAL.mailboxProvider"
         fallback="un servizio di posta"
-      />) e ci restano al massimo 12 mesi dall’ultimo contatto, poi si cancellano. Non li usiamo per
-      newsletter o pubblicità e non li diamo ad altri.
+      />) e ci restano al massimo 12 mesi dall’ultimo contatto, poi li cancelliamo. Non li usiamo
+      per newsletter o pubblicità e non li diamo ad altri.
     </p>
 
     <h2 id="account">Chi usa Feedway</h2>
     <p>
       Feedway non ha una registrazione libera: le persone di un’agenzia entrano su invito. Per ogni
       persona trattiamo nome, soprannome e foto se li aggiunge, email, password (conservata solo
-      come impronta cifrata) o passkey, secondo fattore, i dispositivi e le sessioni con cui accede
-      (indirizzo IP e browser) e le azioni che fa nel pannello, che finiscono nel registro attività
-      dell’agenzia.
+      come impronta, mai in chiaro) o passkey, secondo fattore, i dispositivi e le sessioni con cui
+      accede (indirizzo IP e browser) e le azioni che fa nel pannello, che finiscono nel registro
+      attività dell’agenzia.
     </p>
     <p>
       Servono a dare il servizio che l’agenzia ci ha chiesto: per il contratto con l’agenzia (art.
@@ -120,12 +126,12 @@ const PERMISSIONS = [
       che l’agenzia gestisce. Si collega a Meta solo con le API ufficiali e solo con i permessi che
       chi collega l’account concede.
     </p>
-    <p>Dai prodotti di Meta Feedway riceve e conserva soltanto:</p>
+    <p>Dai prodotti di Meta Feedway conserva soltanto:</p>
     <ul>
       <li>
         il <strong>codice di accesso</strong> (token) che Meta rilascia quando colleghi una Pagina o
-        un account, conservato cifrato, mai mostrato e usato solo per pubblicare e controllare i
-        post;
+        un account, conservato cifrato, mai mostrato e usato solo per pubblicare i post, controllare
+        che siano usciti e tenere aggiornato lo stato degli account collegati;
       </li>
       <li>
         l’<strong>identificativo, il nome, il nome utente e la foto del profilo</strong> delle
@@ -148,6 +154,10 @@ const PERMISSIONS = [
         Meta indica, per avvisare quando un account va ricollegato o è vicino al limite.
       </li>
     </ul>
+    <p>
+      Per controllare che un post sia uscito davvero, Feedway legge anche gli ultimi post
+      dell’account (testo, data e link) e li confronta con quello pubblicato: non li conserva.
+    </p>
     <p>Ogni permesso che Feedway chiede a Meta serve a una cosa sola:</p>
     <dl class="legal-permissions">
       <div v-for="[name, use] in PERMISSIONS" :key="name">
@@ -181,13 +191,6 @@ const PERMISSIONS = [
         nostro responsabile del trattamento;
       </li>
       <li>
-        le copie di sicurezza:
-        <LegalValue
-          :value="LEGAL.backupProvider"
-          fallback="un servizio di archiviazione, con accesso riservato"
-        />;
-      </li>
-      <li>
         le email del pannello (inviti, avvisi):
         <LegalValue :value="LEGAL.emailProvider" fallback="un servizio di invio email" />;
       </li>
@@ -215,9 +218,10 @@ const PERMISSIONS = [
     <h2 id="conservazione">Per quanto li conserviamo</h2>
     <ul>
       <li>
-        Codici di accesso e dati delle Pagine e degli account: finché l’account resta collegato a
-        Feedway. Si cancellano entro 30 giorni da quando l’agenzia lo scollega o tu ne chiedi la
-        cancellazione.
+        Codici di accesso e dati delle Pagine e degli account: finché l’agenzia li usa in Feedway.
+        Se l’accesso viene tolto, da Facebook o da chi l’aveva dato, l’account resta in Feedway come
+        inattivo e non può più pubblicare, finché tu o l’agenzia non ne chiedete la cancellazione:
+        allora lo cancelliamo entro 30 giorni.
       </li>
       <li>
         Foto e video: finché l’agenzia li tiene in Feedway. Le copie preparate per Meta si
@@ -228,19 +232,25 @@ const PERMISSIONS = [
         lavoro svolto.
       </li>
       <li>
-        Account delle persone, con le sessioni, i dispositivi e il registro attività (che contiene
-        l’indirizzo IP): finché la persona fa parte di un’agenzia e l’agenzia usa Feedway, perché
-        servono alla sicurezza degli accessi e a ricostruire chi ha fatto cosa. Quando la persona
-        esce dall’agenzia o l’agenzia chiude il servizio li cancelliamo entro 30 giorni, tranne le
-        voci del registro che servono a difendere un diritto, tenute al massimo 24 mesi.
+        Account delle persone: finché la persona li usa. Con «Elimina il mio account» nome, email,
+        foto e credenziali si cancellano subito e al loro posto resta «Utente rimosso». Un account
+        disattivato si cancella allo stesso modo dopo 24 mesi, e l’agenzia lo sa 30 giorni prima.
+      </li>
+      <li>
+        Sessioni scadute: cancellate dopo 30 giorni. Dispositivi da cui si accede: cancellati dopo
+        12 mesi senza uso.
+      </li>
+      <li>
+        Registro attività dell’agenzia: resta finché l’agenzia usa Feedway, perché serve a
+        ricostruire chi ha fatto cosa. Dopo 90 giorni l’indirizzo IP delle voci si accorcia, così
+        non indica più un singolo dispositivo, e chi ha eliminato il proprio account compare come
+        «Utente rimosso».
+      </li>
+      <li>
+        Quando un’agenzia smette di usare Feedway, cancelliamo i suoi dati come previsto
+        dall’accordo con lei.
       </li>
       <li>Richieste di demo: al massimo 12 mesi dall’ultimo contatto.</li>
-      <li>
-        Copie di sicurezza: ogni notte, cifrate. Si sovrascrivono a rotazione, quindi un dato
-        cancellato sparisce anche dalle copie al massimo 3 mesi dopo. Nel frattempo le copie non si
-        usano, se non per ripristinare il servizio dopo un guasto. Se un ripristino riportasse un
-        dato già cancellato, lo cancelliamo di nuovo.
-      </li>
     </ul>
     <p>
       I post già pubblicati su Facebook e Instagram restano lì anche quando Feedway cancella i suoi

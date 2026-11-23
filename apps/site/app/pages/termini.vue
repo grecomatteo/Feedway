@@ -117,9 +117,9 @@ useSeoMeta({
     <p>
       Possiamo sospendere un account che viola queste condizioni, la legge o le regole di Meta,
       avvisando l’agenzia prima quando possibile, o subito dopo quando serve fermare un danno.
-      L’agenzia può chiudere il servizio come previsto dal contratto. Alla chiusura l’agenzia può
-      scaricare i suoi contenuti entro 30 giorni; poi i dati si cancellano nei tempi
-      dell’informativa.
+      L’agenzia può chiudere il servizio come previsto dal contratto. Alla chiusura l’agenzia ha 30
+      giorni per scaricare i suoi contenuti, e se serve la aiutiamo; poi cancelliamo i suoi dati
+      come previsto dall’accordo sul trattamento dei dati.
     </p>
 
     <h2 id="legge">Legge e foro</h2>
@@ -131,8 +131,8 @@ useSeoMeta({
     <h2 id="modifiche">Modifiche</h2>
     <p>
       Se cambiamo queste condizioni aggiorniamo la data in cima alla pagina e avvisiamo le agenzie
-      almeno 30 giorni prima che i cambiamenti importanti valgano. Chi non è d’accordo può chiudere
-      il servizio prima di quella data.
+      almeno 30 giorni prima che i cambiamenti importanti valgano. Chi non è d’accordo può recedere
+      dal contratto senza penali prima di quella data.
     </p>
   </LegalPage>
 </template>
