@@ -38,7 +38,10 @@ for (const file of files) {
     relative(out, file)
       .replace(/index\.html$/, '')
       .replace(/\.html$/, '')
-  if (!/^\/(200|404)$/.test(path) && !path.includes('inviata')) pages.push(path)
+  // pages marked noindex (the outcomes of the demo form) stay out of the sitemap
+  if (!/^\/(200|404)$/.test(path) && !/<meta name="robots" content="noindex"/.test(html)) {
+    pages.push(path)
+  }
 }
 
 if (process.env.SITE_RELEASE === '1' && placeholders > 0) {

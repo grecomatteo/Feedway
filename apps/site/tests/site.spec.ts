@@ -123,3 +123,14 @@ test('planned features carry the «In arrivo» mark, shipped ones do not', async
   await expect(page.getByRole('tabpanel')).toContainText('Un post per più profili')
   await expect(page.locator('#cliente .soon-mark')).toHaveCount(2)
 })
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false })
+
+  test('an invalid request says what to fix, not that the service is down', async ({ page }) => {
+    await page.goto('/richiedi-una-demo/da-correggere/')
+    await expect(page.getByRole('alert')).toContainText('Controlla nome, agenzia ed email')
+    await page.goto('/richiedi-una-demo/non-inviata/')
+    await expect(page.getByRole('alert')).toContainText('Riprova tra qualche minuto')
+  })
+})

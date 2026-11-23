@@ -186,9 +186,10 @@ const PERMISSIONS = [
         le email del pannello (inviti, avvisi):
         <LegalValue :value="LEGAL.emailProvider" fallback="un servizio di invio email" />;
       </li>
+      <li>Cloudflare, che ospita questo sito;</li>
       <li>
-        Cloudflare, che ospita questo sito e porta il traffico verso il pannello senza aprire porte
-        sul server;
+        Tailscale, la rete privata da cui le persone dell’agenzia raggiungono il pannello e da cui
+        Meta scarica le copie da pubblicare;
       </li>
       <li>
         Meta Platforms Ireland, che riceve i contenuti da pubblicare e li tratta secondo le proprie
@@ -196,9 +197,9 @@ const PERMISSIONS = [
       </li>
     </ul>
     <p>
-      Cloudflare e Meta possono trattare dati negli Stati Uniti. Avviene con il Data Privacy
-      Framework UE–USA, a cui aderiscono, o con le clausole contrattuali tipo approvate dalla
-      Commissione europea. Puoi chiederne una copia scrivendo a <LegalEmail />.
+      Cloudflare, Tailscale e Meta possono trattare dati negli Stati Uniti. Avviene con il Data
+      Privacy Framework UE–USA o con le clausole contrattuali tipo approvate dalla Commissione
+      europea. Puoi chiederne una copia scrivendo a <LegalEmail />.
     </p>
 
     <h2 id="conservazione">Per quanto li conserviamo</h2>

@@ -10,8 +10,6 @@ type State = 'idle' | 'sending' | 'sent' | 'failed'
 const state = ref<State>('idle')
 const errors = ref<Partial<Record<DemoField, FieldError>>>({})
 const startedAt = ref('')
-const route = useRoute()
-const serverError = computed(() => route.query.errore as string | undefined)
 
 onMounted(() => {
   startedAt.value = String(Date.now())
@@ -115,7 +113,7 @@ function describedBy(field: DemoField, hint?: boolean) {
       :aria-busy="state === 'sending'"
       @submit.prevent="submit"
     >
-      <p v-if="state === 'failed' || serverError" class="form-alert" role="alert">
+      <p v-if="state === 'failed'" class="form-alert" role="alert">
         Non siamo riusciti a inviare la richiesta. Riprova tra qualche minuto.
       </p>
 

@@ -1,6 +1,6 @@
 /**
  * The facts the privacy notice depends on. Matteo fills them in; until then the pages show a visible
- * placeholder and `scripts/check-legal.mjs` stops the publication.
+ * placeholder and `scripts/postgenerate.mjs` (with SITE_RELEASE=1) stops the publication.
  */
 export const LEGAL = {
   /** Who decides why and how the data is processed: a person's name or a company name. */

@@ -10,6 +10,9 @@ on:
       - apps/site/**
       - packages/ui/**
       - packages/config/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .nvmrc
       - .github/workflows/site-deploy.yml
   workflow_dispatch:
 

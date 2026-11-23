@@ -66,7 +66,9 @@ function reply(
   }
   const target = body.ok
     ? '/richiedi-una-demo/inviata'
-    : `/richiedi-una-demo/?errore=${body.reason ?? 'invalid'}`
+    : body.reason === 'unavailable'
+      ? '/richiedi-una-demo/non-inviata'
+      : '/richiedi-una-demo/da-correggere'
   return new Response(null, {
     status: 303,
     headers: { location: target, 'cache-control': 'no-store' },
