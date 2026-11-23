@@ -25,6 +25,7 @@ export function publishingDeps(deps: JobHandlerDeps): PublishingWorkerDeps {
     platformRules: deps.publishing.platformRules,
     publishingHistory: deps.publishing.publishingHistory,
     publicUrl: deps.publishing.publicUrl,
+    storage: deps.storage,
   }
 }
 

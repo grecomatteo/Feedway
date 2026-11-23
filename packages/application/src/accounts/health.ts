@@ -388,6 +388,7 @@ export async function checkConnectionHealth(
         })
     }
     await tx.connections.recordUsage(organizationId, connectionId, check.usage)
+    await tx.connections.setScopes(organizationId, connectionId, check.scopes)
     return checked
   })
   if (written === null) return skipped(deps, job, 'connection changed')

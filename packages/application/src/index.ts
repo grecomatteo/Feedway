@@ -241,6 +241,7 @@ export type {
   PlatformQuota,
   PlatformPublisher,
   PlatformPublishers,
+  CoverImage,
   PublishFile,
   PublishFiles,
   PublishMetaIds,

@@ -13,3 +13,17 @@ export const META_REQUIRED_PERMISSIONS = [
 ] as const
 
 export type MetaPermission = (typeof META_REQUIRED_PERMISSIONS)[number]
+
+/**
+ * The permissions that let Feedway set a reel's cover on a Page (`POST /{video-id}/thumbnails`,
+ * D-120.9): optional, asked only for the cover. Without them the reel goes out all the same, with
+ * the first frame as Facebook's own cover. From Meta's reference; not verified on real Meta.
+ */
+export const META_COVER_PERMISSIONS = [
+  'pages_manage_engagement',
+  'pages_read_user_content',
+] as const
+
+/** The connection may set the cover of a Facebook reel; `scopes` null: never read. */
+export const hasCoverPermissions = (scopes: readonly string[] | null): boolean =>
+  scopes !== null && META_COVER_PERMISSIONS.every((p) => scopes.includes(p))

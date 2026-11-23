@@ -346,6 +346,11 @@ export const PostOutcomeResponse = z.object({
       /** why Meta does not confirm a post it has: `not_found`, `failed`, `wrong_type`… */
       problem: z.string().nullable(),
       nextAttemptAt: Timestamp.nullable(),
+      /**
+       * The reel's cover sent after the post (Facebook, D-120.9): `done`, `failed`,
+       * `no_permission`; null: none chosen or not sent
+       */
+      cover: z.enum(['done', 'failed', 'no_permission']).nullable(),
     }),
   ),
   /** the latest first */

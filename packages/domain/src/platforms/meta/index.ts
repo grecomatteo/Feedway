@@ -12,5 +12,10 @@ export {
   type MetaIntegrationConfig,
   type MetaIntegrationField,
 } from './integration.js'
-export { META_REQUIRED_PERMISSIONS, type MetaPermission } from './permissions.js'
+export {
+  META_COVER_PERMISSIONS,
+  META_REQUIRED_PERMISSIONS,
+  hasCoverPermissions,
+  type MetaPermission,
+} from './permissions.js'
 export * from './rules/index.js'

@@ -64,7 +64,7 @@ afterEach(async () => {
 function target(type: PostType, over: Partial<PublishTarget> = {}): PublishTarget {
   return {
     targetId: 'target-1',
-    account: { platform: 'facebook', externalId: page, pageId: page },
+    account: { platform: 'facebook', externalId: page, pageId: page, scopes: null },
     credentials: {
       app: { appId: META_MOCK.app.id, appSecret: META_MOCK.app.secret, version: new Date() },
       token: META_MOCK.tokens.systemUser,
@@ -357,7 +357,9 @@ describe('publish', () => {
   })
 
   test('a Page id that is not digits never reaches an address', async () => {
-    const t = target('photo', { account: { platform: 'facebook', externalId: '..', pageId: '..' } })
+    const t = target('photo', {
+      account: { platform: 'facebook', externalId: '..', pageId: '..', scopes: null },
+    })
     const err = await failure(publisher.publish(t, files([image()]), ctx()))
     expect(err.kind).toBe('permanent')
     expect(mock.calls()).toHaveLength(0)
@@ -470,5 +472,68 @@ describe('verify', () => {
       signal(),
     )
     expect(result).toMatchObject({ outcome: 'problem', reason: 'not_found' })
+  })
+})
+
+describe("the reel's cover (D-120.9)", () => {
+  const scopes = ['pages_manage_posts', 'pages_manage_engagement', 'pages_read_user_content']
+  const jpeg = { bytes: new Uint8Array(64), contentType: 'image/jpeg' }
+  const withCover = (read: () => Promise<typeof jpeg | null> = () => Promise.resolve(jpeg)) => ({
+    items: [video()],
+    cover: { url: `${mock.url}/pictures/bottega.jpg`, read },
+  })
+  const withScopes = (s: string[] | null) =>
+    target('reel', { account: { platform: 'facebook', externalId: page, pageId: page, scopes: s } })
+
+  test('with the permissions: sent after the reel is out, preferred, and saved as done', async () => {
+    const { out } = await goOut(withScopes(scopes), withCover())
+    const sent = calls('POST', `/${String(out.externalPostId)}/thumbnails`)
+    expect(sent.map((c) => c.params)).toEqual([
+      expect.objectContaining({ is_preferred: 'true', source: 'file:image/jpeg:64' }),
+    ])
+    expect(sent[0]?.tokenIn).toBeDefined()
+    expect(out.metaIds).toMatchObject({ cover: 'done' })
+    expect(saved.at(-1)).toMatchObject({ cover: 'done' })
+  })
+
+  test('without them: no call, the reel goes out with no_permission', async () => {
+    for (const s of [null, ['pages_manage_posts', 'pages_manage_engagement']]) {
+      mock.scenario('default')
+      const { out } = await goOut(withScopes(s), withCover())
+      expect(out.metaIds).toMatchObject({ cover: 'no_permission' })
+      expect(mock.calls().some((c) => c.path.endsWith('/thumbnails'))).toBe(false)
+    }
+  })
+
+  test('Meta refuses it, or the image is gone: the reel is out all the same', async () => {
+    mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
+    const refused = await goOut(withScopes(scopes), withCover())
+    expect(refused.out.externalPostId).not.toBeNull()
+    expect(refused.out.metaIds).toMatchObject({ cover: 'failed' })
+
+    mock.scenario('default')
+    mock.scenario('permission_missing', { path: /\/thumbnails$/, code: 200 })
+    const denied = await goOut(withScopes(scopes), withCover())
+    expect(denied.out.metaIds).toMatchObject({ cover: 'no_permission' })
+
+    mock.scenario('default')
+    const gone = await goOut(
+      withScopes(scopes),
+      withCover(() => Promise.resolve(null)),
+    )
+    expect(gone.out.metaIds).toMatchObject({ cover: 'failed' })
+  })
+
+  test('a reel without a cover, or one out as a video, sends none', async () => {
+    const { out } = await goOut(withScopes(scopes), files([video()]))
+    expect(out.metaIds).toMatchObject({ cover: null })
+    await goOut(
+      target('reel', {
+        asVideo: true,
+        account: { platform: 'facebook', externalId: page, pageId: page, scopes },
+      }),
+      withCover(),
+    )
+    expect(mock.calls().some((c) => c.path.endsWith('/thumbnails'))).toBe(false)
   })
 })

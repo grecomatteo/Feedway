@@ -11,10 +11,28 @@ import type { ConnectionCredentials } from './platform-connector.js'
  */
 export type PublishMetaIds = Record<string, unknown>
 
+/**
+ * What became of a cover a publisher sends after the post (Facebook's reels, D-120.9), written
+ * as `cover` in its ids: the one field of them the posts module reads, for the outcome.
+ */
+export const COVER_OUTCOMES = ['done', 'failed', 'no_permission'] as const
+export type CoverOutcome = (typeof COVER_OUTCOMES)[number]
+
+export function coverOutcomeOf(ids: PublishMetaIds | null): CoverOutcome | null {
+  const cover = ids?.['cover']
+  return COVER_OUTCOMES.find((c) => c === cover) ?? null
+}
+
 /** What a destination publishes, already decided by the post, its rules and its choices. */
 export interface PublishTarget {
   targetId: string
-  account: { platform: Platform; externalId: string; pageId: string | null }
+  account: {
+    platform: Platform
+    externalId: string
+    pageId: string | null
+    /** The connection's permissions at the last check; null: never read (D-120.9). */
+    scopes: readonly string[] | null
+  }
   /** The connection's token, opened for this step only: never logged, never saved. */
   credentials: ConnectionCredentials
   type: PostType
@@ -38,8 +56,18 @@ export interface PublishFile {
 
 export interface PublishFiles {
   items: PublishFile[]
-  /** The reel's cover: an image to download, or the frame at an offset; null: the platform's. */
-  cover: { url: string } | { offsetMs: number } | null
+  /**
+   * The reel's cover: an image to download, or the frame at an offset; null: the platform's.
+   * `read`: the image's bytes, for a platform that takes them rather than an address
+   * (Facebook's `thumbnails`, D-120.9); null when the copy is gone.
+   */
+  cover: { url: string; read: () => Promise<CoverImage | null> } | { offsetMs: number } | null
+}
+
+/** The bytes of a cover, read from the storage when the platform asks for them. */
+export interface CoverImage {
+  bytes: Uint8Array
+  contentType: string
 }
 
 /**

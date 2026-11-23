@@ -1,6 +1,7 @@
 import type { CopyRequest, RuleReport } from '@app/domain'
 import { publishCopiesOf, requestPublishCopies } from '../../media/index.js'
-import type { PublishFiles } from '../../ports/platform-publisher.js'
+import type { CoverImage, PublishFiles } from '../../ports/platform-publisher.js'
+import type { Storage } from '../../ports/storage.js'
 import type { PostRecord } from '../../ports/posts.js'
 import type { Tx } from '../../ports/tx.js'
 import { publishFilesOfPost } from '../../rules/index.js'
@@ -20,7 +21,10 @@ export type DestinationCopies =
 
 export async function destinationCopies(
   tx: Tx,
-  deps: Pick<PublishingWorkerDeps, 'platformRules' | 'publicUrl' | 'ids' | 'newPublicToken'>,
+  deps: Pick<
+    PublishingWorkerDeps,
+    'platformRules' | 'publicUrl' | 'ids' | 'newPublicToken' | 'storage'
+  >,
   post: PostRecord,
   report: RuleReport,
   accountId: string,
@@ -58,9 +62,38 @@ export async function destinationCopies(
     return {
       kind: state.copy.mime === 'video/mp4' ? ('video' as const) : ('image' as const),
       url: publicFileUrl(base, state.copy.publicToken, state.copy.mime),
+      storageKey: state.copy.storageKey,
     }
   })
-  const items = urls.slice(0, destination.media.length)
+  const items = urls.slice(0, destination.media.length).map(({ kind, url }) => ({ kind, url }))
   const cover = destination.cover ? urls[destination.media.length] : undefined
-  return { status: 'ready', files: { items, cover: cover ? { url: cover.url } : null } }
+  return {
+    status: 'ready',
+    files: {
+      items,
+      cover: cover
+        ? { url: cover.url, read: () => readCover(deps.storage, cover.storageKey) }
+        : null,
+    },
+  }
+}
+
+/** A cover is a small image: a bigger object is not one of ours, and is not sent. */
+const COVER_MAX_BYTES = 10 * 1024 * 1024
+
+export async function readCover(
+  storage: Pick<Storage, 'get'>,
+  key: string,
+): Promise<CoverImage | null> {
+  const object = await storage.get(key)
+  if (object === null) return null
+  const parts: Uint8Array[] = []
+  let size = 0
+  // leaving the loop early closes the stream, as the port asks
+  for await (const part of object.body) {
+    size += part.byteLength
+    if (size > COVER_MAX_BYTES) return null
+    parts.push(part)
+  }
+  return { bytes: Buffer.concat(parts), contentType: object.contentType }
 }

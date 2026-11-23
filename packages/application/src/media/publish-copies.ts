@@ -116,7 +116,7 @@ export type PublishCopyState =
       status: 'ready'
       copy: Pick<
         PublishCopyRecord,
-        'id' | 'publicToken' | 'mime' | 'sizeBytes' | 'width' | 'height'
+        'id' | 'publicToken' | 'mime' | 'sizeBytes' | 'width' | 'height' | 'storageKey'
       >
     }
   | { status: 'pending' }
@@ -153,6 +153,7 @@ export async function publishCopiesOf(
                 sizeBytes: c.sizeBytes,
                 width: c.width,
                 height: c.height,
+                storageKey: c.storageKey,
               },
             }
           : c.status === 'failed'
