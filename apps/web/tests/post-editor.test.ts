@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   createAutosave,
+  passedToTomorrow,
   createCheckRunner,
   hasContent,
   missingFiles,
@@ -224,6 +225,149 @@ describe('saving by itself (Scelta 7)', () => {
     expect(s.state().status).toBe('saved')
   })
 
+  test('a save whose answer was lost and then a 409: its own version is taken, no conflict (D-120.1)', async () => {
+    const conflict = Object.assign(new Error('409'), { conflict: true })
+    // the server saved version 2 but the answer never came back
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockRejectedValueOnce(conflict)
+      .mockImplementation((_id, version) => Promise.resolve({ id: 'p1', version: version + 1 }))
+    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(s.state().status).toBe('failed')
+    set({ caption: { common: 'abc' } })
+    await s.flush()
+    // asked once, with the version it had and how many saves may have landed
+    expect(recover).toHaveBeenCalledWith('p1', 1, 1)
+    expect(update.mock.calls.map((c) => c[1])).toEqual([1, 1, 2])
+    expect(s.state()).toMatchObject({ status: 'saved', version: 3, dirty: false })
+  })
+
+  test('the retry after a recover loses its answer too: the next 409 counts from the version taken', async () => {
+    const conflict = Object.assign(new Error('409'), { conflict: true })
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(new Error('network')) // v1 → server v2, answer lost
+      .mockRejectedValueOnce(conflict) // sent v1
+      .mockRejectedValueOnce(new Error('network')) // retry with v2 → server v3, answer lost
+      .mockRejectedValueOnce(conflict) // sent v2
+      .mockImplementation((_id, version) => Promise.resolve({ id: 'p1', version: version + 1 }))
+    const recover = vi
+      .fn<(id: string, version: number, lost: number) => Promise<{ id: string; version: number }>>()
+      .mockResolvedValueOnce({ id: 'p1', version: 2 })
+      .mockResolvedValueOnce({ id: 'p1', version: 3 })
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    await s.flush()
+    expect(s.state().status).toBe('failed')
+    await s.flush()
+    expect(recover).toHaveBeenLastCalledWith('p1', 2, 1)
+    expect(s.state()).toMatchObject({ status: 'saved', version: 4 })
+  })
+
+  test('a 409 after a save that failed, with a version not its own, stays a conflict', async () => {
+    const conflict = Object.assign(new Error('409'), { conflict: true })
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockRejectedValue(conflict)
+    const recover = vi.fn(() => Promise.resolve(null))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    await s.flush()
+    expect(recover).toHaveBeenCalledTimes(1)
+    expect(s.state().status).toBe('conflict')
+  })
+
+  test('the post not read after that 409 is «not saved: retry», and the next 409 asks again', async () => {
+    const conflict = Object.assign(new Error('409'), { conflict: true })
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(conflict)
+      .mockImplementation((_id, version) => Promise.resolve({ id: 'p1', version: version + 1 }))
+    const recover = vi
+      .fn<() => Promise<{ id: string; version: number } | null>>()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValue({ id: 'p1', version: 2 })
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    await s.flush()
+    expect(s.state().status).toBe('failed')
+    await s.flush()
+    expect(recover).toHaveBeenLastCalledWith('p1', 1, 1)
+    expect(s.state()).toMatchObject({ status: 'saved', version: 3 })
+  })
+
+  test('a 409 with no save left without an answer never asks: another person or tab', async () => {
+    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+    const update = vi.fn(() => Promise.reject(Object.assign(new Error('409'), { conflict: true })))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(recover).not.toHaveBeenCalled()
+    expect(s.state().status).toBe('conflict')
+  })
+
+  test('a save refused with an answer (500, 429) is not lost: the next 409 is a conflict', async () => {
+    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+    const update = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('500'), { answered: true }))
+      .mockRejectedValueOnce(Object.assign(new Error('409'), { conflict: true, answered: true }))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+      isLost: (e) => (e as { answered?: boolean }).answered !== true,
+    })
+    set({ caption: { common: 'a' } }) // created, v1
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } }) // 500
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'abc' } }) // 409
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(recover).not.toHaveBeenCalled()
+    expect(s.state().status).toBe('conflict')
+  })
+
   test('flush saves at once (leaving the page, hiding the tab)', async () => {
     const { s, set, create } = saver()
     set({ caption: { common: 'a' } })
@@ -301,5 +445,36 @@ describe('the checks while writing (Scelta 8, D-57)', () => {
     answers[0]?.('old')
     await vi.advanceTimersByTimeAsync(0)
     expect(seen).toEqual(['new'])
+  })
+})
+
+describe('the evening moves the post to tomorrow, and says so (D-120.5)', () => {
+  // 23 November 2026, 21:10 in Rome
+  const evening = new Date('2026-11-23T20:10:00Z')
+  test('tomorrow at a time already past today: said', () => {
+    expect(
+      passedToTomorrow({ localDate: '2026-11-24', localTime: '09:30' }, 'Europe/Rome', evening),
+    ).toBe(true)
+    expect(
+      passedToTomorrow({ localDate: '2026-11-24', localTime: '21:10' }, 'Europe/Rome', evening),
+    ).toBe(true)
+  })
+  test('tomorrow at a time still ahead today, today, or later: not said', () => {
+    expect(
+      passedToTomorrow({ localDate: '2026-11-24', localTime: '22:00' }, 'Europe/Rome', evening),
+    ).toBe(false)
+    expect(
+      passedToTomorrow({ localDate: '2026-11-23', localTime: '22:00' }, 'Europe/Rome', evening),
+    ).toBe(false)
+    expect(
+      passedToTomorrow({ localDate: '2026-11-25', localTime: '09:30' }, 'Europe/Rome', evening),
+    ).toBe(false)
+    expect(passedToTomorrow(null, 'Europe/Rome', evening)).toBe(false)
+  })
+  test('in the zone of the post, not of the browser', () => {
+    // 21:10 in Rome is 15:10 in New York: 16:00 is gone in Rome, still ahead there
+    const at = { localDate: '2026-11-24', localTime: '16:00' }
+    expect(passedToTomorrow(at, 'Europe/Rome', evening)).toBe(true)
+    expect(passedToTomorrow(at, 'America/New_York', evening)).toBe(false)
   })
 })
