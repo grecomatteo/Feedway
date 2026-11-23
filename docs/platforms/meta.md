@@ -224,7 +224,7 @@ Gli errori della pubblicazione su Instagram (sottocodici 2207xxx) sono in «Pubb
 
 ## Pubblicazione
 
-Fonti (lette il 2026-11-20): [Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing), [IG User Media](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media), [IG Container](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-container), [IG User Stories](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/stories), [Instagram Error Codes](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/error-codes). Tutto ciò che segue è **non verificato** su Meta vera: si prova nella guida della 0.13.0 (Task 10). Le scelte provvisorie sono in D-105.
+Fonti (lette il 2026-11-20): [Content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing), [IG User Media](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media), [IG Container](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-container), [IG User Stories](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/stories), [Instagram Error Codes](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/error-codes). Le chiamate e le risposte riuscite sono **verificate** su Meta vera con la prova della 0.13.0 e della 0.13.1 (21–23/11, «Da provare» qui sotto); gli errori e i permalink restano **non verificati**, perché la prova non li ha incontrati. Le scelte provvisorie sono in D-105.
 
 ### Instagram (Task 4)
 
@@ -265,7 +265,7 @@ I codici negativi si scrivono in `target_attempts` con il solo sottocodice (D-10
 
 ### Facebook (Task 5)
 
-Fonti (lette il 2026-11-20): [Reels publishing](https://developers.facebook.com/docs/video-api/guides/reels-publishing/), [Page stories](https://developers.facebook.com/docs/page-stories-api/), [Page photos](https://developers.facebook.com/docs/graph-api/reference/page/photos/), [Page feed](https://developers.facebook.com/docs/graph-api/reference/page/feed/), [Page videos](https://developers.facebook.com/docs/graph-api/reference/page/videos/), [Page published_posts](https://developers.facebook.com/docs/graph-api/reference/page/published_posts/). Tutto **non verificato** su Meta vera; le scelte provvisorie sono in D-106.
+Fonti (lette il 2026-11-20): [Reels publishing](https://developers.facebook.com/docs/video-api/guides/reels-publishing/), [Page stories](https://developers.facebook.com/docs/page-stories-api/), [Page photos](https://developers.facebook.com/docs/graph-api/reference/page/photos/), [Page feed](https://developers.facebook.com/docs/graph-api/reference/page/feed/), [Page videos](https://developers.facebook.com/docs/graph-api/reference/page/videos/), [Page published_posts](https://developers.facebook.com/docs/graph-api/reference/page/published_posts/). Le chiamate e le risposte riuscite sono **verificate** su Meta vera con la prova della 0.13.0 e della 0.13.1 (21–23/11); restano **non verificati** gli errori, `DELETE` di una foto o di un video non pubblicati e la forma dei permalink. Le scelte provvisorie sono in D-106.
 
 Ogni passo inizia con `GET /{page}?fields=access_token` fatto con il token del collegamento: il token della Pagina vale solo per quel passo, non si salva e non va nei log (le registrazioni oscurano `access_token`). Senza token nella risposta la destinazione fallisce con `permission_missing`.
 
@@ -273,7 +273,7 @@ Ogni passo inizia con `GET /{page}?fields=access_token` fatto con il token del c
 |---|---|---|
 | Foto | niente | `POST /{page}/photos` con `url` e `caption` → `id` e `post_id` |
 | Multi-foto | ogni foto `POST /{page}/photos` con `url` e `published=false`, id salvato dopo ognuna | `POST /{page}/feed` con `message` e `attached_media[i]={"media_fbid":"…"}` → `id` del post (`{page}_{post}`) |
-| Reel | `POST /{page}/video_reels` con `upload_phase=start` → `video_id`; `POST https://rupload.facebook.com/video-upload/{versione}/{video_id}` con `Authorization: OAuth <token della Pagina>` e `file_url` | `POST /{page}/video_reels` con `upload_phase=finish`, `video_id`, `video_state=PUBLISHED`, `description` → `success` |
+| Reel | `POST /{page}/video_reels` con `upload_phase=start` → `video_id`; `POST https://rupload.facebook.com/video-upload/{versione}/{video_id}` con `Authorization: OAuth <token della Pagina>` e `file_url` | `POST /{page}/video_reels` con `upload_phase=finish`, `video_id`, `video_state=PUBLISHED`, `description` → `success`, `post_id` (diverso dall'id del video: Feedway tiene quello del video) |
 | Video (reel oltre la durata, scelta `publish_as_video`) | niente | `POST /{page}/videos` con `file_url` e `description` → `id` |
 | Storia foto | una foto con `published=false` | `POST /{page}/photo_stories` con `photo_id` → `success`, `post_id` |
 | Storia video | `POST /{page}/video_stories` `upload_phase=start` e caricamento ospitato come il reel | `POST /{page}/video_stories` con `upload_phase=finish` e `video_id` → `success`, `post_id` |
@@ -313,11 +313,14 @@ Restano, tutti per l'accesso unificato (Task 7, rinviato):
 E per l'utente di sistema:
 6. Se generare un token nuovo lascia valido quello vecchio: «Revoca token» li revoca tutti insieme, quindi non si prova dal Business Manager.
 
-E per la pubblicazione su Facebook (Task 5, guida della 0.13.0):
-7. Che `GET /{page}?fields=access_token` con il token dell'utente di sistema dia il token della Pagina.
-8. Ogni tipo di §8.5 su una Pagina vera, con le risposte registrate: in particolare il caricamento ospitato su `rupload.facebook.com` con `appsecret_proof`, la forma di `attached_media` in un modulo, il `post_id` delle storie (testo o numero) e il `permalink_url` di reel e video (percorso o indirizzo).
-9. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
-10. `DELETE` di una foto non pubblicata e di un video caricato e non finito.
+Fatti dal 21 al 23 novembre 2026 con la prova della 0.13.0 e della 0.13.1 (236 risposte registrate, `tools/meta-mock/README.md`):
+- `GET /{page}?fields=access_token` con il token dell'utente di sistema dà il token della Pagina;
+- ogni tipo di §8.5 su una Pagina e un Instagram veri: foto, più foto con `attached_media` in un modulo, reel e storie video con il caricamento ospitato e `appsecret_proof`, video, storie di foto, caroselli, reel e storie su Instagram;
+- `GET /{page}/stories` dà `creation_time` come testo di secondi e `status` in minuscolo (corretto il 23/11);
+- `GET /{business-id}?fields=name` risponde all'utente di sistema con il nome del Business (D-108), con «Sincronizza».
 
-E per il nome del Business (Task 5, D-108):
-11. Se `GET /{business-id}?fields=name` risponde all'utente di sistema con il nome del Business (D-108), con l'ID del Business Manager scritto nell'integrazione.
+E per la pubblicazione su Facebook (Task 5):
+7. Il `post_id` delle storie (testo o numero) e il `permalink_url` di reel e video (percorso o indirizzo): la registrazione li oscura, Feedway accetta tutte e due le forme.
+8. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
+9. `DELETE` di una foto non pubblicata e di un video caricato e non finito: nella prova non è servito.
+10. Gli errori della pubblicazione: nessun errore di Meta è stato registrato.

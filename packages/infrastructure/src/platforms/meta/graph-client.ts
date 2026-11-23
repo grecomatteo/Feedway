@@ -442,8 +442,13 @@ const fbStorySchema = z.object({
   url: z.string().optional(),
 })
 
-/** A story's time may come as Meta's text or as Unix seconds (the reference shows neither). */
+/**
+ * A story's `creation_time`: real Meta sends Unix seconds as a string of digits («1795276588»,
+ * 0.13.0 test), which read as a date made the uncertain search never find the story. A number or
+ * Meta's date text are still read, as the reference shows neither.
+ */
 function storyDate(value: string | number | undefined): Date | null {
+  if (typeof value === 'string' && /^\d+$/.test(value)) return storyDate(Number(value))
   if (typeof value !== 'number') return metaDate(value)
   const date = new Date(value * 1000)
   return Number.isNaN(date.getTime()) ? null : date
