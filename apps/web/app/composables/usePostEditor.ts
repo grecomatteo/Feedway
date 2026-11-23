@@ -116,6 +116,7 @@ export function usePostEditor(opts: {
   const org = useOrganization()
   const { call, failure } = useApi()
   const { t } = useI18n()
+  const notice = useNotice()
   const workspaceId = opts.client.value.id
   const base = org.api(`/workspaces/${encodeURIComponent(workspaceId)}`)
   // a file of the post the worker has just made ready (or failed): its tile and the checks
@@ -261,6 +262,16 @@ export function usePostEditor(opts: {
         }),
       ),
     isConflict,
+    // a save of this tab whose answer was lost (slow network, D-120.1): the post saved by this
+    // person, at most that many versions ahead, is this tab's own; anyone else's is a conflict
+    recover: async (id, version, lost) => {
+      const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
+      const mine = org.me.value?.id
+      const ahead = now.version - version
+      return mine !== undefined && now.updatedBy === mine && ahead >= 1 && ahead <= lost
+        ? { id: now.id, version: now.version }
+        : null
+    },
     onState: (s) => {
       save.value = s
       // the address follows the draft once it exists, without a new page
@@ -755,6 +766,9 @@ export function usePostEditor(opts: {
     try {
       await autosave.flush()
       if (save.value.status === 'failed') failed(save.value.error)
+      // the post stays on the page: a short confirmation, as the others (D-120.6, D-45)
+      else if (save.value.status === 'saved' && !save.value.dirty)
+        notice.show({ message: t('posts.actions.changesSaved') })
     } finally {
       autosave.pause(status.value !== 'draft')
       acting.value = null
@@ -843,6 +857,16 @@ export function usePostEditor(opts: {
     caption,
     split,
     destinations,
+    /**
+     * The platforms of the accounts ticked, known in the browser at once: what depends only on
+     * them (the cover's sentence for Facebook) does not wait for the checks (D-120.8).
+     */
+    platforms: computed(() => {
+      const byId = new Map(
+        opts.profiles.value.flatMap((p) => p.accounts).map((a) => [a.id, a.platform] as const),
+      )
+      return new Set(destinations.value.flatMap((id) => byId.get(id) ?? []))
+    }),
     when,
     mode,
     /** «Programma» · «Pubblica subito»: the checks change with it */

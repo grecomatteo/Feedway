@@ -171,6 +171,12 @@ export interface AutosaveOptions {
   onState?: (state: SaveState) => void
   /** a 409 with `post_version_conflict` */
   isConflict?: (error: unknown) => boolean
+  /**
+   * After saves that failed with no answer, a 409 may be one of them that reached the server
+   * (D-120.1). Gets the post as it is now: its version when it is this person's own, at most
+   * `lost` saves ahead of `version`; null when someone else saved.
+   */
+  recover?: (postId: string, version: number, lost: number) => Promise<SavedPost | null>
   /** an existing post */
   post?: SavedPost | null
   delayMs?: number
@@ -181,8 +187,16 @@ export interface AutosaveOptions {
  * The draft that saves itself (Scelta 7): born at its first content, then saved after a pause
  * of 1.5 s, one save at a time with the version read. «Salvata» only after the server's answer;
  * a 409 stops it (the local text stays, the page offers to reload); a failure waits for
- * «Riprova» or the next change. Paused (a scheduled post), it only saves on `flush`.
+ * «Riprova» or the next change. A save whose answer was lost may still have been saved: the 409
+ * that follows asks `recover` first, and the post's own version is taken without a conflict.
+ * Paused (a scheduled post), it only saves on `flush`.
  */
+class RecoverFailed extends Error {
+  constructor(cause: unknown) {
+    super('the post could not be read after a conflict', { cause })
+  }
+}
+
 export function createAutosave(o: AutosaveOptions) {
   const delay = o.delayMs ?? 1500
   const now = o.now ?? (() => new Date())
@@ -197,6 +211,8 @@ export function createAutosave(o: AutosaveOptions) {
   let timer: ReturnType<typeof setTimeout> | undefined
   let running: Promise<void> | null = null
   let paused = false
+  /** updates sent since the last answer, whose outcome is not known (failed without a 409) */
+  let lost = 0
 
   // read through a function: a change while saving sets it, which the compiler cannot see
   const dirty = () => state.dirty
@@ -222,11 +238,18 @@ export function createAutosave(o: AutosaveOptions) {
         const saved =
           state.postId === null || state.version === null
             ? await o.create(body)
-            : await o.update(state.postId, state.version, body)
+            : await updateKnowingLost(state.postId, state.version, body)
+        lost = 0
         set({ status: 'saved', postId: saved.id, version: saved.version, savedAt: now() })
       } catch (error) {
         const conflict = o.isConflict?.(error) ?? false
-        set({ status: conflict ? 'conflict' : 'failed', dirty: true, error })
+        const unread = error instanceof RecoverFailed
+        if (!conflict && !unread && state.postId !== null) lost++
+        set({
+          status: conflict ? 'conflict' : 'failed',
+          dirty: true,
+          error: unread ? error.cause : error,
+        })
       } finally {
         running = null
       }
@@ -234,6 +257,25 @@ export function createAutosave(o: AutosaveOptions) {
     await running
     // what changed while it was saving goes after it
     if (dirty() && state.status === 'saved' && !paused) schedule()
+  }
+
+  /** The update; its 409 after lost saves is checked once against the post as it is now. */
+  async function updateKnowingLost(postId: string, version: number, body: DraftBody) {
+    try {
+      return await o.update(postId, version, body)
+    } catch (error) {
+      if (lost === 0 || !o.recover || !(o.isConflict?.(error) ?? false)) throw error
+      // a failed read says nothing yet: «not saved, retry», and the next 409 asks again
+      let own: SavedPost | null
+      try {
+        own = await o.recover(postId, version, lost)
+      } catch (readError) {
+        throw new RecoverFailed(readError)
+      }
+      if (own === null) throw error
+      lost = 0
+      return o.update(postId, own.version, body)
+    }
   }
 
   function schedule() {
@@ -264,6 +306,7 @@ export function createAutosave(o: AutosaveOptions) {
     /** the post as the server has it now (after schedule, unschedule, a reload) */
     adopt(post: SavedPost) {
       clearTimeout(timer)
+      lost = 0
       set({ status: 'saved', postId: post.id, version: post.version, dirty: false, error: null })
     },
     stop() {
@@ -340,4 +383,44 @@ const editorAliases = new Map<string, string>()
 export const editorKeyOf = (postId: string) => editorAliases.get(postId) ?? postId
 export function keepEditorKey(postId: string, from: string) {
   editorAliases.set(postId, from)
+}
+
+// ---- «Quando» ----
+
+/** The day and the time it is now in a zone, as wall values. */
+function wallNow(timeZone: string, now: Date): { date: string; time: string } {
+  const parts: Record<string, string> = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  )
+  const part = (type: string) => parts[type] ?? '00'
+  return {
+    date: `${part('year')}-${part('month')}-${part('day')}`,
+    time: `${part('hour')}:${part('minute')}`,
+  }
+}
+
+/**
+ * Tomorrow at a time already gone today, in the post's zone (D-120.5): in the evening the editor
+ * proposes, or the person picks, a time that only tomorrow has, and «Quando» says it.
+ */
+export function passedToTomorrow(
+  when: { localDate: string; localTime: string } | null,
+  timeZone: string,
+  now = new Date(),
+): boolean {
+  if (!when?.localDate || !when.localTime) return false
+  const { date, time } = wallNow(timeZone, now)
+  const tomorrow = new Date(`${date}T12:00:00Z`)
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+  return when.localDate === tomorrow.toISOString().slice(0, 10) && when.localTime <= time
 }

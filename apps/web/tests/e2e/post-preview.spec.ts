@@ -384,7 +384,12 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   await expect(page.locator('[data-entry]')).toHaveCount(1)
   await expect(page.locator('[data-entry]')).toHaveAccessibleName(/forno\.mov/)
   await expect(page.locator('[data-type="reel"]')).toHaveAttribute('aria-pressed', 'true')
-  // and back to the first video, for the cover below
+  // and back to the first video, for the cover below; the checks are slow (a slow network):
+  // the sentence for Facebook comes from the accounts ticked, not from their answer (D-120.8)
+  await page.route('**/post-checks', async (route) => {
+    await new Promise((r) => setTimeout(r, 8000))
+    await route.continue().catch(() => undefined)
+  })
   await media.getByRole('button', { name: 'Sostituisci il video' }).click()
   await page.getByRole('menuitem', { name: 'Dalla libreria' }).click()
   await library.getByRole('button', { name: 'impasto.mov' }).click()
@@ -395,7 +400,9 @@ test("a reel's cover: a frame with the keyboard, an image dropped, a video refus
   // Feedway sends the cover to Instagram only (0.13.0 test): the row says so
   await expect(section.locator('[data-cover-facebook]')).toHaveText(
     'Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram.',
+    { timeout: 3000 },
   )
+  await page.unroute('**/post-checks')
   const frame = section.getByRole('slider', { name: 'Scegli un fotogramma' })
   // 18 s at 30 fps: the cursor stops on the last true frame
   await expect(frame).toHaveAttribute('max', '17966')

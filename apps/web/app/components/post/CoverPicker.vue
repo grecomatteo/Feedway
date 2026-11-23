@@ -26,11 +26,7 @@ const timing = computed(() => ({
 }))
 const last = computed(() => lastFrameMs(timing.value.durationMs, timing.value.fps))
 /** Feedway sends the cover to Instagram only: on Facebook the reel starts from its first frame. */
-const onFacebook = computed(
-  () =>
-    e.report.value?.destinations.some((d) => d.platform === 'facebook' && d.format !== null) ??
-    false,
-)
+const onFacebook = computed(() => e.platforms.value.has('facebook'))
 const offset = computed(() => (e.cover.value?.source === 'frame' ? e.cover.value.offsetMs : 0))
 const image = computed(() => (e.cover.value?.source === 'image' ? e.cover.value.mediaId : null))
 const seconds = (ms: number) => n(ms / 1000, { maximumFractionDigits: 1 })
