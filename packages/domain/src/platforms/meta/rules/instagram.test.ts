@@ -32,13 +32,20 @@ test('a story counts no caption', () => {
   expect(codes(view('story', [photo()], 'a'.repeat(3000)))).toEqual([])
 })
 
-test('a feed photo just outside 4:5 or 1,91:1 is a warning', () => {
-  expect(codes(view('photo', [photo({ width: 1079, height: 1350 })]))).toEqual([
+test('a feed photo more than 1% outside 4:5 or 1,91:1 is a warning', () => {
+  expect(codes(view('photo', [photo({ width: 1069, height: 1350 })]))).toEqual([
     'photo_aspect_ratio',
   ])
-  expect(codes(view('photo', [photo({ width: 1911, height: 1000 })]))).toEqual([
+  expect(codes(view('photo', [photo({ width: 1931, height: 1000 })]))).toEqual([
     'photo_aspect_ratio',
   ])
+})
+
+test("an iPhone's 4:5 HEIC of 3427×4284 is 4:5", () => {
+  // 0,7999: the phone rounds its pixels (D-120.4)
+  expect(codes(view('photo', [photo({ width: 3427, height: 4284 })]))).toEqual([])
+  expect(codes(view('photo', [photo({ width: 1079, height: 1350 })]))).toEqual([])
+  expect(codes(view('photo', [photo({ width: 1920, height: 1000 })]))).toEqual([])
 })
 
 test('a phone video of 1080×1918 is 9:16', () => {
