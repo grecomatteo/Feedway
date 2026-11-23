@@ -13,7 +13,7 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 | Rotte | `apps/web/server/api/v1/orgs/[org]/<modulo>/` | Adattatori sottili: validano, chiamano il caso d'uso, traducono |
 | Lavori | `apps/worker/src/handlers/<modulo>-<lavoro>.ts` | Gestori sottili dei lavori in coda |
 | Pagine | `apps/web/app/pages/[org]/…` | Percorsi in italiano (`/[org]/calendario`) |
-| Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, tipi di notifica (`notificationKinds`), sezioni del riepilogo (`digestSections`), reazione all'anonimizzazione di un utente. Menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
+| Registrazione | `packages/application/src/<modulo>/module.ts` | Un `ModuleDefinition`: nome, permessi, code, tipi di notifica (`notificationKinds`), sezioni del riepilogo (`digestSections`), reazione all'anonimizzazione di un utente (`onUserAnonymized(event, { uow })`, ripetibile). Menu, voci del calendario e strumenti MCP entrano nel tipo con i moduli che li usano |
 
 ## 2. Regole
 

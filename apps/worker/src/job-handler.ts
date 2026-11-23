@@ -5,6 +5,7 @@ import type {
   ConnectionTokens,
   MediaProcessDeps,
   IdGenerator,
+  IntegrationStore,
   JobQueue,
   JobPayloads,
   Logger,
@@ -49,6 +50,14 @@ export interface JobHandlerDeps {
   /** The platforms (ADR 019) and the sealed tokens of the connections, for the account jobs. */
   connectors: PlatformConnectors
   connectionTokens: ConnectionTokens
+  /**
+   * What `accounts.daily` computes the Meta reminders from (plan 08 Task 4): the agency's `meta`
+   * integration and the Graph API version of the config; the days on the panel's calendar.
+   */
+  metaReminders: {
+    integrations: Pick<IntegrationStore, 'get'>
+    graph: { version: string; sunset: string }
+  }
   /** sharp, for the pictures of the social accounts (plan 04 Task 4). */
   images: AvatarProcessor
   /** The publishing of the posts (plan 07 Task 7): the platforms and what the checks read. */
