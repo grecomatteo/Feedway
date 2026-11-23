@@ -37,17 +37,18 @@ const busy = ref<string | null>(null)
 /** Every read and action takes a number: an answer older than the latest is dropped. */
 let latest = 0
 let reading = false
-async function read() {
+/** `again`: the page's own read while something moves, without the versions (kept from before) */
+async function read(again = false) {
   const mine = ++latest
   reading = true
   try {
     const [p, o] = await Promise.all([
       call<PostResponse>('GET', postApi.value),
-      call<PostOutcomeResponse>('GET', `${postApi.value}/outcome`),
+      call<PostOutcomeResponse>('GET', `${postApi.value}/outcome${again ? '?preview=0' : ''}`),
     ])
     if (mine !== latest) return
     current.value = p
-    outcome.value = o
+    outcome.value = again ? { ...o, preview: outcome.value?.preview ?? null } : o
     loadFailed.value = false
   } catch {
     if (mine === latest) loadFailed.value = true
@@ -63,7 +64,7 @@ const moving = computed(() =>
 let timer: ReturnType<typeof setInterval> | null = null
 function tick() {
   if (document.visibilityState === 'visible' && moving.value && busy.value === null && !reading)
-    void read()
+    void read(true)
 }
 onMounted(() => {
   void read()
@@ -132,6 +133,11 @@ const rows = computed(() =>
       state: state.label,
       tone: state.tone,
       reason,
+      // the reel is out: its cover on Facebook did not follow (D-120.9)
+      coverNote:
+        d.status !== 'cancelled' && (d.cover === 'no_permission' || d.cover === 'failed')
+          ? t(`posts.outcome.cover.${d.cover}`)
+          : null,
       canRetry: mayRetry.value && (d.status === 'failed' || d.status === 'problem'),
       canVerify: mayRetry.value && d.status === 'problem',
       canCancel: mayCancel.value && CANCELLABLE.has(d.status) && current.value.status !== 'paused',
@@ -142,6 +148,12 @@ const rows = computed(() =>
 
 // ---- the left column
 const showsFiles = computed(() => role.value !== 'viewer')
+/** the post as each account received it; without it (not readable now) the post's own files */
+const preview = computed(() =>
+  outcome.value?.preview && outcome.value.preview.versions.length > 0
+    ? outcome.value.preview
+    : null,
+)
 const tiles = computed(() =>
   current.value.media
     .filter((m) => m.status !== 'deleted')
@@ -394,8 +406,18 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
       >
         <!-- the post as it went -->
         <section class="flex min-w-0 flex-col gap-4" :aria-label="$t('posts.outcome.thePost')">
+          <!-- the post as each account received it, as the editor's preview (Task 10) -->
+          <PostOutcomePreview
+            v-if="preview"
+            class="w-full max-w-[26rem]"
+            :preview="preview"
+            :post="current"
+            :accounts="accounts"
+            :api="api"
+            :show-files="showsFiles"
+          />
           <ul
-            v-if="showsFiles && tiles.length > 0"
+            v-else-if="showsFiles && tiles.length > 0"
             class="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:thin]"
             data-outcome-files
           >
@@ -419,7 +441,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
               />
             </li>
           </ul>
-          <p v-if="text" class="max-w-[35rem] whitespace-pre-line" data-outcome-text>
+          <p v-if="text && !preview" class="max-w-[35rem] whitespace-pre-line" data-outcome-text>
             {{ text }}
           </p>
           <div class="flex flex-wrap items-center gap-2 text-detail text-(--app-text-muted)">
@@ -445,7 +467,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
             <LoadFailed
               v-if="loadFailed && !outcome"
               :text="$t('posts.outcome.loadFailed')"
-              @retry="read"
+              @retry="read()"
             />
             <ListSkeleton v-else-if="!outcome" />
             <ul
@@ -468,7 +490,12 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                 </div>
                 <div
                   v-if="
-                    row.permalink || row.reason || row.canRetry || row.canVerify || row.canCancel
+                    row.permalink ||
+                    row.reason ||
+                    row.coverNote ||
+                    row.canRetry ||
+                    row.canVerify ||
+                    row.canCancel
                   "
                   class="col-start-2 flex min-w-0 flex-col gap-1.5"
                 >
@@ -484,6 +511,13 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                   </a>
                   <p v-if="row.reason" class="text-detail text-(--app-text)" data-outcome-reason>
                     {{ row.reason }}
+                  </p>
+                  <p
+                    v-if="row.coverNote"
+                    class="text-detail text-(--app-text-muted)"
+                    data-outcome-cover
+                  >
+                    {{ row.coverNote }}
                   </p>
                   <div
                     v-if="row.canRetry || row.canVerify || row.canCancel"

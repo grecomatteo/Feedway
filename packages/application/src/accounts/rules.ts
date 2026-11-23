@@ -17,6 +17,10 @@ export async function getAccountsForRules(
   const records = await tx.accounts.list(scope.organizationId, {
     workspaceIds: [scope.workspaceId],
   })
+  // the permissions are the connection's: the cover of a Facebook reel reads them (D-120.9)
+  const scopes = new Map(
+    (await tx.connections.list(scope.organizationId)).map((c) => [c.id, c.scopes] as const),
+  )
   return new Map(
     records
       .filter((r) => wanted.has(r.id))
@@ -27,6 +31,7 @@ export async function getAccountsForRules(
           active: r.active,
           health: r.health,
           inWorkspace: true,
+          scopes: scopes.get(r.connectionId) ?? null,
           quota:
             r.quotaUsed === null || r.quotaTotal === null || r.quotaCheckedAt === null
               ? null

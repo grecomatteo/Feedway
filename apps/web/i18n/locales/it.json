@@ -1224,6 +1224,8 @@
     "syncAgainIn": "Puoi sincronizzare di nuovo tra {n} minuto. | Puoi sincronizzare di nuovo tra {n} minuti.",
     "syncTooSoon": "Hai già sincronizzato questo collegamento da poco.",
     "replaceToken": "Sostituisci token",
+    "coverPermissions": "La copertina scelta per i reel non va su Facebook: aggiungi all’utente di sistema {permissions}, poi «Sostituisci token» con quello nuovo. Il resto della pubblicazione non cambia.",
+    "and": " e ",
     "reconnect": "Ricollega",
     "tokenDone": {
       "replaced": "Token sostituito: il collegamento funziona di nuovo.",
@@ -1373,7 +1375,7 @@
   "metaToken": {
     "explain": "Incolla il token generato per l'utente di sistema nel Business Manager. Lo verifichiamo con Meta prima di salvarlo: fino ad allora resta valido quello di prima.",
     "token": "Token dell'utente di sistema",
-    "tokenHelp": "Non si rilegge mai: dopo il salvataggio vedi solo se funziona.",
+    "tokenHelp": "Non si rilegge mai: dopo il salvataggio vedi solo se funziona. Facoltativi: pages_manage_engagement e pages_read_user_content mandano anche la copertina dei reel su Facebook.",
     "confirm": "Verifica e salva",
     "permissionsMissing": "Meta ha accettato il token, ma mancano dei permessi. Rigeneralo spuntando quelli in rosso: non abbiamo salvato niente.",
     "permissions": "Permessi del token",
@@ -2208,8 +2210,8 @@
       "text": "La copertina di un reel è verticale (9:16), e questa foto è {width}×{height}. Puoi ritagliarla, spostando il riquadro dove vuoi, o usarla così."
     },
     "cover_on_facebook": {
-      "title": "Copertina non ancora provata su {platform}",
-      "text": "Non abbiamo ancora verificato che {platform} usi la copertina scelta per i reel: potrebbe mostrarne un'altra."
+      "title": "Su {platform} la copertina è il primo fotogramma",
+      "text": "Per mandare a {platform} la copertina scelta servono due permessi in più dell'utente di sistema: chi gestisce l'agenzia li aggiunge in Integrazioni → Meta. Intanto la copertina scelta va solo su Instagram."
     },
     "reel_too_long_for_facebook": {
       "title": "Reel troppo lungo per {platform}",
@@ -2529,6 +2531,7 @@
       "loading": "Preparo l'anteprima…",
       "dropHere": "Rilascia qui per aggiungere i file al post",
       "carousel": "carosello",
+      "carouselAt": "File {at} di {n}: sfoglia con le frecce",
       "previous": "File precedente",
       "next": "File successivo",
       "more": "altro",
@@ -2649,7 +2652,7 @@
       "shareToFeed": "Mostra anche nel feed",
       "shareToFeedHelp": "Anche nella griglia del profilo",
       "fromComputer": "Dal computer",
-      "facebookFirstFrame": "Su Facebook la copertina è il primo fotogramma del video: la copertina scelta va solo su Instagram."
+      "facebookFirstFrame": "Su Facebook la copertina è il primo fotogramma del video: per mandare quella scelta servono due permessi in più dell’utente di sistema, da aggiungere in Integrazioni → Meta."
     },
     "labels": {
       "title": "Etichette",
@@ -2690,6 +2693,12 @@
       "edit": "Modifica",
       "back": "Post di {name}",
       "thePost": "Il post",
+      "asItWent": "Com'è uscito",
+      "cover": {
+        "no_permission": "Copertina non caricata su Facebook: mancano due permessi dell’utente di sistema, il reel ha il primo fotogramma.",
+        "failed": "Copertina non caricata su Facebook: Facebook non l’ha presa, il reel ha il primo fotogramma."
+      },
+      "originals": "Le copie pubblicate sono state tolte: questa è l'anteprima dei file originali.",
       "by": "di {name}",
       "loadFailed": "Non riesco a leggere l'esito. Riprova tra poco.",
       "unknownAccount": "Account non più collegato",

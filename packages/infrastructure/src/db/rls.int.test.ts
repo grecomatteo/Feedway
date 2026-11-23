@@ -373,6 +373,21 @@ test('integrations: SMTP is platform only, and one row per kind', async () => {
   ).rejects.toThrow(/integrations_kind/)
 })
 
+test('integrations: an agency may have its own Telegram bot, the external watch is the platform’s', async () => {
+  const insert = (organizationId: string | null, kind: string) =>
+    asSystem((c) =>
+      c.query(
+        `insert into integrations (id, organization_id, kind, config, secret_enc, key_version)
+         values ($1, $2, $3, '{}', 'v1.1.x', 1)`,
+        [newId(), organizationId, kind],
+      ),
+    )
+  await insert(orgB, 'telegram')
+  await insert(null, 'telegram')
+  await insert(null, 'heartbeat')
+  await expect(insert(orgB, 'heartbeat')).rejects.toThrow(/integrations_heartbeat_platform_only/)
+})
+
 test('accounts: the four tables of agency A are out of reach from agency B and from a user', async () => {
   for (const scope of [
     (c: Fn<pg.QueryResult>) => inOrg(orgB, c),
@@ -457,7 +472,7 @@ test('every table with an organization_id forces row level security and has the 
                    where a.attrelid = c.oid and a.attname = 'organization_id' and not a.attisdropped)
      order by 1`,
   )
-  // the tables of stage 6 (plan 06 Task 3) and of stage 7 (plan 07 Task 3) are in the list
+  // the tables of stages 6, 7 and 8 (plan 06 Task 3, plan 07 Task 3, plan 08 Task 4) are listed
   expect(rows.map((r) => r.table)).toEqual(
     expect.arrayContaining([
       'target_attempts',
@@ -470,6 +485,9 @@ test('every table with an organization_id forces row level security and has the 
       'post_notes',
       'caption_templates',
       'account_groups',
+      'notifications',
+      'notification_deliveries',
+      'telegram_links',
     ]),
   )
   for (const r of rows) {

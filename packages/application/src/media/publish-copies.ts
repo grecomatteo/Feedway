@@ -15,6 +15,7 @@ import {
   type CopyRequest,
   type FileLimits,
   type PublishFile,
+  type VariantPurpose,
 } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Clock } from '../ports/clock.js'
@@ -115,7 +116,7 @@ export type PublishCopyState =
       status: 'ready'
       copy: Pick<
         PublishCopyRecord,
-        'id' | 'publicToken' | 'mime' | 'sizeBytes' | 'width' | 'height'
+        'id' | 'publicToken' | 'mime' | 'sizeBytes' | 'width' | 'height' | 'storageKey'
       >
     }
   | { status: 'pending' }
@@ -152,12 +153,70 @@ export async function publishCopiesOf(
                 sizeBytes: c.sizeBytes,
                 width: c.width,
                 height: c.height,
+                storageKey: c.storageKey,
               },
             }
           : c.status === 'failed'
             ? { status: 'failed', failure: c.failure ?? 'processing_failed' }
             : { status: 'pending' }
     return { request, state }
+  })
+}
+
+/** The purposes of the copies a destination publishes: what the page of the outcome shows. */
+export const PUBLISH_PURPOSES: ReadonlySet<VariantPurpose> = new Set([
+  'ig_feed',
+  'fb_photo',
+  'reel',
+  'story',
+  'cover',
+])
+
+/** A file as a destination received it, for the page of the outcome (plan 08 Task 10). */
+export interface PublishedFileView {
+  request: CopyRequest
+  /** the copy made for it, ready; null: not made yet, failed, or thrown away */
+  copy: { id: string; kind: 'image' | 'video'; width: number | null; height: number | null } | null
+  /** the file itself: null when deleted, or not of the workspace */
+  original: { kind: 'image' | 'video'; width: number | null; height: number | null } | null
+}
+
+/**
+ * The copies of `requests` and their files, as the page of the outcome shows them: a ready copy
+ * counts whether or not it still has its public token, since the panel serves it by id.
+ */
+export async function publishedFilesOf(
+  tx: Tx,
+  scope: { organizationId: string; workspaceId: string },
+  requests: readonly CopyRequest[],
+): Promise<PublishedFileView[]> {
+  const ids = [...new Set(requests.map((r) => r.mediaId).filter(isUuid))]
+  if (ids.length === 0) return requests.map((request) => ({ request, copy: null, original: null }))
+  const files = await tx.media.findManyInWorkspace(scope.organizationId, scope.workspaceId, ids)
+  const copies = await tx.media.copiesOf(scope.organizationId, ids)
+  return requests.map((request) => {
+    const file = files.find((f) => f.id === request.mediaId && f.status !== 'deleted')
+    const c = file
+      ? copies.find(
+          (x) =>
+            x.mediaId === request.mediaId &&
+            x.purpose === request.purpose &&
+            x.recipe === request.recipe &&
+            x.status === 'ready',
+        )
+      : undefined
+    return {
+      request,
+      copy: c
+        ? {
+            id: c.id,
+            kind: c.mime === 'video/mp4' ? 'video' : 'image',
+            width: c.width,
+            height: c.height,
+          }
+        : null,
+      original: file ? { kind: file.kind, width: file.width, height: file.height } : null,
+    }
   })
 }
 

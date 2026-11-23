@@ -1,8 +1,12 @@
-import { displayName, type OrgActor, type TargetStatus } from '@app/domain'
+import { can, displayName, type OrgActor, type TargetStatus } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { AuditAction } from '../ports/audit-log.js'
+import type { Logger } from '../ports/logger.js'
+import { coverOutcomeOf, type CoverOutcome } from '../ports/platform-publisher.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
+import type { CheckPostDeps } from '../rules/index.js'
 import { openPosts, postNotFound } from './common.js'
+import { outcomePreview, type OutcomePreviewDto } from './outcome-preview.js'
 
 // The page of the outcome (plan 07 Task 9, Scelta 6): every destination of a post with its link
 // or its reason, and the activity, from the log and from the calls to the platform. Every member
@@ -21,6 +25,8 @@ export interface DestinationOutcomeDto {
   problem: string | null
   /** the next try of a destination `retrying` */
   nextAttemptAt: string | null
+  /** the reel's cover sent after the post (Facebook, D-120.9); null: none, or not sent */
+  cover: CoverOutcome | null
 }
 
 /** What the activity tells, from the log of the panel or from the calls of the worker. */
@@ -53,6 +59,11 @@ export interface ActivityDto {
 
 export interface PostOutcomeDto {
   destinations: DestinationOutcomeDto[]
+  /**
+   * the post as each account received it (plan 08 Task 10); null: read from the post itself,
+   * or not asked
+   */
+  preview: OutcomePreviewDto | null
   /** the latest first */
   activity: ActivityDto[]
 }
@@ -75,14 +86,19 @@ const ATTEMPT_KIND: Record<string, ActivityKind | undefined> = {
 }
 
 export async function getPostOutcome(
-  deps: { uow: UnitOfWork },
+  deps: { uow: UnitOfWork; logger: Logger } & Omit<CheckPostDeps, 'uow'>,
   actor: OrgActor,
-  input: { workspaceId: string; postId: string },
+  input: {
+    workspaceId: string
+    postId: string
+    /** false: without the versions (the page's own reads while something moves) */
+    preview?: boolean
+  },
 ): Promise<PostOutcomeDto> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
-      const { scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
+      const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: false })
       if (!isUuid(input.postId)) throw postNotFound()
       const post = await tx.posts.find(scope, input.postId)
       if (!post) throw postNotFound()
@@ -135,7 +151,18 @@ export async function getPostOutcome(
           },
         ]
       })
+      // the page reads itself again every 10 s while something moves: the versions only once
+      const preview =
+        input.preview === false
+          ? null
+          : await outcomePreview(tx, deps, {
+              actor: current,
+              post,
+              targets,
+              mayReadFiles: can(current, 'media.upload', scope),
+            })
       return {
+        preview,
         destinations: targets.map((t) => ({
           accountId: t.accountId,
           status: t.status,
@@ -145,6 +172,7 @@ export async function getPostOutcome(
           errorCode: t.lastErrorCode,
           problem: problemOf(t.status, t.verification),
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
+          cover: coverOutcomeOf(t.metaIds),
         })),
         activity: [...fromLog, ...fromCalls]
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))

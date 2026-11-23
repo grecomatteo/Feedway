@@ -43,6 +43,8 @@ export type {
   OrganizationIntegrationTx,
   PlatformIntegrationKind,
   SmtpConfig,
+  TelegramConfig,
+  HeartbeatConfig,
   SmtpPort,
 } from './ports/integration-store.js'
 export type { Translate } from './ports/translator.js'
@@ -79,6 +81,7 @@ export type {
   NewTargetAttempt,
   Outbox,
   OutboxEvent,
+  PendingOutboxEvent,
   PublishedTarget,
   PublishingRepository,
   PostAttempt,
@@ -115,6 +118,12 @@ export type { KeyRing, KeyTx, SecretBox } from './ports/key-ring.js'
 export type { PasswordHasher } from './ports/password-hasher.js'
 export type { SignedTokenPurpose, SignedTokens, TokenService } from './ports/token-service.js'
 export type { OrganizationKeyRecord, OrganizationKeysRepository, Tx } from './ports/tx.js'
+export type {
+  NewDeliveryStatus,
+  NewNotification,
+  NotificationPrefsRepository,
+  NotificationsRepository,
+} from './ports/notifications.js'
 export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'
 export type {
@@ -206,6 +215,7 @@ export type {
   PlatformQuota,
   PlatformPublisher,
   PlatformPublishers,
+  CoverImage,
   PublishFile,
   PublishFiles,
   PublishMetaIds,

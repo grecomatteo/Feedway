@@ -193,9 +193,24 @@ export interface OutboxEvent {
   organizationId: string | null
   type: OutboxEventType
   payload: OutboxPayload
+  /** Written once only: the same key again writes nothing (plan 08 Task 4). */
+  dedupeKey?: string
+}
+
+/** An event still to send, as the dispatcher takes it. */
+export interface PendingOutboxEvent extends OutboxEvent {
+  id: string
+  createdAt: Date
 }
 
 /** Writes in the transaction of the change it tells of (§12.2). */
 export interface Outbox {
-  record(event: OutboxEvent): Promise<void>
+  /** false: an event with the same `dedupeKey` was written before, nothing was written now. */
+  record(event: OutboxEvent): Promise<boolean>
+  /**
+   * The system scope only (the dispatcher, plan 08 P2): up to `limit` events still to send,
+   * oldest first, locked until the transaction ends; those another dispatcher holds are skipped.
+   */
+  takePending(limit: number): Promise<PendingOutboxEvent[]>
+  markDispatched(ids: readonly string[], at: Date): Promise<void>
 }

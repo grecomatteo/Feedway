@@ -106,6 +106,11 @@ export interface RuleAccount {
   inWorkspace: boolean
   /** the platform's own publishing quota, when it has one (Instagram) */
   quota: { used: number; total: number; checkedAt: Date } | null
+  /**
+   * The permissions of the connection's token, as the platform said at the last check; null:
+   * never read (connections made before stage 8). Facebook: the cover of a reel (D-120.9).
+   */
+  scopes: readonly string[] | null
 }
 
 /** What is already published or scheduled (R4: empty until stages 6–7). */

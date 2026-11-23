@@ -204,6 +204,7 @@ afterAll(async () => {
 test('a valid token: green permissions, every assigned account once, pending', async () => {
   const result = await connect(` ${TOKEN}\n`)
   expect(result.outcome).toBe('connected')
+  // the two of the cover of a Facebook reel are not among them: not given, it still connects
   expect(result.permissions).toHaveLength(6)
   expect(result.permissions.every((p) => p.granted)).toBe(true)
   // Forno Luce's Instagram comes from the page and from the assigned ones: listed once, paired
@@ -277,6 +278,20 @@ test('a page Meta gives without its token is shown as not importable: no role on
     code: 'VALIDATION',
     details: { field: 'externalIds' },
   })
+})
+
+test("the token's permissions are kept on the connection, the cover ones too (D-120.9)", async () => {
+  mock.scenario('permissions_added')
+  const result = await connect()
+  expect(result.permissions.every((p) => p.granted)).toBe(true)
+  const [row] = await ownRows('account_connections')
+  expect((row as { scopes: string[] }).scopes).toEqual(
+    expect.arrayContaining([
+      'pages_manage_posts',
+      'pages_manage_engagement',
+      'pages_read_user_content',
+    ]),
+  )
 })
 
 test('a missing permission is shown red and nothing is saved', async () => {
@@ -367,6 +382,7 @@ test('the connections of the agency, a pending one too, never with their token',
       expiresAt: null,
       businessName: 'Agenzia Demo',
       createdAt: expect.any(Date) as Date,
+      scopes: expect.arrayContaining(['pages_manage_posts']) as string[],
     },
   ])
 })

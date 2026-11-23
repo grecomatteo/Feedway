@@ -62,6 +62,8 @@ export interface ConnectionView {
   expiresAt: Date | null
   /** The platform's name for the token's owner (Meta: the Business); null: not known. */
   businessName: string | null
+  /** The token's permissions at the last check; null: never read. */
+  scopes: string[] | null
   createdAt: Date
 }
 
@@ -145,6 +147,7 @@ const viewOf = (c: ConnectionRecord): ConnectionView => ({
   status: c.status,
   expiresAt: c.expiresAt,
   businessName: c.businessName,
+  scopes: c.scopes,
   createdAt: c.createdAt,
 })
 
@@ -301,6 +304,7 @@ export async function connectWithToken(
         ...sealed,
         expiresAt: check.expiresAt,
         businessName: check.businessName,
+        scopes: check.scopes,
       })
     } else {
       const sealed = await deps.tokens.seal(tx, { organizationId, id: existing.id }, token)
@@ -313,12 +317,14 @@ export async function connectWithToken(
         at: now,
         // a name Meta did not give this time keeps the one read before
         ...(check.businessName !== null && { businessName: check.businessName }),
+        scopes: check.scopes,
       })
       connection = {
         ...existing,
         status,
         expiresAt: check.expiresAt,
         businessName: check.businessName ?? existing.businessName,
+        scopes: check.scopes,
       }
     }
     await tx.audit.record({
@@ -382,6 +388,7 @@ async function openConnection(
       lastRefreshedAt: found.lastRefreshedAt,
       lastUsage: found.lastUsage,
       businessName: found.businessName,
+      scopes: found.scopes,
       createdAt: found.createdAt,
       updatedAt: found.updatedAt,
     }
@@ -567,6 +574,7 @@ export async function importAccounts(
       lastRefreshedAt: locked.lastRefreshedAt,
       lastUsage: locked.lastUsage,
       businessName: locked.businessName,
+      scopes: locked.scopes,
       createdAt: locked.createdAt,
       updatedAt: locked.updatedAt,
     }

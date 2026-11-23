@@ -226,6 +226,21 @@ export const mediaFileRoute = defineContract({
   scope: 'organization',
 })
 
+// The copy a destination published (plan 08 Task 10), for the page of the outcome: by its id,
+// only among the copies of that file, while it is kept (plan 07 Scelta 5)
+export const mediaCopyRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/copies/{copyId}',
+  summary: 'La copia pubblicata di un file, intera o a pezzi (Range, 206), finché è tenuta',
+  request: {
+    params: z.strictObject({ org: OrgSlug, id: Id, mediaId: Id, copyId: Id }),
+  },
+  download: { contentType: 'application/octet-stream', ranges: true },
+  response: FileResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const updateMediaRoute = defineContract({
   method: 'PATCH',
   path: '/api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}',
@@ -319,6 +334,7 @@ export const mediaRoutes = [
   deleteMediaRoute,
   retryMediaRoute,
   mediaFileRoute,
+  mediaCopyRoute,
   listFoldersRoute,
   createFolderRoute,
   updateFolderRoute,

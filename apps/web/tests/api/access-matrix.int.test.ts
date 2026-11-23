@@ -385,6 +385,9 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/file/{variant}': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
   ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/media/{mediaId}/copies/{copyId}': [
+    { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
+  ],
   // an upload is its person's only: the case's own upload is started by the caller (PREPARE)
   'POST /api/v1/orgs/{org}/workspaces/{id}/uploads': [
     { permission: 'media.upload', level: 'workspace', hiddenWithout: true },
