@@ -28,6 +28,9 @@ test('every registered queue declares a scope', () => {
     ['target.reconcile', 'organization'],
     ['target.verify', 'organization'],
     ['scheduler.reconcile', 'system'],
+    ['notify.dispatch', 'system'],
+    ['notify.deliver', 'organization'],
+    ['notify.deliver_platform', 'system'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -54,7 +57,14 @@ test('every registered queue declares a scope', () => {
     'target.reconcile',
     'target.verify',
     'scheduler.reconcile',
+    'notify.dispatch',
+    'notify.deliver',
+    'notify.deliver_platform',
   ])
+})
+
+test('the dispatcher has one run queued and one running at most (plan 08 P2)', () => {
+  expect(QUEUES.find((q) => q.name === 'notify.dispatch')?.policy).toBe('stately')
 })
 
 test('a step of the publishing is aborted before its preparation claim expires', () => {

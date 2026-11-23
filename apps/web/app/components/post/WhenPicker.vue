@@ -46,6 +46,15 @@ const time = computed({
 const isDefault = computed(
   () => props.client.defaultPostTime && e.when.value?.localTime === props.client.defaultPostTime,
 )
+/**
+ * In the evening the time often exists only tomorrow: the field already says the day, the line
+ * under it says «Domani» in words, so nobody schedules for tomorrow without knowing (D-120.5).
+ */
+const tomorrowLine = computed(() => {
+  const w = e.when.value
+  if (!w || !passedToTomorrow(w, e.timeZone.value)) return null
+  return t('posts.when.tomorrow', { when: formatWallSentence(w.localDate, w.localTime) })
+})
 /** «oggi» in the post's zone, for the month the day field opens on */
 const today = computed(() => {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -119,6 +128,15 @@ const today = computed(() => {
           {{ $t('posts.when.usual', { client: client.name }) }}
         </p>
       </div>
+      <p
+        v-if="e.mode.value !== 'now' && tomorrowLine"
+        class="flex items-center gap-1.5 text-detail"
+        aria-live="polite"
+        data-when-tomorrow
+      >
+        <UIcon name="i-lucide-calendar-clock" class="size-4 shrink-0" aria-hidden="true" />
+        {{ tomorrowLine }}
+      </p>
     </div>
   </PostEditorRow>
 </template>
