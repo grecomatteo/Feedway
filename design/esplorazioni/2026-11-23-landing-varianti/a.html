@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedway · variante a: 3D</title>
+<script>document.documentElement.classList.add('js')</script>
+<link rel="icon" href="img/favicon.svg">
+<link rel="preload" href="img/Sora-Variable.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="comune.css">
+<link rel="stylesheet" href="a.css">
+</head>
+<body class="v-a">
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="logo" href="#" aria-label="Feedway, pagina iniziale"><img src="img/feedway-horizontal-carbone.svg" alt="" width="124" height="36"></a>
+    <nav aria-label="Sezioni">
+      <a href="#prodotto">Prodotto</a>
+      <a href="#pubblicazione">Pubblicazione</a>
+      <a href="#cliente">Clienti</a>
+      <a href="#domande">Domande</a>
+    </nav>
+    <div class="actions"><a class="btn btn-primary" href="#demo">Richiedi una demo</a></div>
+  </div>
+</header>
+<main>
+
+<section class="hero hero-a" aria-labelledby="hero-title">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+
+      <p class="eyebrow">Per le agenzie di comunicazione</p>
+      <h1 id="hero-title">Tutta la tua agenzia, in un solo posto.</h1>
+      <p class="lead">Clienti, team, contenuti e pubblicazioni. Prepari i post di tutti i clienti, li programmi su Instagram e Facebook e sai se sono usciti davvero.</p>
+      <div class="cta">
+        <a class="btn btn-primary btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
+        <a class="btn btn-outline btn-lg" href="#prodotto">Guarda il prodotto</a>
+      </div>
+
+      <ol class="steps" aria-label="Come esce un post">
+        <li data-i="0"><span class="num">1</span><div><strong>Scrivi il post una volta</strong><p>File, testo e profili, con l'anteprima vera.</p></div></li>
+        <li data-i="1"><span class="num">2</span><div><strong>Feedway lo prepara per ogni profilo</strong><p>Misure e formato giusti per feed e storie.</p></div></li>
+        <li data-i="2"><span class="num">3</span><div><strong>Controlla che sia uscito</strong><p>Se Meta non lo pubblica, sai subito perché.</p></div></li>
+      </ol>
+    </div>
+    <div class="stage" aria-hidden="true">
+      <canvas id="scene"></canvas>
+      <img class="stage-fallback" src="img/oggi.webp" alt="">
+    </div>
+  </div>
+</section>
+
+<section class="section" id="prodotto" aria-labelledby="product-title">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Il prodotto</p>
+      <h2 id="product-title">Ogni cosa al suo posto. Ogni persona sa cosa fare.</h2>
+    </div>
+    <div class="bento">
+      <article class="tile tile-wide reveal tilt">
+        <div class="tile-text">
+          <h3><i data-icon="notebook-pen"></i>Piano editoriale <span class="soon">In arrivo</span></h3>
+          <p>Il mese scritto come su un'agenda: il 10 il reel, il 12 il carosello del menu. Con un clic il contenuto diventa un post già compilato.</p>
+        </div>
+        <div class="window"><img src="img/piano.webp" alt="Il piano editoriale di dicembre per Forno Luce." loading="lazy" width="2000" height="1250"></div>
+      </article>
+      <article class="tile reveal tilt">
+        <div class="tile-text">
+          <h3><i data-icon="send"></i>Un post, più profili</h3>
+          <p>Scrivi il testo una volta e cambialo per Instagram o Facebook solo se serve. L'anteprima è quella che vedrà chi segue.</p>
+        </div>
+        <div class="window"><img src="img/editor.webp" alt="L'editor con un carosello di Forno Luce e l'anteprima del feed." loading="lazy" width="2000" height="1250"></div>
+      </article>
+      <article class="tile reveal tilt">
+        <div class="tile-text">
+          <h3><i data-icon="images"></i>Libreria per cliente</h3>
+          <p>Foto e video in cartelle. Carichi anche uno zip: Feedway prepara le copie giuste e toglie la posizione dalle foto.</p>
+        </div>
+        <div class="window"><img src="img/libreria.webp" alt="La libreria con le foto dei clienti divise per cartelle." loading="lazy" width="2000" height="1250"></div>
+      </article>
+      <article class="tile tile-wide reveal tilt">
+        <div class="tile-text">
+          <h3><i data-icon="calendar-days"></i>Tutti i clienti in un calendario <span class="soon">In arrivo</span></h3>
+          <p>Mese, settimana o elenco. Ogni post ha il suo stato, e i contenuti ancora da preparare diventano gialli quando mancano meno di 36 ore.</p>
+        </div>
+        <div class="window"><img src="img/calendario.webp" alt="Il calendario di novembre con i post di cinque clienti." loading="lazy" width="2000" height="1250"></div>
+      </article>
+    </div>
+    <ul class="mini reveal-list">
+      <li><i data-icon="bell"></i><div><strong>Avvisi a chi deve sistemare</strong> <span class="soon">In arrivo</span><p>Nel pannello, per email o su Telegram, con le ore di silenzio.</p></div></li>
+      <li><i data-icon="list-checks"></i><div><strong>Attività accanto ai post</strong> <span class="soon">In arrivo</span><p>Shooting, testi, report: con scadenza e persone assegnate.</p></div></li>
+      <li><i data-icon="users"></i><div><strong>Ruoli per ogni persona</strong><p>Ognuno vede solo i clienti che segue.</p></div></li>
+      <li><i data-icon="lock"></i><div><strong>Dati sotto il tuo controllo</strong><p>Il pannello gira sul tuo server, dietro Tailscale.</p></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section carbon" id="pubblicazione" aria-labelledby="publish-title">
+  <div class="wrap publish">
+    <div class="section-head reveal">
+      <p class="eyebrow">Pubblicazione</p>
+      <h2 id="publish-title">Lo sai quando un post è uscito. Davvero.</h2>
+      <p class="lead">Dopo l'ora programmata Feedway chiede a Meta se il post c'è. Se manca, lo scrive con il motivo e ti dice cosa fare.</p>
+    </div>
+    <ol class="timeline" aria-label="Il percorso di un post">
+      <li><span class="t num">11:58</span><div><strong>Programmato</strong><p>Copie pronte per @fornoluce e la Pagina Forno Luce.</p></div></li>
+      <li><span class="t num">12:00</span><div><strong>In pubblicazione</strong><p>Feedway manda il post a Instagram e a Facebook.</p></div></li>
+      <li><span class="t num">12:01</span><div><strong>Verifica</strong><p>Chiede a Meta se il post è davvero sul profilo.</p></div></li>
+      <li class="done"><span class="t num">12:01</span><div><strong><i data-icon="circle-check"></i>Pubblicato su 2 profili</strong><p>Con il link al post su Instagram e su Facebook.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section client" id="cliente" aria-labelledby="client-title">
+  <div class="wrap client-grid">
+    <div class="section-head reveal">
+      <p class="eyebrow">Per i tuoi clienti</p>
+      <h2 id="client-title">Il cliente vede il suo calendario. E approva dal telefono.</h2>
+      <p class="lead">Un link per cliente, senza account e senza password. Vede cosa esce e quando, e lascia un commento o un ok.</p>
+      <p><span class="soon">In arrivo</span></p>
+    </div>
+    <div class="phone-stage">
+      <div class="phone"><img src="img/tel-condiviso.webp" alt="Il calendario condiviso con il cliente, aperto sul telefono." loading="lazy" width="780" height="1688"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section faq" id="domande" aria-labelledby="faq-title">
+  <div class="wrap narrow">
+    <h2 id="faq-title" class="reveal">Domande frequenti</h2>
+    <details class="reveal"><summary>Funziona con TikTok e LinkedIn? <i data-icon="chevron-down"></i></summary><p>Oggi Instagram e Facebook. TikTok e LinkedIn sono previsti dopo.</p></details>
+    <details class="reveal"><summary>Il cliente deve registrarsi? <i data-icon="chevron-down"></i></summary><p>No. Riceve un link suo e vede solo il suo calendario.</p></details>
+    <details class="reveal"><summary>Dove stanno i dati? <i data-icon="chevron-down"></i></summary><p>Sul server dell'agenzia. Il pannello si apre solo da chi è nella vostra rete Tailscale.</p></details>
+  </div>
+</section>
+
+<section class="section closing" id="demo" aria-labelledby="closing-title">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <h2 id="closing-title">Vediamo Feedway con i tuoi clienti.</h2>
+      <p class="lead">Mezz'ora in videochiamata: ci racconti come lavorate oggi e ti mostriamo il pannello con i tuoi profili.</p>
+      <a class="btn btn-primary btn-lg" href="#demo">Richiedi una demo <i data-icon="arrow-right" class="icon-arrow"></i></a>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© 2026 Feedway</span>
+    <span><a href="#">Privacy</a><a href="#">Cancellazione dei dati</a><a href="#">Termini</a></span>
+  </div>
+</footer>
+<nav class="variant-switch" aria-label="Varianti">
+  <a href="a.html" aria-current="page">A · 3D</a><a href="b.html">B · Prospettiva</a><a href="c.html">C · Editoriale</a>
+</nav>
+<script src="icone.js"></script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
+<script src="vendor/SplitText.min.js"></script>
+<script src="comune.js"></script>
+<script type="module" src="a.js"></script>
+</body>
+</html>
