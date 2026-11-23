@@ -95,3 +95,18 @@ test('an abort from the caller stops the long poll', async () => {
   ).toBe('unavailable')
   expect(Date.now() - started).toBeLessThan(1500)
 })
+
+test('the token goes in the path as @BotFather gives it, colon and all', async () => {
+  let seen = ''
+  const echo = createServer((req, res) => {
+    seen = req.url ?? ''
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ ok: true, result: { id: 1000000001, username: 'feedway_mock_bot' } }))
+  })
+  await new Promise<void>((resolve) => echo.listen(0, '127.0.0.1', resolve))
+  const { port } = echo.address() as AddressInfo
+  const raw = createTelegramBotApi({ baseUrl: new URL(`http://127.0.0.1:${String(port)}`) })
+  await raw.getMe(token)
+  echo.close()
+  expect(seen).toBe(`/bot${token}/getMe`)
+})

@@ -31,9 +31,11 @@ Per cambiarlo: **Sostituisci token**. Per toglierlo: **Togli il bot** (chi non h
 
 Da Owner dell'agenzia: **Impostazioni → Integrazioni → Bot Telegram**, stessi passi. L'Admin vede il bot ma non lo cambia. Dopo il salvataggio ogni membro collega di nuovo Telegram in «Profilo e preferenze», perché un bot nuovo non conosce le chat del vecchio. **Torna al bot della piattaforma** toglie il bot dell'agenzia.
 
+Ogni bot serve un posto solo: il bot della piattaforma non si usa anche per un'agenzia, né lo stesso bot per due agenzie. Il pannello rifiuta il token con «Questo bot è già usato altrove»: crea un altro bot con @BotFather.
+
 ## Se il token smette di funzionare
 
-Se qualcuno revoca il token con @BotFather (`/revoke`), Telegram lo rifiuta: la pagina del bot lo dice in rosso. Fatti dare un token nuovo da @BotFather (`/token`) e incollalo con **Sostituisci token**. Se il bot è lo stesso, le persone collegate restano collegate.
+Se qualcuno revoca il token con @BotFather (`/revoke`), Telegram lo rifiuta: la pagina del bot lo dice in rosso. Fatti dare un token nuovo da @BotFather (`/token`) e incollalo con **Sostituisci token**. Il bot resta lo stesso: quando arriverà il collegamento delle persone (seconda parte del lavoro), chi era collegato resterà collegato.
 
 ## Rete
 

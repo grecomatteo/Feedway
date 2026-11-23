@@ -200,7 +200,7 @@ export async function startTelegramMock(
     }
     const [, token = '', method = ''] = match
     readParams(req, url)
-      .then((params) => answer(decodeURIComponent(token), method, params))
+      .then((params) => answer(token, method, params))
       .then(({ status, body }) => {
         send(status, body)
       })

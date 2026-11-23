@@ -65,7 +65,7 @@ export function createTelegramBotApi(options: TelegramBotApiOptions): TelegramBo
     let response: Response
     let answer: ApiAnswer | null = null
     try {
-      response = await fetch(`${base}/bot${encodeURIComponent(token)}/${method}`, {
+      response = await fetch(`${base}/bot${token}/${method}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),

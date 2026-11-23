@@ -30,7 +30,7 @@ const asSystem = <T>(fn: (tx: Tx) => Promise<T>) => uow.runAsSystem('test', fn)
 const saveA = () =>
   inA((tx) =>
     store.replace(tx, orgA, 'telegram', {
-      config: { botUsername: 'agenzia_mock_bot' },
+      config: { botId: 1000000002, botUsername: 'agenzia_mock_bot' },
       secret: TOKEN,
       updatedBy: ownerA,
       expectedVersion: null,
@@ -71,7 +71,7 @@ test('an agency bot is stored with its name; the token only comes back as creden
 test('a bot name that is not one is refused', async () => {
   const refused = await inB((tx) =>
     store.replace(tx, orgB, 'telegram', {
-      config: { botUsername: 'no spaces' },
+      config: { botId: 1000000003, botUsername: 'no spaces' },
       secret: TOKEN,
       updatedBy: ownerB,
       expectedVersion: null,
@@ -99,7 +99,7 @@ test('the agency bot goes away only over the version read, and never from anothe
 test('the platform bot is the system scope’s: an agency neither sees nor removes it', async () => {
   await asSystem((tx) =>
     store.replacePlatform(tx, 'telegram', {
-      config: { botUsername: 'feedway_mock_bot' },
+      config: { botId: 1000000001, botUsername: 'feedway_mock_bot' },
       secret: '1000000001:AAsegreto-del-bot-piattaforma-000000',
       updatedBy: null,
     }),
@@ -107,8 +107,53 @@ test('the platform bot is the system scope’s: an agency neither sees nor remov
   expect(await inA((tx) => store.getPlatform(tx, 'telegram'))).toBeNull()
   expect(await inA((tx) => tx.integrations.deletePlatform('telegram'))).toBe(false)
   expect(await asSystem((tx) => store.getPlatform(tx, 'telegram'))).toMatchObject({
-    config: { botUsername: 'feedway_mock_bot' },
+    config: { botId: 1000000001, botUsername: 'feedway_mock_bot' },
   })
   expect(await asSystem((tx) => tx.integrations.deletePlatform('telegram'))).toBe(true)
   expect(await asSystem((tx) => store.getPlatform(tx, 'telegram'))).toBeNull()
+})
+
+test('one bot serves one place: another agency or the platform cannot save it too', async () => {
+  await saveA()
+  const sameBot = (botUsername: string) => ({
+    config: { botId: 1000000002, botUsername },
+    secret: TOKEN,
+    updatedBy: null,
+  })
+  const inOtherAgency = await inB((tx) =>
+    store.replace(tx, orgB, 'telegram', {
+      ...sameBot('agenzia_mock_bot'),
+      updatedBy: ownerB,
+      expectedVersion: null,
+      verifiedAt: null,
+    }),
+  ).catch((e: unknown) => e)
+  expect(inOtherAgency).toMatchObject({ code: 'CONFLICT' })
+  const onPlatform = await asSystem((tx) =>
+    store.replacePlatform(tx, 'telegram', sameBot('agenzia_mock_bot')),
+  ).catch((e: unknown) => e)
+  expect(onPlatform).toMatchObject({ code: 'CONFLICT' })
+  // the same agency saving its own bot again is no clash
+  const stored = await inA((tx) => store.get(tx, orgA, 'telegram'))
+  expect(
+    await inA((tx) =>
+      store.replace(tx, orgA, 'telegram', {
+        ...sameBot('agenzia_mock_bot'),
+        updatedBy: ownerA,
+        expectedVersion: stored?.updatedAt ?? null,
+        verifiedAt: null,
+      }),
+    ),
+  ).toMatchObject({ config: { botId: 1000000002 } })
+})
+
+test('a bot id that is not one is refused', async () => {
+  const refused = await asSystem((tx) =>
+    store.replacePlatform(tx, 'telegram', {
+      config: { botId: -1, botUsername: 'feedway_mock_bot' },
+      secret: TOKEN,
+      updatedBy: null,
+    }),
+  ).catch((e: unknown) => e)
+  expect(refused).toMatchObject({ code: 'VALIDATION' })
 })

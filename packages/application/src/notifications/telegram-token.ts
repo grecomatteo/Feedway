@@ -31,7 +31,7 @@ export const telegramBotView = (found: {
 export async function verifyBotToken(
   api: Pick<TelegramBotApi, 'getMe'>,
   raw: string,
-): Promise<{ token: string; botUsername: string }> {
+): Promise<{ token: string; botId: number; botUsername: string }> {
   const token = raw.trim()
   if (!TOKEN.test(token))
     throw new DomainError('VALIDATION', 'Il token non ha la forma di quelli di @BotFather', {
@@ -39,7 +39,7 @@ export async function verifyBotToken(
     })
   try {
     const me = await api.getMe(token)
-    return { token, botUsername: me.username }
+    return { token, botId: me.id, botUsername: me.username }
   } catch (error) {
     if (error instanceof TelegramApiError && error.kind === 'unauthorized')
       throw new DomainError('VALIDATION', 'Telegram non accetta questo token', { field: 'token' })

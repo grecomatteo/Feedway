@@ -28,6 +28,8 @@ export interface SmtpConfig {
 
 /** A Telegram bot (plan 08 Scelta 8): its token is the secret, its name comes from `getMe`. */
 export interface TelegramConfig {
+  /** Telegram's id of the bot: one integration per bot, or two pollers would split its updates */
+  botId: number
   botUsername: string
 }
 

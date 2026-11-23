@@ -72,12 +72,12 @@ export async function replacePlatformTelegramBot(
   await deps.uow.runAsSystem('platform: Telegram bot before a change', (tx) =>
     platformAuthor(tx, caller, request),
   )
-  const { token, botUsername } = await verifyBotToken(deps.telegram, input.token)
+  const { token, botId, botUsername } = await verifyBotToken(deps.telegram, input.token)
   const verifiedAt = deps.clock.now()
   return deps.uow.runAsSystem('platform: change the Telegram bot', async (tx) => {
     const author = await platformAuthor(tx, caller, request)
     const view = await deps.integrations.replacePlatform(tx, 'telegram', {
-      config: { botUsername },
+      config: { botId, botUsername },
       secret: token,
       updatedBy: author.actorId,
     })

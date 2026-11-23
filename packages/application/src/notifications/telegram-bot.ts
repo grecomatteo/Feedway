@@ -79,12 +79,12 @@ export async function replaceAgencyTelegramBot(
     await assertStillManages(tx, actor)
     return deps.integrations.get(tx, organizationId, 'telegram')
   })
-  const { token, botUsername } = await verifyBotToken(deps.telegram, input.token)
+  const { token, botId, botUsername } = await verifyBotToken(deps.telegram, input.token)
   const verifiedAt = deps.clock.now()
   return deps.uow.run(scope, async (tx) => {
     await assertStillManages(tx, actor)
     const view = await deps.integrations.replace(tx, organizationId, 'telegram', {
-      config: { botUsername },
+      config: { botId, botUsername },
       secret: token,
       updatedBy: userId,
       expectedVersion: read?.updatedAt ?? null,

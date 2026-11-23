@@ -220,12 +220,10 @@ const guideSteps = ['open', 'newbot', 'copy', 'paste'] as const
       :ui="DIALOG_UI"
     >
       <template #body>
-        <div class="grid gap-3">
-          <p>{{ $t(`telegramBot.removeExplain.${scope}`) }}</p>
-          <p v-if="removal.problem" role="alert" class="text-(--app-danger)">
-            {{ removal.problem }}
-          </p>
-        </div>
+        <!-- the explanation is the dialog's description: said once -->
+        <p v-if="removal.problem" role="alert" class="text-(--app-danger)">
+          {{ removal.problem }}
+        </p>
       </template>
       <template #footer>
         <UButton
