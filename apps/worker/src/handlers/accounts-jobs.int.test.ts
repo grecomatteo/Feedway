@@ -283,6 +283,24 @@ test('an account that falls ill writes one account.unhealthy; one that stays ill
   ])
 })
 
+test('a token that stops working and is replaced: a problem of the new token is told', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  mock.scenario('token_expired', { token: META_MOCK.tokens.systemUser })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await connectionRow(a.id))?.status).toBe('expired')
+  // «Sostituisci token»: the connection works again, its accounts are still the token's red
+  await admin.query("update account_connections set status = 'active' where id = $1", [a.id])
+  mock.scenario('default')
+  mock.scenario('quota_exhausted', { igUserId: instagram.ofPage })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await eventsOf(of)).map((e) => [e.type, e.payload.health ?? e.payload.status])).toEqual([
+    ['account.token_invalid', 'expired'],
+    // the page turns green, the Instagram yellow: only the yellow is a problem
+    ['account.unhealthy', 'warning'],
+  ])
+})
+
 test('the client took the access away: revoked', async () => {
   const of = await agency(tdb, runtime)
   const a = await connection(runtime, of, { accounts: FORNO_LUCE })

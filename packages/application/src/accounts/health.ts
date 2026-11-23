@@ -76,6 +76,8 @@ const ENDED_MESSAGES: Record<'expired' | 'revoked', string> = {
   revoked: 'Il cliente ha tolto l’accesso a Meta: chiedigli di nuovo l’accesso e ricollega',
 }
 
+const ENDED_TEXTS: ReadonlySet<string> = new Set(Object.values(ENDED_MESSAGES))
+
 const works = (status: ConnectionStatus) => status === 'active' || status === 'pending'
 const keyOf = (a: { platform: Platform; externalId: string }) => `${a.platform}:${a.externalId}`
 
@@ -351,9 +353,14 @@ export async function checkConnectionHealth(
   const written = await deps.uow.run(scopeOf(job), async (tx) => {
     if (!(await lockSame(tx, opened))) return null
     // the health as it is now, under the connection's lock: what a sync or another check wrote
-    // while Meta answered is what this check is compared with (plan 08 Task 4)
+    // while Meta answered is what this check is compared with (plan 08 Task 4). The red that
+    // `endConnection` wrote is the token's, already told by `account.token_invalid`: after the
+    // token is replaced it counts as never checked, so a problem the new token has is told.
     const before = new Map(
-      (await tx.accounts.listOwnedBy(organizationId, connectionId)).map((a) => [a.id, a.health]),
+      (await tx.accounts.listOwnedBy(organizationId, connectionId)).map((a) => [
+        a.id,
+        a.healthMessage !== null && ENDED_TEXTS.has(a.healthMessage) ? null : a.health,
+      ]),
     )
     let checked = 0
     for (const account of opened.accounts) {
