@@ -969,7 +969,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 2. Il dispatcher decide **chi** riceve (autore, Manager dello spazio, Admin, Owner) e su **quali canali**, secondo le preferenze.
 3. Un lavoro `notify.deliver` per ogni destinatario e canale, con tentativi automatici; ogni invio è registrato (canale, esito, errore).
 4. I canali implementano un'unica interfaccia `NotificationChannel`: aggiungerne uno non tocca il resto. Il prossimo è la notifica push della PWA; Slack, Discord e WhatsApp sono esclusi per ora (deciso il 2026-10-29, §18.8).
-5. I tipi di evento sono registrati da ogni modulo (§7.3) con livello, destinatari e testi: le attività della versione 1.5 useranno lo stesso centro notifiche, le stesse email e lo stesso bot.
+5. I tipi di evento sono registrati da ogni modulo (§7.3) con livello, destinatari e canali predefiniti (`notificationKinds` in `module.ts`): le attività della versione 1.5 useranno lo stesso centro notifiche, le stesse email e lo stesso bot. Il **testo non è nell'evento**, il cui `payload` resta di soli id e codici: il canale costruisce il messaggio all'invio, con i dati di adesso letti dentro `uow.run({ organizationId, userId })` del destinatario, e un post cancellato nel frattempo dà un messaggio corto senza il testo (piano 08, P3).
 
 ### 12.2 Eventi
 
@@ -995,7 +995,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
 - **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Impostazioni" → "Il tuo account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
 - **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
-- **Preferenze per utente**: canali e livello minimo per ogni tipo di evento; "tutto ovunque" per i test.
+- **Preferenze per utente**: i canali di ogni tipo di evento, salvati (`notification_prefs`) solo per i tipi dove la persona ha cambiato qualcosa: senza riga valgono i canali predefiniti di §12.2, che così cambiano con il codice senza migrazioni (piano 08, P4); nessun canale spegne il tipo. Un livello minimo per persona, sotto il quale la notifica resta nel pannello; "tutto ovunque" per i test. Livello minimo, ore di silenzio, ora e giorni del riepilogo stanno in `notification_settings`, una riga per persona.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
 - **Raggruppamento**: più eventi simili nello stesso minuto diventano un solo messaggio con l'elenco.
 
