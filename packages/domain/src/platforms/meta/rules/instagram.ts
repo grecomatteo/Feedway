@@ -40,7 +40,11 @@ function checkFeedProportions(view: PlatformView): RuleFinding[] {
   const photo = imageOf(first)
   if (first && photo) {
     const ratio = ratioOf(photo)
-    if (ratio < L.instagramFeedMinRatio.value || ratio > L.instagramFeedMaxRatio.value)
+    const tolerance = 1 + L.instagramFeedRatioTolerance.value
+    if (
+      ratio * tolerance < L.instagramFeedMinRatio.value ||
+      ratio > L.instagramFeedMaxRatio.value * tolerance
+    )
       findings.push({
         level: 'warning',
         code: 'photo_aspect_ratio',

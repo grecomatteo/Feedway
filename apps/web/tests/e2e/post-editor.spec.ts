@@ -581,6 +581,30 @@ test('leaving a new post while a file uploads: the page changes, the upload goes
   await expect(page.getByTestId('uploads-dock')).toContainText('clip.mp4')
 })
 
+test('a file uploaded from the editor that is already in the library says so (D-120.3)', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  const frame = new URL('./fixtures/frame.jpg', import.meta.url).pathname
+  await page.locator('[data-post-input]').setInputFiles(frame)
+  const first = page.getByRole('group', { name: /frame\.jpg/ })
+  await expect(first).toBeVisible()
+  await expect(page.locator('[data-entry-duplicate]')).toHaveCount(0)
+  await expect(saveState(page)).toHaveText(/salvata/i, { timeout: 20_000 })
+  await page.locator('[data-post-input]').setInputFiles({
+    name: 'frame copia.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(frame),
+  })
+  await expect(page.locator('[data-media-duplicates]')).toHaveText(
+    'frame copia.jpg è uguale a «frame.jpg», già nella libreria.',
+    { timeout: 20_000 },
+  )
+  await expect(page.getByRole('group', { name: /frame copia\.jpg · Doppione/ })).toBeVisible()
+  expect((await axe(page)).violations).toEqual([])
+})
+
 // P6 of the stage 6 review: a file that finishes after the editor closed goes into its draft
 test.describe('a file that finishes after leaving the editor goes into the post', () => {
   const filesOf = async (where: string, value: string) =>
