@@ -2885,5 +2885,121 @@
       "organization_suspended": "L'agenzia è sospesa: nessun post esce finché non torna attiva",
       "public_host_off": "Feedway non ha un indirizzo pubblico (PUBLIC_URL): Meta non può scaricare i file"
     }
+  },
+  "notify": {
+    "more": "e altre {n}",
+    "contextOf": "{agency} · {client}",
+    "platform": {
+      "instagram": "Instagram",
+      "facebook": "Facebook"
+    },
+    "post": {
+      "line": "{account} · «{post}»",
+      "lineWhy": "{account} · «{post}»: {why}",
+      "noText": "post senza testo",
+      "gone": "Un post che non c'è più",
+      "open": "Apri il post",
+      "openList": "Apri i post",
+      "openToday": "Apri Oggi",
+      "someAccount": "un account"
+    },
+    "kinds": {
+      "post_target_confirmed": {
+        "one": "Pubblicato su {account}",
+        "many": "{n} pubblicazioni confermate"
+      },
+      "post_confirmed": {
+        "one": "Post uscito su tutti gli account",
+        "many": "{n} post usciti su tutti gli account"
+      },
+      "post_target_failed": {
+        "one": "Un post non è uscito su {account}",
+        "many": "{n} pubblicazioni non sono uscite"
+      },
+      "post_target_problem": {
+        "one": "Un post uscito su {account} ha un problema",
+        "many": "{n} post usciti hanno un problema"
+      },
+      "post_file_wont_publish": {
+        "one": "Un file del post non si può pubblicare su {account}",
+        "many": "{n} post hanno un file che non si può pubblicare",
+        "before": "Il post è programmato: sistemalo prima dell'ora, o non uscirà su questo account.",
+        "at": "Il post non è uscito su questo account."
+      },
+      "post_paused": {
+        "one": "Un post è in pausa su {account}",
+        "many": "{n} pubblicazioni sono in pausa"
+      },
+      "account_quota_low": {
+        "one": "{account} ha quasi finito i post di Instagram",
+        "many": "{n} profili hanno quasi finito i post di Instagram",
+        "line": "{account}: ne restano {left} su {total} nelle 24 ore"
+      },
+      "account_token_invalid": {
+        "one": "Un collegamento con Meta non funziona più",
+        "many": "{n} collegamenti con Meta non funzionano più",
+        "expired": "{connection}: il token è scaduto",
+        "revoked": "{connection}: l'accesso è stato tolto",
+        "unnamed": "Collegamento senza nome"
+      },
+      "account_unhealthy": {
+        "one": "{account} ha un problema",
+        "many": "{n} account hanno un problema",
+        "warning": "{account}: da controllare",
+        "error": "{account}: non può pubblicare"
+      },
+      "meta_reminder": {
+        "one": "Da sistemare su Meta",
+        "many": "{n} cose da sistemare su Meta",
+        "app_rejected": "Meta non accetta più l'App ID o l'App Secret dell'agenzia",
+        "graph_version_sunset": "Meta ritira la versione {version} della Graph API il {date}",
+        "data_use_checkup": "Il Data Use Checkup dell'app Meta scade il {date}",
+        "token_expiring": "Il token di un collegamento scade il {date} e non si rinnova da solo"
+      },
+      "system_worker_down": {
+        "one": "Il worker è fermo",
+        "many": "Il worker è fermo",
+        "line": "Nessun battito da più di 2 minuti: i post non escono finché non riparte."
+      },
+      "system_worker_up": {
+        "one": "Il worker è ripartito",
+        "many": "Il worker è ripartito",
+        "line": "I lavori in coda ripartono da dove erano rimasti."
+      },
+      "system_backup_failed": {
+        "one": "Il backup non è riuscito",
+        "many": "{n} backup non sono riusciti",
+        "line": "Controlla i log del backup sulla VPS."
+      }
+    },
+    "open": {
+      "accounts": "Apri gli account",
+      "meta": "Apri Integrazioni → Meta",
+      "platform": "Apri il pannello"
+    },
+    "skipped": {
+      "email": "Email non configurata sulla piattaforma",
+      "telegram": "Telegram non collegato",
+      "suspended": "L'agenzia è sospesa: il messaggio non parte",
+      "noAccess": "Non può più vedere questa notifica: il messaggio non parte",
+      "noAddress": "Nessun indirizzo email",
+      "gone": "Quello che la notifica diceva non c'è più"
+    },
+    "email": {
+      "preheader": "{title}",
+      "footer": "Ricevi questa email perché lavori con {product} e queste notifiche sono attive per te.",
+      "changeText": "Per scegliere quali notifiche ricevere e dove, apri «Profilo e preferenze»: {url}"
+    },
+    "errors": {
+      "invalid_config": "Le impostazioni dell'email della piattaforma non vanno bene",
+      "blocked_destination": "Il server dell'email non è raggiungibile da Feedway",
+      "dns": "Il server dell'email non si trova",
+      "timeout": "Il server dell'email non ha risposto in tempo",
+      "tls": "La connessione sicura con il server dell'email non è riuscita",
+      "auth": "Il server dell'email non accetta utente o password",
+      "connection": "La connessione con il server dell'email non è riuscita",
+      "rejected": "Il server dell'email ha rifiutato il messaggio",
+      "other": "L'invio non è riuscito"
+    }
   }
 }

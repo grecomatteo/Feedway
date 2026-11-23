@@ -1,3 +1,4 @@
+import { postKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
 /**
@@ -17,42 +18,42 @@ export const postsModule: ModuleDefinition = {
   ],
   // plan 08, Scelta 4: «who scheduled» is `posts.scheduled_by`
   notificationKinds: [
-    {
+    postKind({
       type: 'post.target_confirmed',
       level: 'info',
       recipients: ['scheduler'],
       defaultChannels: ['panel'],
-    },
-    {
+    }),
+    postKind({
       type: 'post.confirmed',
       level: 'success',
       recipients: ['scheduler'],
       defaultChannels: ['panel', 'telegram'],
-    },
-    {
+    }),
+    postKind({
       type: 'post.target_failed',
       level: 'error',
       recipients: ['scheduler', 'workspace_managers'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
-    {
+    }),
+    postKind({
       type: 'post.target_problem',
       level: 'error',
       recipients: ['scheduler', 'workspace_managers'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
-    {
+    }),
+    postKind({
       type: 'post.file_wont_publish',
       level: 'error',
       recipients: ['scheduler', 'workspace_managers'],
       defaultChannels: ['panel', 'telegram', 'email'],
       alwaysEmail: 'scheduler',
-    },
-    {
+    }),
+    postKind({
       type: 'post.paused',
       level: 'warning',
       recipients: ['workspace_managers'],
       defaultChannels: ['panel', 'telegram'],
-    },
+    }),
   ],
 }

@@ -51,6 +51,9 @@ export const KNOWN_QUEUES = [
   'target.reconcile',
   'target.verify',
   'scheduler.reconcile',
+  'notify.dispatch',
+  'notify.deliver',
+  'notify.deliver_platform',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
