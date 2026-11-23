@@ -16,7 +16,7 @@ import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
-import { notifyDeliver } from './notify.js'
+import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './notify.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
   publishingWorld,
@@ -37,7 +37,8 @@ import {
 
 // Isolation battery of the jobs (plan 03 Task 10): every queue of scope `organization` in the
 // registry reads and writes only the agency named in its data, and fails without it. A queue
-// added without a case here fails the first test.
+// added without a case here fails the first test. The queues of the system and of a person
+// (plan 08) have a case of their own, at the end; those from before the tappa 8 are listed.
 
 type OrganizationQueue = {
   [N in QueueName]: QueueScopes[N] extends 'organization' ? N : never
@@ -383,5 +384,129 @@ test.each(organizationQueues as OrganizationQueue[])(
     await expect(run(name, withoutAgency)).rejects.toThrow(/organizationId/)
     await expect(run(name, { ...world.ofA, organizationId: '' })).rejects.toThrow(/organizationId/)
     expect(await snapshot(world.a)).toEqual(beforeA)
+  },
+)
+
+// The system's and a person's queues (plan 08 Task 5): a system job that reads every agency keeps
+// what it writes in each one's place; one of the platform never touches an agency's rows.
+
+type SystemQueue = {
+  [N in QueueName]: QueueScopes[N] extends 'system' ? N : never
+}[QueueName]
+type UserQueue = {
+  [N in QueueName]: QueueScopes[N] extends 'user' ? N : never
+}[QueueName]
+
+/** Before the tappa 8: proved in their own tests, without a case here. A new one needs its case. */
+const EARLIER_SYSTEM_QUEUES: readonly SystemQueue[] = [
+  'system.selftest',
+  'identity.account_locked_notice',
+  'identity.account_locked_notice_email',
+  'identity.retention',
+  'accounts.daily',
+  'media.uploads_cleanup',
+  'media.publish_copies_cleanup',
+  'scheduler.reconcile',
+]
+const EARLIER_USER_QUEUES: readonly UserQueue[] = [
+  'identity.security_email',
+  'identity.password_reset_email',
+  'identity.account_recovery_email',
+  'identity.email_change',
+  'identity.data_export',
+  'identity.anonymization_notice',
+]
+
+const anyRun = (handler: unknown, data: Record<string, unknown>) =>
+  (handler as AnyDataHandler)({ id: 'lavoro', data }, handlerDeps(runtime, recordingQueue()))
+
+/** Each agency's event becomes notifications of that agency only, for its own members. */
+async function dispatchCase(): Promise<void> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const markOf = new Map<Agency, string>()
+  for (const of of [a, b]) {
+    const mark = runtime.ids.newId()
+    markOf.set(of, mark)
+    await runtime.uow.runAsSystem('test: an event', (tx) =>
+      tx.outbox.record({
+        organizationId: of.organizationId,
+        type: 'account.token_invalid',
+        payload: { connectionId: mark, status: 'expired' },
+      }),
+    )
+  }
+  await anyRun(notifyDispatch, {})
+  for (const of of [a, b]) {
+    const { rows } = await admin.query<{ organization_id: string; user_id: string }>(
+      `select organization_id, user_id from notifications where payload->>'connectionId' = $1`,
+      [markOf.get(of)],
+    )
+    expect(rows).toEqual([{ organization_id: of.organizationId, user_id: of.ownerId }])
+  }
+}
+
+/** The platform's job sends its own delivery, and names an agency's in vain. */
+async function deliverPlatformCase(): Promise<void> {
+  const world = await deliveriesWorld()
+  const platformAdmin = await seed(tdb.runtimeUrl, (s) => s.user())
+  await admin.query("update users set platform_role = 'admin' where id = $1", [platformAdmin])
+  const own = await runtime.uow.runAsSystem('test: a platform notification', async (tx) => {
+    const created = await tx.notifications.create({
+      organizationId: null,
+      userId: platformAdmin,
+      eventId: runtime.ids.newId(),
+      kind: 'system.backup_failed',
+      level: 'critical',
+      workspaceId: null,
+      payload: {},
+      deliveries: [
+        { channel: 'email', status: 'pending', nextAttemptAt: new Date(0), error: null },
+      ],
+    })
+    const [delivery] = created ?? []
+    if (!delivery) throw new Error('no delivery')
+    return delivery.id
+  })
+  const statusOf = async (id: string) =>
+    (
+      await admin.query<{ status: string }>(
+        'select status from notification_deliveries where id = $1',
+        [id],
+      )
+    ).rows[0]?.status
+  await anyRun(notifyDeliverPlatform, { deliveryId: own, recipientUserId: platformAdmin })
+  expect(await statusOf(own)).not.toBe('pending')
+
+  const beforeA = await snapshot(world.a)
+  const { deliveryId, recipientUserId } = world.ofA
+  await anyRun(notifyDeliverPlatform, { deliveryId, recipientUserId })
+  expect(await snapshot(world.a)).toEqual(beforeA)
+}
+
+const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
+  'notify.dispatch': dispatchCase,
+  'notify.deliver_platform': deliverPlatformCase,
+}
+const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {}
+
+test('every system and person queue has its case, or is from before the tappa 8', () => {
+  const listed = (scope: string, earlier: readonly string[], cases: object) => {
+    expect(
+      QUEUES.filter((q) => q.scope === scope)
+        .map((q) => q.name)
+        .sort(),
+    ).toEqual([...earlier, ...Object.keys(cases)].sort())
+  }
+  listed('system', EARLIER_SYSTEM_QUEUES, SYSTEM_CASES)
+  listed('user', EARLIER_USER_QUEUES, USER_CASES)
+})
+
+test.each(Object.keys({ ...SYSTEM_CASES, ...USER_CASES }))(
+  '%s keeps each agency in its place',
+  async (name) => {
+    const run = { ...SYSTEM_CASES, ...USER_CASES }[name as SystemQueue]
+    if (!run) throw new Error(`no case for ${name}`)
+    await run()
   },
 )
