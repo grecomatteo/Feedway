@@ -72,3 +72,48 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
 mm.add('(prefers-reduced-motion: reduce)', () => {
   document.querySelectorAll('.timeline li').forEach((li) => li.classList.add('on'));
 });
+
+// Tabs: click or arrow keys.
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+function selectTab(tab, focus) {
+  tabs.forEach((t) => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', String(on));
+    t.tabIndex = on ? 0 : -1;
+    document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+  });
+  if (focus) tab.focus();
+}
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => selectTab(t));
+  t.addEventListener('keydown', (e) => {
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    selectTab(tabs[(i + step + tabs.length) % tabs.length], true);
+  });
+});
+
+mm.add('(prefers-reduced-motion: no-preference) and (min-width: 861px)', () => {
+  // Problem: the six apps drift in and lean towards the one panel.
+  if (document.querySelector('.funnel')) {
+    const tl = gsap.timeline({ scrollTrigger: { trigger: '.funnel', start: 'top 75%', once: true } });
+    tl.from('.apps li', { x: -40, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.07 })
+      .from('.funnel-arrow', { x: -12, opacity: 0, duration: 0.4, ease: 'power3.out' }, '-=0.2')
+      .from('.one', { scale: 0.94, opacity: 0, duration: 0.6, ease: 'power3.out' }, '-=0.25')
+      .from('.one li', { x: -8, opacity: 0, duration: 0.35, ease: 'power3.out', stagger: 0.08 }, '-=0.3');
+  }
+  // Outcome cards rise as one pair; roles follow the scroll one row at a time.
+  if (document.querySelector('.outcomes')) {
+    gsap.from('.outcome', {
+      y: 40, opacity: 0, duration: 0.8, ease: 'power3.out', stagger: 0.12,
+      scrollTrigger: { trigger: '.outcomes', start: 'top 82%', once: true },
+    });
+  }
+  if (document.querySelector('.giant')) {
+    gsap.from('.giant', {
+      yPercent: 45, ease: 'none',
+      scrollTrigger: { trigger: '.site-footer', start: 'top bottom', end: 'bottom bottom', scrub: 0.6 },
+    });
+  }
+});
