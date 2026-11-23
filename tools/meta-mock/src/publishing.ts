@@ -292,7 +292,7 @@ export function createPublishing(deps: Deps): Publishing {
           body: {
             id,
             status_code: status,
-            // the texts Meta vera wrote beside the code (0.13.0 test)
+            // the texts real Meta wrote beside the code (0.13.0 test)
             ...(status === 'FINISHED' && {
               status: 'Finished: Media has been uploaded and it is ready to be published.',
             }),

@@ -234,7 +234,7 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     if (take(deps.scenarios('duplicate_post'))) return duplicate()
     video.finished = true
     video.description = params.get('description') ?? ''
-    // Meta vera gives a reel's post its own id too (0.13.0 test); Feedway keeps the video's
+    // real Meta gives a reel's post its own id too (0.13.0 test); Feedway keeps the video's
     if (edge === 'video_reels') return published({ success: true, post_id: nextId('7400') })
     return published({ success: true, post_id: newStory(pageId, 'video', video.id).postId })
   }
@@ -315,7 +315,7 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     permalink_url: postLink(p),
   })
 
-  // as recorded on Meta vera (0.13.0 test, 21/11): the status in lower case and the time as a
+  // as recorded on real Meta (0.13.0 test, 21/11): the status in lower case and the time as a
   // string of seconds, not Meta's usual date
   const renderStory = (s: Story) => ({
     post_id: s.postId,
