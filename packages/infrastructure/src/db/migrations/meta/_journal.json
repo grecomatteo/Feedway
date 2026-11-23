@@ -169,6 +169,13 @@
       "when": 1795205326723,
       "tag": "0023_publishing_slow_down",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795453642812,
+      "tag": "0024_notifications",
+      "breakpoints": true
     }
   ]
 }
