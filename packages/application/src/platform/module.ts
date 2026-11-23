@@ -1,3 +1,4 @@
+import { platformKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
 export const platformModule: ModuleDefinition = {
@@ -10,23 +11,23 @@ export const platformModule: ModuleDefinition = {
   queues: ['system.selftest'],
   // §12.2 and plan 08, Scelta 10: the web sends the worker's two, with the platform's bot
   notificationKinds: [
-    {
+    platformKind({
       type: 'system.worker_down',
       level: 'critical',
       recipients: ['platform_admins'],
       defaultChannels: ['telegram', 'email'],
-    },
-    {
+    }),
+    platformKind({
       type: 'system.worker_up',
       level: 'success',
       recipients: ['platform_admins'],
       defaultChannels: ['telegram', 'email'],
-    },
-    {
+    }),
+    platformKind({
       type: 'system.backup_failed',
       level: 'critical',
       recipients: ['platform_admins'],
       defaultChannels: ['panel', 'telegram', 'email'],
-    },
+    }),
   ],
 }

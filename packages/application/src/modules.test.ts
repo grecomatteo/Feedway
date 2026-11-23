@@ -32,6 +32,9 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'target.reconcile': true,
   'target.verify': true,
   'scheduler.reconcile': true,
+  'notify.dispatch': true,
+  'notify.deliver': true,
+  'notify.deliver_platform': true,
 }
 
 test('each module has its own name', () => {

@@ -40,6 +40,18 @@ interface JobDefinitions {
   'target.reconcile': { scope: 'organization'; data: TargetJobData }
   'target.verify': { scope: 'organization'; data: TargetJobData }
   'scheduler.reconcile': { scope: 'system'; data: object }
+  'notify.dispatch': { scope: 'system'; data: object }
+  'notify.deliver': { scope: 'organization'; data: NotifyDeliverJobData }
+  'notify.deliver_platform': { scope: 'system'; data: NotifyDeliverJobData }
+}
+
+/**
+ * One delivery of a notification (plan 08 P1): its id and its recipient, never a text. The job
+ * sends the group the delivery belongs to, in the recipient's scope.
+ */
+export interface NotifyDeliverJobData {
+  deliveryId: string
+  recipientUserId: string
 }
 
 /**

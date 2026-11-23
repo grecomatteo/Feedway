@@ -43,11 +43,23 @@ export interface UnitOfWorkDeps {
   db: Db
   ids: IdGenerator
   logger: Logger
+  /**
+   * Called after the commit of a transaction that wrote an outbox event (plan 08 P2): the
+   * runtime wakes the notifications' dispatcher. A failure is logged, never thrown: the use case
+   * has saved, and the dispatcher's every-minute run takes the event anyway.
+   */
+  afterEventsCommitted?: () => Promise<void>
+}
+
+/** Whether the transaction wrote an event, for the hook after its commit. */
+interface TxMarks {
+  wroteEvent: boolean
 }
 
 const EXECUTOR = Symbol('executor')
 
-function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
+function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext, marks?: TxMarks): Tx {
+  const outbox = drizzleOutbox(db, ids, ctx)
   const tx: Tx = {
     users: drizzleUsers(db, ctx),
     sessions: drizzleSessions(db, ctx),
@@ -72,8 +84,15 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext): Tx {
     uploads: drizzleUploadSessions(db),
     posts: drizzlePosts(db, ids),
     publishing: drizzlePublishing(db, ids),
-    outbox: drizzleOutbox(db, ids, ctx),
-    notifications: drizzleNotifications(db, ids),
+    outbox: {
+      ...outbox,
+      async record(event) {
+        const written = await outbox.record(event)
+        if (written && marks) marks.wroteEvent = true
+        return written
+      },
+    },
+    notifications: drizzleNotifications(db, ids, ctx),
     notificationPrefs: drizzleNotificationPrefs(db),
     telegramLinks: drizzleTelegramLinks(db),
     contentSettings: drizzleContentSettings(db),
@@ -95,7 +114,20 @@ export function executorOf(tx: Tx): DbExecutor {
 
 // set_config(…, true) lasts until the end of the transaction: a pooled connection never
 // carries a scope into the next one.
-export function createUnitOfWork({ db, ids, logger }: UnitOfWorkDeps): UnitOfWork {
+export function createUnitOfWork({
+  db,
+  ids,
+  logger,
+  afterEventsCommitted,
+}: UnitOfWorkDeps): UnitOfWork {
+  const afterCommit = async (marks: TxMarks) => {
+    if (!marks.wroteEvent || !afterEventsCommitted) return
+    try {
+      await afterEventsCommitted()
+    } catch (error) {
+      logger.error({ err: error }, 'hook after the commit of an event failed')
+    }
+  }
   return {
     async run(scope, fn) {
       // null only for an agency's job; an empty or missing id is always a bug
@@ -109,19 +141,25 @@ export function createUnitOfWork({ db, ids, logger }: UnitOfWorkDeps): UnitOfWor
         throw new Error('an organization scope needs an organizationId')
       }
       const organizationId = ctx.kind === 'organization' ? ctx.organizationId : ''
-      return db.transaction(async (t) => {
+      const marks: TxMarks = { wroteEvent: false }
+      const result = await db.transaction(async (t) => {
         await t.execute(
           sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId ?? ''}, true)`,
         )
-        return fn(buildTx(t, ids, ctx))
+        return fn(buildTx(t, ids, ctx, marks))
       })
+      await afterCommit(marks)
+      return result
     },
     async runAsSystem(reason, fn) {
       logger.info({ reason }, 'system scope transaction')
-      return db.transaction(async (t) => {
+      const marks: TxMarks = { wroteEvent: false }
+      const result = await db.transaction(async (t) => {
         await t.execute(sql`select set_config('app.scope', 'system', true)`)
-        return fn(buildTx(t, ids, { kind: 'system' }))
+        return fn(buildTx(t, ids, { kind: 'system' }, marks))
       })
+      await afterCommit(marks)
+      return result
     },
   }
 }
