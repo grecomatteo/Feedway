@@ -3008,5 +3008,36 @@
       "rejected": "Il server dell'email ha rifiutato il messaggio",
       "other": "L'invio non è riuscito"
     }
+  },
+  "digest": {
+    "title": "Il riepilogo di {day} · {agency}",
+    "open": "Apri Oggi",
+    "posts": {
+      "line": "{time} · {client} · «{post}»",
+      "yesterday": {
+        "one": "Ieri è uscito un post",
+        "many": "Ieri sono usciti {n} post"
+      },
+      "today": {
+        "one": "Oggi esce un post",
+        "many": "Oggi escono {n} post"
+      },
+      "issues": {
+        "one": "Un post da sistemare",
+        "many": "{n} post da sistemare"
+      },
+      "issue": {
+        "line": "{client} · «{post}»: {state}",
+        "lineWhy": "{client} · «{post}»: {state}, {why}",
+        "failed": "non è uscito",
+        "partial": "non è uscito su tutti gli account",
+        "paused": "è in pausa",
+        "problem": "è uscito con un problema"
+      }
+    },
+    "accounts": {
+      "one": "Una cosa da sistemare su account e Meta",
+      "many": "{n} cose da sistemare su account e Meta"
+    }
   }
 }

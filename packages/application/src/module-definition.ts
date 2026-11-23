@@ -1,12 +1,9 @@
-import type {
-  NotificationKindRule,
-  OutboxPayload,
-  Permission,
-  PlatformPermission,
-} from '@app/domain'
+import type { NotificationKindRule, Permission, PlatformPermission } from '@app/domain'
 import type { MessageContext, NotifiedEvent } from './notifications/message.js'
+import type { IntegrationStore } from './ports/integration-store.js'
 import type { QueueName } from './ports/job-queue.js'
 import type { RenderedMessage } from './ports/notification-channel.js'
+import type { Translate } from './ports/translator.js'
 import type { Tx } from './ports/tx.js'
 import type { UnitOfWork } from './ports/unit-of-work.js'
 
@@ -43,6 +40,13 @@ export interface NotificationKind extends NotificationKindRule {
   message(ctx: MessageContext, events: readonly NotifiedEvent[]): Promise<RenderedMessage | null>
 }
 
+/** The `meta` integration, the Graph API version of the config and the panel's zone. */
+export interface DigestReminderSources {
+  integrations: Pick<IntegrationStore, 'get'>
+  graph: { version: string; sunset: string }
+  timeZone: string
+}
+
 /** What one section of the morning digest is computed for: one agency of one person (§12.4). */
 export interface DigestContext {
   organizationId: string
@@ -50,17 +54,29 @@ export interface DigestContext {
   now: Date
   /** The agency's zone: «ieri» and «oggi» are counted in it (D-58, plan 08 Scelta 9) */
   timeZone: string
+  t: Translate
+  panelUrl: URL
+  /** What the Meta reminders are computed from, as for `accounts.daily` (`MetaReminderSources`) */
+  metaReminders: DigestReminderSources
 }
 
-/** One section's content, ids and codes only: the channel words it, as for the events (P3). */
+/**
+ * One section's words, read now in the recipient's scope (P3): the digest is never stored, so
+ * the section writes its lines itself, as a kind's `message` does.
+ */
 export interface DigestBlock {
-  section: string
-  items: readonly OutboxPayload[]
+  /** «Ieri», «Da sistemare» */
+  title: string
+  /** One per post or account, up to `GROUP_LIST_MAX` */
+  lines: readonly string[]
+  /** How many more the section does not list */
+  more: number
 }
 
 /** A section of the digest (§12.4); `build` runs in `uow.run({ organizationId, userId })`. */
 export interface DigestSection {
   id: string
+  /** Lower first: posts of yesterday, open problems, today, plans (stage 9), accounts */
   order: number
   /** null: nothing to say, the section is left out */
   build(tx: Tx, ctx: DigestContext): Promise<DigestBlock | null>

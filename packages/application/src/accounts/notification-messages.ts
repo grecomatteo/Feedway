@@ -29,8 +29,8 @@ async function accountName(ctx: MessageContext, event: NotifiedEvent): Promise<s
   return (await ctx.tx.accounts.findById(ctx.organizationId, id))?.name ?? null
 }
 
-/** One line per event, or null when what it was about is gone. */
-async function lineOf(
+/** One line per event, or null when what it was about is gone; the digest uses it too. */
+export async function lineOf(
   type: NotificationKindRule['type'],
   ctx: MessageContext,
   event: NotifiedEvent,
