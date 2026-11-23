@@ -116,6 +116,7 @@ async function agencyWithOwner(): Promise<OrgActor> {
         configId: null,
         businessId: null,
         dataUseCheckupDueOn: null,
+        appLive: false,
       },
       secret: META_MOCK.app.secret,
       updatedBy: userId,

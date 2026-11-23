@@ -44,6 +44,8 @@ export interface MetaIntegrationInput {
   configId?: string | null
   businessId?: string | null
   dataUseCheckupDueOn?: string | null
+  /** Left out: as stored (the «Sostituisci» form does not carry it). ADR 022. */
+  appLive?: boolean
 }
 
 /** The fields an activity entry may name: the secret counts as a name, never as a value. */
@@ -58,6 +60,7 @@ const FIELD_PROBLEMS: Record<MetaIntegrationField, string> = {
   configId: 'L’ID configurazione è fatto solo di cifre',
   businessId: 'L’ID del Business Manager è fatto solo di cifre',
   dataUseCheckupDueOn: 'Scrivi una data valida',
+  appLive: 'Scegli se l’app è in Live',
 }
 
 const cannotView = () =>
@@ -131,12 +134,13 @@ export async function replaceMetaIntegration(
     configId: input.configId,
     businessId: input.businessId,
     dataUseCheckupDueOn: input.dataUseCheckupDueOn,
+    appLive: input.appLive,
   })
   if (!checked.ok) {
     const field = checked.field as MetaIntegrationField
     throw new DomainError('VALIDATION', FIELD_PROBLEMS[field], { field })
   }
-  const config = checked.value
+  const typedConfig = checked.value
   assertRecentReauth(session, deps.clock.now())
   const scope = { organizationId, userId }
 
@@ -144,6 +148,10 @@ export async function replaceMetaIntegration(
     await assertStillManages(tx, actor)
     return deps.integrations.credentials(tx, organizationId, 'meta')
   })
+  const config: MetaIntegrationConfig = {
+    ...typedConfig,
+    appLive: input.appLive ?? read?.config.appLive ?? false,
+  }
   // a pasted secret often carries a space or a line break around it
   const trimmed = input.appSecret?.trim() ?? ''
   const typed = trimmed === '' ? null : trimmed
@@ -151,7 +159,7 @@ export async function replaceMetaIntegration(
   if (appSecret === undefined)
     throw new DomainError('VALIDATION', 'Serve l’App Secret dell’app Meta', { field: 'appSecret' })
   const fields: MetaIntegrationChange[] = (
-    ['appId', 'configId', 'businessId', 'dataUseCheckupDueOn'] as const
+    ['appId', 'configId', 'businessId', 'dataUseCheckupDueOn', 'appLive'] as const
   ).filter((field) => read?.config[field] !== config[field])
   if (read === null || appSecret !== read.secret) fields.push('appSecret')
   if (read !== null && fields.length === 0) {

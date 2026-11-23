@@ -28,7 +28,7 @@ Quello che non è ancora stato provato su Meta vera è scritto **non verificato*
 
 Non serve aggiungere a mano i permessi delle Pagine: Meta li aggiunge da solo quando generi il token dell'utente di sistema (passo 3).
 
-**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). Su Instagram i post sono pubblici. **Su Facebook no:** con l'app in sviluppo i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app (prova della 0.13.0, 21–23/11; la finestra anonima del 2026-11-12 aveva dato un esito diverso). Prima di pubblicare davvero su Facebook, anche sulle Pagine dell'agenzia, l'app va quindi in **Live** ([D-119](../decisioni-aperte.md)). Prima del Live togli i post di prova, che altrimenti diventano pubblici.
+**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). Su Instagram i post sono pubblici. **Su Facebook no:** con l'app in sviluppo i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app (prova della 0.13.0, 21–23/11; la finestra anonima del 2026-11-12 aveva dato un esito diverso). Prima di pubblicare davvero su Facebook, anche sulle Pagine dell'agenzia, l'app va quindi in **Live** ([ADR 022](../adr/022-app-meta-in-live.md)): segui [Portare l'app Meta in Live](meta-app-live.md), che comincia togliendo i post di prova, perché con il Live diventano pubblici. Finché l'interruttore «L'app è in Live» di Impostazioni → Integrazioni → Meta è spento, Feedway mostra «In Sviluppo» in ambra.
 
 ## 2. L'app in Feedway
 
@@ -140,5 +140,7 @@ In cima a Impostazioni → Integrazioni → Meta, il riquadro **«Da sistemare s
 Un token revocato nel Business Manager fa diventare il collegamento «il token non vale più (revocato o scaduto): ricollega» e gli account «Da ricollegare», con «Il token del collegamento non vale più» (verificato il 2026-11-12). Le assegnazioni ai clienti restano: dopo «Ricollega» gli account tornano «Attivo» dove erano.
 
 ## Vedi anche
+
+- [Portare l'app Meta in Live](meta-app-live.md)
 - [rotazione-token-meta.md](rotazione-token-meta.md): sostituire il token dell'utente di sistema e il secret dell'app.
 - [`docs/platforms/meta.md`](../platforms/meta.md): cosa è stato verificato su Meta vera e quando.

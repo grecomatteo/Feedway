@@ -67,7 +67,7 @@ Nella [dashboard dell'app Meta](https://developers.facebook.com/apps) → la tua
 
 Salva, poi controlla che Meta legga le pagine: apri il [Debugger di condivisione](https://developers.facebook.com/tools/debug/), incolla `https://<sito>/privacy` e premi «Debug». Deve rispondere 200; ripeti per `/cancellazione-dati` e `/termini`. Se risponde 403, c'è una protezione di Cloudflare che blocca i bot (passo 3.5): toglila da quelle pagine.
 
-Il resto del passaggio a Live è nella guida della tappa 8 (`docs/runbooks/meta-app-live.md`, quando c'è).
+Il resto del passaggio a Live è nella guida [Portare l'app Meta in Live](meta-app-live.md).
 
 **Prima di dare l'indirizzo a Meta**: l'informativa promette la cancellazione entro 30 giorni. Oggi la cancellazione si fa a mano (D-122 punto 9): tieni a portata di mano la procedura prima di passare a Live.
 
