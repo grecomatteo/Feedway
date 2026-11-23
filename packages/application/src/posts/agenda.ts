@@ -2,6 +2,7 @@ import {
   DomainError,
   PROFILE_LINKS,
   can,
+  fileTitle,
   type OrgActor,
   type Platform,
   type PostType,
@@ -79,6 +80,8 @@ export interface AgendaPostDto {
   mediaCount: number
   /** null for who does not use the client's library, the Viewer (D-72) */
   thumbnail: AgendaThumbnail | null
+  /** the first file's name, for a post without text: «Storia · IMG_0233»; null as `thumbnail` */
+  firstFile: string | null
   /** its destinations that did not go out: «1 non uscito» */
   notOut: number
 }
@@ -94,6 +97,8 @@ export interface DraftToFinishDto {
   missing: DraftMissing[]
   updatedAt: string
   thumbnail: AgendaThumbnail | null
+  /** the first file's name, for a draft without text (D-120.7) */
+  firstFile: string | null
 }
 
 export type AgendaIssueDto =
@@ -284,6 +289,14 @@ async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]
   }
   return {
     thumbnail: (p: PostRecord) => thumbnailOf(p, media),
+    /** the first file still in the library, by its name (D-120.7) */
+    firstFile: (p: PostRecord) => {
+      for (const id of p.mediaIds) {
+        const file = media.get(id)
+        if (file && file.status !== 'deleted') return fileTitle(file.originalName)
+      }
+      return null
+    },
     /** each destination's account with its platform */
     accounts: (p: PostRecord): [string, Platform][] =>
       shownTargets(p.targets).flatMap((t) => {
@@ -333,6 +346,7 @@ export async function listAgenda(
                 platforms: details.platforms(p),
                 mediaCount: p.mediaIds.length,
                 thumbnail: details.thumbnail(p),
+                firstFile: details.firstFile(p),
                 notOut: notOutOf(p),
               },
             ],
@@ -362,6 +376,7 @@ export async function listDraftsToFinish(
         missing: draftMissing(p),
         updatedAt: p.updatedAt.toISOString(),
         thumbnail: details.thumbnail(p),
+        firstFile: details.firstFile(p),
       })),
       total: await tx.posts.countDrafts(organizationId, ids),
     }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PostResponse } from '@app/contracts'
+import { fileTitle } from '@app/domain'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Platform } from '~/components/PlatformIcons.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
@@ -119,9 +120,17 @@ const destinationsOf = (p: PostResponse) =>
     .filter((a): a is ProfileAccount => a !== undefined)
 
 // ---- what a row says
+/** the text, or «Storia · IMG_0233» for a post without (D-120.7) */
 const textOf = (p: PostResponse) => {
-  const text = (p.caption.common || p.caption.instagram || p.caption.facebook || '').trim()
-  return text ? text.replace(/\s+/g, ' ') : t('posts.list.noText')
+  const first = p.media.find((m) => m.status !== 'deleted')
+  return postTitle(
+    {
+      text: p.caption.common || p.caption.instagram || p.caption.facebook || '',
+      type: p.type,
+      firstFile: fileTitle(first?.originalName ?? null),
+    },
+    t,
+  )
 }
 const TYPE_ICON: Record<PostResponse['type'], string> = {
   photo: 'i-lucide-image',

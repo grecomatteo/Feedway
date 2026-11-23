@@ -75,8 +75,7 @@ describe('draftMissing', () => {
 })
 
 describe('shownTargets', () => {
-  const target = (accountId: string, status: string) =>
-    ({ id: accountId, accountId, status, fingerprint: null, cancelledInPanel: false }) as never
+  const target = (accountId: string, status: string) => ({ accountId, status })
   test('an account cancelled is left out: «Pubblicato» is not said of it (D-120.7)', () => {
     expect(
       shownTargets([target('ig', 'published'), target('fb', 'cancelled')]).map((t) => t.accountId),
