@@ -51,6 +51,10 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   const org = owner.organizationSlug
   // the token is sealed with the agency's data key, as Meta's secret
   await addDataKey(org)
+  // one bot serves one agency only: a run before this one (a retry) lets it go
+  await adminQuery("delete from integrations where kind = 'telegram' and config->>'botId' = $1", [
+    String(TELEGRAM_MOCK.bots.agency.id),
+  ])
   await page.goto(`/${org}/impostazioni/integrazioni`)
   const entry = page
     .getByRole('list', { name: 'Integrazioni' })
@@ -114,6 +118,10 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   await page.getByTestId('telegram-bot-remove').click()
   const dialog = page.getByRole('dialog', { name: 'Torna al bot della piattaforma' })
   await expect(dialog).toContainText('collegare Telegram al bot della piattaforma')
+  // axe reads the colours of a window still fading in as too faint
+  await dialog.evaluate((el) =>
+    Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+  )
   expect((await axe(page)).violations).toEqual([])
   await dialog.getByTestId('telegram-bot-remove-confirm').click()
   await expect(dialog).toBeHidden()
