@@ -328,6 +328,31 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         .limit(1)
       return row ?? null
     },
+    async sameContentInFolder(organizationId, workspaceId, folderId, sha256) {
+      const [row] = await db
+        .select({ id: media.id })
+        .from(media)
+        .innerJoin(
+          libraryItems,
+          and(
+            eq(libraryItems.organizationId, media.organizationId),
+            eq(libraryItems.mediaId, media.id),
+          ),
+        )
+        .where(
+          and(
+            eq(media.organizationId, organizationId),
+            eq(media.workspaceId, workspaceId),
+            folderId === null ? isNull(libraryItems.folderId) : eq(libraryItems.folderId, folderId),
+            eq(media.sha256, sha256),
+            // a failed file is made again: it may work this time
+            inArray(media.status, ['processing', 'ready']),
+          ),
+        )
+        .orderBy(media.createdAt, media.id)
+        .limit(1)
+      return row ?? null
+    },
     async listFailed(organizationId, workspaceIds, limit) {
       if (workspaceIds.length === 0) return []
       const rows = await db

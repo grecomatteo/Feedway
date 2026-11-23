@@ -281,7 +281,15 @@ const leftoverComplete = (u: Leftover) => u.received.length >= u.partCount
               {{ line(i) }}
             </p>
             <p
-              v-if="i.duplicateOf"
+              v-if="i.reused"
+              class="flex items-start gap-1.5 text-sm text-(--app-text-muted)"
+              data-upload-reused
+            >
+              <UIcon name="i-lucide-copy-check" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span class="min-w-0 break-words">{{ $t('upload.reused') }}</span>
+            </p>
+            <p
+              v-else-if="i.duplicateOf"
               class="flex items-start gap-1.5 text-sm text-(--app-warning)"
               data-upload-duplicate
             >
