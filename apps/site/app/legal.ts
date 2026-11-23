@@ -15,7 +15,7 @@ export const LEGAL = {
   backupProvider: 'DA COMPLETARE',
   /** Who sends the panel's emails (SMTP), e.g. «Brevo (Sendinblue SAS, Francia)». */
   emailProvider: 'DA COMPLETARE',
-  /** Courts for disputes in the terms, e.g. «Bologna». */
+  /** Courts for disputes in the terms, with the preposition, e.g. «di Bologna». */
   court: 'DA COMPLETARE',
   /** Date of the last change of the notice, ISO. */
   updatedOn: '2026-11-23',

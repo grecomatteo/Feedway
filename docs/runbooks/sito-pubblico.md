@@ -10,10 +10,11 @@ I passi segnati **(non verificato)** sono scritti dalla documentazione di Cloudf
    - `controllerName`: il tuo nome e cognome, o la ragione sociale della ditta;
    - `controllerDetails` (facoltativo): partita IVA o sede, se vuoi mostrarle;
    - `privacyEmail`: l'indirizzo che riceve le richieste sulla privacy e sulla cancellazione;
+   - facoltativi (finché mancano, le pagine usano una frase generica e la pubblicazione non si ferma):
    - `hostingProvider`: chi ospita il server del pannello e dove (per esempio «Hetzner Online GmbH, Germania»);
    - `backupProvider`: dove vanno le copie di sicurezza (per esempio «Google Drive, copie cifrate»);
    - `emailProvider`: chi manda le email del pannello (il servizio SMTP);
-   - `court`: la città del foro per i termini;
+   - `court`: il foro per i termini, per esempio «di Bologna»;
    - `updatedOn`: la data di oggi.
 2. Fai rileggere `/privacy` e `/termini` a chi ti segue sulla privacy (D-122 punto 12).
 3. Fai una PR con la modifica (o chiedi al thread del sito di farla). Finché c'è «DA COMPLETARE», il workflow di pubblicazione si ferma con un errore: è voluto.

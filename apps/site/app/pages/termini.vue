@@ -75,8 +75,9 @@ useSeoMeta({
 
     <h2 id="legge">Legge e foro</h2>
     <p>
-      Valgono la legge italiana e, per le controversie tra professionisti, il foro di
-      <LegalValue :value="LEGAL.court" />. Per qualsiasi domanda scrivi a <LegalEmail />.
+      Valgono la legge italiana e, per le controversie tra professionisti, il foro
+      <LegalValue :value="LEGAL.court" fallback="competente per legge" />. Per qualsiasi domanda
+      scrivi a <LegalEmail />.
     </p>
 
     <h2 id="modifiche">Modifiche</h2>

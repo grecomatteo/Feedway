@@ -171,11 +171,21 @@ const PERMISSIONS = [
     </p>
     <ul>
       <li>
-        il server del pannello: <LegalValue :value="LEGAL.hostingProvider" />, nostro responsabile
-        del trattamento;
+        il server del pannello:
+        <LegalValue :value="LEGAL.hostingProvider" fallback="un fornitore di server privato" />,
+        nostro responsabile del trattamento;
       </li>
-      <li>le copie di sicurezza: <LegalValue :value="LEGAL.backupProvider" />;</li>
-      <li>le email del pannello (inviti, avvisi): <LegalValue :value="LEGAL.emailProvider" />;</li>
+      <li>
+        le copie di sicurezza:
+        <LegalValue
+          :value="LEGAL.backupProvider"
+          fallback="un servizio di archiviazione, con accesso riservato"
+        />;
+      </li>
+      <li>
+        le email del pannello (inviti, avvisi):
+        <LegalValue :value="LEGAL.emailProvider" fallback="un servizio di invio email" />;
+      </li>
       <li>
         Cloudflare, che ospita questo sito e porta il traffico verso il pannello senza aprire porte
         sul server;
