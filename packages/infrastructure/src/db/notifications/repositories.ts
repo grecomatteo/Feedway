@@ -1,12 +1,15 @@
 import type {
+  CentreNotification,
   ClaimedDelivery,
   DeliveryRef,
+  NotificationFilter,
   IdGenerator,
   NotificationPrefsRepository,
   NotificationsRepository,
   TelegramLinksRepository,
 } from '@app/application'
 import {
+  CHANNELS,
   DEFAULT_NOTIFICATION_SETTINGS,
   type Channel,
   type Level,
@@ -14,7 +17,7 @@ import {
   type OutboxPayload,
   type Weekday,
 } from '@app/domain'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
 import {
@@ -51,6 +54,77 @@ const refOf = (r: DeliveryRow): DeliveryRef => ({
   attempts: r.attempts,
   nextAttemptAt: r.next_attempt_at === null ? null : toDate(r.next_attempt_at),
 })
+
+function assertPerson(ctx: TxContext, what: string): void {
+  // P6: the centre reads in the person's own scope, never inside an agency's
+  if (ctx.kind !== 'user') throw new Error(`${what} only in the person's own scope`)
+}
+
+/** The rows the centre may show: the agencies asked for, the platform's when asked (P6). */
+function centreWhere(userId: string, f: NotificationFilter): SQL {
+  const places: SQL[] = []
+  const orgs =
+    f.organizationId != null
+      ? f.organizationIds.filter((id) => id === f.organizationId)
+      : f.organizationIds
+  if (orgs.length > 0) places.push(inArray(notifications.organizationId, [...orgs]))
+  if (f.platform && f.organizationId == null) places.push(isNull(notifications.organizationId))
+  const conditions: (SQL | undefined)[] = [
+    eq(notifications.userId, userId),
+    places.length > 0 ? or(...places) : sql`false`,
+    f.workspaceId != null ? eq(notifications.workspaceId, f.workspaceId) : undefined,
+    f.level != null ? eq(notifications.level, f.level) : undefined,
+    f.kind != null ? eq(notifications.kind, f.kind) : undefined,
+    f.unreadOnly ? isNull(notifications.readAt) : undefined,
+  ]
+  return and(...conditions) ?? sql`true`
+}
+
+type NotificationRow = typeof notifications.$inferSelect
+
+async function withDeliveries(
+  db: DbExecutor,
+  rows: readonly NotificationRow[],
+): Promise<CentreNotification[]> {
+  if (rows.length === 0) return []
+  const deliveries = await db
+    .select({
+      notificationId: notificationDeliveries.notificationId,
+      channel: notificationDeliveries.channel,
+      status: notificationDeliveries.status,
+      error: notificationDeliveries.error,
+      sentAt: notificationDeliveries.sentAt,
+    })
+    .from(notificationDeliveries)
+    .where(
+      inArray(
+        notificationDeliveries.notificationId,
+        rows.map((r) => r.id),
+      ),
+    )
+  const order = (c: string) => CHANNELS.indexOf(c as Channel)
+  return rows.map((r) => ({
+    id: r.id,
+    organizationId: r.organizationId,
+    eventId: r.eventId,
+    // the check constraints hold the lists
+    kind: r.kind as OutboxEventType,
+    level: r.level as Level,
+    workspaceId: r.workspaceId,
+    payload: r.payload as OutboxPayload,
+    readAt: r.readAt,
+    createdAt: r.createdAt,
+    deliveries: deliveries
+      .filter((d) => d.notificationId === r.id)
+      .sort((a, b) => order(a.channel) - order(b.channel))
+      .map((d) => ({
+        channel: d.channel as Channel,
+        status: d.status as DeliveryRef['status'],
+        error: d.error,
+        sentAt: d.sentAt,
+      })),
+  }))
+}
 
 export function drizzleNotifications(
   db: DbExecutor,
@@ -209,6 +283,64 @@ export function drizzleNotifications(
           ),
         )
         .returning({ id: notificationDeliveries.id })
+      return rows.length
+    },
+
+    async listForUser(userId, filter, { after, limit }) {
+      assertPerson(ctx, 'the notification centre is read')
+      // the cursor carries milliseconds and a batch shares now() to the microsecond: compare and
+      // sort at the cursor's precision, or the rows tied with a page's last one are skipped
+      const at = sql`date_trunc('milliseconds', ${notifications.createdAt})`
+      const cursor = after
+        ? or(
+            sql`${at} < ${after.createdAt.toISOString()}::timestamptz`,
+            and(
+              sql`${at} = ${after.createdAt.toISOString()}::timestamptz`,
+              lt(notifications.id, after.id),
+            ),
+          )
+        : undefined
+      const rows = await db
+        .select()
+        .from(notifications)
+        .where(and(centreWhere(userId, filter), cursor))
+        .orderBy(desc(at), desc(notifications.id))
+        .limit(limit)
+      return withDeliveries(db, rows)
+    },
+
+    async findForUser(userId, id) {
+      assertPerson(ctx, 'a notification of the centre is read')
+      const rows = await db
+        .select()
+        .from(notifications)
+        .where(and(eq(notifications.userId, userId), eq(notifications.id, id)))
+      const [found] = await withDeliveries(db, rows)
+      return found ?? null
+    },
+
+    async countUnread(userId, filter) {
+      assertPerson(ctx, 'the bell is counted')
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(notifications)
+        .where(centreWhere(userId, { ...filter, unreadOnly: true }))
+      return row?.n ?? 0
+    },
+
+    async markRead(userId, filter, ids, at) {
+      assertPerson(ctx, 'notifications are marked as read')
+      if (ids !== 'all' && ids.length === 0) return 0
+      const rows = await db
+        .update(notifications)
+        .set({ readAt: at })
+        .where(
+          and(
+            centreWhere(userId, { ...filter, unreadOnly: true }),
+            ids === 'all' ? undefined : inArray(notifications.id, [...ids]),
+          ),
+        )
+        .returning({ id: notifications.id })
       return rows.length
     },
 

@@ -112,10 +112,10 @@ test('the bar at the bottom: five places, Calendario not there yet, + for a new 
   await expect(nav.getByRole('button', { name: /^Tu, menu di Olga Telefono/ })).toBeVisible()
   // the photo at the top is gone: the person's menu opens only from «Tu»
   await expect(page.getByRole('button', { name: /menu di/i })).toHaveCount(1)
-  // the notifications live in the bell at the top, until the centre exists (stage 8)
-  const bell = page.getByRole('banner').getByRole('button', { name: 'Notifiche (Presto)' })
+  // the notifications open from the bell at the top (plan 08 Task 6)
+  const bell = page.getByRole('banner').getByRole('button', { name: /^Notifiche/ })
   await expect(bell).toBeVisible()
-  await expect(bell).toBeDisabled()
+  await expect(bell).toBeEnabled()
   expect((await axe(page)).violations).toEqual([])
 
   // a Viewer creates no posts: four places, no +
@@ -195,10 +195,10 @@ test('on a computer: the bell beside the logo, «Nuovo post», and the menu of s
   await page.goto(`/${org}`)
   const sidebar = page.getByRole('complementary')
   expect((await sidebar.boundingBox())?.width).toBe(240)
-  // the notifications live in the bell, until the centre exists (stage 8)
-  const bell = sidebar.getByRole('button', { name: 'Notifiche (Presto)' })
+  // the notifications open from the bell (plan 08 Task 6)
+  const bell = sidebar.getByRole('button', { name: /^Notifiche/ })
   await expect(bell).toBeVisible()
-  await expect(bell).toBeDisabled()
+  await expect(bell).toBeEnabled()
   // «Nuovo post» is always there: in «Tutti i clienti» it asks the client first, in a client's
   // context it opens that client's editor
   const newPost = sidebar.getByRole('link', { name: 'Nuovo post' })
@@ -344,7 +344,7 @@ test('the measures of the shell (base.css): 240 and 44 on a computer, one row at
   expect(await height(top)).toBe(52)
   await expect(top.getByRole('button')).toHaveCount(2)
   expect(await height(trigger)).toBe(40)
-  expect(await height(top.getByRole('button', { name: 'Notifiche (Presto)' }))).toBe(44)
+  expect(await height(top.getByRole('button', { name: /^Notifiche/ }))).toBe(44)
   await expect(page.getByRole('complementary')).toBeHidden()
   expect(await height(mainNav(page))).toBe(60)
   expect(
