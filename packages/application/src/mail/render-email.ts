@@ -13,6 +13,8 @@ export type EmailBlock =
   /** `info` is the blue notice of E5: its meaning is in the title, not in the colour. */
   | { kind: 'box'; title: string; text: string; tone?: 'info' }
   | { kind: 'details'; rows: readonly { label: string; value: string }[] }
+  /** A bold heading and its lines, one per row: a part of the morning digest. */
+  | { kind: 'list'; title: string; items: readonly string[] }
 
 export interface EmailContent {
   preheader: string
@@ -127,6 +129,11 @@ function blockHtml(block: EmailBlock, chrome: EmailContent['chrome']): string {
           )
           .join(''),
       )
+    case 'list':
+      return (
+        p(block.title, font(BODY_FONT, 16, 24, C.text, 600)) +
+        block.items.map((item) => p(item, `${body16}padding-top:4px;`)).join('')
+      )
   }
 }
 
@@ -145,6 +152,8 @@ function blockText(block: EmailBlock): string {
       return `${block.title}: ${lowerFirst(block.text)}`
     case 'details':
       return block.rows.map((row) => `${row.label}: ${row.value}`).join('\n')
+    case 'list':
+      return [block.title, ...block.items.map((item) => `- ${item}`)].join('\n')
   }
 }
 

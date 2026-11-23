@@ -1,6 +1,7 @@
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { QueueName, QueueScopes } from '@app/application'
+import { instantToZoned, zonedToInstant } from '@app/domain'
 import { QUEUES, type Runtime } from '@app/infrastructure'
 import {
   imageFixture,
@@ -17,6 +18,7 @@ import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
 import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './notify.js'
+import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
   publishingWorld,
@@ -484,11 +486,70 @@ async function deliverPlatformCase(): Promise<void> {
   expect(await snapshot(world.a)).toEqual(beforeA)
 }
 
+/** Each person due gets a digest job of their own, with their id and no agency's. */
+async function digestStartCase(): Promise<void> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const queue = recordingQueue()
+  // 8:00 in Rome today: every person with the defaults is due
+  const day = instantToZoned(new Date(), 'Europe/Rome').localDate
+  const at8 = zonedToInstant(day, '08:00', 'Europe/Rome').instant
+  await reportDaily(
+    { id: 'lavoro', data: {} },
+    { ...handlerDeps(runtime, recordingQueue()), queue, clock: { now: () => at8 } },
+  )
+  for (const of of [a, b]) {
+    const own = queue.sent.filter((j) => (j.data as { userId: string }).userId === of.ownerId)
+    expect(own).toEqual([
+      {
+        name: 'report.digest',
+        data: { userId: of.ownerId, date: day, dueAt: at8.toISOString() },
+        opts: { dedupeKey: `${of.ownerId}:${day}` },
+      },
+    ])
+  }
+}
+
+/** A person's digest tells only what their agencies hold: never another agency's account. */
+async function digestCase(): Promise<void> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const [page] = FORNO_LUCE
+  await connection(runtime, a, { accounts: [{ ...page, name: 'Profilo di A' }] })
+  await connection(runtime, b, { accounts: [{ ...page, name: 'Profilo di B' }] })
+  await admin.query(
+    "update social_accounts set health = 'error' where organization_id = any($1::uuid[])",
+    [[a.organizationId, b.organizationId]],
+  )
+  const sent: { to: string; text: string }[] = []
+  const deps = {
+    ...handlerDeps(runtime, recordingQueue()),
+    mailer: {
+      isConfigured: () => Promise.resolve(true),
+      send: (m: { to: string; text: string }) => {
+        sent.push(m)
+        return Promise.resolve('sent' as const)
+      },
+    },
+  }
+  const now = new Date()
+  await reportDigest(
+    { id: 'lavoro', data: { userId: a.ownerId, date: '2026-11-23', dueAt: now.toISOString() } },
+    deps,
+  )
+  expect(sent).toHaveLength(1)
+  expect(sent[0]?.text).toContain('Profilo di A')
+  expect(sent[0]?.text).not.toContain('Profilo di B')
+}
+
 const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
   'notify.dispatch': dispatchCase,
   'notify.deliver_platform': deliverPlatformCase,
+  'report.daily': digestStartCase,
 }
-const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {}
+const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {
+  'report.digest': digestCase,
+}
 
 test('every system and person queue has its case, or is from before the tappa 8', () => {
   const listed = (scope: string, earlier: readonly string[], cases: object) => {

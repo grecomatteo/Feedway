@@ -1,3 +1,4 @@
+import { postsDigestSections } from './digest.js'
 import { postKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
@@ -56,4 +57,6 @@ export const postsModule: ModuleDefinition = {
       defaultChannels: ['panel', 'telegram'],
     }),
   ],
+  // §12.4: the morning digest (plan 08 Task 8)
+  digestSections: postsDigestSections,
 }

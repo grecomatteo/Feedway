@@ -4,6 +4,7 @@ import { identityModule } from './identity/module.js'
 import { mediaModule } from './media/module.js'
 import { notificationsModule } from './notifications/module.js'
 import type {
+  DigestSection,
   ModuleDefinition,
   NotificationKind,
   UserAnonymizedHandler,
@@ -40,4 +41,9 @@ export function userAnonymizedHandlers(): readonly UserAnonymizedHandler[] {
 /** Every kind of notification the modules register, by its event type (§7.3). */
 export function notificationKinds(): ReadonlyMap<OutboxEventType, NotificationKind> {
   return new Map(MODULES.flatMap((m) => m.notificationKinds ?? []).map((k) => [k.type, k]))
+}
+
+/** Every section of the morning digest, in their order (§12.4, §7.3). */
+export function digestSections(): readonly DigestSection[] {
+  return MODULES.flatMap((m) => m.digestSections ?? []).sort((a, b) => a.order - b.order)
 }
