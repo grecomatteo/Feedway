@@ -25,6 +25,13 @@ export type {
 } from './ports/job-queue.js'
 export { EMAIL_LOGO_CID, MAIL_FAILURE_KINDS, MailSendError } from './ports/mailer.js'
 export type { MailFailureKind, Mailer, MailMessage } from './ports/mailer.js'
+export { TELEGRAM_FAILURE_KINDS, TelegramApiError } from './ports/telegram-bot-api.js'
+export type {
+  TelegramBotApi,
+  TelegramBotIdentity,
+  TelegramFailureKind,
+  TelegramUpdate,
+} from './ports/telegram-bot-api.js'
 export { INTEGRATION_KINDS, SMTP_PORTS } from './ports/integration-store.js'
 export type {
   IntegrationConfigs,
@@ -201,6 +208,11 @@ export {
   type DispatchReport,
   type MessageContext,
   type NotifiedEvent,
+  getAgencyTelegramBot,
+  removeAgencyTelegramBot,
+  replaceAgencyTelegramBot,
+  type AgencyTelegramBotDeps,
+  type TelegramBotView,
 } from './notifications/index.js'
 export { postHeadline } from './posts/notification-messages.js'
 export type {

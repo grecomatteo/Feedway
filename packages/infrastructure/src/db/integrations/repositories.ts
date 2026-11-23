@@ -61,6 +61,13 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
         .returning({ id: integrations.id })
       return rows.length > 0
     },
+    async deletePlatform(kind) {
+      const rows = await db
+        .delete(integrations)
+        .where(and(isNull(integrations.organizationId), eq(integrations.kind, kind)))
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
 
     async findForOrganization(organizationId, kind) {
       const [row] = await db
@@ -94,6 +101,20 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
         )
         .returning()
       return row ? recordOf(row) : null
+    },
+
+    async deleteForOrganization(organizationId, kind, version) {
+      const rows = await db
+        .delete(integrations)
+        .where(
+          and(
+            eq(integrations.organizationId, organizationId),
+            eq(integrations.kind, kind),
+            sameVersion(version),
+          ),
+        )
+        .returning({ id: integrations.id })
+      return rows.length > 0
     },
 
     async markVerified(organizationId, kind, at, version) {

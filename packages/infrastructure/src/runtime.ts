@@ -18,6 +18,7 @@ import type {
   RateLimiter,
   SignedTokens,
   TokenService,
+  TelegramBotApi,
   Storage,
   UnitOfWork,
   UploadParts,
@@ -35,6 +36,7 @@ import { createSmtpMailer } from './mail/smtp-mailer.js'
 import { createSmtpSender } from './mail/smtp/smtp-sender.js'
 import { createIntegrationStore } from './db/integrations/integration-store.js'
 import { createConnectionTokens } from './db/accounts/connection-tokens.js'
+import { createTelegramBotApi, TELEGRAM_API_URL } from './notifications/telegram-bot-api.js'
 import { createMetaGraphClient } from './platforms/meta/graph-client.js'
 import { createMetaPictureDownloader } from './platforms/meta/picture-download.js'
 import { createMetaPublishers } from './platforms/meta/publisher.js'
@@ -61,7 +63,12 @@ export type RuntimeConfig = Pick<
   'nodeEnv' | 'databaseUrl' | 'encryptionKey' | 'logLevel'
 > &
   // left out by the tests of modules that never call Meta
-  Partial<Pick<WebConfig, 'metaMode' | 'metaGraphVersion' | 'metaMockUrl' | 'metaRecordDir'>> & {
+  Partial<
+    Pick<
+      WebConfig,
+      'metaMode' | 'metaGraphVersion' | 'metaMockUrl' | 'metaRecordDir' | 'telegramApiUrl'
+    >
+  > & {
     /** Folder for stored files (MEDIA_ROOT); the `media` volume is mounted at the default. */
     mediaRoot?: string
     /** MEDIA_UPLOAD_DIR; MEDIA_ROOT/uploads without it. */
@@ -102,6 +109,8 @@ export interface Runtime {
   mailer: Mailer
   /** The check of the agency's Meta app (plan 03 Task 4), shared by every Meta connector. */
   meta: Pick<PlatformConnector<MetaAppCredentials>, 'verifyApp'>
+  /** Telegram's Bot API (plan 08 Task 7): api.telegram.org unless TELEGRAM_API_URL says otherwise. */
+  telegram: TelegramBotApi
   /** The registry of the platforms (ADR 019): `connection kind → PlatformConnector`. */
   connectors: PlatformConnectors
   /** The publishers of the platforms (ADR 019, plan 07 Task 4): `platform → PlatformPublisher`. */
@@ -247,6 +256,9 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
       integrations,
       mailer,
       ...createMeta(config, { clock, logger, integrations }),
+      telegram: createTelegramBotApi({
+        baseUrl: config.telegramApiUrl ?? new URL(TELEGRAM_API_URL),
+      }),
       platformRules: PLATFORM_RULES,
       publishingHistory: postgresPublishingHistory,
       connectionTokens: createConnectionTokens({ keyRing }),

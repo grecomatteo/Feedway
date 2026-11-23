@@ -74,8 +74,59 @@ export const testMetaIntegrationRoute = defineContract({
   scope: 'organization',
 })
 
+/**
+ * An agency's own Telegram bot (plan 08 Scelta 8), or the platform's: the token goes in and
+ * never comes back; its name comes from Telegram.
+ */
+export const TelegramBot = z.object({
+  botUsername: z.string(),
+  /** The last time Telegram accepted the token. */
+  verifiedAt: Timestamp.nullable(),
+  /** Telegram refused the token since it was saved (revoked with @BotFather). */
+  rejectedAt: Timestamp.nullable(),
+  updatedAt: Timestamp,
+})
+export type TelegramBot = z.infer<typeof TelegramBot>
+
+/** The token as @BotFather gives it; the use case checks its form and tries it. */
+export const ReplaceTelegramBotBody = z.strictObject({ token: z.string().min(1).max(200) })
+
+export const agencyTelegramBotRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/integrations/telegram',
+  summary: 'Il bot Telegram dell’agenzia, senza il token; null: usa quello della piattaforma',
+  request: { params: OrgParams },
+  response: z.object({ bot: TelegramBot.nullable() }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const replaceAgencyTelegramBotRoute = defineContract({
+  method: 'PUT',
+  path: '/api/v1/orgs/{org}/integrations/telegram',
+  summary:
+    'Imposta il bot Telegram dell’agenzia (Owner, con riconferma): si salva solo se Telegram lo accetta',
+  request: { params: OrgParams, body: ReplaceTelegramBotBody },
+  response: z.object({ bot: TelegramBot }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const removeAgencyTelegramBotRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/orgs/{org}/integrations/telegram',
+  summary: 'Torna al bot della piattaforma (Owner, con riconferma)',
+  request: { params: OrgParams },
+  response: z.object({ ok: z.literal(true) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const integrationRoutes = [
   metaIntegrationRoute,
   replaceMetaIntegrationRoute,
   testMetaIntegrationRoute,
+  agencyTelegramBotRoute,
+  replaceAgencyTelegramBotRoute,
+  removeAgencyTelegramBotRoute,
 ] as const

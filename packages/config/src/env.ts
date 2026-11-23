@@ -78,6 +78,7 @@ const RESOLVABLE = [
   'META_MODE',
   'META_MOCK_URL',
   'META_RECORD_DIR',
+  'TELEGRAM_API_URL',
   'TZ_DEFAULT',
   'MEDIA_RETENTION_DAYS',
   'MEDIA_ROOT',
@@ -196,6 +197,8 @@ const appSchema = z
     META_MODE: withDefault(z.enum(['live', 'mock', 'dry-run']), 'live'),
     META_RECORD_DIR: optional(z.string().min(1)),
     META_MOCK_URL: optional(url),
+    // the fake Bot API (tools/telegram-mock) in development and tests; api.telegram.org otherwise
+    TELEGRAM_API_URL: withDefault(url, 'https://api.telegram.org'),
     TZ_DEFAULT: withDefault(
       z.string().refine((v) => IANAZone.isValidZone(v), { error: 'fuso orario non valido' }),
       'Europe/Rome',
@@ -325,6 +328,8 @@ export interface AppConfig {
   metaRecordDir: string | null
   /** The fake Graph API (`tools/meta-mock`), only with metaMode `mock`; null otherwise. */
   metaMockUrl: string | null
+  /** Telegram's Bot API: api.telegram.org, or the fake one (`tools/telegram-mock`) in tests. */
+  telegramApiUrl: URL
   defaultTimezone: string
   mediaRetentionDays: number
   /** Folder of stored files (photos, exports): the `media` volume in the container. */
@@ -510,6 +515,7 @@ export function loadConfig(
     metaMode: v.META_MODE,
     metaRecordDir: v.META_RECORD_DIR ?? null,
     metaMockUrl: v.META_MODE === 'mock' ? (v.META_MOCK_URL ?? DEFAULT_META_MOCK_URL) : null,
+    telegramApiUrl: new URL(v.TELEGRAM_API_URL),
     defaultTimezone: v.TZ_DEFAULT,
     mediaRetentionDays: v.MEDIA_RETENTION_DAYS,
     mediaRoot: v.MEDIA_ROOT,

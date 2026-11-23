@@ -5,6 +5,7 @@ import type { ApiContract } from '@app/contracts'
 import { createLocalDiskStorage } from '@app/infrastructure'
 import { seed, transparentLogoPng } from '@app/infrastructure/testing'
 import { META_MOCK } from '@app/meta-mock'
+import { TELEGRAM_MOCK } from '@app/telegram-mock'
 import { PASSWORD, startApiEnv } from '../identity-env.js'
 import type { ApiEnv, Person } from '../identity-env.js'
 
@@ -111,6 +112,11 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     appId: META_MOCK.app.id,
     appSecret: META_MOCK.app.secret,
   }),
+  // the fake Bot API's bots (TELEGRAM_API_URL): fake tokens, never real ones
+  'PUT /api/v1/orgs/{org}/integrations/telegram': () => ({
+    token: TELEGRAM_MOCK.bots.agency.token,
+  }),
+  'PUT /api/v1/platform/telegram-bot': () => ({ token: TELEGRAM_MOCK.bots.platform.token }),
   // the fake Graph API's system user (META_MODE=mock): a fake token, never a real one
   'POST /api/v1/orgs/{org}/connections/system-user': () => ({
     token: META_MOCK.tokens.systemUser,
