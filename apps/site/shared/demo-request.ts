@@ -31,9 +31,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function parseDemoRequest(input: Record<string, unknown>, now: number): ParseResult {
   // `website` is a field people never see; `startedAt` is written by the page when it opens
   if (str(input.website) !== '') return { ok: false, reason: 'spam' }
-  const startedAt = Number(str(input.startedAt))
-  if (!Number.isFinite(startedAt) || startedAt <= 0 || now - startedAt < MIN_FILL_MS) {
-    return { ok: false, reason: 'spam' }
+  // without JavaScript the page cannot write `startedAt`: only the honeypot and the rate limit apply
+  const rawStart = str(input.startedAt)
+  if (rawStart !== '') {
+    const startedAt = Number(rawStart)
+    if (!Number.isFinite(startedAt) || startedAt <= 0 || now - startedAt < MIN_FILL_MS) {
+      return { ok: false, reason: 'spam' }
+    }
   }
 
   const request = {} as DemoRequest

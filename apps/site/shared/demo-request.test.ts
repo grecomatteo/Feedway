@@ -49,6 +49,10 @@ describe('parseDemoRequest', () => {
     })
   })
 
+  it('accepts a form sent without JavaScript, which has no start time', () => {
+    expect(parseDemoRequest({ ...valid, startedAt: '' }, now).ok).toBe(true)
+  })
+
   it('limits the lengths and refuses line breaks in single-line fields', () => {
     const r = parseDemoRequest(
       { ...valid, name: 'a'.repeat(121), email: 'a@b.it\r\nBcc: x@y.z', message: 'm'.repeat(3001) },

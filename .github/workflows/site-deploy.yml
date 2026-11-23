@@ -24,13 +24,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # the Cloudflare secrets stay out of the job env: install and build scripts never see them
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       SITE_URL: ${{ vars.SITE_URL || 'https://feedway.pages.dev' }}
       SITE_PROJECT: ${{ vars.SITE_PROJECT || 'feedway' }}
     steps:
       - id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "::notice::Mancano i segreti CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID: il sito non si pubblica (docs/runbooks/sito-pubblico.md)."
@@ -56,4 +58,7 @@ jobs:
       # wrangler also bundles apps/site/functions (the «Richiedi una demo» function)
       - if: steps.secrets.outputs.ready == 'true'
         working-directory: apps/site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm dlx wrangler@4.20.0 pages deploy .output/public --project-name "$SITE_PROJECT" --branch main --commit-dirty=true
