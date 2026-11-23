@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { META_COVER_PERMISSIONS } from '@app/domain/platforms/meta'
+
 /**
  * The connections of Meta in Impostazioni → Integrazioni → Meta (spec §8.3, plan 04 Task 6c):
  * each connection with «Sincronizza», «Ricollega» and «Sostituisci token», and the
@@ -109,6 +111,7 @@ const {
     syncRetryAfterSeconds: number | null
     expiresAt: string | null
     businessName: string | null
+    scopes: string[] | null
     createdAt: string
   }[]
 }>(() => org.api('/connections'), {
@@ -122,7 +125,13 @@ const connections = computed(() =>
   (connectionList.value?.items ?? []).map((c) => {
     const mine = items.value.filter((a) => a.connection?.id === c.id)
     const inactive = mine.filter((a) => !a.active).length
-    return { ...c, accounts: mine.length - inactive, inactive }
+    // a token not read yet counts as without them, as the rules and the publisher count it;
+    // only on a working system-user token, the one «Sostituisci token» replaces
+    const coverMissing =
+      c.kind !== 'meta_system_user' || broken(c.status)
+        ? []
+        : META_COVER_PERMISSIONS.filter((p) => !(c.scopes ?? []).includes(p))
+    return { ...c, accounts: mine.length - inactive, inactive, coverMissing }
   }),
 )
 
@@ -374,6 +383,24 @@ watch(
                 ]"
               />
             </template>
+          </span>
+          <span
+            v-if="c.coverMissing.length > 0"
+            role="cell"
+            class="col-span-full -mt-2 flex gap-2 pb-3 text-detail text-(--app-text-muted)"
+            data-cover-permissions
+          >
+            <UIcon name="i-lucide-info" class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            <span class="min-w-0">
+              <i18n-t keypath="socialAccounts.coverPermissions" tag="span" scope="global">
+                <template #permissions>
+                  <template v-for="(p, i) in c.coverMissing" :key="p"
+                    ><template v-if="i > 0">{{ $t('socialAccounts.and') }}</template
+                    ><code class="[overflow-wrap:anywhere]">{{ p }}</code></template
+                  >
+                </template>
+              </i18n-t>
+            </span>
           </span>
           <span
             v-if="outcomes[c.id] || waiting(c.id)"

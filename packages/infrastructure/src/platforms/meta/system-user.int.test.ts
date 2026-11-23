@@ -382,6 +382,7 @@ test('the connections of the agency, a pending one too, never with their token',
       expiresAt: null,
       businessName: 'Agenzia Demo',
       createdAt: expect.any(Date) as Date,
+      scopes: expect.arrayContaining(['pages_manage_posts']) as string[],
     },
   ])
 })
