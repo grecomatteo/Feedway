@@ -1,4 +1,4 @@
-import { ALL_PERMISSIONS, PLATFORM_PERMISSIONS } from '@app/domain'
+import { ALL_PERMISSIONS, OUTBOX_EVENT_TYPES, PLATFORM_PERMISSIONS } from '@app/domain'
 import { expect, test } from 'vitest'
 import type { QueueName } from './ports/job-queue.js'
 import { MODULES, userAnonymizedHandlers } from './modules.js'
@@ -51,6 +51,12 @@ test('every queue belongs to exactly one module', () => {
   const claimed = MODULES.flatMap((m) => m.queues)
   expect(new Set(claimed).size).toBe(claimed.length)
   expect([...claimed].sort()).toEqual(Object.keys(ALL_QUEUES).sort())
+})
+
+test('every outbox event has exactly one kind of notification, from one module', () => {
+  const claimed = MODULES.flatMap((m) => m.notificationKinds ?? []).map((k) => k.type)
+  expect(new Set(claimed).size).toBe(claimed.length)
+  expect([...claimed].sort()).toEqual([...OUTBOX_EVENT_TYPES].sort())
 })
 
 test('the anonymization handlers come from the modules, in their order', () => {
