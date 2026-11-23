@@ -28,7 +28,7 @@ Quello che non è ancora stato provato su Meta vera è scritto **non verificato*
 
 Non serve aggiungere a mano i permessi delle Pagine: Meta li aggiunge da solo quando generi il token dell'utente di sistema (passo 3).
 
-**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11), e i post si vedono anche da chi non ha nessun ruolo nell'app (verificato il 2026-11-12, con una finestra anonima). La modalità Live serve solo per l'accesso unificato, quando arriverà.
+**Modalità sviluppo o Live.** Con l'utente di sistema, l'app in modalità sviluppo basta per elencare gli account e pubblicare (verificato il 2026-11-11). Su Instagram i post sono pubblici. **Su Facebook no:** con l'app in sviluppo i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app (prova della 0.13.0, 21–23/11; la finestra anonima del 2026-11-12 aveva dato un esito diverso). Prima del primo cliente vero l'app va quindi in **Live** ([D-119](../decisioni-aperte.md)). Prima del Live togli i post di prova, che altrimenti diventano pubblici.
 
 ## 2. L'app in Feedway
 

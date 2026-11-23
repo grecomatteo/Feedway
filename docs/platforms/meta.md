@@ -24,7 +24,7 @@ Feedway 0.8.0 sulla VPS, Graph API v25.0 (`META_GRAPH_VERSION`), app «Feedway»
 | Pagina con accesso parziale | Con «Contenuti» (e senza «Gestisci») `me/accounts` dà il token della Pagina: si importa |
 | Account di un cliente partner | La Pagina e i due Instagram, anche quello senza Pagina, compaiono in `me/accounts` e `me/assigned_instagram_accounts` e si importano. Quota: `quota_usage` 0, `quota_total` 100 |
 | Account tolto all'utente di sistema | Sparisce da `me/assigned_instagram_accounts` alla prima chiamata dopo: diventa inattivo alla sincronizzazione |
-| Post pubblicati con l'app in sviluppo | I post dell'11/11 si vedono in una finestra anonima, senza accesso: per l'utente di sistema la modalità Live **non serve** per pubblicare |
+| Post pubblicati con l'app in sviluppo | Pubblicare funziona anche in sviluppo. I post dell'11/11 si vedevano in una finestra anonima, ma la prova della 0.13.0 (21–23/11) l'ha **smentito per Facebook**: i post con il testo sulla Pagina li vede solo chi ha un ruolo nell'app. Su Instagram i post sono pubblici. Per Facebook serve la modalità Live (D-119) |
 
 Non provato: la stessa cosa con un cliente vero (non un profilo di prova); un Instagram condiviso come partner da un Business Manager diverso da quello del profilo di prova.
 
