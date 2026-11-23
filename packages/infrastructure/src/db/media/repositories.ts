@@ -351,6 +351,8 @@ export function drizzleMedia(db: DbExecutor): MediaRepository {
         )
         .orderBy(media.createdAt, media.id)
         .limit(1)
+        // waits for a delete of the same file running now, and then no longer finds it
+        .for('share', { of: media })
       return row ?? null
     },
     async listFailed(organizationId, workspaceIds, limit) {
