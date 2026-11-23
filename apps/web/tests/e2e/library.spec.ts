@@ -792,6 +792,28 @@ test('a zip: read in the browser, the system’s files and a text left out, «Un
     { name: 'Novembre', parent: null },
     { name: 'reel', parent: 'Novembre' },
   ])
+
+  // the same zip again, «Unisci»: the files already in their folders are kept, no duplicates (D-120.2)
+  const filesIn = async () =>
+    (
+      await adminQuery<{ name: string }>(
+        `select f.name || '/' || m.original_name as name from media m
+           join library_items i on i.organization_id = m.organization_id and i.media_id = m.id
+           join library_folders f on f.id = i.folder_id
+          where m.workspace_id = $1 and m.status <> 'deleted' order by 1`,
+        [client],
+      )
+    ).map((r) => r.name)
+  await expect.poll(filesIn).toEqual(['Novembre/frame.jpg', 'reel/clip.mp4'])
+  await uploadFrom(page, 'Carica uno zip', zipPath)
+  await dialog.getByRole('radio', { name: 'Unisci a «Novembre»' }).check()
+  await dialog.getByRole('button', { name: 'Carica' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('[data-upload-reused]')).toHaveCount(2, { timeout: 30_000 })
+  await expect(page.locator('[data-upload-reused]').first()).toHaveText(
+    'Era già nella cartella: tenuto quello, senza un doppione.',
+  )
+  expect(await filesIn()).toEqual(['Novembre/frame.jpg', 'reel/clip.mp4'])
 })
 
 test('a zip that climbs out of its folder is refused whole', async ({ page }) => {
