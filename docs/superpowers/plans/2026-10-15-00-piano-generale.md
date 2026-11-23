@@ -116,7 +116,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Introduce:** `PlatformPublisher` (implementata da `platforms/meta`, ADR 019), lavori `target.*` (con `organizationId` nei dati) e `scheduler.reconcile` (uno dei moduli di sistema, l'unico che legge le destinazioni di tutte le agenzie), limite di lavori pesanti contemporanei per organizzazione, tabelle `target_attempts` e `outbox_events` (gli eventi si scrivono da qui, le notifiche li leggeranno nella tappa 8).
 - **Matteo prova:** con il finto Graph API, riavvia il worker a metà pubblicazione e controlla che non nascano doppioni; poi la prima pubblicazione reale, insieme, su ogni tipo.
 
-### Tappa 8 · Notifiche
+### Tappa 8 · Notifiche (piano `08-notifiche.md`)
 - **Scalabilità:** bot Telegram, battito e riconciliatore girano con lock consultivo: con più worker uno solo è attivo.
 - **Dalla tappa 3** (decisione di Matteo, 2026-11-02): integrazione Telegram dell'agenzia con valore predefinito della piattaforma, e sorveglianza esterna nella sezione **Piattaforma → Integrazioni**.
 - **Costruisce:** dispatcher dall'outbox, centro notifiche, Telegram (collegamento per utente, comandi `/oggi`, `/problemi`, `/stop`), email con modelli, preferenze, ore di silenzio, raggruppamento, riepilogo delle 8:00 con **sezioni registrabili dai moduli** (la prima esterna sarà quella del piano editoriale), battito del worker con avviso dal web, sorveglianza esterna. RF-60, RF-61, RF-62.
