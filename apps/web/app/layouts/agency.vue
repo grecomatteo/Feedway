@@ -21,14 +21,14 @@ const outcomePage = usePostOutcomePage()
 const editor = computed(() => route.meta['editor'] === true && !outcomePage.value)
 
 // A suspension made by the platform must show without a reload: ask again who the person is
-// when the tab comes back to the front and when they move to another agency, no more than once
-// every 30 s (D-120.7).
+// when the tab comes back to the front (no more than once every 30 s, D-120.7) and when they move
+// to another agency (at once).
 const refresh = () => {
   if (document.visibilityState === 'visible') void session.reload()
 }
 onMounted(() => document.addEventListener('visibilitychange', refresh))
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', refresh))
-watch(org.slug, refresh)
+watch(org.slug, () => void session.load().catch(() => undefined))
 const notice = useNotice()
 </script>
 

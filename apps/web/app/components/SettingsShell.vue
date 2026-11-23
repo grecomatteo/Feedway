@@ -2,8 +2,8 @@
 /**
  * One «Impostazioni» for everything (Matteo, 13/11; screens 23–26): the person's own pages and,
  * for who may see them, the agency's, in a menu on the left; below 1024 px (a phone, a tablet, a
- * narrow window beside the side bar) the menu is a drop-down above the page (D-120.8). The addresses stay where they were (`/account/*`, `/<agenzia>/impostazioni/*`),
- * so the links in the emails keep working; only the shell around them is shared. `wide` lets the
+ * narrow window beside the side bar) the menu is a drop-down above the page (D-120.8). The
+ * addresses stay where they were (`/account/*`, `/<agenzia>/impostazioni/*`), so the links in the emails keep working; only the shell around them is shared. `wide` lets the
  * page use the whole width (a table: Integrazioni, Registro attività), otherwise it stops at 720.
  */
 withDefaults(defineProps<{ wide?: boolean }>(), { wide: false })

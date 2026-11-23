@@ -895,7 +895,7 @@ const NOT_EXERCISED: readonly AuditAction[] = [
   'user.anonymization_skipped',
   // from the CLI only (recover-user): its data is checked in platform.int.test.ts
   'user.access_reset',
-  // from the worker only: checked with the publishing steps (publishing.int.test.ts)
+  // from the worker only: checked with the publishing steps (apps/worker target-steps.int.test.ts)
   'post.target_failed',
 ]
 

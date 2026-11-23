@@ -2611,7 +2611,6 @@
         "paused": "In pausa",
         "cancelled": "Annullato"
       },
-      "noText": "Senza testo",
       "noTextOf": "{type} senza testo",
       "noType": "Senza file",
       "noDate": "Senza data",
