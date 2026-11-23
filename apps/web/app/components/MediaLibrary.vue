@@ -148,7 +148,7 @@ const tagValue = computed({
 const folderItems = computed(() => [
   { value: 'all', label: t('library.folders.all') },
   { value: 'none', label: t('library.folders.none') },
-  ...tree.value.map((f) => ({ value: f.id, label: `${'— '.repeat(f.depth)}${f.name}` })),
+  ...tree.value.map((f) => ({ value: f.id, label: f.path })),
 ])
 const folderValue = computed({
   get: () => filter.folder ?? 'all',
@@ -411,7 +411,7 @@ const folderTargets = computed(() => {
     ...(allowed.has(null) ? [{ value: 'top', label: t('library.folders.moveTop') }] : []),
     ...tree.value
       .filter((f) => allowed.has(f.id))
-      .map((f) => ({ value: f.id, label: `${'— '.repeat(f.depth)}${f.name}` })),
+      .map((f) => ({ value: f.id, label: f.path })),
   ]
 })
 function startMoveFolder(folder: Folder) {

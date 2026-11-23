@@ -114,7 +114,7 @@ const targetItems = computed(() => [
   { value: 'top', label: t('treeUpload.top') },
   ...folderTree(props.folders).map((f) => ({
     value: f.id,
-    label: `${'— '.repeat(f.depth)}${f.name}`,
+    label: f.path,
   })),
 ])
 /** «in cima alla libreria», «in «Novembre»» */

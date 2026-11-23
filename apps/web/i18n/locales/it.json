@@ -1788,7 +1788,7 @@
       "useCancelled": "Post annullato",
       "usePublished": "Pubblicato il {day}",
       "useNotOut": "Post non uscito",
-      "useMore": "e altri {n}",
+      "useMore": "e in un altro post | e in altri {n} post",
       "newPost": "Usa in un nuovo post",
       "download": "Scarica",
       "technical": "Dettagli tecnici",
