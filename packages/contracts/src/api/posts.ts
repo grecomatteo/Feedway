@@ -366,7 +366,11 @@ export const getPostOutcomeRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/outcome',
   summary: 'L’esito di ogni destinazione di un post e la sua attività',
-  request: { params: PostParams },
+  request: {
+    params: PostParams,
+    // `preview=0`: without the versions, for the page's own reads while something moves
+    query: z.strictObject({ preview: z.enum(['0', '1']).optional() }),
+  },
   response: PostOutcomeResponse,
   auth: 'session',
   scope: 'organization',

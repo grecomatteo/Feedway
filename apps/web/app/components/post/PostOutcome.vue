@@ -37,17 +37,18 @@ const busy = ref<string | null>(null)
 /** Every read and action takes a number: an answer older than the latest is dropped. */
 let latest = 0
 let reading = false
-async function read() {
+/** `again`: the page's own read while something moves, without the versions (kept from before) */
+async function read(again = false) {
   const mine = ++latest
   reading = true
   try {
     const [p, o] = await Promise.all([
       call<PostResponse>('GET', postApi.value),
-      call<PostOutcomeResponse>('GET', `${postApi.value}/outcome`),
+      call<PostOutcomeResponse>('GET', `${postApi.value}/outcome${again ? '?preview=0' : ''}`),
     ])
     if (mine !== latest) return
     current.value = p
-    outcome.value = o
+    outcome.value = again ? { ...o, preview: outcome.value?.preview ?? null } : o
     loadFailed.value = false
   } catch {
     if (mine === latest) loadFailed.value = true
@@ -63,7 +64,7 @@ const moving = computed(() =>
 let timer: ReturnType<typeof setInterval> | null = null
 function tick() {
   if (document.visibilityState === 'visible' && moving.value && busy.value === null && !reading)
-    void read()
+    void read(true)
 }
 onMounted(() => {
   void read()
@@ -461,7 +462,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
             <LoadFailed
               v-if="loadFailed && !outcome"
               :text="$t('posts.outcome.loadFailed')"
-              @retry="read"
+              @retry="read()"
             />
             <ListSkeleton v-else-if="!outcome" />
             <ul

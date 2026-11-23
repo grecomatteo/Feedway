@@ -119,6 +119,21 @@ test('«Pubblica subito» from a draft with no date: scheduled now, prepared at 
   )
   expect(audit.rows.map((r) => r.action)).toEqual(['post.created', 'post.published_now'])
 
+  // before it goes out: the versions, never «the copies were taken away»
+  const before = await getPostOutcome(panel, world.actor, {
+    workspaceId: world.workspaceId,
+    postId: draft.id,
+  })
+  expect(before.preview?.versions).toHaveLength(2)
+  expect(before.preview?.originals).toBe(false)
+  // the page's own reads while something moves: without the versions
+  const again = await getPostOutcome(panel, world.actor, {
+    workspaceId: world.workspaceId,
+    postId: draft.id,
+    preview: false,
+  })
+  expect(again.preview).toBeNull()
+
   const deps = workerDeps(runtime, testClock(now), host.url)
   await runSteps(world, draft.id, deps)
   expect(await postStatusOf(admin, draft.id)).toBe('published')

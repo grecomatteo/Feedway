@@ -104,7 +104,8 @@ const cover = computed(() => {
   if (!c || !props.showFiles) return null
   if (c.copyId) return { src: copyUrl(c.mediaId, c.copyId), startMs: c.offsetMs ?? undefined }
   if (c.offsetMs !== null) return { src: null, startMs: c.offsetMs }
-  return { src: thumbnailOf(c.mediaId) ?? fileUrl(c.mediaId, 'thumbnail'), startMs: undefined }
+  // an image chosen as the cover is not among the post's files: its thumbnail, every image has one
+  return { src: fileUrl(c.mediaId, 'thumbnail'), startMs: undefined }
 })
 const items = computed<PreviewItem[]>(() =>
   files.value.slice(0, vertical.value ? 1 : undefined).map((f, index) => {

@@ -549,12 +549,21 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     )
     const key = `org/${organizationId}/media/${id}/preview.mp4`
     const { size } = await storage.put(key, SAMPLE_PREVIEW, { contentType: 'video/mp4' })
-    const copyId = randomUUID()
     await env.admin.pool.query(
       `insert into media_variants (id, organization_id, media_id, purpose, storage_key, mime,
                                    size_bytes)
        values ($1, $2, $3, 'preview', $4, 'video/mp4', $5)`,
-      [copyId, organizationId, id, key, size],
+      [randomUUID(), organizationId, id, key, size],
+    )
+    // a copy made to publish a reel, as the page of the outcome shows it (plan 08 Task 10)
+    const copyId = randomUUID()
+    const copyKey = `org/${organizationId}/media/${id}/reel-battery.mp4`
+    await storage.put(copyKey, SAMPLE_PREVIEW, { contentType: 'video/mp4' })
+    await env.admin.pool.query(
+      `insert into media_variants (id, organization_id, media_id, purpose, recipe, storage_key,
+                                   mime, size_bytes)
+       values ($1, $2, $3, 'reel', 'battery', $4, 'video/mp4', $5)`,
+      [copyId, organizationId, id, copyKey, size],
     )
     copyOfMedia.set(id, copyId)
     return id

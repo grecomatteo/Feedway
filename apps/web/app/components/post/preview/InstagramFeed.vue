@@ -3,8 +3,9 @@ import type { PreviewItem } from '~/utils/post-preview'
 
 /**
  * A photo or a carousel in Instagram's feed (design E4): the frame takes the first file's
- * proportions, a carousel scrolls with the arrows and the dots, the text is cut after two lines
- * with «… altro», with the arrows of the keyboard too once it has the focus (plan 08 Task 10). The file shown is a model. No likes and no date under it: the column stays short
+ * proportions, a carousel scrolls with the arrows and the dots (and with the keyboard's arrows
+ * once it has the focus, plan 08 Task 10), the text is cut after two lines with «… altro». The
+ * file shown is a model. No likes and no date under it: the column stays short
  * enough for «Controlli» (review of fidelity, A1).
  */
 const props = defineProps<{

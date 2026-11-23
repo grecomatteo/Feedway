@@ -1,8 +1,17 @@
-import { DomainError, distinctCopies, type CopyRequest, type OrgActor } from '@app/domain'
-import { copyKey } from './publishing/copies-in-use.js'
-import { publisherOf } from './publishing/context.js'
+import {
+  DomainError,
+  distinctCopies,
+  type CopyRequest,
+  type DestinationFiles,
+  type OrgActor,
+  type RuleReport,
+} from '@app/domain'
+import { publishedFilesOf } from '../media/index.js'
+import type { Logger } from '../ports/logger.js'
 import type { PostRecord } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
+import { copyKey } from './publishing/copies-in-use.js'
+import { publisherOf } from './publishing/context.js'
 import { checkPostInTx, publishFilesOfPost, type CheckPostDeps } from '../rules/index.js'
 import { toCheckInput } from './to-check-input.js'
 
@@ -37,67 +46,67 @@ export interface OutcomeVersionDto {
 }
 
 export interface OutcomePreviewDto {
-  /** true when some copy that went out is gone: the files shown are the originals */
+  /** true when some copy that went out is gone: the files shown are the originals, and the
+   * page says so (never before the post went out, when the copies are still being made) */
   originals: boolean
   versions: OutcomeVersionDto[]
 }
 
-type PreviewDeps = Omit<CheckPostDeps, 'uow'>
+type PreviewDeps = Omit<CheckPostDeps, 'uow'> & { logger: Logger }
 
 /**
- * null when the post cannot be read as the worker would (no date, an archived client, the
- * files gone): the page falls back to the post's own files.
+ * null when the post cannot be read as the worker would (no date, an archived client, a file of
+ * another client): the page falls back to the post's own files. The versions are computed now,
+ * from the post, its accounts and the rules of today, as the worker would publish it now.
  */
 export async function outcomePreview(
   tx: Tx,
   deps: PreviewDeps,
-  actor: OrgActor,
-  post: PostRecord,
-  accountIds: readonly string[],
+  input: {
+    actor: OrgActor
+    post: PostRecord
+    targets: readonly { accountId: string; publishedAt: Date | null }[]
+    /** the reader sees the files (`media.upload`): a Viewer gets no copy (D-72) */
+    mayReadFiles: boolean
+  },
 ): Promise<OutcomePreviewDto | null> {
+  const { post } = input
   const scope = { organizationId: post.organizationId, workspaceId: post.workspaceId }
-  // the checks as the person who scheduled it: a Viewer reading the page could not run them
-  const checker = (await publisherOf(tx, post)) ?? actor
-  let report, files
+  let report: RuleReport
+  let files: DestinationFiles[]
   try {
-    const input = toCheckInput(post, 'publish')
-    report = await checkPostInTx(tx, deps, checker, input)
-    files = await publishFilesOfPost(tx, deps, scope, input, report)
+    // the checks as the person who scheduled it: a Viewer reading the page could not run them
+    const checker = (await publisherOf(tx, post)) ?? input.actor
+    const check = toCheckInput(post, 'publish')
+    report = await checkPostInTx(tx, deps, checker, check)
+    files = await publishFilesOfPost(tx, deps, scope, check, report)
   } catch (error) {
-    if (error instanceof DomainError) return null
-    throw error
+    // the page of the outcome stays readable: only this part of it is missing
+    if (!(error instanceof DomainError))
+      deps.logger.error({ err: error, postId: post.id }, 'outcome preview not computed')
+    return null
   }
-  const wanted = distinctCopies(files)
-  const mediaIds = [...new Set(wanted.map((c) => c.mediaId))]
-  const copies = await tx.media.copiesOf(post.organizationId, mediaIds)
-  const ready = new Map(
-    copies.filter((c) => c.status === 'ready').map((c) => [copyKey(c), c] as const),
+  const views = new Map(
+    (await publishedFilesOf(tx, scope, distinctCopies(files))).map(
+      (v) => [copyKey(v.request), v] as const,
+    ),
   )
-  const originals = await tx.media.findManyInWorkspace(
-    post.organizationId,
-    post.workspaceId,
-    mediaIds,
-  )
-  const byId = new Map(originals.map((m) => [m.id, m]))
+  const all = [...views.values()]
   // every copy or none: a version made half of copies and half of originals would mislead
-  const gone = wanted.some((c) => !ready.has(copyKey(c)))
+  const copies = input.mayReadFiles && all.every((v) => v.copy !== null)
   const fileOf = (c: CopyRequest): OutcomeFileDto => {
-    const copy = gone ? undefined : ready.get(copyKey(c))
-    const original = byId.get(c.mediaId)
-    const kind = copy
-      ? copy.mime === 'video/mp4'
-        ? 'video'
-        : 'image'
-      : (original?.kind ?? 'image')
+    const v = views.get(copyKey(c))
+    const copy = copies ? (v?.copy ?? null) : null
+    const shown = copy ?? v?.original
     return {
       mediaId: c.mediaId,
-      kind: kind === 'video' ? 'video' : 'image',
+      kind: shown?.kind ?? 'image',
       copyId: copy?.id ?? null,
-      width: copy?.width ?? original?.width ?? null,
-      height: copy?.height ?? original?.height ?? null,
+      width: shown?.width ?? null,
+      height: shown?.height ?? null,
     }
   }
-  const out = new Set(accountIds)
+  const out = new Map(input.targets.map((t) => [t.accountId, t] as const))
   const versions = report.destinations.flatMap((d): OutcomeVersionDto[] => {
     const f = files.find((x) => x.accountId === d.accountId)
     if (!out.has(d.accountId) || !f || d.platform === null || d.format === null) return []
@@ -107,7 +116,7 @@ export async function outcomePreview(
         ? null
         : {
             mediaId: f.cover.mediaId,
-            copyId: gone ? null : (ready.get(copyKey(f.cover))?.id ?? null),
+            copyId: copies ? (views.get(copyKey(f.cover))?.copy?.id ?? null) : null,
             offsetMs: post.cover?.source === 'frame' ? post.cover.offsetMs : null,
           }
     return [
@@ -121,5 +130,10 @@ export async function outcomePreview(
       },
     ]
   })
-  return { originals: gone, versions }
+  // «the copies were taken away» only once something went out: before, they are on their way
+  const published = input.targets.some((t) => t.publishedAt !== null)
+  return {
+    originals: input.mayReadFiles && published && all.some((v) => v.copy === null),
+    versions,
+  }
 }
