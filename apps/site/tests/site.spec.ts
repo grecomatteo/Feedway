@@ -28,6 +28,22 @@ for (const path of PAGES) {
   })
 }
 
+test('the home page has no accessibility violations with the animations running', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.locator('#pubblicazione').scrollIntoViewIfNeeded()
+  await page.locator('footer').scrollIntoViewIfNeeded()
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    // mid-scroll, scrubbed elements are half faded in: contrast is checked in the final state above
+    .disableRules(['color-contrast'])
+    .analyze()
+  expect(
+    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`),
+  ).toEqual([])
+})
+
 test('every internal link and image of every page resolves', async ({ page, request }) => {
   const seen = new Set<string>()
   for (const path of PAGES) {
@@ -122,7 +138,9 @@ test('planned features carry the «In arrivo» mark, shipped ones do not', async
   await page.getByRole('tab', { name: 'Pubblica e verifica' }).click()
   await expect(page.getByRole('tabpanel')).toContainText('Feed, caroselli, reel e storie')
   await expect(page.getByRole('tabpanel')).not.toContainText('In arrivo')
-  await expect(page.locator('#cliente .soon-mark')).toHaveCount(3)
+  await expect(page.locator('#cliente .soon-mark')).toHaveCount(4)
+  await page.getByRole('tab', { name: 'Misura' }).click()
+  await expect(page.getByRole('heading', { name: /Il report del mese/ })).toContainText('In arrivo')
 })
 
 test('the product tabs move with the arrow keys', async ({ page }) => {
@@ -147,6 +165,8 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('.stage-fallback')).toBeVisible()
     await expect(page.getByText('4 confermate · 1 con problema')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Domande frequenti' })).toBeVisible()
+    await expect(page.getByRole('tabpanel')).toHaveCount(6)
+    await expect(page.getByText('Le attività dell’agenzia, accanto ai post')).toBeVisible()
   })
 
   test('an invalid request says what to fix, not that the service is down', async ({ page }) => {

@@ -200,7 +200,10 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export function webglAvailable(): boolean {
   try {
-    return Boolean(document.createElement('canvas').getContext('webgl2'))
+    const gl = document.createElement('canvas').getContext('webgl2')
+    // free the probe at once: browsers keep only a few contexts alive
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return Boolean(gl)
   } catch {
     return false
   }
@@ -321,7 +324,13 @@ export async function startHeroScene(o: Options): Promise<() => void> {
     // keep the whole arc in view on narrow screens
     camera.position.z = 9.2 * Math.max(1, 1.2 / camera.aspect)
     camera.updateProjectionMatrix()
+    // setSize clears the canvas: with «reduce motion» no loop draws it again
+    if (reduce) {
+      layout(performance.now())
+      renderer.render(scene, camera)
+    }
   }
+  steps[0]?.parentElement?.classList.add('dim')
   const sizes = new ResizeObserver(resize)
   sizes.observe(canvas)
   resize()
@@ -409,5 +418,7 @@ export async function startHeroScene(o: Options): Promise<() => void> {
       m.dispose()
     }
     renderer.dispose()
+    renderer.forceContextLoss()
+    steps[0]?.parentElement?.classList.remove('dim')
   }
 }

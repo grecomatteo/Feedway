@@ -16,12 +16,11 @@ export function startSectionMotion(root: HTMLElement): () => void {
     // Publication: the orange line follows the scroll and the steps light up.
     const timeline = q('.timeline')
     if (timeline) {
-      const bar = document.createElement('span')
-      bar.className = 'progress'
-      timeline.prepend(bar)
+      // a CSS variable drawn by ::after: an element inside the <ol> would break the list
+      gsap.set(timeline, { '--progress': 0 })
       const items = qa('.timeline li')
-      gsap.to(bar, {
-        scaleY: 1,
+      gsap.to(timeline, {
+        '--progress': 1,
         ease: 'none',
         scrollTrigger: {
           trigger: timeline,
@@ -36,7 +35,7 @@ export function startSectionMotion(root: HTMLElement): () => void {
         },
       })
       return () => {
-        bar.remove()
+        timeline.style.removeProperty('--progress')
       }
     }
     return undefined

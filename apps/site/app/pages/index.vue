@@ -22,6 +22,8 @@ interface Tab {
   text: string
   shot: string
   alt: string
+  /** The tab's main feature: while it has not shipped, the title carries «In arrivo». */
+  feature?: Feature
   items: Item[]
 }
 
@@ -32,6 +34,7 @@ const TABS: readonly Tab[] = [
     title: 'Il mese, scritto come su un’agenda',
     text: 'Decidi cosa esce e quando: il 10 il reel, il 12 il carosello del menu. Chi carica i file vede cosa manca e per quando, e con un clic il contenuto diventa un post già compilato.',
     shot: 'piano',
+    feature: 'editorialPlan',
     alt: 'Il piano editoriale di dicembre per Forno Luce.',
     items: [
       { text: 'Piano editoriale', feature: 'editorialPlan' },
@@ -71,6 +74,7 @@ const TABS: readonly Tab[] = [
     title: 'Le attività dell’agenzia, accanto ai post',
     text: 'Lo shooting di giovedì, i testi da scrivere, il report da mandare. Ogni attività ha una scadenza, le persone assegnate e il cliente a cui si riferisce.',
     shot: 'attivita',
+    feature: 'tasks',
     alt: 'L’elenco delle attività: una in ritardo, tre per oggi.',
     items: [
       { text: 'Ruoli per cliente' },
@@ -84,6 +88,7 @@ const TABS: readonly Tab[] = [
     title: 'Se qualcosa non va, lo sai subito',
     text: 'Un post non uscito o un profilo da ricollegare arrivano a chi deve sistemarli. Scegli tu cosa ricevere e le ore di silenzio; gli errori passano sempre.',
     shot: 'notifiche',
+    feature: 'notifications',
     alt: 'Le notifiche: un reel non uscito, una Pagina da ricollegare.',
     items: [
       { text: 'Nel pannello, per email e su Telegram', feature: 'notifications' },
@@ -97,6 +102,7 @@ const TABS: readonly Tab[] = [
     title: 'Il report del mese, pronto da mandare',
     text: 'Per ogni cliente i post pubblicati, le persone raggiunte, le interazioni e i post andati meglio. Lo scarichi con il tuo logo.',
     shot: 'statistiche',
+    feature: 'stats',
     alt: 'Le statistiche di novembre per Forno Luce.',
     items: [
       { text: 'Statistiche per cliente', feature: 'stats' },
@@ -226,15 +232,23 @@ const root = ref<HTMLElement>()
 const hero = ref<HTMLElement>()
 const canvas = ref<HTMLCanvasElement>()
 const noWebgl = ref(false)
+// without JavaScript every tab panel stays visible: the page is complete (ADR 023)
+const hydrated = ref(false)
 const stops: (() => void)[] = []
 let unmounted = false
 
 onMounted(async () => {
+  hydrated.value = true
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const [{ gsap, ScrollTrigger, startSectionMotion }, scene] = await Promise.all([
-    import('~/landing/motion'),
-    import('~/landing/hero-scene'),
-  ])
+  let modules
+  try {
+    modules = await Promise.all([import('~/landing/motion'), import('~/landing/hero-scene')])
+  } catch {
+    // a chunk that does not arrive leaves the still picture and the sections as they are
+    noWebgl.value = true
+    return
+  }
+  const [{ gsap, ScrollTrigger, startSectionMotion }, scene] = modules
   if (unmounted || !root.value || !hero.value || !canvas.value) return
   stops.push(startSectionMotion(root.value))
   if (!scene.webglAvailable()) {
@@ -379,10 +393,10 @@ onBeforeUnmount(() => {
           class="tab-panel"
           role="tabpanel"
           :aria-labelledby="`tab-${tab.id}`"
-          :hidden="active !== i"
+          :hidden="hydrated && active !== i"
         >
           <div class="tab-copy">
-            <h3>{{ tab.title }}</h3>
+            <h3>{{ tab.title }} <SoonMark v-if="tab.feature" :feature="tab.feature" /></h3>
             <p>{{ tab.text }}</p>
             <ul class="feat">
               <li v-for="item in tab.items" :key="item.text">
@@ -421,7 +435,9 @@ onBeforeUnmount(() => {
     <section id="cliente" class="section client" aria-labelledby="client-title">
       <div class="wrap client-grid">
         <div class="section-head">
-          <h2 id="client-title">Il tuo cliente ha il suo spazio. Con il tuo marchio.</h2>
+          <h2 id="client-title">
+            Il tuo cliente ha il suo spazio. Con il tuo marchio. <SoonMark feature="clientLink" />
+          </h2>
           <p class="lead">
             Vede il calendario, approva, carica le foto e legge il report del mese. Le vostre
             conversazioni interne non le vede mai.

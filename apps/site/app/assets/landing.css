@@ -426,7 +426,7 @@ main:not(.landing) {
 }
 
 .landing .timeline::before,
-.landing .timeline .progress {
+.landing .timeline::after {
   content: '';
   position: absolute;
   left: 3.625rem;
@@ -436,10 +436,10 @@ main:not(.landing) {
   background: var(--line);
 }
 
-.landing .timeline .progress {
+.landing .timeline::after {
   background: var(--orange);
   transform-origin: top;
-  transform: scaleY(0);
+  transform: scaleY(var(--progress, 0));
 }
 
 .landing .timeline li {
@@ -619,12 +619,12 @@ main:not(.landing) {
 .landing .steps li {
   display: flex;
   gap: 0.875rem;
-  opacity: 0.42;
   transition: opacity 300ms ease;
 }
 
-.landing .steps li.on {
-  opacity: 1;
+/* only the running scene dims the steps it has not reached yet */
+.landing .steps.dim li:not(.on) {
+  opacity: 0.42;
 }
 
 .landing .steps .num {
