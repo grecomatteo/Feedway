@@ -346,6 +346,28 @@ describe('saving by itself (Scelta 7)', () => {
     expect(s.state().status).toBe('conflict')
   })
 
+  test('a save refused with an answer (500, 429) is not lost: the next 409 is a conflict', async () => {
+    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+    const update = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('500'), { answered: true }))
+      .mockRejectedValueOnce(Object.assign(new Error('409'), { conflict: true, answered: true }))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+      isLost: (e) => (e as { answered?: boolean }).answered !== true,
+    })
+    set({ caption: { common: 'a' } }) // created, v1
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } }) // 500
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'abc' } }) // 409
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(recover).not.toHaveBeenCalled()
+    expect(s.state().status).toBe('conflict')
+  })
+
   test('flush saves at once (leaving the page, hiding the tab)', async () => {
     const { s, set, create } = saver()
     set({ caption: { common: 'a' } })

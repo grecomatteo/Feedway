@@ -262,13 +262,14 @@ export function usePostEditor(opts: {
         }),
       ),
     isConflict,
+    isLost: (e) => failure(e).status === 0,
     // a save of this tab whose answer was lost (slow network, D-120.1): the post saved by this
-    // person, at most that many versions ahead, is this tab's own; anyone else's is a conflict
-    recover: async (id, version, lost) => {
+    // person exactly one version ahead is this tab's own (the lost saves all carried the same
+    // version, so only one can have been written); anything else is a conflict
+    recover: async (id, version) => {
       const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
       const mine = org.me.value?.id
-      const ahead = now.version - version
-      return mine !== undefined && now.updatedBy === mine && ahead >= 1 && ahead <= lost
+      return mine !== undefined && now.updatedBy === mine && now.version === version + 1
         ? { id: now.id, version: now.version }
         : null
     },

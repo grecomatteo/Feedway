@@ -171,10 +171,13 @@ export interface AutosaveOptions {
   onState?: (state: SaveState) => void
   /** a 409 with `post_version_conflict` */
   isConflict?: (error: unknown) => boolean
+  /** a failure with no answer (the network): the save may have reached the server; all by default */
+  isLost?: (error: unknown) => boolean
   /**
    * After saves that failed with no answer, a 409 may be one of them that reached the server
-   * (D-120.1). Gets the post as it is now: its version when it is this person's own, at most
-   * `lost` saves ahead of `version`; null when someone else saved.
+   * (D-120.1). Gets the post as it is now: its version when it is this person's own, one save
+   * ahead of `version` (only one of the lost saves, all sent with `version`, can be written);
+   * null otherwise.
    */
   recover?: (postId: string, version: number, lost: number) => Promise<SavedPost | null>
   /** an existing post */
@@ -244,7 +247,7 @@ export function createAutosave(o: AutosaveOptions) {
       } catch (error) {
         const conflict = o.isConflict?.(error) ?? false
         const unread = error instanceof RecoverFailed
-        if (!conflict && !unread && state.postId !== null) lost++
+        if (!conflict && !unread && state.postId !== null && (o.isLost?.(error) ?? true)) lost++
         set({
           status: conflict ? 'conflict' : 'failed',
           dirty: true,
