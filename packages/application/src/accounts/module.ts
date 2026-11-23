@@ -15,5 +15,24 @@ export const accountsModule: ModuleDefinition = {
       recipients: ['scheduler', 'workspace_managers'],
       defaultChannels: ['panel'],
     },
+    // §12.2: «Token non valido, account non sano, promemoria Meta», to Owner and Admin
+    {
+      type: 'account.token_invalid',
+      level: 'critical',
+      recipients: ['org_admins'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+    },
+    {
+      type: 'account.unhealthy',
+      level: 'critical',
+      recipients: ['org_admins'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+    },
+    {
+      type: 'meta.reminder',
+      level: 'warning',
+      recipients: ['org_admins'],
+      defaultChannels: ['panel', 'telegram', 'email'],
+    },
   ],
 }

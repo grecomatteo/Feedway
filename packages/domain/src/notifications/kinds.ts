@@ -1,4 +1,4 @@
-import type { OutboxEventType } from '../publishing/events.js'
+import type { OutboxEventType } from './events.js'
 import type { Channel } from './channels.js'
 import type { Level } from './levels.js'
 import type { RecipientRule } from './recipients.js'

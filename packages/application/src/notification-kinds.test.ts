@@ -65,3 +65,19 @@ test('a paused destination goes to the Managers, in the panel and on Telegram', 
 test('a low Instagram quota goes to who scheduled on that account and the Managers, in the panel', () => {
   expect(deliveries('account.quota_low')).toEqual({ ada: ['panel'], bea: ['panel'] })
 })
+
+test('a token that stopped working, an account unwell and a Meta reminder go to Owner and Admin, everywhere', () => {
+  const everywhere = ['panel', 'telegram', 'email']
+  expect(deliveries('account.token_invalid')).toEqual({ carla: everywhere })
+  expect(deliveries('account.unhealthy')).toEqual({ carla: everywhere })
+  expect(deliveries('meta.reminder')).toEqual({ carla: everywhere })
+})
+
+test('a worker stopped or back goes to the platform administrators, on Telegram and by email', () => {
+  expect(deliveries('system.worker_down')).toEqual({ eva: ['telegram', 'email'] })
+  expect(deliveries('system.worker_up')).toEqual({ eva: ['telegram', 'email'] })
+})
+
+test('a failed backup goes to the platform administrators, everywhere', () => {
+  expect(deliveries('system.backup_failed')).toEqual({ eva: ['panel', 'telegram', 'email'] })
+})

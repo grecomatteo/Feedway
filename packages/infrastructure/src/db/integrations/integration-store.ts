@@ -26,6 +26,14 @@ const PARSERS: { [K in IntegrationKind]: (value: unknown) => IntegrationConfigs[
     const checked = checkMetaIntegrationConfig(value)
     return checked.ok ? checked.value : null
   },
+  telegram: (value) => {
+    const botUsername = (value as { botUsername?: unknown } | null)?.botUsername
+    // Telegram's own rule for a bot's username
+    return typeof botUsername === 'string' && /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(botUsername)
+      ? { botUsername }
+      : null
+  },
+  heartbeat: () => ({}),
 }
 
 /** Control characters are never part of a real password, token or app secret. */
@@ -81,10 +89,12 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
 
     async replacePlatform(tx, kind, replacement) {
       // host names compare in lower case; the parser refuses anything else that is off
-      const config = PARSERS[kind]({
-        ...replacement.config,
-        host: replacement.config.host.trim().toLowerCase(),
-      })
+      const raw: object = replacement.config
+      const config = PARSERS[kind](
+        'host' in raw && typeof raw.host === 'string'
+          ? { ...raw, host: raw.host.trim().toLowerCase() }
+          : raw,
+      )
       if (config === null)
         throw new DomainError('VALIDATION', 'Impostazioni dell’integrazione non valide')
       const { secret } = replacement

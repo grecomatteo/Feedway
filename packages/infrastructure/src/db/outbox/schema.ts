@@ -1,5 +1,5 @@
 import { OUTBOX_EVENT_TYPES } from '@app/domain'
-import { index, jsonb, pgTable, text, uuid, check } from 'drizzle-orm/pg-core'
+import { index, jsonb, pgTable, text, uuid, check, uniqueIndex } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { createdAt, inList, tz, updatedAt } from '../columns.js'
 import { organizations } from '../organizations/schema.js'
@@ -18,6 +18,9 @@ export const outboxEvents = pgTable(
     // ids and codes only (`OutboxPayload`)
     payload: jsonb('payload').notNull().default({}),
     dispatchedAt: tz('dispatched_at'),
+    // an event that must be written once only, whatever runs again (`meta.reminder`,
+    // `account.unhealthy`, plan 08 Task 4)
+    dedupeKey: text('dedupe_key'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -27,6 +30,9 @@ export const outboxEvents = pgTable(
       .on(t.createdAt)
       .where(sql`${t.dispatchedAt} is null`),
     index('outbox_events_organization_idx').on(t.organizationId, t.createdAt),
+    uniqueIndex('outbox_events_dedupe_idx')
+      .on(t.dedupeKey)
+      .where(sql`${t.dedupeKey} is not null`),
     check('outbox_events_type', inList('type', OUTBOX_EVENT_TYPES)),
   ],
 )
