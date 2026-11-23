@@ -21,6 +21,11 @@ const PERMISSIONS = [
     'instagram_content_publish',
     'pubblicare sull’account Instagram i post che l’agenzia ha programmato.',
   ],
+  ['pages_manage_engagement', 'facoltativo: caricare su Facebook la copertina scelta per un reel.'],
+  [
+    'pages_read_user_content',
+    'facoltativo: caricare su Facebook la copertina scelta per un reel (Meta lo chiede insieme al precedente).',
+  ],
 ] as const
 </script>
 
@@ -66,7 +71,8 @@ const PERMISSIONS = [
     </ul>
     <p>
       In tutti e due i casi puoi chiedere a noi la cancellazione dei dati che Feedway ha ricevuto da
-      Facebook o Instagram: ce ne occupiamo noi e avvisiamo l’agenzia.
+      Facebook o Instagram: riceviamo la richiesta, avvisiamo l’agenzia e cancelliamo i dati come
+      previsto dall’accordo con lei.
     </p>
 
     <h2 id="sito">Questo sito</h2>
@@ -89,23 +95,28 @@ const PERMISSIONS = [
       telefono, quanti clienti gestisci e un messaggio. Li usiamo solo per risponderti e organizzare
       la demo, su tua richiesta (art. 6.1.b del GDPR, misure precontrattuali). Nome, agenzia ed
       email servono per risponderti: senza, non possiamo farlo. Il sito non li salva: arrivano per
-      email e restano nella nostra casella per al massimo 12 mesi dall’ultimo contatto, poi si
-      cancellano. Non li usiamo per newsletter o pubblicità e non li diamo ad altri.
+      email, attraverso Cloudflare, nella nostra casella (<LegalValue
+        :value="LEGAL.mailboxProvider"
+        fallback="un servizio di posta"
+      />) e ci restano al massimo 12 mesi dall’ultimo contatto, poi li cancelliamo. Non li usiamo
+      per newsletter o pubblicità e non li diamo ad altri.
     </p>
 
     <h2 id="account">Chi usa Feedway</h2>
     <p>
       Feedway non ha una registrazione libera: le persone di un’agenzia entrano su invito. Per ogni
       persona trattiamo nome, soprannome e foto se li aggiunge, email, password (conservata solo
-      come impronta cifrata) o passkey, secondo fattore, i dispositivi e le sessioni con cui accede
-      (indirizzo IP e browser) e le azioni che fa nel pannello, che finiscono nel registro attività
-      dell’agenzia.
+      come impronta, mai in chiaro) o passkey, secondo fattore, i dispositivi e le sessioni con cui
+      accede (indirizzo IP e browser) e le azioni che fa nel pannello, che finiscono nel registro
+      attività dell’agenzia.
     </p>
     <p>
-      Servono a dare il servizio all’agenzia (art. 6.1.b del GDPR) e a proteggere gli account e i
-      dati dei clienti, per esempio bloccando un accesso sospetto (nostro legittimo interesse, art.
-      6.1.f). Senza email e credenziali non si può accedere. Ogni persona può scaricare i propri
-      dati e chiedere la chiusura del proprio account.
+      Servono a dare il servizio che l’agenzia ci ha chiesto: per il contratto con l’agenzia (art.
+      6.1.b del GDPR) e, per le persone che l’agenzia invita, per il nostro legittimo interesse a
+      dare loro l’accesso che l’agenzia ha chiesto (art. 6.1.f). Servono anche a proteggere gli
+      account e i dati dei clienti, per esempio bloccando un accesso sospetto (nostro legittimo
+      interesse, art. 6.1.f). Senza email e credenziali non si può accedere. Ogni persona può
+      scaricare i propri dati e chiedere la chiusura del proprio account.
     </p>
 
     <h2 id="meta">I dati di Facebook e Instagram</h2>
@@ -115,12 +126,12 @@ const PERMISSIONS = [
       che l’agenzia gestisce. Si collega a Meta solo con le API ufficiali e solo con i permessi che
       chi collega l’account concede.
     </p>
-    <p>Dai prodotti di Meta Feedway riceve e conserva soltanto:</p>
+    <p>Dai prodotti di Meta Feedway conserva soltanto:</p>
     <ul>
       <li>
         il <strong>codice di accesso</strong> (token) che Meta rilascia quando colleghi una Pagina o
-        un account, conservato cifrato, mai mostrato e usato solo per pubblicare e controllare i
-        post;
+        un account, conservato cifrato, mai mostrato e usato solo per pubblicare i post, controllare
+        che siano usciti e tenere aggiornato lo stato degli account collegati;
       </li>
       <li>
         l’<strong>identificativo, il nome, il nome utente e la foto del profilo</strong> delle
@@ -143,6 +154,10 @@ const PERMISSIONS = [
         Meta indica, per avvisare quando un account va ricollegato o è vicino al limite.
       </li>
     </ul>
+    <p>
+      Per controllare che un post sia uscito davvero, Feedway legge anche gli ultimi post
+      dell’account (testo, data e link) e li confronta con quello pubblicato: non li conserva.
+    </p>
     <p>Ogni permesso che Feedway chiede a Meta serve a una cosa sola:</p>
     <dl class="legal-permissions">
       <div v-for="[name, use] in PERMISSIONS" :key="name">
@@ -176,17 +191,14 @@ const PERMISSIONS = [
         nostro responsabile del trattamento;
       </li>
       <li>
-        le copie di sicurezza:
-        <LegalValue
-          :value="LEGAL.backupProvider"
-          fallback="un servizio di archiviazione, con accesso riservato"
-        />;
-      </li>
-      <li>
         le email del pannello (inviti, avvisi):
         <LegalValue :value="LEGAL.emailProvider" fallback="un servizio di invio email" />;
       </li>
-      <li>Cloudflare, che ospita questo sito;</li>
+      <li>Cloudflare, che ospita questo sito e consegna le richieste del modulo;</li>
+      <li>
+        la casella che riceve le richieste di demo e le email sulla privacy:
+        <LegalValue :value="LEGAL.mailboxProvider" fallback="un servizio di posta" />;
+      </li>
       <li>
         Tailscale, la rete privata da cui le persone dell’agenzia raggiungono il pannello e da cui
         Meta scarica le copie da pubblicare;
@@ -197,17 +209,19 @@ const PERMISSIONS = [
       </li>
     </ul>
     <p>
-      Cloudflare, Tailscale e Meta possono trattare dati negli Stati Uniti. Avviene con il Data
-      Privacy Framework UE–USA o con le clausole contrattuali tipo approvate dalla Commissione
-      europea. Puoi chiederne una copia scrivendo a <LegalEmail />.
+      Cloudflare, Google, Oracle, Tailscale e Meta possono trattare dati negli Stati Uniti. Avviene
+      con la decisione di adeguatezza della Commissione europea sul Data Privacy Framework UE–USA,
+      per chi vi aderisce, o con le clausole contrattuali tipo approvate dalla Commissione (artt. 45
+      e 46 del GDPR). Puoi chiederne una copia scrivendo a <LegalEmail />.
     </p>
 
     <h2 id="conservazione">Per quanto li conserviamo</h2>
     <ul>
       <li>
-        Codici di accesso e dati delle Pagine e degli account: finché l’account resta collegato a
-        Feedway. Si cancellano entro 30 giorni da quando l’agenzia lo scollega o tu ne chiedi la
-        cancellazione.
+        Codici di accesso e dati delle Pagine e degli account: finché l’agenzia li usa in Feedway.
+        Se l’accesso viene tolto, da Facebook o da chi l’aveva dato, l’account resta in Feedway come
+        inattivo e non può più pubblicare, finché tu o l’agenzia non ne chiedete la cancellazione:
+        allora lo cancelliamo entro 30 giorni.
       </li>
       <li>
         Foto e video: finché l’agenzia li tiene in Feedway. Le copie preparate per Meta si
@@ -218,9 +232,25 @@ const PERMISSIONS = [
         lavoro svolto.
       </li>
       <li>
-        Account delle persone: finché la persona fa parte di un’agenzia. Le sessioni scadute si
-        cancellano dopo 30 giorni, i dispositivi dopo 12 mesi senza uso; nel registro attività
-        l’indirizzo IP si accorcia dopo 90 giorni e il registro si tiene 24 mesi.
+        Account delle persone: finché non vengono eliminati. Con «Elimina il mio account», o su
+        richiesta a noi se non puoi più accedere, nome, email, foto e credenziali si cancellano
+        subito e al loro posto resta «Utente rimosso». Se un’agenzia ti toglie, perdi l’accesso a
+        quell’agenzia, ma l’account resta finché non lo elimini. Un account bloccato da noi si
+        cancella allo stesso modo dopo 24 mesi, e le agenzie lo sanno 30 giorni prima.
+      </li>
+      <li>
+        Sessioni scadute: cancellate dopo 30 giorni. Dispositivi da cui si accede: cancellati dopo
+        12 mesi senza uso.
+      </li>
+      <li>
+        Registro attività dell’agenzia: resta finché l’agenzia usa Feedway, perché serve a
+        ricostruire chi ha fatto cosa. Dopo 90 giorni l’indirizzo IP delle voci si accorcia, così
+        non indica più un singolo dispositivo, e chi ha eliminato il proprio account compare come
+        «Utente rimosso».
+      </li>
+      <li>
+        Quando un’agenzia smette di usare Feedway, cancelliamo i suoi dati come previsto
+        dall’accordo con lei.
       </li>
       <li>Richieste di demo: al massimo 12 mesi dall’ultimo contatto.</li>
     </ul>
@@ -251,14 +281,31 @@ const PERMISSIONS = [
 
     <h2 id="diritti">I tuoi diritti</h2>
     <p>
-      Puoi chiedere di vedere i tuoi dati, correggerli, cancellarli, limitarne l’uso, opporti al
-      trattamento e riceverli in un formato leggibile (artt. 15–22 del GDPR), scrivendo a
-      <LegalEmail />. Rispondiamo entro 30 giorni. Non trattiamo dati sulla base del consenso,
-      quindi non c’è un consenso da revocare. Se pensi che i tuoi dati siano trattati in modo
-      scorretto puoi fare reclamo al
+      Puoi chiedere di vedere i tuoi dati, correggerli, cancellarli, limitarne l’uso e riceverli in
+      un formato leggibile (artt. 15–20 del GDPR), scrivendo a <LegalEmail />.
+    </p>
+    <p>
+      <strong
+        >Puoi anche opporti in qualsiasi momento ai trattamenti basati sul nostro legittimo
+        interesse</strong
+      >
+      (art. 21 del GDPR): ci fermiamo, a meno che ci siano motivi legittimi più forti dei tuoi
+      interessi o servano per difendere un diritto in giudizio.
+    </p>
+    <p>
+      Rispondiamo entro un mese dalla richiesta. Se la richiesta è complessa possiamo prendere altri
+      due mesi, e in quel caso te lo diciamo entro il primo mese con il motivo (art. 12 del GDPR).
+      La risposta è gratuita. Se non siamo sicuri di chi sei, possiamo chiederti di dimostrarlo
+      prima di rispondere. Per i dati che trattiamo per conto di un’agenzia giriamo la richiesta
+      all’agenzia e la aiutiamo a risponderti.
+    </p>
+    <p>
+      Non trattiamo dati sulla base del consenso, quindi non c’è un consenso da revocare. Se pensi
+      che i tuoi dati siano trattati in modo scorretto puoi fare reclamo al
       <a href="https://www.garanteprivacy.it/" rel="noopener"
         >Garante per la protezione dei dati personali</a
-      >.
+      >
+      o all’autorità di controllo del Paese dell’Unione in cui vivi o lavori (art. 77 del GDPR).
     </p>
 
     <h2 id="modifiche">Modifiche</h2>

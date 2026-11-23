@@ -12,7 +12,7 @@ I passi segnati **(non verificato)** sono scritti dalla documentazione di Cloudf
    - `privacyEmail`: l'indirizzo che riceve le richieste sulla privacy e sulla cancellazione;
    - facoltativi (finché mancano, le pagine usano una frase generica e la pubblicazione non si ferma):
    - `hostingProvider`: chi ospita il server del pannello e dove (per esempio «Hetzner Online GmbH, Germania»);
-   - `backupProvider`: dove vanno le copie di sicurezza (per esempio «Google Drive, copie cifrate»);
+   - `mailboxProvider`: la casella che riceve le richieste della demo e le email sulla privacy (per esempio «Gmail (Google Ireland Ltd.)»);
    - `emailProvider`: chi manda le email del pannello (il servizio SMTP);
    - `court`: il foro per i termini, per esempio «di Bologna»;
    - `updatedOn`: la data di oggi.
