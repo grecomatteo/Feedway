@@ -74,6 +74,11 @@ export function handlerDeps(
     },
     connectors: { meta_system_user: connector, meta_business_login: connector },
     connectionTokens: runtime.connectionTokens,
+    // a Graph version far from its retirement: only the reminders a test sets up are written
+    metaReminders: {
+      integrations: runtime.integrations,
+      graph: { version: 'v24.0', sunset: '2099-12-31' },
+    },
     publishing: {
       publishers: runtime.publishers,
       platformRules: runtime.platformRules,

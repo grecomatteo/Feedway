@@ -123,6 +123,7 @@ export type {
   NewNotification,
   NotificationPrefsRepository,
   NotificationsRepository,
+  TelegramLinksRepository,
 } from './ports/notifications.js'
 export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'

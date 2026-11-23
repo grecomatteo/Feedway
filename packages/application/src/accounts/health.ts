@@ -1,6 +1,7 @@
 import {
   can,
   connectionNeedsRefresh,
+  healthWorsened,
   DomainError,
   type ConnectionStatus,
   type OrgActor,
@@ -244,6 +245,13 @@ async function endConnection(
   const done = await deps.uow.run(scopeOf(job), async (tx) => {
     if (!(await lockSame(tx, opened))) return false
     await tx.connections.setStatus(organizationId, connectionId, status)
+    // one event for the connection: its accounts turn red with it, not one event each (§12.2).
+    // lockSame let it through only while it worked, so it is written once per change.
+    await tx.outbox.record({
+      organizationId,
+      type: 'account.token_invalid',
+      payload: { connectionId, status },
+    })
     for (const account of opened.accounts)
       await tx.accounts.setHealth(organizationId, connectionId, account.id, {
         health: 'error',
@@ -342,6 +350,11 @@ export async function checkConnectionHealth(
   const { organizationId, connectionId } = job
   const written = await deps.uow.run(scopeOf(job), async (tx) => {
     if (!(await lockSame(tx, opened))) return null
+    // the health as it is now, under the connection's lock: what a sync or another check wrote
+    // while Meta answered is what this check is compared with (plan 08 Task 4)
+    const before = new Map(
+      (await tx.accounts.listOwnedBy(organizationId, connectionId)).map((a) => [a.id, a.health]),
+    )
     let checked = 0
     for (const account of opened.accounts) {
       const report = reports.get(keyOf(account))
@@ -353,6 +366,19 @@ export async function checkConnectionHealth(
         at,
       })
       checked += 1
+      // only when it turns worse, not at every check that finds it still ill
+      if (healthWorsened(before.get(account.id) ?? null, report.health))
+        await tx.outbox.record({
+          organizationId,
+          type: 'account.unhealthy',
+          payload: {
+            accountId: account.id,
+            connectionId,
+            health: report.health,
+            problem: report.problem,
+          },
+          dedupeKey: `${account.id}:${report.health}:${at.toISOString()}`,
+        })
     }
     await tx.connections.recordUsage(organizationId, connectionId, check.usage)
     return checked

@@ -49,6 +49,7 @@ export { PENDING_CONNECTION_MAX_AGE_MS, runAccountsDaily } from './daily.js'
 export type { AccountsDailyDeps, AccountsDailyReport } from './daily.js'
 export type { AccountJobsDeps, ConnectionJob, JobOutcome, SyncRequestDeps } from './health.js'
 export { listMetaReminders } from './reminders.js'
+export type { MetaReminderSources } from './reminders.js'
 export {
   accountAvatarJobKey,
   queueAccountAvatars,

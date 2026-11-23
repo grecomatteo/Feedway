@@ -85,7 +85,12 @@ export type {
 export { anonymizeUser, deleteMyAccount, ownedAgencyName } from './delete-account.js'
 export type { AnonymizeDeps } from './delete-account.js'
 export { identityModule } from './module.js'
-export type { AnonymizationSource, UserAnonymizedEvent, UserAnonymizedHandler } from './module.js'
+export type {
+  AnonymizationSource,
+  UserAnonymizedDeps,
+  UserAnonymizedEvent,
+  UserAnonymizedHandler,
+} from './module.js'
 export { runRetention, sendAnonymizationNotice } from './retention.js'
 export type { AnonymizationNoticeDeps, RetentionDeps, RetentionReport } from './retention.js'
 export { getPrivacyNotice } from './privacy-notice.js'

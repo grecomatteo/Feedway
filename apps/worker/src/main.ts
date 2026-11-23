@@ -54,6 +54,10 @@ async function main(): Promise<void> {
       },
       connectors: runtime.connectors,
       connectionTokens: runtime.connectionTokens,
+      metaReminders: {
+        integrations: runtime.integrations,
+        graph: { version: config.metaGraphVersion, sunset: config.metaGraphVersionSunset },
+      },
       images: createAvatarProcessor(),
       publishing: {
         publishers: runtime.publishers,

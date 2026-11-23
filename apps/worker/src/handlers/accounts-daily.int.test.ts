@@ -133,3 +133,58 @@ test('abandoned new connections and expired attempts go; a reconnected one is sy
   )
   expect(attempts.rows).toHaveLength(0)
 })
+
+test('the Meta reminders: one meta.reminder per reminder and due date, not again the next day', async () => {
+  const a = await agency(tdb, runtime)
+  const DAY = 86_400_000
+  const now = Date.now()
+  const expiring = await connection(runtime, a, {
+    externalUserId: 'su-expiring',
+    accounts: FORNO_LUCE,
+    expiresAt: new Date(now + 3 * DAY),
+  })
+  await connection(runtime, a, { externalUserId: 'su-gone', status: 'revoked' })
+  const sunset = new Date(now + 30 * DAY).toISOString().slice(0, 10)
+  const on = (at: number) =>
+    accountsDaily(
+      { id: 'giro', data: {} },
+      {
+        ...handlerDeps(runtime),
+        clock: { now: () => new Date(at) },
+        metaReminders: {
+          integrations: runtime.integrations,
+          graph: { version: 'v24.0', sunset },
+        },
+      },
+    )
+
+  await on(now)
+  await on(now + DAY)
+
+  const { rows } = await admin.query<{ payload: Record<string, unknown>; dedupe_key: string }>(
+    `select payload, dedupe_key from outbox_events
+      where organization_id = $1 and type = 'meta.reminder' order by payload->>'reminder'`,
+    [a.organizationId],
+  )
+  // the revoked access is not reminded: `account.token_invalid` told it when it happened
+  expect(rows).toEqual([
+    {
+      payload: {
+        reminder: 'graph_version_sunset',
+        version: 'v24.0',
+        dueOn: sunset,
+        // counted on the panel's calendar, 29 or 30 around midnight
+        daysLeft: expect.any(Number) as unknown,
+      },
+      dedupe_key: `${a.organizationId}:graph_version_sunset:${sunset}`,
+    },
+    {
+      payload: {
+        reminder: 'token_expiring',
+        connectionId: expiring.id,
+        expiresAt: expect.any(String) as unknown,
+      },
+      dedupe_key: expect.stringMatching(new RegExp(`^${expiring.id}:token_expiring:`)) as unknown,
+    },
+  ])
+})

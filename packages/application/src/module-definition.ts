@@ -6,6 +6,7 @@ import type {
 } from '@app/domain'
 import type { QueueName } from './ports/job-queue.js'
 import type { Tx } from './ports/tx.js'
+import type { UnitOfWork } from './ports/unit-of-work.js'
 
 /** Who removed the person: themselves from the panel, or the platform (CLI, retention). */
 export type AnonymizationSource = 'panel' | 'system'
@@ -15,12 +16,20 @@ export interface UserAnonymizedEvent {
   source: AnonymizationSource
 }
 
+/** What an anonymization handler works with: the composition root's unit of work. */
+export interface UserAnonymizedDeps {
+  uow: UnitOfWork
+}
+
 /**
  * Called after a person is anonymized, by every module that keeps personal data of its own
- * (stage 8 adds the Telegram links). It must be repeatable: an interrupted anonymization runs
- * every handler again.
+ * (the notifications' Telegram links, preferences and rows). It must be repeatable: an
+ * interrupted anonymization runs every handler again.
  */
-export type UserAnonymizedHandler = (event: UserAnonymizedEvent) => Promise<void>
+export type UserAnonymizedHandler = (
+  event: UserAnonymizedEvent,
+  deps: UserAnonymizedDeps,
+) => Promise<void>
 
 /**
  * A kind of notification a module registers for an outbox event it writes (§7.3, §12.1 punto 5):
