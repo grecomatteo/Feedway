@@ -26,3 +26,4 @@ Ogni decisione importante ha una scheda: contesto, decisione, alternative scarta
 | [020](020-accesso-unificato-meta.md) | Accesso unificato di Meta al posto dei login Facebook e Instagram (modifica alcuni punti di ADR 015 e 019) | Proposta |
 | [021](021-storage-a-oggetti-e-caricamento-a-pezzi.md) | Storage a oggetti (client S3) e caricamento a pezzi: protocollo, pezzi sul disco del web, conversioni a turno tra le agenzie (completa ADR 008) | Accettata (Matteo, 2026-11-13) |
 | [022](022-app-meta-in-live.md) | App Meta in Live con accesso standard; l'accesso avanzato prima del primo cliente vero (sostituisce un punto di ADR 015) | Proposta |
+| [023](023-animazioni-della-landing.md) | Animazioni della landing con GSAP e three.js, impacchettate nel sito e caricate solo sulla pagina iniziale | Proposta |
