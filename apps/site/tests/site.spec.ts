@@ -108,24 +108,46 @@ test('the demo form shows the confirmation after a send the function accepts', a
   await expect(page.locator('#inviata')).toBeFocused()
 })
 
-test('the publication moment ends with four confirmed and one not published', async ({ page }) => {
+test('the publication outcomes show four confirmed and one with a problem', async ({ page }) => {
   await page.goto('/')
   await page.locator('#pubblicazione').scrollIntoViewIfNeeded()
-  await expect(page.getByText('4 confermati · 1 non uscito')).toBeVisible({ timeout: 8000 })
+  await expect(page.getByText('4 confermate · 1 con problema')).toBeVisible()
   await expect(page.locator('[data-status="failed"]')).toHaveCount(1)
+  await expect(page.locator('[data-status="confirmed"]')).toHaveCount(8)
 })
 
 test('planned features carry the «In arrivo» mark, shipped ones do not', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('tab', { name: /^Pianifica/ })).toContainText('In arrivo')
-  await expect(page.getByRole('tab', { name: /^Prepara/ })).not.toContainText('In arrivo')
-  await page.getByRole('tab', { name: /^Prepara/ }).click()
-  await expect(page.getByRole('tabpanel')).toContainText('Un post per più profili')
-  await expect(page.locator('#cliente .soon-mark')).toHaveCount(2)
+  await expect(page.getByRole('tabpanel')).toContainText('In arrivo')
+  await page.getByRole('tab', { name: 'Pubblica e verifica' }).click()
+  await expect(page.getByRole('tabpanel')).toContainText('Feed, caroselli, reel e storie')
+  await expect(page.getByRole('tabpanel')).not.toContainText('In arrivo')
+  await expect(page.locator('#cliente .soon-mark')).toHaveCount(3)
+})
+
+test('the product tabs move with the arrow keys', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'Pianifica' }).click()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('tab', { name: 'Produci' })).toBeFocused()
+  await expect(page.getByRole('tab', { name: 'Produci' })).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('End')
+  await expect(page.getByRole('tab', { name: 'Misura' })).toBeFocused()
+  await expect(page.getByRole('tabpanel')).toContainText('Il report del mese')
 })
 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false })
+
+  test('the home page is complete without the animations', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Tutta la tua agenzia, in un solo posto.',
+    )
+    await expect(page.locator('.stage-fallback')).toBeVisible()
+    await expect(page.getByText('4 confermate · 1 con problema')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Domande frequenti' })).toBeVisible()
+  })
 
   test('an invalid request says what to fix, not that the service is down', async ({ page }) => {
     await page.goto('/richiedi-una-demo/da-correggere/')
