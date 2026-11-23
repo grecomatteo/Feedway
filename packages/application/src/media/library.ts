@@ -26,6 +26,7 @@ import type { Storage, StoredObject, StoredRange } from '../ports/storage.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { assertActiveOrganization, currentActor, workspaceNotFound } from '../workspaces/index.js'
+import { PUBLISH_PURPOSES } from './publish-copies.js'
 
 // The files of a workspace (spec §11.1, §11.8; plan 04 Task 8). Using the library takes
 // `media.upload`, Editor and above (§10.2): for a Viewer, as for someone without a role in the
@@ -488,6 +489,33 @@ export async function readMediaFile(
   })
   if (!variant || !SERVED_TYPES.includes(variant.mime)) return null
   return readCopy(deps.storage, variant, input.range)
+}
+
+/**
+ * A copy made to publish (plan 08 Task 10), by its id among the copies of the file: what the
+ * page of the outcome shows of a destination. null as for `readMediaFile`, and for a copy not
+ * ready or already thrown away.
+ */
+export async function readMediaCopy(
+  deps: { uow: UnitOfWork; storage: Storage },
+  actor: OrgActor,
+  input: { workspaceId: string; mediaId: string; copyId: string; range: ByteRange | null },
+): Promise<MediaFile | null> {
+  const { organizationId } = actor
+  const copy = await deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const { workspace } = await openLibrary(tx, actor, input.workspaceId)
+    if (!isUuid(input.mediaId) || !isUuid(input.copyId)) return null
+    const found = await tx.media.findById(organizationId, input.mediaId)
+    if (found?.workspaceId !== workspace.id || found.status === 'deleted') return null
+    const copies = await tx.media.copiesOf(organizationId, [found.id])
+    return (
+      copies.find(
+        (c) => c.id === input.copyId && c.status === 'ready' && PUBLISH_PURPOSES.has(c.purpose),
+      ) ?? null
+    )
+  })
+  if (!copy || !SERVED_TYPES.includes(copy.mime)) return null
+  return readCopy(deps.storage, copy, input.range)
 }
 
 /** A stored copy, whole or the byte range asked; null when its file is gone from the storage. */
