@@ -970,7 +970,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 2. Il dispatcher decide **chi** riceve (autore, Manager dello spazio, Admin, Owner) e su **quali canali**, secondo le preferenze.
 3. Un lavoro `notify.deliver` per ogni destinatario e canale, con tentativi automatici; ogni invio è registrato (canale, esito, errore).
 4. I canali implementano un'unica interfaccia `NotificationChannel`: aggiungerne uno non tocca il resto. Il prossimo è la notifica push della PWA; Slack, Discord e WhatsApp sono esclusi per ora (deciso il 2026-10-29, §18.8).
-5. I tipi di evento sono registrati da ogni modulo (§7.3) con livello, destinatari e testi: le attività della versione 1.5 useranno lo stesso centro notifiche, le stesse email e lo stesso bot.
+5. I tipi di evento sono registrati da ogni modulo (§7.3) con livello, destinatari e canali predefiniti (`notificationKinds` in `module.ts`): le attività della versione 1.5 useranno lo stesso centro notifiche, le stesse email e lo stesso bot. Il **testo non è nell'evento**, il cui `payload` resta di soli id e codici: il canale costruisce il messaggio all'invio, con i dati di adesso letti dentro `uow.run({ organizationId, userId })` del destinatario, e un post cancellato nel frattempo dà un messaggio corto senza il testo (piano 08, P3).
 
 ### 12.2 Eventi
 
@@ -996,7 +996,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
 - **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Impostazioni" → "Il tuo account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
 - **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
-- **Preferenze per utente**: canali e livello minimo per ogni tipo di evento; "tutto ovunque" per i test.
+- **Preferenze per utente**: i canali di ogni tipo di evento, salvati (`notification_prefs`) solo per i tipi dove la persona ha cambiato qualcosa: senza riga valgono i canali predefiniti di §12.2, che così cambiano con il codice senza migrazioni (piano 08, P4); nessun canale spegne il tipo. Un livello minimo per persona, sotto il quale la notifica resta nel pannello; "tutto ovunque" per i test. Livello minimo, ore di silenzio, ora e giorni del riepilogo stanno in `notification_settings`, una riga per persona.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
 - **Raggruppamento**: più eventi simili nello stesso minuto diventano un solo messaggio con l'elenco.
 
@@ -1157,27 +1157,41 @@ plan_items          id, workspace_id, local_date, local_time (facoltativa),
 
 -- Notifiche e condivisione
 outbox_events       id, organization_id (null = piattaforma), type, payload (jsonb),
-                    created_at, dispatched_at
+                    dedupe_key (unico dove c'è), created_at, dispatched_at
                     -- payload: solo id e codici; un evento della piattaforma lo legge solo il
-                    -- sistema; indice parziale sugli eventi da mandare (dispatched_at null)
-notifications       id, user_id, event_id, kind, level, workspace_id, payload (jsonb), read_at
-notification_deliveries id, notification_id, channel (panel|telegram|email),
-                    status (pending|sent|failed), attempts, error, sent_at
-notification_prefs  user_id, event_kind, channels, min_level, quiet_hours (jsonb)
+                    -- sistema; indice parziale sugli eventi da mandare (dispatched_at null);
+                    -- la stessa dedupe_key non si scrive due volte (meta.reminder,
+                    -- account.unhealthy)
+notifications       id, organization_id (null = piattaforma), user_id, event_id (unico con
+                    user_id), kind, level, workspace_id, payload (jsonb), read_at
+notification_deliveries id, organization_id, user_id, notification_id, kind,
+                    channel (panel|telegram|email), status (pending|sending|sent|failed|
+                    skipped), attempts, next_attempt_at, claimed_until, error, sent_at
+                    -- una riga per canale; il lavoro di consegna prende il gruppo con
+                    -- FOR UPDATE SKIP LOCKED (piano 08, P1)
+notification_prefs  user_id, kind, channels   (una riga solo dove la persona ha cambiato
+                    qualcosa; senza, i canali predefiniti di §12.2; piano 08, P4)
+notification_settings user_id (PK), min_level, quiet_start, quiet_end, digest_enabled,
+                    digest_time, digest_days, everything_everywhere
 telegram_links      organization_id (null = bot della piattaforma), user_id, chat_id,
                     linked_at, link_code_hash, link_code_expires_at
+                    -- notifiche, consegne e collegamenti: con l'ambito della persona solo le
+                    -- sue righe delle agenzie in cui è membro attiva (piano 08, P6)
 share_links         id, workspace_id, token_hash, label, created_by, options (jsonb),
                     password_hash, expires_at, revoked_at, last_viewed_at, view_count
 
 -- Sistema
 integrations        organization_id (null = predefinita della piattaforma; smtp solo
                     della piattaforma, ADR 017), kind (meta|telegram|smtp|heartbeat),
-                    config (jsonb), secret_enc, key_version, updated_by, verified_at
+                    config (jsonb), secret_enc, key_version, updated_by, verified_at,
+                    state (jsonb, senza segreti: offset di Telegram, ultimo esito del
+                    battito esterno); heartbeat solo della piattaforma
 branding            organization_id (PK, una riga per agenzia), logo_key,
                     updated_by; primary_color, email_footer e il branding della
                     piattaforma arrivano con la tappa 10 (piano 04, M1)
 settings            key, value (jsonb), updated_by   (solo piattaforma)
-system_heartbeats   process, instance, last_beat_at, details (jsonb)   (solo piattaforma)
+system_heartbeats   process, instance, last_beat_at, details (jsonb)   (solo piattaforma,
+                    senza RLS come settings)
 audit_log           id, organization_id (null = piattaforma), actor_id,
                     source (panel|api|mcp|system), action, entity,
                     entity_id, workspace_id, ip, data (jsonb), created_at
@@ -1523,7 +1537,7 @@ Conversioni video: una alla volta, `nice`, ffmpeg su due thread per l'anteprima 
 | Accessibilità | axe-core sulle schermate principali |
 | Sicurezza | CodeQL, gitleaks, `pnpm audit` |
 | Immagine | Build, Trivy, pubblicazione su GHCR (solo `main`) |
-| Sito | Dalla tappa 10: build statica, axe e collegamenti a ogni PR (controllo obbligatorio `site`); anteprima per la PR e pubblicazione su Cloudflare Pages da `main` in un workflow a parte, solo quando cambiano `apps/site` o `packages/ui` |
+| Sito | Dal 23/11 (anticipato dalla tappa 10, D-119 e D-122): build statica, axe, collegamenti, nessun cookie e nessun altro host, modulo della demo (controllo `site`, solo quando cambiano `apps/site`, `packages/ui` o `packages/config`; obbligatorio quando Matteo lo aggiunge al ruleset); pubblicazione su Cloudflare Pages da `main` nel workflow `site-deploy.yml`. Le anteprime per la PR restano da fare |
 
 ### 17.3 Piano di test
 

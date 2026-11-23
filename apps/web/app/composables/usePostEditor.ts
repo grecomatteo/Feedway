@@ -857,16 +857,6 @@ export function usePostEditor(opts: {
     caption,
     split,
     destinations,
-    /**
-     * The platforms of the accounts ticked, known in the browser at once: what depends only on
-     * them (the cover's sentence for Facebook) does not wait for the checks (D-120.8).
-     */
-    platforms: computed(() => {
-      const byId = new Map(
-        opts.profiles.value.flatMap((p) => p.accounts).map((a) => [a.id, a.platform] as const),
-      )
-      return new Set(destinations.value.flatMap((id) => byId.get(id) ?? []))
-    }),
     when,
     mode,
     /** «Programma» · «Pubblica subito»: the checks change with it */

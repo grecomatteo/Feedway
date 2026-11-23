@@ -372,6 +372,7 @@ const connectionColumns = {
   lastRefreshedAt: accountConnections.lastRefreshedAt,
   lastUsage: accountConnections.lastUsage,
   businessName: accountConnections.businessName,
+  scopes: accountConnections.scopes,
   createdAt: accountConnections.createdAt,
   updatedAt: accountConnections.updatedAt,
 }
@@ -449,6 +450,7 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
           status: token.status,
           lastRefreshedAt: token.at,
           ...(token.businessName !== undefined && { businessName: token.businessName }),
+          ...(token.scopes !== undefined && { scopes: token.scopes }),
         })
         .where(connectionKey(organizationId, id))
         .returning({ id: accountConnections.id })
@@ -469,6 +471,9 @@ export function drizzleConnections(db: DbExecutor): ConnectionsRepository {
         .where(connectionKey(organizationId, id))
         .returning({ id: accountConnections.id })
       return rows.length > 0
+    },
+    async setScopes(organizationId, id, scopes) {
+      await db.update(accountConnections).set({ scopes }).where(connectionKey(organizationId, id))
     },
     async recordUsage(organizationId, id, usage) {
       await db

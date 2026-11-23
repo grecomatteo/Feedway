@@ -22,6 +22,9 @@ export const integrations = pgTable(
     verifiedAt: tz('verified_at'),
     // the platform refused these settings (a test, or a job's call): until a save or a test works
     rejectedAt: tz('rejected_at'),
+    // what the jobs keep between runs, never a secret: the `getUpdates` offset of a Telegram
+    // bot, the last outcome of `heartbeat.external` (plan 08 Task 4)
+    state: jsonb('state').notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -38,6 +41,11 @@ export const integrations = pgTable(
     check(
       'integrations_meta_agency_only',
       sql`${t.kind} <> 'meta' or ${t.organizationId} is not null`,
+    ),
+    // the external watch is of the whole installation (§16.7)
+    check(
+      'integrations_heartbeat_platform_only',
+      sql`${t.kind} <> 'heartbeat' or ${t.organizationId} is null`,
     ),
   ],
 )

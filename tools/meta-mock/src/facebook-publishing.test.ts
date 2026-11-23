@@ -172,3 +172,55 @@ test('a duplicate answers 506', async () => {
   const made = await call('POST', `/${page}/photos`, { url: picture(), caption: 'Pane' })
   expect(made.body.error?.code).toBe(506)
 })
+
+test("a reel's cover: an image as the `source` file, preferred, with the Page token", async () => {
+  const start = await call('POST', `/${page}/video_reels`, { upload_phase: 'start' })
+  const videoId = String(start.body.video_id)
+  await upload(videoId, picture())
+  const cover = async (form: FormData, token = pageToken) => {
+    const url = new URL(`${mock.url}/v25.0/${videoId}/thumbnails`)
+    url.searchParams.set('appsecret_proof', proofOf(token))
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: form,
+    })
+    return (await res.json()) as Answer
+  }
+  const form = new FormData()
+  form.set('is_preferred', 'true')
+  form.set('source', new Blob([new Uint8Array(42)], { type: 'image/jpeg' }), 'cover.jpg')
+  // not before the reel is out
+  expect((await cover(form)).error?.code).toBe(100)
+  await call('POST', `/${page}/video_reels`, {
+    upload_phase: 'finish',
+    video_id: videoId,
+    video_state: 'PUBLISHED',
+  })
+  expect(await cover(form)).toEqual({ success: true })
+  expect(mock.calls().at(-1)?.params).toMatchObject({
+    is_preferred: 'true',
+    source: 'file:image/jpeg:42',
+  })
+  expect((await cover(form, META_MOCK.tokens.systemUser)).error?.code).toBe(200)
+  const noFile = new FormData()
+  noFile.set('is_preferred', 'true')
+  expect((await cover(noFile)).error?.code).toBe(100)
+})
+
+test('permissions_added: the cover permissions join debug_token', async () => {
+  const token = META_MOCK.tokens.systemUser
+  const scopes = async () => {
+    const debug = new URL(`${mock.url}/v25.0/debug_token`)
+    debug.search = new URLSearchParams({
+      input_token: token,
+      access_token: `${META_MOCK.app.id}|${META_MOCK.app.secret}`,
+    }).toString()
+    return ((await (await fetch(debug)).json()) as { data: { scopes: string[] } }).data.scopes
+  }
+  expect(await scopes()).not.toContain('pages_manage_engagement')
+  mock.scenario('permissions_added')
+  expect(await scopes()).toEqual(
+    expect.arrayContaining(['pages_manage_engagement', 'pages_read_user_content']),
+  )
+})

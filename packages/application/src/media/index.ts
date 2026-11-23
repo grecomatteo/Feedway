@@ -6,6 +6,7 @@ export {
   listMedia,
   mediaNotFound,
   openLibrary,
+  readMediaCopy,
   readMediaFile,
 } from './library.js'
 export type {
@@ -56,6 +57,8 @@ export type { FailedMediaView } from './failed.js'
 export {
   makeNextPublishCopy,
   publishCopiesOf,
+  publishedFilesOf,
+  PUBLISH_PURPOSES,
   publishFileFacts,
   requestPublishCopies,
 } from './publish-copies.js'
@@ -65,6 +68,7 @@ export type {
   PublishCopiesJob,
   PublishCopiesOutcome,
   PublishCopyState,
+  PublishedFileView,
 } from './publish-copies.js'
 export { PUBLISH_COPY_MIN_AGE_MS, cleanupPublishCopies } from './publish-copies-cleanup.js'
 export type {

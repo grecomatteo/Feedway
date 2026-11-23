@@ -1,3 +1,4 @@
+import { META_COVER_PERMISSIONS } from '../platforms/meta/permissions.js'
 import { INSTAGRAM_RULES, META_RULES } from '../platforms/meta/rules/index.js'
 import type { FileAnalysis } from '../media/check-file.js'
 import { postFingerprint } from './evaluate-post.js'
@@ -104,6 +105,7 @@ const account = (over: Partial<RuleAccount> & Pick<RuleAccount, 'platform'>): Ru
   health: 'ok',
   inWorkspace: true,
   quota: null,
+  scopes: null,
   ...over,
 })
 
@@ -652,6 +654,18 @@ export const RULE_CASES: RuleCase[] = [
     'Reel con un fotogramma scelto come copertina, anche su Facebook',
     reel(20_000, {}, { cover: { source: 'frame', offsetMs: 4_000 } }),
     [warning('cover_on_facebook', 'cover', 'facebook')],
+  ),
+  c(
+    'cover-fb-permissions',
+    'proportions',
+    'Reel con una copertina anche su Facebook, con i permessi della copertina (D-120.9)',
+    reel(20_000, {}, { cover: { source: 'frame', offsetMs: 4_000 } }),
+    [],
+    context({
+      accounts: {
+        [FB]: account({ platform: 'facebook', scopes: [...META_COVER_PERMISSIONS] }),
+      },
+    }),
   ),
 
   // — Post (§9.2)

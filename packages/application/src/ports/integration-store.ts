@@ -1,14 +1,17 @@
 import type { MetaIntegrationConfig } from '@app/domain/platforms/meta'
 import type { OrganizationKeysRepository } from './organization-keys.js'
 
-/** Integrations configured from the panel (spec §8.3). Telegram and the heartbeat follow. */
-export const INTEGRATION_KINDS = ['smtp', 'meta'] as const
+/** Integrations configured from the panel (spec §8.3); Telegram and the heartbeat of stage 8. */
+export const INTEGRATION_KINDS = ['smtp', 'meta', 'telegram', 'heartbeat'] as const
 export type IntegrationKind = (typeof INTEGRATION_KINDS)[number]
 
-/** Set once for the whole installation (organization null): SMTP only (ADR 017). */
-export type PlatformIntegrationKind = 'smtp'
-/** One per agency: the agency's own Meta app (ADR 019, 020). */
-export type OrganizationIntegrationKind = 'meta'
+/**
+ * Set once for the whole installation (organization null): SMTP (ADR 017), the platform's
+ * Telegram bot and the external watch (plan 08).
+ */
+export type PlatformIntegrationKind = 'smtp' | 'telegram' | 'heartbeat'
+/** One per agency: its own Meta app (ADR 019, 020) and, if it wants one, its own bot. */
+export type OrganizationIntegrationKind = 'meta' | 'telegram'
 
 /** Only encrypted SMTP: implicit TLS (465) or STARTTLS made mandatory (587, 2525). */
 export const SMTP_PORTS = [465, 587, 2525] as const
@@ -23,9 +26,19 @@ export interface SmtpConfig {
   from: string
 }
 
+/** A Telegram bot (plan 08 Scelta 8): its token is the secret, its name comes from `getMe`. */
+export interface TelegramConfig {
+  botUsername: string
+}
+
+/** The external watch (§16.7): the address to call is the secret, nothing else is kept. */
+export type HeartbeatConfig = Record<string, never>
+
 export interface IntegrationConfigs {
   smtp: SmtpConfig
   meta: MetaIntegrationConfig
+  telegram: TelegramConfig
+  heartbeat: HeartbeatConfig
 }
 
 /**
