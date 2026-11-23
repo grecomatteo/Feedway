@@ -15,7 +15,7 @@ import type { UserRecord } from '../ports/repositories.js'
 import type { Translate } from '../ports/translator.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { eligibleUser } from './recipients.js'
+import { eligibleUser, placeOf } from './recipients.js'
 
 // `notify.deliver` (plan 08 P1, «Ogni invio in transazione corta»): the job claims its group in
 // one transaction and closes it, calls the channel, then saves the outcome in another. No call
@@ -110,15 +110,19 @@ async function claim(
       return { kind: 'skipped', deliveries: await skip(group, reason), reason }
     }
   }
+  const kind = deps.kinds.get(first.kind)
+  if (!kind) throw new Error(`no kind of notification for ${first.kind}`)
   // who can no longer see what a notification is about gets nothing of it (Review Focus 3)
   const seen: ClaimedDelivery[] = []
   const unseen: ClaimedDelivery[] = []
   let user: UserRecord | null = null
   for (const row of group) {
-    const current = await eligibleUser(tx, input.userId, {
-      organizationId,
-      workspaceId: row.workspaceId,
-    })
+    const current = await eligibleUser(
+      tx,
+      input.userId,
+      { ...placeOf(organizationId, row.payload), workspaceId: row.workspaceId },
+      kind.recipients,
+    )
     if (current) {
       user = current
       seen.push(row)
@@ -135,8 +139,6 @@ async function claim(
     const reason = channel?.unavailable ?? t(`notify.skipped.${first.channel}`)
     return { kind: 'skipped', deliveries: await skip(seen, reason), reason }
   }
-  const kind = deps.kinds.get(first.kind)
-  if (!kind) throw new Error(`no kind of notification for ${first.kind}`)
   const message = await kind.message(
     {
       tx,
@@ -178,9 +180,14 @@ async function sendOnce(
   try {
     return await prepared.channel.send(prepared.recipient, prepared.message, signal)
   } catch (error) {
-    // a channel that throws is a bug or the network: tried again, the details only in the log
+    // a channel that throws is a bug or the network: tried again. Only the error's kind goes
+    // to the log, since a provider's message can carry the address or the server's reply
     deps.logger.error(
-      { err: error, channel: prepared.channel.name, deliveries: prepared.ids.length },
+      {
+        error: error instanceof Error ? error.name : typeof error,
+        channel: prepared.channel.name,
+        deliveries: prepared.ids.length,
+      },
       'notification channel threw',
     )
     return { outcome: 'failed', error: deps.t('notify.errors.other'), retry: true }

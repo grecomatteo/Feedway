@@ -435,6 +435,131 @@ test('a Manager taken off the client before the send gets nothing outside the pa
   expect(await notificationsOf(w.managerId)).toHaveLength(1)
 })
 
+const everythingEverywhere = (...users: string[]) =>
+  admin.query(
+    `insert into notification_settings (user_id, everything_everywhere)
+     select unnest($1::uuid[]), true
+     on conflict (user_id) do update set everything_everywhere = true`,
+    [users],
+  )
+
+test("a Manager taken off the account's clients gets nothing of its quota", async () => {
+  const w = await world()
+  await everythingEverywhere(w.managerId)
+  await record(w.organizationId, 'account.quota_low', {
+    accountId: w.accounts.instagram,
+    left: 3,
+    total: 50,
+  })
+  const h = harness()
+  await dispatchNotifications(h.deps)
+  expect((await deliveriesOf(w.managerId)).find((d) => d.channel === 'email')?.status).toBe(
+    'pending',
+  )
+  await admin.query('delete from workspace_members where user_id = $1', [w.managerId])
+  h.clock.set(new Date(h.clock.now().getTime() + 61 * SECOND))
+  await runDeliveries(h)
+  expect((await deliveriesOf(w.managerId)).find((d) => d.channel === 'email')).toMatchObject({
+    status: 'skipped',
+    error: 'Non può più vedere questa notifica: il messaggio non parte',
+  })
+  expect(h.mail.sent.filter((m) => m.to.startsWith(w.managerId))).toHaveLength(0)
+  // the next event does not reach them at all
+  await record(w.organizationId, 'account.quota_low', {
+    accountId: w.accounts.instagram,
+    left: 2,
+    total: 50,
+  })
+  await dispatchNotifications(h.deps)
+  expect(await notificationsOf(w.managerId)).toHaveLength(1)
+})
+
+test('an Admin made a member before the send no longer gets what is for the Admins', async () => {
+  const w = await world()
+  const adminId = await seed(tdb.runtimeUrl, async (s) => {
+    const user = await s.user({ name: 'Ada Admin' })
+    await s.member(w.organizationId, user, 'admin')
+    return user
+  })
+  await everythingEverywhere(adminId)
+  await record(w.organizationId, 'account.token_invalid', {
+    connectionId: w.connectionId,
+    status: 'expired',
+  })
+  const h = harness()
+  await dispatchNotifications(h.deps)
+  await admin.query(
+    "update organization_members set role = 'member' where user_id = $1 and organization_id = $2",
+    [adminId, w.organizationId],
+  )
+  h.clock.set(new Date(h.clock.now().getTime() + 61 * SECOND))
+  await runDeliveries(h)
+  expect((await deliveriesOf(adminId)).find((d) => d.channel === 'email')).toMatchObject({
+    status: 'skipped',
+    error: 'Non può più vedere questa notifica: il messaggio non parte',
+  })
+  expect(h.mail.sent.filter((m) => m.to.startsWith(adminId))).toHaveLength(0)
+})
+
+test('a group whose process keeps falling stops at the last attempt', async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  const h = harness()
+  await dispatchNotifications(h.deps)
+  h.queue.sent.length = 0
+  // the fourth claim ran out, like the three before it
+  await admin.query(
+    `update notification_deliveries
+        set status = 'sending', attempts = 3, claimed_until = now() - interval '1 minute'
+      where user_id = $1 and channel = 'email'`,
+    [w.ownerId],
+  )
+  await dispatchNotifications(h.deps)
+  expect((await deliveriesOf(w.ownerId)).find((d) => d.channel === 'email')).toMatchObject({
+    status: 'failed',
+    attempts: 4,
+    error: "L'invio non è riuscito",
+  })
+  expect(
+    deliveryJobs(h.queue.sent).filter(
+      (j) => (j.data as { recipientUserId: string }).recipientUserId === w.ownerId,
+    ),
+  ).toHaveLength(0)
+})
+
+test('two workers that start two jobs of one group together send one email', async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  await record(w.organizationId, 'post.target_failed', failedPayload(w, 'other'))
+  const h = harness()
+  await dispatchNotifications(h.deps)
+  h.clock.set(new Date(h.clock.now().getTime() + 61 * SECOND))
+  const jobs = deliveryJobs(h.queue.sent).filter(
+    (j) => (j.data as { recipientUserId: string }).recipientUserId === w.ownerId,
+  )
+  expect(jobs).toHaveLength(2)
+  h.queue.sent.length = 0
+  await Promise.all(jobs.map((j) => deliverNotification(h.deps, j.data as Record<string, string>)))
+  expect(h.mail.sent.filter((m) => m.to.startsWith(w.ownerId))).toHaveLength(1)
+})
+
+test('an event that cannot be read is set aside, and the others of its batch go out', async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', {
+    ...failedPayload(w),
+    postId: 'not-a-uuid',
+  })
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  const h = harness()
+  await dispatchNotifications(h.deps)
+  const { rows } = await admin.query<{ n: number }>(
+    'select count(*)::int as n from outbox_events where organization_id = $1 and dispatched_at is null',
+    [w.organizationId],
+  )
+  expect(rows[0]?.n).toBe(0)
+  expect(await notificationsOf(w.ownerId)).toHaveLength(1)
+})
+
 test('a disabled or anonymized person is not notified', async () => {
   const w = await world()
   await admin.query("update users set status = 'disabled', disabled_at = now() where id = $1", [

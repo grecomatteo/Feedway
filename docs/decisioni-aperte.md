@@ -631,6 +631,10 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - **Il canale email** sta in `application/src/notifications/email-channel.ts`, non in `infrastructure`: usa solo la porta `Mailer` e `renderEmail`, come le email di sicurezza. Telegram (Task 7) starà in `infrastructure`, perché chiama la rete.
       - **Errori dell'email:** `dns`, `timeout`, `tls` e `connection` si riprovano a 1, 5 e 15 minuti, gli altri (utente o password, rifiuto del server, impostazioni) diventano subito `failed`: senza una persona che cambia le impostazioni non passano. Nella consegna va solo la frase tradotta, mai la risposta del server.
       - **Un gruppo** prende le consegne `pending` della stessa persona, agenzia, canale e tipo al primo invio; quelle che aspettano un nuovo tentativo non si anticipano.
+      - **Tentativi del gruppo:** dopo un errore il gruppo intero segue il tentativo più avanti tra le sue righe, anche quelle che erano al primo invio.
+      - **Un processo che cade sempre** a metà dello stesso gruppo lo ripete al massimo fino al quarto tentativo, poi la consegna è `failed` con «L'invio non è riuscito».
+      - **Un evento che non si legge** (per esempio un identificativo rovinato) non ferma l'outbox: il lotto si riprende un evento alla volta, quello è segnato come fatto e resta nel log, senza notifiche.
+      - **Chi riceve ancora:** prima dell'invio si rilegge anche il ruolo, per i tipi solo per Owner e Admin (un Admin diventato Member non riceve più), e per la quota di un account senza cliente si guarda se la persona vede ancora uno dei clienti dell'account.
 - **Stato:** scelte provvisorie, Matteo può cambiarle prima del task che le usa. Il piano è approvato da Matteo (23/11, «ok piano»).
 
 ## Sito pubblico

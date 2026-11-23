@@ -73,9 +73,14 @@ export interface NotificationsRepository {
   listDue(now: Date, limit: number): Promise<DeliveryRef[]>
   /**
    * The system scope only (P2): groups left `sending` by a process that fell before saving go
-   * back to `pending`, with one more attempt and due now. Returns them.
+   * back to `pending`, with one more attempt and due now, and are returned; those that used up
+   * `maxAttempts` this way become `failed` with `gaveUp`, so a group that makes its process fall
+   * is not sent again forever.
    */
-  releaseExpiredClaims(now: Date): Promise<DeliveryRef[]>
+  releaseExpiredClaims(
+    now: Date,
+    limit: { maxAttempts: number; gaveUp: string },
+  ): Promise<DeliveryRef[]>
   /**
    * Claims the group of `deliveryId` (P1), with `FOR UPDATE SKIP LOCKED`: if it is `pending` and
    * due, it and the other `pending` ones of the same person, agency, channel and kind not

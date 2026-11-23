@@ -105,18 +105,30 @@ export function drizzleNotifications(
       return rows.map(refOf)
     },
 
-    async releaseExpiredClaims(now) {
+    async releaseExpiredClaims(now, { maxAttempts, gaveUp }) {
       assertSystem(ctx, 'the claims are released')
+      // a group that keeps making its process fall stops at the attempts of a failure
       const { rows } = await db.execute<DeliveryRow>(sql`
         update notification_deliveries
-           set status = 'pending', claimed_until = null, attempts = attempts + 1,
-               next_attempt_at = ${now}, updated_at = now()
+           set status = case when attempts + 1 >= ${maxAttempts}::int then 'failed' else 'pending' end,
+               error = case when attempts + 1 >= ${maxAttempts}::int then ${gaveUp}::text else error end,
+               next_attempt_at = case when attempts + 1 >= ${maxAttempts}::int then null
+                                      else ${now}::timestamptz end,
+               claimed_until = null, attempts = attempts + 1, updated_at = now()
          where status = 'sending' and claimed_until < ${now}
         returning id, organization_id, user_id, channel, status, attempts, next_attempt_at`)
-      return rows.map(refOf)
+      return rows.filter((r) => r.status === 'pending').map(refOf)
     },
 
     async claimGroup({ deliveryId, userId, organizationId, now, claimedUntil }) {
+      // one claim at a time per person and agency: the jobs of one group come due together, and
+      // two workers that each locked their own row would split it in two messages (P1)
+      await db.execute(sql`
+        select pg_advisory_xact_lock(
+          hashtextextended('notify:' || ${userId}::text || ':' ||
+                           coalesce(${organizationId}::text, 'platform'), 0))`)
+      // pg-boss starts a job by the database's clock: a worker a little behind it is not early
+      const due = sql`greatest(${now}::timestamptz, now())`
       // the job's own row first: if another job of the group holds it, or took it, nothing to do
       const { rows: own } = await db.execute<{
         channel: string
@@ -125,7 +137,7 @@ export function drizzleNotifications(
         select channel, kind from notification_deliveries
          where id = ${deliveryId} and user_id = ${userId}
            and organization_id is not distinct from ${organizationId}::uuid
-           and status = 'pending' and next_attempt_at <= ${now}
+           and status = 'pending' and next_attempt_at <= ${due}
            for update skip locked`)
       const [first] = own
       if (!first) return []
@@ -148,7 +160,7 @@ export function drizzleNotifications(
              and d.organization_id is not distinct from ${organizationId}::uuid
              and d.channel = ${first.channel} and d.kind = ${first.kind}
              and d.status = 'pending'
-             and (d.id = ${deliveryId} or d.attempts = 0 or d.next_attempt_at <= ${now})
+             and (d.id = ${deliveryId} or d.attempts = 0 or d.next_attempt_at <= ${due})
            order by d.created_at, d.id
            for update skip locked
         )

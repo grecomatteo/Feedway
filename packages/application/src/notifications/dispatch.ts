@@ -1,4 +1,4 @@
-import { channelsFor, groupWindow, type Channel } from '@app/domain'
+import { DELIVERY_ATTEMPTS, channelsFor, groupWindow, type Channel } from '@app/domain'
 import { usableTimeZone } from '../mail/index.js'
 import type { JobQueue } from '../ports/job-queue.js'
 import type { NewDeliveryStatus, DeliveryRef, NewNotification } from '../ports/notifications.js'
@@ -65,7 +65,7 @@ async function notificationsOf(
   const built: Built[] = []
   for (const candidate of await candidatesOf(tx, event, kind.recipients, now)) {
     // an anonymized or disabled person, or one who lost the client meanwhile, gets nothing
-    const user = await eligibleUser(tx, candidate.userId, place)
+    const user = await eligibleUser(tx, candidate.userId, place, kind.recipients)
     if (!user) continue
     const settings = await tx.notificationPrefs.getSettings(user.id)
     const pref = (await tx.notificationPrefs.listPrefs(user.id)).get(event.type) ?? null
@@ -160,39 +160,81 @@ async function sendJob(deps: DispatchDeps, ref: DeliveryRef, now: Date): Promise
   }
 }
 
+/** One batch of the outbox in one transaction; the jobs of its deliveries after the commit. */
+async function dispatchBatch(
+  deps: DispatchDeps,
+  report: DispatchReport,
+  limit: number,
+): Promise<number> {
+  const now = deps.clock.now()
+  const { events, written, pending } = await deps.uow.runAsSystem(
+    'notify.dispatch: the outbox',
+    async (tx) => {
+      const taken = await tx.outbox.takePending(limit)
+      const refs: DeliveryRef[] = []
+      let count = 0
+      for (const event of taken)
+        for (const { notification } of await notificationsOf(deps, tx, event, now)) {
+          const created = await tx.notifications.create(notification)
+          if (created === null) continue
+          count += 1
+          refs.push(...created.filter((d) => d.status === 'pending'))
+        }
+      await tx.outbox.markDispatched(
+        taken.map((e) => e.id),
+        now,
+      )
+      return { events: taken.length, written: count, pending: refs }
+    },
+  )
+  report.events += events
+  report.notifications += written
+  for (const ref of pending) if (await sendJob(deps, ref, now)) report.jobs += 1
+  return events
+}
+
+/**
+ * A batch that fails is taken again one event at a time, so one event that cannot be read does
+ * not hold the outbox of every agency: that one is marked and left in the log.
+ */
+async function dispatchOneByOne(deps: DispatchDeps, report: DispatchReport): Promise<void> {
+  for (let i = 0; i < DISPATCH_BATCH; i += 1) {
+    try {
+      if ((await dispatchBatch(deps, report, 1)) === 0) return
+    } catch (error) {
+      await deps.uow.runAsSystem('notify.dispatch: an event that fails', async (tx) => {
+        const [event] = await tx.outbox.takePending(1)
+        if (!event) return
+        deps.logger.error(
+          { err: error, eventId: event.id, type: event.type },
+          'outbox event not notified',
+        )
+        await tx.outbox.markDispatched([event.id], deps.clock.now())
+      })
+    }
+  }
+}
+
 export async function dispatchNotifications(deps: DispatchDeps): Promise<DispatchReport> {
   const report: DispatchReport = { events: 0, notifications: 0, jobs: 0 }
   for (let round = 0; round < MAX_BATCHES; round += 1) {
-    const now = deps.clock.now()
-    const { events, pending } = await deps.uow.runAsSystem(
-      'notify.dispatch: the outbox',
-      async (tx) => {
-        const taken = await tx.outbox.takePending(DISPATCH_BATCH)
-        const refs: DeliveryRef[] = []
-        let written = 0
-        for (const event of taken)
-          for (const { notification } of await notificationsOf(deps, tx, event, now)) {
-            const created = await tx.notifications.create(notification)
-            if (created === null) continue
-            written += 1
-            refs.push(...created.filter((d) => d.status === 'pending'))
-          }
-        await tx.outbox.markDispatched(
-          taken.map((e) => e.id),
-          now,
-        )
-        report.notifications += written
-        return { events: taken.length, pending: refs }
-      },
-    )
-    report.events += events
-    for (const ref of pending) if (await sendJob(deps, ref, now)) report.jobs += 1
+    let events: number
+    try {
+      events = await dispatchBatch(deps, report, DISPATCH_BATCH)
+    } catch (error) {
+      deps.logger.warn({ err: error }, 'outbox batch failed: one event at a time')
+      await dispatchOneByOne(deps, report)
+      continue
+    }
     if (events < DISPATCH_BATCH) break
   }
   // the sweep (P2): claims left by a fallen process, then the deliveries whose time has come
   const now = deps.clock.now()
   const due = await deps.uow.runAsSystem('notify.dispatch: deliveries due', async (tx) => {
-    const released = await tx.notifications.releaseExpiredClaims(now)
+    const released = await tx.notifications.releaseExpiredClaims(now, {
+      maxAttempts: DELIVERY_ATTEMPTS,
+      gaveUp: deps.t('notify.errors.other'),
+    })
     const listed = await tx.notifications.listDue(now, SWEEP_BATCH)
     const seen = new Set(released.map((r) => r.id))
     return [...released, ...listed.filter((r) => !seen.has(r.id))]
@@ -202,7 +244,10 @@ export async function dispatchNotifications(deps: DispatchDeps): Promise<Dispatc
   return report
 }
 
-/** Job `notify.deliver_platform`: a group of the platform's, seen only by the system scope. */
+/**
+ * Job `notify.deliver_platform`: a group of the platform's, seen only by the system scope. Its
+ * `tx` sees every agency, so the platform's kinds build their message from the payload alone.
+ */
 export async function deliverPlatformNotification(
   deps: DeliverDeps,
   job: { deliveryId?: unknown; recipientUserId?: unknown },

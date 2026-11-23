@@ -19,24 +19,35 @@ const QUOTA_HORIZON_MS = 24 * 3_600_000
 
 const ADMIN_ROLES = new Set(['owner', 'admin'])
 
-interface EventPlace {
+export interface EventPlace {
   organizationId: string | null
   /** The client the event is about; null for the agency's or the platform's */
   workspaceId: string | null
+  /** The account of an event with no client (`account.quota_low`): seen through its clients */
+  accountId: string | null
 }
 
-export const placeOfEvent = (event: PendingOutboxEvent): EventPlace => ({
-  organizationId: event.organizationId,
-  workspaceId: asString(event.payload.workspaceId),
+export const placeOf = (
+  organizationId: string | null,
+  payload: Readonly<Record<string, unknown>>,
+): EventPlace => ({
+  organizationId,
+  workspaceId: asString(payload.workspaceId),
+  accountId: asString(payload.accountId),
 })
 
+export const placeOfEvent = (event: PendingOutboxEvent): EventPlace =>
+  placeOf(event.organizationId, event.payload)
+
 /** The clients the event's account is assigned to (`account.quota_low` carries only its id). */
-async function accountWorkspaces(tx: Tx, organizationId: string, event: PendingOutboxEvent) {
-  const accountId = asString(event.payload.accountId)
+async function workspacesOfAccount(tx: Tx, organizationId: string, accountId: string | null) {
   if (accountId === null) return []
   const rows = await tx.workspaceAccounts.listForAccounts(organizationId, [accountId])
   return [...new Set(rows.map((r) => r.workspaceId))]
 }
+
+const accountWorkspaces = (tx: Tx, organizationId: string, event: PendingOutboxEvent) =>
+  workspacesOfAccount(tx, organizationId, asString(event.payload.accountId))
 
 async function schedulersOf(
   tx: Tx,
@@ -103,23 +114,32 @@ export async function candidatesOf(
   return recipientsFor(rules, facts)
 }
 
+/** A kind that reaches only the agency's Owner and Admin: a demoted one no longer gets it. */
+const onlyAdmins = (rules: readonly RecipientRule[]) =>
+  rules.length > 0 && rules.every((r) => r === 'org_admins')
+
 /**
  * The person as they are now, if they may still see the event: active, not anonymized, an
- * active member of the agency who sees the client, or still a platform administrator. Read again
- * by the delivery, so a Manager taken off the client meanwhile gets nothing (Review Focus 3).
+ * active member of the agency who sees the client (or one client of the account), still an
+ * Owner or Admin for a kind of theirs, or still a platform administrator. Read again by the
+ * delivery, so a Manager taken off the client meanwhile gets nothing (Review Focus 3).
  */
 export async function eligibleUser(
   tx: Tx,
   userId: string,
   place: EventPlace,
+  rules: readonly RecipientRule[],
 ): Promise<UserRecord | null> {
   const user = await tx.users.findById(userId)
   if (user?.status !== 'active' || user.anonymizedAt !== null) return null
-  const { organizationId, workspaceId } = place
+  const { organizationId, workspaceId, accountId } = place
   if (organizationId === null) return user.platformRole === 'admin' ? user : null
   const membership = await tx.orgMembers.find(organizationId, userId)
   if (membership?.status !== 'active') return null
-  if (workspaceId === null) return user
+  if (onlyAdmins(rules)) return ADMIN_ROLES.has(membership.role) ? user : null
+  const workspaces =
+    workspaceId !== null ? [workspaceId] : await workspacesOfAccount(tx, organizationId, accountId)
+  if (workspaceId === null && accountId === null) return user
   const actor: OrgActor = {
     userId,
     platformRole: null,
@@ -127,5 +147,7 @@ export async function eligibleUser(
     orgRole: membership.role,
     memberships: await tx.workspaceMembers.rolesOf(organizationId, userId),
   }
-  return can(actor, 'workspace.view', { organizationId, workspaceId }) ? user : null
+  return workspaces.some((ws) => can(actor, 'workspace.view', { organizationId, workspaceId: ws }))
+    ? user
+    : null
 }
