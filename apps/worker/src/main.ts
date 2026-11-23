@@ -58,6 +58,12 @@ async function main(): Promise<void> {
         integrations: runtime.integrations,
         graph: { version: config.metaGraphVersion, sunset: config.metaGraphVersionSunset },
       },
+      telegram: {
+        api: runtime.telegram,
+        integrations: runtime.integrations,
+        tokens: runtime.tokens,
+        lock: createAdvisoryLock(runtime.pool),
+      },
       images: createAvatarProcessor(),
       publishing: {
         publishers: runtime.publishers,

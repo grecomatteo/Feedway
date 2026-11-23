@@ -45,6 +45,8 @@ export type {
   IntegrationTx,
   IntegrationView,
   MailSettingsSource,
+  TelegramBotCredentials,
+  TelegramPollState,
   OrganizationIntegrationKind,
   OrganizationIntegrationRecordInput,
   OrganizationIntegrationReplacement,
@@ -135,6 +137,8 @@ export type {
   NotificationPrefsRepository,
   NotificationsRepository,
   TelegramLinksRepository,
+  TelegramBotOwner,
+  TelegramLinkRecord,
 } from './ports/notifications.js'
 export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'
@@ -213,6 +217,25 @@ export {
   replaceAgencyTelegramBot,
   type AgencyTelegramBotDeps,
   type TelegramBotView,
+  LINK_CODE_MINUTES,
+  TELEGRAM_TEXT_MAX,
+  answerTelegramQuery,
+  createTelegramChannel,
+  createTelegramTargets,
+  listTelegramLinks,
+  parseCommand,
+  pollTelegram,
+  startTelegramLink,
+  telegramText,
+  unlinkTelegram,
+  type TelegramBotKey,
+  type TelegramBotLink,
+  type TelegramChannelDeps,
+  type TelegramCommandDeps,
+  type TelegramLinkDeps,
+  type TelegramPollDeps,
+  type TelegramPollReport,
+  type TelegramTargets,
 } from './notifications/index.js'
 export { postHeadline } from './posts/notification-messages.js'
 export type {

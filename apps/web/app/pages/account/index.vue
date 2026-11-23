@@ -320,6 +320,8 @@ async function changeEmail() {
         </p>
       </SettingsGroup>
 
+      <TelegramLinks />
+
       <UModal
         v-model:open="emailOpen"
         :title="$t('account.email.change')"

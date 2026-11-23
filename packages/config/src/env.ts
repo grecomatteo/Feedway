@@ -54,6 +54,7 @@ export const KNOWN_QUEUES = [
   'notify.dispatch',
   'notify.deliver',
   'notify.deliver_platform',
+  'telegram.poll',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

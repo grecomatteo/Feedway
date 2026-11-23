@@ -182,6 +182,14 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
   },
+  // every minute, one run at a time (plan 08 Task 7): each bot's lock keeps a second worker off
+  // it, and the offset is on the bot's row, so a run lost is the next one's
+  'telegram.poll': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
+    expireInSeconds: 120,
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

@@ -19,7 +19,12 @@ import { mediaProcess } from './handlers/media-process.js'
 import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
-import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './handlers/notify.js'
+import {
+  notifyDeliver,
+  notifyDeliverPlatform,
+  notifyDispatch,
+  telegramPoll,
+} from './handlers/notify.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import {
   schedulerReconcile,
@@ -61,6 +66,8 @@ export const MEDIA_UPLOADS_CLEANUP_CRON = '7-59/10 * * * *'
 export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
 /** Every day at 04:30, Italian time: the copies to publish no post needs (plan 07 Scelta 5). */
 export const PUBLISH_COPIES_CLEANUP_CRON = '30 4 * * *'
+/** Every minute: each bot's `getUpdates`, about 50 s long (plan 08 Task 7). */
+export const TELEGRAM_POLL_CRON = '* * * * *'
 /** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
 export const SCHEDULER_RECONCILE_CRON = '* * * * *'
 
@@ -95,6 +102,15 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       },
       d,
     )
+  // on stop, the long poll ends at once: the offset is on the bot's row, the next run goes on
+  const telegramPollOnStop: JobHandler<'telegram.poll'> = (job, d) =>
+    (deps.handlers?.['telegram.poll'] ?? telegramPoll)(
+      {
+        ...job,
+        signal: job.signal ? AbortSignal.any([job.signal, stopping.signal]) : stopping.signal,
+      },
+      d,
+    )
   const handlers: JobHandlers = {
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
@@ -122,6 +138,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'notify.deliver': notifyDeliver,
     'notify.deliver_platform': notifyDeliverPlatform,
     ...deps.handlers,
+    'telegram.poll': telegramPollOnStop,
     'media.process': mediaProcessOnStop,
     'media.publish_copies': mediaPublishCopiesOnStop,
   }
@@ -168,6 +185,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       {},
       { tz: MEDIA_UPLOADS_CLEANUP_TZ },
     )
+  if (queues.includes('telegram.poll'))
+    await queue.schedule('telegram.poll', TELEGRAM_POLL_CRON, {}, { tz: MEDIA_UPLOADS_CLEANUP_TZ })
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)

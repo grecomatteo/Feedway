@@ -10,6 +10,7 @@ import {
   ownAddress,
   signInWithTotp,
 } from './support/people.ts'
+import { agencyBotFor } from './support/telegram.ts'
 
 // The Telegram bots (plan 08 Task 7): the agency's own in Impostazioni → Integrazioni → Telegram,
 // the platform's in Piattaforma → Integrazioni. The token is tried with the fake Bot API and
@@ -46,6 +47,7 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   baseURL,
   isMobile,
 }) => {
+  const bot = await agencyBotFor(0)
   const owner = await newPerson('Olga Telegram', 'owner')
   await signInWithTotp(page.request, owner)
   const org = owner.organizationSlug
@@ -71,13 +73,13 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   await expect(page.getByText('Telegram non accetta questo token')).toBeVisible()
   await expect(page.getByTestId('telegram-bot-state')).toHaveText('Usa il bot della piattaforma')
 
-  await page.getByLabel('Token del bot').fill(TELEGRAM_MOCK.bots.agency.token)
+  await page.getByLabel('Token del bot').fill(bot.token)
   await page.getByRole('button', { name: 'Prova e salva' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Bot salvato' })).toBeVisible()
   await expect(page.getByTestId('telegram-bot-state')).toHaveText('Attivo')
-  await expect(page.getByTestId('telegram-bot-name')).toHaveText('@agenzia_mock_bot')
+  await expect(page.getByTestId('telegram-bot-name')).toHaveText(`@${bot.username}`)
   // the token never comes back, nor sits in the page
-  expect(await page.content()).not.toContain(TELEGRAM_MOCK.bots.agency.token)
+  expect(await page.content()).not.toContain(bot.token)
   expect((await axe(page)).violations).toEqual([])
   await shot(page, 'telegram-agenzia-impostato', isMobile)
 
@@ -105,7 +107,7 @@ test('the agency bot: the owner sets it and goes back to the platform’s, the a
   await ownAddress(adminPage)
   await signInWithTotp(adminPage.request, admin)
   await adminPage.goto(`/${org}/impostazioni/integrazioni/telegram`)
-  await expect(adminPage.getByTestId('telegram-bot-name')).toHaveText('@agenzia_mock_bot')
+  await expect(adminPage.getByTestId('telegram-bot-name')).toHaveText(`@${bot.username}`)
   await expect(adminPage.getByRole('button', { name: 'Sostituisci token' })).toHaveCount(0)
   await expect(adminPage.getByTestId('telegram-bot-remove')).toHaveCount(0)
   await context.close()

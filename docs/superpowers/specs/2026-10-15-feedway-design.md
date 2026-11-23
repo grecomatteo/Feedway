@@ -666,7 +666,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `plan.due_soon` | Al momento della notifica di §11.12 | Uno per contenuto pianificato (chiave: id del contenuto), con `organizationId`; creato o sostituito nella stessa transazione di ogni modifica del contenuto o del fuso dell'organizzazione, tolto quando il contenuto è tolto o preparato; il gestore rilegge contenuto e post e non fa nulla se non serve più |
 | `notify.dispatch` | Dopo il commit di ogni transazione che ha scritto un evento, e ogni minuto | Di sistema, uno in coda e uno in corso: vuota l'outbox a lotti e rimanda le consegne arrivate alla loro ora (§12.1, piano 08 P2) |
 | `notify.deliver` / `notify.deliver_platform` | Una per riga di consegna, 60 secondi dopo la prima del gruppo | Con `organizationId`, nell'ambito del destinatario; quello della piattaforma è di sistema. Manda il gruppo della consegna in un messaggio (§12.1, piano 08 P1) |
-| `telegram.poll` | Continuo | Comandi del bot |
+| `telegram.poll` | Ogni minuto | Di sistema, uno alla volta: per ogni bot, con un lucchetto per bot, `getUpdates` in long polling per circa 50 secondi, con l'`offset` in `integrations.state`. Collega le chat (`/start <codice>`), risponde a `/oggi`, `/problemi` e `/stop` nell'ambito della persona collegata, toglie i collegamenti di un bot tolto o cambiato (piano 08 Task 7) |
 | `report.daily` | Ogni mattina | §12.4 |
 | `accounts.sync` / `accounts.health` | Ogni giorno e a richiesta | §8.4 |
 | `heartbeat.external` | Ogni minuto | §16.7 |

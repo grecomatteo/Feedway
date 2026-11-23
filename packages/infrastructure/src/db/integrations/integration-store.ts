@@ -7,6 +7,8 @@ import type {
   KeyRing,
   OrganizationIntegrationKind,
   PlatformIntegrationKind,
+  TelegramBotCredentials,
+  TelegramPollState,
 } from '@app/application'
 import { DomainError } from '@app/domain'
 import { checkMetaIntegrationConfig } from '@app/domain/platforms/meta'
@@ -150,5 +152,39 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
       )
       return record === null ? null : viewOf(kind, record)
     },
+
+    async telegramBots(tx) {
+      const rows = await tx.integrations.listTelegram()
+      const bots: TelegramBotCredentials[] = []
+      for (const row of rows) {
+        const { organizationId } = row
+        const config = storedConfig('telegram', row)
+        const secret =
+          organizationId === null
+            ? box().open(row.secretEnc, aadFor('telegram'))
+            : (await deps.keyRing.forOrganization(tx, organizationId)).open(
+                row.secretEnc,
+                orgAadFor(organizationId, 'telegram'),
+              )
+        bots.push({
+          organizationId,
+          ...config,
+          token: secret,
+          state: pollStateOf(row.state),
+          rejectedAt: row.rejectedAt,
+          updatedAt: row.updatedAt,
+        })
+      }
+      return bots
+    },
+  }
+}
+
+/** Only what `telegram.poll` wrote, each field checked: anything else starts afresh. */
+function pollStateOf(value: unknown): TelegramPollState {
+  const { botId, offset } = (value ?? {}) as { botId?: unknown; offset?: unknown }
+  return {
+    ...(Number.isSafeInteger(botId) ? { botId: botId as number } : {}),
+    ...(Number.isSafeInteger(offset) ? { offset: offset as number } : {}),
   }
 }

@@ -43,6 +43,7 @@ export type {
 } from './mail-settings.js'
 export {
   getPlatformTelegramBot,
+  platformTelegramBotName,
   removePlatformTelegramBot,
   replacePlatformTelegramBot,
 } from './telegram-bot.js'
