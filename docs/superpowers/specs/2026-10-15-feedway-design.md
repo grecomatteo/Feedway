@@ -1537,7 +1537,7 @@ Conversioni video: una alla volta, `nice`, ffmpeg su due thread per l'anteprima 
 | Accessibilità | axe-core sulle schermate principali |
 | Sicurezza | CodeQL, gitleaks, `pnpm audit` |
 | Immagine | Build, Trivy, pubblicazione su GHCR (solo `main`) |
-| Sito | Dalla tappa 10: build statica, axe e collegamenti a ogni PR (controllo obbligatorio `site`); anteprima per la PR e pubblicazione su Cloudflare Pages da `main` in un workflow a parte, solo quando cambiano `apps/site` o `packages/ui` |
+| Sito | Dal 23/11 (anticipato dalla tappa 10, D-119 e D-122): build statica, axe, collegamenti, nessun cookie e nessun altro host, modulo della demo (controllo `site`, solo quando cambiano `apps/site`, `packages/ui` o `packages/config`; obbligatorio quando Matteo lo aggiunge al ruleset); pubblicazione su Cloudflare Pages da `main` nel workflow `site-deploy.yml`. Le anteprime per la PR restano da fare |
 
 ### 17.3 Piano di test
 

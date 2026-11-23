@@ -36,6 +36,8 @@ export default tseslint.config(
       'coverage/**',
       '**/migrations/**',
       'tools/arch-fixtures/*/**',
+      // typed only by the site's generated .nuxt projects; `pnpm typecheck` checks it there
+      'apps/site/nuxt.config.ts',
     ],
   },
   ...tseslint.configs.strictTypeChecked,
@@ -55,6 +57,18 @@ export default tseslint.config(
       parserOptions: {
         projectService: false,
         project: ['./apps/web/.nuxt/tsconfig.server.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    // The public site lints against one small project: its .nuxt projects are not prepared here
+    // and would load the whole Nuxt type graph a second time (the lint ran out of memory)
+    files: ['apps/site/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['./apps/site/tsconfig.tools.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },

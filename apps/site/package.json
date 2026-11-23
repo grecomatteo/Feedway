@@ -1,0 +1,25 @@
+{
+  "name": "@app/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3100",
+    "generate": "nuxt generate && node scripts/postgenerate.mjs",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt prepare && vue-tsc --noEmit && vue-tsc -p tsconfig.tools.json --noEmit",
+    "test:site": "playwright test -c tests/playwright.config.ts"
+  },
+  "dependencies": {
+    "@app/config": "workspace:*",
+    "@app/ui": "workspace:*",
+    "nuxt": "4.6.2",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0"
+  },
+  "devDependencies": {
+    "vue-tsc": "3.3.13",
+    "@playwright/test": "1.64.1",
+    "@axe-core/playwright": "4.14.0"
+  }
+}
