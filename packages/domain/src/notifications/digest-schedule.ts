@@ -54,3 +54,23 @@ export function digestTimeZone(
 ): string {
   return userTimeZone ?? agencyTimeZones[0] ?? fallback
 }
+
+/**
+ * How long after its time a digest still goes out (Task 8): a worker that was down at 8:00 and is
+ * back within the hour sends it; later, the morning's digest is no longer news.
+ */
+export const DIGEST_CATCH_UP_MS = 3_600_000
+
+/**
+ * The digest due now, if any: its time has come within the catch-up window. `date` is the
+ * person's calendar day, the key that sends it once (P7).
+ */
+export function dueDigest(
+  schedule: DigestSchedule,
+  now: Date,
+  timeZone: string,
+): { date: string; at: Date } | null {
+  const at = nextDigestAt(schedule, new Date(now.getTime() - DIGEST_CATCH_UP_MS), timeZone)
+  if (!at || at.getTime() > now.getTime()) return null
+  return { date: instantToZoned(at, timeZone).localDate, at }
+}

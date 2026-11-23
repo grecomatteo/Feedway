@@ -93,6 +93,14 @@ export const META_LIMITS = {
     label: 'Proporzioni massime di una foto del feed di Instagram (1,91:1)',
     source: IG_MEDIA,
   }),
+  instagramFeedRatioTolerance: limit({
+    value: 0.01,
+    unit: 'ratio',
+    label: 'Tolleranza sulle proporzioni del feed di Instagram (1%)',
+    source:
+      'Scelta di Feedway (D-120.4): un telefono arrotonda i pixel, la HEIC 4:5 di un iPhone è 3427×4284 (0,7999)',
+    note: 'Come per i 9:16 di reel e storie. Sopra i 1440 px la copia del feed è ridotta e torna a 4:5 (1440×1800); non verificato su Meta vera per le foto più piccole.',
+  }),
   photoMaxWidth: limit({
     value: 1440,
     unit: 'px',

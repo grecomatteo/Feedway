@@ -97,10 +97,13 @@ export const uploadPartRoute = defineContract({
 
 /**
  * The file made, and the one of the same workspace with the same content (sha256) if there is
- * one: the panel says so and leaves the choice (D-42).
+ * one: the panel says so and leaves the choice (D-42). `reused`: asked with
+ * `sameInFolder=reuse`, the file with the same content already in the upload's folder is the
+ * answer, and no file was made (D-120.2, «Unisci»).
  */
 export const CompletedUploadDto = MediaDto.extend({
   duplicateOf: z.object({ id: z.uuid(), name: z.string() }).nullable(),
+  reused: z.boolean(),
 })
 export type CompletedUploadDto = z.infer<typeof CompletedUploadDto>
 
@@ -108,8 +111,11 @@ export const completeUploadRoute = defineContract({
   method: 'POST',
   path: '/api/v1/orgs/{org}/workspaces/{id}/uploads/{uploadId}/complete',
   summary:
-    'Chiude il caricamento: il file entra nella libreria e si prepara; una seconda chiamata dà lo stesso file',
-  request: { params: UploadParams },
+    'Chiude il caricamento: il file entra nella libreria e si prepara; una seconda chiamata dà lo stesso file. Con sameInFolder=reuse un file uguale già nella cartella è la risposta, e non se ne crea un altro',
+  request: {
+    params: UploadParams,
+    query: z.strictObject({ sameInFolder: z.literal('reuse').optional() }),
+  },
   response: CompletedUploadDto,
   auth: 'session',
   scope: 'organization',

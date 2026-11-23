@@ -355,7 +355,10 @@ export function drizzleNotifications(
   }
 }
 
-export function drizzleNotificationPrefs(db: DbExecutor): NotificationPrefsRepository {
+export function drizzleNotificationPrefs(
+  db: DbExecutor,
+  ctx: TxContext,
+): NotificationPrefsRepository {
   return {
     async getSettings(userId) {
       const [row] = await db
@@ -425,6 +428,27 @@ export function drizzleNotificationPrefs(db: DbExecutor): NotificationPrefsRepos
     async deleteAllForUser(userId) {
       await db.delete(notificationPrefs).where(eq(notificationPrefs.userId, userId))
       await db.delete(notificationSettings).where(eq(notificationSettings.userId, userId))
+    },
+
+    async listDigestSchedules(userIds) {
+      assertSystem(ctx, 'listDigestSchedules')
+      if (userIds.length === 0) return new Map()
+      const rows = await db
+        .select({
+          userId: notificationSettings.userId,
+          enabled: notificationSettings.digestEnabled,
+          time: notificationSettings.digestTime,
+          days: notificationSettings.digestDays,
+        })
+        .from(notificationSettings)
+        .where(inArray(notificationSettings.userId, [...userIds]))
+      return new Map(
+        // the check constraint holds the days
+        rows.map((r) => [
+          r.userId,
+          { enabled: r.enabled, time: r.time, days: r.days as Weekday[] },
+        ]),
+      )
     },
   }
 }

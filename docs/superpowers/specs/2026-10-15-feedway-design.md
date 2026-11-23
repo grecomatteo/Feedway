@@ -667,7 +667,8 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `notify.dispatch` | Dopo il commit di ogni transazione che ha scritto un evento, e ogni minuto | Di sistema, uno in coda e uno in corso: vuota l'outbox a lotti e rimanda le consegne arrivate alla loro ora (§12.1, piano 08 P2) |
 | `notify.deliver` / `notify.deliver_platform` | Una per riga di consegna, 60 secondi dopo la prima del gruppo | Con `organizationId`, nell'ambito del destinatario; quello della piattaforma è di sistema. Manda il gruppo della consegna in un messaggio (§12.1, piano 08 P1) |
 | `telegram.poll` | Continuo | Comandi del bot |
-| `report.daily` | Ogni mattina | §12.4 |
+| `report.daily` | Ogni minuto | Di sistema, con il lucchetto consultivo: manda un `report.digest` a ogni persona il cui riepilogo è dovuto adesso, nel suo fuso, con la chiave `<persona>:<data>` (§12.4, piano 08 P7) |
+| `report.digest` | Al momento del riepilogo della persona | Con `userId`: calcola ogni sezione dentro `uow.run({ organizationId, userId })` di ciascuna agenzia della persona e manda un messaggio per agenzia e canale (§12.4) |
 | `accounts.sync` / `accounts.health` | Ogni giorno e a richiesta | §8.4 |
 | `heartbeat.external` | Ogni minuto | §16.7 |
 | `maintenance.cleanup` | Ogni notte | §11.9 |
@@ -1004,7 +1005,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 
 ### 12.4 Riepilogo giornaliero
 
-Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3); il lavoro di sistema avvia solo i riepiloghi, e ogni sezione si calcola dentro `uow.run({ organizationId, userId })` del destinatario.
+Alle 8:00, tutti i giorni (orario e giorni modificabili per utente): post confermati ieri, problemi aperti, cosa esce oggi, contenuti pianificati da preparare entro domani, stato di token e account. Ogni modulo può aggiungere la propria sezione al riepilogo, come per le voci del calendario (§7.3); il lavoro di sistema avvia solo i riepiloghi, e ogni sezione si calcola dentro `uow.run({ organizationId, userId })` del destinatario. Il lavoro di sistema `report.daily` gira ogni minuto, perché ogni persona ha la sua ora e il suo fuso (senza, quello della sua prima agenzia, poi `TZ_DEFAULT`); «ieri» e «oggi» si contano nel fuso dell'agenzia. Un riepilogo parte fino a un'ora dopo l'orario scelto, un messaggio per agenzia e canale (email e Telegram); senza niente da dire non parte. Ogni sezione si calcola in una sua transazione: una che fallisce va nel log e le altre partono (piano 08 P7, D-121 punto 13).
 
 ---
 

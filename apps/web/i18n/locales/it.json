@@ -1867,6 +1867,7 @@
   "upload": {
     "choose": "Carica file",
     "duplicate": "Uguale a «{name}», già nella libreria. Se non ti serve, eliminalo.",
+    "reused": "Era già nella cartella: tenuto quello, senza un doppione.",
     "dropHere": "Rilascia qui",
     "limits": "Foto JPEG, PNG, WEBP o HEIC fino a {image}, video MP4 o MOV fino a {video}",
     "limitsUnknown": "Foto JPEG, PNG, WEBP o HEIC, video MP4 o MOV",
@@ -1933,6 +1934,7 @@
       "started": "Nessun file in caricamento | Caricamento di un file iniziato | Caricamento di {n} file iniziato",
       "uploaded": "{name} caricato, ora si prepara.",
       "duplicate": "{name} è uguale a {other}, già nella libreria.",
+      "reused": "{name} era già nella cartella: tenuto quello.",
       "ready": "{name} è pronto.",
       "failed": "{name} non è riuscito. {reason}",
       "allDone": "Caricamenti finiti.",
@@ -2329,7 +2331,9 @@
       "addLabel": "Aggiungi file",
       "replace": "Sostituisci",
       "replaceLabel": "Sostituisci il video",
-      "converted": "Convertito in MP4"
+      "converted": "Convertito in MP4",
+      "duplicate": "Doppione",
+      "duplicateOf": "{name} è uguale a «{other}», già nella libreria."
     },
     "library": {
       "title": "Scegli dalla libreria",
@@ -2401,6 +2405,7 @@
       "time": "Ora",
       "zone": "ora di {city}",
       "usual": "Orario abituale di {client}",
+      "tomorrow": "Domani, {when}",
       "noDay": "Scegli il giorno",
       "prevMonth": "Mese precedente",
       "nextMonth": "Mese successivo",
@@ -2480,6 +2485,7 @@
       "saveAndExit": "Salva ed esci",
       "scheduledFor": "Programmato per {when}",
       "scheduledShort": "Post programmato",
+      "changesSaved": "Modifiche salvate",
       "open": "Apri",
       "scheduleShort": "Programma",
       "publishNow": "Pubblica | Pubblica su 1 account | Pubblica su {n} account",
@@ -3128,6 +3134,37 @@
       "emailPostFails": "Email quando un post non esce",
       "emailPostFailsHelp": "Arriva sempre a chi ha programmato il post: non si può spegnere.",
       "loadError": "Le preferenze delle notifiche non si sono caricate."
+    }
+  },
+  "digest": {
+    "title": "Il riepilogo di {day} · {agency}",
+    "open": "Apri Oggi",
+    "posts": {
+      "line": "{time} · {client} · «{post}»",
+      "yesterday": {
+        "one": "Ieri è uscito un post",
+        "many": "Ieri sono usciti {n} post"
+      },
+      "today": {
+        "one": "Oggi esce un post",
+        "many": "Oggi escono {n} post"
+      },
+      "issues": {
+        "one": "Un post da sistemare",
+        "many": "{n} post da sistemare"
+      },
+      "issue": {
+        "line": "{client} · «{post}»: {state}",
+        "lineWhy": "{client} · «{post}»: {state}, {why}",
+        "failed": "non è uscito",
+        "partial": "non è uscito su tutti gli account",
+        "paused": "è in pausa",
+        "problem": "è uscito con un problema"
+      }
+    },
+    "accounts": {
+      "one": "Una cosa da sistemare su account e Meta",
+      "many": "{n} cose da sistemare su account e Meta"
     }
   }
 }

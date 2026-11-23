@@ -99,7 +99,10 @@ const boxed = computed(() =>
         class="size-6"
         aria-hidden="true"
       />
-      <span class="line-clamp-2 break-all">{{ item.name }}</span>
+      <!-- the app's grey is too light on its grey: the name takes the text colour -->
+      <span class="line-clamp-2 break-all" :class="dark ? 'text-white' : 'text-(--pv-text)'">{{
+        item.name
+      }}</span>
     </div>
   </div>
 </template>

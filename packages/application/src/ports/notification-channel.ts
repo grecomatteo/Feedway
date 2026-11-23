@@ -18,6 +18,18 @@ export interface RenderedMessage {
   more: number
   /** The page where it is dealt with: the post's outcome, the accounts */
   link: { label: string; url: string } | null
+  /**
+   * The morning digest's parts (§12.4, Task 8), each with its heading, after `lines`; absent in
+   * the notifications of an event.
+   */
+  sections?: readonly MessageSection[]
+}
+
+/** One part of a message with a heading of its own: «Ieri», «Da sistemare». */
+export interface MessageSection {
+  title: string
+  lines: readonly string[]
+  more: number
 }
 
 /** Who a channel sends to: what it needs and nothing more (never a token). */

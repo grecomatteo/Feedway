@@ -43,6 +43,8 @@ export interface UploadItem {
   media: MediaDto | null
   /** a file of the library with the same content (sha256): said, the choice left (D-42) */
   duplicateOf: { id: string; name: string } | null
+  /** the same file was already in the folder: that one is kept, none is made (D-120.2) */
+  reused: boolean
   /** a `blob:` of the file, when the browser can show it before the upload */
   preview: { url: string; kind: UploadKind } | null
 }
@@ -51,7 +53,6 @@ export type Leftover = UploadDto
 
 /** Files sent at once: more only splits the same connection. */
 const MAX_ACTIVE = 2
-const RUNNING: readonly UploadState[] = ['hashing', 'uploading', 'completing']
 const PREVIEWABLE_IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 /** A piece that sends no byte for this long hangs: it is given up and the upload resumes. */
 const STALL_MS = 30_000
@@ -79,6 +80,8 @@ interface Side {
   file: File | null
   type: UploadType | null
   folderId: string | null
+  /** «Unisci» (D-120.2): a file with the same content already in the folder is kept instead */
+  reuse: boolean
   first: Uint8Array | null
   /** the upload left halfway this file must be */
   expect: Leftover | null
@@ -383,14 +386,16 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         }
         item.state = 'completing'
         item.rate = null
-        const media = await completeOnce(at, abort.signal)
+        const media = await completeOnce(at, abort.signal, s.reuse)
         check()
         if (media === 'missing') continue
-        const { duplicateOf, ...made } = media
+        const { duplicateOf, reused, ...made } = media
         item.media = made
         item.duplicateOf = duplicateOf
+        item.reused = reused
         s.onMedia?.(made)
-        if (duplicateOf)
+        if (reused) announce(t('upload.announce.reused', { name: item.name }))
+        else if (duplicateOf)
           announce(t('upload.announce.duplicate', { name: item.name, other: duplicateOf.name }))
         item.sent = item.size
         settled(item, media)
@@ -413,12 +418,13 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
   async function completeOnce(
     at: string,
     signal: AbortSignal,
+    reuse: boolean,
   ): Promise<CompletedUploadDto | 'missing'> {
     for (let attempt = 0; ; attempt++) {
       try {
         return await request<CompletedUploadDto>(
           'POST',
-          `${at}/complete`,
+          `${at}/complete${reuse ? '?sameInFolder=reuse' : ''}`,
           undefined,
           signal,
           COMPLETE_MS,
@@ -555,11 +561,10 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     ['queued', 'hashing', 'uploading', 'offline', 'completing', 'processing'].includes(i.state)
 
   function pump() {
-    let active = items.value.filter((i) => RUNNING.includes(i.state)).length
-    for (const item of items.value) {
-      if (active >= MAX_ACTIVE) break
-      if (item.state !== 'queued') continue
-      active += 1
+    // a big video keeps one place: the small files take the other (D-120.7)
+    for (const key of nextUploads(items.value, MAX_ACTIVE)) {
+      const item = live(key)
+      if (!item) continue
       item.state = 'hashing'
       void drive(item.key)
     }
@@ -596,6 +601,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
       file: file ? markRaw(file) : null,
       type: null,
       folderId: null,
+      reuse: false,
       first: null,
       expect: null,
       upload: null,
@@ -620,6 +626,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
       uploadId: null,
       media: null,
       duplicateOf: null,
+      reused: false,
       preview: null,
     }
   }
@@ -644,8 +651,12 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
     files: readonly File[],
     folderId: string | null,
     onMedia: ((media: MediaDto) => void) | null = null,
-    /** `preview: false`: no picture from the file itself, so nothing keeps it once it is sent (a zip's entries) */
-    options: { preview?: boolean; room?: number } = {},
+    /**
+     * `preview: false`: no picture from the file itself, so nothing keeps it once it is sent (a
+     * zip's entries). `reuseInFolder`: a file with the same content already in the folder is
+     * kept and none is made («Unisci», D-120.2)
+     */
+    options: { preview?: boolean; room?: number; reuseInFolder?: boolean } = {},
   ): Promise<UploadItem[]> {
     // the limits come with the list: a file chosen at once waits for them
     await loading
@@ -675,6 +686,7 @@ function createUploadStore(orgSlug: string, workspaceId: string) {
         item.kind = check.kind
         s.type = check.type
         s.folderId = folderId
+        s.reuse = options.reuseInFolder === true
         s.onMedia = onMedia
         if (
           options.preview !== false &&

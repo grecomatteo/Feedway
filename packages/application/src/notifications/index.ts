@@ -47,3 +47,10 @@ export {
   type MyNotificationPreferences,
   type PreferencesDeps,
 } from './preferences.js'
+export {
+  DIGEST_LOCK,
+  startDigests,
+  type DigestStartDeps,
+  type DigestStartReport,
+} from './digest-start.js'
+export { sendDigest, type DigestDeps, type DigestJob, type DigestReport } from './digest.js'

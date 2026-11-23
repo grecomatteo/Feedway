@@ -1,5 +1,6 @@
 import type {
   Channel,
+  DigestSchedule,
   Level,
   NotificationPref,
   NotificationSettings,
@@ -176,6 +177,11 @@ export interface NotificationPrefsRepository {
   setPref(userId: string, kind: OutboxEventType, pref: NotificationPref | null): Promise<void>
   /** The anonymization (§10.4): the person's settings and every changed kind. */
   deleteAllForUser(userId: string): Promise<void>
+  /**
+   * The system scope only (`report.daily`, P7): the digest of those of these people who changed
+   * theirs; the others have `DEFAULT_DIGEST`.
+   */
+  listDigestSchedules(userIds: readonly string[]): Promise<Map<string, DigestSchedule>>
 }
 
 /**
