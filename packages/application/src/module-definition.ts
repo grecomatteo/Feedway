@@ -1,4 +1,4 @@
-import type { NotificationKindRule, Permission, PlatformPermission } from '@app/domain'
+import type { LocalDate, NotificationKindRule, Permission, PlatformPermission } from '@app/domain'
 import type { MessageContext, NotifiedEvent } from './notifications/message.js'
 import type { IntegrationStore } from './ports/integration-store.js'
 import type { QueueName } from './ports/job-queue.js'
@@ -83,9 +83,41 @@ export interface DigestSection {
 }
 
 /**
+ * Something a module puts on a day of the calendar besides the posts (§7.3, plan 09 P1): the
+ * plan's contents, the tasks of 1.5. The module declares `data` field by field: whatever is in
+ * it reaches every person who sees the client in the calendar.
+ */
+export interface CalendarEntry {
+  /** the module's `CalendarEntrySource.id` */
+  source: string
+  id: string
+  workspaceId: string
+  localDate: LocalDate
+  /** `HH:MM`; null for a whole day */
+  localTime: string | null
+  title: string
+  /** what the panel draws: 'plan' for the dashed cards */
+  kind: string
+  data: Record<string, unknown>
+}
+
+/** Where the calendar asks a module for its entries; inside `uow.run({ organizationId, userId })`. */
+export interface CalendarEntrySource {
+  /** 'plan' */
+  id: string
+  /** The entries of these clients (all visible to the person) in the days `[from, to]`. */
+  entries(
+    tx: Tx,
+    query: { workspaceIds: readonly string[]; from: LocalDate; to: LocalDate },
+  ): Promise<CalendarEntry[]>
+  /** The posts the module marks («dal piano»), looked up by post, not by day. */
+  markedPostIds?(tx: Tx, postIds: readonly string[]): Promise<ReadonlySet<string>>
+}
+
+/**
  * What a module registers (docs/moduli.md): the permissions and queues it owns, its kinds of
- * notification and digest sections, and the hooks it answers. Menu entries, calendar items and
- * MCP tools join here when the stages that need them arrive.
+ * notification and digest sections, its calendar entries and the hooks it answers. Menu entries
+ * and MCP tools join here when the stages that need them arrive.
  */
 export interface ModuleDefinition {
   name: string
@@ -94,6 +126,8 @@ export interface ModuleDefinition {
   /** One per outbox event type the module writes (plan 08, «Registro dei tipi») */
   notificationKinds?: readonly NotificationKind[]
   digestSections?: readonly DigestSection[]
+  /** What it shows in the calendar (plan 09 P1); only for the agencies that use it (P2). */
+  calendarEntries?: CalendarEntrySource
   /** Removes the module's own personal data of an anonymized person; must be repeatable. */
   onUserAnonymized?: UserAnonymizedHandler
 }

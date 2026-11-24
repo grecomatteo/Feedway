@@ -37,6 +37,8 @@ export interface MyOrganization {
   status: 'active' | 'suspended'
   /** The 256 px logo in the panel; null: the initials. */
   logoUrl: string | null
+  /** IANA, the agency's zone (D-58), read by every member (D-78) */
+  timezone: string
 }
 
 /** The agencies where the person has an active membership (spec §6.5, switcher). */
@@ -57,6 +59,7 @@ export async function listMyOrganizations(
         role: m.role,
         status: m.organizationStatus,
         logoUrl: logoUrl(m.slug, m.logoKey),
+        timezone: storedTimeZone({ timezone: m.timezone }),
       }))
   })
 }

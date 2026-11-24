@@ -1,4 +1,4 @@
-import type { RuleAccount } from '@app/domain'
+import type { Platform, RuleAccount } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { Tx } from '../ports/tx.js'
 
@@ -39,4 +39,18 @@ export async function getAccountsForRules(
         },
       ]),
   )
+}
+
+/**
+ * The platform of each account assigned to one of these workspaces, in one query: what a row of
+ * a post shows beside its destinations (Oggi, the calendar).
+ */
+export async function getAccountPlatforms(
+  tx: Tx,
+  organizationId: string,
+  workspaceIds: readonly string[],
+): Promise<Map<string, Platform>> {
+  if (workspaceIds.length === 0) return new Map()
+  const records = await tx.accounts.list(organizationId, { workspaceIds })
+  return new Map(records.map((r) => [r.id, r.platform]))
 }

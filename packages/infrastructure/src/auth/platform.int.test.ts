@@ -278,6 +278,7 @@ describe('organizations', () => {
         role: 'owner',
         status: 'active',
         logoUrl: null,
+        timezone: 'Europe/Rome',
       },
     ])
     const invites = await admin.query('select 1 from invites where organization_id = $1', [

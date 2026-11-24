@@ -3,9 +3,11 @@ import {
   asc,
   desc,
   eq,
+  exists,
   gte,
   inArray,
   isNotNull,
+  isNull,
   lt,
   lte,
   ne,
@@ -521,6 +523,61 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           desc(posts.id),
         )
         .limit(limit)
+      return complete(db, organizationId, rows)
+    },
+    async listForCalendar(organizationId, workspaceIds, q) {
+      if (workspaceIds.length === 0 || q.statuses.length === 0) return []
+      const dated = q.period !== 'undated'
+      const where = [
+        eq(posts.organizationId, organizationId),
+        inArray(posts.workspaceId, [...workspaceIds]),
+        inArray(posts.status, [...q.statuses]),
+        ...(q.period === 'undated'
+          ? [eq(posts.status, 'draft'), isNull(posts.scheduledAt)]
+          : [gte(posts.scheduledAt, q.period.from), lt(posts.scheduledAt, q.period.to)]),
+        ...(q.types.length > 0 ? [inArray(posts.type, [...q.types])] : []),
+        ...(q.authorIds.length > 0 ? [inArray(posts.createdBy, [...q.authorIds])] : []),
+      ]
+      if (q.accountIds.length > 0)
+        where.push(
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(postTargets)
+              .where(
+                and(
+                  eq(postTargets.organizationId, organizationId),
+                  eq(postTargets.postId, posts.id),
+                  inArray(postTargets.accountId, [...q.accountIds]),
+                ),
+              ),
+          ),
+        )
+      if (q.labelIds.length > 0)
+        where.push(
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(postLabels)
+              .where(
+                and(
+                  eq(postLabels.organizationId, organizationId),
+                  eq(postLabels.postId, posts.id),
+                  inArray(postLabels.labelId, [...q.labelIds]),
+                ),
+              ),
+          ),
+        )
+      const rows = await db
+        .select(postColumns)
+        .from(posts)
+        .where(and(...where))
+        .orderBy(
+          ...(dated
+            ? [asc(posts.scheduledAt), asc(posts.id)]
+            : [desc(posts.updatedAt), desc(posts.id)]),
+        )
+        .limit(q.limit)
       return complete(db, organizationId, rows)
     },
     async listLatestDrafts(organizationId, workspaceIds, limit) {
