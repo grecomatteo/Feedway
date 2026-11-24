@@ -121,6 +121,8 @@ export interface NotificationsRepository {
   releaseExpiredClaims(
     now: Date,
     limit: { maxAttempts: number; gaveUp: string },
+    /** `platform`: only the platform's, for the web's watch while the worker is down */
+    only?: 'all' | 'platform',
   ): Promise<DeliveryRef[]>
   /**
    * Claims the group of `deliveryId` (P1), with `FOR UPDATE SKIP LOCKED`: if it is `pending` and

@@ -315,3 +315,20 @@ test('without an address nothing is called', async () => {
   expect(report).toEqual({ outcome: 'not_configured' })
   expect(calls.length).toBe(before)
 })
+
+test('an alarm left `sending` by a web that fell is sent again by the next watch', async () => {
+  const now = new Date()
+  await beat('worker-a', new Date(now.getTime() - 3 * MINUTE))
+  const w = watch(now)
+  await watchWorker(w.deps)
+  // as if the web had claimed the email and fallen before saving the outcome
+  await admin.query(
+    `update notification_deliveries set status = 'sending', claimed_until = $1
+      where channel = 'email'`,
+    [new Date(now.getTime() + MINUTE)],
+  )
+  w.mail.sent.length = 0
+  w.clock.set(new Date(now.getTime() + 2 * MINUTE))
+  expect(await watchWorker(w.deps)).toMatchObject({ outcome: 'same', sent: 1 })
+  expect(w.mail.sent.map((m) => m.subject)).toEqual([expect.stringContaining('fermo')])
+})

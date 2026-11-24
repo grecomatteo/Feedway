@@ -1,4 +1,10 @@
-import { HEARTBEAT_RETIRED_MS, beatHealth, workerSilent, type BeatHealth } from '@app/domain'
+import {
+  DELIVERY_ATTEMPTS,
+  HEARTBEAT_RETIRED_MS,
+  beatHealth,
+  workerSilent,
+  type BeatHealth,
+} from '@app/domain'
 import { deliverGroup, notificationsOf, type DeliverDeps } from '../notifications/index.js'
 import type { HeartbeatDetails, HeartbeatRecord } from '../ports/heartbeats.js'
 import type { ExclusiveLock } from '../ports/media-processing.js'
@@ -103,10 +109,18 @@ export async function watchWorker(deps: WorkerWatchDeps): Promise<WorkerWatchRep
               if (created) due.push(...created.filter((d) => d.status === 'pending'))
             }
         }
-        // while the worker is down nobody else sends the platform's: those whose try failed
-        if (silent || outcome === 'up')
-          for (const ref of await tx.notifications.listDue(now, 100, 'platform'))
+        // while the worker is down nobody else sends the platform's: those whose try failed,
+        // and those a web that fell left claimed (the worker's dispatcher would release them)
+        if (silent || outcome === 'up') {
+          const released = await tx.notifications.releaseExpiredClaims(
+            now,
+            { maxAttempts: DELIVERY_ATTEMPTS, gaveUp: deps.t('notify.errors.other') },
+            'platform',
+          )
+          const listed = await tx.notifications.listDue(now, 100, 'platform')
+          for (const ref of [...released, ...listed])
             if (!due.some((d) => d.id === ref.id)) due.push(ref)
+        }
         return { outcome, retired, due }
       },
     )
