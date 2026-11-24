@@ -115,6 +115,9 @@ export type AgendaIssueDto =
       /** Feedway's code of the first of them: its error, or why it is `problem` */
       reason: string | null
       notOut: number
+      /** to tell two posts at the same hour apart (`/problemi`, D-131.5) */
+      text: string
+      firstFile: string | null
     }
   | {
       kind: 'profile'
@@ -498,6 +501,8 @@ export async function postIssuesOf(
           ],
           reason: first ? reasonOf(first) : null,
           notOut: notOutOf(p),
+          text: textStart(p),
+          firstFile: details.firstFile(p),
         },
       ]
     })

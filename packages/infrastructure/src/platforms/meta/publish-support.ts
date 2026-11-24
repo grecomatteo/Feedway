@@ -67,6 +67,7 @@ const CODE_OF_REASON: Partial<Record<MetaErrorReason, PublishErrorCode>> = {
   rate_limited: 'rate_limited',
   media_not_ready: 'media_processing',
   media_rejected: 'media_rejected',
+  media_unreachable: 'media_unreachable',
   quota_exhausted: 'quota_exhausted',
   account_restricted: 'account_restricted',
 }

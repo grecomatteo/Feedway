@@ -8,7 +8,12 @@ import {
   createCheckRunner,
   keepEditorKey,
   nextType,
+  confirmSent,
+  rememberSent,
   roomFor,
+  savesOf,
+  savingInThisTab,
+  sentByThisTab,
   type ChoiceBody,
   type DraftBody,
   type PostType,
@@ -159,6 +164,11 @@ export function usePostEditor(opts: {
   const split = ref(false)
   const destinations = ref<string[]>([])
   const when = ref<{ localDate: string; localTime: string } | null>(null)
+  /**
+   * The day is the editor's proposal, never chosen by the person: a new time takes the first day
+   * that has it, today when it is still ahead (D-131.4), as the proposal did.
+   */
+  const dayProposed = ref(false)
   /** «Programma» or «Pubblica subito» (Scelta 2): not saved, the date stays for «Programma» */
   const mode = ref<'at' | 'now'>('at')
   const shareToFeed = ref(true)
@@ -256,22 +266,30 @@ export function usePostEditor(opts: {
   const autosave = createAutosave({
     body,
     create: async (b) => asPost(await call<PostResponse>('POST', `${base}/posts`, b)),
-    update: async (id, version, b) =>
-      asPost(
-        await call<PostResponse>('PATCH', `${base}/posts/${encodeURIComponent(id)}`, {
-          ...b,
-          version,
-        }),
-      ),
+    update: async (id, version, b) => {
+      // kept before it leaves: an answer lost on the way still says what this tab wrote
+      const key = rememberSent(id, b)
+      const saving = call<PostResponse>('PATCH', `${base}/posts/${encodeURIComponent(id)}`, {
+        ...b,
+        version,
+      })
+      savingInThisTab(id, saving)
+      const saved = asPost(await saving)
+      confirmSent(id, key)
+      return saved
+    },
     isConflict,
     isLost: (e) => failure(e).status === 0,
-    // a save of this tab whose answer was lost (slow network, D-120.1): the post saved by this
-    // person exactly one version ahead is this tab's own (the lost saves all carried the same
-    // version, so only one can have been written); anything else is a conflict
+    // a 409 on a post whose content, saved by this person, is one this tab sent: the version
+    // this tab kept was old (an answer lost on a slow network, D-120.1; D-131.1), not another
+    // person's change. Anything else is a conflict
     recover: async (id, version) => {
       const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
       const mine = org.me.value?.id
-      return mine !== undefined && now.updatedBy === mine && now.version === version + 1
+      return mine !== undefined &&
+        now.updatedBy === mine &&
+        now.version > version &&
+        sentByThisTab(id, bodyOfPost(now))
         ? { id: now.id, version: now.version }
         : null
     },
@@ -644,6 +662,8 @@ export function usePostEditor(opts: {
     }
     loadState.value = 'loading'
     try {
+      // the last save of an editor of this post just closed in this tab goes first (D-131.1)
+      await savesOf(opts.postId)
       const p = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(opts.postId)}`)
       fill(p)
       loadState.value = 'ready'
@@ -655,6 +675,8 @@ export function usePostEditor(opts: {
 
   function fill(p: PostResponse) {
     asPost(p)
+    // a saved post keeps the day it has: only a new post follows the proposed one
+    dayProposed.value = false
     // a saved post with files keeps its type, the person saw it; without files the type is
     // chosen again, as on a new post (D-71)
     type.value = p.media.length > 0 ? p.type : null
@@ -691,6 +713,7 @@ export function usePostEditor(opts: {
       // only who sees the agency's settings reads it: the draft says its zone once saved
     }
     when.value = proposedWhen(opts.client.value.defaultPostTime ?? null, timeZone.value)
+    dayProposed.value = true
     askChecks()
   }
   watch(
@@ -842,7 +865,11 @@ export function usePostEditor(opts: {
     checks.stop()
     // what is left goes with the leaving (the page asked first if it could not); a file that
     // finishes later waits for this save, so it finds the draft it made (P6 of the review)
-    if (status.value === 'draft') later = later.then(() => autosave.flush()).catch(() => undefined)
+    if (status.value === 'draft') {
+      later = later.then(() => autosave.flush()).catch(() => undefined)
+      // an editor of this post opened next in this tab reads it after this save (D-131.1)
+      if (save.value.postId) savingInThisTab(save.value.postId, later)
+    }
   })
 
   return {
@@ -862,6 +889,7 @@ export function usePostEditor(opts: {
     split,
     destinations,
     when,
+    dayProposed,
     mode,
     /** «Programma» · «Pubblica subito»: the checks change with it */
     setMode: (next: 'at' | 'now') => {
@@ -921,6 +949,23 @@ export function usePostEditor(opts: {
     remove,
     fileUrl,
     coverSrc,
+  }
+}
+
+/** The content of a post as a save of the editor writes it, to tell this tab's own (D-131.1). */
+function bodyOfPost(p: PostResponse): DraftBody {
+  return {
+    type: p.type,
+    mediaIds: p.media.map((m) => m.id),
+    caption: p.caption,
+    destinations: p.destinations
+      .filter((d) => !d.cancelledInPanel)
+      .map((d) => ({ accountId: d.accountId })),
+    when: p.when,
+    shareToFeed: p.shareToFeed,
+    choices: p.choices,
+    cover: p.cover,
+    labelIds: p.labelIds,
   }
 }
 

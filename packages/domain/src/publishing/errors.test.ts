@@ -20,6 +20,10 @@ describe('publishErrorCodeOfMeta (the table of §9.5)', () => {
   ] as const)('%i → %s', (meta, code) => {
     expect(publishErrorCodeOfMeta(meta)).toBe(code)
   })
+  it('a file Meta could not download is not a wrong file (D-131.2)', () => {
+    expect(publishErrorCodeOfMeta(9004, 2207052)).toBe('media_unreachable')
+    expect(publishErrorCodeOfMeta(389)).toBe('media_unreachable')
+  })
   it('a code not in the table, or none, is a generic Meta error', () => {
     expect(publishErrorCodeOfMeta(1)).toBe('meta_error')
     expect(publishErrorCodeOfMeta(null)).toBe('meta_error')
@@ -30,7 +34,7 @@ describe('publishErrorCodeOfMeta (the table of §9.5)', () => {
   // Instagram Error Codes (docs/platforms/meta.md §Pubblicazione), not verified on Meta
   it.each([
     [9007, 2207027, 'media_processing'],
-    [9004, 2207052, 'media_rejected'],
+    [9004, 2207052, 'media_unreachable'],
     [352, 2207026, 'media_rejected'],
     [36000, 2207004, 'media_rejected'],
     [36001, 2207005, 'media_rejected'],

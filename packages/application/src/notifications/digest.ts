@@ -162,7 +162,8 @@ function digestMessage(
     level: 'info',
     // the agency in the subject too: who works for two gets two emails the same morning
     title: deps.t('digest.title', { day: dayOf(date), agency: agency.name }),
-    context: agency.name,
+    // the title names the agency already: not once more under it (D-131.5)
+    context: null,
     lines: [],
     more: 0,
     link: {

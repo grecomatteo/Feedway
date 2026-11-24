@@ -238,14 +238,31 @@ describe('containers', () => {
     expect([err.kind, err.code]).toEqual(['permanent', 'media_rejected'])
   })
 
-  test('a file Meta cannot download fails the destination', async () => {
+  test('a file Meta cannot download is tried again, never «a wrong file» (D-131.2)', async () => {
     mock.scenario('media_download_failed', { times: 1 })
     const err = await failure(publisher.prepare(target('photo'), files([image()]), ctx()))
     expect([err.kind, err.code, err.platformCode]).toEqual([
-      'permanent',
-      'media_rejected',
+      'transient',
+      'media_unreachable',
       '9004/2207052',
     ])
+  })
+
+  test('a video Meta could not download: tried again with a new container (D-131.2)', async () => {
+    const t = target('reel')
+    mock.scenario('media_download_failed', { times: 1 })
+    const err = await failure(publisher.prepare(t, files([video()]), ctx()))
+    expect([err.kind, err.code, err.platformCode]).toEqual([
+      'transient',
+      'media_unreachable',
+      '2207052',
+    ])
+    // the next attempt starts a new round: a new container, and Meta reaches the file now
+    const ids = saved.at(-1) as PublishTarget['metaIds']
+    expect(ids).toMatchObject({ container: null, children: [] })
+    const again = await publisher.prepare({ ...t, metaIds: ids }, files([video()]), ctx())
+    expect(again.outcome).toBe('done')
+    expect(posts(`/${ig}/media`)).toHaveLength(2)
   })
 
   test('after 24 hours the containers are made again; publish says to prepare again', async () => {

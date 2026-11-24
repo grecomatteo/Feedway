@@ -10,6 +10,7 @@ import { MetaError } from './errors.js'
 import {
   MAX_LIST_REQUESTS,
   businessNameOf,
+  checkMetaHealth,
   classifiedListing,
   createMetaSystemUserConnector,
   listMetaAccounts,
@@ -213,4 +214,59 @@ test.each([
   ['not valid', { ...VALID, isValid: false }],
 ])('a token %s is refused', async (_why, info) => {
   expect(await checkWith(info)).toEqual({ ok: false, reason: 'rejected', permissions: [] })
+})
+
+// A system user's token revoked in Business Manager answers 190/460, not 190/458 (verified on
+// 2026-11-12 and in the test of 0.14.0, D-131.3): the connection is «revoked», not «expired»
+describe('the daily check tells a revoked token from an expired one', () => {
+  const target = { platform: 'instagram' as const, externalId: '1780000000000001', pageId: null }
+  const health = (client: Partial<MetaGraphClient>) =>
+    checkMetaHealth(
+      client as Pick<
+        MetaGraphClient,
+        'debugToken' | 'listUserPages' | 'listAssignedInstagramAccounts' | 'getPublishingLimit'
+      >,
+      APP,
+      'token-incollato',
+      [target],
+    )
+  const invalid = (subcode: number | null) =>
+    health({
+      debugToken: () =>
+        Promise.resolve({
+          data: { ...VALID, isValid: false, error: { code: 190, subcode } },
+          usage: USAGE,
+        }),
+    })
+  const refused = (subcode: number | null) =>
+    health({
+      debugToken: () => Promise.resolve({ data: VALID, usage: USAGE }),
+      listUserPages: () =>
+        Promise.reject(
+          new MetaError({
+            kind: 'permanent',
+            reason: subcode === 458 ? 'token_revoked' : 'token_invalid',
+            metaCode: 190,
+            subcode,
+          }),
+        ),
+      listAssignedInstagramAccounts: () => Promise.resolve(answer([], null)),
+    })
+
+  test.each([
+    [458, 'revoked'],
+    [460, 'revoked'],
+    [463, 'expired'],
+    [null, 'expired'],
+  ] as const)('debug_token not valid with 190/%s: %s', async (subcode, reason) => {
+    expect(await invalid(subcode)).toEqual({ ok: false, reason })
+  })
+
+  test.each([
+    [458, 'revoked'],
+    [460, 'revoked'],
+    [null, 'expired'],
+  ] as const)('the listing refused with 190/%s: %s', async (subcode, reason) => {
+    expect(await refused(subcode)).toEqual({ ok: false, reason })
+  })
 })

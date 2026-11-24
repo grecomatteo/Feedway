@@ -132,7 +132,7 @@ test('«Riprova» after a definitive error starts again at once from the failed 
   const deps = workerDeps(runtime, clock, host.url)
   await runAll(world, post.postId, deps, 'prepare')
   clock.set(at)
-  mock.scenario('error', { path: /media_publish$/, code: 9004, subcode: 2207052, times: 1 })
+  mock.scenario('error', { path: /media_publish$/, code: 352, subcode: 2207026, times: 1 })
   await runAll(world, post.postId, deps, 'publish')
   expect(await targetOn(post.postId, ig)).toMatchObject({
     status: 'failed',

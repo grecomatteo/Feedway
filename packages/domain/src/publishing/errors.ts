@@ -7,6 +7,8 @@ export const PUBLISH_ERROR_CODES = [
   'permission_missing',
   'media_processing',
   'media_rejected',
+  // Meta could not download the file from Feedway's public host: tried again (D-131.2)
+  'media_unreachable',
   'duplicate',
   'rate_limited',
   'quota_exhausted',
@@ -42,7 +44,7 @@ const BY_META_CODE: ReadonlyMap<number, PublishErrorCode> = new Map([
   [80002, 'rate_limited'],
   // Instagram Error Codes: codes and subcodes of the content publishing API (not verified)
   [2207027, 'media_processing'],
-  [2207052, 'media_rejected'],
+  [2207052, 'media_unreachable'],
   [352, 'media_rejected'],
   [36000, 'media_rejected'],
   [36001, 'media_rejected'],
@@ -54,7 +56,7 @@ const BY_META_CODE: ReadonlyMap<number, PublishErrorCode> = new Map([
   // Facebook Page photos and videos (not verified)
   [324, 'media_rejected'],
   [382, 'media_rejected'],
-  [389, 'media_rejected'],
+  [389, 'media_unreachable'],
 ])
 
 /** The Feedway code of a Meta error; Instagram's subcodes (`error_subcode`) count first. */

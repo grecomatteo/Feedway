@@ -182,9 +182,21 @@ export async function businessNameOf(
   }
 }
 
+/**
+ * 190 with 458, or 460 for a system user: the token was taken away (in Business Manager «Revoca
+ * token» answers 460, verified on 2026-11-12 and in the test of 0.14.0, D-131.3), not expired.
+ */
+const REVOKED_SUBCODES: ReadonlySet<number> = new Set([458, 460])
+
 /** The token itself stopped working: the whole connection is concerned, not one account. */
 function tokenEnded(error: MetaError): 'expired' | 'revoked' | null {
   if (error.reason === 'token_revoked') return 'revoked'
+  if (
+    error.reason === 'token_invalid' &&
+    error.subcode !== null &&
+    REVOKED_SUBCODES.has(error.subcode)
+  )
+    return 'revoked'
   if (error.reason === 'token_invalid' || error.reason === 'checkpoint') return 'expired'
   return null
 }
@@ -217,9 +229,14 @@ export async function checkMetaHealth(
   try {
     const debug = await client.debugToken(app, token)
     usage = debug.usage
-    if (!debug.data.isValid)
-      // 190/458 in debug_token: the user took the authorization away (docs/platforms/meta.md)
-      return { ok: false, reason: debug.data.error?.subcode === 458 ? 'revoked' : 'expired' }
+    if (!debug.data.isValid) {
+      // 190/458 or 190/460 in debug_token: the token was taken away (docs/platforms/meta.md)
+      const subcode = debug.data.error?.subcode ?? null
+      return {
+        ok: false,
+        reason: subcode !== null && REVOKED_SUBCODES.has(subcode) ? 'revoked' : 'expired',
+      }
+    }
     scopes = [...debug.data.scopes]
     missingPermission = META_REQUIRED_PERMISSIONS.some((p) => !scopes.includes(p))
   } catch (error) {

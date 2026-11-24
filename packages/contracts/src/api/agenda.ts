@@ -103,6 +103,9 @@ export const AgendaIssue = z.discriminatedUnion('kind', [
     reason: z.string().nullable(),
     /** its destinations that did not go out */
     notOut: z.number().int(),
+    /** the start of its text, '' when none; the first file's name for one without (D-131.5) */
+    text: z.string(),
+    firstFile: z.string().nullable(),
   }),
   z.object({
     kind: z.literal('profile'),

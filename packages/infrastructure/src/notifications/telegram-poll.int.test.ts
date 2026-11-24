@@ -265,6 +265,8 @@ test('/oggi and /problemi: each bot speaks for its agencies, each person of what
   await run()
   expect(lastTo(101)).toContain('notify.telegram.issues.post')
   expect(lastTo(101)).toContain('Cliente Beta')
+  // its text tells it from another at the same hour (D-131.5)
+  expect(lastTo(101)).toContain('<i>«Il post non uscito di Beta»</i>')
   expect(lastTo(301)).toContain('notify.telegram.issues.none')
 })
 

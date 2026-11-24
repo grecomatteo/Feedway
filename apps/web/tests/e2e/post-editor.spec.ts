@@ -487,6 +487,42 @@ test('a save that reached the server but lost its answer: the next one is not a 
   await expect(text).toHaveValue('Terza, dopo la rete')
 })
 
+test('the day from the calendar, then the time: one person is never «another person» (D-131.1)', async ({
+  page,
+}) => {
+  const { org, client } = await clientWithFiles(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
+  const text = page.getByRole('textbox', { name: 'Testo comune' })
+  await text.fill('Una bozza')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  // the draft opened again, on a slow network (124 ms of ping in the test of 0.14.0)
+  await page.reload()
+  await expect(text).toHaveValue('Una bozza')
+  await page.route('**/api/v1/**', async (route) => {
+    await new Promise((r) => setTimeout(r, 400))
+    await route.continue()
+  })
+  const versions: number[] = []
+  page.on('request', (r) => {
+    if (r.method() === 'PATCH' && r.url().includes('/posts/'))
+      versions.push((r.postDataJSON() as { version: number }).version)
+  })
+  await page.locator('[data-day-field]').click()
+  const days = page.locator('[data-day-picker] [data-day]')
+  await days.nth(20).click()
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await page.locator('[data-time-field]').click()
+  await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('1130')
+  await page.keyboard.press('Enter')
+  await text.fill('Una bozza, poi l’ora')
+  await expect(saveState(page)).toContainText('Bozza salvata alle', { timeout: 10_000 })
+  await expect(page.getByText('Modificato da un')).toHaveCount(0)
+  expect(new Set(versions).size).toBe(versions.length)
+  await page.unroute('**/api/v1/**')
+  await page.reload()
+  await expect(text).toHaveValue('Una bozza, poi l’ora')
+})
+
 test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)', async ({
   page,
 }) => {
@@ -497,15 +533,28 @@ test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   const line = page.locator('[data-when-tomorrow]')
   await expect(line).toHaveText(/Domani, \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:00$/u)
-  // a time still ahead tonight, on tomorrow, is not «because of the evening»
+  const day = page.locator('[data-day-field]')
+  const tomorrow = await day.getAttribute('aria-label')
+  // a time still ahead tonight: the day the editor proposed comes back to today (D-131.4)
   await page.locator('[data-time-field]').click()
   await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('2300')
   await page.keyboard.press('Enter')
   await expect(line).toHaveCount(0)
+  await expect(day).not.toHaveAttribute('aria-label', tomorrow ?? '')
+  // a time already gone today goes to tomorrow again, and «Quando» says it
   await page.locator('[data-time-field]').click()
   await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('0930')
   await page.keyboard.press('Enter')
   await expect(line).toContainText('alle 09:30')
+  await expect(day).toHaveAttribute('aria-label', tomorrow ?? '')
+  // a day the person chose stays, whatever the time
+  await day.click()
+  await page.locator('[data-day-picker] [data-day]').nth(25).click()
+  const chosen = await day.getAttribute('aria-label')
+  await page.locator('[data-time-field]').click()
+  await page.getByRole('textbox', { name: "Scrivi un'ora" }).fill('2300')
+  await page.keyboard.press('Enter')
+  await expect(day).toHaveAttribute('aria-label', chosen ?? '')
   expect((await axe(page)).violations).toEqual([])
 })
 

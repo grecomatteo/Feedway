@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PostEditor } from '~/composables/usePostEditor'
+import { proposedWhen, type PostEditor } from '~/composables/usePostEditor'
 
 /**
  * «Quando» (§11.2 point 6, P1; screens 08 and 09): «Programma» · «Pubblica subito», then the day
@@ -30,6 +30,7 @@ const date = computed({
   get: () => e.when.value?.localDate ?? '',
   set: (v: string) => {
     if (!v) return
+    e.dayProposed.value = false
     e.when.value = { localDate: v, localTime: e.when.value?.localTime ?? '18:00' }
     e.touched()
   },
@@ -38,7 +39,11 @@ const time = computed({
   get: () => e.when.value?.localTime ?? '',
   set: (v: string) => {
     if (!v) return
-    e.when.value = { localDate: e.when.value?.localDate ?? '', localTime: v.slice(0, 5) }
+    const time = v.slice(0, 5)
+    // a day the person never chose follows the time: today while it is still ahead (D-131.4)
+    e.when.value = e.dayProposed.value
+      ? proposedWhen(time, e.timeZone.value)
+      : { localDate: e.when.value?.localDate ?? '', localTime: time }
     e.touched()
   },
 })

@@ -73,10 +73,15 @@ const PROBLEM_MESSAGES: Record<AccountProblem, string> = {
 
 const ENDED_MESSAGES: Record<'expired' | 'revoked', string> = {
   expired: 'Il token del collegamento non vale più: collegalo di nuovo',
-  revoked: 'Il cliente ha tolto l’accesso a Meta: chiedigli di nuovo l’accesso e ricollega',
+  // a system user's token revoked in Business Manager is revoked too (D-131.3): not «il cliente»
+  revoked: 'L’accesso a Meta è stato tolto: ricollega con un accesso nuovo',
 }
 
-const ENDED_TEXTS: ReadonlySet<string> = new Set(Object.values(ENDED_MESSAGES))
+/** the texts it wrote, the one before 0.15.0 too (still on the accounts revoked then) */
+const ENDED_TEXTS: ReadonlySet<string> = new Set([
+  ...Object.values(ENDED_MESSAGES),
+  'Il cliente ha tolto l’accesso a Meta: chiedigli di nuovo l’accesso e ricollega',
+])
 
 const works = (status: ConnectionStatus) => status === 'active' || status === 'pending'
 const keyOf = (a: { platform: Platform; externalId: string }) => `${a.platform}:${a.externalId}`

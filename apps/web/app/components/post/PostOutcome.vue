@@ -421,6 +421,13 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
             :api="api"
             :show-files="showsFiles"
           />
+          <!-- until the outcome is read, nothing that the preview then replaces (D-131.5) -->
+          <div
+            v-else-if="!outcome && !loadFailed"
+            class="aspect-[4/5] w-full max-w-[26rem] animate-pulse rounded-card bg-(--app-surface-sunken) motion-reduce:animate-none"
+            aria-hidden="true"
+            data-outcome-loading
+          />
           <ul
             v-else-if="showsFiles && tiles.length > 0"
             class="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:thin]"
@@ -446,7 +453,11 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
               />
             </li>
           </ul>
-          <p v-if="text && !preview" class="max-w-[35rem] whitespace-pre-line" data-outcome-text>
+          <p
+            v-if="text && !preview && (outcome || loadFailed)"
+            class="max-w-[35rem] whitespace-pre-line"
+            data-outcome-text
+          >
             {{ text }}
           </p>
           <div class="flex flex-wrap items-center gap-2 text-detail text-(--app-text-muted)">

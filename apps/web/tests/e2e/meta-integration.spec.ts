@@ -10,6 +10,7 @@ import {
   ownAddress,
   signInWithTotp,
 } from './support/people.ts'
+import { connectedAgency } from './support/meta.ts'
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
 
@@ -197,4 +198,20 @@ test('meta integration: the owner says the app is Live, the warning goes, the ad
   // back in development on Meta: switched off, the warning returns
   await app.getByRole('switch', { name: "L'app è in Live" }).click()
   await expect(page.getByTestId('meta-app-development')).toHaveText('In Sviluppo')
+})
+
+test('a token no longer valid: the top of the page says «Da ricollegare», not «Funziona» (D-131.5)', async ({
+  page,
+}) => {
+  const owner = await newPerson('Olga Token', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const { connectionId } = await connectedAgency(page.request, org)
+  await page.goto(`/${org}/impostazioni/integrazioni/meta`)
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Funziona')
+  await adminQuery("update account_connections set status = 'revoked' where id = $1", [
+    connectionId,
+  ])
+  await page.reload()
+  await expect(page.getByTestId('meta-integration-state')).toHaveText('Da ricollegare')
 })

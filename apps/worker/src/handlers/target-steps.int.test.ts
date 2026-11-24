@@ -433,6 +433,23 @@ test('a temporary error before publishing is tried again when Meta serves the ac
   expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready', attempts: 0 })
 })
 
+test('Meta that cannot download the file (the public host down for a moment) tries again, then it goes (D-131.2)', async () => {
+  const { world, at, post } = await setUp({ accounts: 'instagram' })
+  const clock = testClock(new Date(at.getTime() - 15 * MINUTE))
+  mock.scenario('media_download_failed', { times: 1 })
+  await runSteps(world, post.postId, clock, 'prepare')
+  const [retrying] = await targetsOf(admin, post.postId)
+  expect(retrying).toMatchObject({
+    status: 'retrying',
+    step: 'prepare',
+    attempts: 1,
+    last_error_code: 'media_unreachable',
+  })
+  clock.set(new Date(clock.now().getTime() + MINUTE))
+  await prepareTarget(workerDeps(runtime, clock, host.url), job(world, retrying as TargetRow))
+  expect((await targetsOf(admin, post.postId))[0]).toMatchObject({ status: 'ready', attempts: 0 })
+})
+
 test('CS1: six destinations of one agency at the same time all go out within the minute', async () => {
   const world = await publishingWorld(tdb, runtime)
   const photo = await readyPhoto(tdb, runtime, admin, world)

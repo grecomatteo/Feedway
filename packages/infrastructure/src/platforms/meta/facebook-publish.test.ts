@@ -247,10 +247,14 @@ describe('prepare', () => {
     expect(calls('POST', `/${page}/video_reels`)).toHaveLength(1)
   })
 
-  test('a video Meta cannot fetch fails the destination', async () => {
+  test('a video Meta cannot fetch is tried again, never «a wrong file» (D-131.2)', async () => {
     mock.scenario('media_download_failed')
     const err = await failure(publisher.prepare(target('reel'), files([video()]), ctx()))
-    expect(err).toMatchObject({ kind: 'permanent', code: 'media_rejected', platformCode: '389' })
+    expect(err).toMatchObject({
+      kind: 'transient',
+      code: 'media_unreachable',
+      platformCode: '389',
+    })
   })
 
   test('a photo and a plain video have nothing to prepare but the Page token check', async () => {
@@ -314,6 +318,17 @@ describe('publish', () => {
     const err = await failure(publisher.publish(target('photo'), files([image()]), ctx()))
     expect(err.kind).toBe('uncertain')
     expect(calls('POST', `/${page}/photos`)).toHaveLength(1)
+  })
+
+  test('a file Meta cannot fetch on the call that publishes is uncertain: it is searched first', async () => {
+    const t = target('reel', { asVideo: true })
+    const prepared = await publisher.prepare(t, files([video()]), ctx())
+    mock.scenario('media_download_failed')
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, files([video()]), ctx()),
+    )
+    expect([err.kind, err.code]).toEqual(['uncertain', 'media_unreachable'])
+    expect(calls('POST', `/${page}/videos`)).toHaveLength(1)
   })
 
   test('a run that stopped after the call is never published again, only searched', async () => {

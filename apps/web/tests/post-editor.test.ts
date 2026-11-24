@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
+  contentKey,
   createAutosave,
   passedToTomorrow,
+  confirmSent,
+  rememberSent,
+  sentByThisTab,
   createCheckRunner,
   hasContent,
   missingFiles,
@@ -330,8 +334,8 @@ describe('saving by itself (Scelta 7)', () => {
     expect(s.state()).toMatchObject({ status: 'saved', version: 3 })
   })
 
-  test('a 409 with no save left without an answer never asks: another person or tab', async () => {
-    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+  test('a 409 with no save lost asks too: another person or tab is a conflict (D-131.1)', async () => {
+    const recover = vi.fn(() => Promise.resolve(null))
     const update = vi.fn(() => Promise.reject(Object.assign(new Error('409'), { conflict: true })))
     const { s, set } = saver({
       update,
@@ -342,12 +346,32 @@ describe('saving by itself (Scelta 7)', () => {
     await vi.advanceTimersByTimeAsync(1500)
     set({ caption: { common: 'ab' } })
     await vi.advanceTimersByTimeAsync(1500)
-    expect(recover).not.toHaveBeenCalled()
+    expect(recover).toHaveBeenCalledWith('p1', 1, 0)
     expect(s.state().status).toBe('conflict')
   })
 
-  test('a save refused with an answer (500, 429) is not lost: the next 409 is a conflict', async () => {
-    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 2 }))
+  test('a version this tab did not count, on its own save: taken, no conflict (D-131.1)', async () => {
+    // the server is at 3 with this tab's own content, the tab still says 1
+    const update = vi
+      .fn<(id: string, version: number) => Promise<{ id: string; version: number }>>()
+      .mockRejectedValueOnce(Object.assign(new Error('409'), { conflict: true }))
+      .mockImplementation((_id, version) => Promise.resolve({ id: 'p1', version: version + 1 }))
+    const recover = vi.fn(() => Promise.resolve({ id: 'p1', version: 3 }))
+    const { s, set } = saver({
+      update,
+      recover,
+      isConflict: (e) => (e as { conflict?: boolean }).conflict === true,
+    })
+    set({ caption: { common: 'a' } }) // created, v1
+    await vi.advanceTimersByTimeAsync(1500)
+    set({ caption: { common: 'ab' } })
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(update.mock.calls.map((c) => c[1])).toEqual([1, 3])
+    expect(s.state()).toMatchObject({ status: 'saved', version: 4 })
+  })
+
+  test('a save refused with an answer (500, 429) is not lost: the next 409 asks, never guesses', async () => {
+    const recover = vi.fn(() => Promise.resolve(null))
     const update = vi
       .fn()
       .mockRejectedValueOnce(Object.assign(new Error('500'), { answered: true }))
@@ -364,7 +388,7 @@ describe('saving by itself (Scelta 7)', () => {
     await vi.advanceTimersByTimeAsync(1500)
     set({ caption: { common: 'abc' } }) // 409
     await vi.advanceTimersByTimeAsync(1500)
-    expect(recover).not.toHaveBeenCalled()
+    expect(recover).toHaveBeenCalledWith('p1', 1, 0)
     expect(s.state().status).toBe('conflict')
   })
 
@@ -476,5 +500,66 @@ describe('the evening moves the post to tomorrow, and says so (D-120.5)', () => 
     const at = { localDate: '2026-11-24', localTime: '16:00' }
     expect(passedToTomorrow(at, 'Europe/Rome', evening)).toBe(true)
     expect(passedToTomorrow(at, 'America/New_York', evening)).toBe(false)
+  })
+})
+
+describe('what this tab sent (D-131.1)', () => {
+  const body = (over: Partial<DraftBody> = {}): DraftBody => ({
+    type: 'photo',
+    mediaIds: ['m1'],
+    caption: { common: 'Pane' },
+    destinations: [{ accountId: 'a1' }, { accountId: 'a2' }],
+    when: { localDate: '2026-11-26', localTime: '11:30' },
+    shareToFeed: true,
+    choices: [],
+    cover: null,
+    labelIds: ['l2', 'l1'],
+    ...over,
+  })
+
+  test('the same content written by the editor or read from the server is the same', () => {
+    expect(contentKey(body())).toBe(
+      contentKey(
+        body({
+          caption: { common: 'Pane', instagram: 'Pane' },
+          destinations: [{ accountId: 'a2' }, { accountId: 'a1' }],
+          labelIds: ['l1', 'l2'],
+        }),
+      ),
+    )
+    expect(contentKey(body({ mediaIds: [], cover: { source: 'frame', offsetMs: 0 } }))).toBe(
+      contentKey(body({ mediaIds: [] })),
+    )
+  })
+
+  test('another day, time, text or file is another content', () => {
+    const one = contentKey(body())
+    for (const other of [
+      body({ when: { localDate: '2026-11-27', localTime: '11:30' } }),
+      body({ when: { localDate: '2026-11-26', localTime: '11:31' } }),
+      body({ caption: { common: 'Pane caldo' } }),
+      body({ mediaIds: ['m1', 'm2'] }),
+    ])
+      expect(contentKey(other)).not.toBe(one)
+  })
+
+  test('only what this tab sent for that post counts', () => {
+    rememberSent('post-a', body())
+    expect(sentByThisTab('post-a', body())).toBe(true)
+    expect(sentByThisTab('post-a', body({ caption: { common: 'altro' } }))).toBe(false)
+    expect(sentByThisTab('post-b', body())).toBe(false)
+  })
+
+  test('a confirmed save ends the older ones: they can no longer undo a later change', () => {
+    const old = body({ caption: { common: 'vecchio' } })
+    const kept = body({ caption: { common: 'salvato' } })
+    const after = body({ caption: { common: 'in viaggio' } })
+    rememberSent('post-c', old)
+    const key = rememberSent('post-c', kept)
+    rememberSent('post-c', after)
+    confirmSent('post-c', key)
+    expect(sentByThisTab('post-c', old)).toBe(false)
+    expect(sentByThisTab('post-c', kept)).toBe(true)
+    expect(sentByThisTab('post-c', after)).toBe(true)
   })
 })
