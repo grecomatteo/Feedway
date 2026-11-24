@@ -83,6 +83,17 @@ const icon = 'size-4 shrink-0 text-(--app-text-muted)'
         <UIcon name="i-lucide-mail" :class="icon" aria-hidden="true" />
         {{ $t('nav.systemEmail') }}
       </NuxtLink>
+      <NuxtLink
+        v-if="me.platformRole === 'admin'"
+        to="/piattaforma/integrazioni"
+        role="menuitem"
+        tabindex="-1"
+        :class="entry"
+        @click="emit('navigate')"
+      >
+        <UIcon name="i-lucide-plug" :class="icon" aria-hidden="true" />
+        {{ $t('nav.platformIntegrations') }}
+      </NuxtLink>
 
       <div role="separator" class="-mx-1.5 my-1.5 h-px bg-(--app-border)" />
 

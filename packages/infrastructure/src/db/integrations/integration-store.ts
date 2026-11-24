@@ -27,10 +27,13 @@ const PARSERS: { [K in IntegrationKind]: (value: unknown) => IntegrationConfigs[
     return checked.ok ? checked.value : null
   },
   telegram: (value) => {
-    const botUsername = (value as { botUsername?: unknown } | null)?.botUsername
-    // Telegram's own rule for a bot's username
-    return typeof botUsername === 'string' && /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(botUsername)
-      ? { botUsername }
+    const { botId, botUsername } = (value ?? {}) as { botId?: unknown; botUsername?: unknown }
+    // Telegram's own rule for a bot's username; the id is the number before the token's colon
+    return Number.isSafeInteger(botId) &&
+      (botId as number) > 0 &&
+      typeof botUsername === 'string' &&
+      /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(botUsername)
+      ? { botId: botId as number, botUsername }
       : null
   },
   heartbeat: () => ({}),

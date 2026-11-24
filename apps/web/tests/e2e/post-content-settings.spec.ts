@@ -112,7 +112,7 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
 
   // the time is a choice of its own, saved as soon as it is picked
   await m.getByRole('combobox', { name: 'I nuovi post partono da' }).click()
-  await m.getByRole('option', { name: '9:30', exact: true }).click()
+  await m.getByRole('option', { name: '09:30', exact: true }).click()
   await expect(m.getByRole('status').filter({ hasText: 'Salvato' })).toBeVisible()
 
   await m.getByRole('button', { name: 'Nuova etichetta' }).click()
@@ -150,7 +150,7 @@ test('a Manager sets up labels, a template and a group; an Editor uses them and 
   await e.goto(`/${org}/spazi/${client.slug}`)
   await expect(e.getByRole('link', { name: 'Contenuti', exact: true })).toHaveCount(0)
   await e.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
-  await expect(e.locator('[data-time-field]')).toHaveAccessibleName('Ora: 9:30')
+  await expect(e.locator('[data-time-field]')).toHaveAccessibleName('Ora: 09:30')
 
   const text = e.getByRole('textbox', { name: 'Testo comune' })
   await text.fill('Il pane di oggi')

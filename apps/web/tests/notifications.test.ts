@@ -28,7 +28,7 @@ test('every kind has an icon and a name in the panel', () => {
 
 test('the time is the hour today, the day before', () => {
   const at = { now: new Date('2026-11-19T15:00:00+01:00'), timeZone: 'Europe/Rome' }
-  expect(notificationTime('2026-11-19T09:31:00+01:00', at)).toBe('9:31')
+  expect(notificationTime('2026-11-19T09:31:00+01:00', at)).toBe('09:31')
   expect(notificationTime('2026-11-18T09:31:00+01:00', at)).toBe('ieri')
   expect(notificationTime('2026-11-16T09:31:00+01:00', at)).toBe('lun 16 nov')
 })

@@ -1,5 +1,5 @@
 {
-  "id": "2c5874fe-f405-43ff-ab6f-6375a2c3f253",
+  "id": "487c1d8b-d15f-4e31-9657-19e5e8b442ef",
   "prevId": "6928abeb-feb2-4246-9165-0ba60f22b80c",
   "version": "7",
   "dialect": "postgresql",
@@ -2067,7 +2067,24 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "integrations_telegram_bot": {
+          "name": "integrations_telegram_bot",
+          "columns": [
+            {
+              "expression": "(\"config\"->>'botId')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"integrations\".\"kind\" = 'telegram'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "integrations_organization_id_organizations_id_fk": {
           "name": "integrations_organization_id_organizations_id_fk",
@@ -5869,13 +5886,6 @@
           "notNull": true,
           "default": "'{1,2,3,4,5,6,7}'"
         },
-        "digest_channels": {
-          "name": "digest_channels",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{email,telegram}'"
-        },
         "everything_everywhere": {
           "name": "everything_everywhere",
           "type": "boolean",
@@ -5933,10 +5943,6 @@
         "notification_settings_digest_days": {
           "name": "notification_settings_digest_days",
           "value": "\"notification_settings\".\"digest_days\" <@ '{1,2,3,4,5,6,7}'::smallint[]"
-        },
-        "notification_settings_digest_channels": {
-          "name": "notification_settings_digest_channels",
-          "value": "cardinality(\"notification_settings\".\"digest_channels\") > 0 and \"notification_settings\".\"digest_channels\" <@ '{email,telegram}'::text[]"
         }
       },
       "isRLSEnabled": false

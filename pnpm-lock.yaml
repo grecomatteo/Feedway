@@ -311,6 +311,9 @@ importers:
       '@app/meta-mock':
         specifier: workspace:*
         version: link:../../tools/meta-mock
+      '@app/telegram-mock':
+        specifier: workspace:*
+        version: link:../../tools/telegram-mock
       '@axe-core/playwright':
         specifier: 4.14.0
         version: 4.14.0(playwright-core@1.64.1)
@@ -339,6 +342,9 @@ importers:
       '@app/meta-mock':
         specifier: workspace:*
         version: link:../../tools/meta-mock
+      '@app/telegram-mock':
+        specifier: workspace:*
+        version: link:../../tools/telegram-mock
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
@@ -445,6 +451,9 @@ importers:
       '@app/meta-mock':
         specifier: workspace:*
         version: link:../../tools/meta-mock
+      '@app/telegram-mock':
+        specifier: workspace:*
+        version: link:../../tools/telegram-mock
       '@testcontainers/postgresql':
         specifier: 12.2.1
         version: 12.2.1(supports-color@7.2.0)
@@ -468,6 +477,8 @@ importers:
   tools/lint-rules: {}
 
   tools/meta-mock: {}
+
+  tools/telegram-mock: {}
 
 packages:
 

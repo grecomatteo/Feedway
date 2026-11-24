@@ -41,6 +41,7 @@ export const ACTIVITY_KINDS = [
   'post.verified_manually',
   'post.target_cancelled',
   'post.resumed',
+  'post.target_failed',
   'target.published',
   'target.failed',
   'target.uncertain',
@@ -78,6 +79,29 @@ function problemOf(status: TargetStatus, verification: unknown): string | null {
   if (status !== 'problem' || typeof verification !== 'object' || verification === null) return null
   const reason = (verification as { reason?: unknown }).reason
   return typeof reason === 'string' ? reason : null
+}
+
+/** A call and the worker's entry written in the same step are a few moments apart at most. */
+const SAME_MOMENT_MS = 60_000
+
+/**
+ * The entries of the log and the calls to the platform, together. A refusal of the platform is
+ * told by its call, with the platform's name; the worker's `post.target_failed` of the same
+ * moment, for the same account and code, then says nothing more. Without a call (too late, a
+ * file, the token), the worker's entry tells it (D-120.8).
+ */
+export function activityOf(fromLog: ActivityDto[], fromCalls: ActivityDto[]): ActivityDto[] {
+  const refused = fromCalls.filter((c) => c.kind === 'target.failed')
+  const sameMoment = (a: ActivityDto, b: ActivityDto) =>
+    Math.abs(Date.parse(a.at) - Date.parse(b.at)) <= SAME_MOMENT_MS
+  const told = fromLog.filter(
+    (e) =>
+      e.kind !== 'post.target_failed' ||
+      !refused.some(
+        (c) => c.accountId === e.accountId && c.errorCode === e.errorCode && sameMoment(c, e),
+      ),
+  )
+  return [...told, ...fromCalls]
 }
 
 const ATTEMPT_KIND: Record<string, ActivityKind | undefined> = {
@@ -131,7 +155,10 @@ export async function getPostOutcome(
           kind: e.action as ActivityKind & AuditAction,
           actorName: e.actorId === null ? null : (people.get(e.actorId) ?? null),
           accountId: typeof e.data['accountId'] === 'string' ? e.data['accountId'] : null,
-          errorCode: null,
+          errorCode:
+            e.action === 'post.target_failed' && typeof e.data['code'] === 'string'
+              ? e.data['code']
+              : null,
         }))
       const fromCalls = attempts.flatMap((a): ActivityDto[] => {
         const kind =
@@ -174,7 +201,7 @@ export async function getPostOutcome(
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
           cover: coverOutcomeOf(t.metaIds),
         })),
-        activity: [...fromLog, ...fromCalls]
+        activity: activityOf(fromLog, fromCalls)
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
           .slice(0, ACTIVITY_MAX),
       }
