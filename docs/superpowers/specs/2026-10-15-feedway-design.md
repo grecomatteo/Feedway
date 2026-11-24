@@ -1157,7 +1157,8 @@ bulk_imports        id, workspace_id, created_by, source (files|csv|duplicate),
 -- Piano editoriale (modulo plan, §11.12)
 plan_items          id, workspace_id, local_date, local_time (facoltativa),
                     type (photo|carousel|reel|story), title (1–80), note,
-                    post_id (facoltativo, unico), created_by, updated_by
+                    post_id (facoltativo, unico), created_by, updated_by, version,
+                    updated_at
 
 -- Notifiche e condivisione
 outbox_events       id, organization_id (null = piattaforma), type, payload (jsonb),

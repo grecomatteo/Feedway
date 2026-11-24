@@ -29,6 +29,7 @@ import { drizzleIntegrations } from './integrations/repositories.js'
 import { drizzleMedia } from './media/repositories.js'
 import { drizzleUploadSessions } from './media/upload-sessions.js'
 import { drizzleContentSettings } from './posts/content-settings.js'
+import { drizzlePlan } from './plan/repositories.js'
 import { drizzlePosts } from './posts/repositories.js'
 import { drizzlePublishing } from './posts/publishing.js'
 import {
@@ -86,6 +87,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext, marks?: TxMar
     media: drizzleMedia(db),
     uploads: drizzleUploadSessions(db),
     posts: drizzlePosts(db, ids),
+    plan: drizzlePlan(db),
     publishing: drizzlePublishing(db, ids),
     outbox: {
       ...outbox,

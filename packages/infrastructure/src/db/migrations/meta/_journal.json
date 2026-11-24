@@ -197,6 +197,13 @@
       "when": 1795480198868,
       "tag": "0027_digest_channels",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795557528671,
+      "tag": "0028_plan_items",
+      "breakpoints": true
     }
   ]
 }
