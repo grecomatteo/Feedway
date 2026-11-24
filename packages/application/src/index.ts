@@ -127,11 +127,14 @@ export type { PasswordHasher } from './ports/password-hasher.js'
 export type { SignedTokenPurpose, SignedTokens, TokenService } from './ports/token-service.js'
 export type { OrganizationKeyRecord, OrganizationKeysRepository, Tx } from './ports/tx.js'
 export type {
+  CentreCursor,
+  CentreNotification,
   ClaimedDelivery,
   DeliveryOutcome,
   DeliveryRef,
   NewDeliveryStatus,
   NewNotification,
+  NotificationFilter,
   NotificationPrefsRepository,
   NotificationsRepository,
   TelegramLinksRepository,
@@ -197,6 +200,22 @@ export type {
   SendResult,
 } from './ports/notification-channel.js'
 export {
+  CENTRE_PAGE_DEFAULT,
+  CENTRE_PAGE_MAX,
+  countMyUnreadNotifications,
+  getMyNotificationPreferences,
+  listMyNotifications,
+  markAllMyNotificationsRead,
+  markMyNotificationRead,
+  saveMyNotificationSettings,
+  setMyNotificationKind,
+  type CentreDeps,
+  type CentreItem,
+  type CentrePage,
+  type CentreQuery,
+  type KindPreference,
+  type MyNotificationPreferences,
+  type PreferencesDeps,
   createEmailChannel,
   deliverNotification,
   deliverPlatformNotification,
