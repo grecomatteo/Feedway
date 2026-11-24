@@ -34,7 +34,6 @@ test('every registered queue declares a scope', () => {
     ['telegram.poll', 'system'],
     ['report.daily', 'system'],
     ['report.digest', 'user'],
-    ['heartbeat.external', 'system'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -67,7 +66,6 @@ test('every registered queue declares a scope', () => {
     'telegram.poll',
     'report.daily',
     'report.digest',
-    'heartbeat.external',
   ])
 })
 

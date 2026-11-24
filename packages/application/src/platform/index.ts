@@ -64,12 +64,7 @@ export type {
   WorkerWatchOutcome,
   WorkerWatchReport,
 } from './worker-watch.js'
-export {
-  EXTERNAL_WATCH_LOCK,
-  callExternalWatch,
-  parseExternalWatchState,
-  pingExternalWatch,
-} from './external-watch.js'
+export { callExternalWatch, parseExternalWatchState } from './external-watch.js'
 export type {
   ExternalWatchDeps,
   ExternalWatchReport,

@@ -716,6 +716,17 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   - **R2-b (colonna `attempts` sull'evento, «fatto con errore» dopo 5 giri):** non fatto, serve una migrazione. Un evento che rompesse sempre il database con un errore passeggero si riproverebbe ogni minuto. Non è mai capitato. Alternativa: farlo con una migrazione, se Matteo vuole la garanzia piena.
 - **Stato:** scelte provvisorie, Matteo può cambiarle.
 
+### D-129 · Correzione F3 della revisione della tappa 8: la sorveglianza esterna dal web
+
+- **Origine:** revisione di fine tappa 8 (`REVISIONE-finale.md`), punto R4; thread F3 (24 novembre 2026).
+- **Fatto, con la soluzione consigliata (a):** la chiamata a healthchecks.io la fa il **web** ogni minuto, accanto al controllo del worker. Se si ferma il web, il database o tutta la VPS, nessuno chiama e healthchecks.io avvisa; il worker fermo lo dice Feedway, senza il doppio avviso di prima. La coda `heartbeat.external` e il suo cron non ci sono più; il pool dei lucchetti del worker scende da 4 a 3 connessioni (D-126 punto 2).
+- **Scelte provvisorie:**
+  1. **Senza lucchetto:** ogni web chiama. Con un web solo (la VPS di oggi) è una chiamata al minuto; con più web sono più chiamate uguali, che per healthchecks.io non cambiano niente. Un lucchetto terrebbe una connessione del pool del web per tutta l'attesa della rete (fino a 10 s).
+  2. **Indipendente dal controllo del worker:** i due giri partono insieme ogni minuto, ognuno salta solo il proprio turno se è ancora in corso. Una chiamata lenta non ritarda l'allarme del worker, e un errore dell'uno non ferma l'altro.
+  3. **Specifica aggiornata** (§9.4 e §16.7); il piano 08 resta com'era, con questa voce come nota.
+  4. **Nessuna pulizia del vecchio cron di pg-boss:** la coda non è mai uscita in un rilascio (la tappa 8 non è ancora rilasciata). Un database di prova che avesse girato con `main` di questi giorni tiene il cron vecchio: crea al massimo un lavoro in attesa (politica `singleton`) che nessuno prende, innocuo.
+- **Stato:** scelte provvisorie, Matteo può cambiarle.
+
 ## Pianificazione (tappa 9)
 
 ### D-123 · Scelte provvisorie del piano della tappa 9

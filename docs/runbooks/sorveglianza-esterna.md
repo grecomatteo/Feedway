@@ -3,7 +3,7 @@
 Feedway si controlla da solo in due modi (specifica §16.7):
 
 1. **Il worker batte** ogni 30 secondi nella tabella `system_heartbeats`. Se nessun worker batte per 2 minuti, il **web** manda all'amministratore della piattaforma «Il worker è fermo» per email e con il bot Telegram della piattaforma, e «Il worker è ripartito» quando torna. Non serve configurare niente: bastano l'email di sistema ([email-di-sistema.md](email-di-sistema.md)) e, per Telegram, il bot della piattaforma (guida in `docs/runbooks/telegram.md`).
-2. **La sorveglianza esterna** copre il caso che il primo non vede: se si ferma tutta la VPS (corrente, rete, Docker), nessuno manda niente. Per questo un worker chiama ogni minuto un indirizzo di [healthchecks.io](https://healthchecks.io) (o di Uptime Kuma su un altro server): quando le chiamate smettono, è healthchecks.io ad avvisarti.
+2. **La sorveglianza esterna** copre i casi che il primo non vede: se si ferma il **web** (che serve il pannello e i file a Meta), il database o tutta la VPS (corrente, rete, Docker), nessuno manda niente. Per questo il web chiama ogni minuto un indirizzo di [healthchecks.io](https://healthchecks.io) (o di Uptime Kuma su un altro server): quando le chiamate smettono, è healthchecks.io ad avvisarti.
 
 Questa guida è per il secondo. Il piano gratuito di healthchecks.io basta (20 controlli).
 
@@ -11,7 +11,7 @@ Questa guida è per il secondo. Il piano gratuito di healthchecks.io basta (20 c
 
 1. Registrati su healthchecks.io e apri il tuo progetto.
 2. **Add Check**. Nome: `Feedway VPS`.
-3. **Schedule**: scegli **Simple**, **Period** `1 minute`, **Grace Time** `3 minutes`. Feedway chiama ogni minuto; con 3 minuti di tolleranza un riavvio del worker (aggiornamento) non fa scattare l'allarme.
+3. **Schedule**: scegli **Simple**, **Period** `1 minute`, **Grace Time** `3 minutes`. Feedway chiama ogni minuto; con 3 minuti di tolleranza un riavvio del web (aggiornamento) non fa scattare l'allarme.
 4. Salva. Copia l'indirizzo **Ping URL**, del tipo `https://hc-ping.com/1b2c3d4e-…`.
 
 L'indirizzo è un **segreto**: chi lo conosce può dire a healthchecks.io che la VPS è viva. Non incollarlo in chat, in un ticket o in un file del repository; incollalo solo nel pannello.
@@ -42,17 +42,17 @@ Da fare una volta, dopo il primo collegamento (è anche nella guida della prova 
 
 ```bash
 cd /opt/feedway
-# ferma web e worker, come se la VPS fosse spenta
-docker compose stop web worker
+# ferma solo il web: il pannello e i file per Meta non rispondono più
+docker compose stop web
 ```
 
 Dopo il periodo più la tolleranza (circa 4 minuti) healthchecks.io manda «Feedway VPS is DOWN» per email e su Telegram. Poi:
 
 ```bash
-docker compose start web worker
+docker compose start web
 ```
 
-Entro un minuto arriva «Feedway VPS is UP».
+Entro un minuto arriva «Feedway VPS is UP». Con tutta la VPS spenta succede lo stesso, perché nessuno chiama più.
 
 Per provare il **primo** controllo (quello del web), ferma solo il worker:
 
@@ -63,15 +63,15 @@ docker compose start worker
 # entro un minuto: «Il worker è ripartito»
 ```
 
-Con solo il worker fermo anche healthchecks.io avvisa, dopo circa 4 minuti, perché è il worker a chiamarlo.
+Con solo il worker fermo healthchecks.io resta verde: il web continua a chiamarlo, e l'avviso lo manda Feedway, una volta sola.
 
 ## Se qualcosa non va
 
 | Cosa vedi | Cosa controllare |
 |---|---|
-| «Tempo scaduto» o «Rete non raggiungibile» | La VPS esce su internet? `docker compose exec worker node -e "fetch('https://hc-ping.com').then(r=>console.log(r.status))"` deve stampare un numero. |
+| «Tempo scaduto» o «Rete non raggiungibile» | La VPS esce su internet? `docker compose exec web node -e "fetch('https://hc-ping.com').then(r=>console.log(r.status))"` deve stampare un numero. |
 | «Il servizio ha risposto 404» | L'indirizzo è sbagliato o il controllo è stato cancellato: copialo di nuovo da healthchecks.io. |
 | healthchecks.io resta **new** o **down** con la prova riuscita | Sono due controlli diversi: confronta l'indirizzo del controllo con quello incollato. |
-| Nessuna email «Il worker è fermo» | L'email di sistema è impostata e la prova riesce? Il web esce su internet (rete `egress` in `docker/compose.yml`)? Nel log del web cerca `worker watch`. |
+| Nessuna email «Il worker è fermo» | L'email di sistema è impostata e la prova riesce? Il web esce su internet (rete `egress` in `docker/compose.yml`)? Nel log del web cerca `worker watch` (o `platform watch failed`). |
 
 Il log di Feedway non contiene mai l'indirizzo: solo l'esito (`external watch failed` con il motivo).

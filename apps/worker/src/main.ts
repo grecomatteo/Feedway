@@ -4,7 +4,6 @@ import { hostname } from 'node:os'
 import { join } from 'node:path'
 import {
   createAdvisoryLock,
-  createExternalWatchPinger,
   createAvatarProcessor,
   createMediaScratch,
   createMediaTools,
@@ -19,8 +18,8 @@ import { createTranslate, loadItalianMessages } from './i18n.js'
 import { startWorker } from './start-worker.js'
 
 const EXIT_CONFIG = 78
-/** `media.process`, `media.publish_copies`, `report.daily` and `heartbeat.external`. */
-const INSTALLATION_LOCK_HOLDERS = 4
+/** `media.process`, `media.publish_copies` and `report.daily`. */
+const INSTALLATION_LOCK_HOLDERS = 3
 
 async function main(): Promise<void> {
   let config
@@ -40,8 +39,8 @@ async function main(): Promise<void> {
     max: 1,
     applicationName: 'worker-telegram',
   })
-  // The installation's lock holds its connection for the whole work (a conversion, the call to
-  // healthchecks.io): from a pool of its own, one connection for each queue that takes it, so
+  // The installation's lock holds its connection for the whole work (a conversion, a round of
+  // the daily report): from a pool of its own, one connection for each queue that takes it, so
   // it never leaves the jobs without one (R1 of the tappa 8 review)
   const lockDb = createDb(config.databaseUrl, {
     max: INSTALLATION_LOCK_HOLDERS,
@@ -82,10 +81,6 @@ async function main(): Promise<void> {
         tokens: runtime.tokens,
         // its own connection: the lock is held for the whole ~50 s wait of `telegram.poll`
         lock: createAdvisoryLock(telegramLockDb.pool),
-      },
-      externalWatch: {
-        integrations: runtime.integrations,
-        pinger: createExternalWatchPinger(),
       },
       images: createAvatarProcessor(),
       publishing: {

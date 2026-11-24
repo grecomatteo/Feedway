@@ -46,7 +46,6 @@ interface JobDefinitions {
   'telegram.poll': { scope: 'system'; data: object }
   'report.daily': { scope: 'system'; data: object }
   'report.digest': { scope: 'user'; data: ReportDigestJobData }
-  'heartbeat.external': { scope: 'system'; data: object }
 }
 
 /**

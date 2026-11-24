@@ -76,10 +76,6 @@ const deps = (): JobHandlerDeps => ({
     integrations: { get: () => Promise.reject(new Error('not used')) },
     graph: { version: 'v24.0', sunset: '2099-12-31' },
   },
-  externalWatch: {
-    integrations: { platformCredentials: () => Promise.reject(new Error('not used')) },
-    pinger: { ping: () => Promise.reject(new Error('not used')) },
-  },
   images: createAvatarProcessor(),
   media: unusedMediaTools,
 })

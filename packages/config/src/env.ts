@@ -57,7 +57,6 @@ export const KNOWN_QUEUES = [
   'telegram.poll',
   'report.daily',
   'report.digest',
-  'heartbeat.external',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
