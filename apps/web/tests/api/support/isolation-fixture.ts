@@ -104,7 +104,7 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'PUT /api/v1/me/notifications/preferences': () => ({
     minLevel: 'warning',
     quietHours: null,
-    digest: { enabled: true, time: '08:00', days: [1, 2, 3, 4, 5] },
+    digest: { enabled: true, time: '08:00', days: [1, 2, 3, 4, 5], channels: ['email'] },
     everythingEverywhere: false,
   }),
   'PUT /api/v1/me/notifications/preferences/kinds': () => ({

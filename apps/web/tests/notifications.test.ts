@@ -1,6 +1,11 @@
 import { expect, test } from 'vitest'
-import { NotificationChannel, NotificationKindName, NotificationLevel } from '@app/contracts'
-import { CHANNELS, LEVELS, OUTBOX_EVENT_TYPES } from '@app/domain'
+import {
+  DigestChannel,
+  NotificationChannel,
+  NotificationKindName,
+  NotificationLevel,
+} from '@app/contracts'
+import { CHANNELS, DIGEST_CHANNELS, LEVELS, OUTBOX_EVENT_TYPES } from '@app/domain'
 import { deliveryLines, notificationIcon, notificationTime } from '../app/utils/notifications.ts'
 import { message, translate } from './rules-table.ts'
 
@@ -11,6 +16,7 @@ test('the contract lists the kinds, levels and channels of the domain', () => {
   expect([...NotificationKindName.options].sort()).toEqual([...OUTBOX_EVENT_TYPES].sort())
   expect(NotificationLevel.options).toEqual([...LEVELS])
   expect(NotificationChannel.options).toEqual([...CHANNELS])
+  expect(DigestChannel.options).toEqual([...DIGEST_CHANNELS])
 })
 
 test('every kind has an icon and a name in the panel', () => {

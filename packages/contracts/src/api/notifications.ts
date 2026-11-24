@@ -122,9 +122,13 @@ export const readAllMyNotificationsRoute = defineContract({
   scope: 'personal',
 })
 
-/** Where the digest goes, at least one (the panel keeps the events, not the digest) */
+/** Where the digest can go: the panel keeps the events, not the digest */
+export const DigestChannel = z.enum(['email', 'telegram'])
+export type DigestChannel = z.infer<typeof DigestChannel>
+
+/** At least one */
 const DigestChannels = z
-  .array(z.enum(['email', 'telegram']))
+  .array(DigestChannel)
   .min(1, 'Scegli almeno un canale per il riepilogo')
   .max(2)
 

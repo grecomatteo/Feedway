@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DigestChannel } from '@app/contracts'
 import type {
   NotificationChannel,
   NotificationKindName,
@@ -117,8 +118,7 @@ function toggleDay(day: number) {
     return { ...s, digest: { ...s.digest, days, enabled: days.length > 0 && s.digest.enabled } }
   })
 }
-const DIGEST_CHANNELS = ['email', 'telegram'] as const
-type DigestChannel = (typeof DIGEST_CHANNELS)[number]
+const DIGEST_CHANNELS = DigestChannel.options
 function toggleDigestChannel(channel: DigestChannel, on: boolean) {
   saveSettings((s) => {
     const channels = DIGEST_CHANNELS.filter((c) =>
