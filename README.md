@@ -35,6 +35,7 @@ Chi gestisce i social di molti clienti passa la giornata tra account, password, 
 - **Un calendario per tutti i clienti**, o per uno alla volta, con anteprima com'è su Meta.
 - **Un post, più destinazioni**: gli stessi media su più account Instagram e Pagine Facebook, con caption comune e testo diverso per piattaforma quando serve.
 - **Un esito per ogni destinazione**: confermato, in verifica, da accertare o con problema. Se un account fallisce si riprova solo quello, senza ripubblicare ciò che è già uscito.
+- **Se qualcosa non va, lo sai subito**: un post non uscito o un account da ricollegare arrivano a chi deve sistemarli, nel pannello, per email o su Telegram, e ogni mattina alle 8:00 il riepilogo della giornata.
 - **Sul tuo server**: dati, token e media restano sulla tua VPS. Dopo l'installazione tutto si configura dal pannello, senza toccare codice o file.
 
 ## Funzioni
@@ -68,14 +69,20 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 ## Stato del progetto
 
 > [!NOTE]
-> Feedway è in sviluppo e non è ancora pronto per l'uso con clienti reali. La 1.0 si costruisce in **12 tappe**, ognuna installabile e provabile sulla VPS.
+> Feedway è in sviluppo e non è ancora pronto per l'uso con clienti reali. La 1.0 si costruisce in **12 tappe**, ognuna installabile e provabile sulla VPS. L'ultima versione è la **0.14.0** (tappa 8, le notifiche).
 
 | Tappa | Contenuto | Stato |
 |---|---|---|
-| 1 · Fondamenta | Monorepo, database, coda, worker, design system, immagine Docker, `install.sh` e `update.sh`, CI | ✅ Rilasciata (v0.1.x) |
-| 2 · Identità | Accesso con password, passkey e 2FA; agenzie isolate con RLS, spazi di lavoro, ruoli e inviti; registro attività; profilo; email di sistema; privacy (scarica i miei dati, elimina l'account, conservazione automatica) | 🚧 In chiusura |
-| 3 · Meta | Collegamento di Pagine Facebook e profili Instagram: utente di sistema e accesso unificato di Meta | 📝 Piano pronto |
-| 4–12 | Media, regole, post, pubblicazione, notifiche, pianificazione, condivisione, operazioni, messa in produzione | ⏳ Da fare |
+| 1 · Fondamenta | Monorepo, database, coda, worker, design system, immagine Docker, `install.sh` e `update.sh`, CI | ✅ v0.1 |
+| 2 · Identità | Accesso con password, passkey e 2FA; agenzie isolate con RLS, clienti, ruoli e inviti; registro attività; profilo; email di sistema; privacy | ✅ v0.2–v0.5 |
+| 3 · Meta | Collegamento di Pagine Facebook e profili Instagram con l'utente di sistema; salute, quota e promemoria degli account; profili del cliente | ✅ v0.6–v0.9 |
+| 4 · Media | Caricamento a pezzi con ripresa, conversioni (HEIC, HEVC), libreria con cartelle e tag, host pubblico per Meta | ✅ v0.10 |
+| 5 · Regole | I controlli di Meta prima di programmare: formati, misure, durate, limiti, con il motivo e cosa fare | ✅ v0.11 |
+| 6 · Post | Editor con l'anteprima di Instagram e Facebook, bozze, programmazione, etichette, modelli e gruppi di account; il ridisegno del pannello | ✅ v0.12 |
+| 7 · Pubblicazione | Pubblicazione vera su Meta, verifica dopo l'uscita, esito per destinazione, «Riprova» senza doppioni, cartelle e zip in libreria | ✅ v0.13 |
+| 8 · Notifiche | Centro notifiche, email e bot Telegram con `/oggi` e `/problemi`, preferenze e ore di silenzio, riepilogo delle 8:00, avviso del worker fermo, sorveglianza esterna con healthchecks.io | ✅ v0.14 |
+| 9 · Pianificazione | Calendario di tutti i clienti, piano editoriale, programmazione in blocco, bozze negli Eliminati | 📝 Piano approvato |
+| 10–12 | Condivisione e brand, operazioni (backup, dashboard), messa in produzione | ⏳ Da fare |
 
 Dettaglio di ogni tappa nel [piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md); cosa è uscito in ogni versione nel [CHANGELOG](CHANGELOG.md).
 
@@ -87,8 +94,10 @@ Un **monolite modulare** ([ADR 001](docs/adr/001-monolite-modulare.md)): un pann
 flowchart LR
   U[Agenzia<br>browser o PWA] -->|HTTPS via Tailscale| W[apps/web<br>Nuxt 4 · API /api/v1]
   W --> DB[(PostgreSQL 18<br>dati con RLS · coda pg-boss)]
-  K[apps/worker<br>pubblicazione · verifica · email] --> DB
+  K[apps/worker<br>pubblicazione · verifica · notifiche] --> DB
   K -->|Graph API| M[Meta<br>Instagram · Facebook]
+  K -->|email · Bot API| N[SMTP · Telegram]
+  W -->|ogni minuto| H[healthchecks.io<br>sorveglianza esterna]
   V[Visitatore] -->|HTTPS| S[apps/site<br>landing · privacy · Cloudflare Pages]
 ```
 
@@ -169,11 +178,11 @@ git checkout vX.Y.Z            # l'ultima versione con tag, mai main
 Lo script genera chiavi e password, avvia i container e stampa l'indirizzo del pannello e il link di primo accesso dell'Owner. Gli aggiornamenti eseguono prima la migrazione e tornano indietro con un comando:
 
 ```bash
-./scripts/update.sh v0.2.0     # o senza argomenti per l'ultima release
+./scripts/update.sh v0.14.0    # o senza argomenti per l'ultima release
 ./scripts/update.sh --rollback
 ```
 
-Prerequisiti, accessi finché il repository è privato, segreti e backup: [runbook di installazione](docs/runbooks/installazione.md). Poi imposta l'[email di sistema](docs/runbooks/email-di-sistema.md).
+Prerequisiti, accessi finché il repository è privato, segreti e backup: [runbook di installazione](docs/runbooks/installazione.md). Poi imposta l'[email di sistema](docs/runbooks/email-di-sistema.md), il [bot Telegram](docs/runbooks/telegram.md) e la [sorveglianza esterna](docs/runbooks/sorveglianza-esterna.md).
 
 ## Documentazione
 
@@ -186,7 +195,7 @@ Prerequisiti, accessi finché il repository è privato, segreti e backup: [runbo
 | [Stack](docs/stack.md) | Componenti, versioni e alternative valutate |
 | [Convenzioni](docs/convenzioni.md) · [Moduli](docs/moduli.md) | Regole di codice e ricetta per un modulo nuovo |
 | [Flusso Git](docs/flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci |
-| [Runbook](docs/runbooks/) | Installazione, email di sistema, impostazioni GitHub, sito pubblico |
+| [Runbook](docs/runbooks/) | Installazione, email di sistema, Meta, Telegram, sorveglianza esterna, impostazioni GitHub, sito pubblico |
 | [Design](DESIGN.md) · [Prodotto](PRODUCT.md) · [Marchio](design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md) | Scelte grafiche, contesto di prodotto, guida del marchio |
 | [Indice completo](docs/README.md) | Tutti gli altri documenti |
 

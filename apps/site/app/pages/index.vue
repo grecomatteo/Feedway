@@ -195,7 +195,7 @@ const FAQ = [
   ],
   [
     'Che succede se un post non esce?',
-    'Feedway te lo dice in Oggi, con il motivo e cosa fare. Con «Riprova» pubblica solo dove non è uscito.',
+    'Feedway avvisa chi l’ha programmato nel pannello, per email e su Telegram, e in Oggi trovi il motivo e cosa fare. Con «Riprova» pubblica solo dove non è uscito.',
   ],
   [
     'Funziona con TikTok e LinkedIn?',
