@@ -50,8 +50,12 @@ export const AUDIT_ACTIONS = [
   'member.removed',
   'platform.mail_settings_changed',
   'platform.mail_test_sent',
+  'platform.telegram_bot_changed',
+  'platform.telegram_bot_removed',
   'integration.meta_changed',
   'integration.meta_tested',
+  'integration.telegram_changed',
+  'integration.telegram_removed',
   'connection.created',
   'connection.token_replaced',
   'accounts.imported',
@@ -70,6 +74,8 @@ export const AUDIT_ACTIONS = [
   'post.target_cancelled',
   'post.resumed',
   'post.published_now',
+  // the worker: a destination ended not out, whatever the reason (D-120.8)
+  'post.target_failed',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

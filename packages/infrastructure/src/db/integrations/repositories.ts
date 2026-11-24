@@ -1,5 +1,6 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { IdGenerator, IntegrationRecord, IntegrationsRepository } from '@app/application'
+import { DomainError } from '@app/domain'
 import type { DbExecutor } from '../client.js'
 import { integrations } from './schema.js'
 
@@ -14,6 +15,24 @@ const recordOf = (row: Row): IntegrationRecord => ({
   rejectedAt: row.rejectedAt,
   updatedAt: row.updatedAt,
 })
+
+const BOT_ELSEWHERE = 'integrations_telegram_bot'
+
+/** A Telegram bot already saved by another agency or the platform: said without naming which. */
+async function oneBotOnePlace<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write
+  } catch (error) {
+    const e = error as { code?: unknown; constraint?: unknown; cause?: typeof e }
+    const pg = e.code === '23505' ? e : e.cause
+    if (pg?.code === '23505' && pg.constraint === BOT_ELSEWHERE)
+      throw new DomainError(
+        'CONFLICT',
+        'Questo bot è già usato altrove: creane uno nuovo con @BotFather',
+      )
+    throw error
+  }
+}
 
 // a JavaScript date holds milliseconds, the column microseconds
 const sameVersion = (version: Date) =>
@@ -35,14 +54,16 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
     async upsertPlatform(kind, input) {
       // new settings have not been tried yet
       const values = { ...input, verifiedAt: null, rejectedAt: null }
-      const [row] = await db
-        .insert(integrations)
-        .values({ id: ids.newId(), organizationId: null, kind, ...values })
-        .onConflictDoUpdate({
-          target: [integrations.organizationId, integrations.kind],
-          set: { ...values, updatedAt: sql`now()` },
-        })
-        .returning()
+      const [row] = await oneBotOnePlace(
+        db
+          .insert(integrations)
+          .values({ id: ids.newId(), organizationId: null, kind, ...values })
+          .onConflictDoUpdate({
+            target: [integrations.organizationId, integrations.kind],
+            set: { ...values, updatedAt: sql`now()` },
+          })
+          .returning(),
+      )
       if (!row) throw new Error('integration not stored')
       return recordOf(row)
     },
@@ -61,6 +82,13 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
         .returning({ id: integrations.id })
       return rows.length > 0
     },
+    async deletePlatform(kind) {
+      const rows = await db
+        .delete(integrations)
+        .where(and(isNull(integrations.organizationId), eq(integrations.kind, kind)))
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
 
     async findForOrganization(organizationId, kind) {
       const [row] = await db
@@ -75,25 +103,43 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
       const input = { ...saved, rejectedAt: null }
       if (expected === null) {
         // a row written by someone else since the read wins: nothing is overwritten
-        const [row] = await db
-          .insert(integrations)
-          .values({ id: ids.newId(), organizationId, kind, ...input })
-          .onConflictDoNothing({ target: [integrations.organizationId, integrations.kind] })
-          .returning()
+        const [row] = await oneBotOnePlace(
+          db
+            .insert(integrations)
+            .values({ id: ids.newId(), organizationId, kind, ...input })
+            .onConflictDoNothing({ target: [integrations.organizationId, integrations.kind] })
+            .returning(),
+        )
         return row ? recordOf(row) : null
       }
-      const [row] = await db
-        .update(integrations)
-        .set({ ...input, updatedAt: sql`now()` })
+      const [row] = await oneBotOnePlace(
+        db
+          .update(integrations)
+          .set({ ...input, updatedAt: sql`now()` })
+          .where(
+            and(
+              eq(integrations.organizationId, organizationId),
+              eq(integrations.kind, kind),
+              sameVersion(expected),
+            ),
+          )
+          .returning(),
+      )
+      return row ? recordOf(row) : null
+    },
+
+    async deleteForOrganization(organizationId, kind, version) {
+      const rows = await db
+        .delete(integrations)
         .where(
           and(
             eq(integrations.organizationId, organizationId),
             eq(integrations.kind, kind),
-            sameVersion(expected),
+            sameVersion(version),
           ),
         )
-        .returning()
-      return row ? recordOf(row) : null
+        .returning({ id: integrations.id })
+      return rows.length > 0
     },
 
     async markVerified(organizationId, kind, at, version) {

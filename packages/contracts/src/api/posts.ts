@@ -294,6 +294,7 @@ export const POST_ACTIVITY_KINDS = [
   'post.verified_manually',
   'post.target_cancelled',
   'post.resumed',
+  'post.target_failed',
   'target.published',
   'target.failed',
   'target.uncertain',

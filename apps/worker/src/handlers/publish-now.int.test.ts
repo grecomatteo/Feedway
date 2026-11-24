@@ -270,4 +270,10 @@ test('the outcome of a destination that failed says its code, and the activity t
       errorCode: 'media_rejected',
     }),
   )
+  // told once: by the call, not again by the worker's entry of the same moment (D-120.8)
+  expect(
+    outcome.activity.filter(
+      (a) => a.accountId === world.accounts.instagram && a.kind.endsWith('failed'),
+    ),
+  ).toHaveLength(1)
 })

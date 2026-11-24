@@ -131,6 +131,8 @@ onMounted(() => {
 const optionId = (i: number) => `${id}-option-${String(i)}`
 
 function pick(option: Option) {
+  // a list opened again while this one is still fading out is this same one: without the search
+  query.value = ''
   emit('done')
   if (option.slug !== null) {
     void navigateTo({

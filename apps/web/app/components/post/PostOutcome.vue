@@ -217,11 +217,16 @@ const at = (iso: string) => {
   const near = formatRelative(iso, { timeZone })
   return near.includes(':') ? near : formatShort(iso, { timeZone })
 }
+/** «Non uscito su …: era troppo tardi» where the reason has a short way to say it (D-120.8) */
+const activityKey = (a: { kind: string; errorCode: string | null }) => {
+  const key = `posts.outcome.activity.${a.kind.replace('.', '_')}`
+  return a.errorCode && te(`${key}_${a.errorCode}`) ? `${key}_${a.errorCode}` : key
+}
 const activity = computed(() =>
   (outcome.value?.activity ?? []).map((a, i) => ({
     key: `${a.at}-${String(i)}`,
     at: at(a.at),
-    text: t(`posts.outcome.activity.${a.kind.replace('.', '_')}`, {
+    text: t(activityKey(a), {
       name: a.actorName ?? t('posts.list.someone'),
       account: a.accountId ? accountName(a.accountId) : '',
       platform: a.accountId ? platformName(a.accountId) : '',

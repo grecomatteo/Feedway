@@ -21,9 +21,23 @@ export interface WorkspaceProfile {
   accounts: ProfileAccount[]
 }
 
-/** The name of a profile (§3): its Facebook Page, or its only account. */
-export const profileName = (p: WorkspaceProfile) =>
-  (p.accounts.find((a) => a.platform === 'facebook') ?? p.accounts[0])?.name ?? ''
+/**
+ * The name of a profile (§3), the same everywhere (D-120.7): its Instagram's name, then its Page's,
+ * then the handle, as the name a client takes from it (`proposedName`) and «Aggiungi» shows.
+ */
+export const profileName = (p: {
+  accounts: readonly Pick<ProfileAccount, 'platform' | 'name' | 'username'>[]
+}) => {
+  const ordered = [
+    ...p.accounts.filter((a) => a.platform === 'instagram'),
+    ...p.accounts.filter((a) => a.platform !== 'instagram'),
+  ]
+  return (
+    ordered.find((a) => a.name.trim())?.name.trim() ??
+    ordered.find((a) => a.username)?.username ??
+    ''
+  )
+}
 
 /** The photo of a profile: its Instagram's, else its Page's. */
 export const profilePhoto = (p: WorkspaceProfile) =>

@@ -531,7 +531,8 @@
     "systemEmail": "Email di sistema",
     "signOut": "Esci",
     "signOutFailed": "Uscita non riuscita: la sessione è ancora aperta. Riprova tra poco.",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "platformIntegrations": "Integrazioni della piattaforma"
   },
   "signIn": {
     "title": "Accedi",
@@ -1029,6 +1030,8 @@
       "organization_ownership_transferred": "ha passato la proprietà dell'agenzia",
       "integration_meta_changed": "ha cambiato l'integrazione Meta",
       "integration_meta_tested": "ha provato l'integrazione Meta",
+      "integration_telegram_changed": "ha impostato il bot Telegram dell'agenzia",
+      "integration_telegram_removed": "ha tolto il bot Telegram dell'agenzia",
       "connection_created": "ha aggiunto un collegamento Meta",
       "connection_token_replaced": "ha sostituito il token di un collegamento",
       "accounts_imported": "ha importato degli account social",
@@ -1045,6 +1048,7 @@
       "post_retried": "ha riprovato la pubblicazione di un post",
       "post_verified_manually": "ha segnato come verificato un post",
       "post_target_cancelled": "ha annullato un post su un account",
+      "post_target_failed": "ha segnato un post come non uscito su un account",
       "post_resumed": "ha ripreso un post in pausa",
       "post_published_now": "ha pubblicato subito un post",
       "session_revoked": "ha scollegato dei dispositivi",
@@ -1150,7 +1154,12 @@
       "explain": "Pagine Facebook e profili Instagram"
     },
     "connections": "nessun collegamento | {n} collegamento | {n} collegamenti",
-    "reconnect": "{n} da ricollegare | {n} da ricollegare"
+    "reconnect": "{n} da ricollegare | {n} da ricollegare",
+    "telegram": {
+      "explain": "Notifiche e comandi /oggi e /problemi",
+      "own": "Bot dell'agenzia: {'@'}{name}",
+      "platform": "Bot della piattaforma"
+    }
   },
   "metaIntegration": {
     "title": "Meta",
@@ -1788,7 +1797,7 @@
       "useCancelled": "Post annullato",
       "usePublished": "Pubblicato il {day}",
       "useNotOut": "Post non uscito",
-      "useMore": "e altri {n}",
+      "useMore": "e in un altro post | e in altri {n} post",
       "newPost": "Usa in un nuovo post",
       "download": "Scarica",
       "technical": "Dettagli tecnici",
@@ -2616,7 +2625,7 @@
         "paused": "In pausa",
         "cancelled": "Annullato"
       },
-      "noText": "Senza testo",
+      "noTextOf": "{type} senza testo",
       "noType": "Senza file",
       "noDate": "Senza data",
       "noProfiles": "Nessun profilo",
@@ -2780,6 +2789,8 @@
         "post_verified_manually": "{name} l'ha segnato come verificato su {account}",
         "post_target_cancelled": "{name} l'ha annullato su {account}",
         "post_resumed": "{name} l'ha ripreso",
+        "post_target_failed": "Non uscito su {account}",
+        "post_target_failed_too_late": "Non uscito su {account}: era troppo tardi",
         "target_published": "Pubblicato su {account}",
         "target_failed": "{platform} non ha pubblicato il post su {account}",
         "target_uncertain": "{platform} non ha risposto in tempo su {account}"
@@ -3134,6 +3145,50 @@
       "emailPostFails": "Email quando un post non esce",
       "emailPostFailsHelp": "Arriva sempre a chi ha programmato il post: non si può spegnere.",
       "loadError": "Le preferenze delle notifiche non si sono caricate."
+    }
+  },
+  "platformIntegrations": {
+    "title": "Integrazioni della piattaforma",
+    "explain": "I servizi che valgono per tutte le agenzie. Li vedi solo tu, come amministratore della piattaforma."
+  },
+  "telegramBot": {
+    "title": "Bot Telegram",
+    "active": "Attivo",
+    "rejected": "Token rifiutato",
+    "none": {
+      "platform": "Da configurare",
+      "agency": "Usa il bot della piattaforma"
+    },
+    "explain": {
+      "platform": "Il bot con cui Feedway manda le notifiche su Telegram e risponde a /oggi e /problemi. Vale per tutte le agenzie che non hanno un bot loro.",
+      "agency": "Di solito l'agenzia usa il bot della piattaforma. Se vuoi un bot col nome dell'agenzia, crealo con {'@'}BotFather e incolla qui il suo token: dopo, ognuno di voi collega di nuovo Telegram in «Profilo e preferenze»."
+    },
+    "bot": "Bot",
+    "token": "Token",
+    "tokenSaved": "Salvato il {when}",
+    "tokenField": "Token del bot",
+    "tokenHelp": "Quello che {'@'}BotFather ti dà dopo /newbot, per esempio 123456789:AA… Feedway lo prova con Telegram prima di salvarlo e non lo mostra più.",
+    "replace": "Sostituisci token",
+    "save": "Prova e salva",
+    "cancel": "Annulla",
+    "saved": "Bot salvato",
+    "removed": "Bot tolto",
+    "remove": {
+      "platform": "Togli il bot",
+      "agency": "Torna al bot della piattaforma"
+    },
+    "removeExplain": {
+      "platform": "Chi non ha un bot della sua agenzia non riceverà più niente su Telegram, finché non ne imposti un altro.",
+      "agency": "Il bot dell'agenzia smette di mandare notifiche. Ognuno di voi dovrà collegare Telegram al bot della piattaforma in «Profilo e preferenze»."
+    },
+    "rejectedAt": "Telegram ha rifiutato il token il {when}: forse è stato revocato con {'@'}BotFather. Incollane uno nuovo.",
+    "loadError": "Non riesco a leggere il bot Telegram.",
+    "guide": {
+      "title": "Come creare il bot",
+      "open": "Su Telegram apri {'@'}BotFather e scrivi /newbot.",
+      "newbot": "Scegli il nome che le persone vedono (per esempio «Feedway») e un nome utente che finisce con «bot».",
+      "copy": "{'@'}BotFather risponde con il token: copialo, e non mandarlo in chat a nessuno.",
+      "paste": "Incollalo qui sopra e premi «Prova e salva»."
     }
   },
   "digest": {

@@ -348,7 +348,7 @@ watch(
                   <NuxtLink
                     :to="postPage(p)"
                     class="block truncate font-medium underline-offset-3 hover:underline"
-                    >{{ p.text || $t('posts.list.noText') }}</NuxtLink
+                    >{{ postTitle(p, $t) }}</NuxtLink
                   >
                   <span class="block truncate text-detail text-(--app-text-muted)">
                     <span class="max-md:hidden">{{ postKind(p) }}</span>

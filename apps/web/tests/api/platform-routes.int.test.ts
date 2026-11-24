@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import { MAIL_FAILURE_KINDS } from '@app/application'
 import { apiRoutes, MailTestKind } from '@app/contracts'
+import { TELEGRAM_MOCK } from '@app/telegram-mock'
 import type { ApiContract } from '@app/contracts'
 import type { ErrorJson } from './identity-env.js'
 import {
@@ -56,12 +57,18 @@ const route = (key: string) => {
 const GET = route('GET /api/v1/platform/mail-settings')
 const PUT = route('PUT /api/v1/platform/mail-settings')
 const TEST = route('POST /api/v1/platform/mail-settings/test')
+const BOT = route('GET /api/v1/platform/telegram-bot')
+const SET_BOT = route('PUT /api/v1/platform/telegram-bot')
+const REMOVE_BOT = route('DELETE /api/v1/platform/telegram-bot')
 
-test('the platform routes are these three', () => {
+test('the platform routes are the system email and the Telegram bot', () => {
   expect(platformRoutes.map(routeKey).sort()).toEqual([
+    'DELETE /api/v1/platform/telegram-bot',
     'GET /api/v1/platform/mail-settings',
+    'GET /api/v1/platform/telegram-bot',
     'POST /api/v1/platform/mail-settings/test',
     'PUT /api/v1/platform/mail-settings',
+    'PUT /api/v1/platform/telegram-bot',
   ])
 })
 
@@ -85,7 +92,7 @@ test.each(
   const text = await answer.text()
   expect(answer.status, text).toBe(404)
   expect((JSON.parse(text) as ErrorJson).error.code).toBe('NOT_FOUND')
-  expect(text).not.toMatch(/smtp|mail/i)
+  expect(text).not.toMatch(/smtp|mail|telegram|bot/i)
   const after = await fx.env.admin.pool.query('select count(*)::int as n from integrations')
   expect(after.rows).toEqual(before.rows)
 })
@@ -152,7 +159,7 @@ test('a change or a test needs a recent reauth; reading does not', async () => {
     'update sessions set reauthenticated_at = null where user_id = $1',
     [platformUserId],
   )
-  for (const r of [PUT, TEST]) {
+  for (const r of [PUT, TEST, SET_BOT, REMOVE_BOT]) {
     const answer = await call(r, platformCookie)
     const text = await answer.text()
     expect(answer.status, `${routeKey(r)}: ${text}`).toBe(403)
@@ -215,4 +222,60 @@ test('people of an agency behind the same address never use up the administrator
     headers: sameAddress,
   })
   expect(mine.status, await mine.text()).toBe(200)
+})
+
+test('the Telegram bot: tried with getMe, saved with its name, the token never comes back', async () => {
+  expect(await (await call(BOT, platformCookie)).json()).toEqual({ bot: null })
+  const set = await call(SET_BOT, platformCookie, {
+    token: ` ${TELEGRAM_MOCK.bots.platform.token}\n`,
+  })
+  const text = await set.text()
+  expect(set.status, text).toBe(200)
+  expect(text).not.toContain(TELEGRAM_MOCK.bots.platform.token)
+  const { bot } = JSON.parse(text) as { bot: Record<string, unknown> }
+  expect(bot).toMatchObject({ botUsername: 'feedway_mock_bot', rejectedAt: null })
+  expect(bot.verifiedAt).toEqual(expect.any(String))
+  expect(Object.keys(bot).sort()).toEqual(['botUsername', 'rejectedAt', 'updatedAt', 'verifiedAt'])
+  const read = await call(BOT, platformCookie)
+  expect(((await read.json()) as { bot: unknown }).bot).toEqual(bot)
+  expect(fx.env.telegram.calls().map((c) => [c.method, c.bot])).toContainEqual([
+    'getMe',
+    'feedway_mock_bot',
+  ])
+  const { rows } = await fx.env.admin.pool.query<{ data: unknown }>(
+    "select data from audit_log where action = 'platform.telegram_bot_changed'",
+  )
+  expect(rows.map((r) => r.data)).toEqual([{ botUsername: 'feedway_mock_bot' }])
+})
+
+test('a token Telegram refuses, or one of the wrong form, is not saved', async () => {
+  const before = await (await call(BOT, platformCookie)).text()
+  for (const token of ['non-un-token', '1000000009:AAtoken-che-telegram-non-conosce-000']) {
+    const answer = await call(SET_BOT, platformCookie, { token })
+    const text = await answer.text()
+    expect(answer.status, text).toBe(422)
+    expect(JSON.parse(text)).toMatchObject({ error: { issues: [{ path: ['token'] }] } })
+    expect(text).not.toContain(token)
+  }
+  expect(await (await call(BOT, platformCookie)).text()).toBe(before)
+})
+
+test('Telegram down: 502, nothing saved', async () => {
+  fx.env.telegram.unavailable()
+  const answer = await call(SET_BOT, platformCookie, { token: TELEGRAM_MOCK.bots.agency.token })
+  expect(answer.status).toBe(502)
+  expect(
+    ((await (await call(BOT, platformCookie)).json()) as { bot: { botUsername: string } }).bot
+      .botUsername,
+  ).toBe('feedway_mock_bot')
+})
+
+test('the bot taken away: none any more, and taking it away again is fine', async () => {
+  expect((await call(REMOVE_BOT, platformCookie)).status).toBe(200)
+  expect(await (await call(BOT, platformCookie)).json()).toEqual({ bot: null })
+  expect((await call(REMOVE_BOT, platformCookie)).status).toBe(200)
+  const { rows } = await fx.env.admin.pool.query<{ data: unknown }>(
+    "select data from audit_log where action = 'platform.telegram_bot_removed'",
+  )
+  expect(rows.map((r) => r.data)).toEqual([{ botUsername: 'feedway_mock_bot' }])
 })

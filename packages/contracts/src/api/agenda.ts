@@ -29,6 +29,8 @@ export const AgendaPost = z.object({
   platforms: z.array(Platform),
   mediaCount: z.number().int(),
   thumbnail: AgendaThumbnail,
+  /** the first file's name without its extension, for a post without text (D-120.7) */
+  firstFile: z.string().nullable(),
   /** its destinations that did not go out: «1 non uscito» (plan 07 Scelta 3) */
   notOut: z.number().int(),
 })
@@ -62,6 +64,8 @@ export const DraftToFinish = z.object({
   missing: z.array(z.enum(['media', 'text', 'accounts'])),
   updatedAt: Timestamp,
   thumbnail: AgendaThumbnail,
+  /** the first file's name without its extension, for a draft without text (D-120.7) */
+  firstFile: z.string().nullable(),
 })
 export type DraftToFinish = z.infer<typeof DraftToFinish>
 

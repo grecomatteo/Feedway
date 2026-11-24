@@ -11,8 +11,10 @@ const links = computed(() => {
   const home = session.home(value)
   if (home !== '/account') list.push({ to: home, label: 'nav.agency' })
   list.push({ to: '/account', label: 'nav.settings' })
-  if (value.platformRole === 'admin')
+  if (value.platformRole === 'admin') {
     list.push({ to: '/piattaforma/email', label: 'nav.systemEmail' })
+    list.push({ to: '/piattaforma/integrazioni', label: 'nav.platformIntegrations' })
+  }
   return list
 })
 const current = (to: string) => route.path === to || route.path.startsWith(`${to}/`)

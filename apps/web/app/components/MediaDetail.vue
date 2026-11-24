@@ -20,7 +20,7 @@ const props = withDefaults(
     /** the client's name, when the library shows more than one client */
     clientName?: string | null
     /** the client's folders: in the client's own library only */
-    folders?: (Folder & { depth: number })[] | null
+    folders?: (Folder & { depth: number; path: string })[] | null
   }>(),
   { newPostTo: null, clientName: null, folders: null },
 )
@@ -98,7 +98,10 @@ const use = computed(() => {
         : t(
             `library.detail.${u.status === 'cancelled' ? 'useCancelled' : u.status === 'failed' ? 'useNotOut' : 'useDraft'}`,
           )
-  return { label, more: u.count > 1 ? t('library.detail.useMore', { n: u.count - 1 }) : null }
+  return {
+    label,
+    more: u.count > 1 ? t('library.detail.useMore', { n: u.count - 1 }, u.count - 1) : null,
+  }
 })
 
 /**
@@ -164,7 +167,7 @@ const folderItems = computed(() => [
   { value: 'none', label: t('library.folders.none') },
   ...(props.folders ?? []).map((f) => ({
     value: f.id,
-    label: `${'— '.repeat(f.depth)}${f.name}`,
+    label: f.path,
   })),
 ])
 const folderValue = computed({
@@ -253,7 +256,8 @@ const folderValue = computed({
                 class="font-medium text-(--app-text) underline decoration-(--app-border-strong) underline-offset-[3px]"
                 >{{ use.label }}</ULink
               >
-              <span v-if="use.more" class="ms-1 text-(--app-text-muted)">{{ use.more }}</span>
+              <!-- a real space: read aloud or copied, never «novembree altri 1» (D-120.7) -->
+              <span v-if="use.more" class="text-(--app-text-muted)">{{ ` ${use.more}` }}</span>
             </template>
             <span v-else class="text-(--app-text-muted)">{{ $t('library.detail.notUsed') }}</span>
           </dd>
