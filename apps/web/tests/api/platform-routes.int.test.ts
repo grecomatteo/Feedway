@@ -301,13 +301,18 @@ test('the monitoring: each worker with its colour, the watch not set', async () 
   )
   const answer = await call(MONITORING, platformCookie)
   expect(answer.status).toBe(200)
-  expect(await answer.json()).toEqual({
-    workers: [
-      { instance: 'vivo', lastBeatAt: expect.any(String), health: 'ok', version: '0.14.0' },
-      { instance: 'fermo', lastBeatAt: expect.any(String), health: 'silent', version: '0.13.2' },
-    ],
-    external: null,
-  })
+  const body = (await answer.json()) as {
+    workers: { instance: string; lastBeatAt: string; health: string; version: string | null }[]
+    external: unknown
+  }
+  expect(body.external).toBeNull()
+  expect(
+    body.workers.map((w) => ({ instance: w.instance, health: w.health, version: w.version })),
+  ).toEqual([
+    { instance: 'vivo', health: 'ok', version: '0.14.0' },
+    { instance: 'fermo', health: 'silent', version: '0.13.2' },
+  ])
+  expect(body.workers.every((w) => !Number.isNaN(Date.parse(w.lastBeatAt)))).toBe(true)
 })
 
 test('the external watch: an address that is not https is refused', async () => {
