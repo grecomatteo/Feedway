@@ -20,8 +20,14 @@ test.beforeEach(async ({ baseURL, page }) => {
   await ownAddress(page)
 })
 
-const axe = (page: Page) =>
-  new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+// axe reads a control scrolled under the sticky bar at the top as too close to its links:
+// where the Telegram group leaves the page depends on the groups above it
+async function axe(page: Page) {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+  })
+  return new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+}
 
 const shots = process.env.E2E_SCREENSHOTS
 const shot = (page: Page, name: string, isMobile: boolean) =>
