@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import type { AuditEntry, Logger } from '@app/application'
+import { StoreUnavailableError, type AuditEntry, type Logger } from '@app/application'
 import type { OrgActor } from '@app/domain'
 import { uuidV7Generator } from '../system/id-generator.js'
 import { seed, startTestDatabase, withScope } from '../testing/index.js'
@@ -155,4 +155,49 @@ test('rollback discards audit entries too', async () => {
     ]),
   )
   expect(rows[0]?.n).toBe(0)
+})
+
+// R1 and R2 of the tappa 8 review: a transaction that asks for a second connection of a full
+// pool, and the failures that pass on their own.
+
+test('a transaction that waits for a connection of a full pool fails as unavailable, and saves nothing', async () => {
+  // the pool has one connection: the transaction inside asks for a second one
+  const failure = await uow()
+    .runAsSystem('test: outer', () => uow().runAsSystem('test: inner', () => Promise.resolve(1)))
+    .catch((error: unknown) => error)
+  expect(failure).toBeInstanceOf(StoreUnavailableError)
+  expect(String((failure as Error).cause)).toContain('timeout exceeded when trying to connect')
+  // the connection came back to the pool
+  expect(await uow().runAsSystem('test: after', () => Promise.resolve('free'))).toBe('free')
+}, 10_000)
+
+test('a serialization failure leaves as unavailable, the error of the data as it is', async () => {
+  const serialization = await uow()
+    .runAsSystem('test: a conflict', (tx) =>
+      executorOf(tx).execute(
+        sql`do $$ begin raise exception 'conflict' using errcode = 'serialization_failure'; end $$`,
+      ),
+    )
+    .catch((error: unknown) => error)
+  expect(serialization).toBeInstanceOf(StoreUnavailableError)
+  const invalid = await uow()
+    .runAsSystem('test: bad data', (tx) => executorOf(tx).execute(sql`select 'x'::uuid`))
+    .catch((error: unknown) => error)
+  expect(invalid).toBeInstanceOf(Error)
+  expect(invalid).not.toBeInstanceOf(StoreUnavailableError)
+})
+
+test('a routine reason is logged at debug, the others at info', async () => {
+  const debugs: unknown[] = []
+  const quiet = createUnitOfWork({
+    db: handle.db,
+    ids: uuidV7Generator,
+    logger: { ...logger, debug: (obj) => debugs.push(obj) },
+  })
+  infos.length = 0
+  await quiet.runAsSystem('test: every minute', () => Promise.resolve(), { routine: true })
+  expect(debugs).toEqual([{ reason: 'test: every minute' }])
+  expect(infos).toEqual([])
+  await quiet.runAsSystem('test: rare', () => Promise.resolve())
+  expect(infos).toEqual([{ obj: { reason: 'test: rare' }, msg: 'system scope transaction' }])
 })

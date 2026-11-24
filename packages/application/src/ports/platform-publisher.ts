@@ -13,13 +13,20 @@ export type PublishMetaIds = Record<string, unknown>
 
 /**
  * What became of a cover a publisher sends after the post (Facebook's reels, D-120.9), written
- * as `cover` in its ids: the one field of them the posts module reads, for the outcome.
+ * as `cover` in its ids: the one field of them the posts module reads, for the outcome. Any
+ * other value reads as null; Facebook's `pending` (until the verification sends it) reads as
+ * `failed` once the destination is past its verification («Segna come verificato», a «Riprova»).
  */
 export const COVER_OUTCOMES = ['done', 'failed', 'no_permission'] as const
 export type CoverOutcome = (typeof COVER_OUTCOMES)[number]
 
-export function coverOutcomeOf(ids: PublishMetaIds | null): CoverOutcome | null {
+export function coverOutcomeOf(
+  ids: PublishMetaIds | null,
+  /** the destination is past its verification: a cover still waiting never went up */
+  settled = false,
+): CoverOutcome | null {
   const cover = ids?.['cover']
+  if (settled && cover === 'pending') return 'failed'
   return COVER_OUTCOMES.find((c) => c === cover) ?? null
 }
 
@@ -138,12 +145,25 @@ export interface FoundPost {
 
 /**
  * `pending`: the platform is still processing it (look again later); `problem`: it is not
- * there, it failed or it is not of the right type (§9.6).
+ * there, it failed or it is not of the right type (§9.6). `metaIds`: the ids changed by the
+ * check (the cover sent after the post, review R5), saved with its outcome.
  */
-export type VerifyResult =
-  | (StepUsage & { outcome: 'confirmed'; permalink: string | null })
-  | (StepUsage & { outcome: 'pending' })
-  | (StepUsage & { outcome: 'problem'; reason: 'not_found' | 'failed' | 'wrong_type' })
+export type VerifyResult = StepUsage & { metaIds?: PublishMetaIds } & (
+    | { outcome: 'confirmed'; permalink: string | null }
+    | { outcome: 'pending' }
+    | { outcome: 'problem'; reason: 'not_found' | 'failed' | 'wrong_type' }
+  )
+
+/** What a round of the verification gives the publisher besides the destination. */
+export interface VerifyContext {
+  /**
+   * The cover's bytes (Facebook's reels, D-120.9 and review R5), read from the storage only
+   * when the publisher asks; null: none chosen, or the copy is gone.
+   */
+  readCover(): Promise<CoverImage | null>
+  /** No round comes after this one: what still waits is settled now. */
+  lastRound: boolean
+}
 
 /**
  * A call that did not work. `transient`: try again later (`retryAt` when the platform said);
@@ -210,8 +230,12 @@ export interface PlatformPublisher {
    * the mark of its call would make every preparation uncertain. null: a new round.
    */
   idsAfterNotFound(metaIds: PublishMetaIds | null): PublishMetaIds | null
-  /** Whether the published post exists, of the right type and done processing (§9.6). */
-  verify(target: PublishTarget, signal: AbortSignal): Promise<VerifyResult>
+  /**
+   * Whether the published post exists, of the right type and done processing (§9.6). With
+   * `ctx` (the rounds of `target.verify`), what waits for the processing goes now: Facebook's
+   * reel cover. Without it (the uncertain search) only a read.
+   */
+  verify(target: PublishTarget, signal: AbortSignal, ctx?: VerifyContext): Promise<VerifyResult>
 }
 
 /** The platforms this process can publish on; one left out has no publisher here. */

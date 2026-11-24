@@ -199,7 +199,7 @@ export async function getPostOutcome(
           errorCode: t.lastErrorCode,
           problem: problemOf(t.status, t.verification),
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
-          cover: coverOutcomeOf(t.metaIds),
+          cover: coverOutcomeOf(t.metaIds, t.status !== 'published' && t.status !== 'verifying'),
         })),
         activity: activityOf(fromLog, fromCalls)
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))

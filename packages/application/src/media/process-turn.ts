@@ -8,13 +8,17 @@ import type { UnitOfWork } from '../ports/unit-of-work.js'
 // scope. Listed in the ESLint rule on `runAsSystem`.
 
 export function nextMediaTurn(uow: UnitOfWork): Promise<MediaTurn | null> {
-  return uow.runAsSystem('media.process: next file at its turn', (tx) => tx.media.nextToProcess())
+  return uow.runAsSystem('media.process: next file at its turn', (tx) => tx.media.nextToProcess(), {
+    routine: true,
+  })
 }
 
 /** The same for the copies to publish (plan 07 Task 6): which copy comes next, at its turn. */
 export function nextCopyTurn(uow: UnitOfWork): Promise<CopyTurn | null> {
-  return uow.runAsSystem('media.publish_copies: next copy at its turn', (tx) =>
-    tx.media.nextCopyToMake(),
+  return uow.runAsSystem(
+    'media.publish_copies: next copy at its turn',
+    (tx) => tx.media.nextCopyToMake(),
+    { routine: true },
   )
 }
 

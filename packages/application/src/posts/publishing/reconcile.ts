@@ -105,8 +105,10 @@ export async function reconcilePublishing(
   >,
 ): Promise<ReconcileReport> {
   const now = deps.clock.now()
-  const due = await deps.uow.runAsSystem('scheduler.reconcile: destinations due', (tx) =>
-    tx.publishing.dueTargets(now, RECONCILE_BATCH, RECONCILED_STATUSES),
+  const due = await deps.uow.runAsSystem(
+    'scheduler.reconcile: destinations due',
+    (tx) => tx.publishing.dueTargets(now, RECONCILE_BATCH, RECONCILED_STATUSES),
+    { routine: true },
   )
   const jobs: StepJob[] = []
   let uncertain = 0
@@ -135,8 +137,10 @@ async function recheckDue(
   deps: Parameters<typeof recheckTarget>[0],
   now: Date,
 ): Promise<{ rechecked: number; told: number }> {
-  const due = await deps.uow.runAsSystem('scheduler.reconcile: checks before publishing', (tx) =>
-    tx.publishing.dueRechecks(now, RECONCILE_BATCH),
+  const due = await deps.uow.runAsSystem(
+    'scheduler.reconcile: checks before publishing',
+    (tx) => tx.publishing.dueRechecks(now, RECONCILE_BATCH),
+    { routine: true },
   )
   let rechecked = 0
   let told = 0

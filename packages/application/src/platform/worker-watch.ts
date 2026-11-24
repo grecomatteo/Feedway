@@ -36,8 +36,10 @@ export async function recordWorkerBeat(
   input: { instance: string; details: HeartbeatDetails },
 ): Promise<void> {
   const at = deps.clock.now()
-  await deps.uow.runAsSystem('platform: the worker beats', (tx) =>
-    tx.heartbeats.beat({ process: WORKER_PROCESS, ...input, at }),
+  await deps.uow.runAsSystem(
+    'platform: the worker beats',
+    (tx) => tx.heartbeats.beat({ process: WORKER_PROCESS, ...input, at }),
+    { routine: true },
   )
 }
 
@@ -123,6 +125,7 @@ export async function watchWorker(deps: WorkerWatchDeps): Promise<WorkerWatchRep
         }
         return { outcome, retired, due }
       },
+      { routine: true },
     )
     let sent = 0
     // after the commit, each group in its own short transactions, as `notify.deliver_platform`
