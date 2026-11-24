@@ -46,23 +46,30 @@ test('getUpdates reads the private texts and the offset confirms them', async ()
   expect(await api.getUpdates(token, { offset: next, timeoutSeconds: 0 })).toEqual([])
 })
 
-test('sendMessage sends plain text without link previews', async () => {
-  await api.sendMessage(token, { chatId: 42, text: 'Ciao' })
+test('sendMessage sends HTML without link previews', async () => {
+  await api.sendMessage(token, { chatId: 42, html: '<b>Ciao</b> &amp; benvenuto' })
   const [sent] = mock.sent()
-  expect(sent).toMatchObject({ chatId: 42, text: 'Ciao' })
-  expect(sent?.params).toMatchObject({ link_preview_options: { is_disabled: true } })
-  expect(sent?.params).not.toHaveProperty('parse_mode')
+  expect(sent).toMatchObject({ chatId: 42, text: '<b>Ciao</b> &amp; benvenuto' })
+  expect(sent?.params).toMatchObject({
+    parse_mode: 'HTML',
+    link_preview_options: { is_disabled: true },
+  })
+})
+
+test('HTML Telegram cannot read is refused, as by Telegram', async () => {
+  for (const html of ['a < b', '<b>open', '<script>x</script>', 'x &nbsp; y', '<b><i>x</b></i>'])
+    expect((await failure(api.sendMessage(token, { chatId: 42, html }))).kind).toBe('bad_request')
 })
 
 test('403 is blocked, 429 carries retry_after, 502 is unavailable', async () => {
   mock.block(42)
-  expect((await failure(api.sendMessage(token, { chatId: 42, text: 'x' }))).kind).toBe('blocked')
+  expect((await failure(api.sendMessage(token, { chatId: 42, html: 'x' }))).kind).toBe('blocked')
   mock.rateLimit({ retryAfter: 7 })
-  const limited = await failure(api.sendMessage(token, { chatId: 1, text: 'x' }))
+  const limited = await failure(api.sendMessage(token, { chatId: 1, html: 'x' }))
   expect([limited.kind, limited.retryAfterSeconds]).toEqual(['rate_limited', 7])
   mock.unavailable()
   expect((await failure(api.getMe(token))).kind).toBe('unavailable')
-  expect((await failure(api.sendMessage(token, { chatId: 1, text: ' ' }))).kind).toBe('bad_request')
+  expect((await failure(api.sendMessage(token, { chatId: 1, html: ' ' }))).kind).toBe('bad_request')
 })
 
 test('no answer in time, or nobody listening, is unavailable', async () => {

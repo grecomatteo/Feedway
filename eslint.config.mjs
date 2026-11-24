@@ -25,6 +25,8 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/notifications/anonymize.ts',
   // plan 08 Task 5: the outbox and the deliveries due, then each delivery in its recipient's scope
   'packages/application/src/notifications/dispatch.ts',
+  // plan 08 Task 7: the bots' tokens and the chats, then each answer in its person's scope
+  'packages/application/src/notifications/telegram-poll.ts',
   // plan 08 Task 8: who has the digest due now, then each digest in its person's scope
   'packages/application/src/notifications/digest-start.ts',
 ]

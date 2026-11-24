@@ -31,6 +31,7 @@ test('every registered queue declares a scope', () => {
     ['notify.dispatch', 'system'],
     ['notify.deliver', 'organization'],
     ['notify.deliver_platform', 'system'],
+    ['telegram.poll', 'system'],
     ['report.daily', 'system'],
     ['report.digest', 'user'],
   ])
@@ -62,6 +63,7 @@ test('every registered queue declares a scope', () => {
     'notify.dispatch',
     'notify.deliver',
     'notify.deliver_platform',
+    'telegram.poll',
     'report.daily',
     'report.digest',
   ])

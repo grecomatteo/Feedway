@@ -43,6 +43,7 @@ interface JobDefinitions {
   'notify.dispatch': { scope: 'system'; data: object }
   'notify.deliver': { scope: 'organization'; data: NotifyDeliverJobData }
   'notify.deliver_platform': { scope: 'system'; data: NotifyDeliverJobData }
+  'telegram.poll': { scope: 'system'; data: object }
   'report.daily': { scope: 'system'; data: object }
   'report.digest': { scope: 'user'; data: ReportDigestJobData }
 }

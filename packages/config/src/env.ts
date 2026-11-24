@@ -54,6 +54,7 @@ export const KNOWN_QUEUES = [
   'notify.dispatch',
   'notify.deliver',
   'notify.deliver_platform',
+  'telegram.poll',
   'report.daily',
   'report.digest',
 ] as const

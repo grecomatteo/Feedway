@@ -10,6 +10,7 @@ import {
   type TestDatabase,
 } from '@app/infrastructure/testing'
 import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
+import { TELEGRAM_MOCK, startTelegramMock, type TelegramMock } from '@app/telegram-mock'
 import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
 import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
@@ -17,7 +18,7 @@ import { accountsSync } from './accounts-sync.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
-import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './notify.js'
+import { notifyDeliver, notifyDeliverPlatform, notifyDispatch, telegramPoll } from './notify.js'
 import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
@@ -64,6 +65,16 @@ let tdb: TestDatabase
 let mock: MetaMock
 let runtime: Runtime
 let admin: pg.Client
+let telegram: TelegramMock
+
+// two agencies, each with a bot of its own (plan 08 Task 7)
+const BOT_OF_A = TELEGRAM_MOCK.bots.agency
+const BOT_OF_B = {
+  token: '1000000003:AAmock-other-agency-bot-token-00000',
+  id: 1000000003,
+  username: 'altra_agenzia_mock_bot',
+  firstName: 'Altra agenzia',
+}
 
 async function connectionsWorld(): Promise<World> {
   const a = await agency(tdb, runtime)
@@ -325,7 +336,8 @@ async function snapshot(of: Agency): Promise<unknown[]> {
 beforeAll(async () => {
   tdb = await startTestDatabase()
   mock = await startMetaMock()
-  runtime = await accountsRuntime(tdb, mock)
+  telegram = await startTelegramMock({ bots: [TELEGRAM_MOCK.bots.platform, BOT_OF_A, BOT_OF_B] })
+  runtime = await accountsRuntime(tdb, mock, { telegramApiUrl: telegram.url })
   admin = new pg.Client({ connectionString: tdb.adminUrl })
   await admin.connect()
 }, 120_000)
@@ -335,6 +347,7 @@ afterAll(async () => {
   await runtime.close()
   await admin.end()
   await mock.stop()
+  await telegram.stop()
   await tdb.stop()
 })
 
@@ -486,6 +499,64 @@ async function deliverPlatformCase(): Promise<void> {
   expect(await snapshot(world.a)).toEqual(beforeA)
 }
 
+/**
+ * Each agency's bot links its own members only: a code started for A works only on A's bot, and
+ * a bot taken away from B takes only B's links.
+ */
+async function telegramPollCase(): Promise<void> {
+  const a = await agency(tdb, runtime)
+  const b = await agency(tdb, runtime)
+  const codes = new Map<Agency, string>()
+  for (const [of, bot] of [
+    [a, BOT_OF_A],
+    [b, BOT_OF_B],
+  ] as const) {
+    await runtime.uow.run({ organizationId: of.organizationId, userId: of.ownerId }, (tx) =>
+      runtime.integrations.replace(tx, of.organizationId, 'telegram', {
+        config: { botId: bot.id, botUsername: bot.username },
+        secret: bot.token,
+        updatedBy: of.ownerId,
+        expectedVersion: null,
+        verifiedAt: new Date(),
+      }),
+    )
+    const { token, hash } = runtime.tokens.generate()
+    codes.set(of, token)
+    await runtime.uow.run({ organizationId: of.organizationId, userId: of.ownerId }, (tx) =>
+      tx.telegramLinks.startLink({
+        organizationId: of.organizationId,
+        userId: of.ownerId,
+        codeHash: hash.toString('hex'),
+        expiresAt: new Date(Date.now() + 60_000),
+      }),
+    )
+  }
+  // A's code written to B's bot links nobody; each code on its own bot links its own owner
+  telegram.userWrites(BOT_OF_B.token, { chatId: 7001, text: `/start ${codes.get(a) ?? ''}` })
+  telegram.userWrites(BOT_OF_A.token, { chatId: 7002, text: `/start ${codes.get(a) ?? ''}` })
+  telegram.userWrites(BOT_OF_B.token, { chatId: 7003, text: `/start ${codes.get(b) ?? ''}` })
+  await anyRun(telegramPoll, {})
+  const linked = async () =>
+    (
+      await admin.query<{ organization_id: string; user_id: string; chat_id: string }>(
+        `select organization_id, user_id, chat_id from telegram_links
+          where chat_id is not null and organization_id = any($1) order by chat_id`,
+        [[a.organizationId, b.organizationId]],
+      )
+    ).rows
+  expect(await linked()).toEqual([
+    { organization_id: a.organizationId, user_id: a.ownerId, chat_id: '7002' },
+    { organization_id: b.organizationId, user_id: b.ownerId, chat_id: '7003' },
+  ])
+  await admin.query("delete from integrations where kind = 'telegram' and organization_id = $1", [
+    b.organizationId,
+  ])
+  await anyRun(telegramPoll, {})
+  expect(await linked()).toEqual([
+    { organization_id: a.organizationId, user_id: a.ownerId, chat_id: '7002' },
+  ])
+}
+
 /** Each person due gets a digest job of their own, with their id and no agency's. */
 async function digestStartCase(): Promise<void> {
   const a = await agency(tdb, runtime)
@@ -543,6 +614,7 @@ async function digestCase(): Promise<void> {
 }
 
 const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
+  'telegram.poll': telegramPollCase,
   'notify.dispatch': dispatchCase,
   'notify.deliver_platform': deliverPlatformCase,
   'report.daily': digestStartCase,

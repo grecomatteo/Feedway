@@ -337,6 +337,8 @@ async function changeEmail() {
       <!-- plan 08 Task 6: what arrives and where, with the quiet hours and the digest -->
       <NotificationPreferences />
 
+      <TelegramLinks />
+
       <UModal
         v-model:open="emailOpen"
         :title="$t('account.email.change')"
