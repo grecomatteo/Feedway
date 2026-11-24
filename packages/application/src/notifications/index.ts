@@ -12,6 +12,7 @@ export {
   type NotifiedEvent,
 } from './message.js'
 export {
+  deliverGroup,
   deliverNotification,
   type DeliverDeps,
   type DeliverJob,
@@ -20,6 +21,7 @@ export {
 export {
   deliverPlatformNotification,
   dispatchNotifications,
+  notificationsOf,
   type DispatchDeps,
   type DispatchReport,
 } from './dispatch.js'

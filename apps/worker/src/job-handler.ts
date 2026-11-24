@@ -4,6 +4,7 @@ import type {
   Clock,
   ConnectionTokens,
   ExclusiveLock,
+  ExternalWatchPinger,
   MediaProcessDeps,
   IdGenerator,
   IntegrationStore,
@@ -81,6 +82,11 @@ export interface JobHandlerDeps {
     publicUrl: URL | null
     /** MEDIA_RETENTION_DAYS: the copies of an ended post stay this long (Scelta 5). */
     copiesKeptDays: number
+  }
+  /** `heartbeat.external` (plan 08 Task 9): the platform's address, and the call to it. */
+  externalWatch: {
+    integrations: Pick<IntegrationStore, 'platformCredentials'>
+    pinger: ExternalWatchPinger
   }
   /** ffmpeg, ffprobe and sharp for the files of the library, one at a time (plan 04 Task 10). */
   media: Pick<

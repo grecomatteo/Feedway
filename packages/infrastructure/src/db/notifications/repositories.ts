@@ -182,19 +182,21 @@ export function drizzleNotifications(
       }))
     },
 
-    async listDue(now, limit) {
+    async listDue(now, limit, only = 'all') {
       assertSystem(ctx, 'the deliveries due are read')
+      const platform = only === 'platform' ? sql`and organization_id is null` : sql``
       const { rows } = await db.execute<DeliveryRow>(sql`
         select id, organization_id, user_id, channel, status, attempts, next_attempt_at
           from notification_deliveries
-         where status = 'pending' and next_attempt_at <= ${now}
+         where status = 'pending' and next_attempt_at <= ${now} ${platform}
          order by next_attempt_at, id
          limit ${limit}`)
       return rows.map(refOf)
     },
 
-    async releaseExpiredClaims(now, { maxAttempts, gaveUp }) {
+    async releaseExpiredClaims(now, { maxAttempts, gaveUp }, only = 'all') {
       assertSystem(ctx, 'the claims are released')
+      const platform = only === 'platform' ? sql`and organization_id is null` : sql``
       // a group that keeps making its process fall stops at the attempts of a failure
       const { rows } = await db.execute<DeliveryRow>(sql`
         update notification_deliveries
@@ -203,7 +205,7 @@ export function drizzleNotifications(
                next_attempt_at = case when attempts + 1 >= ${maxAttempts}::int then null
                                       else ${now}::timestamptz end,
                claimed_until = null, attempts = attempts + 1, updated_at = now()
-         where status = 'sending' and claimed_until < ${now}
+         where status = 'sending' and claimed_until < ${now} ${platform}
         returning id, organization_id, user_id, channel, status, attempts, next_attempt_at`)
       return rows.filter((r) => r.status === 'pending').map(refOf)
     },

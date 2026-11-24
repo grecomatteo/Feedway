@@ -82,6 +82,10 @@ const services: WorkerDeps['services'] = {
     integrations: { get: () => Promise.reject(new Error('not used')) },
     graph: { version: 'v24.0', sunset: '2099-12-31' },
   },
+  externalWatch: {
+    integrations: { platformCredentials: () => Promise.reject(new Error('not used')) },
+    pinger: { ping: () => Promise.reject(new Error('not used')) },
+  },
   images: createAvatarProcessor(),
   media: unusedMediaTools,
 }
@@ -326,5 +330,21 @@ test('the worker that consumes the digests starts them every minute (plan 08 P7)
   })
   expect(q.schedules).toEqual([{ name: 'report.daily', cron: '* * * * *', tz: 'Europe/Rome' }])
   expect(q.workedQueues).toEqual(['report.daily', 'report.digest'])
+  await w.stop()
+})
+
+test('the worker that serves the system queues calls the external watch every minute', async () => {
+  const q = fakeQueue()
+  const w = await startWorker({
+    queue: q.queue,
+    logger: silentLogger,
+    services,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['heartbeat.external'],
+  })
+  expect(q.schedules).toEqual([
+    { name: 'heartbeat.external', cron: '* * * * *', tz: 'Europe/Rome' },
+  ])
   await w.stop()
 })

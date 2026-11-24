@@ -15,6 +15,7 @@ import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
 import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
+import { heartbeatExternal } from './heartbeat-external.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
@@ -613,11 +614,31 @@ async function digestCase(): Promise<void> {
   expect(sent[0]?.text).not.toContain('Profilo di B')
 }
 
+/** The external watch reads and writes the platform's row only, never an agency's data. */
+async function externalWatchCase(): Promise<void> {
+  const a = await agency(tdb, runtime)
+  await runtime.uow.runAsSystem('test: the external watch', (tx) =>
+    runtime.integrations.replacePlatform(tx, 'heartbeat', {
+      config: {},
+      secret: 'https://hc-ping.com/isolamento',
+      updatedBy: null,
+    }),
+  )
+  const before = await snapshot(a)
+  await anyRun(heartbeatExternal, {})
+  expect(await snapshot(a)).toEqual(before)
+  const { rows } = await admin.query<{ organization_id: string | null; state: { ok?: boolean } }>(
+    "select organization_id, state from integrations where kind = 'heartbeat'",
+  )
+  expect(rows.map((r) => [r.organization_id, r.state.ok])).toEqual([[null, true]])
+}
+
 const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
   'telegram.poll': telegramPollCase,
   'notify.dispatch': dispatchCase,
   'notify.deliver_platform': deliverPlatformCase,
   'report.daily': digestStartCase,
+  'heartbeat.external': externalWatchCase,
 }
 const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {
   'report.digest': digestCase,

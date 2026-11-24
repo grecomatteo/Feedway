@@ -237,8 +237,8 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
             └──────────────┬───────────────────┘
                  rete "edge"│ http://web:3000
                    ┌────────▼─────────┐
-                   │ web (Nuxt)       │
-                   │ pannello + API   │
+                   │ web (Nuxt)       │──── rete "egress": solo SMTP e Telegram
+                   │ pannello + API   │     per l'avviso «worker fermo»
                    └────────┬─────────┘
                  rete "internal" (nessun accesso a internet)
          ┌──────────────────┼────────────────────┐
@@ -253,7 +253,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 
 | Componente | Compito |
 |---|---|
-| **web** | Pannello, API `/api/v1`, upload a pezzi. Sull'host pubblico serve solo `/m/*` e `/share/*`. Unico container raggiungibile dall'esterno. |
+| **web** | Pannello, API `/api/v1`, upload a pezzi. Sull'host pubblico serve solo `/m/*` e `/share/*`. Unico container raggiungibile dall'esterno. Esce su internet (rete `egress`) solo per mandare con SMTP e Telegram l'avviso «worker fermo» e «worker ripartito» (§16.7, piano 08 Scelta 10): il worker che dovrebbe mandarlo è quello fermo. |
 | **worker** | Lavori in coda: elaborazione media, preparazione, pubblicazione, verifica, notifiche, sincronizzazione, pulizia, riepiloghi. Nessuna porta esposta. |
 | **postgres** | Dati e coda lavori. Solo rete interna. |
 | **migrate** | Applica le migrazioni e termina; web e worker partono solo dopo. |
@@ -1457,7 +1457,7 @@ services:
   postgres: { image: postgres:18-alpine, networks: [internal], volumes: [pgdata:/var/lib/postgresql] }  # dalla 18 i dati stanno in /var/lib/postgresql/18/docker
   migrate:  { image: ghcr.io/grecomatteo/feedway:<versione>, command: migrate, networks: [internal],
               depends_on: { postgres: { condition: service_healthy } } }
-  web:      { image: ghcr.io/grecomatteo/feedway:<versione>, command: web, networks: [internal, edge],
+  web:      { image: ghcr.io/grecomatteo/feedway:<versione>, command: web, networks: [internal, edge, egress],
               volumes: [media:/data/media],
               depends_on: { migrate: { condition: service_completed_successfully } } }
   worker:   { image: ghcr.io/grecomatteo/feedway:<versione>, command: worker, networks: [internal, egress],
@@ -1507,8 +1507,9 @@ Conversioni video: una alla volta, `nice`, ffmpeg su due thread per l'anteprima 
 ### 16.7 Monitoraggio
 
 - `/api/health` (vivo) e `/api/ready` (database e coda raggiungibili).
-- Il worker scrive il proprio battito nella tabella `system_heartbeats`; la dashboard lo mostra e, se manca da più di 2 minuti, il web avvisa l'amministratore della piattaforma.
-- **Sorveglianza esterna**: il worker invia ogni minuto un segnale a un servizio esterno (healthchecks.io o Uptime Kuma su un altro server), che avvisa su Telegram o email se si ferma tutta la VPS.
+- Il worker scrive il proprio battito nella tabella `system_heartbeats` ogni 30 secondi (processo, istanza = nome del container, versione, code servite) e tiene anche il file letto dal controllo di salute di Docker, che non dipende dal database (piano 08 P5). Piattaforma → Integrazioni mostra l'ultimo battito di ogni istanza: verde, ambra oltre 1 minuto, rosso oltre 2 (la dashboard completa arriva con la tappa 11).
+- **Controllo dal web** (piano 08 Scelta 10): ogni minuto un web solo (lock consultivo) guarda i battiti. Se nessun worker ha battuto negli ultimi 2 minuti scrive `system.worker_down` già mandato, con le sue notifiche e consegne dovute subito, e lo manda lui per email e con il bot Telegram della piattaforma; quando un battito torna, `system.worker_up` allo stesso modo. Lo stato «fermo» è l'ultimo dei due eventi. Il dispatcher del worker che riparte non li manda di nuovo; una consegna fallita la riprova il web al minuto dopo finché il worker è fermo. Un'istanza che non batte da 7 giorni si toglie. Un'installazione il cui worker non ha mai battuto non dà l'allarme.
+- **Sorveglianza esterna** (`heartbeat.external`): ogni minuto un worker solo (lock) fa un `GET` all'indirizzo dell'integrazione `heartbeat` (healthchecks.io o Uptime Kuma su un altro server), con un timeout di 10 secondi e senza seguire redirect; il servizio avvisa su Telegram o email se le chiamate smettono, cioè se si ferma tutta la VPS o il worker. L'indirizzo è il segreto: cifrato, solo `https`, mai nei log, negli errori o nelle risposte; l'ultimo esito (ora, riuscito, codice) sta in `integrations.state`. Guida: `docs/runbooks/sorveglianza-esterna.md`.
 - Log JSON con ID richiesta e ID lavoro; metriche Prometheus facoltative in rete interna; Sentry/GlitchTip facoltativo.
 
 ---

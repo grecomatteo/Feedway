@@ -1,8 +1,10 @@
 import { ConfigError, PRODUCT_NAME, loadConfig } from '@app/config'
-import { photoMaxBytesOf } from '@app/domain'
+import { WORKER_BEAT_EVERY_MS, photoMaxBytesOf } from '@app/domain'
+import { hostname } from 'node:os'
 import { join } from 'node:path'
 import {
   createAdvisoryLock,
+  createExternalWatchPinger,
   createAvatarProcessor,
   createMediaScratch,
   createMediaTools,
@@ -70,6 +72,10 @@ async function main(): Promise<void> {
         // its own connection: the lock is held for the whole ~50 s wait of `telegram.poll`
         lock: createAdvisoryLock(telegramLockDb.pool),
       },
+      externalWatch: {
+        integrations: runtime.integrations,
+        pinger: createExternalWatchPinger(),
+      },
       images: createAvatarProcessor(),
       publishing: {
         publishers: runtime.publishers,
@@ -89,6 +95,11 @@ async function main(): Promise<void> {
     },
     heartbeatPath: process.env['WORKER_HEARTBEAT_FILE'] ?? '/tmp/worker-heartbeat',
     heartbeatEveryMs: 10_000,
+    beat: {
+      instance: hostname(),
+      version: process.env['APP_VERSION'] ?? 'dev',
+      everyMs: WORKER_BEAT_EVERY_MS,
+    },
     queues:
       config.workerQueues === 'all'
         ? QUEUE_NAMES

@@ -93,6 +93,10 @@ export function handlerDeps(
       integrations: runtime.integrations,
       graph: { version: 'v24.0', sunset: '2099-12-31' },
     },
+    externalWatch: {
+      integrations: runtime.integrations,
+      pinger: { ping: () => Promise.resolve({ ok: true, status: 200 }) },
+    },
     publishing: {
       publishers: runtime.publishers,
       platformRules: runtime.platformRules,

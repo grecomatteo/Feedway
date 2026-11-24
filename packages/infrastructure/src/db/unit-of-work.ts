@@ -23,6 +23,7 @@ import {
   drizzleOrganizations,
   drizzleOrgMembers,
 } from './organizations/repositories.js'
+import { drizzleHeartbeats } from './notifications/heartbeats.js'
 import { drizzleIntegrations } from './integrations/repositories.js'
 import { drizzleMedia } from './media/repositories.js'
 import { drizzleUploadSessions } from './media/upload-sessions.js'
@@ -96,6 +97,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext, marks?: TxMar
     notificationPrefs: drizzleNotificationPrefs(db, ctx),
     telegramLinks: drizzleTelegramLinks(db, ids, ctx),
     contentSettings: drizzleContentSettings(db),
+    heartbeats: drizzleHeartbeats(db, ctx),
     audit: drizzleAuditLog(db, ids, ctx),
   }
   Object.defineProperty(tx, EXECUTOR, { value: db, enumerable: false })

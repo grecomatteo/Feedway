@@ -58,6 +58,12 @@ export type {
   HeartbeatConfig,
   SmtpPort,
 } from './ports/integration-store.js'
+export type { ExternalPingResult, ExternalWatchPinger } from './ports/external-watch.js'
+export type {
+  HeartbeatDetails,
+  HeartbeatRecord,
+  SystemHeartbeatsRepository,
+} from './ports/heartbeats.js'
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
