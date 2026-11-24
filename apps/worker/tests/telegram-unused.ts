@@ -6,7 +6,7 @@ import type { JobHandlerDeps } from '../src/job-handler.js'
 const notUsed = () => Promise.reject(new Error('Telegram is not used here'))
 
 export const UNUSED_TELEGRAM: JobHandlerDeps['telegram'] = {
-  api: { getMe: notUsed, getUpdates: notUsed, sendMessage: notUsed },
+  api: { getMe: notUsed, getUpdates: notUsed, setMyCommands: notUsed, sendMessage: notUsed },
   integrations: new Proxy({}, { get: () => notUsed }) as IntegrationStore,
   tokens: {
     hash: () => {

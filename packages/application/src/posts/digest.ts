@@ -7,11 +7,10 @@ import {
 } from '@app/domain'
 import { timeOfDay } from '../mail/index.js'
 import type { DigestBlock, DigestContext, DigestSection } from '../module-definition.js'
-import type { PostRecord } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
 import { clientsOf, postIssuesOf } from './agenda.js'
 import { platformName } from '../notifications/index.js'
-import { postHeadline } from './notification-messages.js'
+import { postTitles } from './notification-messages.js'
 
 // The posts' sections of the morning digest (§12.4, plan 08 Task 8): what went out yesterday,
 // what needs a hand, what goes out today, across the clients the person sees in the agency, as
@@ -48,9 +47,6 @@ async function visibleClients(tx: Tx, ctx: DigestContext) {
   return { current, ids, name: (id: string) => names.get(id) ?? '' }
 }
 
-const headlineOf = (ctx: DigestContext, post: Pick<PostRecord, 'caption'>) =>
-  postHeadline(post.caption) ?? ctx.t('notify.post.noText')
-
 /** The title for one or for many, as the notifications' (`digest.posts.<part>.one|many`). */
 function block(ctx: DigestContext, part: string, lines: readonly string[]): DigestBlock | null {
   if (lines.length === 0) return null
@@ -76,17 +72,18 @@ async function postsIn(
     statuses,
     limit: DIGEST_POSTS_MAX,
   })
-  return records.flatMap((p) =>
-    p.scheduledAt === null
-      ? []
-      : [
-          ctx.t('digest.posts.line', {
-            time: timeOfDay(p.scheduledAt, ctx.timeZone),
-            client: clients.name(p.workspaceId),
-            post: headlineOf(ctx, p),
-          }),
-        ],
-  )
+  const titleOf = postTitles(tx, ctx.t, clients.current)
+  const lines: string[] = []
+  for (const p of records)
+    if (p.scheduledAt !== null)
+      lines.push(
+        ctx.t('digest.posts.line', {
+          time: timeOfDay(p.scheduledAt, ctx.timeZone),
+          client: clients.name(p.workspaceId),
+          post: await titleOf(p),
+        }),
+      )
+  return lines
 }
 
 /** Confirmed yesterday, in the agency's day. */
@@ -119,6 +116,7 @@ async function issues(tx: Tx, ctx: DigestContext): Promise<DigestBlock | null> {
   if (clients.ids.length === 0) return null
   const found = await postIssuesOf(tx, clients.current, clients.ids)
   const { shown, more } = groupListing(found)
+  const titleOf = postTitles(tx, ctx.t, clients.current)
   const lines: string[] = []
   for (const issue of shown) {
     const post = await tx.posts.find(
@@ -142,7 +140,7 @@ async function issues(tx: Tx, ctx: DigestContext): Promise<DigestBlock | null> {
     lines.push(
       ctx.t(why === null ? 'digest.posts.issue.line' : 'digest.posts.issue.lineWhy', {
         client: clients.name(issue.workspaceId),
-        post: headlineOf(ctx, post),
+        post: await titleOf(post),
         state,
         ...(why === null ? {} : { why }),
       }),

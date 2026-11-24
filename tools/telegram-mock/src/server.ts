@@ -37,6 +37,8 @@ export interface TelegramMock {
   /** The next `times` calls answer 502, as when Telegram is down. */
   unavailable(options?: { times?: number; method?: string }): void
   sent(): SentMessage[]
+  /** The menu each bot was given last with `setMyCommands`, by the bot's username. */
+  commands(): Record<string, unknown>
   calls(): TelegramMockCall[]
   /** Back to the initial bots, no updates, no messages, no failures. */
   reset(): void
@@ -87,6 +89,18 @@ async function readParams(req: IncomingMessage, url: URL): Promise<Record<string
   return params
 }
 
+function isBotCommand(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false
+  const { command, description } = value as { command?: unknown; description?: unknown }
+  return (
+    typeof command === 'string' &&
+    /^[a-z0-9_]{1,32}$/.test(command) &&
+    typeof description === 'string' &&
+    description.length >= 1 &&
+    description.length <= 256
+  )
+}
+
 /** The tags of parse_mode HTML that Feedway may use, and the entities Telegram reads. */
 const HTML_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 's', 'code', 'pre', 'a', 'blockquote'])
 const HTML_ENTITY = /^&(lt|gt|amp|quot|#\d+);/
@@ -129,7 +143,10 @@ export function visibleText(text: string): string | null {
   return open.length === 0 ? shown : null
 }
 
-/** A fake Telegram Bot API (plan 08 Task 7): `getMe`, `getUpdates`, `sendMessage` and their errors. */
+/**
+ * A fake Telegram Bot API (plan 08 Task 7): `getMe`, `getUpdates`, `setMyCommands`, `sendMessage`
+ * and their errors.
+ */
 export async function startTelegramMock(
   options: { port?: number; bots?: readonly MockBot[] } = {},
 ): Promise<TelegramMock> {
@@ -140,6 +157,7 @@ export async function startTelegramMock(
   let failures: Failure[] = []
   let updates = new Map<string, Update[]>()
   let sent: SentMessage[] = []
+  let menus: Record<string, unknown> = {}
   let calls: TelegramMockCall[] = []
   let nextUpdateId = 1
   let nextMessageId = 1
@@ -201,6 +219,14 @@ export async function startTelegramMock(
         const limit = Math.min(Math.max(Number(params.limit ?? 100), 1), 100)
         const found = await waitForUpdates(token, offset, timeout)
         return { status: 200, body: { ok: true, result: found.slice(0, limit) } }
+      }
+      case 'setMyCommands': {
+        // Telegram's limits: up to 100 commands, a name of 1–32 of a-z0-9_, a description of 1–256
+        const list: unknown = params.commands
+        if (!Array.isArray(list) || list.length > 100 || !list.every(isBotCommand))
+          return error(400, 'Bad Request: BOT_COMMANDS_INVALID')
+        menus[bot.username] = list
+        return { status: 200, body: { ok: true, result: true } }
       }
       case 'sendMessage': {
         const chatId = Number(params.chat_id)
@@ -292,6 +318,7 @@ export async function startTelegramMock(
       failures.push({ method: method ?? null, times, answer: () => error(502, 'Bad Gateway') })
     },
     sent: () => [...sent],
+    commands: () => ({ ...menus }),
     calls: () => [...calls],
     reset() {
       bots = new Map(initialBots.map((b) => [b.token, b]))
@@ -300,6 +327,7 @@ export async function startTelegramMock(
       failures = []
       updates = new Map()
       sent = []
+      menus = {}
       calls = []
       wake()
     },

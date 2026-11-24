@@ -192,9 +192,10 @@ export function createIntegrationStore(deps: { keyRing: KeyRing }): IntegrationS
 
 /** Only what `telegram.poll` wrote, each field checked: anything else starts afresh. */
 function pollStateOf(value: unknown): TelegramPollState {
-  const { botId, offset } = (value ?? {}) as { botId?: unknown; offset?: unknown }
+  const { botId, offset, commands } = (value ?? {}) as Record<string, unknown>
   return {
     ...(Number.isSafeInteger(botId) ? { botId: botId as number } : {}),
     ...(Number.isSafeInteger(offset) ? { offset: offset as number } : {}),
+    ...(Number.isSafeInteger(commands) ? { commands: commands as number } : {}),
   }
 }

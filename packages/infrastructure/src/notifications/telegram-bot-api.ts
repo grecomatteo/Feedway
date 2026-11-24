@@ -107,6 +107,10 @@ export function createTelegramBotApi(options: TelegramBotApiOptions): TelegramBo
       return result.map(updateOf).filter((u): u is TelegramUpdate => u !== null)
     },
 
+    async setMyCommands(token, commands, signal) {
+      await call(token, 'setMyCommands', { commands }, 0, signal)
+    },
+
     async sendMessage(token, message, signal) {
       await call(
         token,

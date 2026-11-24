@@ -318,6 +318,55 @@ test('the offset: an update is answered once, by one of two workers polling toge
   expect(sentTo(101).filter((m) => m.text.includes('notify.telegram.today'))).toHaveLength(1)
 })
 
+test('one run listens for its whole time: a second message is answered in the same run (R3)', async () => {
+  await link(pia, 'platform', 101, PLATFORM.token)
+  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
+  const today = () => sentTo(101).filter((m) => m.text.includes('notify.telegram.today'))
+  const running = pollTelegram({ ...poll, waitSeconds: 3 })
+  await expect.poll(() => today().length, { timeout: 2000, interval: 20 }).toBe(1)
+  // the offset of the first batch is saved before the next long poll
+  const { rows } = await admin.query<{ offset: number }>(
+    "select (state->>'offset')::int as offset from integrations where kind = 'telegram' and organization_id is null",
+  )
+  const pending = mock
+    .calls()
+    .filter((c) => c.method === 'getUpdates')
+    .at(-1)
+  expect(Number(pending?.params.offset)).toBe(rows[0]?.offset)
+  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/problemi' })
+  await expect
+    .poll(() => sentTo(101).some((m) => m.text.includes('notify.telegram.issues')), {
+      timeout: 2000,
+      interval: 20,
+    })
+    .toBe(true)
+  const report = await running
+  expect(report.updates).toBe(2)
+  expect(today()).toHaveLength(1)
+})
+
+test('each bot gets its menu of commands once, at its first run (R10.1)', async () => {
+  await run()
+  const menu = [
+    { command: 'oggi', description: 'Notify.telegram.commands.today' },
+    { command: 'problemi', description: 'Notify.telegram.commands.issues' },
+    { command: 'stop', description: 'Notify.telegram.commands.stop' },
+  ]
+  expect(mock.commands()).toEqual({ [PLATFORM.username]: menu, [AGENCY.username]: menu })
+  await run()
+  expect(mock.calls().filter((c) => c.method === 'setMyCommands')).toHaveLength(2)
+})
+
+test('a menu Telegram does not take is tried again at the next run; the poll goes on', async () => {
+  mock.unavailable({ method: 'setMyCommands', times: 2 })
+  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
+  await run()
+  expect(mock.commands()).toEqual({})
+  expect(sentTo(101)).toHaveLength(1)
+  await run()
+  expect(Object.keys(mock.commands()).sort()).toEqual([AGENCY.username, PLATFORM.username].sort())
+})
+
 test('a bot removed or replaced by another takes its links away', async () => {
   await link(pia, 'platform', 101, PLATFORM.token)
   await link(pia, alfa, 201, AGENCY.token)

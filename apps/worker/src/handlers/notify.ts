@@ -60,8 +60,12 @@ export const notifyDeliverPlatform: JobHandler<'notify.deliver_platform'> = asyn
     deps.logger.info({ jobId: job.id, ...report }, 'platform notification delivered')
 }
 
-/** Telegram's long poll: under a minute, so the next run of the schedule finds the lock free. */
-export const TELEGRAM_POLL_WAIT_SECONDS = 50
+/**
+ * How long a run of `telegram.poll` listens: most of the minute, so that between two runs nobody
+ * listens only for a few seconds, and under it, so that the next run of the schedule finds the
+ * lock free. Each long poll stays within Telegram's 50 s.
+ */
+export const TELEGRAM_POLL_WAIT_SECONDS = 55
 
 export const telegramPoll: JobHandler<'telegram.poll'> = async (job, deps) => {
   const report = await pollTelegram(
