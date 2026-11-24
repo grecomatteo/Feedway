@@ -91,8 +91,11 @@ function* freeSlots(
   const afterMinute = minuteOf(after)
   for (let i = 0; i < horizonDays; i++) {
     const localDate = addDays(first, i)
-    for (const localTime of byDay.get(weekday(localDate)) ?? []) {
-      const { instant } = zonedToInstant(localDate, localTime, timeZone)
+    // in the real order: the day the clocks go forward, 02:30 becomes 03:30, after 03:15
+    const instants = (byDay.get(weekday(localDate)) ?? [])
+      .map((localTime) => zonedToInstant(localDate, localTime, timeZone).instant)
+      .sort((a, b) => a.getTime() - b.getTime())
+    for (const instant of instants) {
       const minute = minuteOf(instant)
       if (minute <= afterMinute || taken.has(minute)) continue
       taken.add(minute)

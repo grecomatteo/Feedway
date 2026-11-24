@@ -138,6 +138,18 @@ describe('nextFreeSlot', () => {
     const s = nextFreeSlot(sunday, [at('2027-03-28T01:30:00Z')], at('2027-03-27T12:00:00Z'), ROME)
     expect(local(s)).toBe('2027-04-04 02:30')
   })
+
+  test('the day the clocks go forward, 03:15 comes before 02:30 moved to 03:30', () => {
+    const sunday: TimeSlot[] = [
+      { weekday: 7, localTime: '02:30' },
+      { weekday: 7, localTime: '03:15' },
+    ]
+    const after = at('2027-03-27T23:00:00Z')
+    expect(local(nextFreeSlot(sunday, [], after, ROME))).toBe('2027-03-28 03:15')
+    expect(
+      distributeOnSlots(sunday, [], 2, after, ROME).map((s) => s.instant.toISOString()),
+    ).toEqual(['2027-03-28T01:15:00.000Z', '2027-03-28T01:30:00.000Z'])
+  })
 })
 
 describe('distributeOnSlots', () => {
