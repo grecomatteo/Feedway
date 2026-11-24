@@ -336,6 +336,8 @@ export interface UserOrganizationRecord extends OrgMemberRecord {
   require2fa: TwoFactorPolicy | null
   /** `branding.logo_key`: null without a logo. */
   logoKey: string | null
+  /** `settings.timezone` as stored; `storedTimeZone` reads it (D-58, D-78). */
+  timezone: string | null
 }
 
 export interface OrgMembersRepository {

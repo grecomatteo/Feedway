@@ -14,6 +14,8 @@ const MyOrganization = z.object({
   status: z.enum(['active', 'suspended']),
   /** The 256 px logo in the panel (`/64` for the small one); null: the initials. */
   logoUrl: z.string().nullable(),
+  /** IANA, the agency's zone (D-58): every member reads it (D-78) */
+  timezone: z.string(),
 })
 
 /** The signed-in person: their own data only, never a hash, token or secret. */

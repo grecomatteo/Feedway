@@ -96,6 +96,11 @@ export function uploadForm(bytes: Buffer = SAMPLE_UPLOAD, name = 'logo.png'): Fo
 
 /** A valid body for every route that takes one; checked against the route's own schema. */
 const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
+  // «Elimina le bozze vuote» of a client (plan 09 Task 2)
+  'POST /api/v1/orgs/{org}/calendar/drafts/delete-empty': (ids) => ({
+    workspaceId: ids.workspace,
+    all: true,
+  }),
   'POST /api/v1/auth/reauth': () => ({ password: PASSWORD }),
   'POST /api/v1/links/{token}/activate': () => ({ name: 'Persona Nuova', password: null }),
   'POST /api/v1/security/lock': () => ({ token: 'link-non-valido' }),
@@ -269,6 +274,10 @@ const SAMPLE_QUERIES: Record<string, (ids: SampleIds) => string> = {
   'GET /api/v1/orgs/{org}/agenda': (ids) => `workspaceId=${ids.workspace}`,
   'GET /api/v1/orgs/{org}/agenda/drafts': (ids) => `workspaceId=${ids.workspace}`,
   'GET /api/v1/orgs/{org}/agenda/issues': (ids) => `workspaceId=${ids.workspace}`,
+  // a client's calendar (plan 09 Task 2)
+  'GET /api/v1/orgs/{org}/calendar': (ids) =>
+    `from=2027-01-11&to=2027-01-17&workspaceId=${ids.workspace}`,
+  'GET /api/v1/orgs/{org}/calendar/drafts': (ids) => `workspaceId=${ids.workspace}`,
   // «Libreria» narrowed to one client (redesign R6)
   'GET /api/v1/orgs/{org}/media': (ids) => `workspaceId=${ids.workspace}`,
 }

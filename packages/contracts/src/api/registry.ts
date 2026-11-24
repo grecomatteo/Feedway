@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { ApiErrorBody, defineContract, type ApiContract } from './define.js'
 import { accountRoutes } from './accounts.js'
 import { agendaRoutes } from './agenda.js'
+import { calendarRoutes } from './calendar.js'
 import { auditRoutes } from './audit.js'
 import { avatarRoutes } from './avatar.js'
 import { authRoutes } from './auth.js'
@@ -54,6 +55,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...rulesRoutes,
   ...postRoutes,
   ...agendaRoutes,
+  ...calendarRoutes,
   ...contentSettingsRoutes,
   ...auditRoutes,
   ...platformRoutes,

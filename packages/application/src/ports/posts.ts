@@ -3,6 +3,7 @@ import type {
   Post,
   PostCover,
   PostStatus,
+  PostType,
   PublishingHistoryFacts,
   PublishingPostStatus,
 } from '@app/domain'
@@ -88,6 +89,29 @@ export interface PostNoteRecord {
   authorId: string
   body: string
   createdAt: Date
+}
+
+/**
+ * What the calendar asks of the posts (plan 09 Task 2), every filter in SQL so the limit cuts
+ * only what the filters keep. An empty list of a filter means any.
+ */
+export interface CalendarPostQuery {
+  /** a time in `[from, to)`, by time; `undated`: the drafts without one, latest changed first */
+  period: { from: Date; to: Date } | 'undated'
+  statuses: readonly PublishingPostStatus[]
+  types: readonly PostType[]
+  /** who created it */
+  authorIds: readonly string[]
+  /** a destination to one of them */
+  accountIds: readonly string[]
+  /** one of these labels */
+  labelIds: readonly string[]
+  /**
+   * only drafts with no file, no account, no internal note and a text of blanks only: the
+   * candidates of «Elimina le bozze vuote», chosen in the query so the limit counts only them
+   */
+  emptyOnly?: boolean
+  limit: number
 }
 
 export interface PostRepository {
@@ -176,6 +200,12 @@ export interface PostRepository {
     workspaceIds: readonly string[],
     statuses: readonly PublishingPostStatus[],
     limit: number,
+  ): Promise<PostRecord[]>
+  /** The posts of these workspaces for the calendar and its list (plan 09 Task 2). */
+  listForCalendar(
+    organizationId: string,
+    workspaceIds: readonly string[],
+    query: CalendarPostQuery,
   ): Promise<PostRecord[]>
   /** The drafts of these workspaces, the latest changed first; at most `limit`. */
   listLatestDrafts(

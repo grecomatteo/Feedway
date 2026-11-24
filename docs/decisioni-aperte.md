@@ -368,13 +368,6 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Non verificato:** le misure non sono prese sulle app; l'anteprima dice «Anteprima approssimativa».
 - **Stato:** decisa (a) per ora da Matteo (18/11), con le storie allineate alle sue guide; nella prova della 0.13.0 la storia è uscita con la stessa parte della foto dell'anteprima (7.6, Matteo), il reel 16:9 intero con le bande nere (7.5); il confronto delle misure del testo tagliato non è stato annotato. Un margine di 70 px sul feed come guida facoltativa si aggiunge se Matteo lo chiede.
 
-### D-78 · Fuso dell'agenzia nell'editor per chi non è Owner o Admin
-
-- **Origine:** revisione finale della tappa 6, P4. L'editor legge il fuso da `GET …/settings`, che leggono solo Owner e Admin: per Manager, Publisher ed Editor resta `Europe/Rome` finché il primo salvataggio non porta il `timezone` del post.
-- **Effetto:** solo con un'agenzia che ha un fuso diverso da Roma, per qualche secondo: l'ora proposta è calcolata su Roma e manca «· ora di …». Il server usa comunque il fuso giusto.
-- **Opzioni:** (a) il fuso in una risposta che leggono tutti (l'organizzazione corrente o il cliente); (b) lasciare così fino alla tappa 9 (calendario).
-- **Stato:** rimandata (b) nel Task 8 della tappa 6 (non c'era spazio): da fare con la tappa 9, che ne ha bisogno per il calendario.
-
 ### D-79 · Elenco «Post» del cliente: peso e ordine
 
 - **Origine:** revisione finale della tappa 6, P5 (segnalato anche dal thread B2). L'elenco legge fino a 10 pagine da 100 post interi, una dopo l'altra; oltre i 1.000 la fine manca senza avviso; l'ordine è per data di creazione, non per data del post.
@@ -785,6 +778,16 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   15. **La nota del piano (decisa da Matteo il 24/11):** la vede chi lavora nell'agenzia e vede il cliente, Viewer compreso, solo nel Piano editoriale; mai nel calendario, nelle notifiche, nel riepilogo o al cliente.
   16. **Griglia (decisa da Matteo il 24/11):** quarta vista della scheda «Calendario» del cliente, non una scheda a sé (§14.7).
   17. **Destinatari nuovi:** `workspace_preparers` (chi ha `plan.prepare`, Owner e Admin compresi, con il permesso riletto all'invio) e `initiator` (chi ha avviato l'importazione).
+  18. **Letture del calendario (Task 2, scelte provvisorie):**
+      - le voci dei moduli (il piano) si vedono solo senza filtri dei post: con stato, account, piattaforma, tipo, autore, etichetta o un filtro rapido dei post («Da pubblicare», «Pubblicati», «Con problema») restano fuori; «Oggi», «Questa settimana» e «Da preparare» le tengono;
+      - il calendario di un cliente archiviato si legge (chiesto per nome); «Tutti i clienti» lascia fuori gli archiviati, come «Oggi»;
+      - senza `from` e `to` la lettura dà la settimana di oggi nel fuso dell'agenzia;
+      - l'indirizzo della pagina usa parole italiane (`vista=mese`, `stato=programmato`, `tipo=carosello`, `rapido=con-problema`, `mostra=piano`, id separati da virgole) e ignora ciò che non conosce; l'API usa i nomi inglesi (`statuses=scheduled,failed`) e risponde 422 a un valore sconosciuto;
+      - le bozze senza data: le 200 cambiate per ultime; con un filtro rapido nessuna;
+      - «Elimina le bozze vuote»: fino a 500 per volta, scelte nella query (nessun file, account o nota interna, testo solo di spazi), ognuna bloccata e riletta prima di andare (una bozza che ha appena preso un testo resta); le etichette non contano per «vuota», una nota interna sì (la bozza resta, così non si perdono le note di altri; nell'elenco può comunque dirsi «vuota»); un cliente archiviato chiesto per nome risponde 409, come «Elimina»; a chi non può eliminare nulla risponde `deleted: 0`, non 403; una voce `post.deleted` nel registro per bozza;
+      - accanto a un post, «Oggi» e il calendario mostrano un account se è assegnato ad almeno uno dei clienti letti, non per forza a quello del post (prima si guardava cliente per cliente): un account tolto al cliente A ma rimasto al cliente B compare anche sul post di A; così le piattaforme si leggono con una sola query;
+      - la CLI `set-modules` non c'è ancora: arriva con il Task 6, insieme ai 404 delle rotte del piano;
+      - il fuso dell'agenzia è in `GET /api/v1/me` per ogni agenzia (D-78, chiusa): l'editor non chiede più `GET …/settings`.
   19. **Tabella del piano (Task 5, scelte provvisorie):**
       - **l'evento `plan.due_soon` entra nel Task 8, non nel 5:** il piano lo mette nel Task 5 insieme ai vincoli `check` della migrazione, ma il codice vuole che ogni tipo dell'outbox abbia il suo tipo di notifica registrato (`modules.test.ts`), il nome e l'icona nel pannello e una riga nelle preferenze, che sono del Task 8. Il Task 5 definisce solo `PLAN_EVENT_TYPES`; il Task 8 lo unisce a `OUTBOX_EVENT_TYPES` e cambia i vincoli con una migrazione sua (un numero in più da chiedere al coordinatore);
       - unicità del post sulla coppia `(organization_id, post_id)` (indice parziale dove c'è), e chiave composta `(organization_id, workspace_id, post_id)` verso `posts`: un post di un altro cliente non si collega;

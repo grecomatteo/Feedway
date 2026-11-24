@@ -1,7 +1,8 @@
 import { ALL_PERMISSIONS, OUTBOX_EVENT_TYPES, PLATFORM_PERMISSIONS } from '@app/domain'
 import { expect, test } from 'vitest'
 import type { QueueName } from './ports/job-queue.js'
-import { MODULES, userAnonymizedHandlers } from './modules.js'
+import type { ModuleDefinition } from './module-definition.js'
+import { MODULES, calendarEntrySources, enabledModules, userAnonymizedHandlers } from './modules.js'
 
 // Permissions of modules not written yet (stages 7–8): listed so a new one is never forgotten.
 const FUTURE_PERMISSIONS = ['share_link.manage']
@@ -67,4 +68,24 @@ test('every outbox event has exactly one kind of notification, from one module',
 
 test('the anonymization handlers come from the modules, in their order', () => {
   expect(userAnonymizedHandlers()).toEqual(MODULES.flatMap((m) => m.onUserAnonymized ?? []))
+})
+
+test('a module that can be turned off is on until the agency settings say false (plan 09 P2)', () => {
+  const source = { id: 'plan', entries: () => Promise.resolve([]) }
+  const plan: ModuleDefinition = {
+    name: 'plan',
+    permissions: [],
+    queues: [],
+    calendarEntries: source,
+  }
+  const posts: ModuleDefinition = { name: 'posts', permissions: [], queues: [] }
+  const modules = [posts, plan]
+  expect(enabledModules({}, modules)).toEqual(modules)
+  expect(enabledModules({ modules: { plan: true } }, modules)).toEqual(modules)
+  expect(enabledModules({ modules: 'boh' }, modules)).toEqual(modules)
+  expect(enabledModules({ modules: { plan: false } }, modules)).toEqual([posts])
+  // a module that cannot be turned off stays on
+  expect(enabledModules({ modules: { posts: false } }, modules)).toEqual(modules)
+  expect(calendarEntrySources(enabledModules({}, modules))).toEqual([source])
+  expect(calendarEntrySources(enabledModules({ modules: { plan: false } }, modules))).toEqual([])
 })

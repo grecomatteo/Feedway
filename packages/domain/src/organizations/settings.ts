@@ -14,6 +14,26 @@ export interface OrganizationSettings {
   privacy?: OrganizationPrivacySettings
   /** IANA: the time zone of the agency's new posts (D-58); missing = Europe/Rome */
   timezone?: string
+  /** The modules turned on or off for the agency (§7.3, plan 09 P2); missing = on */
+  modules?: Partial<Record<ToggleableModule, boolean>>
+}
+
+/**
+ * The modules an agency can do without (§7.3, plan 09 P2): every one is on until the
+ * platform's CLI turns it off (`set-modules`); the others are always on.
+ */
+export const TOGGLEABLE_MODULES = ['plan'] as const
+export type ToggleableModule = (typeof TOGGLEABLE_MODULES)[number]
+
+const isToggleable = (name: string): name is ToggleableModule =>
+  (TOGGLEABLE_MODULES as readonly string[]).includes(name)
+
+/** Whether the agency uses the module: off only when its settings say `false`. */
+export function isModuleEnabled(settings: Record<string, unknown>, name: string): boolean {
+  if (!isToggleable(name)) return true
+  const modules = settings.modules
+  if (typeof modules !== 'object' || modules === null) return true
+  return (modules as Record<string, unknown>)[name] !== false
 }
 
 /** The time zone of an agency's posts until its Owner chooses another (D-58). */
