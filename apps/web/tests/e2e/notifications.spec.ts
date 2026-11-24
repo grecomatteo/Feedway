@@ -157,5 +157,9 @@ test('the choices: channels per kind, quiet hours, the email that always goes', 
     )
     .toEqual([{ digest_channels: ['telegram'] }])
   await expect(digestChannels.getByRole('checkbox', { name: 'Telegram' })).toBeDisabled()
+  // axe reads a control scrolled under the sticky bar at the top as too close to its buttons
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+  })
   expect((await axe(page)).violations).toEqual([])
 })
