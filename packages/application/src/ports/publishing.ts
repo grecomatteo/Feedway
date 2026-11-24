@@ -213,4 +213,12 @@ export interface Outbox {
    */
   takePending(limit: number): Promise<PendingOutboxEvent[]>
   markDispatched(ids: readonly string[], at: Date): Promise<void>
+  /**
+   * The system scope only (the web's watch of the worker, plan 08 Scelta 10): writes an event
+   * already dispatched at `at`, so the dispatcher never sends it, and returns it. null: an event
+   * with the same `dedupeKey` was written before.
+   */
+  recordDispatched(event: OutboxEvent, at: Date): Promise<PendingOutboxEvent | null>
+  /** The system scope only: the platform's latest event of one of these types, sent or not. */
+  latestPlatform(types: readonly OutboxEventType[]): Promise<PendingOutboxEvent | null>
 }

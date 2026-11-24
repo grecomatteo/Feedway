@@ -14,6 +14,7 @@ export const notificationsModule: ModuleDefinition = {
     'notify.deliver_platform',
     'report.daily',
     'report.digest',
+    'telegram.poll',
   ],
   onUserAnonymized: anonymizeNotifications,
 }

@@ -52,6 +52,8 @@ export const AUDIT_ACTIONS = [
   'platform.mail_test_sent',
   'platform.telegram_bot_changed',
   'platform.telegram_bot_removed',
+  'platform.external_watch_changed',
+  'platform.external_watch_removed',
   'integration.meta_changed',
   'integration.meta_tested',
   'integration.telegram_changed',

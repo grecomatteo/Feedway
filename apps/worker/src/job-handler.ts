@@ -3,6 +3,8 @@ import type {
   AvatarProcessor,
   Clock,
   ConnectionTokens,
+  ExclusiveLock,
+  ExternalWatchPinger,
   MediaProcessDeps,
   IdGenerator,
   IntegrationStore,
@@ -17,6 +19,8 @@ import type {
   RateLimiter,
   SignedTokens,
   Storage,
+  TelegramBotApi,
+  TokenService,
   Translate,
   UnitOfWork,
   UploadParts,
@@ -58,6 +62,15 @@ export interface JobHandlerDeps {
     integrations: Pick<IntegrationStore, 'get'>
     graph: { version: string; sunset: string }
   }
+  /** Telegram's bots (plan 08 Task 7): the Bot API, their tokens and a lock per bot. */
+  telegram: {
+    api: TelegramBotApi
+    integrations: IntegrationStore
+    tokens: Pick<TokenService, 'hash'>
+    lock: ExclusiveLock
+    /** The long poll's wait; unset: 50 s. The tests set 0. */
+    waitSeconds?: number
+  }
   /** sharp, for the pictures of the social accounts (plan 04 Task 4). */
   images: AvatarProcessor
   /** The publishing of the posts (plan 07 Task 7): the platforms and what the checks read. */
@@ -69,6 +82,11 @@ export interface JobHandlerDeps {
     publicUrl: URL | null
     /** MEDIA_RETENTION_DAYS: the copies of an ended post stay this long (Scelta 5). */
     copiesKeptDays: number
+  }
+  /** `heartbeat.external` (plan 08 Task 9): the platform's address, and the call to it. */
+  externalWatch: {
+    integrations: Pick<IntegrationStore, 'platformCredentials'>
+    pinger: ExternalWatchPinger
   }
   /** ffmpeg, ffprobe and sharp for the files of the library, one at a time (plan 04 Task 10). */
   media: Pick<

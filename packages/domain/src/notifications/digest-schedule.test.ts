@@ -34,7 +34,7 @@ test('once 8:00 has passed, the next digest is tomorrow; at 8:00 it is now', () 
 
 test('the digest keeps to the days and time the person chose', () => {
   // Monday 2026-11-23, after 9:30: next Monday is a week later
-  const mondays = { enabled: true, time: '09:30', days: [1] } as const
+  const mondays = { enabled: true, time: '09:30', days: [1], channels: ['email'] } as const
   expect(nextDigestAt(mondays, new Date('2026-11-23T09:00:00Z'), ROME)).toEqual(
     new Date('2026-11-30T08:30:00Z'),
   )

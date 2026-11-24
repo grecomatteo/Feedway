@@ -123,3 +123,18 @@ export async function removePlatformTelegramBot(
     })
   })
 }
+
+/**
+ * The platform bot's name, for a person who links Telegram (plan 08 Task 7): read in the system
+ * scope, where the platform's row is; nothing else of the row leaves.
+ */
+export function platformTelegramBotName(
+  deps: Pick<PlatformTelegramBotDeps, 'uow' | 'integrations'>,
+): () => Promise<string | null> {
+  return () =>
+    deps.uow.runAsSystem(
+      'platform: the Telegram bot to link',
+      async (tx) =>
+        (await deps.integrations.getPlatform(tx, 'telegram'))?.config.botUsername ?? null,
+    )
+}

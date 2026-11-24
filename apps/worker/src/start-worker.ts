@@ -1,9 +1,10 @@
-import { wakeMediaProcessing } from '@app/application'
+import { recordWorkerBeat, wakeMediaProcessing } from '@app/application'
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import { accountsAvatar } from './handlers/accounts-avatar.js'
 import { accountsDaily } from './handlers/accounts-daily.js'
 import { accountsHealth } from './handlers/accounts-health.js'
 import { accountsSync } from './handlers/accounts-sync.js'
+import { heartbeatExternal } from './handlers/heartbeat-external.js'
 import {
   identityAccountLockedNotice,
   identityAccountLockedNoticeEmail,
@@ -19,7 +20,12 @@ import { mediaProcess } from './handlers/media-process.js'
 import { mediaPublishCopies } from './handlers/media-publish-copies.js'
 import { mediaPublishCopiesCleanup } from './handlers/media-publish-copies-cleanup.js'
 import { mediaUploadsCleanup } from './handlers/media-uploads-cleanup.js'
-import { notifyDeliver, notifyDeliverPlatform, notifyDispatch } from './handlers/notify.js'
+import {
+  notifyDeliver,
+  notifyDeliverPlatform,
+  notifyDispatch,
+  telegramPoll,
+} from './handlers/notify.js'
 import { reportDaily, reportDigest } from './handlers/report.js'
 import { systemSelftest } from './handlers/system-selftest.js'
 import {
@@ -30,7 +36,7 @@ import {
   targetVerify,
 } from './handlers/target-steps.js'
 import type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
-import { startHeartbeat } from './heartbeat.js'
+import { startDatabaseBeat, startHeartbeat } from './heartbeat.js'
 
 export type { JobHandler, JobHandlerDeps, JobHandlers } from './job-handler.js'
 
@@ -41,6 +47,11 @@ export interface WorkerDeps {
   services: Omit<JobHandlerDeps, 'logger' | 'queue'>
   heartbeatPath: string
   heartbeatEveryMs: number
+  /**
+   * The beat in the database (plan 08 P5): this instance's name (the container's host name),
+   * the version, every 30 seconds. Tests of other things leave it out.
+   */
+  beat?: { instance: string; version: string; everyMs: number }
   /** Only these queues are consumed (WORKER_QUEUES, spec §6.4). */
   queues: readonly QueueName[]
   /** Overrides for tests; the real handlers are the default. */
@@ -62,8 +73,12 @@ export const MEDIA_UPLOADS_CLEANUP_CRON = '7-59/10 * * * *'
 export const MEDIA_UPLOADS_CLEANUP_TZ = 'Europe/Rome'
 /** Every day at 04:30, Italian time: the copies to publish no post needs (plan 07 Scelta 5). */
 export const PUBLISH_COPIES_CLEANUP_CRON = '30 4 * * *'
+/** Every minute: each bot's `getUpdates`, about 50 s long (plan 08 Task 7). */
+export const TELEGRAM_POLL_CRON = '* * * * *'
 /** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
 export const SCHEDULER_RECONCILE_CRON = '* * * * *'
+/** Every minute: the call that tells healthchecks.io the VPS is alive (plan 08 Task 9). */
+export const HEARTBEAT_EXTERNAL_CRON = '* * * * *'
 /** Every minute: each person has their own time and zone (plan 08 P7). */
 export const REPORT_DAILY_CRON = '* * * * *'
 /** Every minute is every minute in any zone: each digest is due in its person's zone. */
@@ -100,6 +115,15 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       },
       d,
     )
+  // on stop, the long poll ends at once: the offset is on the bot's row, the next run goes on
+  const telegramPollOnStop: JobHandler<'telegram.poll'> = (job, d) =>
+    (deps.handlers?.['telegram.poll'] ?? telegramPoll)(
+      {
+        ...job,
+        signal: job.signal ? AbortSignal.any([job.signal, stopping.signal]) : stopping.signal,
+      },
+      d,
+    )
   const handlers: JobHandlers = {
     'system.selftest': systemSelftest,
     'identity.security_email': identitySecurityEmail,
@@ -128,7 +152,9 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'notify.deliver_platform': notifyDeliverPlatform,
     'report.daily': reportDaily,
     'report.digest': reportDigest,
+    'heartbeat.external': heartbeatExternal,
     ...deps.handlers,
+    'telegram.poll': telegramPollOnStop,
     'media.process': mediaProcessOnStop,
     'media.publish_copies': mediaPublishCopiesOnStop,
   }
@@ -175,16 +201,33 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
       {},
       { tz: MEDIA_UPLOADS_CLEANUP_TZ },
     )
+  if (queues.includes('telegram.poll'))
+    await queue.schedule('telegram.poll', TELEGRAM_POLL_CRON, {}, { tz: MEDIA_UPLOADS_CLEANUP_TZ })
   if (queues.includes('report.daily'))
     await queue.schedule('report.daily', REPORT_DAILY_CRON, {}, { tz: REPORT_DAILY_TZ })
+  if (queues.includes('heartbeat.external'))
+    await queue.schedule('heartbeat.external', HEARTBEAT_EXTERNAL_CRON, {}, { tz: REPORT_DAILY_TZ })
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)
+  const beat = deps.beat
+  const stopDatabaseBeat = beat
+    ? startDatabaseBeat(
+        () =>
+          recordWorkerBeat(deps.services, {
+            instance: beat.instance,
+            details: { version: beat.version, queues: queues.length },
+          }),
+        beat.everyMs,
+        logger,
+      )
+    : () => undefined
 
   return {
     async stop() {
       stopping.abort()
       stopHeartbeat()
+      stopDatabaseBeat()
       // lets running jobs finish; whatever is still active afterwards is retried after expiry
       await queue.stop({ graceful: true, timeoutMs: STOP_TIMEOUT_MS })
     },

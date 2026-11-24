@@ -1,5 +1,6 @@
 import {
   CHANNELS,
+  DIGEST_CHANNELS,
   DomainError,
   type Channel,
   type Level,
@@ -104,7 +105,13 @@ function normalized(settings: NotificationSettings): NotificationSettings {
         field: 'quietHours',
       },
     )
-  return { ...settings, digest: { ...settings.digest, days } }
+  // the order of DIGEST_CHANNELS and no double; the contract asks for one at least
+  const channels = DIGEST_CHANNELS.filter((c) => settings.digest.channels.includes(c))
+  if (channels.length === 0)
+    throw new DomainError('VALIDATION', 'Scegli almeno un canale per il riepilogo', {
+      field: 'digest.channels',
+    })
+  return { ...settings, digest: { ...settings.digest, days, channels } }
 }
 
 export function saveMyNotificationSettings(

@@ -38,18 +38,23 @@ export interface DispatchReport {
   jobs: number
 }
 
-interface Built {
+export interface Built {
   notification: NewNotification
 }
 
 const OUTSIDE: ReadonlySet<Channel> = new Set(['telegram', 'email'])
 
-/** The notifications of one event, one per person who still sees it and did not turn it off. */
-async function notificationsOf(
-  deps: DispatchDeps,
+/**
+ * The notifications of one event, one per person who still sees it and did not turn it off.
+ * Their deliveries outside the panel are due at `due`: when the group closes (Scelta 7), or now
+ * for the worker's alarm that the web sends itself (Scelta 10).
+ */
+export async function notificationsOf(
+  deps: Omit<DispatchDeps, 'queue'>,
   tx: Tx,
   event: PendingOutboxEvent,
   now: Date,
+  due: Date = groupWindow(now),
 ): Promise<Built[]> {
   const kind = deps.kinds.get(event.type)
   if (!kind) {
@@ -104,7 +109,7 @@ async function notificationsOf(
         deliveries.push({
           channel,
           status: 'pending',
-          nextAttemptAt: groupWindow(now),
+          nextAttemptAt: due,
           error: null,
         })
     }

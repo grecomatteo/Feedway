@@ -12,6 +12,7 @@ export {
   type NotifiedEvent,
 } from './message.js'
 export {
+  deliverGroup,
   deliverNotification,
   type DeliverDeps,
   type DeliverJob,
@@ -20,6 +21,7 @@ export {
 export {
   deliverPlatformNotification,
   dispatchNotifications,
+  notificationsOf,
   type DispatchDeps,
   type DispatchReport,
 } from './dispatch.js'
@@ -31,6 +33,36 @@ export {
   type AgencyTelegramBotDeps,
 } from './telegram-bot.js'
 export { telegramBotView, verifyBotToken, type TelegramBotView } from './telegram-token.js'
+export {
+  LINK_CODE_MINUTES,
+  listTelegramLinks,
+  startTelegramLink,
+  unlinkTelegram,
+  type TelegramBotKey,
+  type TelegramBotLink,
+  type TelegramLinkDeps,
+} from './telegram-links.js'
+export {
+  createTelegramChannel,
+  telegramText,
+  type TelegramChannelDeps,
+  type TelegramTargets,
+} from './telegram-channel.js'
+export { answerTelegramQuery, type TelegramCommandDeps } from './telegram-commands.js'
+export {
+  TELEGRAM_TEXT_MAX,
+  escapeHtml,
+  fitMessage,
+  type TelegramHtml,
+  type TelegramSection,
+} from './telegram-format.js'
+export {
+  createTelegramTargets,
+  parseCommand,
+  pollTelegram,
+  type TelegramPollDeps,
+  type TelegramPollReport,
+} from './telegram-poll.js'
 export {
   CENTRE_PAGE_DEFAULT,
   CENTRE_PAGE_MAX,

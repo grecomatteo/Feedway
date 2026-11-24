@@ -58,6 +58,20 @@
       "notConfigured": "Il cambio dell'email sarà disponibile quando la piattaforma avrà configurato l'invio delle email.",
       "invalid": "Scrivi un indirizzo email valido, diverso da quello attuale.",
       "change": "Cambia email"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "none": "Nessun bot di Telegram è impostato per le tue agenzie: quando ci sarà, lo colleghi da qui.",
+      "loadError": "Non riesco a leggere i collegamenti con Telegram.",
+      "linked": "Collegato",
+      "pending": "In attesa di «Avvia»",
+      "notLinked": "Non collegato",
+      "platform": "la piattaforma",
+      "for": "Notifiche di {names}",
+      "link": "Collega Telegram",
+      "open": "Apri Telegram",
+      "pressStart": "Apri il bot e premi «Avvia» entro 15 minuti: questa pagina si aggiorna da sola.",
+      "unlink": "Scollega"
     }
   },
   "confirmEmail": {
@@ -3019,6 +3033,67 @@
     "centre": {
       "noAccess": "Non vedi più ciò di cui parla questa notifica",
       "gone": "Ciò di cui parlava questa notifica non c'è più"
+    },
+    "telegram": {
+      "state": {
+        "scheduled": "Programmato",
+        "publishing": "In pubblicazione",
+        "partial": "Uscito in parte",
+        "failed": "Non uscito",
+        "problem": "Con problema",
+        "published": "Pubblicato",
+        "paused": "In pausa",
+        "draft": "Bozza",
+        "cancelled": "Annullato"
+      },
+      "today": {
+        "title": "Oggi, {day}",
+        "count": "{n} post",
+        "line": "{time} · {client}",
+        "none": "Oggi non esce niente.",
+        "open": "Apri «Oggi» in Feedway"
+      },
+      "issues": {
+        "title": "Da sistemare",
+        "post": "{state} · {when}",
+        "profile": "{name}: {what}",
+        "media": "il file «{name}» non è pronto",
+        "none": "Niente da sistemare.",
+        "open": "Apri «Oggi» in Feedway",
+        "link": {
+          "reconnect": "da ricollegare",
+          "error": "non può pubblicare",
+          "warning": "da controllare"
+        }
+      },
+      "more": "e altri {n}",
+      "start": {
+        "linked": "Collegato, {name}",
+        "linkedBody": "Da ora qui arrivano le notifiche di Feedway che hai scelto per Telegram.",
+        "invalid": "Collegamento scaduto",
+        "invalidBody": "Un collegamento dura 15 minuti e si usa una volta sola. Chiedine uno nuovo da Profilo e preferenze.",
+        "missing": "Ciao!",
+        "missingBody": "Per ricevere qui le notifiche, collega Telegram da Profilo e preferenze."
+      },
+      "stop": "Scollegato",
+      "notLinked": "Chat non collegata",
+      "help": "Comandi",
+      "noAgency": "Non lavori più in un'agenzia che usa questo bot.",
+      "errors": {
+        "blocked": "Il bot è stato bloccato su Telegram: il collegamento è tolto. Collega di nuovo Telegram da Profilo e preferenze.",
+        "rate_limited": "Telegram chiede di aspettare: si riprova",
+        "unavailable": "Telegram non risponde: si riprova",
+        "unauthorized": "Telegram rifiuta il token del bot",
+        "bad_request": "Telegram ha rifiutato il messaggio"
+      },
+      "stopBody": "Qui non arriva più niente. Per tornare, collega di nuovo Telegram da Profilo e preferenze.",
+      "notLinkedBody": "Questa chat non è collegata a Feedway. Collegala da Profilo e preferenze.",
+      "account": "Apri Profilo e preferenze",
+      "commands": {
+        "today": "i post di oggi",
+        "issues": "cosa c'è da sistemare",
+        "stop": "scollegati"
+      }
     }
   },
   "notifications": {
@@ -3119,9 +3194,10 @@
       "quietFrom": "Dalle",
       "quietTo": "alle",
       "digest": "Riepilogo del mattino",
-      "digestHelp": "Post di ieri, cosa esce oggi e i problemi aperti, per email e Telegram.",
+      "digestHelp": "Post di ieri, cosa esce oggi e i problemi aperti, sui canali che scegli. Su Telegram arriva se l'hai collegato.",
       "digestAt": "Alle",
       "digestDays": "Giorni del riepilogo",
+      "digestChannels": "Canali del riepilogo",
       "days": {
         "1": "L",
         "2": "M",
@@ -3149,7 +3225,59 @@
   },
   "platformIntegrations": {
     "title": "Integrazioni della piattaforma",
-    "explain": "I servizi che valgono per tutte le agenzie. Li vedi solo tu, come amministratore della piattaforma."
+    "explain": "I servizi che valgono per tutte le agenzie e lo stato del worker. Li vedi solo tu, come amministratore della piattaforma."
+  },
+  "workerStatus": {
+    "title": "Stato del worker",
+    "none": "Nessun battito",
+    "health": {
+      "ok": "In funzione",
+      "late": "In ritardo",
+      "silent": "Fermo"
+    },
+    "lastBeat": "Ultimo battito {when}",
+    "version": "versione {version}",
+    "noneTitle": "Nessun battito ricevuto",
+    "noneExplain": "Il worker batte ogni 30 secondi da quando parte. Se non compare niente, non è mai partito: controlla con docker compose ps sul server.",
+    "silentExplain": "Il worker non batte da più di 2 minuti: pubblicazioni e notifiche sono ferme. Ti abbiamo mandato un avviso per email; quando riparte ne arriva un altro.",
+    "loadError": "Non riesco a leggere lo stato del worker."
+  },
+  "externalWatch": {
+    "title": "Sorveglianza esterna",
+    "none": "Da configurare",
+    "waiting": "In attesa della prima chiamata",
+    "active": "Attiva",
+    "failing": "Ultima chiamata fallita",
+    "explain": "Un servizio fuori dal server, come healthchecks.io, che Feedway chiama ogni minuto. Se il server si ferma del tutto e le chiamate smettono, è lui ad avvisarti.",
+    "address": "Indirizzo",
+    "addressSaved": "Salvato il {when}",
+    "last": "Ultima chiamata",
+    "never": "Non ancora chiamato: succede entro un minuto",
+    "outcome": {
+      "ok": "Riuscita {when}",
+      "timeout": "Nessuna risposta in 10 secondi {when}",
+      "network": "Servizio non raggiungibile {when}",
+      "status": "Il servizio ha risposto {status} {when}"
+    },
+    "test": "Prova",
+    "replace": "Sostituisci",
+    "urlField": "Indirizzo del controllo",
+    "urlHelp": "Quello che healthchecks.io mostra come «Ping URL», per esempio https://hc-ping.com/… Feedway non lo mostra più dopo averlo salvato.",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "saved": "Indirizzo salvato",
+    "removed": "Sorveglianza tolta",
+    "remove": "Togli la sorveglianza",
+    "removeShort": "Togli",
+    "removeExplain": "Feedway smette di chiamare il servizio, che dopo qualche minuto ti segnalerà il silenzio: mettilo in pausa anche lì.",
+    "loadError": "Non riesco a leggere la sorveglianza esterna.",
+    "guide": {
+      "title": "Come impostarla",
+      "account": "Crea un account gratuito su healthchecks.io.",
+      "check": "Aggiungi un controllo: periodo 1 minuto, tolleranza 3 minuti, e scegli dove vuoi l'allarme (email, Telegram).",
+      "copy": "Copia il suo «Ping URL».",
+      "paste": "Incollalo qui sopra e premi Salva. Entro un minuto healthchecks.io lo vede verde."
+    }
   },
   "telegramBot": {
     "title": "Bot Telegram",
