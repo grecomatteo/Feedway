@@ -3194,9 +3194,10 @@
       "quietFrom": "Dalle",
       "quietTo": "alle",
       "digest": "Riepilogo del mattino",
-      "digestHelp": "Post di ieri, cosa esce oggi e i problemi aperti, per email e Telegram.",
+      "digestHelp": "Post di ieri, cosa esce oggi e i problemi aperti, sui canali che scegli. Su Telegram arriva se l'hai collegato.",
       "digestAt": "Alle",
       "digestDays": "Giorni del riepilogo",
+      "digestChannels": "Canali del riepilogo",
       "days": {
         "1": "L",
         "2": "M",

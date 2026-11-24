@@ -122,6 +122,16 @@ export const readAllMyNotificationsRoute = defineContract({
   scope: 'personal',
 })
 
+/** Where the digest can go: the panel keeps the events, not the digest */
+export const DigestChannel = z.enum(['email', 'telegram'])
+export type DigestChannel = z.infer<typeof DigestChannel>
+
+/** At least one */
+const DigestChannels = z
+  .array(DigestChannel)
+  .min(1, 'Scegli almeno un canale per il riepilogo')
+  .max(2)
+
 const HhMm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Ora non valida')
 
 export const NotificationSettings = z.object({
@@ -134,6 +144,7 @@ export const NotificationSettings = z.object({
     time: HhMm,
     /** ISO weekdays, 1 = Monday */
     days: z.array(z.number().int().min(1).max(7)).max(7),
+    channels: DigestChannels,
   }),
   /** «Tutto ovunque», for tests */
   everythingEverywhere: z.boolean(),
@@ -180,6 +191,7 @@ export const saveMyNotificationSettingsRoute = defineContract({
         enabled: z.boolean(),
         time: HhMm,
         days: z.array(z.number().int().min(1).max(7)).max(7),
+        channels: DigestChannels,
       }),
       everythingEverywhere: z.boolean(),
     }),

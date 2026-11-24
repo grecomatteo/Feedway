@@ -145,8 +145,20 @@ test('the choices: channels per kind, quiet hours, the email that always goes', 
     'aria-pressed',
     'false',
   )
+  // the digest only on Telegram; the last channel cannot be taken off
+  const digestChannels = settings.locator('[data-digest-channels]')
+  await digestChannels.getByRole('checkbox', { name: 'Email' }).click()
+  await expect
+    .poll(async () =>
+      adminQuery<{ digest_channels: string[] }>(
+        'select digest_channels from notification_settings where user_id = $1',
+        [owner.userId],
+      ),
+    )
+    .toEqual([{ digest_channels: ['telegram'] }])
+  await expect(digestChannels.getByRole('checkbox', { name: 'Telegram' })).toBeDisabled()
   // axe reads a control scrolled under the sticky bar at the top as too close to its links:
-  // where «sabato» leaves the page depends on the groups below it (Telegram)
+  // where the last control leaves the page depends on the groups below it (Telegram)
   await page.evaluate(() => {
     window.scrollTo(0, 0)
   })
