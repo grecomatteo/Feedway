@@ -7,6 +7,7 @@ import {
   type PublishTarget,
   type StepContext,
   type StepResult,
+  type VerifyContext,
   type VerifyResult,
 } from '@app/application'
 import { hasCoverPermissions, type MetaUsage } from '@app/domain/platforms/meta'
@@ -38,6 +39,12 @@ const FIND_LIMIT = 25
 /** The search starts a little before the step: the two clocks may not agree (Scelta 7). */
 const CLOCK_SKEW_MS = 2 * 60_000
 
+/**
+ * A cover Meta refused once is tried again at the next round of the verification, then left:
+ * a reel just `ready` may still refuse it for a while (review R5, not verified).
+ */
+const COVER_TRIES = 2
+
 /** Meta's ids, and a Page post's `{page}_{post}`; `dry-run-…` in `META_MODE=dry-run`. */
 const metaId = z.string().regex(/^[0-9A-Za-z_-]{1,80}$/)
 
@@ -59,11 +66,14 @@ const idsSchema = z.object({
    */
   publishingAt: z.iso.datetime().nullable().default(null),
   /**
-   * The reel's cover, sent once the reel is out (D-120.9): `done`, `failed` (Meta refused it,
-   * or the image was gone), `no_permission` (the connection lacks the two permissions of the
-   * cover). null: no cover chosen, or not tried. Never makes the post fail.
+   * The reel's cover (D-120.9), sent by the verification once Meta has processed the reel
+   * (review R5): `pending` until then, `done`, `failed` (Meta refused it twice, or the image
+   * was gone), `no_permission` (the connection lacks the two permissions of the cover). null:
+   * no cover chosen. Never makes the post fail.
    */
-  cover: z.enum(['done', 'failed', 'no_permission']).nullable().default(null),
+  cover: z.enum(['pending', 'done', 'failed', 'no_permission']).nullable().default(null),
+  /** The calls of the cover so far, at most `COVER_TRIES`. */
+  coverTries: z.number().int().nonnegative().default(0),
 })
 type FacebookIds = z.infer<typeof idsSchema>
 
@@ -75,6 +85,7 @@ const freshIds = (now: Date): FacebookIds => ({
   postId: null,
   publishingAt: null,
   cover: null,
+  coverTries: 0,
 })
 
 /**
@@ -133,6 +144,10 @@ const hasPostId = (ids: unknown) =>
 const lostAnswer = () => new PublishError({ kind: 'uncertain', code: 'meta_error' })
 
 const NO_USAGE: MetaUsage = { app: null, business: [] }
+
+/** A refused cover: tried again at the next round while one is left. */
+const retryOrFailed = (tries: number, ctx: VerifyContext): 'pending' | 'failed' =>
+  !ctx.lastRound && tries < COVER_TRIES ? 'pending' : 'failed'
 
 const optionalText = (key: string, text: string) => (text === '' ? {} : { [key]: text })
 
@@ -351,9 +366,10 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       } catch {
         // the post is out: the result carries the ids, the worker saves them with the outcome
       }
-      // the reel is out: its cover goes after it, and what happens to it never undoes the post
+      // the reel is out: its cover waits for Meta to process it, and goes with the
+      // verification (review R5), so this step at the post's minute makes no call more
       if (shape === 'reel' && files.cover !== null && 'read' in files.cover) {
-        ids.cover = await uploadCover(credentials, target, out.id, files.cover, ctx.signal)
+        ids.cover = hasCoverPermissions(target.account.scopes) ? 'pending' : 'no_permission'
         try {
           await ctx.saveIds(ids)
         } catch {
@@ -423,11 +439,15 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
       } satisfies FoundPost
     },
 
-    async verify(target, signal): Promise<VerifyResult> {
+    async verify(target, signal, ctx): Promise<VerifyResult> {
       const postId = target.externalPostId
       if (postId === null)
         return { outcome: 'problem', reason: 'not_found', ...stepUsage(NO_USAGE) }
-      const shape = shapeOf(target, null, parse(target))
+      const ids = parse(target)
+      const shape = shapeOf(target, null, ids)
+      // only the rounds of the verification settle the cover: the search just reads
+      const coverIds = ctx !== undefined && ids?.cover === 'pending' ? ids : null
+      const coverFailed = coverIds === null ? {} : { metaIds: { ...coverIds, cover: 'failed' } }
       const credentials = await pageCredentials(target, signal)
       try {
         if (shape === 'photo_story' || shape === 'video_story') {
@@ -449,14 +469,27 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
             v.processingStatus === 'error' ||
             v.publishingStatus === 'error'
           )
-            return { outcome: 'problem', reason: 'failed', ...usage }
+            return { outcome: 'problem', reason: 'failed', ...usage, ...coverFailed }
           // processing and publishing both done (§9.6): `published` alone may come first
           const out =
             v.videoStatus === 'ready' &&
             v.processingStatus !== 'in_progress' &&
             (v.publishStatus === 'published' || v.publishingStatus === 'complete')
-          if (!out) return { outcome: 'pending', ...usage }
-          return { outcome: 'confirmed', permalink: safePermalink(v.permalink), ...usage }
+          // still processing: no cover call, Meta would refuse it; none waits past the last round
+          if (!out)
+            return { outcome: 'pending', ...usage, ...(ctx?.lastRound === true ? coverFailed : {}) }
+          const permalink = safePermalink(v.permalink)
+          if (coverIds === null || ctx === undefined)
+            return { outcome: 'confirmed', permalink, ...usage }
+          const cover = await sendCover(credentials, target, postId, coverIds, ctx, signal)
+          const sent = {
+            metaIds: cover.ids,
+            ...(cover.usage === null ? usage : stepUsage(cover.usage)),
+          }
+          // refused once: the reel waits one more round for its cover, then is confirmed anyway
+          return cover.ids.cover === 'pending'
+            ? { outcome: 'pending', ...sent }
+            : { outcome: 'confirmed', permalink, ...sent }
         }
         const read = await client.getFacebookPost(credentials, postId, signal)
         const usage = stepUsage(read.usage)
@@ -475,26 +508,45 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
   }
 
   /**
-   * The cover of a reel just out (`/{video-id}/thumbnails`, D-120.9): only with the two
-   * permissions the last check read; any failure is told on the outcome, never thrown.
+   * The cover of a reel Meta has processed (`/{video-id}/thumbnails`, D-120.9, review R5): only
+   * with the two permissions the last check read, the image read from the storage only now.
+   * Any failure is told on the outcome, never thrown; one refused is `pending` again while a
+   * try and a round are left.
    */
-  async function uploadCover(
+  async function sendCover(
     credentials: MetaTokenCredentials,
     target: PublishTarget,
     videoId: string,
-    cover: { read: () => Promise<CoverImage | null> },
+    ids: FacebookIds,
+    ctx: VerifyContext,
     signal: AbortSignal,
-  ): Promise<'done' | 'failed' | 'no_permission'> {
-    if (!hasCoverPermissions(target.account.scopes)) return 'no_permission'
+  ): Promise<{ ids: FacebookIds; usage: MetaUsage | null }> {
+    const coverTries = ids.coverTries + 1
+    const settled = (cover: NonNullable<FacebookIds['cover']>, usage: MetaUsage | null = null) => ({
+      ids: { ...ids, cover, coverTries },
+      usage,
+    })
+    // taken away since the publication (the daily check): no call Meta would refuse
+    if (!hasCoverPermissions(target.account.scopes)) return settled('no_permission')
+    let image: CoverImage | null
     try {
-      const image = await cover.read()
-      if (image === null) return 'failed'
+      image = await ctx.readCover()
+    } catch {
+      // the database or the disk out of reach for a moment: as a refusal
+      return settled(retryOrFailed(coverTries, ctx))
+    }
+    // the copy is gone: it will not come back at the next round
+    if (image === null) return settled('failed')
+    try {
       const sent = await client.uploadVideoThumbnail(credentials, videoId, image, signal)
-      return sent.data.success ? 'done' : 'failed'
+      if (sent.data.success) return settled('done', sent.usage)
+      return settled(retryOrFailed(coverTries, ctx), sent.usage)
     } catch (err) {
+      const usage = err instanceof MetaError ? (err.usage ?? null) : null
       // a permission taken away since the last check
-      if (err instanceof MetaError && err.reason === 'permission_missing') return 'no_permission'
-      return 'failed'
+      if (err instanceof MetaError && err.reason === 'permission_missing')
+        return settled('no_permission', usage)
+      return settled(retryOrFailed(coverTries, ctx), usage)
     }
   }
 

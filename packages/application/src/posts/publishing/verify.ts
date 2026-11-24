@@ -1,4 +1,4 @@
-import { verifyAt } from '@app/domain'
+import { verifyAt, withRoundIds } from '@app/domain'
 import { PublishError } from '../../ports/platform-publisher.js'
 import type {
   PlatformPublisher,
@@ -22,11 +22,13 @@ import {
   type StepLog,
   type TargetJob,
 } from './context.js'
+import { publishedCover } from './files.js'
 
 // `target.verify` (§9.6; plan 07 Task 8): an answer of Meta that says «published» is not
 // enough, a reel can still fail while it is processed. 3 minutes after publishing the post is
 // read back, then at 10 and 30 minutes while Meta is still working on it: `confirmed` with its
-// link, or `problem`. Only reads: no pause, nothing that could publish twice.
+// link, or `problem`. Only reads, nothing that could publish twice: the one write is the cover
+// of a Facebook reel, sent once Meta has processed the reel (D-120.9, review R5).
 
 /** Why a destination is `problem` (`post_targets.verification.reason`). */
 export type ProblemReason = 'not_found' | 'failed' | 'wrong_type' | 'still_processing'
@@ -141,6 +143,11 @@ async function settle(
 ): Promise<{ log: StepLog; jobs: StepJob[] }> {
   const round = target.attempts + 1
   if (result !== null) await recordReadings(tx, target, result, now)
+  // what the check changed on the platform (the cover of a Facebook reel, review R5)
+  if (result !== null && !(result instanceof PublishError) && result.metaIds !== undefined)
+    await tx.publishing.saveStep(target.organizationId, target.id, {
+      metaIds: withRoundIds(target.metaIds, result.metaIds),
+    })
   // an error or an account out of reach is a round without an answer: looked at again
   if (result === null || result instanceof PublishError) return lookAgain(tx, target, round, now)
   if (check)
@@ -173,9 +180,16 @@ export async function verifyTarget(deps: PublishingWorkerDeps, job: TargetJob): 
   if (decision.kind === 'call') {
     const { check } = decision
     try {
+      const now = deps.clock.now()
+      const from = verifyFromOf(record) ?? record.publishedAt ?? now
       result = await check.publisher.verify(
         check.target,
         job.signal ?? new AbortController().signal,
+        {
+          // only when the publisher sends a cover now: no query and no read otherwise
+          readCover: () => publishedCover(deps, record),
+          lastRound: verifyAt(from, record.attempts + 2) === null,
+        },
       )
     } catch (error) {
       result =

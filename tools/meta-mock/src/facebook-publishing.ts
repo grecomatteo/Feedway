@@ -276,6 +276,8 @@ export function createFacebookPublishing(deps: Deps): FacebookPublishing {
     if (video === undefined || video.edge === 'video_stories') return notFound(videoId)
     // only a video already published: a cover sent before `finish` is a mistake of ours
     if (!video.finished) return paramError('The video is not published yet')
+    // a reel still being processed takes no cover (not verified: what the review R5 feared)
+    if (!processed(video)) return paramError('The video is still being processed')
     // the server writes a multipart file as `file:<type>:<bytes>`
     const file = /^file:(image\/(?:jpeg|png)):(\d+)$/.exec(params.get('source') ?? '')
     if (file === null) return paramError('The parameter source is required as an image file')

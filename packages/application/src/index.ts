@@ -325,6 +325,7 @@ export type {
   StepContext,
   StepResult,
   StepUsage,
+  VerifyContext,
   VerifyResult,
 } from './ports/platform-publisher.js'
 export * from './platforms/meta/index.js'
