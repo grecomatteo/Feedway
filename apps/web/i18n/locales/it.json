@@ -58,6 +58,20 @@
       "notConfigured": "Il cambio dell'email sarà disponibile quando la piattaforma avrà configurato l'invio delle email.",
       "invalid": "Scrivi un indirizzo email valido, diverso da quello attuale.",
       "change": "Cambia email"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "none": "Nessun bot di Telegram è impostato per le tue agenzie: quando ci sarà, lo colleghi da qui.",
+      "loadError": "Non riesco a leggere i collegamenti con Telegram.",
+      "linked": "Collegato",
+      "pending": "In attesa di «Avvia»",
+      "notLinked": "Non collegato",
+      "platform": "la piattaforma",
+      "for": "Notifiche di {names}",
+      "link": "Collega Telegram",
+      "open": "Apri Telegram",
+      "pressStart": "Apri il bot e premi «Avvia» entro 15 minuti: questa pagina si aggiorna da sola.",
+      "unlink": "Scollega"
     }
   },
   "confirmEmail": {
@@ -3019,6 +3033,67 @@
     "centre": {
       "noAccess": "Non vedi più ciò di cui parla questa notifica",
       "gone": "Ciò di cui parlava questa notifica non c'è più"
+    },
+    "telegram": {
+      "state": {
+        "scheduled": "Programmato",
+        "publishing": "In pubblicazione",
+        "partial": "Uscito in parte",
+        "failed": "Non uscito",
+        "problem": "Con problema",
+        "published": "Pubblicato",
+        "paused": "In pausa",
+        "draft": "Bozza",
+        "cancelled": "Annullato"
+      },
+      "today": {
+        "title": "Oggi, {day}",
+        "count": "{n} post",
+        "line": "{time} · {client}",
+        "none": "Oggi non esce niente.",
+        "open": "Apri «Oggi» in Feedway"
+      },
+      "issues": {
+        "title": "Da sistemare",
+        "post": "{state} · {when}",
+        "profile": "{name}: {what}",
+        "media": "il file «{name}» non è pronto",
+        "none": "Niente da sistemare.",
+        "open": "Apri «Oggi» in Feedway",
+        "link": {
+          "reconnect": "da ricollegare",
+          "error": "non può pubblicare",
+          "warning": "da controllare"
+        }
+      },
+      "more": "e altri {n}",
+      "start": {
+        "linked": "Collegato, {name}",
+        "linkedBody": "Da ora qui arrivano le notifiche di Feedway che hai scelto per Telegram.",
+        "invalid": "Collegamento scaduto",
+        "invalidBody": "Un collegamento dura 15 minuti e si usa una volta sola. Chiedine uno nuovo da Profilo e preferenze.",
+        "missing": "Ciao!",
+        "missingBody": "Per ricevere qui le notifiche, collega Telegram da Profilo e preferenze."
+      },
+      "stop": "Scollegato",
+      "notLinked": "Chat non collegata",
+      "help": "Comandi",
+      "noAgency": "Non lavori più in un'agenzia che usa questo bot.",
+      "errors": {
+        "blocked": "Il bot è stato bloccato su Telegram: il collegamento è tolto. Collega di nuovo Telegram da Profilo e preferenze.",
+        "rate_limited": "Telegram chiede di aspettare: si riprova",
+        "unavailable": "Telegram non risponde: si riprova",
+        "unauthorized": "Telegram rifiuta il token del bot",
+        "bad_request": "Telegram ha rifiutato il messaggio"
+      },
+      "stopBody": "Qui non arriva più niente. Per tornare, collega di nuovo Telegram da Profilo e preferenze.",
+      "notLinkedBody": "Questa chat non è collegata a Feedway. Collegala da Profilo e preferenze.",
+      "account": "Apri Profilo e preferenze",
+      "commands": {
+        "today": "i post di oggi",
+        "issues": "cosa c'è da sistemare",
+        "stop": "scollegati"
+      }
     }
   },
   "notifications": {

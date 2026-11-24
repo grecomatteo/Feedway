@@ -158,6 +158,53 @@ export const setMyPasswordRoute = defineContract({
   scope: 'personal',
 })
 
+/** A bot that writes to the person (plan 08 Task 7): the platform's, or an agency's own. */
+export const MyTelegramBot = z.object({
+  /** `platform`, or the id of the agency whose own bot it is */
+  bot: z.string(),
+  botUsername: z.string(),
+  /** The agencies whose notifications come through it, by name */
+  agencies: z.array(z.string()),
+  /** The platform's notifications come through it too */
+  platform: z.boolean(),
+  linkedAt: Timestamp.nullable(),
+  /** A link was opened and waits for «Avvia» until then */
+  pendingUntil: Timestamp.nullable(),
+})
+export type MyTelegramBot = z.infer<typeof MyTelegramBot>
+
+const TelegramBotKey = z.string().min(1).max(64)
+
+export const myTelegramRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/me/telegram',
+  summary: 'I bot di Telegram che scrivono alla persona, e se è collegata',
+  request: {},
+  response: z.object({ bots: z.array(MyTelegramBot) }),
+  auth: 'session',
+  scope: 'personal',
+})
+
+export const startMyTelegramLinkRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/me/telegram/links',
+  summary: 'Un collegamento nuovo con un bot: l’indirizzo t.me da aprire, valido 15 minuti',
+  request: { body: z.strictObject({ bot: TelegramBotKey }) },
+  response: z.object({ url: z.string(), expiresAt: Timestamp }),
+  auth: 'session',
+  scope: 'personal',
+})
+
+export const unlinkMyTelegramRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/me/telegram/links/{bot}',
+  summary: 'Scollega Telegram da un bot',
+  request: { params: z.strictObject({ bot: TelegramBotKey }) },
+  response: z.object({ ok: z.literal(true) }),
+  auth: 'session',
+  scope: 'personal',
+})
+
 export const meRoutes = [
   meRoute,
   updateMeRoute,
@@ -167,4 +214,7 @@ export const meRoutes = [
   revokeMySessionRoute,
   revokeAllMySessionsRoute,
   setMyPasswordRoute,
+  myTelegramRoute,
+  startMyTelegramLinkRoute,
+  unlinkMyTelegramRoute,
 ] as const

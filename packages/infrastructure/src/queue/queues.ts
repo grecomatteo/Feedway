@@ -182,6 +182,14 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
   },
+  // every minute, one run at a time (plan 08 Task 7): its lock keeps a second worker off,
+  // and each bot's offset is on its row, so a run lost is the next one's
+  'telegram.poll': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
+    expireInSeconds: 120,
+  },
   // every minute, one run at a time (plan 08 P7); a run that waited is replaced by the next one
   'report.daily': {
     policy: 'singleton',

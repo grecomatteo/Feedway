@@ -1,4 +1,5 @@
 import { unusedMediaTools } from '../../tests/media-tools.js'
+import { UNUSED_TELEGRAM } from '../../tests/telegram-unused.js'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -101,6 +102,7 @@ function depsWith(mailer: Mailer, queue: JobQueue = recording): JobHandlerDeps {
       seal: () => Promise.reject(new Error('not used')),
       open: () => Promise.reject(new Error('not used')),
     },
+    telegram: UNUSED_TELEGRAM,
     metaReminders: {
       integrations: { get: () => Promise.reject(new Error('not used')) },
       graph: { version: 'v24.0', sunset: '2099-12-31' },

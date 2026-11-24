@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import type { ConnectionKind, ConnectionStatus, Platform } from '@app/domain'
 import type { JobQueue } from '@app/application'
 import {
+  createAdvisoryLock,
   createAvatarProcessor,
   createRuntime,
   createZipWriter,
@@ -27,7 +28,11 @@ export interface QueuedJob {
 }
 
 /** A worker runtime on the fake Graph API, with the real queue. */
-export async function accountsRuntime(tdb: TestDatabase, mock: MetaMock): Promise<Runtime> {
+export async function accountsRuntime(
+  tdb: TestDatabase,
+  mock: MetaMock,
+  options: { telegramApiUrl?: string } = {},
+): Promise<Runtime> {
   return createRuntime(
     {
       nodeEnv: 'production',
@@ -38,6 +43,8 @@ export async function accountsRuntime(tdb: TestDatabase, mock: MetaMock): Promis
       metaMode: 'mock',
       metaGraphVersion: 'v25.0',
       metaMockUrl: mock.url,
+      // never the real Telegram: the fake Bot API, or an address where nothing listens
+      telegramApiUrl: new URL(options.telegramApiUrl ?? 'http://127.0.0.1:9'),
     },
     'worker',
   )
@@ -75,6 +82,13 @@ export function handlerDeps(
     connectors: { meta_system_user: connector, meta_business_login: connector },
     connectionTokens: runtime.connectionTokens,
     // a Graph version far from its retirement: only the reminders a test sets up are written
+    telegram: {
+      api: runtime.telegram,
+      integrations: runtime.integrations,
+      tokens: runtime.tokens,
+      lock: createAdvisoryLock(runtime.pool),
+      waitSeconds: 0,
+    },
     metaReminders: {
       integrations: runtime.integrations,
       graph: { version: 'v24.0', sunset: '2099-12-31' },

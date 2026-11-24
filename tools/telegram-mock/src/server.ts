@@ -87,6 +87,48 @@ async function readParams(req: IncomingMessage, url: URL): Promise<Record<string
   return params
 }
 
+/** The tags of parse_mode HTML that Feedway may use, and the entities Telegram reads. */
+const HTML_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 's', 'code', 'pre', 'a', 'blockquote'])
+const HTML_ENTITY = /^&(lt|gt|amp|quot|#\d+);/
+const ENTITY_CHAR: Readonly<Record<string, string>> = { lt: '<', gt: '>', amp: '&', quot: '"' }
+
+/**
+ * What Telegram shows of a parse_mode HTML text, or null where Telegram answers «can't parse
+ * entities»: a tag it does not know or not closed in order, a bare `<`, `>` or `&`.
+ */
+export function visibleText(text: string): string | null {
+  const open: string[] = []
+  let shown = ''
+  let i = 0
+  while (i < text.length) {
+    const c = text.charAt(i)
+    if (c === '&') {
+      const entity = HTML_ENTITY.exec(text.slice(i))
+      // stricter than Telegram, which reads some bare `&` as text: the docs ask them escaped
+      if (entity === null) return null
+      const name = entity[1] ?? ''
+      shown += ENTITY_CHAR[name] ?? String.fromCodePoint(Number(name.slice(1)))
+      i += entity[0].length
+      continue
+    }
+    if (c === '<') {
+      const tag = /^<(\/?)([a-z]+)((?:\s+href="[^"<]*")?)>/.exec(text.slice(i))
+      if (tag === null) return null
+      const [whole, closing, name = ''] = tag
+      if (!HTML_TAGS.has(name)) return null
+      if (closing === '/') {
+        if (open.pop() !== name) return null
+      } else open.push(name)
+      i += whole.length
+      continue
+    }
+    if (c === '>') return null
+    shown += c
+    i += 1
+  }
+  return open.length === 0 ? shown : null
+}
+
 /** A fake Telegram Bot API (plan 08 Task 7): `getMe`, `getUpdates`, `sendMessage` and their errors. */
 export async function startTelegramMock(
   options: { port?: number; bots?: readonly MockBot[] } = {},
@@ -165,8 +207,13 @@ export async function startTelegramMock(
         const text = typeof params.text === 'string' ? params.text : ''
         if (!Number.isSafeInteger(chatId) || chatId === 0)
           return error(400, 'Bad Request: chat not found')
-        if (text.trim() === '') return error(400, 'Bad Request: message text is empty')
-        if (text.length > 4096) return error(400, 'Bad Request: message is too long')
+        const html = params.parse_mode === 'HTML'
+        if (params.parse_mode !== undefined && !html)
+          return error(400, 'Bad Request: unsupported parse_mode')
+        const shown = html ? visibleText(text) : text
+        if (shown === null) return error(400, "Bad Request: can't parse entities")
+        if (shown.trim() === '') return error(400, 'Bad Request: message text is empty')
+        if (shown.length > 4096) return error(400, 'Bad Request: message is too long')
         if (blocked.has(chatId)) return error(403, 'Forbidden: bot was blocked by the user')
         sent.push({ bot: bot.username, chatId, text, params })
         return {

@@ -94,6 +94,8 @@ export interface IntegrationRecord {
   verifiedAt: Date | null
   rejectedAt: Date | null
   updatedAt: Date
+  /** What the jobs keep between runs, never a secret */
+  state: unknown
 }
 
 export interface IntegrationRecordInput {
@@ -167,6 +169,20 @@ export interface IntegrationsRepository {
     at: Date,
     version: Date,
   ): Promise<boolean>
+  /** As `markRejected`, for the platform's row. */
+  markPlatformRejected(kind: PlatformIntegrationKind, at: Date, version: Date): Promise<boolean>
+  /** The system scope only: every Telegram bot, the platform's and the agencies'. */
+  listTelegram(): Promise<(IntegrationRecord & { organizationId: string | null })[]>
+  /**
+   * Keeps a job's state on the row (the `getUpdates` offset), only if the row is still `version`:
+   * a bot replaced meanwhile starts from its own. `updatedAt` does not move. false: not kept.
+   */
+  saveState(
+    organizationId: string | null,
+    kind: IntegrationKind,
+    state: object,
+    version: Date,
+  ): Promise<boolean>
   /**
    * What a job keeps on a platform row between runs (`integrations.state`, never a secret): the
    * last outcome of the external watch. null: no row.
@@ -226,6 +242,33 @@ export interface IntegrationStore {
     organizationId: string,
     kind: K,
   ): Promise<(IntegrationCredentials<K> & { updatedAt: Date }) | null>
+  /**
+   * The system scope only: every Telegram bot with its token opened, and the owners of the bots
+   * whose token cannot be opened (a key lost, a row damaged).
+   */
+  telegramBots(
+    tx: OrganizationIntegrationTx,
+  ): Promise<{ bots: TelegramBotCredentials[]; unreadable: (string | null)[] }>
+}
+
+/** What `telegram.poll` keeps on a bot's row between runs. */
+export interface TelegramPollState {
+  /** The bot the links and the offset are of: another id means a new bot, its links start again */
+  botId?: number
+  /** The next `getUpdates` offset: the updates before it were handled */
+  offset?: number
+}
+
+/** A Telegram bot with its token, for `telegram.poll` and the channel only (system scope). */
+export interface TelegramBotCredentials {
+  /** null: the platform's */
+  organizationId: string | null
+  botId: number
+  botUsername: string
+  token: string
+  state: TelegramPollState
+  rejectedAt: Date | null
+  updatedAt: Date
 }
 
 /** Where the SMTP mailer reads the platform's settings at every send. */

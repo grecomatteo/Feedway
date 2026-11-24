@@ -188,10 +188,66 @@ export interface NotificationPrefsRepository {
 }
 
 /**
- * A person's Telegram chats with the bots (§12.3, plan 08 Scelta 8). Task 7 adds the link and the
- * commands; the anonymization needs only the removal.
+ * Which bot a link is with (plan 08 Scelta 8): an agency's own (its id), or the platform's (null).
+ * One link per person and bot, one person per chat and bot.
+ */
+export type TelegramBotOwner = string | null
+
+/** A person's link with one bot: waiting for the `/start` while a code is set, linked with a chat. */
+export interface TelegramLinkRecord {
+  organizationId: TelegramBotOwner
+  userId: string
+  chatId: number | null
+  linkedAt: Date | null
+  linkCodeExpiresAt: Date | null
+}
+
+/**
+ * A person's Telegram chats with the bots (§12.3, plan 08 Task 7). The rows of a person are seen
+ * in their own scope (and in an agency's, for that agency's bot); finding a person from a chat,
+ * and the clean-up of a bot, only in the system scope (`telegram.poll`).
  */
 export interface TelegramLinksRepository {
+  /** The person's links that the scope shows. */
+  listForUser(userId: string): Promise<TelegramLinkRecord[]>
+  /** A new code for the person and bot (its hash only): the chat, if any, stays until `/start`. */
+  startLink(input: {
+    organizationId: TelegramBotOwner
+    userId: string
+    codeHash: string
+    expiresAt: Date
+  }): Promise<void>
+  /**
+   * The system scope only: the `/start <code>` of a chat. The code still valid links that chat
+   * and goes; another person linked to the same chat with this bot is unlinked. null: no such code.
+   */
+  completeByCode(input: {
+    organizationId: TelegramBotOwner
+    codeHash: string
+    chatId: number
+    now: Date
+  }): Promise<{ userId: string } | null>
+  /** The system scope only: who a chat of a bot is. */
+  findByChat(organizationId: TelegramBotOwner, chatId: number): Promise<{ userId: string } | null>
+  /** The person's link with a bot, when it has a chat. */
+  findLinked(organizationId: TelegramBotOwner, userId: string): Promise<{ chatId: number } | null>
+  /** The person's link with a bot goes. false: there was none. */
+  deleteFor(organizationId: TelegramBotOwner, userId: string): Promise<boolean>
+  /** The system scope only: a chat that blocked the bot or wrote `/stop`. Returns how many went. */
+  deleteByChat(organizationId: TelegramBotOwner, chatId: number): Promise<number>
+  /**
+   * The system scope only: every link with a bot removed or replaced by another bot; with
+   * `linkedOnly`, only the chats already joined (a code just started is the new bot's).
+   */
+  deleteForBot(
+    organizationId: TelegramBotOwner,
+    options?: { linkedOnly?: boolean },
+  ): Promise<number>
+  /**
+   * The system scope only: the links with a bot that is no more, those of an agency not in
+   * `agencyBots` and, without `platformBot`, those with the platform's.
+   */
+  deleteOrphans(input: { agencyBots: readonly string[]; platformBot: boolean }): Promise<number>
   /** The system scope only: the person's links with every bot. Returns how many went. */
   deleteAllForUser(userId: string): Promise<number>
 }

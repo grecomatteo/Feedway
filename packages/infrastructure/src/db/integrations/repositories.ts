@@ -14,6 +14,7 @@ const recordOf = (row: Row): IntegrationRecord => ({
   verifiedAt: row.verifiedAt,
   rejectedAt: row.rejectedAt,
   updatedAt: row.updatedAt,
+  state: row.state,
 })
 
 const BOT_ELSEWHERE = 'integrations_telegram_bot'
@@ -149,6 +150,43 @@ export function drizzleIntegrations(db: DbExecutor, ids: IdGenerator): Integrati
         .where(
           and(
             eq(integrations.organizationId, organizationId),
+            eq(integrations.kind, kind),
+            sameVersion(version),
+          ),
+        )
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
+
+    async markPlatformRejected(kind, at, version) {
+      const rows = await db
+        .update(integrations)
+        .set({ verifiedAt: null, rejectedAt: at, updatedAt: sql`${integrations.updatedAt}` })
+        .where(
+          and(
+            isNull(integrations.organizationId),
+            eq(integrations.kind, kind),
+            sameVersion(version),
+          ),
+        )
+        .returning({ id: integrations.id })
+      return rows.length > 0
+    },
+
+    async listTelegram() {
+      const rows = await db.select().from(integrations).where(eq(integrations.kind, 'telegram'))
+      return rows.map((row) => ({ ...recordOf(row), organizationId: row.organizationId }))
+    },
+
+    async saveState(organizationId, kind, state, version) {
+      const rows = await db
+        .update(integrations)
+        .set({ state, updatedAt: sql`${integrations.updatedAt}` })
+        .where(
+          and(
+            organizationId === null
+              ? isNull(integrations.organizationId)
+              : eq(integrations.organizationId, organizationId),
             eq(integrations.kind, kind),
             sameVersion(version),
           ),

@@ -17,7 +17,21 @@ import {
   type OutboxPayload,
   type Weekday,
 } from '@app/domain'
-import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import type { DbExecutor } from '../client.js'
 import type { TxContext } from '../tx-context.js'
 import {
@@ -455,8 +469,155 @@ export function drizzleNotificationPrefs(
   }
 }
 
-export function drizzleTelegramLinks(db: DbExecutor): TelegramLinksRepository {
+/** The bot of a link: an agency's own, or the platform's (organization null). */
+const ofBot = (organizationId: string | null) =>
+  organizationId === null
+    ? isNull(telegramLinks.organizationId)
+    : eq(telegramLinks.organizationId, organizationId)
+
+export function drizzleTelegramLinks(
+  db: DbExecutor,
+  ids: IdGenerator,
+  ctx: TxContext,
+): TelegramLinksRepository {
   return {
+    async listForUser(userId) {
+      const rows = await db
+        .select({
+          organizationId: telegramLinks.organizationId,
+          userId: telegramLinks.userId,
+          chatId: telegramLinks.chatId,
+          linkedAt: telegramLinks.linkedAt,
+          linkCodeExpiresAt: telegramLinks.linkCodeExpiresAt,
+        })
+        .from(telegramLinks)
+        .where(eq(telegramLinks.userId, userId))
+      return rows.map((r) => ({ ...r, chatId: r.chatId === null ? null : Number(r.chatId) }))
+    },
+
+    async startLink({ organizationId, userId, codeHash, expiresAt }) {
+      await db
+        .insert(telegramLinks)
+        .values({
+          id: ids.newId(),
+          organizationId,
+          userId,
+          linkCodeHash: codeHash,
+          linkCodeExpiresAt: expiresAt,
+        })
+        .onConflictDoUpdate({
+          target: [telegramLinks.organizationId, telegramLinks.userId],
+          set: { linkCodeHash: codeHash, linkCodeExpiresAt: expiresAt, updatedAt: sql`now()` },
+        })
+    },
+
+    async completeByCode({ organizationId, codeHash, chatId, now }) {
+      assertSystem(ctx, 'completeByCode')
+      const [found] = await db
+        .select({ id: telegramLinks.id, userId: telegramLinks.userId })
+        .from(telegramLinks)
+        .where(
+          and(
+            ofBot(organizationId),
+            eq(telegramLinks.linkCodeHash, codeHash),
+            gt(telegramLinks.linkCodeExpiresAt, now),
+          ),
+        )
+        .for('update')
+      if (!found) return null
+      const chat = BigInt(chatId)
+      // one person per chat and bot: whoever had this chat before is unlinked
+      await db
+        .delete(telegramLinks)
+        .where(
+          and(
+            ofBot(organizationId),
+            eq(telegramLinks.chatId, chat),
+            ne(telegramLinks.id, found.id),
+          ),
+        )
+      await db
+        .update(telegramLinks)
+        .set({
+          chatId: chat,
+          linkedAt: now,
+          linkCodeHash: null,
+          linkCodeExpiresAt: null,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(telegramLinks.id, found.id))
+      return { userId: found.userId }
+    },
+
+    async findByChat(organizationId, chatId) {
+      assertSystem(ctx, 'findByChat')
+      const [row] = await db
+        .select({ userId: telegramLinks.userId })
+        .from(telegramLinks)
+        .where(and(ofBot(organizationId), eq(telegramLinks.chatId, BigInt(chatId))))
+      return row ?? null
+    },
+
+    async findLinked(organizationId, userId) {
+      const [row] = await db
+        .select({ chatId: telegramLinks.chatId })
+        .from(telegramLinks)
+        .where(
+          and(
+            ofBot(organizationId),
+            eq(telegramLinks.userId, userId),
+            isNotNull(telegramLinks.chatId),
+          ),
+        )
+      return row?.chatId == null ? null : { chatId: Number(row.chatId) }
+    },
+
+    async deleteFor(organizationId, userId) {
+      const rows = await db
+        .delete(telegramLinks)
+        .where(and(ofBot(organizationId), eq(telegramLinks.userId, userId)))
+        .returning({ id: telegramLinks.id })
+      return rows.length > 0
+    },
+
+    async deleteByChat(organizationId, chatId) {
+      assertSystem(ctx, 'deleteByChat')
+      const rows = await db
+        .delete(telegramLinks)
+        .where(and(ofBot(organizationId), eq(telegramLinks.chatId, BigInt(chatId))))
+        .returning({ id: telegramLinks.id })
+      return rows.length
+    },
+
+    async deleteForBot(organizationId, options) {
+      assertSystem(ctx, 'deleteForBot')
+      const rows = await db
+        .delete(telegramLinks)
+        .where(
+          options?.linkedOnly === true
+            ? and(ofBot(organizationId), isNotNull(telegramLinks.chatId))
+            : ofBot(organizationId),
+        )
+        .returning({ id: telegramLinks.id })
+      return rows.length
+    },
+
+    async deleteOrphans({ agencyBots, platformBot }) {
+      assertSystem(ctx, 'deleteOrphans')
+      const ofAgencyGone =
+        agencyBots.length === 0
+          ? isNotNull(telegramLinks.organizationId)
+          : and(
+              isNotNull(telegramLinks.organizationId),
+              notInArray(telegramLinks.organizationId, [...agencyBots]),
+            )
+      const rows = await db
+        .delete(telegramLinks)
+        .where(platformBot ? ofAgencyGone : or(ofAgencyGone, isNull(telegramLinks.organizationId)))
+        .returning({ id: telegramLinks.id })
+      return rows.length
+    },
+
     async deleteAllForUser(userId) {
       const rows = await db
         .delete(telegramLinks)
