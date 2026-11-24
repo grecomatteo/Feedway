@@ -28,11 +28,13 @@ Apri il controllo e, in **Notification Methods**, accendi quelli che vuoi.
 ## 3. Incollare l'indirizzo in Feedway
 
 1. Entra nel pannello come amministratore della piattaforma e apri **Piattaforma → Integrazioni**.
-2. Nella sezione **Sorveglianza esterna** incolla il Ping URL nel campo **Indirizzo** e premi **Salva** (il pannello chiede la password se l'ultima conferma ha più di 10 minuti).
-3. Premi **Prova**. La riga sotto dice l'esito: «Riuscita» con l'ora, o il motivo («Tempo scaduto», «Rete non raggiungibile», «Il servizio ha risposto 404»).
+2. Nella sezione **Sorveglianza esterna** incolla il Ping URL nel campo **Indirizzo del controllo** e premi **Salva** (il pannello chiede la password se l'ultima conferma ha più di 10 minuti).
+3. Premi **Prova**. La riga **Ultima chiamata** dice l'esito: «Riuscita oggi alle 18:42», o il motivo («Nessuna risposta in 10 secondi», «Servizio non raggiungibile», «Il servizio ha risposto 404»). Il pallino in alto diventa verde («Attiva»).
 4. Su healthchecks.io il controllo diventa verde (**up**) entro un minuto.
 
-L'indirizzo deve iniziare con `https://` e non può contenere nome utente e password. Dopo il salvataggio il pannello non lo mostra più: dice solo che è impostato. Per cambiarlo, incolla quello nuovo e salva.
+L'indirizzo deve iniziare con `https://` e non può contenere nome utente e password. Dopo il salvataggio il pannello non lo mostra più: dice solo che è impostato. Per cambiarlo premi **Sostituisci**, incolla quello nuovo e salva; **Togli** smette di chiamarlo.
+
+Nella stessa pagina, **Stato del worker** mostra ogni istanza del worker col suo ultimo battito: verde «In funzione», giallo «In ritardo» (più di un minuto), rosso «Fermo» (più di due minuti). La pagina si aggiorna da sola ogni 30 secondi.
 
 ## 4. Provare l'allarme
 

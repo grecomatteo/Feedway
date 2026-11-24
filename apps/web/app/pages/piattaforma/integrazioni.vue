@@ -2,8 +2,7 @@
 /**
  * Piattaforma → Integrazioni (plan 08 Task 7): what is set once for every agency, for the platform
  * administrator only. Outside any agency's panel, in the pages-before-the-panel look (D-99), as
- * «Email di sistema». Today the Telegram bot; the worker's state and the external watch join with
- * Task 9.
+ * «Email di sistema». The Telegram bot, then the worker's beats and the external watch (Task 9).
  */
 definePageMeta({ layout: 'auth', authWide: true })
 
@@ -39,6 +38,8 @@ const passkeys = computed(() =>
       editable
       :with-reauth="withReauth"
     />
+
+    <PlatformMonitoringSettings :with-reauth="withReauth" />
 
     <ReauthDialog v-model:open="reauthOpen" :passkeys="passkeys" @done="reauthDone" />
     <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

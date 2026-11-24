@@ -18,6 +18,8 @@ import {
   sendAccountLockedNotice,
   setOrganizationLimits,
   suspendOrganization,
+  removeExternalWatch,
+  replaceExternalWatch,
 } from '@app/application'
 import type { AuditAction, JobPayloads, JobQueue } from '@app/application'
 import {
@@ -863,6 +865,9 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   // the bot's name, never its token
   'platform.telegram_bot_changed': ['botUsername'],
   'platform.telegram_bot_removed': ['botUsername'],
+  // that it changed: never the address of the watch
+  'platform.external_watch_changed': [],
+  'platform.external_watch_removed': [],
   // names of the fields only: never the App Secret, not even the App ID
   'integration.meta_changed': ['fields[]'],
   'integration.meta_tested': ['ok', 'result'],
@@ -1226,6 +1231,10 @@ async function produceEveryAction() {
     }
     await replacePlatformTelegramBot(botDeps, actor, { token: TELEGRAM_MOCK.bots.platform.token })
     await removePlatformTelegramBot(botDeps, actor)
+    // the external watch (its routes: platform-routes.int.test.ts)
+    const watchDeps = { uow, clock: systemClock, integrations: mailDeps.integrations }
+    await replaceExternalWatch(watchDeps, actor, { url: 'https://hc-ping.com/registro-segreto' })
+    await removeExternalWatch(watchDeps, actor)
   } finally {
     await handle.close()
   }

@@ -115,6 +115,77 @@ export const removePlatformTelegramBotRoute = defineContract({
   scope: 'platform',
 })
 
+/** One worker instance's last beat (§16.7): green, amber past a minute, red past two. */
+export const WorkerBeat = z.object({
+  instance: z.string(),
+  lastBeatAt: Timestamp,
+  health: z.enum(['ok', 'late', 'silent']),
+  version: z.string().nullable(),
+})
+export type WorkerBeat = z.infer<typeof WorkerBeat>
+
+/** The last call to the external watch: codes only, never the address. */
+export const ExternalWatchOutcome = z.object({
+  at: Timestamp,
+  ok: z.boolean(),
+  status: z.number().int().nullable(),
+  problem: z.enum(['timeout', 'network', 'status']).nullable(),
+})
+export type ExternalWatchOutcome = z.infer<typeof ExternalWatchOutcome>
+
+export const PlatformMonitoring = z.object({
+  workers: z.array(WorkerBeat),
+  /** null: no address set. The address itself never leaves the server. */
+  external: z
+    .object({
+      addressSet: z.literal(true),
+      updatedAt: Timestamp,
+      last: ExternalWatchOutcome.nullable(),
+    })
+    .nullable(),
+})
+export type PlatformMonitoring = z.infer<typeof PlatformMonitoring>
+
+export const platformMonitoringRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/platform/monitoring',
+  summary: 'Ultimo battito di ogni worker e sorveglianza esterna, senza l’indirizzo',
+  request: {},
+  response: PlatformMonitoring,
+  auth: 'session',
+  scope: 'platform',
+})
+
+export const replaceExternalWatchRoute = defineContract({
+  method: 'PUT',
+  path: '/api/v1/platform/external-watch',
+  summary: 'Imposta l’indirizzo della sorveglianza esterna (healthchecks.io, con riconferma)',
+  request: { body: z.strictObject({ url: z.string().min(1).max(512) }) },
+  response: z.object({ ok: z.literal(true) }),
+  auth: 'session',
+  scope: 'platform',
+})
+
+export const removeExternalWatchRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/platform/external-watch',
+  summary: 'Toglie l’indirizzo della sorveglianza esterna (con riconferma)',
+  request: {},
+  response: z.object({ ok: z.literal(true) }),
+  auth: 'session',
+  scope: 'platform',
+})
+
+export const testExternalWatchRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/platform/external-watch/test',
+  summary: 'Chiama adesso la sorveglianza esterna e ne salva l’esito',
+  request: {},
+  response: z.object({ configured: z.boolean(), last: ExternalWatchOutcome.nullable() }),
+  auth: 'session',
+  scope: 'platform',
+})
+
 export const platformRoutes = [
   platformMailSettingsRoute,
   replacePlatformMailSettingsRoute,
@@ -122,4 +193,8 @@ export const platformRoutes = [
   platformTelegramBotRoute,
   replacePlatformTelegramBotRoute,
   removePlatformTelegramBotRoute,
+  platformMonitoringRoute,
+  replaceExternalWatchRoute,
+  removeExternalWatchRoute,
+  testExternalWatchRoute,
 ] as const
