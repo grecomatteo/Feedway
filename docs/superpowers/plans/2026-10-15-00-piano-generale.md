@@ -24,7 +24,9 @@
 | `05-regole.md` | Tappa 5, formato leggero, task più grandi (Matteo, 17/11) | Approvato da Matteo il 2026-11-17 |
 | `06-post.md` | Tappa 6, formato leggero, task raggruppati in cinque thread (Matteo, 18/11) | Da approvare da Matteo |
 | `07-pubblicazione.md` | Tappa 7, formato leggero, task raggruppati in otto thread più la revisione (il Task 10 sulle cartelle aggiunto il 2026-11-20) | Scritto il 2026-11-20, da approvare da Matteo (si parte dal Task 1 e dal dominio) |
-| `08-notifiche.md` … `12-produzione.md` | Tappe 8–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
+| `08-notifiche.md` | Tappa 8, formato leggero, dodici task in otto thread più la revisione | Approvato da Matteo il 2026-11-23 |
+| `09-pianificazione.md` | Tappa 9, formato leggero, tredici task in otto thread più la revisione | Scritto il 2026-11-24, da approvare da Matteo |
+| `10-condivisione.md` … `12-produzione.md` | Tappe 10–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
@@ -123,9 +125,9 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Introduce:** `NotificationChannel`, tabelle `notifications`, `notification_deliveries`, `notification_prefs`, `telegram_links`, `system_heartbeats`.
 - **Serve da Matteo:** bot Telegram, SMTP, account healthchecks.io.
 
-### Tappa 9 · Pianificazione
+### Tappa 9 · Pianificazione (piano `09-pianificazione.md`)
 - **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
-- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
+- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_scan` (al posto di un `plan.due_soon` per contenuto, piano 09 P3); **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
 - **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
   1. dominio `plan` con le sei regole di §11.12, la funzione dell'istante di riferimento e lo stato calcolato con `Clock` (test prima del codice, compresi 2026-10-25 02:30, ora doppia, e 2027-03-28 02:30, ora inesistente);
   2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
@@ -133,7 +135,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
   4. "Prepara": caso d'uso del piano che crea la bozza con `createDraft(tx, …)` e salva il collegamento nella stessa transazione (chiave esterna `ON DELETE SET NULL (post_id)`); stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
   5. nel calendario il "+" su ogni giorno che apre Nuovo post su quel giorno (specifica §11.4); sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
   6. editor: precompilazione e avviso sul tipo;
-  7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
+  7. notifica "da preparare entro domani" e sezione nel riepilogo, con la scansione di sistema `plan.due_scan` che legge ogni agenzia nel suo ambito (piano 09 P3).
   La stampa del Piano editoriale (schede piene) arriva nella tappa 10 con il foglio di stile di stampa del calendario cliente.
 - **Matteo prova:** pianifica un mese per un cliente, prepara due contenuti dall'editor, ne annulla uno e lo vede tornare "Da preparare".
 
@@ -179,7 +181,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
 | Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
 | Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |
-| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, postIds[])` |
+| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, organizationId, postIds[])` |
 
 Le tabelle seguono la tappa che le introduce (§5); nessuna tappa crea tabelle "per dopo", tranne `api_tokens` (tappa 2), predisposta dalla specifica per MCP.
 
