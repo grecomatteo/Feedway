@@ -198,7 +198,12 @@ test('the choices list only the kinds the person can get; the defaults keep no r
   expect(owner.settings).toEqual({
     minLevel: 'info',
     quietHours: null,
-    digest: { enabled: true, time: '08:00', days: [1, 2, 3, 4, 5, 6, 7] },
+    digest: {
+      enabled: true,
+      time: '08:00',
+      days: [1, 2, 3, 4, 5, 6, 7],
+      channels: ['email', 'telegram'],
+    },
     everythingEverywhere: false,
   })
 
@@ -236,7 +241,7 @@ test('the settings are saved whole and checked', async () => {
   const body = {
     minLevel: 'error',
     quietHours: { start: '22:00', end: '07:00' },
-    digest: { enabled: true, time: '07:30', days: [5, 1, 1] },
+    digest: { enabled: true, time: '07:30', days: [5, 1, 1], channels: ['telegram', 'email'] },
     everythingEverywhere: false,
   }
   const r = await env.call('PUT', '/api/v1/me/notifications/preferences', body, {
@@ -245,7 +250,7 @@ test('the settings are saved whole and checked', async () => {
   expect(r.status).toBe(200)
   expect(((await r.json()) as NotificationPreferences).settings).toEqual({
     ...body,
-    digest: { ...body.digest, days: [1, 5] },
+    digest: { ...body.digest, days: [1, 5], channels: ['email', 'telegram'] },
   })
   const same = await env.call(
     'PUT',
@@ -261,4 +266,21 @@ test('the settings are saved whole and checked', async () => {
     { cookie: saraCookie },
   )
   expect(wrong.status).toBe(422)
+  // the digest goes somewhere: no channel is refused, one alone is kept
+  const nowhere = await env.call(
+    'PUT',
+    '/api/v1/me/notifications/preferences',
+    { ...body, digest: { ...body.digest, channels: [] } },
+    { cookie: saraCookie },
+  )
+  expect(nowhere.status).toBe(422)
+  const telegramOnly = await env.call(
+    'PUT',
+    '/api/v1/me/notifications/preferences',
+    { ...body, digest: { ...body.digest, channels: ['telegram'] } },
+    { cookie: saraCookie },
+  )
+  expect(((await telegramOnly.json()) as NotificationPreferences).settings.digest.channels).toEqual(
+    ['telegram'],
+  )
 })
