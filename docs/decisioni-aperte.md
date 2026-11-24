@@ -689,6 +689,11 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   11. **«Duplica»:** fino a 31 date e su altri clienti dove la persona scrive; le copie nascono bozze, «Duplica e programma» le programma se passano i controlli.
   12. **Stampa del piano:** nella tappa 10, con il foglio di stampa del calendario cliente.
   13. **Moduli nel codice:** `calendar` (letture, registro delle voci, griglia), `plan` (piano editoriale); fasce, in blocco e «Duplica» restano in `posts`.
+  14. **Calendario in una lettura (P1):** fino a 42 giorni, post e voci dei moduli insieme; giorni contati nel fuso dell'agenzia.
+  15. **«Duplica» su un altro cliente:** testi e tipo sì, file ed etichette no (sono del cliente), e la copia lo dice.
+  16. **La nota del piano:** la vede chi lavora nell'agenzia e vede il cliente, Viewer compreso, solo nel Piano editoriale; mai nel calendario, nelle notifiche, nel riepilogo o al cliente.
+  17. **Griglia:** quarta vista della scheda «Calendario» del cliente, non una scheda a sé (§14.7).
+  18. **Destinatari nuovi:** `workspace_preparers` (chi ha `plan.prepare`, Owner e Admin compresi, con il permesso riletto all'invio) e `initiator` (chi ha avviato l'importazione).
 - **Stato:** scelte provvisorie, da approvare con il piano; Matteo può cambiarle prima del task che le usa.
 
 ## Sito pubblico

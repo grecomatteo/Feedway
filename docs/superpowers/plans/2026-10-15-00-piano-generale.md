@@ -127,7 +127,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 
 ### Tappa 9 · Pianificazione (piano `09-pianificazione.md`)
 - **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
-- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
+- **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_scan` (al posto di un `plan.due_soon` per contenuto, piano 09 P3); **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
 - **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
   1. dominio `plan` con le sei regole di §11.12, la funzione dell'istante di riferimento e lo stato calcolato con `Clock` (test prima del codice, compresi 2026-10-25 02:30, ora doppia, e 2027-03-28 02:30, ora inesistente);
   2. tabella `plan_items` con RLS, indice `(organization_id, workspace_id, local_date)`, repository, voce nella batteria di isolamento;
@@ -135,7 +135,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
   4. "Prepara": caso d'uso del piano che crea la bozza con `createDraft(tx, …)` e salva il collegamento nella stessa transazione (chiave esterna `ON DELETE SET NULL (post_id)`); stato "preparato / annullato" letto dal post; regola di dependency-cruiser: `posts` non importa `plan`;
   5. nel calendario il "+" su ogni giorno che apre Nuovo post su quel giorno (specifica §11.4); sezione **Piano editoriale** (voce di menu, calendario del mese da riempire, finestra di scelta del cliente da "Tutti i clienti") e nel calendario principale schede tratteggiate con il selettore "Post · Piano · Entrambi" nell'indirizzo; telefono, tastiera, axe;
   6. editor: precompilazione e avviso sul tipo;
-  7. notifica "da preparare entro domani" e sezione nel riepilogo, lavoro con `organizationId` nei dati.
+  7. notifica "da preparare entro domani" e sezione nel riepilogo, con la scansione di sistema `plan.due_scan` che legge ogni agenzia nel suo ambito (piano 09 P3).
   La stampa del Piano editoriale (schede piene) arriva nella tappa 10 con il foglio di stile di stampa del calendario cliente.
 - **Matteo prova:** pianifica un mese per un cliente, prepara due contenuti dall'editor, ne annulla uno e lo vede tornare "Da preparare".
 
@@ -181,7 +181,7 @@ Le porte vivono in `packages/application/src/ports/`. Una tappa può aggiungerne
 | `NotificationChannel` | 8 | `deliver(notification, recipient)` |
 | Sezioni del riepilogo | 8 | registro dei moduli: `section(tx, recipient, day)` dentro `uow.run({ organizationId, userId })` |
 | Voci del calendario | 9 | registro dei moduli: `entries(tx, { workspaceIds, from, to })` |
-| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, postIds[])` |
+| Funzioni pubbliche di `posts` | 6 | `createDraft(tx, actor, input)`, `getStatuses(tx, organizationId, postIds[])` |
 
 Le tabelle seguono la tappa che le introduce (§5); nessuna tappa crea tabelle "per dopo", tranne `api_tokens` (tappa 2), predisposta dalla specifica per MCP.
 
