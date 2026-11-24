@@ -1,5 +1,7 @@
 import {
   createEmailChannel,
+  createTelegramChannel,
+  createTelegramTargets,
   notificationKinds,
   watchWorker,
   type WorkerWatchDeps,
@@ -24,13 +26,18 @@ export function workerWatchDeps(deps: Deps): WorkerWatchDeps {
     panelUrl: deps.config.panelUrl,
     defaultTimezone: deps.config.defaultTimezone,
     kinds: KINDS,
-    // the platform's Telegram bot joins with its channel (plan 08 Task 7)
+    // as the worker's `notifyDeps`: email and the Telegram bot
     channels: [
       createEmailChannel({
         mailer: deps.mailer,
         t,
         productName: PRODUCT_NAME,
         panelUrl: deps.config.panelUrl,
+      }),
+      createTelegramChannel({
+        t,
+        telegram: deps.telegram,
+        targets: createTelegramTargets({ uow: deps.uow, integrations: deps.integrations }),
       }),
     ],
     lock: createAdvisoryLock(deps.pool),
