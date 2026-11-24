@@ -28,10 +28,8 @@ export async function readPublicMediaFile(
   const match = PUBLIC_NAME.exec(input.name)
   if (!match) return null
   const [, token = '', ext = ''] = match
-  const variant = await deps.uow.runAsSystem(
-    'public host: copy by token',
-    (tx) => tx.media.findPublicVariant(token),
-    { routine: true },
+  const variant = await deps.uow.runAsSystem('public host: copy by token', (tx) =>
+    tx.media.findPublicVariant(token),
   )
   if (!variant || variant.mime !== PUBLIC_TYPES[ext]) return null
   return readCopy(deps.storage, variant, input.range)
