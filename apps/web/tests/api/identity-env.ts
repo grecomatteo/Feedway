@@ -14,6 +14,8 @@ import {
 import type { DbHandle } from '@app/infrastructure'
 import { startMetaMock } from '@app/meta-mock'
 import type { MetaMock } from '@app/meta-mock'
+import { startTelegramMock } from '@app/telegram-mock'
+import type { TelegramMock } from '@app/telegram-mock'
 import { activationLinkIn, seed, startTestDatabase } from '@app/infrastructure/testing'
 import type { TestDatabase } from '@app/infrastructure/testing'
 import { panelClient, sessionCookieOf, startWeb } from './helpers.js'
@@ -37,6 +39,8 @@ export interface ApiEnv {
   web: RunningWeb
   /** The fake Graph API the server calls (META_MODE=mock): no real Meta is ever reached. */
   meta: MetaMock
+  /** The fake Bot API: no test talks to the real Telegram */
+  telegram: TelegramMock
   /** Every request from its own address, so the per-address limits stay out of the way. */
   call(method: Method, path: string, body?: unknown, opts?: CallOptions): Promise<Response>
   /** A new agency with its data key, as the CLI creates one; its slug is its id. */
@@ -74,6 +78,7 @@ export async function startApiEnv(
   const encryptionKey = randomBytes(32)
   const keyRing = createKeyRing({ platformKey: encryptionKey, clock: systemClock })
   const meta = await startMetaMock()
+  const telegram = await startTelegramMock()
   const web = await startWeb({
     DATABASE_URL: tdb.runtimeUrl,
     APP_ENCRYPTION_KEY: encryptionKey.toString('base64'),
@@ -81,6 +86,7 @@ export async function startApiEnv(
     PANEL_URL: PANEL,
     META_MODE: 'mock',
     META_MOCK_URL: meta.url,
+    TELEGRAM_API_URL: telegram.url,
     ...(options.publicUrl === undefined ? {} : { PUBLIC_URL: options.publicUrl }),
   })
   const panel = panelClient(web, PANEL)
@@ -103,6 +109,7 @@ export async function startApiEnv(
     admin,
     web,
     meta,
+    telegram,
     call,
     async agency(opts = {}) {
       const id = await seed(tdb.runtimeUrl, (s) => s.organization(opts))
@@ -162,6 +169,7 @@ export async function startApiEnv(
     async stop() {
       await web.stop()
       await meta.stop()
+      await telegram.stop()
       await runtimeDb.close()
       await admin.close()
       await tdb.stop()

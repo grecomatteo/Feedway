@@ -277,6 +277,20 @@ test('with META_MODE=mock the fake Graph API is on 127.0.0.1:4010 unless told ot
   ).toContainEqual({ variable: 'META_MOCK_URL', problem: 'deve essere un indirizzo valido' })
 })
 
+test('the Bot API is api.telegram.org unless told otherwise (the fake one in tests)', () => {
+  expect(loadConfig('worker', validWebEnv).telegramApiUrl.toString()).toBe(
+    'https://api.telegram.org/',
+  )
+  expect(
+    loadConfig('worker', { ...validWebEnv, TELEGRAM_API_URL: 'http://127.0.0.1:4020' })
+      .telegramApiUrl.origin,
+  ).toBe('http://127.0.0.1:4020')
+  expect(issuesOf({ ...validWebEnv, TELEGRAM_API_URL: 'no' })).toContainEqual({
+    variable: 'TELEGRAM_API_URL',
+    problem: 'deve essere un indirizzo valido',
+  })
+})
+
 test('media limits default to the values of the plan (spec §9.2)', () => {
   const c = loadConfig('web', validWebEnv)
   expect(c.media).toEqual({

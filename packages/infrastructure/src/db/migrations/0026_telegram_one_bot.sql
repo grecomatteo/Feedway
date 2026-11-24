@@ -1,0 +1,2 @@
+-- One place per Telegram bot (plan 08 Task 7): two pollers of one bot would split its updates.
+CREATE UNIQUE INDEX "integrations_telegram_bot" ON "integrations" USING btree (("config"->>'botId')) WHERE "integrations"."kind" = 'telegram';

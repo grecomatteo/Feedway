@@ -41,3 +41,9 @@ export type {
   PlatformTestEmailKind,
   PlatformTestEmailResult,
 } from './mail-settings.js'
+export {
+  getPlatformTelegramBot,
+  removePlatformTelegramBot,
+  replacePlatformTelegramBot,
+} from './telegram-bot.js'
+export type { PlatformBotRequest, PlatformTelegramBotDeps } from './telegram-bot.js'
