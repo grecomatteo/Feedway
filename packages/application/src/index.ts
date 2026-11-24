@@ -94,6 +94,13 @@ export type {
   PostTargetRecord,
 } from './ports/posts.js'
 export type {
+  NewPlanItem,
+  PlanItemChange,
+  PlanItemRecord,
+  PlanRepository,
+  PlanScope,
+} from './ports/plan.js'
+export type {
   DueTarget,
   NewTargetAttempt,
   Outbox,

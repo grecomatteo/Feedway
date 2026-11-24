@@ -9,6 +9,7 @@ import type { SystemHeartbeatsRepository } from './heartbeats.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
 import type { ContentSettingsRepository } from './content-settings.js'
+import type { PlanRepository } from './plan.js'
 import type { PostRepository } from './posts.js'
 import type {
   NotificationPrefsRepository,
@@ -66,6 +67,7 @@ export interface Tx {
   media: MediaRepository
   uploads: UploadSessionsRepository
   posts: PostRepository
+  plan: PlanRepository
   publishing: PublishingRepository
   outbox: Outbox
   notifications: NotificationsRepository

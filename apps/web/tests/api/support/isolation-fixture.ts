@@ -456,6 +456,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   labels: 'select * from labels',
   caption_templates: 'select * from caption_templates',
   account_groups: 'select * from account_groups',
+  plan_items: 'select * from plan_items',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
