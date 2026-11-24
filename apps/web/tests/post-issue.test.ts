@@ -31,7 +31,7 @@ const issue = (over: Partial<PostIssue> = {}): PostIssue => ({
 describe('postIssueTitle (plan 07 Scelta 8, screen 02)', () => {
   it('a post of today by its time, with the type and where it did not go out', () => {
     expect(postIssueTitle(issue(), t, now)).toBe(
-      'today.issues.post.failed.m {"type":"posts.type.reel","when":"delle 9:30","where":"Facebook"}',
+      'today.issues.post.failed.m {"type":"posts.type.reel","when":"delle 09:30","where":"Facebook"}',
     )
   })
   it('a photo or a story is feminine; an hour of one elides', () => {
@@ -46,7 +46,7 @@ describe('postIssueTitle (plan 07 Scelta 8, screen 02)', () => {
         now,
       ),
     ).toBe(
-      'today.issues.post.failed.f {"type":"posts.type.photo","when":"dell’1:15","where":"Instagram e Facebook"}',
+      'today.issues.post.failed.f {"type":"posts.type.photo","when":"dell’01:15","where":"Instagram e Facebook"}',
     )
   })
   it('another day by its date, elided where Italian elides', () => {
@@ -59,7 +59,7 @@ describe('postIssueTitle (plan 07 Scelta 8, screen 02)', () => {
   })
   it('paused and with a problem', () => {
     expect(postIssueTitle(issue({ status: 'paused' }), t, now)).toBe(
-      'today.issues.post.paused {"type":"posts.type.reel","when":"delle 9:30","where":"Facebook"}',
+      'today.issues.post.paused {"type":"posts.type.reel","when":"delle 09:30","where":"Facebook"}',
     )
     expect(postIssueTitle(issue({ status: 'problem' }), t, now)).toContain(
       'today.issues.post.problem',

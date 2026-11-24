@@ -1,6 +1,6 @@
 /**
  * Dates and times as the panel says them, always in Italian and on a 24-hour clock: «venerdì 20
- * novembre», «ven 20 nov, 18:00», «oggi, 18:00», «ieri alle 18:42», «8:00». Every date the panel
+ * novembre», «ven 20 nov, 18:00», «oggi, 18:00», «ieri alle 18:42», «08:00». Every date the panel
  * shows goes through here, so no field ever shows the browser's own format (11/18/2026, 06:00 PM).
  *
  * An instant (an ISO string with its time) is shown in `timeZone`: the person's own zone when they
@@ -78,7 +78,8 @@ function parts(at: string | Date, timeZone?: string | null): Parts {
   }
 }
 
-const clock = (hour: number, minute: number) => `${String(hour)}:${String(minute).padStart(2, '0')}`
+const clock = (hour: number, minute: number) =>
+  `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 const yearOf = (p: Parts, now: Date, timeZone?: string | null) =>
   p.year === parts(now, timeZone).year ? '' : ` ${String(p.year)}`
 /** Days from `now` to `p`, counted on the calendar of the zone (so midnight, not 24 hours). */

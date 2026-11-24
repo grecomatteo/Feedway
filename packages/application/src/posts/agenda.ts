@@ -2,6 +2,7 @@ import {
   DomainError,
   PROFILE_LINKS,
   can,
+  fileTitle,
   type OrgActor,
   type Platform,
   type PostType,
@@ -79,6 +80,8 @@ export interface AgendaPostDto {
   mediaCount: number
   /** null for who does not use the client's library, the Viewer (D-72) */
   thumbnail: AgendaThumbnail | null
+  /** the first file's name, for a post without text: «Storia · IMG_0233»; null as `thumbnail` */
+  firstFile: string | null
   /** its destinations that did not go out: «1 non uscito» */
   notOut: number
 }
@@ -94,6 +97,8 @@ export interface DraftToFinishDto {
   missing: DraftMissing[]
   updatedAt: string
   thumbnail: AgendaThumbnail | null
+  /** the first file's name, for a draft without text (D-120.7) */
+  firstFile: string | null
 }
 
 export type AgendaIssueDto =
@@ -249,6 +254,15 @@ const thumbnailOf = (
 }
 
 /**
+ * The destinations a row shows: an account cancelled on its own is left out, so the platforms
+ * beside «Pubblicato» are those it went to (D-120.7); a post cancelled whole keeps them all.
+ */
+export function shownTargets<T extends { status: string }>(targets: readonly T[]): T[] {
+  const live = targets.filter((t) => t.status !== 'cancelled')
+  return live.length > 0 ? live : [...targets]
+}
+
+/**
  * The files and the accounts of the posts, read client by client as the posts module always reads
  * them. The files only where the person uses the library: the Viewer sees no thumbnail (D-72).
  */
@@ -275,15 +289,23 @@ async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]
   }
   return {
     thumbnail: (p: PostRecord) => thumbnailOf(p, media),
+    /** the first file still in the library, by its name (D-120.7) */
+    firstFile: (p: PostRecord) => {
+      for (const id of p.mediaIds) {
+        const file = media.get(id)
+        if (file && file.status !== 'deleted') return fileTitle(file.originalName)
+      }
+      return null
+    },
     /** each destination's account with its platform */
     accounts: (p: PostRecord): [string, Platform][] =>
-      p.targets.flatMap((t) => {
+      shownTargets(p.targets).flatMap((t) => {
         const platform = platforms.get(t.accountId)
         return platform ? [[t.accountId, platform] as [string, Platform]] : []
       }),
     platforms: (p: PostRecord) => [
       ...new Set(
-        p.targets.flatMap((t) => {
+        shownTargets(p.targets).flatMap((t) => {
           const platform = platforms.get(t.accountId)
           return platform ? [platform] : []
         }),
@@ -324,6 +346,7 @@ export async function listAgenda(
                 platforms: details.platforms(p),
                 mediaCount: p.mediaIds.length,
                 thumbnail: details.thumbnail(p),
+                firstFile: details.firstFile(p),
                 notOut: notOutOf(p),
               },
             ],
@@ -353,6 +376,7 @@ export async function listDraftsToFinish(
         missing: draftMissing(p),
         updatedAt: p.updatedAt.toISOString(),
         thumbnail: details.thumbnail(p),
+        firstFile: details.firstFile(p),
       })),
       total: await tx.posts.countDrafts(organizationId, ids),
     }

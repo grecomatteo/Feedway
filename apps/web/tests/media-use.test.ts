@@ -28,7 +28,7 @@ describe('mediaUseLabel (D-80.7)', () => {
   it('names the scheduled post by its day and time in the post’s zone', () => {
     expect(mediaUseLabel(use(), t, now)).toBe('library.inPosts.scheduled {"when":"oggi, 18:00"}')
     expect(mediaUseLabel(use({ scheduledAt: '2026-11-20T07:00:00Z' }), t, now)).toBe(
-      'library.inPosts.scheduled {"when":"domani, 8:00"}',
+      'library.inPosts.scheduled {"when":"domani, 08:00"}',
     )
     expect(mediaUseLabel(use({ scheduledAt: '2026-11-27T17:00:00Z' }), t, now)).toBe(
       'library.inPosts.scheduled {"when":"ven 27 nov, 18:00"}',

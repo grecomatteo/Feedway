@@ -246,6 +246,19 @@ export async function failTarget(
     type: 'post.target_failed',
     payload: eventOf(target, code),
   })
+  // the activity of the outcome tells it, also when no call was made (too late, a file, the
+  // token) and after a «Riprova» (D-120.8)
+  await tx.audit.record({
+    organizationId: target.organizationId,
+    actorId: null,
+    source: 'system',
+    action: 'post.target_failed',
+    entity: 'post',
+    entityId: target.postId,
+    workspaceId: target.workspaceId,
+    ip: null,
+    data: { accountId: target.accountId, code },
+  })
   if (code === 'file_wont_publish')
     await tx.outbox.record({
       organizationId: target.organizationId,
