@@ -55,7 +55,8 @@ const thumbOf = (p: { workspaceId: string; thumbnail: AgendaPost['thumbnail'] })
         `/workspaces/${encodeURIComponent(p.workspaceId)}/media/${encodeURIComponent(p.thumbnail.mediaId)}/file/${p.thumbnail.variant}`,
       )
     : null
-const textOf = (p: { text: string }) => p.text || t('posts.list.noText')
+/** the text, or «Storia · IMG_0233» for a post without (D-120.7) */
+const textOf = (p: Parameters<typeof postTitle>[0]) => postTitle(p, t)
 
 // ---- Da sistemare
 const issues = computed(() => issuesOf(issuesRead.data.value?.items ?? [], workspaceId.value))

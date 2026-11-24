@@ -195,6 +195,7 @@ interface AgendaJson {
     platforms: string[]
     mediaCount: number
     thumbnail: { mediaId: string; variant: string } | null
+    firstFile: string | null
     notOut: number
   }[]
 }
@@ -243,11 +244,14 @@ describe('agenda', () => {
       platforms: ['instagram', 'facebook'],
       mediaCount: 1,
       thumbnail: { mediaId: image, variant: 'thumbnail' },
+      // a post without text is named by it (D-120.7)
+      firstFile: 'foto',
     })
     expect(items[2]).toMatchObject({
       text: 'Dietro il banco: come nasce la sfoglia',
       platforms: ['instagram'],
       thumbnail: null,
+      firstFile: null,
     })
   })
 
@@ -302,9 +306,9 @@ describe('agenda', () => {
 
   test('the Viewer sees the posts without thumbnails (D-72)', async () => {
     const { items } = await get<AgendaJson>('viewer', `/agenda?${period()}`)
-    expect(items.map((p) => [p.id, p.thumbnail])).toEqual([
-      [first, null],
-      [second, null],
+    expect(items.map((p) => [p.id, p.thumbnail, p.firstFile])).toEqual([
+      [first, null, null],
+      [second, null, null],
     ])
   })
 

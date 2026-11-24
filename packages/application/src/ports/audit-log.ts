@@ -74,6 +74,8 @@ export const AUDIT_ACTIONS = [
   'post.target_cancelled',
   'post.resumed',
   'post.published_now',
+  // the worker: a destination ended not out, whatever the reason (D-120.8)
+  'post.target_failed',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
