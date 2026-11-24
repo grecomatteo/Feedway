@@ -75,3 +75,4 @@ export {
   type StepLog,
   type TargetJob,
 } from './publishing/index.js'
+export { untitledPost } from './title.js'

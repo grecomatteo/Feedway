@@ -79,7 +79,7 @@ async function main(): Promise<void> {
         api: runtime.telegram,
         integrations: runtime.integrations,
         tokens: runtime.tokens,
-        // its own connection: the lock is held for the whole ~50 s wait of `telegram.poll`
+        // its own connection: the lock is held for the whole run of `telegram.poll` (about 55 s)
         lock: createAdvisoryLock(telegramLockDb.pool),
       },
       images: createAvatarProcessor(),

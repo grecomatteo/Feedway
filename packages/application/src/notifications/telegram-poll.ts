@@ -1,6 +1,10 @@
 import { displayName } from '@app/domain'
 import type { Clock } from '../ports/clock.js'
-import type { IntegrationStore, TelegramBotCredentials } from '../ports/integration-store.js'
+import type {
+  IntegrationStore,
+  TelegramBotCredentials,
+  TelegramPollState,
+} from '../ports/integration-store.js'
 import type { Logger } from '../ports/logger.js'
 import type { ExclusiveLock } from '../ports/media-processing.js'
 import type { TelegramBotOwner } from '../ports/notifications.js'
@@ -18,8 +22,10 @@ import { answerTelegramQuery, type TelegramQuery } from './telegram-commands.js'
 import { bold, joinHtml, link, plain, type TelegramHtml } from './telegram-format.js'
 import { linkCodeHash } from './telegram-links.js'
 
-// `telegram.poll` (plan 08 Task 7): every minute one worker holds the lock and long-polls
-// `getUpdates` of every bot for about 50 seconds, the offset kept in `integrations.state`. The bots'
+// `telegram.poll` (plan 08 Task 7): every minute one worker holds the lock and listens to every
+// bot for most of the minute, one long `getUpdates` after the other, so that an answer leaves in a
+// second or two (revisione della tappa 8, R3). The offset is kept in `integrations.state` after
+// every batch. The bots'
 // tokens are read only here, in the system scope (and for the channel's sends, below). A chat is
 // found in the system scope too; each answer is then computed in the scope of the person linked.
 
@@ -33,7 +39,10 @@ export interface TelegramPollDeps {
   telegram: TelegramBotApi
   tokens: Pick<TokenService, 'hash'>
   lock: ExclusiveLock
-  /** How long each `getUpdates` waits for a message: about 50 s in the worker, 0 in the tests */
+  /**
+   * How long a run listens, from its start: under a minute in the worker; 0 in the tests, one
+   * `getUpdates` that does not wait.
+   */
   waitSeconds: number
 }
 
@@ -46,40 +55,59 @@ export interface TelegramPollReport {
   cleaned: number
 }
 
+/** Every minute or at every send: at debug level in the log (R8). */
+const ROUTINE = { routine: true } as const
+
 const COMMANDS: Readonly<Record<string, TelegramQuery>> = {
   '/oggi': 'today',
   '/problemi': 'issues',
 }
 
+/** The longest wait of one `getUpdates`, as Telegram's own servers keep it. */
+const LONG_POLL_MAX_SECONDS = 50
+
+/** The menu beside the text field (R10.1), in the order of the help. */
+const MENU = [
+  ['oggi', 'today'],
+  ['problemi', 'issues'],
+  ['stop', 'stop'],
+] as const
+/** Raise it when `MENU` or its texts change: every bot is given the new menu at its next run. */
+export const TELEGRAM_MENU_VERSION = 1
+
 /** The links of bots that are no more or changed, and each bot with its token. */
 async function botsAndCleanUp(
   deps: TelegramPollDeps,
 ): Promise<{ bots: TelegramBotCredentials[]; cleaned: number }> {
-  return deps.uow.runAsSystem('telegram.poll: the bots and their links', async (tx) => {
-    const { bots, unreadable } = await deps.integrations.telegramBots(tx)
-    for (const organizationId of unreadable)
-      deps.logger.error({ organizationId }, 'telegram bot token cannot be opened: bot not polled')
-    let cleaned = 0
-    for (const bot of bots) {
-      if (bot.state.botId === bot.botId) continue
-      // another bot with the same owner: its chats are not this bot's, and its offset neither.
-      // A bot never polled (just saved, maybe after another was removed) has no chat yet: the
-      // chats there are of the bot before; a code just started may be for this one.
-      cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId, {
-        linkedOnly: bot.state.botId === undefined,
+  return deps.uow.runAsSystem(
+    'telegram.poll: the bots and their links',
+    async (tx) => {
+      const { bots, unreadable } = await deps.integrations.telegramBots(tx)
+      for (const organizationId of unreadable)
+        deps.logger.error({ organizationId }, 'telegram bot token cannot be opened: bot not polled')
+      let cleaned = 0
+      for (const bot of bots) {
+        if (bot.state.botId === bot.botId) continue
+        // another bot with the same owner: its chats are not this bot's, and its offset neither.
+        // A bot never polled (just saved, maybe after another was removed) has no chat yet: the
+        // chats there are of the bot before; a code just started may be for this one.
+        cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId, {
+          linkedOnly: bot.state.botId === undefined,
+        })
+        const state = { botId: bot.botId }
+        if (await tx.integrations.saveState(bot.organizationId, 'telegram', state, bot.updatedAt))
+          bot.state = state
+      }
+      // a bot not read this time is still there: its links stay
+      const owners = [...bots.map((b) => b.organizationId), ...unreadable]
+      cleaned += await tx.telegramLinks.deleteOrphans({
+        agencyBots: owners.filter((o): o is string => o !== null),
+        platformBot: owners.includes(null),
       })
-      const state = { botId: bot.botId }
-      if (await tx.integrations.saveState(bot.organizationId, 'telegram', state, bot.updatedAt))
-        bot.state = state
-    }
-    // a bot not read this time is still there: its links stay
-    const owners = [...bots.map((b) => b.organizationId), ...unreadable]
-    cleaned += await tx.telegramLinks.deleteOrphans({
-      agencyBots: owners.filter((o): o is string => o !== null),
-      platformBot: owners.includes(null),
-    })
-    return { bots, cleaned }
-  })
+      return { bots, cleaned }
+    },
+    ROUTINE,
+  )
 }
 
 /** `/oggi@feedway_bot` is `/oggi`; the argument of `/start` follows a space. */
@@ -99,9 +127,7 @@ const note = (title: string, body: string, ...after: TelegramHtml[]) =>
 function commands(t: Translate): TelegramHtml {
   return joinHtml([
     bold(t('notify.telegram.help')),
-    plain(`/oggi · ${t('notify.telegram.commands.today')}`),
-    plain(`/problemi · ${t('notify.telegram.commands.issues')}`),
-    plain(`/stop · ${t('notify.telegram.commands.stop')}`),
+    ...MENU.map(([name, key]) => plain(`/${name} · ${t(`notify.telegram.commands.${key}`)}`)),
   ])
 }
 
@@ -193,19 +219,50 @@ async function reply(
   }
 }
 
-async function pollBot(
+/**
+ * Gives the bot its menu of commands, once per version; a failure tries again at the next run.
+ * Null: the bot's row changed since the start of the run, which is then the next run's.
+ */
+async function giveMenu(
   deps: TelegramPollDeps,
   bot: TelegramBotCredentials,
-  agencyBots: ReadonlySet<string>,
+  state: TelegramPollState,
   signal?: AbortSignal,
-): Promise<number> {
-  let updates: TelegramUpdate[]
+): Promise<TelegramPollState | null> {
+  const menu = MENU.map(([command, key]) => ({
+    command,
+    description: deps.t(`notify.telegram.commands.${key}`).replace(/^./, (c) => c.toUpperCase()),
+  }))
   try {
-    updates = await deps.telegram.getUpdates(
-      bot.token,
-      { offset: bot.state.offset ?? 0, timeoutSeconds: deps.waitSeconds },
-      signal,
-    )
+    await deps.telegram.setMyCommands(bot.token, menu, signal)
+  } catch (error) {
+    if (!(error instanceof TelegramApiError)) throw error
+    // a token refused is turned red by the `getUpdates` that follows
+    deps.logger.warn({ bot: bot.botUsername, kind: error.kind }, 'telegram menu not set')
+    return state
+  }
+  const next = { ...state, commands: TELEGRAM_MENU_VERSION }
+  return (await saveState(deps, bot, next)) ? next : null
+}
+
+/** The state on the bot's row, only while the row is the one read at the start of the run. */
+const saveState = (deps: TelegramPollDeps, bot: TelegramBotCredentials, state: TelegramPollState) =>
+  deps.uow.runAsSystem(
+    'telegram.poll: the offset',
+    (tx) => tx.integrations.saveState(bot.organizationId, 'telegram', { ...state }, bot.updatedAt),
+    ROUTINE,
+  )
+
+/** One `getUpdates`; null when it failed (the bot refused is turned red): the run stops there. */
+async function updatesOf(
+  deps: TelegramPollDeps,
+  bot: TelegramBotCredentials,
+  offset: number,
+  timeoutSeconds: number,
+  signal?: AbortSignal,
+): Promise<TelegramUpdate[] | null> {
+  try {
+    return await deps.telegram.getUpdates(bot.token, { offset, timeoutSeconds }, signal)
   } catch (error) {
     if (!(error instanceof TelegramApiError)) throw error
     if (error.kind === 'unauthorized') {
@@ -222,39 +279,67 @@ async function pollBot(
       )
       deps.logger.warn({ bot: bot.botUsername }, 'telegram bot token refused')
     } else deps.logger.warn({ bot: bot.botUsername, kind: error.kind }, 'telegram poll failed')
-    return 0
+    return null
   }
-  let offset = bot.state.offset ?? 0
-  for (const update of updates) {
-    offset = Math.max(offset, update.updateId + 1)
-    if (update.message === null) continue
-    try {
-      const text = await answer(deps, bot, agencyBots, update.message)
-      await reply(deps, bot, update.message.chatId, text, signal)
-    } catch (error) {
-      // one message that fails is not read again: the others go on (never its text in the log)
-      deps.logger.error(
-        { bot: bot.botUsername, updateId: update.updateId, err: error },
-        'telegram update not handled',
-      )
+}
+
+/**
+ * Listens to one bot until `waitSeconds` from the start of the run: each batch is answered and
+ * its offset saved before the next long poll, so a message is never answered twice. A failure, a
+ * bot changed on its row or the worker stopping ends the run; the next one goes on.
+ */
+async function pollBot(
+  deps: TelegramPollDeps,
+  bot: TelegramBotCredentials,
+  agencyBots: ReadonlySet<string>,
+  signal?: AbortSignal,
+): Promise<number> {
+  const until = deps.clock.now().getTime() + deps.waitSeconds * 1000
+  const secondsLeft = () => Math.floor((until - deps.clock.now().getTime()) / 1000)
+  let state: TelegramPollState = { ...bot.state, botId: bot.botId, offset: bot.state.offset ?? 0 }
+  if (state.commands !== TELEGRAM_MENU_VERSION) {
+    const given = await giveMenu(deps, bot, state, signal)
+    if (given === null) return 0
+    state = given
+  }
+  let handled = 0
+  for (;;) {
+    const wait = Math.min(Math.max(secondsLeft(), 0), LONG_POLL_MAX_SECONDS)
+    const asked = deps.clock.now().getTime()
+    const updates = await updatesOf(deps, bot, state.offset ?? 0, wait, signal)
+    if (updates === null) break
+    let offset = state.offset ?? 0
+    for (const update of updates) {
+      offset = Math.max(offset, update.updateId + 1)
+      if (update.message === null) continue
+      try {
+        const text = await answer(deps, bot, agencyBots, update.message)
+        await reply(deps, bot, update.message.chatId, text, signal)
+      } catch (error) {
+        // one message that fails is not read again: the others go on (never its text in the log)
+        deps.logger.error(
+          { bot: bot.botUsername, updateId: update.updateId, err: error },
+          'telegram update not handled',
+        )
+      }
     }
+    handled += updates.length
+    if (updates.length > 0) {
+      state = { ...state, offset }
+      // the bot replaced or removed meanwhile: its new row is the next run's
+      if (!(await saveState(deps, bot, state))) break
+    }
+    if (signal?.aborted === true || secondsLeft() < 1) break
+    // an empty answer well before its time (not Telegram's way): no loop of calls, the next run
+    if (updates.length === 0 && deps.clock.now().getTime() - asked < wait * 1000 - 500) break
   }
-  if (updates.length > 0)
-    await deps.uow.runAsSystem('telegram.poll: the offset', (tx) =>
-      tx.integrations.saveState(
-        bot.organizationId,
-        'telegram',
-        { botId: bot.botId, offset },
-        bot.updatedAt,
-      ),
-    )
-  return updates.length
+  return handled
 }
 
 /**
  * One run of `telegram.poll`: every bot not refused, long-polled together under one lock for the
  * whole installation. One lock, not one per bot: a session lock holds a database connection for
- * the ~50 s of the wait, and the worker's pool is small.
+ * the whole run, and the worker's pool is small.
  */
 export async function pollTelegram(
   deps: TelegramPollDeps,
@@ -297,18 +382,22 @@ export function createTelegramTargets(
 ): TelegramTargets {
   return {
     find: (recipient) =>
-      deps.uow.runAsSystem('telegram: the chat of a delivery', async (tx) => {
-        const owner: TelegramBotOwner = await telegramOwnerOf(tx, recipient)
-        const link = await tx.telegramLinks.findLinked(owner, recipient.userId)
-        if (link === null) return null
-        const credentials =
-          owner === null
-            ? await deps.integrations.platformCredentials(tx, 'telegram')
-            : await deps.integrations.credentials(tx, owner, 'telegram')
-        return credentials === null
-          ? null
-          : { owner, token: credentials.secret, chatId: link.chatId }
-      }),
+      deps.uow.runAsSystem(
+        'telegram: the chat of a delivery',
+        async (tx) => {
+          const owner: TelegramBotOwner = await telegramOwnerOf(tx, recipient)
+          const link = await tx.telegramLinks.findLinked(owner, recipient.userId)
+          if (link === null) return null
+          const credentials =
+            owner === null
+              ? await deps.integrations.platformCredentials(tx, 'telegram')
+              : await deps.integrations.credentials(tx, owner, 'telegram')
+          return credentials === null
+            ? null
+            : { owner, token: credentials.secret, chatId: link.chatId }
+        },
+        ROUTINE,
+      ),
     unlink: async (owner, chatId) => {
       await deps.uow.runAsSystem('telegram: a chat blocked the bot', (tx) =>
         tx.telegramLinks.deleteByChat(owner, chatId),

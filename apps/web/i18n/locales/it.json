@@ -2925,7 +2925,6 @@
     "post": {
       "line": "{account} · «{post}»",
       "lineWhy": "{account} · «{post}»: {why}",
-      "noText": "post senza testo",
       "gone": "Un post che non c'è più",
       "open": "Apri il post",
       "openList": "Apri i post",

@@ -53,6 +53,15 @@ test('a long poll answers as soon as someone writes', async () => {
   expect(Date.now() - started).toBeLessThan(3000)
 })
 
+test('setMyCommands keeps the menu of the bot; a name Telegram refuses answers 400', async () => {
+  const menu = [{ command: 'oggi', description: 'I post di oggi' }]
+  expect((await call(platform.token, 'setMyCommands', { commands: menu })).status).toBe(200)
+  expect(mock.commands()).toEqual({ feedway_mock_bot: menu })
+  const wrong = [{ command: '/Oggi', description: 'I post di oggi' }]
+  expect((await call(platform.token, 'setMyCommands', { commands: wrong })).status).toBe(400)
+  expect(mock.commands()).toEqual({ feedway_mock_bot: menu })
+})
+
 test('sendMessage records the message; a blocked chat answers 403', async () => {
   expect((await call(platform.token, 'sendMessage', { chat_id: 42, text: 'Ciao' })).status).toBe(
     200,

@@ -53,6 +53,12 @@ export interface TelegramBotApi {
     options: { offset: number; timeoutSeconds: number },
     signal?: AbortSignal,
   ): Promise<TelegramUpdate[]>
+  /** The menu of commands the person sees beside the text field (`setMyCommands`). */
+  setMyCommands(
+    token: string,
+    commands: readonly { command: string; description: string }[],
+    signal?: AbortSignal,
+  ): Promise<void>
   /** Plain text, no preview of the links. */
   sendMessage(
     token: string,
