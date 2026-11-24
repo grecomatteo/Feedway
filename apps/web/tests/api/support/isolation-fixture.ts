@@ -128,6 +128,8 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     token: TELEGRAM_MOCK.bots.agency.token,
   }),
   'PUT /api/v1/platform/telegram-bot': () => ({ token: TELEGRAM_MOCK.bots.platform.token }),
+  // «Collega Telegram»: the platform's bot (the person's own links, plan 08 Task 7)
+  'POST /api/v1/me/telegram/links': () => ({ bot: 'platform' }),
   // the fake Graph API's system user (META_MODE=mock): a fake token, never a real one
   'POST /api/v1/orgs/{org}/connections/system-user': () => ({
     token: META_MOCK.tokens.systemUser,
@@ -388,6 +390,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   templateId: ids.template,
   groupId: ids.group,
   noteId: ids.note,
+  bot: 'platform',
   n: '1',
   size: '256',
   // a preview nobody uploaded: the matrix uploads one for the Owner's case

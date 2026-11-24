@@ -237,8 +237,8 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
             └──────────────┬───────────────────┘
                  rete "edge"│ http://web:3000
                    ┌────────▼─────────┐
-                   │ web (Nuxt)       │
-                   │ pannello + API   │
+                   │ web (Nuxt)       │──── rete "egress": solo SMTP e Telegram
+                   │ pannello + API   │     per l'avviso «worker fermo»
                    └────────┬─────────┘
                  rete "internal" (nessun accesso a internet)
          ┌──────────────────┼────────────────────┐
@@ -253,7 +253,7 @@ Ogni requisito ha un codice usato nel piano di sviluppo e nei test.
 
 | Componente | Compito |
 |---|---|
-| **web** | Pannello, API `/api/v1`, upload a pezzi. Sull'host pubblico serve solo `/m/*` e `/share/*`. Unico container raggiungibile dall'esterno. |
+| **web** | Pannello, API `/api/v1`, upload a pezzi. Sull'host pubblico serve solo `/m/*` e `/share/*`. Unico container raggiungibile dall'esterno. Esce su internet (rete `egress`) solo per mandare con SMTP e Telegram l'avviso «worker fermo» e «worker ripartito» (§16.7, piano 08 Scelta 10): il worker che dovrebbe mandarlo è quello fermo. |
 | **worker** | Lavori in coda: elaborazione media, preparazione, pubblicazione, verifica, notifiche, sincronizzazione, pulizia, riepiloghi. Nessuna porta esposta. |
 | **postgres** | Dati e coda lavori. Solo rete interna. |
 | **migrate** | Applica le migrazioni e termina; web e worker partono solo dopo. |
@@ -666,7 +666,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `plan.due_soon` | Al momento della notifica di §11.12 | Uno per contenuto pianificato (chiave: id del contenuto), con `organizationId`; creato o sostituito nella stessa transazione di ogni modifica del contenuto o del fuso dell'organizzazione, tolto quando il contenuto è tolto o preparato; il gestore rilegge contenuto e post e non fa nulla se non serve più |
 | `notify.dispatch` | Dopo il commit di ogni transazione che ha scritto un evento, e ogni minuto | Di sistema, uno in coda e uno in corso: vuota l'outbox a lotti e rimanda le consegne arrivate alla loro ora (§12.1, piano 08 P2) |
 | `notify.deliver` / `notify.deliver_platform` | Una per riga di consegna, 60 secondi dopo la prima del gruppo | Con `organizationId`, nell'ambito del destinatario; quello della piattaforma è di sistema. Manda il gruppo della consegna in un messaggio (§12.1, piano 08 P1) |
-| `telegram.poll` | Continuo | Comandi del bot |
+| `telegram.poll` | Ogni minuto | Di sistema, uno alla volta: un lucchetto per tutta l'installazione su una connessione sua, poi per ogni bot `getUpdates` in long polling per circa 50 secondi, insieme, con l'`offset` in `integrations.state`. Collega le chat (`/start <codice>`), risponde a `/oggi`, `/problemi` e `/stop` nell'ambito della persona collegata, toglie i collegamenti di un bot tolto o cambiato (piano 08 Task 7) |
 | `report.daily` | Ogni minuto | Di sistema, con il lucchetto consultivo: manda un `report.digest` a ogni persona il cui riepilogo è dovuto adesso, nel suo fuso, con la chiave `<persona>:<data>` (§12.4, piano 08 P7) |
 | `report.digest` | Al momento del riepilogo della persona | Con `userId`: calcola ogni sezione dentro `uow.run({ organizationId, userId })` di ciascuna agenzia della persona e manda un messaggio per agenzia e canale (§12.4) |
 | `accounts.sync` / `accounts.health` | Ogni giorno e a richiesta | §8.4 |
@@ -997,7 +997,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 ### 12.3 Canali e preferenze
 
 - **Pannello**: campanella con contatore e **centro notifiche** con storico, filtri (livello, spazio, tipo) e stato di consegna per canale.
-- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da "Impostazioni" → "Il tuo account" con un link monouso (`t.me/<bot>?start=<codice>`), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento. Il worker riceve i comandi in long polling, senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`. Messaggi brevi con stato, account, inizio della caption e link.
+- **Telegram** (solo team): bot creato con @BotFather. Ogni utente collega il proprio Telegram da «Profilo e preferenze» con un link monouso (`t.me/<bot>?start=<codice>`, valido 15 minuti, salvato solo come impronta), una volta per ogni agenzia che usa un bot proprio; con il bot della piattaforma basta un collegamento, che vale per tutte le agenzie senza un bot proprio (e per le notifiche della piattaforma). Un bot serve un posto solo (la piattaforma o un'agenzia), e una chat è di una persona sola per bot. Il worker riceve i comandi in long polling (`telegram.poll`, §9.4), senza esporre indirizzi. Comandi: `/oggi`, `/problemi`, `/stop`, calcolati nell'ambito della persona collegata: dicono solo dei clienti che vede. Messaggi brevi in HTML di Telegram (titolo in grassetto con un simbolo, righe, link in fondo) con stato, account, inizio della caption e link, entro i 4096 caratteri. Una chat che blocca il bot si scollega, e la consegna lo dice.
 - **Email**: SMTP della piattaforma, impostato dall'amministratore della piattaforma (ADR 017), modelli HTML con versione testo, logo del brand. Errori, critici e riepilogo; successi solo se attivati. Canale disattivato finché non si configura un SMTP.
 - **Preferenze per utente**: i canali di ogni tipo di evento, salvati (`notification_prefs`) solo per i tipi dove la persona ha cambiato qualcosa: senza riga valgono i canali predefiniti di §12.2, che così cambiano con il codice senza migrazioni (piano 08, P4); nessun canale spegne il tipo. Un livello minimo per persona, sotto il quale la notifica resta nel pannello; "tutto ovunque" per i test. Livello minimo, ore di silenzio, ora, giorni e canali del riepilogo stanno in `notification_settings`, una riga per persona.
 - **Ore di silenzio**: disattivate di default; impostabili per utente; errori e critici passano sempre.
@@ -1458,7 +1458,7 @@ services:
   postgres: { image: postgres:18-alpine, networks: [internal], volumes: [pgdata:/var/lib/postgresql] }  # dalla 18 i dati stanno in /var/lib/postgresql/18/docker
   migrate:  { image: ghcr.io/grecomatteo/feedway:<versione>, command: migrate, networks: [internal],
               depends_on: { postgres: { condition: service_healthy } } }
-  web:      { image: ghcr.io/grecomatteo/feedway:<versione>, command: web, networks: [internal, edge],
+  web:      { image: ghcr.io/grecomatteo/feedway:<versione>, command: web, networks: [internal, edge, egress],
               volumes: [media:/data/media],
               depends_on: { migrate: { condition: service_completed_successfully } } }
   worker:   { image: ghcr.io/grecomatteo/feedway:<versione>, command: worker, networks: [internal, egress],
@@ -1508,8 +1508,9 @@ Conversioni video: una alla volta, `nice`, ffmpeg su due thread per l'anteprima 
 ### 16.7 Monitoraggio
 
 - `/api/health` (vivo) e `/api/ready` (database e coda raggiungibili).
-- Il worker scrive il proprio battito nella tabella `system_heartbeats`; la dashboard lo mostra e, se manca da più di 2 minuti, il web avvisa l'amministratore della piattaforma.
-- **Sorveglianza esterna**: il worker invia ogni minuto un segnale a un servizio esterno (healthchecks.io o Uptime Kuma su un altro server), che avvisa su Telegram o email se si ferma tutta la VPS.
+- Il worker scrive il proprio battito nella tabella `system_heartbeats` ogni 30 secondi (processo, istanza = nome del container, versione, code servite) e tiene anche il file letto dal controllo di salute di Docker, che non dipende dal database (piano 08 P5). Piattaforma → Integrazioni mostra l'ultimo battito di ogni istanza: verde, ambra oltre 1 minuto, rosso oltre 2 (la dashboard completa arriva con la tappa 11).
+- **Controllo dal web** (piano 08 Scelta 10): ogni minuto un web solo (lock consultivo) guarda i battiti. Se nessun worker ha battuto negli ultimi 2 minuti scrive `system.worker_down` già mandato, con le sue notifiche e consegne dovute subito, e lo manda lui per email e con il bot Telegram della piattaforma; quando un battito torna, `system.worker_up` allo stesso modo. Lo stato «fermo» è l'ultimo dei due eventi. Il dispatcher del worker che riparte non li manda di nuovo; una consegna fallita la riprova il web al minuto dopo finché il worker è fermo. Un'istanza che non batte da 7 giorni si toglie. Un'installazione il cui worker non ha mai battuto non dà l'allarme.
+- **Sorveglianza esterna** (`heartbeat.external`): ogni minuto un worker solo (lock) fa un `GET` all'indirizzo dell'integrazione `heartbeat` (healthchecks.io o Uptime Kuma su un altro server), con un timeout di 10 secondi e senza seguire redirect; il servizio avvisa su Telegram o email se le chiamate smettono, cioè se si ferma tutta la VPS o il worker. L'indirizzo è il segreto: cifrato, solo `https`, mai nei log, negli errori o nelle risposte; l'ultimo esito (ora, riuscito, codice) sta in `integrations.state`. Guida: `docs/runbooks/sorveglianza-esterna.md`.
 - Log JSON con ID richiesta e ID lavoro; metriche Prometheus facoltative in rete interna; Sentry/GlitchTip facoltativo.
 
 ---

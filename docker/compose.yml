@@ -108,7 +108,9 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
-    networks: [internal, edge, public]
+    # egress: the web sends the worker's alarm itself, by email and Telegram, when the worker is
+    # the one that stopped (plan 08 Scelta 10, spec §6.1)
+    networks: [internal, edge, public, egress]
     # spec §16.6: above the spec's 768 MB because the profile photo and the logo (HEIC up to
     # 40 MP) are decoded here (#117, ADR 021)
     mem_limit: 1536m

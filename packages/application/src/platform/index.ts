@@ -43,7 +43,33 @@ export type {
 } from './mail-settings.js'
 export {
   getPlatformTelegramBot,
+  platformTelegramBotName,
   removePlatformTelegramBot,
   replacePlatformTelegramBot,
 } from './telegram-bot.js'
 export type { PlatformBotRequest, PlatformTelegramBotDeps } from './telegram-bot.js'
+export {
+  WORKER_PROCESS,
+  WORKER_WATCH_LOCK,
+  beatsWithHealth,
+  recordWorkerBeat,
+  watchWorker,
+} from './worker-watch.js'
+export type {
+  ProcessBeat,
+  WorkerBeatDeps,
+  WorkerWatchDeps,
+  WorkerWatchOutcome,
+  WorkerWatchReport,
+} from './worker-watch.js'
+export {
+  EXTERNAL_WATCH_LOCK,
+  callExternalWatch,
+  parseExternalWatchState,
+  pingExternalWatch,
+} from './external-watch.js'
+export type {
+  ExternalWatchDeps,
+  ExternalWatchReport,
+  ExternalWatchState,
+} from './external-watch.js'

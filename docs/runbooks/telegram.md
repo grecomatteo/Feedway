@@ -33,9 +33,23 @@ Da Owner dell'agenzia: **Impostazioni → Integrazioni → Bot Telegram**, stess
 
 Ogni bot serve un posto solo: il bot della piattaforma non si usa anche per un'agenzia, né lo stesso bot per due agenzie. Il pannello rifiuta il token con «Questo bot è già usato altrove»: crea un altro bot con @BotFather.
 
+## 4. Collegare il proprio Telegram
+
+Ognuno, da **Profilo e preferenze** → **Telegram**: una riga per ogni bot che gli scrive (quello della piattaforma per le agenzie senza un bot proprio, e quello di ogni agenzia che ne ha uno).
+
+1. **Collega Telegram**, poi **Apri Telegram**: si apre la chat del bot.
+2. Premi **Avvia** entro 15 minuti. Il bot risponde «Collegato» e la riga nel pannello diventa verde da sola, entro un minuto.
+3. Da lì: `/oggi` (i post di oggi), `/problemi` (cosa c'è da sistemare), `/stop` (scollega). Si scollega anche da **Scollega** nel pannello.
+
+Un link vale una volta sola. Se un'altra persona preme **Avvia** dalla stessa chat Telegram, il collegamento passa a lei. Se qualcuno blocca il bot su Telegram, Feedway lo scollega alla prima notifica che non arriva.
+
+Il bot risponde solo nelle chat private, entro circa un minuto: il worker legge i messaggi in long polling, senza indirizzi da aprire. I messaggi sono formattati (grassetto, simboli per lo stato, link in fondo): un esempio è nell'anteprima della tappa 8.
+
+Dopo il cambio di bot, il bot nuovo risponde anche ai messaggi che gli sono stati scritti nelle 24 ore prima.
+
 ## Se il token smette di funzionare
 
-Se qualcuno revoca il token con @BotFather (`/revoke`), Telegram lo rifiuta: la pagina del bot lo dice in rosso. Fatti dare un token nuovo da @BotFather (`/token`) e incollalo con **Sostituisci token**. Il bot resta lo stesso: quando arriverà il collegamento delle persone (seconda parte del lavoro), chi era collegato resterà collegato.
+Se qualcuno revoca il token con @BotFather (`/revoke`), Telegram lo rifiuta: la pagina del bot lo dice in rosso. Fatti dare un token nuovo da @BotFather (`/token`) e incollalo con **Sostituisci token**. Se il bot resta lo stesso, chi era collegato resta collegato. Se metti il token di un altro bot, i collegamenti del bot di prima si tolgono da soli entro un minuto e ognuno collega di nuovo Telegram. Finché il token è rifiutato, il worker non chiede più niente a quel bot.
 
 ## Rete
 

@@ -56,7 +56,8 @@ export interface TelegramBotApi {
   /** Plain text, no preview of the links. */
   sendMessage(
     token: string,
-    message: { chatId: number; text: string },
+    /** `html` is for parse_mode HTML, already escaped (`notifications/telegram-format.ts`) */
+    message: { chatId: number; html: string },
     signal?: AbortSignal,
   ): Promise<void>
 }
