@@ -1144,8 +1144,8 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
   1. Un'azione sola, «Elimina» nel menu «⋯», che manda subito negli «Eliminati» con «Annulla» e senza finestra di conferma; niente «Archivia», che si confonde con il cliente archiviato.
   2. Gli «Eliminati» si svuotano da soli dopo 30 giorni, per tutti i clienti uguale; per cliente si sceglie solo dopo quanto una bozza dimenticata ci va da sola (30, 60, 90 giorni o «Mai», predefinito 30), con l'avviso nell'elenco 7 giorni prima, non una notifica.
   3. Una bozza vuota è senza testo, senza file, senza account e senza data (così una bozza nata da «Prepara» non lo è mai). Quelle nate dal salvataggio automatico e rimaste vuote si cancellano uscendo dall'editor, senza cestino; il lavoro notturno toglie quelle ferme da 24 ore.
-  5. Un post negli «Eliminati» non si modifica né si programma (409) finché non si ripristina; il Viewer vede gli «Eliminati» in sola lettura.
   4. Valgono anche per i post annullati, che oggi si eliminano come le bozze.
+  5. Un post negli «Eliminati» non si modifica né si programma (409) finché non si ripristina; il Viewer vede gli «Eliminati» in sola lettura.
 
 ### D-125 · Richiesta di collaborazione su un post (collab)
 
