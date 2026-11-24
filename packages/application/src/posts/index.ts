@@ -16,6 +16,8 @@ export { toCheckInput } from './to-check-input.js'
 // The content settings of a workspace and the notes of a post (plan 06 Task 7).
 export { createLabel, deleteLabel, listLabels, updateLabel } from './labels.js'
 export type { LabelDto } from './labels.js'
+export { findNextFreeSlot, listTimeSlots, replaceTimeSlots } from './time-slots.js'
+export type { NextFreeSlotDto, TimeSlotsDto } from './time-slots.js'
 export {
   createCaptionTemplate,
   deleteCaptionTemplate,

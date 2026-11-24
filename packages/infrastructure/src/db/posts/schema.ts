@@ -16,7 +16,9 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
+  time,
   unique,
   uniqueIndex,
   uuid,
@@ -377,5 +379,43 @@ export const accountGroups = pgTable(
       foreignColumns: [workspaces.organizationId, workspaces.id],
     }),
     check('account_groups_name', sql`char_length(${t.name}) between 1 and 80`),
+  ],
+)
+
+/**
+ * The usual times of a workspace (spec §11.6, plan 09 Task 9): a weekday (ISO, 1 Monday) and a
+ * local time of the agency's zone. The editor's «Prossima fascia libera» and the bulk schedule
+ * read them; they are replaced as a whole.
+ */
+export const timeSlots = pgTable(
+  'time_slots',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    weekday: smallint('weekday').notNull(),
+    localTime: time('local_time').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('time_slots_workspace_slot_idx').on(
+      t.organizationId,
+      t.workspaceId,
+      t.weekday,
+      t.localTime,
+    ),
+    foreignKey({
+      name: 'time_slots_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('time_slots_weekday', sql`${t.weekday} between 1 and 7`),
+    // hours and minutes only, as `plan_items.local_time`
+    check(
+      'time_slots_local_time',
+      sql`${t.localTime} < '24:00' and date_trunc('minute', ${t.localTime}) = ${t.localTime}`,
+    ),
   ],
 )

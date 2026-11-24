@@ -223,6 +223,10 @@ function contentSettingsRules(): Record<string, readonly Rule[]> {
     rules[`PATCH ${list}/{${param}}`] = manage
     rules[`DELETE ${list}/{${param}}`] = manage
   }
+  // the usual times (plan 09 Task 9): the same, and the next free one for every member
+  rules['GET /api/v1/orgs/{org}/workspaces/{id}/time-slots'] = read
+  rules['PUT /api/v1/orgs/{org}/workspaces/{id}/time-slots'] = manage
+  rules['GET /api/v1/orgs/{org}/workspaces/{id}/next-free-slot'] = read
   return rules
 }
 

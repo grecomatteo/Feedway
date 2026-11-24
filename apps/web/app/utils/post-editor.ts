@@ -463,7 +463,7 @@ export function keepEditorKey(postId: string, from: string) {
 // ---- «Quando» ----
 
 /** The day and the time it is now in a zone, as wall values. */
-function wallNow(timeZone: string, now: Date): { date: string; time: string } {
+export function wallNow(timeZone: string, now: Date): { date: string; time: string } {
   const parts: Record<string, string> = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
       timeZone,

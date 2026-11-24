@@ -29,6 +29,7 @@ import { drizzleIntegrations } from './integrations/repositories.js'
 import { drizzleMedia } from './media/repositories.js'
 import { drizzleUploadSessions } from './media/upload-sessions.js'
 import { drizzleContentSettings } from './posts/content-settings.js'
+import { drizzleTimeSlots } from './posts/time-slots.js'
 import { drizzlePlan } from './plan/repositories.js'
 import { drizzlePosts } from './posts/repositories.js'
 import { drizzlePublishing } from './posts/publishing.js'
@@ -101,6 +102,7 @@ function buildTx(db: DbExecutor, ids: IdGenerator, ctx: TxContext, marks?: TxMar
     notificationPrefs: drizzleNotificationPrefs(db, ctx),
     telegramLinks: drizzleTelegramLinks(db, ids, ctx),
     contentSettings: drizzleContentSettings(db),
+    timeSlots: drizzleTimeSlots(db),
     heartbeats: drizzleHeartbeats(db, ctx),
     audit: drizzleAuditLog(db, ids, ctx),
   }

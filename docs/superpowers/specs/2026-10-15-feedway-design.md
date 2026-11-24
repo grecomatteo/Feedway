@@ -865,7 +865,7 @@ Per ogni account IG, la griglia del profilo (con le proporzioni attuali delle mi
 
 ### 11.6 Programmazione in blocco e fasce orarie
 
-**Fasce orarie** per spazio (es. lun–ven 12:30 e 18:00). Usate da "Prossima fascia libera" e dalla programmazione in blocco.
+**Fasce orarie** per spazio (es. lun–ven 12:30 e 18:00): giorno della settimana e ora nel fuso dell'agenzia, al massimo 70, nella scheda «Contenuti» del cliente (piano 09, Task 9). Usate da "Prossima fascia libera" (la prima fascia futura senza un post del cliente programmato a quel minuto, entro 92 giorni) e dalla programmazione in blocco. Le legge chi vede il cliente, le cambia chi ne gestisce i contenuti (`workspace.content_settings.manage`).
 
 **In blocco**, in tre modi:
 1. **Da file**: trascini molti file (o li scegli con "Scegli file"), con avanzamento per file e complessivo; nasce una bozza per file (o un carosello per gruppo) in una **tabella modificabile** (miniatura, tipo, caption, account, data). "Distribuisci sulle fasce libere" riempie le date.

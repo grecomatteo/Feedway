@@ -2430,6 +2430,10 @@
       "time": "Ora",
       "zone": "ora di {city}",
       "usual": "Orario abituale di {client}",
+      "nextFreeSlot": "Prossima fascia libera",
+      "onFreeSlot": "La prima fascia oraria libera del cliente.",
+      "noFreeSlot": "Nessuna fascia libera nei prossimi tre mesi: scegli giorno e ora.",
+      "slotFailed": "La fascia libera non si è letta: riprova.",
       "tomorrow": "Domani, {when}",
       "noDay": "Scegli il giorno",
       "prevMonth": "Mese precedente",
@@ -2840,6 +2844,25 @@
       "zone": "fuso {zone} · lo sceglie l'Owner in Impostazioni → Agenzia",
       "agency": "nel fuso dell'agenzia · lo sceglie l'Owner in Impostazioni → Agenzia",
       "noneChoice": "Nessuno (18:00)"
+    },
+    "slots": {
+      "title": "Fasce orarie",
+      "text": "Gli orari in cui di solito esce un post. Nell'editor «Prossima fascia libera» propone la prima senza un post programmato.",
+      "loadError": "Le fasce orarie non si sono caricate.",
+      "copyMonday": "Copia il lunedì su mar–ven",
+      "add": "Aggiungi",
+      "addTo": "Aggiungi una fascia di {day}",
+      "timesOf": "Fasce di {day}",
+      "remove": "Togli le {time} di {day}",
+      "days": {
+        "1": "Lunedì",
+        "2": "Martedì",
+        "3": "Mercoledì",
+        "4": "Giovedì",
+        "5": "Venerdì",
+        "6": "Sabato",
+        "7": "Domenica"
+      }
     },
     "labels": {
       "title": "Etichette",
