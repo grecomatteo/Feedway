@@ -225,6 +225,9 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     color: 'verde',
   }),
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/labels/{labelId}': () => ({ color: 'viola' }),
+  'PUT /api/v1/orgs/{org}/workspaces/{id}/time-slots': () => ({
+    slots: [{ weekday: 1, localTime: '12:30' }],
+  }),
   'POST /api/v1/orgs/{org}/workspaces/{id}/caption-templates': () => ({
     kind: 'signature',
     name: 'Firma della batteria',
@@ -466,6 +469,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   caption_templates: 'select * from caption_templates',
   account_groups: 'select * from account_groups',
   plan_items: 'select * from plan_items',
+  time_slots: 'select * from time_slots',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {

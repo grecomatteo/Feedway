@@ -21,7 +21,7 @@ export async function openContentSettings(
   if (opts.write && !can(current, 'workspace.content_settings.manage', scope))
     throw new DomainError(
       'FORBIDDEN',
-      'Etichette, modelli e gruppi di questo cliente li cambia solo chi gestisce i suoi contenuti',
+      'Le impostazioni dei contenuti di questo cliente le cambia solo chi gestisce i suoi contenuti',
     )
   return { current, scope }
 }
@@ -47,7 +47,7 @@ export function recordContentSetting(
   tx: Tx,
   actor: OrgActor,
   scope: PostScope,
-  entity: 'label' | 'caption_template' | 'account_group',
+  entity: 'label' | 'caption_template' | 'account_group' | 'time_slots',
   entityId: string,
   change: 'created' | 'updated' | 'deleted',
   ip: string | null,

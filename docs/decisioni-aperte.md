@@ -796,6 +796,14 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - `planItemState(item, post, now, timeZone)` e `plannedVsPost(item, post, timeZone)` hanno il fuso in più rispetto al piano, perché giorno e ora sono locali;
       - un post non annullato conta come preparazione; con il Task 14 (P8, «Eliminati») anche un post nel cestino dovrà ridare «Da preparare»: `PlanPostFacts` porterà `trashed`;
       - un contenuto senza ora va dopo quelli con l'ora nel suo giorno.
+  20. **Fasce orarie (Task 9, scelte provvisorie):**
+      - le fasce sono del fuso dell'agenzia, come i giorni del calendario; l'editor riporta la fascia nel fuso del post (di solito lo stesso). Una fascia alle 02:30 segue §9.2: il giorno del cambio in avanti diventa le 03:30, quello all'indietro è la prima 02:30; due fasce che cadono nello stesso istante contano una volta;
+      - una fascia è «occupata» da un post del cliente programmato (o in uscita) a quel minuto esatto; una bozza con il giorno non la occupa;
+      - «Prossima fascia libera» guarda i prossimi 92 giorni (oltre risponde «nessuna»); «Distribuisci sulle fasce libere» (`distributeOnSlots`, per il Task 10) un anno;
+      - al massimo 70 fasce per cliente (dieci al giorno); la lista si salva intera (`PUT`), una fascia ripetuta conta una volta, e salvare la stessa lista non scrive nulla; ogni cambio scrive `workspace.settings_changed` con `entity = time_slots` nel registro, senza gli orari;
+      - le legge e chiede la prossima libera chi vede il cliente (Viewer compreso), le cambia chi ha `workspace.content_settings.manage`; con il cliente archiviato si leggono e non si cambiano (409);
+      - l'API usa `?after=` (un istante ISO) invece del `?dopo=` del piano, perché l'API usa i nomi inglesi (punto 18);
+      - nella pagina: una riga per giorno con gli orari come chip, «Aggiungi» ogni quarto d'ora e «Copia il lunedì su mar–ven» (dà a martedì–venerdì gli orari del lunedì e toglie i loro); ogni cambio si salva subito. Nell'editor il pulsante c'è solo se il cliente ha una fascia libera (una lettura all'apertura) e al clic la chiede di nuovo, così salta un post programmato nel frattempo da altri.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico

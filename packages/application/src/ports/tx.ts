@@ -11,6 +11,7 @@ import type { MediaRepository } from './media.js'
 import type { ContentSettingsRepository } from './content-settings.js'
 import type { PlanRepository } from './plan.js'
 import type { PostRepository } from './posts.js'
+import type { TimeSlotsRepository } from './time-slots.js'
 import type {
   NotificationPrefsRepository,
   NotificationsRepository,
@@ -74,6 +75,7 @@ export interface Tx {
   notificationPrefs: NotificationPrefsRepository
   telegramLinks: TelegramLinksRepository
   contentSettings: ContentSettingsRepository
+  timeSlots: TimeSlotsRepository
   heartbeats: SystemHeartbeatsRepository
   audit: AuditLog
 }

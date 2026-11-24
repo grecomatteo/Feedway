@@ -9,6 +9,8 @@ import { proposedWhen, type PostEditor } from '~/composables/usePostEditor'
  * said («Orario abituale di Forno Luce») while it stays. «Pubblica subito» (plan 07 Scelta 2) is
  * for who can schedule, on a draft: the day and the time step aside (they stay for «Programma»)
  * and the button at the top becomes «Pubblica su N account», which asks first (screen 11).
+ * «Prossima fascia libera» (plan 09 Task 9) is there when the client has usual times: it asks the
+ * server for the first one without a scheduled post and writes its day and time.
  */
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const MODES = [
@@ -47,6 +49,53 @@ const time = computed({
     e.touched()
   },
 })
+
+// ---- «Prossima fascia libera»: shown when the client has a free slot ahead; the click asks
+// again, so a post scheduled meanwhile by someone else is skipped
+const org = useOrganization()
+const { call } = useApi()
+type FreeSlot = { at: string; localDate: string; localTime: string }
+const hasSlots = ref(false)
+const slotState = ref<'idle' | 'asking' | 'none' | 'failed'>('idle')
+const chosenSlot = ref<{ localDate: string; localTime: string } | null>(null)
+const askSlot = () =>
+  call<{ slot: FreeSlot | null }>(
+    'GET',
+    org.api(`/workspaces/${encodeURIComponent(props.client.id)}/next-free-slot`),
+  )
+onMounted(async () => {
+  if (!e.editable.value) return
+  try {
+    hasSlots.value = (await askSlot()).slot !== null
+  } catch {
+    // the button stays away: the day and the time are still there
+  }
+})
+async function useFreeSlot() {
+  slotState.value = 'asking'
+  try {
+    const { slot } = await askSlot()
+    if (!slot) {
+      slotState.value = 'none'
+      return
+    }
+    // the slot is of the agency's zone; the post may keep another one (D-58)
+    const wall = wallNow(e.timeZone.value, new Date(slot.at))
+    e.dayProposed.value = false
+    e.when.value = { localDate: wall.date, localTime: wall.time }
+    chosenSlot.value = { ...e.when.value }
+    e.touched()
+    slotState.value = 'idle'
+  } catch {
+    slotState.value = 'failed'
+  }
+}
+const onSlot = computed(
+  () =>
+    chosenSlot.value !== null &&
+    e.when.value?.localDate === chosenSlot.value.localDate &&
+    e.when.value.localTime === chosenSlot.value.localTime,
+)
 
 const isDefault = computed(
   () => props.client.defaultPostTime && e.when.value?.localTime === props.client.defaultPostTime,
@@ -125,14 +174,42 @@ const today = computed(() => {
           <UIcon name="i-lucide-globe" class="size-4" aria-hidden="true" />
           {{ zone }}
         </p>
+        <UButton
+          v-if="hasSlots && e.editable.value"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-clock-arrow-up"
+          class="h-9"
+          :loading="slotState === 'asking'"
+          data-next-free-slot
+          @click="useFreeSlot"
+        >
+          {{ $t('posts.when.nextFreeSlot') }}
+        </UButton>
         <p
-          v-if="isDefault"
+          v-if="isDefault && !onSlot"
           class="text-detail text-(--app-text-muted) max-md:hidden"
           data-when-usual
         >
           {{ $t('posts.when.usual', { client: client.name }) }}
         </p>
       </div>
+      <p
+        v-if="e.mode.value !== 'now' && (onSlot || slotState === 'none' || slotState === 'failed')"
+        class="text-detail"
+        :class="slotState === 'failed' ? 'text-(--app-danger)' : 'text-(--app-text-muted)'"
+        aria-live="polite"
+        data-when-slot
+      >
+        {{
+          slotState === 'none'
+            ? $t('posts.when.noFreeSlot')
+            : slotState === 'failed'
+              ? $t('posts.when.slotFailed')
+              : $t('posts.when.onFreeSlot')
+        }}
+      </p>
       <p
         v-if="e.mode.value !== 'now' && tomorrowLine"
         class="flex items-center gap-1.5 text-detail"

@@ -119,6 +119,7 @@ export type {
   ContentSettingsRepository,
   LabelRecord,
 } from './ports/content-settings.js'
+export type { TimeSlotsRepository } from './ports/time-slots.js'
 export type {
   ExclusiveLock,
   MadeFile,

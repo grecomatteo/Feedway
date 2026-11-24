@@ -4,7 +4,7 @@ import { selectable } from '~/composables/usePostEditor'
 
 /**
  * «Impostazioni dei contenuti», a tab of the client's page (spec §11.7, plan 06 Task 7, design
- * E8): the time new posts start from, the labels, the caption templates and the account groups.
+ * E8): the time new posts start from, the usual times (plan 09 Task 9), the labels, the caption templates and the account groups.
  * The client's Manager and above change them (`workspace.content_settings.manage`); anyone else
  * who opens the address reads them. The time zone is the agency's, chosen by the Owner (D-58).
  */
@@ -264,6 +264,8 @@ const actions = (edit: () => void, remove: () => void) => [
         {{ timeProblem }}
       </p>
     </section>
+
+    <ContentTimeSlots v-if="base" :base="base" :manages="manages" />
 
     <LoadFailed v-if="failed" :text="$t('contentSettings.loadError')" @retry="settings.load()" />
 

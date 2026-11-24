@@ -250,7 +250,69 @@ export const deleteNoteRoute = defineContract({
   scope: 'organization',
 })
 
+// ---- the usual times (spec §11.6, plan 09 Task 9): a weekday (ISO, 1 Monday) and a time of the
+// agency's zone; the section saves the whole list
+
+export const TimeSlotDto = z.object({
+  weekday: z.number().int().min(1).max(7),
+  localTime: z.string().regex(/^\d{2}:\d{2}$/),
+})
+export type TimeSlotDto = z.infer<typeof TimeSlotDto>
+
+export const listTimeSlotsRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/time-slots',
+  summary: 'Le fasce orarie del cliente, in ordine di giorno e ora (fuso dell’agenzia)',
+  request: { params: WorkspaceParams },
+  response: z.object({ items: z.array(TimeSlotDto) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const replaceTimeSlotsRoute = defineContract({
+  method: 'PUT',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/time-slots',
+  summary: 'Sostituisce le fasce orarie del cliente (al massimo 70; una ripetuta conta una volta)',
+  request: {
+    params: WorkspaceParams,
+    body: z.strictObject({
+      slots: z
+        .array(z.strictObject({ weekday: z.number(), localTime: z.string().max(10) }))
+        .max(200),
+    }),
+  },
+  response: z.object({ items: z.array(TimeSlotDto) }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const nextFreeSlotRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/next-free-slot',
+  summary:
+    'La prossima fascia libera del cliente: la prima dopo adesso (o dopo `after`) senza un post programmato a quell’ora',
+  request: {
+    params: WorkspaceParams,
+    query: z.strictObject({ after: Timestamp.optional() }),
+  },
+  response: z.object({
+    /** null: no slots, or every one taken for the next three months */
+    slot: z
+      .object({
+        at: Timestamp,
+        localDate: z.string(),
+        localTime: z.string(),
+      })
+      .nullable(),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const contentSettingsRoutes = [
+  listTimeSlotsRoute,
+  replaceTimeSlotsRoute,
+  nextFreeSlotRoute,
   listLabelsRoute,
   createLabelRoute,
   updateLabelRoute,
