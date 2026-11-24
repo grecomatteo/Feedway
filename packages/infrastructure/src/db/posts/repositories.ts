@@ -11,8 +11,10 @@ import {
   lt,
   lte,
   ne,
+  notExists,
   notInArray,
   or,
+  type SQL,
   sql,
 } from 'drizzle-orm'
 import type {
@@ -568,6 +570,24 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               ),
           ),
         )
+      if (q.emptyOnly === true) {
+        const none = (table: typeof postMedia | typeof postTargets | typeof postNotes) =>
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(table)
+              .where(and(eq(table.organizationId, organizationId), eq(table.postId, posts.id))),
+          )
+        const blank = (text: SQL) => sql`coalesce(${text}, '') ~ '^[[:space:]]*$'`
+        where.push(
+          none(postMedia),
+          none(postTargets),
+          none(postNotes),
+          blank(sql`${posts.caption}`),
+          blank(sql`${posts.captionByPlatform}->>'instagram'`),
+          blank(sql`${posts.captionByPlatform}->>'facebook'`),
+        )
+      }
       const rows = await db
         .select(postColumns)
         .from(posts)

@@ -179,6 +179,54 @@ describe('the modules', () => {
   })
 })
 
+test(`more than ${String(CALENDAR_MAX_ITEMS)} entries of a module: the first ones, and truncated`, async () => {
+  const many = {
+    name: 'plan',
+    permissions: [],
+    queues: [],
+    calendarEntries: {
+      id: 'plan',
+      entries: (_tx, query) =>
+        Promise.resolve(
+          Array.from({ length: CALENDAR_MAX_ITEMS + 5 }, (_, i): CalendarEntry => ({
+            source: 'plan',
+            id: `e-${String(i)}`,
+            workspaceId: query.workspaceIds[0] ?? '',
+            localDate: query.from,
+            localTime: null,
+            title: 'Contenuto',
+            kind: 'plan',
+            data: {},
+          })),
+        ),
+    },
+  } satisfies ModuleDefinition
+  const r = await getCalendar({ uow, clock, modules: [many] }, actor(), {
+    from: '2027-03-01',
+    to: '2027-03-07',
+    workspaceId: gino,
+  })
+  expect(r.posts).toEqual([])
+  expect(r.entries).toHaveLength(CALENDAR_MAX_ITEMS)
+  expect(r.truncated).toBe(true)
+})
+
+test('a quick filter of days counts only inside the period asked', async () => {
+  // the clock says 24 November 2026: «Oggi» inside a week that holds it, nothing outside
+  const today = await post(gino, { when: new Date('2026-11-24T15:00:00Z') })
+  const tomorrow = await post(gino, { when: new Date('2026-11-25T15:00:00Z') })
+  const read = (from: string, to: string) =>
+    getCalendar({ uow, clock, modules: [] }, actor(), {
+      from,
+      to,
+      workspaceId: gino,
+      filters: { quick: 'today' },
+    }).then((r) => r.posts.map((p) => p.id))
+  expect(await read('2026-11-23', '2026-11-29')).toEqual([today])
+  expect(await read('2026-11-25', '2026-11-29')).toEqual([])
+  expect(tomorrow).toBeTruthy()
+})
+
 describe('the days', () => {
   test('a post at 02:30 of the two changes of the clocks is in its day of Rome', async () => {
     // 25/10/2026 02:30 (twice: the first) and 28/03/2027 02:30 (missing: 03:30)

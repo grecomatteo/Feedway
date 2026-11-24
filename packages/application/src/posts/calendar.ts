@@ -163,7 +163,8 @@ export async function deleteEmptyDrafts(
       authorIds: input.all ? [] : [actor.userId],
       accountIds: [],
       labelIds: [],
-      limit: EMPTY_DRAFTS_MAX * 4,
+      emptyOnly: true,
+      limit: EMPTY_DRAFTS_MAX,
     })
   ).filter(isEmptyDraft)
   let deleted = 0

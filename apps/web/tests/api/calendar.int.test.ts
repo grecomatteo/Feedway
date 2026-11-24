@@ -12,7 +12,7 @@ let env: ApiEnv
 let org: { id: string; slug: string }
 const people = {} as Record<'owner' | 'manager' | 'editor' | 'viewer', Person>
 const cookies = {} as Record<keyof typeof people, string>
-let forno: string, gino: string, igForno: string, igGino: string
+let forno: string, gino: string, archived: string, igForno: string, igGino: string
 
 type Who = keyof typeof people
 
@@ -97,9 +97,10 @@ beforeAll(async () => {
   people.manager = await env.person(org.id, 'member')
   people.editor = await env.person(org.id, 'member')
   people.viewer = await env.person(org.id, 'member')
-  ;({ forno, gino, igForno, igGino } = await seed(env.tdb.runtimeUrl, async (s) => {
+  ;({ forno, gino, archived, igForno, igGino } = await seed(env.tdb.runtimeUrl, async (s) => {
     const f = await s.workspace(org.id, { name: 'Forno Luce' })
     const g = await s.workspace(org.id, { name: 'Pizzeria Da Gino' })
+    const a = await s.workspace(org.id, { name: 'Vecchio cliente', archived: true })
     // the Manager, the Editor and the Viewer see Forno Luce only
     await s.workspaceMember(org.id, f, people.manager.userId, 'manager')
     await s.workspaceMember(org.id, f, people.editor.userId, 'editor')
@@ -107,6 +108,7 @@ beforeAll(async () => {
     return {
       forno: f,
       gino: g,
+      archived: a,
       igForno: await s.account(org.id, { platform: 'instagram', workspaceIds: [f] }),
       igGino: await s.account(org.id, { platform: 'instagram', workspaceIds: [g] }),
     }
@@ -278,6 +280,59 @@ describe('drafts without a date', () => {
       [other],
     )
     expect(log.rows[0]).toEqual({ n: 1 })
+  })
+
+  test('an archived client asked by name is refused, with or without empty drafts', async () => {
+    const body = { all: true, workspaceId: archived }
+    expect((await call('owner', 'POST', '/calendar/drafts/delete-empty', body)).status).toBe(409)
+    const draft = await post(archived, { status: 'draft', when: null, caption: '' })
+    expect((await call('owner', 'POST', '/calendar/drafts/delete-empty', body)).status).toBe(409)
+    expect(await exists(draft)).toBe(true)
+  })
+
+  test('a draft with an internal note stays; older empty drafts are found behind many full ones', async () => {
+    const noted = await post(gino, { status: 'draft', when: null, caption: '' })
+    await env.admin.pool.query(
+      `insert into post_notes (id, organization_id, workspace_id, post_id, author_id, body)
+       values ($1, $2, $3, $4, $5, 'Chiedere le foto al cliente')`,
+      [randomUUID(), org.id, gino, noted, people.manager.userId],
+    )
+    const old = await post(gino, { status: 'draft', when: null, caption: '' })
+    await env.admin.pool.query(
+      `update posts set updated_at = now() - interval '1 year' where id = $1`,
+      [old],
+    )
+    // more full drafts, changed later, than the drafts read at once
+    await env.admin.pool.query(
+      `insert into posts (id, organization_id, workspace_id, type, caption, status, options,
+                          created_by, updated_by)
+       select gen_random_uuid(), $1, $2, 'photo', 'Idea', 'draft',
+              '{"shareToFeed":true,"choices":[]}', $3, $3
+       from generate_series(1, 2100)`,
+      [org.id, gino, people.owner.userId],
+    )
+    const r = await call('owner', 'POST', '/calendar/drafts/delete-empty', {
+      all: true,
+      workspaceId: gino,
+    })
+    expect(r.json).toEqual({ deleted: 1 })
+    expect(await exists(old)).toBe(false)
+    expect(await exists(noted)).toBe(true)
+  })
+
+  test('a Manager with `all` takes the empty drafts of others in their client', async () => {
+    const editors = await post(forno, {
+      status: 'draft',
+      when: null,
+      caption: '',
+      author: people.editor.userId,
+    })
+    expect(
+      (await call('manager', 'POST', '/calendar/drafts/delete-empty', { all: true })).json,
+    ).toEqual({
+      deleted: 1,
+    })
+    expect(await exists(editors)).toBe(false)
   })
 
   test('the Viewer deletes nothing', async () => {

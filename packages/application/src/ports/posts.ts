@@ -106,6 +106,11 @@ export interface CalendarPostQuery {
   accountIds: readonly string[]
   /** one of these labels */
   labelIds: readonly string[]
+  /**
+   * only drafts with no file, no account, no internal note and a text of blanks only: the
+   * candidates of «Elimina le bozze vuote», chosen in the query so the limit counts only them
+   */
+  emptyOnly?: boolean
   limit: number
 }
 

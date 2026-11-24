@@ -103,7 +103,7 @@ async function clientsOf(
   if (workspaceId !== undefined) {
     const asked = isUuid(workspaceId) ? visible.find((w) => w.id === workspaceId) : undefined
     if (!asked) throw workspaceNotFound()
-    return { current, ids: [asked.id] }
+    return { current, ids: [asked.id], archived: asked.archivedAt !== null }
   }
   const wanted = new Set(narrow)
   return {
@@ -111,6 +111,7 @@ async function clientsOf(
     ids: visible
       .filter((w) => w.archivedAt === null && (wanted.size === 0 || wanted.has(w.id)))
       .map((w) => w.id),
+    archived: false,
   }
 }
 
@@ -280,7 +281,10 @@ export async function removeEmptyDrafts(
 ): Promise<{ deleted: number }> {
   const { organizationId } = actor
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
-    const { current, ids } = await clientsOf(tx, actor, input.workspaceId, [])
+    const { current, ids, archived } = await clientsOf(tx, actor, input.workspaceId, [])
+    // an archived client asked by name answers the same whether it has empty drafts or not
+    if (archived)
+      throw new DomainError('CONFLICT', 'Il cliente è archiviato: i suoi post non si modificano')
     return deleteEmptyDrafts(tx, current, {
       workspaceIds: ids,
       all: input.all ?? false,
