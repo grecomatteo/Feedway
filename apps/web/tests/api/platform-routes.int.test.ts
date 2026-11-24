@@ -60,13 +60,21 @@ const TEST = route('POST /api/v1/platform/mail-settings/test')
 const BOT = route('GET /api/v1/platform/telegram-bot')
 const SET_BOT = route('PUT /api/v1/platform/telegram-bot')
 const REMOVE_BOT = route('DELETE /api/v1/platform/telegram-bot')
+const MONITORING = route('GET /api/v1/platform/monitoring')
+const SET_WATCH = route('PUT /api/v1/platform/external-watch')
+const REMOVE_WATCH = route('DELETE /api/v1/platform/external-watch')
+const TEST_WATCH = route('POST /api/v1/platform/external-watch/test')
 
-test('the platform routes are the system email and the Telegram bot', () => {
+test('the platform routes are the system email, the Telegram bot and the monitoring', () => {
   expect(platformRoutes.map(routeKey).sort()).toEqual([
+    'DELETE /api/v1/platform/external-watch',
     'DELETE /api/v1/platform/telegram-bot',
     'GET /api/v1/platform/mail-settings',
+    'GET /api/v1/platform/monitoring',
     'GET /api/v1/platform/telegram-bot',
+    'POST /api/v1/platform/external-watch/test',
     'POST /api/v1/platform/mail-settings/test',
+    'PUT /api/v1/platform/external-watch',
     'PUT /api/v1/platform/mail-settings',
     'PUT /api/v1/platform/telegram-bot',
   ])
@@ -92,7 +100,7 @@ test.each(
   const text = await answer.text()
   expect(answer.status, text).toBe(404)
   expect((JSON.parse(text) as ErrorJson).error.code).toBe('NOT_FOUND')
-  expect(text).not.toMatch(/smtp|mail|telegram|bot/i)
+  expect(text).not.toMatch(/smtp|mail|telegram|bot|worker|watch/i)
   const after = await fx.env.admin.pool.query('select count(*)::int as n from integrations')
   expect(after.rows).toEqual(before.rows)
 })
@@ -159,13 +167,14 @@ test('a change or a test needs a recent reauth; reading does not', async () => {
     'update sessions set reauthenticated_at = null where user_id = $1',
     [platformUserId],
   )
-  for (const r of [PUT, TEST, SET_BOT, REMOVE_BOT]) {
+  for (const r of [PUT, TEST, SET_BOT, REMOVE_BOT, SET_WATCH, REMOVE_WATCH]) {
     const answer = await call(r, platformCookie)
     const text = await answer.text()
     expect(answer.status, `${routeKey(r)}: ${text}`).toBe(403)
     expect((JSON.parse(text) as ErrorJson).error.code).toBe('REAUTH_REQUIRED')
   }
   expect((await call(GET, platformCookie)).status).toBe(200)
+  expect((await call(MONITORING, platformCookie)).status).toBe(200)
 })
 
 test('the role is read at every request: a demoted administrator gets 404', async () => {
@@ -278,4 +287,73 @@ test('the bot taken away: none any more, and taking it away again is fine', asyn
     "select data from audit_log where action = 'platform.telegram_bot_removed'",
   )
   expect(rows.map((r) => r.data)).toEqual([{ botUsername: 'feedway_mock_bot' }])
+})
+
+// the address of the external watch is a secret: it goes in and never comes back
+const WATCH_URL = 'https://127.0.0.1:1/ping/uuid-della-batteria'
+
+test('the monitoring: each worker with its colour, the watch not set', async () => {
+  await fx.env.admin.pool.query('delete from system_heartbeats')
+  await fx.env.admin.pool.query(
+    `insert into system_heartbeats (process, instance, last_beat_at, details) values
+       ('worker', 'vivo', now() - interval '10 seconds', '{"version":"0.14.0","queues":30}'),
+       ('worker', 'fermo', now() - interval '5 minutes', '{"version":"0.13.2","queues":30}')`,
+  )
+  const answer = await call(MONITORING, platformCookie)
+  expect(answer.status).toBe(200)
+  expect(await answer.json()).toEqual({
+    workers: [
+      { instance: 'vivo', lastBeatAt: expect.any(String), health: 'ok', version: '0.14.0' },
+      { instance: 'fermo', lastBeatAt: expect.any(String), health: 'silent', version: '0.13.2' },
+    ],
+    external: null,
+  })
+})
+
+test('the external watch: an address that is not https is refused', async () => {
+  const answer = await call(SET_WATCH, platformCookie, { url: 'http://hc-ping.com/abc' })
+  const text = await answer.text()
+  expect(answer.status, text).toBe(422)
+  expect(text).toContain('https://')
+})
+
+test('the external watch: saved, tried, read back without its address', async () => {
+  const put = await call(SET_WATCH, platformCookie, { url: WATCH_URL })
+  expect(put.status, await put.text()).toBe(200)
+
+  const tried = await call(TEST_WATCH, platformCookie, {})
+  const triedText = await tried.text()
+  expect(tried.status, triedText).toBe(200)
+  expect(JSON.parse(triedText)).toMatchObject({
+    configured: true,
+    last: { ok: false, problem: 'network', status: null },
+  })
+  expect(triedText).not.toContain('uuid-della-batteria')
+
+  const read = await call(MONITORING, platformCookie)
+  const text = await read.text()
+  expect(text).not.toContain('uuid-della-batteria')
+  expect((JSON.parse(text) as { external: unknown }).external).toMatchObject({
+    addressSet: true,
+    last: { ok: false, problem: 'network' },
+  })
+  const { rows } = await fx.env.admin.pool.query<{ data: unknown }>(
+    "select data from audit_log where action = 'platform.external_watch_changed'",
+  )
+  expect(rows.map((r) => r.data)).toEqual([{}])
+})
+
+test('the external watch taken away: nothing to call, and taking it away again is fine', async () => {
+  expect((await call(REMOVE_WATCH, platformCookie)).status).toBe(200)
+  const read = (await (await call(MONITORING, platformCookie)).json()) as { external: unknown }
+  expect(read.external).toBeNull()
+  expect(await (await call(TEST_WATCH, platformCookie, {})).json()).toEqual({
+    configured: false,
+    last: null,
+  })
+  expect((await call(REMOVE_WATCH, platformCookie)).status).toBe(200)
+  const { rows } = await fx.env.admin.pool.query(
+    "select 1 from audit_log where action = 'platform.external_watch_removed'",
+  )
+  expect(rows).toHaveLength(1)
 })

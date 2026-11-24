@@ -3224,7 +3224,59 @@
   },
   "platformIntegrations": {
     "title": "Integrazioni della piattaforma",
-    "explain": "I servizi che valgono per tutte le agenzie. Li vedi solo tu, come amministratore della piattaforma."
+    "explain": "I servizi che valgono per tutte le agenzie e lo stato del worker. Li vedi solo tu, come amministratore della piattaforma."
+  },
+  "workerStatus": {
+    "title": "Stato del worker",
+    "none": "Nessun battito",
+    "health": {
+      "ok": "In funzione",
+      "late": "In ritardo",
+      "silent": "Fermo"
+    },
+    "lastBeat": "Ultimo battito {when}",
+    "version": "versione {version}",
+    "noneTitle": "Nessun battito ricevuto",
+    "noneExplain": "Il worker batte ogni 30 secondi da quando parte. Se non compare niente, non è mai partito: controlla con docker compose ps sul server.",
+    "silentExplain": "Il worker non batte da più di 2 minuti: pubblicazioni e notifiche sono ferme. Ti abbiamo mandato un avviso per email; quando riparte ne arriva un altro.",
+    "loadError": "Non riesco a leggere lo stato del worker."
+  },
+  "externalWatch": {
+    "title": "Sorveglianza esterna",
+    "none": "Da configurare",
+    "waiting": "In attesa della prima chiamata",
+    "active": "Attiva",
+    "failing": "Ultima chiamata fallita",
+    "explain": "Un servizio fuori dal server, come healthchecks.io, che Feedway chiama ogni minuto. Se il server si ferma del tutto e le chiamate smettono, è lui ad avvisarti.",
+    "address": "Indirizzo",
+    "addressSaved": "Salvato il {when}",
+    "last": "Ultima chiamata",
+    "never": "Non ancora chiamato: succede entro un minuto",
+    "outcome": {
+      "ok": "Riuscita {when}",
+      "timeout": "Nessuna risposta in 10 secondi {when}",
+      "network": "Servizio non raggiungibile {when}",
+      "status": "Il servizio ha risposto {status} {when}"
+    },
+    "test": "Prova",
+    "replace": "Sostituisci",
+    "urlField": "Indirizzo del controllo",
+    "urlHelp": "Quello che healthchecks.io mostra come «Ping URL», per esempio https://hc-ping.com/… Feedway non lo mostra più dopo averlo salvato.",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "saved": "Indirizzo salvato",
+    "removed": "Sorveglianza tolta",
+    "remove": "Togli la sorveglianza",
+    "removeShort": "Togli",
+    "removeExplain": "Feedway smette di chiamare il servizio, che dopo qualche minuto ti segnalerà il silenzio: mettilo in pausa anche lì.",
+    "loadError": "Non riesco a leggere la sorveglianza esterna.",
+    "guide": {
+      "title": "Come impostarla",
+      "account": "Crea un account gratuito su healthchecks.io.",
+      "check": "Aggiungi un controllo: periodo 1 minuto, tolleranza 3 minuti, e scegli dove vuoi l'allarme (email, Telegram).",
+      "copy": "Copia il suo «Ping URL».",
+      "paste": "Incollalo qui sopra e premi Salva. Entro un minuto healthchecks.io lo vede verde."
+    }
   },
   "telegramBot": {
     "title": "Bot Telegram",

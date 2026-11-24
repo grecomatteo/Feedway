@@ -294,7 +294,7 @@ test('an address that does not answer in time is a timeout, and the address stay
     pinger: createExternalWatchPinger(),
     timeoutMs: 200,
   })
-  expect(report).toEqual({
+  expect(report).toMatchObject({
     outcome: 'called',
     result: { ok: false, problem: 'timeout', status: null },
   })

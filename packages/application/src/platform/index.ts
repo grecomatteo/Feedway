@@ -73,3 +73,15 @@ export type {
   ExternalWatchReport,
   ExternalWatchState,
 } from './external-watch.js'
+export {
+  getPlatformMonitoring,
+  removeExternalWatch,
+  replaceExternalWatch,
+  testExternalWatch,
+} from './monitoring.js'
+export type {
+  ExternalWatchTest,
+  PlatformMonitoring,
+  PlatformMonitoringDeps,
+  PlatformMonitoringRequest,
+} from './monitoring.js'

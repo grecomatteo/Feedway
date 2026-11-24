@@ -130,6 +130,9 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
   'PUT /api/v1/platform/telegram-bot': () => ({ token: TELEGRAM_MOCK.bots.platform.token }),
   // «Collega Telegram»: the platform's bot (the person's own links, plan 08 Task 7)
   'POST /api/v1/me/telegram/links': () => ({ bot: 'platform' }),
+  'PUT /api/v1/platform/external-watch': () => ({
+    url: 'https://hc-ping.com/esempio-della-batteria',
+  }),
   // the fake Graph API's system user (META_MODE=mock): a fake token, never a real one
   'POST /api/v1/orgs/{org}/connections/system-user': () => ({
     token: META_MOCK.tokens.systemUser,

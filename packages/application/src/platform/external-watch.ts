@@ -33,7 +33,8 @@ export interface ExternalWatchDeps {
 }
 
 export type ExternalWatchReport =
-  { outcome: 'busy' | 'not_configured' } | { outcome: 'called'; result: ExternalPingResult }
+  | { outcome: 'busy' | 'not_configured' }
+  | { outcome: 'called'; result: ExternalPingResult; state: ExternalWatchState }
 
 export function parseExternalWatchState(value: unknown): ExternalWatchState | null {
   const v = value as Partial<Record<keyof ExternalWatchState, unknown>> | null
@@ -83,7 +84,7 @@ export async function callExternalWatch(
   // the outcome only: never the address
   if (!result.ok)
     deps.logger.warn({ problem: result.problem, status: result.status }, 'external watch failed')
-  return { outcome: 'called', result }
+  return { outcome: 'called', result, state }
 }
 
 /** Job `heartbeat.external`: one worker at a time calls the watch. */
