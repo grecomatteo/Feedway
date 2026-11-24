@@ -321,8 +321,8 @@ async function pollBot(
       if (!(await saveState(deps, bot, state))) break
     }
     if (signal?.aborted === true || secondsLeft() < 1) break
-    // an empty answer long before its time (not Telegram's way): no loop of calls, the next run
-    if (updates.length === 0 && deps.clock.now().getTime() - asked < (wait - 1) * 1000) break
+    // an empty answer well before its time (not Telegram's way): no loop of calls, the next run
+    if (updates.length === 0 && deps.clock.now().getTime() - asked < wait * 1000 - 500) break
   }
   return handled
 }

@@ -1,5 +1,6 @@
 import {
   can,
+  DomainError,
   fileTitle,
   type NotificationKindRule,
   type OrgActor,
@@ -58,7 +59,11 @@ export function postTitles(
             platformRole: null,
             orgRole: 'member',
             memberships: new Map(),
-          }).catch(() => null))
+          }).catch((error: unknown) => {
+            // out of the agency since: no file to name; anything else is the transaction's
+            if (error instanceof DomainError && error.code === 'FORBIDDEN') return null
+            throw error
+          }))
   return async (post) => {
     const headline = postHeadline(post.caption)
     if (headline !== null) return headline

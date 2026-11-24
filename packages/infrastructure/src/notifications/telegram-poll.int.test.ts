@@ -318,31 +318,53 @@ test('the offset: an update is answered once, by one of two workers polling toge
   expect(sentTo(101).filter((m) => m.text.includes('notify.telegram.today'))).toHaveLength(1)
 })
 
+const longPolls = () =>
+  mock.calls().filter((c) => c.method === 'getUpdates' && c.bot === PLATFORM.username)
+const quick = { timeout: 2500, interval: 20 }
+
 test('one run listens for its whole time: a second message is answered in the same run (R3)', async () => {
   await link(pia, 'platform', 101, PLATFORM.token)
   mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
   const today = () => sentTo(101).filter((m) => m.text.includes('notify.telegram.today'))
+  const before = longPolls().length
   const running = pollTelegram({ ...poll, waitSeconds: 3 })
-  await expect.poll(() => today().length, { timeout: 2000, interval: 20 }).toBe(1)
-  // the offset of the first batch is saved before the next long poll
-  const { rows } = await admin.query<{ offset: number }>(
-    "select (state->>'offset')::int as offset from integrations where kind = 'telegram' and organization_id is null",
-  )
-  const pending = mock
-    .calls()
-    .filter((c) => c.method === 'getUpdates')
-    .at(-1)
-  expect(Number(pending?.params.offset)).toBe(rows[0]?.offset)
-  mock.userWrites(PLATFORM.token, { chatId: 101, text: '/problemi' })
-  await expect
-    .poll(() => sentTo(101).some((m) => m.text.includes('notify.telegram.issues')), {
-      timeout: 2000,
-      interval: 20,
-    })
-    .toBe(true)
-  const report = await running
-  expect(report.updates).toBe(2)
+  try {
+    await expect.poll(() => today().length, quick).toBe(1)
+    // the next long poll starts only once the offset of the first batch is saved
+    await expect.poll(() => longPolls().length - before, quick).toBeGreaterThanOrEqual(2)
+    const { rows } = await admin.query<{ offset: number }>(
+      `select (state->>'offset')::int as offset from integrations
+        where kind = 'telegram' and organization_id is null`,
+    )
+    expect(Number(longPolls().at(-1)?.params.offset)).toBe(rows[0]?.offset)
+    mock.userWrites(PLATFORM.token, { chatId: 101, text: '/problemi' })
+    await expect
+      .poll(() => sentTo(101).some((m) => m.text.includes('notify.telegram.issues')), quick)
+      .toBe(true)
+  } finally {
+    const report = await running
+    expect(report.updates).toBe(2)
+  }
   expect(today()).toHaveLength(1)
+})
+
+test('a bot changed on its row during the run: its batch is answered and the run stops there', async () => {
+  await link(pia, 'platform', 101, PLATFORM.token)
+  const before = longPolls().length
+  const running = pollTelegram({ ...poll, waitSeconds: 3 })
+  try {
+    await expect.poll(() => longPolls().length - before, quick).toBe(1)
+    await admin.query(
+      `update integrations set updated_at = updated_at + interval '1 second'
+        where kind = 'telegram' and organization_id is null`,
+    )
+    mock.userWrites(PLATFORM.token, { chatId: 101, text: '/oggi' })
+  } finally {
+    await running
+  }
+  // the offset could not be saved: no second long poll on a row that is no more the one read
+  expect(longPolls().length - before).toBe(1)
+  expect(sentTo(101).filter((m) => m.text.includes('notify.telegram.today'))).toHaveLength(1)
 })
 
 test('each bot gets its menu of commands once, at its first run (R10.1)', async () => {
