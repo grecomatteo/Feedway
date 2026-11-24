@@ -66,6 +66,8 @@ Se un giorno l'app torna in Sviluppo su Meta (per esempio dopo un Data Use Check
 
 Gli esiti di questi controlli vanno nelle note della prova, con «verificato il …» o «non verificato».
 
+**Passaggio fatto il 24/11 (D-119):** «Pubblica» non ha chiesto uso aziendale né Data Use Checkup; la categoria scelta è «Utility e produttività», perché Meta non proponeva «Business e pagine». Controlli 1–3 **verificati il 24/11** con la 0.13.1: post con foto e testo visibile su Facebook da una finestra anonima, visibile anche su Instagram, collegamento verde dopo «Sincronizza». L'interruttore del passo 5 arriva sul server con il rilascio della tappa 8.
+
 ## Accesso avanzato e App Review (più avanti)
 
 Serve prima del **primo cliente vero** con Pagine o Instagram fuori dal Business Manager dell'agenzia (tappa 12, o prima se lo decidi). Secondo la documentazione di Meta, con l'accesso standard l'app lavora solo con gli account di chi ha un ruolo nell'app o nel suo Business; **non verificato**, perché il 12/11 la Pagina di un cliente partner si è collegata anche in Sviluppo.
