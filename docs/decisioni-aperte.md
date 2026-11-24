@@ -729,6 +729,19 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   4. **Nessuna pulizia del vecchio cron di pg-boss:** la coda non è mai uscita in un rilascio (la tappa 8 non è ancora rilasciata). Un database di prova che avesse girato con `main` di questi giorni tiene il cron vecchio: crea al massimo un lavoro in attesa (politica `singleton`) che nessuno prende, innocuo.
 - **Stato:** scelte provvisorie, Matteo può cambiarle.
 
+### D-130 · Rilascio della 0.14.0: cosa resta della revisione e scelte della guida
+
+- **Origine:** rilascio della 0.14.0 (tappa 8, Task 12, 24 novembre 2026), punti R6, R10.2, R11 e R12 della revisione di fine tappa (`REVISIONE-finale.md`). Le correzioni R1–R5, R7–R9 e R10.1 sono fatte (D-126, D-129, D-121 punti 12 e 16, D-120 punto 9).
+- **Da decidere:**
+  1. **R6, dati che crescono e indice del centro notifiche:** non fatta (era il thread F5, con una migrazione). Notifiche, consegne ed eventi dell'outbox già mandati non si puliscono mai, e la campanella ordina tutte le notifiche della persona invece di leggere le sue 20 righe dall'indice. Oggi le tabelle sono piccole: il rallentamento arriva con mesi di uso. Opzioni: (a) migrazione con `created_at` al millisecondo e l'indice `(user_id, created_at desc, id desc)`; (b) pulizia notturna (lette dopo 90 giorni, tutte dopo 180, eventi mandati dopo 30); (c) rimandare al partizionamento. Consigliata: (a) e (b) insieme, in una PR della tappa 9 o al più tardi della tappa 11, con i giorni da confermare.
+  2. **ADR 022 (app Meta in Live):** ancora «Proposta». Matteo la accetta o la cambia; l'app è in Live dal 24/11.
+- **Scelte provvisorie:**
+  1. **R10.2, bot d'agenzia rifiutato:** nessun avviso all'Owner finché non arriva la dashboard della tappa 11 (opzione c della revisione). Con il solo bot della piattaforma, com'è la VPS oggi, il caso non capita.
+  2. **D-74, email di un file che non esce:** dice il post e il link, non il nome del file né la sua posizione (scelta (b) del thread C, D-121 punto 12).
+  3. **Landing e README:** le notifiche e il riepilogo delle 8:00 sono fuori da «In arrivo» (`apps/site/app/features.ts`); restano «In arrivo» le notifiche sul telefono (push della PWA, dopo la 1.0). La risposta «Che succede se un post non esce?» dice anche l'avviso nel pannello, per email e su Telegram.
+  4. **Guida della prova (R11):** il riepilogo si prova il giorno dell'aggiornamento, prima di riceverne uno, perché ne parte uno solo per persona al giorno; gli eventi delle ultime 6 ore partono subito dopo l'aggiornamento, raggruppati; il web fermo si prova prima da solo, poi con il worker; `/oggi` risponde in 1–2 s. Le note «Cosa provare» sono nella guida e nella descrizione della PR, non nel testo della release.
+- **Stato:** aperta per i punti da decidere; le scelte provvisorie le può cambiare Matteo.
+
 ## Pianificazione (tappa 9)
 
 ### D-123 · Scelte provvisorie del piano della tappa 9

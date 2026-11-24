@@ -2,7 +2,7 @@
 // false here shows an «In arrivo» mark. At the end of each tappa, set to true what has shipped and
 // update the README in the same PR (Matteo, 23/11, D-122).
 export const SHIPPED = {
-  notifications: false, // tappa 8
+  notifications: true, // 0.14.0
   calendar: false, // tappa 9
   editorialPlan: false, // tappa 9
   calendarSync: false, // calendar on Google or Apple
@@ -16,7 +16,7 @@ export const SHIPPED = {
   costs: false, // hours, contracts and margin per client
   tasks: false, // version 1.5
   notes: false, // notes, internal guides, client card
-  dailyDigest: false,
+  dailyDigest: true, // 0.14.0
   pushNotifications: false,
   tiktok: false,
   linkedin: false,
