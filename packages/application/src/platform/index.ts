@@ -26,6 +26,7 @@ export { sendAccountLockedNotice, sendAccountLockedNoticeEmail } from './account
 export type { AccountLockedNoticeDeps } from './account-lock-notice.js'
 export {
   createMailSettings,
+  MAIL_SETTINGS_MEMORY_MS,
   getPlatformMailSettings,
   MAIL_TEST_RATE_LIMIT,
   replacePlatformMailSettings,
@@ -33,6 +34,7 @@ export {
 } from './mail-settings.js'
 export type {
   MailSettingsDeps,
+  MailSettingsMemory,
   MailSettingsField,
   PlatformMailDeps,
   PlatformMailSettings,

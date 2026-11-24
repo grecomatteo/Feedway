@@ -4,6 +4,7 @@ import type { JobQueue } from '../ports/job-queue.js'
 import type { NewDeliveryStatus, DeliveryRef, NewNotification } from '../ports/notifications.js'
 import type { PendingOutboxEvent } from '../ports/publishing.js'
 import type { Tx } from '../ports/tx.js'
+import { StoreUnavailableError } from '../ports/unit-of-work.js'
 import { isUuid } from '../identity/index.js'
 import { deliverGroup, recipientOf, type DeliverDeps, type DeliverReport } from './deliver.js'
 import { candidatesOf, eligibleUser, placeOfEvent } from './recipients.js'
@@ -43,6 +44,9 @@ export interface Built {
 }
 
 const OUTSIDE: ReadonlySet<Channel> = new Set(['telegram', 'email'])
+
+/** The dispatcher runs every minute and after every event: its transactions log at debug. */
+const ROUTINE = { routine: true } as const
 
 /**
  * The notifications of one event, one per person who still sees it and did not turn it off.
@@ -191,6 +195,7 @@ async function dispatchBatch(
       )
       return { events: taken.length, written: count, pending: refs }
     },
+    ROUTINE,
   )
   report.events += events
   report.notifications += written
@@ -200,13 +205,19 @@ async function dispatchBatch(
 
 /**
  * A batch that fails is taken again one event at a time, so one event that cannot be read does
- * not hold the outbox of every agency: that one is marked and left in the log.
+ * not hold the outbox of every agency: that one is marked and left in the log. A failure of the
+ * database that passes on its own (R2 of the tappa 8 review) marks nothing: the run stops and
+ * the events wait in the outbox for the next one, a minute later at most.
  */
-async function dispatchOneByOne(deps: DispatchDeps, report: DispatchReport): Promise<void> {
+async function dispatchOneByOne(
+  deps: DispatchDeps,
+  report: DispatchReport,
+): Promise<'done' | 'unavailable'> {
   for (let i = 0; i < DISPATCH_BATCH; i += 1) {
     try {
-      if ((await dispatchBatch(deps, report, 1)) === 0) return
+      if ((await dispatchBatch(deps, report, 1)) === 0) return 'done'
     } catch (error) {
+      if (error instanceof StoreUnavailableError) return 'unavailable'
       await deps.uow.runAsSystem('notify.dispatch: an event that fails', async (tx) => {
         const [event] = await tx.outbox.takePending(1)
         if (!event) return
@@ -218,6 +229,7 @@ async function dispatchOneByOne(deps: DispatchDeps, report: DispatchReport): Pro
       })
     }
   }
+  return 'done'
 }
 
 export async function dispatchNotifications(deps: DispatchDeps): Promise<DispatchReport> {
@@ -227,23 +239,34 @@ export async function dispatchNotifications(deps: DispatchDeps): Promise<Dispatc
     try {
       events = await dispatchBatch(deps, report, DISPATCH_BATCH)
     } catch (error) {
+      if (error instanceof StoreUnavailableError) {
+        deps.logger.warn({ err: error }, 'outbox batch failed: the database, left for the next run')
+        break
+      }
       deps.logger.warn({ err: error }, 'outbox batch failed: one event at a time')
-      await dispatchOneByOne(deps, report)
+      if ((await dispatchOneByOne(deps, report)) === 'unavailable') {
+        deps.logger.warn({}, 'outbox event failed: the database, left for the next run')
+        break
+      }
       continue
     }
     if (events < DISPATCH_BATCH) break
   }
   // the sweep (P2): claims left by a fallen process, then the deliveries whose time has come
   const now = deps.clock.now()
-  const due = await deps.uow.runAsSystem('notify.dispatch: deliveries due', async (tx) => {
-    const released = await tx.notifications.releaseExpiredClaims(now, {
-      maxAttempts: DELIVERY_ATTEMPTS,
-      gaveUp: deps.t('notify.errors.other'),
-    })
-    const listed = await tx.notifications.listDue(now, SWEEP_BATCH)
-    const seen = new Set(released.map((r) => r.id))
-    return [...released, ...listed.filter((r) => !seen.has(r.id))]
-  })
+  const due = await deps.uow.runAsSystem(
+    'notify.dispatch: deliveries due',
+    async (tx) => {
+      const released = await tx.notifications.releaseExpiredClaims(now, {
+        maxAttempts: DELIVERY_ATTEMPTS,
+        gaveUp: deps.t('notify.errors.other'),
+      })
+      const listed = await tx.notifications.listDue(now, SWEEP_BATCH)
+      const seen = new Set(released.map((r) => r.id))
+      return [...released, ...listed.filter((r) => !seen.has(r.id))]
+    },
+    ROUTINE,
+  )
   if (due.length > 0) deps.logger.info({ deliveries: due.length }, 'notification deliveries due')
   for (const ref of due) if (await sendJob(deps, ref, now)) report.jobs += 1
   return report

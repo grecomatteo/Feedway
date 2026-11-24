@@ -66,8 +66,10 @@ async function callOnce(
 export async function callExternalWatch(
   deps: Omit<ExternalWatchDeps, 'lock'>,
 ): Promise<ExternalWatchReport> {
-  const credentials = await deps.uow.runAsSystem('heartbeat.external: the address', (tx) =>
-    deps.integrations.platformCredentials(tx, 'heartbeat'),
+  const credentials = await deps.uow.runAsSystem(
+    'heartbeat.external: the address',
+    (tx) => deps.integrations.platformCredentials(tx, 'heartbeat'),
+    { routine: true },
   )
   if (!credentials) return { outcome: 'not_configured' }
   // no transaction while the network answers
@@ -78,8 +80,10 @@ export async function callExternalWatch(
     status: result.status,
     problem: result.ok ? null : result.problem,
   }
-  await deps.uow.runAsSystem('heartbeat.external: the outcome', (tx) =>
-    tx.integrations.savePlatformState('heartbeat', state),
+  await deps.uow.runAsSystem(
+    'heartbeat.external: the outcome',
+    (tx) => tx.integrations.savePlatformState('heartbeat', state),
+    { routine: true },
   )
   // the outcome only: never the address
   if (!result.ok)

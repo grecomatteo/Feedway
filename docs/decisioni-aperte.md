@@ -702,6 +702,20 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - **Orologi:** l'ora del battito è quella del worker, il confronto lo fa il web. Nello stesso host i container hanno lo stesso orologio; su host diversi uno scarto di oltre un minuto darebbe colori sbagliati. Alternativa: scrivere `now()` del database. Lasciato così finché c'è un host solo.
 - **Stato:** scelte provvisorie, Matteo può cambiarle prima del task che le usa. Il piano è approvato da Matteo (23/11, «ok piano»).
 
+### D-126 · Correzioni F1 della revisione della tappa 8: connessioni e outbox
+
+- **Origine:** revisione di fine tappa 8 (`REVISIONE-finale.md`), punti R1, R2, R8 e R9; thread F1 (24 novembre 2026).
+- **Fatto, con le soluzioni consigliate:**
+  1. **R1-a, SMTP ricordato:** il processo ricorda per 30 s se l'SMTP della piattaforma c'è. Il dispatcher, la consegna e il riepilogo non aprono più una transazione dentro la loro. Un «c'è» vecchio si risponde subito e si rilegge in sottofondo. Il worker ricorda anche un «non c'è» per 30 s, il web mai, così l'invito subito dopo aver salvato l'SMTP parte. Il worker lo legge una volta all'avvio.
+  2. **R1-b, pool dei lucchetti:** il lucchetto dell'installazione (conversioni, copie, `report.daily`, `heartbeat.external`) prende la connessione da un pool suo di 4, una per coda che lo usa, e non toglie più connessioni ai lavori.
+  3. **R2-a, errori passeggeri:** connessione persa o non libera in tempo, Postgres che si riavvia, serializzazione, deadlock (classi `08` e `57P`, `40001`, `40P01`, `53300`, `55P03`) escono dall'unit of work come `StoreUnavailableError`. Il dispatcher allora non segna niente: gli eventi restano nell'outbox e li prende il giro dopo, entro un minuto. Solo un errore dell'evento lo mette da parte, come prima.
+  4. **R8, log:** le transazioni di sistema che tornano ogni minuto o a ogni invio (battito, controllo del worker, `report.daily`, sorveglianza esterna, riconciliazione, dispatcher, SMTP, turno delle conversioni, file pubblici per Meta) si scrivono a livello `debug`; le rare restano `info`. Quelle di `telegram.poll` le marca F2, che tocca quel file.
+  5. **R9, letture ripetute:** dentro una transazione la persona, l'iscrizione all'agenzia, i ruoli nei clienti e i clienti di un account si leggono una volta. Un gruppo di 30 consegne passa da circa 120 letture a 3 o 4; una pagina del centro e un lotto dell'outbox ne fanno molte meno. La transazione dopo rilegge tutto.
+- **Non fatto, scelte provvisorie:**
+  - **R1-c (togliere il lucchetto da `report.daily` e `heartbeat.external`):** non serve più, perché con il pool dei lucchetti non tengono connessioni dei lavori. Il lucchetto resta come dice il piano.
+  - **R2-b (colonna `attempts` sull'evento, «fatto con errore» dopo 5 giri):** non fatto, serve una migrazione. Un evento che rompesse sempre il database con un errore passeggero si riproverebbe ogni minuto. Non è mai capitato. Alternativa: farlo con una migrazione, se Matteo vuole la garanzia piena.
+- **Stato:** scelte provvisorie, Matteo può cambiarle.
+
 ## Pianificazione (tappa 9)
 
 ### D-123 · Scelte provvisorie del piano della tappa 9

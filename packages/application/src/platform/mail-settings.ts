@@ -28,21 +28,69 @@ export interface MailSettingsDeps {
   integrations: IntegrationStore
 }
 
+/** How long a process trusts what it read about the platform's SMTP (R1 of the tappa 8 review). */
+export interface MailSettingsMemory {
+  clock: Pick<Clock, 'now'>
+  /** A «set» answer: the SMTP cannot be removed, only replaced, so it stays true. */
+  setMs: number
+  /**
+   * An «unset» answer. 0 in the web: the administrator who has just saved the SMTP sends an
+   * invite at once. The worker may wait: a notification read as «no SMTP» is `skipped`.
+   */
+  unsetMs: number
+}
+
+export const MAIL_SETTINGS_MEMORY_MS = 30_000
+
 /**
- * The platform's SMTP settings, read in the system scope at every send: the worker sends with
- * no user, and the platform rows are visible only there. Agencies configure nothing (ADR 017).
+ * The platform's SMTP settings, read in the system scope: the worker sends with no user, and
+ * the platform rows are visible only there. Agencies configure nothing (ADR 017).
+ *
+ * `isConfigured` is asked inside other transactions (the dispatcher's, for every recipient), and
+ * a transaction of its own there would hold a second connection of the pool. With `memory` the
+ * answer is kept: after the first read no transaction opens, and an old «set» is answered at
+ * once while a read in the background refreshes it. `credentials` is read at every send.
  */
-export function createMailSettings(deps: MailSettingsDeps): MailSettingsSource {
+export function createMailSettings(
+  deps: MailSettingsDeps,
+  memory?: MailSettingsMemory,
+): MailSettingsSource {
   const { uow, integrations } = deps
+  const read = () =>
+    uow.runAsSystem(
+      'mail: is the platform SMTP set',
+      async (tx) => (await integrations.getPlatform(tx, 'smtp')) !== null,
+      { routine: true },
+    )
+  let known: { set: boolean; at: number } | null = null
+  let reading: Promise<boolean> | null = null
+  const refresh = (): Promise<boolean> => {
+    reading ??= read()
+      .then((set) => {
+        if (memory) known = { set, at: memory.clock.now().getTime() }
+        return set
+      })
+      .finally(() => {
+        reading = null
+      })
+    return reading
+  }
   return {
-    isConfigured: () =>
-      uow.runAsSystem(
-        'mail: is the platform SMTP set',
-        async (tx) => (await integrations.getPlatform(tx, 'smtp')) !== null,
-      ),
+    isConfigured() {
+      if (!memory || known === null) return refresh()
+      const age = memory.clock.now().getTime() - known.at
+      if (known.set) {
+        // an old «set» is still the answer; the next one will have been read again
+        if (age >= memory.setMs) refresh().catch(() => undefined)
+        return Promise.resolve(true)
+      }
+      return age < memory.unsetMs ? Promise.resolve(false) : refresh()
+    },
     credentials: () =>
-      uow.runAsSystem('mail: platform SMTP for a send', (tx) =>
-        integrations.platformCredentials(tx, 'smtp'),
+      uow.runAsSystem(
+        'mail: platform SMTP for a send',
+        (tx) => integrations.platformCredentials(tx, 'smtp'),
+        { routine: true },
       ),
   }
 }

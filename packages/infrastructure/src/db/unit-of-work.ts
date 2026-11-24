@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import { StoreUnavailableError } from '@app/application'
 import type { IdGenerator, Logger, Tx, UnitOfWork } from '@app/application'
 import {
   drizzleConnectionAttempts,
@@ -37,6 +38,7 @@ import {
 } from './notifications/repositories.js'
 import { drizzleOutbox } from './outbox/repositories.js'
 import { drizzlePlatformSettings } from './platform/repositories.js'
+import { isTransientDbError } from './transient-error.js'
 import type { TxContext } from './tx-context.js'
 import { drizzleWorkspaceMembers, drizzleWorkspaces } from './workspaces/repositories.js'
 
@@ -114,6 +116,16 @@ export function executorOf(tx: Tx): DbExecutor {
   return db
 }
 
+/** A failure that passes on its own leaves as `StoreUnavailableError`, the driver's in `cause`. */
+async function classified<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work()
+  } catch (error) {
+    if (error instanceof StoreUnavailableError || !isTransientDbError(error)) throw error
+    throw new StoreUnavailableError({ cause: error })
+  }
+}
+
 // set_config(…, true) lasts until the end of the transaction: a pooled connection never
 // carries a scope into the next one.
 export function createUnitOfWork({
@@ -144,22 +156,27 @@ export function createUnitOfWork({
       }
       const organizationId = ctx.kind === 'organization' ? ctx.organizationId : ''
       const marks: TxMarks = { wroteEvent: false }
-      const result = await db.transaction(async (t) => {
-        await t.execute(
-          sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId ?? ''}, true)`,
-        )
-        return fn(buildTx(t, ids, ctx, marks))
-      })
+      const result = await classified(() =>
+        db.transaction(async (t) => {
+          await t.execute(
+            sql`select set_config('app.organization_id', ${organizationId}, true), set_config('app.user_id', ${scope.userId ?? ''}, true)`,
+          )
+          return fn(buildTx(t, ids, ctx, marks))
+        }),
+      )
       await afterCommit(marks)
       return result
     },
-    async runAsSystem(reason, fn) {
-      logger.info({ reason }, 'system scope transaction')
+    async runAsSystem(reason, fn, opts) {
+      if (opts?.routine === true) logger.debug({ reason }, 'system scope transaction')
+      else logger.info({ reason }, 'system scope transaction')
       const marks: TxMarks = { wroteEvent: false }
-      const result = await db.transaction(async (t) => {
-        await t.execute(sql`select set_config('app.scope', 'system', true)`)
-        return fn(buildTx(t, ids, { kind: 'system' }, marks))
-      })
+      const result = await classified(() =>
+        db.transaction(async (t) => {
+          await t.execute(sql`select set_config('app.scope', 'system', true)`)
+          return fn(buildTx(t, ids, { kind: 'system' }, marks))
+        }),
+      )
       await afterCommit(marks)
       return result
     },

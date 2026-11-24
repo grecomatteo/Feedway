@@ -2,16 +2,19 @@ import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
+  MAIL_SETTINGS_MEMORY_MS,
   MailSendError,
+  createMailSettings,
   deliverNotification,
   deliverPlatformNotification,
   dispatchNotifications,
   type DispatchDeps,
   type Mailer,
   type MailMessage,
+  type UnitOfWork,
 } from '@app/application'
 import type { OutboxEventType, OutboxPayload } from '@app/domain'
-import { createUnitOfWork, type Runtime } from '@app/infrastructure'
+import { createDb, createUnitOfWork, type Runtime } from '@app/infrastructure'
 import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
 import { startMetaMock, type MetaMock } from '@app/meta-mock'
 import {
@@ -559,6 +562,96 @@ test('an event that cannot be read is set aside, and the others of its batch go 
   expect(rows[0]?.n).toBe(0)
   expect(await notificationsOf(w.ownerId)).toHaveLength(1)
 })
+
+/**
+ * The runtime's unit of work, whose outbox transactions fail as told: after their work, so what
+ * they wrote is rolled back. A failure with a SQLSTATE is the driver's, as Postgres sends it.
+ */
+function failingOutbox(failures: Error[]): UnitOfWork {
+  return {
+    run: (scope, fn) => runtime.uow.run(scope, fn),
+    runAsSystem: (reason, fn, opts) =>
+      runtime.uow.runAsSystem(
+        reason,
+        async (tx) => {
+          const result = await fn(tx)
+          const failure = reason === 'notify.dispatch: the outbox' ? failures.shift() : undefined
+          if (failure) throw failure
+          return result
+        },
+        opts,
+      ),
+  }
+}
+
+const pgFailure = (code: string) => Object.assign(new Error('a query failed'), { code })
+
+async function waitingEvents(organizationId: string): Promise<number> {
+  const { rows } = await admin.query<{ n: number }>(
+    'select count(*)::int as n from outbox_events where organization_id = $1 and dispatched_at is null',
+    [organizationId],
+  )
+  return rows[0]?.n ?? -1
+}
+
+test('R2: a failure of the database that passes leaves the event in the outbox for the next run', async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  const h = harness()
+  // a pool with no connection free in time, as pg-pool says it
+  const failures = [new Error('timeout exceeded when trying to connect')]
+  await dispatchNotifications({ ...h.deps, uow: failingOutbox(failures) })
+  expect(await waitingEvents(w.organizationId)).toBe(1)
+  expect(await notificationsOf(w.ownerId)).toHaveLength(0)
+  // the next run, a minute later at most, notifies it
+  await dispatchNotifications(h.deps)
+  expect(await waitingEvents(w.organizationId)).toBe(0)
+  expect(await notificationsOf(w.ownerId)).toHaveLength(1)
+})
+
+test('R2: an event taken alone that meets a failure that passes is not set aside', async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  const h = harness()
+  // the batch fails on its data, then the event alone meets a deadlock
+  const failures = [pgFailure('22P02'), pgFailure('40P01')]
+  await dispatchNotifications({ ...h.deps, uow: failingOutbox(failures) })
+  expect(await waitingEvents(w.organizationId)).toBe(1)
+  await dispatchNotifications(h.deps)
+  expect(await notificationsOf(w.ownerId)).toHaveLength(1)
+})
+
+test("R1: with the worker's pool almost full, the dispatcher asks no second connection", async () => {
+  const w = await world()
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  // two connections, one of them taken by a long job: the dispatcher has one left
+  const small = createDb(tdb.runtimeUrl, { max: 2, applicationName: 'notify-small-pool' })
+  try {
+    const uow = createUnitOfWork({ db: small.db, ids: runtime.ids, logger: runtime.logger })
+    const settings = createMailSettings(
+      { uow, integrations: runtime.integrations },
+      { clock: runtime.clock, setMs: MAIL_SETTINGS_MEMORY_MS, unsetMs: MAIL_SETTINGS_MEMORY_MS },
+    )
+    const mailer: Mailer = {
+      isConfigured: () => settings.isConfigured(),
+      send: () => Promise.resolve('not_configured'),
+    }
+    // as the worker does at its start
+    await mailer.isConfigured()
+    const held = await small.pool.connect()
+    try {
+      const queue = recordingQueue()
+      const deps = notifyDeps({ ...handlerDeps(runtime, queue), uow, mailer })
+      await dispatchNotifications(deps)
+    } finally {
+      held.release()
+    }
+    expect(await waitingEvents(w.organizationId)).toBe(0)
+    expect(await notificationsOf(w.ownerId)).toHaveLength(1)
+  } finally {
+    await small.close()
+  }
+}, 20_000)
 
 test('a disabled or anonymized person is not notified', async () => {
   const w = await world()

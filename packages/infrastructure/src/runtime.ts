@@ -1,4 +1,4 @@
-import { createMailSettings } from '@app/application'
+import { MAIL_SETTINGS_MEMORY_MS, createMailSettings } from '@app/application'
 import type {
   Clock,
   IdGenerator,
@@ -226,7 +226,15 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
     const mailer = createMailer(config.nodeEnv, {
       ids,
       logger,
-      settings: createMailSettings({ uow, integrations }),
+      // R1: no transaction of its own inside the dispatcher's; the web answers «unset» fresh
+      settings: createMailSettings(
+        { uow, integrations },
+        {
+          clock,
+          setMs: MAIL_SETTINGS_MEMORY_MS,
+          unsetMs: role === 'worker' ? MAIL_SETTINGS_MEMORY_MS : 0,
+        },
+      ),
       ...(config.panelUrl !== undefined && { panelUrl: config.panelUrl }),
     })
     const queue = await createPgBossQueue({
