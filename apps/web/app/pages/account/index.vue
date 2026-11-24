@@ -311,6 +311,20 @@ async function changeEmail() {
             />
           </UFormField>
         </SettingsRow>
+        <!-- D-74, D-95 punto 4: who scheduled a post gets this email whatever they choose -->
+        <SettingsRow
+          v-if="me.organizations.length > 0"
+          :label="$t('notifications.prefs.emailPostFails')"
+          :hint="$t('notifications.prefs.emailPostFailsHelp')"
+          inline
+        >
+          <USwitch
+            :model-value="true"
+            disabled
+            :aria-label="$t('notifications.prefs.emailPostFails')"
+            data-always-email
+          />
+        </SettingsRow>
         <p
           v-if="formError(preferencesState, ['timezone'])"
           role="alert"
@@ -319,6 +333,9 @@ async function changeEmail() {
           {{ formError(preferencesState, ['timezone']) }}
         </p>
       </SettingsGroup>
+
+      <!-- plan 08 Task 6: what arrives and where, with the quiet hours and the digest -->
+      <NotificationPreferences />
 
       <TelegramLinks />
 

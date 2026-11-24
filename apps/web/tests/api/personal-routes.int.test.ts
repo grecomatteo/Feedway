@@ -110,6 +110,25 @@ const OWNED_BY_ANOTHER: Record<
       },
     }
   },
+  // a notification of a person of agency A, read by a member of B: not found, still unread
+  'POST /api/v1/me/notifications/{id}/read': async (f) => {
+    const id = randomUUID()
+    await f.env.admin.pool.query(
+      `insert into notifications (id, organization_id, user_id, event_id, kind, level)
+       values ($1, $2, $3, $4, 'post.confirmed', 'success')`,
+      [id, f.a.id, f.a.people.viewer.userId, randomUUID()],
+    )
+    return {
+      values: { id },
+      async untouched() {
+        const { rows } = await f.env.admin.pool.query<{ read_at: Date | null }>(
+          'select read_at from notifications where id = $1',
+          [id],
+        )
+        expect(rows[0]?.read_at).toBeNull()
+      },
+    }
+  },
   'DELETE /api/v1/me/sessions/{id}': async (f) => {
     const cookie = await f.env.signIn(f.a.people.viewer)
     const { rows } = await f.env.admin.pool.query<{ id: string }>(
