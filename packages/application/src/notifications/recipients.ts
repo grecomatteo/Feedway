@@ -46,6 +46,61 @@ async function workspacesOfAccount(tx: Tx, organizationId: string, accountId: st
   return [...new Set(rows.map((r) => r.workspaceId))]
 }
 
+/**
+ * The rows `eligibleUser` reads, remembered for one transaction (R9 of the tappa 8 review): a
+ * group of 30 deliveries, a page of the centre or a batch of the outbox asks about the same
+ * person, agency and account again and again, and reads them once. Keyed by the `Tx`, which
+ * lives as long as its transaction: the next one reads everything again. Nothing that uses it
+ * writes these rows in the same transaction.
+ */
+interface EligibilityReads {
+  user(userId: string): Promise<UserRecord | null>
+  membership(organizationId: string, userId: string): ReturnType<Tx['orgMembers']['find']>
+  roles(organizationId: string, userId: string): ReturnType<Tx['workspaceMembers']['rolesOf']>
+  accountWorkspaces(organizationId: string, accountId: string | null): Promise<string[]>
+}
+
+const READS = new WeakMap<Tx, EligibilityReads>()
+
+function remembered<T>(memo: Map<string, Promise<T>>, key: string, read: () => Promise<T>) {
+  let found = memo.get(key)
+  if (!found) {
+    found = read()
+    // a read that failed is not remembered: the transaction fails with it anyway
+    void found.catch(() => memo.delete(key))
+    memo.set(key, found)
+  }
+  return found
+}
+
+function readsOf(tx: Tx): EligibilityReads {
+  const known = READS.get(tx)
+  if (known) return known
+  const users = new Map<string, Promise<UserRecord | null>>()
+  const memberships = new Map<string, ReturnType<Tx['orgMembers']['find']>>()
+  const roles = new Map<string, ReturnType<Tx['workspaceMembers']['rolesOf']>>()
+  const accounts = new Map<string, Promise<string[]>>()
+  const reads: EligibilityReads = {
+    user: (userId) => remembered(users, userId, () => tx.users.findById(userId)),
+    membership: (organizationId, userId) =>
+      remembered(memberships, `${organizationId}:${userId}`, () =>
+        tx.orgMembers.find(organizationId, userId),
+      ),
+    roles: (organizationId, userId) =>
+      remembered(roles, `${organizationId}:${userId}`, () =>
+        tx.workspaceMembers.rolesOf(organizationId, userId),
+      ),
+    accountWorkspaces: (organizationId, accountId) =>
+      accountId === null
+        ? Promise.resolve([])
+        : remembered(accounts, `${organizationId}:${accountId}`, () =>
+            workspacesOfAccount(tx, organizationId, accountId),
+          ),
+  }
+  READS.set(tx, reads)
+  return reads
+}
+
 const accountWorkspaces = (tx: Tx, organizationId: string, event: PendingOutboxEvent) =>
   workspacesOfAccount(tx, organizationId, asString(event.payload.accountId))
 
@@ -122,7 +177,8 @@ const onlyAdmins = (rules: readonly RecipientRule[]) =>
  * The person as they are now, if they may still see the event: active, not anonymized, an
  * active member of the agency who sees the client (or one client of the account), still an
  * Owner or Admin for a kind of theirs, or still a platform administrator. Read again by the
- * delivery, so a Manager taken off the client meanwhile gets nothing (Review Focus 3).
+ * delivery, so a Manager taken off the client meanwhile gets nothing (Review Focus 3). Within
+ * one transaction each row is read once (`readsOf`).
  */
 export async function eligibleUser(
   tx: Tx,
@@ -130,22 +186,23 @@ export async function eligibleUser(
   place: EventPlace,
   rules: readonly RecipientRule[],
 ): Promise<UserRecord | null> {
-  const user = await tx.users.findById(userId)
+  const reads = readsOf(tx)
+  const user = await reads.user(userId)
   if (user?.status !== 'active' || user.anonymizedAt !== null) return null
   const { organizationId, workspaceId, accountId } = place
   if (organizationId === null) return user.platformRole === 'admin' ? user : null
-  const membership = await tx.orgMembers.find(organizationId, userId)
+  const membership = await reads.membership(organizationId, userId)
   if (membership?.status !== 'active') return null
   if (onlyAdmins(rules)) return ADMIN_ROLES.has(membership.role) ? user : null
-  const workspaces =
-    workspaceId !== null ? [workspaceId] : await workspacesOfAccount(tx, organizationId, accountId)
   if (workspaceId === null && accountId === null) return user
+  const workspaces =
+    workspaceId !== null ? [workspaceId] : await reads.accountWorkspaces(organizationId, accountId)
   const actor: OrgActor = {
     userId,
     platformRole: null,
     organizationId,
     orgRole: membership.role,
-    memberships: await tx.workspaceMembers.rolesOf(organizationId, userId),
+    memberships: await reads.roles(organizationId, userId),
   }
   return workspaces.some((ws) => can(actor, 'workspace.view', { organizationId, workspaceId: ws }))
     ? user

@@ -42,6 +42,7 @@ export async function startDigests(deps: DigestStartDeps): Promise<DigestStartRe
         const chosen = await tx.notificationPrefs.listDigestSchedules(members.map((m) => m.userId))
         return { people: members, schedules: chosen }
       },
+      { routine: true },
     )
     let due = 0
     let sent = 0

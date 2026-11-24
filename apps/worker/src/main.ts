@@ -19,6 +19,8 @@ import { createTranslate, loadItalianMessages } from './i18n.js'
 import { startWorker } from './start-worker.js'
 
 const EXIT_CONFIG = 78
+/** `media.process`, `media.publish_copies`, `report.daily` and `heartbeat.external`. */
+const INSTALLATION_LOCK_HOLDERS = 4
 
 async function main(): Promise<void> {
   let config
@@ -38,7 +40,16 @@ async function main(): Promise<void> {
     max: 1,
     applicationName: 'worker-telegram',
   })
+  // The installation's lock holds its connection for the whole work (a conversion, the call to
+  // healthchecks.io): from a pool of its own, one connection for each queue that takes it, so
+  // it never leaves the jobs without one (R1 of the tappa 8 review)
+  const lockDb = createDb(config.databaseUrl, {
+    max: INSTALLATION_LOCK_HOLDERS,
+    applicationName: 'worker-locks',
+  })
   const { logger, queue, uow, clock, ids, storage, mailer, signedTokens } = runtime
+  // read once before the jobs: from now on the dispatcher asks the memory, not the database
+  await mailer.isConfigured().catch(() => undefined)
   const worker = await startWorker({
     queue,
     logger,
@@ -86,7 +97,7 @@ async function main(): Promise<void> {
       },
       media: {
         ...createMediaTools({ maxVideoPixels: config.media.maxVideoPixels }),
-        lock: createAdvisoryLock(runtime.pool),
+        lock: createAdvisoryLock(lockDb.pool),
         // on the media volume, outside the storage keys: /tmp is memory in the container
         scratch: createMediaScratch({ dir: join(config.mediaRoot, 'work') }),
         newPublicToken,
@@ -114,7 +125,7 @@ async function main(): Promise<void> {
     logger.info({ signal }, 'stopping worker')
     worker
       .stop()
-      .then(() => Promise.all([runtime.close(), telegramLockDb.close()]))
+      .then(() => Promise.all([runtime.close(), telegramLockDb.close(), lockDb.close()]))
       .then(
         () => process.exit(0),
         (error: unknown) => {

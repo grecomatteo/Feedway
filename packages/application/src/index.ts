@@ -150,7 +150,8 @@ export type {
   TelegramBotOwner,
   TelegramLinkRecord,
 } from './ports/notifications.js'
-export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
+export type { SystemScopeOptions, TxScope, UnitOfWork } from './ports/unit-of-work.js'
+export { StoreUnavailableError } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'
 export type {
   AuditAction,
