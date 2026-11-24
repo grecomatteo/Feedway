@@ -92,7 +92,8 @@ function planLike(marked: () => string, seen: { workspaceIds: readonly string[] 
         // one for a client not asked too: the calendar must leave it out
         return Promise.resolve([...query.workspaceIds.map(entry), entry(randomUUID())])
       },
-      markedPostIds: (_tx, ids) => Promise.resolve(new Set(ids.filter((id) => id === marked()))),
+      markedPostIds: (_tx, { postIds }) =>
+        Promise.resolve(new Set(postIds.filter((id) => id === marked()))),
     },
   } satisfies ModuleDefinition
 }

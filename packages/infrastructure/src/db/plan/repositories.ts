@@ -45,6 +45,14 @@ export function drizzlePlan(db: DbExecutor): PlanRepository {
     return row ? toRecord(row) : null
   }
   return {
+    async locate(organizationId, id) {
+      if (!UUID.test(id)) return null
+      const [row] = await db
+        .select({ workspaceId: planItems.workspaceId })
+        .from(planItems)
+        .where(and(eq(planItems.organizationId, organizationId), eq(planItems.id, id)))
+      return row ?? null
+    },
     async listInRange(organizationId, workspaceIds, { from, to }) {
       if (workspaceIds.length === 0) return []
       const rows = await db
@@ -96,7 +104,17 @@ export function drizzlePlan(db: DbExecutor): PlanRepository {
       if (!UUID.test(id)) return null
       const [row] = await db
         .update(planItems)
-        .set({ ...change, version: sql`${planItems.version} + 1` })
+        // the fields of a change one by one: a wider object never writes back the rest of the
+        // row, and `updated_at` moves with `$onUpdate`
+        .set({
+          localDate: change.localDate,
+          localTime: change.localTime,
+          type: change.type,
+          title: change.title,
+          note: change.note,
+          updatedBy: change.updatedBy,
+          version: sql`${planItems.version} + 1`,
+        })
         .where(and(inScope(scope, id), eq(planItems.version, expectedVersion)))
         .returning({ version: planItems.version })
       return row?.version ?? null

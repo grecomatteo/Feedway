@@ -2,6 +2,9 @@ import {
   DomainError,
   NEXT_FREE_SLOT_HORIZON_DAYS,
   TIME_SLOTS_MAX,
+  addDays,
+  weekday,
+  zonedToInstant,
   nextFreeSlot,
   storedTimeZone,
   validateTimeSlots,
@@ -10,6 +13,7 @@ import {
 } from '@app/domain'
 import type { Clock } from '../ports/clock.js'
 import type { IdGenerator } from '../ports/id-generator.js'
+import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { openContentSettings, recordContentSetting } from './content-settings.js'
 
@@ -113,4 +117,30 @@ export async function findNextFreeSlot(
       }
     },
   )
+}
+
+/**
+ * The first free slot of the client on that day of the agency's zone, after `now` (public, for
+ * the plan's «Prepara», §11.12): its local time, or null when the day has none free.
+ */
+export async function freeSlotOn(
+  tx: Tx,
+  scope: { organizationId: string; workspaceId: string },
+  localDate: string,
+  timeZone: string,
+  now: Date,
+): Promise<string | null> {
+  const slots = (await tx.timeSlots.list(scope)).filter((s) => s.weekday === weekday(localDate))
+  if (slots.length === 0) return null
+  const start = zonedToInstant(localDate, '00:00', timeZone).instant
+  const end = zonedToInstant(addDays(localDate, 1), '00:00', timeZone).instant
+  const after = new Date(Math.max(start.getTime() - 60_000, now.getTime()))
+  if (after >= end) return null
+  const slot = nextFreeSlot(
+    slots,
+    await tx.timeSlots.scheduledAt(scope, after, end),
+    after,
+    timeZone,
+  )
+  return slot && slot.localDate === localDate ? slot.localTime : null
 }

@@ -39,6 +39,9 @@ export const WORKSPACE_ROLE_PERMISSIONS: Record<WorkspaceRole, ReadonlyMap<Permi
     'workspace.members.manage',
     'share_link.manage',
     'audit.view_workspace',
+    'plan.view',
+    'plan.edit',
+    'plan.prepare',
   ]),
   publisher: new Map<Permission, Grant>([
     ['workspace.view', 'all'],
@@ -46,11 +49,16 @@ export const WORKSPACE_ROLE_PERMISSIONS: Record<WorkspaceRole, ReadonlyMap<Permi
     ['post.draft', 'own'],
     ['post.publish', 'all'],
     ['post.retry', 'own'],
+    ['plan.view', 'all'],
+    ['plan.edit', 'all'],
+    ['plan.prepare', 'all'],
   ]),
   editor: new Map<Permission, Grant>([
     ['workspace.view', 'all'],
     ['media.upload', 'all'],
     ['post.draft', 'own'],
+    ['plan.view', 'all'],
+    ['plan.prepare', 'all'],
   ]),
-  viewer: all(['workspace.view']),
+  viewer: all(['workspace.view', 'plan.view']),
 }

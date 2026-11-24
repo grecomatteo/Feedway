@@ -61,6 +61,8 @@ export interface SampleIds {
   group: string
   /** a note of `target` on `post` */
   note: string
+  /** a content of `workspace`'s editorial plan, to prepare, at version 1 */
+  planItem: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -225,6 +227,14 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     color: 'verde',
   }),
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/labels/{labelId}': () => ({ color: 'viola' }),
+  // the editorial plan (plan 09 Task 6)
+  'POST /api/v1/orgs/{org}/plan': (ids) => ({
+    workspaceId: ids.workspace,
+    localDate: '2027-01-13',
+    type: 'carousel',
+    title: 'Carosello della batteria',
+  }),
+  'PATCH /api/v1/orgs/{org}/plan/{itemId}': () => ({ version: 1, title: 'Reel cambiato' }),
   'PUT /api/v1/orgs/{org}/workspaces/{id}/time-slots': () => ({
     slots: [{ weekday: 1, localTime: '12:30' }],
   }),
@@ -281,6 +291,8 @@ const SAMPLE_QUERIES: Record<string, (ids: SampleIds) => string> = {
   'GET /api/v1/orgs/{org}/calendar': (ids) =>
     `from=2027-01-11&to=2027-01-17&workspaceId=${ids.workspace}`,
   'GET /api/v1/orgs/{org}/calendar/drafts': (ids) => `workspaceId=${ids.workspace}`,
+  'GET /api/v1/orgs/{org}/plan': (ids) =>
+    `workspaceId=${ids.workspace}&from=2027-01-11&to=2027-01-17`,
   // «Libreria» narrowed to one client (redesign R6)
   'GET /api/v1/orgs/{org}/media': (ids) => `workspaceId=${ids.workspace}`,
 }
@@ -310,6 +322,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   template: randomUUID(),
   group: randomUUID(),
   note: randomUUID(),
+  planItem: randomUUID(),
 }
 
 /**
@@ -340,6 +353,7 @@ export const ID_KINDS = [
   'template',
   'group',
   'note',
+  'planItem',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -405,6 +419,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   templateId: ids.template,
   groupId: ids.group,
   noteId: ids.note,
+  itemId: ids.planItem,
   bot: 'platform',
   n: '1',
   size: '256',
@@ -649,7 +664,13 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     accountId: string,
     authorId: string,
   ) {
-    const [label, template, group, note] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()]
+    const [label, template, group, note, planItem] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ]
     const { pool } = env.admin
     await pool.query(
       `insert into labels (id, organization_id, workspace_id, name, color)
@@ -671,7 +692,13 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
        values ($1, $2, $3, $4, $5, 'Nota della batteria')`,
       [note, organizationId, workspaceId, postId, authorId],
     )
-    return { label, template, group, note }
+    await pool.query(
+      `insert into plan_items (id, organization_id, workspace_id, local_date, type, title, note,
+                               created_by, updated_by)
+       values ($1, $2, $3, '2027-01-12', 'reel', 'Reel della batteria', 'Nota del piano', $4, $4)`,
+      [planItem, organizationId, workspaceId, authorId],
+    )
+    return { label, template, group, note, planItem }
   }
 
   /** A fresh imported account of the connection, written directly: no Meta call per case. */

@@ -260,6 +260,7 @@ const noIds: SampleIds = {
   template: '',
   group: '',
   note: '',
+  planItem: '',
 }
 
 test('every personal route with a parameter has a case', () => {

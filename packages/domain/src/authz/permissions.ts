@@ -9,6 +9,10 @@ export type Permission =
   | 'workspace.members.manage'
   | 'share_link.manage'
   | 'audit.view_workspace'
+  /** the editorial plan (spec §11.12, plan 09 Task 6), registered by the `plan` module */
+  | 'plan.view'
+  | 'plan.edit'
+  | 'plan.prepare'
   | 'workspace.create'
   | 'workspace.accounts.assign'
   | 'accounts.manage'
@@ -41,6 +45,9 @@ export const WORKSPACE_PERMISSIONS: ReadonlySet<Permission> = new Set<Permission
   'workspace.members.manage',
   'share_link.manage',
   'audit.view_workspace',
+  'plan.view',
+  'plan.edit',
+  'plan.prepare',
 ])
 
 export const ALL_PERMISSIONS: readonly Permission[] = [

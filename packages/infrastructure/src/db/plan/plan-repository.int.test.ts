@@ -120,6 +120,17 @@ test('a change carries the version it read', async () => {
   expect(await run((tx) => tx.plan.find(scope(), id))).toMatchObject({ ...change, version: 2 })
 })
 
+test('a change writes only its fields: the time of the change moves', async () => {
+  const created = await run((tx) => tx.plan.create(item({ localTime: null })))
+  // the whole record, as a use case may pass it: the rest must not go back as it was
+  const change = { ...created, title: 'Nuovo titolo', updatedBy: user }
+  expect(await run((tx) => tx.plan.update(scope(), created.id, change, 1))).toBe(2)
+  const after = await run((tx) => tx.plan.find(scope(), created.id))
+  expect(after?.title).toBe('Nuovo titolo')
+  expect(after?.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime())
+  expect(after?.createdAt).toEqual(created.createdAt)
+})
+
 test('the days of a period, by day and time, a content without a time last', async () => {
   const day = '2027-01-15'
   const late = await run((tx) => tx.plan.create(item({ localDate: day, localTime: '20:00' })))

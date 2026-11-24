@@ -4,6 +4,7 @@ export { createOrganization } from './create-organization.js'
 export type { CreateOrganizationResult } from './create-organization.js'
 export { reactivateOrganization, suspendOrganization } from './suspend-organization.js'
 export { setOrganizationLimits } from './set-limits.js'
+export { setOrganizationModules } from './set-modules.js'
 export { findOrganizationBySlug, listOrganizations } from './list-organizations.js'
 export type { PlatformOrganization } from './list-organizations.js'
 export {

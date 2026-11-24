@@ -262,6 +262,7 @@
     "upload_completing": "Il file si sta già completando: riprova tra poco",
     "upload_parts_missing": "Mancano dei pezzi del file",
     "post_version_conflict": "Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova",
+    "plan_item_version_conflict": "Il contenuto è stato cambiato da un'altra persona: ricarica per vedere la versione nuova",
     "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
     "media_in_scheduled_post": "Questo file serve ancora a un post da pubblicare o da riprovare: non si può eliminare adesso",
     "paused_time_passed": "L'ora del post è passata: scegli quando pubblicarlo",

@@ -786,7 +786,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - le bozze senza data: le 200 cambiate per ultime; con un filtro rapido nessuna;
       - «Elimina le bozze vuote»: fino a 500 per volta, scelte nella query (nessun file, account o nota interna, testo solo di spazi), ognuna bloccata e riletta prima di andare (una bozza che ha appena preso un testo resta); le etichette non contano per «vuota», una nota interna sì (la bozza resta, così non si perdono le note di altri; nell'elenco può comunque dirsi «vuota»); un cliente archiviato chiesto per nome risponde 409, come «Elimina»; a chi non può eliminare nulla risponde `deleted: 0`, non 403; una voce `post.deleted` nel registro per bozza;
       - accanto a un post, «Oggi» e il calendario mostrano un account se è assegnato ad almeno uno dei clienti letti, non per forza a quello del post (prima si guardava cliente per cliente): un account tolto al cliente A ma rimasto al cliente B compare anche sul post di A; così le piattaforme si leggono con una sola query;
-      - la CLI `set-modules` non c'è ancora: arriva con il Task 6, insieme ai 404 delle rotte del piano;
+      - la CLI `set-modules` è arrivata con il Task 6 (punto 21), insieme ai 404 delle rotte del piano;
       - il fuso dell'agenzia è in `GET /api/v1/me` per ogni agenzia (D-78, chiusa): l'editor non chiede più `GET …/settings`.
   19. **Tabella del piano (Task 5, scelte provvisorie):**
       - **l'evento `plan.due_soon` entra nel Task 8, non nel 5:** il piano lo mette nel Task 5 insieme ai vincoli `check` della migrazione, ma il codice vuole che ogni tipo dell'outbox abbia il suo tipo di notifica registrato (`modules.test.ts`), il nome e l'icona nel pannello e una riga nelle preferenze, che sono del Task 8. Il Task 5 definisce solo `PLAN_EVENT_TYPES`; il Task 8 lo unisce a `OUTBOX_EVENT_TYPES` e cambia i vincoli con una migrazione sua (un numero in più da chiedere al coordinatore);
@@ -804,6 +804,15 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - le legge e chiede la prossima libera chi vede il cliente (Viewer compreso), le cambia chi ha `workspace.content_settings.manage`; con il cliente archiviato si leggono e non si cambiano (409);
       - l'API usa `?after=` (un istante ISO) invece del `?dopo=` del piano, perché l'API usa i nomi inglesi (punto 18);
       - nella pagina: una riga per giorno con gli orari come chip, «Aggiungi» ogni quarto d'ora e «Copia il lunedì su mar–ven» (dà a martedì–venerdì gli orari del lunedì e toglie i loro); ogni cambio si salva subito. Nell'editor il pulsante c'è solo se il cliente ha una fascia libera (una lettura all'apertura) e al clic la chiede di nuovo, così salta un post programmato nel frattempo da altri.
+  21. **Casi d'uso, API e «Prepara» del piano (Task 6, scelte provvisorie):**
+      - permessi: `plan.view` a tutti i ruoli del cliente (Viewer compreso), `plan.edit` fino al Publisher, `plan.prepare` fino all'Editor; Owner e Admin hanno tutto;
+      - le rotte usano `{itemId}` invece di `[id]` (`PATCH/DELETE …/plan/{itemId}`, `POST …/plan/{itemId}/prepare`); `GET …/plan` vuole `workspaceId`, `from` e `to` (fino a 42 giorni). Con il modulo spento, il cliente non visibile o il contenuto di un'altra agenzia: 404; un cliente archiviato si legge e non si cambia (409);
+      - `movePlanItem` è `updatePlanItem` con il solo giorno e l'ora: stessa versione, stesso 409;
+      - aggiungere, cambiare e togliere un contenuto non scrive nel registro: il piano è lavoro interno; «Prepara» scrive come la nascita di una bozza;
+      - «Prepara» senza ora: l'orario abituale del cliente, poi la prima fascia libera **di quel giorno** (non la prossima in assoluto, che cambierebbe giorno), poi le 18:00. Due «Prepara» insieme: il secondo aspetta il primo sulla riga e risponde con il suo post (`created: false`);
+      - la voce del calendario porta in `data` solo `type`, `state`, `dueAt` e `postId` (oltre a titolo, giorno e ora); i contenuti preparati non danno voce e segnano il post con `marks: ['plan']`;
+      - la sorgente delle voci dei moduli riceve anche agenzia, fuso e istante di adesso (`entries`), e `markedPostIds` l'agenzia: servono allo stato del piano;
+      - `set-modules <slug> --plan on|off` nella CLI del worker cambia `organizations.settings.modules` e scrive `organization.settings_changed` con i moduli cambiati; uguale a prima non scrive nulla.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico

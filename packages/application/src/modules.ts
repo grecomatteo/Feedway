@@ -12,6 +12,7 @@ import type {
 } from './module-definition.js'
 import { isModuleEnabled, type OutboxEventType } from '@app/domain'
 import { organizationsModule } from './organizations/module.js'
+import { planModule } from './plan/module.js'
 import { platformModule } from './platform/module.js'
 import { postsModule } from './posts/module.js'
 import { rulesModule } from './rules/module.js'
@@ -27,6 +28,7 @@ export const MODULES: readonly ModuleDefinition[] = [
   mediaModule,
   rulesModule,
   postsModule,
+  planModule,
   notificationsModule,
   auditModule,
 ]
