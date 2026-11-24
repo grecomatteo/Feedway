@@ -11,7 +11,9 @@ import {
   enableUserEverywhere,
   lockAccountFromSecurityEmail,
   reactivateOrganization,
+  removePlatformTelegramBot,
   replacePlatformMailSettings,
+  replacePlatformTelegramBot,
   sendPlatformTestEmail,
   sendAccountLockedNotice,
   setOrganizationLimits,
@@ -26,6 +28,7 @@ import {
   createLogger,
   createMemoryMailer,
   createSignedTokens,
+  createTelegramBotApi,
   createTranslate,
   createTokenService,
   createUnitOfWork,
@@ -34,6 +37,7 @@ import {
 } from '@app/infrastructure'
 import type { Permission } from '@app/domain'
 import { META_MOCK } from '@app/meta-mock'
+import { TELEGRAM_MOCK } from '@app/telegram-mock'
 import { MATRIX } from '@app/domain/testing'
 import {
   ACTOR_ROLES,
@@ -235,6 +239,16 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
   'POST /api/v1/orgs/{org}/integrations/meta/test': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  // the agency's own Telegram bot: the Admin sees it, only the Owner changes it (plan 08 Scelta 8)
+  'GET /api/v1/orgs/{org}/integrations/telegram': [
+    { permission: 'organization.settings.view', level: 'organization' },
+  ],
+  'PUT /api/v1/orgs/{org}/integrations/telegram': [
+    { permission: 'organization.settings.manage', level: 'organization' },
+  ],
+  'DELETE /api/v1/orgs/{org}/integrations/telegram': [
     { permission: 'organization.settings.manage', level: 'organization' },
   ],
   // connections and imports: Owner and Admin (spec §10.2, "Collegare account social")
@@ -846,9 +860,14 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   // names of the fields only: never a value, never the password
   'platform.mail_settings_changed': ['fields[]'],
   'platform.mail_test_sent': ['ok', 'kind'],
+  // the bot's name, never its token
+  'platform.telegram_bot_changed': ['botUsername'],
+  'platform.telegram_bot_removed': ['botUsername'],
   // names of the fields only: never the App Secret, not even the App ID
   'integration.meta_changed': ['fields[]'],
   'integration.meta_tested': ['ok', 'result'],
+  'integration.telegram_changed': ['botUsername'],
+  'integration.telegram_removed': ['botUsername'],
   // the kind only: never the token, nor the Meta user it belongs to
   'connection.created': ['kind'],
   'connection.token_replaced': ['kind'],
@@ -970,6 +989,9 @@ async function produceEveryAction() {
     appSecret: META_MOCK.app.secret,
   })
   await ok('POST', `${org}/integrations/meta/test`)
+  // only the fake Bot API answers (TELEGRAM_API_URL)
+  await ok('PUT', `${org}/integrations/telegram`, { token: TELEGRAM_MOCK.bots.agency.token })
+  await ok('DELETE', `${org}/integrations/telegram`)
   const preview = JSON.parse(await ok('POST', `${org}/logo`, uploadForm())) as { stagingId: string }
   await ok('POST', `${org}/logo/confirm`, { stagingId: preview.stagingId })
   await ok('DELETE', `${org}/logo`)
@@ -1195,6 +1217,15 @@ async function produceEveryAction() {
     expect(await sendPlatformTestEmail(mailDeps, actor, 'prova@feedway.test')).toMatchObject({
       ok: true,
     })
+    // the platform's Telegram bot (its routes: platform-routes.int.test.ts)
+    const botDeps = {
+      uow,
+      clock: systemClock,
+      integrations: mailDeps.integrations,
+      telegram: createTelegramBotApi({ baseUrl: new URL(env.telegram.url) }),
+    }
+    await replacePlatformTelegramBot(botDeps, actor, { token: TELEGRAM_MOCK.bots.platform.token })
+    await removePlatformTelegramBot(botDeps, actor)
   } finally {
     await handle.close()
   }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { defineContract } from './define.js'
 import { Timestamp } from './common.js'
+import { ReplaceTelegramBotBody, TelegramBot } from './integrations.js'
 
 // The platform administrator's routes (`platformRole = 'admin'`): anyone else gets 404, as if
 // they did not exist. Changes need a recent reauth (ADR 017).
@@ -83,8 +84,42 @@ export const platformMailTestRoute = defineContract({
   scope: 'platform',
 })
 
+export const platformTelegramBotRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/platform/telegram-bot',
+  summary: 'Il bot Telegram della piattaforma, senza il token',
+  request: {},
+  response: z.object({ bot: TelegramBot.nullable() }),
+  auth: 'session',
+  scope: 'platform',
+})
+
+export const replacePlatformTelegramBotRoute = defineContract({
+  method: 'PUT',
+  path: '/api/v1/platform/telegram-bot',
+  summary:
+    'Imposta il bot Telegram della piattaforma (con riconferma): si salva solo se Telegram lo accetta',
+  request: { body: ReplaceTelegramBotBody },
+  response: z.object({ bot: TelegramBot }),
+  auth: 'session',
+  scope: 'platform',
+})
+
+export const removePlatformTelegramBotRoute = defineContract({
+  method: 'DELETE',
+  path: '/api/v1/platform/telegram-bot',
+  summary: 'Toglie il bot Telegram della piattaforma (con riconferma)',
+  request: {},
+  response: z.object({ ok: z.literal(true) }),
+  auth: 'session',
+  scope: 'platform',
+})
+
 export const platformRoutes = [
   platformMailSettingsRoute,
   replacePlatformMailSettingsRoute,
   platformMailTestRoute,
+  platformTelegramBotRoute,
+  replacePlatformTelegramBotRoute,
+  removePlatformTelegramBotRoute,
 ] as const
