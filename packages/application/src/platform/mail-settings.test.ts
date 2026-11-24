@@ -71,7 +71,13 @@ describe('createMailSettings', () => {
     expect(await w.settings.isConfigured()).toBe(false)
     expect(w.runAsSystem).toHaveBeenCalledTimes(1)
     w.later(30_000)
+    // an old «unset» is answered at once, without a wait inside the caller's transaction
+    expect(await w.settings.isConfigured()).toBe(false)
+    expect(w.runAsSystem).toHaveBeenCalledTimes(2)
+    // once the read in the background is done
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(await w.settings.isConfigured()).toBe(true)
+    expect(w.runAsSystem).toHaveBeenCalledTimes(2)
   })
 
   test('the web never keeps an «unset»: the SMTP just saved counts at once', async () => {

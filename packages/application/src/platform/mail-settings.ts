@@ -79,12 +79,12 @@ export function createMailSettings(
     isConfigured() {
       if (!memory || known === null) return refresh()
       const age = memory.clock.now().getTime() - known.at
-      if (known.set) {
-        // an old «set» is still the answer; the next one will have been read again
-        if (age >= memory.setMs) refresh().catch(() => undefined)
-        return Promise.resolve(true)
-      }
-      return age < memory.unsetMs ? Promise.resolve(false) : refresh()
+      // the web never keeps an «unset»: it reads again, and waits for it
+      if (!known.set && memory.unsetMs === 0) return refresh()
+      // an old answer is still the answer, never a wait inside the caller's transaction;
+      // the next one will have been read again
+      if (age >= (known.set ? memory.setMs : memory.unsetMs)) refresh().catch(() => undefined)
+      return Promise.resolve(known.set)
     },
     credentials: () =>
       uow.runAsSystem(
