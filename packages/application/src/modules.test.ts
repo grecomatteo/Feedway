@@ -35,8 +35,10 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'notify.dispatch': true,
   'notify.deliver': true,
   'notify.deliver_platform': true,
+  'telegram.poll': true,
   'report.daily': true,
   'report.digest': true,
+  'heartbeat.external': true,
 }
 
 test('each module has its own name', () => {

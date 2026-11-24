@@ -1,0 +1,2 @@
+ALTER TABLE "notification_settings" ADD COLUMN "digest_channels" text[] DEFAULT '{email,telegram}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "notification_settings" ADD CONSTRAINT "notification_settings_digest_channels" CHECK (cardinality("notification_settings"."digest_channels") > 0 and "notification_settings"."digest_channels" <@ '{email,telegram}'::text[]);

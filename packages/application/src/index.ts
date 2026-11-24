@@ -46,6 +46,8 @@ export type {
   IntegrationTx,
   IntegrationView,
   MailSettingsSource,
+  TelegramBotCredentials,
+  TelegramPollState,
   OrganizationIntegrationKind,
   OrganizationIntegrationRecordInput,
   OrganizationIntegrationReplacement,
@@ -56,6 +58,12 @@ export type {
   HeartbeatConfig,
   SmtpPort,
 } from './ports/integration-store.js'
+export type { ExternalPingResult, ExternalWatchPinger } from './ports/external-watch.js'
+export type {
+  HeartbeatDetails,
+  HeartbeatRecord,
+  SystemHeartbeatsRepository,
+} from './ports/heartbeats.js'
 export type { Translate } from './ports/translator.js'
 export type { RateLimiter } from './ports/rate-limiter.js'
 export type { Storage, StoredObject, StoredRange } from './ports/storage.js'
@@ -139,6 +147,8 @@ export type {
   NotificationPrefsRepository,
   NotificationsRepository,
   TelegramLinksRepository,
+  TelegramBotOwner,
+  TelegramLinkRecord,
 } from './ports/notifications.js'
 export type { TxScope, UnitOfWork } from './ports/unit-of-work.js'
 export { AUDIT_ACTIONS, AUDIT_SOURCES, isPersonalAuditAction } from './ports/audit-log.js'
@@ -234,6 +244,29 @@ export {
   replaceAgencyTelegramBot,
   type AgencyTelegramBotDeps,
   type TelegramBotView,
+  LINK_CODE_MINUTES,
+  TELEGRAM_TEXT_MAX,
+  answerTelegramQuery,
+  escapeHtml,
+  fitMessage,
+  createTelegramChannel,
+  createTelegramTargets,
+  listTelegramLinks,
+  parseCommand,
+  pollTelegram,
+  startTelegramLink,
+  telegramText,
+  unlinkTelegram,
+  type TelegramBotKey,
+  type TelegramBotLink,
+  type TelegramChannelDeps,
+  type TelegramCommandDeps,
+  type TelegramLinkDeps,
+  type TelegramPollDeps,
+  type TelegramPollReport,
+  type TelegramTargets,
+  type TelegramHtml,
+  type TelegramSection,
   DIGEST_LOCK,
   sendDigest,
   startDigests,

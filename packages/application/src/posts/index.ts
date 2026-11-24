@@ -3,6 +3,8 @@
 export { createDraft, createPost, deletePost, updatePost } from './drafts.js'
 export type { CreateDraftInput } from './drafts.js'
 export type { PostContent, PostsDeps, PostWhenInput, UpdatePostInput } from './common.js'
+// the agency's day, for the /oggi of Telegram (plan 08 Task 7)
+export { agencyDay } from './common.js'
 export { cancelPost, publishNow, schedulePost, unschedulePost } from './schedule.js'
 export { getPost, listPosts } from './read.js'
 export type { PostDto, PostMediaDto } from './read.js'

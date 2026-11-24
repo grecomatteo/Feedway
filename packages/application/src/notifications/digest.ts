@@ -175,12 +175,13 @@ function digestMessage(
 
 type Counts = { agencies: number; sent: number; failed: number; sectionErrors: number }
 
-/** One agency's digest, sent on every channel the person can be reached on. */
+/** One agency's digest, sent on each chosen channel the person can be reached on. */
 async function digestOfAgency(
   deps: DigestDeps,
   job: DigestJob,
   organizationId: string,
   now: Date,
+  channels: readonly NotificationChannel[],
   signal: AbortSignal,
   report: Counts,
 ): Promise<void> {
@@ -193,7 +194,7 @@ async function digestOfAgency(
   report.agencies++
   const message = digestMessage(deps, agency, blocks, job.date)
   const recipient = recipientOf(user, agency.organizationId)
-  for (const channel of deps.channels) {
+  for (const channel of channels) {
     const available = await deps.uow.run({ organizationId, userId: job.userId }, (tx) =>
       channel.isAvailable(tx, recipient),
     )
@@ -233,11 +234,13 @@ export async function sendDigest(
   // turned off after the job was sent
   if (!person.settings.digest.enabled) return { outcome: 'skipped', reason: 'off' }
   const report = { outcome: 'done' as const, agencies: 0, sent: 0, failed: 0, sectionErrors: 0 }
+  // only where the person wants it; of those, the ones that can reach them now
+  const chosen = deps.channels.filter((c) => person.settings.digest.channels.includes(c.name))
   for (const membership of person.memberships) {
     // a failure in one agency is logged and the job goes on: thrown, pg-boss would run it again
     // and send the agencies already done twice (D-121 punto 13)
     try {
-      await digestOfAgency(deps, job, membership.organizationId, now, signal, report)
+      await digestOfAgency(deps, job, membership.organizationId, now, chosen, signal, report)
     } catch (error) {
       report.failed++
       deps.logger.error(

@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, expect, test } from 'vitest'
 import { TELEGRAM_MOCK, startTelegramMock } from './index.ts'
+import { visibleText } from './server.ts'
 
 const mock = await startTelegramMock()
 afterAll(() => mock.stop())
@@ -80,4 +81,12 @@ test('429 with retry_after and 502, for the given number of calls', async () => 
 test('calls name the bot, never the token', async () => {
   await call(platform.token, 'getMe')
   expect(JSON.stringify(mock.calls())).not.toContain(platform.token)
+})
+
+test('parse_mode HTML: what Telegram shows, or null where it refuses the text', () => {
+  expect(visibleText('<b>Ciao</b> &amp; <a href="https://x.it/?a=1&amp;b=2">qui</a>')).toBe(
+    'Ciao & qui',
+  )
+  for (const bad of ['a < b', 'a > b', 'a & b', '<b>x', '<b><i>x</b></i>', '<div>x</div>'])
+    expect(visibleText(bad)).toBeNull()
 })

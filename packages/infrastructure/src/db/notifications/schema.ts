@@ -153,6 +153,11 @@ export const notificationSettings = pgTable(
       .array()
       .notNull()
       .default(sql`'{1,2,3,4,5,6,7}'`),
+    // where the digest goes, at least one (`DIGEST_CHANNELS`)
+    digestChannels: text('digest_channels')
+      .array()
+      .notNull()
+      .default(sql`'{email,telegram}'`),
     everythingEverywhere: boolean('everything_everywhere').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -168,6 +173,10 @@ export const notificationSettings = pgTable(
     check(
       'notification_settings_digest_days',
       sql`${t.digestDays} <@ '{1,2,3,4,5,6,7}'::smallint[]`,
+    ),
+    check(
+      'notification_settings_digest_channels',
+      sql`cardinality(${t.digestChannels}) > 0 and ${t.digestChannels} <@ '{email,telegram}'::text[]`,
     ),
   ],
 )
