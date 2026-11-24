@@ -548,6 +548,37 @@ describe("the reel's cover (D-120.9), sent by the verification (review R5)", () 
     expect(thumbnails()).toHaveLength(2)
   })
 
+  test('held only for its cover: an error or a gone post at the last round never undoes the reel', async () => {
+    mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const first = await publisher.verify(ready, signal(), round())
+    expect(first.outcome).toBe('pending')
+    const held = after(ready, first)
+    mock.scenario('default')
+    // Meta does not answer at the last round: the reel was seen ready, it is confirmed
+    mock.scenario('error', { code: 2, status: 500 })
+    const result = await publisher.verify(held, signal(), round({ lastRound: true }))
+    expect(result).toMatchObject({
+      outcome: 'confirmed',
+      permalink: expect.stringContaining('/reel/') as string,
+      metaIds: { cover: 'failed' },
+    })
+    mock.scenario('default')
+    // not the last round: an error is a round without an answer, as for any post
+    mock.scenario('error', { code: 2, status: 500 })
+    await expect(publisher.verify(held, signal(), round())).rejects.toBeInstanceOf(PublishError)
+  })
+
+  test('a reel Meta no longer has: a problem, and the cover is not left waiting', async () => {
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    mock.scenario('asset_removed', { id: ready.externalPostId ?? '' })
+    expect(await publisher.verify(ready, signal(), round())).toMatchObject({
+      outcome: 'problem',
+      reason: 'not_found',
+      metaIds: { cover: 'failed' },
+    })
+  })
+
   test('refused at the last round: failed at once, the reel confirmed', async () => {
     mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
     const { ready } = await goOut(withScopes(scopes), withCover())

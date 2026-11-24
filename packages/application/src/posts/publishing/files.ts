@@ -103,24 +103,28 @@ export async function readCover(
  * The cover of a destination already out, for a publisher that sends it after the post (the
  * verification of Facebook's reels, review R5): the copy the publish step used, looked up in a
  * transaction of its own and read from the storage after it, only when the publisher asks.
- * null: no cover, or its copy is not there any more.
+ * Read only: a copy missing now is not asked for again. null: no cover, or its copy is gone.
  */
 export async function publishedCover(
   deps: PublishingWorkerDeps,
   target: Pick<PublishingTargetRecord, 'organizationId' | 'workspaceId' | 'postId' | 'accountId'>,
 ): Promise<CoverImage | null> {
   const scope = { organizationId: target.organizationId, workspaceId: target.workspaceId }
-  const cover = await deps.uow.run(
+  const key = await deps.uow.run(
     { organizationId: target.organizationId, userId: null },
     async (tx) => {
       const post = await tx.posts.find(scope, target.postId)
       const actor = post ? await publisherOf(tx, post) : null
       if (!post || !actor) return null
-      const report = await checkPostInTx(tx, deps, actor, toCheckInput(post, 'publish'))
-      const copies = await destinationCopies(tx, deps, post, report, target.accountId)
-      const found = copies.status === 'ready' ? copies.files.cover : null
-      return found !== null && 'read' in found ? found : null
+      const input = toCheckInput(post, 'publish')
+      const report = await checkPostInTx(tx, deps, actor, input)
+      const cover = (await publishFilesOfPost(tx, deps, scope, input, report)).find(
+        (d) => d.accountId === target.accountId,
+      )?.cover
+      if (!cover) return null
+      const [copy] = await publishCopiesOf(tx, target.organizationId, [cover])
+      return copy?.state.status === 'ready' ? copy.state.copy.storageKey : null
     },
   )
-  return cover === null ? null : cover.read()
+  return key === null ? null : readCover(deps.storage, key)
 }

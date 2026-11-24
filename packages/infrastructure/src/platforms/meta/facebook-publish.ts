@@ -74,6 +74,11 @@ const idsSchema = z.object({
   cover: z.enum(['pending', 'done', 'failed', 'no_permission']).nullable().default(null),
   /** The calls of the cover so far, at most `COVER_TRIES`. */
   coverTries: z.number().int().nonnegative().default(0),
+  /**
+   * The reel was seen processed and out, and a round is held only for its cover: at the last
+   * round it is confirmed with this link whatever Meta answers then (a cover never undoes it).
+   */
+  coverHeld: z.object({ permalink: z.string().nullable() }).nullable().default(null),
 })
 type FacebookIds = z.infer<typeof idsSchema>
 
@@ -86,6 +91,7 @@ const freshIds = (now: Date): FacebookIds => ({
   publishingAt: null,
   cover: null,
   coverTries: 0,
+  coverHeld: null,
 })
 
 /**
@@ -440,71 +446,99 @@ export function createFacebookPublisher(deps: MetaPublisherDeps): PlatformPublis
     },
 
     async verify(target, signal, ctx): Promise<VerifyResult> {
-      const postId = target.externalPostId
-      if (postId === null)
-        return { outcome: 'problem', reason: 'not_found', ...stepUsage(NO_USAGE) }
       const ids = parse(target)
-      const shape = shapeOf(target, null, ids)
-      // only the rounds of the verification settle the cover: the search just reads
-      const coverIds = ctx !== undefined && ids?.cover === 'pending' ? ids : null
-      const coverFailed = coverIds === null ? {} : { metaIds: { ...coverIds, cover: 'failed' } }
-      const credentials = await pageCredentials(target, signal)
+      const held = ctx?.lastRound === true && ids?.cover === 'pending' ? ids.coverHeld : null
+      if (held === null) return verifyNow(target, signal, ctx)
+      // the last round of a reel held only for its cover: confirmed, never a problem for it
+      const confirmHeld = (usage: VerifyResult): VerifyResult => ({
+        ...usage,
+        outcome: 'confirmed',
+        permalink: held.permalink,
+        metaIds: { ...ids, cover: 'failed', coverHeld: null },
+      })
       try {
-        if (shape === 'photo_story' || shape === 'video_story') {
-          // a story is checked by its id among the Page's stories (§9.6): it expires in a day
-          const read = await client.listPageStories(credentials, pageOf(target), FIND_LIMIT, signal)
-          const usage = stepUsage(read.usage)
-          const story = read.data.find((s) => s.postId === postId)
-          if (story === undefined) return { outcome: 'problem', reason: 'not_found', ...usage }
-          return { outcome: 'confirmed', permalink: safePermalink(story.permalink), ...usage }
-        }
-        if (shape === 'reel' || shape === 'video') {
-          const read = await client.getFacebookVideo(credentials, postId, signal)
-          const usage = stepUsage(read.usage)
-          const v = read.data
-          if (
-            v.videoStatus === 'error' ||
-            v.videoStatus === 'expired' ||
-            v.uploadingStatus === 'error' ||
-            v.processingStatus === 'error' ||
-            v.publishingStatus === 'error'
-          )
-            return { outcome: 'problem', reason: 'failed', ...usage, ...coverFailed }
-          // processing and publishing both done (§9.6): `published` alone may come first
-          const out =
-            v.videoStatus === 'ready' &&
-            v.processingStatus !== 'in_progress' &&
-            (v.publishStatus === 'published' || v.publishingStatus === 'complete')
-          // still processing: no cover call, Meta would refuse it; none waits past the last round
-          if (!out)
-            return { outcome: 'pending', ...usage, ...(ctx?.lastRound === true ? coverFailed : {}) }
-          const permalink = safePermalink(v.permalink)
-          if (coverIds === null || ctx === undefined)
-            return { outcome: 'confirmed', permalink, ...usage }
-          const cover = await sendCover(credentials, target, postId, coverIds, ctx, signal)
-          const sent = {
-            metaIds: cover.ids,
-            ...(cover.usage === null ? usage : stepUsage(cover.usage)),
-          }
-          // refused once: the reel waits one more round for its cover, then is confirmed anyway
-          return cover.ids.cover === 'pending'
-            ? { outcome: 'pending', ...sent }
-            : { outcome: 'confirmed', permalink, ...sent }
-        }
-        const read = await client.getFacebookPost(credentials, postId, signal)
-        const usage = stepUsage(read.usage)
-        const permalink = safePermalink(read.data.permalink)
-        if (read.data.isPublished === false || permalink === null)
-          return { outcome: 'pending', ...usage }
-        return { outcome: 'confirmed', permalink, ...usage }
+        const result = await verifyNow(target, signal, ctx)
+        return result.outcome === 'pending' ? confirmHeld(result) : result
       } catch (err) {
-        if (err instanceof MetaError && err.reason === 'not_found_or_forbidden')
-          return { outcome: 'problem', reason: 'not_found', ...stepUsage(err.usage ?? NO_USAGE) }
-        if (err instanceof MetaError)
-          throw publishErrorOf(err, clock.now(), { uncertainAs: 'transient' })
-        throw err
+        if (!(err instanceof PublishError)) throw err
+        return confirmHeld({ outcome: 'pending', ...stepUsage(NO_USAGE) })
       }
     },
+  }
+
+  async function verifyNow(
+    target: PublishTarget,
+    signal: AbortSignal,
+    ctx: VerifyContext | undefined,
+  ): Promise<VerifyResult> {
+    const postId = target.externalPostId
+    if (postId === null) return { outcome: 'problem', reason: 'not_found', ...stepUsage(NO_USAGE) }
+    const ids = parse(target)
+    const shape = shapeOf(target, null, ids)
+    // only the rounds of the verification settle the cover: the search just reads
+    const coverIds = ctx !== undefined && ids?.cover === 'pending' ? ids : null
+    const coverFailed = coverIds === null ? {} : { metaIds: { ...coverIds, cover: 'failed' } }
+    const credentials = await pageCredentials(target, signal)
+    try {
+      if (shape === 'photo_story' || shape === 'video_story') {
+        // a story is checked by its id among the Page's stories (§9.6): it expires in a day
+        const read = await client.listPageStories(credentials, pageOf(target), FIND_LIMIT, signal)
+        const usage = stepUsage(read.usage)
+        const story = read.data.find((s) => s.postId === postId)
+        if (story === undefined) return { outcome: 'problem', reason: 'not_found', ...usage }
+        return { outcome: 'confirmed', permalink: safePermalink(story.permalink), ...usage }
+      }
+      if (shape === 'reel' || shape === 'video') {
+        const read = await client.getFacebookVideo(credentials, postId, signal)
+        const usage = stepUsage(read.usage)
+        const v = read.data
+        if (
+          v.videoStatus === 'error' ||
+          v.videoStatus === 'expired' ||
+          v.uploadingStatus === 'error' ||
+          v.processingStatus === 'error' ||
+          v.publishingStatus === 'error'
+        )
+          return { outcome: 'problem', reason: 'failed', ...usage, ...coverFailed }
+        // processing and publishing both done (§9.6): `published` alone may come first
+        const out =
+          v.videoStatus === 'ready' &&
+          v.processingStatus !== 'in_progress' &&
+          (v.publishStatus === 'published' || v.publishingStatus === 'complete')
+        // still processing: no cover call, Meta would refuse it; none waits past the last round
+        if (!out)
+          return { outcome: 'pending', ...usage, ...(ctx?.lastRound === true ? coverFailed : {}) }
+        const permalink = safePermalink(v.permalink)
+        if (coverIds === null || ctx === undefined)
+          return { outcome: 'confirmed', permalink, ...usage }
+        const cover = await sendCover(credentials, target, postId, coverIds, ctx, signal)
+        const sent = {
+          metaIds: cover.ids,
+          ...(cover.usage === null ? usage : stepUsage(cover.usage)),
+        }
+        // refused once: the reel waits one more round for its cover, then is confirmed anyway
+        return cover.ids.cover === 'pending'
+          ? { outcome: 'pending', ...sent, metaIds: { ...cover.ids, coverHeld: { permalink } } }
+          : { outcome: 'confirmed', permalink, ...sent, metaIds: { ...cover.ids, coverHeld: null } }
+      }
+      const read = await client.getFacebookPost(credentials, postId, signal)
+      const usage = stepUsage(read.usage)
+      const permalink = safePermalink(read.data.permalink)
+      if (read.data.isPublished === false || permalink === null)
+        return { outcome: 'pending', ...usage }
+      return { outcome: 'confirmed', permalink, ...usage }
+    } catch (err) {
+      if (err instanceof MetaError && err.reason === 'not_found_or_forbidden')
+        return {
+          outcome: 'problem',
+          reason: 'not_found',
+          ...stepUsage(err.usage ?? NO_USAGE),
+          ...coverFailed,
+        }
+      if (err instanceof MetaError)
+        throw publishErrorOf(err, clock.now(), { uncertainAs: 'transient' })
+      throw err
+    }
   }
 
   /**

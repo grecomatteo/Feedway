@@ -14,13 +14,19 @@ export type PublishMetaIds = Record<string, unknown>
 /**
  * What became of a cover a publisher sends after the post (Facebook's reels, D-120.9), written
  * as `cover` in its ids: the one field of them the posts module reads, for the outcome. Any
- * other value (Facebook's `pending`, until the verification sends it) reads as null.
+ * other value reads as null; Facebook's `pending` (until the verification sends it) reads as
+ * `failed` once the destination is past its verification («Segna come verificato», a «Riprova»).
  */
 export const COVER_OUTCOMES = ['done', 'failed', 'no_permission'] as const
 export type CoverOutcome = (typeof COVER_OUTCOMES)[number]
 
-export function coverOutcomeOf(ids: PublishMetaIds | null): CoverOutcome | null {
+export function coverOutcomeOf(
+  ids: PublishMetaIds | null,
+  /** the destination is past its verification: a cover still waiting never went up */
+  settled = false,
+): CoverOutcome | null {
   const cover = ids?.['cover']
+  if (settled && cover === 'pending') return 'failed'
   return COVER_OUTCOMES.find((c) => c === cover) ?? null
 }
 
