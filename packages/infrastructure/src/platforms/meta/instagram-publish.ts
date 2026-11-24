@@ -70,6 +70,16 @@ const freshIds = (now: Date): InstagramIds => ({
 /** Back to the start of a round: the containers expired (or never finished). */
 class ContainersGone extends Error {}
 
+/** Instagram's subcode for a file it could not fetch from its URL (D-131.2). */
+const MEDIA_UNREACHABLE_SUBCODE = '2207052'
+
+/** A container that failed because Meta could not fetch its file: it is made again. */
+class ContainerUnreachable extends Error {
+  constructor(readonly platformCode: string) {
+    super('Meta could not download the media of the container')
+  }
+}
+
 const productOf = (target: PublishTarget) =>
   target.type === 'reel' ? 'REELS' : target.type === 'story' ? 'STORY' : 'FEED'
 
@@ -170,12 +180,13 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
     if (status === 'EXPIRED') throw new ContainersGone()
     // the post is out already (a publish whose answer was lost): never make another one
     if (status === 'PUBLISHED') throw new PublishError({ kind: 'uncertain', code: 'meta_error' })
-    if (status === 'ERROR')
-      throw new PublishError({
-        kind: 'permanent',
-        code: 'media_rejected',
-        platformCode: read.data.status?.match(/\b2207\d{3}\b/)?.[0] ?? null,
-      })
+    if (status === 'ERROR') {
+      const platformCode = read.data.status?.match(/\b2207\d{3}\b/)?.[0] ?? null
+      // Meta could not download the video (Feedway's public host down for a moment): the file
+      // may be right, the round starts again at the next attempt (D-131.2)
+      if (platformCode === MEDIA_UNREACHABLE_SUBCODE) throw new ContainerUnreachable(platformCode)
+      throw new PublishError({ kind: 'permanent', code: 'media_rejected', platformCode })
+    }
     return { status, usage: read.usage }
   }
 
@@ -211,7 +222,19 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
     /** true: finished; false: still working, wait for the next read. */
     const finish = async (container: { id: string; finished: boolean }) => {
       if (container.finished) return true
-      const read = await readStatus(credentials, ids, container.id, ctx.signal)
+      let read: Awaited<ReturnType<typeof readStatus>>
+      try {
+        read = await readStatus(credentials, ids, container.id, ctx.signal)
+      } catch (err) {
+        if (!(err instanceof ContainerUnreachable)) throw err
+        // the failed containers are dropped (they expire by themselves, no post comes out)
+        await ctx.saveIds(freshIds(clock.now()))
+        throw new PublishError({
+          kind: 'transient',
+          code: 'media_unreachable',
+          platformCode: err.platformCode,
+        })
+      }
       if (read === null) return false
       usage = read.usage
       container.finished = read.status === 'FINISHED'

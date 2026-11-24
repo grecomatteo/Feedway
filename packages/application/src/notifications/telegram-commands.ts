@@ -1,5 +1,6 @@
 import { storedTimeZone, type OrgActor, type PublishingPostStatus } from '@app/domain'
 import { timeOfDay, dayAndTime } from '../mail/index.js'
+import { platformName } from './message.js'
 import {
   agencyDay,
   listAgenda,
@@ -146,14 +147,28 @@ async function todayOf(deps: TelegramCommandDeps, agency: Agency): Promise<Teleg
   )
 }
 
+/** Why a post needs a hand, in the words of the notifications; null when it says nothing. */
+function whyOf(t: Translate, item: AgendaIssueDto & { kind: 'post' }): string | null {
+  if (item.reason === null) return null
+  const first = item.platforms[0]
+  const values = { platform: first === undefined ? 'Meta' : platformName(t, first) }
+  try {
+    return t(`today.issues.post.reason.${item.reason}`, values)
+  } catch {
+    // a code newer than the texts: the generic one, the panel says the rest
+    return t('today.issues.post.reason.other', values)
+  }
+}
+
 function issueLine(t: Translate, item: AgendaIssueDto, timeZone: string): string {
   switch (item.kind) {
     case 'post': {
       const { day, time } = dayAndTime(new Date(item.scheduledAt), timeZone)
-      return t('notify.telegram.issues.post', {
-        state: stateOf(t, item.status),
-        when: `${day}, ${time}`,
-      })
+      const why = whyOf(t, item)
+      const values = { state: stateOf(t, item.status), when: `${day}, ${time}` }
+      return why === null
+        ? t('notify.telegram.issues.post', values)
+        : t('notify.telegram.issues.postWhy', { ...values, why })
     }
     case 'profile':
       return t('notify.telegram.issues.profile', {
@@ -166,17 +181,25 @@ function issueLine(t: Translate, item: AgendaIssueDto, timeZone: string): string
 }
 
 async function issuesOf(deps: TelegramCommandDeps, agency: Agency): Promise<TelegramHtml[]> {
+  const { t } = deps
   const { items } = await listAgendaIssues(deps, agency.actor, {})
   const names = await clientNames(deps, agency.actor)
-  return items.map((item) =>
-    joinHtml(
-      [
-        bold(`• ${names.get(item.workspaceId) ?? ''}`),
-        plain(issueLine(deps.t, item, agency.timeZone)),
-      ],
+  return items.map((item) => {
+    const line = joinHtml(
+      [bold(`• ${names.get(item.workspaceId) ?? ''}`), plain(issueLine(t, item, agency.timeZone))],
       ' · ',
-    ),
-  )
+    )
+    if (item.kind !== 'post') return line
+    // two posts at the same hour are told apart by their text, as in «/oggi» (D-131.5)
+    return joinHtml([
+      line,
+      italic(
+        item.text === ''
+          ? untitledPost(t, item.type, item.firstFile)
+          : `«${shorten(item.text, ANSWER_TEXT_MAX)}»`,
+      ),
+    ])
+  })
 }
 
 /**

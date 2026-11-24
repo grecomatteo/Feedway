@@ -50,11 +50,21 @@ const aboveReady = computed(
 const passkeys = computed(() => org.me.value?.secondFactor.passkeys ?? 0)
 const guideSteps = ['create', 'copy', 'checkup'] as const
 
-/** The state beside «Meta»: works, refused, still to try, or not set up. */
+// the connections the list below reads (same key, no request of its own): a token no longer
+// valid is not «Funziona» at the top of the page (D-131.5)
+const { data: connectionList } = useNuxtData<{ items: { status: string }[] }>(
+  `connections-${org.slug.value}`,
+)
+const tokenBroken = computed(() =>
+  (connectionList.value?.items ?? []).some((c) => c.status === 'expired' || c.status === 'revoked'),
+)
+
+/** The state beside «Meta»: works, refused, a token to replace, still to try, or not set up. */
 const state = computed(() => {
   const i = integration.value
   if (!i) return { tone: 'neutral' as const, label: t('metaIntegration.notConfigured') }
   if (i.rejectedAt) return { tone: 'danger' as const, label: t('metaIntegration.rejected') }
+  if (tokenBroken.value) return { tone: 'danger' as const, label: t('metaIntegration.reconnect') }
   if (i.verifiedAt) return { tone: 'success' as const, label: t('metaIntegration.verified') }
   return { tone: 'neutral' as const, label: t('metaIntegration.notVerified') }
 })

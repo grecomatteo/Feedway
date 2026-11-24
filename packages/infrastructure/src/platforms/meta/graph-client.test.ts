@@ -218,7 +218,10 @@ describe('error classification', () => {
     ['100 other', { code: 100 }, 'permanent', 'rejected'],
     // Instagram publishing (Instagram Error Codes, not verified on Meta)
     ['9007/2207027', { code: 9007, subcode: 2207027 }, 'transient', 'media_not_ready'],
-    ['9004/2207052', { code: 9004, subcode: 2207052 }, 'permanent', 'media_rejected'],
+    // Meta could not download the file (the public host was off in the test of 0.14.0, D-131.2)
+    ['9004/2207052', { code: 9004, subcode: 2207052 }, 'transient', 'media_unreachable'],
+    ['389', { code: 389 }, 'transient', 'media_unreachable'],
+    ['9004', { code: 9004 }, 'permanent', 'media_rejected'],
     ['352/2207026', { code: 352, subcode: 2207026 }, 'permanent', 'media_rejected'],
     ['36000/2207004', { code: 36000, subcode: 2207004 }, 'permanent', 'media_rejected'],
     ['36003/2207009', { code: 36003, subcode: 2207009 }, 'permanent', 'media_rejected'],

@@ -322,6 +322,14 @@ test('the client took the access away: revoked', async () => {
   expect((await accountsOf(of)).map((r) => r.health)).toEqual(['error', 'error'])
 })
 
+test('a system user token revoked in Business Manager (190/460): revoked, not expired (D-131.3)', async () => {
+  const of = await agency(tdb, runtime)
+  const a = await connection(runtime, of, { accounts: FORNO_LUCE })
+  mock.scenario('token_expired', { token: META_MOCK.tokens.systemUser, subcode: 460 })
+  await accountsHealth(job(of, a.id), handlerDeps(runtime))
+  expect((await connectionRow(a.id))?.status).toBe('revoked')
+})
+
 test('a token past its expiry that cannot be renewed: expired, without asking Meta', async () => {
   const of = await agency(tdb, runtime)
   const a = await connection(runtime, of, {

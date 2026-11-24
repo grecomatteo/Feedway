@@ -28,6 +28,8 @@ interface Container {
   caption: string
   pendingReads: number
   failed: boolean
+  /** why it failed, as Meta writes it in `status`: the download (2207052) or the file (2207026) */
+  failedWith?: '2207052' | '2207026'
   expired: boolean
   published: boolean
 }
@@ -180,14 +182,19 @@ export function createPublishing(deps: Deps): Publishing {
 
     const failDownload = kind !== 'carousel' && take(deps.scenarios('media_download_failed'))
     let failed = false
+    let failedWith: Container['failedWith']
     if (kind !== 'carousel') {
       const ok = !failDownload && (await downloads(videoUrl ?? imageUrl ?? ''))
       // an image is read at once, a video while the container is processed
       if (!ok && kind === 'image')
         return { status: 400, error: { ...mediaFetchError } } satisfies PublishingAnswer
       failed = !ok
+      if (failed) failedWith = '2207052'
     }
-    if (kind === 'video' && take(deps.scenarios('container_error'))) failed = true
+    if (kind === 'video' && take(deps.scenarios('container_error'))) {
+      failed = true
+      failedWith = '2207026'
+    }
     const slow = deps
       .scenarios('container_in_progress')
       .find((s) => s.remaining > 0 && (kind === 'video' || s.opts.all === true))
@@ -203,6 +210,7 @@ export function createPublishing(deps: Deps): Publishing {
       caption: params.get('caption') ?? '',
       pendingReads: slow === undefined ? 0 : (slow.opts.reads ?? DEFAULT_IN_PROGRESS_READS),
       failed,
+      ...(failedWith === undefined ? {} : { failedWith }),
       expired: false,
       published: false,
     }
@@ -299,7 +307,7 @@ export function createPublishing(deps: Deps): Publishing {
             ...(status === 'IN_PROGRESS' && {
               status: 'In Progress: Media is still being processed.',
             }),
-            ...(status === 'ERROR' && { status: 'Error: 2207026' }),
+            ...(status === 'ERROR' && { status: `Error: ${container.failedWith ?? '2207026'}` }),
           },
         }
       }

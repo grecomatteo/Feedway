@@ -17,7 +17,7 @@ Feedway 0.8.0 sulla VPS, Graph API v25.0 (`META_GRAPH_VERSION`), app «Feedway»
 | Require App Secret acceso | Tutte le chiamate di Feedway funzionano: quelle con un token portano `appsecret_proof`; `debug_token` con il token dell'app non ne ha bisogno |
 | Prova dell'app (Task 4) | Secret giusto: `debug_token` con l'App ID come `input_token` risponde **200** con `is_valid: false`, errore 190 e `scopes` vuoto, e Feedway dice «Funziona». Secret sbagliato: **401**, codice 190 senza sottocodice |
 | `debug_token` dell'utente di sistema | `type` `SYSTEM_USER`, **`expires_at: 0`** e **`data_access_expires_at: 0`** (valori grezzi), `public_profile` aggiunto ai sei permessi, `granular_scopes` **senza** `target_ids`, `user_id` presente |
-| Token revocato | «Revoca token» nel Business Manager. Poi `me/accounts` risponde **401, 190/460**; `debug_token` dà `is_valid: false`, 190/**460** e `expires_at` resta 0. Feedway mette il collegamento in `expired` («token scaduto») e gli account «Da ricollegare»; «Ricollega» con un token nuovo li riporta attivi, con le assegnazioni ai clienti |
+| Token revocato | «Revoca token» nel Business Manager. Poi `me/accounts` risponde **401, 190/460**; `debug_token` dà `is_valid: false`, 190/**460** e `expires_at` resta 0. Feedway mette il collegamento in `revoked` («l'accesso è stato tolto», dalla 0.15.0; prima `expired`, D-131.3) e gli account «Da ricollegare»; «Ricollega» con un token nuovo li riporta attivi, con le assegnazioni ai clienti |
 | «Revoca token» | Revoca **tutti** i token dell'utente di sistema insieme: non si sceglie quale. Quindi non si è potuto provare se un token vecchio resta valido dopo averne generato uno nuovo |
 | App Secret reimpostato | Il secret vecchio smette **subito** di valere. Con il vecchio ancora in Feedway, le chiamate con un token danno **400, codice 100 senza sottocodice** (`appsecret_proof` non valido) e `debug_token` 401/190. I token dell'utente di sistema **restano validi**: basta salvare il secret nuovo |
 | Link alle impostazioni del business | `business.facebook.com/settings/system-users?business_id=<id>` apre gli utenti di sistema del business giusto |
@@ -197,7 +197,7 @@ Formato di un errore ([Handling Errors](https://developers.facebook.com/docs/gra
 |---|---|---|---|---|
 | 190 (senza sottocodice), 190/463, 190/467 | Token scaduto, revocato o non valido | `permanent` | collegamento `expired` | [Handling Errors](https://developers.facebook.com/docs/graph-api/guides/error-handling), [Debugging](https://developers.facebook.com/docs/facebook-login/guides/%20access-tokens/debugging) |
 | 190/458 | L'utente ha tolto l'autorizzazione all'app | `permanent` | collegamento `revoked` | stesse pagine |
-| 190/460 | Password cambiata o uscita dall'app. Per l'utente di sistema è anche il **token revocato** dal Business Manager (verificato il 2026-11-12) | `permanent` | collegamento `expired`, ricollegare | stesse pagine |
+| 190/460 | Password cambiata o uscita dall'app. Per l'utente di sistema è anche il **token revocato** dal Business Manager (verificato il 2026-11-12) | `permanent` | collegamento `revoked` per l'utente di sistema (D-131.3), `expired` per il login di Facebook; ricollegare | stesse pagine |
 | 190/459, 190/464 | Account bloccato da un controllo o non confermato: "needs to log in at https://www.facebook.com" | `permanent` | collegamento `expired`; il messaggio dice di accedere a facebook.com e poi ricollegare | [Handling Errors](https://developers.facebook.com/docs/graph-api/guides/error-handling) |
 | 190/492 | "User associated with the Page access token does not have an appropriate role on the Page" | `permanent` | l'account diventa rosso: serve un ruolo sulla Pagina | stessa pagina |
 | 10, 200–299 | Permesso non concesso o tolto | `permanent` | account rosso, con il permesso da concedere | stessa pagina |
@@ -251,7 +251,7 @@ Dalla pagina [Instagram Error Codes](https://developers.facebook.com/docs/instag
 | Codice / sottocodice | Significato | Classe | Codice di Feedway |
 |---|---|---|---|
 | 9007 / 2207027 | Il media non è pronto: pubblicare quando lo stato è `FINISHED` | `transient` | `media_processing` |
-| 9004 / 2207052 | Il file non si scarica dall'indirizzo | `permanent` | `media_rejected` |
+| 9004 / 2207052 | Il file non si scarica dall'indirizzo (anche nello `status` di un contenitore in `ERROR`) | `transient` | `media_unreachable`: il file può andare bene e l'host pubblico essere giù per un momento, si riprova con un giro nuovo (D-131.2; visto nella prova della 0.14.0 con l'host pubblico spento) |
 | 352 / 2207026 | Formato video non supportato (MOV o MP4) | `permanent` | `media_rejected` |
 | 36000 / 2207004, 36001 / 2207005, 36003 / 2207009 | Foto oltre 8 MiB, formato o rapporto non ammessi | `permanent` | `media_rejected` |
 | -2 / 2207020 | Contenitore scaduto: crearne uno nuovo | `permanent` (`container_expired`) | si prepara di nuovo, se il contenitore non risulta pubblicato (D-105.12) |
@@ -293,7 +293,7 @@ Ogni passo inizia con `GET /{page}?fields=access_token` fatto con il token del c
 | 506 | Post duplicato | `permanent` | `duplicate` |
 | 324 | Immagine mancante o non valida | `permanent` | `media_rejected` |
 | 382 | Video troppo piccolo | `permanent` | `media_rejected` |
-| 389 | Il video non si scarica dall'indirizzo | `permanent` | `media_rejected` |
+| 389 | Il video non si scarica dall'indirizzo | `transient` | `media_unreachable` (D-131.2) |
 | 200 | Serve il token della Pagina, o manca un permesso | `permanent` | `permission_missing` |
 | 368 | Bloccato per abuso | `transient` | `meta_error` (blocco) |
 | 6001 | Problema nel caricamento del video | dalla tabella generale (`rejected`) | `meta_error`, da rivedere con la prova |

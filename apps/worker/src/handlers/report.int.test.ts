@@ -88,6 +88,11 @@ beforeAll(async () => {
     out.postId,
     atRome('18:00', -1),
   ])
+  // out at 18:21 after «Riprova»: the digest says when it went out (D-131.5)
+  await admin.query(
+    "update post_targets set status = 'published', published_at = $2 where post_id = $1",
+    [out.postId, atRome('18:21', -1)],
+  )
   // yesterday 12:00, not out
   const failed = await scheduledPost(runtime, a, { ...onA, at: atRome('19:00'), caption: 'Torta' })
   await admin.query("update posts set status = 'failed', scheduled_at = $2 where id = $1", [
@@ -231,7 +236,7 @@ test('a person in two agencies gets each agency’s digest, with only what they 
   const ofA = h.mail.sent.find((m) => m.text.includes('Forno Luce'))?.text ?? ''
   const ofB = h.mail.sent.find((m) => m.text.includes('Bottega Blu'))?.text ?? ''
   expect(ofA).toContain('Ieri è uscito un post')
-  expect(ofA).toContain('18:00 · Forno Luce · «Pane caldo»')
+  expect(ofA).toContain('18:21 · Forno Luce · «Pane caldo»')
   expect(ofA).toContain('Un post da sistemare')
   expect(ofA).toContain('Forno Luce · «Torta»: non è uscito')
   // the client the person does not see is never read

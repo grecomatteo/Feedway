@@ -174,10 +174,10 @@ export interface AutosaveOptions {
   /** a failure with no answer (the network): the save may have reached the server; all by default */
   isLost?: (error: unknown) => boolean
   /**
-   * After saves that failed with no answer, a 409 may be one of them that reached the server
-   * (D-120.1). Gets the post as it is now: its version when it is this person's own, one save
-   * ahead of `version` (only one of the lost saves, all sent with `version`, can be written);
-   * null otherwise.
+   * A 409 may be a save of this tab that reached the server while the tab kept an older version:
+   * an answer lost on a slow network (D-120.1), or a save the tab did not count (D-131.1). Gets
+   * the post as it is now: its version when what the server has is this tab's own (see
+   * `sentByThisTab`); null when someone else changed it. `lost`: the saves left without an answer.
    */
   recover?: (postId: string, version: number, lost: number) => Promise<SavedPost | null>
   /** an existing post */
@@ -190,8 +190,9 @@ export interface AutosaveOptions {
  * The draft that saves itself (Scelta 7): born at its first content, then saved after a pause
  * of 1.5 s, one save at a time with the version read. «Salvata» only after the server's answer;
  * a 409 stops it (the local text stays, the page offers to reload); a failure waits for
- * «Riprova» or the next change. A save whose answer was lost may still have been saved: the 409
- * that follows asks `recover` first, and the post's own version is taken without a conflict.
+ * «Riprova» or the next change. A 409 asks `recover` first: when the post on the server is this
+ * tab's own save (an answer lost, D-120.1; a version not counted, D-131.1), its version is taken
+ * and the save goes again, without a conflict.
  * Paused (a scheduled post), it only saves on `flush`.
  */
 class RecoverFailed extends Error {
@@ -199,6 +200,64 @@ class RecoverFailed extends Error {
     super('the post could not be read after a conflict', { cause })
   }
 }
+
+// ---- what this tab sent ----
+
+/**
+ * The content of a save, the same whichever way it is written: the editor's body or the post the
+ * server gives back. A text for a platform equal to the common one counts as none.
+ */
+export function contentKey(b: DraftBody): string {
+  const own = (text: string | undefined) =>
+    text === undefined || text === b.caption.common ? null : text
+  return JSON.stringify([
+    b.type,
+    b.mediaIds,
+    b.caption.common,
+    own(b.caption.instagram),
+    own(b.caption.facebook),
+    b.destinations.map((d) => d.accountId).sort(),
+    b.when === null ? null : [b.when.localDate, b.when.localTime],
+    b.shareToFeed,
+    b.choices.map((c) => JSON.stringify([c.key, c.option, c.crop ?? null])).sort(),
+    b.mediaIds.length === 0 || b.cover === null
+      ? null
+      : b.cover.source === 'frame'
+        ? ['frame', b.cover.offsetMs]
+        : ['image', b.cover.mediaId],
+    [...b.labelIds].sort(),
+  ])
+}
+
+const SENT_KEPT = 20
+const sentKeys = new Map<string, string[]>()
+/** A save this tab sent for a post, whatever became of its answer. */
+export function rememberSent(postId: string, body: DraftBody): void {
+  const list = sentKeys.get(postId) ?? []
+  list.push(contentKey(body))
+  sentKeys.set(postId, list.slice(-SENT_KEPT))
+}
+/**
+ * The post as the server has it is one this tab sent (D-131.1): only this tab could have
+ * written exactly that content. Another tab, or another person, is a conflict.
+ */
+export const sentByThisTab = (postId: string, body: DraftBody) =>
+  sentKeys.get(postId)?.includes(contentKey(body)) ?? false
+
+/**
+ * The saves of a post still on their way in this tab: an editor that opens the post waits for
+ * them, so it never reads the post as it was before the last save of the editor just closed.
+ */
+const pendingSaves = new Map<string, Promise<unknown>>()
+export function savingInThisTab(postId: string, save: Promise<unknown>): void {
+  const done = save.catch(() => undefined)
+  pendingSaves.set(postId, done)
+  void done.then(() => {
+    if (pendingSaves.get(postId) === done) pendingSaves.delete(postId)
+  })
+}
+export const savesOf = (postId: string): Promise<unknown> =>
+  pendingSaves.get(postId) ?? Promise.resolve()
 
 export function createAutosave(o: AutosaveOptions) {
   const delay = o.delayMs ?? 1500
@@ -267,7 +326,7 @@ export function createAutosave(o: AutosaveOptions) {
     try {
       return await o.update(postId, version, body)
     } catch (error) {
-      if (lost === 0 || !o.recover || !(o.isConflict?.(error) ?? false)) throw error
+      if (!o.recover || !(o.isConflict?.(error) ?? false)) throw error
       // a failed read says nothing yet: «not saved, retry», and the next 409 asks again
       let own: SavedPost | null
       try {

@@ -73,17 +73,29 @@ async function postsIn(
     limit: DIGEST_POSTS_MAX,
   })
   const titleOf = postTitles(tx, ctx.t, clients.current)
-  const lines: string[] = []
-  for (const p of records)
-    if (p.scheduledAt !== null)
-      lines.push(
-        ctx.t('digest.posts.line', {
-          time: timeOfDay(p.scheduledAt, ctx.timeZone),
+  // a post out says when it went out, not when it was due: after «Riprova» they differ (D-131.5)
+  const outAt = new Map<string, Date>()
+  if (statuses.includes('published'))
+    for (const t of await tx.publishing.targetsOfPosts(
+      ctx.organizationId,
+      records.map((p) => p.id),
+    ))
+      if (t.publishedAt !== null && t.publishedAt > (outAt.get(t.postId) ?? new Date(0)))
+        outAt.set(t.postId, t.publishedAt)
+  const lines: { at: Date; line: string }[] = []
+  for (const p of records) {
+    const at = outAt.get(p.id) ?? p.scheduledAt
+    if (at !== null)
+      lines.push({
+        at,
+        line: ctx.t('digest.posts.line', {
+          time: timeOfDay(at, ctx.timeZone),
           client: clients.name(p.workspaceId),
           post: await titleOf(p),
         }),
-      )
-  return lines
+      })
+  }
+  return lines.sort((a, b) => a.at.getTime() - b.at.getTime()).map((l) => l.line)
 }
 
 /** Confirmed yesterday, in the agency's day. */

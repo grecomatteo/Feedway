@@ -251,7 +251,7 @@ test('the outcome of a destination that failed says its code, and the activity t
     { workspaceId: world.workspaceId, postId: draft.id, version: draft.version },
     { ip: null },
   )
-  mock.scenario('error', { path: /media_publish$/, code: 9004, subcode: 2207052 })
+  mock.scenario('error', { path: /media_publish$/, code: 352, subcode: 2207026 })
   await runSteps(world, draft.id, workerDeps(runtime, testClock(new Date()), host.url))
   const outcome = await getPostOutcome(panel, world.actor, {
     workspaceId: world.workspaceId,

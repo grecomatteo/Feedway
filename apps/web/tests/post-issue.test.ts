@@ -25,6 +25,8 @@ const issue = (over: Partial<PostIssue> = {}): PostIssue => ({
   platforms: ['facebook'],
   reason: 'media_rejected',
   notOut: 1,
+  text: 'Pane caldo',
+  firstFile: null,
   ...over,
 })
 

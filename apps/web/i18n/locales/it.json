@@ -696,6 +696,7 @@
           "permission_missing": "mancano i permessi per pubblicare",
           "media_processing": "{platform} non ha preparato il file in tempo",
           "media_rejected": "un file non va bene per {platform}",
+          "media_unreachable": "Meta non è riuscita a scaricare il file",
           "duplicate": "uguale a un post appena uscito",
           "rate_limited": "{platform} ha chiesto di rallentare",
           "quota_exhausted": "finiti i post permessi in 24 ore",
@@ -1183,6 +1184,7 @@
     "notVerified": "Da provare",
     "verified": "Funziona",
     "rejected": "Non funziona",
+    "reconnect": "Da ricollegare",
     "rejectedAt": "Meta l'ha rifiutata il {when}: aggiorna App ID o App Secret.",
     "updatedAt": "Ultima modifica: {when}.",
     "verifiedAt": "Meta l'ha accettata il {when}.",
@@ -1414,7 +1416,7 @@
     "graphRetired": "Meta ha ritirato la versione {version} della Graph API il {date}: aggiorna Feedway, le chiamate possono smettere di funzionare.",
     "checkupDue": "Il Data Use Checkup dell'app Meta scade il {date} ({when}): completalo nella dashboard dell'app.",
     "checkupOverdue": "Il Data Use Checkup dell'app Meta è scaduto il {date}: completalo subito nella dashboard dell'app, altrimenti Meta può bloccarla.",
-    "accessRevoked": "Un cliente ha tolto l'accesso a un collegamento: i suoi account non pubblicano finché non lo ricolleghi.",
+    "accessRevoked": "L'accesso a Meta di un collegamento è stato tolto: i suoi account non pubblicano finché non lo ricolleghi.",
     "tokenExpiring": "Il token di un collegamento scade il {date} e non si rinnova da solo: sostituiscilo per non fermare le pubblicazioni.",
     "tokenExpired": "Il token di un collegamento è scaduto il {date}: sostituiscilo, i suoi account non pubblicano."
   },
@@ -2773,6 +2775,7 @@
         "permission_missing": "Mancano i permessi per pubblicare su questo account: ricollega il profilo con il controllo completo, poi riprova.",
         "media_processing": "{platform} non ha finito di preparare il file in tempo. Riprova tra qualche minuto.",
         "media_rejected": "{platform} ha rifiutato un file: formato, misure o durata non vanno bene. Cambialo nel post, poi riprova.",
+        "media_unreachable": "Meta non è riuscita a scaricare il file da Feedway, anche riprovando. Il file va bene: controlla che il server raggiunga Internet, poi riprova.",
         "duplicate": "{platform} l'ha rifiutato perché uguale a un post appena uscito.",
         "rate_limited": "{platform} ci ha chiesto di rallentare. Riprova tra qualche minuto.",
         "quota_exhausted": "Il profilo ha finito i post che Instagram permette in 24 ore. Riprova più tardi.",
@@ -2901,7 +2904,8 @@
       "token_invalid": "Il token Meta non è più valido: sostituiscilo da Impostazioni → Integrazioni → Meta",
       "permission_missing": "Permesso mancante per questo account: controlla gli asset assegnati all'utente di sistema",
       "media_processing": "Instagram sta ancora elaborando il video (ritento in automatico)",
-      "media_rejected": "Meta non riesce a scaricare il file o il formato non è valido",
+      "media_rejected": "Il formato, le misure o la durata del file non vanno bene per Meta",
+      "media_unreachable": "Meta non è riuscita a scaricare il file da Feedway (ritento in automatico)",
       "duplicate": "Facebook ha rifiutato il post perché duplicato",
       "rate_limited": "Troppe richieste: ritento più tardi",
       "quota_exhausted": "Il profilo Instagram ha finito i post del giorno: ritento quando si liberano",
@@ -3055,6 +3059,7 @@
       "issues": {
         "title": "Da sistemare",
         "post": "{state} · {when}",
+        "postWhy": "{state}, {why} · {when}",
         "profile": "{name}: {what}",
         "media": "il file «{name}» non è pronto",
         "none": "Niente da sistemare.",
@@ -3287,8 +3292,8 @@
       "agency": "Usa il bot della piattaforma"
     },
     "explain": {
-      "platform": "Il bot con cui Feedway manda le notifiche su Telegram e risponde a /oggi e /problemi. Vale per tutte le agenzie che non hanno un bot loro.",
-      "agency": "Di solito l'agenzia usa il bot della piattaforma. Se vuoi un bot col nome dell'agenzia, crealo con {'@'}BotFather e incolla qui il suo token: dopo, ognuno di voi collega di nuovo Telegram in «Profilo e preferenze»."
+      "platform": "Il bot con cui Feedway manda le notifiche su Telegram e risponde a /oggi e /problemi. Vale per tutte le agenzie che non hanno un bot loro. Gli avvisi della piattaforma (worker fermo e ripartito) arrivano su Telegram solo da questo bot.",
+      "agency": "Di solito l'agenzia usa il bot della piattaforma. Se vuoi un bot col nome dell'agenzia, crealo con {'@'}BotFather e incolla qui il suo token: dopo, ognuno di voi collega di nuovo Telegram in «Profilo e preferenze». Gli avvisi della piattaforma (worker fermo e ripartito) usano sempre il bot della piattaforma."
     },
     "bot": "Bot",
     "token": "Token",

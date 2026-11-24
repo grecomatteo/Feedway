@@ -502,6 +502,9 @@ describe('posts that need a hand', () => {
       platforms: ['facebook'],
       reason: 'media_rejected',
       notOut: 1,
+      // its text tells it from another at the same hour (D-131.5)
+      text: 'Il pane di oggi',
+      firstFile: null,
     })
     expect(posts[0]).toMatchObject({ status: 'failed', reason: 'too_late', notOut: 1 })
     expect(posts[3]).toMatchObject({

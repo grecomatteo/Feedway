@@ -247,10 +247,14 @@ describe('prepare', () => {
     expect(calls('POST', `/${page}/video_reels`)).toHaveLength(1)
   })
 
-  test('a video Meta cannot fetch fails the destination', async () => {
+  test('a video Meta cannot fetch is tried again, never «a wrong file» (D-131.2)', async () => {
     mock.scenario('media_download_failed')
     const err = await failure(publisher.prepare(target('reel'), files([video()]), ctx()))
-    expect(err).toMatchObject({ kind: 'permanent', code: 'media_rejected', platformCode: '389' })
+    expect(err).toMatchObject({
+      kind: 'transient',
+      code: 'media_unreachable',
+      platformCode: '389',
+    })
   })
 
   test('a photo and a plain video have nothing to prepare but the Page token check', async () => {

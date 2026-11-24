@@ -18,6 +18,7 @@ export type MetaErrorReason =
   | 'rejected'
   | 'media_not_ready'
   | 'media_rejected'
+  | 'media_unreachable'
   | 'container_expired'
   | 'quota_exhausted'
   | 'account_restricted'
@@ -38,7 +39,8 @@ const MESSAGES: Record<MetaErrorReason, string> = {
   invalid_response: 'Meta answered in an unexpected format',
   rejected: 'Meta rejected the request',
   media_not_ready: 'Meta is still processing the media',
-  media_rejected: 'Meta could not download or read the media',
+  media_rejected: 'Meta could not read the media',
+  media_unreachable: 'Meta could not download the media',
   container_expired: 'The prepared media is no longer there: it must be created again',
   quota_exhausted: 'The account has no posts left in its publishing window',
   account_restricted: 'The account is restricted or must be confirmed on the platform',
@@ -79,8 +81,11 @@ export class MetaError extends Error {
 }
 
 // Instagram's content publishing (Instagram Error Codes, docs/platforms/meta.md §Pubblicazione);
-// Facebook's 324 (image missing or invalid), 382 (video too small), 389 (video not fetched)
-const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003, 324, 382, 389])
+// Facebook's 324 (image missing or invalid), 382 (video too small)
+const MEDIA_REJECTED_CODES = new Set([9004, 352, 36000, 36001, 36003, 324, 382])
+// Meta could not fetch the file (Instagram's 2207052, Facebook's 389): the file may be right and
+// Feedway's public host down for a moment, so it is tried again (D-131.2)
+const MEDIA_UNREACHABLE = { subcodes: new Set([2207052]), codes: new Set([389]) }
 // 2207032 and 2207053 (creation failed: make it again) are server errors, transient below
 const CONTAINER_GONE_SUBCODES = new Set([2207020, 2207008])
 
@@ -103,6 +108,11 @@ export function classifyMetaError(
   if (subcode !== null && CONTAINER_GONE_SUBCODES.has(subcode))
     return { kind: 'permanent', reason: 'container_expired' }
   if (code === 9007) return { kind: 'transient', reason: 'media_not_ready' }
+  if (
+    MEDIA_UNREACHABLE.codes.has(code) ||
+    (subcode !== null && MEDIA_UNREACHABLE.subcodes.has(subcode))
+  )
+    return { kind: 'transient', reason: 'media_unreachable' }
   if (MEDIA_REJECTED_CODES.has(code)) return { kind: 'permanent', reason: 'media_rejected' }
   if (code === 9 && subcode === 2207042) return { kind: 'transient', reason: 'quota_exhausted' }
   if (code === 25) return { kind: 'permanent', reason: 'account_restricted' }
