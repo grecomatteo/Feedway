@@ -5,7 +5,9 @@
 **Obiettivo:** chi lavora vede il mese di tutti i clienti, o di uno, in un calendario che si legge da lontano, sposta un post trascinandolo e prepara un mese intero in pochi minuti: con le fasce orarie, in blocco da file o da un foglio, duplicando. Prima dei post c'è il **piano editoriale**: chi decide il mese lo scrive in Feedway, e chi carica vede nel calendario cosa preparare e per quando. Insieme entrano:
 - l'elenco dei post rifatto (richiesta di design 2 di Matteo, D-120), che diventa la vista «Elenco» del calendario;
 - l'ordine dell'elenco per l'ora del post (D-79) e il fuso dell'agenzia leggibile da tutti (D-78);
-- la griglia di Instagram riordinabile.
+- la griglia di Instagram riordinabile;
+- le bozze che si eliminano in fretta, anche più insieme, con il cestino del cliente che si svuota da solo (D-124, Matteo 24/11);
+- l'invito di un collaboratore nei post di Instagram (D-125, Matteo 24/11).
 
 Requisiti: RF-40, RF-41, RF-42, RF-43, RF-46.
 
@@ -111,11 +113,19 @@ Hanno la loro voce in `docs/decisioni-aperte.md`: **D-123**, nuova con il piano,
     - il tratto «Mancano meno di 36 ore» e «In ritardo» si calcolano con `Clock` dalla funzione dell'istante di riferimento, nel pannello ogni minuto;
     - la notifica «da preparare entro domani» va a chi ha `plan.prepare` nel cliente, nel pannello e su Telegram (§12.2), e la sezione «Da preparare» del riepilogo ha `order: 40`;
     - **stampa del piano:** non qui. La stampa (schede piene, loghi) arriva nella tappa 10 con il foglio di stampa del calendario cliente (piano generale, tappa 9).
-12. **Rilascio:** la tappa esce come **0.15.0**.
+12. **Bozze ed «Eliminati»** (D-124 (a), Matteo 24/11: «una rimozione veloce e comoda», senza aspettare):
+    - **«Elimina» nel menu «⋯»** di ogni bozza e di ogni post annullato: nell'elenco, nel calendario e nell'editor. La bozza va subito negli **«Eliminati»** del cliente, con la conferma «Bozza eliminata · Annulla» (5 secondi) e senza finestra di conferma. Un'azione sola, «Elimina»: niente «Archivia», che si confonderebbe con il cliente archiviato;
+    - **più bozze insieme:** «Seleziona» nella sezione «Bozze» dell'elenco, le caselle sulle righe, «Elimina (n)»; sul telefono una pressione lunga su una riga avvia la selezione;
+    - **«Eliminati»:** un filtro dell'elenco del cliente (e di «Tutti i clienti»), con «Ripristina», «Elimina per sempre» e «Svuota» (con conferma) e la frase «Si cancellano da soli dopo 30 giorni». Un post eliminato non compare nel calendario, in Oggi, nelle ricerche né nei controlli dei doppioni; i suoi file restano nella libreria come quelli di una bozza;
+    - **bozze nate da sole:** l'editor crea la bozza al primo cambiamento (salvataggio automatico). Chi esce da una bozza nuova senza testo e senza file la perde senza cestino, come se non fosse mai nata; «Elimina le bozze vuote» resta per quelle già lì, e il lavoro notturno toglie le bozze vuote che nessuno tocca da 24 ore;
+    - **bozze dimenticate:** nelle «Impostazioni dei contenuti» del cliente, «Sposta negli Eliminati le bozze non toccate da» 30, 60 o 90 giorni oppure «Mai» (predefinito 30, come §11.9); la bozza che ci andrà entro 7 giorni lo dice nell'elenco («Va negli Eliminati tra 5 giorni»), e toccarla fa ripartire il conto;
+    - chi elimina, ripristina o elimina per sempre: chi può eliminare oggi (`deletePost`: l'autore o chi ha `post.manage_others`); con il cliente archiviato le bozze si leggono e non si toccano (409), come ora.
+13. **Collaboratori su Instagram** (D-125 (a), Matteo 24/11, solo Instagram): nell'editor, nella parte di Instagram, il campo «Invita in collaborazione» con fino a **3** nomi utente (senza «@», lettere, numeri, punto e trattino basso, al massimo 30 caratteri), per foto, carosello e reel; per le storie il campo non c'è e un post con collaboratori non diventa storia senza l'avviso dei controlli. Il campo dice «La richiesta arriva solo su Instagram»: su Facebook il post esce senza. Il worker passa `collaborators` al contenitore (per il carosello sul contenitore principale); la pagina dell'esito mostra l'invito per nome con lo stato letto da Meta (`GET /{ig-media-id}/collaborators`: «In attesa» o «Accettato»), con «Aggiorna». «Duplica» nello stesso cliente copia i collaboratori.
+14. **Rilascio:** la tappa esce come **0.15.0**.
 
 ## Come si divide il lavoro
 
-Tredici task, ognuno una PR (o più dove il task lo dice), in otto thread più la revisione di fine tappa.
+Quindici task, ognuno una PR (o più dove il task lo dice), in dieci thread più la revisione di fine tappa.
 
 | Thread | Task | Dipende da | Perché insieme |
 |---|---|---|---|
@@ -126,10 +136,12 @@ Tredici task, ognuno una PR (o più dove il task lo dice), in otto thread più l
 | E · Piano, pagine | Task 7 · Piano editoriale, schede nel calendario ed editor; Task 8 · Notifica e riepilogo | D, B, A | L'interfaccia del piano e i suoi avvisi |
 | F · Fasce e blocco | Task 9 · Fasce orarie e prossima fascia libera; Task 10 · In blocco da file e «Duplica»; Task 11 · CSV ed Excel | il 10 anche A; l'11 il 10 | Stesso flusso «molti post in una volta» |
 | G · Griglia | Task 12 · Griglia di Instagram riordinabile | B, A | Unica lettura da Meta della tappa |
-| — | Revisione di fine tappa (thread separato, istruzioni del progetto) | A–G | |
+| I · Bozze | Task 14 · Eliminare le bozze e «Eliminati» | il Task 2 (letture delle bozze), il Task 3 (elenco) e A | Le azioni sulle bozze e il loro cestino |
+| J · Collaboratori | Task 15 · Invito in collaborazione su Instagram | A (la tavola dell'editor) | Editor, controlli e worker di una sola funzione |
+| — | Revisione di fine tappa (thread separato, istruzioni del progetto) | A–G, I, J | |
 | H · Rilascio | Task 13 · Correzioni della revisione, rilascio 0.15.0 e guida della prova | revisione | |
 
-- **A, il Task 2, il Task 5 e il Task 9 possono andare in parallelo:** toccano parti diverse. Il Task 6 parte dopo il 2 e il 9, come il piano generale vuole il calendario con il registro prima del piano.
+- **A, il Task 2, il Task 5 e il Task 9 possono andare in parallelo:** toccano parti diverse. La parte server del Task 15 (dati, controlli, worker, finto Graph API) può partire subito; l'editor aspetta la tavola. Il Task 6 parte dopo il 2 e il 9, come il piano generale vuole il calendario con il registro prima del piano.
 - **Dentro un thread** i task vanno in ordine, una PR alla volta: si fonde la prima, poi si parte dalla `main` aggiornata. `pnpm verify:ci` una volta prima di ogni push.
 - **Se il contesto non basta**, il thread fa il suo primo task, scrive l'handoff e chiede al coordinatore un thread nuovo per il secondo.
 - **A fine thread** l'handoff in `/mnt/project-files/handoff/tappa-9/HANDOFF-thread-<lettera>.md` (fatto, PR, scelte prese, cosa resta, non verificato, cosa serve al thread dopo), poi la richiesta al coordinatore del thread successivo.
@@ -143,8 +155,9 @@ Oltre al piano generale §8:
 3. **Riavvii a metà:** `bulk.import` ucciso alla riga 7 di 20 riparte dall'8 senza doppioni; «Annulla» dopo un riavvio; `plan.due_scan` su due worker, una notifica sola (Task 8, 10).
 4. **Isolamento:** una voce del piano, una fascia o un'importazione di un'altra agenzia per id; il calendario di «Tutti i clienti» di un Manager di un solo cliente; la griglia di un account non assegnato a un cliente visibile: «non trovato» o vuoto (Task 2, 6, 9, 10, 12).
 5. **La nota del piano:** non compare nel calendario, nelle notifiche, nel riepilogo, nella risposta di un Viewer; un test sui campi esposti (Task 6, 7, 8).
-6. **Il piano e i post:** «Prepara» due volte lo stesso contenuto (una bozza sola); il post annullato o cancellato (il contenuto torna «Da preparare»); il contenuto tolto (il post resta); la bozza abbandonata cancellata dopo 30 giorni (`ON DELETE SET NULL`) (Task 6).
+6. **Il piano e i post:** «Prepara» due volte lo stesso contenuto (una bozza sola); il post annullato o cancellato (il contenuto torna «Da preparare»); il contenuto tolto (il post resta); la bozza negli «Eliminati» (il contenuto resta «Preparato» finché si ripristina o si cancella per sempre: allora `ON DELETE SET NULL` lo riporta «Da preparare») (Task 6, 14).
 7. **Moduli spenti:** con `plan` spento, nessuna voce nel calendario, niente menu, niente sezione del riepilogo, 404 sulle rotte, `plan.due_scan` che salta l'agenzia (Task 2, 6, 8).
+8. **Eliminati e collaboratori:** una bozza eliminata non esce da nessuna lettura (calendario, Oggi, elenco, doppioni, riepilogo, griglia); il lavoro notturno su due worker cancella una volta sola; i collaboratori di un post di un'altra agenzia non si leggono; un nome utente non valido o un quarto collaboratore si fermano nei controlli e nel server (Task 14, 15).
 
 ---
 
@@ -159,7 +172,9 @@ Oltre al piano generale §8:
 - **editor** da un contenuto del piano: la nota in evidenza, l'avviso sul tipo, «Previsto dal piano il 20»; il pulsante «Prossima fascia libera»;
 - **fasce orarie** nelle «Impostazioni dei contenuti»;
 - **in blocco:** la tabella da file, «Distribuisci sulle fasce libere», l'importazione da CSV o Excel con gli errori per riga, il riepilogo con «Annulla»; **«Duplica»**;
-- **griglia di Instagram** con i programmati e lo scambio.
+- **griglia di Instagram** con i programmati e lo scambio;
+- **bozze:** il menu «⋯» di una bozza con «Elimina», la conferma con «Annulla», la selezione di più bozze, il filtro «Eliminati» con «Ripristina», «Elimina per sempre» e «Svuota», la riga che «va negli Eliminati tra 5 giorni», la scelta nelle «Impostazioni dei contenuti» (scelta 12);
+- **editor:** il campo «Invita in collaborazione» di Instagram, con i nomi come gettoni e la frase «solo su Instagram», e l'invito sulla pagina dell'esito (scelta 13).
 
 Le tavole esportate vanno in `design/tavole/2026-11-xx-tappa-9/` e in `/mnt/project-files/design-revisione/`; le regole nuove in `DESIGN.md` («Calendario», «Piano editoriale», «In blocco»).
 
@@ -328,15 +343,46 @@ Le tavole esportate vanno in `design/tavole/2026-11-xx-tappa-9/` e in `/mnt/proj
 
 **Fine:** `pnpm verify` verde; «non verificato su Meta vera» nella guida; Matteo ha visto prima e dopo.
 
+## Task 14 · Eliminare le bozze e «Eliminati»
+
+**Obiettivo:** una bozza in più si toglie con due tocchi, anche dieci alla volta, e si recupera per 30 giorni (scelta 12, D-124).
+
+**Cosa fa:**
+- **Dati:** `posts.trashed_at` e `posts.trashed_by` (migrazione in avanti, con un indice parziale per il lavoro notturno); `workspaces.settings.draftRetentionDays` (30, 60, 90 o `null`, predefinito 30). Lo stato non cambia: una bozza eliminata resta `draft` (o `cancelled`) con `trashed_at`, così «Ripristina» la riporta com'era;
+- **posts:** `trashPosts(deps, actor, { workspaceId, postIds })` (fino a 100, solo `draft` e `cancelled`, ognuno con i permessi di `deletePost`, tutti o nessuno), `restorePosts`, `purgePosts` («Elimina per sempre» e «Svuota», con la cancellazione di oggi); voci `post.trashed`, `post.restored`, `post.deleted` nel registro; ogni lettura dei post (agenda, calendario, elenco, doppioni, `usedIn` dei file, piano) esclude `trashed_at`; il file di una bozza eliminata dice «In una bozza eliminata» e si elimina come quello di una bozza;
+- **lavoro notturno** `posts.drafts_cleanup` (ambito `organization`, lucchetto come gli altri lavori notturni): cancella gli eliminati da più di 30 giorni, le bozze vuote non toccate da 24 ore, e sposta negli «Eliminati» le bozze non toccate da `draftRetentionDays` (`updated_at`); non tocca un cliente archiviato;
+- **rotte:** `POST …/posts/trash`, `POST …/posts/restore`, `POST …/posts/purge`, `GET …/calendar/drafts?trashed=1`, in OpenAPI; «Elimina» di una bozza dall'editor usa `trash`, non più `DELETE` (che resta per «Elimina per sempre» di un post solo);
+- **pannello:** «⋯» con «Elimina» su bozze e annullati nell'elenco, nel calendario e nell'editor, conferma con «Annulla»; «Seleziona» ed «Elimina (n)» nella sezione «Bozze»; filtro «Eliminati» con le sue azioni; la riga «va negli Eliminati tra N giorni»; la scelta nelle «Impostazioni dei contenuti»; l'editor che, uscendo da una bozza nuova senza testo né file, la cancella.
+
+**Test:**
+- integrazione: eliminare 10 bozze di cui una altrui senza `post.manage_others` (403, nessuna eliminata); un programmato tra le scelte (409); ripristino con la versione; una bozza eliminata che non esce dal calendario, dai doppioni e da Oggi; il lavoro notturno con l'orologio finto (31 giorni, 24 ore, 30/60/90/Mai, cliente archiviato) e su due worker; la voce del piano di una bozza cancellata per sempre torna «Da preparare»; batteria d'isolamento (`ORG_CASES`) e matrice per le tre rotte;
+- E2E: elimina dal «⋯» e «Annulla», selezione di tre bozze, «Eliminati» → «Ripristina», 390 e 1440, chiaro e scuro, axe.
+
+**Fine:** `pnpm verify` verde; specifica §11.9 (bozze abbandonate) e §13 (`posts`) aggiornate; D-124 chiusa; Matteo ha visto prima e dopo.
+
+## Task 15 · Invito in collaborazione su Instagram
+
+**Obiettivo:** dal pannello un post di Instagram parte con la richiesta di collaborazione, come da Meta Business Suite (scelta 13, D-125).
+
+**Cosa fa:**
+- **Dati e contratti:** `posts.instagram_collaborators text[]` (al massimo 3), nel contratto del post e nell'editor; la copia di «Duplica» nello stesso cliente;
+- **controlli** (`checkPost`): blocco oltre 3 nomi, con un nome non valido o con un nome ripetuto; avviso se il post è una storia (i collaboratori non partono) o se tra gli account non c'è Instagram; il server rifà gli stessi controlli;
+- **worker e Meta** (ADR 019): il publisher di Instagram aggiunge `collaborators` alla creazione del contenitore (foto, reel, contenitore principale del carosello; mai sulle storie); dopo la conferma legge `GET /{ig-media-id}/collaborators` e salva nome e stato nella destinazione; un errore di Meta sui collaboratori (nome che non esiste, account che non accetta i tag) **non** fa fallire la pubblicazione se Meta crea il contenitore senza, altrimenti è un errore definitivo con un messaggio chiaro; il finto Graph API (`tools/meta-mock`) accetta il parametro e risponde a `…/collaborators`;
+- **pannello:** il campo «Invita in collaborazione» nella parte Instagram dell'editor (gettoni, «Solo su Instagram»), l'invito nell'anteprima del post, lo stato sulla pagina dell'esito con «Aggiorna» (una lettura da Meta fuori dalla transazione, contata nel rallentamento, D-111).
+
+**Test:** unit delle regole (4 nomi, «@nome», «nome.con.punto», storia); integrazione del worker con il finto Graph API (il parametro arriva sul contenitore giusto del carosello e non sulle storie; lo stato salvato; l'errore di un nome che non esiste); isolamento della lettura dello stato; E2E dell'editor e della pagina dell'esito, axe.
+
+**Fine:** `pnpm verify` verde; specifica §11.3 (editor) e §13 aggiornate; «non verificato su Meta vera» nella guida della prova (l'invito arriva? la notifica all'invitato, che nella community di Meta qualcuno dice non arrivi); D-125 chiusa; Matteo ha visto prima e dopo.
+
 ## Task 13 · Correzioni della revisione, rilascio 0.15.0 e guida della prova
 
 **Obiettivo:** la 0.15.0 installata sulla VPS e provata da Matteo.
 
 **Cosa fa:**
 - le correzioni scelte da Matteo sulla revisione di fine tappa;
-- `README.md` e la landing (`apps/site`): «In arrivo» tolto da calendario, piano editoriale e programmazione in blocco in `apps/site/app/features.ts`, testi e schermate;
+- `README.md` e la landing (`apps/site`): «In arrivo» tolto da calendario, piano editoriale e programmazione in blocco in `apps/site/app/features.ts`, testi e schermate, più gli «Eliminati» e i collaboratori di Instagram tra le funzioni descritte;
 - la PR di rilascio 0.15.0 (release-please) e le note «Cosa provare»;
-- la guida della prova in `/mnt/project-files/handoff/tappa-9/GUIDA-prova-0.15.0.md`: un mese pianificato per il cliente di prova, due contenuti preparati dall'editor e uno annullato che torna «Da preparare» (piano generale), il calendario nelle tre viste e i filtri, il trascinamento, 20 file in blocco con le fasce, un CSV e un `.xlsx` veri, «Duplica», la griglia su Instagram vera, la notifica «da preparare» e la sezione del riepilogo il giorno dopo; le prove rimaste di D-82.
+- la guida della prova in `/mnt/project-files/handoff/tappa-9/GUIDA-prova-0.15.0.md`: un mese pianificato per il cliente di prova, due contenuti preparati dall'editor e uno annullato che torna «Da preparare» (piano generale), il calendario nelle tre viste e i filtri, il trascinamento, 20 file in blocco con le fasce, un CSV e un `.xlsx` veri, «Duplica», la griglia su Instagram vera, dieci bozze eliminate insieme e una ripristinata, un post con un collaboratore vero su Instagram (l'invito che arriva, accettato), la notifica «da preparare» e la sezione del riepilogo il giorno dopo; le prove rimaste di D-82.
 
 **Fine:** criteri del piano generale §7; il piano della tappa 10 scritto sul codice reale.
 
@@ -346,3 +392,4 @@ Le tavole esportate vanno in `design/tavole/2026-11-xx-tappa-9/` e in `/mnt/proj
 - Le attività della 1.5, che useranno lo stesso registro delle voci del calendario.
 - Accendere o spegnere i moduli dal pannello (oggi solo dalla CLI, P2).
 - Riordinare i pubblicati nella griglia (Instagram non lo permette) e le storie nella griglia.
+- L'invito in collaborazione sui reel delle Pagine Facebook (D-125 (b), solo verso altre Pagine): quando serve.
