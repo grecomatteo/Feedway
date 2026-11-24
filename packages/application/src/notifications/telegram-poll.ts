@@ -55,6 +55,9 @@ export interface TelegramPollReport {
   cleaned: number
 }
 
+/** Every minute or at every send: at debug level in the log (R8). */
+const ROUTINE = { routine: true } as const
+
 const COMMANDS: Readonly<Record<string, TelegramQuery>> = {
   '/oggi': 'today',
   '/problemi': 'issues',
@@ -76,31 +79,35 @@ export const TELEGRAM_MENU_VERSION = 1
 async function botsAndCleanUp(
   deps: TelegramPollDeps,
 ): Promise<{ bots: TelegramBotCredentials[]; cleaned: number }> {
-  return deps.uow.runAsSystem('telegram.poll: the bots and their links', async (tx) => {
-    const { bots, unreadable } = await deps.integrations.telegramBots(tx)
-    for (const organizationId of unreadable)
-      deps.logger.error({ organizationId }, 'telegram bot token cannot be opened: bot not polled')
-    let cleaned = 0
-    for (const bot of bots) {
-      if (bot.state.botId === bot.botId) continue
-      // another bot with the same owner: its chats are not this bot's, and its offset neither.
-      // A bot never polled (just saved, maybe after another was removed) has no chat yet: the
-      // chats there are of the bot before; a code just started may be for this one.
-      cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId, {
-        linkedOnly: bot.state.botId === undefined,
+  return deps.uow.runAsSystem(
+    'telegram.poll: the bots and their links',
+    async (tx) => {
+      const { bots, unreadable } = await deps.integrations.telegramBots(tx)
+      for (const organizationId of unreadable)
+        deps.logger.error({ organizationId }, 'telegram bot token cannot be opened: bot not polled')
+      let cleaned = 0
+      for (const bot of bots) {
+        if (bot.state.botId === bot.botId) continue
+        // another bot with the same owner: its chats are not this bot's, and its offset neither.
+        // A bot never polled (just saved, maybe after another was removed) has no chat yet: the
+        // chats there are of the bot before; a code just started may be for this one.
+        cleaned += await tx.telegramLinks.deleteForBot(bot.organizationId, {
+          linkedOnly: bot.state.botId === undefined,
+        })
+        const state = { botId: bot.botId }
+        if (await tx.integrations.saveState(bot.organizationId, 'telegram', state, bot.updatedAt))
+          bot.state = state
+      }
+      // a bot not read this time is still there: its links stay
+      const owners = [...bots.map((b) => b.organizationId), ...unreadable]
+      cleaned += await tx.telegramLinks.deleteOrphans({
+        agencyBots: owners.filter((o): o is string => o !== null),
+        platformBot: owners.includes(null),
       })
-      const state = { botId: bot.botId }
-      if (await tx.integrations.saveState(bot.organizationId, 'telegram', state, bot.updatedAt))
-        bot.state = state
-    }
-    // a bot not read this time is still there: its links stay
-    const owners = [...bots.map((b) => b.organizationId), ...unreadable]
-    cleaned += await tx.telegramLinks.deleteOrphans({
-      agencyBots: owners.filter((o): o is string => o !== null),
-      platformBot: owners.includes(null),
-    })
-    return { bots, cleaned }
-  })
+      return { bots, cleaned }
+    },
+    ROUTINE,
+  )
 }
 
 /** `/oggi@feedway_bot` is `/oggi`; the argument of `/start` follows a space. */
@@ -240,8 +247,10 @@ async function giveMenu(
 
 /** The state on the bot's row, only while the row is the one read at the start of the run. */
 const saveState = (deps: TelegramPollDeps, bot: TelegramBotCredentials, state: TelegramPollState) =>
-  deps.uow.runAsSystem('telegram.poll: the offset', (tx) =>
-    tx.integrations.saveState(bot.organizationId, 'telegram', { ...state }, bot.updatedAt),
+  deps.uow.runAsSystem(
+    'telegram.poll: the offset',
+    (tx) => tx.integrations.saveState(bot.organizationId, 'telegram', { ...state }, bot.updatedAt),
+    ROUTINE,
   )
 
 /** One `getUpdates`; null when it failed (the bot refused is turned red): the run stops there. */
@@ -373,18 +382,22 @@ export function createTelegramTargets(
 ): TelegramTargets {
   return {
     find: (recipient) =>
-      deps.uow.runAsSystem('telegram: the chat of a delivery', async (tx) => {
-        const owner: TelegramBotOwner = await telegramOwnerOf(tx, recipient)
-        const link = await tx.telegramLinks.findLinked(owner, recipient.userId)
-        if (link === null) return null
-        const credentials =
-          owner === null
-            ? await deps.integrations.platformCredentials(tx, 'telegram')
-            : await deps.integrations.credentials(tx, owner, 'telegram')
-        return credentials === null
-          ? null
-          : { owner, token: credentials.secret, chatId: link.chatId }
-      }),
+      deps.uow.runAsSystem(
+        'telegram: the chat of a delivery',
+        async (tx) => {
+          const owner: TelegramBotOwner = await telegramOwnerOf(tx, recipient)
+          const link = await tx.telegramLinks.findLinked(owner, recipient.userId)
+          if (link === null) return null
+          const credentials =
+            owner === null
+              ? await deps.integrations.platformCredentials(tx, 'telegram')
+              : await deps.integrations.credentials(tx, owner, 'telegram')
+          return credentials === null
+            ? null
+            : { owner, token: credentials.secret, chatId: link.chatId }
+        },
+        ROUTINE,
+      ),
     unlink: async (owner, chatId) => {
       await deps.uow.runAsSystem('telegram: a chat blocked the bot', (tx) =>
         tx.telegramLinks.deleteByChat(owner, chatId),
