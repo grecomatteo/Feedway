@@ -18,7 +18,6 @@ import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/
 import { startMetaMock, type MetaMock } from '@app/meta-mock'
 import { accountsRuntime, handlerDeps, recordingQueue } from '../../tests/accounts-jobs.js'
 import { testClock } from '../../tests/publishing.js'
-import { heartbeatExternal } from './heartbeat-external.js'
 import { notifyDeps } from './notify.js'
 
 // The worker's beat and the watches over it (§16.7, plan 08 Task 9): the web that tells the
@@ -269,15 +268,16 @@ async function stateOf(): Promise<unknown> {
   return rows[0]?.state
 }
 
-test('heartbeat.external calls the address every run and keeps the outcome', async () => {
+test('the external watch calls the address every run and keeps the outcome', async () => {
   await saveWatch(`${watchUrl}/ping/uuid-segreto`)
   const logger = capturingLogger()
-  const deps = {
-    ...handlerDeps(runtime, recordingQueue()),
+  await callExternalWatch({
+    uow: runtime.uow,
+    clock: runtime.clock,
     logger,
-    externalWatch: { integrations: runtime.integrations, pinger: createExternalWatchPinger() },
-  }
-  await heartbeatExternal({ id: 'lavoro', data: {} }, deps)
+    integrations: runtime.integrations,
+    pinger: createExternalWatchPinger(),
+  })
   expect(calls.at(-1)).toBe('/ping/uuid-segreto')
   expect(await stateOf()).toMatchObject({ ok: true, status: 200, problem: null })
   expect(logger.lines.join('\n')).not.toContain('uuid-segreto')

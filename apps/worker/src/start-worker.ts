@@ -4,7 +4,6 @@ import { accountsAvatar } from './handlers/accounts-avatar.js'
 import { accountsDaily } from './handlers/accounts-daily.js'
 import { accountsHealth } from './handlers/accounts-health.js'
 import { accountsSync } from './handlers/accounts-sync.js'
-import { heartbeatExternal } from './handlers/heartbeat-external.js'
 import {
   identityAccountLockedNotice,
   identityAccountLockedNoticeEmail,
@@ -77,8 +76,6 @@ export const PUBLISH_COPIES_CLEANUP_CRON = '30 4 * * *'
 export const TELEGRAM_POLL_CRON = '* * * * *'
 /** Every minute: the publishing's jobs that were never sent or were lost (plan 07 P3). */
 export const SCHEDULER_RECONCILE_CRON = '* * * * *'
-/** Every minute: the call that tells healthchecks.io the VPS is alive (plan 08 Task 9). */
-export const HEARTBEAT_EXTERNAL_CRON = '* * * * *'
 /** Every minute: each person has their own time and zone (plan 08 P7). */
 export const REPORT_DAILY_CRON = '* * * * *'
 /** Every minute is every minute in any zone: each digest is due in its person's zone. */
@@ -152,7 +149,6 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'notify.deliver_platform': notifyDeliverPlatform,
     'report.daily': reportDaily,
     'report.digest': reportDigest,
-    'heartbeat.external': heartbeatExternal,
     ...deps.handlers,
     'telegram.poll': telegramPollOnStop,
     'media.process': mediaProcessOnStop,
@@ -205,8 +201,6 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     await queue.schedule('telegram.poll', TELEGRAM_POLL_CRON, {}, { tz: MEDIA_UPLOADS_CLEANUP_TZ })
   if (queues.includes('report.daily'))
     await queue.schedule('report.daily', REPORT_DAILY_CRON, {}, { tz: REPORT_DAILY_TZ })
-  if (queues.includes('heartbeat.external'))
-    await queue.schedule('heartbeat.external', HEARTBEAT_EXTERNAL_CRON, {}, { tz: REPORT_DAILY_TZ })
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)

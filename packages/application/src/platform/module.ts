@@ -8,7 +8,7 @@ export const platformModule: ModuleDefinition = {
     'platform.users.manage',
     'platform.integrations.manage',
   ],
-  queues: ['system.selftest', 'heartbeat.external'],
+  queues: ['system.selftest'],
   // §12.2 and plan 08, Scelta 10: the web sends the worker's two, with the platform's bot
   notificationKinds: [
     platformKind({

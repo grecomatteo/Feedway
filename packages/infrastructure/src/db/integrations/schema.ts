@@ -32,7 +32,7 @@ export const integrations = pgTable(
     // the platform refused these settings (a test, or a job's call): until a save or a test works
     rejectedAt: tz('rejected_at'),
     // what the jobs keep between runs, never a secret: the `getUpdates` offset of a Telegram
-    // bot, the last outcome of `heartbeat.external` (plan 08 Task 4)
+    // bot, the last outcome of the external watch (plan 08 Task 4)
     state: jsonb('state').notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

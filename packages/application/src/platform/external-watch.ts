@@ -3,15 +3,13 @@ import type { Clock } from '../ports/clock.js'
 import type { ExternalPingResult, ExternalWatchPinger } from '../ports/external-watch.js'
 import type { IntegrationStore } from '../ports/integration-store.js'
 import type { Logger } from '../ports/logger.js'
-import type { ExclusiveLock } from '../ports/media-processing.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 
-// `heartbeat.external` (§16.7, plan 08 Task 9): every minute one worker (the lock) calls the
-// address of the `heartbeat` integration, so healthchecks.io or Uptime Kuma raise their alarm
-// when the whole VPS stops and nobody calls any more. The address is the secret: it is read in
-// clear only here and never goes to a log, an error or the state.
-
-export const EXTERNAL_WATCH_LOCK = 'heartbeat.external'
+// The external watch (§16.7, plan 08 Task 9, R4 of the tappa 8 review): every minute the web
+// calls the address of the `heartbeat` integration, so healthchecks.io or Uptime Kuma raise
+// their alarm when the web, the database or the whole VPS stops and nobody calls any more. The
+// address is the secret: it is read in clear only here and never goes to a log, an error or the
+// state.
 
 /** The last outcome, in `integrations.state` of the `heartbeat` row. */
 export interface ExternalWatchState {
@@ -27,13 +25,12 @@ export interface ExternalWatchDeps {
   logger: Logger
   integrations: Pick<IntegrationStore, 'platformCredentials'>
   pinger: ExternalWatchPinger
-  lock: ExclusiveLock
   /** Tests shorten it; 10 seconds otherwise */
   timeoutMs?: number
 }
 
 export type ExternalWatchReport =
-  | { outcome: 'busy' | 'not_configured' }
+  | { outcome: 'not_configured' }
   | { outcome: 'called'; result: ExternalPingResult; state: ExternalWatchState }
 
 export function parseExternalWatchState(value: unknown): ExternalWatchState | null {
@@ -63,11 +60,9 @@ async function callOnce(
 }
 
 /** Calls the external watch now and keeps the outcome; the panel's «Prova» uses it too. */
-export async function callExternalWatch(
-  deps: Omit<ExternalWatchDeps, 'lock'>,
-): Promise<ExternalWatchReport> {
+export async function callExternalWatch(deps: ExternalWatchDeps): Promise<ExternalWatchReport> {
   const credentials = await deps.uow.runAsSystem(
-    'heartbeat.external: the address',
+    'external watch: the address',
     (tx) => deps.integrations.platformCredentials(tx, 'heartbeat'),
     { routine: true },
   )
@@ -81,7 +76,7 @@ export async function callExternalWatch(
     problem: result.ok ? null : result.problem,
   }
   await deps.uow.runAsSystem(
-    'heartbeat.external: the outcome',
+    'external watch: the outcome',
     (tx) => tx.integrations.savePlatformState('heartbeat', state),
     { routine: true },
   )
@@ -89,10 +84,4 @@ export async function callExternalWatch(
   if (!result.ok)
     deps.logger.warn({ problem: result.problem, status: result.status }, 'external watch failed')
   return { outcome: 'called', result, state }
-}
-
-/** Job `heartbeat.external`: one worker at a time calls the watch. */
-export async function pingExternalWatch(deps: ExternalWatchDeps): Promise<ExternalWatchReport> {
-  const run = await deps.lock.tryRun(EXTERNAL_WATCH_LOCK, () => callExternalWatch(deps))
-  return run.acquired ? run.value : { outcome: 'busy' }
 }
