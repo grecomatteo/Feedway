@@ -742,6 +742,20 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   4. **Guida della prova (R11):** il riepilogo si prova il giorno dell'aggiornamento, prima di riceverne uno, perché ne parte uno solo per persona al giorno; gli eventi delle ultime 6 ore partono subito dopo l'aggiornamento, raggruppati; il web fermo si prova prima da solo, poi con il worker; `/oggi` risponde in 1–2 s. Le note «Cosa provare» sono nella guida e nella descrizione della PR, non nel testo della release.
 - **Stato:** aperta per i punti da decidere; le scelte provvisorie le può cambiare Matteo.
 
+### D-131 · Difetti e richieste della prova della 0.14.0
+
+- **Origine:** prova della 0.14.0 sulla VPS (24 novembre 2026), `handoff/tappa-8/ESITI-prova-0.14.0.md`. La tappa 8 è ok con Meta, email, Telegram e healthchecks.io veri. Restano le prove di D-82 e il riepilogo delle 9:00 del 25/11.
+- **Difetti:**
+  1. **«Modificato da un'altra persona» con una persona sola** (D-120.1 non chiuso in questo caso): cambiato il giorno dal calendario (PATCH 200, versione 2 → 3), il cambio dell'ora qualche secondo dopo parte ancora con la versione 2 e prende 409. Si perdono le modifiche fatte dopo. Causa probabile: dopo quel salvataggio l'editor non aggiorna la versione in memoria.
+  2. **Meta che non scarica il file (9004/2207052) letto come file sbagliato:** con l'host pubblico spento l'errore è `media_rejected` permanente nella preparazione, l'esito e le notifiche dicono che il file non va bene, e non si riprova anche se mancano 15 minuti all'ora. Proposta: testo «Meta non è riuscita a scaricare il file» ed errore temporaneo, riprovato fino all'ora.
+  3. **Token revocato salvato come scaduto:** Meta risponde 190/460 alla revoca dal Business Manager, Feedway salva `expired` e i messaggi dicono «il token è scaduto» invece di «l'accesso è stato tolto».
+  4. **La data resta a domani:** con l'orario abituale già passato l'editor propone domani, e cambiando solo l'ora a un'ora ancora valida oggi il post resta a domani (lo dice solo la riga sotto). Proposta: portare la data a oggi quando l'ora scelta è ancora nel futuro.
+  5. **Minori:** «Meta · Funziona» in verde in cima a Integrazioni → Meta con il token non valido; `/problemi` senza titolo né motivo; nel riepilogo il nome dell'agenzia ripetuto sotto il titolo e un post uscito dopo «Riprova» con l'ora programmata invece di quella d'uscita; bozze dell'elenco Post ancora per creazione (tappa 9, D-79); la vecchia striscia di miniature per un attimo nell'esito del carosello; due `target.prepare` di un post spostato da domani a oggi rimasti in coda (da controllare il 25/11 alle 14:10 e 14:25 che non facciano niente).
+- **Note sulla guida** (per le prossime): l'host pubblico va spento prima della preparazione (15 minuti prima dell'ora), non 5 minuti prima; un bot salvato solo nell'agenzia lascia `skipped` gli avvisi della piattaforma (proposta: un avviso in Piattaforma → Integrazioni quando manca il bot della piattaforma); «Worker fermo» e «Worker ripartito» hanno il Pannello spento di partenza; il riepilogo mostra solo le sezioni non vuote.
+- **Richieste nuove:** caricamento con 2–3 pezzi in parallelo per le reti con ping alto; `/problemi` e «Da sistemare» con il titolo del post e il motivo.
+- **Verificato con servizi veri:** Telegram, email delle notifiche e del riepilogo, healthchecks.io (solo il web fermo dà «DOWN» in 4–5 minuti), copertina del reel su Facebook (`cover=done` alla verifica dei 3 minuti, al primo tentativo), token con gli 8 permessi proposti da Meta, foto 4:5 nella tolleranza dell'1% (3427×4284) su Instagram.
+- **Stato:** aperta. Matteo sceglie se i difetti vanno in una 0.14.1 o nella tappa 9.
+
 ## Pianificazione (tappa 9)
 
 ### D-123 · Scelte provvisorie del piano della tappa 9
