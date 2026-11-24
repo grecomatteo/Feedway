@@ -738,7 +738,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Scelte provvisorie:**
   1. **R10.2, bot d'agenzia rifiutato:** nessun avviso all'Owner finché non arriva la dashboard della tappa 11 (opzione c della revisione). Con il solo bot della piattaforma, com'è la VPS oggi, il caso non capita.
   2. **D-74, email di un file che non esce:** dice il post e il link, non il nome del file né la sua posizione (scelta (b) del thread C, D-121 punto 12).
-  3. **Landing e README:** le notifiche e il riepilogo delle 8:00 sono fuori da «In arrivo» (`apps/site/app/features.ts`); restano «In arrivo» le notifiche sul telefono (push della PWA, dopo la 1.0). La risposta «Che succede se un post non esce?» dice anche l'avviso nel pannello, per email e su Telegram.
+  3. **Landing e README (R12):** le notifiche e il riepilogo delle 8:00 sono fuori da «In arrivo» (`apps/site/app/features.ts`); restano «In arrivo» le notifiche sul telefono (push della PWA, dopo la 1.0). La risposta «Che succede se un post non esce?» dice anche l'avviso nel pannello, per email e su Telegram.
   4. **Guida della prova (R11):** il riepilogo si prova il giorno dell'aggiornamento, prima di riceverne uno, perché ne parte uno solo per persona al giorno; gli eventi delle ultime 6 ore partono subito dopo l'aggiornamento, raggruppati; il web fermo si prova prima da solo, poi con il worker; `/oggi` risponde in 1–2 s. Le note «Cosa provare» sono nella guida e nella descrizione della PR, non nel testo della release.
 - **Stato:** aperta per i punti da decidere; le scelte provvisorie le può cambiare Matteo.
 

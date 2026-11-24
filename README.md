@@ -195,7 +195,7 @@ Prerequisiti, accessi finché il repository è privato, segreti e backup: [runbo
 | [Stack](docs/stack.md) | Componenti, versioni e alternative valutate |
 | [Convenzioni](docs/convenzioni.md) · [Moduli](docs/moduli.md) | Regole di codice e ricetta per un modulo nuovo |
 | [Flusso Git](docs/flusso-git.md) | Rami, commit, PR, protezione di `main`, rilasci |
-| [Runbook](docs/runbooks/) | Installazione, email di sistema, Meta, Telegram, sorveglianza esterna, sito pubblico |
+| [Runbook](docs/runbooks/) | Installazione, email di sistema, Meta, Telegram, sorveglianza esterna, impostazioni GitHub, sito pubblico |
 | [Design](DESIGN.md) · [Prodotto](PRODUCT.md) · [Marchio](design/brief-feedway/brand/Feedway-Brand-Kit-v1.0/GUIDA-DEL-MARCHIO.md) | Scelte grafiche, contesto di prodotto, guida del marchio |
 | [Indice completo](docs/README.md) | Tutti gli altri documenti |
 
