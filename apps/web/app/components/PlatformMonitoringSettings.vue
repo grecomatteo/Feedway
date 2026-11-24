@@ -127,6 +127,8 @@ async function remove() {
   try {
     await props.withReauth(() => call('DELETE', WATCH_API))
     if (data.value) data.value = { ...data.value, external: null }
+    // a refresh of the polling may have started before the removal
+    void refresh()
     removal.open = false
     closeForm()
     saved.value = 'removed'

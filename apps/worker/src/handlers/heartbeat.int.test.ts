@@ -294,9 +294,10 @@ test('an address that does not answer in time is a timeout, and the address stay
     pinger: createExternalWatchPinger(),
     timeoutMs: 200,
   })
-  expect(report).toMatchObject({
+  expect(report).toEqual({
     outcome: 'called',
     result: { ok: false, problem: 'timeout', status: null },
+    state: { lastAt: expect.any(String) as string, ok: false, status: null, problem: 'timeout' },
   })
   expect(await stateOf()).toMatchObject({ ok: false, problem: 'timeout' })
   expect(logger.lines.join('\n')).toContain('external watch failed')
