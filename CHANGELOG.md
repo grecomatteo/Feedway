@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.14.0](https://github.com/grecomatteo/Feedway/compare/v0.13.1...v0.14.0) (2026-11-24)
+
+
+### Novità
+
+* **accounts:** eventi degli account e anonimizzazione delle notifiche ([#316](https://github.com/grecomatteo/Feedway/issues/316)) ([4236326](https://github.com/grecomatteo/Feedway/commit/4236326f80debe7a36a825a20f783f9e34520a9f))
+* **accounts:** l'app Meta in Live, con l'avviso finché è in Sviluppo ([#309](https://github.com/grecomatteo/Feedway/issues/309)) ([a2c0836](https://github.com/grecomatteo/Feedway/commit/a2c083633887ea7d5ea8568a6fa6505f25b86546))
+* **accounts:** la copertina su Facebook nel pannello ([#317](https://github.com/grecomatteo/Feedway/issues/317)) ([2bc476d](https://github.com/grecomatteo/Feedway/commit/2bc476d178cc4152e79fb1a78efd8cef40f81039))
+* **notifications:** bot di Telegram della piattaforma e dell'agenzia ([#323](https://github.com/grecomatteo/Feedway/issues/323)) ([d5b000f](https://github.com/grecomatteo/Feedway/commit/d5b000fbb99a646793403e066b358dfe2c58bcd7))
+* **notifications:** campanella, centro notifiche e preferenze ([#325](https://github.com/grecomatteo/Feedway/issues/325)) ([be7e1f6](https://github.com/grecomatteo/Feedway/commit/be7e1f68283c14eafe9cca86879ca34b6323f614))
+* **notifications:** collegamento di Telegram, comandi del bot e canale ([#331](https://github.com/grecomatteo/Feedway/issues/331)) ([93c0464](https://github.com/grecomatteo/Feedway/commit/93c0464b34dfcf8c569c564b9b10ad816da70898))
+* **notifications:** dispatcher, consegna raggruppata, pannello ed email ([#318](https://github.com/grecomatteo/Feedway/issues/318)) ([574ac1d](https://github.com/grecomatteo/Feedway/commit/574ac1d3a81d80818c49e18e21cd34b907cef16f))
+* **notifications:** riepilogo delle 8:00 con le sezioni di post e account ([#324](https://github.com/grecomatteo/Feedway/issues/324)) ([da88d99](https://github.com/grecomatteo/Feedway/commit/da88d990cb4644aa4c31cdb26366f982f7707870))
+* **notifications:** scegliere se il riepilogo arriva per email, su Telegram o su tutti e due ([#327](https://github.com/grecomatteo/Feedway/issues/327)) ([0438164](https://github.com/grecomatteo/Feedway/commit/043816461b0eed277cc4416727155eeb48b7c9ed))
+* **notifications:** tabelle delle notifiche, RLS e outbox per il dispatcher ([#314](https://github.com/grecomatteo/Feedway/issues/314)) ([8d384c9](https://github.com/grecomatteo/Feedway/commit/8d384c9cf94303cf73a996a662c8a273a6f93d95))
+* **notifications:** tipi, destinatari e preferenze delle notifiche ([#310](https://github.com/grecomatteo/Feedway/issues/310)) ([05b88c4](https://github.com/grecomatteo/Feedway/commit/05b88c44103755f44f28cde38f8dedd9fa357847))
+* **platform:** battito del worker, controllo dal web e sorveglianza esterna ([#328](https://github.com/grecomatteo/Feedway/issues/328)) ([2471778](https://github.com/grecomatteo/Feedway/commit/247177834f759f83486a4fa5ff07a63b91a9c69a))
+* **platform:** stato del worker e sorveglianza esterna nel pannello ([#334](https://github.com/grecomatteo/Feedway/issues/334)) ([cec406b](https://github.com/grecomatteo/Feedway/commit/cec406b3ae3208d4a06217395eae902303894aae))
+* **posts:** la pagina dell'esito come l'anteprima dell'editor ([#311](https://github.com/grecomatteo/Feedway/issues/311)) ([d40d74e](https://github.com/grecomatteo/Feedway/commit/d40d74ea49845e83f0fe2cc4c906c7b1f12f2543))
+* **publishing:** la copertina vera dei reel su Facebook, lato server ([#315](https://github.com/grecomatteo/Feedway/issues/315)) ([4d814b1](https://github.com/grecomatteo/Feedway/commit/4d814b1f8c4484543275a48b7b014f37352a7c36))
+* **site:** landing scelta il 23/11 con la prima schermata in 3D ([#322](https://github.com/grecomatteo/Feedway/issues/322)) ([9dc3cfa](https://github.com/grecomatteo/Feedway/commit/9dc3cfa333df3492f92b2b3c88be22592f447556))
+* **site:** sito pubblico con landing, informativa privacy, termini e modulo della demo ([#312](https://github.com/grecomatteo/Feedway/issues/312)) ([1aefaf6](https://github.com/grecomatteo/Feedway/commit/1aefaf60737bd87cb83b1402380f8fd6fb775555))
+
+
+### Correzioni
+
+* **media:** «Unisci» senza doppioni, doppioni nell'editor, HEIC 4:5 e coda ([#319](https://github.com/grecomatteo/Feedway/issues/319)) ([eb3f4ed](https://github.com/grecomatteo/Feedway/commit/eb3f4ed8db15bb4bf010c09d4ab724a9343b113b))
+* **notifications:** nessun evento perso con il pool del worker pieno ([#337](https://github.com/grecomatteo/Feedway/issues/337)) ([02f7793](https://github.com/grecomatteo/Feedway/commit/02f7793f8634e0b075e00fa4dcdd2cca8b6fa0ac))
+* **notifications:** Telegram risponde subito, menu dei comandi e titoli dei post senza testo ([#336](https://github.com/grecomatteo/Feedway/issues/336)) ([ea4d6f7](https://github.com/grecomatteo/Feedway/commit/ea4d6f737118f1dd09c94f2ef1c4a94ecc249bf2))
+* **platform:** la sorveglianza esterna parte dal web (R4) ([#338](https://github.com/grecomatteo/Feedway/issues/338)) ([77e2ba9](https://github.com/grecomatteo/Feedway/commit/77e2ba9cac389d203a09acd6f1aa9b0373fbd59a))
+* **posts:** i salvataggi dell'editor riconoscono la propria versione, e «Quando» dice domani ([#313](https://github.com/grecomatteo/Feedway/issues/313)) ([bee7885](https://github.com/grecomatteo/Feedway/commit/bee78856f2433e1269f2d75b62cde572072a3859))
+* **publishing:** copertina dei reel Facebook mandata dalla verifica a reel pronto ([#335](https://github.com/grecomatteo/Feedway/issues/335)) ([8790dad](https://github.com/grecomatteo/Feedway/commit/8790dad39c8cddbb3922829d3e3a7df2c5091d79))
+* **publishing:** le storie di Facebook dall'esito incerto, con l'ora come la scrive Meta ([#304](https://github.com/grecomatteo/Feedway/issues/304)) ([a223b2a](https://github.com/grecomatteo/Feedway/commit/a223b2aa49f6b0fb224a28824e9bd030db18982f))
+* **web:** i ritocchi della prova su Oggi, post, libreria, esito e Meta ([#321](https://github.com/grecomatteo/Feedway/issues/321)) ([86c513c](https://github.com/grecomatteo/Feedway/commit/86c513c57fe580d17d7e430bcba4217648e8576e))
+
+
+### Documentazione
+
+* **accounts:** app Meta in Live e sito online, con i controlli verificati ([#326](https://github.com/grecomatteo/Feedway/issues/326)) ([4c7e137](https://github.com/grecomatteo/Feedway/commit/4c7e137f79bf61fd43e1c32aaeedf231f271c636))
+* decisioni aperte su bozze e richiesta di collaborazione ([#330](https://github.com/grecomatteo/Feedway/issues/330)) ([6c5475f](https://github.com/grecomatteo/Feedway/commit/6c5475f3107fa91df370896f4d35297dcf5863e8))
+* **notifications:** piano della tappa 8 ([#306](https://github.com/grecomatteo/Feedway/issues/306)) ([de72140](https://github.com/grecomatteo/Feedway/commit/de72140734892cd151a7b6a17562aea01bb3cf7f))
+* **platform:** D-119 decisa, l'informativa privacy sul sito pubblico ([#308](https://github.com/grecomatteo/Feedway/issues/308)) ([d31c351](https://github.com/grecomatteo/Feedway/commit/d31c351a1cd4fa2bb739c433909baf3ea167e8cb))
+* **platform:** esiti della prova della 0.13.0 e della 0.13.1 ([#305](https://github.com/grecomatteo/Feedway/issues/305)) ([c1d3d6c](https://github.com/grecomatteo/Feedway/commit/c1d3d6c60428af3325d6d307ea8bcfc5fc2b7958))
+* rilascio della 0.14.0 con le notifiche, README e landing aggiornati (D-130) ([#339](https://github.com/grecomatteo/Feedway/issues/339)) ([9e8ff81](https://github.com/grecomatteo/Feedway/commit/9e8ff8150378af7dd8c6b11050ef95348091828f))
+* **scheduling:** bozze negli Eliminati e collaboratori di Instagram nel piano della tappa 9 ([#332](https://github.com/grecomatteo/Feedway/issues/332)) ([15550f2](https://github.com/grecomatteo/Feedway/commit/15550f2f2fa4376bbc799e652039e83e6d8d517f))
+* **scheduling:** le scelte di Matteo sul piano della tappa 9 ([#333](https://github.com/grecomatteo/Feedway/issues/333)) ([477efd9](https://github.com/grecomatteo/Feedway/commit/477efd9e4a1a3d1fe435e7870ebe3a6d353e9b61))
+* **scheduling:** piano della tappa 9, pianificazione e piano editoriale ([#329](https://github.com/grecomatteo/Feedway/issues/329)) ([3727ea8](https://github.com/grecomatteo/Feedway/commit/3727ea8674f1a7a7336cc0f52f948c852592fab1))
+* **site:** informativa e termini rivisti con i dati del titolare ([#320](https://github.com/grecomatteo/Feedway/issues/320)) ([aec48c2](https://github.com/grecomatteo/Feedway/commit/aec48c23e2dc789a0ced18a4b38ce3c5991b07fb))
+
 ## [0.13.1](https://github.com/grecomatteo/Feedway/compare/v0.13.0...v0.13.1) (2026-11-22)
 
 
