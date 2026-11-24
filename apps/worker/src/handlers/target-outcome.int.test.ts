@@ -252,6 +252,43 @@ test('the verification waits while Meta processes, and after 30 minutes the dest
   expect(events[0]?.payload).toMatchObject({ reason: 'still_processing', targetId: out.id })
 })
 
+test('each round tells the publisher if it is the last, and the ids it changed are saved (R5)', async () => {
+  const { world, post, clock, deps } = await publishedNow()
+  const publishedAt = clock.now()
+  const real = runtime.publishers.instagram as PlatformPublisher
+  const rounds: { lastRound: boolean; cover: unknown }[] = []
+  const load = { accountPercent: null, appPercent: null, regainMinutes: 0 }
+  const checking: PlatformPublisher = {
+    ...real,
+    verify: async (target, _signal, ctx) => {
+      if (!ctx) throw new Error('the rounds pass their context')
+      // a photo has no cover: nothing to read, and no error
+      rounds.push({ lastRound: ctx.lastRound, cover: await ctx.readCover() })
+      return {
+        outcome: ctx.lastRound ? 'confirmed' : 'pending',
+        permalink: null,
+        metaIds: { ...target.metaIds, checked: rounds.length },
+        usage: null,
+        load,
+      }
+    },
+  }
+  const slow = { ...deps, publishers: { instagram: checking } }
+  for (const minutes of [3, 10, 30]) {
+    const target = await only(post.postId)
+    clock.set(plus(publishedAt, minutes))
+    await verifyTarget(slow, job(world, target))
+  }
+  expect(rounds).toEqual([
+    { lastRound: false, cover: null },
+    { lastRound: false, cover: null },
+    { lastRound: true, cover: null },
+  ])
+  const confirmed = await only(post.postId)
+  expect(confirmed.status).toBe('confirmed')
+  expect(confirmed.meta_ids).toMatchObject({ checked: 3 })
+})
+
 test('a post Meta no longer has: a problem at once', async () => {
   const { world, clock, deps, out } = await publishedNow()
   mock.scenario('asset_removed', { id: out.external_post_id ?? '' })

@@ -7,6 +7,8 @@ import {
   type PublishTarget,
   type StepContext,
   type StepResult,
+  type VerifyContext,
+  type VerifyResult,
 } from '@app/application'
 import type { PostType } from '@app/domain'
 import { META_MOCK, startMetaMock, type MetaMock } from '@app/meta-mock'
@@ -475,65 +477,181 @@ describe('verify', () => {
   })
 })
 
-describe("the reel's cover (D-120.9)", () => {
+describe("the reel's cover (D-120.9), sent by the verification (review R5)", () => {
   const scopes = ['pages_manage_posts', 'pages_manage_engagement', 'pages_read_user_content']
   const jpeg = { bytes: new Uint8Array(64), contentType: 'image/jpeg' }
-  const withCover = (read: () => Promise<typeof jpeg | null> = () => Promise.resolve(jpeg)) => ({
+  const withCover = (): PublishFiles => ({
     items: [video()],
-    cover: { url: `${mock.url}/pictures/bottega.jpg`, read },
+    cover: { url: `${mock.url}/pictures/bottega.jpg`, read: () => Promise.resolve(jpeg) },
   })
   const withScopes = (s: string[] | null) =>
     target('reel', { account: { platform: 'facebook', externalId: page, pageId: page, scopes: s } })
+  const round = (over: Partial<VerifyContext> = {}): VerifyContext & { reads: () => number } => {
+    let reads = 0
+    return {
+      readCover: () => {
+        reads += 1
+        return Promise.resolve(jpeg)
+      },
+      lastRound: false,
+      ...over,
+      reads: () => reads,
+    }
+  }
+  const thumbnails = () => mock.calls().filter((c) => c.path.endsWith('/thumbnails'))
+  /** The destination as the worker hands it to the next round, with the ids it saved. */
+  const after = (t: PublishTarget, r: VerifyResult) => ({ ...t, metaIds: r.metaIds ?? t.metaIds })
 
-  test('with the permissions: sent after the reel is out, preferred, and saved as done', async () => {
+  test('the publish step sends nothing: the cover waits for the verification', async () => {
     const { out } = await goOut(withScopes(scopes), withCover())
-    const sent = calls('POST', `/${String(out.externalPostId)}/thumbnails`)
+    expect(out.metaIds).toMatchObject({ cover: 'pending' })
+    expect(thumbnails()).toHaveLength(0)
+  })
+
+  test('the reel ready: sent once, preferred, with the Page token, and saved as done', async () => {
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const ctx = round()
+    const result = await publisher.verify(ready, signal(), ctx)
+    expect(result).toMatchObject({ outcome: 'confirmed', metaIds: { cover: 'done' } })
+    const sent = calls('POST', `/${String(ready.externalPostId)}/thumbnails`)
     expect(sent.map((c) => c.params)).toEqual([
       expect.objectContaining({ is_preferred: 'true', source: 'file:image/jpeg:64' }),
     ])
     expect(sent[0]?.tokenIn).toBeDefined()
-    expect(out.metaIds).toMatchObject({ cover: 'done' })
-    expect(saved.at(-1)).toMatchObject({ cover: 'done' })
+    // done: a later check reads only
+    const again = await publisher.verify(after(ready, result), signal(), ctx)
+    expect(again.outcome).toBe('confirmed')
+    expect(thumbnails()).toHaveLength(1)
+    expect(ctx.reads()).toBe(1)
   })
 
-  test('without them: no call, the reel goes out with no_permission', async () => {
-    for (const s of [null, ['pages_manage_posts', 'pages_manage_engagement']]) {
-      mock.scenario('default')
-      const { out } = await goOut(withScopes(s), withCover())
-      expect(out.metaIds).toMatchObject({ cover: 'no_permission' })
-      expect(mock.calls().some((c) => c.path.endsWith('/thumbnails'))).toBe(false)
-    }
+  test('while Meta processes the reel: no call and no read, then sent once it is ready', async () => {
+    mock.scenario('video_processing', { reads: 1 })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const ctx = round()
+    const first = await publisher.verify(ready, signal(), ctx)
+    expect(first.outcome).toBe('pending')
+    expect(thumbnails()).toHaveLength(0)
+    expect(ctx.reads()).toBe(0)
+    const second = await publisher.verify(after(ready, first), signal(), ctx)
+    expect(second).toMatchObject({ outcome: 'confirmed', metaIds: { cover: 'done' } })
+    expect(thumbnails()).toHaveLength(1)
   })
 
-  test('Meta refuses it, or the image is gone: the reel is out all the same', async () => {
+  test('refused once: one more try at the next round, then failed with the reel confirmed', async () => {
     mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
-    const refused = await goOut(withScopes(scopes), withCover())
-    expect(refused.out.externalPostId).not.toBeNull()
-    expect(refused.out.metaIds).toMatchObject({ cover: 'failed' })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const first = await publisher.verify(ready, signal(), round())
+    expect(first).toMatchObject({ outcome: 'pending', metaIds: { cover: 'pending' } })
+    const second = await publisher.verify(after(ready, first), signal(), round())
+    expect(second).toMatchObject({ outcome: 'confirmed', metaIds: { cover: 'failed' } })
+    expect(thumbnails()).toHaveLength(2)
+  })
 
+  test('held only for its cover: an error or a gone post at the last round never undoes the reel', async () => {
+    mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const first = await publisher.verify(ready, signal(), round())
+    expect(first.outcome).toBe('pending')
+    const held = after(ready, first)
     mock.scenario('default')
+    // Meta does not answer at the last round: the reel was seen ready, it is confirmed
+    mock.scenario('error', { code: 2, status: 500 })
+    const result = await publisher.verify(held, signal(), round({ lastRound: true }))
+    expect(result).toMatchObject({
+      outcome: 'confirmed',
+      permalink: expect.stringContaining('/reel/') as string,
+      metaIds: { cover: 'failed' },
+    })
+    mock.scenario('default')
+    // not the last round: an error is a round without an answer, as for any post
+    mock.scenario('error', { code: 2, status: 500 })
+    await expect(publisher.verify(held, signal(), round())).rejects.toBeInstanceOf(PublishError)
+  })
+
+  test('a reel Meta no longer has: a problem, and the cover is not left waiting', async () => {
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    mock.scenario('asset_removed', { id: ready.externalPostId ?? '' })
+    expect(await publisher.verify(ready, signal(), round())).toMatchObject({
+      outcome: 'problem',
+      reason: 'not_found',
+      metaIds: { cover: 'failed' },
+    })
+  })
+
+  test('refused at the last round: failed at once, the reel confirmed', async () => {
+    mock.scenario('error', { path: /\/thumbnails$/, code: 100, status: 400 })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const result = await publisher.verify(ready, signal(), round({ lastRound: true }))
+    expect(result).toMatchObject({ outcome: 'confirmed', metaIds: { cover: 'failed' } })
+  })
+
+  test('still processing at the last round: the cover is failed, never left waiting', async () => {
+    mock.scenario('video_processing', { reads: 5 })
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const result = await publisher.verify(ready, signal(), round({ lastRound: true }))
+    expect(result).toMatchObject({ outcome: 'pending', metaIds: { cover: 'failed' } })
+    expect(thumbnails()).toHaveLength(0)
+  })
+
+  test('a permission taken away or the image gone: settled at once; a failed read: tried again', async () => {
     mock.scenario('permission_missing', { path: /\/thumbnails$/, code: 200 })
     const denied = await goOut(withScopes(scopes), withCover())
-    expect(denied.out.metaIds).toMatchObject({ cover: 'no_permission' })
+    expect(await publisher.verify(denied.ready, signal(), round())).toMatchObject({
+      outcome: 'confirmed',
+      metaIds: { cover: 'no_permission' },
+    })
 
     mock.scenario('default')
-    const gone = await goOut(
-      withScopes(scopes),
-      withCover(() => Promise.resolve(null)),
+    const gone = await goOut(withScopes(scopes), withCover())
+    const result = await publisher.verify(
+      gone.ready,
+      signal(),
+      round({ readCover: () => Promise.resolve(null) }),
     )
-    expect(gone.out.metaIds).toMatchObject({ cover: 'failed' })
+    expect(result).toMatchObject({ outcome: 'confirmed', metaIds: { cover: 'failed' } })
+
+    const unreachable = await goOut(withScopes(scopes), withCover())
+    const later = await publisher.verify(
+      unreachable.ready,
+      signal(),
+      round({ readCover: () => Promise.reject(new Error('database out of reach')) }),
+    )
+    expect(later).toMatchObject({ outcome: 'pending', metaIds: { cover: 'pending' } })
+  })
+
+  test('without the permissions: no_permission at the publish step, never a call', async () => {
+    for (const s of [null, ['pages_manage_posts', 'pages_manage_engagement']]) {
+      mock.scenario('default')
+      const { ready, out } = await goOut(withScopes(s), withCover())
+      expect(out.metaIds).toMatchObject({ cover: 'no_permission' })
+      const ctx = round()
+      await publisher.verify(ready, signal(), ctx)
+      expect(ctx.reads()).toBe(0)
+    }
+    expect(thumbnails()).toHaveLength(0)
+  })
+
+  test('the uncertain search verifies without a round: the cover keeps waiting', async () => {
+    const { ready } = await goOut(withScopes(scopes), withCover())
+    const result = await publisher.verify(ready, signal())
+    expect(result.outcome).toBe('confirmed')
+    expect(result.metaIds).toBeUndefined()
+    expect(thumbnails()).toHaveLength(0)
   })
 
   test('a reel without a cover, or one out as a video, sends none', async () => {
-    const { out } = await goOut(withScopes(scopes), files([video()]))
+    const { ready, out } = await goOut(withScopes(scopes), files([video()]))
     expect(out.metaIds).toMatchObject({ cover: null })
-    await goOut(
+    await publisher.verify(ready, signal(), round())
+    const asVideo = await goOut(
       target('reel', {
         asVideo: true,
         account: { platform: 'facebook', externalId: page, pageId: page, scopes },
       }),
       withCover(),
     )
-    expect(mock.calls().some((c) => c.path.endsWith('/thumbnails'))).toBe(false)
+    await publisher.verify(asVideo.ready, signal(), round())
+    expect(thumbnails()).toHaveLength(0)
   })
 })

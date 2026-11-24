@@ -60,4 +60,8 @@ test('coverOutcomeOf reads only the values the publishers write', () => {
   expect(coverOutcomeOf({ cover: 'no_permission' })).toBe('no_permission')
   expect(coverOutcomeOf({ cover: 'other' })).toBeNull()
   expect(coverOutcomeOf(null)).toBeNull()
+  // still waiting for the verification: no outcome yet; past it, the cover never went up
+  expect(coverOutcomeOf({ cover: 'pending' })).toBeNull()
+  expect(coverOutcomeOf({ cover: 'pending' }, true)).toBe('failed')
+  expect(coverOutcomeOf({ cover: 'done' }, true)).toBe('done')
 })

@@ -3,10 +3,11 @@ import { publishCopiesOf, requestPublishCopies } from '../../media/index.js'
 import type { CoverImage, PublishFiles } from '../../ports/platform-publisher.js'
 import type { Storage } from '../../ports/storage.js'
 import type { PostRecord } from '../../ports/posts.js'
+import type { PublishingTargetRecord } from '../../ports/publishing.js'
 import type { Tx } from '../../ports/tx.js'
-import { publishFilesOfPost } from '../../rules/index.js'
+import { checkPostInTx, publishFilesOfPost } from '../../rules/index.js'
 import { toCheckInput } from '../to-check-input.js'
-import { publicFileUrl, type PublishingWorkerDeps } from './context.js'
+import { publicFileUrl, publisherOf, type PublishingWorkerDeps } from './context.js'
 
 // The copies a destination publishes (plan 07 Task 6, Scelta 4), read when it is prepared and
 // when it is published: each one ready with its public address, or why not yet.
@@ -96,4 +97,34 @@ export async function readCover(
     parts.push(part)
   }
   return { bytes: Buffer.concat(parts), contentType: object.contentType }
+}
+
+/**
+ * The cover of a destination already out, for a publisher that sends it after the post (the
+ * verification of Facebook's reels, review R5): the copy the publish step used, looked up in a
+ * transaction of its own and read from the storage after it, only when the publisher asks.
+ * Read only: a copy missing now is not asked for again. null: no cover, or its copy is gone.
+ */
+export async function publishedCover(
+  deps: PublishingWorkerDeps,
+  target: Pick<PublishingTargetRecord, 'organizationId' | 'workspaceId' | 'postId' | 'accountId'>,
+): Promise<CoverImage | null> {
+  const scope = { organizationId: target.organizationId, workspaceId: target.workspaceId }
+  const key = await deps.uow.run(
+    { organizationId: target.organizationId, userId: null },
+    async (tx) => {
+      const post = await tx.posts.find(scope, target.postId)
+      const actor = post ? await publisherOf(tx, post) : null
+      if (!post || !actor) return null
+      const input = toCheckInput(post, 'publish')
+      const report = await checkPostInTx(tx, deps, actor, input)
+      const cover = (await publishFilesOfPost(tx, deps, scope, input, report)).find(
+        (d) => d.accountId === target.accountId,
+      )?.cover
+      if (!cover) return null
+      const [copy] = await publishCopiesOf(tx, target.organizationId, [cover])
+      return copy?.state.status === 'ready' ? copy.state.copy.storageKey : null
+    },
+  )
+  return key === null ? null : readCover(deps.storage, key)
 }

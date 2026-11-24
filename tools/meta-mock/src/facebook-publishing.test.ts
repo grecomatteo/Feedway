@@ -208,6 +208,35 @@ test("a reel's cover: an image as the `source` file, preferred, with the Page to
   expect((await cover(noFile)).error?.code).toBe(100)
 })
 
+test("a reel's cover is refused while Meta still processes the reel (R5)", async () => {
+  mock.scenario('video_processing', { reads: 1 })
+  const start = await call('POST', `/${page}/video_reels`, { upload_phase: 'start' })
+  const videoId = String(start.body.video_id)
+  await upload(videoId, picture())
+  await call('POST', `/${page}/video_reels`, {
+    upload_phase: 'finish',
+    video_id: videoId,
+    video_state: 'PUBLISHED',
+  })
+  const send = async () => {
+    const url = new URL(`${mock.url}/v25.0/${videoId}/thumbnails`)
+    url.searchParams.set('appsecret_proof', proofOf(pageToken))
+    const form = new FormData()
+    form.set('is_preferred', 'true')
+    form.set('source', new Blob([new Uint8Array(8)], { type: 'image/jpeg' }), 'cover.jpg')
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${pageToken}` },
+      body: form,
+    })
+    return (await res.json()) as Answer
+  }
+  expect((await send()).error?.code).toBe(100)
+  // the read of the status counts the processing down: then it is ready
+  await call('GET', `/${videoId}`, { fields: 'status' })
+  expect(await send()).toEqual({ success: true })
+})
+
 test('permissions_added: the cover permissions join debug_token', async () => {
   const token = META_MOCK.tokens.systemUser
   const scopes = async () => {
