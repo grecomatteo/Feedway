@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { agendaPeriod, draftMissing, textStart } from './agenda.js'
+import { agendaPeriod, draftMissing, shownTargets, textStart } from './agenda.js'
 
 const NOW = new Date('2026-11-19T09:00:00Z')
 
@@ -71,5 +71,19 @@ describe('draftMissing', () => {
     expect(
       draftMissing({ ...ready, caption: '', captionByPlatform: { instagram: 'Solo IG' } }),
     ).toEqual([])
+  })
+})
+
+describe('shownTargets', () => {
+  const target = (accountId: string, status: string) => ({ accountId, status })
+  test('an account cancelled is left out: «Pubblicato» is not said of it (D-120.7)', () => {
+    expect(
+      shownTargets([target('ig', 'published'), target('fb', 'cancelled')]).map((t) => t.accountId),
+    ).toEqual(['ig'])
+  })
+  test('a post cancelled whole keeps its accounts', () => {
+    expect(
+      shownTargets([target('ig', 'cancelled'), target('fb', 'cancelled')]).map((t) => t.accountId),
+    ).toEqual(['ig', 'fb'])
   })
 })

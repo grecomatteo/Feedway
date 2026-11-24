@@ -293,137 +293,142 @@ watch(
       >
         {{ $t('socialAccounts.noConnections') }}
       </p>
-      <ListSurface
-        v-else
-        columns="minmax(0,1fr) 72px 120px 110px 148px"
-        :head="connectionHead"
-        :label="$t('socialAccounts.connections')"
-        class="max-md:[&>[data-list-head]]:sr-only"
-      >
-        <ListRow
-          v-for="c in connections"
-          :id="`collegamento-${c.id}`"
-          :key="c.id"
-          :data-connection="c.id"
-          :tabindex="focused === c.id ? -1 : undefined"
-          :aria-current="focused === c.id ? 'true' : undefined"
-          class="aria-[current=true]:ring-2 aria-[current=true]:ring-(--app-focus) aria-[current=true]:ring-inset max-md:grid-cols-[minmax(0,1fr)_auto]"
+      <!-- a container: the table takes the phone's two lines whenever it is narrower than its
+           columns, also beside the menus of a computer at 800 px (D-120.8) -->
+      <div v-else class="@container">
+        <ListSurface
+          columns="minmax(0,1fr) 72px 120px 110px 148px"
+          :head="connectionHead"
+          :label="$t('socialAccounts.connections')"
+          class="@max-[48rem]:[&>[data-list-head]]:sr-only"
         >
-          <span role="cell" class="flex min-w-0 items-center gap-3">
-            <UIcon name="i-lucide-facebook" class="size-[18px] shrink-0" aria-hidden="true" />
-            <span class="min-w-0">
-              <span class="block truncate font-semibold">{{
-                c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)
-              }}</span>
-              <span class="block truncate text-detail text-(--app-text-muted)">
-                <!-- with the Business as the title, the kind moves here (B11 of the redesign review) -->
-                <template v-if="c.businessName !== null"
-                  >{{ $t(`socialAccounts.kind.${c.kind}`) }} ·
-                </template>
-                <template v-if="broken(c.status) || c.status === 'pending'">{{
-                  $t(`socialAccounts.connectionStatus.${c.status}`)
-                }}</template>
-                <template v-else>{{
-                  $t('socialAccounts.since', { when: formatDate(c.createdAt) })
-                }}</template>
+          <ListRow
+            v-for="c in connections"
+            :id="`collegamento-${c.id}`"
+            :key="c.id"
+            :data-connection="c.id"
+            :tabindex="focused === c.id ? -1 : undefined"
+            :aria-current="focused === c.id ? 'true' : undefined"
+            class="aria-[current=true]:ring-2 aria-[current=true]:ring-(--app-focus) aria-[current=true]:ring-inset @max-[48rem]:grid-cols-[minmax(0,1fr)_auto]"
+          >
+            <span role="cell" class="flex min-w-0 items-center gap-3">
+              <UIcon name="i-lucide-facebook" class="size-[18px] shrink-0" aria-hidden="true" />
+              <span class="min-w-0">
+                <span class="block truncate font-semibold">{{
+                  c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)
+                }}</span>
+                <span class="block truncate text-detail text-(--app-text-muted)">
+                  <!-- with the Business as the title, the kind moves here (B11 of the redesign review) -->
+                  <template v-if="c.businessName !== null"
+                    >{{ $t(`socialAccounts.kind.${c.kind}`) }} ·
+                  </template>
+                  <template v-if="broken(c.status) || c.status === 'pending'">{{
+                    $t(`socialAccounts.connectionStatus.${c.status}`)
+                  }}</template>
+                  <template v-else>{{
+                    $t('socialAccounts.since', { when: formatDate(c.createdAt) })
+                  }}</template>
+                </span>
               </span>
             </span>
-          </span>
-          <span role="cell" class="tabular-nums max-md:hidden">
-            <template v-if="nextCursor === null">
-              {{ c.accounts
-              }}<span v-if="c.inactive > 0" class="text-(--app-text-muted)">
-                ·
-                {{ $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive) }}</span
-              >
-            </template>
-          </span>
-          <span role="cell" class="text-(--app-text-muted) max-md:hidden">
-            {{ c.expiresAt ? formatRelative(c.expiresAt) : $t('socialAccounts.neverExpires') }}
-          </span>
-          <span role="cell" class="max-md:hidden">
-            <StatusDot
-              v-if="broken(c.status)"
-              tone="warning"
-              :label="$t(`socialAccounts.connectionState.${c.status}`)"
-            />
-          </span>
-          <span role="cell" class="flex items-center justify-end gap-1 md:-me-2">
-            <UButton
-              v-if="broken(c.status) && c.kind === 'meta_system_user'"
-              color="neutral"
-              variant="outline"
-              size="sm"
-              @click="openToken(true)"
-            >
-              {{ $t('socialAccounts.reconnect') }}
-            </UButton>
-            <template v-else>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                icon="i-lucide-refresh-cw"
-                :aria-label="$t('socialAccounts.sync')"
-                :disabled="broken(c.status) || waiting(c.id) || (sync.sending && sync.id !== c.id)"
-                :loading="sync.sending && sync.id === c.id"
-                @click="syncConnection(c.id)"
-              >
-                <span class="max-md:hidden">{{ $t('socialAccounts.sync') }}</span>
-              </UButton>
-              <RowActions
-                v-if="c.kind === 'meta_system_user'"
-                :name="c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)"
-                :items="[
-                  {
-                    label: $t('socialAccounts.replaceToken'),
-                    icon: 'i-lucide-key-round',
-                    onSelect: () => openToken(false),
-                  },
-                ]"
+            <span role="cell" class="tabular-nums @max-[48rem]:hidden">
+              <template v-if="nextCursor === null">
+                {{ c.accounts
+                }}<span v-if="c.inactive > 0" class="text-(--app-text-muted)">
+                  ·
+                  {{ $t('socialAccounts.connectionInactive', { n: c.inactive }, c.inactive) }}</span
+                >
+              </template>
+            </span>
+            <span role="cell" class="text-(--app-text-muted) @max-[48rem]:hidden">
+              {{ c.expiresAt ? formatRelative(c.expiresAt) : $t('socialAccounts.neverExpires') }}
+            </span>
+            <span role="cell" class="@max-[48rem]:hidden">
+              <StatusDot
+                v-if="broken(c.status)"
+                tone="warning"
+                :label="$t(`socialAccounts.connectionState.${c.status}`)"
               />
-            </template>
-          </span>
-          <span
-            v-if="c.coverMissing.length > 0"
-            role="cell"
-            class="col-span-full -mt-2 flex gap-2 pb-3 text-detail text-(--app-text-muted)"
-            data-cover-permissions
-          >
-            <UIcon name="i-lucide-info" class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            <span class="min-w-0">
-              <i18n-t keypath="socialAccounts.coverPermissions" tag="span" scope="global">
-                <template #permissions>
-                  <template v-for="(p, i) in c.coverMissing" :key="p"
-                    ><template v-if="i > 0">{{ $t('socialAccounts.and') }}</template
-                    ><code class="[overflow-wrap:anywhere]">{{ p }}</code></template
-                  >
-                </template>
-              </i18n-t>
             </span>
-          </span>
-          <span
-            v-if="outcomes[c.id] || waiting(c.id)"
-            role="cell"
-            class="col-span-full -mt-2 pb-3 text-detail"
-          >
+            <span role="cell" class="flex items-center justify-end gap-1 @min-[48rem]:-me-2">
+              <UButton
+                v-if="broken(c.status) && c.kind === 'meta_system_user'"
+                color="neutral"
+                variant="outline"
+                size="sm"
+                @click="openToken(true)"
+              >
+                {{ $t('socialAccounts.reconnect') }}
+              </UButton>
+              <template v-else>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  icon="i-lucide-refresh-cw"
+                  :aria-label="$t('socialAccounts.sync')"
+                  :disabled="
+                    broken(c.status) || waiting(c.id) || (sync.sending && sync.id !== c.id)
+                  "
+                  :loading="sync.sending && sync.id === c.id"
+                  @click="syncConnection(c.id)"
+                >
+                  <span class="@max-[48rem]:hidden">{{ $t('socialAccounts.sync') }}</span>
+                </UButton>
+                <RowActions
+                  v-if="c.kind === 'meta_system_user'"
+                  :name="c.businessName ?? $t(`socialAccounts.kind.${c.kind}`)"
+                  :items="[
+                    {
+                      label: $t('socialAccounts.replaceToken'),
+                      icon: 'i-lucide-key-round',
+                      onSelect: () => openToken(false),
+                    },
+                  ]"
+                />
+              </template>
+            </span>
             <span
-              v-if="outcomes[c.id]"
-              class="block"
-              :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
-              :class="{
-                'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
-                'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
-              }"
+              v-if="c.coverMissing.length > 0"
+              role="cell"
+              class="col-span-full -mt-2 flex gap-2 pb-3 text-detail text-(--app-text-muted)"
+              data-cover-permissions
             >
-              {{ outcomes[c.id]?.message }}
+              <UIcon name="i-lucide-info" class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+              <span class="min-w-0">
+                <i18n-t keypath="socialAccounts.coverPermissions" tag="span" scope="global">
+                  <template #permissions>
+                    <template v-for="(p, i) in c.coverMissing" :key="p"
+                      ><template v-if="i > 0">{{ $t('socialAccounts.and') }}</template
+                      ><code class="[overflow-wrap:anywhere]">{{ p }}</code></template
+                    >
+                  </template>
+                </i18n-t>
+              </span>
             </span>
-            <span v-if="waiting(c.id)" class="block text-(--app-text-muted)">
-              {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
+            <span
+              v-if="outcomes[c.id] || waiting(c.id)"
+              role="cell"
+              class="col-span-full -mt-2 pb-3 text-detail"
+            >
+              <span
+                v-if="outcomes[c.id]"
+                class="block"
+                :role="outcomes[c.id]?.kind === 'failed' ? 'alert' : 'status'"
+                :class="{
+                  'text-(--app-success)': outcomes[c.id]?.kind === 'queued',
+                  'text-(--app-danger)': outcomes[c.id]?.kind === 'failed',
+                }"
+              >
+                {{ outcomes[c.id]?.message }}
+              </span>
+              <span v-if="waiting(c.id)" class="block text-(--app-text-muted)">
+                {{ $t('socialAccounts.syncAgainIn', { n: minutesLeft(c.id) }, minutesLeft(c.id)) }}
+              </span>
             </span>
-          </span>
-        </ListRow>
-      </ListSurface>
+          </ListRow>
+        </ListSurface>
+      </div>
     </SettingsGroup>
 
     <slot />

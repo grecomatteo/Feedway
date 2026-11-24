@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PostResponse } from '@app/contracts'
+import { fileTitle } from '@app/domain'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Platform } from '~/components/PlatformIcons.vue'
 import type { StatusTone } from '~/components/StatusDot.vue'
@@ -119,9 +120,17 @@ const destinationsOf = (p: PostResponse) =>
     .filter((a): a is ProfileAccount => a !== undefined)
 
 // ---- what a row says
+/** the text, or «Storia · IMG_0233» for a post without (D-120.7) */
 const textOf = (p: PostResponse) => {
-  const text = (p.caption.common || p.caption.instagram || p.caption.facebook || '').trim()
-  return text ? text.replace(/\s+/g, ' ') : t('posts.list.noText')
+  const first = p.media.find((m) => m.status !== 'deleted')
+  return postTitle(
+    {
+      text: p.caption.common || p.caption.instagram || p.caption.facebook || '',
+      type: p.type,
+      firstFile: fileTitle(first?.originalName ?? null),
+    },
+    t,
+  )
 }
 const TYPE_ICON: Record<PostResponse['type'], string> = {
   photo: 'i-lucide-image',
@@ -150,11 +159,10 @@ const thumbOf = (p: PostResponse) => {
 /** «lunedì 24 novembre, 18:00»: the day and time in the post's zone, as the editor says them. */
 const whenOf = (p: PostResponse) => {
   if (!p.when) return null
-  // «oggi, 18:00» for what is still to come; a past date or a wall date keeps «ven 20 nov, 8:00»,
-  // since a past day without its hour would lose it
-  return p.scheduledAt && new Date(p.scheduledAt).getTime() >= Date.now()
-    ? formatRelative(p.scheduledAt, { timeZone: p.timezone })
-    : formatWallShort(p.when.localDate, p.when.localTime)
+  // «ieri, 09:00», «oggi, 18:00», «domani, 08:00» and the days to come, also for a post already
+  // out (D-120.8); an older day keeps «ven 20 nov, 08:00», since it would lose its hour
+  const near = p.scheduledAt ? formatRelative(p.scheduledAt, { timeZone: p.timezone }) : null
+  return near?.includes(':') ? near : formatWallShort(p.when.localDate, p.when.localTime)
 }
 const PLATFORMS: Platform[] = ['instagram', 'facebook']
 const platformsOf = (p: PostResponse) =>

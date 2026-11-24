@@ -346,6 +346,20 @@ test('D-77: a worker stopped for 20 minutes does not publish late; the destinati
       },
     },
   ])
+  // the activity of the outcome tells it, with no call to show it (D-120.8)
+  const logged = await admin.query<{ action: string; source: string; data: unknown }>(
+    `select action, source, data from audit_log
+      where organization_id = $1 and entity = 'post' and entity_id = $2
+        and action = 'post.target_failed'`,
+    [world.organizationId, post.postId],
+  )
+  expect(logged.rows).toEqual([
+    {
+      action: 'post.target_failed',
+      source: 'system',
+      data: { accountId: world.accounts.instagram, code: 'too_late' },
+    },
+  ])
 })
 
 test('ready and then late by 20 minutes: the publish step fails with too_late, no call', async () => {

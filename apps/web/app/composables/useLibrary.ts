@@ -257,16 +257,22 @@ export function foldersBelow(folders: readonly Folder[], id: string): Folder[] {
   return out
 }
 
-/** The folders as a tree, flattened in reading order, each with its depth. */
-export function folderTree(folders: readonly Folder[]): (Folder & { depth: number })[] {
-  const out: (Folder & { depth: number })[] = []
-  const walk = (parentId: string | null, depth: number) => {
+/**
+ * The folders as a tree, flattened in reading order, each with its depth and its path,
+ * «Novembre / F1»: what a choice of folder shows, in its list and once chosen (D-120.7).
+ */
+export function folderTree(
+  folders: readonly Folder[],
+): (Folder & { depth: number; path: string })[] {
+  const out: (Folder & { depth: number; path: string })[] = []
+  const walk = (parentId: string | null, depth: number, above: string) => {
     for (const f of folders.filter((x) => x.parentId === parentId)) {
-      out.push({ ...f, depth })
-      walk(f.id, depth + 1)
+      const path = above ? `${above} / ${f.name}` : f.name
+      out.push({ ...f, depth, path })
+      walk(f.id, depth + 1, path)
     }
   }
-  walk(null, 0)
+  walk(null, 0, '')
   return out
 }
 
