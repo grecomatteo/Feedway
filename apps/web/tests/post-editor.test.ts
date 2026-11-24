@@ -3,6 +3,7 @@ import {
   contentKey,
   createAutosave,
   passedToTomorrow,
+  confirmSent,
   rememberSent,
   sentByThisTab,
   createCheckRunner,
@@ -547,5 +548,18 @@ describe('what this tab sent (D-131.1)', () => {
     expect(sentByThisTab('post-a', body())).toBe(true)
     expect(sentByThisTab('post-a', body({ caption: { common: 'altro' } }))).toBe(false)
     expect(sentByThisTab('post-b', body())).toBe(false)
+  })
+
+  test('a confirmed save ends the older ones: they can no longer undo a later change', () => {
+    const old = body({ caption: { common: 'vecchio' } })
+    const kept = body({ caption: { common: 'salvato' } })
+    const after = body({ caption: { common: 'in viaggio' } })
+    rememberSent('post-c', old)
+    const key = rememberSent('post-c', kept)
+    rememberSent('post-c', after)
+    confirmSent('post-c', key)
+    expect(sentByThisTab('post-c', old)).toBe(false)
+    expect(sentByThisTab('post-c', kept)).toBe(true)
+    expect(sentByThisTab('post-c', after)).toBe(true)
   })
 })

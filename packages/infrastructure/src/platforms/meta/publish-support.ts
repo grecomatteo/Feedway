@@ -116,8 +116,6 @@ export const REFUSED_BEFORE_ACTING: ReadonlySet<MetaErrorReason> = new Set([
   'blocked',
   'media_not_ready',
   'quota_exhausted',
-  // Meta could not fetch the file: nothing went out
-  'media_unreachable',
 ])
 
 /** A Meta error of a call that publishes, with the rule above. */

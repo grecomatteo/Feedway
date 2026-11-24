@@ -8,6 +8,7 @@ import {
   createCheckRunner,
   keepEditorKey,
   nextType,
+  confirmSent,
   rememberSent,
   roomFor,
   savesOf,
@@ -267,25 +268,27 @@ export function usePostEditor(opts: {
     create: async (b) => asPost(await call<PostResponse>('POST', `${base}/posts`, b)),
     update: async (id, version, b) => {
       // kept before it leaves: an answer lost on the way still says what this tab wrote
-      rememberSent(id, b)
+      const key = rememberSent(id, b)
       const saving = call<PostResponse>('PATCH', `${base}/posts/${encodeURIComponent(id)}`, {
         ...b,
         version,
       })
       savingInThisTab(id, saving)
-      return asPost(await saving)
+      const saved = asPost(await saving)
+      confirmSent(id, key)
+      return saved
     },
     isConflict,
     isLost: (e) => failure(e).status === 0,
     // a 409 on a post whose content, saved by this person, is one this tab sent: the version
     // this tab kept was old (an answer lost on a slow network, D-120.1; D-131.1), not another
     // person's change. Anything else is a conflict
-    recover: async (id) => {
+    recover: async (id, version) => {
       const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
       const mine = org.me.value?.id
       return mine !== undefined &&
         now.updatedBy === mine &&
-        now.status === 'draft' &&
+        now.version > version &&
         sentByThisTab(id, bodyOfPost(now))
         ? { id: now.id, version: now.version }
         : null
@@ -672,6 +675,8 @@ export function usePostEditor(opts: {
 
   function fill(p: PostResponse) {
     asPost(p)
+    // a saved post keeps the day it has: only a new post follows the proposed one
+    dayProposed.value = false
     // a saved post with files keeps its type, the person saw it; without files the type is
     // chosen again, as on a new post (D-71)
     type.value = p.media.length > 0 ? p.type : null

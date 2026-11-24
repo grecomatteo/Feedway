@@ -320,6 +320,17 @@ describe('publish', () => {
     expect(calls('POST', `/${page}/photos`)).toHaveLength(1)
   })
 
+  test('a file Meta cannot fetch on the call that publishes is uncertain: it is searched first', async () => {
+    const t = target('reel', { asVideo: true })
+    const prepared = await publisher.prepare(t, files([video()]), ctx())
+    mock.scenario('media_download_failed')
+    const err = await failure(
+      publisher.publish({ ...t, metaIds: prepared.metaIds }, files([video()]), ctx()),
+    )
+    expect([err.kind, err.code]).toEqual(['uncertain', 'media_unreachable'])
+    expect(calls('POST', `/${page}/videos`)).toHaveLength(1)
+  })
+
   test('a run that stopped after the call is never published again, only searched', async () => {
     const t = target('photo')
     mock.scenario('publish_timeout_but_created', { delayMs: 2_000 })

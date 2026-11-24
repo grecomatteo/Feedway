@@ -232,10 +232,21 @@ export function contentKey(b: DraftBody): string {
 const SENT_KEPT = 20
 const sentKeys = new Map<string, string[]>()
 /** A save this tab sent for a post, whatever became of its answer. */
-export function rememberSent(postId: string, body: DraftBody): void {
+export function rememberSent(postId: string, body: DraftBody): string {
+  const key = contentKey(body)
   const list = sentKeys.get(postId) ?? []
-  list.push(contentKey(body))
+  list.push(key)
   sentKeys.set(postId, list.slice(-SENT_KEPT))
+  return key
+}
+/**
+ * The server answered that save: the ones sent before it are behind the post now, and matching
+ * them later could undo a change the same person made elsewhere in between.
+ */
+export function confirmSent(postId: string, key: string): void {
+  const list = sentKeys.get(postId)
+  const at = list?.lastIndexOf(key) ?? -1
+  if (list && at > 0) sentKeys.set(postId, list.slice(at))
 }
 /**
  * The post as the server has it is one this tab sent (D-131.1): only this tab could have
