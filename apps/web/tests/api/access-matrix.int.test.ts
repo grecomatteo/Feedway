@@ -559,6 +559,15 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'workspace.view', level: 'organization' },
     { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
   ],
+  // the editorial plan (plan 09 Task 6, spec §10.2): every member who sees the client reads it,
+  // Publisher and above write it, Editor and above prepare a post from it
+  'GET /api/v1/orgs/{org}/plan': [{ permission: 'plan.view', level: 'workspace', query: true }],
+  'POST /api/v1/orgs/{org}/plan': [{ permission: 'plan.edit', level: 'workspace' }],
+  'PATCH /api/v1/orgs/{org}/plan/{itemId}': [{ permission: 'plan.edit', level: 'workspace' }],
+  'DELETE /api/v1/orgs/{org}/plan/{itemId}': [{ permission: 'plan.edit', level: 'workspace' }],
+  'POST /api/v1/orgs/{org}/plan/{itemId}/prepare': [
+    { permission: 'plan.prepare', level: 'workspace' },
+  ],
   // the calendar (plan 09 Task 2): every member, each across the clients they see; narrowed to
   // one client, who does not see it gets 404. «Elimina le bozze vuote» deletes only what the
   // person may delete: a member with none gets `deleted: 0`
@@ -1333,7 +1342,10 @@ test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s'
   )
   expect(gets.length).toBeGreaterThan(0)
   for (const route of gets) {
-    const path = fill(route.path, { ...pathValues(ids), token })
+    // a read that cannot go without its query (the plan's client and period) takes the sample
+    const bare = route.request.query?.safeParse({}).success ?? true
+    const query = bare ? undefined : sampleQuery(route, ids)
+    const path = fill(route.path, { ...pathValues(ids), token }) + (query ? `?${query}` : '')
     const r = await fx.env.call('GET', path, undefined, { cookie: fx.cookies[role] })
     const body = await r.text()
     if (role === 'owner') expect(r.status, `${path}: ${body}`).toBe(200)

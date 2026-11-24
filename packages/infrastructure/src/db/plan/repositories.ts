@@ -45,6 +45,14 @@ export function drizzlePlan(db: DbExecutor): PlanRepository {
     return row ? toRecord(row) : null
   }
   return {
+    async locate(organizationId, id) {
+      if (!UUID.test(id)) return null
+      const [row] = await db
+        .select({ workspaceId: planItems.workspaceId })
+        .from(planItems)
+        .where(and(eq(planItems.organizationId, organizationId), eq(planItems.id, id)))
+      return row ?? null
+    },
     async listInRange(organizationId, workspaceIds, { from, to }) {
       if (workspaceIds.length === 0) return []
       const rows = await db

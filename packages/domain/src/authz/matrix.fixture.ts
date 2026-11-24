@@ -53,6 +53,31 @@ export const MATRIX: Record<Permission, Record<MatrixRole, Cell>> = {
     editor: false,
     viewer: false,
   },
+  // spec §10.2, the plan's rows (plan 09 Task 6)
+  'plan.view': {
+    owner: true,
+    admin: true,
+    manager: true,
+    publisher: true,
+    editor: true,
+    viewer: true,
+  },
+  'plan.edit': {
+    owner: true,
+    admin: true,
+    manager: true,
+    publisher: true,
+    editor: false,
+    viewer: false,
+  },
+  'plan.prepare': {
+    owner: true,
+    admin: true,
+    manager: true,
+    publisher: true,
+    editor: true,
+    viewer: false,
+  },
   'workspace.content_settings.manage': {
     owner: true,
     admin: true,

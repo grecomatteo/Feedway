@@ -211,6 +211,7 @@ export * from './accounts/index.js'
 export * from './media/index.js'
 export * from './rules/index.js'
 export * from './posts/index.js'
+export * from './plan/index.js'
 export * from './calendar/index.js'
 export type { PublishingHistory, PublishingHistoryQuery } from './ports/publishing-history.js'
 export {

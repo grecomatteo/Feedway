@@ -146,6 +146,15 @@ export function drizzleOrganizations(db: DbExecutor, ctx: TxContext): Organizati
       onlySystem('limits are set')
       await db.update(organizations).set({ limits }).where(eq(organizations.id, id))
     },
+    async setModules(id, modules) {
+      if (ctx.kind !== 'system') throw new Error('the modules of an agency change from the CLI')
+      await db
+        .update(organizations)
+        .set({
+          settings: sql`jsonb_set(${organizations.settings}, '{modules}', ${JSON.stringify(modules)}::jsonb)`,
+        })
+        .where(eq(organizations.id, id))
+    },
     async update(id, change) {
       if (ctx.kind !== 'organization' || ctx.organizationId !== id)
         throw new Error('an agency changes only its own settings, inside its own scope')

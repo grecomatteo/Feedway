@@ -154,6 +154,14 @@ module.exports = {
       },
       to: { path: '(^|/)packages/(domain|application)/src/platforms/' },
     },
+    {
+      name: 'posts-knows-no-plan',
+      comment:
+        'spec §11.12, plan 09 Task 6: the plan depends on the posts, never the other way round',
+      severity: 'error',
+      from: { path: '(^|/)packages/(domain|application|infrastructure)/src/(db/)?posts/' },
+      to: { path: '(^|/)packages/(domain|application|infrastructure)/src/(db/)?plan/' },
+    },
     { name: 'no-circular', severity: 'error', from: {}, to: { circular: true } },
     {
       name: 'no-orphans',

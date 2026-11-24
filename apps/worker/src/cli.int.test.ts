@@ -115,7 +115,8 @@ async function organization(slug: string) {
     id: string
     status: string
     limits: Record<string, unknown>
-  }>('select id, status, limits from organizations where slug = $1', [slug])
+    settings: Record<string, unknown>
+  }>('select id, status, limits, settings from organizations where slug = $1', [slug])
   return rows[0]
 }
 
@@ -236,6 +237,36 @@ test('cli set-limits replaces the limits; an option left out is unlimited', asyn
       64,
     )
   expect((await organization('agenzia-limiti'))?.limits).toEqual({ posts_per_day: 5 })
+})
+
+test('cli set-modules turns the plan off and on; the other settings stay (plan 09 P2)', async () => {
+  await runCliCaptured([
+    'create-organization',
+    '--name',
+    'Agenzia Moduli',
+    '--owner-email',
+    'm@moduli.it',
+  ])
+  await admin.query(
+    `update organizations set settings = '{"timezone":"Europe/London"}' where slug = 'agenzia-moduli'`,
+  )
+  const off = await runCliCaptured(['set-modules', 'agenzia-moduli', '--plan', 'off'])
+  expect(off.exitCode).toBe(0)
+  expect(off.stdout).toMatch(/piano editoriale spento/)
+  expect((await organization('agenzia-moduli'))?.settings).toEqual({
+    timezone: 'Europe/London',
+    modules: { plan: false },
+  })
+  expect(await lastAuditAsSystem()).toMatchObject({
+    action: 'organization.settings_changed',
+    source: 'system',
+  })
+  expect((await runCliCaptured(['set-modules', 'agenzia-moduli', '--plan', 'on'])).exitCode).toBe(0)
+  expect((await organization('agenzia-moduli'))?.settings).toMatchObject({
+    modules: { plan: true },
+  })
+  for (const bad of [['--plan', 'forse'], ['--plan'], [], ['--altro', 'on']])
+    expect((await runCliCaptured(['set-modules', 'agenzia-moduli', ...bad])).exitCode).toBe(64)
 })
 
 test('cli list-organizations shows status, usage and limits', async () => {

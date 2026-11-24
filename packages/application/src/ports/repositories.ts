@@ -306,6 +306,8 @@ export interface OrganizationsRepository {
   setStatus(id: string, status: OrganizationRecord['status'], at: Date): Promise<boolean>
   /** System scope only (a trigger refuses it elsewhere). Replaces the limits as a whole. */
   setLimits(id: string, limits: OrganizationLimits): Promise<void>
+  /** System scope only. `settings.modules` becomes this; the other keys stay (plan 09 P2). */
+  setModules(id: string, modules: Record<string, boolean>): Promise<void>
   /** Name and settings keys of the agency the transaction is scoped to; other keys stay. */
   update(id: string, change: { name?: string; settings?: Record<string, unknown> }): Promise<void>
 }

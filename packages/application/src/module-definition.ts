@@ -105,13 +105,26 @@ export interface CalendarEntry {
 export interface CalendarEntrySource {
   /** 'plan' */
   id: string
-  /** The entries of these clients (all visible to the person) in the days `[from, to]`. */
+  /**
+   * The entries of these clients (all visible to the person) in the days `[from, to]`; `now`
+   * and the agency's `timeZone` for what the entry says of time (the plan's «In ritardo»).
+   */
   entries(
     tx: Tx,
-    query: { workspaceIds: readonly string[]; from: LocalDate; to: LocalDate },
+    query: {
+      organizationId: string
+      workspaceIds: readonly string[]
+      from: LocalDate
+      to: LocalDate
+      timeZone: string
+      now: Date
+    },
   ): Promise<CalendarEntry[]>
   /** The posts the module marks («dal piano»), looked up by post, not by day. */
-  markedPostIds?(tx: Tx, postIds: readonly string[]): Promise<ReadonlySet<string>>
+  markedPostIds?(
+    tx: Tx,
+    query: { organizationId: string; postIds: readonly string[] },
+  ): Promise<ReadonlySet<string>>
 }
 
 /**

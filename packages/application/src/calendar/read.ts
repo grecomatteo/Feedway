@@ -200,7 +200,14 @@ export async function getCalendar(
     const entries: CalendarEntry[] = []
     if (show !== 'posts' && entriesAnswer(filters))
       for (const source of sources)
-        for (const entry of await source.entries(tx, { workspaceIds: ids, from, to }))
+        for (const entry of await source.entries(tx, {
+          organizationId,
+          workspaceIds: ids,
+          from,
+          to,
+          timeZone: agency.timeZone,
+          now: deps.clock.now(),
+        }))
           // a module answers for the clients asked, never another
           if (ids.includes(entry.workspaceId)) entries.push({ ...entry, source: source.id })
     entries.sort(
@@ -213,6 +220,7 @@ export async function getCalendar(
     const marks = await marksOf(
       tx,
       sources,
+      organizationId,
       posts.items.map((p) => p.id),
     )
     return {
@@ -230,13 +238,14 @@ export async function getCalendar(
 async function marksOf(
   tx: Tx,
   sources: ReturnType<typeof calendarEntrySources>,
+  organizationId: string,
   postIds: readonly string[],
 ) {
   const marks = new Map<string, string[]>()
   if (postIds.length === 0) return marks
   for (const source of sources) {
     if (!source.markedPostIds) continue
-    for (const id of await source.markedPostIds(tx, postIds))
+    for (const id of await source.markedPostIds(tx, { organizationId, postIds }))
       marks.set(id, [...(marks.get(id) ?? []), source.id])
   }
   return marks

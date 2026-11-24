@@ -37,6 +37,8 @@ export interface PlanRepository {
     workspaceIds: readonly string[],
     range: { from: string; to: string },
   ): Promise<PlanItemRecord[]>
+  /** The workspace of a content of the agency, for a route that names only the content. */
+  locate(organizationId: string, id: string): Promise<{ workspaceId: string } | null>
   find(scope: PlanScope, id: string): Promise<PlanItemRecord | null>
   /** Same, and locks the content until the transaction ends. */
   findForUpdate(scope: PlanScope, id: string): Promise<PlanItemRecord | null>

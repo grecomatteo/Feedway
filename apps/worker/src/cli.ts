@@ -16,6 +16,7 @@ import {
   replacePlatformMailSettings,
   sendPlatformTestEmail,
   setOrganizationLimits,
+  setOrganizationModules,
   suspendOrganization,
   SYSTEM_PLATFORM_ACTOR,
   type EnableDeps,
@@ -62,6 +63,7 @@ const USAGE = [
   '  reactivate-organization <slug>',
   '  set-limits <slug> [--workspaces N] [--social-accounts N] [--users N] [--storage-gb N] [--posts-per-day N]',
   '  set-limits <slug> --unlimited',
+  '  set-modules <slug> --plan on|off      (il piano editoriale; acceso se non lo spegni)',
   '  list-organizations',
   '  disable-user <email>',
   '  enable-user <email> [--verified-by telefono|di-persona|videochiamata]',
@@ -106,6 +108,7 @@ type Command =
   | { name: 'create-organization'; organizationName: string; ownerEmail: string }
   | { name: 'suspend-organization' | 'reactivate-organization'; slug: string }
   | { name: 'set-limits'; slug: string; limits: OrganizationLimits }
+  | { name: 'set-modules'; slug: string; modules: { plan: boolean } }
   | { name: 'list-organizations' }
   | { name: 'disable-user' | 'anonymize-user'; email: string }
   | { name: 'enable-user'; email: string; verifiedBy: IdentityVerificationMethod | null }
@@ -208,6 +211,12 @@ function parseCommand(args: readonly string[]): Command {
       if (unlimited !== true && Object.keys(limits).length === 0)
         throw new UsageError('Indica almeno un limite, oppure --unlimited per toglierli tutti')
       return { name, slug: slugOf(positionals[0] ?? ''), limits }
+    }
+    case 'set-modules': {
+      const { values, positionals } = parse({ plan: { type: 'string' } }, 1)
+      if (values.plan !== 'on' && values.plan !== 'off')
+        throw new UsageError('Indica --plan on oppure --plan off')
+      return { name, slug: slugOf(positionals[0] ?? ''), modules: { plan: values.plan === 'on' } }
     }
     case 'disable-user':
     case 'anonymize-user':
@@ -572,6 +581,12 @@ async function execute(
       const { id } = await findOrganizationBySlug(deps, system, command.slug)
       await setOrganizationLimits(deps, system, id, command.limits)
       io.out(describeOrganization(await findOrganizationBySlug(deps, system, command.slug)))
+      return
+    }
+    case 'set-modules': {
+      const { id, slug } = await findOrganizationBySlug(deps, system, command.slug)
+      await setOrganizationModules(deps, system, id, command.modules)
+      io.out(`Agenzia ${slug}: piano editoriale ${command.modules.plan ? 'acceso' : 'spento'}`)
       return
     }
     case 'list-organizations':
