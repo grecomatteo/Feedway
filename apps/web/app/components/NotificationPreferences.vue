@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { DigestChannel } from '@app/contracts'
 import type {
+  DigestChannel,
   NotificationChannel,
   NotificationKindName,
   NotificationLevel,
@@ -118,8 +118,10 @@ function toggleDay(day: number) {
     return { ...s, digest: { ...s.digest, days, enabled: days.length > 0 && s.digest.enabled } }
   })
 }
-const DIGEST_CHANNELS = DigestChannel.options
-function toggleDigestChannel(channel: DigestChannel, on: boolean) {
+// the contract's `DigestChannel`, a type only: zod at run time would ask the page for eval
+const DIGEST_CHANNELS = ['email', 'telegram'] as const satisfies readonly DigestChannel[]
+type DigestChannelName = (typeof DIGEST_CHANNELS)[number]
+function toggleDigestChannel(channel: DigestChannelName, on: boolean) {
   saveSettings((s) => {
     const channels = DIGEST_CHANNELS.filter((c) =>
       c === channel ? on : s.digest.channels.includes(c),
@@ -128,7 +130,7 @@ function toggleDigestChannel(channel: DigestChannel, on: boolean) {
     return channels.length === 0 ? s : { ...s, digest: { ...s.digest, channels } }
   })
 }
-const onlyDigestChannel = (channel: DigestChannel) => {
+const onlyDigestChannel = (channel: DigestChannelName) => {
   const channels = prefs.value?.settings.digest.channels ?? []
   return channels.length === 1 && channels[0] === channel
 }
