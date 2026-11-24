@@ -42,6 +42,12 @@ export type {
   PlatformTestEmailResult,
 } from './mail-settings.js'
 export {
+  getPlatformTelegramBot,
+  removePlatformTelegramBot,
+  replacePlatformTelegramBot,
+} from './telegram-bot.js'
+export type { PlatformBotRequest, PlatformTelegramBotDeps } from './telegram-bot.js'
+export {
   WORKER_PROCESS,
   WORKER_WATCH_LOCK,
   beatsWithHealth,

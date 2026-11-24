@@ -1,6 +1,15 @@
 import { INTEGRATION_KINDS } from '@app/application'
 import { sql } from 'drizzle-orm'
-import { check, integer, jsonb, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core'
+import {
+  check,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 import { createdAt, inList, tz, updatedAt } from '../columns.js'
 import { organizations } from '../organizations/schema.js'
 
@@ -31,6 +40,12 @@ export const integrations = pgTable(
   (t) => [
     // one row per agency and kind, and one platform default per kind (null counts as a value)
     unique('integrations_owner_kind').on(t.organizationId, t.kind).nullsNotDistinct(),
+    // one place per Telegram bot, platform or agency: two pollers of one bot would split its
+    // updates, and a `/start` could land in the wrong agency (plan 08 Task 7). An index sees
+    // every row whatever the row level security.
+    uniqueIndex('integrations_telegram_bot')
+      .on(sql`(${t.config}->>'botId')`)
+      .where(sql`${t.kind} = 'telegram'`),
     check('integrations_kind', inList('kind', INTEGRATION_KINDS)),
     // one SMTP for the whole installation, set by the platform administrator (ADR 017)
     check(

@@ -19,13 +19,13 @@ const whereOf = (i: PostIssue) =>
 
 /**
  * «delle 9:30» for a post of today, «del 12 novembre» for another day, in the post's own zone
- * (D-58), with the article elided before one, eight and eleven: «dell’1:15», «dell’8 novembre».
+ * (D-58), with the article elided before one, eight and eleven: «dell’01:15», «dell’8 novembre».
  */
 function whenOf(i: PostIssue, now: Date): string {
   const options = { timeZone: i.timezone, now }
   if (formatRelative(i.scheduledAt, { ...options, time: false }) === 'oggi') {
     const time = formatTime(i.scheduledAt, options)
-    return time.startsWith('1:') ? `dell’${time}` : `delle ${time}`
+    return time.startsWith('01:') ? `dell’${time}` : `delle ${time}`
   }
   const day = formatDate(i.scheduledAt, options)
   return /^(1|8|11) /.test(day) ? `dell’${day}` : `del ${day}`

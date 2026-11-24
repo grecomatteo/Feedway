@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@app/meta-mock": "workspace:*",
+    "@app/telegram-mock": "workspace:*",
     "@types/pg": "8.23.1",
     "esbuild": "0.28.2",
     "pg": "8.23.1"

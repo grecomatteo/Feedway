@@ -183,6 +183,13 @@
       "when": 1795459907731,
       "tag": "0025_connection_scopes",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795472889896,
+      "tag": "0026_telegram_one_bot",
+      "breakpoints": true
     }
   ]
 }

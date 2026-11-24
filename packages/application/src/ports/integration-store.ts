@@ -28,6 +28,8 @@ export interface SmtpConfig {
 
 /** A Telegram bot (plan 08 Scelta 8): its token is the secret, its name comes from `getMe`. */
 export interface TelegramConfig {
+  /** Telegram's id of the bot: one integration per bot, or two pollers would split its updates */
+  botId: number
   botUsername: string
 }
 
@@ -122,6 +124,8 @@ export interface IntegrationsRepository {
    * `updatedAt` does not move. false: nothing marked.
    */
   markPlatformVerified(kind: PlatformIntegrationKind, at: Date, version: Date): Promise<boolean>
+  /** Removes the platform's row (a bot taken away). false: there was none. */
+  deletePlatform(kind: PlatformIntegrationKind): Promise<boolean>
   findForOrganization(
     organizationId: string,
     kind: OrganizationIntegrationKind,
@@ -136,6 +140,15 @@ export interface IntegrationsRepository {
     input: OrganizationIntegrationRecordInput,
     expected: Date | null,
   ): Promise<IntegrationRecord | null>
+  /**
+   * Removes the agency's row only if it is still `version` (its `updatedAt` to the millisecond):
+   * a row saved by someone else meanwhile stays. false: nothing removed.
+   */
+  deleteForOrganization(
+    organizationId: string,
+    kind: OrganizationIntegrationKind,
+    version: Date,
+  ): Promise<boolean>
   /** As `markPlatformVerified`, for an agency's row; a refusal noted before goes away. */
   markVerified(
     organizationId: string,

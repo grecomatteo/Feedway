@@ -217,3 +217,25 @@ test('social accounts: an admin connects and syncs from Integrazioni, a member n
   await page.goto(`${meta(org)}/aggiungi`)
   await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible()
 })
+
+test('social accounts: at 800 px the connections fit, «Sincronizza» inside the box (D-120.8)', async ({
+  page,
+}) => {
+  const owner = await newPerson('Olga Stretta', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await connectedAgency(page.request, org)
+  await page.setViewportSize({ width: 800, height: 900 })
+  await page.goto(meta(org))
+  const table = page.getByRole('table', { name: 'Collegamenti' })
+  const sync = table.getByRole('button', { name: 'Sincronizza' }).first()
+  await expect(sync).toBeVisible()
+  const shots = process.env.E2E_SCREENSHOTS
+  if (shots) await page.screenshot({ path: `${shots}/meta-800-${test.info().project.name}.png` })
+  // nothing goes off the side: no sideways scroll, the button inside the table
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(800)
+  const box = await table.boundingBox()
+  const button = await sync.boundingBox()
+  expect(box && button && button.x + button.width <= box.x + box.width).toBe(true)
+  expect((await axe(page)).violations).toEqual([])
+})
