@@ -1,5 +1,5 @@
 {
-  "id": "b341214d-b6a8-4308-9ce1-721112258095",
+  "id": "c8d0af26-c9c7-4c9f-8615-db6181b987e3",
   "prevId": "56b7094a-21d0-4ff8-bc3a-6a57f290f54b",
   "version": "7",
   "dialect": "postgresql",
@@ -6578,6 +6578,14 @@
         "plan_items_title": {
           "name": "plan_items_title",
           "value": "char_length(title) between 1 and 80"
+        },
+        "plan_items_note": {
+          "name": "plan_items_note",
+          "value": "char_length(note) <= 2000"
+        },
+        "plan_items_local_time": {
+          "name": "plan_items_local_time",
+          "value": "\"plan_items\".\"local_time\" < '24:00' and date_trunc('minute', \"plan_items\".\"local_time\") = \"plan_items\".\"local_time\""
         },
         "plan_items_version": {
           "name": "plan_items_version",

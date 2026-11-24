@@ -1,4 +1,3 @@
-import { DomainError } from '../errors.js'
 import { isPlainDisplayName } from '../identity/display-name.js'
 import { instantToZoned, zonedToInstant } from '../time/zoned.js'
 
@@ -123,8 +122,8 @@ export function dueNotificationAt(
     return new Date(
       referenceInstant(item.localDate, item.localTime, timeZone).getTime() - PLAN_NOTICE_BEFORE_MS,
     )
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(item.localDate))
-    throw new DomainError('VALIDATION', 'not a date', { localDate: item.localDate })
+  // the day itself is checked first: 30 February is refused, never moved to 1 March
+  referenceInstant(item.localDate, null, timeZone)
   return zonedToInstant(previousDay(item.localDate), PLAN_NOTICE_TIME, timeZone).instant
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { DomainError } from '../errors.js'
 import {
   dueNotificationAt,
   planItemState,
@@ -83,6 +84,12 @@ describe('the notification', () => {
     )
     expect(dueNotificationAt({ localDate: '2027-03-01', localTime: null }, ROME)).toEqual(
       new Date('2027-02-28T08:00:00Z'),
+    )
+  })
+
+  test('an impossible day is refused, never moved to the next one', () => {
+    expect(() => dueNotificationAt({ localDate: '2026-02-30', localTime: null }, ROME)).toThrow(
+      DomainError,
     )
   })
 })

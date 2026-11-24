@@ -110,10 +110,13 @@ export function drizzlePlan(db: DbExecutor): PlanRepository {
       return rows.length > 0
     },
     async linkPost(scope, id, postId, updatedBy) {
-      await db
+      if (!UUID.test(id)) return false
+      const rows = await db
         .update(planItems)
         .set({ postId, updatedBy, version: sql`${planItems.version} + 1` })
         .where(inScope(scope, id))
+        .returning({ id: planItems.id })
+      return rows.length > 0
     },
   }
 }

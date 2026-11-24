@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import type { NewPlanItem, Tx, UnitOfWork } from '@app/application'
 import { EMPTY_POST_OPTIONS } from '@app/domain'
@@ -14,10 +15,12 @@ import { seed, startTestDatabase, withScope, type TestDatabase } from '../../tes
 let tdb: TestDatabase
 let handle: DbHandle
 let uow: UnitOfWork
-let org: string, other: string, user: string, ws: string, ws2: string, otherWs: string
+let org: string, other: string, user: string, ws: string, ws2: string
 
 const scope = () => ({ organizationId: org, workspaceId: ws })
 const run = <T>(fn: (tx: Tx) => Promise<T>) => uow.run({ organizationId: org, userId: user }, fn)
+// drizzle wraps the driver error: the constraint is on its cause
+const refusedBy = (constraint: string) => ({ cause: { constraint } })
 
 const item = (over: Partial<NewPlanItem> = {}): NewPlanItem => ({
   id: uuidV7Generator.newId(),
@@ -59,7 +62,7 @@ beforeAll(async () => {
     ids: uuidV7Generator,
     logger: createLogger({ service: 'web', level: 'error' }),
   })
-  ;({ org, other, user, ws, ws2, otherWs } = await seed(tdb.runtimeUrl, async (s) => {
+  ;({ org, other, user, ws, ws2 } = await seed(tdb.runtimeUrl, async (s) => {
     const org = await s.organization()
     const other = await s.organization()
     const user = await s.user()
@@ -70,7 +73,6 @@ beforeAll(async () => {
       user,
       ws: await s.workspace(org),
       ws2: await s.workspace(org),
-      otherWs: await s.workspace(other),
     }
   }))
 }, 120_000)
@@ -135,7 +137,9 @@ test('a post comes from one content at most, of the same client', async () => {
   const post = await newPost()
   const first = await run((tx) => tx.plan.create(item()))
   const second = await run((tx) => tx.plan.create(item()))
-  await run((tx) => tx.plan.linkPost(scope(), first.id, post, user))
+  expect(await run((tx) => tx.plan.linkPost(scope(), first.id, post, user))).toBe(true)
+  expect(await run((tx) => tx.plan.linkPost(scope(), randomUUID(), post, user))).toBe(false)
+  expect(await run((tx) => tx.plan.linkPost(scope(), 'nope', post, user))).toBe(false)
   expect(await run((tx) => tx.plan.find(scope(), first.id))).toMatchObject({
     postId: post,
     version: 2,
@@ -143,10 +147,14 @@ test('a post comes from one content at most, of the same client', async () => {
   expect((await run((tx) => tx.plan.findByPostIds(org, [post]))).map((i) => i.id)).toEqual([
     first.id,
   ])
-  await expect(run((tx) => tx.plan.linkPost(scope(), second.id, post, user))).rejects.toThrow()
+  await expect(run((tx) => tx.plan.linkPost(scope(), second.id, post, user))).rejects.toMatchObject(
+    refusedBy('plan_items_post_idx'),
+  )
   // a post of another client is refused by the composite key
   const elsewhere = await newPost(ws2)
-  await expect(run((tx) => tx.plan.linkPost(scope(), second.id, elsewhere, user))).rejects.toThrow()
+  await expect(
+    run((tx) => tx.plan.linkPost(scope(), second.id, elsewhere, user)),
+  ).rejects.toMatchObject(refusedBy('plan_items_post_fk'))
 })
 
 test('a deleted post frees the content; a removed content leaves the post (rules 4 and 5)', async () => {
@@ -185,16 +193,41 @@ test('another agency neither reads nor writes the contents (row level security)'
       ),
     ),
   ).rejects.toThrow(/row-level security/)
-  // the repository filters by the agency too
+  // even naming the right agency and client, a session of another agency gets nothing
+  const asOther = <T>(fn: (tx: Tx) => Promise<T>) =>
+    uow.run({ organizationId: other, userId: user }, fn)
+  expect(await asOther((tx) => tx.plan.find(scope(), mine.id))).toBeNull()
   expect(
-    await uow.run({ organizationId: other, userId: user }, (tx) =>
-      tx.plan.find({ organizationId: other, workspaceId: otherWs }, mine.id),
+    await asOther((tx) =>
+      tx.plan.update(
+        scope(),
+        mine.id,
+        {
+          localDate: '2026-12-20',
+          localTime: null,
+          type: 'reel',
+          title: 'Preso',
+          note: '',
+          updatedBy: user,
+        },
+        1,
+      ),
     ),
   ).toBeNull()
+  expect(await asOther((tx) => tx.plan.linkPost(scope(), mine.id, null, user))).toBe(false)
+  expect(await asOther((tx) => tx.plan.remove(scope(), mine.id))).toBe(false)
+  expect(await run((tx) => tx.plan.find(scope(), mine.id))).toMatchObject({
+    title: 'Reel del pane',
+  })
 })
 
-test('the database refuses a type or a title out of bounds', async () => {
-  await expect(run((tx) => tx.plan.create(item({ type: 'video' as never })))).rejects.toThrow()
-  await expect(run((tx) => tx.plan.create(item({ title: '' })))).rejects.toThrow()
-  await expect(run((tx) => tx.plan.create(item({ title: 'x'.repeat(81) })))).rejects.toThrow()
+test('the database refuses a type, a title, a note or a time out of bounds', async () => {
+  const refused = (change: Partial<NewPlanItem>, constraint: string) =>
+    expect(run((tx) => tx.plan.create(item(change)))).rejects.toMatchObject(refusedBy(constraint))
+  await refused({ type: 'video' as never }, 'plan_items_type')
+  await refused({ title: '' }, 'plan_items_title')
+  await refused({ title: 'x'.repeat(81) }, 'plan_items_title')
+  await refused({ note: 'x'.repeat(2001) }, 'plan_items_note')
+  await refused({ localTime: '24:00' }, 'plan_items_local_time')
+  await refused({ localTime: '10:00:30' }, 'plan_items_local_time')
 })

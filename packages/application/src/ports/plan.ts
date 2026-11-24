@@ -57,7 +57,7 @@ export interface PlanRepository {
   remove(scope: PlanScope, id: string): Promise<boolean>
   /**
    * The post the content became, or null; the version goes up. A post of another workspace, or
-   * one already linked to another content, is refused by the database.
+   * one already linked to another content, is refused by the database. False: no such content.
    */
-  linkPost(scope: PlanScope, id: string, postId: string | null, updatedBy: string): Promise<void>
+  linkPost(scope: PlanScope, id: string, postId: string | null, updatedBy: string): Promise<boolean>
 }

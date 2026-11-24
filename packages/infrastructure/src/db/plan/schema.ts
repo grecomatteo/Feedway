@@ -1,4 +1,4 @@
-import { PLAN_ITEM_TYPES, PLAN_TITLE_MAX_LENGTH } from '@app/domain'
+import { PLAN_ITEM_TYPES, PLAN_NOTE_MAX_LENGTH, PLAN_TITLE_MAX_LENGTH } from '@app/domain'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -57,6 +57,12 @@ export const planItems = pgTable(
     check(
       'plan_items_title',
       sql.raw(`char_length(title) between 1 and ${String(PLAN_TITLE_MAX_LENGTH)}`),
+    ),
+    check('plan_items_note', sql.raw(`char_length(note) <= ${String(PLAN_NOTE_MAX_LENGTH)}`)),
+    // hours and minutes only: 24:00 and seconds would not read back as a time of the day
+    check(
+      'plan_items_local_time',
+      sql`${t.localTime} < '24:00' and date_trunc('minute', ${t.localTime}) = ${t.localTime}`,
     ),
     check('plan_items_version', sql`${t.version} >= 1`),
   ],

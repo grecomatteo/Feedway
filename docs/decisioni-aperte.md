@@ -788,7 +788,10 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   19. **Tabella del piano (Task 5, scelte provvisorie):**
       - **l'evento `plan.due_soon` entra nel Task 8, non nel 5:** il piano lo mette nel Task 5 insieme ai vincoli `check` della migrazione, ma il codice vuole che ogni tipo dell'outbox abbia il suo tipo di notifica registrato (`modules.test.ts`), il nome e l'icona nel pannello e una riga nelle preferenze, che sono del Task 8. Il Task 5 definisce solo `PLAN_EVENT_TYPES`; il Task 8 lo unisce a `OUTBOX_EVENT_TYPES` e cambia i vincoli con una migrazione sua (un numero in più da chiedere al coordinatore);
       - unicità del post sulla coppia `(organization_id, post_id)` (indice parziale dove c'è), e chiave composta `(organization_id, workspace_id, post_id)` verso `posts`: un post di un altro cliente non si collega;
-      - `local_date` è una `date` e `local_time` un `time` (letto come `HH:MM`, come `default_post_time`); la nota arriva fino a 2.000 caratteri, il titolo da 1 a 80 (anche come vincolo nel database);
+      - `local_date` è una `date` e `local_time` un `time` (letto come `HH:MM`, come `default_post_time`); la nota arriva fino a 2.000 caratteri, il titolo da 1 a 80, l'ora solo con ore e minuti (`24:00` e i secondi no): tutti anche come vincoli nel database;
+      - il titolo segue le regole dei nomi mostrati (`isPlainDisplayName`): niente indirizzi web come «www.» o «https:», perché finisce nel link del cliente; la nota rifiuta i caratteri di controllo, tab compreso (il Task 6 può cambiare il tab in spazio prima di salvare);
+      - `planItemState(item, post, now, timeZone)` e `plannedVsPost(item, post, timeZone)` hanno il fuso in più rispetto al piano, perché giorno e ora sono locali;
+      - un post non annullato conta come preparazione; con il Task 14 (P8, «Eliminati») anche un post nel cestino dovrà ridare «Da preparare»: `PlanPostFacts` porterà `trashed`;
       - un contenuto senza ora va dopo quelli con l'ora nel suo giorno.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 

@@ -15,6 +15,8 @@ CREATE TABLE "plan_items" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "plan_items_type" CHECK (type in ('photo', 'carousel', 'reel', 'story')),
 	CONSTRAINT "plan_items_title" CHECK (char_length(title) between 1 and 80),
+	CONSTRAINT "plan_items_note" CHECK (char_length(note) <= 2000),
+	CONSTRAINT "plan_items_local_time" CHECK ("plan_items"."local_time" < '24:00' and date_trunc('minute', "plan_items"."local_time") = "plan_items"."local_time"),
 	CONSTRAINT "plan_items_version" CHECK ("plan_items"."version" >= 1)
 );
 --> statement-breakpoint
