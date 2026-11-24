@@ -555,6 +555,20 @@ const RULES: Record<string, readonly Rule[]> = {
     { permission: 'workspace.view', level: 'organization' },
     { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
   ],
+  // the calendar (plan 09 Task 2): every member, each across the clients they see; narrowed to
+  // one client, who does not see it gets 404. «Elimina le bozze vuote» deletes only what the
+  // person may delete: a member with none gets `deleted: 0`
+  'GET /api/v1/orgs/{org}/calendar': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
+  ],
+  'GET /api/v1/orgs/{org}/calendar/drafts': [
+    { permission: 'workspace.view', level: 'organization' },
+    { permission: 'workspace.view', level: 'workspace', query: true, hiddenWithout: true },
+  ],
+  'POST /api/v1/orgs/{org}/calendar/drafts/delete-empty': [
+    { permission: 'workspace.view', level: 'workspace', hiddenWithout: true },
+  ],
   'GET /api/v1/orgs/{org}/agenda/clients': [
     { permission: 'workspace.view', level: 'organization' },
   ],

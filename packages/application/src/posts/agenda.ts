@@ -9,7 +9,7 @@ import {
   type PublishingPostStatus,
   type TargetStatus,
 } from '@app/domain'
-import { getAccountsForRules, getClientProfiles } from '../accounts/index.js'
+import { getAccountPlatforms, getClientProfiles } from '../accounts/index.js'
 import { isUuid } from '../identity/index.js'
 import { getFailedMedia, getMediaForPosts, type PostMediaView } from '../media/index.js'
 import type { Clock } from '../ports/clock.js'
@@ -149,7 +149,7 @@ export interface ClientActivityDto {
   changedAt: string
 }
 
-const notOutOf = (p: PostRecord) =>
+export const notOutOf = (p: PostRecord) =>
   p.targets.filter((t) => (t.status as TargetStatus) === 'failed').length
 
 /** Why a destination needs a hand, as a code: the reason of `problem`, else its last error. */
@@ -241,7 +241,7 @@ export async function clientsOf(tx: Tx, actor: OrgActor, workspaceId: string | u
   return { current, ids: [asked.id] }
 }
 
-const thumbnailOf = (
+export const thumbnailOf = (
   post: PostRecord,
   media: ReadonlyMap<string, PostMediaView>,
 ): AgendaThumbnail | null => {
@@ -269,26 +269,22 @@ export function shownTargets<T extends { status: string }>(targets: readonly T[]
  * The files and the accounts of the posts, read client by client as the posts module always reads
  * them. The files only where the person uses the library: the Viewer sees no thumbnail (D-72).
  */
-async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]) {
+export async function detailsOf(tx: Tx, actor: OrgActor, records: readonly PostRecord[]) {
   const { organizationId } = actor
   const media = new Map<string, PostMediaView>()
-  const platforms = new Map<string, Platform>()
-  for (const workspaceId of new Set(records.map((p) => p.workspaceId))) {
+  const workspaceIds = [...new Set(records.map((p) => p.workspaceId))]
+  // the accounts of every client in one query: an account has one platform wherever it is
+  const platforms = await getAccountPlatforms(tx, organizationId, workspaceIds)
+  for (const workspaceId of workspaceIds) {
     const scope = { organizationId, workspaceId }
+    if (!can(actor, 'media.upload', scope)) continue
     const own = records.filter((p) => p.workspaceId === workspaceId)
-    if (can(actor, 'media.upload', scope))
-      for (const [id, file] of await getMediaForPosts(
-        tx,
-        scope,
-        own.flatMap((p) => p.mediaIds),
-      ))
-        media.set(id, file)
-    for (const [id, account] of await getAccountsForRules(
+    for (const [id, file] of await getMediaForPosts(
       tx,
       scope,
-      own.flatMap((p) => p.targets.map((t) => t.accountId)),
+      own.flatMap((p) => p.mediaIds),
     ))
-      platforms.set(id, account.platform)
+      media.set(id, file)
   }
   return {
     thumbnail: (p: PostRecord) => thumbnailOf(p, media),

@@ -657,7 +657,7 @@ export function usePostEditor(opts: {
   // ---- loading ----
   async function load() {
     if (!opts.postId) {
-      await start()
+      start()
       return
     }
     loadState.value = 'loading'
@@ -705,13 +705,9 @@ export function usePostEditor(opts: {
   }
 
   /** A new post: the client's time, the profile of the context ticked. */
-  async function start() {
-    try {
-      const settings = await call<{ timezone: string }>('GET', org.api('/settings'))
-      timeZone.value = settings.timezone
-    } catch {
-      // only who sees the agency's settings reads it: the draft says its zone once saved
-    }
+  function start() {
+    // every member reads the agency's zone from `me` (D-78): no request of its own
+    timeZone.value = org.organization.value?.timezone ?? timeZone.value
     when.value = proposedWhen(opts.client.value.defaultPostTime ?? null, timeZone.value)
     dayProposed.value = true
     askChecks()

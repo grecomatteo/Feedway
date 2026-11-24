@@ -4,6 +4,7 @@ import {
   displayName,
   requiresSecondFactor,
   sessionSatisfiesSecondFactor,
+  storedTimeZone,
   type OrgRole,
   type Palette,
 } from '@app/domain'
@@ -32,6 +33,8 @@ export interface SessionUser {
     status: 'active' | 'suspended'
     /** The 256 px logo in the panel; null: the initials. */
     logoUrl: string | null
+    /** IANA, the agency's zone: days and times of its posts (D-58), for every role (D-78) */
+    timezone: string
   }[]
   secondFactor: { required: boolean; totpEnabled: boolean; passkeys: number }
   /** False for an activation whose passkey never came, or an account with passkeys only. */
@@ -131,6 +134,7 @@ export async function resolveSessionUser(
         role: m.role,
         status: m.organizationStatus,
         logoUrl: logoUrl(m.slug, m.logoKey),
+        timezone: storedTimeZone({ timezone: m.timezone }),
       })),
       secondFactor: { required, totpEnabled: user.twoFactorEnabled, passkeys },
       hasPassword,

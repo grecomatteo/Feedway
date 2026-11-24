@@ -84,6 +84,7 @@ export type {
   PublicVariantRecord,
 } from './ports/media.js'
 export type {
+  CalendarPostQuery,
   NewPost,
   NewPostTarget,
   PostChange,
@@ -202,8 +203,16 @@ export * from './accounts/index.js'
 export * from './media/index.js'
 export * from './rules/index.js'
 export * from './posts/index.js'
+export * from './calendar/index.js'
 export type { PublishingHistory, PublishingHistoryQuery } from './ports/publishing-history.js'
-export { MODULES, digestSections, notificationKinds, userAnonymizedHandlers } from './modules.js'
+export {
+  MODULES,
+  calendarEntrySources,
+  digestSections,
+  enabledModules,
+  notificationKinds,
+  userAnonymizedHandlers,
+} from './modules.js'
 export type { ModuleDefinition, NotificationKind } from './module-definition.js'
 export type {
   ChannelRecipient,
@@ -277,7 +286,13 @@ export {
   type DigestStartDeps,
   type DigestStartReport,
 } from './notifications/index.js'
-export type { DigestBlock, DigestContext, DigestSection } from './module-definition.js'
+export type {
+  CalendarEntry,
+  CalendarEntrySource,
+  DigestBlock,
+  DigestContext,
+  DigestSection,
+} from './module-definition.js'
 export type { MessageSection } from './ports/notification-channel.js'
 export { postHeadline } from './posts/notification-messages.js'
 export type {

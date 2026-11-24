@@ -411,7 +411,8 @@ Ogni area funzionale (identità, account, media, post, pubblicazione, notifiche,
 - Un modulo legge e scrive **solo le proprie tabelle**; per usare dati di un altro modulo chiama le sue funzioni pubbliche (`application/<modulo>/index.ts`) o reagisce ai suoi eventi. dependency-cruiser lo verifica.
 - I moduli si parlano con **eventi** scritti nell'outbox (§12.1): per esempio "post pubblicato" può far nascere un'attività o una notifica senza che il modulo dei post sappia nulla delle attività.
 - Ogni modulo registra i propri permessi (§10.3), i propri tipi di evento e di notifica (§12), le proprie voci di menu, le proprie voci del calendario (per esempio le scadenze delle attività) e i propri strumenti MCP in `module.ts`; l'unico punto centrale è una riga nell'elenco dei moduli.
-- **Moduli attivabili per organizzazione** (`organizations.settings.modules`): una funzione nuova si può accendere prima per la tua agenzia e poi per le altre, e nella 2.0 diventa la base dei piani di abbonamento.
+- **Moduli attivabili per organizzazione** (`organizations.settings.modules`): una funzione nuova si può accendere prima per la tua agenzia e poi per le altre, e nella 2.0 diventa la base dei piani di abbonamento. Dalla tappa 9 (piano 09, P2) l'unico modulo spegnibile è `plan`, acceso per tutte le agenzie finché la chiave non dice `false`; si cambia con la CLI del worker, non dal pannello. Un modulo spento non dà voci del calendario, menu, sezioni del riepilogo né rotte (404).
+- **Voci del calendario** (piano 09, P1): un modulo le registra con `calendarEntries` in `module.ts` (`entries` per i giorni di un periodo, `markedPostIds` per i post che segna, come «dal piano»). Il calendario le chiede solo ai moduli accesi per l'agenzia e solo per i clienti che la persona vede; i campi di una voce sono dichiarati dal modulo uno per uno.
 - Aggiungere un modulo segue una ricetta documentata in `docs/moduli.md`: tabelle con `organization_id` e RLS, permessi, eventi, rotte registrate (entrano da sole nei test di isolamento), schermate con tutti gli stati, test.
 
 ### 7.4 Stack
@@ -856,6 +857,7 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 - Filtri salvati nell'indirizzo della pagina.
 - Il calendario segue il contesto attivo (§14.6): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.
 - Ognuno vede solo gli spazi a cui ha accesso nell'organizzazione corrente; Owner e Admin li vedono tutti.
+- **Una lettura sola** (piano 09, P1): `GET /api/v1/orgs/[org]/calendar?from&to&…filtri` dà i post dei clienti visibili e le voci dei moduli accesi di un periodo di al massimo 42 giorni (la griglia di un mese), fino a 2.000 voci (oltre, `truncated`). I giorni si contano nel fuso dell'agenzia, ai bordi dei giorni di quel fuso (giorni da 23 e 25 ore). La vista elenco usa la stessa lettura, più le bozze senza data (`GET …/calendar/drafts`); «Elimina le bozze vuote» è `POST …/calendar/drafts/delete-empty`.
 
 ### 11.5 Griglia Instagram
 
