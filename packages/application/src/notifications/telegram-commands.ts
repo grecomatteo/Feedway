@@ -1,6 +1,12 @@
 import { storedTimeZone, type OrgActor, type PublishingPostStatus } from '@app/domain'
 import { timeOfDay, dayAndTime } from '../mail/index.js'
-import { agencyDay, listAgenda, listAgendaIssues, type AgendaIssueDto } from '../posts/index.js'
+import {
+  agencyDay,
+  listAgenda,
+  listAgendaIssues,
+  untitledPost,
+  type AgendaIssueDto,
+} from '../posts/index.js'
 import type { Clock } from '../ports/clock.js'
 import type { TelegramBotOwner } from '../ports/notifications.js'
 import type { Translate } from '../ports/translator.js'
@@ -131,7 +137,11 @@ async function todayOf(deps: TelegramCommandDeps, agency: Agency): Promise<Teleg
         ],
         ' · ',
       ),
-      italic(p.text === '' ? t('notify.post.noText') : `«${shorten(p.text, ANSWER_TEXT_MAX)}»`),
+      italic(
+        p.text === ''
+          ? untitledPost(t, p.type, p.firstFile)
+          : `«${shorten(p.text, ANSWER_TEXT_MAX)}»`,
+      ),
     ]),
   )
 }

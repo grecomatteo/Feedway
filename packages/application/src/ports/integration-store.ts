@@ -257,6 +257,8 @@ export interface TelegramPollState {
   botId?: number
   /** The next `getUpdates` offset: the updates before it were handled */
   offset?: number
+  /** The version of the menu of commands the bot was given (`setMyCommands`); none: not yet */
+  commands?: number
 }
 
 /** A Telegram bot with its token, for `telegram.poll` and the channel only (system scope). */

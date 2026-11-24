@@ -737,6 +737,22 @@ test('a post deleted since gives a short message without its text', async () => 
   expect(email?.text).toContain(`/spazi/${w.workspaceId}/post`)
 })
 
+test('a post without text is named by its type and its first file, as in the panel (R7)', async () => {
+  const w = await world()
+  await admin.query("update posts set caption = '' where id = $1", [w.postId])
+  await admin.query(
+    `update media set original_name = 'IMG_0233.HEIC'
+      where id = (select media_id from post_media where post_id = $1 limit 1)`,
+    [w.postId],
+  )
+  await record(w.organizationId, 'post.target_failed', failedPayload(w))
+  const h = harness()
+  await dispatchAndDeliver(h)
+  const [email] = h.mail.sent.filter((m) => m.to.startsWith(w.managerId))
+  expect(email?.text).toContain('«Foto · IMG_0233»')
+  expect(email?.text).not.toContain('post senza testo')
+})
+
 test('a commit that wrote an event wakes the dispatcher; one that wrote none does not', async () => {
   const w = await world()
   let woken = 0
