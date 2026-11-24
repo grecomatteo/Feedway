@@ -29,6 +29,8 @@ onMounted(() => document.addEventListener('visibilitychange', refresh))
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', refresh))
 watch(org.slug, refresh)
 const notice = useNotice()
+// the bell's number, read every 30 seconds while the tab is visible (plan 08, Scelta 5)
+useBellPolling()
 </script>
 
 <template>
@@ -50,17 +52,8 @@ const notice = useNotice()
       >
         <ContextSwitcher v-if="org.active.value" variant="top" />
         <span class="flex-1" />
-        <!-- the notifications open from the bell (Matteo, 14/11); the centre arrives in stage 8 -->
-        <button
-          v-if="org.active.value"
-          type="button"
-          aria-disabled="true"
-          :aria-label="`${$t('agency.nav.notifications')} (${$t('client.soon')})`"
-          :title="$t('client.soon')"
-          class="flex size-11 shrink-0 items-center justify-center rounded-control text-(--app-text)"
-        >
-          <UIcon name="i-lucide-bell" class="size-5" aria-hidden="true" />
-        </button>
+        <!-- the notifications open from the bell (Matteo, 14/11; plan 08 Task 6) -->
+        <NotificationBell v-if="org.active.value" variant="top" />
         <!-- a suspended agency has no bar at the bottom: «Tu» stays reachable at the top -->
         <div v-else class="flex w-14 shrink-0"><UserMenu variant="tab" /></div>
       </header>
