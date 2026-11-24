@@ -701,7 +701,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   15. **La nota del piano (decisa da Matteo il 24/11):** la vede chi lavora nell'agenzia e vede il cliente, Viewer compreso, solo nel Piano editoriale; mai nel calendario, nelle notifiche, nel riepilogo o al cliente.
   16. **Griglia (decisa da Matteo il 24/11):** quarta vista della scheda «Calendario» del cliente, non una scheda a sé (§14.7).
   17. **Destinatari nuovi:** `workspace_preparers` (chi ha `plan.prepare`, Owner e Admin compresi, con il permesso riletto all'invio) e `initiator` (chi ha avviato l'importazione).
-- **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano aspetta l'ok di Matteo.
+- **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico
 
