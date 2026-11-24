@@ -24,7 +24,9 @@
 | `05-regole.md` | Tappa 5, formato leggero, task più grandi (Matteo, 17/11) | Approvato da Matteo il 2026-11-17 |
 | `06-post.md` | Tappa 6, formato leggero, task raggruppati in cinque thread (Matteo, 18/11) | Da approvare da Matteo |
 | `07-pubblicazione.md` | Tappa 7, formato leggero, task raggruppati in otto thread più la revisione (il Task 10 sulle cartelle aggiunto il 2026-11-20) | Scritto il 2026-11-20, da approvare da Matteo (si parte dal Task 1 e dal dominio) |
-| `08-notifiche.md` … `12-produzione.md` | Tappe 8–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
+| `08-notifiche.md` | Tappa 8, formato leggero, dodici task in otto thread più la revisione | Approvato da Matteo il 2026-11-23 |
+| `09-pianificazione.md` | Tappa 9, formato leggero, tredici task in otto thread più la revisione | Scritto il 2026-11-24, da approvare da Matteo |
+| `10-condivisione.md` … `12-produzione.md` | Tappe 10–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
@@ -123,7 +125,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Introduce:** `NotificationChannel`, tabelle `notifications`, `notification_deliveries`, `notification_prefs`, `telegram_links`, `system_heartbeats`.
 - **Serve da Matteo:** bot Telegram, SMTP, account healthchecks.io.
 
-### Tappa 9 · Pianificazione
+### Tappa 9 · Pianificazione (piano `09-pianificazione.md`)
 - **Costruisce:** calendario mese (predefinita), settimana (dettagliata) ed elenco (predefinita da telefono), libreria apribile con un pulsante, filtri e contesto nell'indirizzo, trascinamento, griglia Instagram riordinabile, fasce orarie e "prossima fascia libera", programmazione in blocco da file, CSV/Excel e duplicazione, **piano editoriale** (specifica §11.12). RF-40, RF-41, RF-42, RF-43, RF-46.
 - **Introduce:** tabelle `time_slots`, `bulk_imports`, `plan_items`; lavori `bulk.import` e `plan.due_soon`; **registro delle voci del calendario** dei moduli (§7.3), costruito insieme al calendario e usato per primo dal piano.
 - **Ordine dentro la tappa** (perché il piano non rompa il calendario): prima il calendario con il registro delle voci e i filtri nell'indirizzo, poi il piano in sette PR piccole:
