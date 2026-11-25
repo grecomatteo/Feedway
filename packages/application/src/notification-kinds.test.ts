@@ -14,6 +14,7 @@ const facts: RecipientFacts = {
   schedulers: ['ada'],
   workspaceManagers: ['bea'],
   workspacePreparers: ['fede'],
+  initiators: ['gino'],
   orgAdmins: ['carla'],
   platformAdmins: ['eva'],
 }
@@ -85,4 +86,8 @@ test('a failed backup goes to the platform administrators, everywhere', () => {
 
 test('a content of the plan to prepare by tomorrow goes to who prepares it, in the panel and on Telegram', () => {
   expect(deliveries('plan.due_soon')).toEqual({ fede: ['panel', 'telegram'] })
+})
+
+test('an import in bulk done goes to who started it, in the panel only', () => {
+  expect(deliveries('bulk.completed')).toEqual({ gino: ['panel'] })
 })

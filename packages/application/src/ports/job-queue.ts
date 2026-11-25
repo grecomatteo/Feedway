@@ -47,6 +47,16 @@ interface JobDefinitions {
   'report.daily': { scope: 'system'; data: object }
   'report.digest': { scope: 'user'; data: ReportDigestJobData }
   'plan.due_scan': { scope: 'system'; data: object }
+  'bulk.import': { scope: 'organization'; data: BulkImportJobData }
+}
+
+/**
+ * One import in bulk (plan 09 P5): its id and who started it, never a row. The rows and their
+ * outcomes are in `bulk_imports`, so a job run twice or after a restart writes each row once.
+ */
+export interface BulkImportJobData {
+  bulkImportId: string
+  userId: string
 }
 
 /**

@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import {
   buildDataExport,
   processNextMedia,
+  runBulkImport,
   refreshAccountAvatar,
   type Logger,
 } from '@app/application'
@@ -161,5 +162,56 @@ export async function runMediaProcessJobs(): Promise<void> {
   } finally {
     await runtime.queue.stop({ graceful: false, timeoutMs: 1000 }).catch(() => undefined)
     await runtime.close()
+  }
+}
+
+/**
+ * Does what the worker would after «Programma» of «In blocco» (`bulk.import`, plan 09 Task 10):
+ * makes the posts of every import of the agency still to do, one row at a time.
+ */
+export async function runBulkImportJobs(organizationId: string): Promise<void> {
+  const runtimeUrl = process.env.E2E_DATABASE_URL
+  const adminUrl = process.env.E2E_ADMIN_URL
+  const mediaRoot = process.env.E2E_MEDIA_ROOT
+  const key = process.env.E2E_ENCRYPTION_KEY
+  if (!runtimeUrl || !adminUrl || !mediaRoot || !key)
+    throw new Error('e2e environment not available')
+  const admin = createDb(adminUrl, { max: 1, applicationName: 'e2e-jobs' })
+  const runtime = await createRuntime(
+    {
+      nodeEnv: 'production',
+      databaseUrl: runtimeUrl,
+      encryptionKey: Buffer.from(key, 'base64'),
+      logLevel: 'error',
+      mediaRoot,
+      metaMode: 'mock',
+      metaGraphVersion: 'v25.0',
+      metaMockUrl: process.env.E2E_META_MOCK_URL ?? 'http://127.0.0.1:9',
+    },
+    'worker',
+  )
+  try {
+    const { rows } = await admin.pool.query<{ id: string; created_by: string }>(
+      `select id, created_by from bulk_imports
+        where organization_id = $1 and status in ('pending', 'running')`,
+      [organizationId],
+    )
+    const deps = {
+      uow: runtime.uow,
+      clock: runtime.clock,
+      // the posts' own jobs (`target.prepare`) are not run here
+      queue: { send: () => Promise.resolve(null) },
+      logger: quiet,
+      ids: runtime.ids,
+      newPublicToken: runtime.newPublicToken,
+      platformRules: runtime.platformRules,
+      publishingHistory: runtime.publishingHistory,
+    }
+    for (const { id, created_by: userId } of rows)
+      await runBulkImport(deps, { organizationId, bulkImportId: id, userId })
+  } finally {
+    await runtime.queue.stop({ graceful: false, timeoutMs: 1000 }).catch(() => undefined)
+    await runtime.close()
+    await admin.close()
   }
 }

@@ -210,6 +210,14 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'system',
     retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
   },
+  // ids only (plan 09 P5): the rows and their outcomes are in bulk_imports, so a job run twice
+  // writes each row once; one per import (singletonKey). An import still waiting after a day is
+  // no longer what the person is looking at
+  'bulk.import': {
+    policy: 'standard',
+    scope: 'organization',
+    retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

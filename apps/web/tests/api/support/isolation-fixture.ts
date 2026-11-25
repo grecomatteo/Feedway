@@ -63,6 +63,11 @@ export interface SampleIds {
   note: string
   /** a content of `workspace`'s editorial plan, to prepare, at version 1 */
   planItem: string
+  /**
+   * an import in bulk of `workspace` started by the agency's Owner, done long ago (plan 09 Task
+   * 10): only who started it reads it
+   */
+  bulkImport: string
 }
 
 /** The file of every upload route: a small logo, which the Owner's upload accepts. */
@@ -214,6 +219,23 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     mediaIds: [ids.media],
     caption: { common: 'Il pane di oggi' },
   }),
+  // a row with the case's file (plan 09 Task 10): one of the other agency must not be found
+  'POST /api/v1/orgs/{org}/workspaces/{id}/bulk-imports': (ids) => ({
+    source: 'files',
+    rows: [
+      {
+        type: 'reel',
+        mediaIds: [ids.media],
+        caption: { common: 'Il pane di domani' },
+        destinations: [],
+        when: { localDate: '2027-01-12', localTime: '12:00' },
+      },
+    ],
+  }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/duplicate': () => ({
+    dates: [{ localDate: '2027-01-13', localTime: '12:00' }],
+    schedule: false,
+  }),
   // the case's file and label: either one of the other agency must not be found
   'PATCH /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': (ids) => ({
     version: 1,
@@ -323,6 +345,7 @@ export const PLACEHOLDER_IDS: SampleIds = {
   group: randomUUID(),
   note: randomUUID(),
   planItem: randomUUID(),
+  bulkImport: randomUUID(),
 }
 
 /**
@@ -354,6 +377,7 @@ export const ID_KINDS = [
   'group',
   'note',
   'planItem',
+  'bulkImport',
 ] as const
 export type IdKind = (typeof ID_KINDS)[number]
 
@@ -420,6 +444,7 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   groupId: ids.group,
   noteId: ids.note,
   itemId: ids.planItem,
+  importId: ids.bulkImport,
   bot: 'platform',
   n: '1',
   size: '256',
@@ -485,6 +510,7 @@ const SNAPSHOT_QUERIES: Record<string, string> = {
   account_groups: 'select * from account_groups',
   plan_items: 'select * from plan_items',
   time_slots: 'select * from time_slots',
+  bulk_imports: 'select * from bulk_imports',
 }
 
 export async function startIsolationFixture(name: string): Promise<IsolationFixture> {
@@ -645,6 +671,18 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
     return id
   }
 
+  /** An import in bulk of the workspace by `createdBy`, done an hour ago, written directly. */
+  async function doneImport(organizationId: string, workspaceId: string, createdBy: string) {
+    const id = randomUUID()
+    await env.admin.pool.query(
+      `insert into bulk_imports (id, organization_id, workspace_id, created_by, source, rows,
+                                 status, finished_at)
+       values ($1, $2, $3, $4, 'files', '[]', 'done', now() - interval '1 hour')`,
+      [id, organizationId, workspaceId, createdBy],
+    )
+    return id
+  }
+
   /** An empty draft of the workspace by `createdBy`, written directly. */
   async function draftPost(organizationId: string, workspaceId: string, createdBy: string) {
     const id = randomUUID()
@@ -761,6 +799,11 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
         folder: await libraryFolder(organizationId, ids.workspace),
         post,
         ...(await contentRows(organizationId, ids.workspace, post, account, ids.target)),
+        bulkImport: await doneImport(
+          organizationId,
+          ids.workspace,
+          agency === 'a' ? people.owner.userId : ownerOfB.userId,
+        ),
       }
     },
     async refreshReauth() {
@@ -801,6 +844,7 @@ export async function startIsolationFixture(name: string): Promise<IsolationFixt
           folder: await libraryFolder(agency.id, ids.workspace),
           post,
           ...(await contentRows(agency.id, ids.workspace, post, account, ids.target)),
+          bulkImport: await doneImport(agency.id, ids.workspace, owner.userId),
         },
       }
     },

@@ -1,6 +1,7 @@
 import { recordWorkerBeat, wakeMediaProcessing } from '@app/application'
 import type { JobQueue, JobScheduler, Logger, QueueName } from '@app/application'
 import { accountsAvatar } from './handlers/accounts-avatar.js'
+import { bulkImport } from './handlers/bulk-import.js'
 import { accountsDaily } from './handlers/accounts-daily.js'
 import { accountsHealth } from './handlers/accounts-health.js'
 import { accountsSync } from './handlers/accounts-sync.js'
@@ -153,6 +154,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'report.daily': reportDaily,
     'report.digest': reportDigest,
     'plan.due_scan': planDueScan,
+    'bulk.import': bulkImport,
     ...deps.handlers,
     'telegram.poll': telegramPollOnStop,
     'media.process': mediaProcessOnStop,

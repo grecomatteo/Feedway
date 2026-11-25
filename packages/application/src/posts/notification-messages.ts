@@ -191,3 +191,59 @@ export const postKind = (rule: NotificationKindRule): NotificationKind => ({
   ...rule,
   message: (ctx, events) => postsMessage(rule, ctx, events),
 })
+
+/**
+ * «Programmazione in blocco completata» (§12.2, plan 09 Task 10): the counts of each import,
+ * read again now («Annulla» may have come since), and the client's calendar.
+ */
+async function bulkMessage(
+  rule: NotificationKindRule,
+  ctx: MessageContext,
+  events: readonly NotifiedEvent[],
+) {
+  const place = await placeOf(ctx, events)
+  if (!place || ctx.organizationId === null) return null
+  const lines: string[] = []
+  for (const event of events) {
+    const workspaceId = asString(event.payload.workspaceId)
+    const id = asString(event.payload.bulkImportId)
+    if (workspaceId === null || id === null) continue
+    const record = await ctx.tx.bulkImports.find(
+      { organizationId: ctx.organizationId, workspaceId },
+      id,
+    )
+    if (!record) continue
+    const { scheduled, drafts, failed } = record.summary
+    lines.push(
+      record.status === 'undone'
+        ? ctx.t('notify.kinds.bulk_completed.undone')
+        : drafts + failed === 0
+          ? ctx.t('notify.kinds.bulk_completed.lineAll', { scheduled: String(scheduled) })
+          : ctx.t('notify.kinds.bulk_completed.line', {
+              scheduled: String(scheduled),
+              drafts: String(drafts + failed),
+            }),
+    )
+  }
+  if (lines.length === 0) return null
+  return groupedMessage({
+    t: ctx.t,
+    type: rule.type,
+    level: rule.level,
+    one: {},
+    lines,
+    context: contextLine(ctx.t, place),
+    link: place.workspace
+      ? {
+          label: ctx.t('notify.post.openCalendar'),
+          url: panelLink(ctx, place.slug, 'spazi', place.workspace.slug, 'calendario'),
+        }
+      : { label: ctx.t('notify.post.openToday'), url: panelLink(ctx, place.slug) },
+  })
+}
+
+/** The end of an import in bulk, with its words. */
+export const bulkKind = (rule: NotificationKindRule): NotificationKind => ({
+  ...rule,
+  message: (ctx, events) => bulkMessage(rule, ctx, events),
+})

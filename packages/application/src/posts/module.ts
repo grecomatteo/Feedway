@@ -1,5 +1,5 @@
 import { postsDigestSections } from './digest.js'
-import { postKind } from './notification-messages.js'
+import { bulkKind, postKind } from './notification-messages.js'
 import type { ModuleDefinition } from '../module-definition.js'
 
 /**
@@ -16,6 +16,8 @@ export const postsModule: ModuleDefinition = {
     'target.reconcile',
     'target.verify',
     'scheduler.reconcile',
+    // programming in bulk (plan 09 Task 10)
+    'bulk.import',
   ],
   // plan 08, Scelta 4: «who scheduled» is `posts.scheduled_by`
   notificationKinds: [
@@ -55,6 +57,13 @@ export const postsModule: ModuleDefinition = {
       level: 'warning',
       recipients: ['workspace_managers'],
       defaultChannels: ['panel', 'telegram'],
+    }),
+    // §12.2: only in the panel, for who started it (plan 09 Task 10)
+    bulkKind({
+      type: 'bulk.completed',
+      level: 'info',
+      recipients: ['initiator'],
+      defaultChannels: ['panel'],
     }),
   ],
   // §12.4: the morning digest (plan 08 Task 8)

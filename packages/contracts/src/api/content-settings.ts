@@ -309,10 +309,37 @@ export const nextFreeSlotRoute = defineContract({
   scope: 'organization',
 })
 
+export const FreeSlotDto = z.object({
+  at: Timestamp,
+  localDate: z.string(),
+  localTime: z.string(),
+})
+
+export const freeSlotsRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/free-slots',
+  summary:
+    'Le prossime fasce libere del cliente, in ordine, per «Distribuisci sulle fasce libere» (al massimo 50)',
+  request: {
+    params: WorkspaceParams,
+    query: z.strictObject({
+      count: z.coerce.number().int().min(1).max(50).optional(),
+      after: Timestamp.optional(),
+    }),
+  },
+  response: z.object({
+    /** fewer than `count` when the year ahead has no more; none without slots */
+    slots: z.array(FreeSlotDto),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const contentSettingsRoutes = [
   listTimeSlotsRoute,
   replaceTimeSlotsRoute,
   nextFreeSlotRoute,
+  freeSlotsRoute,
   listLabelsRoute,
   createLabelRoute,
   updateLabelRoute,

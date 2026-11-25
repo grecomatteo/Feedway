@@ -166,6 +166,15 @@ async function preparersOf(tx: Tx, organizationId: string, event: PendingOutboxE
   return [...found]
 }
 
+/** Who started the import in bulk of the event (plan 09 Task 10). */
+async function initiatorsOf(tx: Tx, organizationId: string, event: PendingOutboxEvent) {
+  const workspaceId = asString(event.payload.workspaceId)
+  const id = asString(event.payload.bulkImportId)
+  if (workspaceId === null || id === null) return []
+  const record = await tx.bulkImports.find({ organizationId, workspaceId }, id)
+  return record ? [record.createdBy] : []
+}
+
 /** The candidates of the kind's rules, read only where a rule needs them. */
 export async function candidatesOf(
   tx: Tx,
@@ -177,6 +186,7 @@ export async function candidatesOf(
     schedulers: [],
     workspaceManagers: [],
     workspacePreparers: [],
+    initiators: [],
     orgAdmins: [],
     platformAdmins: [],
   }
@@ -187,6 +197,7 @@ export async function candidatesOf(
       facts.workspaceManagers = await managersOf(tx, org, event)
     if (rules.includes('workspace_preparers'))
       facts.workspacePreparers = await preparersOf(tx, org, event)
+    if (rules.includes('initiator')) facts.initiators = await initiatorsOf(tx, org, event)
     if (rules.includes('org_admins'))
       facts.orgAdmins = (await tx.orgMembers.listForOrganization(org))
         .filter((m) => m.status === 'active' && ADMIN_ROLES.has(m.role))

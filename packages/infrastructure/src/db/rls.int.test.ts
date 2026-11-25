@@ -490,6 +490,7 @@ test('every table with an organization_id forces row level security and has the 
       'telegram_links',
       'plan_items',
       'time_slots',
+      'bulk_imports',
     ]),
   )
   for (const r of rows) {
