@@ -1,4 +1,4 @@
-import type { PlanItemDto } from '@app/contracts'
+import type { PlanItemDto, TimeSlotDto } from '@app/contracts'
 import { addMonths, monthGrid, monthOf, type GridDay } from './day-time.ts'
 
 // The editorial plan's small rules (spec §11.12, plan 09 Task 7), apart from the page so they are
@@ -102,6 +102,27 @@ export function monthCounts(items: readonly PlanItem[], month: string) {
 }
 
 /** The icon of a type, the same as the editor's. */
+/**
+ * The time a new content of `date` starts with (Matteo, 25/11): the first of the client's usual
+ * times for that weekday that no content of the day has yet, so a day planned in a row fills its
+ * slots one after the other; else the client's usual time for a post; else none.
+ */
+export function suggestedTime(
+  date: string,
+  slots: readonly TimeSlotDto[],
+  items: readonly PlanItem[],
+  fallback: string | null,
+): string | null {
+  // ISO weekday of a local date: 1 Monday … 7 Sunday
+  const weekday = ((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7) + 1
+  const taken = new Set(items.filter((i) => i.localDate === date).map((i) => i.localTime))
+  const free = slots
+    .filter((s) => s.weekday === weekday && !taken.has(s.localTime))
+    .map((s) => s.localTime)
+    .sort()[0]
+  return free ?? fallback
+}
+
 export const PLAN_TYPE_ICONS: Record<PlanType, string> = {
   photo: 'i-lucide-image',
   carousel: 'i-lucide-gallery-horizontal-end',

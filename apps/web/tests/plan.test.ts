@@ -12,6 +12,7 @@ import {
   planStateAt,
   planWeeks,
   shiftMonth,
+  suggestedTime,
   type PlanItem,
 } from '../app/utils/plan.ts'
 
@@ -120,5 +121,30 @@ describe('the contents of a day', () => {
       item({ localDate: '2026-12-31' }),
     ]
     expect(monthCounts(items, '2026-12')).toEqual({ total: 2, prepared: 1 })
+  })
+})
+
+describe('the time a new content starts with', () => {
+  // 2026-12-11 is a Friday (5), 2026-12-12 a Saturday (6)
+  const slots = [
+    { weekday: 5, localTime: '18:00' },
+    { weekday: 5, localTime: '09:30' },
+    { weekday: 1, localTime: '12:00' },
+  ]
+  it('takes the first slot of that weekday no content of the day already has', () => {
+    expect(suggestedTime('2026-12-11', slots, [], '13:00')).toBe('09:30')
+    const morning = [item({ localTime: '09:30' })]
+    expect(suggestedTime('2026-12-11', slots, morning, '13:00')).toBe('18:00')
+    // a content of another day does not take the slot
+    const elsewhere = [item({ localDate: '2026-12-04', localTime: '09:30' })]
+    expect(suggestedTime('2026-12-11', slots, elsewhere, '13:00')).toBe('09:30')
+  })
+
+  it('falls back on the client’s usual time, then on none', () => {
+    const full = [item({ localTime: '09:30' }), item({ localTime: '18:00' })]
+    expect(suggestedTime('2026-12-11', slots, full, '13:00')).toBe('13:00')
+    expect(suggestedTime('2026-12-12', slots, [], '13:00')).toBe('13:00')
+    expect(suggestedTime('2026-12-12', slots, [], null)).toBeNull()
+    expect(suggestedTime('2026-12-12', [], [], null)).toBeNull()
   })
 })

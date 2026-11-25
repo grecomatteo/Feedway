@@ -52,6 +52,14 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   const org = owner.organizationSlug
   const client = await newWorkspace(page.request, org, 'Forno Luce')
   const next = nextMonth()
+  // the client's usual times on the weekday of the 10th: the form starts from the first free one
+  const weekday = ((new Date(`${next.day(10)}T12:00:00Z`).getUTCDay() + 6) % 7) + 1
+  await send(page.request, 'PUT', `/api/v1/orgs/${org}/workspaces/${client.id}/time-slots`, {
+    slots: [
+      { weekday, localTime: '18:00' },
+      { weekday, localTime: '11:00' },
+    ],
+  })
 
   // «Tutti i clienti»: the window asks for the client, and the choice becomes the context
   await page.goto(`/${org}/piano`)
@@ -74,6 +82,8 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   ).toBeVisible()
   expect((await axe(page)).violations).toEqual([])
   const title = form.getByRole('textbox', { name: 'Titolo' })
+  const time = form.locator('[data-time-field]')
+  await expect(time).toHaveAttribute('aria-label', 'Ora: 11:00')
   // no title: said next to the field, nothing saved
   await title.press('Enter')
   await expect(form.getByText('Scrivi il titolo.')).toBeVisible()
@@ -83,6 +93,8 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await expect(form.locator('[data-plan-added]')).toContainText('Aggiunto «Pane caldo»')
   await expect(title).toBeFocused()
   await expect(title).toHaveValue('')
+  // the 11:00 is taken: the next one starts from 18:00
+  await expect(time).toHaveAttribute('aria-label', 'Ora: 18:00')
   await form.getByRole('button', { name: 'Carosello' }).click()
   await title.fill('Il menu della vigilia')
   await title.press('Enter')

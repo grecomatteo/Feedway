@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TimeSlotDto } from '@app/contracts'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { monthOf } from '~/utils/day-time'
 import {
@@ -14,6 +15,7 @@ import {
   planStateAt,
   planWeeks,
   shiftMonth,
+  suggestedTime,
   type PlanItem,
 } from '~/utils/plan'
 
@@ -127,6 +129,28 @@ watch(
   () => client.value?.id,
   () => (items.value = []),
 )
+
+// the client's usual times, for the time a new content starts with; without them, its usual time
+const slots = ref<TimeSlotDto[]>([])
+watch(
+  [() => client.value?.id, enabled],
+  async ([id, on]) => {
+    slots.value = []
+    if (!id || !on) return
+    try {
+      const read = await call<{ items: TimeSlotDto[] }>(
+        'GET',
+        org.api(`/workspaces/${encodeURIComponent(id)}/time-slots`),
+      )
+      if (client.value?.id === id) slots.value = read.items
+    } catch {
+      // only a suggestion: the form falls back on the usual time
+    }
+  },
+  { immediate: true },
+)
+const suggestFor = (date: string) =>
+  suggestedTime(date, slots.value, items.value, client.value?.defaultPostTime ?? null)
 
 const byDay = computed(() => itemsByDay(items.value))
 const stateOf = (item: PlanItem) => planStateAt(item, now.value)
@@ -610,7 +634,7 @@ const ready = computed(
       :mode="form.mode"
       :item="form.item"
       :day="form.day"
-      :default-time="client.defaultPostTime ?? null"
+      :suggest="suggestFor"
       :today="today"
       :workspace-id="client.id"
       :can-prepare="canPrepare"

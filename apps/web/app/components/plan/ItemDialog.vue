@@ -13,8 +13,8 @@ const props = defineProps<{
   item: PlanItem | null
   /** the day a new content starts on */
   day: string
-  /** the client's time for a new post (`HH:MM`), or none */
-  defaultTime: string | null
+  /** the time a new content of that day starts with (`HH:MM`), or none */
+  suggest: (date: string) => string | null
   today: string
   workspaceId: string
   /** for the view: whether «Prepara questo contenuto» is offered */
@@ -64,11 +64,22 @@ watch(open, (now) => {
   type.value = item?.type ?? 'reel'
   title.value = item?.title ?? ''
   day.value = item?.localDate ?? props.day
-  time.value = item ? (item.localTime ?? '') : (props.defaultTime ?? '')
+  time.value = item ? (item.localTime ?? '') : suggestFor(day.value)
   note.value = item?.note ?? ''
   problem.value = null
   titleError.value = null
   added.value = ''
+})
+
+/** the time last proposed: a time the person did not touch follows the day they choose */
+let proposed = ''
+function suggestFor(date: string) {
+  proposed = props.suggest(date) ?? ''
+  return proposed
+}
+watch(day, (next, before) => {
+  if (props.mode === 'new' && open.value && before !== '' && time.value === proposed)
+    time.value = suggestFor(next)
 })
 
 const focusTitle = () => nextTick(() => titleField.value?.inputRef?.focus())
@@ -100,7 +111,8 @@ async function submit() {
       added.value = t('plan.form.added', { title: created.title })
       title.value = ''
       note.value = ''
-      time.value = props.defaultTime ?? ''
+      // the page has the new one by now: the next free slot of the day
+      time.value = suggestFor(day.value)
       await focusTitle()
     } else if (props.item) {
       const updated = await call<PlanItem>(
