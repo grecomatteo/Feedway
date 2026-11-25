@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
 import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
-import { cardLook, dayCount, shownInDay, type CalendarCardInfo } from '~/utils/calendar'
+import {
+  CALENDAR_NEW_POST,
+  cardLook,
+  dayCount,
+  shownInDay,
+  type CalendarCardInfo,
+} from '~/utils/calendar'
 
 /**
  * The month (spec §11.4, screen 07): the 6×7 days of its grid from Monday, the days of the months
@@ -26,6 +32,7 @@ const emit = defineEmits<{ openDay: [date: LocalDate] }>()
 const { t } = useI18n()
 // a day takes a post dragged onto it (plan 09 Task 4): today and the days ahead
 const moving = inject(CALENDAR_MOVING, null)
+const newPostOn = inject(CALENDAR_NEW_POST, () => null)
 
 /** four on a computer: one less and «+N» when they do not fit (screen 07) */
 const ROOM = 4
@@ -61,10 +68,12 @@ const cells = computed(() =>
       date,
       number: Number(date.slice(8)),
       inMonth: date.startsWith(props.month),
+      add: newPostOn(date),
       today: date === props.today,
       all,
       shown: all.slice(0, shown),
       more,
+      long,
       // «giovedì 19 novembre, oggi, 4 post»
       label: [
         long,
@@ -96,7 +105,7 @@ const cells = computed(() =>
       <li
         v-for="c in cells"
         :key="c.date"
-        class="relative flex min-w-0 flex-col gap-[3px] border-t border-s border-(--app-border) p-1.5 nth-[7n+1]:border-s-0 md:min-h-[7.5rem] max-md:min-h-14 max-md:items-center max-md:px-0 max-md:pt-1 max-md:pb-2"
+        class="group/day relative flex min-w-0 flex-col gap-[3px] border-t border-s border-(--app-border) p-1.5 nth-[7n+1]:border-s-0 md:min-h-[7.5rem] max-md:min-h-14 max-md:items-center max-md:px-0 max-md:pt-1 max-md:pb-2"
         :class="[
           c.inMonth ? '' : 'bg-(--app-surface-sunken)',
           c.date === selected ? 'max-md:bg-(--app-nav-hover)' : '',
@@ -124,9 +133,19 @@ const cells = computed(() =>
         >
           {{ c.number }}
         </button>
+        <!-- «+»: on hover and focus, always on a touch screen; on a phone under the month -->
+        <NuxtLink
+          v-if="c.add"
+          :to="c.add"
+          class="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-[5px] text-(--app-text-muted) opacity-0 group-hover/day:opacity-100 hover:bg-(--app-nav-hover) hover:text-(--app-text) focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-(--app-focus) pointer-coarse:opacity-100 max-md:hidden"
+          :aria-label="$t('calendar.add', { day: c.long })"
+          data-day-add
+        >
+          <UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />
+        </NuxtLink>
         <template v-if="!loading">
           <ul class="contents max-md:hidden">
-            <li v-for="card in c.shown" :key="card.id" class="flex min-w-0 flex-col">
+            <li v-for="card in c.shown" :key="card.id" class="@container flex min-w-0 flex-col">
               <CalendarCard :card="card" size="chip" :show-client="showClient" :today="c.today" />
             </li>
           </ul>

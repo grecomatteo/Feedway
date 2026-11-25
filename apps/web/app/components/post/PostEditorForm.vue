@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { NewPostStart } from '~/utils/new-post-address'
 import type { MediaDto, PostResponse } from '@app/contracts'
 import { usePostEditor } from '~/composables/usePostEditor'
 
@@ -13,8 +14,11 @@ const props = defineProps<{
   client: WorkspaceView
   postId: string | null
   profileKey: string | null
-  /** «Usa in un nuovo post» of the library (screen 20): the file the new post starts with */
-  fileId?: string | null
+  /**
+   * What a new post starts with, from its address (plan 09 Task 4): the day and time of the «+»
+   * of the calendar, the files of «Usa in un nuovo post» or dragged from the library, a type
+   */
+  start?: NewPostStart | null
   profiles: WorkspaceProfile[]
   profilesLoading: boolean
   back: string
@@ -31,6 +35,7 @@ const flash = useFlash()
 const editor = usePostEditor({
   client: computed(() => props.client),
   postId: props.postId,
+  start: props.start ?? null,
   profileKey: props.profileKey,
   profiles: computed(() => props.profiles),
 })
@@ -52,20 +57,25 @@ watch(
   },
 )
 const org = useOrganization()
-// «Usa in un nuovo post» (screen 20): the file of the library goes in, as «Dalla libreria»
+// «Usa in un nuovo post» (screen 20) and a file dragged onto a day: the files of the library go
+// in, in their order, as «Dalla libreria»
 onMounted(async () => {
-  if (props.postId || !props.fileId) return
-  try {
-    const file = await useApi().call<MediaDto>(
-      'GET',
-      org.api(
-        `/workspaces/${encodeURIComponent(props.client.id)}/media/${encodeURIComponent(props.fileId)}`,
-      ),
-    )
-    e.addFromLibrary([file])
-  } catch {
-    // the file went meanwhile: the post starts empty, as a new one
-  }
+  const ids = props.postId ? [] : (props.start?.fileIds ?? [])
+  if (ids.length === 0) return
+  const { call } = useApi()
+  const files = await Promise.all(
+    ids.map((id) =>
+      call<MediaDto>(
+        'GET',
+        org.api(
+          `/workspaces/${encodeURIComponent(props.client.id)}/media/${encodeURIComponent(id)}`,
+        ),
+      ).catch(() => null),
+    ),
+  )
+  // a file gone meanwhile is left out: the post starts with the others, or empty
+  const found = files.filter((f): f is MediaDto => f !== null)
+  if (found.length > 0) e.addFromLibrary(found)
 })
 /** «Gestisci…» leads to the client's content settings, for who manages them */
 const manageTo = computed(() =>

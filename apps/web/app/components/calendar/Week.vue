@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
 import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
-import { dayCount, type CalendarCardInfo } from '~/utils/calendar'
+import { CALENDAR_NEW_POST, dayCount, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
  * The week (spec §11.4: «lo zoom di dettaglio con miniature grandi»): seven columns from Monday,
@@ -20,6 +20,7 @@ const emit = defineEmits<{ openDay: [date: LocalDate] }>()
 const { t } = useI18n()
 // a day takes a post dragged onto it (plan 09 Task 4): today and the days ahead
 const moving = inject(CALENDAR_MOVING, null)
+const newPostOn = inject(CALENDAR_NEW_POST, () => null)
 
 const SHORT = new Intl.DateTimeFormat('it-IT', { weekday: 'short', timeZone: 'UTC' })
 const LONG = new Intl.DateTimeFormat('it-IT', {
@@ -38,6 +39,8 @@ const columns = computed(() =>
       number: day.getUTCDate(),
       today: date === props.today,
       past: date < props.today,
+      add: newPostOn(date),
+      long: LONG.format(day),
       all,
       label: [LONG.format(day), ...(props.loading ? [] : dayCount(all, t))]
         .filter(Boolean)
@@ -66,26 +69,38 @@ const columns = computed(() =>
         @dragleave="moving?.leave($event, c.date)"
         @drop="moving?.drop($event, c.date)"
       >
-        <button
-          type="button"
-          :aria-label="c.label"
-          class="relative flex items-baseline gap-1.5 border-b border-(--app-border) px-3 pt-2.5 pb-2 text-start hover:bg-(--app-nav-hover) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus)"
-          data-day-open
-          @click="emit('openDay', c.date)"
-        >
-          <span class="text-caption text-(--app-text-muted)">{{ c.weekday }}</span>
-          <span
-            class="text-[15px] leading-5 font-semibold tabular-nums"
-            :class="c.past ? 'text-(--app-text-muted)' : ''"
-            >{{ c.number }}</span
+        <div class="group/day relative flex border-b border-(--app-border)">
+          <button
+            type="button"
+            :aria-label="c.label"
+            class="flex flex-1 items-baseline gap-1.5 px-3 pt-2.5 pb-2 text-start hover:bg-(--app-nav-hover) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus)"
+            data-day-open
+            @click="emit('openDay', c.date)"
           >
-          <span
-            v-if="c.today"
-            class="absolute inset-x-0 -bottom-px h-0.5 bg-(--app-brand)"
-            aria-hidden="true"
-            data-accent
-          />
-        </button>
+            <span class="text-caption text-(--app-text-muted)">{{ c.weekday }}</span>
+            <span
+              class="text-[15px] leading-5 font-semibold tabular-nums"
+              :class="c.past ? 'text-(--app-text-muted)' : ''"
+              >{{ c.number }}</span
+            >
+            <span
+              v-if="c.today"
+              class="absolute inset-x-0 -bottom-px h-0.5 bg-(--app-brand)"
+              aria-hidden="true"
+              data-accent
+            />
+          </button>
+          <!-- «+»: on hover and focus, always on a touch screen -->
+          <NuxtLink
+            v-if="c.add"
+            :to="c.add"
+            class="me-1.5 grid size-8 shrink-0 place-self-center place-items-center rounded-[5px] text-(--app-text-muted) opacity-0 group-hover/day:opacity-100 hover:bg-(--app-nav-hover) hover:text-(--app-text) focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-(--app-focus) pointer-coarse:size-11 pointer-coarse:opacity-100"
+            :aria-label="$t('calendar.add', { day: c.long })"
+            data-day-add
+          >
+            <UIcon name="i-lucide-plus" class="size-4" aria-hidden="true" />
+          </NuxtLink>
+        </div>
         <div v-if="loading" class="flex flex-col gap-2 p-2" aria-hidden="true">
           <USkeleton class="aspect-[4/5] w-full rounded-thumb" />
         </div>
