@@ -3,6 +3,7 @@ import { saveBlob } from '~/utils/download'
 import {
   SHEET_TEMPLATE,
   SheetError,
+  fileKey,
   filesAsked,
   readSheet,
   sheetRows,
@@ -40,34 +41,39 @@ watch(open, (now) => {
 
 const sheetInput = ref<HTMLInputElement | null>(null)
 const filesInput = ref<HTMLInputElement | null>(null)
+/** the last sheet chosen: a slower read of the one before does not win over it */
+let reading = 0
 async function pickedSheet(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
+  const mine = (reading += 1)
   sheetName.value = file.name
   problem.value = null
   result.value = null
   try {
-    result.value = sheetRows(await readSheet(file), props.accounts, props.room)
+    const read = sheetRows(await readSheet(file), props.accounts, props.room)
+    if (mine === reading) result.value = read
   } catch (e) {
+    if (mine !== reading) return
     problem.value =
       e instanceof SheetError ? t(`bulk.sheet.error.${e.problem}`) : t('bulk.sheet.error.not_sheet')
   }
 }
+/** the files chosen, by `fileKey`: `IMG_1.JPG` is the `img_1.jpg` the sheet names */
 function pickedFiles(event: Event) {
   const input = event.target as HTMLInputElement
   const next = new Map(files.value)
-  for (const f of input.files ?? []) next.set(f.name, f)
+  for (const f of input.files ?? []) next.set(fileKey(f.name), f)
   files.value = next
   input.value = ''
 }
+const has = (name: string) => files.value.has(fileKey(name))
 
 const asked = computed(() => (result.value ? filesAsked(result.value.rows) : []))
-const found = computed(() => asked.value.filter((n) => files.value.has(n)))
-const ready = computed(
-  () => result.value?.rows.filter((r) => r.fileNames.every((n) => files.value.has(n))) ?? [],
-)
+const found = computed(() => asked.value.filter(has))
+const ready = computed(() => result.value?.rows.filter((r) => r.fileNames.every(has)) ?? [])
 const waiting = computed(() => (result.value?.rows.length ?? 0) - ready.value.length)
 
 const problemText = (p: SheetRowProblem) =>
@@ -142,36 +148,39 @@ function add() {
           </div>
           <p class="text-detail text-(--app-text-muted)">{{ $t('bulk.sheet.columns') }}</p>
           <p v-if="problem" role="alert" class="text-(--app-danger)">{{ problem }}</p>
-          <template v-if="result">
-            <p
-              v-if="result.missing.length > 0"
-              role="alert"
-              class="text-(--app-danger)"
-              data-sheet-missing
-            >
-              {{
-                $t('bulk.sheet.missing', {
-                  list: result.missing.map((c) => $t(`bulk.sheet.column.${c}`)).join(', '),
-                })
-              }}
-            </p>
-            <p v-else data-sheet-read>
-              <span class="font-medium">{{ sheetName }}</span>
-              · {{ $t('bulk.sheet.rows', result.rows.length) }}
-            </p>
-            <ul
-              v-if="result.problems.length > 0"
-              class="space-y-1 text-detail text-(--app-warning)"
-              data-sheet-problems
-            >
-              <li v-for="(p, i) in result.problems" :key="i">
-                {{ $t('bulk.sheet.line', { line: p.line }) }}: {{ problemText(p.problem) }}
-              </li>
-            </ul>
-            <p v-if="result.leftOut > 0" class="text-detail text-(--app-warning)">
-              {{ $t('bulk.sheet.leftOut', result.leftOut) }}
-            </p>
-          </template>
+          <!-- there before the sheet is read, so a screen reader hears what was found in it -->
+          <div aria-live="polite" class="space-y-2">
+            <template v-if="result">
+              <p
+                v-if="result.missing.length > 0"
+                role="alert"
+                class="text-(--app-danger)"
+                data-sheet-missing
+              >
+                {{
+                  $t('bulk.sheet.missing', {
+                    list: result.missing.map((c) => $t(`bulk.sheet.column.${c}`)).join(', '),
+                  })
+                }}
+              </p>
+              <p v-else data-sheet-read>
+                <span class="font-medium">{{ sheetName }}</span>
+                · {{ $t('bulk.sheet.rows', result.rows.length) }}
+              </p>
+              <ul
+                v-if="result.problems.length > 0"
+                class="space-y-1 text-detail text-(--app-warning)"
+                data-sheet-problems
+              >
+                <li v-for="(p, i) in result.problems" :key="i">
+                  {{ $t('bulk.sheet.line', { line: p.line }) }}: {{ problemText(p.problem) }}
+                </li>
+              </ul>
+              <p v-if="result.leftOut > 0" class="text-detail text-(--app-warning)">
+                {{ $t('bulk.sheet.leftOut', result.leftOut) }}
+              </p>
+            </template>
+          </div>
         </section>
 
         <section v-if="result && result.rows.length > 0" class="space-y-2">
@@ -198,14 +207,14 @@ function add() {
               :data-sheet-file="name"
             >
               <UIcon
-                :name="files.has(name) ? 'i-lucide-check' : 'i-lucide-circle-dashed'"
+                :name="has(name) ? 'i-lucide-check' : 'i-lucide-circle-dashed'"
                 class="size-4 shrink-0"
-                :class="files.has(name) ? 'text-(--app-success)' : 'text-(--app-text-muted)'"
+                :class="has(name) ? 'text-(--app-success)' : 'text-(--app-text-muted)'"
                 aria-hidden="true"
               />
               <span class="min-w-0 flex-1 truncate">{{ name }}</span>
               <span class="shrink-0 text-(--app-text-muted)">{{
-                files.has(name) ? $t('bulk.sheet.fileFound') : $t('bulk.sheet.fileMissing')
+                has(name) ? $t('bulk.sheet.fileFound') : $t('bulk.sheet.fileMissing')
               }}</span>
             </li>
           </ul>

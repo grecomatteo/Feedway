@@ -98,40 +98,101 @@ export interface XmlNode {
   text: string
 }
 
-const ENTITY: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" }
+const ENTITY = new Map([
+  ['lt', '<'],
+  ['gt', '>'],
+  ['amp', '&'],
+  ['quot', '"'],
+  ['apos', "'"],
+])
+const MAX_CODE_POINT = 0x10ffff
 function decode(text: string) {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
-    if (name.startsWith('#x') || name.startsWith('#X'))
-      return String.fromCodePoint(Number.parseInt(name.slice(2), 16))
-    if (name.startsWith('#')) return String.fromCodePoint(Number.parseInt(name.slice(1), 10))
-    return ENTITY[name] ?? whole
+    if (!name.startsWith('#')) return ENTITY.get(name) ?? whole
+    const hex = name.startsWith('#x') || name.startsWith('#X')
+    const code = Number.parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10)
+    return code <= MAX_CODE_POINT ? String.fromCodePoint(code) : whole
   })
 }
 const localName = (name: string) => name.slice(name.indexOf(':') + 1)
 
+/**
+ * A small XML reader for the parts of an .xlsx: elements, attributes, text and CDATA; comments,
+ * declarations and the doctype are skipped and entities are not defined. It walks the text once,
+ * with `indexOf`, so a damaged part (a tag that never ends) costs no more than its length.
+ */
 export function parseXml(xml: string): XmlNode {
   const root: XmlNode = { name: '#root', attrs: {}, children: [], text: '' }
   const stack: XmlNode[] = [root]
-  const token =
-    /<!\[CDATA\[([\s\S]*?)\]\]>|<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!(?:[^>])*>|<(\/?)([^\s/>]+)([^>]*?)(\/?)>|([^<]+)/g
-  for (const m of xml.matchAll(token)) {
-    const top = stack.at(-1) ?? root
-    const [, cdata, closing, tag, attrText, selfClosing, text] = m
-    if (cdata !== undefined) top.text += cdata
-    else if (text !== undefined) top.text += decode(text)
-    else if (tag !== undefined) {
-      if (closing) {
-        if (stack.length > 1) stack.pop()
-        continue
-      }
-      const node: XmlNode = { name: localName(tag), attrs: {}, children: [], text: '' }
-      for (const a of (attrText ?? '').matchAll(/([^\s=]+)\s*=\s*("([^"]*)"|'([^']*)')/g))
-        if (a[1]) node.attrs[a[1]] = decode(a[3] ?? a[4] ?? '')
-      top.children.push(node)
-      if (!selfClosing) stack.push(node)
+  const top = () => stack.at(-1) ?? root
+  /** the end of a construct that ends with `close`, or -1: the rest of the part is dropped */
+  const skip = (from: number, close: string) => {
+    const at = xml.indexOf(close, from)
+    return at === -1 ? -1 : at + close.length
+  }
+  let i = 0
+  while (i < xml.length) {
+    const lt = xml.indexOf('<', i)
+    if (lt === -1) {
+      top().text += decode(xml.slice(i))
+      break
     }
+    if (lt > i) top().text += decode(xml.slice(i, lt))
+    if (xml.startsWith('<![CDATA[', lt)) {
+      const close = xml.indexOf(']]>', lt + 9)
+      if (close === -1) break
+      top().text += xml.slice(lt + 9, close)
+      i = close + 3
+      continue
+    }
+    const after = xml.startsWith('<!--', lt)
+      ? skip(lt + 4, '-->')
+      : xml.startsWith('<?', lt)
+        ? skip(lt + 2, '?>')
+        : skip(lt + 1, '>')
+    if (after === -1) break
+    i = after
+    const inner = xml.slice(lt + 1, after - 1)
+    if (inner.startsWith('!') || inner.startsWith('?')) continue
+    if (inner.startsWith('/')) {
+      if (stack.length > 1) stack.pop()
+      continue
+    }
+    const selfClosing = inner.endsWith('/')
+    const body = selfClosing ? inner.slice(0, -1) : inner
+    const space = body.search(/\s/)
+    const tag = space === -1 ? body : body.slice(0, space)
+    if (tag === '') continue
+    const node: XmlNode = {
+      name: localName(tag),
+      attrs: space === -1 ? {} : attrsOf(body.slice(space)),
+      children: [],
+      text: '',
+    }
+    top().children.push(node)
+    if (!selfClosing) stack.push(node)
   }
   return root
+}
+
+/** `a="1" b='2'`, read once from left to right; anything else is skipped. */
+function attrsOf(text: string): Record<string, string> {
+  const attrs: Record<string, string> = {}
+  let i = 0
+  while (i < text.length) {
+    const eq = text.indexOf('=', i)
+    if (eq === -1) break
+    const name = text.slice(i, eq).trim()
+    let q = eq + 1
+    while (q < text.length && /\s/.test(text.charAt(q))) q += 1
+    const quote = text.charAt(q)
+    if (quote !== '"' && quote !== "'") break
+    const close = text.indexOf(quote, q + 1)
+    if (close === -1) break
+    if (name !== '' && !/\s/.test(name)) attrs[name] = decode(text.slice(q + 1, close))
+    i = close + 1
+  }
+  return attrs
 }
 
 /** Every node named `name` under `node`, in document order. */
@@ -164,6 +225,12 @@ export class SheetError extends Error {
 
 /** A part of the workbook is read up to this size: a sheet of 50 rows is far smaller. */
 const PART_LIMIT = 8 * 1024 * 1024
+
+/**
+ * The columns read from a sheet: the template has seven, so a cell far to the right (a damaged
+ * file, `XFD1`) is left out instead of filling a row with empty cells up to it.
+ */
+const MAX_COLUMNS = 64
 
 /** The column of a cell from its reference: `C7` → 2. */
 export function columnOf(ref: string): number {
@@ -221,6 +288,15 @@ export async function readXlsx(file: Blob): Promise<SheetCells> {
   const sharedXml = await part('xl/sharedStrings.xml')
   const shared = sharedXml ? findAll(sharedXml, 'si').map(textOf) : []
 
+  return sheetCellsOf(sheetXml, shared, date1904)
+}
+
+/** The rows of a sheet's XML, as text, with their numbers in the sheet. */
+export function sheetCellsOf(
+  sheetXml: XmlNode,
+  shared: readonly string[],
+  date1904: boolean,
+): SheetCells {
   const rows: string[][] = []
   const lines: number[] = []
   for (const row of findAll(sheetXml, 'row')) {
@@ -230,6 +306,7 @@ export async function readXlsx(file: Blob): Promise<SheetCells> {
       const ref = attr(c, 'r')
       const col = ref ? columnOf(ref) : next
       next = col + 1
+      if (col < 0 || col >= MAX_COLUMNS) continue
       const type = attr(c, 't') ?? 'n'
       const v = first(c, 'v')?.text ?? ''
       let value: string
@@ -257,7 +334,21 @@ export async function readSheet(file: File): Promise<SheetCells> {
   const head = new Uint8Array(await file.slice(0, 2).arrayBuffer())
   if (/\.xlsx$/i.test(file.name) || (head[0] === 0x50 && head[1] === 0x4b)) return readXlsx(file)
   if (file.size > PART_LIMIT) throw new SheetError('too_big')
-  return csvCells(await file.text())
+  return csvCells(decodeText(new Uint8Array(await file.arrayBuffer())))
+}
+
+const utf8 = new TextDecoder('utf-8', { fatal: true })
+const windows = new TextDecoder('windows-1252')
+/**
+ * The text of a CSV: UTF-8 when the bytes are (Google Sheets, Excel's «CSV UTF-8»), otherwise
+ * Windows-1252, as Excel in Italian saves its plain «CSV» on Windows.
+ */
+export function decodeText(bytes: Uint8Array): string {
+  try {
+    return utf8.decode(bytes)
+  } catch {
+    return windows.decode(bytes)
+  }
 }
 
 // ---- the columns
@@ -345,8 +436,10 @@ export function parseSheetTime(value: string): string | null {
     const [h, min] = [Number(m[1]), Number(m[2])]
     return h < 24 && min < 60 ? `${pad(h)}:${pad(min)}` : null
   }
-  if (/^0?\.\d+$|^0$/.test(s)) {
-    const minutes = Math.round(Number(s) * 24 * 60)
+  // a fraction of a day; Excel writes the small ones in scientific notation (01:00 is 4.16…E-2)
+  const fraction = /^[\d.]+(?:e-?\d+)?$/i.test(s) && !s.includes(':') ? Number(s) : Number.NaN
+  if (fraction >= 0 && fraction < 1) {
+    const minutes = Math.round(fraction * 24 * 60)
     if (minutes >= 24 * 60) return null
     return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`
   }
@@ -379,6 +472,7 @@ export type SheetRowProblem =
   | { code: 'date'; value: string }
   | { code: 'time'; value: string }
   | { code: 'account'; value: string }
+  | { code: 'ambiguousAccount'; value: string }
   | { code: 'noFile' }
   | { code: 'tooManyFiles'; value: string }
 
@@ -399,18 +493,27 @@ const splitList = (s: string) =>
     .map((x) => x.trim())
     .filter((x) => x !== '')
 
-/** The account a cell names: `@username`, the username, or the Page's (or profile's) name. */
-function accountOf(value: string, accounts: readonly SheetAccount[]): SheetAccount | null {
+/**
+ * The account a cell names: `@username`, the username, or the Page's (or profile's) name. Two
+ * Pages with that name (two shops of a client) are not guessed: the row says so.
+ */
+function accountOf(
+  value: string,
+  accounts: readonly SheetAccount[],
+): SheetAccount | 'ambiguous' | null {
   const s = value.trim().replace(/^@/, '').toLowerCase()
+  const byUsername = accounts.find((a) => (a.username ?? '').toLowerCase() === s)
+  if (byUsername) return byUsername
   const named = accounts.filter((a) => a.name.trim().toLowerCase() === s)
-  // a username is an Instagram's; a name is first the Page's, which has no username
-  return (
-    accounts.find((a) => (a.username ?? '').toLowerCase() === s) ??
-    named.find((a) => a.platform === 'facebook') ??
-    named[0] ??
-    null
-  )
+  // a name is first the Page's, which has no username
+  const pages = named.filter((a) => a.platform === 'facebook')
+  const choice = pages.length > 0 ? pages : named
+  if (choice.length > 1) return 'ambiguous'
+  return choice[0] ?? null
 }
+
+/** A file's name as the sheet and the computer are matched: any case, one Unicode form. */
+export const fileKey = (name: string) => name.normalize('NFC').toLowerCase()
 
 /**
  * The sheet as rows of the table: each row checked on its own, the good ones kept in order. The
@@ -451,7 +554,8 @@ export function sheetRows(
     const accountIds: string[] = []
     for (const name of splitList(cell(row, 'account'))) {
       const account = accountOf(name, accounts)
-      if (account) {
+      if (account === 'ambiguous') say({ code: 'ambiguousAccount', value: name })
+      else if (account) {
         if (!accountIds.includes(account.id)) accountIds.push(account.id)
       } else say({ code: 'account', value: name })
     }
@@ -478,9 +582,13 @@ export function sheetRows(
 }
 
 /** The names of the files a set of rows asks for, once each, in order. */
-export const filesAsked = (rows: readonly SheetRow[]) => [
-  ...new Set(rows.flatMap((r) => r.fileNames)),
-]
+/** The files the rows name, once each (by `fileKey`), as the sheet first writes them. */
+export function filesAsked(rows: readonly SheetRow[]): string[] {
+  const seen = new Map<string, string>()
+  for (const name of rows.flatMap((r) => r.fileNames))
+    if (!seen.has(fileKey(name))) seen.set(fileKey(name), name)
+  return [...seen.values()]
+}
 
 /** The template to download: the names of the columns and two rows to copy. */
 export const SHEET_TEMPLATE = [

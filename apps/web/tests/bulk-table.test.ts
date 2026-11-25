@@ -9,6 +9,7 @@ import {
   rowOf,
   rowProblem,
   splitRow,
+  targetOf,
   withFiles,
   type BulkFile,
   type BulkTableRow,
@@ -147,6 +148,12 @@ describe('«Distribuisci sulle fasce libere»', () => {
       '2027-01-05',
     ])
   })
+})
+
+test("a sheet's row goes to no account, one, or several", () => {
+  expect(targetOf([])).toBeNull()
+  expect(targetOf(['ig'])).toEqual({ kind: 'account', id: 'ig' })
+  expect(targetOf(['ig', 'fb'])).toEqual({ kind: 'accounts', ids: ['ig', 'fb'] })
 })
 
 describe('what keeps a row back', () => {

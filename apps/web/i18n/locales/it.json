@@ -3782,6 +3782,7 @@
         "date": "il giorno «{value}» non è una data (scrivi GG/MM/AAAA)",
         "time": "l'ora «{value}» non è un'ora (scrivi HH:MM)",
         "account": "l'account «{value}» non è del cliente",
+        "ambiguousAccount": "più account del cliente si chiamano «{value}»: scrivi lo username di Instagram, oppure lascia la cella vuota e scegli l'account nella tabella",
         "noFile": "manca il file",
         "tooManyFiles": "{value} file: un post ne tiene al massimo 10"
       },

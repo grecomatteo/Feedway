@@ -56,6 +56,15 @@ export const CAROUSEL_MAX = 10
 let counter = 0
 const newKey = () => `row-${String((counter += 1))}`
 
+/** Where a sheet's row goes: no account, one, or several (the cell named more). */
+export function targetOf(accountIds: readonly string[]): BulkTarget {
+  const [only, ...more] = accountIds
+  if (only === undefined) return null
+  return more.length === 0
+    ? { kind: 'account', id: only }
+    : { kind: 'accounts', ids: [...accountIds] }
+}
+
 /** A row for a file: it goes where the row before goes, so 20 files need one choice, not 20. */
 export function rowOf(file: BulkFile, before: BulkTableRow | null): BulkTableRow {
   const files = [file]

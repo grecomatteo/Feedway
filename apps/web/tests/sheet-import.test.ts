@@ -3,12 +3,15 @@ import { describe, expect, test } from 'vitest'
 import {
   SHEET_TEMPLATE,
   columnsOf,
+  decodeText,
+  fileKey,
   filesAsked,
   parseCsv,
   parseSheetDate,
   parseSheetTime,
   parseXml,
   readSheet,
+  sheetCellsOf,
   sheetRows,
   type SheetAccount,
 } from '../app/utils/sheet-import.ts'
@@ -169,4 +172,68 @@ test('the template is read back as two good rows', () => {
   const out = sheetRows({ rows: parseCsv(SHEET_TEMPLATE), date1904: false }, ACCOUNTS, 50)
   expect(out.problems).toEqual([])
   expect(out.rows).toHaveLength(2)
+})
+
+describe('damaged or hostile files', () => {
+  test('a cell far to the right does not make a row of millions of columns', () => {
+    const sheet = parseXml(
+      '<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>file</t></is></c><c r="ZZZZZZZZ1"><v>1</v></c></row></sheetData></worksheet>',
+    )
+    const cells = sheetCellsOf(sheet, [], false)
+    expect(cells.rows).toEqual([['file']])
+  })
+
+  test('the XML reader stays linear on a tag that never ends, or a run of them', () => {
+    const started = performance.now()
+    parseXml(`<a>${'<'.padEnd(1_000_000, 'b')}`)
+    parseXml(`<a>${'<bbbb'.repeat(200_000)}`)
+    parseXml(`<a ${'b'.repeat(500_000)}>`)
+    parseXml(`<a>${'<!--'.repeat(100_000)}`)
+    expect(performance.now() - started).toBeLessThan(2000)
+  })
+
+  test('character references out of range and names that are not entities are left as they are', () => {
+    const root = parseXml('<t>&#99999999; &constructor; &amp; &#233;</t>')
+    expect(root.children[0]?.text).toBe('&#99999999; &constructor; & é')
+  })
+})
+
+test('a CSV saved by Excel in Italian without UTF-8 is read as Windows does', () => {
+  const windows = new Uint8Array([0x70, 0x61, 0x6e, 0x65, 0x20, 0xe8]) // «pane è» in Windows-1252
+  expect(decodeText(windows)).toBe('pane è')
+  expect(decodeText(new TextEncoder().encode('caffè'))).toBe('caffè')
+})
+
+test('a time Excel writes in scientific notation, before 02:24', () => {
+  expect(parseSheetTime('4.1666666666666664E-2')).toBe('01:00')
+  expect(parseSheetTime('0')).toBe('00:00')
+  expect(parseSheetTime('1')).toBeNull()
+})
+
+test('two accounts of the client with the same name: the row says which name is not clear', () => {
+  const twoPages: SheetAccount[] = [
+    ...ACCOUNTS,
+    { id: 'fb2', platform: 'facebook', username: null, name: 'Forno Luce' },
+  ]
+  const out = sheetRows(
+    {
+      rows: [
+        ['file', 'account'],
+        ['a.jpg', 'Forno Luce'],
+        ['b.jpg', '@fornoluce'],
+      ],
+      date1904: false,
+    },
+    twoPages,
+    50,
+  )
+  expect(out.problems).toEqual([
+    { line: 2, problem: { code: 'ambiguousAccount', value: 'Forno Luce' } },
+  ])
+  expect(out.rows.map((r) => r.accountIds)).toEqual([['ig']])
+})
+
+test('a file is found by its name whatever the case and the Unicode form', () => {
+  expect(fileKey('IMG_1234.JPG')).toBe(fileKey('img_1234.jpg'))
+  expect(fileKey('caffe\u0300.jpg')).toBe(fileKey('caff\u00e8.jpg'))
 })

@@ -10,6 +10,7 @@ import {
   mergeRows,
   requestRow,
   rowOf,
+  targetOf,
   rowProblem,
   splitRow,
   withFiles,
@@ -19,7 +20,7 @@ import {
   type MergeRefusal,
   type RowProblem,
 } from '~/utils/bulk-table'
-import type { SheetRow } from '~/utils/sheet-import'
+import { fileKey, type SheetRow } from '~/utils/sheet-import'
 
 /**
  * «In blocco» (spec §11.6, plan 09 Task 10, P5): the files of the computer become the rows of a
@@ -40,6 +41,13 @@ export function useBulkTable(opts: {
   const rows = ref<BulkTableRow[]>([])
   /** «csv» once a sheet gave rows: the import says where its rows came from */
   const importSource = ref<'files' | 'csv'>('files')
+  // a table emptied of the sheet's rows starts again from files
+  watch(
+    () => rows.value.length,
+    (n) => {
+      if (n === 0) importSource.value = 'files'
+    },
+  )
   /** the files the browser refused, said once with why */
   const refused = ref<UploadItem[]>([])
   /** files past the 50 of a table, not sent */
@@ -97,14 +105,17 @@ export function useBulkTable(opts: {
     importSource.value = 'csv'
     const taken = sheetRows.slice(0, room.value)
     leftOut.value = sheetRows.length - taken.length
-    const names = [...new Set(taken.flatMap((r) => r.fileNames))].filter((n) => files.has(n))
-    const list = names.map((n) => files.get(n)).filter((f): f is File => f !== undefined)
+    // the files by `fileKey`, as the dialog chose them; one sent once even when two rows name it
+    const keys = [...new Set(taken.flatMap((r) => r.fileNames.map(fileKey)))].filter((k) =>
+      files.has(k),
+    )
+    const list = keys.map((k) => files.get(k)).filter((f): f is File => f !== undefined)
     const items = list.length > 0 ? await uploads.add(list, null) : []
-    const byName = new Map(names.map((n, i) => [n, items[i]] as const))
+    const byKey = new Map(keys.map((k, i) => [k, items[i]] as const))
     refused.value = items.filter((i) => i.state === 'rejected')
     for (const r of taken) {
       const fileList = r.fileNames
-        .map((n) => byName.get(n))
+        .map((n) => byKey.get(fileKey(n)))
         .filter((i): i is UploadItem => i !== undefined)
         .map(fileOf)
       const first = fileList[0]
@@ -115,10 +126,7 @@ export function useBulkTable(opts: {
         caption: r.caption,
         captionInstagram: r.captionInstagram,
         captionFacebook: r.captionFacebook,
-        target:
-          r.accountIds.length === 1 && r.accountIds[0]
-            ? { kind: 'account', id: r.accountIds[0] }
-            : { kind: 'accounts', ids: r.accountIds },
+        target: targetOf(r.accountIds),
         when: r.when,
       })
     }
