@@ -2818,6 +2818,18 @@
         "target_failed": "{platform} non ha pubblicato il post su {account}",
         "target_uncertain": "{platform} non ha risposto in tempo su {account}"
       }
+    },
+    "plan": {
+      "title": "Dal piano",
+      "plannedAt": "{type} · {day} alle {time}",
+      "plannedOn": "{type} · {day}, senza ora",
+      "open": "Apri nel piano",
+      "note": "Nota per chi prepara",
+      "otherDay": "Previsto dal piano per {day}.",
+      "otherType": "Tipo diverso dal piano: previsto {planned}, scelto {chosen}.",
+      "preparing": "Preparo il post dal piano…",
+      "prepareFailed": "Il post non si è preparato: {message}",
+      "backToPlan": "Torna al piano"
     }
   },
   "contentSettings": {

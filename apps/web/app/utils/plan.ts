@@ -123,6 +123,20 @@ export function suggestedTime(
   return free ?? fallback
 }
 
+/**
+ * What the editor says of a post prepared from the plan (§11.12, rule 3): the planned day when
+ * the post goes out on another one, and the planned type when the post is another; never a block.
+ */
+export function planDifferences(
+  planned: Pick<PlanItem, 'localDate' | 'type'>,
+  post: { localDate: string | null; type: string | null },
+): { day: string | null; type: PlanType | null } {
+  return {
+    day: post.localDate !== null && post.localDate !== planned.localDate ? planned.localDate : null,
+    type: post.type !== null && post.type !== planned.type ? planned.type : null,
+  }
+}
+
 export const PLAN_TYPE_ICONS: Record<PlanType, string> = {
   photo: 'i-lucide-image',
   carousel: 'i-lucide-gallery-horizontal-end',

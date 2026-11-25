@@ -437,6 +437,7 @@ const confirmText = computed(() => {
             </p>
           </div>
           <div>
+            <PostPlanNote :editor="editor" :client="client" />
             <PostTypePicker
               :type="e.type.value"
               :kinds="e.kinds.value"

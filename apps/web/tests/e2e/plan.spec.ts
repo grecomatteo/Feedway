@@ -5,8 +5,9 @@ import { addPerson, newPerson, ownAddress, signIn, signInWithTotp } from './supp
 
 // «Piano editoriale» (plan 09 Task 7, spec §11.12): from «Tutti i clienti» the page asks for the
 // client; a month is planned in a row with Enter; a content moves by dragging (with «Annulla»)
-// and with «Sposta…»; «Prepara» makes its post and the card says «Preparato»; the post deleted,
-// the content is «Da preparare» again. A Viewer reads the plan, note included, and changes
+// and with «Sposta…»; «Prepara» makes its post, the editor shows the content with its note, and
+// the card says «Preparato»; the post deleted, the content is «Da preparare» again; «Prepara» as
+// a link (`post/nuovo?piano=`). A Viewer reads the plan, note included, and changes
 // nothing. On a phone the month is a list of days. Axe on the page and on the form.
 
 test.use({ baseURL: process.env.E2E_BASE_URL })
@@ -132,6 +133,21 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await page.getByRole('menuitem', { name: 'Prepara questo contenuto' }).click()
   await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post/[0-9a-f-]{36}`))
   const postId = page.url().split('/post/')[1]?.split(/[?#]/)[0] ?? ''
+  // the editor shows what the plan asked for, the note in evidence (Task 7, PR 2)
+  const fromPlan = page.locator('[data-post-plan]')
+  await expect(fromPlan).toContainText('Pane caldo')
+  await expect(fromPlan.locator('[data-post-plan-note]')).toContainText('Luce dalla vetrina')
+  await expect(fromPlan.locator('[data-post-plan-day]')).toHaveCount(0)
+  await expect(fromPlan.locator('[data-post-plan-type]')).toHaveCount(0)
+  expect((await axe(page)).violations).toEqual([])
+  // another type is said, not refused
+  await page.getByRole('group', { name: 'Tipo' }).getByRole('button', { name: 'Storia' }).click()
+  await expect(fromPlan.locator('[data-post-plan-type]')).toHaveText(
+    'Tipo diverso dal piano: previsto reel, scelto storia.',
+  )
+  await expect(page.locator('[data-save-state]')).toContainText('Bozza salvata alle', {
+    timeout: 10_000,
+  })
   await page.goto(`/${org}/piano?spazio=${client.slug}&mese=${next.month}`)
   await expect(card('Pane caldo')).toHaveAttribute('data-state', 'prepared')
   await expect(card('Pane caldo')).toContainText('Preparato')
@@ -146,6 +162,14 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await page.reload()
   await expect(card('Pane caldo')).toHaveAttribute('data-state', 'to_prepare')
   expect((await axe(page)).violations).toEqual([])
+
+  // «Prepara» as a link: `post/nuovo?piano=` prepares the content and opens its draft
+  const feste = await card('Gli orari delle feste').getAttribute('data-plan-item')
+  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo?piano=${feste ?? ''}`)
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post/[0-9a-f-]{36}$`))
+  await expect(page.locator('[data-post-plan]')).toContainText('Gli orari delle feste')
+  await page.goto(`/${org}/piano?spazio=${client.slug}&mese=${next.month}`)
+  await expect(card('Gli orari delle feste')).toHaveAttribute('data-state', 'prepared')
 
   // «Togli dal piano», with «Annulla»
   await card('Il menu della vigilia').click()

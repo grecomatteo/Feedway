@@ -23,6 +23,37 @@ const { t } = useI18n()
 const { client, profiles } = useClientPage()
 const firstId = route.params['postId'] === 'nuovo' ? null : String(route.params['postId'])
 
+// «Prepara questo contenuto» as a link (spec §11.12, plan 09 Task 7): `…/post/nuovo?piano=<id>`
+// prepares the content of the plan and opens its draft in place of the new post; a content
+// already prepared opens its post. The editor waits, so no empty draft is made meanwhile.
+const planId =
+  firstId === null && typeof route.query['piano'] === 'string' ? route.query['piano'] : null
+const preparing = ref(planId !== null)
+const prepareProblem = ref<string | null>(null)
+onMounted(async () => {
+  if (!planId) return
+  const { call, failure } = useApi()
+  try {
+    const { postId } = await call<{ postId: string }>(
+      'POST',
+      org.api(`/plan/${encodeURIComponent(planId)}/prepare`),
+    )
+    await navigateTo(
+      org.to(
+        `/spazi/${encodeURIComponent(String(route.params['slug']))}/post/${encodeURIComponent(postId)}`,
+      ),
+      { replace: true },
+    )
+  } catch (e) {
+    prepareProblem.value = failure(e).message
+    preparing.value = false
+  }
+})
+const planPage = computed(() => ({
+  path: org.to('/piano'),
+  query: { spazio: String(route.params['slug']) },
+}))
+
 const outcome = ref<PostResponse | null>(null)
 const outcomePage = usePostOutcomePage()
 function showOutcome(post: PostResponse) {
@@ -64,8 +95,23 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
 
 <template>
   <ClientOnly>
+    <div v-if="preparing" class="px-gutter pt-page-top" role="status">
+      <p class="sr-only">{{ $t('posts.plan.preparing') }}</p>
+      <ListSkeleton />
+    </div>
+    <div
+      v-else-if="prepareProblem"
+      class="mx-auto flex max-w-[42.5rem] flex-col gap-3 px-gutter pt-page-top"
+    >
+      <p role="alert" class="rounded-card border-2 border-(--app-danger) px-4 py-3">
+        {{ $t('posts.plan.prepareFailed', { message: prepareProblem }) }}
+      </p>
+      <NuxtLink :to="planPage" class="self-start underline">{{
+        $t('posts.plan.backToPlan')
+      }}</NuxtLink>
+    </div>
     <PostOutcome
-      v-if="client && outcome"
+      v-else-if="client && outcome"
       :key="`outcome-${outcome.id}`"
       :client="client"
       :post="outcome"
