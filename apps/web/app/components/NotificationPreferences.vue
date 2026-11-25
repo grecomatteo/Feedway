@@ -139,8 +139,8 @@ const everything = computed({
   set: (everythingEverywhere: boolean) => saveSettings((s) => ({ ...s, everythingEverywhere })),
 })
 
-// the posts first, then the accounts and Meta, then the platform
-const GROUP_ORDER = { post: 0, account: 1, system: 2 } as const
+// the posts first, then the plan, the accounts and Meta, then the platform
+const GROUP_ORDER = { post: 0, plan: 1, account: 2, system: 3 } as const
 const kindsInOrder = computed(() =>
   [...(prefs.value?.kinds ?? [])].sort(
     (x, y) => GROUP_ORDER[kindGroup(x.kind)] - GROUP_ORDER[kindGroup(y.kind)],

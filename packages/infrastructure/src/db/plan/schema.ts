@@ -44,6 +44,8 @@ export const planItems = pgTable(
   },
   (t) => [
     index('plan_items_workspace_day_idx').on(t.organizationId, t.workspaceId, t.localDate),
+    // the agency's days, for the scan of the notice every 5 minutes
+    index('plan_items_day_idx').on(t.organizationId, t.localDate),
     // rule 1: a post comes from one content at most
     uniqueIndex('plan_items_post_idx')
       .on(t.organizationId, t.postId)

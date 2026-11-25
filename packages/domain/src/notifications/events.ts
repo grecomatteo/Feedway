@@ -1,4 +1,5 @@
 import { ACCOUNT_EVENT_TYPES } from '../accounts/events.js'
+import { PLAN_EVENT_TYPES } from '../plan/events.js'
 import { PLATFORM_EVENT_TYPES } from '../platform/events.js'
 import { PUBLISHING_EVENT_TYPES } from '../publishing/events.js'
 
@@ -7,6 +8,7 @@ export const OUTBOX_EVENT_TYPES = [
   ...PUBLISHING_EVENT_TYPES,
   ...ACCOUNT_EVENT_TYPES,
   ...PLATFORM_EVENT_TYPES,
+  ...PLAN_EVENT_TYPES,
 ] as const
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[number]
 
