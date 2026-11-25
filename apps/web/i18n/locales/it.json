@@ -3418,6 +3418,8 @@
     "more": "Altri {n} post di {day} | Un altro post di {day} | Altri {n} post di {day}",
     "free": "Libero",
     "emptyDay": "Nessun post in questo giorno.",
+    "add": "Nuovo post per {day}",
+    "addHere": "Nuovo post in questo giorno",
     "failed": "Il calendario non si è caricato.",
     "truncated": "Ci sono più di 2.000 post in questo periodo: ne vedi una parte. Restringi con i filtri.",
     "noMatch": "Nessun post con questi filtri in questo periodo.",
@@ -3526,6 +3528,22 @@
       "done": "Spostato a {when}.",
       "failed": "«{title}» non si è spostato. {reason}",
       "changed": "Un’altra persona l’ha cambiato nel frattempo: il calendario ora è aggiornato."
+    },
+    "library": {
+      "title": "Libreria",
+      "close": "Chiudi la libreria",
+      "hint": "Trascina un file su un giorno per iniziare un post.",
+      "search": "Cerca nei file",
+      "use": "Uso",
+      "all": "Tutti",
+      "inPosts": "Nei post",
+      "files": "File della libreria",
+      "drag": "Trascina su un giorno",
+      "useInPost": "Usa in un post",
+      "useFor": "Usa «{name}» in un post",
+      "empty": "Nessun file qui.",
+      "failed": "La libreria non si è caricata.",
+      "more": "Mostra altri"
     }
   },
   "plan": {

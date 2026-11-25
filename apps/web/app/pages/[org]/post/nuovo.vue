@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { newPostQuery, parseNewPostQuery } from '~/utils/new-post-address'
+
 /**
  * «Nuovo post» outside a client (spec §11.11, the + of the phone bar in «Tutti i clienti»): the
  * post is always of one client, so the client is asked first. With only one client the person
- * goes straight to its editor; with none (a Viewer everywhere) the page does not exist.
+ * goes straight to its editor; with none (a Viewer everywhere) the page does not exist. The day
+ * of the «+» of the calendar (`?giorno=`, plan 09 Task 4) goes on to the editor.
  */
 definePageMeta({ layout: 'agency' })
 
@@ -29,7 +32,10 @@ const editorOf = (slug: string) => {
   const profilo = route.query['profilo']
   return {
     path: org.to(`/spazi/${encodeURIComponent(slug)}/post/nuovo`),
-    query: typeof profilo === 'string' ? { profilo } : {},
+    query: {
+      ...newPostQuery(parseNewPostQuery(route.query)),
+      ...(typeof profilo === 'string' ? { profilo } : {}),
+    },
   }
 }
 

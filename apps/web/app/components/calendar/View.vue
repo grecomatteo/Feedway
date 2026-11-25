@@ -3,7 +3,14 @@ import type { CalendarEntry, CalendarPost } from '@app/contracts'
 import type { CalendarShow, LocalDate, QuickFilter } from '@app/domain'
 import type { FilterOption } from '~/components/calendar/Filters.vue'
 import type { WorkspaceView } from '~/composables/useOrganization'
-import { periodLabel, postsByDay, type CalendarCardInfo, type PeriodView } from '~/utils/calendar'
+import {
+  CALENDAR_NEW_POST,
+  periodLabel,
+  postsByDay,
+  type CalendarCardInfo,
+  type PeriodView,
+} from '~/utils/calendar'
+import { newPostQuery } from '~/utils/new-post-address'
 import type { PostType } from '~/utils/post-editor'
 import { mayMove } from '~/utils/calendar-move'
 import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
@@ -44,9 +51,39 @@ const mover = useCalendarMove({
   today,
   patch: cal.patchPost,
   reload: cal.refresh,
+  // a file of the library dropped on a day: the new post of that day, with the file
+  onFile: (date, fileId) => {
+    const to = newPostOn(date)
+    if (to) void navigateTo({ ...to, query: { ...to.query, file: fileId } })
+  },
 })
 provide(CALENDAR_MOVING, mover.moving)
 const { problem: moveProblem, toast: moveToast, dialog: moveDialog } = mover
+
+// ---- the «+» of a day (plan 09 Scelta 4): today and ahead, for who may write a draft. Inside a
+// client its editor; in «Tutti i clienti» `post/nuovo`, which asks for the client first
+const writes = (w: { myRole: string; archivedAt: string | null }) =>
+  w.myRole !== 'viewer' && w.archivedAt === null
+const canWrite = computed(() =>
+  props.workspace
+    ? writes(props.workspace)
+    : (workspaces.value?.items ?? []).some((w) => writes(w)),
+)
+function newPostOn(date: LocalDate) {
+  if (!canWrite.value || date < today.value) return null
+  const query = { ...newPostQuery({ day: date }), ...keep.value }
+  return props.workspace
+    ? { path: org.to(`/spazi/${encodeURIComponent(props.workspace.slug)}/post/nuovo`), query }
+    : { path: org.to('/post/nuovo'), query }
+}
+provide(CALENDAR_NEW_POST, newPostOn)
+
+// ---- «Libreria» (plan 09 Scelta 5): inside a client, for who uses its library, on a computer;
+// closed until asked, so the calendar stays wide
+const libraryOffered = computed(
+  () => props.workspace !== null && usesLibrary(props.workspace) && !props.workspace.archivedAt,
+)
+const libraryOpen = ref(false)
 
 // ---- the bar
 const label = computed(() => periodLabel(view.value, date.value))
@@ -365,255 +402,290 @@ const listedTitle = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-stack" :data-ready="data !== null || failed || undefined">
-    <!-- the bar: arrows, period, «Oggi»; the views at the end (screen 07) -->
-    <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
-      <UButton
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-chevron-left"
-        :aria-label="$t(`calendar.prev.${view}`)"
-        data-calendar-prev
-        @click="cal.step(-1)"
-      />
-      <UButton
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-chevron-right"
-        :aria-label="$t(`calendar.next.${view}`)"
-        data-calendar-next
-        @click="cal.step(1)"
-      />
-      <h2
-        class="min-w-[9rem] ps-1 text-[14px] leading-5 font-semibold"
-        aria-live="polite"
-        data-calendar-period
-      >
-        {{ label }}
-      </h2>
-      <UButton
-        color="neutral"
-        variant="outline"
-        :disabled="isToday && !route.query['da']"
-        data-calendar-today
-        @click="cal.toToday()"
-        >{{ $t('calendar.today') }}</UButton
-      >
-      <!-- on a phone the views and «Filtri» go to a line of their own -->
-      <span class="flex-1 max-md:h-0 max-md:basis-full" />
-      <SegmentedFilter v-model="chosenView" :label="$t('calendar.view.label')" :options="views" />
-      <!-- on a phone the quick filters are in the sheet of «Filtri» (plan 09 Task 3) -->
-      <div class="ms-auto md:hidden">
+  <div
+    class="md:grid md:items-start md:gap-4"
+    :class="libraryOpen && libraryOffered ? 'md:grid-cols-[minmax(0,1fr)_17rem]' : ''"
+  >
+    <div class="flex min-w-0 flex-col gap-stack" :data-ready="data !== null || failed || undefined">
+      <!-- the bar: arrows, period, «Oggi»; the views at the end (screen 07) -->
+      <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-chevron-left"
+          :aria-label="$t(`calendar.prev.${view}`)"
+          data-calendar-prev
+          @click="cal.step(-1)"
+        />
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-chevron-right"
+          :aria-label="$t(`calendar.next.${view}`)"
+          data-calendar-next
+          @click="cal.step(1)"
+        />
+        <h2
+          class="min-w-[9rem] ps-1 text-[14px] leading-5 font-semibold"
+          aria-live="polite"
+          data-calendar-period
+        >
+          {{ label }}
+        </h2>
+        <UButton
+          color="neutral"
+          variant="outline"
+          :disabled="isToday && !route.query['da']"
+          data-calendar-today
+          @click="cal.toToday()"
+          >{{ $t('calendar.today') }}</UButton
+        >
+        <!-- on a phone the views and «Filtri» go to a line of their own -->
+        <span class="flex-1 max-md:h-0 max-md:basis-full" />
+        <UButton
+          v-if="libraryOffered"
+          color="neutral"
+          :variant="libraryOpen ? 'soft' : 'outline'"
+          icon="i-lucide-images"
+          class="max-md:hidden"
+          :aria-expanded="libraryOpen"
+          data-calendar-library-toggle
+          @click="libraryOpen = !libraryOpen"
+          >{{ $t('calendar.library.title') }}</UButton
+        >
+        <SegmentedFilter v-model="chosenView" :label="$t('calendar.view.label')" :options="views" />
+        <!-- on a phone the quick filters are in the sheet of «Filtri» (plan 09 Task 3) -->
+        <div class="ms-auto md:hidden">
+          <CalendarFilters
+            :filters="filters"
+            :clients="clientOptions"
+            :accounts="accountOptions"
+            :authors="authors"
+            :labels="labelOptions"
+            :count="cal.activeFilters.value + (quick === 'all' ? 0 : 1)"
+            @change="cal.setFilters"
+            @clear="cal.clearFilters"
+          >
+            <fieldset class="grid min-w-0 gap-1" data-filter="quick">
+              <legend class="mb-1.5 font-medium">{{ $t('calendar.quick.label') }}</legend>
+              <URadioGroup
+                v-model="quick"
+                :items="quickOptions"
+                :ui="{ item: 'min-h-11 items-center' }"
+              />
+            </fieldset>
+            <fieldset v-if="hasPlan" class="grid min-w-0 gap-1" data-filter="show">
+              <legend class="mb-1.5 font-medium">{{ $t('calendar.show.label') }}</legend>
+              <URadioGroup
+                v-model="show"
+                :items="showOptions"
+                :ui="{ item: 'min-h-11 items-center' }"
+              />
+            </fieldset>
+          </CalendarFilters>
+        </div>
+      </div>
+
+      <Toolbar class="mb-0 max-md:hidden">
+        <SegmentedFilter
+          v-model="quick"
+          :label="$t('calendar.quick.label')"
+          :options="quickOptions"
+        />
         <CalendarFilters
           :filters="filters"
           :clients="clientOptions"
           :accounts="accountOptions"
           :authors="authors"
           :labels="labelOptions"
-          :count="cal.activeFilters.value + (quick === 'all' ? 0 : 1)"
+          :count="cal.activeFilters.value"
           @change="cal.setFilters"
           @clear="cal.clearFilters"
+        />
+        <SegmentedFilter
+          v-if="hasPlan"
+          v-model="show"
+          :label="$t('calendar.show.label')"
+          :options="showOptions"
+        />
+        <UButton
+          v-if="narrowed"
+          color="neutral"
+          variant="link"
+          class="px-0 underline underline-offset-3"
+          data-calendar-clear
+          @click="cal.clearFilters()"
+          >{{ $t('calendar.filters.clear') }}</UButton
         >
-          <fieldset class="grid min-w-0 gap-1" data-filter="quick">
-            <legend class="mb-1.5 font-medium">{{ $t('calendar.quick.label') }}</legend>
-            <URadioGroup
-              v-model="quick"
-              :items="quickOptions"
-              :ui="{ item: 'min-h-11 items-center' }"
-            />
-          </fieldset>
-          <fieldset v-if="hasPlan" class="grid min-w-0 gap-1" data-filter="show">
-            <legend class="mb-1.5 font-medium">{{ $t('calendar.show.label') }}</legend>
-            <URadioGroup
-              v-model="show"
-              :items="showOptions"
-              :ui="{ item: 'min-h-11 items-center' }"
-            />
-          </fieldset>
-        </CalendarFilters>
-      </div>
-    </div>
+      </Toolbar>
 
-    <Toolbar class="mb-0 max-md:hidden">
-      <SegmentedFilter
-        v-model="quick"
-        :label="$t('calendar.quick.label')"
-        :options="quickOptions"
+      <SearchField
+        v-if="view === 'list'"
+        v-model="search"
+        :label="workspace ? $t('calendar.list.searchText') : $t('calendar.list.search')"
+        class="md:max-w-80"
       />
-      <CalendarFilters
-        :filters="filters"
-        :clients="clientOptions"
-        :accounts="accountOptions"
-        :authors="authors"
-        :labels="labelOptions"
-        :count="cal.activeFilters.value"
-        @change="cal.setFilters"
-        @clear="cal.clearFilters"
-      />
-      <SegmentedFilter
-        v-if="hasPlan"
-        v-model="show"
-        :label="$t('calendar.show.label')"
-        :options="showOptions"
-      />
-      <UButton
-        v-if="narrowed"
-        color="neutral"
-        variant="link"
-        class="px-0 underline underline-offset-3"
-        data-calendar-clear
-        @click="cal.clearFilters()"
-        >{{ $t('calendar.filters.clear') }}</UButton
+
+      <LoadFailed v-if="failed" :text="$t('calendar.failed')" @retry="cal.reload()" />
+      <p
+        v-else-if="cal.truncated.value"
+        class="flex items-center gap-2 text-(--app-text-muted)"
+        role="status"
+        data-calendar-truncated
       >
-    </Toolbar>
-
-    <SearchField
-      v-if="view === 'list'"
-      v-model="search"
-      :label="workspace ? $t('calendar.list.searchText') : $t('calendar.list.search')"
-      class="md:max-w-80"
-    />
-
-    <LoadFailed v-if="failed" :text="$t('calendar.failed')" @retry="cal.reload()" />
-    <p
-      v-else-if="cal.truncated.value"
-      class="flex items-center gap-2 text-(--app-text-muted)"
-      role="status"
-      data-calendar-truncated
-    >
-      <UIcon name="i-lucide-info" class="size-4 shrink-0" aria-hidden="true" />
-      {{ $t('calendar.truncated') }}
-    </p>
-    <p
-      v-else-if="nothing && view !== 'list'"
-      class="text-(--app-text-muted)"
-      role="status"
-      data-calendar-empty
-    >
-      {{ narrowed ? $t('calendar.noMatch') : $t(`calendar.empty.${view}`) }}
-    </p>
-
-    <p
-      v-if="moveProblem"
-      role="alert"
-      class="flex items-start gap-2 text-(--app-danger)"
-      data-calendar-move-problem
-    >
-      <UIcon name="i-lucide-circle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      {{ moveProblem }}
-    </p>
-
-    <CalendarMonth
-      v-if="view === 'month' && !failed"
-      :days="period.days"
-      :month="date.slice(0, 7)"
-      :today="today"
-      :cards="byDay"
-      :show-client="showClient"
-      :loading="loading"
-      :selected="phone ? listedDay : null"
-      @open-day="openDay"
-    />
-    <!-- on a phone the chosen day is listed under the month, not in a sheet over it -->
-    <section
-      v-if="view === 'month' && phone && listedDay && !loading"
-      :aria-label="listedTitle"
-      aria-live="polite"
-      data-month-day
-    >
-      <SectionHead :title="listedTitle" :count="listedCards.length" :level="3" />
-      <p v-if="listedCards.length === 0" class="text-(--app-text-muted)">
-        {{ $t('calendar.emptyDay') }}
+        <UIcon name="i-lucide-info" class="size-4 shrink-0" aria-hidden="true" />
+        {{ $t('calendar.truncated') }}
       </p>
-      <ul
-        v-else
-        class="divide-y divide-(--app-border) overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface)"
+      <p
+        v-else-if="nothing && view !== 'list'"
+        class="text-(--app-text-muted)"
+        role="status"
+        data-calendar-empty
       >
-        <li v-for="c in listedCards" :key="c.id">
-          <CalendarRow :card="c" :show-client="showClient" />
-        </li>
-      </ul>
-    </section>
-    <CalendarWeek
-      v-if="view === 'week' && !failed"
-      :days="period.days"
-      :today="today"
-      :cards="byDay"
-      :show-client="showClient"
-      :loading="loading"
-      @open-day="openDay"
-    />
+        {{ narrowed ? $t('calendar.noMatch') : $t(`calendar.empty.${view}`) }}
+      </p>
 
-    <CalendarList
-      v-if="view === 'list' && !failed"
-      :days="listDays"
-      :today="today"
-      :drafts="draftCards"
-      :drafts-failed="cal.draftsStatus.value === 'error'"
-      :drafts-truncated="cal.drafts.value?.truncated ?? false"
-      :removable="removableDrafts.length"
-      :show-client="showClient"
-      :loading="loading"
-      :more-status="status === 'pending' ? 'pending' : cal.moreStatus.value"
-      :narrowed="narrowed || search.trim() !== ''"
-      @more="cal.loadMore()"
-      @remove-empty="confirmRemove = true"
-      @retry-drafts="cal.reloadDrafts()"
-    />
-    <UModal
-      v-model:open="confirmRemove"
-      :title="$t('calendar.list.removeTitle')"
-      :description="$t('calendar.list.removeText')"
-    >
-      <template #body>
-        <p class="text-(--app-text-muted)">
-          {{
-            $t('calendar.list.removeEmpty', { n: removableDrafts.length }, removableDrafts.length)
-          }}
-        </p>
-        <p v-if="removeFailed" role="alert" class="mt-2 text-(--app-danger)">{{ removeFailed }}</p>
-      </template>
-      <template #footer>
-        <div class="flex w-full flex-wrap justify-end gap-3">
+      <p
+        v-if="moveProblem"
+        role="alert"
+        class="flex items-start gap-2 text-(--app-danger)"
+        data-calendar-move-problem
+      >
+        <UIcon name="i-lucide-circle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {{ moveProblem }}
+      </p>
+
+      <CalendarMonth
+        v-if="view === 'month' && !failed"
+        :days="period.days"
+        :month="date.slice(0, 7)"
+        :today="today"
+        :cards="byDay"
+        :show-client="showClient"
+        :loading="loading"
+        :selected="phone ? listedDay : null"
+        @open-day="openDay"
+      />
+      <!-- on a phone the chosen day is listed under the month, not in a sheet over it -->
+      <section
+        v-if="view === 'month' && phone && listedDay && !loading"
+        :aria-label="listedTitle"
+        aria-live="polite"
+        data-month-day
+      >
+        <SectionHead :title="listedTitle" :count="listedCards.length" :level="3">
           <UButton
+            v-if="newPostOn(listedDay)"
+            :to="newPostOn(listedDay) ?? undefined"
             color="neutral"
             variant="ghost"
-            class="min-h-control"
-            @click="confirmRemove = false"
-          >
-            {{ $t('calendar.list.keep') }}
-          </UButton>
-          <UButton
-            color="error"
-            class="min-h-control"
-            :loading="removing"
-            data-drafts-remove-confirm
-            @click="removeEmpty()"
-          >
-            {{ $t('calendar.list.removeOk') }}
-          </UButton>
-        </div>
-      </template>
-    </UModal>
+            icon="i-lucide-plus"
+            class="size-11 justify-center"
+            :aria-label="$t('calendar.add', { day: listedTitle })"
+            data-day-add
+          />
+        </SectionHead>
+        <p v-if="listedCards.length === 0" class="text-(--app-text-muted)">
+          {{ $t('calendar.emptyDay') }}
+        </p>
+        <ul
+          v-else
+          class="divide-y divide-(--app-border) overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface)"
+        >
+          <li v-for="c in listedCards" :key="c.id">
+            <CalendarRow :card="c" :show-client="showClient" />
+          </li>
+        </ul>
+      </section>
+      <CalendarWeek
+        v-if="view === 'week' && !failed"
+        :days="period.days"
+        :today="today"
+        :cards="byDay"
+        :show-client="showClient"
+        :loading="loading"
+        @open-day="openDay"
+      />
 
-    <CalendarDaySheet
-      v-model:open="dayOpen"
-      :date="day"
-      :today="today"
-      :cards="dayCards"
-      :show-client="showClient"
-    />
-    <CalendarMoveDialog
-      v-model:open="moveDialog.open"
-      :post="moveDialog.post"
-      :today="today"
-      @move="(post, to) => mover.move(post, to)"
-    />
-    <Toast
-      v-model:open="moveToast.open"
-      :message="moveToast.message"
-      :action-label="moveToast.action || undefined"
-      @action="mover.runUndo"
+      <CalendarList
+        v-if="view === 'list' && !failed"
+        :days="listDays"
+        :today="today"
+        :drafts="draftCards"
+        :drafts-failed="cal.draftsStatus.value === 'error'"
+        :drafts-truncated="cal.drafts.value?.truncated ?? false"
+        :removable="removableDrafts.length"
+        :show-client="showClient"
+        :loading="loading"
+        :more-status="status === 'pending' ? 'pending' : cal.moreStatus.value"
+        :narrowed="narrowed || search.trim() !== ''"
+        @more="cal.loadMore()"
+        @remove-empty="confirmRemove = true"
+        @retry-drafts="cal.reloadDrafts()"
+      />
+      <UModal
+        v-model:open="confirmRemove"
+        :title="$t('calendar.list.removeTitle')"
+        :description="$t('calendar.list.removeText')"
+      >
+        <template #body>
+          <p class="text-(--app-text-muted)">
+            {{
+              $t('calendar.list.removeEmpty', { n: removableDrafts.length }, removableDrafts.length)
+            }}
+          </p>
+          <p v-if="removeFailed" role="alert" class="mt-2 text-(--app-danger)">
+            {{ removeFailed }}
+          </p>
+        </template>
+        <template #footer>
+          <div class="flex w-full flex-wrap justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              class="min-h-control"
+              @click="confirmRemove = false"
+            >
+              {{ $t('calendar.list.keep') }}
+            </UButton>
+            <UButton
+              color="error"
+              class="min-h-control"
+              :loading="removing"
+              data-drafts-remove-confirm
+              @click="removeEmpty()"
+            >
+              {{ $t('calendar.list.removeOk') }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
+
+      <CalendarDaySheet
+        v-model:open="dayOpen"
+        :date="day"
+        :today="today"
+        :cards="dayCards"
+        :show-client="showClient"
+      />
+      <CalendarMoveDialog
+        v-model:open="moveDialog.open"
+        :post="moveDialog.post"
+        :today="today"
+        @move="(post, to) => mover.move(post, to)"
+      />
+      <Toast
+        v-model:open="moveToast.open"
+        :message="moveToast.message"
+        :action-label="moveToast.action || undefined"
+        @action="mover.runUndo"
+      />
+    </div>
+    <CalendarLibraryPanel
+      v-if="libraryOpen && libraryOffered && workspace"
+      :client="workspace"
+      class="sticky top-4 max-md:hidden"
+      @close="libraryOpen = false"
     />
   </div>
 </template>

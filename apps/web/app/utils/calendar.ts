@@ -1,3 +1,4 @@
+import type { InjectionKey } from 'vue'
 import { addDays, monthGrid, weekOf, type LocalDate } from '@app/domain'
 import type { CalendarPost, LabelDto } from '@app/contracts'
 
@@ -165,3 +166,10 @@ export function listGroupOf(date: LocalDate, today: LocalDate): ListGroup {
   if (date > today) return date <= sunday ? 'thisWeek' : 'later'
   return date >= monday ? 'earlierThisWeek' : 'before'
 }
+
+/**
+ * The «+» of a day (spec §11.4, plan 09 Scelta 4), given by the calendar to its days: the new post
+ * of that day, or null where there is none (a day gone, a person who may not write a draft).
+ */
+export type NewPostOn = (date: LocalDate) => { path: string; query: Record<string, string> } | null
+export const CALENDAR_NEW_POST: InjectionKey<NewPostOn> = Symbol('calendar-new-post')
