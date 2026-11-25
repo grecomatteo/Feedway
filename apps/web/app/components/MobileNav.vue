@@ -53,17 +53,14 @@ const place =
         </NuxtLink>
       </li>
       <li class="flex">
-        <!-- the calendar arrives in stage 9 -->
-        <span
-          role="link"
-          aria-disabled="true"
-          :aria-label="`${$t('agency.nav.calendar')} (${$t('client.soon')})`"
-          :title="$t('client.soon')"
+        <NuxtLink
+          :to="{ path: org.to('/calendario'), query: context }"
+          :aria-current="current(org.to('/calendario')) ? 'page' : undefined"
           :class="place"
         >
           <UIcon name="i-lucide-calendar-days" class="size-[21px]" aria-hidden="true" />
-          <span aria-hidden="true">{{ $t('agency.nav.calendar') }}</span>
-        </span>
+          {{ $t('agency.nav.calendar') }}
+        </NuxtLink>
       </li>
       <li v-if="newPost.allowed.value" class="flex">
         <NuxtLink :to="newPost.link.value" :aria-label="$t('client.newPost')" :class="place">

@@ -63,20 +63,21 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     await expect(nav.getByText('Account social'), path).toHaveCount(0)
   }
   if (!isMobile) {
-    // the sidebar (screen 02): Oggi, Calendario (off), Clienti, Libreria; under the agency's
-    // name Utenti and Impostazioni
+    // the sidebar (screen 02): Oggi, Calendario, Clienti, Libreria; under the agency's name
+    // Utenti and Impostazioni
     await page.goto(`/${org}`)
     await expect(mainNav(page).getByRole('link')).toHaveText([
       'Oggi',
-      /^Calendario/,
+      'Calendario',
       'Clienti',
       'Libreria',
       'Utenti',
       'Impostazioni',
     ])
-    await expect(mainNav(page).getByRole('link', { name: 'Calendario (Presto)' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
+    // the calendar is on since stage 9 (D-84)
+    await expect(mainNav(page).getByRole('link', { name: 'Calendario' })).toHaveAttribute(
+      'href',
+      `/${org}/calendario`,
     )
     await expect(mainNav(page).getByRole('link', { name: 'Oggi' })).toHaveAttribute(
       'aria-current',
@@ -90,7 +91,7 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
   }
 })
 
-test('the bar at the bottom: five places, Calendario not there yet, + for a new post, the bell above', async ({
+test('the bar at the bottom: five places with Calendario, + for a new post, the bell above', async ({
   page,
   isMobile,
 }) => {
@@ -101,9 +102,9 @@ test('the bar at the bottom: five places, Calendario not there yet, + for a new 
   await expect(nav.getByRole('listitem')).toHaveCount(5)
   await expect(nav.getByRole('link', { name: 'Oggi' })).toHaveAttribute('href', `/${org}`)
   await expect(nav.getByRole('link', { name: 'Clienti' })).toHaveAttribute('aria-current', 'page')
-  await expect(nav.getByRole('link', { name: 'Calendario (Presto)' })).toHaveAttribute(
-    'aria-disabled',
-    'true',
+  await expect(nav.getByRole('link', { name: 'Calendario' })).toHaveAttribute(
+    'href',
+    `/${org}/calendario`,
   )
   // in «Tutti i clienti» the + asks the client first; with only one it goes to its editor
   await nav.getByRole('link', { name: 'Nuovo post' }).click()

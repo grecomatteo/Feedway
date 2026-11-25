@@ -141,6 +141,15 @@ const postsPage = computed(() =>
   client.value ? org.to(`/spazi/${encodeURIComponent(client.value.slug)}/post`) : '',
 )
 const postPage = (p: AgendaPost) => `${postsPage.value}/${encodeURIComponent(p.id)}`
+// «Tutti»: the client's calendar, on its list (plan 09 Task 3, in place of «Post»)
+const allPosts = computed(() =>
+  client.value
+    ? {
+        path: org.to(`/spazi/${encodeURIComponent(client.value.slug)}/calendario`),
+        query: { vista: 'elenco' },
+      }
+    : null,
+)
 const platformsOf = (p: AgendaPost) => p.platforms as Platform[]
 
 // ---- the actions
@@ -286,8 +295,8 @@ watch(
         <section :aria-label="$t('client.nextPosts')" data-next-posts>
           <SectionHead :title="$t('client.nextPosts')">
             <NuxtLink
-              v-if="postsPage"
-              :to="postsPage"
+              v-if="allPosts"
+              :to="allPosts"
               class="text-detail underline underline-offset-3"
               >{{ $t('client.allPosts') }}</NuxtLink
             >

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   cardLook,
+  listGroupOf,
   periodLabel,
   periodOf,
   postsByDay,
@@ -32,6 +33,13 @@ describe('periodOf', () => {
       '2026-10-25',
     ])
   })
+
+  it('gives the list 42 days from the day, the size of a page', () => {
+    const p = periodOf('list', '2026-11-19')
+    expect(p.days).toHaveLength(42)
+    expect(p.from).toBe('2026-11-19')
+    expect(p.to).toBe('2026-12-30')
+  })
 })
 
 describe('shiftDate', () => {
@@ -44,6 +52,11 @@ describe('shiftDate', () => {
     expect(shiftDate('week', '2026-11-19', 1)).toBe('2026-11-26')
     expect(shiftDate('week', '2026-11-19', -1)).toBe('2026-11-12')
   })
+
+  it('moves the list by a page of 42 days', () => {
+    expect(shiftDate('list', '2026-11-19', 1)).toBe('2026-12-31')
+    expect(shiftDate('list', '2026-11-19', -1)).toBe('2026-10-08')
+  })
 })
 
 describe('periodLabel', () => {
@@ -55,6 +68,33 @@ describe('periodLabel', () => {
     expect(periodLabel('week', '2026-11-19')).toBe('16–22 novembre 2026')
     expect(periodLabel('week', '2026-12-02')).toBe('30 nov – 6 dic 2026')
     expect(periodLabel('week', '2026-12-30')).toBe('28 dic 2026 – 3 gen 2027')
+  })
+
+  it('names the days of the list from the first to the last', () => {
+    expect(periodLabel('list', '2026-11-19')).toBe('19 nov – 30 dic 2026')
+    expect(periodLabel('list', '2026-12-01')).toBe('1 dic 2026 – 11 gen 2027')
+  })
+})
+
+describe('listGroupOf', () => {
+  // today is Thursday 19 November 2026: its week goes from Monday 16 to Sunday 22
+  const today = '2026-11-19'
+  it('names the days ahead: today, tomorrow, the rest of the week, then later', () => {
+    expect(listGroupOf('2026-11-19', today)).toBe('today')
+    expect(listGroupOf('2026-11-20', today)).toBe('tomorrow')
+    expect(listGroupOf('2026-11-22', today)).toBe('thisWeek')
+    expect(listGroupOf('2026-11-23', today)).toBe('later')
+  })
+
+  it('names the days behind: yesterday, earlier this week, then before', () => {
+    expect(listGroupOf('2026-11-18', today)).toBe('yesterday')
+    expect(listGroupOf('2026-11-16', today)).toBe('earlierThisWeek')
+    expect(listGroupOf('2026-11-15', today)).toBe('before')
+  })
+
+  it('keeps tomorrow on a Sunday, the next week starting the day after', () => {
+    expect(listGroupOf('2026-11-23', '2026-11-22')).toBe('tomorrow')
+    expect(listGroupOf('2026-11-21', '2026-11-22')).toBe('yesterday')
   })
 })
 

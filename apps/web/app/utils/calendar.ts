@@ -2,11 +2,14 @@ import { addDays, monthGrid, weekOf, type LocalDate } from '@app/domain'
 import type { CalendarPost, LabelDto } from '@app/contracts'
 
 // The calendar's period and days (spec §11.4, plan 09 Task 3): the month as the 6×7 days of its
-// grid, the week from Monday, both on the agency's wall dates (D-58). No zone here: the server
-// already put every post on its day.
+// grid, the week from Monday, the list as pages of 42 days from a day, all on the agency's wall
+// dates (D-58). No zone here: the server already put every post on its day.
 
-/** The views drawn as days: the month's grid and the week. */
-export type PeriodView = 'month' | 'week'
+/** The views drawn from a period: the month's grid, the week and the list. */
+export type PeriodView = 'month' | 'week' | 'list'
+
+/** The days of a page of the list: as many as a month's grid, the most one read gives. */
+export const LIST_PAGE = 42
 
 export interface Period {
   from: LocalDate
@@ -14,15 +17,24 @@ export interface Period {
   days: LocalDate[]
 }
 
-/** The days a view shows around `date`: the month's 42, or the 7 of its week. */
+/** The days a view shows around `date`: the month's 42, the 7 of its week, the list's 42 from it. */
 export function periodOf(view: PeriodView, date: LocalDate): Period {
-  const days = view === 'month' ? monthGrid(date.slice(0, 7)) : weekOf(date)
+  const days =
+    view === 'month'
+      ? monthGrid(date.slice(0, 7))
+      : view === 'week'
+        ? weekOf(date)
+        : Array.from({ length: LIST_PAGE }, (_, i) => addDays(date, i))
   return { from: days[0] as LocalDate, to: days.at(-1) as LocalDate, days }
 }
 
-/** The day the arrows lead to: the 1st of the month before or after, or the same weekday. */
+/**
+ * The day the arrows lead to: the 1st of the month before or after, the same weekday, or the page
+ * of the list before or after.
+ */
 export function shiftDate(view: PeriodView, date: LocalDate, step: -1 | 1): LocalDate {
   if (view === 'week') return addDays(date, 7 * step)
+  if (view === 'list') return addDays(date, LIST_PAGE * step)
   const [y, m] = date.split('-').map(Number) as [number, number]
   const d = new Date(Date.UTC(y, m - 1 + step, 1))
   return `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
@@ -36,11 +48,12 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /**
  * What the bar says: «Novembre 2026» for a month; for a week «16–22 novembre 2026», «30 nov – 6
- * dic 2026» across two months, «28 dic 2026 – 3 gen 2027» across two years.
+ * dic 2026» across two months, «28 dic 2026 – 3 gen 2027» across two years; the list's days the
+ * same way.
  */
 export function periodLabel(view: PeriodView, date: LocalDate): string {
   if (view === 'month') return capital(MONTH.format(utcDay(date)))
-  const { from, to } = periodOf('week', date)
+  const { from, to } = periodOf(view, date)
   const [a, b] = [utcDay(from), utcDay(to)]
   const [ya, yb] = [a.getUTCFullYear(), b.getUTCFullYear()]
   if (a.getUTCMonth() === b.getUTCMonth())
@@ -131,4 +144,22 @@ export function dayCount(cards: readonly Pick<CalendarCardInfo, 'kind'>[], t: Tr
     t('calendar.posts', { n: posts }, posts),
     ...(planned > 0 ? [t('calendar.planned', { n: planned }, planned)] : []),
   ]
+}
+
+/** The groups of the list (plan 09 Scelta 2), ahead and behind today. */
+export type ListGroup =
+  'before' | 'earlierThisWeek' | 'yesterday' | 'today' | 'tomorrow' | 'thisWeek' | 'later'
+
+/**
+ * Where a day goes in the list: «Oggi», «Domani», «Questa settimana», «Più avanti» ahead, and
+ * «Ieri», «Questa settimana», «Prima» behind; the week is today's, from Monday to Sunday.
+ */
+export function listGroupOf(date: LocalDate, today: LocalDate): ListGroup {
+  if (date === today) return 'today'
+  if (date === addDays(today, 1)) return 'tomorrow'
+  if (date === addDays(today, -1)) return 'yesterday'
+  const week = weekOf(today)
+  const [monday, sunday] = [week[0] as LocalDate, week.at(-1) as LocalDate]
+  if (date > today) return date <= sunday ? 'thisWeek' : 'later'
+  return date >= monday ? 'earlierThisWeek' : 'before'
 }

@@ -56,8 +56,9 @@ useHead({
   title: () =>
     `${firstId ? t('posts.editor.editTitle') : t('posts.editor.newTitle')} · ${client.value?.name ?? ''}`,
 })
+// back to the client's calendar (plan 09 Task 3: the tab «Post» became «Calendario»)
 const back = computed(() =>
-  org.to(`/spazi/${encodeURIComponent(String(route.params['slug']))}/post`),
+  org.to(`/spazi/${encodeURIComponent(String(route.params['slug']))}/calendario`),
 )
 const profileList = computed(() => profiles.data.value?.items ?? [])
 </script>

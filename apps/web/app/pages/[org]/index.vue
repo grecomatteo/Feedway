@@ -172,9 +172,12 @@ const missingOf = (d: DraftToFinish) =>
   d.missing.length === 0 ? t('today.drafts.ready') : t(`today.drafts.missing.${d.missing[0]}`)
 const allDrafts = computed(() =>
   workspaceId.value
-    ? { path: clientPage(workspaceId.value, '/post'), query: { stato: 'draft' } }
+    ? { path: clientPage(workspaceId.value, '/calendario'), query: { vista: 'elenco' } }
     : null,
 )
+const contextQuery = useContextQuery()
+// «Apri il calendario» beside «In uscita» (D-88): the calendar of the same context
+const calendarLink = computed(() => ({ path: org.to('/calendario'), query: contextQuery.value }))
 
 // ---- Clienti recenti
 const recent = computed(() =>
@@ -337,7 +340,14 @@ const ready = computed(
             class="@container"
             data-today-out
           >
-            <SectionHead :title="$t('today.out.title')" />
+            <SectionHead :title="$t('today.out.title')">
+              <NuxtLink
+                :to="calendarLink"
+                class="text-detail underline underline-offset-3"
+                data-today-calendar
+                >{{ $t('today.out.calendar') }}</NuxtLink
+              >
+            </SectionHead>
             <div class="rounded-card border border-(--app-border) bg-(--app-surface)">
               <div
                 class="grid grid-cols-7 border-b border-(--app-border)"

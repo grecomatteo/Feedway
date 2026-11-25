@@ -122,7 +122,8 @@ test('the month and the week of every client, with the address that keeps them',
   isMobile,
 }) => {
   const { org, ids, forno } = await agency(page, 'Carla Calendario')
-  await page.goto(`/${org}/calendario`)
+  // the month: a computer opens on it, a phone on the list
+  await page.goto(isMobile ? `/${org}/calendario?vista=mese` : `/${org}/calendario`)
   await ready(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Calendario' })).toBeVisible()
   await expect(page.locator('[data-calendar-period]')).toHaveText('Novembre 2026')
@@ -204,6 +205,47 @@ test('the month and the week of every client, with the address that keeps them',
   // a card opens its post
   await tiles.nth(1).click()
   await expect(page).toHaveURL(new RegExp(`/post/${ids['Il pane del giovedì'] ?? ''}`))
+})
+
+test('the list: the drafts without a date on top, the days in their groups, more days', async ({
+  page,
+  isMobile,
+}) => {
+  const { org, forno } = await agency(page, 'Lia Elenco')
+  await send(page, `/api/v1/orgs/${org}/workspaces/${forno.id}/posts`, {
+    type: 'photo',
+    caption: { common: 'Un’idea senza giorno' },
+  })
+  // the list is the phone's view; a computer opens on the month
+  await page.goto(isMobile ? `/${org}/calendario` : `/${org}/calendario?vista=elenco`)
+  await ready(page)
+  const list = page.locator('[data-calendar-list]')
+  await expect(list).toBeVisible()
+  await expect(page.locator('[data-calendar-period]')).toHaveText('19 nov – 30 dic 2026')
+  await expect(list.locator('[data-list-drafts] [data-post]')).toHaveCount(1)
+  await expect(list.locator('[data-list-drafts]')).toContainText('Un’idea senza giorno')
+  await expect(list.locator('[data-list-group]')).toHaveCount(4)
+  const groups = await list
+    .locator('[data-list-group]')
+    .evaluateAll((els) => els.map((e) => e.getAttribute('data-list-group')))
+  expect(groups).toEqual(['today', 'tomorrow', 'thisWeek', 'later'])
+  // today by time, the plan's content in its place (D-79)
+  const today = list.locator('[data-list-group="today"] a')
+  await expect(today).toHaveCount(4)
+  await expect(today.first()).toContainText('09:30')
+  await expect(today.last()).toContainText('Le castagne della sera')
+  expect((await axe(page)).violations).toEqual([])
+
+  // «Mostra altri»: the next 42 days under these
+  await list.locator('[data-list-more]').click()
+  await expect(list.locator('[data-list-more]')).toBeEnabled()
+  await expect(list.locator('[data-list-group]')).toHaveCount(4)
+  // the days before: the one that did not go out, earlier this week
+  await page.locator('[data-calendar-prev]').click()
+  await expect(page).toHaveURL(/da=2026-10-08/)
+  await expect(
+    list.locator('[data-list-group="earlierThisWeek"] [data-post][data-tone="danger"]'),
+  ).toHaveCount(1)
 })
 
 test('the filters go into the address and narrow the read', async ({ page, isMobile }) => {
