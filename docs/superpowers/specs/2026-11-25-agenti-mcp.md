@@ -72,7 +72,7 @@ Il valore vero è U1 e U2: il lavoro di scrittura si fa già in chat; oggi bisog
 
 ### 4.3 ChatGPT
 
-- Un server MCP diventa un'**app** (dentro un *plugin*, l'unità che si installa e si pubblica). Si prova con la *modalità sviluppatore* e si può pubblicare nella directory. Piani che lo permettono: **non verificato**. Fonte: [OpenAI, riferimento](https://developers.openai.com/plugins/reference).
+- Un server MCP diventa un'**app** (dentro un *plugin*, l'unità che si installa e si pubblica). Si prova con la *modalità sviluppatore* e si può pubblicare nella directory. Piani che lo permettono: vedi §4.4. Fonte: [OpenAI, riferimento](https://developers.openai.com/plugins/reference).
 - **File dalla chat: sì.** Lo strumento dichiara in `_meta["openai/fileParams"]` quali campi sono file; ChatGPT passa per ognuno `{ download_url, file_id, mime_type, file_name }`. L'indirizzo è temporaneo: il server lo scarica subito, senza scriverlo nei log. Fonti: [OpenAI](https://developers.openai.com/plugins/reference), [PR di un progetto che lo usa](https://github.com/pinbridge/pinbridge-mcp/pull/19). Durata dell'indirizzo e peso massimo: **non verificati**.
 - Uno strumento con `destructiveHint` fa chiedere la conferma all'utente prima della chiamata.
 - OAuth come sopra; ChatGPT vuole PKCE S256 e manda `resource`.
@@ -121,7 +121,8 @@ Cursor, VS Code, Le Chat di Mistral, Gemini CLI e gli SDK di agenti (Claude Agen
 ```
 
 - **`apps/mcp`** (come già previsto in §7 della specifica): un processo Node a sé, nella stessa immagine Docker, un servizio in più nel Compose. Non ha cookie, CSRF né pagine: solo `POST /mcp` con token, i metadati RFC 9728 e il controllo di salute. Separarlo dal pannello tiene piccola la superficie esposta a Internet. Usa l'SDK ufficiale TypeScript di MCP (dipendenza nuova: ADR 024).
-- **Il server di autorizzazione sta in `apps/web`**, perché l'accesso (password, passkey, 2FA) e la pagina di conferma sono del pannello. Proposta: i plugin **OAuth 2.1 Provider** e **CIMD** di Better Auth ([documentazione](https://www.better-auth.com/docs/plugins/oauth-provider), [CIMD](https://better-auth.com/docs/plugins/cimd)), già sulla nostra libreria e sul nostro database. L'ADR 012 oggi li vieta (vietava `oidcProvider` e `mcp`): va aggiornata con un'ADR nuova dopo la prova del task F0 (supporto di `resource`, rotazione dei refresh token, `iss`, legame con l'agenzia). Alternativa se la prova non va: `oidc-provider` di panva (certificato OpenID, molto maturo) dentro `apps/web`. Scrivere un server di autorizzazione da zero è sconsigliato. D-132 punto 2.
+- **Il server di autorizzazione sta in `apps/web`**, perché l'accesso (password, passkey, 2FA) e la pagina di conferma sono del pannello. Proposta: i plugin **OAuth 2.1 Provider** e **CIMD** di Better Auth ([documentazione](https://www.better-auth.com/docs/plugins/oauth-provider), [CIMD](https://better-auth.com/docs/plugins/cimd)), già sulla nostra libreria e sul nostro database. L'ADR 012 oggi li esclude (elenca come non usati `oidcProvider` e `mcp`; il plugin OAuth 2.1 Provider e CIMD non sono nominati): va aggiornata con un'ADR nuova dopo la prova del task F0 (supporto di `resource`, rotazione dei refresh token, `iss`, legame con l'agenzia). Alternativa se la prova non va: `oidc-provider` di panva (certificato OpenID, molto maturo) dentro `apps/web`. Scrivere un server di autorizzazione da zero è sconsigliato. D-132 punto 2.
+- **Ricerca del token.** Le tabelle dei token hanno RLS forzata e l'agenzia si conosce solo dopo aver trovato il token. La ricerca passa quindi da una funzione `SECURITY DEFINER` stretta, che riceve l'hash e restituisce solo agenzia, persona, ambiti e scadenza (come le funzioni `SECURITY DEFINER` della migrazione 0002), oppure da `runAsSystem` nel solo modulo `agents`, aggiunto a `RUN_AS_SYSTEM_ALLOWED` con un'ADR. Tutto il resto della richiesta lavora in `uow.run({ organizationId, userId })`. La batteria di isolamento prova anche questa ricerca.
 - **Token opachi**, non JWT: stringhe casuali di 256 bit con prefisso (`fwa_` accesso, `fwr_` rinnovo), salvate come hash. `apps/mcp` li cerca nel database a ogni richiesta: revoca immediata, nessuna chiave da ruotare, nessuna cache in memoria. Accesso 1 ora; rinnovo 30 giorni, ruotato a ogni uso, con il riuso di un token vecchio che revoca tutta la famiglia.
 - **Un collegamento = una persona + un'agenzia.** Alla conferma la persona sceglie l'agenzia (se ne ha più d'una) e gli ambiti. A ogni chiamata l'attore si ricostruisce come nel pannello (`requireOrgActor`): se la persona viene disattivata, tolta dall'agenzia o cambia ruolo, vale subito.
 
@@ -159,7 +160,7 @@ export interface McpTool<I extends z.ZodType, O extends z.ZodType> {
 | `packages/contracts` | Schemi degli strumenti riusati dalle rotte dove coincidono |
 | `apps/web` | Server di autorizzazione, pagina di conferma, *Impostazioni → Agenti collegati*, *Il mio account → Token personali*, pagina `/carica/<link>`, Bearer sull'API `/api/v1` |
 | `apps/mcp` | Nuovo |
-| Lettore di CSV ed Excel (tappa 9, Task 11) | Oggi è nel browser (`apps/web/app/utils/sheet-import.ts`). Va spostato in un pacchetto comune, così il server legge anche un Excel arrivato da ChatGPT |
+| Lettore di CSV ed Excel (tappa 9, Task 11) | Sarà nel browser (`apps/web/app/utils/sheet-import.ts`, tappa 9, Task 11). Va messo in un pacchetto comune, così il server legge anche un Excel arrivato da ChatGPT |
 | Docker e VPS | Servizio `mcp`, indirizzo pubblico dedicato (§9.4) |
 
 ---
@@ -193,7 +194,7 @@ Legenda ambito: **L** lettura, **B** bozze, **P** programmazione, **X** pubblica
 | `get_instagram_grid` 🔒 | L | Griglia del profilo: pubblicati e programmati in ordine (tappa 9, Task 12) | `calendar` |
 | `next_free_slot` 🔒 | L | Prossima fascia libera di un cliente dopo una data | `posts.nextFreeSlot` |
 | `list_notifications` 🔒 | L | Notifiche non lette | `notifications.centre` |
-| `mark_notifications_read` | L | Segna lette | `notifications` |
+| `mark_notifications_read` | B | Segna lette | `notifications` |
 
 ### 6.3 Libreria e file
 
@@ -260,7 +261,7 @@ Utenti, ruoli e inviti; integrazioni e token di Meta; collegamento degli account
 
 - **Prompt MCP** (comandi pronti che la chat mostra): «Pianifica il mese di un cliente», «Carica un calendario come piano editoriale», «Cosa devo fare oggi», «Prepara i post della settimana».
 - **Istruzioni del server**: un testo che il client dà al modello con le regole di Feedway (chiedi sempre il cliente se non è chiaro; mostra l'anteprima prima di confermare; usa l'ora di Roma; non inventare account).
-- **MCP Apps** (fase F7, dove il client le supporta): l'**anteprima del post** come nel pannello (Instagram e Facebook), il **calendario** del mese, la **tabella dell'anteprima in blocco** con le righe modificabili e il **caricamento dei file** dentro la chat. Senza MCP Apps tutto funziona lo stesso, con testo e miniature.
+- **MCP Apps** (task F10, dove il client le supporta): l'**anteprima del post** come nel pannello (Instagram e Facebook), il **calendario** del mese, la **tabella dell'anteprima in blocco** con le righe modificabili e il **caricamento dei file** dentro la chat. Senza MCP Apps tutto funziona lo stesso, con testo e miniature.
 
 ---
 
@@ -314,6 +315,10 @@ La pulizia (tappa 11) cancella anteprime, chiavi e link scaduti.
 | `schedule` | Programmare, spostare, annullare, in blocco | Sì (è il caso d'uso di Matteo), si può togliere |
 | `publish` | Pubblica subito, riprova | No, va acceso dall'Owner per l'agenzia e spuntato alla conferma |
 
+Le letture (`read`) possono scrivere solo dati di servizio che l'utente non vede come cambiamento: le anteprime (`agent_previews`) e le chiavi di idempotenza. Segnare lette le notifiche vuole `drafts`.
+
+Nella tabella `api_tokens` gli ambiti si salvano con questi nomi in inglese; i nomi italiani di §18.3 della specifica (`lettura`, `bozze`, `pubblicazione`) si sostituiscono, perché nessun token esiste ancora. `schedule` è nuovo: separa la programmazione (si può fermare fino all'ultimo) dalla pubblicazione immediata.
+
 Se manca un ambito, il server risponde `insufficient_scope` e il client chiede di allargarlo (*step-up*).
 
 ### 8.4 Limiti di frequenza
@@ -328,7 +333,13 @@ Gli agenti ripetono le chiamate quando una risposta tarda. Ogni strumento di scr
 
 Solo https; risoluzione DNS una volta e connessione a quell'indirizzo, rifiutati indirizzi privati, locali e di servizio (anche dopo un reindirizzamento, al massimo 3); tetto di peso e di tempo come il caricamento normale; tipo controllato dai byte, non dal nome; nessun cookie e nessuna intestazione nostra. Il file poi entra nella stessa analisi della libreria (tappa 4). Vale anche per i `download_url` di ChatGPT.
 
-### 8.7 Revisione dedicata
+### 8.7 Registrazione dei client
+
+- Il documento CIMD (l'indirizzo che fa da `client_id`) Feedway lo scarica: valgono le stesse regole di §8.6, più un tetto di 5 KB e una cache con scadenza.
+- La pagina di conferma mostra sempre il **dominio** del `redirect_uri` («ti collegherai a claude.ai»), così una registrazione falsa non si fa passare per Claude.
+- La registrazione dinamica (DCR) serve oggi ai client che non hanno CIMD. Proposta: accesa solo per i `redirect_uri` di client noti (claude.ai, chatgpt.com, `localhost` per Claude Code) e spenta del tutto quando i due client principali usano CIMD. D-132 punto 2.
+
+### 8.8 Revisione dedicata
 
 È un caso da revisione di sicurezza dedicata ([flusso Git](../../flusso-git.md) §Revisione): accesso, token, superficie pubblica, file da Internet.
 
@@ -388,8 +399,8 @@ Il MCP Inspector ufficiale si usa a mano durante lo sviluppo.
 
 | Opzione | Pro | Contro |
 |---|---|---|
-| (a) Subito dopo la tappa 9 | Matteo lo usa prima | Esce prima della revisione di sicurezza della tappa 11; ritarda condivisione e brand |
-| **(b) Tappa «Agenti» tra la 10 e la 11** (consigliata) | La tappa 11 (sicurezza, carico, runbook) lo copre; arriva con piano editoriale e in blocco finiti; la 1.0 lo comprende | La 1.0 slitta di una tappa |
+| **(a) Tappa «Agenti» tra la 10 e la 11** (consigliata) | La tappa 11 (sicurezza, carico, runbook) lo copre; arriva con piano editoriale e in blocco finiti; la 1.0 lo comprende | La 1.0 slitta di una tappa |
+| (b) Subito dopo la tappa 9 | Matteo lo usa prima | Esce prima della revisione di sicurezza della tappa 11; ritarda condivisione e brand |
 | (c) Versione 1.4, come in §18.2 | Nessun ritardo per la 1.0 | Mesi di attesa per la funzione che Matteo vuole di più |
 
 La tappa ha la sua minor e la sua prova; il piano eseguibile si scrive mentre si chiude la tappa 10, come le altre.

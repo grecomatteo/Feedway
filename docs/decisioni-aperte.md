@@ -1282,14 +1282,14 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 - **Origine:** richiesta di Matteo (25/11): parlare con Feedway da Claude, ChatGPT o un altro agente per programmare post con foto e caption e caricare il calendario di un cliente come piano editoriale. Studio in [specifica agenti e MCP](superpowers/specs/2026-11-25-agenti-mcp.md).
 - **Scelte da fare** (la prima opzione è la proposta):
   1. **Strada:** (a) server MCP remoto più token personali per l'API REST; (b) solo MCP; (c) solo API REST.
-  2. **Server di autorizzazione:** (a) plugin OAuth 2.1 Provider e CIMD di Better Auth, dopo la prova del task F0, con un'ADR che aggiorna la 012; (b) `oidc-provider` di panva; (c) un servizio esterno (WorkOS, Cloudflare Access).
+  2. **Server di autorizzazione:** (a) plugin OAuth 2.1 Provider e CIMD di Better Auth, dopo la prova del task F0, con un'ADR che aggiorna la 012; (b) `oidc-provider` di panva; (c) un servizio esterno (WorkOS, Cloudflare Access). In ogni caso la registrazione dinamica resta solo per i client noti.
   3. **Collocazione:** (a) tappa «Agenti» tra la 10 e la 11; (b) subito dopo la tappa 9; (c) versione 1.4 come in §18.2 della specifica.
   4. **Indirizzo pubblico:** (a) indirizzo dedicato con Cloudflare Tunnel solo per `/mcp` e i token, conferma e link di caricamento sul pannello; (b) Tailscale Funnel come l'host dei media; il link di caricamento sull'indirizzo pubblico se chi carica non ha Tailscale.
   5. **Ambiti di base alla conferma:** (a) lettura, bozze e programmazione spuntati, pubblicazione mai; (b) solo lettura e bozze, la programmazione da spuntare.
   6. **Fuori dagli strumenti:** (a) utenti, ruoli, inviti, integrazioni, impostazioni, privacy e sicurezza restano solo nel pannello; (b) aggiungere anche gli inviti e le impostazioni dei contenuti.
   7. **Tetto giornaliero** dei post programmati da agenti per agenzia: (a) 100; (b) nessun tetto; (c) un numero scelto dall'Owner.
   8. **Nomi degli strumenti:** (a) in inglese con titolo italiano; (b) in italiano come gli esempi di §18.3.
-  9. **MCP Apps** (anteprima, calendario e caricamento dentro la chat): (a) nella tappa, ultimo task; (b) dopo la 1.0.
+  9. **MCP Apps** (anteprima, calendario e caricamento dentro la chat): (a) nella tappa, task F10; (b) dopo la 1.0.
   10. **ChatGPT Work:** i server MCP personalizzati con scrittura vogliono un piano Business o Enterprise (su Pro solo lettura). (a) Matteo usa un piano Business per lo spazio dell'agenzia; (b) ChatGPT solo in lettura, la scrittura da Claude Code; (c) pubblicare l'app nella directory dei plugin di OpenAI (revisione, più lavoro, con la 2.0).
 - **Client principali:** Claude Code e ChatGPT Work (Matteo, 25/11). Per Claude Code i file passano da `create_upload_url` e `curl`.
 - **Non verificato:** se ChatGPT Work usa i server MCP personalizzati e passa loro i file; durata e peso massimo dei `download_url` di ChatGPT; se Claude passa in qualche modo un allegato della chat a un connettore remoto; supporto della elicitation nei client; i limiti di Claude (150.000 caratteri, 240 s). Tutto va provato nel task F0.
