@@ -23,7 +23,7 @@ import type { IdGenerator } from '../ports/id-generator.js'
 import type { PlanItemRecord, PlanScope } from '../ports/plan.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { createDraft, freeSlotOn, getStatuses } from '../posts/index.js'
+import { createDraft, freeSlotOn, getStatuses, isPostOf } from '../posts/index.js'
 import { assertActiveOrganization, currentActor, workspaceNotFound } from '../workspaces/index.js'
 
 // The editorial plan's use cases (spec §11.12, plan 09 Task 6). Who sees the client reads the
@@ -247,6 +247,35 @@ export async function listPlan(
       const factsOf = await postFacts(tx, scope.organizationId, items)
       const now = deps.clock.now()
       return { timeZone, items: items.map((i) => toDto(i, factsOf(i), now, timeZone)) }
+    },
+  )
+}
+
+/**
+ * The content of the plan a post of the client was prepared from (§11.12, Task 7): the editor
+ * shows its note, its type and its day. Whoever sees the client's plan reads it; a post that
+ * does not come from the plan has none, and a post that is not the client's is not found.
+ */
+export async function planItemOfPost(
+  deps: PlanDeps,
+  actor: OrgActor,
+  input: { workspaceId: string; postId: string },
+): Promise<{ item: PlanItemDto | null }> {
+  return deps.uow.run(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    async (tx) => {
+      const { scope, timeZone } = await openPlan(tx, actor, input.workspaceId, {
+        need: 'plan.view',
+        write: false,
+      })
+      if (!(await isPostOf(tx, scope, input.postId)))
+        throw new DomainError('NOT_FOUND', 'Post non trovato')
+      const [item] = (await tx.plan.findByPostIds(scope.organizationId, [input.postId])).filter(
+        (i) => i.workspaceId === scope.workspaceId,
+      )
+      if (!item) return { item: null }
+      const factsOf = await postFacts(tx, scope.organizationId, [item])
+      return { item: toDto(item, factsOf(item), deps.clock.now(), timeZone) }
     },
   )
 }

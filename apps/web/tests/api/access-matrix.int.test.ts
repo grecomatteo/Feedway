@@ -568,6 +568,10 @@ const RULES: Record<string, readonly Rule[]> = {
   'POST /api/v1/orgs/{org}/plan/{itemId}/prepare': [
     { permission: 'plan.prepare', level: 'workspace' },
   ],
+  // the content a post comes from, for the editor (Task 7): as the plan, every member
+  'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/plan': [
+    { permission: 'plan.view', level: 'workspace' },
+  ],
   // the calendar (plan 09 Task 2): every member, each across the clients they see; narrowed to
   // one client, who does not see it gets 404. «Elimina le bozze vuote» deletes only what the
   // person may delete: a member with none gets `deleted: 0`

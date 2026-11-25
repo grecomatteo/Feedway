@@ -108,10 +108,22 @@ export const preparePlanItemRoute = defineContract({
   scope: 'organization',
 })
 
+export const planOfPostRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/plan',
+  summary:
+    'Il contenuto del piano da cui viene il post, nota compresa, per l’editor; null se non viene dal piano',
+  request: { params: z.strictObject({ org: OrgSlug, id: Id, postId: Id }) },
+  response: z.object({ item: PlanItemDto.nullable() }),
+  auth: 'session',
+  scope: 'organization',
+})
+
 export const planRoutes = [
   listPlanRoute,
   createPlanItemRoute,
   updatePlanItemRoute,
   deletePlanItemRoute,
   preparePlanItemRoute,
+  planOfPostRoute,
 ] as const

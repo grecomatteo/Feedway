@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { seed } from '@app/infrastructure/testing'
 import { startApiEnv } from './identity-env.js'
@@ -5,7 +6,8 @@ import type { ApiEnv, ErrorJson, Person } from './identity-env.js'
 
 // The editorial plan over HTTP (plan 09 Task 6, spec §11.12): who plans, prepares and reads it,
 // «Prepara» twice, a cancelled post and a removed content, the calendar's card without the note,
-// the time of a prepared post, and the module turned off.
+// the time of a prepared post, the content a post comes from (the editor, Task 7), and the
+// module turned off.
 
 let env: ApiEnv
 let org: { id: string; slug: string }
@@ -77,6 +79,9 @@ const add = (body: Record<string, unknown> = {}, who: Who = 'publisher') =>
     }),
   )
 const prepare = (id: string, who: Who = 'editor') => call(who, 'POST', `${plan()}/${id}/prepare`)
+/** the content a post was prepared from, for the editor */
+const planOf = (who: Who, postId: string, workspaceId = forno) =>
+  call(who, 'GET', `${ws(workspaceId)}/posts/${postId}/plan`)
 const calendar = (from = '2027-01-01', to = '2027-01-31') =>
   ok<{
     posts: { id: string; marks: string[] }[]
@@ -293,6 +298,36 @@ describe('the plan', () => {
     expect(posts.find((p) => p.id === postId)?.marks).toEqual(['plan'])
   })
 
+  test('a post tells the content it comes from, note included, to whoever sees the client', async () => {
+    const item = await add({ localDate: '2027-01-23', note: 'Luce dalla vetrina' })
+    const { postId } = await ok<{ postId: string }>(prepare(item.id))
+    for (const who of ['editor', 'viewer'] as const)
+      expect(await ok(planOf(who, postId))).toMatchObject({
+        item: {
+          id: item.id,
+          localDate: '2027-01-23',
+          type: 'reel',
+          title: 'Video 1',
+          note: 'Luce dalla vetrina',
+          postId,
+          state: 'prepared',
+        },
+      })
+    // a post that does not come from the plan: nothing to tell
+    const plain = await ok<Post>(
+      call('editor', 'POST', `${ws()}/posts`, {
+        type: 'photo',
+        caption: { common: 'Fuori dal piano' },
+      }),
+    )
+    expect(await ok(planOf('editor', plain.id))).toEqual({ item: null })
+    // no such post, or the post asked under another client of the agency
+    await refused(planOf('editor', randomUUID()), 404, 'NOT_FOUND')
+    await refused(planOf('editor', postId, archived), 404, 'NOT_FOUND')
+    // a client the person does not see
+    await refused(planOf('editor', postId, gino), 404, 'NOT_FOUND')
+  })
+
   test('an archived client’s plan is read and not changed', async () => {
     await read('viewer', '2027-01-01', '2027-01-31', archived)
     await refused(
@@ -354,6 +389,7 @@ describe('the plan', () => {
       )
       await refused(call('manager', 'DELETE', `${plan()}/${item.id}`), 404, 'NOT_FOUND')
       await refused(prepare(item.id), 404, 'NOT_FOUND')
+      await refused(planOf('viewer', randomUUID()), 404, 'NOT_FOUND')
       expect((await calendar()).entries).toEqual([])
     } finally {
       await env.admin.pool.query(
