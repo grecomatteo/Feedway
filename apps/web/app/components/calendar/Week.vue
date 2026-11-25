@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
+import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
 import { dayCount, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
@@ -17,6 +18,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ openDay: [date: LocalDate] }>()
 const { t } = useI18n()
+// a day takes a post dragged onto it (plan 09 Task 4): today and the days ahead
+const moving = inject(CALENDAR_MOVING, null)
 
 const SHORT = new Intl.DateTimeFormat('it-IT', { weekday: 'short', timeZone: 'UTC' })
 const LONG = new Intl.DateTimeFormat('it-IT', {
@@ -55,8 +58,13 @@ const columns = computed(() =>
         v-for="c in columns"
         :key="c.date"
         class="flex min-w-0 flex-col border-t border-(--app-border) first:border-t-0 @min-[56rem]:border-t-0 @min-[56rem]:border-s @min-[56rem]:first:border-s-0"
+        :class="moving?.over.value === c.date ? 'shadow-[inset_0_0_0_2px_var(--app-text)]' : ''"
         :data-day="c.date"
         :data-today="c.today || undefined"
+        :data-drop-over="moving?.over.value === c.date || undefined"
+        @dragover="moving?.dragOver($event, c.date)"
+        @dragleave="moving?.leave($event, c.date)"
+        @drop="moving?.drop($event, c.date)"
       >
         <button
           type="button"

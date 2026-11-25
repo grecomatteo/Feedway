@@ -112,6 +112,8 @@ export interface CalendarCardInfo {
   type: CalendarPost['type']
   platforms: ('instagram' | 'facebook')[]
   labels: { id: string; name: string; color: LabelDto['color'] }[]
+  /** this person may move it now: dragged onto a day, «Sposta…» in its menu (plan 09 Task 4) */
+  movable: boolean
   /**
    * the post's page: the editor, or the outcome once it is on its way (as the list); for a content
    * of the plan, its day in the plan

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
+import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
 import { cardLook, dayCount, shownInDay, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
@@ -23,6 +24,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ openDay: [date: LocalDate] }>()
 const { t } = useI18n()
+// a day takes a post dragged onto it (plan 09 Task 4): today and the days ahead
+const moving = inject(CALENDAR_MOVING, null)
 
 /** four on a computer: one less and «+N» when they do not fit (screen 07) */
 const ROOM = 4
@@ -97,9 +100,14 @@ const cells = computed(() =>
         :class="[
           c.inMonth ? '' : 'bg-(--app-surface-sunken)',
           c.date === selected ? 'max-md:bg-(--app-nav-hover)' : '',
+          moving?.over.value === c.date ? 'shadow-[inset_0_0_0_2px_var(--app-text)]' : '',
         ]"
         :data-day="c.date"
         :data-today="c.today || undefined"
+        :data-drop-over="moving?.over.value === c.date || undefined"
+        @dragover="moving?.dragOver($event, c.date)"
+        @dragleave="moving?.leave($event, c.date)"
+        @drop="moving?.drop($event, c.date)"
       >
         <!-- the number opens the whole day; on a phone the whole day is the button -->
         <button
