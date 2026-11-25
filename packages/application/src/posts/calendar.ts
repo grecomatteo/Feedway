@@ -1,6 +1,9 @@
 import {
+  GRID_POST_TYPES,
   can,
   instantToZoned,
+  isGridPost,
+  isGridWaiting,
   type LocalDate,
   type OrgActor,
   type Platform,
@@ -109,35 +112,81 @@ export async function listPostsInRange(
   })
   const truncated = records.length > input.limit
   const kept = truncated ? records.slice(0, input.limit) : records
-  const details = await detailsOf(tx, actor, kept)
-  return {
-    truncated,
-    items: kept.map((p) => {
-      const local = p.scheduledAt ? instantToZoned(p.scheduledAt, input.timeZone) : null
-      return {
-        id: p.id,
-        workspaceId: p.workspaceId,
-        type: p.type,
-        status: p.status,
-        scheduledAt: p.scheduledAt?.toISOString() ?? null,
-        timezone: p.timezone,
-        localDate: local?.localDate ?? null,
-        localTime: local?.localTime ?? null,
-        text: textStart(p),
-        firstFile: details.firstFile(p),
-        mediaCount: p.mediaIds.length,
-        thumbnail: details.thumbnail(p),
-        accounts: details.accounts(p).map(([id, platform]) => ({ id, platform })),
-        labelIds: [...p.labelIds],
-        createdBy: p.createdBy,
-        missing: draftMissing(p),
-        empty: isEmptyDraft(p),
-        notOut: notOutOf(p),
-        version: p.version,
-        updatedAt: p.updatedAt.toISOString(),
-      }
-    }),
-  }
+  return { truncated, items: await calendarPostsOf(tx, actor, kept, input.timeZone) }
+}
+
+/** The rows of these posts as the calendar draws them, the days in `timeZone`. */
+async function calendarPostsOf(
+  tx: Tx,
+  actor: OrgActor,
+  records: readonly PostRecord[],
+  timeZone: string,
+): Promise<CalendarPostDto[]> {
+  const details = await detailsOf(tx, actor, records)
+  return records.map((p) => {
+    const local = p.scheduledAt ? instantToZoned(p.scheduledAt, timeZone) : null
+    return {
+      id: p.id,
+      workspaceId: p.workspaceId,
+      type: p.type,
+      status: p.status,
+      scheduledAt: p.scheduledAt?.toISOString() ?? null,
+      timezone: p.timezone,
+      localDate: local?.localDate ?? null,
+      localTime: local?.localTime ?? null,
+      text: textStart(p),
+      firstFile: details.firstFile(p),
+      mediaCount: p.mediaIds.length,
+      thumbnail: details.thumbnail(p),
+      accounts: details.accounts(p).map(([id, platform]) => ({ id, platform })),
+      labelIds: [...p.labelIds],
+      createdBy: p.createdBy,
+      missing: draftMissing(p),
+      empty: isEmptyDraft(p),
+      notOut: notOutOf(p),
+      version: p.version,
+      updatedAt: p.updatedAt.toISOString(),
+    }
+  })
+}
+
+/** More than a client schedules on one profile in a month: the rest is left out. */
+export const GRID_POSTS_MAX = 200
+
+/**
+ * The scheduled posts of Instagram's grid (plan 09 Task 12): those of the client that go out on
+ * this account in the period, still waiting there (not out, not cancelled), and that reach the
+ * feed (no story, no reel kept among the reels). Latest first, as the grid shows them. The
+ * client is visible to `actor`, already checked. Public, for `calendar`.
+ */
+export async function listGridPosts(
+  tx: Tx,
+  actor: OrgActor,
+  input: {
+    workspaceId: string
+    accountId: string
+    period: { from: Date; to: Date }
+    timeZone: string
+  },
+): Promise<CalendarPostDto[]> {
+  const records = await tx.posts.listForCalendar(actor.organizationId, [input.workspaceId], {
+    period: input.period,
+    statuses: ['scheduled', 'publishing'],
+    types: GRID_POST_TYPES,
+    authorIds: [],
+    accountIds: [input.accountId],
+    labelIds: [],
+    limit: GRID_POSTS_MAX,
+  })
+  const waiting = records.filter(
+    (p) =>
+      isGridPost({ type: p.type, shareToFeed: p.options.shareToFeed }) &&
+      p.targets.some((t) => t.accountId === input.accountId && isGridWaiting(t.status)),
+  )
+  const latestFirst = [...waiting].sort(
+    (a, b) => (b.scheduledAt?.getTime() ?? 0) - (a.scheduledAt?.getTime() ?? 0),
+  )
+  return calendarPostsOf(tx, actor, latestFirst, input.timeZone)
 }
 
 /** More empty drafts than anyone leaves: the rest goes with the next press. */

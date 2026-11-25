@@ -2,13 +2,13 @@ import {
   PublishError,
   type Clock,
   type ConnectionCredentials,
-  type PlatformLoad,
   type StepUsage,
 } from '@app/application'
 import { publishErrorCodeOfMeta, type PublishErrorCode } from '@app/domain'
 import type { MetaUsage } from '@app/domain/platforms/meta'
 import { MetaError, type MetaErrorReason } from './errors.js'
 import type { MetaGraphClient, MetaTokenCredentials } from './graph-client.js'
+import { loadOf } from './load.js'
 import type { MetaConnectorApp } from './system-user-connector.js'
 
 // What the Meta publishers share (plan 07 Task 4): what the posts module sees is classified
@@ -25,17 +25,7 @@ export function tokenCredentials(credentials: ConnectionCredentials): MetaTokenC
   return { accessToken: credentials.token, appSecret: app.appSecret }
 }
 
-const peak = (c: { callCount: number; totalCputime: number; totalTime: number }) =>
-  Math.max(c.callCount, c.totalCputime, c.totalTime)
-
-/** How close the limits are, from the usage headers of one answer (§8.6). */
-export function loadOf(usage: MetaUsage): PlatformLoad {
-  return {
-    accountPercent: usage.business.length === 0 ? null : Math.max(...usage.business.map(peak)),
-    appPercent: usage.app === null ? null : peak(usage.app),
-    regainMinutes: Math.max(0, ...usage.business.map((b) => b.estimatedTimeToRegainAccessMinutes)),
-  }
-}
+export { loadOf }
 
 export const stepUsage = (usage: MetaUsage): StepUsage => ({ usage, load: loadOf(usage) })
 

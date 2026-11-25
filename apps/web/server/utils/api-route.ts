@@ -358,6 +358,23 @@ export const POST_WRITES_RATE_LIMIT = {
   by: 'user',
 } as const
 
+/**
+ * Instagram's grid (plan 09 Task 12): each opening is a call to Meta under the agency's app,
+ * each picture another one; a person reopening it often stays well within.
+ */
+export const GRID_READS_RATE_LIMIT = {
+  name: 'grid-reads',
+  limit: 30,
+  windowMs: 60_000,
+  by: 'user',
+} as const
+export const GRID_THUMBNAILS_RATE_LIMIT = {
+  name: 'grid-thumbnails',
+  limit: 300,
+  windowMs: 60_000,
+  by: 'user',
+} as const
+
 /** Each photo is decoded and resized: a stolen session must not keep the server busy. */
 export const AVATAR_RATE_LIMIT = { name: 'avatar', limit: 30, windowMs: 10 * 60_000 }
 /** The agency logo: decoded and resized as a photo, by the Owner only. */

@@ -50,7 +50,55 @@ export interface PlatformConnector<AppCredentials = unknown> {
    * limit. The bytes are not trusted: the caller checks their type.
    */
   fetchPicture(url: string): Promise<PictureDownload>
+  /**
+   * Instagram's grid (plan 09 Task 12, P4): the latest posts of the account's feed, newest
+   * first, at most `limit`, read live. Only the kinds that publish to Instagram have it.
+   */
+  listGridMedia?(
+    credentials: ConnectionCredentials<AppCredentials>,
+    account: GridAccount,
+    opts: { limit: number },
+  ): Promise<GridListing>
+  /**
+   * One media of the grid, read again for its picture's address (which expires): `not_found`
+   * when it is not among the account's latest `limit`, whatever else the token sees.
+   */
+  getGridMedia?(
+    credentials: ConnectionCredentials<AppCredentials>,
+    account: GridAccount,
+    mediaId: string,
+    opts: { limit: number },
+  ): Promise<GridMediaRead>
 }
+
+/** The account whose grid is read, as the platform knows it. */
+export interface GridAccount {
+  platform: Platform
+  externalId: string
+}
+
+/** A post already out, as the grid shows it; `pictureUrl` never leaves the server. */
+export interface GridMedia {
+  externalId: string
+  kind: 'image' | 'video' | 'carousel'
+  reel: boolean
+  publishedAt: Date | null
+  permalink: string | null
+  /** The platform's address of its picture (a video's cover); null: none given. */
+  pictureUrl: string | null
+}
+
+/**
+ * `rejected`: the token (or what it may see) is refused; `unavailable`: no answer, or an error
+ * that may pass. `load`: the platform's counters of the answer, when it said them (§8.6).
+ */
+export type GridListing =
+  | { ok: true; media: GridMedia[]; load: PlatformLoad | null }
+  | { ok: false; reason: 'rejected' | 'unavailable'; load: PlatformLoad | null }
+
+export type GridMediaRead =
+  | { ok: true; media: GridMedia; load: PlatformLoad | null }
+  | { ok: false; reason: 'not_found' | 'rejected' | 'unavailable'; load: PlatformLoad | null }
 
 /**
  * `refused`: the address, a redirect or the size is not allowed, so nothing was (or will be)
@@ -170,3 +218,15 @@ export type HealthCheck =
       scopes: string[]
     }
   | { ok: false; reason: 'expired' | 'revoked' | 'app_rejected' | 'unavailable' }
+
+/**
+ * How close the platform's limits are, from the last answer (§8.6): the worker slows down the
+ * account above 80% of `accountPercent` and every account of the agency above 80% of
+ * `appPercent`. null: the answer did not say.
+ */
+export interface PlatformLoad {
+  accountPercent: number | null
+  appPercent: number | null
+  /** What the platform says to wait before the account is served again; 0 when nothing. */
+  regainMinutes: number
+}

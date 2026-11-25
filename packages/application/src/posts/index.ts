@@ -42,8 +42,19 @@ export type { AccountGroupDto } from './account-groups.js'
 export { addNote, deleteNote, listNotes } from './notes.js'
 export type { PostNoteDto } from './notes.js'
 // The calendar's posts and its list (plan 09 Task 2), for the `calendar` module.
-export { EMPTY_DRAFTS_MAX, deleteEmptyDrafts, listPostsInRange } from './calendar.js'
+export {
+  EMPTY_DRAFTS_MAX,
+  GRID_POSTS_MAX,
+  deleteEmptyDrafts,
+  listGridPosts,
+  listPostsInRange,
+} from './calendar.js'
 export type { CalendarPostDto, PostRangeFilters } from './calendar.js'
+// Instagram's grid (plan 09 Task 12): two scheduled posts swap their times.
+export { swapScheduledTimes } from './swap.js'
+export { sendAfterSchedule } from './schedule.js'
+export type { AfterSchedule } from './schedule.js'
+export type { SwapInput, SwapResult, SwapSide } from './swap.js'
 // «Oggi» (redesign R3): the agenda of the clients the person sees.
 export {
   AGENDA_MAX_DAYS,

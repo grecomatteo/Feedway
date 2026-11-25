@@ -37,6 +37,8 @@ export interface Fixtures {
   objects: Record<string, GraphObject>
   edges: Record<string, EdgeItem[]>
   logins: Record<string, { token: string }>
+  /** The Instagram posts already out, with their account (`igUserId`), for the grid. */
+  media: (Record<string, unknown> & { id: string; igUserId: string })[]
 }
 
 const read = (name: string): unknown =>
@@ -51,5 +53,6 @@ export function loadFixtures(): Fixtures {
     objects: read('objects') as Fixtures['objects'],
     edges: read('edges') as Fixtures['edges'],
     logins: read('logins') as Fixtures['logins'],
+    media: read('media') as Fixtures['media'],
   }
 }

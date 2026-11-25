@@ -1,5 +1,7 @@
 import type { Platform, PostType, PublishErrorCode } from '@app/domain'
-import type { ConnectionCredentials } from './platform-connector.js'
+import type { ConnectionCredentials, PlatformLoad } from './platform-connector.js'
+
+export type { PlatformLoad } from './platform-connector.js'
 
 // How a destination reaches its platform (ADR 019, spec §8.5; plan 07 Task 4). One
 // implementation per platform, in `infrastructure/src/platforms/<name>/`: the posts module never
@@ -75,18 +77,6 @@ export interface PublishFiles {
 export interface CoverImage {
   bytes: Uint8Array
   contentType: string
-}
-
-/**
- * How close the platform's limits are, from the last answer (§8.6): the worker slows down the
- * account above 80% of `accountPercent` and every account of the agency above 80% of
- * `appPercent`. null: the answer did not say.
- */
-export interface PlatformLoad {
-  accountPercent: number | null
-  appPercent: number | null
-  /** What the platform says to wait before the account is served again; 0 when nothing. */
-  regainMinutes: number
 }
 
 export interface StepContext {
