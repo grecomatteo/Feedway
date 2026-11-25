@@ -88,6 +88,20 @@ const mayCancel = computed(() => !archived.value && publisher.value)
 /** «Modifica» (R13): who may change this scheduled post, while no destination has started */
 const mayEdit = computed(() => mayRetry.value && isPanelEditable(current.value))
 const mayManage = computed(() => !archived.value && manager.value)
+// «Duplica» (plan 09 Task 10): who writes drafts in the client copies the post on other days
+const mayDuplicate = computed(() => !archived.value && props.client.myRole !== 'viewer')
+const duplicating = ref(false)
+const ownTime = computed(() => {
+  const at = current.value.scheduledAt
+  if (!at) return null
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: current.value.timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(at))
+})
+const clientPath = computed(() => `/spazi/${encodeURIComponent(props.client.slug)}`)
 
 // ---- the accounts, by id
 const accounts = computed(
@@ -345,17 +359,28 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
           <span aria-live="polite"
             ><StatusDot :label="state.label" :tone="state.tone" data-outcome-state
           /></span>
-          <UButton
-            v-if="mayEdit"
-            class="ml-auto"
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-pencil"
-            data-outcome-edit
-            @click="emit('edit', current)"
-          >
-            {{ $t('posts.outcome.edit') }}
-          </UButton>
+          <span class="ml-auto flex flex-wrap gap-2">
+            <UButton
+              v-if="mayDuplicate"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-copy"
+              data-outcome-duplicate
+              @click="duplicating = true"
+            >
+              {{ $t('bulk.duplicate.action') }}
+            </UButton>
+            <UButton
+              v-if="mayEdit"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-pencil"
+              data-outcome-edit
+              @click="emit('edit', current)"
+            >
+              {{ $t('posts.outcome.edit') }}
+            </UButton>
+          </span>
         </div>
       </div>
 
@@ -675,5 +700,12 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
         </div>
       </template>
     </UModal>
+    <BulkDuplicateDialog
+      v-model:open="duplicating"
+      :client="client"
+      :post-id="current.id"
+      :time="ownTime"
+      :client-path="clientPath"
+    />
   </PageShell>
 </template>

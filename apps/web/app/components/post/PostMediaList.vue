@@ -14,6 +14,10 @@ import type { EditorEntry, PostEditor } from '~/composables/usePostEditor'
 const props = defineProps<{ editor: PostEditor; client: WorkspaceView }>()
 const { t } = useI18n()
 const e = props.editor
+const org = useOrganization()
+const bulkTo = computed(() =>
+  org.to(`/spazi/${encodeURIComponent(props.client.slug)}/post/in-blocco`),
+)
 const { line, tone, showsBar, barPercent } = useUploadLine()
 
 const picker = ref<HTMLInputElement | null>(null)
@@ -431,6 +435,16 @@ function release() {
         $t('posts.media.dropHere')
       }}</span>
     </div>
+    <!-- «In blocco» from «Nuovo post» (plan 09 Task 10): before the first file, for who schedules -->
+    <NuxtLink
+      v-if="e.editable.value && e.may.value.publish && e.entries.value.length === 0"
+      :to="bulkTo"
+      class="mt-2 inline-flex items-center gap-1.5 text-detail text-(--app-text-muted) underline-offset-2 hover:text-(--app-text) hover:underline"
+      data-bulk-entry
+    >
+      <UIcon name="i-lucide-rows-3" class="size-4" aria-hidden="true" />
+      {{ $t('bulk.entry') }}
+    </NuxtLink>
     <p
       v-if="e.editable.value && full && !single"
       id="post-media-full"
