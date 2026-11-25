@@ -3029,8 +3029,8 @@
         "line": "Controlla i log del backup sulla VPS."
       },
       "plan_due_soon": {
-        "one": "Da preparare entro domani: «{title}»",
-        "many": "{n} contenuti del piano da preparare entro domani",
+        "one": "Da preparare, mancano meno di 36 ore: «{title}»",
+        "many": "{n} contenuti del piano da preparare: mancano meno di 36 ore",
         "line": "{type} · «{title}» · {when}"
       }
     },
@@ -3203,7 +3203,7 @@
       "system_worker_down": "Worker fermo",
       "system_worker_up": "Worker ripartito",
       "system_backup_failed": "Backup non riuscito",
-      "plan_due_soon": "Contenuto del piano da preparare entro domani"
+      "plan_due_soon": "Contenuto del piano da preparare, a meno di 36 ore"
     },
     "groups": {
       "post": "Post",
@@ -3400,18 +3400,16 @@
   "plan": {
     "title": "Piano editoriale",
     "off": "Il piano editoriale non è attivo per questa agenzia.",
-    "loading": "Carico il piano…",
     "loadError": "Non riesco a leggere il piano. Riprova tra poco.",
     "prevMonth": "Mese precedente",
     "nextMonth": "Mese successivo",
     "today": "Oggi",
     "counts": "Nessun contenuto | Un contenuto | {n} contenuti",
-    "preparedCount": "{n} preparati",
+    "preparedCount": "{n} preparato | {n} preparati",
     "empty": "Il mese è vuoto. Scegli un giorno e scrivi cosa uscirà.",
     "emptyRead": "Nel piano di questo mese non c’è ancora nulla.",
     "readOnly": "Puoi leggere il piano di questo cliente, non cambiarlo.",
     "addOn": "Aggiungi un contenuto il {day}",
-    "dayItems": "Nessun contenuto | Un contenuto | {n} contenuti",
     "choose": {
       "title": "Per quale cliente fai il piano?",
       "text": "Il piano è di un cliente alla volta.",
@@ -3424,10 +3422,6 @@
       "due_soon": "Meno di 36 ore",
       "late": "In ritardo",
       "prepared": "Preparato"
-    },
-    "card": {
-      "label": "{type} «{title}», {when}, {state}",
-      "allDay": "senza ora"
     },
     "actions": {
       "edit": "Modifica",

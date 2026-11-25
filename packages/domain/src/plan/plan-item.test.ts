@@ -67,24 +67,29 @@ describe('the state', () => {
   })
 })
 
-describe('the notification', () => {
-  test('24 hours before a content with a time', () => {
+describe('the notification, when the card turns yellow (Matteo, 25/11)', () => {
+  test('36 hours before a content with a time', () => {
     expect(dueNotificationAt({ localDate: '2026-12-20', localTime: '10:00' }, ROME)).toEqual(
-      new Date('2026-12-19T09:00:00Z'),
+      new Date('2026-12-18T21:00:00Z'),
     )
   })
 
-  test('at 9:00 of the day before without a time, also across the change of the clocks', () => {
+  test('36 hours before the end of a day without a time, also across the change of the clocks', () => {
+    // 23:59 of the 20th in Rome is 22:59Z: 11:59 of the 19th
     expect(dueNotificationAt({ localDate: '2026-12-20', localTime: null }, ROME)).toEqual(
-      new Date('2026-12-19T08:00:00Z'),
+      new Date('2026-12-19T10:59:00Z'),
     )
-    // 26/10: the day before is the day of 25 hours, already in winter time at 9:00
-    expect(dueNotificationAt({ localDate: '2026-10-26', localTime: null }, ROME)).toEqual(
-      new Date('2026-10-25T08:00:00Z'),
+    // 28/3/2027 is a day of 23 hours: 36 real hours before its end are 10:59 of the 27th
+    expect(dueNotificationAt({ localDate: '2027-03-28', localTime: null }, ROME)).toEqual(
+      new Date('2027-03-27T09:59:00Z'),
     )
-    expect(dueNotificationAt({ localDate: '2027-03-01', localTime: null }, ROME)).toEqual(
-      new Date('2027-02-28T08:00:00Z'),
-    )
+  })
+
+  test('the same instant the state becomes «due soon», to the millisecond', () => {
+    const item = { localDate: '2026-12-20', localTime: '10:00' }
+    const at = dueNotificationAt(item, ROME)
+    expect(planItemState(item, null, new Date(at.getTime() - 1), ROME)).toBe('to_prepare')
+    expect(planItemState(item, null, at, ROME)).toBe('due_soon')
   })
 
   test('an impossible day is refused, never moved to the next one', () => {

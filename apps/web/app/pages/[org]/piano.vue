@@ -92,14 +92,18 @@ async function choose(slug: string) {
 
 // ---------------------------------------------------------------- the plan of the month
 const items = ref<PlanItem[]>([])
-const loaded = ref(false)
 const problem = ref<string | null>(null)
+/** the client and month the items are of: another month is not «loaded» until it is read */
+const view = computed(() => `${client.value?.id ?? ''}:${month.value}`)
+const loadedFor = ref('')
+const loaded = computed(() => loadedFor.value === view.value)
 let latest = 0
 
 async function load() {
   const ws = client.value
   if (!ws || !enabled.value) return
   const seq = ++latest
+  const key = view.value
   problem.value = null
   try {
     const { from, to } = planRange(month.value)
@@ -107,7 +111,13 @@ async function load() {
     const read = await call<{ items: PlanItem[] }>('GET', `${org.api('/plan')}?${query}`)
     if (seq !== latest) return
     items.value = read.items
-    loaded.value = true
+    loadedFor.value = key
+    // a form open on a content read again: its new version, or closed when it is gone
+    if (form.item && form.mode !== 'new') {
+      const fresh = read.items.find((i) => i.id === form.item?.id)
+      if (fresh) form.item = fresh
+      else form.open = false
+    }
   } catch {
     if (seq === latest) problem.value = t('plan.loadError')
   }
@@ -115,10 +125,7 @@ async function load() {
 watch([() => client.value?.id, month, enabled], () => void load(), { immediate: true })
 watch(
   () => client.value?.id,
-  () => {
-    items.value = []
-    loaded.value = false
-  },
+  () => (items.value = []),
 )
 
 const byDay = computed(() => itemsByDay(items.value))
@@ -127,14 +134,19 @@ const counts = computed(() => monthCounts(items.value, month.value))
 const countLine = computed(() => {
   const { total, prepared } = counts.value
   const all = t('plan.counts', { n: total }, total)
-  return prepared > 0 ? `${all} · ${t('plan.preparedCount', { n: prepared })}` : all
+  return prepared > 0 ? `${all} · ${t('plan.preparedCount', { n: prepared }, prepared)}` : all
 })
 
 const canAdd = (date: string) => canEdit.value && date >= today.value
 const dayName = (date: string) => formatDay(date, { now: now.value })
 /** «Oggi, giovedì 19» on the phone's list */
+const LIST_DAY = new Intl.DateTimeFormat('it-IT', {
+  weekday: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+})
 const listDay = (date: string) => {
-  const name = formatDay(date, { now: now.value }).replace(/ [^ ]+$/, '')
+  const name = LIST_DAY.format(new Date(`${date}T12:00:00Z`))
   return date === today.value ? `${t('plan.today')}, ${name}` : name
 }
 
@@ -162,20 +174,37 @@ function onCell(event: MouseEvent, date: string) {
   if (canAdd(date)) openNew(date)
 }
 
-function put(item: PlanItem) {
+/**
+ * A content as the server answered. A new one joins only when it belongs to the client and the
+ * weeks on screen: an answer that comes after a change of month does not add it to another.
+ */
+function put(item: PlanItem, add = false) {
   const at = items.value.findIndex((i) => i.id === item.id)
-  if (at === -1) items.value = [...items.value, item]
-  else items.value = items.value.map((i) => (i.id === item.id ? item : i))
+  if (at !== -1) {
+    items.value = items.value.map((i) => (i.id === item.id ? item : i))
+    return
+  }
+  const { from, to } = planRange(month.value)
+  if (
+    add &&
+    item.workspaceId === client.value?.id &&
+    item.localDate >= from &&
+    item.localDate <= to
+  )
+    items.value = [...items.value, item]
 }
-function saved(item: PlanItem) {
-  put(item)
+function saved(item: PlanItem, created: boolean) {
+  put(item, created)
 }
 
 // ---------------------------------------------------------------- toast and «Annulla»
 const toast = reactive({ open: false, message: '', action: '' })
 let undo: (() => Promise<void>) | null = null
-function tell(message: string, back: (() => Promise<void>) | null = null) {
+async function tell(message: string, back: (() => Promise<void>) | null = null) {
   undo = back
+  // closed first, so a second message with the same words starts its five seconds again
+  toast.open = false
+  await nextTick()
   Object.assign(toast, { open: true, message, action: back ? t('plan.undo') : '' })
 }
 async function runUndo() {
@@ -194,9 +223,13 @@ function failed(e: unknown) {
 
 // ---------------------------------------------------------------- moving
 const moving = reactive({ open: false, item: null as PlanItem | null })
+/** the contents whose move is on its way: not moved again until the server answers */
+const pending = ref(new Set<string>())
 async function move(item: PlanItem, date: string, undoable = true) {
+  if (pending.value.has(item.id)) return
   actionProblem.value = null
   const before = item
+  pending.value = new Set([...pending.value, item.id])
   // drawn on its new day at once; put back if the server says no
   put({ ...item, localDate: date })
   try {
@@ -205,13 +238,21 @@ async function move(item: PlanItem, date: string, undoable = true) {
       localDate: date,
     })
     put(moved)
-    tell(
+    void tell(
       t('plan.move.done', { day: dayName(date) }),
-      undoable ? () => move(moved, before.localDate, false) : null,
+      undoable
+        ? async () => {
+            // the version of now: the content may have been changed since the move
+            const current = items.value.find((i) => i.id === moved.id) ?? moved
+            await move(current, before.localDate, false)
+          }
+        : null,
     )
   } catch (e) {
     put(before)
     failed(e)
+  } finally {
+    pending.value = new Set([...pending.value].filter((id) => id !== item.id))
   }
 }
 
@@ -262,6 +303,11 @@ async function prepare(item: PlanItem) {
     failed(e)
   }
 }
+/** from the window of a content: closed first, so an error is said on the page, in view */
+function prepareFromView(item: PlanItem) {
+  form.open = false
+  void prepare(item)
+}
 const postLink = (postId: string) =>
   org.to(
     `/spazi/${encodeURIComponent(client.value?.slug ?? '')}/post/${encodeURIComponent(postId)}`,
@@ -277,7 +323,7 @@ async function remove(item: PlanItem) {
     items.value = items.value.filter((i) => i.id !== item.id)
     const prepared = item.state === 'prepared'
     // a prepared one is not given back: its post stays as it is, and a new content would not be its
-    tell(
+    void tell(
       t(prepared ? 'plan.removedPrepared' : 'plan.removed', { title: item.title }),
       prepared ? null : () => restore(item),
     )
@@ -295,8 +341,8 @@ async function restore(item: PlanItem) {
       title: item.title,
       note: item.note,
     })
-    put(back)
-    tell(t('plan.restored', { title: item.title }))
+    put(back, true)
+    void tell(t('plan.restored', { title: item.title }))
   } catch (e) {
     failed(e)
   }
@@ -503,7 +549,7 @@ const ready = computed(
                 :item="item"
                 :state="stateOf(item)"
                 :actions="actionsOf(item)"
-                :draggable="canEdit"
+                :draggable="canEdit && !pending.has(item.id)"
                 :lifted="lifted?.id === item.id"
                 @lift="lift($event, item)"
                 @drop="settle"
@@ -570,7 +616,7 @@ const ready = computed(
       :can-prepare="canPrepare"
       @saved="saved"
       @stale="load()"
-      @prepare="prepare"
+      @prepare="prepareFromView"
       @open-post="openPost"
     />
     <PlanMoveDialog

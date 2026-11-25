@@ -944,7 +944,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 **Come si vede nel calendario principale**
 - Scheda **tratteggiata e semitrasparente** con tipo, titolo, ora se c'è ed etichetta **"Da preparare"**: non si può confondere con un post vero. Diventa gialla con "Mancano meno di 36 ore" e rossa con "In ritardo" secondo l'istante di riferimento della regola 2.
 - Selettore **"Mostra: Post · Piano · Entrambi"** (predefinito: Entrambi), salvato nell'indirizzo come gli altri filtri. Nel calendario principale non si pianifica: dalla scheda si apre il contenuto nel Piano editoriale o si prepara il post.
-- Notifica **"Contenuto da preparare entro domani"** a chi può prepararlo in quello spazio (§12.2): 24 ore prima dell'istante di riferimento se il contenuto ha un'ora, alle 9:00 del giorno prima se non ce l'ha (mai di notte; valgono comunque le ore di silenzio). Una riga anche nel riepilogo delle 8:00 (§12.4).
+- Notifica **"Da preparare, mancano meno di 36 ore"** a chi può prepararlo in quello spazio (§12.2), nel momento in cui la scheda diventa gialla: 36 ore prima dell'istante di riferimento, con l'ora o senza (Matteo, 25/11). Valgono le ore di silenzio della persona. Una riga anche nel riepilogo delle 8:00 (§12.4).
 
 **Da segnaposto a post**
 - **"Prepara questo contenuto"** apre Nuovo post con cliente, giorno, ora (quella pianificata; se manca, l'orario predefinito del cliente; altrimenti la prossima fascia libera di quel giorno, §11.6) e tipo già compilati e la nota in evidenza. Se il file scelto non corrisponde al tipo pianificato, l'editor lo dice senza bloccare.
@@ -987,7 +987,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 | File di un post programmato che non esce (cancellato, non riuscito o rifiutato da Meta), prima o all'ora del post (D-74) | Errore | Pannello + **email a chi l'ha programmato**, sempre, con il file, la posizione e l'account; poi Telegram e gli altri canali come gli errori |
 | Destinazione in pausa | Avviso | Pannello + Telegram, ai Manager |
 | Programmazione in blocco completata | Info | Pannello |
-| Contenuto pianificato da preparare entro domani (§11.12) | Avviso | Pannello + Telegram, a chi può prepararlo nello spazio (`plan.prepare`: i membri con un ruolo che lo concede, Owner e Admin), permesso riletto all'invio; tipo, titolo, giorno e ora, mai la nota (evento `plan.due_soon` della scansione `plan.due_scan`, §9.4) |
+| Contenuto pianificato da preparare, a meno di 36 ore (§11.12) | Avviso | Pannello + Telegram, a chi può prepararlo nello spazio (`plan.prepare`: i membri con un ruolo che lo concede, Owner e Admin), permesso riletto all'invio; tipo, titolo, giorno e ora, mai la nota (evento `plan.due_soon` della scansione `plan.due_scan`, §9.4) |
 | Token non valido (quando il collegamento smette di funzionare), account non sano (quando la salute peggiora, non a ogni controllo), promemoria Meta (una volta per promemoria e scadenza, da `accounts.daily`) | Critico / Avviso | Tutti, a Owner e Admin |
 | Quota IG quasi esaurita | Avviso | Pannello |
 | Worker fermo da più di 2 minuti | Critico | Telegram + email all'amministratore della piattaforma (inviato dal web) |

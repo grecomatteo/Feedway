@@ -26,6 +26,7 @@ const item = (over: Partial<PlanItem>): PlanItem => ({
   postId: null,
   state: 'to_prepare',
   dueAt: '2026-12-11T22:59:00.000Z',
+  dueSoonAt: '2026-12-10T10:59:00.000Z',
   version: 1,
   ...over,
 })
@@ -44,8 +45,10 @@ describe('who plans and who prepares', () => {
 
 describe('the state of a content on the clock', () => {
   const due = '2026-12-11T09:00:00.000Z'
-  it('turns yellow 36 hours before and red after the reference instant', () => {
-    const at = (iso: string) => planStateAt({ state: 'to_prepare', dueAt: due }, new Date(iso))
+  const dueSoon = '2026-12-09T21:00:00.000Z'
+  it('turns yellow when the notification goes out and red after the reference instant', () => {
+    const at = (iso: string) =>
+      planStateAt({ state: 'to_prepare', dueAt: due, dueSoonAt: dueSoon }, new Date(iso))
     expect(at('2026-12-09T20:59:59.000Z')).toBe('to_prepare')
     expect(at('2026-12-09T21:00:00.000Z')).toBe('due_soon')
     expect(at('2026-12-11T09:00:00.000Z')).toBe('due_soon')
@@ -53,7 +56,9 @@ describe('the state of a content on the clock', () => {
   })
 
   it('keeps «prepared» as the server read it', () => {
-    expect(planStateAt({ state: 'prepared', dueAt: due }, new Date('2027-01-01'))).toBe('prepared')
+    expect(
+      planStateAt({ state: 'prepared', dueAt: due, dueSoonAt: dueSoon }, new Date('2027-01-01')),
+    ).toBe('prepared')
   })
 })
 

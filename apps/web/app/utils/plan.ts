@@ -11,9 +11,6 @@ export type PlanState = PlanItemDto['state']
 export const PLAN_TYPES = ['reel', 'carousel', 'photo', 'story'] as const
 export type PlanType = (typeof PLAN_TYPES)[number]
 
-/** «Mancano meno di 36 ore» (rule 2), as the server counts it */
-const DUE_SOON_MS = 36 * 3_600_000
-
 type Role = 'owner' | 'admin' | 'manager' | 'publisher' | 'editor' | 'viewer'
 /** `plan.edit`: Publisher and above (§10.2, D-123.21) */
 export const canEditPlan = (role: Role) => ['owner', 'admin', 'manager', 'publisher'].includes(role)
@@ -22,13 +19,16 @@ export const canPreparePlan = (role: Role) => canEditPlan(role) || role === 'edi
 
 /**
  * The state at `now`: prepared stays what the server read (a post stands for it); the others
- * move on with the clock from the reference instant, so a page left open turns yellow and red.
+ * move on with the clock from the two instants the server gives, so a page left open turns
+ * yellow when the notification goes out (the same instant, Matteo 25/11) and red when late.
  */
-export function planStateAt(item: Pick<PlanItem, 'state' | 'dueAt'>, now: Date): PlanState {
+export function planStateAt(
+  item: Pick<PlanItem, 'state' | 'dueAt' | 'dueSoonAt'>,
+  now: Date,
+): PlanState {
   if (item.state === 'prepared') return 'prepared'
-  const due = new Date(item.dueAt).getTime()
-  if (now.getTime() > due) return 'late'
-  if (now.getTime() >= due - DUE_SOON_MS) return 'due_soon'
+  if (now.getTime() > new Date(item.dueAt).getTime()) return 'late'
+  if (now.getTime() >= new Date(item.dueSoonAt).getTime()) return 'due_soon'
   return 'to_prepare'
 }
 

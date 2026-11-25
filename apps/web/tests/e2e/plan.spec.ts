@@ -123,7 +123,7 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await page.goto(`/${org}/piano?spazio=${client.slug}&mese=${next.month}`)
   await expect(card('Pane caldo')).toHaveAttribute('data-state', 'prepared')
   await expect(card('Pane caldo')).toContainText('Preparato')
-  await expect(page.locator('[data-plan-counts]')).toHaveText('3 contenuti · 1 preparati')
+  await expect(page.locator('[data-plan-counts]')).toHaveText('3 contenuti · 1 preparato')
 
   // the post deleted: the content is to prepare again (rule 5)
   const gone = await page.request.fetch(
