@@ -3514,6 +3514,18 @@
         "thisWeek": "Questa settimana",
         "later": "Più avanti"
       }
+    },
+    "move": {
+      "action": "Sposta…",
+      "title": "Sposta «{title}»",
+      "day": "Giorno",
+      "time": "Ora",
+      "submit": "Sposta",
+      "cancel": "Annulla",
+      "undo": "Annulla",
+      "done": "Spostato a {when}.",
+      "failed": "«{title}» non si è spostato. {reason}",
+      "changed": "Un’altra persona l’ha cambiato nel frattempo: il calendario ora è aggiornato."
     }
   },
   "plan": {

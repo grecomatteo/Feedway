@@ -268,6 +268,17 @@ export function useCalendar(scope: {
     return res.deleted
   }
 
+  /**
+   * A change of a post drawn at once, before the next read (a move, plan 09 Task 4): in the
+   * period read and in the list's pages. The next read puts the server's in its place.
+   */
+  function patchPost(id: string, change: Partial<CalendarPostRow>) {
+    const patch = (list: CalendarPostRow[]) =>
+      list.map((p) => (p.id === id ? { ...p, ...change } : p))
+    if (data.value) data.value = { ...data.value, posts: patch(data.value.posts) }
+    more.value = more.value.map((page) => ({ ...page, posts: patch(page.posts) }))
+  }
+
   /** The posts of the period shown (the last read until the next arrives), with the list's pages. */
   const posts = computed(() => [
     ...(data.value?.posts ?? []),
@@ -317,6 +328,7 @@ export function useCalendar(scope: {
     reloadDrafts: loadDrafts,
     removeEmptyDrafts,
     reload: load,
+    patchPost,
     setView,
     step,
     toToday,

@@ -340,5 +340,8 @@ test('a client of the selector, and a Viewer without pictures', async ({ page, b
   // only the client she sees, and no thumbnails (D-72)
   await expect(vera.locator('[data-calendar-week] [data-post]')).toHaveCount(3)
   await expect(vera.locator('[data-calendar-week] img')).toHaveCount(0)
+  // nothing to move for who only reads (plan 09 Task 4)
+  await expect(vera.locator('[data-movable]')).toHaveCount(0)
+  await expect(vera.locator('[data-card-actions]')).toHaveCount(0)
   await other.close()
 })

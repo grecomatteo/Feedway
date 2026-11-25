@@ -5,6 +5,8 @@ import type { FilterOption } from '~/components/calendar/Filters.vue'
 import type { WorkspaceView } from '~/composables/useOrganization'
 import { periodLabel, postsByDay, type CalendarCardInfo, type PeriodView } from '~/utils/calendar'
 import type { PostType } from '~/utils/post-editor'
+import { mayMove } from '~/utils/calendar-move'
+import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
 
 /**
  * The calendar (spec §11.4, screen 07, plan 09 Task 3), for «Tutti i clienti» or one client: the
@@ -34,6 +36,17 @@ const cal = useCalendar({
   ready: computed(() => props.ready),
 })
 const { view, date, period, today, filters, status, data } = cal
+
+// ---- moving a post (plan 09 Task 4): dragged onto a day on a computer, «Sposta…» everywhere
+const mover = useCalendarMove({
+  posts: cal.posts,
+  timeZone: cal.timeZone,
+  today,
+  patch: cal.patchPost,
+  reload: cal.reload,
+})
+provide(CALENDAR_MOVING, mover.moving)
+const { problem: moveProblem, toast: moveToast, dialog: moveDialog } = mover
 
 // ---- the bar
 const label = computed(() => periodLabel(view.value, date.value))
@@ -151,6 +164,7 @@ function cardOf(p: CalendarPost): CalendarCardInfo {
       .map((id) => labelsById.value.get(id))
       .filter((l) => l !== undefined)
       .map((l) => ({ id: l.id, name: l.name, color: l.color })),
+    movable: !mover.pending.value.has(p.id) && mayMove(p, client, org.me.value?.id ?? null),
     to: {
       path: org.to(
         `/spazi/${encodeURIComponent(client?.slug ?? '')}/post/${encodeURIComponent(p.id)}`,
@@ -183,6 +197,7 @@ function planCardOf(e: CalendarEntry): CalendarCardInfo | null {
     type: type as PostType,
     platforms: [],
     labels: [],
+    movable: false,
     to: {
       path: org.to('/piano'),
       query: { ...(client ? { spazio: client.slug } : {}), giorno: e.localDate },
@@ -478,6 +493,16 @@ const listedTitle = computed(() => {
       {{ narrowed ? $t('calendar.noMatch') : $t(`calendar.empty.${view}`) }}
     </p>
 
+    <p
+      v-if="moveProblem"
+      role="alert"
+      class="flex items-start gap-2 text-(--app-danger)"
+      data-calendar-move-problem
+    >
+      <UIcon name="i-lucide-circle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      {{ moveProblem }}
+    </p>
+
     <CalendarMonth
       v-if="view === 'month' && !failed"
       :days="period.days"
@@ -577,6 +602,18 @@ const listedTitle = computed(() => {
       :today="today"
       :cards="dayCards"
       :show-client="showClient"
+    />
+    <CalendarMoveDialog
+      v-model:open="moveDialog.open"
+      :post="moveDialog.post"
+      :today="today"
+      @move="(post, to) => mover.move(post, to)"
+    />
+    <Toast
+      v-model:open="moveToast.open"
+      :message="moveToast.message"
+      :action-label="moveToast.action || undefined"
+      @action="mover.runUndo"
     />
   </div>
 </template>
