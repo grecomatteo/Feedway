@@ -16,6 +16,8 @@ const MyOrganization = z.object({
   logoUrl: z.string().nullable(),
   /** IANA, the agency's zone (D-58): every member reads it (D-78) */
   timezone: z.string(),
+  /** The modules the agency uses (plan 09 P2): the menu shows only theirs */
+  modules: z.object({ plan: z.boolean() }),
 })
 
 /** The signed-in person: their own data only, never a hash, token or secret. */

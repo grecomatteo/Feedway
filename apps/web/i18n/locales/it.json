@@ -818,7 +818,8 @@
       "privacy": "Privacy",
       "calendar": "Calendario",
       "notifications": "Notifiche",
-      "library": "Libreria"
+      "library": "Libreria",
+      "plan": "Piano editoriale"
     }
   },
   "context": {
@@ -3028,8 +3029,8 @@
         "line": "Controlla i log del backup sulla VPS."
       },
       "plan_due_soon": {
-        "one": "Da preparare entro domani: «{title}»",
-        "many": "{n} contenuti del piano da preparare entro domani",
+        "one": "Da preparare, mancano meno di 36 ore: «{title}»",
+        "many": "{n} contenuti del piano da preparare: mancano meno di 36 ore",
         "line": "{type} · «{title}» · {when}"
       }
     },
@@ -3202,7 +3203,7 @@
       "system_worker_down": "Worker fermo",
       "system_worker_up": "Worker ripartito",
       "system_backup_failed": "Backup non riuscito",
-      "plan_due_soon": "Contenuto del piano da preparare entro domani"
+      "plan_due_soon": "Contenuto del piano da preparare, a meno di 36 ore"
     },
     "groups": {
       "post": "Post",
@@ -3395,5 +3396,72 @@
       "today": "oggi",
       "tomorrow": "domani"
     }
+  },
+  "plan": {
+    "title": "Piano editoriale",
+    "off": "Il piano editoriale non è attivo per questa agenzia.",
+    "loadError": "Non riesco a leggere il piano. Riprova tra poco.",
+    "prevMonth": "Mese precedente",
+    "nextMonth": "Mese successivo",
+    "today": "Oggi",
+    "counts": "Nessun contenuto | Un contenuto | {n} contenuti",
+    "preparedCount": "{n} preparato | {n} preparati",
+    "empty": "Il mese è vuoto. Scegli un giorno e scrivi cosa uscirà.",
+    "emptyRead": "Nel piano di questo mese non c’è ancora nulla.",
+    "readOnly": "Puoi leggere il piano di questo cliente, non cambiarlo.",
+    "addOn": "Aggiungi un contenuto il {day}",
+    "choose": {
+      "title": "Per quale cliente fai il piano?",
+      "text": "Il piano è di un cliente alla volta.",
+      "readOnly": "Solo lettura",
+      "none": "Non vedi nessun cliente in cui fare il piano.",
+      "again": "Scegli il cliente"
+    },
+    "state": {
+      "to_prepare": "Da preparare",
+      "due_soon": "Meno di 36 ore",
+      "late": "In ritardo",
+      "prepared": "Preparato"
+    },
+    "actions": {
+      "edit": "Modifica",
+      "view": "Apri",
+      "move": "Sposta…",
+      "prepare": "Prepara questo contenuto",
+      "openPost": "Apri il post",
+      "remove": "Togli dal piano"
+    },
+    "form": {
+      "new": "Aggiungi al piano",
+      "edit": "Modifica il contenuto",
+      "view": "Contenuto del piano",
+      "type": "Tipo",
+      "title": "Titolo",
+      "titleHint": "Il titolo può comparire nel calendario del cliente; la nota no.",
+      "day": "Giorno",
+      "time": "Ora",
+      "noTime": "Senza ora",
+      "note": "Nota per chi prepara",
+      "noNote": "Nessuna nota.",
+      "add": "Aggiungi al piano",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "close": "Chiudi",
+      "added": "Aggiunto «{title}». Scrivi il prossimo, o chiudi.",
+      "titleMissing": "Scrivi il titolo.",
+      "changed": "Un’altra persona ha cambiato questo contenuto: ho ricaricato il piano."
+    },
+    "move": {
+      "title": "Sposta «{title}»",
+      "to": "Nuovo giorno",
+      "submit": "Sposta",
+      "done": "Spostato a {day}."
+    },
+    "removed": "Tolto «{title}» dal piano.",
+    "removedPrepared": "Tolto «{title}» dal piano: il post resta com’è.",
+    "restored": "«{title}» è di nuovo nel piano.",
+    "undo": "Annulla",
+    "actionError": "Non è andata. Riprova tra poco.",
+    "notFound": "Questo contenuto non c’è più: ho ricaricato il piano."
   }
 }
