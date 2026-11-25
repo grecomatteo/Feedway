@@ -813,6 +813,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - la voce del calendario porta in `data` solo `type`, `state`, `dueAt` e `postId` (oltre a titolo, giorno e ora); i contenuti preparati non danno voce e segnano il post con `marks: ['plan']`;
       - la sorgente delle voci dei moduli riceve anche agenzia, fuso e istante di adesso (`entries`), e `markedPostIds` l'agenzia: servono allo stato del piano;
       - `set-modules <slug> --plan on|off` nella CLI del worker cambia `organizations.settings.modules` e scrive `organization.settings_changed` con i moduli cambiati; uguale a prima non scrive nulla.
+  22. **Notifica e riepilogo del piano (Task 8, scelte provvisorie):**
+      - la scansione `plan.due_scan` dice un contenuto quando `momento della notifica <= adesso < istante di riferimento`, come P3, e non solo «tra un'ora fa e adesso» come la riga del Task 8: così un contenuto arrivato con il worker fermo due ore si dice alla ripartenza (lo chiede il test del Task 8); un contenuto con l'istante di riferimento già passato non si dice più;
+      - gira ogni 5 minuti, uno alla volta con il lucchetto dell'installazione (come `report.daily`), e legge per ogni agenzia solo i contenuti di oggi e dei due giorni dopo; un cliente archiviato non riceve notifiche del piano;
+      - l'evento porta solo `workspaceId`, `planItemId` e `dueAt` (l'istante di riferimento); le parole si leggono all'invio: un contenuto preparato, tolto o spostato nel frattempo non si dice (quello spostato ha il suo evento nuovo), e con il modulo spento non si dice nulla;
+      - titolo «Da preparare entro domani: «Pane caldo»», riga «Reel · «Pane caldo» · giovedì 11 marzo alle 10:00»; il collegamento porta a `/<agenzia>/piano?cliente=<cliente>&da=<giorno>`, la pagina del Task 7: finché non c'è, il collegamento apre una pagina che non esiste;
+      - la ricevono i membri del cliente con un ruolo che concede `plan.prepare` e Owner e Admin dell'agenzia; nelle preferenze il tipo compare a ogni membro di un'agenzia (come «Post non uscito»), in un gruppo «Piano editoriale» dopo i post;
+      - la sezione «Da preparare» del riepilogo: i contenuti di oggi e di domani non preparati (anche quelli di oggi già in ritardo), dei clienti non archiviati dove la persona può preparare, con «oggi» o «domani», l'ora, il cliente, il tipo e il titolo; mai la nota.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico

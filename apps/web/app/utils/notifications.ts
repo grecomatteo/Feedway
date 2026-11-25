@@ -18,6 +18,7 @@ const ICONS: Record<NotificationKindName, string> = {
   'system.worker_down': 'i-lucide-server-off',
   'system.worker_up': 'i-lucide-server',
   'system.backup_failed': 'i-lucide-database-backup',
+  'plan.due_soon': 'i-lucide-calendar-check',
 }
 
 export const notificationIcon = (kind: NotificationKindName) => ICONS[kind]
@@ -26,8 +27,9 @@ export const notificationIcon = (kind: NotificationKindName) => ICONS[kind]
 export const kindKey = (kind: NotificationKindName) => kind.replace('.', '_')
 
 /** The group of a kind in the preferences: by the module that writes it. */
-export function kindGroup(kind: NotificationKindName): 'post' | 'account' | 'system' {
+export function kindGroup(kind: NotificationKindName): 'post' | 'plan' | 'account' | 'system' {
   if (kind.startsWith('post.')) return 'post'
+  if (kind.startsWith('plan.')) return 'plan'
   if (kind.startsWith('system.')) return 'system'
   return 'account'
 }

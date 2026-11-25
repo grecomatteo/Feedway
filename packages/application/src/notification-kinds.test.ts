@@ -13,6 +13,7 @@ import { MODULES } from './modules.js'
 const facts: RecipientFacts = {
   schedulers: ['ada'],
   workspaceManagers: ['bea'],
+  workspacePreparers: ['fede'],
   orgAdmins: ['carla'],
   platformAdmins: ['eva'],
 }
@@ -80,4 +81,8 @@ test('a worker stopped or back goes to the platform administrators, on Telegram 
 
 test('a failed backup goes to the platform administrators, everywhere', () => {
   expect(deliveries('system.backup_failed')).toEqual({ eva: ['panel', 'telegram', 'email'] })
+})
+
+test('a content of the plan to prepare by tomorrow goes to who prepares it, in the panel and on Telegram', () => {
+  expect(deliveries('plan.due_soon')).toEqual({ fede: ['panel', 'telegram'] })
 })

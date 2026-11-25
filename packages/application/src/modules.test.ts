@@ -39,6 +39,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'telegram.poll': true,
   'report.daily': true,
   'report.digest': true,
+  'plan.due_scan': true,
 }
 
 test('each module has its own name', () => {

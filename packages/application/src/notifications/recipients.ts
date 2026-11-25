@@ -142,6 +142,30 @@ async function managersOf(tx: Tx, organizationId: string, event: PendingOutboxEv
   return [...found]
 }
 
+/**
+ * Who may prepare the client's plan (`plan.prepare`, plan 09 Task 8): its members with a role
+ * that grants it, and the agency's Owner and Admin, who see every client.
+ */
+async function preparersOf(tx: Tx, organizationId: string, event: PendingOutboxEvent) {
+  const workspaceId = asString(event.payload.workspaceId)
+  if (workspaceId === null) return []
+  const scope = { organizationId, workspaceId }
+  const found = new Set<string>()
+  for (const m of await tx.workspaceMembers.listForWorkspace(organizationId, workspaceId)) {
+    const actor: OrgActor = {
+      userId: m.userId,
+      platformRole: null,
+      organizationId,
+      orgRole: 'member',
+      memberships: new Map([[workspaceId, m.role]]),
+    }
+    if (can(actor, 'plan.prepare', scope)) found.add(m.userId)
+  }
+  for (const m of await tx.orgMembers.listForOrganization(organizationId))
+    if (m.status === 'active' && ADMIN_ROLES.has(m.role)) found.add(m.userId)
+  return [...found]
+}
+
 /** The candidates of the kind's rules, read only where a rule needs them. */
 export async function candidatesOf(
   tx: Tx,
@@ -152,6 +176,7 @@ export async function candidatesOf(
   const facts: RecipientFacts = {
     schedulers: [],
     workspaceManagers: [],
+    workspacePreparers: [],
     orgAdmins: [],
     platformAdmins: [],
   }
@@ -160,6 +185,8 @@ export async function candidatesOf(
     if (rules.includes('scheduler')) facts.schedulers = await schedulersOf(tx, org, event, now)
     if (rules.includes('workspace_managers'))
       facts.workspaceManagers = await managersOf(tx, org, event)
+    if (rules.includes('workspace_preparers'))
+      facts.workspacePreparers = await preparersOf(tx, org, event)
     if (rules.includes('org_admins'))
       facts.orgAdmins = (await tx.orgMembers.listForOrganization(org))
         .filter((m) => m.status === 'active' && ADMIN_ROLES.has(m.role))
@@ -174,9 +201,19 @@ const onlyAdmins = (rules: readonly RecipientRule[]) =>
   rules.length > 0 && rules.every((r) => r === 'org_admins')
 
 /**
+ * What the person must still be allowed in the client: to prepare its plan for a kind only for
+ * who prepares (an Editor made Viewer gets nothing, plan 09 Task 8), to see it otherwise.
+ */
+const neededIn = (rules: readonly RecipientRule[]) =>
+  rules.length > 0 && rules.every((r) => r === 'workspace_preparers')
+    ? 'plan.prepare'
+    : 'workspace.view'
+
+/**
  * The person as they are now, if they may still see the event: active, not anonymized, an
- * active member of the agency who sees the client (or one client of the account), still an
- * Owner or Admin for a kind of theirs, or still a platform administrator. Read again by the
+ * active member of the agency who sees the client (or one client of the account), may still
+ * prepare its plan for a kind of who prepares, still an Owner or Admin for a kind of theirs, or
+ * still a platform administrator. Read again by the
  * delivery, so a Manager taken off the client meanwhile gets nothing (Review Focus 3). Within
  * one transaction each row is read once (`readsOf`).
  */
@@ -204,7 +241,8 @@ export async function eligibleUser(
     orgRole: membership.role,
     memberships: await reads.roles(organizationId, userId),
   }
-  return workspaces.some((ws) => can(actor, 'workspace.view', { organizationId, workspaceId: ws }))
+  const need = neededIn(rules)
+  return workspaces.some((ws) => can(actor, need, { organizationId, workspaceId: ws }))
     ? user
     : null
 }

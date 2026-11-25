@@ -37,6 +37,14 @@ export interface PlanRepository {
     workspaceIds: readonly string[],
     range: { from: string; to: string },
   ): Promise<PlanItemRecord[]>
+  /**
+   * Every content of the agency in the days `[from, to]`, whatever the client: the system's
+   * scan of the notifications (`plan.due_scan`, plan 09 Task 8), by day, time and id.
+   */
+  listOfAgencyInRange(
+    organizationId: string,
+    range: { from: string; to: string },
+  ): Promise<PlanItemRecord[]>
   /** The workspace of a content of the agency, for a route that names only the content. */
   locate(organizationId: string, id: string): Promise<{ workspaceId: string } | null>
   find(scope: PlanScope, id: string): Promise<PlanItemRecord | null>

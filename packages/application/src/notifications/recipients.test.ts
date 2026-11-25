@@ -10,7 +10,7 @@ const USER = '019a8c2e-0000-7000-8000-000000000002'
 const WS = ['019a8c2e-0000-7000-8000-00000000000a', '019a8c2e-0000-7000-8000-00000000000b']
 const ACCOUNT = '019a8c2e-0000-7000-8000-0000000000ac'
 
-function fakeTx(role: 'manager' | null = 'manager') {
+function fakeTx(role: 'manager' | 'editor' | 'viewer' | null = 'manager') {
   const reads = {
     findById: vi.fn(() =>
       Promise.resolve({
@@ -69,5 +69,18 @@ describe('eligibleUser', () => {
     reads.findById.mockImplementationOnce(() => Promise.reject(new Error('gone')))
     await expect(eligibleUser(tx, USER, place(WS[0] ?? null), ['scheduler'])).rejects.toThrow()
     expect(await eligibleUser(tx, USER, place(WS[0] ?? null), ['scheduler'])).not.toBeNull()
+  })
+
+  test('who prepares the plan must still be allowed to: an Editor gets it, a Viewer no', async () => {
+    const editor = fakeTx('editor')
+    expect(
+      await eligibleUser(editor.tx, USER, place(WS[0] ?? null), ['workspace_preparers']),
+    ).not.toBeNull()
+    const viewer = fakeTx('viewer')
+    expect(
+      await eligibleUser(viewer.tx, USER, place(WS[0] ?? null), ['workspace_preparers']),
+    ).toBeNull()
+    // the same Viewer still sees the client for a kind of everyone who sees it
+    expect(await eligibleUser(viewer.tx, USER, place(WS[0] ?? null), ['scheduler'])).not.toBeNull()
   })
 })
