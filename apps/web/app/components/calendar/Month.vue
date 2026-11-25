@@ -29,7 +29,11 @@ const ROOM = 4
 /** at most this many dots under a day's number on a phone */
 const DOTS = 4
 
-const WEEKDAYS = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom']
+/** «lun» … «dom», from Monday 5 January 2026 on */
+const SHORT = new Intl.DateTimeFormat('it-IT', { weekday: 'short', timeZone: 'UTC' })
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) =>
+  SHORT.format(new Date(Date.UTC(2026, 0, 5 + i))).replace('.', ''),
+)
 /** grey for every post, a colour only for what asks to be looked at (Matteo 25/11) */
 const dotOf = (card: CalendarCardInfo) => {
   const look = cardLook(card)
