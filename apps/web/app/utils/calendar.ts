@@ -1,0 +1,101 @@
+import { addDays, monthGrid, weekOf, type LocalDate } from '@app/domain'
+import type { CalendarPost, LabelDto } from '@app/contracts'
+
+// The calendar's period and days (spec §11.4, plan 09 Task 3): the month as the 6×7 days of its
+// grid, the week from Monday, both on the agency's wall dates (D-58). No zone here: the server
+// already put every post on its day.
+
+/** The views drawn as days: the month's grid and the week. */
+export type PeriodView = 'month' | 'week'
+
+export interface Period {
+  from: LocalDate
+  to: LocalDate
+  days: LocalDate[]
+}
+
+/** The days a view shows around `date`: the month's 42, or the 7 of its week. */
+export function periodOf(view: PeriodView, date: LocalDate): Period {
+  const days = view === 'month' ? monthGrid(date.slice(0, 7)) : weekOf(date)
+  return { from: days[0] as LocalDate, to: days.at(-1) as LocalDate, days }
+}
+
+/** The day the arrows lead to: the 1st of the month before or after, or the same weekday. */
+export function shiftDate(view: PeriodView, date: LocalDate, step: -1 | 1): LocalDate {
+  if (view === 'week') return addDays(date, 7 * step)
+  const [y, m] = date.split('-').map(Number) as [number, number]
+  const d = new Date(Date.UTC(y, m - 1 + step, 1))
+  return `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
+}
+
+const utcDay = (date: LocalDate) => new Date(`${date}T00:00:00Z`)
+const MONTH = new Intl.DateTimeFormat('it-IT', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+const MONTH_NAME = new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' })
+const MONTH_SHORT = new Intl.DateTimeFormat('it-IT', { month: 'short', timeZone: 'UTC' })
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * What the bar says: «Novembre 2026» for a month; for a week «16–22 novembre 2026», «30 nov – 6
+ * dic 2026» across two months, «28 dic 2026 – 3 gen 2027» across two years.
+ */
+export function periodLabel(view: PeriodView, date: LocalDate): string {
+  if (view === 'month') return capital(MONTH.format(utcDay(date)))
+  const { from, to } = periodOf('week', date)
+  const [a, b] = [utcDay(from), utcDay(to)]
+  const [ya, yb] = [a.getUTCFullYear(), b.getUTCFullYear()]
+  if (a.getUTCMonth() === b.getUTCMonth())
+    return `${String(a.getUTCDate())}–${String(b.getUTCDate())} ${MONTH_NAME.format(b)} ${String(yb)}`
+  const day = (d: Date) => `${String(d.getUTCDate())} ${MONTH_SHORT.format(d).replace('.', '')}`
+  return ya === yb
+    ? `${day(a)} – ${day(b)} ${String(yb)}`
+    : `${day(a)} ${String(ya)} – ${day(b)} ${String(yb)}`
+}
+
+type Dated = Pick<CalendarPost, 'localDate' | 'localTime' | 'id'>
+
+/**
+ * The posts of each day, by time; a draft with a day and no time goes last. Same time: the order
+ * the server gave, so the page does not jump at each read.
+ */
+export function postsByDay<T extends Dated>(posts: readonly T[]): Map<LocalDate, T[]> {
+  const days = new Map<LocalDate, T[]>()
+  for (const p of posts) {
+    if (!p.localDate) continue
+    const list = days.get(p.localDate) ?? []
+    list.push(p)
+    days.set(p.localDate, list)
+  }
+  for (const list of days.values())
+    list.sort((a, b) => (a.localTime ?? '99:99').localeCompare(b.localTime ?? '99:99'))
+  return days
+}
+
+/**
+ * How many cards a day of the month shows in its room: all of them up to `room`, else one less
+ * and «+N» in the last place (a «+1» never takes the place of the card it hides).
+ */
+export function shownInDay(count: number, room: number): { shown: number; more: number } {
+  if (count <= room) return { shown: count, more: 0 }
+  return { shown: room - 1, more: count - room + 1 }
+}
+
+/** What a card of the calendar shows, worked out once by the page for every view. */
+export interface CalendarCardInfo {
+  id: string
+  date: LocalDate | null
+  /** «18:00»; null for a draft with a day and no time */
+  time: string | null
+  title: string
+  client: string
+  status: CalendarPost['status']
+  /** «Programmato», «1 non uscito»… */
+  state: string
+  tone: 'neutral' | 'success' | 'info' | 'warning' | 'danger'
+  draft: boolean
+  thumb: string | null
+  type: CalendarPost['type']
+  platforms: ('instagram' | 'facebook')[]
+  labels: { id: string; name: string; color: LabelDto['color'] }[]
+  /** the post's page: the editor, or the outcome once it is on its way (as the list) */
+  to: { path: string; query: Record<string, string> }
+}
