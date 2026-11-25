@@ -58,7 +58,9 @@ useHead({
 })
 // back to the calendar the post was opened from, with its view, day and filters; otherwise to
 // the client's calendar in the profile of the address (plan 09 Task 3: «Post» became «Calendario»)
-const cameFrom = import.meta.client ? (window.history.state as { back?: unknown } | null)?.back : null
+const cameFrom = import.meta.client
+  ? (window.history.state as { back?: unknown } | null)?.back
+  : null
 const back = computed(() => {
   const calendar = org.to(`/spazi/${encodeURIComponent(String(route.params['slug']))}/calendario`)
   if (

@@ -172,7 +172,10 @@ const missingOf = (d: DraftToFinish) =>
   d.missing.length === 0 ? t('today.drafts.ready') : t(`today.drafts.missing.${d.missing[0]}`)
 const allDrafts = computed(() =>
   workspaceId.value
-    ? { path: clientPage(workspaceId.value, '/calendario'), query: { vista: 'elenco', stato: 'bozza' } }
+    ? {
+        path: clientPage(workspaceId.value, '/calendario'),
+        query: { vista: 'elenco', stato: 'bozza' },
+      }
     : null,
 )
 const contextQuery = useContextQuery()
