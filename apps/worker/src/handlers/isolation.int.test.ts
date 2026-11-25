@@ -1,6 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { callExternalWatch, type QueueName, type QueueScopes } from '@app/application'
+import {
+  callExternalWatch,
+  createPlanItem,
+  type QueueName,
+  type QueueScopes,
+} from '@app/application'
 import { instantToZoned, zonedToInstant } from '@app/domain'
 import { QUEUES, type Runtime } from '@app/infrastructure'
 import {
@@ -19,6 +25,7 @@ import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
 import { notifyDeliver, notifyDeliverPlatform, notifyDispatch, telegramPoll } from './notify.js'
+import { planDueScan } from './plan.js'
 import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
@@ -613,6 +620,38 @@ async function digestCase(): Promise<void> {
   expect(sent[0]?.text).not.toContain('Profilo di B')
 }
 
+/** The plan's scan writes each agency's notice in that agency, for its own content only. */
+async function planScanCase(): Promise<void> {
+  const contents: { organizationId: string; itemId: string }[] = []
+  for (const of of [await agency(tdb, runtime), await agency(tdb, runtime)]) {
+    const workspaceId = await seed(tdb.runtimeUrl, (s) => s.workspace(of.organizationId))
+    const item = await createPlanItem(
+      { uow: runtime.uow, clock: runtime.clock, ids: { newId: () => randomUUID() } },
+      {
+        userId: of.ownerId,
+        platformRole: null,
+        organizationId: of.organizationId,
+        orgRole: 'owner',
+        memberships: new Map(),
+      },
+      { workspaceId, localDate: '2027-04-21', localTime: '10:00', type: 'photo', title: 'Pane' },
+    )
+    contents.push({ organizationId: of.organizationId, itemId: item.id })
+  }
+  const now = zonedToInstant('2027-04-20', '10:00', 'Europe/Rome').instant
+  await planDueScan(
+    { id: 'lavoro', data: {} },
+    { ...handlerDeps(runtime, recordingQueue()), clock: { now: () => now } },
+  )
+  for (const { organizationId, itemId } of contents) {
+    const { rows } = await admin.query<{ organization_id: string }>(
+      "select organization_id from outbox_events where type = 'plan.due_soon' and payload->>'planItemId' = $1",
+      [itemId],
+    )
+    expect(rows).toEqual([{ organization_id: organizationId }])
+  }
+}
+
 /** The external watch, now the web's round (R4), reads and writes the platform's row only. */
 async function externalWatchCase(): Promise<void> {
   const a = await agency(tdb, runtime)
@@ -643,6 +682,7 @@ const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
   'notify.dispatch': dispatchCase,
   'notify.deliver_platform': deliverPlatformCase,
   'report.daily': digestStartCase,
+  'plan.due_scan': planScanCase,
 }
 const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {
   'report.digest': digestCase,

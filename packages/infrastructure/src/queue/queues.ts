@@ -203,6 +203,13 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'user',
     retention: { retentionSeconds: 3 * 3600, deleteAfterSeconds: 2 * 86_400 },
   },
+  // every 5 minutes, one run at a time (plan 09 P3): the state is in the plan and the outbox's
+  // keys, so a run lost is the next one's
+  'plan.due_scan': {
+    policy: 'singleton',
+    scope: 'system',
+    retention: { retentionSeconds: 300, deleteAfterSeconds: 3600 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

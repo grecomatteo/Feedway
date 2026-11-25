@@ -74,6 +74,24 @@ export function drizzlePlan(db: DbExecutor): PlanRepository {
         )
       return rows.map(toRecord)
     },
+    async listOfAgencyInRange(organizationId, { from, to }) {
+      const rows = await db
+        .select(columns)
+        .from(planItems)
+        .where(
+          and(
+            eq(planItems.organizationId, organizationId),
+            gte(planItems.localDate, from),
+            lte(planItems.localDate, to),
+          ),
+        )
+        .orderBy(
+          asc(planItems.localDate),
+          sql`${planItems.localTime} asc nulls last`,
+          asc(planItems.id),
+        )
+      return rows.map(toRecord)
+    },
     find: (scope, id) => findOne(scope, id, false),
     findForUpdate: (scope, id) => findOne(scope, id, true),
     async findByPostIds(organizationId, postIds) {

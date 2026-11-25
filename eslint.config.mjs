@@ -29,6 +29,8 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/notifications/telegram-poll.ts',
   // plan 08 Task 8: who has the digest due now, then each digest in its person's scope
   'packages/application/src/notifications/digest-start.ts',
+  // plan 09 P3: the agencies with the plan on, then each one's contents read in its own scope
+  'packages/application/src/plan/due-scan.ts',
 ]
 
 export default tseslint.config(

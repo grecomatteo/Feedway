@@ -1,10 +1,13 @@
 /**
  * Who a kind of notification is for (§10.2, plan 08 Scelta 4). `scheduler` is
- * `posts.scheduled_by`, as for the pause (plan 07, P6).
+ * `posts.scheduled_by`, as for the pause (plan 07, P6). `workspace_preparers` is who may prepare
+ * the client's plan (`plan.prepare`): its members with a role that grants it, and the agency's
+ * Owner and Admin (plan 09 Task 8).
  */
 export const RECIPIENT_RULES = [
   'scheduler',
   'workspace_managers',
+  'workspace_preparers',
   'org_admins',
   'platform_admins',
 ] as const
@@ -14,6 +17,8 @@ export type RecipientRule = (typeof RECIPIENT_RULES)[number]
 export interface RecipientFacts {
   schedulers: readonly string[]
   workspaceManagers: readonly string[]
+  /** Who has `plan.prepare` in the client, Owner and Admin of the agency included */
+  workspacePreparers: readonly string[]
   /** Owner and Admin of the agency */
   orgAdmins: readonly string[]
   platformAdmins: readonly string[]
@@ -28,6 +33,7 @@ export interface Recipient {
 const FACT_OF: Record<RecipientRule, keyof RecipientFacts> = {
   scheduler: 'schedulers',
   workspace_managers: 'workspaceManagers',
+  workspace_preparers: 'workspacePreparers',
   org_admins: 'orgAdmins',
   platform_admins: 'platformAdmins',
 }

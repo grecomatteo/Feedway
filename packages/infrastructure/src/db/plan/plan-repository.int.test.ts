@@ -142,6 +142,11 @@ test('the days of a period, by day and time, a content without a time last', asy
   )
   expect(list.map((i) => i.id)).toEqual([early.id, late.id, whole.id])
   expect(await run((tx) => tx.plan.listInRange(org, [], { from: day, to: day }))).toEqual([])
+  // the system's scan reads the whole agency, in the same order
+  const agency = await run((tx) =>
+    tx.plan.listOfAgencyInRange(org, { from: day, to: '2027-01-16' }),
+  )
+  expect(agency.map((i) => i.id)).toEqual([early.id, late.id, whole.id])
 })
 
 test('a post comes from one content at most, of the same client', async () => {

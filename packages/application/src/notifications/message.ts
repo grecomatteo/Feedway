@@ -31,6 +31,11 @@ export interface MessageContext {
   panelUrl: URL
   /** The person's zone, for the dates */
   timeZone: string
+  /**
+   * The centre reads a notification again later: a kind that leaves out what no longer needs
+   * telling (the plan's prepared contents) keeps it there, and says null only when it is gone.
+   */
+  forCentre?: boolean
 }
 
 export const asString = (value: unknown): string | null =>
