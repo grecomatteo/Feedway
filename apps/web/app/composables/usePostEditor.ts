@@ -82,9 +82,9 @@ const fromPostMedia = (m: PostResponse['media'][number]): EditorFile => ({
   variants: m.variants,
 })
 
-/** The day and the time the editor proposes: the client's time (or 18:00), today if still ahead. */
+/** The day and the time the editor proposes: the client's time (or 14:00, Matteo 25/11), today if still ahead. */
 export function proposedWhen(defaultTime: string | null, timeZone: string, now = new Date()) {
-  const time = defaultTime ?? '18:00'
+  const time = defaultTime ?? '14:00'
   const parts: Record<string, string> = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
       timeZone,

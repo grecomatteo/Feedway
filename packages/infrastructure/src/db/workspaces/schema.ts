@@ -22,8 +22,8 @@ export const workspaces = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     logoKey: text('logo_key'),
-    // Local time; null means no default (§13)
-    defaultPostTime: time('default_post_time'),
+    // Local time; a client is born with 14:00 (Matteo, 25/11), null means none (§13)
+    defaultPostTime: time('default_post_time').default('14:00'),
     archivedAt: tz('archived_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

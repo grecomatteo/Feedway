@@ -240,7 +240,8 @@ describe('workspaces', () => {
       slug: 'caffe-roma',
       archivedAt: null,
       myRole: 'owner',
-      defaultPostTime: null,
+      // a client is born with 14:00 (Matteo, 25/11)
+      defaultPostTime: '14:00',
     })
     expect((await createWorkspace(deps, ownerA, { name: 'Caffè  Roma' }, REQ)).slug).toBe(
       'caffe-roma-2',
@@ -364,7 +365,7 @@ describe('workspaces', () => {
         slug: w.w1,
         archivedAt: null,
         myRole: 'editor',
-        defaultPostTime: null,
+        defaultPostTime: '14:00',
       },
     ])
     const loose = await actorOf(w.loose.id, w.orgA)
