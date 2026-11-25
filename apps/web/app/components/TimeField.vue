@@ -10,6 +10,8 @@ const props = defineProps<{
   /** what the field is, for a screen reader («Ora») */
   label: string
   disabled?: boolean
+  /** what the field says without an hour («Senza ora»), and the first choice of the list */
+  emptyLabel?: string
 }>()
 const model = defineModel<string>({ required: true })
 const { t } = useI18n()
@@ -22,7 +24,7 @@ const STEPS = timeSteps(15)
 const list = computed(() =>
   model.value && !STEPS.includes(model.value) ? [...STEPS, model.value].sort() : STEPS,
 )
-const shown = computed(() => (model.value ? formatTime(model.value) : '—'))
+const shown = computed(() => (model.value ? formatTime(model.value) : (props.emptyLabel ?? '—')))
 
 const box = ref<HTMLElement | null>(null)
 watch(open, async (now) => {
@@ -64,7 +66,8 @@ function write() {
     <button
       type="button"
       :disabled="disabled"
-      class="flex h-control w-28 items-center gap-2 rounded-control border border-(--app-field-border) bg-(--app-surface) px-2.5 text-start tabular-nums disabled:cursor-not-allowed disabled:opacity-60"
+      :class="emptyLabel ? 'w-36' : 'w-28'"
+      class="flex h-control items-center gap-2 rounded-control border border-(--app-field-border) bg-(--app-surface) px-2.5 text-start tabular-nums disabled:cursor-not-allowed disabled:opacity-60"
       :aria-label="`${label}: ${shown}`"
       data-time-field
     >
@@ -105,6 +108,22 @@ function write() {
           </p>
         </form>
         <ul ref="box" class="max-h-56 overflow-y-auto" :aria-label="label">
+          <li v-if="emptyLabel">
+            <button
+              type="button"
+              :aria-pressed="model === ''"
+              data-time=""
+              class="flex h-9 w-full items-center rounded-control px-2.5 max-md:h-11"
+              :class="
+                model === ''
+                  ? 'bg-(--app-text) font-semibold text-(--app-surface)'
+                  : 'hover:bg-(--app-surface-sunken)'
+              "
+              @click="choose('')"
+            >
+              {{ emptyLabel }}
+            </button>
+          </li>
           <li v-for="x in list" :key="x">
             <button
               type="button"

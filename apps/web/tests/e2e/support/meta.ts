@@ -3,7 +3,7 @@ import { expect, type APIRequestContext } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
 import { E2E_PASSWORD, addDataKey } from './people.ts'
 
-function headers() {
+export function headers() {
   const baseURL = process.env.E2E_BASE_URL
   if (!baseURL) throw new Error('e2e server not available')
   return {
