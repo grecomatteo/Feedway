@@ -86,7 +86,7 @@ const columns = computed(() =>
           class="grid grid-cols-2 gap-2 p-2 @min-[36rem]:grid-cols-4 @min-[56rem]:grid-cols-1"
         >
           <li v-for="card in c.all" :key="card.id" class="flex min-w-0 flex-col">
-            <CalendarCard :card="card" size="tile" :show-client="showClient" />
+            <CalendarCard :card="card" size="tile" :show-client="showClient" :today="c.today" />
           </li>
         </ul>
         <p v-else class="px-3 py-3 text-caption text-(--app-text-muted)">

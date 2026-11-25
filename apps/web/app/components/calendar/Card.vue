@@ -18,6 +18,8 @@ const props = defineProps<{
   size: 'chip' | 'tile'
   /** inside a client the client's name is not repeated: the text takes its place */
   showClient: boolean
+  /** a card of today: an orange edge, so the day is found at once (Matteo 25/11) */
+  today?: boolean
 }>()
 const { t } = useI18n()
 
@@ -39,10 +41,9 @@ const alertTone = computed(() => (props.card.tone === 'danger' ? 'danger' : 'war
 
 const CHIP: Record<ReturnType<typeof cardLook>, string> = {
   alert: '',
-  draft:
-    'border border-(--app-border-strong) bg-(--app-surface) text-(--app-text-muted) hover:bg-(--app-surface-sunken)',
-  plan: 'border border-dashed border-(--app-border-strong) text-(--app-text-muted) hover:bg-(--app-surface-sunken)',
-  done: 'bg-(--app-surface-sunken)/60 text-(--app-text-muted) hover:bg-(--app-nav-hover)',
+  draft: 'border border-(--app-border-strong) bg-(--app-surface) hover:bg-(--app-surface-sunken)',
+  plan: 'border border-dashed border-(--app-border-strong) hover:bg-(--app-surface-sunken)',
+  done: 'bg-(--app-surface-sunken) hover:bg-(--app-nav-hover)',
   normal: 'bg-(--app-surface-sunken) hover:bg-(--app-nav-hover)',
 }
 const ALERT_CHIP = {
@@ -60,6 +61,15 @@ const ALERT_TILE = {
   danger: 'border-(--app-danger) bg-(--app-surface)',
   warning: 'border-(--app-warning) bg-(--app-surface)',
 }
+/** the icon of the format: full colour, a colour of its own where it asks to be looked at */
+const iconClass = computed(() => {
+  if (look.value === 'alert' || (look.value === 'plan' && props.card.tone !== 'neutral'))
+    return props.card.tone === 'danger' ? 'text-(--app-danger)' : 'text-(--app-warning)'
+  return look.value === 'done' || look.value === 'plan' || look.value === 'draft'
+    ? 'text-(--app-text-muted)'
+    : 'text-(--app-text)'
+})
+const edge = computed(() => (props.today ? 'shadow-[inset_2px_0_0_var(--app-brand)]' : ''))
 /** the state is written where it asks to be looked at: a problem, a draft, the plan */
 const saysState = computed(() => ['alert', 'draft', 'plan'].includes(look.value))
 const stateClass = computed(() =>
@@ -78,35 +88,28 @@ const stateClass = computed(() =>
     :aria-label="name"
     :title="card.title"
     class="flex h-[22px] min-w-0 items-center gap-1.5 rounded-[5px] px-1.5 text-caption leading-[22px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-(--app-focus)"
-    :class="look === 'alert' ? ALERT_CHIP[alertTone] : CHIP[look]"
+    :class="[look === 'alert' ? ALERT_CHIP[alertTone] : CHIP[look], edge]"
     :data-post="card.kind === 'post' ? card.id : undefined"
     :data-plan="card.kind === 'plan' ? card.id : undefined"
     :data-tone="card.tone"
     :data-draft="look === 'draft' || undefined"
     :data-look="look"
   >
-    <PostTypeIcon
-      :type="card.type"
-      class="text-[13px]"
-      :class="
-        look === 'alert' || (look === 'plan' && card.tone !== 'neutral')
-          ? card.tone === 'danger'
-            ? 'text-(--app-danger)'
-            : 'text-(--app-warning)'
-          : 'text-(--app-text-muted)'
-      "
-    />
+    <PostTypeIcon :type="card.type" class="text-[15px]" :class="iconClass" />
     <b
       v-if="card.time"
       class="tabular-nums"
-      :class="look === 'done' ? 'font-medium' : 'font-semibold'"
+      :class="look === 'done' ? 'font-medium text-(--app-text-muted)' : 'font-semibold'"
       aria-hidden="true"
       >{{ card.time }}</b
     >
     <span class="min-w-0 truncate" aria-hidden="true">{{ chipText }}</span>
-    <span v-if="look === 'draft'" class="ms-auto shrink-0" aria-hidden="true">{{
-      $t('posts.state.draft')
-    }}</span>
+    <span
+      v-if="look === 'draft'"
+      class="ms-auto shrink-0 text-(--app-text-muted)"
+      aria-hidden="true"
+      >{{ $t('posts.state.draft') }}</span
+    >
   </NuxtLink>
 
   <NuxtLink
@@ -114,7 +117,7 @@ const stateClass = computed(() =>
     :to="card.to"
     :aria-label="name"
     class="group flex min-w-0 flex-col gap-2 rounded-card border p-2 transition-colors duration-150 hover:bg-(--app-surface-sunken) focus-visible:outline-2 focus-visible:outline-(--app-focus)"
-    :class="look === 'alert' ? ALERT_TILE[alertTone] : TILE[look]"
+    :class="[look === 'alert' ? ALERT_TILE[alertTone] : TILE[look], edge]"
     :data-post="card.kind === 'post' ? card.id : undefined"
     :data-plan="card.kind === 'plan' ? card.id : undefined"
     :data-tone="card.tone"
@@ -122,7 +125,7 @@ const stateClass = computed(() =>
     :data-look="look"
   >
     <span class="flex min-w-0 items-center gap-1.5 text-caption" aria-hidden="true">
-      <PostTypeIcon :type="card.type" class="text-[14px] text-(--app-text-muted)" />
+      <PostTypeIcon :type="card.type" class="text-[16px]" :class="iconClass" />
       <b
         v-if="card.time"
         class="font-semibold tabular-nums"

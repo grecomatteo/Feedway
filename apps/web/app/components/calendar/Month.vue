@@ -115,7 +115,7 @@ const cells = computed(() =>
         <template v-if="!loading">
           <ul class="contents max-md:hidden">
             <li v-for="card in c.shown" :key="card.id" class="flex min-w-0 flex-col">
-              <CalendarCard :card="card" size="chip" :show-client="showClient" />
+              <CalendarCard :card="card" size="chip" :show-client="showClient" :today="c.today" />
             </li>
           </ul>
           <button
