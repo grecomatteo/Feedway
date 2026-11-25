@@ -10,6 +10,7 @@ import {
   mergeRows,
   requestRow,
   rowOf,
+  targetOf,
   rowProblem,
   splitRow,
   withFiles,
@@ -19,6 +20,7 @@ import {
   type MergeRefusal,
   type RowProblem,
 } from '~/utils/bulk-table'
+import { fileKey, type SheetRow } from '~/utils/sheet-import'
 
 /**
  * «In blocco» (spec §11.6, plan 09 Task 10, P5): the files of the computer become the rows of a
@@ -37,6 +39,15 @@ export function useBulkTable(opts: {
   const uploads = useUploads(workspaceId, { shown: true })
 
   const rows = ref<BulkTableRow[]>([])
+  /** «csv» once a sheet gave rows: the import says where its rows came from */
+  const importSource = ref<'files' | 'csv'>('files')
+  // a table emptied of the sheet's rows starts again from files
+  watch(
+    () => rows.value.length,
+    (n) => {
+      if (n === 0) importSource.value = 'files'
+    },
+  )
   /** the files the browser refused, said once with why */
   const refused = ref<UploadItem[]>([])
   /** files past the 50 of a table, not sent */
@@ -83,6 +94,41 @@ export function useBulkTable(opts: {
     for (const item of items) {
       if (item.state === 'rejected') continue
       rows.value.push(rowOf(fileOf(item), rows.value.at(-1) ?? null))
+    }
+  }
+
+  /**
+   * The rows of a sheet (Task 11), with the files chosen for them by name: each file is sent once,
+   * even when two rows name it; the rows come after the ones there, up to the 50.
+   */
+  async function addSheetRows(sheetRows: readonly SheetRow[], files: ReadonlyMap<string, File>) {
+    importSource.value = 'csv'
+    const taken = sheetRows.slice(0, room.value)
+    leftOut.value = sheetRows.length - taken.length
+    // the files by `fileKey`, as the dialog chose them; one sent once even when two rows name it
+    const keys = [...new Set(taken.flatMap((r) => r.fileNames.map(fileKey)))].filter((k) =>
+      files.has(k),
+    )
+    const list = keys.map((k) => files.get(k)).filter((f): f is File => f !== undefined)
+    const items = list.length > 0 ? await uploads.add(list, null) : []
+    const byKey = new Map(keys.map((k, i) => [k, items[i]] as const))
+    refused.value = items.filter((i) => i.state === 'rejected')
+    for (const r of taken) {
+      const fileList = r.fileNames
+        .map((n) => byKey.get(fileKey(n)))
+        .filter((i): i is UploadItem => i !== undefined)
+        .map(fileOf)
+      const first = fileList[0]
+      if (!first) continue
+      const row = withFiles(rowOf(first, null), fileList)
+      rows.value.push({
+        ...row,
+        caption: r.caption,
+        captionInstagram: r.captionInstagram,
+        captionFacebook: r.captionFacebook,
+        target: targetOf(r.accountIds),
+        when: r.when,
+      })
     }
   }
 
@@ -201,7 +247,7 @@ export function useBulkTable(opts: {
     sendProblem.value = null
     try {
       result.value = await call<BulkImportResponse>('POST', `${base}/bulk-imports`, {
-        source: 'files',
+        source: importSource.value,
         rows: rows.value.map((r) => requestRow(r, accountsOfRow(r))),
       })
       follow()
@@ -273,6 +319,7 @@ export function useBulkTable(opts: {
     leftOut,
     room,
     addFiles,
+    addSheetRows,
     removeRow,
     change,
     chosen,

@@ -3635,7 +3635,8 @@
       "text": "Trascina qui fino a 50 foto o video: ognuno diventa una riga, con testo, account, giorno e ora. Le righe scelte si uniscono in un carosello.",
       "choose": "Scegli i file",
       "more": "Aggiungi file",
-      "over": "Rilascia per aggiungere"
+      "over": "Rilascia per aggiungere",
+      "sheet": "Da un foglio"
     },
     "upload": {
       "overall": "{done} di {n} file pronti",
@@ -3668,7 +3669,8 @@
       "remove": "Togli la riga {n}",
       "split": "Separa il carosello",
       "clearWhen": "Togli giorno e ora (resterà una bozza)",
-      "menu": "Altre azioni della riga {n}"
+      "menu": "Altre azioni della riga {n}",
+      "platformTexts": "Con un testo suo per {list}"
     },
     "problem": {
       "sending": "File in arrivo",
@@ -3682,7 +3684,8 @@
       "group": "{name} · {n} account",
       "off": "da ricollegare",
       "all": "Account per tutte",
-      "chosen": "Account per le scelte"
+      "chosen": "Account per le scelte",
+      "several": "1 account | {n} account"
     },
     "tools": {
       "chosen": "nessuna riga scelta | 1 riga scelta | {n} righe scelte",
@@ -3762,6 +3765,50 @@
       "done": "Ho creato {n} copia. | Ho creato {n} copie.",
       "cancel": "Chiudi"
     },
-    "notAllowed": "«In blocco» è per chi può programmare in questo cliente, e il cliente non deve essere archiviato."
+    "notAllowed": "«In blocco» è per chi può programmare in questo cliente, e il cliente non deve essere archiviato.",
+    "sheet": {
+      "title": "Da un foglio",
+      "text": "Un foglio preparato in Excel, Numbers o Google Fogli: una riga per post. Poi scegli i file che nomina.",
+      "step1": "1. Il foglio",
+      "step2": "2. I file del foglio",
+      "choose": "Scegli il foglio",
+      "another": "Scegli un altro foglio",
+      "template": "Scarica il modello",
+      "templateName": "modello-in-blocco.csv",
+      "columns": "Colonne: data, ora, testo, account, file, e se servono testo_instagram e testo_facebook (anche in inglese). Più account o più file in una cella si separano con {'|'}.",
+      "rows": "nessuna riga pronta | 1 riga pronta | {n} righe pronte",
+      "line": "Riga {line}",
+      "missing": "Al foglio manca la colonna: {list}.",
+      "leftOut": "1 riga in più non entra: la tabella ne tiene 50. | {n} righe in più non entrano: la tabella ne tiene 50.",
+      "files": "Scegli i file",
+      "found": "{found} di {n} trovati",
+      "fileFound": "trovato",
+      "fileMissing": "da scegliere",
+      "waiting": "1 riga aspetta i suoi file. | {n} righe aspettano i loro file.",
+      "add": "Aggiungi le righe | Aggiungi 1 riga | Aggiungi {n} righe",
+      "cancel": "Chiudi",
+      "column": {
+        "date": "data",
+        "time": "ora",
+        "caption": "testo",
+        "account": "account",
+        "file": "file",
+        "captionInstagram": "testo_instagram",
+        "captionFacebook": "testo_facebook"
+      },
+      "problem": {
+        "date": "il giorno «{value}» non è una data (scrivi GG/MM/AAAA)",
+        "time": "l'ora «{value}» non è un'ora (scrivi HH:MM)",
+        "account": "l'account «{value}» non è del cliente",
+        "ambiguousAccount": "più account del cliente si chiamano «{value}»: scrivi lo username di Instagram, oppure lascia la cella vuota e scegli l'account nella tabella",
+        "noFile": "manca il file",
+        "tooManyFiles": "{value} file: un post ne tiene al massimo 10"
+      },
+      "error": {
+        "not_sheet": "Non riesco a leggerlo: scegli un file .csv o .xlsx.",
+        "too_big": "Il foglio è troppo grande per un'importazione di 50 righe.",
+        "empty": "Il foglio è vuoto."
+      }
+    }
   }
 }

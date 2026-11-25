@@ -9,6 +9,7 @@ import {
   rowOf,
   rowProblem,
   splitRow,
+  targetOf,
   withFiles,
   type BulkFile,
   type BulkTableRow,
@@ -149,6 +150,12 @@ describe('«Distribuisci sulle fasce libere»', () => {
   })
 })
 
+test("a sheet's row goes to no account, one, or several", () => {
+  expect(targetOf([])).toBeNull()
+  expect(targetOf(['ig'])).toEqual({ kind: 'account', id: 'ig' })
+  expect(targetOf(['ig', 'fb'])).toEqual({ kind: 'accounts', ids: ['ig', 'fb'] })
+})
+
 describe('what keeps a row back', () => {
   const ready = { ...rowOf(photo(1), null), target: { kind: 'account', id: 'ig' } as const }
 
@@ -175,6 +182,18 @@ describe('the body of «Programma»', () => {
     expect(accountsOf({ kind: 'group', id: 'g' }, groups, pickable)).toEqual(['ig', 'fb'])
     expect(accountsOf({ kind: 'account', id: 'old' }, groups, pickable)).toEqual([])
     expect(accountsOf(null, groups, pickable)).toEqual([])
+  })
+
+  test('the accounts a sheet names, those still there', () => {
+    expect(accountsOf({ kind: 'accounts', ids: ['fb', 'old', 'ig'] }, groups, pickable)).toEqual([
+      'fb',
+      'ig',
+    ])
+  })
+
+  test('a text of its own for a platform goes with the common one', () => {
+    const row = { ...rowOf(photo(1), null), caption: 'Pane', captionInstagram: '#pane' }
+    expect(requestRow(row, ['ig']).caption).toEqual({ common: 'Pane', instagram: '#pane' })
   })
 
   test('files, text, accounts and day', () => {

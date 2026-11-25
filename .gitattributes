@@ -17,6 +17,9 @@
 *.woff binary
 *.woff2 binary
 *.pdf binary
+*.xlsx binary
+# Fogli di esempio: come li scrivono Excel e Google Fogli, fine riga compresa
+apps/web/tests/fixtures/sheets/*.csv binary
 
 # File generati: diff compatti nelle PR
 pnpm-lock.yaml linguist-generated=true -diff

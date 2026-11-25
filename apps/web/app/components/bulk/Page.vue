@@ -144,6 +144,16 @@ const names = computed(() =>
     r.files.length > 1 ? t('bulk.row.files', { n: r.files.length }) : (r.files[0]?.name ?? ''),
   ),
 )
+// «Da un foglio» (Task 11): the accounts it may name, by username or Page's name
+const sheetOpen = ref(false)
+const sheetAccounts = computed(() =>
+  tb.accounts.value.map(({ a }) => ({
+    id: a.id,
+    platform: a.platform,
+    username: a.username ?? null,
+    name: a.name,
+  })),
+)
 const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`))
 </script>
 
@@ -255,14 +265,25 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
           <UIcon name="i-lucide-images" class="size-7 text-(--app-text-muted)" aria-hidden="true" />
           <h2 class="text-[15px]/5 font-semibold">{{ $t('bulk.drop.title') }}</h2>
           <p class="max-w-prose text-(--app-text-muted)">{{ $t('bulk.drop.text') }}</p>
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-upload"
-            @click="picker?.click()"
-          >
-            {{ $t('bulk.drop.choose') }}
-          </UButton>
+          <div class="flex flex-wrap justify-center gap-2">
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-upload"
+              @click="picker?.click()"
+            >
+              {{ $t('bulk.drop.choose') }}
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-file-spreadsheet"
+              data-bulk-sheet
+              @click="sheetOpen = true"
+            >
+              {{ $t('bulk.drop.sheet') }}
+            </UButton>
+          </div>
         </div>
 
         <template v-else>
@@ -315,6 +336,20 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
               </UButton>
             </UDropdownMenu>
             <span class="flex-1" />
+            <!-- one line on a computer up to 1440 px: the sheet is a picture there, its name for screen
+                 readers; on a phone the buttons wrap anyway, so it keeps its name -->
+            <UTooltip :text="$t('bulk.drop.sheet')" :content="{ side: 'bottom' }">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-file-spreadsheet"
+                :disabled="tb.room.value === 0"
+                data-bulk-sheet
+                @click="sheetOpen = true"
+              >
+                <span class="md:max-[90rem]:sr-only">{{ $t('bulk.drop.sheet') }}</span>
+              </UButton>
+            </UTooltip>
             <UButton
               color="neutral"
               variant="outline"
@@ -402,5 +437,11 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
         </template>
       </template>
     </div>
+    <BulkSheetDialog
+      v-model:open="sheetOpen"
+      :accounts="sheetAccounts"
+      :room="tb.room.value"
+      @add="(rows, files) => void tb.addSheetRows(rows, files)"
+    />
   </div>
 </template>

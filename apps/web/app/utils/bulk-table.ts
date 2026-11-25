@@ -16,8 +16,15 @@ export interface BulkFile {
   state: 'sending' | 'ready' | 'failed'
 }
 
-/** Where a row goes: one account, or the accounts of a saved group (§11.6). */
-export type BulkTarget = { kind: 'account'; id: string } | { kind: 'group'; id: string } | null
+/**
+ * Where a row goes: one account, or the accounts of a saved group (§11.6); the accounts a sheet
+ * names (Task 11) come as a list.
+ */
+export type BulkTarget =
+  | { kind: 'account'; id: string }
+  | { kind: 'group'; id: string }
+  | { kind: 'accounts'; ids: string[] }
+  | null
 
 export interface BulkWhen {
   localDate: string
@@ -31,6 +38,9 @@ export interface BulkTableRow {
   /** the person chose the type: it no longer follows the files */
   typeChosen: boolean
   caption: string
+  /** a text of its own for a platform, from a sheet; null: the common one */
+  captionInstagram: string | null
+  captionFacebook: string | null
   target: BulkTarget
   /** null: the row stays a draft («Senza data») */
   when: BulkWhen | null
@@ -46,6 +56,15 @@ export const CAROUSEL_MAX = 10
 let counter = 0
 const newKey = () => `row-${String((counter += 1))}`
 
+/** Where a sheet's row goes: no account, one, or several (the cell named more). */
+export function targetOf(accountIds: readonly string[]): BulkTarget {
+  const [only, ...more] = accountIds
+  if (only === undefined) return null
+  return more.length === 0
+    ? { kind: 'account', id: only }
+    : { kind: 'accounts', ids: [...accountIds] }
+}
+
 /** A row for a file: it goes where the row before goes, so 20 files need one choice, not 20. */
 export function rowOf(file: BulkFile, before: BulkTableRow | null): BulkTableRow {
   const files = [file]
@@ -55,6 +74,8 @@ export function rowOf(file: BulkFile, before: BulkTableRow | null): BulkTableRow
     type: nextType(null, false, files),
     typeChosen: false,
     caption: '',
+    captionInstagram: null,
+    captionFacebook: null,
     target: before?.target ?? null,
     when: null,
     selected: false,
@@ -88,6 +109,8 @@ export function mergeRows(
     type: 'carousel',
     typeChosen: false,
     caption: chosen.find((r) => r.caption.trim() !== '')?.caption ?? '',
+    captionInstagram: chosen.find((r) => r.captionInstagram)?.captionInstagram ?? null,
+    captionFacebook: chosen.find((r) => r.captionFacebook)?.captionFacebook ?? null,
     target: chosen.find((r) => r.target !== null)?.target ?? null,
     when: chosen.find((r) => r.when !== null)?.when ?? null,
     selected: false,
@@ -107,6 +130,8 @@ export function splitRow(rows: readonly BulkTableRow[], key: string): BulkTableR
     return row.files.map((file, index) => ({
       ...rowOf(file, row),
       caption: row.caption,
+      captionInstagram: row.captionInstagram,
+      captionFacebook: row.captionFacebook,
       when: index === 0 ? row.when : null,
     }))
   })
@@ -178,6 +203,7 @@ export function accountsOf(
 ): string[] {
   if (target === null) return []
   if (target.kind === 'account') return pickable.has(target.id) ? [target.id] : []
+  if (target.kind === 'accounts') return target.ids.filter((id) => pickable.has(id))
   const group = groups.find((g) => g.id === target.id)
   if (!group) return []
   const off = new Set(group.unavailableAccountIds)
@@ -189,7 +215,11 @@ export function requestRow(row: BulkTableRow, accountIds: readonly string[]) {
   return {
     type: row.type ?? 'photo',
     mediaIds: row.files.map((f) => f.mediaId).filter((id): id is string => id !== null),
-    caption: { common: row.caption },
+    caption: {
+      common: row.caption,
+      ...(row.captionInstagram ? { instagram: row.captionInstagram } : {}),
+      ...(row.captionFacebook ? { facebook: row.captionFacebook } : {}),
+    },
     destinations: accountIds.map((accountId) => ({ accountId })),
     when: row.when,
   }
