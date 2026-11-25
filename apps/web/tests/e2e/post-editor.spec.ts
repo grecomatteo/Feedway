@@ -527,12 +527,12 @@ test('in the evening the post goes to tomorrow, and «Quando» says it (D-120.5)
   page,
 }) => {
   const { org, client } = await clientWithFiles(page)
-  // 20:30 UTC, evening in Rome: today's 18:00 is gone, the editor proposes tomorrow
+  // 20:30 UTC, evening in Rome: today's 14:00 (a new client's usual time) is gone, tomorrow
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
   await page.clock.setFixedTime(new Date(`${today}T20:30:00Z`))
   await page.goto(`/${org}/spazi/${client.slug}/post/nuovo`)
   const line = page.locator('[data-when-tomorrow]')
-  await expect(line).toHaveText(/Domani, \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:00$/u)
+  await expect(line).toHaveText(/Domani, \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 14:00$/u)
   const day = page.locator('[data-day-field]')
   const tomorrow = await day.getAttribute('aria-label')
   // a time still ahead tonight: the day the editor proposed comes back to today (D-131.4)
