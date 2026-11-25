@@ -103,7 +103,8 @@ export const preparePlanItemRoute = defineContract({
   summary:
     'Prepara il contenuto: una bozza del cliente con tipo, giorno e ora; se è già preparato risponde con il suo post',
   request: { params: ItemParams },
-  response: z.object({ postId: Id, created: z.boolean() }),
+  /** the client of the content: a link may name another one */
+  response: z.object({ postId: Id, created: z.boolean(), workspaceId: Id }),
   auth: 'session',
   scope: 'organization',
 })

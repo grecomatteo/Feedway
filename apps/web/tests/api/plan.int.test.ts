@@ -204,9 +204,11 @@ describe('the plan', () => {
     const [first, second] = await Promise.all([prepare(item.id), prepare(item.id)])
     const answers = [first, second].map((r) => {
       expect(r.status, r.text).toBe(200)
-      return r.json as { postId: string; created: boolean }
+      return r.json as { postId: string; created: boolean; workspaceId: string }
     })
     expect(answers.map((a) => a.created).sort()).toEqual([false, true])
+    // the client of the content, for a link that opens it under another client (Task 7, PR 2)
+    expect(answers.map((a) => a.workspaceId)).toEqual([forno, forno])
     expect(answers[0]?.postId).toBe(answers[1]?.postId)
     const postId = answers[0]?.postId ?? ''
     const post = await ok<Post>(call('editor', 'GET', `${ws()}/posts/${postId}`))
@@ -362,6 +364,8 @@ describe('the plan', () => {
 
   test('with the module off: 404 everywhere and no card in the calendar', async () => {
     const item = await add({ localDate: '2027-01-31' })
+    const prepared = await add({ localDate: '2027-01-30' })
+    const { postId } = await ok<{ postId: string }>(prepare(prepared.id))
     await env.admin.pool.query(
       `update organizations set settings = settings || '{"modules":{"plan":false}}' where id = $1`,
       [org.id],
@@ -389,7 +393,7 @@ describe('the plan', () => {
       )
       await refused(call('manager', 'DELETE', `${plan()}/${item.id}`), 404, 'NOT_FOUND')
       await refused(prepare(item.id), 404, 'NOT_FOUND')
-      await refused(planOf('viewer', randomUUID()), 404, 'NOT_FOUND')
+      await refused(planOf('viewer', postId), 404, 'NOT_FOUND')
       expect((await calendar()).entries).toEqual([])
     } finally {
       await env.admin.pool.query(

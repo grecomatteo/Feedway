@@ -2829,7 +2829,8 @@
       "otherType": "Tipo diverso dal piano: previsto {planned}, scelto {chosen}.",
       "preparing": "Preparo il post dal piano…",
       "prepareFailed": "Il post non si è preparato: {message}",
-      "backToPlan": "Torna al piano"
+      "backToPlan": "Torna al piano",
+      "retry": "Riprova"
     }
   },
   "contentSettings": {

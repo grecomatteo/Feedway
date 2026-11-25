@@ -25,30 +25,40 @@ const firstId = route.params['postId'] === 'nuovo' ? null : String(route.params[
 
 // «Prepara questo contenuto» as a link (spec §11.12, plan 09 Task 7): `…/post/nuovo?piano=<id>`
 // prepares the content of the plan and opens its draft in place of the new post; a content
-// already prepared opens its post. The editor waits, so no empty draft is made meanwhile.
+// already prepared opens its post. The editor waits, so no empty draft is made meanwhile. The
+// draft opens under the content's own client, whatever client the address names.
 const planId =
   firstId === null && typeof route.query['piano'] === 'string' ? route.query['piano'] : null
 const preparing = ref(planId !== null)
 const prepareProblem = ref<string | null>(null)
-onMounted(async () => {
+async function prepareFromPlan() {
   if (!planId) return
   const { call, failure } = useApi()
+  preparing.value = true
+  prepareProblem.value = null
   try {
-    const { postId } = await call<{ postId: string }>(
+    const { postId, workspaceId } = await call<{ postId: string; workspaceId: string }>(
       'POST',
       org.api(`/plan/${encodeURIComponent(planId)}/prepare`),
     )
+    let slug = String(route.params['slug'])
+    if (client.value?.id !== workspaceId) {
+      const { items } = await call<{ items: { id: string; slug: string }[] }>(
+        'GET',
+        org.api('/workspaces'),
+      )
+      slug = items.find((w) => w.id === workspaceId)?.slug ?? slug
+    }
     await navigateTo(
-      org.to(
-        `/spazi/${encodeURIComponent(String(route.params['slug']))}/post/${encodeURIComponent(postId)}`,
-      ),
+      org.to(`/spazi/${encodeURIComponent(slug)}/post/${encodeURIComponent(postId)}`),
       { replace: true },
     )
   } catch (e) {
     prepareProblem.value = failure(e).message
     preparing.value = false
   }
-})
+}
+onMounted(prepareFromPlan)
 const planPage = computed(() => ({
   path: org.to('/piano'),
   query: { spazio: String(route.params['slug']) },
@@ -106,9 +116,12 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
       <p role="alert" class="rounded-card border-2 border-(--app-danger) px-4 py-3">
         {{ $t('posts.plan.prepareFailed', { message: prepareProblem }) }}
       </p>
-      <NuxtLink :to="planPage" class="self-start underline">{{
-        $t('posts.plan.backToPlan')
-      }}</NuxtLink>
+      <div class="flex flex-wrap items-center gap-3">
+        <UButton color="neutral" variant="outline" data-prepare-retry @click="prepareFromPlan">
+          {{ $t('posts.plan.retry') }}
+        </UButton>
+        <NuxtLink :to="planPage" class="underline">{{ $t('posts.plan.backToPlan') }}</NuxtLink>
+      </div>
     </div>
     <PostOutcome
       v-else-if="client && outcome"

@@ -36,6 +36,15 @@ watch(
   { immediate: true },
 )
 
+// the type of the plan, once the post is read (reading it sets the type again)
+watch(
+  () => [item.value, props.editor.loadState.value] as const,
+  ([planned, load]) => {
+    if (planned && load === 'ready') props.editor.takePlanType(planned.type)
+  },
+  { immediate: true },
+)
+
 const typeName = (type: string) => t(`posts.type.${type}`)
 const planned = computed(() => {
   const i = item.value

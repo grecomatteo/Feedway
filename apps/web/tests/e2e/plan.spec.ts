@@ -139,9 +139,12 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await expect(fromPlan.locator('[data-post-plan-note]')).toContainText('Luce dalla vetrina')
   await expect(fromPlan.locator('[data-post-plan-day]')).toHaveCount(0)
   await expect(fromPlan.locator('[data-post-plan-type]')).toHaveCount(0)
+  // the type of the plan is already chosen (spec §11.12)
+  const types = page.getByRole('group', { name: 'Tipo' })
+  await expect(types.getByRole('button', { name: 'Reel' })).toHaveAttribute('aria-pressed', 'true')
   expect((await axe(page)).violations).toEqual([])
   // another type is said, not refused
-  await page.getByRole('group', { name: 'Tipo' }).getByRole('button', { name: 'Storia' }).click()
+  await types.getByRole('button', { name: 'Storia' }).click()
   await expect(fromPlan.locator('[data-post-plan-type]')).toHaveText(
     'Tipo diverso dal piano: previsto reel, scelto storia.',
   )
@@ -163,9 +166,11 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await expect(card('Pane caldo')).toHaveAttribute('data-state', 'to_prepare')
   expect((await axe(page)).violations).toEqual([])
 
-  // «Prepara» as a link: `post/nuovo?piano=` prepares the content and opens its draft
+  // «Prepara» as a link: `post/nuovo?piano=` prepares the content and opens its draft, under
+  // the content's own client even when the address names another one
   const feste = await card('Gli orari delle feste').getAttribute('data-plan-item')
-  await page.goto(`/${org}/spazi/${client.slug}/post/nuovo?piano=${feste ?? ''}`)
+  const other = await newWorkspace(page.request, org, 'Altro cliente')
+  await page.goto(`/${org}/spazi/${other.slug}/post/nuovo?piano=${feste ?? ''}`)
   await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post/[0-9a-f-]{36}$`))
   await expect(page.locator('[data-post-plan]')).toContainText('Gli orari delle feste')
   await page.goto(`/${org}/piano?spazio=${client.slug}&mese=${next.month}`)

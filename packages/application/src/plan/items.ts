@@ -376,7 +376,7 @@ export async function preparePlanItem(
   deps: PlanDeps,
   actor: OrgActor,
   input: { itemId: string; ip?: string | null },
-): Promise<{ postId: string; created: boolean }> {
+): Promise<{ postId: string; created: boolean; workspaceId: string }> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
@@ -390,7 +390,7 @@ export async function preparePlanItem(
       const factsOf = await postFacts(tx, scope.organizationId, [item])
       const post = factsOf(item)
       if (item.postId && post && post.status !== 'cancelled')
-        return { postId: item.postId, created: false }
+        return { postId: item.postId, created: false, workspaceId: scope.workspaceId }
       const localTime =
         item.localTime ??
         (await freeSlotOn(tx, scope, item.localDate, timeZone, deps.clock.now())) ??
@@ -404,7 +404,7 @@ export async function preparePlanItem(
       })
       if (!(await tx.plan.linkPost(scope, item.id, postId, current.userId)))
         throw planItemNotFound()
-      return { postId, created: true }
+      return { postId, created: true, workspaceId: scope.workspaceId }
     },
   )
 }
