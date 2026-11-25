@@ -4,6 +4,7 @@ import { recipientsFor, type RecipientFacts } from './recipients.js'
 const facts: RecipientFacts = {
   schedulers: ['ada'],
   workspaceManagers: ['bea', 'ada'],
+  workspacePreparers: ['fede', 'carla'],
   orgAdmins: ['carla', 'dino'],
   platformAdmins: ['eva'],
 }
@@ -19,6 +20,13 @@ test('each rule picks its people, and a person in two rules is listed once with 
   ])
   expect(recipientsFor(['platform_admins'], facts)).toEqual([
     { userId: 'eva', as: ['platform_admins'] },
+  ])
+})
+
+test('who prepares the plan is one rule, Owner and Admin included in its facts', () => {
+  expect(recipientsFor(['workspace_preparers'], facts)).toEqual([
+    { userId: 'fede', as: ['workspace_preparers'] },
+    { userId: 'carla', as: ['workspace_preparers'] },
   ])
 })
 

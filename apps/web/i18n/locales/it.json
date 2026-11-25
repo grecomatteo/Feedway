@@ -3027,12 +3027,18 @@
         "one": "Il backup non è riuscito",
         "many": "{n} backup non sono riusciti",
         "line": "Controlla i log del backup sulla VPS."
+      },
+      "plan_due_soon": {
+        "one": "Da preparare entro domani: «{title}»",
+        "many": "{n} contenuti del piano da preparare entro domani",
+        "line": "{type} · «{title}» · {when}"
       }
     },
     "open": {
       "accounts": "Apri gli account",
       "meta": "Apri Integrazioni → Meta",
-      "platform": "Apri il pannello"
+      "platform": "Apri il pannello",
+      "plan": "Apri il piano"
     },
     "skipped": {
       "email": "Email non configurata sulla piattaforma",
@@ -3123,6 +3129,9 @@
         "issues": "cosa c'è da sistemare",
         "stop": "scollegati"
       }
+    },
+    "plan": {
+      "at": "{day} alle {time}"
     }
   },
   "notifications": {
@@ -3193,12 +3202,14 @@
       "meta_reminder": "Promemoria di Meta",
       "system_worker_down": "Worker fermo",
       "system_worker_up": "Worker ripartito",
-      "system_backup_failed": "Backup non riuscito"
+      "system_backup_failed": "Backup non riuscito",
+      "plan_due_soon": "Contenuto del piano da preparare entro domani"
     },
     "groups": {
       "post": "Post",
       "account": "Account e Meta",
-      "system": "Piattaforma"
+      "system": "Piattaforma",
+      "plan": "Piano editoriale"
     },
     "prefs": {
       "title": "Notifiche",
@@ -3377,6 +3388,13 @@
     "accounts": {
       "one": "Una cosa da sistemare su account e Meta",
       "many": "{n} cose da sistemare su account e Meta"
+    },
+    "plan": {
+      "one": "Un contenuto del piano da preparare",
+      "many": "{n} contenuti del piano da preparare",
+      "line": "{when} · {client} · {type} «{title}»",
+      "today": "oggi",
+      "tomorrow": "domani"
     }
   },
   "plan": {

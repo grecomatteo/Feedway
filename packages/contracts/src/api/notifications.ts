@@ -29,6 +29,7 @@ export const NotificationKindName = z.enum([
   'system.worker_down',
   'system.worker_up',
   'system.backup_failed',
+  'plan.due_soon',
 ])
 export type NotificationLevel = z.infer<typeof NotificationLevel>
 export type NotificationChannel = z.infer<typeof NotificationChannel>

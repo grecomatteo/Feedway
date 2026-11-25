@@ -328,3 +328,18 @@ test('the worker that consumes the digests starts them every minute (plan 08 P7)
   expect(q.workedQueues).toEqual(['report.daily', 'report.digest'])
   await w.stop()
 })
+
+test('the worker that consumes the plan scans it every 5 minutes (plan 09 P3)', async () => {
+  const q = fakeQueue()
+  const w = await startWorker({
+    queue: q.queue,
+    logger: silentLogger,
+    services,
+    heartbeatPath: heartbeatPath(),
+    heartbeatEveryMs: 1000,
+    queues: ['plan.due_scan'],
+  })
+  expect(q.schedules).toEqual([{ name: 'plan.due_scan', cron: '*/5 * * * *', tz: 'Europe/Rome' }])
+  expect(q.workedQueues).toEqual(['plan.due_scan'])
+  await w.stop()
+})
