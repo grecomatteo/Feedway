@@ -132,12 +132,6 @@ const textOf = (p: PostResponse) => {
     t,
   )
 }
-const TYPE_ICON: Record<PostResponse['type'], string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 /** «Carosello · 3 file», «Foto», «Senza file» */
 const typeOf = (p: PostResponse) => {
   if (p.media.length === 0) return t('posts.list.noType')
@@ -304,7 +298,7 @@ const mayDraft = computed(
               class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
             >
               <img v-if="thumbOf(row)" :src="thumbOf(row)!" alt="" class="size-full object-cover" />
-              <UIcon v-else :name="TYPE_ICON[row.type]" class="size-4" aria-hidden="true" />
+              <UIcon v-else :name="POST_TYPE_ICON[row.type]" class="size-4" aria-hidden="true" />
             </span>
             <span class="min-w-0">
               <NuxtLink

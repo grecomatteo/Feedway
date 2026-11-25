@@ -26,12 +26,6 @@ const DOT: Record<CalendarCardInfo['tone'], string> = {
   warning: 'bg-(--app-warning-dot)',
   danger: 'bg-(--app-danger)',
 }
-const TYPE_ICON: Record<CalendarCardInfo['type'], string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 const name = computed(() =>
   [
     props.card.time ?? t('calendar.noTime'),
@@ -118,7 +112,7 @@ const chipText = computed(() => (props.showClient ? props.card.client : props.ca
         decoding="async"
         class="size-full object-cover"
       />
-      <UIcon v-else :name="TYPE_ICON[card.type]" class="size-5" />
+      <UIcon v-else :name="POST_TYPE_ICON[card.type]" class="size-5" />
     </span>
     <span class="flex min-w-0 flex-col gap-0.5" aria-hidden="true">
       <span class="line-clamp-2 text-detail leading-[18px] font-medium">{{ card.title }}</span>

@@ -30,12 +30,6 @@ const title = computed(() => {
   return props.date === props.today ? `${t('calendar.today')}, ${long}` : day
 })
 const ui = { ...DIALOG_UI, content: `${DIALOG_UI.content} md:w-[560px]`, body: 'p-0 sm:p-0' }
-const TYPE_ICON: Record<CalendarCardInfo['type'], string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 </script>
 
 <template>
@@ -63,7 +57,7 @@ const TYPE_ICON: Record<CalendarCardInfo['type'], string> = {
               class="flex size-10 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
             >
               <img v-if="c.thumb" :src="c.thumb" alt="" class="size-full object-cover" />
-              <UIcon v-else :name="TYPE_ICON[c.type]" class="size-4" aria-hidden="true" />
+              <UIcon v-else :name="POST_TYPE_ICON[c.type]" class="size-4" aria-hidden="true" />
             </span>
             <span class="min-w-0">
               <span class="block truncate font-medium">{{ c.title }}</span>
