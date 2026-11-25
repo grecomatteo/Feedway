@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { CalendarEntry } from '@app/contracts'
+import type { CalendarEntry, CalendarPost } from '@app/contracts'
 import type { CalendarShow, LocalDate, QuickFilter } from '@app/domain'
 import type { FilterOption } from '~/components/calendar/Filters.vue'
-import type { CalendarPostRow } from '~/composables/useCalendar'
 import type { WorkspaceView } from '~/composables/useOrganization'
 import { periodLabel, postsByDay, type CalendarCardInfo, type PeriodView } from '~/utils/calendar'
 import type { PostType } from '~/utils/post-editor'
@@ -42,6 +41,7 @@ const isToday = computed(() => period.value.days.includes(today.value))
 const views = computed(() => [
   { value: 'month' as const, label: t('calendar.view.month') },
   { value: 'week' as const, label: t('calendar.view.week') },
+  { value: 'list' as const, label: t('calendar.view.list') },
 ])
 const chosenView = computed({
   get: () => view.value,
@@ -126,7 +126,7 @@ const keep = computed(() => {
   return typeof profilo === 'string' && profilo !== '' ? { profilo } : {}
 })
 const PLATFORMS = ['instagram', 'facebook'] as const
-function cardOf(p: CalendarPostRow): CalendarCardInfo {
+function cardOf(p: CalendarPost): CalendarCardInfo {
   const client = clientsById.value.get(p.workspaceId)
   const state = postStateLabel(p, t)
   return {
@@ -190,7 +190,7 @@ function planCardOf(e: CalendarEntry): CalendarCardInfo | null {
   }
 }
 const byDay = computed(() => {
-  const plan = (data.value?.entries ?? [])
+  const plan = cal.entries.value
     .filter((e) => e.source === 'plan')
     .map((e) => ({ e, card: planCardOf(e) }))
     .filter((x) => x.card !== null)
@@ -233,6 +233,67 @@ const showClient = computed(() => props.workspace === null)
 
 // ---- the states of the read
 const loading = computed(() => data.value === null && status.value !== 'error')
+
+// ---- the list (plan 09 Scelta 2): the days read, the drafts without a date, the search
+const search = ref('')
+const fold = (v: string) => v.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+const matches = (c: CalendarCardInfo) => {
+  const q = fold(search.value.trim())
+  return q === '' || fold(c.title).includes(q) || fold(c.client).includes(q)
+}
+const listDays = computed(() =>
+  [...byDay.value]
+    .filter(([d]) => d >= period.value.from && d <= cal.readTo.value)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([d, cards]) => ({ date: d, cards: cards.filter(matches) }))
+    .filter((d) => d.cards.length > 0),
+)
+const draftCards = computed(() =>
+  cal.drafts.value ? cal.drafts.value.items.map(cardOf).filter(matches) : null,
+)
+/**
+ * The empty drafts the person may delete: their own, and the others' where they manage posts.
+ * The server deletes in the whole client (or in every client) and does not know the filters: so
+ * the button is offered only when the list shows that whole set, the number it says included.
+ */
+const MANAGES = ['owner', 'admin', 'manager']
+const wholeDrafts = computed(
+  () =>
+    cal.activeFilters.value === 0 &&
+    filters.value.quick === null &&
+    props.profileAccountIds === null &&
+    search.value.trim() === '' &&
+    cal.drafts.value?.truncated === false,
+)
+const removableDrafts = computed(() =>
+  wholeDrafts.value
+    ? (cal.drafts.value?.items ?? []).filter(
+        (d) =>
+          d.empty &&
+          (d.createdBy === org.me.value?.id ||
+            MANAGES.includes(clientsById.value.get(d.workspaceId)?.myRole ?? '')),
+      )
+    : [],
+)
+const confirmRemove = ref(false)
+const removing = ref(false)
+const removeFailed = ref<string | null>(null)
+const notice = useNotice()
+const api = useApi()
+async function removeEmpty() {
+  removing.value = true
+  removeFailed.value = null
+  try {
+    const others = removableDrafts.value.some((d) => d.createdBy !== org.me.value?.id)
+    const n = await cal.removeEmptyDrafts(others)
+    confirmRemove.value = false
+    notice.show({ message: t('calendar.list.removed', { n }, n) })
+  } catch (error) {
+    removeFailed.value = api.failure(error).message
+  } finally {
+    removing.value = false
+  }
+}
 const failed = computed(() => status.value === 'error')
 const nothing = computed(
   () => data.value !== null && status.value === 'success' && byDay.value.size === 0,
@@ -309,7 +370,7 @@ const listedTitle = computed(() => {
         @click="cal.step(1)"
       />
       <h2
-        class="min-w-[9rem] ps-1 text-[15px] leading-5 font-semibold"
+        class="min-w-[9rem] ps-1 text-[14px] leading-5 font-semibold"
         aria-live="polite"
         data-calendar-period
       >
@@ -391,9 +452,16 @@ const listedTitle = computed(() => {
       >
     </Toolbar>
 
+    <SearchField
+      v-if="view === 'list'"
+      v-model="search"
+      :label="workspace ? $t('calendar.list.searchText') : $t('calendar.list.search')"
+      class="md:max-w-80"
+    />
+
     <LoadFailed v-if="failed" :text="$t('calendar.failed')" @retry="cal.reload()" />
     <p
-      v-else-if="data?.truncated"
+      v-else-if="cal.truncated.value"
       class="flex items-center gap-2 text-(--app-text-muted)"
       role="status"
       data-calendar-truncated
@@ -401,7 +469,12 @@ const listedTitle = computed(() => {
       <UIcon name="i-lucide-info" class="size-4 shrink-0" aria-hidden="true" />
       {{ $t('calendar.truncated') }}
     </p>
-    <p v-else-if="nothing" class="text-(--app-text-muted)" role="status" data-calendar-empty>
+    <p
+      v-else-if="nothing && view !== 'list'"
+      class="text-(--app-text-muted)"
+      role="status"
+      data-calendar-empty
+    >
       {{ narrowed ? $t('calendar.noMatch') : $t(`calendar.empty.${view}`) }}
     </p>
 
@@ -445,6 +518,58 @@ const listedTitle = computed(() => {
       :loading="loading"
       @open-day="openDay"
     />
+
+    <CalendarList
+      v-if="view === 'list' && !failed"
+      :days="listDays"
+      :today="today"
+      :drafts="draftCards"
+      :drafts-failed="cal.draftsStatus.value === 'error'"
+      :drafts-truncated="cal.drafts.value?.truncated ?? false"
+      :removable="removableDrafts.length"
+      :show-client="showClient"
+      :loading="loading"
+      :more-status="status === 'pending' ? 'pending' : cal.moreStatus.value"
+      :narrowed="narrowed || search.trim() !== ''"
+      @more="cal.loadMore()"
+      @remove-empty="confirmRemove = true"
+      @retry-drafts="cal.reloadDrafts()"
+    />
+    <UModal
+      v-model:open="confirmRemove"
+      :title="$t('calendar.list.removeTitle')"
+      :description="$t('calendar.list.removeText')"
+    >
+      <template #body>
+        <p class="text-(--app-text-muted)">
+          {{
+            $t('calendar.list.removeEmpty', { n: removableDrafts.length }, removableDrafts.length)
+          }}
+        </p>
+        <p v-if="removeFailed" role="alert" class="mt-2 text-(--app-danger)">{{ removeFailed }}</p>
+      </template>
+      <template #footer>
+        <div class="flex w-full flex-wrap justify-end gap-3">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            class="min-h-control"
+            @click="confirmRemove = false"
+          >
+            {{ $t('calendar.list.keep') }}
+          </UButton>
+          <UButton
+            color="error"
+            class="min-h-control"
+            :loading="removing"
+            data-drafts-remove-confirm
+            @click="removeEmpty()"
+          >
+            {{ $t('calendar.list.removeOk') }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
 
     <CalendarDaySheet
       v-model:open="dayOpen"

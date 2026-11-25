@@ -147,10 +147,11 @@ test('«Pubblica subito»: the question with the accounts, then the outcome; one
   await expect(page.locator('[data-outcome-state]')).toHaveText('Pubblicato')
   await expect(fbRow.getByRole('link', { name: 'Apri su Facebook' })).toBeVisible()
 
-  // the client's «Post»: «Pubblicati» in place of «Annullati»
+  // the client's list: the post out today, «Pubblicato»
   await page.goto(`/${org}/spazi/${client.slug}/post`)
-  await expect(page.getByRole('button', { name: /Pubblicati/ })).toBeVisible()
-  await expect(page.getByText('Pubblicato', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('[data-list-group="today"] [data-post]').getByText('Pubblicato', { exact: true }),
+  ).toBeVisible()
 })
 
 test('a post in pause: a Manager resumes it, a Publisher is told to ask', async ({

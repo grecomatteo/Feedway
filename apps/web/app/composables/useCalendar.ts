@@ -1,5 +1,6 @@
 import type { CalendarEntry, CalendarPost } from '@app/contracts'
 import {
+  addDays,
   localDateOf,
   parseCalendarQuery,
   toCalendarQuery,
@@ -7,7 +8,7 @@ import {
   type CalendarQuery,
   type LocalDate,
 } from '@app/domain'
-import { periodOf, shiftDate, type PeriodView } from '~/utils/calendar'
+import { LIST_PAGE, periodOf, shiftDate, type PeriodView } from '~/utils/calendar'
 
 export type CalendarPostRow = CalendarPost & { marks: string[] }
 
@@ -20,8 +21,14 @@ interface CalendarResponse {
   truncated: boolean
 }
 
+interface DraftsResponse {
+  timeZone: string
+  items: CalendarPost[]
+  truncated: boolean
+}
+
 /** The views this page draws; the address may name others («griglia», stage 9 Task 12). */
-const DRAWN: readonly PeriodView[] = ['month', 'week']
+const DRAWN: readonly PeriodView[] = ['month', 'week', 'list']
 
 /**
  * The calendar of the page (spec §11.4, plan 09 Task 3): view, day and filters live in the
@@ -41,6 +48,7 @@ export function useCalendar(scope: {
   const route = useRoute()
   const router = useRouter()
   const org = useOrganization()
+  const api = useApi()
 
   const timeZone = computed(() => org.organization.value?.timezone ?? 'Europe/Rome')
   // «oggi» of the agency (D-58), counted again when the tab comes back on another day
@@ -57,9 +65,12 @@ export function useCalendar(scope: {
   })
 
   const query = computed<CalendarQuery>(() => parseCalendarQuery(route.query))
+  // the month on a computer, the list under 768 px (§11.4); read once, as the page opens
+  const fallback: PeriodView =
+    import.meta.client && window.matchMedia('(max-width: 47.99rem)').matches ? 'list' : 'month'
   const view = computed<PeriodView>(() => {
     const asked = query.value.view
-    return asked && (DRAWN as readonly string[]).includes(asked) ? (asked as PeriodView) : 'month'
+    return asked && (DRAWN as readonly string[]).includes(asked) ? (asked as PeriodView) : fallback
   })
   const date = computed<LocalDate>(() => query.value.date ?? today.value)
   const period = computed(() => periodOf(view.value, date.value))
@@ -112,9 +123,10 @@ export function useCalendar(scope: {
     )
 
   // ---- the read: the address in the API's English names
-  const apiQuery = computed(() => {
+  /** The filters in the API's names, without the period: the drafts are read with these. */
+  const filterQuery = computed(() => {
     const f = filters.value
-    const q: Record<string, string> = { from: period.value.from, to: period.value.to }
+    const q: Record<string, string> = {}
     const list = (key: string, values: readonly string[]) => {
       if (values.length > 0) q[key] = values.join(',')
     }
@@ -129,6 +141,15 @@ export function useCalendar(scope: {
     list('statuses', f.statuses)
     list('authorIds', f.authorIds)
     list('labelIds', f.labelIds)
+    return q
+  })
+  const apiQuery = computed(() => {
+    const f = filters.value
+    const q: Record<string, string> = {
+      ...filterQuery.value,
+      from: period.value.from,
+      to: period.value.to,
+    }
     if (f.quick && f.quick !== 'today' && f.quick !== 'this_week') q['quick'] = f.quick
     if (f.show !== 'both') q['show'] = f.show
     return q
@@ -136,6 +157,9 @@ export function useCalendar(scope: {
 
   const data = ref<CalendarResponse | null>(null)
   const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
+  /** the list's pages after the first, read with «Mostra altri» */
+  const more = ref<CalendarResponse[]>([])
+  const moreStatus = ref<'idle' | 'pending' | 'error'>('idle')
   let running: AbortController | null = null
   async function load() {
     // read in the browser only, as the panel's other reads (`server: false`)
@@ -144,6 +168,7 @@ export function useCalendar(scope: {
     const mine = new AbortController()
     running = mine
     status.value = 'pending'
+    moreStatus.value = 'idle'
     try {
       const res = await $fetch<CalendarResponse>(org.api('/calendar'), {
         query: apiQuery.value,
@@ -151,10 +176,31 @@ export function useCalendar(scope: {
       })
       if (running !== mine) return
       data.value = res
+      more.value = []
       status.value = 'success'
     } catch {
       if (running !== mine) return
       status.value = 'error'
+    }
+  }
+  /** «Mostra altri» of the list: the next 42 days, under the ones shown. */
+  async function loadMore() {
+    const last = more.value.at(-1) ?? data.value
+    // not while a new period is read: the page would follow days that are being replaced
+    if (!last || moreStatus.value === 'pending' || status.value === 'pending') return
+    const mine = running
+    moreStatus.value = 'pending'
+    try {
+      const res = await $fetch<CalendarResponse>(org.api('/calendar'), {
+        query: { ...apiQuery.value, from: addDays(last.to, 1), to: addDays(last.to, LIST_PAGE) },
+        ...(mine ? { signal: mine.signal } : {}),
+      })
+      if (running !== mine || (more.value.at(-1) ?? data.value) !== last) return
+      more.value = [...more.value, res]
+      moreStatus.value = 'idle'
+    } catch {
+      if (running !== mine) return
+      moreStatus.value = 'error'
     }
   }
   // the context first: «Tutti i clienti» would be read for nothing while the client is unknown
@@ -168,8 +214,75 @@ export function useCalendar(scope: {
   )
   onBeforeUnmount(() => running?.abort())
 
-  /** The posts of the period shown (the last read until the next arrives). */
-  const posts = computed(() => data.value?.posts ?? [])
+  // ---- the list's drafts without a date (plan 09 Scelta 2): a read of their own, with the
+  // filters and without a period; a quick filter is about dated posts, and leaves them out
+  const wantsDrafts = computed(() => view.value === 'list' && filters.value.quick === null)
+  const drafts = ref<DraftsResponse | null>(null)
+  const draftsStatus = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
+  let draftsRunning: AbortController | null = null
+  async function loadDrafts() {
+    if (import.meta.server) return
+    draftsRunning?.abort()
+    if (!wantsDrafts.value) {
+      drafts.value = null
+      draftsStatus.value = 'idle'
+      return
+    }
+    const mine = new AbortController()
+    draftsRunning = mine
+    draftsStatus.value = 'pending'
+    try {
+      const res = await $fetch<DraftsResponse>(org.api('/calendar/drafts'), {
+        query: filterQuery.value,
+        signal: mine.signal,
+      })
+      if (draftsRunning !== mine) return
+      drafts.value = res
+      draftsStatus.value = 'success'
+    } catch {
+      if (draftsRunning !== mine) return
+      draftsStatus.value = 'error'
+    }
+  }
+  watch(
+    () =>
+      waiting.value ? null : `${String(wantsDrafts.value)} ${JSON.stringify(filterQuery.value)}`,
+    (key) => {
+      if (key !== null) void loadDrafts()
+    },
+    { immediate: true },
+  )
+  onBeforeUnmount(() => draftsRunning?.abort())
+
+  /**
+   * «Elimina le bozze vuote»: one's own, and with `all` the others' where the person manages the
+   * posts of others (the server checks each one). Gives how many went.
+   */
+  async function removeEmptyDrafts(all: boolean): Promise<number> {
+    const res = await api.call<{ deleted: number }>(
+      'POST',
+      org.api('/calendar/drafts/delete-empty'),
+      { ...(scope.workspaceId.value ? { workspaceId: scope.workspaceId.value } : {}), all },
+    )
+    await loadDrafts()
+    return res.deleted
+  }
+
+  /** The posts of the period shown (the last read until the next arrives), with the list's pages. */
+  const posts = computed(() => [
+    ...(data.value?.posts ?? []),
+    ...more.value.flatMap((page) => page.posts),
+  ])
+  /** the last day read: the list's «Mostra altri» goes on from the day after */
+  /** the entries (the plan's contents) of the period and of the pages added by «Mostra altri» */
+  const entries = computed(() => [
+    ...(data.value?.entries ?? []),
+    ...more.value.flatMap((page) => page.entries),
+  ])
+  const readTo = computed(() => more.value.at(-1)?.to ?? data.value?.to ?? period.value.to)
+  const truncated = computed(
+    () => (data.value?.truncated ?? false) || more.value.some((page) => page.truncated),
+  )
   const activeFilters = computed(() => {
     const f = filters.value
     return (
@@ -194,6 +307,15 @@ export function useCalendar(scope: {
     data,
     posts,
     status,
+    truncated,
+    entries,
+    readTo,
+    loadMore,
+    moreStatus,
+    drafts,
+    draftsStatus,
+    reloadDrafts: loadDrafts,
+    removeEmptyDrafts,
     reload: load,
     setView,
     step,

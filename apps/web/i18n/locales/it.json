@@ -733,7 +733,8 @@
       "empty": "Niente in programma oggi e domani.",
       "emptyDay": "Niente in programma questo giorno.",
       "none": "Niente in programma.",
-      "failed": "Non siamo riusciti a leggere i post in uscita."
+      "failed": "Non siamo riusciti a leggere i post in uscita.",
+      "calendar": "Apri il calendario"
     },
     "drafts": {
       "title": "Bozze da finire",
@@ -1613,7 +1614,6 @@
     "backToClients": "Torna ai clienti",
     "archived": "Archiviato",
     "newPost": "Nuovo post",
-    "soon": "Presto",
     "tabs": {
       "label": "Sezioni del cliente",
       "overview": "Panoramica",
@@ -3423,7 +3423,8 @@
     "noMatch": "Nessun post con questi filtri in questo periodo.",
     "empty": {
       "month": "Nessun post in questo mese.",
-      "week": "Nessun post in questa settimana."
+      "week": "Nessun post in questa settimana.",
+      "list": "Nessun post in questi giorni."
     },
     "view": {
       "label": "Vista",
@@ -3433,11 +3434,13 @@
     },
     "prev": {
       "month": "Mese precedente",
-      "week": "Settimana precedente"
+      "week": "Settimana precedente",
+      "list": "Giorni precedenti"
     },
     "next": {
       "month": "Mese successivo",
-      "week": "Settimana successiva"
+      "week": "Settimana successiva",
+      "list": "Giorni successivi"
     },
     "quick": {
       "label": "Filtri rapidi",
@@ -3483,7 +3486,35 @@
       "posts": "Post",
       "plan": "Piano"
     },
-    "planned": "Niente da preparare | 1 da preparare | {n} da preparare"
+    "planned": "Niente da preparare | 1 da preparare | {n} da preparare",
+    "list": {
+      "drafts": "Bozze senza data",
+      "noDrafts": "Nessuna bozza senza data.",
+      "noDraftsMatch": "Nessuna bozza senza data con questi filtri.",
+      "draftsFailed": "Le bozze senza data non si sono caricate.",
+      "draftsTruncated": "Vedi le 200 bozze cambiate per ultime.",
+      "removeEmpty": "Elimina le bozze vuote | Elimina la bozza vuota | Elimina le {n} bozze vuote",
+      "removeTitle": "Eliminare le bozze vuote?",
+      "removeText": "Bozze senza testo, file, profili e data. Non si possono recuperare.",
+      "removeOk": "Elimina",
+      "keep": "Annulla",
+      "removed": "Nessuna bozza vuota eliminata | Eliminata 1 bozza vuota | Eliminate {n} bozze vuote",
+      "loading": "Carico i post",
+      "more": "Mostra altri",
+      "moreFailed": "Gli altri giorni non si sono caricati. Riprova.",
+      "search": "Cerca nel testo o in un cliente",
+      "searchText": "Cerca nel testo",
+      "noSearch": "Nessun post per «{q}» in questi giorni.",
+      "group": {
+        "before": "Prima",
+        "earlierThisWeek": "Questa settimana",
+        "yesterday": "Ieri",
+        "today": "Oggi",
+        "tomorrow": "Domani",
+        "thisWeek": "Questa settimana",
+        "later": "Più avanti"
+      }
+    }
   },
   "plan": {
     "title": "Piano editoriale",

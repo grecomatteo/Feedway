@@ -5,8 +5,8 @@ import { vScrollEdges } from '~/utils/scroll-edges'
  * The client's page (spec §14.7, screens 16–18 of the new direction): the «home» of a client,
  * where the selector leads (D-5). At the top its square picture, name and the names of its profiles
  * on one line («Nuovo post» is the shell's, which already writes for this client); then the tabs
- * Panoramica, Post, Libreria, Persone and Contenuti. The tabs are child pages: Panoramica is `index.vue`,
- * Post `post/index.vue` (its editor `post/[postId].vue`), Libreria `libreria.vue`, Persone `membri.vue`,
+ * Panoramica, Calendario, Libreria, Persone and Contenuti. The tabs are child pages: Panoramica is
+ * `index.vue`, Calendario `calendario.vue` (the editor of a post `post/[postId].vue`), Libreria `libreria.vue`, Persone `membri.vue`,
  * Impostazioni dei contenuti `contenuti.vue`.
  */
 definePageMeta({ layout: 'agency' })
@@ -42,8 +42,8 @@ const keep = computed(() => {
 // the library from Editor up (§10.2): for a Viewer the tab is not there
 const tabs = computed(() => [
   { key: 'overview', to: base.value, label: t('client.tabs.overview') },
-  // until the calendar (stage 9) the posts are a list, in the tab «Post» (plan 06 Scelta 6)
-  { key: 'posts', to: `${base.value}/post`, label: t('client.tabs.posts') },
+  // the client's posts: month, week and list (plan 09 Task 3, in place of «Post»)
+  { key: 'calendar', to: `${base.value}/calendario`, label: t('client.tabs.calendar') },
   ...(client.value && usesLibrary(client.value)
     ? [{ key: 'library', to: `${base.value}/libreria`, label: t('client.tabs.library') }]
     : []),

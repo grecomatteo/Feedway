@@ -234,8 +234,8 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await expect(scheduleButton(page)).toHaveText(/Programma su 2 account/)
   await scheduleButton(page).click()
-  // back to the client's posts, with the confirmation and the way back to the post (screen 12)
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  // back to the client's calendar, with the confirmation and the way back to the post (screen 12)
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
   const toast = page.locator('[data-toast]')
   await expect(toast).toContainText(/Programmato per \p{L}+ \d{1,2} \p{L}+( \d{4})? alle 18:30/u)
   await toast.getByRole('link', { name: 'Apri' }).click()
@@ -254,7 +254,7 @@ test('schedule, back to draft, cancel: the actions of a Publisher and up', async
   )
   await expect(scheduleButton(page)).toBeEnabled({ timeout: 15_000 })
   await scheduleButton(page).click()
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
   await page.locator('[data-toast]').getByRole('link', { name: 'Apri' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Post programmato' })).toBeVisible()
   await page.getByRole('button', { name: 'Annulla programmazione' }).click()
@@ -583,7 +583,7 @@ test('a scheduled post changed: «Esci lo stesso» leaves, and the post stays as
   )
   await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
   await dialog.getByRole('button', { name: 'Esci lo stesso' }).click()
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
 
   await page.goto(postUrl)
   await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue(
@@ -607,7 +607,7 @@ test('a draft that cannot be saved (no network): «Esci lo stesso» leaves', asy
     .getByRole('dialog', { name: 'Uscire senza salvare?' })
     .getByRole('button', { name: 'Esci lo stesso' })
     .click()
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
   await page.unroute('**/posts/*')
   // the change left behind was not saved
   await page.goto(draftUrl)
@@ -626,7 +626,7 @@ test('leaving a new post while a file uploads: the page changes, the upload goes
     .setInputFiles(new URL('./fixtures/clip.mp4', import.meta.url).pathname)
   await expect(page.getByRole('group', { name: /clip\.mp4/ })).toBeVisible()
   await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
   await expect(page.getByTestId('uploads-dock')).toContainText('clip.mp4')
 })
 
@@ -680,7 +680,7 @@ test.describe('a file that finishes after leaving the editor goes into the post'
       .setInputFiles(new URL('./fixtures/clip.mp4', import.meta.url).pathname)
     await expect.poll(() => held).toBeGreaterThan(0)
     await page.getByRole('main').getByRole('link', { name: 'Forno Luce' }).click()
-    await expect(page).toHaveURL(new RegExp(`/spazi/${slug}/post$`))
+    await expect(page).toHaveURL(new RegExp(`/spazi/${slug}/calendario$`))
     open()
   }
 
@@ -763,7 +763,7 @@ test('«Salva ed esci» saves the draft and leaves; the row at the top fits at 7
   // a change typed just now goes with the person when they leave
   await page.getByRole('textbox', { name: 'Testo comune' }).fill('Salvato uscendo')
   await page.getByRole('button', { name: 'Salva ed esci' }).click()
-  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/post$`))
+  await expect(page).toHaveURL(new RegExp(`/spazi/${client.slug}/calendario$`))
   await page.goto(draftUrl)
   await expect(page.getByRole('textbox', { name: 'Testo comune' })).toHaveValue('Salvato uscendo')
 

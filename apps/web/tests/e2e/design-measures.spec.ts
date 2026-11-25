@@ -53,15 +53,15 @@ const PAGES: MeasuredPage[] = [
     row: '[data-list-row]',
   },
   {
-    // a client without posts: the outline «Nuovo post» of the empty list (screen 17)
-    name: 'Post del cliente',
+    // a client's calendar on its list (plan 09 Task 3, in place of «Post»): «Mostra altri»
+    name: 'Calendario del cliente',
     path: async (page) => {
       const owner = await newPerson('Mara Post', 'owner')
       await signInWithTotp(page.request, owner)
       const ws = await newWorkspace(page.request, owner.organizationSlug, 'Cliente Misure')
-      return `/${owner.organizationSlug}/spazi/${ws.slug}/post`
+      return `/${owner.organizationSlug}/spazi/${ws.slug}/calendario?vista=elenco`
     },
-    control: 'section[aria-labelledby="posts-title"] a',
+    control: '[data-list-more]',
   },
   {
     // the usual time's select and the outline «Nuova etichetta» (screen 18)

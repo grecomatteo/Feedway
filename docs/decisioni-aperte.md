@@ -368,12 +368,6 @@ Esiti della prova del 17–18 novembre 2026 sulla VPS (nelle consegne della tapp
 - **Non verificato:** le misure non sono prese sulle app; l'anteprima dice «Anteprima approssimativa».
 - **Stato:** decisa (a) per ora da Matteo (18/11), con le storie allineate alle sue guide; nella prova della 0.13.0 la storia è uscita con la stessa parte della foto dell'anteprima (7.6, Matteo), il reel 16:9 intero con le bande nere (7.5); il confronto delle misure del testo tagliato non è stato annotato. Un margine di 70 px sul feed come guida facoltativa si aggiunge se Matteo lo chiede.
 
-### D-79 · Elenco «Post» del cliente: peso e ordine
-
-- **Origine:** revisione finale della tappa 6, P5 (segnalato anche dal thread B2). L'elenco legge fino a 10 pagine da 100 post interi, una dopo l'altra; oltre i 1.000 la fine manca senza avviso; l'ordine è per data di creazione, non per data del post.
-- **Opzioni:** (a) lasciare fino alla tappa 9, dove calendario e vista «Elenco» leggono per intervallo di date; (b) ora una risposta ridotta, l'ordine «programmati per data, poi bozze» e un avviso oltre i 1.000.
-- **Stato:** rimandata (a), consiglio della revisione; l'ordine per data del post si decide con Matteo nella tappa 9.
-
 ## Dalla prova della 0.12.0
 
 Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, `ESITI-prova-0.12.0.md`). La 0.12.0 passa.
@@ -589,6 +583,10 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Richieste di Matteo (§4):**
   1. la pagina dell'esito come l'anteprima dell'editor: caroselli sfogliabili, video riproducibili, la copertina scelta, la versione di ogni account;
   2. l'elenco dei post: gruppi per periodo, ordine per l'ora del post, filtri combinabili, vista Calendario, bozze separate con «Elimina le bozze vuote», un titolo per i post senza testo.
+- **Fatto nella tappa 9, Task 3, PR 2 (richiesta 2, 25/11; chiude anche D-79):** la scheda «Post» del cliente è diventata «Calendario» (l'indirizzo `…/post` porta alla vista «Elenco»). L'elenco legge a pagine di 42 giorni con «Mostra altri», ordina ogni giorno per l'ora del post, raggruppa sotto «Oggi», «Domani», «Questa settimana», «Più avanti» (e «Ieri», «Questa settimana», «Prima» guardando indietro), mette in cima le «Bozze senza data» con «Elimina le bozze vuote» (con conferma; quelle degli altri solo dove la persona gestisce i post degli altri; solo quando l'elenco mostra tutte le bozze del cliente o di tutti i clienti, cioè senza filtri, ricerca o profilo, perché il server elimina in tutto il cliente e il numero sul pulsante deve essere quello vero), combina i filtri del calendario e cerca nel testo e nel cliente. Sul telefono il calendario si apre sull'elenco. Scelte provvisorie:
+  1. un post annullato non compare nell'elenco se il filtro «Stato» non lo chiede, come nel calendario (Task 2): prima la scheda «Post» li mostrava;
+  2. la ricerca è sul testo e sul cliente dei giorni già letti, non sul server;
+  3. le bozze senza data spariscono quando c'è un filtro rapido, che riguarda i post con un giorno.
 - **Fatto nella tappa 8, Task 10 (richiesta 1, 23/11):** la pagina dell'esito mostra «Com'è uscito», l'anteprima dell'editor in sola lettura: una scheda per come è uscito (Feed, Reel, Storia, Facebook), un account da scegliere solo quando gli account della stessa scheda hanno ricevuto cose diverse, il carosello che si sfoglia anche con le frecce della tastiera, reel e storie che si avviano nel riquadro con la copertina uscita, le zone coperte spente. I file sono le copie pubblicate (rotta nuova `…/media/{mediaId}/copies/{copyId}`, solo nel pannello) finché ci sono, poi gli originali con la riga «Le copie pubblicate sono state tolte…». Prima e dopo in `handoff/tappa-8/esito-anteprima/`. Scelte provvisorie:
   1. le versioni si calcolano **adesso**, come le calcolerebbe il worker (`publishFilesOfPost`), con i controlli di chi ha programmato il post: se dopo l'uscita cambiano gli account, le regole o i permessi di chi l'ha programmato, la pagina può mostrare una versione diversa da quella ricevuta da Meta (non verificato; salvare i file di ogni destinazione all'uscita è un lavoro a parte). Se non si possono calcolare (cliente archiviato, post senza data) resta la fila di miniature di prima. Si calcolano all'apertura e dopo ogni azione, non nelle letture ogni 10 secondi;
   2. tutte le copie o nessuna: se manca anche una sola copia, la pagina mostra gli originali di tutto il post, per non mescolare file usciti e file mai usciti; la riga «Le copie pubblicate sono state tolte» compare solo dopo che il post è uscito su almeno un account (prima le copie sono ancora in preparazione). Il Viewer non riceve gli id delle copie (D-72);

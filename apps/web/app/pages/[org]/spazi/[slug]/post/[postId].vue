@@ -97,9 +97,23 @@ useHead({
   title: () =>
     `${firstId ? t('posts.editor.editTitle') : t('posts.editor.newTitle')} · ${client.value?.name ?? ''}`,
 })
-const back = computed(() =>
-  org.to(`/spazi/${encodeURIComponent(String(route.params['slug']))}/post`),
-)
+// back to the calendar the post was opened from, with its view, day and filters; otherwise to
+// the client's calendar in the profile of the address (plan 09 Task 3: «Post» became «Calendario»)
+const cameFrom = import.meta.client
+  ? (window.history.state as { back?: unknown } | null)?.back
+  : null
+const back = computed(() => {
+  const calendar = org.to(`/spazi/${encodeURIComponent(String(route.params['slug']))}/calendario`)
+  if (
+    typeof cameFrom === 'string' &&
+    [calendar, org.to('/calendario')].some((p) => cameFrom === p || cameFrom.startsWith(`${p}?`))
+  )
+    return cameFrom
+  const profilo = route.query['profilo']
+  return typeof profilo === 'string' && profilo !== ''
+    ? `${calendar}?profilo=${encodeURIComponent(profilo)}`
+    : calendar
+})
 const profileList = computed(() => profiles.data.value?.items ?? [])
 </script>
 

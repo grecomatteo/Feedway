@@ -79,21 +79,14 @@ const entry =
             ><span class="sr-only">{{ $t('today.issues.count', { n: toFix }, toFix) }}</span></span
           >
         </NuxtLink>
-        <!-- the calendar arrives in stage 9: in its place, off -->
-        <span
-          role="link"
-          aria-disabled="true"
-          :aria-label="`${$t('agency.nav.calendar')} (${$t('client.soon')})`"
-          :class="[entry, 'cursor-default hover:bg-transparent hover:text-(--app-text-muted)']"
+        <NuxtLink
+          :to="{ path: org.to('/calendario'), query: context }"
+          :aria-current="current(org.to('/calendario')) ? 'page' : undefined"
+          :class="entry"
         >
           <UIcon name="i-lucide-calendar-days" class="size-[18px] shrink-0" aria-hidden="true" />
-          <span aria-hidden="true">{{ $t('agency.nav.calendar') }}</span>
-          <span
-            class="ms-auto rounded-[4px] border border-(--app-border-strong) px-[5px] text-[11px] leading-4 font-medium text-(--app-text-muted)"
-            aria-hidden="true"
-            >{{ $t('client.soon') }}</span
-          >
-        </span>
+          {{ $t('agency.nav.calendar') }}
+        </NuxtLink>
         <NuxtLink
           v-for="item in main.slice(1)"
           :key="item.to"

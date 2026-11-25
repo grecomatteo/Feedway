@@ -79,10 +79,13 @@ test('the client page: from Clienti, with its profiles, its tabs and the old add
     'aria-current',
     'page',
   )
-  // until the calendar (stage 9) the posts are a list in «Post» (plan 06 Scelta 6)
-  await expect(tabs.getByRole('link', { name: 'Post', exact: true })).toBeVisible()
+  // the posts are in «Calendario», which took the place of «Post» (plan 09 Task 3)
+  await expect(tabs.getByRole('link', { name: 'Calendario', exact: true })).toHaveAttribute(
+    'href',
+    new RegExp(`/spazi/${client.slug}/calendario$`),
+  )
   await expect(tabs.getByRole('link', { name: 'Libreria' })).toBeVisible()
-  await expect(tabs.getByText('Calendario')).toHaveCount(0)
+  await expect(tabs.getByRole('link', { name: 'Post', exact: true })).toHaveCount(0)
   // the tabs scroll sideways on a narrow screen, never up and down (prova 0.10.0, R-10)
   expect(await tabs.evaluate((n) => n.scrollHeight - n.clientHeight)).toBe(0)
   // on a phone they fade at the edge where more of them is hidden (D-102.8)
