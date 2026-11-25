@@ -3,6 +3,7 @@ export {
   createPlanItem,
   listPlan,
   movePlanItem,
+  planItemOfPost,
   preparePlanItem,
   removePlanItem,
   updatePlanItem,

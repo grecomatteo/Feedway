@@ -23,7 +23,7 @@ import type { IdGenerator } from '../ports/id-generator.js'
 import type { PlanItemRecord, PlanScope } from '../ports/plan.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { createDraft, freeSlotOn, getStatuses } from '../posts/index.js'
+import { createDraft, freeSlotOn, getStatuses, isPostOf } from '../posts/index.js'
 import { assertActiveOrganization, currentActor, workspaceNotFound } from '../workspaces/index.js'
 
 // The editorial plan's use cases (spec §11.12, plan 09 Task 6). Who sees the client reads the
@@ -251,6 +251,35 @@ export async function listPlan(
   )
 }
 
+/**
+ * The content of the plan a post of the client was prepared from (§11.12, Task 7): the editor
+ * shows its note, its type and its day. Whoever sees the client's plan reads it; a post that
+ * does not come from the plan has none, and a post that is not the client's is not found.
+ */
+export async function planItemOfPost(
+  deps: PlanDeps,
+  actor: OrgActor,
+  input: { workspaceId: string; postId: string },
+): Promise<{ item: PlanItemDto | null }> {
+  return deps.uow.run(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    async (tx) => {
+      const { scope, timeZone } = await openPlan(tx, actor, input.workspaceId, {
+        need: 'plan.view',
+        write: false,
+      })
+      if (!(await isPostOf(tx, scope, input.postId)))
+        throw new DomainError('NOT_FOUND', 'Post non trovato')
+      const [item] = (await tx.plan.findByPostIds(scope.organizationId, [input.postId])).filter(
+        (i) => i.workspaceId === scope.workspaceId,
+      )
+      if (!item) return { item: null }
+      const factsOf = await postFacts(tx, scope.organizationId, [item])
+      return { item: toDto(item, factsOf(item), deps.clock.now(), timeZone) }
+    },
+  )
+}
+
 /** A new content: day, type and title; the time and the note when given. */
 export async function createPlanItem(
   deps: PlanDeps & { ids: IdGenerator },
@@ -347,7 +376,7 @@ export async function preparePlanItem(
   deps: PlanDeps,
   actor: OrgActor,
   input: { itemId: string; ip?: string | null },
-): Promise<{ postId: string; created: boolean }> {
+): Promise<{ postId: string; created: boolean; workspaceId: string }> {
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
@@ -361,7 +390,7 @@ export async function preparePlanItem(
       const factsOf = await postFacts(tx, scope.organizationId, [item])
       const post = factsOf(item)
       if (item.postId && post && post.status !== 'cancelled')
-        return { postId: item.postId, created: false }
+        return { postId: item.postId, created: false, workspaceId: scope.workspaceId }
       const localTime =
         item.localTime ??
         (await freeSlotOn(tx, scope, item.localDate, timeZone, deps.clock.now())) ??
@@ -375,7 +404,7 @@ export async function preparePlanItem(
       })
       if (!(await tx.plan.linkPost(scope, item.id, postId, current.userId)))
         throw planItemNotFound()
-      return { postId, created: true }
+      return { postId, created: true, workspaceId: scope.workspaceId }
     },
   )
 }

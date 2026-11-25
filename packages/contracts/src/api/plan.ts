@@ -103,7 +103,19 @@ export const preparePlanItemRoute = defineContract({
   summary:
     'Prepara il contenuto: una bozza del cliente con tipo, giorno e ora; se è già preparato risponde con il suo post',
   request: { params: ItemParams },
-  response: z.object({ postId: Id, created: z.boolean() }),
+  /** the client of the content: a link may name another one */
+  response: z.object({ postId: Id, created: z.boolean(), workspaceId: Id }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const planOfPostRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/plan',
+  summary:
+    'Il contenuto del piano da cui viene il post, nota compresa, per l’editor; null se non viene dal piano',
+  request: { params: z.strictObject({ org: OrgSlug, id: Id, postId: Id }) },
+  response: z.object({ item: PlanItemDto.nullable() }),
   auth: 'session',
   scope: 'organization',
 })
@@ -114,4 +126,5 @@ export const planRoutes = [
   updatePlanItemRoute,
   deletePlanItemRoute,
   preparePlanItemRoute,
+  planOfPostRoute,
 ] as const
