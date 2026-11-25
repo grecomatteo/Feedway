@@ -290,7 +290,7 @@ describe('«Duplica»', () => {
     )
   })
 
-  test('«Duplica e programma» from Publisher only; a Viewer copies nothing', async () => {
+  test('«Duplica e programma» from Publisher only; for a Viewer the post is not found', async () => {
     const source = await richPost(forno, people.publisher.userId)
     const body = (schedule: boolean) => ({
       dates: [{ localDate: '2027-04-01', localTime: '09:00' }],
@@ -303,8 +303,8 @@ describe('«Duplica»', () => {
     )
     await refused(
       call('viewer', 'POST', `${ws()}/posts/${source}/duplicate`, body(false)),
-      403,
-      'FORBIDDEN',
+      404,
+      'NOT_FOUND',
     )
     // the file was never analysed: its checks block, so the copy stays a draft, with why
     const copies = await ok<BulkImport>(

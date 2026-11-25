@@ -4,6 +4,7 @@ import {
   DomainError,
   bulkSummary,
   bulkUndoUntil,
+  can,
   canUndoBulk,
   type BulkRowOutcome,
   type BulkSource,
@@ -18,6 +19,7 @@ import type { Tx } from '../ports/tx.js'
 import {
   assertReferences,
   mayEditContent,
+  mayPublish,
   openPosts,
   postNotFound,
   recordPost,
@@ -98,6 +100,11 @@ const actorOf = (organizationId: string, userId: string): OrgActor => ({
   memberships: new Map(),
 })
 
+const bulkUndoClosed = () =>
+  new DomainError('CONFLICT', 'Non si può più annullare: sono passati più di 10 secondi', {
+    reason: 'bulk_undo_closed',
+  })
+
 /** The import of the person who started it: anyone else's, as another client's, is «not found». */
 async function ownImport(tx: Tx, actor: OrgActor, workspaceId: string, importId: string) {
   if (!isUuid(importId)) throw bulkImportNotFound()
@@ -153,9 +160,13 @@ export async function startBulkImport(
     )
   } catch (error) {
     deps.logger.error({ err: error, bulkImportId: dto.id }, 'bulk import not queued')
-    // nothing was created yet: the panel keeps its table and «Programma» can be pressed again
-    await deps.uow.run(own, (tx) => tx.bulkImports.deletePending(actor.organizationId, dto.id))
-    throw error
+    // nothing was created yet: the panel keeps its table and «Programma» can be pressed again.
+    // Not pending any more means the job was stored after all and runs: a second «Programma»
+    // would make every post twice, so the import is answered as started.
+    const removed = await deps.uow.run(own, (tx) =>
+      tx.bulkImports.deletePending(actor.organizationId, dto.id),
+    )
+    if (removed) throw error
   }
   return dto
 }
@@ -206,7 +217,8 @@ export async function runBulkImport(
   const actor = actorOf(organizationId, userId)
   const start = await deps.uow.run(scope, async (tx) => {
     const record = await tx.bulkImports.findForUpdate(organizationId, bulkImportId)
-    if (!record) return 'missing'
+    // only the job «Programma» sent: an import of another agency, or of someone else, is missing
+    if (record?.createdBy !== userId) return 'missing'
     if (record.status === 'done' || record.status === 'undone') return 'over'
     if (record.status === 'pending')
       await tx.bulkImports.update(organizationId, bulkImportId, {
@@ -346,16 +358,18 @@ export async function undoBulkImport(
   return deps.uow.run(
     { organizationId: actor.organizationId, userId: actor.userId },
     async (tx) => {
+      // an import still running is refused before any lock: its rows take the import and then
+      // the client, the other way round from here
+      if (isUuid(input.workspaceId) && isUuid(input.importId)) {
+        const seen = await tx.bulkImports.find(
+          { organizationId: actor.organizationId, workspaceId: input.workspaceId },
+          input.importId,
+        )
+        if (seen?.createdBy === actor.userId && seen.status !== 'done') throw bulkUndoClosed()
+      }
       const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
       const record = await ownImport(tx, current, scope.workspaceId, input.importId)
-      if (!canUndoBulk(record.status, record.finishedAt, deps.clock.now()))
-        throw new DomainError(
-          'CONFLICT',
-          'Non si può più annullare: sono passati più di 10 secondi',
-          {
-            reason: 'bulk_undo_closed',
-          },
-        )
+      if (!canUndoBulk(record.status, record.finishedAt, deps.clock.now())) throw bulkUndoClosed()
       const rows: BulkRow[] = []
       for (const row of record.rows) {
         const outcome = row.outcome
@@ -366,7 +380,11 @@ export async function undoBulkImport(
         const post = await tx.posts.findForUpdate(scope, outcome.postId)
         let undo: 'removed' | 'kept' = 'removed'
         if (post) {
-          if (mayEditContent(current, post) && (await untouched(tx, post, outcome.version))) {
+          // a scheduled post is taken back only by who may still publish it
+          const allowed =
+            mayEditContent(current, post) &&
+            (outcome.status === 'draft' || mayPublish(current, post))
+          if (allowed && (await untouched(tx, post, outcome.version))) {
             if (!(await tx.posts.delete(scope, post.id))) throw postNotFound()
             await recordPost(tx, current, 'post.deleted', post, request.ip)
           } else undo = 'kept'
@@ -421,7 +439,8 @@ export async function duplicatePost(
       const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
       if (!isUuid(input.postId)) throw postNotFound()
       const source = await tx.posts.find(scope, input.postId)
-      if (!source) throw postNotFound()
+      // who cannot write in the client does not learn the post is there (plan 09 Task 10)
+      if (!source || !can(current, 'post.draft', scope)) throw postNotFound()
       if (input.schedule && !mayImportInBulk(current, scope)) throw cannotImportInBulk()
       // an account taken off the client since is not copied: the copy could not be saved with it
       const wanted = source.targets.filter((t) => !t.cancelledInPanel).map((t) => t.accountId)

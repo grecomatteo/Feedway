@@ -619,9 +619,10 @@ const RULES: Record<string, readonly Rule[]> = {
       prepare: (ids, cookie) => callersImport(ids, cookie, true),
     },
   ],
-  // «Duplica» (Scelta 9): new drafts of the caller, from any post the caller sees
+  // «Duplica» (Scelta 9): new drafts of the caller, from any post the caller sees; who cannot
+  // write in the client does not learn the post is there (404, plan 09 Task 10)
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/duplicate': [
-    { permission: 'post.draft', level: 'workspace', ownIsEnough: true },
+    { permission: 'post.draft', level: 'workspace', ownIsEnough: true, hiddenWithout: true },
   ],
   // the calendar (plan 09 Task 2): every member, each across the clients they see; narrowed to
   // one client, who does not see it gets 404. «Elimina le bozze vuote» deletes only what the

@@ -12,7 +12,7 @@ import {
 } from '@app/application'
 import { addDays, instantToZoned } from '@app/domain'
 import type { Runtime } from '@app/infrastructure'
-import { startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
+import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
 import { startMetaMock, type MetaMock } from '@app/meta-mock'
 import { accountsRuntime, recordingQueue } from '../../tests/accounts-jobs.js'
 import {
@@ -284,4 +284,65 @@ test('«Annulla» removes the posts nobody touched, keeps a draft changed since,
   await expect(
     undoBulkImport(deps, w.actor, { workspaceId: w.workspaceId, importId: late.id }, ip),
   ).rejects.toMatchObject({ code: 'CONFLICT', details: { reason: 'bulk_undo_closed' } })
+}, 120_000)
+
+test('«Annulla» by a Publisher demoted to Editor meanwhile keeps the scheduled posts', async () => {
+  const w = await publishingWorld(tdb, runtime)
+  const deps = postsDeps(runtime)
+  const publisher = await seed(tdb.runtimeUrl, async (s) => {
+    const user = await s.user()
+    await s.member(w.organizationId, user, 'member')
+    await s.workspaceMember(w.organizationId, w.workspaceId, user, 'publisher')
+    return user
+  })
+  const actor = { ...w.actor, userId: publisher, orgRole: 'member' as const }
+  const photo = await readyPhoto(tdb, runtime, admin, w)
+  const started = await startBulkImport(deps, actor, {
+    workspaceId: w.workspaceId,
+    source: 'files',
+    rows: [row(w, 0, [photo]), row(w, 1, [])],
+  })
+  await runBulkImport(deps, {
+    organizationId: w.organizationId,
+    bulkImportId: started.id,
+    userId: publisher,
+  })
+  await admin.query(
+    "update workspace_members set role = 'editor' where workspace_id = $1 and user_id = $2",
+    [w.workspaceId, publisher],
+  )
+  const undone = await undoBulkImport(
+    deps,
+    actor,
+    { workspaceId: w.workspaceId, importId: started.id },
+    { ip: null },
+  )
+  expect(undone.rows).toEqual([
+    expect.objectContaining({ status: 'scheduled', undo: 'kept' }),
+    expect.objectContaining({ status: 'draft', undo: 'removed' }),
+  ])
+  expect(await postsOf(w.workspaceId)).toEqual([expect.objectContaining({ status: 'scheduled' })])
+}, 120_000)
+
+test('a job naming an import of someone else of the agency writes nothing', async () => {
+  const w = await publishingWorld(tdb, runtime)
+  const deps = postsDeps(runtime)
+  const other = await seed(tdb.runtimeUrl, async (s) => {
+    const user = await s.user()
+    await s.member(w.organizationId, user, 'admin')
+    return user
+  })
+  const started = await startBulkImport(deps, w.actor, {
+    workspaceId: w.workspaceId,
+    source: 'files',
+    rows: [row(w, 0, [])],
+  })
+  expect(
+    await runBulkImport(deps, {
+      organizationId: w.organizationId,
+      bulkImportId: started.id,
+      userId: other,
+    }),
+  ).toEqual({ rows: 0, finished: false })
+  expect(await postsOf(w.workspaceId)).toHaveLength(0)
 }, 120_000)

@@ -63,5 +63,6 @@ export interface BulkImportsRepository {
   findForUpdate(organizationId: string, id: string): Promise<BulkImportRecord | null>
   update(organizationId: string, id: string, change: BulkImportChange): Promise<void>
   /** An import whose job could not be sent: only while it is still `pending`. */
-  deletePending(organizationId: string, id: string): Promise<void>
+  /** Removes an import still `pending`; false when a job already took it. */
+  deletePending(organizationId: string, id: string): Promise<boolean>
 }

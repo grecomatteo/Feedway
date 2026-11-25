@@ -72,7 +72,7 @@ export function drizzleBulkImports(db: DbExecutor): BulkImportsRepository {
         .where(and(eq(bulkImports.organizationId, organizationId), eq(bulkImports.id, id)))
     },
     async deletePending(organizationId, id) {
-      await db
+      const deleted = await db
         .delete(bulkImports)
         .where(
           and(
@@ -81,6 +81,8 @@ export function drizzleBulkImports(db: DbExecutor): BulkImportsRepository {
             eq(bulkImports.status, 'pending'),
           ),
         )
+        .returning({ id: bulkImports.id })
+      return deleted.length > 0
     },
   }
 }
