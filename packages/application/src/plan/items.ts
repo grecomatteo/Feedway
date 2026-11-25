@@ -328,13 +328,14 @@ export async function removePlanItem(
   })
 }
 
-/** The time a prepared post starts at when the content has none (§11.12). */
-const FALLBACK_TIME = '18:00'
+/** The time a prepared post starts at when nothing else gives one, as the editor (Matteo, 25/11). */
+const FALLBACK_TIME = '14:00'
 
 /**
  * «Prepara questo contenuto» (§11.12): a draft of the client with the content's type, day and
  * time, linked to the content in the same transaction. The time is the content's; without one
- * the client's usual time, then its first free slot of that day, then 18:00 as the editor. A
+ * the client's first free slot of that day, then its usual time, then 14:00 as the editor: the
+ * slots come first because every client has a usual time (Matteo, 25/11). A
  * content already prepared answers with its post (`created: false`); one whose post was
  * cancelled is prepared again and the link replaced (rule 5).
  */
@@ -359,8 +360,8 @@ export async function preparePlanItem(
         return { postId: item.postId, created: false }
       const localTime =
         item.localTime ??
-        defaultTime ??
         (await freeSlotOn(tx, scope, item.localDate, timeZone, deps.clock.now())) ??
+        defaultTime ??
         FALLBACK_TIME
       const { postId } = await createDraft(tx, current, {
         workspaceId: scope.workspaceId,

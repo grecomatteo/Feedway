@@ -2844,7 +2844,7 @@
       "rome": "ora di Roma · il fuso lo sceglie l'Owner in Impostazioni → Agenzia",
       "zone": "fuso {zone} · lo sceglie l'Owner in Impostazioni → Agenzia",
       "agency": "nel fuso dell'agenzia · lo sceglie l'Owner in Impostazioni → Agenzia",
-      "noneChoice": "Nessuno (18:00)"
+      "noneChoice": "Nessuno (14:00)"
     },
     "slots": {
       "title": "Fasce orarie",

@@ -239,27 +239,28 @@ describe('the plan', () => {
     await refused(call('publisher', 'DELETE', `${plan()}/${b.id}`), 404, 'NOT_FOUND')
   })
 
-  test('without a time: the usual time, then the day’s first free slot, then 18:00', async () => {
+  test('without a time: the day’s first free slot, then the usual time, then 14:00', async () => {
     const at = async (localDate: string) => {
       const item = await add({ localDate, localTime: null })
       const { postId } = await ok<{ postId: string }>(prepare(item.id))
       return (await ok<Post>(call('editor', 'GET', `${ws()}/posts/${postId}`))).when?.localTime
     }
-    // Wednesday 27 January 2027: nothing set
-    expect(await at('2027-01-27')).toBe('18:00')
-    // a slot on Wednesdays
+    // Wednesday 27 January 2027: a client is born with 14:00 as its usual time (Matteo, 25/11)
+    expect(await at('2027-01-27')).toBe('14:00')
+    // a slot on Wednesdays comes before the usual time
     await ok(
       call('manager', 'PUT', `${ws()}/time-slots`, {
         slots: [{ weekday: 3, localTime: '11:45' }],
       }),
     )
     expect(await at('2027-01-27')).toBe('11:45')
-    // a slot on another day does not count
-    expect(await at('2027-01-28')).toBe('18:00')
-    // the usual time comes first
+    // a slot on another day does not count: the usual time
     await ok(call('manager', 'PATCH', ws(), { defaultPostTime: '08:30' }))
-    expect(await at('2027-01-27')).toBe('08:30')
+    expect(await at('2027-01-28')).toBe('08:30')
+    // no usual time: 14:00, as the editor
     await ok(call('manager', 'PATCH', ws(), { defaultPostTime: null }))
+    expect(await at('2027-01-28')).toBe('14:00')
+    await ok(call('manager', 'PUT', `${ws()}/time-slots`, { slots: [] }))
   })
 
   test('the calendar shows a card without the note, and the «dal piano» mark on the post', async () => {
