@@ -63,12 +63,13 @@ test('every agency page has the menu, and «Account social» is not in it', asyn
     await expect(nav.getByText('Account social'), path).toHaveCount(0)
   }
   if (!isMobile) {
-    // the sidebar (screen 02): Oggi, Calendario, Clienti, Libreria; under the agency's name
-    // Utenti and Impostazioni
+    // the sidebar (screen 02): Oggi, Calendario, Piano editoriale (plan 09 Task 7), Clienti,
+    // Libreria; under the agency's name Utenti and Impostazioni
     await page.goto(`/${org}`)
     await expect(mainNav(page).getByRole('link')).toHaveText([
       'Oggi',
       'Calendario',
+      'Piano editoriale',
       'Clienti',
       'Libreria',
       'Utenti',
@@ -148,9 +149,10 @@ test('the «Tu» menu: the person’s pages by role, and the keyboard opens and 
   await page.keyboard.press('Enter')
   const menu = youMenu(page)
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: 'Libreria' })).toBeFocused()
+  await expect(menu.getByRole('menuitem', { name: 'Piano editoriale' })).toBeFocused()
   // screen 06: the activity log and the privacy notice are reached from Impostazioni
   await expect(menu.getByRole('menuitem')).toHaveText([
+    'Piano editoriale',
     'Libreria',
     'Utenti',
     'Impostazioni',
@@ -180,6 +182,7 @@ test('the «Tu» menu: the person’s pages by role, and the keyboard opens and 
   await expect(their).toBeEnabled()
   await their.click()
   await expect(youMenu(page).getByRole('menuitem')).toHaveText([
+    'Piano editoriale',
     'Libreria',
     'Impostazioni',
     'Esci',

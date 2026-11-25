@@ -4,6 +4,7 @@ import {
   displayName,
   requiresSecondFactor,
   sessionSatisfiesSecondFactor,
+  isModuleEnabled,
   storedTimeZone,
   type OrgRole,
   type Palette,
@@ -35,6 +36,8 @@ export interface SessionUser {
     logoUrl: string | null
     /** IANA, the agency's zone: days and times of its posts (D-58), for every role (D-78) */
     timezone: string
+    /** The modules the agency uses (plan 09 P2) */
+    modules: { plan: boolean }
   }[]
   secondFactor: { required: boolean; totpEnabled: boolean; passkeys: number }
   /** False for an activation whose passkey never came, or an account with passkeys only. */
@@ -135,6 +138,7 @@ export async function resolveSessionUser(
         status: m.organizationStatus,
         logoUrl: logoUrl(m.slug, m.logoKey),
         timezone: storedTimeZone({ timezone: m.timezone }),
+        modules: { plan: isModuleEnabled({ modules: m.modules }, 'plan') },
       })),
       secondFactor: { required, totpEnabled: user.twoFactorEnabled, passkeys },
       hasPassword,

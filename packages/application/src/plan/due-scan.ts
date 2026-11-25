@@ -14,7 +14,7 @@ import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { getStatuses } from '../posts/index.js'
 
-// `plan.due_scan` (plan 09 P3, Task 8): every 5 minutes, «Contenuto da preparare entro domani»
+// `plan.due_scan` (plan 09 P3, Task 8): every 5 minutes, «Contenuto da preparare» (36 hours before)
 // for every content not prepared whose notification time has come and whose reference instant
 // has not. No job per content: the scan reads the state of now, so a content created or moved
 // after its time is told at the next run, and so is one whose time came while the worker was

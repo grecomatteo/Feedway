@@ -8,6 +8,7 @@ import {
   storedPrivacySettings,
   storedTimeZone,
   isListedTimeZone,
+  isModuleEnabled,
   type OrganizationPrivacySettings,
   type OrgActor,
   type OrgRole,
@@ -39,6 +40,8 @@ export interface MyOrganization {
   logoUrl: string | null
   /** IANA, the agency's zone (D-58), read by every member (D-78) */
   timezone: string
+  /** The modules the agency uses (plan 09 P2): the menu shows only theirs */
+  modules: { plan: boolean }
 }
 
 /** The agencies where the person has an active membership (spec §6.5, switcher). */
@@ -60,6 +63,7 @@ export async function listMyOrganizations(
         status: m.organizationStatus,
         logoUrl: logoUrl(m.slug, m.logoKey),
         timezone: storedTimeZone({ timezone: m.timezone }),
+        modules: { plan: isModuleEnabled({ modules: m.modules }, 'plan') },
       }))
   })
 }

@@ -25,6 +25,8 @@ export const PlanItemDto = z.object({
   state: z.enum(['to_prepare', 'due_soon', 'late', 'prepared']),
   /** the instant «In ritardo» and «Mancano meno di 36 ore» count from */
   dueAt: Timestamp,
+  /** when it turns «Meno di 36 ore» and its notification goes out: one instant for both */
+  dueSoonAt: Timestamp,
   version: z.number().int(),
 })
 export type PlanItemDto = z.infer<typeof PlanItemDto>

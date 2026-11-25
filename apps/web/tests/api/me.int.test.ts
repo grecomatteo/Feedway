@@ -97,6 +97,7 @@ test('my agencies list only the active memberships', async () => {
         status: 'active',
         logoUrl: null,
         timezone: 'Europe/Rome',
+        modules: { plan: true },
       },
     ],
   })

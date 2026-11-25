@@ -2,8 +2,8 @@
  * The agency's menu (D-81, `base.css` `.nav`): only what the person may use, and only what exists.
  * `link` carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
  * current page. `group` says where an entry lives:
- * - `main`: the sidebar's first block (Oggi, Clienti, Libreria); Calendario is drawn by the shell,
- *   off with «Presto» until stage 9;
+ * - `main`: the sidebar's first block (Oggi, Piano editoriale, Clienti, Libreria); Calendario is
+ *   drawn by the shell after the first, off with «Presto» until stage 9, so the plan sits under it;
  * - `agency`: under the agency's name (Utenti, Impostazioni); on a phone in the «Tu» menu;
  * - `settings`: pages reached from Impostazioni (Registro attività, Privacy), until Task R8 moves
  *   them inside it.
@@ -29,17 +29,32 @@ export function useAgencyNav() {
     const list = payload[`workspaces-${org.slug.value}`] as { items: WorkspaceView[] } | undefined
     return (list?.items ?? []).some((w) => w.archivedAt === null && usesLibrary(w))
   })
+  // «Piano editoriale» (§11.12): with the module on and a client the person sees (`plan.view`)
+  const seesAnyPlan = computed(() => {
+    if (org.organization.value?.modules.plan !== true) return false
+    if (org.may.value.manageUsers) return true
+    const list = payload[`workspaces-${org.slug.value}`] as { items: WorkspaceView[] } | undefined
+    return (list?.items ?? []).some((w) => w.archivedAt === null)
+  })
   const items = computed(() => {
     const may = org.may.value
     const list: AgencyNavItem[] = [
       { to: org.to(), label: 'agency.nav.home', icon: 'i-lucide-sun', group: 'main' },
-      {
-        to: org.to('/spazi'),
-        label: 'agency.nav.workspaces',
-        icon: 'i-lucide-briefcase-business',
-        group: 'main',
-      },
     ]
+    if (seesAnyPlan.value)
+      list.push({
+        to: org.to('/piano'),
+        label: 'agency.nav.plan',
+        icon: 'i-lucide-notebook-pen',
+        group: 'main',
+        phoneMenu: true,
+      })
+    list.push({
+      to: org.to('/spazi'),
+      label: 'agency.nav.workspaces',
+      icon: 'i-lucide-briefcase-business',
+      group: 'main',
+    })
     if (usesAnyLibrary.value)
       list.push({
         to: org.to('/libreria'),

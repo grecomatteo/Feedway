@@ -1,4 +1,4 @@
-import { planItemState, referenceInstant, type PlanItemType } from '@app/domain'
+import { dueNotificationAt, planItemState, referenceInstant, type PlanItemType } from '@app/domain'
 import type { CalendarEntry, CalendarEntrySource } from '../module-definition.js'
 import { getStatuses } from '../posts/index.js'
 
@@ -12,8 +12,10 @@ export interface PlanEntryData {
   type: PlanItemType
   /** 'to_prepare' | 'due_soon' | 'late', at the time of the read; the panel moves it on */
   state: string
-  /** the instant the state counts from */
+  /** the instant the state counts from: after it, «In ritardo» */
   dueAt: string
+  /** when it turns «Meno di 36 ore» and its notification goes out: the panel counts from here */
+  dueSoonAt: string
   /** the cancelled post it had, if any; null otherwise */
   postId: string | null
 }
@@ -37,6 +39,7 @@ export const planCalendarEntries: CalendarEntrySource = {
         type: item.type,
         state,
         dueAt: referenceInstant(item.localDate, item.localTime, query.timeZone).toISOString(),
+        dueSoonAt: dueNotificationAt(item, query.timeZone).toISOString(),
         postId: item.postId,
       }
       out.push({
