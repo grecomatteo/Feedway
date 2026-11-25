@@ -1274,3 +1274,23 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 - **Cosa servirebbe in Feedway:** un campo «Collaboratori» nell'editor per Instagram (fino a 3 nomi, non sulle storie, con le regole in `checkPost`), il parametro nel contenitore del worker, lo stato dell'invito sulla pagina dell'esito; per Facebook, sui reel, la Pagina da invitare e un passo dopo il caricamento. Il finto Graph API (`tools/meta-mock`) va esteso.
 - **Opzioni:** (a) solo Instagram in un task piccolo (proposta), nella tappa 10 «Condivisione e brand» o subito dopo la tappa 9; (b) Instagram e reel di Facebook insieme; (c) rimandare dopo la 1.0.
 - **Stato:** decisa (a) da Matteo il 24/11: solo Instagram, con un campo nell'editor per invitare il nome utente, e la richiesta che parte solo su Instagram. È il **Task 15** del piano della tappa 9 (scelta 13), in un thread suo che parte in parallelo agli altri (scelta di Matteo, 24/11). **Scelte provvisorie:** fino a 3 nomi (il minimo dei due numeri della documentazione); niente campo sulle storie; se Meta rifiuta il contenitore per un collaboratore, il worker lo ricrea una volta senza e l'esito dice che l'invito non è partito (l'errore preciso di Meta è da verificare); lo stato dell'invito («In attesa», «Accettato», «Rifiutato») lo legge il worker dopo la conferma e quando si preme «Aggiorna», così il web non chiama Meta. I reel delle Pagine Facebook restano fuori (opzione (b), quando serve).
+
+## Agenti e MCP
+
+### D-132 · Feedway dalle chat: server MCP, accesso e collocazione
+
+- **Origine:** richiesta di Matteo (25/11): parlare con Feedway da Claude, ChatGPT o un altro agente per programmare post con foto e caption e caricare il calendario di un cliente come piano editoriale. Studio in [specifica agenti e MCP](superpowers/specs/2026-11-25-agenti-mcp.md).
+- **Scelte da fare** (la prima opzione è la proposta):
+  1. **Strada:** (a) server MCP remoto più token personali per l'API REST; (b) solo MCP; (c) solo API REST.
+  2. **Server di autorizzazione:** (a) plugin OAuth 2.1 Provider e CIMD di Better Auth, dopo la prova del task F0, con un'ADR che aggiorna la 012; (b) `oidc-provider` di panva; (c) un servizio esterno (WorkOS, Cloudflare Access). In ogni caso la registrazione dinamica resta solo per i client noti.
+  3. **Collocazione:** (a) tappa «Agenti» tra la 10 e la 11; (b) subito dopo la tappa 9; (c) versione 1.4 come in §18.2 della specifica.
+  4. **Indirizzo pubblico:** (a) indirizzo dedicato con Cloudflare Tunnel solo per `/mcp` e i token, conferma e link di caricamento sul pannello; (b) Tailscale Funnel come l'host dei media; il link di caricamento sull'indirizzo pubblico se chi carica non ha Tailscale.
+  5. **Ambiti di base alla conferma:** (a) lettura, bozze e programmazione spuntati, pubblicazione mai; (b) solo lettura e bozze, la programmazione da spuntare.
+  6. **Fuori dagli strumenti:** (a) utenti, ruoli, inviti, integrazioni, impostazioni, privacy e sicurezza restano solo nel pannello; (b) aggiungere anche gli inviti e le impostazioni dei contenuti.
+  7. **Tetto giornaliero** dei post programmati da agenti per agenzia: (a) 100; (b) nessun tetto; (c) un numero scelto dall'Owner.
+  8. **Nomi degli strumenti:** (a) in inglese con titolo italiano; (b) in italiano come gli esempi di §18.3.
+  9. **MCP Apps** (anteprima, calendario e caricamento dentro la chat): (a) nella tappa, task F10; (b) dopo la 1.0.
+  10. **ChatGPT Work:** i server MCP personalizzati con scrittura vogliono un piano Business o Enterprise (su Pro solo lettura). (a) Matteo usa un piano Business per lo spazio dell'agenzia; (b) ChatGPT solo in lettura, la scrittura da Claude Code; (c) pubblicare l'app nella directory dei plugin di OpenAI (revisione, più lavoro, con la 2.0).
+- **Client principali:** Claude Code e ChatGPT Work (Matteo, 25/11). Per Claude Code i file passano da `create_upload_url` e `curl`.
+- **Non verificato:** se ChatGPT Work usa i server MCP personalizzati e passa loro i file; durata e peso massimo dei `download_url` di ChatGPT; se Claude passa in qualche modo un allegato della chat a un connettore remoto; supporto della elicitation nei client; i limiti di Claude (150.000 caratteri, 240 s). Tutto va provato nel task F0.
+- **Stato:** aperta.

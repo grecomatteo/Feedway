@@ -4,6 +4,7 @@
 |---|---|---|
 | [Specifica](superpowers/specs/2026-10-15-feedway-design.md) | Cosa fa la piattaforma e come è fatta: la fonte di verità | A ogni decisione che cambia comportamento o architettura |
 | [Hub per l'agenzia](superpowers/specs/2026-10-29-feedway-hub-agenzia.md) | Direzione dopo la 1.0: funzioni decise, proposte, rimandate e scartate, landing | A ogni decisione sull'hub; le versioni si fissano quando si scrive il piano |
+| [Agenti e MCP](superpowers/specs/2026-11-25-agenti-mcp.md) | Proposta per usare Feedway da Claude, ChatGPT e altri agenti: server MCP, OAuth, strumenti, sicurezza, tappa | Finché è una proposta; approvata, entra nella specifica e nel piano della sua tappa |
 | [Motivazioni account personale](superpowers/specs/2026-10-15-account-personale-proposta.md) | Perché Better Auth, confronto opzioni e costi, scelte GDPR | Non si aggiorna: integrata nella specifica v9 |
 | [Piano generale](superpowers/plans/2026-10-15-00-piano-generale.md) | Le 12 tappe, interfacce tra tappe, regole comuni | A ogni tappa |
 | Piani delle tappe (`superpowers/plans/2026-10-15-NN-*.md`) | Task eseguibili, file, firme, test | Il piano della tappa N+1 si scrive mentre si chiude la N, sul codice reale. A tappa chiusa resta come storico: non si rilegge |
