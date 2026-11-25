@@ -183,6 +183,37 @@ export function useCalendar(scope: {
       status.value = 'error'
     }
   }
+  /**
+   * The days shown read again in place, after a move: the period and every page of «Mostra
+   * altri», without the skeleton and without cutting the list back to its first page. If the
+   * read fails, what is shown stays; a new period or new filters replace it as usual.
+   */
+  async function refresh() {
+    if (import.meta.server) return
+    const shown = data.value
+    if (!shown || status.value === 'pending') return load()
+    const mine = running
+    const key = JSON.stringify(apiQuery.value)
+    const ranges = [shown, ...more.value].map((page) => ({ from: page.from, to: page.to }))
+    try {
+      const pages = await Promise.all(
+        ranges.map((range) =>
+          $fetch<CalendarResponse>(org.api('/calendar'), {
+            query: { ...apiQuery.value, ...range },
+            ...(mine ? { signal: mine.signal } : {}),
+          }),
+        ),
+      )
+      // a new read, a new period or a page added meanwhile: theirs is the newer picture
+      if (running !== mine || key !== JSON.stringify(apiQuery.value)) return
+      const [first, ...rest] = pages
+      if (!first || more.value.length !== rest.length) return
+      data.value = first
+      more.value = rest
+    } catch {
+      // the days drawn stay as they are; the next read brings the server's
+    }
+  }
   /** «Mostra altri» of the list: the next 42 days, under the ones shown. */
   async function loadMore() {
     const last = more.value.at(-1) ?? data.value
@@ -268,6 +299,17 @@ export function useCalendar(scope: {
     return res.deleted
   }
 
+  /**
+   * A change of a post drawn at once, before the next read (a move, plan 09 Task 4): in the
+   * period read and in the list's pages. The next read puts the server's in its place.
+   */
+  function patchPost(id: string, change: Partial<CalendarPostRow>) {
+    const patch = (list: CalendarPostRow[]) =>
+      list.map((p) => (p.id === id ? { ...p, ...change } : p))
+    if (data.value) data.value = { ...data.value, posts: patch(data.value.posts) }
+    more.value = more.value.map((page) => ({ ...page, posts: patch(page.posts) }))
+  }
+
   /** The posts of the period shown (the last read until the next arrives), with the list's pages. */
   const posts = computed(() => [
     ...(data.value?.posts ?? []),
@@ -317,6 +359,8 @@ export function useCalendar(scope: {
     reloadDrafts: loadDrafts,
     removeEmptyDrafts,
     reload: load,
+    refresh,
+    patchPost,
     setView,
     step,
     toToday,

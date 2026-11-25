@@ -852,7 +852,7 @@ La stessa anteprima compare nel dettaglio del post e nel calendario; in versione
 - **Filtri**: account; piattaforma; tipo; stato; autore; etichetta. Il filtro per cliente (uno, alcuni o tutti) c'è solo nel contesto "Tutti i clienti": dentro un cliente o un profilo la scelta del cliente è il contesto stesso.
 - **Filtri rapidi**: Da pubblicare, Pubblicati, Con problema, Da preparare (§11.12), Oggi, Questa settimana; selettore "Mostra: Post · Piano · Entrambi".
 - Ogni voce: miniatura, orario, icone degli account, colore dello stato ed etichette; clic per il dettaglio con anteprima.
-- **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla".
+- **Trascinamento** per spostare un post, con gli stessi controlli e "Annulla" (piano 09, P7): al computer si trascina su un altro giorno (oggi o dopo); dal menu "⋯" della scheda (elenco, giorno, settimana) "Sposta…" cambia giorno e ora, anche da tastiera e dal telefono. Lo spostamento è il salvataggio del post con la **versione** letta (409 se un'altra persona l'ha cambiato) e, per un programmato, i controlli di "Programma"; "Annulla" per 5 secondi rimette giorno e ora di prima. Un post in pubblicazione, uscito o in parte uscito non si sposta.
 - **"+" su ogni giorno** (visibile al passaggio del mouse e al focus da tastiera, sempre visibile sul telefono), per chi può creare bozze: apre Nuovo post con quel giorno e l'orario predefinito del cliente già compilati. Da "Tutti i clienti" chiede prima il cliente. Non compare sui giorni passati.
 - Filtri salvati nell'indirizzo della pagina.
 - Il calendario segue il contesto attivo (§14.6): tutti i clienti, un cliente o un profilo; i filtri restringono ancora dentro quel contesto.

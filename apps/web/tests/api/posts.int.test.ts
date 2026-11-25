@@ -654,6 +654,44 @@ describe('a scheduled post moved or changed', () => {
     expect(changed.status).toBe('scheduled')
   })
 
+  test('a move from the calendar with an old version is 409 and moves nothing (P7)', async () => {
+    const when = { localDate: '2027-08-10', localTime: '09:00' }
+    const read = await expectOk(schedule('manager', await draft('editor', { when })))
+    // another person changes it after the calendar read it
+    await expectOk(
+      call('manager', 'PATCH', `${base()}/${read.id}`, {
+        version: read.version,
+        caption: { common: 'Cambiato da un’altra persona' },
+      }),
+    )
+    await expectError(
+      call('manager', 'PATCH', `${base()}/${read.id}`, {
+        version: read.version,
+        when: { localDate: '2027-08-12', localTime: '09:00' },
+      }),
+      409,
+      'CONFLICT',
+    )
+    const now = await expectOk(call('manager', 'GET', `${base()}/${read.id}`))
+    expect(now).toMatchObject({ status: 'scheduled', when })
+  })
+
+  test('a move a check blocks is 422 with the report, and the post stays (P7)', async () => {
+    const when = { localDate: '2027-08-11', localTime: '09:00' }
+    const read = await expectOk(schedule('manager', await draft('editor', { when })))
+    const error = await expectError(
+      call('manager', 'PATCH', `${base()}/${read.id}`, {
+        version: read.version,
+        when: { localDate: '2020-01-02', localTime: '09:00' },
+      }),
+      422,
+      'VALIDATION',
+    )
+    expect(error).toMatchObject({ reason: 'post_not_schedulable' })
+    const now = await expectOk(call('manager', 'GET', `${base()}/${read.id}`))
+    expect(now).toMatchObject({ status: 'scheduled', when, version: read.version })
+  })
+
   test('moved onto a full day it is refused (409); a new hour on its own day is not', async () => {
     const first = { localDate: '2027-08-01', localTime: '09:00' }
     await expectOk(schedule('manager', await draft('editor', { when: first })))
