@@ -190,7 +190,7 @@ function planCardOf(e: CalendarEntry): CalendarCardInfo | null {
   }
 }
 const byDay = computed(() => {
-  const plan = (data.value?.entries ?? [])
+  const plan = cal.entries.value
     .filter((e) => e.source === 'plan')
     .map((e) => ({ e, card: planCardOf(e) }))
     .filter((x) => x.card !== null)
@@ -251,15 +251,29 @@ const listDays = computed(() =>
 const draftCards = computed(() =>
   cal.drafts.value ? cal.drafts.value.items.map(cardOf).filter(matches) : null,
 )
-/** the empty drafts the person may delete: their own, and the others' where they manage posts */
+/**
+ * The empty drafts the person may delete: their own, and the others' where they manage posts.
+ * The server deletes in the whole client (or in every client) and does not know the filters: so
+ * the button is offered only when the list shows that whole set, the number it says included.
+ */
 const MANAGES = ['owner', 'admin', 'manager']
+const wholeDrafts = computed(
+  () =>
+    cal.activeFilters.value === 0 &&
+    filters.value.quick === null &&
+    props.profileAccountIds === null &&
+    search.value.trim() === '' &&
+    cal.drafts.value?.truncated === false,
+)
 const removableDrafts = computed(() =>
-  (cal.drafts.value?.items ?? []).filter(
-    (d) =>
-      d.empty &&
-      (d.createdBy === org.me.value?.id ||
-        MANAGES.includes(clientsById.value.get(d.workspaceId)?.myRole ?? '')),
-  ),
+  wholeDrafts.value
+    ? (cal.drafts.value?.items ?? []).filter(
+        (d) =>
+          d.empty &&
+          (d.createdBy === org.me.value?.id ||
+            MANAGES.includes(clientsById.value.get(d.workspaceId)?.myRole ?? '')),
+      )
+    : [],
 )
 const confirmRemove = ref(false)
 const removing = ref(false)
@@ -441,7 +455,7 @@ const listedTitle = computed(() => {
     <SearchField
       v-if="view === 'list'"
       v-model="search"
-      :label="$t('calendar.list.search')"
+      :label="workspace ? $t('calendar.list.searchText') : $t('calendar.list.search')"
       class="md:max-w-80"
     />
 
@@ -515,7 +529,7 @@ const listedTitle = computed(() => {
       :removable="removableDrafts.length"
       :show-client="showClient"
       :loading="loading"
-      :more-status="cal.moreStatus.value"
+      :more-status="status === 'pending' ? 'pending' : cal.moreStatus.value"
       :narrowed="narrowed || search.trim() !== ''"
       @more="cal.loadMore()"
       @remove-empty="confirmRemove = true"

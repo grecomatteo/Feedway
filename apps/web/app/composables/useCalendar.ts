@@ -186,7 +186,8 @@ export function useCalendar(scope: {
   /** «Mostra altri» of the list: the next 42 days, under the ones shown. */
   async function loadMore() {
     const last = more.value.at(-1) ?? data.value
-    if (!last || moreStatus.value === 'pending') return
+    // not while a new period is read: the page would follow days that are being replaced
+    if (!last || moreStatus.value === 'pending' || status.value === 'pending') return
     const mine = running
     moreStatus.value = 'pending'
     try {
@@ -194,7 +195,7 @@ export function useCalendar(scope: {
         query: { ...apiQuery.value, from: addDays(last.to, 1), to: addDays(last.to, LIST_PAGE) },
         ...(mine ? { signal: mine.signal } : {}),
       })
-      if (running !== mine) return
+      if (running !== mine || (more.value.at(-1) ?? data.value) !== last) return
       more.value = [...more.value, res]
       moreStatus.value = 'idle'
     } catch {
@@ -273,6 +274,11 @@ export function useCalendar(scope: {
     ...more.value.flatMap((page) => page.posts),
   ])
   /** the last day read: the list's «Mostra altri» goes on from the day after */
+  /** the entries (the plan's contents) of the period and of the pages added by «Mostra altri» */
+  const entries = computed(() => [
+    ...(data.value?.entries ?? []),
+    ...more.value.flatMap((page) => page.entries),
+  ])
   const readTo = computed(() => more.value.at(-1)?.to ?? data.value?.to ?? period.value.to)
   const truncated = computed(
     () => (data.value?.truncated ?? false) || more.value.some((page) => page.truncated),
@@ -302,6 +308,7 @@ export function useCalendar(scope: {
     posts,
     status,
     truncated,
+    entries,
     readTo,
     loadMore,
     moreStatus,

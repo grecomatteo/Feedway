@@ -114,6 +114,9 @@ async function agency(page: Page, name: string) {
     )
   await plan('Il panettone in vetrina', 'reel', '2026-11-23', '10:00')
   await plan('Le castagne della sera', 'carousel', '2026-11-19', '19:00')
+  // past the list's first 42 days (to 30 December): read by «Mostra altri»
+  await post(forno.id, igForno, 'Il pane di gennaio', '2027-01-12T09:00')
+  await plan('La befana in vetrina', 'photo', '2027-01-06', '10:00')
   return { org, forno, osteria, ids }
 }
 
@@ -236,8 +239,12 @@ test('the list: the drafts without a date on top, the days in their groups, more
   await expect(today.last()).toContainText('Le castagne della sera')
   expect((await axe(page)).violations).toEqual([])
 
-  // «Mostra altri»: the next 42 days under these
+  // «Mostra altri»: the next 42 days under these, posts and the plan's contents
+  await expect(list).not.toContainText('Il pane di gennaio')
+  await expect(list).not.toContainText('La befana in vetrina')
   await list.locator('[data-list-more]').click()
+  await expect(list.locator('[data-list-group="later"]')).toContainText('Il pane di gennaio')
+  await expect(list.locator('[data-list-group="later"]')).toContainText('La befana in vetrina')
   await expect(list.locator('[data-list-more]')).toBeEnabled()
   await expect(list.locator('[data-list-group]')).toHaveCount(4)
   // the days before: the one that did not go out, earlier this week

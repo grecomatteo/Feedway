@@ -3490,6 +3490,7 @@
       "more": "Mostra altri",
       "moreFailed": "Gli altri giorni non si sono caricati. Riprova.",
       "search": "Cerca nel testo o in un cliente",
+      "searchText": "Cerca nel testo",
       "noSearch": "Nessun post per «{q}» in questi giorni.",
       "group": {
         "before": "Prima",

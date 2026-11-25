@@ -106,7 +106,7 @@ test('the «Calendario» tab: the list with the drafts on top, the search, a row
   await expect(drafts.locator('[data-post]')).toHaveCount(1)
   await expect(drafts.locator('[data-drafts-remove-empty]')).toHaveCount(0)
 
-  await page.getByRole('searchbox', { name: 'Cerca nel testo o in un cliente' }).fill('focaccia')
+  await page.getByRole('searchbox', { name: 'Cerca nel testo', exact: true }).fill('focaccia')
   await expect(dated).toHaveCount(0)
   await expect(drafts.locator('[data-post]')).toHaveCount(1)
   await drafts.locator('[data-post]').click()
