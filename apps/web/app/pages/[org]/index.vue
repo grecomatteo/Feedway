@@ -43,12 +43,6 @@ const postPage = (workspaceId: string, postId: string) =>
   clientPage(workspaceId, `/post/${encodeURIComponent(postId)}`)
 
 // ---- what a row shows
-const TYPE_ICON: Record<AgendaPost['type'], string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 const thumbOf = (p: { workspaceId: string; thumbnail: AgendaPost['thumbnail'] }) =>
   p.thumbnail
     ? org.api(
@@ -482,7 +476,12 @@ const ready = computed(
                           alt=""
                           class="size-full object-cover"
                         />
-                        <UIcon v-else :name="TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
+                        <UIcon
+                          v-else
+                          :name="POST_TYPE_ICON[p.type]"
+                          class="size-4"
+                          aria-hidden="true"
+                        />
                       </span>
                       <span class="min-w-0">
                         <NuxtLink

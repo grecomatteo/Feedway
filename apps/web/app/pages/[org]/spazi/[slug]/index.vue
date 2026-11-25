@@ -124,12 +124,6 @@ const nextPosts = computed(() =>
 const nextExceptions = computed(() => nextPosts.value.some((p) => p.status !== 'scheduled'))
 /** «In pubblicazione», «1 non uscito», «In pausa»… (plan 07 Scelta 3) */
 const nextState = (p: AgendaPost) => postStateLabel(p, t)
-const TYPE_ICON: Record<AgendaPost['type'], string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 const postThumb = (p: AgendaPost) =>
   p.thumbnail
     ? org.api(
@@ -342,7 +336,7 @@ watch(
                     alt=""
                     class="size-full object-cover"
                   />
-                  <UIcon v-else :name="TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
+                  <UIcon v-else :name="POST_TYPE_ICON[p.type]" class="size-4" aria-hidden="true" />
                 </span>
                 <span class="min-w-0">
                   <NuxtLink
