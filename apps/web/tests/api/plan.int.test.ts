@@ -118,6 +118,8 @@ describe('the plan', () => {
       postId: null,
       state: 'to_prepare',
       dueAt: '2027-01-20T11:30:00.000Z',
+      // the card turns yellow when the notification goes out: 36 hours before
+      dueSoonAt: '2027-01-18T23:30:00.000Z',
       version: 1,
     })
     for (const who of ['viewer', 'editor'] as const)
@@ -279,7 +281,13 @@ describe('the plan', () => {
     const card = entries.find((e) => e.id === todo.id)
     expect(card).toMatchObject({ source: 'plan', kind: 'plan', title: 'Video 1' })
     // the fields of a card, one by one (rule 6, Scelta 11)
-    expect(Object.keys(card?.data ?? {}).sort()).toEqual(['dueAt', 'postId', 'state', 'type'])
+    expect(Object.keys(card?.data ?? {}).sort()).toEqual([
+      'dueAt',
+      'dueSoonAt',
+      'postId',
+      'state',
+      'type',
+    ])
     // a prepared content gives no card: its post carries the mark
     expect(entries.some((e) => e.id === done.id)).toBe(false)
     expect(posts.find((p) => p.id === postId)?.marks).toEqual(['plan'])

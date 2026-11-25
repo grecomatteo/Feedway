@@ -12,13 +12,20 @@ const props = withDefaults(
     message: string
     linkLabel?: string
     to?: string
+    /** a button instead of the link, such as «Annulla» after a move */
+    actionLabel?: string
     duration?: number
     /** in the flow of the page instead of over it: the system board */
     inline?: boolean
   }>(),
-  { linkLabel: undefined, to: undefined, duration: 5000, inline: false },
+  { linkLabel: undefined, to: undefined, actionLabel: undefined, duration: 5000, inline: false },
 )
 const open = defineModel<boolean>('open', { default: false })
+const emit = defineEmits<{ action: [] }>()
+function act() {
+  open.value = false
+  emit('action')
+}
 let timer: ReturnType<typeof setTimeout> | undefined
 const held = ref(false)
 
@@ -81,6 +88,15 @@ function leaveFocus(e: FocusEvent) {
         @click="open = false"
         >{{ linkLabel }}</NuxtLink
       >
+      <button
+        v-else-if="actionLabel"
+        type="button"
+        class="inline-flex h-8 items-center rounded-thumb px-2.5 font-semibold underline underline-offset-3 max-md:h-11"
+        data-toast-action
+        @click="act"
+      >
+        {{ actionLabel }}
+      </button>
     </div>
   </div>
 </template>

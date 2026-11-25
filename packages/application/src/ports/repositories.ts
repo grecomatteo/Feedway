@@ -340,6 +340,8 @@ export interface UserOrganizationRecord extends OrgMemberRecord {
   logoKey: string | null
   /** `settings.timezone` as stored; `storedTimeZone` reads it (D-58, D-78). */
   timezone: string | null
+  /** `settings.modules` as stored; `isModuleEnabled` reads it (plan 09 P2). */
+  modules: unknown
 }
 
 export interface OrgMembersRepository {

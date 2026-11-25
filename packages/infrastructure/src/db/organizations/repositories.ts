@@ -219,6 +219,7 @@ export function drizzleOrgMembers(db: DbExecutor): OrgMembersRepository {
           organizationStatus: organizations.status,
           require2fa: sql<string | null>`${organizations.settings}->>'require2fa'`,
           timezone: sql<string | null>`${organizations.settings}->>'timezone'`,
+          modules: sql<unknown>`${organizations.settings}->'modules'`,
           logoKey: branding.logoKey,
         })
         .from(organizationMembers)

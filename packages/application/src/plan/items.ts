@@ -3,6 +3,7 @@ import {
   PLAN_ITEM_TYPES,
   can,
   daysBetween,
+  dueNotificationAt,
   isLocalDate,
   isModuleEnabled,
   planItemState,
@@ -47,6 +48,8 @@ export interface PlanItemDto {
   state: PlanItemState
   /** the instant «In ritardo» and «Mancano meno di 36 ore» count from (rule 2) */
   dueAt: string
+  /** when it turns «due soon» and its notification goes out: the panel counts from here */
+  dueSoonAt: string
   version: number
 }
 
@@ -158,6 +161,7 @@ function toDto(
     postId: item.postId,
     state: planItemState(item, post, now, timeZone),
     dueAt: referenceInstant(item.localDate, item.localTime, timeZone).toISOString(),
+    dueSoonAt: dueNotificationAt(item, timeZone).toISOString(),
     version: item.version,
   }
 }

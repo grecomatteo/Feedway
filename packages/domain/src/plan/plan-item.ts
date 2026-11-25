@@ -44,12 +44,8 @@ export interface PlanPostFacts {
 export type PlanItemState = 'to_prepare' | 'due_soon' | 'late' | 'prepared'
 
 const HOUR_MS = 3_600_000
-/** «Mancano meno di 36 ore» */
+/** «Mancano meno di 36 ore»: the card turns yellow and the notification goes out (Matteo, 25/11) */
 export const PLAN_DUE_SOON_MS = 36 * HOUR_MS
-/** the notification, a day before a content with a time */
-export const PLAN_NOTICE_BEFORE_MS = 24 * HOUR_MS
-/** the time of the notification of a content without one, the day before (never at night) */
-export const PLAN_NOTICE_TIME = '09:00'
 /** the end of a day without a time */
 export const PLAN_END_OF_DAY = '23:59'
 
@@ -99,32 +95,22 @@ export function planItemState(
   if (isPreparedBy(post)) return 'prepared'
   const reference = referenceInstant(item.localDate, item.localTime, timeZone).getTime()
   if (now.getTime() > reference) return 'late'
-  if (now.getTime() >= reference - PLAN_DUE_SOON_MS) return 'due_soon'
+  if (now.getTime() >= dueNotificationAt(item, timeZone).getTime()) return 'due_soon'
   return 'to_prepare'
 }
 
-const previousDay = (localDate: string) => {
-  const [y, m, d] = localDate.split('-').map(Number) as [number, number, number]
-  const day = new Date(Date.UTC(y, m - 1, d - 1))
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${String(day.getUTCFullYear())}-${pad(day.getUTCMonth() + 1)}-${pad(day.getUTCDate())}`
-}
-
 /**
- * When «Contenuto da preparare entro domani» goes out (§11.12): 24 hours before the reference
- * instant of a content with a time, at 9:00 of the day before for one without.
+ * When a content turns «due soon» and its notification goes out (§11.12, Matteo 25/11): 36 real
+ * hours before its reference instant, with or without a time. One instant for both, so the
+ * yellow card and the notice never disagree; the quiet hours of each person still hold.
  */
 export function dueNotificationAt(
   item: Pick<PlanItem, 'localDate' | 'localTime'>,
   timeZone: string,
 ): Date {
-  if (item.localTime !== null)
-    return new Date(
-      referenceInstant(item.localDate, item.localTime, timeZone).getTime() - PLAN_NOTICE_BEFORE_MS,
-    )
-  // the day itself is checked first: 30 February is refused, never moved to 1 March
-  referenceInstant(item.localDate, null, timeZone)
-  return zonedToInstant(previousDay(item.localDate), PLAN_NOTICE_TIME, timeZone).instant
+  return new Date(
+    referenceInstant(item.localDate, item.localTime, timeZone).getTime() - PLAN_DUE_SOON_MS,
+  )
 }
 
 /**
