@@ -1601,6 +1601,8 @@ Il dettaglio di ogni tappa va nel piano di sviluppo.
 
 ### 18.3 Predisposizione per MCP
 
+> Proposta aggiornata del 2026-11-25, da approvare: [agenti e MCP](2026-11-25-agenti-mcp.md) (D-132). Finché non è approvata vale il testo qui sotto.
+
 Obiettivo: usare la piattaforma da Claude o altre chat ("programma questo reel giovedì alle 18 sui due account di X", "cosa esce questa settimana?").
 
 Già nella 1.0: casi d'uso con permessi, API `/api/v1` con OpenAPI, tabella `api_tokens` con ambiti (`lettura`, `bozze`, `pubblicazione`) legati all'utente e a una organizzazione, origine delle azioni nel registro.
