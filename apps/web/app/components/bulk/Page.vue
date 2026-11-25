@@ -78,12 +78,28 @@ const targets = computed(() => {
     )
   return items
 })
-const allTarget = ref<string | undefined>(undefined)
-watch(allTarget, (v) => {
-  if (!v) return
-  const [kind, id] = v.split(':')
-  if ((kind === 'account' || kind === 'group') && id) tb.targetAll({ kind, id })
-  allTarget.value = undefined
+// «Account per tutte»: the same menu, applied to the rows chosen, or to every row
+const allTargetItems = computed(() => {
+  const groups: { label: string; type?: 'label'; disabled?: boolean; onSelect?: () => void }[][] =
+    []
+  let current: (typeof groups)[number] = []
+  for (const item of targets.value) {
+    if (item.type === 'label') {
+      if (current.length > 0) groups.push(current)
+      current = [{ label: item.label, type: 'label' }]
+      continue
+    }
+    const [kind, id] = item.value.split(':')
+    current.push({
+      label: item.label,
+      disabled: item.disabled === true,
+      onSelect: () => {
+        if ((kind === 'account' || kind === 'group') && id) tb.targetAll({ kind, id })
+      },
+    })
+  }
+  if (current.length > 0) groups.push(current)
+  return groups
 })
 
 // ---- «Programma»
@@ -259,15 +275,17 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
                   : $t('bulk.tools.distribute')
               }}
             </UButton>
-            <USelect
-              v-model="allTarget"
-              :items="targets"
-              :placeholder="
-                tb.chosen.value.length > 0 ? $t('bulk.target.chosen') : $t('bulk.target.all')
-              "
-              class="w-56 max-md:w-full"
-              data-bulk-account-all
-            />
+            <UDropdownMenu :items="allTargetItems" :content="{ align: 'start' }">
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-at-sign"
+                trailing-icon="i-lucide-chevron-down"
+                data-bulk-account-all
+              >
+                {{ tb.chosen.value.length > 0 ? $t('bulk.target.chosen') : $t('bulk.target.all') }}
+              </UButton>
+            </UDropdownMenu>
             <span class="flex-1" />
             <UButton
               color="neutral"
@@ -329,7 +347,7 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
             @drop.prevent="dropped"
           >
             <div
-              class="hidden min-h-9 grid-cols-[1.5rem_3.5rem_8rem_minmax(0,1fr)_13rem_10.5rem_6.5rem_2.25rem] items-center gap-x-3 border-b border-(--app-border) px-4 text-caption font-medium text-(--app-text-muted) @min-[60rem]:grid"
+              class="hidden min-h-9 grid-cols-[1.5rem_3.5rem_7.5rem_minmax(0,1fr)_12rem_12.5rem_6.5rem_2.25rem] items-center gap-x-3 border-b border-(--app-border) px-4 text-caption font-medium text-(--app-text-muted) @min-[60rem]:grid"
               aria-hidden="true"
             >
               <span />

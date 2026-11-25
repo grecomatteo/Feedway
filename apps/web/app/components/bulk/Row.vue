@@ -114,7 +114,7 @@ const menu = computed(() => [
     <!-- narrow: picture, name and menu on the first line, then each field on its own; wide: one
          line of eight columns, as the head says -->
     <div
-      class="grid grid-cols-[1.5rem_3.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 @min-[60rem]:grid-cols-[1.5rem_3.5rem_8rem_minmax(0,1fr)_13rem_10.5rem_6.5rem_2.25rem] @min-[60rem]:items-center"
+      class="grid grid-cols-[1.5rem_3.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 @min-[60rem]:grid-cols-[1.5rem_3.5rem_7.5rem_minmax(0,1fr)_12rem_12.5rem_6.5rem_2.25rem] @min-[60rem]:items-center"
       :class="row.selected ? 'bg-(--app-nav-hover)' : ''"
     >
       <UCheckbox

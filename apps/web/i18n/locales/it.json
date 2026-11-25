@@ -3644,7 +3644,7 @@
       "type": "Tipo della riga {n}",
       "day": "Giorno della riga {n}",
       "time": "Ora della riga {n}",
-      "noTime": "Senza ora",
+      "noTime": "Ora",
       "noDay": "Senza data: resterà una bozza",
       "files": "{n} file",
       "remove": "Togli la riga {n}",

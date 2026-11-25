@@ -424,7 +424,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Origine:** piano della tappa 7, Scelta 6. La schermata `13` mostra «Modifica per Facebook» accanto a «Riprova» su una destinazione che Facebook ha rifiutato.
 - **Il problema:** cambiare file o testo di una sola destinazione, quando le altre sono già uscite, vuol dire un post con contenuti diversi per account, che oggi non esiste (c'è solo il testo per piattaforma).
 - **Opzioni:** (a) non farlo nella tappa 7: il motivo dice cosa cambiare e «Duplica» (tappa 9) rifà il post; (b) «Modifica per Facebook» apre l'editor solo per quella destinazione, con un post nuovo che eredita il resto; (c) permettere di cambiare il testo per piattaforma e i file scelti di una destinazione non uscita, poi «Riprova».
-- **Stato:** scelta provvisoria (a) del piano; da rivedere con Matteo dopo la prima prova vera.
+- **Stato:** scelta provvisoria (a) del piano, ora completa: «Duplica» c'è sulla pagina dell'esito (tappa 9, Task 10) e rifà il post su un altro giorno, come bozza o programmato. Da rivedere con Matteo dopo la prima prova vera.
 
 ### D-107 · Copie da pubblicare: le scelte del Task 6
 
@@ -864,6 +864,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - «Annulla» toglie un programmato solo se chi annulla può ancora programmare nel cliente (un Publisher diventato Editor nei 10 secondi lo trova «tenuto»); il lavoro `bulk.import` scrive solo per chi ha avviato l'importazione;
       - **«Duplica e programma»** crea le copie in una sola transazione: il blocco della programmazione dell'agenzia resta preso finché tutte (fino a 31) hanno fatto i controlli, e per quel tempo un altro «Programma» dell'agenzia aspetta. Se pesa, si programma una copia per transazione come fa `bulk.import`;
       - le righe (testi compresi) restano in `bulk_imports.rows` senza scadenza, anche dopo «Annulla»: al più circa 1 MB per importazione. Da decidere una pulizia (per esempio togliere le righe dopo 30 giorni) con la conservazione dei dati della tappa 11.
+  29. **Programmazione in blocco e «Duplica», pannello (Task 10, seconda PR, scelte provvisorie):**
+      - «In blocco» è una pagina a sé come l'editor (`…/spazi/<cliente>/post/in-blocco`), senza barra laterale, così «Programma N post» è l'unico arancio. Ci si arriva da «Nuovo post» (il collegamento «Tanti file? Programmali in blocco» prima del primo file, per chi programma) e dal calendario del cliente; i due agganci nel calendario (pulsante e voce «Duplica» nel menu della scheda) arrivano dopo il Task 4, che lavora sugli stessi file;
+      - solo file dal computer, fino a 50: «Dalla libreria» non c'è ancora nella tabella. Una riga nuova prende l'account della riga sopra; «Account per tutte» lo mette sulle righe scelte, o su tutte. L'account è uno solo o un gruppo salvato, come dice §11.6: per più account sparsi c'è il gruppo;
+      - «Distribuisci sulle fasce libere» chiede al server le prossime fasce (rotta nuova `GET …/workspaces/{id}/free-slots?count=`, come «Prossima fascia libera», per chi vede il cliente) e le scrive in ordine sulle righe scelte, o su tutte; se non bastano, le righe in più restano come sono e la pagina lo dice;
+      - «Programma» è spento (e porta alla riga) finché un file è in arrivo, un file non è stato caricato o una riga non ha account; una riga senza giorno parte lo stesso e resta bozza («Senza data»), come dice il server;
+      - il riepilogo segue l'importazione leggendola ogni secondo circa (più piano col tempo); chiudere la pagina non ferma niente, e la notifica arriva lo stesso. Dopo «Annulla», «Riprendi la tabella» ridà le righe com'erano;
+      - «Duplica» propone come prima data il giorno dopo, all'ora del post; ogni data aggiunta è il giorno dopo l'ultima.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico
