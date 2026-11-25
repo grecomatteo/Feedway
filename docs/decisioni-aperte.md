@@ -1290,5 +1290,7 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
   7. **Tetto giornaliero** dei post programmati da agenti per agenzia: (a) 100; (b) nessun tetto; (c) un numero scelto dall'Owner.
   8. **Nomi degli strumenti:** (a) in inglese con titolo italiano; (b) in italiano come gli esempi di §18.3.
   9. **MCP Apps** (anteprima, calendario e caricamento dentro la chat): (a) nella tappa, ultimo task; (b) dopo la 1.0.
-- **Non verificato:** piani di ChatGPT che ammettono le app in modalità sviluppatore; durata e peso massimo dei `download_url` di ChatGPT; se Claude passa in qualche modo un allegato della chat a un connettore remoto; supporto della elicitation nei client; i limiti di Claude (150.000 caratteri, 240 s). Tutto va provato nel task F0.
+  10. **ChatGPT Work:** i server MCP personalizzati con scrittura vogliono un piano Business o Enterprise (su Pro solo lettura). (a) Matteo usa un piano Business per lo spazio dell'agenzia; (b) ChatGPT solo in lettura, la scrittura da Claude Code; (c) pubblicare l'app nella directory dei plugin di OpenAI (revisione, più lavoro, con la 2.0).
+- **Client principali:** Claude Code e ChatGPT Work (Matteo, 25/11). Per Claude Code i file passano da `create_upload_url` e `curl`.
+- **Non verificato:** se ChatGPT Work usa i server MCP personalizzati e passa loro i file; durata e peso massimo dei `download_url` di ChatGPT; se Claude passa in qualche modo un allegato della chat a un connettore remoto; supporto della elicitation nei client; i limiti di Claude (150.000 caratteri, 240 s). Tutto va provato nel task F0.
 - **Stato:** aperta.

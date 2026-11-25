@@ -77,7 +77,23 @@ Il valore vero è U1 e U2: il lavoro di scrittura si fa già in chat; oggi bisog
 - Uno strumento con `destructiveHint` fa chiedere la conferma all'utente prima della chiamata.
 - OAuth come sopra; ChatGPT vuole PKCE S256 e manda `resource`.
 
-### 4.4 Altri
+### 4.4 I due client di Matteo: Claude Code e ChatGPT Work
+
+Matteo userà soprattutto **Claude Code** e la modalità **Work di ChatGPT** (25/11). Il disegno vale per tutti, ma questi due hanno le loro regole.
+
+**Claude Code** ([documentazione](https://code.claude.com/docs/en/mcp)):
+- Si collega con `claude mcp add --transport http feedway https://<indirizzo>/mcp`, una volta per tutti i progetti con `--scope user`; l'accesso OAuth si fa con `/mcp` nel browser. In alternativa un token personale: `--header "Authorization: Bearer fwp_…"`, utile anche dove OAuth non si può fare (`claude -p`, Agent SDK, script).
+- **I file:** Claude Code vede il disco e i comandi. Uno strumento MCP non riceve file locali, ma l'agente può caricarli lui: lo strumento `create_upload_url` (§6.3) restituisce un indirizzo firmato per un file, valido 15 minuti, e Claude Code fa `curl -T foto.jpg "<indirizzo>"`. Niente base64, niente limiti della chat, anche per video grandi (si appoggia al caricamento a pezzi di oggi). È la strada più comoda di tutte: «carica le foto della cartella `dicembre/forno-luce` e programmale sulle fasce libere».
+- Risultati: di base 25.000 token per risposta (`MAX_MCP_OUTPUT_TOKENS`), quindi letture paginate e brevi.
+- **Pacchetto per Claude Code:** un plugin di Claude Code con la configurazione del server e una skill «Feedway» (come si caricano le cartelle, come si prepara un mese, quando chiedere conferma). È l'unico «plugin» che ha senso: non sostituisce l'MCP, lo rende più facile da usare.
+
+**ChatGPT Work** (modalità di ChatGPT accanto a Chat e Codex, dal 9 luglio 2026, erede di Agent Mode; fonti di terzi: [AI Tools Review](https://aitoolsreview.co.uk/insights/chatgpt-work), [DataCamp](https://www.datacamp.com/blog/chatgpt-work-vs-claude-cowork)):
+- Lavora a lungo su compiti di più passi, chiede conferma per le azioni delicate e usa i plugin (le app MCP) installati. Con l'app desktop vede anche i file locali.
+- **Server MCP personalizzati** ([OpenAI](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)): con azioni di scrittura solo sui piani **Business ed Enterprise/Edu**, solo su web, creati e pubblicati nello spazio di lavoro da un admin; su **Pro** solo lettura. OAuth sì (per il rinnovo serve `offline_access`). Le definizioni degli strumenti si fissano all'approvazione: se cambiano, l'admin le aggiorna.
+- **Quindi:** con un piano personale (Plus o Pro) ChatGPT Work potrà **leggere** Feedway ma non programmare, a meno che l'app non sia pubblicata nella directory dei plugin (revisione di OpenAI, informativa, account di prova: da valutare con la 2.0). Con un piano Business funziona tutto. D-132 punto 10.
+- **Non verificato:** se Work usa i server MCP personalizzati come la chat normale (una fonte di terzi dice che Agent Mode non li usava); se passa a uno strumento le foto caricate con `openai/fileParams`; se dal desktop può aprire il link di caricamento e caricare i file da sé.
+
+### 4.5 Altri
 
 Cursor, VS Code, Le Chat di Mistral, Gemini CLI e gli SDK di agenti (Claude Agent SDK, OpenAI Agents SDK) parlano MCP remoto con OAuth. Un server fatto bene per Claude e ChatGPT funziona anche con loro.
 
@@ -188,6 +204,7 @@ Legenda ambito: **L** lettura, **B** bozze, **P** programmazione, **X** pubblica
 | `list_folders` 🔒 / `create_folder` | L / B | Cartelle | `media.folders` |
 | `upload_media` | B | **ChatGPT:** riceve i file allegati (`fileParams`), li scarica e li mette nella libreria del cliente. Restituisce gli id e lo stato | nuovo `importMediaFromStream` sopra `uploads` |
 | `create_upload_link` | B | **Claude e tutti:** crea un link di caricamento per un cliente e una cartella, valido 30 minuti; l'utente lo apre e sceglie le foto dal telefono o dal computer. Restituisce il link e un id da seguire | nuovo `createUploadLink` |
+| `create_upload_url` | B | **Claude Code e agenti con il disco:** indirizzo firmato per caricare un file con un `PUT` (nome, tipo e peso dichiarati prima, valido 15 minuti, una volta sola); il file entra nella libreria del cliente come un caricamento del pannello | nuovo, sopra `uploads` |
 | `get_upload_link_status` 🔒 | L | Cosa è arrivato da quel link | idem |
 | `import_media_from_url` | B | Scarica da un indirizzo https (Drive o Dropbox condivisi, immagine generata da un altro strumento), con i controlli di §8.6 | nuovo `importMediaFromUrl` |
 | `wait_for_media` 🔒 | L | Aspetta fino a 60 s che i file siano pronti (le conversioni dei video sono lente) e dice lo stato | `media.get` |
@@ -350,7 +367,7 @@ Il pannello oggi è dietro Tailscale. Claude e ChatGPT chiamano il server MCP da
 | Contratto | Fotografia di `tools/list` (schemi e descrizioni): un cambiamento non voluto fa fallire il test |
 | E2E (Playwright, axe) | Pagina di conferma, «Agenti collegati», token personali, `/carica/<link>` da telefono |
 | Con un modello (facoltativo) | Una ventina di conversazioni di esempio («programma questa foto giovedì») con l'elenco delle chiamate attese, fatte girare a mano prima di un rilascio; richiede una chiave API, mai in CI |
-| Reale, con Matteo | Claude web e telefono, Claude Code, ChatGPT in modalità sviluppatore: i casi U1–U7 con il finto Graph API e poi con gli account di prova. Ciò che non è provato resta «non verificato» |
+| Reale, con Matteo | Claude Code e ChatGPT Work prima di tutto, poi Claude web e telefono: i casi U1–U7 con il finto Graph API e poi con gli account di prova. Ciò che non è provato resta «non verificato» |
 
 Il MCP Inspector ufficiale si usa a mano durante lo sviluppo.
 
@@ -381,18 +398,18 @@ La tappa ha la sua minor e la sua prova; il piano eseguibile si scrive mentre si
 
 | # | Task | Dipende da |
 |---|---|---|
-| F0 | **Prova tecnica (spike)**: server MCP «ciao» con l'SDK, OAuth con i plugin di Better Auth, collegato a Claude web, Claude Code e ChatGPT in modalità sviluppatore dietro un tunnel di prova; verifica di tutti i punti «non verificato» di §4; ADR 024 (SDK MCP) e ADR 025 (server di autorizzazione) | — |
+| F0 | **Prova tecnica (spike)**: server MCP «ciao» con l'SDK, OAuth con i plugin di Better Auth, collegato prima di tutto a **Claude Code** e a **ChatGPT Work** (poi Claude web) dietro un tunnel di prova; verifica di tutti i punti «non verificato» di §4; ADR 024 (SDK MCP) e ADR 025 (server di autorizzazione) | — |
 | F1 | Origine nella richiesta (`panel` / `api` / `mcp`) al posto dei `source: 'panel'` scritti a mano | — |
 | F2 | Server di autorizzazione, `agent_connections`, pagina di conferma, Impostazioni → Agenti collegati, revoche | F0 |
 | F3 | `apps/mcp`: trasporto senza stato, token, ambiti, limiti, idempotenza, errori, tipo `McpTool` e registro nei moduli, batteria di isolamento degli strumenti, servizio Docker e indirizzo pubblico | F1, F2 |
 | F4 | Strumenti di lettura (6.1, 6.2, 6.7) | F3 |
-| F5 | File: `upload_media` (ChatGPT), `create_upload_link` e `/carica/<link>`, `import_media_from_url`, `search_media`, `wait_for_media` | F3 |
+| F5 | File: `upload_media` (ChatGPT), `create_upload_url` (Claude Code), `create_upload_link` e `/carica/<link>`, `import_media_from_url`, `search_media`, `wait_for_media` | F3 |
 | F6 | Post: bozze, controlli, programmazione, spostamenti, annullamenti, duplica, note; segno «con Claude» e notifica | F4, F5 |
 | F7 | Piano editoriale: anteprima e conferma dell'importazione, voci, «Prepara»; lettore CSV/Excel nel pacchetto comune | F4, tappa 9 Task 11 |
 | F8 | In blocco: anteprima, conferma, stato, annulla | F6, tappa 9 Task 10 |
 | F9 | Token personali e Bearer sull'API `/api/v1`, pagina in «Il mio account», documentazione OpenAPI pubblica | F2 |
 | F10 | MCP Apps: anteprima del post, calendario, tabella in blocco, caricamento in chat | F6, F8 |
-| F11 | Prompt e istruzioni del server; guida «Collega Feedway a Claude e ChatGPT» per Matteo e per la landing | F6 |
+| F11 | Prompt e istruzioni del server; plugin di Claude Code con la skill «Feedway»; guida «Collega Feedway a Claude Code e ChatGPT Work» per Matteo e per la landing | F6 |
 | F12 | Revisione di fine tappa, correzioni, rilascio e guida della prova sulla VPS | tutti |
 
 F1 si può fare anche prima, in qualsiasi momento: è un piccolo lavoro di pulizia che non cambia nulla per l'utente.
