@@ -3442,7 +3442,8 @@
       "label": "Vista",
       "month": "Mese",
       "week": "Settimana",
-      "list": "Elenco"
+      "list": "Elenco",
+      "grid": "Griglia"
     },
     "prev": {
       "month": "Mese precedente",
@@ -3554,6 +3555,35 @@
       "empty": "Nessun file qui.",
       "failed": "La libreria non si è caricata.",
       "more": "Mostra altri"
+    },
+    "grid": {
+      "account": "Account Instagram",
+      "label": "Griglia di {name}",
+      "hint": "I programmati dei prossimi 30 giorni, sopra gli ultimi 30 pubblicati.",
+      "hintMove": "I programmati dei prossimi 30 giorni, sopra gli ultimi 30 pubblicati. Trascina un programmato su un altro per scambiarne gli orari.",
+      "noAccount": "Questo cliente non ha un account Instagram: la griglia è solo di Instagram.",
+      "noScheduled": "Nessun post programmato su questo account nei prossimi 30 giorni.",
+      "failedRead": "La griglia non si è caricata.",
+      "retry": "Riprova",
+      "unread": {
+        "unreachable": "Il collegamento di questo account non funziona: i post pubblicati non si vedono. I programmati sì.",
+        "rejected": "Instagram ha rifiutato l’accesso: ricollega l’account per vedere i post pubblicati.",
+        "unavailable": "Instagram non risponde: i post pubblicati non si vedono per ora."
+      },
+      "publishedOn": "Pubblicato il {when}, apri su Instagram",
+      "publishedItem": "Post pubblicato, apri su Instagram",
+      "swapAction": "Scambia con…",
+      "swapTitle": "Scambia l’orario di «{title}»",
+      "swapWith": "Con quale programmato",
+      "swapSummary": "«{a}» andrà a {whenA}, «{b}» a {whenB}.",
+      "swap": "Scambia",
+      "cancel": "Annulla",
+      "undo": "Annulla",
+      "swapped": "Orari scambiati.",
+      "undone": "Scambio annullato.",
+      "failed": "Gli orari non si sono scambiati. {reason}",
+      "changed": "Un’altra persona ha cambiato uno dei due nel frattempo: la griglia ora è aggiornata.",
+      "gone": "Uno dei due non è più tra i programmati di questo account: la griglia ora è aggiornata."
     }
   },
   "plan": {

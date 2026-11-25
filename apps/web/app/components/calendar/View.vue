@@ -42,7 +42,7 @@ const cal = useCalendar({
   accountIds: computed(() => props.profileAccountIds),
   ready: computed(() => props.ready),
 })
-const { view, date, period, today, filters, status, data } = cal
+const { view, date, period, today, filters, status, data, grid } = cal
 
 // ---- moving a post (plan 09 Task 4): dragged onto a day on a computer, «Sposta…» everywhere
 const mover = useCalendarMove({
@@ -88,14 +88,16 @@ const libraryOpen = ref(false)
 // ---- the bar
 const label = computed(() => periodLabel(view.value, date.value))
 const isToday = computed(() => period.value.days.includes(today.value))
+// «Griglia» of Instagram, the fourth view inside a client (plan 09 Scelta 10)
 const views = computed(() => [
   { value: 'month' as const, label: t('calendar.view.month') },
   { value: 'week' as const, label: t('calendar.view.week') },
   { value: 'list' as const, label: t('calendar.view.list') },
+  ...(props.workspace ? [{ value: 'grid' as const, label: t('calendar.view.grid') }] : []),
 ])
 const chosenView = computed({
-  get: () => view.value,
-  set: (v: PeriodView) => void cal.setView(v),
+  get: (): PeriodView | 'grid' => (grid.value ? 'grid' : view.value),
+  set: (v: PeriodView | 'grid') => void cal.setView(v),
 })
 
 // the quick filters of the posts (plan 09 Task 2); «Da preparare» is the plan's (Task 7)
@@ -404,9 +406,24 @@ const listedTitle = computed(() => {
 <template>
   <div
     class="md:grid md:items-start md:gap-4"
-    :class="libraryOpen && libraryOffered ? 'md:grid-cols-[minmax(0,1fr)_17rem]' : ''"
+    :class="libraryOpen && libraryOffered && !grid ? 'md:grid-cols-[minmax(0,1fr)_17rem]' : ''"
   >
-    <div class="flex min-w-0 flex-col gap-stack" :data-ready="data !== null || failed || undefined">
+    <div v-if="grid && workspace" class="flex min-w-0 flex-col gap-stack">
+      <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
+        <span class="flex-1" />
+        <SegmentedFilter v-model="chosenView" :label="$t('calendar.view.label')" :options="views" />
+      </div>
+      <CalendarGrid
+        :workspace="workspace"
+        :profiles="profiles"
+        :profile-account-ids="profileAccountIds"
+      />
+    </div>
+    <div
+      v-else
+      class="flex min-w-0 flex-col gap-stack"
+      :data-ready="data !== null || failed || undefined"
+    >
       <!-- the bar: arrows, period, «Oggi»; the views at the end (screen 07) -->
       <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
         <UButton
@@ -682,7 +699,7 @@ const listedTitle = computed(() => {
       />
     </div>
     <CalendarLibraryPanel
-      v-if="libraryOpen && libraryOffered && workspace"
+      v-if="libraryOpen && libraryOffered && workspace && !grid"
       :client="workspace"
       class="sticky top-4 max-md:hidden"
       @close="libraryOpen = false"
