@@ -53,7 +53,12 @@ const caption = computed({
   get: () => props.row.caption,
   set: (v: string) => tb.change(props.row.key, { caption: v }),
 })
-const encode = (target: BulkTarget) => (target ? `${target.kind}:${target.id}` : undefined)
+const encode = (target: BulkTarget) =>
+  target === null
+    ? undefined
+    : target.kind === 'accounts'
+      ? `accounts:${target.ids.join(',')}`
+      : `${target.kind}:${target.id}`
 const target = computed({
   get: () => encode(props.row.target),
   set: (v: string | undefined) => {
@@ -63,6 +68,24 @@ const target = computed({
       tb.change(props.row.key, { target: { kind, id } })
   },
 })
+// the accounts a sheet named (Task 11) are one more choice of the menu, until another is chosen
+const rowTargets = computed(() => {
+  const t0 = props.row.target
+  if (t0?.kind !== 'accounts') return props.targets
+  return [
+    {
+      label: t('bulk.target.several', { n: t0.ids.length }, t0.ids.length),
+      value: encode(t0) ?? '',
+    },
+    ...props.targets,
+  ]
+})
+const platformTexts = computed(() =>
+  [
+    props.row.captionInstagram ? t('posts.destinations.kind.instagram') : null,
+    props.row.captionFacebook ? t('posts.destinations.kind.facebook') : null,
+  ].filter((x): x is string => x !== null),
+)
 const day = computed({
   get: () => props.row.when?.localDate ?? '',
   set: (v: string) => {
@@ -197,6 +220,13 @@ const menu = computed(() => [
           data-bulk-caption
         />
         <p
+          v-if="platformTexts.length > 0"
+          class="mt-1 text-detail text-(--app-text-muted)"
+          data-bulk-platform-texts
+        >
+          {{ $t('bulk.row.platformTexts', { list: platformTexts.join(', ') }) }}
+        </p>
+        <p
           v-if="problem"
           class="mt-1 hidden truncate text-detail @min-[60rem]:block"
           :class="problem === 'sending' ? 'text-(--app-text-muted)' : 'text-(--app-warning)'"
@@ -208,7 +238,7 @@ const menu = computed(() => [
 
       <USelect
         v-model="target"
-        :items="targets"
+        :items="rowTargets"
         :placeholder="$t('bulk.row.accountPlaceholder')"
         :aria-label="$t('bulk.row.account', { n })"
         class="col-[2/-1] row-4 w-full @min-[60rem]:col-auto @min-[60rem]:row-auto"

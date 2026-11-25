@@ -177,6 +177,18 @@ describe('the body of «Programma»', () => {
     expect(accountsOf(null, groups, pickable)).toEqual([])
   })
 
+  test('the accounts a sheet names, those still there', () => {
+    expect(accountsOf({ kind: 'accounts', ids: ['fb', 'old', 'ig'] }, groups, pickable)).toEqual([
+      'fb',
+      'ig',
+    ])
+  })
+
+  test('a text of its own for a platform goes with the common one', () => {
+    const row = { ...rowOf(photo(1), null), caption: 'Pane', captionInstagram: '#pane' }
+    expect(requestRow(row, ['ig']).caption).toEqual({ common: 'Pane', instagram: '#pane' })
+  })
+
   test('files, text, accounts and day', () => {
     const row = {
       ...rowOf(photo(1), null),

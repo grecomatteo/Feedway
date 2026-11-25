@@ -128,3 +128,55 @@ test('five files: a carousel of two, the account for all, the usual times, «Pro
   await page.locator('[data-bulk-again]').click()
   await expect(rows).toHaveCount(4)
 })
+
+test('a sheet from the template: its rows in the table with their files, accounts and days', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  const { org, client } = await bakery(page)
+  await page.goto(`/${org}/spazi/${client.slug}/post/in-blocco`)
+  await page.locator('[data-bulk-sheet]').click()
+  const dialog = page.getByRole('dialog', { name: 'Da un foglio' })
+  await expect(dialog).toBeVisible()
+  // the template, as the browser saves it
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    dialog.locator('[data-sheet-template]').click(),
+  ])
+  expect(download.suggestedFilename()).toBe('modello-in-blocco.csv')
+  const template = readFileSync(await download.path(), 'utf8')
+  expect(template.startsWith('﻿data;ora;testo;account;file')).toBe(true)
+
+  // the template filled in, with a row whose account is not the client's
+  const sheet = `${template.trimEnd()}\r\n04/12/2026;9:00;Cornetti;@altro;cornetto.jpg;;\r\n`
+  await dialog.locator('[data-sheet-input]').setInputFiles({
+    name: 'dicembre.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(sheet),
+  })
+  await expect(dialog.locator('[data-sheet-read]')).toContainText('2 righe pronte')
+  await expect(dialog.locator('[data-sheet-problems]')).toContainText(
+    "Riga 4: l'account «@altro» non è del cliente",
+  )
+  expect((await axe(page)).violations).toEqual([])
+  const files = ['pane.jpg', 'focaccia-1.jpg', 'focaccia-2.jpg'].map((name, i) => ({
+    name,
+    mimeType: 'image/jpeg',
+    buffer: Buffer.concat([frame, Buffer.from(`foglio ${String(i)}`)]),
+  }))
+  await dialog.locator('[data-sheet-files-input]').setInputFiles(files)
+  await expect(dialog).toContainText('3 di 3 trovati')
+  await dialog.locator('[data-sheet-add]').click()
+  await expect(dialog).toHaveCount(0)
+
+  const rows = page.locator('[data-bulk-row]')
+  await expect(rows).toHaveCount(2)
+  await expect(rows.nth(0).locator('[data-bulk-caption]')).toHaveValue(
+    'Il pane di segale è tornato',
+  )
+  await expect(rows.nth(0)).toContainText('12:30')
+  await expect(rows.nth(1).locator('[data-bulk-type]')).toContainText('Carosello')
+  await expect(rows.nth(1).locator('[data-bulk-account]')).toContainText('2 account')
+  await expect(rows.nth(1).locator('[data-bulk-platform-texts]')).toContainText('Instagram')
+  expect((await axe(page)).violations).toEqual([])
+})
