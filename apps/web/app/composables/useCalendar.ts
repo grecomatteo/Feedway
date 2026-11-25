@@ -74,7 +74,17 @@ export function useCalendar(scope: {
   })
   const date = computed<LocalDate>(() => query.value.date ?? today.value)
   const period = computed(() => periodOf(view.value, date.value))
-  const filters = computed(() => query.value.filters)
+  /**
+   * The filters that apply in this context: the clients only in «Tutti i clienti»; profiles,
+   * authors and labels only inside a client, where their choices are offered. A filter left in
+   * the address by the other context (the selector keeps it) is neither read nor counted.
+   */
+  const filters = computed<CalendarFilters>(() => {
+    const f = query.value.filters
+    return scope.workspaceId.value
+      ? { ...f, workspaceIds: [] }
+      : { ...f, accountIds: [], authorIds: [], labelIds: [] }
+  })
 
   /** The address with these changes; the context (`spazio`, `profilo`) stays. */
   function go(change: Partial<CalendarQuery>, replace = false) {
@@ -106,6 +116,7 @@ export function useCalendar(scope: {
           authorIds: [],
           labelIds: [],
           quick: null,
+          show: 'both',
         },
       },
       true,

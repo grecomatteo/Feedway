@@ -290,7 +290,9 @@ test('the filters go into the address and narrow the read', async ({ page, isMob
     await expect(page).toHaveURL(/mostra=post/)
     await expect(planned).toHaveCount(0)
     await expect(cards).toHaveCount(6)
-    await show.getByRole('button', { name: 'Entrambi' }).click()
+    // «Togli i filtri» puts «Mostra» back too
+    await page.locator('[data-calendar-clear]').click()
+    await expect(page).not.toHaveURL(/mostra=/)
     await expect(planned).toHaveCount(1)
   }
 

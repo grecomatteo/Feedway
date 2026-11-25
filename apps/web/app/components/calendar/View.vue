@@ -89,14 +89,17 @@ const accountOptions = computed<FilterOption[]>(() => {
 const authors = ref<FilterOption[]>([])
 watch(
   () => props.workspace?.id ?? null,
-  async (id) => {
+  async (id, _, onCleanup) => {
     authors.value = []
     if (!id) return
+    // a late answer for the client left behind does not take the place of this one's
+    let gone = false
+    onCleanup(() => (gone = true))
     try {
       const res = await $fetch<{ items: { userId: string; displayName: string }[] }>(
         org.api(`/workspaces/${encodeURIComponent(id)}/members`),
       )
-      authors.value = res.items.map((m) => ({ id: m.userId, label: m.displayName }))
+      if (!gone) authors.value = res.items.map((m) => ({ id: m.userId, label: m.displayName }))
     } catch {
       // without the people the filter of the authors is not offered
     }
@@ -104,8 +107,13 @@ watch(
   { immediate: true },
 )
 const { labels } = useContentSettings(computed(() => props.workspace?.id ?? null))
+// the labels are the client's: none in «Tutti i clienti», where the last client's would linger
 const labelOptions = computed(() =>
-  (labels.value ?? []).map((l) => ({ id: l.id, label: l.name, color: l.color })),
+  (props.workspace ? (labels.value ?? []) : []).map((l) => ({
+    id: l.id,
+    label: l.name,
+    color: l.color,
+  })),
 )
 const labelsById = computed(() => new Map((labels.value ?? []).map((l) => [l.id, l])))
 
@@ -187,12 +195,15 @@ const byDay = computed(() => {
     .map((e) => ({ e, card: planCardOf(e) }))
     .filter((x) => x.card !== null)
   const rows = [
-    ...cal.posts.value.map((p) => ({
-      id: p.id,
-      localDate: p.localDate,
-      localTime: p.localTime,
-      card: cardOf(p),
-    })),
+    // a post of a client not in the list (the list did not load) would have no page to open
+    ...cal.posts.value
+      .filter((p) => clientsById.value.has(p.workspaceId))
+      .map((p) => ({
+        id: p.id,
+        localDate: p.localDate,
+        localTime: p.localTime,
+        card: cardOf(p),
+      })),
     ...plan.map(({ e, card }) => ({
       id: e.id,
       localDate: e.localDate,
@@ -454,7 +465,7 @@ const listedTitle = computed(() => {
     </p>
 
     <CalendarMonth
-      v-if="view === 'month'"
+      v-if="view === 'month' && !failed"
       :days="period.days"
       :month="date.slice(0, 7)"
       :today="today"
@@ -485,7 +496,7 @@ const listedTitle = computed(() => {
       </ul>
     </section>
     <CalendarWeek
-      v-if="view === 'week'"
+      v-if="view === 'week' && !failed"
       :days="period.days"
       :today="today"
       :cards="byDay"
