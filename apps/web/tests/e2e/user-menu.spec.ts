@@ -34,10 +34,11 @@ test('the user menu: who is signed in, the theme, and «Impostazioni» with the 
   await expect(page.getByRole('button', { name: 'Esci', exact: true })).toHaveCount(0)
 
   const menu = await openUserMenu(page, 'Olga Menu')
-  // the first entry takes the focus: Libreria on a phone, whose bar has no room for it;
-  // «Impostazioni» on a computer, where the side bar has Libreria and Utenti already (D-87.1)
+  // the first entry takes the focus: Piano editoriale on a phone, whose bar has no room for it
+  // (Owner and Admin see it always, D-123.23); «Impostazioni» on a computer, where the side bar
+  // has Libreria and Utenti already (D-87.1)
   await expect(
-    menu.getByRole('menuitem', { name: isMobile ? 'Libreria' : 'Impostazioni' }),
+    menu.getByRole('menuitem', { name: isMobile ? 'Piano editoriale' : 'Impostazioni' }),
   ).toBeFocused()
   if (!isMobile)
     for (const name of ['Libreria', 'Utenti'])
