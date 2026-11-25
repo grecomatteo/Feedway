@@ -336,16 +336,20 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
               </UButton>
             </UDropdownMenu>
             <span class="flex-1" />
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-file-spreadsheet"
-              :disabled="tb.room.value === 0"
-              data-bulk-sheet
-              @click="sheetOpen = true"
-            >
-              {{ $t('bulk.drop.sheet') }}
-            </UButton>
+            <!-- one line on a computer up to 1440 px: the sheet is a picture there, its name for screen
+                 readers; on a phone the buttons wrap anyway, so it keeps its name -->
+            <UTooltip :text="$t('bulk.drop.sheet')" :content="{ side: 'bottom' }">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-file-spreadsheet"
+                :disabled="tb.room.value === 0"
+                data-bulk-sheet
+                @click="sheetOpen = true"
+              >
+                <span class="md:max-[90rem]:sr-only">{{ $t('bulk.drop.sheet') }}</span>
+              </UButton>
+            </UTooltip>
             <UButton
               color="neutral"
               variant="outline"

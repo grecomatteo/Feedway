@@ -18,6 +18,12 @@ test.beforeEach(async ({ baseURL, page }) => {
 
 const axe = (page: Page) =>
   new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+const shots = process.env.E2E_SCREENSHOTS
+/** A picture for the review, only when asked (E2E_SCREENSHOTS), named after the project. */
+const shot = (page: Page, name: string) =>
+  shots
+    ? page.screenshot({ path: `${shots}/${test.info().project.name}-${name}.png` })
+    : Promise.resolve()
 const frame = readFileSync(new URL('./fixtures/frame.jpg', import.meta.url))
 /** Five photos with contents of their own, so none is taken for another already sent. */
 const photos = Array.from({ length: 5 }, (_, i) => ({
@@ -138,6 +144,8 @@ test('a sheet from the template: its rows in the table with their files, account
   await page.locator('[data-bulk-sheet]').click()
   const dialog = page.getByRole('dialog', { name: 'Da un foglio' })
   await expect(dialog).toBeVisible()
+  // the separator of a cell with more accounts or files is said, not taken for a plural
+  await expect(dialog).toContainText('si separano con |.')
   // the template, as the browser saves it
   const [download] = await Promise.all([
     page.waitForEvent('download'),
@@ -159,6 +167,7 @@ test('a sheet from the template: its rows in the table with their files, account
     "Riga 4: l'account «@altro» non è del cliente",
   )
   expect((await axe(page)).violations).toEqual([])
+  await shot(page, 'foglio-letto')
   const files = ['pane.jpg', 'focaccia-1.jpg', 'focaccia-2.jpg'].map((name, i) => ({
     name,
     mimeType: 'image/jpeg',
@@ -166,6 +175,7 @@ test('a sheet from the template: its rows in the table with their files, account
   }))
   await dialog.locator('[data-sheet-files-input]').setInputFiles(files)
   await expect(dialog).toContainText('3 di 3 trovati')
+  await shot(page, 'foglio-file-trovati')
   await dialog.locator('[data-sheet-add]').click()
   await expect(dialog).toHaveCount(0)
 
@@ -179,4 +189,5 @@ test('a sheet from the template: its rows in the table with their files, account
   await expect(rows.nth(1).locator('[data-bulk-account]')).toContainText('2 account')
   await expect(rows.nth(1).locator('[data-bulk-platform-texts]')).toContainText('Instagram')
   expect((await axe(page)).violations).toEqual([])
+  await shot(page, 'foglio-righe-nella-tabella')
 })

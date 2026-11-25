@@ -3618,7 +3618,7 @@
       "choose": "Scegli i file",
       "more": "Aggiungi file",
       "over": "Rilascia per aggiungere",
-      "sheet": "Da un foglio CSV o Excel"
+      "sheet": "Da un foglio"
     },
     "upload": {
       "overall": "{done} di {n} file pronti",
@@ -3757,7 +3757,7 @@
       "another": "Scegli un altro foglio",
       "template": "Scarica il modello",
       "templateName": "modello-in-blocco.csv",
-      "columns": "Colonne: data, ora, testo, account, file, e se servono testo_instagram e testo_facebook (anche in inglese). Più account o più file in una cella si separano con |.",
+      "columns": "Colonne: data, ora, testo, account, file, e se servono testo_instagram e testo_facebook (anche in inglese). Più account o più file in una cella si separano con {'|'}.",
       "rows": "nessuna riga pronta | 1 riga pronta | {n} righe pronte",
       "line": "Riga {line}",
       "missing": "Al foglio manca la colonna: {list}.",
