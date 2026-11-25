@@ -753,6 +753,9 @@ export function usePostEditor(opts: {
         slot?.localDate === day &&
         now?.localDate === day &&
         now.localTime === fallback &&
+        // not once the draft's first save has started: that save already read the time, and
+        // the screen would show one the server does not have
+        save.value.status === 'idle' &&
         !save.value.postId
       ) {
         when.value = { localDate: day, localTime: slot.localTime }
