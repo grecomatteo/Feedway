@@ -229,7 +229,7 @@ test('who prepares the client gets it, without the note; a Viewer and another cl
   expect(item?.title).toBe('Da preparare entro domani: «Pane caldo»')
   expect(item?.detail).toBe('Reel · «Pane caldo» · giovedì 11 marzo alle 10:00')
   expect(item?.context).toContain('Forno Luce')
-  expect(item?.link?.path).toMatch(/\/piano\?cliente=.+&da=2027-03-11$/)
+  expect(item?.link?.path).toMatch(/\/piano\?spazio=.+&giorno=2027-03-11$/)
   expect(JSON.stringify(page)).not.toContain(NOTE)
   // prepared since: the centre keeps the words and the link of the notice already read
   await preparePlanItem(planDeps(), w.owner, { itemId: content.id })

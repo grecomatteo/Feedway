@@ -113,8 +113,8 @@ async function planMessage(
     }),
   )
   const url = new URL(`${encodeURIComponent(place.slug)}/piano`, ctx.panelUrl)
-  if (place.workspace) url.searchParams.set('cliente', place.workspace.slug)
-  if (items.length === 1 && first) url.searchParams.set('da', first.localDate)
+  if (place.workspace) url.searchParams.set('spazio', place.workspace.slug)
+  if (items.length === 1 && first) url.searchParams.set('giorno', first.localDate)
   return groupedMessage({
     t: ctx.t,
     type: rule.type,
