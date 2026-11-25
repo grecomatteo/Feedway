@@ -191,9 +191,26 @@ test('with the plan turned off for the agency nothing is told', async () => {
   expect(await eventsOf(w)).toHaveLength(0)
 })
 
+test('across the change to summer time: 24 hours before a time, 9:00 of the day before without one', async () => {
+  const w = await world()
+  // 28 March 2027 in Rome goes from 2:00 to 3:00: 10:00 of the 28th is 9:00 of the 27th, 24 h earlier
+  await addItem(w, '2027-03-28', '10:00', 'Con orario')
+  await addItem(w, '2027-03-29', null, 'Senza orario')
+  await scanAt(at('2027-03-27', '08:59'))
+  expect(await eventsOf(w)).toHaveLength(0)
+  await scanAt(at('2027-03-27', '09:00'))
+  expect((await eventsOf(w)).map((e) => e.payload.dueAt)).toEqual([
+    at('2027-03-28', '10:00').toISOString(),
+  ])
+  await scanAt(at('2027-03-28', '08:59'))
+  expect(await eventsOf(w)).toHaveLength(1)
+  await scanAt(at('2027-03-28', '09:00'))
+  expect(await eventsOf(w)).toHaveLength(2)
+})
+
 test('who prepares the client gets it, without the note; a Viewer and another client’s Editor no', async () => {
   const w = await world()
-  await addItem(w, '2027-03-11', '10:00')
+  const content = await addItem(w, '2027-03-11', '10:00')
   const now = at('2027-03-10', '10:00')
   await scanAt(now)
   const deps = notifyDeps({
@@ -214,16 +231,24 @@ test('who prepares the client gets it, without the note; a Viewer and another cl
   expect(item?.context).toContain('Forno Luce')
   expect(item?.link?.path).toMatch(/\/piano\?cliente=.+&da=2027-03-11$/)
   expect(JSON.stringify(page)).not.toContain(NOTE)
+  // prepared since: the centre keeps the words and the link of the notice already read
+  await preparePlanItem(planDeps(), w.owner, { itemId: content.id })
+  const later = await listMyNotifications(deps, w.editor)
+  const kept = later.items.find((i) => i.kind === 'plan.due_soon')
+  expect(kept?.title).toBe(item?.title)
+  expect(kept?.link?.path).toBe(item?.link?.path)
 })
 
 test('the morning digest lists what to prepare today and tomorrow, without the note', async () => {
   const w = await world()
-  const today = instantToZoned(new Date(), ROME).localDate
+  const now = new Date()
+  const today = instantToZoned(now, ROME).localDate
   await addItem(w, addDays(today, 1), null, 'Torta di mele')
   await addItem(w, addDays(today, 3), null, 'Più avanti')
   const sent: { to: string; text: string }[] = []
   const deps = {
     ...handlerDeps(runtime, recordingQueue()),
+    clock: testClock(now),
     mailer: {
       isConfigured: () => Promise.resolve(true),
       send: (m: { to: string; text: string }) => {
@@ -234,7 +259,7 @@ test('the morning digest lists what to prepare today and tomorrow, without the n
   }
   for (const userId of [w.editor, w.viewer])
     await reportDigest(
-      { id: 'lavoro', data: { userId, date: today, dueAt: new Date().toISOString() } },
+      { id: 'lavoro', data: { userId, date: today, dueAt: now.toISOString() } },
       deps,
     )
   // the Viewer does not prepare: their digest has nothing to say, so none goes out

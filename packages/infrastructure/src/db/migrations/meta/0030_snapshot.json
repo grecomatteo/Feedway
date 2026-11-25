@@ -1,5 +1,5 @@
 {
-  "id": "9afeade0-f525-4d81-b4cb-5f7f804595ac",
+  "id": "1da86734-c7a3-4347-9f90-378c4b78e895",
   "prevId": "5880da78-a833-4f38-823b-9e86f17edb78",
   "version": "7",
   "dialect": "postgresql",
@@ -6620,6 +6620,27 @@
             },
             {
               "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "local_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "plan_items_day_idx": {
+          "name": "plan_items_day_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

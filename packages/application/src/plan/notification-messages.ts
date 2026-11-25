@@ -34,7 +34,8 @@ import { currentActor } from '../workspaces/index.js'
 
 // The plan's words (spec §11.12, §12.2, §12.4; plan 09 Task 8), read now in the recipient's
 // scope: type, title, day and time, never the note (Scelta 11). A content prepared, removed or
-// moved since its event is left out: a moved one has an event of its own, with its new day.
+// moved since its event is not sent: a moved one has an event of its own, with its new day. The
+// centre, which reads a notice again later, keeps it as long as the content exists.
 
 /** «giovedì 3 dicembre alle 10:00», or the day alone: the agency's day, as the plan writes it. */
 function whenOf(t: Translate, item: Pick<PlanItem, 'localDate' | 'localTime'>): string {
@@ -57,20 +58,35 @@ async function preparedOf(tx: Tx, organizationId: string, items: readonly PlanIt
   }
 }
 
-/** The contents of the events still to prepare, with the day of their event. */
-async function stillDue(ctx: MessageContext, events: readonly NotifiedEvent[], timeZone: string) {
+/**
+ * The contents the events are about. To send: only those still to prepare, on the day of their
+ * event, of a client not archived since. In the centre, read later: every content still there,
+ * so a notice already acted on keeps its words and its link.
+ */
+async function contentsOf(ctx: MessageContext, events: readonly NotifiedEvent[], timeZone: string) {
   const organizationId = ctx.organizationId
   if (organizationId === null) return []
   const found: PlanItem[] = []
+  const archived = new Map<string, boolean>()
   for (const event of events) {
     const workspaceId = asString(event.payload.workspaceId)
     const id = asString(event.payload.planItemId)
     if (workspaceId === null || id === null) continue
     const item = await ctx.tx.plan.find({ organizationId, workspaceId }, id)
     if (!item) continue
+    if (ctx.forCentre) {
+      found.push(item)
+      continue
+    }
     const reference = referenceInstant(item.localDate, item.localTime, timeZone).toISOString()
-    if (reference === asString(event.payload.dueAt)) found.push(item)
+    if (reference !== asString(event.payload.dueAt)) continue
+    if (!archived.has(workspaceId)) {
+      const workspace = await ctx.tx.workspaces.findById(organizationId, workspaceId)
+      archived.set(workspaceId, !workspace || workspace.archivedAt !== null)
+    }
+    if (archived.get(workspaceId) !== true) found.push(item)
   }
+  if (ctx.forCentre) return found
   const prepared = await preparedOf(ctx.tx, organizationId, found)
   return found.filter((i) => !prepared(i))
 }
@@ -86,7 +102,7 @@ async function planMessage(
   if (!organization || !isModuleEnabled(organization.settings, 'plan')) return null
   const place = await placeOf(ctx, events)
   if (!place) return null
-  const items = await stillDue(ctx, events, storedTimeZone(organization.settings))
+  const items = await contentsOf(ctx, events, storedTimeZone(organization.settings))
   if (items.length === 0) return null
   const [first] = items
   const lines = items.map((i) =>

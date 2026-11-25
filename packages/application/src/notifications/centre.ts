@@ -164,6 +164,7 @@ async function wordsOf(
       t,
       panelUrl: deps.panelUrl,
       timeZone: usableTimeZone(viewer.user.timezone, deps.defaultTimezone),
+      forCentre: true,
     },
     [
       {
