@@ -81,3 +81,15 @@ export {
   type TargetJob,
 } from './publishing/index.js'
 export { untitledPost } from './title.js'
+// Programming in bulk and «Duplica» (plan 09 Task 10).
+export { blockingCodes, createScheduled } from './create-scheduled.js'
+export type { CreatedPost } from './create-scheduled.js'
+export {
+  bulkImportNotFound,
+  duplicatePost,
+  getBulkImport,
+  runBulkImport,
+  startBulkImport,
+  undoBulkImport,
+} from './bulk.js'
+export type { BulkImportDto, BulkImportReport, DuplicateDate } from './bulk.js'

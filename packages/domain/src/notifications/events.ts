@@ -1,6 +1,7 @@
 import { ACCOUNT_EVENT_TYPES } from '../accounts/events.js'
 import { PLAN_EVENT_TYPES } from '../plan/events.js'
 import { PLATFORM_EVENT_TYPES } from '../platform/events.js'
+import { BULK_EVENT_TYPES } from '../posts/events.js'
 import { PUBLISHING_EVENT_TYPES } from '../publishing/events.js'
 
 /** Every type the outbox holds: the union of the modules' lists (plan 08, «Registro dei tipi»). */
@@ -9,6 +10,7 @@ export const OUTBOX_EVENT_TYPES = [
   ...ACCOUNT_EVENT_TYPES,
   ...PLATFORM_EVENT_TYPES,
   ...PLAN_EVENT_TYPES,
+  ...BULK_EVENT_TYPES,
 ] as const
 export type OutboxEventType = (typeof OUTBOX_EVENT_TYPES)[number]
 

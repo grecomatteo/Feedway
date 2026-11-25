@@ -78,7 +78,7 @@ export async function sendAfterSchedule(
  * a destination a choice leaves out (another platform skipped) is cancelled, it never goes out.
  * The copies its files need are asked for now, hours before (Scelta 4).
  */
-async function scheduleSaved(
+export async function scheduleSaved(
   tx: Tx,
   deps: PostsDeps,
   actor: OrgActor,
@@ -86,25 +86,24 @@ async function scheduleSaved(
   scope: PostScope,
   postId: string,
   previousAt: Date | null,
-  opts: { now?: boolean } = {},
+  opts: { now?: boolean; checked?: RuleReport } = {},
 ): Promise<AfterSchedule> {
   const saved = await tx.posts.find(scope, postId)
   if (!saved) throw postNotFound()
   // «Pubblica subito» (Scelta 2): the checks of a save, without the rule of the date
   const input = toCheckInput(saved, 'save')
-  const report = await checkPostInTx(
-    tx,
-    deps,
-    actor,
-    opts.now ? { ...input, when: { mode: 'now' } } : input,
-  )
+  // `checked`: the caller ran the checks and the day's limit in this transaction already
+  const report =
+    opts.checked ??
+    (await checkPostInTx(tx, deps, actor, opts.now ? { ...input, when: { mode: 'now' } } : input))
   if (!report.canSchedule) throw notSchedulable(report)
   const at = saved.scheduledAt
   if (at === null) throw noDate()
   const timeZone = storedTimeZone(organization.settings)
   if (
-    previousAt === null ||
-    agencyDay(previousAt, timeZone).localDate !== agencyDay(at, timeZone).localDate
+    opts.checked === undefined &&
+    (previousAt === null ||
+      agencyDay(previousAt, timeZone).localDate !== agencyDay(at, timeZone).localDate)
   )
     await assertDailyLimit(tx, organization, saved, at)
   const going = new Map(report.destinations.map((d) => [d.accountId, d.fingerprint]))

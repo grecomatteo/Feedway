@@ -266,7 +266,8 @@
     "post_not_schedulable": "Il post ha dei problemi da risolvere prima di programmarlo",
     "media_in_scheduled_post": "Questo file serve ancora a un post da pubblicare o da riprovare: non si può eliminare adesso",
     "paused_time_passed": "L'ora del post è passata: scegli quando pubblicarlo",
-    "target_wrong_state": "Questa destinazione non si può più cambiare così"
+    "target_wrong_state": "Questa destinazione non si può più cambiare così",
+    "bulk_undo_closed": "Non si può più annullare: sono passati più di 10 secondi"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -2971,6 +2972,7 @@
       "open": "Apri il post",
       "openList": "Apri i post",
       "openToday": "Apri Oggi",
+      "openCalendar": "Apri il calendario",
       "someAccount": "un account"
     },
     "kinds": {
@@ -3045,6 +3047,13 @@
         "one": "Da preparare, mancano meno di 36 ore: «{title}»",
         "many": "{n} contenuti del piano da preparare: mancano meno di 36 ore",
         "line": "{type} · «{title}» · {when}"
+      },
+      "bulk_completed": {
+        "one": "Programmazione in blocco completata",
+        "many": "{n} programmazioni in blocco completate",
+        "line": "{scheduled} programmati, {drafts} da sistemare",
+        "lineAll": "{scheduled} programmati, niente da sistemare",
+        "undone": "Annullata: i post non toccati sono stati tolti"
       }
     },
     "open": {
@@ -3216,7 +3225,8 @@
       "system_worker_down": "Worker fermo",
       "system_worker_up": "Worker ripartito",
       "system_backup_failed": "Backup non riuscito",
-      "plan_due_soon": "Contenuto del piano da preparare, a meno di 36 ore"
+      "plan_due_soon": "Contenuto del piano da preparare, a meno di 36 ore",
+      "bulk_completed": "Programmazione in blocco completata"
     },
     "groups": {
       "post": "Post",

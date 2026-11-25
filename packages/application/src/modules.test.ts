@@ -40,6 +40,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'report.daily': true,
   'report.digest': true,
   'plan.due_scan': true,
+  'bulk.import': true,
 }
 
 test('each module has its own name', () => {

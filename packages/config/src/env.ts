@@ -58,6 +58,7 @@ export const KNOWN_QUEUES = [
   'report.daily',
   'report.digest',
   'plan.due_scan',
+  'bulk.import',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

@@ -121,6 +121,13 @@ export type {
 } from './ports/content-settings.js'
 export type { TimeSlotsRepository } from './ports/time-slots.js'
 export type {
+  BulkImportChange,
+  BulkImportRecord,
+  BulkImportsRepository,
+  BulkRow,
+  BulkRowInput,
+} from './ports/bulk-imports.js'
+export type {
   ExclusiveLock,
   MadeFile,
   MediaProbe,

@@ -195,6 +195,32 @@ const callersDraft: Prepare = async (ids, cookie) => {
   return { values: { postId: ((await r.json()) as { id: string }).id } }
 }
 
+/**
+ * An import of the caller, where they may start one; `done`: just ended, so «Annulla» is open.
+ * A row without a date stays a draft: nothing is scheduled.
+ */
+async function callersImport(ids: SampleIds, cookie: string, done: boolean) {
+  const r = await fx.env.call(
+    'POST',
+    `/api/v1/orgs/${ids.org}/workspaces/${ids.workspace}/bulk-imports`,
+    {
+      source: 'files',
+      rows: [
+        { type: 'photo', mediaIds: [], caption: { common: '' }, destinations: [], when: null },
+      ],
+    },
+    { cookie },
+  )
+  if (r.status !== 200) return {}
+  const importId = ((await r.json()) as { id: string }).id
+  if (done)
+    await fx.env.admin.pool.query(
+      `update bulk_imports set status = 'done', finished_at = now() where id = $1`,
+      [importId],
+    )
+  return { values: { importId } }
+}
+
 /** A note of the caller on the case's post, where they may write one. */
 const callersNote: Prepare = async (ids, cookie) => {
   const r = await fx.env.call(
@@ -571,6 +597,32 @@ const RULES: Record<string, readonly Rule[]> = {
   // the content a post comes from, for the editor (Task 7): as the plan, every member
   'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/plan': [
     { permission: 'plan.view', level: 'workspace' },
+  ],
+  // programming in bulk (plan 09 Task 10, §10.2 «da Publisher»): an import is read and undone
+  // only by who started it, so for a role that cannot start one it does not exist (404)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/bulk-imports': [
+    { permission: 'post.publish', level: 'workspace' },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/bulk-imports/{importId}': [
+    {
+      permission: 'post.publish',
+      level: 'workspace',
+      hiddenWithout: true,
+      prepare: (ids, cookie) => callersImport(ids, cookie, false),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/bulk-imports/{importId}/undo': [
+    {
+      permission: 'post.publish',
+      level: 'workspace',
+      hiddenWithout: true,
+      prepare: (ids, cookie) => callersImport(ids, cookie, true),
+    },
+  ],
+  // «Duplica» (Scelta 9): new drafts of the caller, from any post the caller sees; who cannot
+  // write in the client does not learn the post is there (404, plan 09 Task 10)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/duplicate': [
+    { permission: 'post.draft', level: 'workspace', ownIsEnough: true, hiddenWithout: true },
   ],
   // the calendar (plan 09 Task 2): every member, each across the clients they see; narrowed to
   // one client, who does not see it gets 404. «Elimina le bozze vuote» deletes only what the

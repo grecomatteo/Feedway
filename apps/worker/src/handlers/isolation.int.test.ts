@@ -4,6 +4,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
   callExternalWatch,
   createPlanItem,
+  startBulkImport,
   type QueueName,
   type QueueScopes,
 } from '@app/application'
@@ -21,6 +22,7 @@ import type { JobHandler, JobHandlerDeps } from '../job-handler.js'
 import { accountsAvatar } from './accounts-avatar.js'
 import { accountsHealth } from './accounts-health.js'
 import { accountsSync } from './accounts-sync.js'
+import { bulkImport } from './bulk-import.js'
 import { mediaDeleteFiles } from './media-delete-files.js'
 import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
@@ -29,6 +31,7 @@ import { planDueScan } from './plan.js'
 import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
+  postsDeps,
   publishingWorld,
   readyPhoto,
   scheduledPost,
@@ -304,6 +307,42 @@ async function deliveriesWorld(): Promise<World> {
   }
 }
 
+/**
+ * An import in bulk of each agency, waiting for the worker (plan 09 Task 10): one row without a
+ * file, which becomes a draft. A job of A naming B's import finds nothing.
+ */
+async function bulkWorld(): Promise<World> {
+  const a = await publishingWorld(tdb, runtime)
+  const b = await publishingWorld(tdb, runtime)
+  const tomorrow = instantToZoned(new Date(Date.now() + 86_400_000), 'Europe/Rome').localDate
+  const importOf = (w: PublishingWorld) =>
+    startBulkImport(postsDeps(runtime), w.actor, {
+      workspaceId: w.workspaceId,
+      source: 'files',
+      rows: [
+        {
+          type: 'photo',
+          mediaIds: [],
+          cover: null,
+          caption: { common: 'Pane caldo' },
+          destinations: [{ accountId: w.accounts.instagram }],
+          when: { localDate: tomorrow, localTime: '12:00' },
+          shareToFeed: true,
+          choices: [],
+          labelIds: [],
+        },
+      ],
+    })
+  const ofA = await importOf(a)
+  const ofB = await importOf(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, bulkImportId: ofA.id, userId: a.ownerId },
+    crossing: { organizationId: a.organizationId, bulkImportId: ofB.id, userId: a.ownerId },
+  }
+}
+
 const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'accounts.sync': { handler: accountsSync, world: connectionsWorld },
   'accounts.health': { handler: accountsHealth, world: connectionsWorld },
@@ -316,6 +355,7 @@ const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'target.reconcile': { handler: targetReconcile, world: () => targetsWorld('unknown') },
   'target.verify': { handler: targetVerify, world: () => targetsWorld('published') },
   'notify.deliver': { handler: notifyDeliver, world: deliveriesWorld },
+  'bulk.import': { handler: bulkImport, world: bulkWorld },
 }
 
 // every row an agency's job could touch, by agency
@@ -332,6 +372,7 @@ const SNAPSHOT_QUERIES = [
   'select * from outbox_events where organization_id = $1 order by id',
   'select * from notifications where organization_id = $1 order by id',
   'select * from notification_deliveries where organization_id = $1 order by id',
+  'select * from bulk_imports where organization_id = $1 order by id',
 ]
 
 async function snapshot(of: Agency): Promise<unknown[]> {
