@@ -13,12 +13,6 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ choose: [PostType] }>()
 
-const ICONS: Record<PostType, string> = {
-  photo: 'i-lucide-image',
-  carousel: 'i-lucide-gallery-horizontal-end',
-  reel: 'i-lucide-clapperboard',
-  story: 'i-lucide-circle-dashed',
-}
 const options = computed(() => typeOptions(props.kinds))
 const hint = computed(() => typeHint(props.kinds))
 const someOff = computed(() => options.value.some((o) => !o.enabled))
@@ -48,7 +42,7 @@ const someOff = computed(() => options.value.some((o) => !o.enabled))
         ]"
         @click="o.enabled && !disabled && emit('choose', o.type)"
       >
-        <UIcon :name="ICONS[o.type]" class="size-4 shrink-0" aria-hidden="true" />
+        <UIcon :name="POST_TYPE_ICON[o.type]" class="size-4 shrink-0" aria-hidden="true" />
         {{ $t(`posts.type.${o.type}`) }}
       </button>
     </div>

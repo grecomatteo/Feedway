@@ -3397,6 +3397,81 @@
       "tomorrow": "domani"
     }
   },
+  "calendar": {
+    "title": "Calendario",
+    "today": "Oggi",
+    "noTime": "Senza ora",
+    "posts": "Nessun post | 1 post | {n} post",
+    "more": "Altri {n} post di {day} | Un altro post di {day} | Altri {n} post di {day}",
+    "free": "Libero",
+    "emptyDay": "Nessun post in questo giorno.",
+    "failed": "Il calendario non si è caricato.",
+    "truncated": "Ci sono più di 2.000 post in questo periodo: ne vedi una parte. Restringi con i filtri.",
+    "noMatch": "Nessun post con questi filtri in questo periodo.",
+    "empty": {
+      "month": "Nessun post in questo mese.",
+      "week": "Nessun post in questa settimana."
+    },
+    "view": {
+      "label": "Vista",
+      "month": "Mese",
+      "week": "Settimana",
+      "list": "Elenco"
+    },
+    "prev": {
+      "month": "Mese precedente",
+      "week": "Settimana precedente"
+    },
+    "next": {
+      "month": "Mese successivo",
+      "week": "Settimana successiva"
+    },
+    "quick": {
+      "label": "Filtri rapidi",
+      "all": "Tutti",
+      "to_publish": "Da pubblicare",
+      "published": "Pubblicati",
+      "with_problem": "Con problema"
+    },
+    "filters": {
+      "title": "Filtri",
+      "buttonOn": "Filtri, {n} attivo | Filtri, {n} attivo | Filtri, {n} attivi",
+      "clients": "Clienti",
+      "accounts": "Profili",
+      "platforms": "Piattaforma",
+      "types": "Tipo",
+      "statuses": "Stato",
+      "authors": "Autore",
+      "labels": "Etichette",
+      "clear": "Togli i filtri",
+      "done": "Fatto"
+    },
+    "status": {
+      "draft": "Bozza",
+      "scheduled": "Programmato",
+      "publishing": "In pubblicazione",
+      "published": "Pubblicato",
+      "partial": "Uscito in parte",
+      "failed": "Non uscito",
+      "problem": "Con problema",
+      "paused": "In pausa",
+      "cancelled": "Annullato"
+    },
+    "plan": {
+      "state": {
+        "to_prepare": "Da preparare",
+        "due_soon": "Meno di 36 ore",
+        "late": "In ritardo"
+      }
+    },
+    "show": {
+      "label": "Mostra",
+      "both": "Entrambi",
+      "posts": "Post",
+      "plan": "Piano"
+    },
+    "planned": "Niente da preparare | 1 da preparare | {n} da preparare"
+  },
   "plan": {
     "title": "Piano editoriale",
     "off": "Il piano editoriale non è attivo per questa agenzia.",
