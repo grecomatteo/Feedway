@@ -1,5 +1,6 @@
+import type { NewPostStart } from '~/utils/new-post-address'
 import type { MediaDto, PostCheckResponse, PostResponse } from '@app/contracts'
-import { publishedFps } from '@app/domain'
+import { publishedFps, zonedToInstant } from '@app/domain'
 import { META_LIMITS } from '@app/domain/platforms/meta'
 import type { FetchError } from 'ofetch'
 import type { UploadItem } from './useUploads'
@@ -119,6 +120,8 @@ export function usePostEditor(opts: {
   /** the profile of the context (`?profilo=`): its accounts start ticked */
   profileKey: string | null
   profiles: Ref<WorkspaceProfile[]>
+  /** a new post's day, time and type from its address (plan 09 Task 4); the files go apart */
+  start?: NewPostStart | null
 }) {
   const org = useOrganization()
   const { call, failure } = useApi()
@@ -717,9 +720,50 @@ export function usePostEditor(opts: {
   function start() {
     // every member reads the agency's zone from `me` (D-78): no request of its own
     timeZone.value = org.organization.value?.timezone ?? timeZone.value
-    when.value = proposedWhen(opts.client.value.defaultPostTime ?? null, timeZone.value)
-    dayProposed.value = true
+    const asked = opts.start
+    if (asked?.day) {
+      // the day of the «+» of the calendar: the person chose it there, the time follows it
+      const time = asked.time ?? opts.client.value.defaultPostTime ?? '14:00'
+      when.value = { localDate: asked.day, localTime: time }
+      dayProposed.value = false
+      if (!asked.time) void freeSlotOn(asked.day, time)
+    } else {
+      when.value = proposedWhen(opts.client.value.defaultPostTime ?? null, timeZone.value)
+      dayProposed.value = true
+    }
+    if (asked?.type) takePlanType(asked.type)
     askChecks()
+  }
+  /**
+   * A day without a time: the first free slot of the client on that day (plan 09 Scelta 4), as
+   * «Prepara» of the plan does; else the time already set. The answer changes nothing the
+   * person has touched meanwhile, and a failure leaves the client's time.
+   */
+  async function freeSlotOn(day: string, fallback: string) {
+    if (!may.value.draft) return
+    const startOfDay = zonedToInstant(day, '00:00', timeZone.value).instant
+    const after = new Date(Math.max(startOfDay.getTime(), Date.now()))
+    try {
+      const { slot } = await call<{ slot: { localDate: string; localTime: string } | null }>(
+        'GET',
+        `${base}/next-free-slot?after=${encodeURIComponent(after.toISOString())}`,
+      )
+      const now = when.value
+      if (
+        slot?.localDate === day &&
+        now?.localDate === day &&
+        now.localTime === fallback &&
+        // not once the draft's first save has started: that save already read the time, and
+        // the screen would show one the server does not have
+        save.value.status === 'idle' &&
+        !save.value.postId
+      ) {
+        when.value = { localDate: day, localTime: slot.localTime }
+        askChecks()
+      }
+    } catch {
+      // the client's time stays
+    }
   }
   watch(
     opts.profiles,

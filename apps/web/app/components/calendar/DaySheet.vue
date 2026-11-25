@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
-import { dayCount, type CalendarCardInfo } from '~/utils/calendar'
+import { CALENDAR_NEW_POST, dayCount, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
  * A whole day of the calendar (plan 09 Task 3: «il giorno che si apre in un foglio»): a window on
@@ -15,6 +15,9 @@ const props = defineProps<{
 }>()
 const open = defineModel<boolean>('open', { required: true })
 const { t } = useI18n()
+// «Nuovo post» of this day (plan 09 Scelta 4), where the «+» of the day is
+const newPostOn = inject(CALENDAR_NEW_POST, () => null)
+const add = computed(() => (props.date ? newPostOn(props.date) : null))
 
 const LONG = new Intl.DateTimeFormat('it-IT', {
   weekday: 'long',
@@ -49,6 +52,17 @@ const ui = { ...DIALOG_UI, content: `${DIALOG_UI.content} md:w-[560px]`, body: '
           <CalendarRow :card="c" :show-client="showClient" @open="open = false" />
         </li>
       </ul>
+    </template>
+    <template v-if="add" #footer>
+      <UButton
+        :to="add"
+        icon="i-lucide-plus"
+        class="min-h-control max-md:w-full max-md:justify-center"
+        data-day-add
+        @click="open = false"
+      >
+        {{ $t('calendar.addHere') }}
+      </UButton>
     </template>
   </UModal>
 </template>

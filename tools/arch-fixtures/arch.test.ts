@@ -31,6 +31,7 @@ test('a db schema may import another module schema for foreign keys', () => {
   expect(violatedRules.filter((r) => r.startsWith('db-'))).toEqual([])
 })
 
-test('real codebase has no violations', () => {
+// the whole repository is cruised: around 5 s on a busy machine, past vitest's default
+test('real codebase has no violations', { timeout: 30_000 }, () => {
   expect(runDepcruise('apps packages').exitCode).toBe(0)
 })

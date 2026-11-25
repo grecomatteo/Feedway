@@ -73,7 +73,8 @@ const QUICK_WORDS: Record<QuickFilter, string> = {
   today: 'oggi',
   this_week: 'settimana',
 }
-const TYPE_WORDS: Record<PostType, string> = {
+/** The words of the post types in the panel's addresses (`?tipo=carosello`). */
+export const POST_TYPE_WORDS: Readonly<Record<PostType, string>> = {
   photo: 'foto',
   carousel: 'carosello',
   reel: 'reel',
@@ -150,7 +151,7 @@ export function parseCalendarQuery(query: AddressQuery): CalendarQuery {
       workspaceIds: idsOf(query, KEYS.workspaceIds),
       accountIds: idsOf(query, KEYS.accountIds),
       platforms: wordsOf(query, KEYS.platforms, PLATFORM_WORDS),
-      types: wordsOf(query, KEYS.types, TYPE_WORDS),
+      types: wordsOf(query, KEYS.types, POST_TYPE_WORDS),
       statuses: wordsOf(query, KEYS.statuses, STATUS_WORDS),
       authorIds: idsOf(query, KEYS.authorIds),
       labelIds: idsOf(query, KEYS.labelIds),
@@ -178,7 +179,7 @@ export function toCalendarQuery(q: CalendarQuery): Record<string, string> {
   ids(KEYS.workspaceIds, f.workspaceIds)
   ids(KEYS.accountIds, f.accountIds)
   words(KEYS.platforms, f.platforms, PLATFORM_WORDS)
-  words(KEYS.types, f.types, TYPE_WORDS)
+  words(KEYS.types, f.types, POST_TYPE_WORDS)
   words(KEYS.statuses, f.statuses, STATUS_WORDS)
   ids(KEYS.authorIds, f.authorIds)
   ids(KEYS.labelIds, f.labelIds)

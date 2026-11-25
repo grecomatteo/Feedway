@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PostResponse } from '@app/contracts'
 import { editorKeyOf } from '~/utils/post-editor'
+import { parseNewPostQuery } from '~/utils/new-post-address'
 
 /**
  * Nuovo post, and the same page to change one (plan 06 Task 5, spec §11.2; brief F02; design
@@ -152,7 +153,7 @@ const profileList = computed(() => profiles.data.value?.items ?? [])
       :client="client"
       :post-id="editingId ?? firstId"
       :profile-key="typeof route.query['profilo'] === 'string' ? route.query['profilo'] : null"
-      :file-id="typeof route.query['file'] === 'string' ? route.query['file'] : null"
+      :start="firstId === null ? parseNewPostQuery(route.query) : null"
       :profiles="profileList"
       :profiles-loading="profiles.status.value === 'pending' || profiles.status.value === 'idle'"
       :back="back"

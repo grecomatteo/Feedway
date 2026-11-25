@@ -343,5 +343,12 @@ test('a client of the selector, and a Viewer without pictures', async ({ page, b
   // nothing to move for who only reads (plan 09 Task 4)
   await expect(vera.locator('[data-movable]')).toHaveCount(0)
   await expect(vera.locator('[data-card-actions]')).toHaveCount(0)
+  // and nothing to start: no «+» on the days, no «Libreria» inside the client
+  await expect(vera.locator('[data-day-add]')).toHaveCount(0)
+  await vera.goto(`/${org}/spazi/${osteria.slug}/calendario?vista=settimana`)
+  await ready(vera)
+  await expect(vera.locator('[data-calendar-week] [data-post]')).toHaveCount(3)
+  await expect(vera.locator('[data-day-add]')).toHaveCount(0)
+  await expect(vera.locator('[data-calendar-library-toggle]')).toHaveCount(0)
   await other.close()
 })

@@ -20,6 +20,9 @@ export interface CalendarMoving {
   canDrop: (date: LocalDate) => boolean
   /** the card being dragged, and the day under it */
   lifted: Ref<string | null>
+  /** a file of the library being dragged (plan 09 Scelta 5): a day starts a post with it */
+  liftedFile: Ref<string | null>
+  liftFile: (event: DragEvent, fileId: string) => void
   over: Ref<LocalDate | null>
   lift: (event: DragEvent, card: CalendarCardInfo) => void
   settle: () => void
@@ -49,6 +52,8 @@ export function useCalendarMove(opts: {
   patch: (id: string, change: Partial<CalendarPostRow>) => void
   /** the days shown read again in place, with the list's pages */
   reload: () => Promise<void>
+  /** a file of the library dropped on a day: its new post */
+  onFile?: (date: LocalDate, fileId: string) => void
 }) {
   const org = useOrganization()
   const { call, failure } = useApi()
@@ -151,8 +156,9 @@ export function useCalendarMove(opts: {
     ]
   }
 
-  // ---- dragging, on a computer
+  // ---- dragging, on a computer: a post onto another day, or a file of the library onto a day
   const lifted = ref<string | null>(null)
+  const liftedFile = ref<string | null>(null)
   const over = ref<LocalDate | null>(null)
   const canDrop = (date: LocalDate) => date >= opts.today.value
   function lift(event: DragEvent, card: CalendarCardInfo) {
@@ -162,14 +168,22 @@ export function useCalendarMove(opts: {
       event.dataTransfer.setData('text/plain', card.id)
     }
   }
+  function liftFile(event: DragEvent, fileId: string) {
+    liftedFile.value = fileId
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'copy'
+      event.dataTransfer.setData('text/plain', fileId)
+    }
+  }
   function settle() {
     lifted.value = null
+    liftedFile.value = null
     over.value = null
   }
   function dragOver(event: DragEvent, date: LocalDate) {
-    if (!lifted.value || !canDrop(date)) return
+    if (!(lifted.value || liftedFile.value) || !canDrop(date)) return
     event.preventDefault()
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+    if (event.dataTransfer) event.dataTransfer.dropEffect = liftedFile.value ? 'copy' : 'move'
     over.value = date
   }
   function leave(event: DragEvent, date: LocalDate) {
@@ -180,14 +194,19 @@ export function useCalendarMove(opts: {
   function drop(event: DragEvent, date: LocalDate) {
     event.preventDefault()
     const post = opts.posts.value.find((p) => p.id === lifted.value)
+    const file = liftedFile.value
     settle()
-    if (post?.localTime && canDrop(date) && post.localDate !== date)
+    if (!canDrop(date)) return
+    if (file) opts.onFile?.(date, file)
+    else if (post?.localTime && post.localDate !== date)
       void move(post, { localDate: date, localTime: post.localTime })
   }
 
   const moving: CalendarMoving = {
     canDrop,
     lifted,
+    liftedFile,
+    liftFile,
     over,
     lift,
     settle,

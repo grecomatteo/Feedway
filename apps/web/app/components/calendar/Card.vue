@@ -99,7 +99,7 @@ const stateClass = computed(() =>
     :to="card.to"
     :aria-label="name"
     :title="card.title"
-    class="flex h-[22px] min-w-0 items-center gap-1.5 rounded-[5px] px-1.5 text-caption leading-[22px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-(--app-focus)"
+    class="flex h-[22px] min-w-0 items-center gap-1.5 overflow-hidden rounded-[5px] px-1.5 text-caption leading-[22px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-(--app-focus)"
     :class="[
       look === 'alert' ? ALERT_CHIP[alertTone] : CHIP[look],
       edge,
@@ -125,9 +125,10 @@ const stateClass = computed(() =>
       >{{ card.time }}</b
     >
     <span class="min-w-0 truncate" aria-hidden="true">{{ chipText }}</span>
+    <!-- «Bozza» only where the chip has room: a narrow day (the library open) keeps the text -->
     <span
       v-if="look === 'draft'"
-      class="ms-auto shrink-0 text-(--app-text-muted)"
+      class="ms-auto hidden shrink-0 text-(--app-text-muted) @[9rem]:inline"
       aria-hidden="true"
       >{{ $t('posts.state.draft') }}</span
     >
