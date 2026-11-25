@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { periodLabel, periodOf, postsByDay, shiftDate, shownInDay } from '../app/utils/calendar.ts'
+import {
+  cardLook,
+  periodLabel,
+  periodOf,
+  postsByDay,
+  shiftDate,
+  shownInDay,
+} from '../app/utils/calendar.ts'
 
 describe('periodOf', () => {
   it('gives the 42 days of the month grid, from the Monday before the 1st', () => {
@@ -85,5 +92,22 @@ describe('shownInDay', () => {
   it('never hides one card behind «+1»: one less and «+N»', () => {
     expect(shownInDay(5, 4)).toEqual({ shown: 3, more: 2 })
     expect(shownInDay(12, 4)).toEqual({ shown: 3, more: 9 })
+  })
+})
+
+describe('cardLook', () => {
+  const post = (status: string, tone: string) =>
+    ({ kind: 'post', status, tone }) as Parameters<typeof cardLook>[0]
+
+  it('says the state only where it asks to be looked at', () => {
+    expect(cardLook(post('failed', 'danger'))).toBe('alert')
+    expect(cardLook(post('paused', 'warning'))).toBe('alert')
+    expect(cardLook(post('draft', 'neutral'))).toBe('draft')
+    expect(cardLook(post('published', 'success'))).toBe('done')
+    expect(cardLook(post('scheduled', 'info'))).toBe('normal')
+  })
+
+  it('draws a content of the plan dashed, whatever its state', () => {
+    expect(cardLook({ kind: 'plan', status: null, tone: 'danger' })).toBe('plan')
   })
 })

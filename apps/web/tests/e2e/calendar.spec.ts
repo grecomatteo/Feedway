@@ -104,6 +104,16 @@ async function agency(page: Page, name: string) {
   await post(osteria.id, igOsteria, 'Il pranzo del sabato', '2026-11-21T13:00')
   for (const hour of ['09', '11', '13', '17', '20'])
     await post(osteria.id, igOsteria, `Il giorno pieno, alle ${hour}`, `2026-11-26T${hour}:00`)
+  // the plan of Forno Prova: a reel still to prepare on Monday 23, one due in less than 36 hours
+  const plan = (title: string, type: string, day: string, time: string) =>
+    adminQuery(
+      `insert into plan_items (id, organization_id, workspace_id, local_date, local_time, type,
+                               title, created_by, updated_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $8)`,
+      [randomUUID(), org, forno.id, day, time, type, title, owner.userId],
+    )
+  await plan('Il panettone in vetrina', 'reel', '2026-11-23', '10:00')
+  await plan('Le castagne della sera', 'carousel', '2026-11-19', '19:00')
   return { org, forno, osteria, ids }
 }
 
@@ -111,19 +121,19 @@ test('the month and the week of every client, with the address that keeps them',
   page,
   isMobile,
 }) => {
-  const { org, ids } = await agency(page, 'Carla Calendario')
+  const { org, ids, forno } = await agency(page, 'Carla Calendario')
   await page.goto(`/${org}/calendario`)
   await ready(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Calendario' })).toBeVisible()
   await expect(page.locator('[data-calendar-period]')).toHaveText('Novembre 2026')
   await expect(day(page, '2026-11-19')).toHaveAttribute('data-today', 'true')
   await expect(day(page, '2026-11-19').locator('[data-day-open]')).toHaveAccessibleName(
-    'giovedì 19 novembre, Oggi, 3 post',
+    'giovedì 19 novembre, Oggi, 3 post, 1 da preparare',
   )
 
   if (isMobile) {
-    // a phone reads the month by its dots, and the day opens in a sheet
-    await expect(day(page, '2026-11-19').locator('[data-day-dots] i')).toHaveCount(3)
+    // a phone reads the month by its dots: three posts and the plan's content
+    await expect(day(page, '2026-11-19').locator('[data-day-dots] i')).toHaveCount(4)
   } else {
     const chips = day(page, '2026-11-19').locator('[data-post]')
     await expect(chips).toHaveCount(3)
@@ -135,15 +145,34 @@ test('the month and the week of every client, with the address that keeps them',
     // a draft with a day: full border and «Bozza» (D-123.3); red where one did not go out
     await expect(day(page, '2026-11-24').locator('[data-draft]')).toContainText('Bozza')
     await expect(day(page, '2026-11-17').locator('[data-tone="danger"]')).toHaveCount(1)
+    // the format on every card, and the plan's content still to prepare, dashed (Matteo 25/11)
+    await expect(chips.first().locator('[data-post-type="photo"]')).toHaveCount(1)
+    const planned = day(page, '2026-11-23').locator('[data-plan]')
+    await expect(planned).toHaveAttribute('data-look', 'plan')
+    await expect(planned.locator('[data-post-type="reel"]')).toHaveCount(1)
+    await expect(planned).toHaveAccessibleName(/^10:00, Reel, Forno Prova, Il panettone/)
+    await expect(planned).toHaveAttribute(
+      'href',
+      `/${org}/piano?spazio=${forno.slug}&giorno=2026-11-23`,
+    )
   }
   expect((await axe(page)).violations).toEqual([])
   await day(page, '2026-11-19').locator('[data-day-open]').click()
-  const sheet = page.getByRole('dialog', { name: 'Oggi, giovedì 19 novembre 2026' })
-  await expect(sheet.locator('[data-post]')).toHaveCount(3)
-  await settled(sheet)
-  expect((await axe(page)).violations).toEqual([])
-  await page.keyboard.press('Escape')
-  await expect(sheet).toHaveCount(0)
+  if (isMobile) {
+    // a phone lists the day under the month, with the plan's content
+    const listed = page.locator('[data-month-day]')
+    await expect(listed.locator('[data-post]')).toHaveCount(3)
+    // its state is counted by the server's clock, which the browser's does not stop
+    await expect(listed.locator('[data-plan]')).toContainText('Le castagne della sera')
+  } else {
+    const sheet = page.getByRole('dialog', { name: 'Oggi, giovedì 19 novembre 2026' })
+    await expect(sheet.locator('[data-post]')).toHaveCount(3)
+    await expect(sheet.locator('[data-plan]')).toHaveCount(1)
+    await settled(sheet)
+    expect((await axe(page)).violations).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(sheet).toHaveCount(0)
+  }
 
   // the next month goes into the address, and a reload keeps it
   await page.locator('[data-calendar-next]').click()
@@ -167,6 +196,9 @@ test('the month and the week of every client, with the address that keeps them',
   await expect(tiles).toHaveCount(3)
   await expect(tiles.nth(1)).toContainText('Il pane del giovedì')
   await expect(tiles.nth(1).locator('img')).toHaveCount(1)
+  const planTile = page.locator('[data-calendar-week] [data-day="2026-11-19"] [data-plan]')
+  await expect(planTile).toHaveAttribute('data-look', 'plan')
+  await expect(planTile.locator('[data-post-type="carousel"]')).toHaveCount(1)
   expect((await axe(page)).violations).toEqual([])
 
   // a card opens its post
@@ -206,6 +238,19 @@ test('the filters go into the address and narrow the read', async ({ page, isMob
     await dialog.getByRole('button', { name: 'Fatto' }).click()
   } else await page.locator('[data-calendar-clear]').click()
   await expect(cards).toHaveCount(6)
+
+  // «Mostra»: the posts without the plan, in the address, and back
+  const planned = page.locator('[data-calendar-week] [data-plan]')
+  await expect(planned).toHaveCount(1)
+  if (!isMobile) {
+    const show = page.getByRole('group', { name: 'Mostra' })
+    await show.getByRole('button', { name: 'Post' }).click()
+    await expect(page).toHaveURL(/mostra=post/)
+    await expect(planned).toHaveCount(0)
+    await expect(cards).toHaveCount(6)
+    await show.getByRole('button', { name: 'Entrambi' }).click()
+    await expect(planned).toHaveCount(1)
+  }
 
   // a client in «Filtri»
   await open.click()

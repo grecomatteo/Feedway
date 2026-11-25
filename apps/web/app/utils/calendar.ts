@@ -81,14 +81,17 @@ export function shownInDay(count: number, room: number): { shown: number; more: 
 
 /** What a card of the calendar shows, worked out once by the page for every view. */
 export interface CalendarCardInfo {
+  /** a post, or a content of the plan still to prepare (a dashed card, §11.12) */
+  kind: 'post' | 'plan'
   id: string
   date: LocalDate | null
   /** «18:00»; null for a draft with a day and no time */
   time: string | null
   title: string
   client: string
-  status: CalendarPost['status']
-  /** «Programmato», «1 non uscito»… */
+  /** null for a content of the plan */
+  status: CalendarPost['status'] | null
+  /** «Programmato», «1 non uscito», «Da preparare»… */
   state: string
   tone: 'neutral' | 'success' | 'info' | 'warning' | 'danger'
   draft: boolean
@@ -96,6 +99,36 @@ export interface CalendarCardInfo {
   type: CalendarPost['type']
   platforms: ('instagram' | 'facebook')[]
   labels: { id: string; name: string; color: LabelDto['color'] }[]
-  /** the post's page: the editor, or the outcome once it is on its way (as the list) */
+  /**
+   * the post's page: the editor, or the outcome once it is on its way (as the list); for a content
+   * of the plan, its day in the plan
+   */
   to: { path: string; query: Record<string, string> }
+}
+
+/**
+ * How loud a card is (Matteo 25/11: the format in place of the dot, the state only where it asks
+ * to be looked at): `alert` a post that did not go out or has a problem, `draft` a draft with a
+ * day, `plan` a content still to prepare, `done` a post already out (quieter), `normal` the rest.
+ */
+export type CardLook = 'alert' | 'draft' | 'plan' | 'done' | 'normal'
+
+export function cardLook(card: Pick<CalendarCardInfo, 'kind' | 'status' | 'tone'>): CardLook {
+  if (card.kind === 'plan') return 'plan'
+  if (card.tone === 'danger' || card.tone === 'warning') return 'alert'
+  if (card.status === 'draft') return 'draft'
+  if (card.status === 'published') return 'done'
+  return 'normal'
+}
+
+type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
+
+/** What a day holds, for its name: «3 post», and «1 da preparare» when the plan has some. */
+export function dayCount(cards: readonly Pick<CalendarCardInfo, 'kind'>[], t: Translate): string[] {
+  const planned = cards.filter((c) => c.kind === 'plan').length
+  const posts = cards.length - planned
+  return [
+    t('calendar.posts', { n: posts }, posts),
+    ...(planned > 0 ? [t('calendar.planned', { n: planned }, planned)] : []),
+  ]
 }

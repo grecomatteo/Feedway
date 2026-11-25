@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
-import { shownInDay, type CalendarCardInfo } from '~/utils/calendar'
+import { cardLook, dayCount, shownInDay, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
  * The month (spec §11.4, screen 07): the 6×7 days of its grid from Monday, the days of the months
  * around on the sunken ground. A day shows up to four posts and «+N» for the rest; its number and
  * «+N» open the whole day in a sheet. On a phone a day is its number and a dot for each post, in
- * the colour of its state, and the whole day opens the sheet («mese leggibile con i pallini»).
+ * grey, red or amber only where something asks to be looked at, a ring for the plan, and the
+ * whole day is the button («mese leggibile con i pallini»).
  */
 const props = defineProps<{
   days: LocalDate[]
@@ -17,6 +18,8 @@ const props = defineProps<{
   showClient: boolean
   /** the period's posts are still on their way: the days say nothing yet */
   loading: boolean
+  /** on a phone, the day whose posts are listed under the month */
+  selected?: LocalDate | null
 }>()
 const emit = defineEmits<{ openDay: [date: LocalDate] }>()
 const { t } = useI18n()
@@ -27,12 +30,13 @@ const ROOM = 4
 const DOTS = 4
 
 const WEEKDAYS = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom']
-const DOT: Record<CalendarCardInfo['tone'], string> = {
-  neutral: 'bg-(--app-neutral-dot)',
-  success: 'bg-(--app-success)',
-  info: 'bg-(--app-info)',
-  warning: 'bg-(--app-warning-dot)',
-  danger: 'bg-(--app-danger)',
+/** grey for every post, a colour only for what asks to be looked at (Matteo 25/11) */
+const dotOf = (card: CalendarCardInfo) => {
+  const look = cardLook(card)
+  if (look === 'plan') return 'border border-(--app-text-muted)'
+  if (look === 'alert')
+    return card.tone === 'danger' ? 'bg-(--app-danger)' : 'bg-(--app-warning-dot)'
+  return 'bg-(--app-neutral-dot)'
 }
 const LONG = new Intl.DateTimeFormat('it-IT', {
   weekday: 'long',
@@ -58,7 +62,7 @@ const cells = computed(() =>
       label: [
         long,
         date === props.today ? t('calendar.today') : null,
-        props.loading ? null : t('calendar.posts', { n: all.length }, all.length),
+        ...(props.loading ? [] : dayCount(all, t)),
       ]
         .filter(Boolean)
         .join(', '),
@@ -86,7 +90,10 @@ const cells = computed(() =>
         v-for="c in cells"
         :key="c.date"
         class="relative flex min-w-0 flex-col gap-[3px] border-t border-s border-(--app-border) p-1.5 nth-[7n+1]:border-s-0 md:min-h-[7.5rem] max-md:min-h-14 max-md:items-center max-md:px-0 max-md:pt-1 max-md:pb-2"
-        :class="c.inMonth ? '' : 'bg-(--app-surface-sunken)'"
+        :class="[
+          c.inMonth ? '' : 'bg-(--app-surface-sunken)',
+          c.date === selected ? 'max-md:bg-(--app-nav-hover)' : '',
+        ]"
         :data-day="c.date"
         :data-today="c.today || undefined"
       >
@@ -131,7 +138,7 @@ const cells = computed(() =>
               v-for="card in c.all.slice(0, DOTS)"
               :key="card.id"
               class="block size-[5px] rounded-full"
-              :class="DOT[card.tone]"
+              :class="dotOf(card)"
             />
           </span>
         </template>

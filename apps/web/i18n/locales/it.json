@@ -3455,6 +3455,20 @@
       "problem": "Con problema",
       "paused": "In pausa",
       "cancelled": "Annullato"
-    }
+    },
+    "plan": {
+      "state": {
+        "to_prepare": "Da preparare",
+        "due_soon": "Meno di 36 ore",
+        "late": "In ritardo"
+      }
+    },
+    "show": {
+      "label": "Mostra",
+      "both": "Entrambi",
+      "posts": "Post",
+      "plan": "Piano"
+    },
+    "planned": "Niente da preparare | 1 da preparare | {n} da preparare"
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
-import type { CalendarCardInfo } from '~/utils/calendar'
+import { dayCount, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
  * The week (spec §11.4: «lo zoom di dettaglio con miniature grandi»): seven columns from Monday,
@@ -36,10 +36,7 @@ const columns = computed(() =>
       today: date === props.today,
       past: date < props.today,
       all,
-      label: [
-        LONG.format(day),
-        props.loading ? null : t('calendar.posts', { n: all.length }, all.length),
-      ]
+      label: [LONG.format(day), ...(props.loading ? [] : dayCount(all, t))]
         .filter(Boolean)
         .join(', '),
     }

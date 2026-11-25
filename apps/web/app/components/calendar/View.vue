@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import type { LocalDate, QuickFilter } from '@app/domain'
+import type { CalendarEntry } from '@app/contracts'
+import type { CalendarShow, LocalDate, QuickFilter } from '@app/domain'
 import type { FilterOption } from '~/components/calendar/Filters.vue'
 import type { CalendarPostRow } from '~/composables/useCalendar'
 import type { WorkspaceView } from '~/composables/useOrganization'
 import { periodLabel, postsByDay, type CalendarCardInfo, type PeriodView } from '~/utils/calendar'
+import type { PostType } from '~/utils/post-editor'
 
 /**
  * The calendar (spec §11.4, screen 07, plan 09 Task 3), for «Tutti i clienti» or one client: the
@@ -120,6 +122,7 @@ function cardOf(p: CalendarPostRow): CalendarCardInfo {
   const client = clientsById.value.get(p.workspaceId)
   const state = postStateLabel(p, t)
   return {
+    kind: 'post',
     id: p.id,
     date: p.localDate,
     time: p.localTime ? formatTime(p.localTime) : null,
@@ -148,28 +151,130 @@ function cardOf(p: CalendarPostRow): CalendarCardInfo {
     },
   }
 }
-const byDay = computed(
+// a content of the plan still to prepare (§11.12): the fields the plan declares (PlanEntryData)
+const PLAN_TONE = { to_prepare: 'neutral', due_soon: 'warning', late: 'danger' } as const
+const PLAN_TYPES: readonly string[] = ['photo', 'carousel', 'reel', 'story']
+function planCardOf(e: CalendarEntry): CalendarCardInfo | null {
+  const type = e.data['type']
+  const state = e.data['state']
+  if (typeof type !== 'string' || !PLAN_TYPES.includes(type)) return null
+  const known = state === 'due_soon' || state === 'late' ? state : 'to_prepare'
+  const client = clientsById.value.get(e.workspaceId)
+  return {
+    kind: 'plan',
+    id: e.id,
+    date: e.localDate,
+    time: e.localTime ? formatTime(e.localTime) : null,
+    title: e.title,
+    client: client?.name ?? '',
+    status: null,
+    state: t(`calendar.plan.state.${known}`),
+    tone: PLAN_TONE[known],
+    draft: false,
+    thumb: null,
+    type: type as PostType,
+    platforms: [],
+    labels: [],
+    to: {
+      path: org.to('/piano'),
+      query: { ...(client ? { spazio: client.slug } : {}), giorno: e.localDate },
+    },
+  }
+}
+const byDay = computed(() => {
+  const plan = (data.value?.entries ?? [])
+    .filter((e) => e.source === 'plan')
+    .map((e) => ({ e, card: planCardOf(e) }))
+    .filter((x) => x.card !== null)
+  const rows = [
+    ...cal.posts.value.map((p) => ({
+      id: p.id,
+      localDate: p.localDate,
+      localTime: p.localTime,
+      card: cardOf(p),
+    })),
+    ...plan.map(({ e, card }) => ({
+      id: e.id,
+      localDate: e.localDate,
+      localTime: e.localTime,
+      card: card as CalendarCardInfo,
+    })),
+  ]
+  return new Map([...postsByDay(rows)].map(([d, list]) => [d, list.map((r) => r.card)] as const))
+})
+
+// «Mostra: Post · Piano · Entrambi» (§11.4): offered once the plan has something in the period,
+// or while it is narrowed, so it can be put back
+const hasPlan = computed(
   () =>
-    new Map([...postsByDay(cal.posts.value)].map(([d, list]) => [d, list.map(cardOf)] as const)),
+    (data.value?.entries ?? []).some((e) => e.source === 'plan') || filters.value.show !== 'both',
 )
+const showOptions = computed(() => [
+  { value: 'both' as const, label: t('calendar.show.both') },
+  { value: 'posts' as const, label: t('calendar.show.posts') },
+  { value: 'plan' as const, label: t('calendar.show.plan') },
+])
+const show = computed<CalendarShow>({
+  get: () => filters.value.show,
+  set: (v) => void cal.setFilters({ show: v }),
+})
 const showClient = computed(() => props.workspace === null)
 
 // ---- the states of the read
 const loading = computed(() => data.value === null && status.value !== 'error')
 const failed = computed(() => status.value === 'error')
 const nothing = computed(
-  () => data.value !== null && status.value === 'success' && cal.posts.value.length === 0,
+  () => data.value !== null && status.value === 'success' && byDay.value.size === 0,
 )
-const narrowed = computed(() => cal.activeFilters.value > 0 || filters.value.quick !== null)
+const narrowed = computed(
+  () =>
+    cal.activeFilters.value > 0 || filters.value.quick !== null || filters.value.show !== 'both',
+)
 
-// ---- the day in a sheet
+// ---- the day: in a sheet on a computer; on a phone the month lists the chosen day under it
+const phone = ref(false)
+let phoneQuery: MediaQueryList | null = null
+const onPhone = () => (phone.value = phoneQuery?.matches ?? false)
+onMounted(() => {
+  phoneQuery = window.matchMedia('(max-width: 47.99rem)')
+  onPhone()
+  phoneQuery.addEventListener('change', onPhone)
+})
+onBeforeUnmount(() => phoneQuery?.removeEventListener('change', onPhone))
 const dayOpen = ref(false)
 const day = ref<LocalDate | null>(null)
+const chosen = ref<LocalDate | null>(null)
+/** the day listed under the month on a phone: the one chosen, else today if in the month */
+const listedDay = computed<LocalDate | null>(() => {
+  const month = date.value.slice(0, 7)
+  if (chosen.value?.startsWith(month)) return chosen.value
+  return today.value.startsWith(month) ? today.value : null
+})
 function openDay(d: LocalDate) {
+  if (phone.value && view.value === 'month') {
+    chosen.value = d
+    return
+  }
   day.value = d
   dayOpen.value = true
 }
 const dayCards = computed(() => (day.value ? (byDay.value.get(day.value) ?? []) : []))
+const listedCards = computed(() =>
+  listedDay.value ? (byDay.value.get(listedDay.value) ?? []) : [],
+)
+const LISTED = new Intl.DateTimeFormat('it-IT', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+})
+const listedTitle = computed(() => {
+  if (!listedDay.value) return ''
+  const long = LISTED.format(new Date(`${listedDay.value}T00:00:00Z`))
+  return listedDay.value === today.value
+    ? `${t('calendar.today')}, ${long}`
+    : long.charAt(0).toUpperCase() + long.slice(1)
+})
 </script>
 
 <template>
@@ -230,6 +335,14 @@ const dayCards = computed(() => (day.value ? (byDay.value.get(day.value) ?? []) 
               :ui="{ item: 'min-h-11 items-center' }"
             />
           </fieldset>
+          <fieldset v-if="hasPlan" class="grid min-w-0 gap-1" data-filter="show">
+            <legend class="mb-1.5 font-medium">{{ $t('calendar.show.label') }}</legend>
+            <URadioGroup
+              v-model="show"
+              :items="showOptions"
+              :ui="{ item: 'min-h-11 items-center' }"
+            />
+          </fieldset>
         </CalendarFilters>
       </div>
     </div>
@@ -249,6 +362,12 @@ const dayCards = computed(() => (day.value ? (byDay.value.get(day.value) ?? []) 
         :count="cal.activeFilters.value"
         @change="cal.setFilters"
         @clear="cal.clearFilters"
+      />
+      <SegmentedFilter
+        v-if="hasPlan"
+        v-model="show"
+        :label="$t('calendar.show.label')"
+        :options="showOptions"
       />
       <UButton
         v-if="narrowed"
@@ -283,10 +402,31 @@ const dayCards = computed(() => (day.value ? (byDay.value.get(day.value) ?? []) 
       :cards="byDay"
       :show-client="showClient"
       :loading="loading"
+      :selected="phone ? listedDay : null"
       @open-day="openDay"
     />
+    <!-- on a phone the chosen day is listed under the month, not in a sheet over it -->
+    <section
+      v-if="view === 'month' && phone && listedDay && !loading"
+      :aria-label="listedTitle"
+      aria-live="polite"
+      data-month-day
+    >
+      <SectionHead :title="listedTitle" :count="listedCards.length" :level="3" />
+      <p v-if="listedCards.length === 0" class="text-(--app-text-muted)">
+        {{ $t('calendar.emptyDay') }}
+      </p>
+      <ul
+        v-else
+        class="divide-y divide-(--app-border) overflow-hidden rounded-card border border-(--app-border) bg-(--app-surface)"
+      >
+        <li v-for="c in listedCards" :key="c.id">
+          <CalendarRow :card="c" :show-client="showClient" />
+        </li>
+      </ul>
+    </section>
     <CalendarWeek
-      v-else
+      v-if="view === 'week'"
       :days="period.days"
       :today="today"
       :cards="byDay"

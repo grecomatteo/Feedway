@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { LocalDate } from '@app/domain'
-import type { CalendarCardInfo } from '~/utils/calendar'
+import { dayCount, type CalendarCardInfo } from '~/utils/calendar'
 
 /**
  * A whole day of the calendar (plan 09 Task 3: «il giorno che si apre in un foglio»): a window on
  * a computer, a sheet from the bottom on a phone (DIALOG_UI). Its posts as the rows of «In uscita»
- * in Oggi: time, picture, text, client and state.
+ * in Oggi (CalendarRow).
  */
 const props = defineProps<{
   date: LocalDate | null
@@ -36,7 +36,7 @@ const ui = { ...DIALOG_UI, content: `${DIALOG_UI.content} md:w-[560px]`, body: '
   <UModal
     v-model:open="open"
     :title="title"
-    :description="$t('calendar.posts', { n: cards.length }, cards.length)"
+    :description="dayCount(cards, $t).join(', ')"
     :ui="ui"
     data-day-sheet
   >
@@ -46,29 +46,7 @@ const ui = { ...DIALOG_UI, content: `${DIALOG_UI.content} md:w-[560px]`, body: '
       </p>
       <ul v-else class="max-h-[60vh] overflow-y-auto pb-2">
         <li v-for="c in cards" :key="c.id" class="border-t border-(--app-border) first:border-t-0">
-          <NuxtLink
-            :to="c.to"
-            class="grid min-h-row grid-cols-[3rem_2.5rem_minmax(0,1fr)] items-center gap-x-3 px-5 py-2 hover:bg-(--app-nav-hover) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus)"
-            :data-post="c.id"
-            @click="open = false"
-          >
-            <span class="font-semibold tabular-nums">{{ c.time ?? '—' }}</span>
-            <span
-              class="flex size-10 items-center justify-center overflow-hidden rounded-thumb bg-(--app-surface-sunken) text-(--app-text-muted) outline outline-1 -outline-offset-1 outline-(--app-img-outline)"
-            >
-              <img v-if="c.thumb" :src="c.thumb" alt="" class="size-full object-cover" />
-              <UIcon v-else :name="POST_TYPE_ICON[c.type]" class="size-4" aria-hidden="true" />
-            </span>
-            <span class="min-w-0">
-              <span class="block truncate font-medium">{{ c.title }}</span>
-              <span
-                class="flex items-center justify-between gap-2.5 text-detail text-(--app-text-muted)"
-              >
-                <span class="truncate">{{ showClient ? c.client : '' }}</span>
-                <StatusDot :tone="c.tone" :label="c.state" class="shrink-0" />
-              </span>
-            </span>
-          </NuxtLink>
+          <CalendarRow :card="c" :show-client="showClient" @open="open = false" />
         </li>
       </ul>
     </template>
