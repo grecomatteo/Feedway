@@ -3604,5 +3604,144 @@
     "undo": "Annulla",
     "actionError": "Non è andata. Riprova tra poco.",
     "notFound": "Questo contenuto non c’è più: ho ricaricato il piano."
+  },
+  "bulk": {
+    "title": "In blocco",
+    "pageTitle": "In blocco · {name}",
+    "back": "Torna al calendario di {name}",
+    "count": "nessun post | 1 post | {n} post",
+    "max": "fino a {n} per volta",
+    "entry": "Tanti file? Programmali in blocco",
+    "drop": {
+      "title": "Un file, un post",
+      "text": "Trascina qui fino a 50 foto o video: ognuno diventa una riga, con testo, account, giorno e ora. Le righe scelte si uniscono in un carosello.",
+      "choose": "Scegli i file",
+      "more": "Aggiungi file",
+      "over": "Rilascia per aggiungere"
+    },
+    "upload": {
+      "overall": "{done} di {n} file pronti",
+      "leftOut": "{n} file non aggiunto: la tabella ne tiene 50. | {n} file non aggiunti: la tabella ne tiene 50.",
+      "refused": "{name}: {reason}"
+    },
+    "head": {
+      "choose": "Scegli tutte le righe",
+      "file": "File",
+      "type": "Tipo",
+      "caption": "Testo",
+      "account": "Account",
+      "day": "Giorno",
+      "time": "Ora",
+      "actions": "Azioni"
+    },
+    "row": {
+      "label": "Riga {n}",
+      "choose": "Scegli la riga {n}",
+      "caption": "Testo della riga {n}",
+      "captionPlaceholder": "Scrivi il testo del post",
+      "account": "Account della riga {n}",
+      "accountPlaceholder": "Scegli l'account",
+      "type": "Tipo della riga {n}",
+      "day": "Giorno della riga {n}",
+      "time": "Ora della riga {n}",
+      "noTime": "Senza ora",
+      "noDay": "Senza data: resterà una bozza",
+      "files": "{n} file",
+      "remove": "Togli la riga {n}",
+      "split": "Separa il carosello",
+      "menu": "Altre azioni della riga {n}"
+    },
+    "problem": {
+      "sending": "File in arrivo",
+      "fileFailed": "Un file non è stato caricato: toglilo o caricalo di nuovo",
+      "noTarget": "Scegli l'account",
+      "type": "Il tipo non va con i file"
+    },
+    "target": {
+      "accounts": "Account",
+      "groups": "Gruppi",
+      "group": "{name} · {n} account",
+      "off": "da ricollegare",
+      "all": "Account per tutte",
+      "chosen": "Account per le scelte"
+    },
+    "tools": {
+      "chosen": "nessuna riga scelta | 1 riga scelta | {n} righe scelte",
+      "merge": "Unisci in un carosello",
+      "mergeFew": "Scegli almeno due righe da unire.",
+      "mergeMany": "Un carosello tiene al massimo 10 file.",
+      "distribute": "Distribuisci sulle fasce libere",
+      "distributeChosen": "Distribuisci le scelte sulle fasce libere",
+      "noSlots": "Il cliente non ha fasce orarie libere: aggiungile in Contenuti, oppure scegli giorno e ora.",
+      "slotsShort": "Fasce libere finite: {n} riga resta com'era. | Fasce libere finite: {n} righe restano com'erano.",
+      "slotsFailed": "Non sono riuscito a leggere le fasce libere. Riprova.",
+      "contentSettings": "Apri Contenuti"
+    },
+    "schedule": {
+      "button": "Programma {n} post",
+      "buttonOne": "Programma 1 post",
+      "sending": "Invio…",
+      "waitFiles": "Aspetta che i file siano pronti",
+      "fix": "Riga {n}: {problem}",
+      "undated": "{n} riga senza data resterà una bozza. | {n} righe senza data resteranno bozze.",
+      "failed": "Non sono riuscito a mandare la tabella: {message}. Le righe sono ancora qui."
+    },
+    "progress": {
+      "title": "Sto creando i post",
+      "line": "{done} di {total}",
+      "text": "Puoi chiudere la pagina: i post si creano lo stesso, e quando ho finito te lo dico nelle notifiche."
+    },
+    "summary": {
+      "title": "Fatto",
+      "titleUndone": "Annullata",
+      "line": "{scheduled} programmati, {drafts} da sistemare",
+      "lineAll": "{scheduled} programmati, niente da sistemare",
+      "failedLine": "nessuna non creata | 1 non creata | {n} non create",
+      "undo": "Annulla",
+      "undoFor": "Annulla ({s} s)",
+      "undoing": "Annullo…",
+      "undoFailed": "Non sono riuscito ad annullare: {message}",
+      "undoneLine": "Tolti {removed} post. | Tolto 1 post. | Tolti {removed} post.",
+      "kept": "nessuno tenuto | 1 tenuto perché modificato nel frattempo | {n} tenuti perché modificati nel frattempo",
+      "again": "Riprendi la tabella",
+      "calendar": "Apri il calendario",
+      "open": "Apri",
+      "fix": "Sistema",
+      "scheduled": "Programmato",
+      "removed": "Tolto",
+      "keptRow": "Tenuto",
+      "reason": {
+        "asked": "Bozza",
+        "blocked": "Resta bozza: {what}",
+        "blockedNoCode": "Resta bozza: un controllo la ferma",
+        "no_date": "Resta bozza: senza data",
+        "limit_reached": "Resta bozza: raggiunto il limite di post del giorno",
+        "not_allowed": "Resta bozza: non puoi più programmare in questo cliente"
+      },
+      "failed": {
+        "not_found": "Non creata: un file, un account o un'etichetta non c'è più",
+        "forbidden": "Non creata: non hai più accesso al cliente",
+        "other": "Non creata ({code})"
+      }
+    },
+    "duplicate": {
+      "action": "Duplica",
+      "title": "Duplica il post",
+      "text": "Le copie hanno lo stesso testo, gli stessi file, le etichette e gli account. Nascono bozze, oppure programmate se passano i controlli.",
+      "dates": "Date",
+      "add": "Aggiungi una data",
+      "remove": "Togli la data {n}",
+      "day": "Giorno della copia {n}",
+      "time": "Ora della copia {n}",
+      "max": "Al massimo 31 date.",
+      "twice": "Una data compare due volte.",
+      "asDrafts": "Duplica come bozze",
+      "andSchedule": "Duplica e programma",
+      "count": "1 copia | {n} copie",
+      "failed": "Non sono riuscito a duplicare: {message}",
+      "done": "Ho creato {n} copia. | Ho creato {n} copie.",
+      "cancel": "Chiudi"
+    },
+    "notAllowed": "«In blocco» è per chi può programmare in questo cliente, e il cliente non deve essere archiviato."
   }
 }

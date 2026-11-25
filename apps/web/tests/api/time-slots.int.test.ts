@@ -176,6 +176,20 @@ describe('time slots', () => {
     })
   })
 
+  test('«Distribuisci»: the free slots in order, a scheduled minute skipped, at most 50', async () => {
+    // the slot of 2027-01-04 at noon is taken by the test above
+    const free = await ok<{ slots: { localDate: string; localTime: string }[] }>(
+      call('viewer', 'GET', `${ws()}/free-slots?count=3&after=${MONDAY_MORNING}`),
+    )
+    expect(free.slots.map((s) => `${s.localDate} ${s.localTime}`)).toEqual([
+      '2027-01-05 12:00',
+      '2027-01-06 12:00',
+      '2027-01-07 12:00',
+    ])
+    await refused(call('editor', 'GET', `${ws()}/free-slots?count=51`), 422, 'VALIDATION')
+    await refused(call('manager', 'GET', `${ws(gino)}/free-slots?count=2`), 404, 'NOT_FOUND')
+  })
+
   test('without `after`, the next one is ahead of now', async () => {
     const { slot } = await ok<Next>(call('editor', 'GET', `${ws()}/next-free-slot`))
     expect(slot).not.toBeNull()

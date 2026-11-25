@@ -1,10 +1,12 @@
 import {
+  DISTRIBUTE_HORIZON_DAYS,
   DomainError,
   NEXT_FREE_SLOT_HORIZON_DAYS,
   TIME_SLOTS_MAX,
   addDays,
   weekday,
   zonedToInstant,
+  distributeOnSlots,
   nextFreeSlot,
   storedTimeZone,
   validateTimeSlots,
@@ -114,6 +116,46 @@ export async function findNextFreeSlot(
           localDate: slot.localDate,
           localTime: slot.localTime,
         },
+      }
+    },
+  )
+}
+
+/** At most as many free slots as the rows of a table «In blocco» (plan 09 Task 10). */
+export const FREE_SLOTS_MAX = 50
+
+/**
+ * «Distribuisci sulle fasce libere» (§11.6, Scelta 7): the first `count` free slots after `after`
+ * (now, or later), in order, each taken by the row before it; fewer when the year ahead has no
+ * more, none without slots. Reading them asks only to see the client.
+ */
+export async function findFreeSlots(
+  deps: { uow: UnitOfWork; clock: Clock },
+  actor: OrgActor,
+  input: { workspaceId: string; count: number; after?: Date },
+): Promise<{ slots: NonNullable<NextFreeSlotDto['slot']>[] }> {
+  if (!Number.isInteger(input.count) || input.count < 1 || input.count > FREE_SLOTS_MAX)
+    throw new DomainError('VALIDATION', `Da 1 a ${String(FREE_SLOTS_MAX)} fasce`, {
+      field: 'count',
+    })
+  const now = deps.clock.now()
+  const after = input.after && input.after > now ? input.after : now
+  return deps.uow.run(
+    { organizationId: actor.organizationId, userId: actor.userId },
+    async (tx) => {
+      const { scope } = await openContentSettings(tx, actor, input.workspaceId, { write: false })
+      const slots = await tx.timeSlots.list(scope)
+      if (slots.length === 0) return { slots: [] }
+      const organization = await tx.organizations.findById(scope.organizationId)
+      const timeZone = storedTimeZone(organization?.settings ?? {})
+      const until = new Date(after.getTime() + (DISTRIBUTE_HORIZON_DAYS + 1) * DAY_MS)
+      const taken = await tx.timeSlots.scheduledAt(scope, after, until)
+      return {
+        slots: distributeOnSlots(slots, taken, input.count, after, timeZone).map((slot) => ({
+          at: slot.instant.toISOString(),
+          localDate: slot.localDate,
+          localTime: slot.localTime,
+        })),
       }
     },
   )

@@ -253,6 +253,8 @@ function contentSettingsRules(): Record<string, readonly Rule[]> {
   rules['GET /api/v1/orgs/{org}/workspaces/{id}/time-slots'] = read
   rules['PUT /api/v1/orgs/{org}/workspaces/{id}/time-slots'] = manage
   rules['GET /api/v1/orgs/{org}/workspaces/{id}/next-free-slot'] = read
+  // «Distribuisci sulle fasce libere» (plan 09 Task 10)
+  rules['GET /api/v1/orgs/{org}/workspaces/{id}/free-slots'] = read
   return rules
 }
 
