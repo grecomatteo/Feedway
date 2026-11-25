@@ -14,6 +14,7 @@ import { newPostQuery } from '~/utils/new-post-address'
 import type { PostType } from '~/utils/post-editor'
 import { mayMove } from '~/utils/calendar-move'
 import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
+import type { DropdownMenuItem } from '@nuxt/ui'
 
 /**
  * The calendar (spec §11.4, screen 07, plan 09 Task 3), for «Tutti i clienti» or one client: the
@@ -57,7 +58,6 @@ const mover = useCalendarMove({
     if (to) void navigateTo({ ...to, query: { ...to.query, file: fileId } })
   },
 })
-provide(CALENDAR_MOVING, mover.moving)
 const { problem: moveProblem, toast: moveToast, dialog: moveDialog } = mover
 
 // ---- the «+» of a day (plan 09 Scelta 4): today and ahead, for who may write a draft. Inside a
@@ -266,6 +266,59 @@ const byDay = computed(() => {
   return new Map([...postsByDay(rows)].map(([d, list]) => [d, list.map((r) => r.card)] as const))
 })
 
+// ---- the card's menu: «Sposta…» where it moves, and «Duplica» (plan 09 Task 10) for who writes
+// drafts in the post's client, as on the post's page
+const duplicate = reactive({
+  open: false,
+  client: null as WorkspaceView | null,
+  postId: '',
+  time: null as string | null,
+})
+const clientOfPost = (workspaceId: string) =>
+  props.workspace?.id === workspaceId ? props.workspace : clientsById.value.get(workspaceId)
+function duplicateActions(card: CalendarCardInfo): DropdownMenuItem[][] {
+  if (card.kind !== 'post') return []
+  const post = cal.posts.value.find((p) => p.id === card.id)
+  const client = post ? clientOfPost(post.workspaceId) : undefined
+  if (!post || !client || !writes(client)) return []
+  return [
+    [
+      {
+        label: t('bulk.duplicate.action'),
+        icon: 'i-lucide-copy',
+        onSelect: () =>
+          Object.assign(duplicate, { open: true, client, postId: post.id, time: card.time }),
+      },
+    ],
+  ]
+}
+provide(CALENDAR_MOVING, {
+  ...mover.moving,
+  actionsOf: (card: CalendarCardInfo) => [
+    ...mover.moving.actionsOf(card),
+    ...duplicateActions(card),
+  ],
+})
+// the copies show in the calendar once the window closes
+watch(
+  () => duplicate.open,
+  (now) => {
+    if (!now) void cal.refresh()
+  },
+)
+const duplicatePath = computed(() =>
+  duplicate.client ? `/spazi/${encodeURIComponent(duplicate.client.slug)}` : '',
+)
+
+// ---- «In blocco» (plan 09 Task 10): inside a client, for who programs its posts, as the page asks
+const bulkTo = computed(() =>
+  props.workspace &&
+  props.workspace.archivedAt === null &&
+  ['owner', 'admin', 'manager', 'publisher'].includes(props.workspace.myRole)
+    ? org.to(`/spazi/${encodeURIComponent(props.workspace.slug)}/post/in-blocco`)
+    : null,
+)
+
 // «Mostra: Post · Piano · Entrambi» (§11.4): offered once the plan has something in the period,
 // or while it is narrowed, so it can be put back
 const hasPlan = computed(
@@ -442,6 +495,15 @@ const listedTitle = computed(() => {
         >
         <!-- on a phone the views and «Filtri» go to a line of their own -->
         <span class="flex-1 max-md:h-0 max-md:basis-full" />
+        <UButton
+          v-if="bulkTo"
+          :to="bulkTo"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-layers"
+          data-calendar-bulk
+          >{{ $t('bulk.title') }}</UButton
+        >
         <UButton
           v-if="libraryOffered"
           color="neutral"
@@ -673,6 +735,14 @@ const listedTitle = computed(() => {
         :post="moveDialog.post"
         :today="today"
         @move="(post, to) => mover.move(post, to)"
+      />
+      <BulkDuplicateDialog
+        v-if="duplicate.client"
+        v-model:open="duplicate.open"
+        :client="duplicate.client"
+        :post-id="duplicate.postId"
+        :time="duplicate.time"
+        :client-path="duplicatePath"
       />
       <Toast
         v-model:open="moveToast.open"
