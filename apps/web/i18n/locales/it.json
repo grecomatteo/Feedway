@@ -3717,8 +3717,10 @@
     "summary": {
       "title": "Fatto",
       "titleUndone": "Annullata",
-      "line": "{scheduled} programmati, {drafts} da sistemare",
-      "lineAll": "{scheduled} programmati, niente da sistemare",
+      "lineScheduled": "{n} programmati | 1 programmato | {n} programmati",
+      "lineDrafts": "nessuna bozza | 1 bozza | {n} bozze",
+      "lineToFix": "{n} da sistemare",
+      "lineNothingToFix": "niente da sistemare",
       "failedLine": "nessuna non creata | 1 non creata | {n} non create",
       "undo": "Annulla",
       "undoFor": "Annulla ({s} s)",
