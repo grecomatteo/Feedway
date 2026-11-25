@@ -871,6 +871,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - «Programma» è spento (e porta alla riga) finché un file è in arrivo, un file non è stato caricato o una riga non ha account; una riga senza giorno parte lo stesso e resta bozza («Senza data»), come dice il server;
       - il riepilogo segue l'importazione leggendola ogni secondo circa (più piano col tempo); chiudere la pagina non ferma niente, e la notifica arriva lo stesso. Dopo «Annulla», «Riprendi la tabella» ridà le righe com'erano;
       - «Duplica» propone come prima data il giorno dopo, all'ora del post; ogni data aggiunta è il giorno dopo l'ultima.
+      - dalla revisione: «Distribuisci» salta le fasce che un'altra riga della tabella ha già (il server non conosce la tabella e ne dà una in più per ognuna); i 10 secondi di «Annulla» si contano sul dispositivo da quando il pannello sa che l'importazione è finita, meno un secondo, così un orologio avanti o indietro non cambia niente; il riepilogo si legge circa ogni secondo mentre gira; una lettura rifiutata (accesso tolto) si dice e smette; una riga può tornare «Senza data» dal suo «⋯»; il motivo di «Programma» spento è la descrizione del pulsante e, sul telefono, si scrive sotto l'intestazione quando lo si preme.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
 ## Sito pubblico

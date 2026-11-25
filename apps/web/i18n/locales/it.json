@@ -3649,6 +3649,7 @@
       "files": "{n} file",
       "remove": "Togli la riga {n}",
       "split": "Separa il carosello",
+      "clearWhen": "Togli giorno e ora (resterà una bozza)",
       "menu": "Altre azioni della riga {n}"
     },
     "problem": {
@@ -3689,7 +3690,8 @@
     "progress": {
       "title": "Sto creando i post",
       "line": "{done} di {total}",
-      "text": "Puoi chiudere la pagina: i post si creano lo stesso, e quando ho finito te lo dico nelle notifiche."
+      "text": "Puoi chiudere la pagina: i post si creano lo stesso, e quando ho finito te lo dico nelle notifiche.",
+      "lost": "Non riesco più a seguire i post in creazione: {message}"
     },
     "summary": {
       "title": "Fatto",

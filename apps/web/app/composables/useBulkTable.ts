@@ -5,6 +5,7 @@ import {
   BULK_TABLE_MAX_ROWS,
   accountsOf,
   distribute as distributeOn,
+  distributeAsk,
   distributeCount,
   mergeRows,
   requestRow,
@@ -129,8 +130,9 @@ export function useBulkTable(opts: {
   const slotState = ref<'idle' | 'asking' | 'none' | 'short' | 'failed'>('idle')
   const slotsLeft = ref(0)
   async function distribute() {
-    const count = distributeCount(rows.value)
-    if (count === 0) return
+    if (distributeCount(rows.value) === 0) return
+    // written plus held is at most the rows, and the table holds at most 50 (the server's limit)
+    const count = distributeAsk(rows.value)
     slotState.value = 'asking'
     try {
       const { slots } = await call<{
@@ -182,6 +184,8 @@ export function useBulkTable(opts: {
   const undated = computed(() => rows.value.filter((r) => r.when === null).length)
 
   const result = ref<BulkImportResponse | null>(null)
+  /** the import can no longer be read (access taken away, client gone): it is not followed */
+  const followProblem = ref<string | null>(null)
   const sending = ref(false)
   const sendProblem = ref<string | null>(null)
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -208,7 +212,10 @@ export function useBulkTable(opts: {
     }
   }
 
-  /** The import, read again until it is done: a row a second, more slowly after a while. */
+  /**
+   * The import, read again until it is done: often at first, more slowly while it waits in the
+   * queue, about every second once it runs, so «Annulla» comes with most of its 10 seconds.
+   */
   function follow(wait = 800) {
     clearTimeout(timer)
     const current = result.value
@@ -221,10 +228,16 @@ export function useBulkTable(opts: {
         'GET',
         `${base}/bulk-imports/${encodeURIComponent(id)}`,
       )
-    } catch {
-      // a read that fails is tried again: the import goes on on the server
+    } catch (e) {
+      const f = failure(e)
+      // no answer, or the server's trouble: tried again, the import goes on on the server;
+      // a refusal stays one, so it is said and the reading stops
+      if (f.status >= 400 && f.status < 500 && f.status !== 408 && f.status !== 429) {
+        followProblem.value = f.message
+        return
+      }
     }
-    follow(Math.min(wait * 1.25, 4000))
+    follow(Math.min(wait * 1.25, result.value?.status === 'running' ? 1000 : 4000))
   }
 
   const undoing = ref(false)
@@ -250,6 +263,7 @@ export function useBulkTable(opts: {
   function again() {
     result.value = null
     undoProblem.value = null
+    followProblem.value = null
   }
 
   return {
@@ -280,6 +294,7 @@ export function useBulkTable(opts: {
     sending,
     sendProblem,
     result,
+    followProblem,
     undo,
     undoing,
     undoProblem,

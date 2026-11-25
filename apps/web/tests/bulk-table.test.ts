@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   accountsOf,
   distribute,
+  distributeAsk,
   distributeCount,
   mergeRows,
   requestRow,
@@ -113,6 +114,35 @@ describe('«Distribuisci sulle fasce libere»', () => {
     expect(distributeCount(rows)).toBe(2)
     expect(distribute(rows, slots).rows.map((r) => r.when?.localDate ?? null)).toEqual([
       null,
+      '2027-01-04',
+      '2027-01-05',
+    ])
+  })
+
+  test('a slot a row already holds is not given again: twice on rows chosen, or a day by hand', () => {
+    const three = [...slots, { localDate: '2027-01-06', localTime: '12:00' }]
+    // the first row got 4 January the first time; now the other two are chosen
+    const rows = table(3).map((r, i) =>
+      i === 0
+        ? { ...r, when: { localDate: '2027-01-04', localTime: '12:00' } }
+        : { ...r, selected: true },
+    )
+    // the server does not know the table: it is asked for one more, for the slot the table holds
+    expect(distributeAsk(rows)).toBe(3)
+    expect(distribute(rows, three).rows.map((r) => r.when?.localDate ?? null)).toEqual([
+      '2027-01-04',
+      '2027-01-05',
+      '2027-01-06',
+    ])
+  })
+
+  test('the rows it writes on give their slot back', () => {
+    const rows = table(2).map((r) => ({
+      ...r,
+      when: { localDate: '2027-01-04', localTime: '12:00' },
+    }))
+    expect(distributeAsk(rows)).toBe(2)
+    expect(distribute(rows, slots).rows.map((r) => r.when?.localDate ?? null)).toEqual([
       '2027-01-04',
       '2027-01-05',
     ])

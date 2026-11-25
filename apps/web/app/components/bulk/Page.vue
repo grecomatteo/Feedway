@@ -111,15 +111,30 @@ const blocker = computed(() => {
   const n = tb.rows.value.findIndex((r) => r.key === first.key) + 1
   return t('bulk.schedule.fix', { n, problem: t(`bulk.problem.${first.problem}`) })
 })
+/** The field of a row that answers its problem; files still on their way have none. */
+const FIELD_OF = {
+  sending: null,
+  fileFailed: '[data-bulk-menu]',
+  noTarget: '[data-bulk-account]',
+  type: '[data-bulk-type]',
+} as const
+/** «Programma» pressed while off: on a phone the header has no room, the reason shows below it */
+const blockerPressed = ref(false)
+watch(blocker, (now) => {
+  if (!now) blockerPressed.value = false
+})
 function schedule() {
   const first = tb.firstProblem.value
   if (first) {
-    // the button off leads to what is missing (DESIGN.md): the row's first field
-    document
-      .querySelector<HTMLElement>(
-        `[data-bulk-row="${String(tb.rows.value.findIndex((r) => r.key === first.key))}"] [data-bulk-account]`,
-      )
-      ?.focus()
+    blockerPressed.value = true
+    // the button off leads to what is missing (DESIGN.md); the reason is its description
+    const field = FIELD_OF[first.problem]
+    if (field)
+      document
+        .querySelector<HTMLElement>(
+          `[data-bulk-row="${String(tb.rows.value.findIndex((r) => r.key === first.key))}"] ${field}`,
+        )
+        ?.focus()
     return
   }
   void tb.schedule()
@@ -166,7 +181,8 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
       <template v-if="!tb.result.value && count > 0">
         <span
           v-if="blocker"
-          class="truncate text-detail text-(--app-text-muted) max-lg:hidden"
+          id="bulk-blocker"
+          class="truncate text-detail text-(--app-text-muted) max-lg:sr-only"
           data-bulk-blocker
           >{{ blocker }}</span
         >
@@ -174,6 +190,7 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
           color="primary"
           :loading="tb.sending.value"
           :aria-disabled="blocker ? 'true' : undefined"
+          :aria-describedby="blocker ? 'bulk-blocker' : undefined"
           :class="blocker ? 'opacity-50' : ''"
           data-bulk-schedule
           @click="schedule"
@@ -196,8 +213,19 @@ const contentSettingsTo = computed(() => org.to(`${props.clientPath}/contenuti`)
         @undo="tb.undo"
         @again="tb.again"
       />
+      <p v-if="tb.followProblem.value" role="alert" class="text-(--app-danger)">
+        {{ $t('bulk.progress.lost', { message: tb.followProblem.value }) }}
+      </p>
 
       <template v-else>
+        <p
+          v-if="blocker && blockerPressed"
+          class="text-(--app-text-muted) lg:hidden"
+          aria-hidden="true"
+          data-bulk-blocker-below
+        >
+          {{ blocker }}
+        </p>
         <input
           ref="picker"
           type="file"

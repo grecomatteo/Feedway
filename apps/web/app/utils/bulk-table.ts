@@ -114,18 +114,21 @@ export function splitRow(rows: readonly BulkTableRow[], key: string): BulkTableR
 
 /**
  * «Distribuisci sulle fasce libere» (Scelta 7): the slots, in order, on the rows chosen, or on
- * every row when none is; the rows past the last slot keep their day. `left` says how many.
+ * every row when none is; the rows past the last slot keep their day. The server does not know
+ * the table, so a slot another row already holds is skipped. `left` says how many rows got none.
  */
 export function distribute(
   rows: readonly BulkTableRow[],
   slots: readonly BulkWhen[],
 ): { rows: BulkTableRow[]; left: number } {
-  const anyChosen = rows.some((r) => r.selected)
+  const writes = writesOn(rows)
+  const held = new Set(rows.filter((r) => !writes(r) && r.when).map((r) => whenKey(r.when)))
+  const free = slots.filter((s) => !held.has(whenKey(s)))
   let next = 0
   let left = 0
   const out = rows.map((row) => {
-    if (anyChosen && !row.selected) return row
-    const slot = slots[next]
+    if (!writes(row)) return row
+    const slot = free[next]
     if (!slot) {
       left += 1
       return row
@@ -136,9 +139,24 @@ export function distribute(
   return { rows: out, left }
 }
 
+const whenKey = (w: BulkWhen | null) => (w ? `${w.localDate} ${w.localTime}` : '')
+const writesOn = (rows: readonly BulkTableRow[]) => {
+  const anyChosen = rows.some((r) => r.selected)
+  return (row: BulkTableRow) => !anyChosen || row.selected
+}
+
 /** How many rows «Distribuisci» writes on: the chosen ones, or all. */
-export const distributeCount = (rows: readonly BulkTableRow[]) =>
-  rows.some((r) => r.selected) ? rows.filter((r) => r.selected).length : rows.length
+export const distributeCount = (rows: readonly BulkTableRow[]) => rows.filter(writesOn(rows)).length
+
+/**
+ * How many slots to ask the server for: one per row written on, plus one per slot the other rows
+ * hold, which `distribute` skips.
+ */
+export function distributeAsk(rows: readonly BulkTableRow[]): number {
+  const writes = writesOn(rows)
+  const held = new Set(rows.filter((r) => !writes(r) && r.when).map((r) => whenKey(r.when)))
+  return distributeCount(rows) + held.size
+}
 
 /** What keeps a row from being sent; the server checks the rest and the row stays a draft. */
 export type RowProblem = 'sending' | 'fileFailed' | 'noTarget' | 'type'

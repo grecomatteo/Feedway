@@ -96,6 +96,16 @@ const menu = computed(() => [
         },
       ]
     : []),
+  // the day back to none: the row stays a draft («Senza data»)
+  ...(props.row.when
+    ? [
+        {
+          label: t('bulk.row.clearWhen'),
+          icon: 'i-lucide-calendar-x',
+          onSelect: () => tb.change(props.row.key, { when: null }),
+        },
+      ]
+    : []),
   {
     label: t('bulk.row.remove', { n: n.value }),
     icon: 'i-lucide-trash-2',

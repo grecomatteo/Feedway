@@ -27,17 +27,30 @@ const running = computed(
 )
 const undone = computed(() => props.result.status === 'undone')
 
-// the seconds «Annulla» stays: the server's time, counted here
+// The seconds «Annulla» stays. The window is the server's (`undoUntil - finishedAt`), counted on
+// this device from when the panel learns the import is done, so a clock ahead or behind the
+// server's changes nothing; less the time the news may have taken (a read about every second).
+const NEWS_LATE_MS = 1000
 const now = ref(Date.now())
+const deadline = ref(0)
+watch(
+  () => [props.result.status, props.result.undoUntil, props.result.finishedAt] as const,
+  ([status, until, finished]) => {
+    if (status !== 'done' || !until || !finished) {
+      deadline.value = 0
+      return
+    }
+    if (deadline.value === 0)
+      deadline.value = Date.now() + Date.parse(until) - Date.parse(finished) - NEWS_LATE_MS
+  },
+  { immediate: true },
+)
 let tick: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   tick = setInterval(() => (now.value = Date.now()), 250)
 })
 onBeforeUnmount(() => clearInterval(tick))
-const secondsLeft = computed(() => {
-  const until = props.result.undoUntil ? Date.parse(props.result.undoUntil) : 0
-  return Math.max(0, Math.ceil((until - now.value) / 1000))
-})
+const secondsLeft = computed(() => Math.max(0, Math.ceil((deadline.value - now.value) / 1000)))
 
 const s = computed(() => props.result.summary)
 const line = computed(() =>
@@ -69,6 +82,13 @@ function what(o: Outcome): { text: string; tone: 'success' | 'warning' | 'danger
   }
   return { text: t(`bulk.summary.reason.${o.reason}`), tone: 'warning' }
 }
+/** What a screen reader hears: once when the run starts, once at the end, once after «Annulla». */
+const status = computed(() => {
+  if (running.value) return t('bulk.progress.title')
+  if (undone.value)
+    return t('bulk.summary.undoneLine', { removed: s.value.removed }, s.value.removed)
+  return line.value
+})
 const TONE = {
   success: 'success',
   warning: 'warning',
@@ -78,7 +98,8 @@ const TONE = {
 </script>
 
 <template>
-  <section class="space-y-4" aria-live="polite" data-bulk-summary :data-status="result.status">
+  <section class="space-y-4" data-bulk-summary :data-status="result.status">
+    <p class="sr-only" role="status">{{ status }}</p>
     <div v-if="running" class="rounded-card border border-(--app-border) bg-(--app-surface) p-5">
       <h2 class="text-[15px]/5 font-semibold">{{ $t('bulk.progress.title') }}</h2>
       <p class="mt-1 text-(--app-text-muted) tabular-nums" data-bulk-progress>
