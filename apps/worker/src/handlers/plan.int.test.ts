@@ -18,7 +18,7 @@ import { notifyDeps } from './notify.js'
 import { planDueScan } from './plan.js'
 import { reportDigest } from './report.js'
 
-// «Contenuto da preparare entro domani» (plan 09 P3, Task 8): the scan every 5 minutes writes
+// «Da preparare, mancano meno di 36 ore» (plan 09 P3, Task 8; 36 hours, Matteo 25/11): the scan every 5 minutes writes
 // the event once per content and reference instant, the dispatcher of stage 8 sends it to who
 // prepares the client's plan, and the morning digest lists what to prepare. Never the note.
 
@@ -114,15 +114,15 @@ async function eventsOf(w: World) {
   return rows
 }
 
-test('a content at 10:00 is told at 10:00 the day before, not a minute earlier, once', async () => {
+test('a content at 10:00 is told 36 hours before, when its card turns yellow, once', async () => {
   const w = await world()
   const item = await addItem(w, '2027-03-11', '10:00')
-  await scanAt(at('2027-03-10', '09:59'))
+  await scanAt(at('2027-03-09', '21:59'))
   expect(await eventsOf(w)).toEqual([])
-  await scanAt(at('2027-03-10', '10:00'))
+  await scanAt(at('2027-03-09', '22:00'))
   // two workers at the same minute, and the next run: still one event
-  await Promise.all([scanAt(at('2027-03-10', '10:05')), scanAt(at('2027-03-10', '10:05'))])
-  await scanAt(at('2027-03-10', '10:10'))
+  await Promise.all([scanAt(at('2027-03-09', '22:05')), scanAt(at('2027-03-09', '22:05'))])
+  await scanAt(at('2027-03-09', '22:10'))
   const reference = at('2027-03-11', '10:00').toISOString()
   expect(await eventsOf(w)).toEqual([
     {
@@ -132,12 +132,12 @@ test('a content at 10:00 is told at 10:00 the day before, not a minute earlier, 
   ])
 })
 
-test('a content without a time is told at 9:00 the day before', async () => {
+test('a content without a time is told 36 hours before the end of its day', async () => {
   const w = await world()
   await addItem(w, '2027-03-11', null)
-  await scanAt(at('2027-03-10', '08:59'))
+  await scanAt(at('2027-03-10', '11:58'))
   expect(await eventsOf(w)).toHaveLength(0)
-  await scanAt(at('2027-03-10', '09:00'))
+  await scanAt(at('2027-03-10', '11:59'))
   expect(await eventsOf(w)).toHaveLength(1)
 })
 
@@ -191,20 +191,21 @@ test('with the plan turned off for the agency nothing is told', async () => {
   expect(await eventsOf(w)).toHaveLength(0)
 })
 
-test('across the change to summer time: 24 hours before a time, 9:00 of the day before without one', async () => {
+test('across the change to summer time: 36 real hours, with or without a time', async () => {
   const w = await world()
-  // 28 March 2027 in Rome goes from 2:00 to 3:00: 10:00 of the 28th is 9:00 of the 27th, 24 h earlier
+  // 28 March 2027 in Rome loses an hour: 10:00 of the 28th is told at 21:00 of the 26th, and
+  // the end of the 28th (23:59) at 10:59 of the 27th
   await addItem(w, '2027-03-28', '10:00', 'Con orario')
-  await addItem(w, '2027-03-29', null, 'Senza orario')
-  await scanAt(at('2027-03-27', '08:59'))
+  await addItem(w, '2027-03-28', null, 'Senza orario')
+  await scanAt(at('2027-03-26', '20:59'))
   expect(await eventsOf(w)).toHaveLength(0)
-  await scanAt(at('2027-03-27', '09:00'))
+  await scanAt(at('2027-03-26', '21:00'))
   expect((await eventsOf(w)).map((e) => e.payload.dueAt)).toEqual([
     at('2027-03-28', '10:00').toISOString(),
   ])
-  await scanAt(at('2027-03-28', '08:59'))
+  await scanAt(at('2027-03-27', '10:58'))
   expect(await eventsOf(w)).toHaveLength(1)
-  await scanAt(at('2027-03-28', '09:00'))
+  await scanAt(at('2027-03-27', '10:59'))
   expect(await eventsOf(w)).toHaveLength(2)
 })
 
@@ -226,7 +227,7 @@ test('who prepares the client gets it, without the note; a Viewer and another cl
   expect(rows.map((r) => r.user_id).sort()).toEqual([w.ownerId, w.editor].sort())
   const page = await listMyNotifications(deps, w.editor)
   const item = page.items.find((i) => i.kind === 'plan.due_soon')
-  expect(item?.title).toBe('Da preparare entro domani: «Pane caldo»')
+  expect(item?.title).toBe('Da preparare, mancano meno di 36 ore: «Pane caldo»')
   expect(item?.detail).toBe('Reel · «Pane caldo» · giovedì 11 marzo alle 10:00')
   expect(item?.context).toContain('Forno Luce')
   expect(item?.link?.path).toMatch(/\/piano\?spazio=.+&giorno=2027-03-11$/)

@@ -12,7 +12,7 @@ export const planModule: ModuleDefinition = {
   permissions: ['plan.view', 'plan.edit', 'plan.prepare'],
   queues: ['plan.due_scan'],
   notificationKinds: [
-    // §12.2: «Contenuto da preparare entro domani», to who may prepare it (plan 09 Task 8)
+    // §12.2: «Contenuto da preparare», 36 hours before, to who may prepare it (plan 09 Task 8)
     planKind({
       type: 'plan.due_soon',
       level: 'warning',
