@@ -369,6 +369,15 @@ export function usePostEditor(opts: {
     typeChosen.value = true
     touched()
   }
+  /**
+   * A draft prepared from the plan opens with the type of the plan (spec §11.12): a person chose
+   * it there, so it counts as chosen, the files do not change it. Only while nothing else chose.
+   */
+  function takePlanType(planned: PostType) {
+    if (typeChosen.value || entries.value.length > 0) return
+    type.value = planned
+    typeChosen.value = true
+  }
   function followFiles() {
     type.value = nextType(type.value, typeChosen.value, kinds.value)
   }
@@ -878,6 +887,7 @@ export function usePostEditor(opts: {
     mayDelete,
     type,
     typeChosen,
+    takePlanType,
     entries,
     files,
     kinds,

@@ -7,6 +7,7 @@ import {
   monthCounts,
   monthDays,
   planDay,
+  planDifferences,
   planMonth,
   planRange,
   planStateAt,
@@ -146,5 +147,24 @@ describe('the time a new content starts with', () => {
     expect(suggestedTime('2026-12-12', slots, [], '13:00')).toBe('13:00')
     expect(suggestedTime('2026-12-12', slots, [], null)).toBeNull()
     expect(suggestedTime('2026-12-12', [], [], null)).toBeNull()
+  })
+})
+
+describe('what the editor says of a post from the plan', () => {
+  const planned = { localDate: '2026-12-20', type: 'reel' as const }
+  it('tells the planned day and type only when the post has another one, never blocking', () => {
+    expect(planDifferences(planned, { localDate: '2026-12-20', type: 'reel' })).toEqual({
+      day: null,
+      type: null,
+    })
+    expect(planDifferences(planned, { localDate: '2026-12-22', type: 'carousel' })).toEqual({
+      day: '2026-12-20',
+      type: 'reel',
+    })
+    // nothing chosen yet: nothing to compare
+    expect(planDifferences(planned, { localDate: null, type: null })).toEqual({
+      day: null,
+      type: null,
+    })
   })
 })
