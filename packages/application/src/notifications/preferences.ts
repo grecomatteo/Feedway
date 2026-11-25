@@ -51,6 +51,7 @@ async function reachableRules(tx: Tx, userId: string): Promise<Set<RecipientRule
     rules.add('scheduler')
     rules.add('workspace_managers')
     rules.add('workspace_preparers')
+    rules.add('initiator')
   }
   if (members.some((m) => ADMIN_ROLES.has(m.role))) rules.add('org_admins')
   if (user.platformRole === 'admin') rules.add('platform_admins')

@@ -5,6 +5,7 @@ import type {
   WorkspaceAccountsRepository,
 } from './accounts.js'
 import type { AuditLog } from './audit-log.js'
+import type { BulkImportsRepository } from './bulk-imports.js'
 import type { SystemHeartbeatsRepository } from './heartbeats.js'
 import type { IntegrationsRepository } from './integration-store.js'
 import type { MediaRepository } from './media.js'
@@ -76,6 +77,7 @@ export interface Tx {
   telegramLinks: TelegramLinksRepository
   contentSettings: ContentSettingsRepository
   timeSlots: TimeSlotsRepository
+  bulkImports: BulkImportsRepository
   heartbeats: SystemHeartbeatsRepository
   audit: AuditLog
 }

@@ -2,12 +2,14 @@
  * Who a kind of notification is for (§10.2, plan 08 Scelta 4). `scheduler` is
  * `posts.scheduled_by`, as for the pause (plan 07, P6). `workspace_preparers` is who may prepare
  * the client's plan (`plan.prepare`): its members with a role that grants it, and the agency's
- * Owner and Admin (plan 09 Task 8).
+ * Owner and Admin (plan 09 Task 8). `initiator` is who started an import in bulk
+ * (`bulk_imports.created_by`, plan 09 Task 10).
  */
 export const RECIPIENT_RULES = [
   'scheduler',
   'workspace_managers',
   'workspace_preparers',
+  'initiator',
   'org_admins',
   'platform_admins',
 ] as const
@@ -19,6 +21,8 @@ export interface RecipientFacts {
   workspaceManagers: readonly string[]
   /** Who has `plan.prepare` in the client, Owner and Admin of the agency included */
   workspacePreparers: readonly string[]
+  /** Who started the import in bulk the event is about */
+  initiators: readonly string[]
   /** Owner and Admin of the agency */
   orgAdmins: readonly string[]
   platformAdmins: readonly string[]
@@ -34,6 +38,7 @@ const FACT_OF: Record<RecipientRule, keyof RecipientFacts> = {
   scheduler: 'schedulers',
   workspace_managers: 'workspaceManagers',
   workspace_preparers: 'workspacePreparers',
+  initiator: 'initiators',
   org_admins: 'orgAdmins',
   platform_admins: 'platformAdmins',
 }

@@ -5,6 +5,7 @@ import { agendaRoutes } from './agenda.js'
 import { calendarRoutes } from './calendar.js'
 import { auditRoutes } from './audit.js'
 import { avatarRoutes } from './avatar.js'
+import { bulkRoutes } from './bulk.js'
 import { authRoutes } from './auth.js'
 import { integrationRoutes } from './integrations.js'
 import { linkRoutes } from './links.js'
@@ -55,6 +56,7 @@ export const apiRoutes: readonly ApiContract[] = [
   ...uploadRoutes,
   ...rulesRoutes,
   ...postRoutes,
+  ...bulkRoutes,
   ...agendaRoutes,
   ...calendarRoutes,
   ...planRoutes,

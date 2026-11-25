@@ -663,7 +663,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `target.verify` | 3 minuti dopo, poi 10 e 30 se serve | §9.6 |
 | `scheduler.reconcile` | Ogni minuto | Ricrea i lavori mancanti; ricontrolla 3 ore prima (o subito, se ne mancano meno) ogni destinazione ancora programmata (`post_targets.recheck_at`, piano 07 Scelta 4): con un blocco scrive `post.file_wont_publish` |
 | `media.publish_copies_cleanup` | Ogni notte, alle 04:30 | Toglie le copie da pubblicare che nessun post usa più (§11.9, piano 07 Scelta 5) |
-| `bulk.import` | Su richiesta | §11.6 |
+| `bulk.import` | Su richiesta, dopo «Programma» della tabella in blocco | Dell'agenzia, nell'ambito di chi l'ha avviata: una riga per transazione con l'esito scritto insieme al post; uno per importazione (`singletonKey`); a fine importazione l'evento `bulk.completed` (§11.6, piano 09 P5) |
 | `plan.due_scan` | Ogni 5 minuti | Di sistema, uno alla volta (il lucchetto dell'installazione): per ogni agenzia attiva con il modulo `plan` acceso, nel suo ambito, scrive l'evento `plan.due_soon` (outbox, chiave `plan:<contenuto>:<istante di riferimento>`) dei contenuti non preparati di clienti non archiviati con il momento della notifica di §11.12 passato e l'istante di riferimento ancora davanti. Nessun lavoro per contenuto: un contenuto creato o spostato dopo il suo momento, o arrivato con il worker fermo, si dice alla prima scansione; uno spostato ha una chiave nuova e si dice di nuovo (piano 09 P3) |
 | `notify.dispatch` | Dopo il commit di ogni transazione che ha scritto un evento, e ogni minuto | Di sistema, uno in coda e uno in corso: vuota l'outbox a lotti e rimanda le consegne arrivate alla loro ora (§12.1, piano 08 P2) |
 | `notify.deliver` / `notify.deliver_platform` | Una per riga di consegna, 60 secondi dopo la prima del gruppo | Con `organizationId`, nell'ambito del destinatario; quello della piattaforma è di sistema. Manda il gruppo della consegna in un messaggio (§12.1, piano 08 P1) |
@@ -870,9 +870,9 @@ Per ogni account IG, la griglia del profilo (con le proporzioni attuali delle mi
 **In blocco**, in tre modi:
 1. **Da file**: trascini molti file (o li scegli con "Scegli file"), con avanzamento per file e complessivo; nasce una bozza per file (o un carosello per gruppo) in una **tabella modificabile** (miniatura, tipo, caption, account, data). "Distribuisci sulle fasce libere" riempie le date.
 2. **Da CSV/Excel**: colonne data, ora, caption, account, nome file, più le facoltative `caption_instagram` e `caption_facebook`; abbinamento automatico ai file caricati, errori per riga.
-3. **Duplica**: copia un post su altre date o altri spazi, compresi i testi per piattaforma.
+3. **Duplica**: copia un post su altre date **dello stesso cliente** (fino a 31), compresi i testi per piattaforma, il tipo, i file, le etichette e gli account ancora assegnati al cliente; le copie nascono bozze, "Duplica e programma" programma quelle che passano i controlli (piano 09, Task 10: copiare su un altro cliente non serve, Matteo 24/11).
 
-I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre vengono programmate. Riepilogo unico ("18 programmati, 2 da sistemare") e "Annulla" per qualche secondo.
+I controlli girano su ogni riga: le righe con blocchi restano bozze, le altre vengono programmate. Riepilogo unico ("18 programmati, 2 da sistemare") e "Annulla" per qualche secondo. La tabella vive nel pannello fino a "Programma" (fino a 50 righe, da Publisher): allora il server controlla che file, account ed etichette siano del cliente, salva le righe in `bulk_imports` e il lavoro `bulk.import` crea i post una riga per transazione, con l'esito di ogni riga scritto insieme al suo post, così un riavvio riprende dalla prima riga senza esito e non crea doppioni. "Annulla" dura 10 secondi dalla fine, lo controlla il server e toglie solo i post nati da quell'importazione che nessuno ha toccato (stessa versione, nessuna destinazione in preparazione); l'importazione si legge e si annulla solo da chi l'ha avviata (piano 09, P5).
 
 ### 11.7 Etichette, modelli, gruppi di account, note
 
@@ -986,7 +986,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 | Pubblicazione fallita o con problema | Errore | Tutti |
 | File di un post programmato che non esce (cancellato, non riuscito o rifiutato da Meta), prima o all'ora del post (D-74) | Errore | Pannello + **email a chi l'ha programmato**, sempre, con il file, la posizione e l'account; poi Telegram e gli altri canali come gli errori |
 | Destinazione in pausa | Avviso | Pannello + Telegram, ai Manager |
-| Programmazione in blocco completata | Info | Pannello |
+| Programmazione in blocco completata | Info | Pannello, a chi l'ha avviata (`bulk_imports.created_by`): «18 programmati, 2 da sistemare» e il calendario del cliente (evento `bulk.completed`) |
 | Contenuto pianificato da preparare, a meno di 36 ore (§11.12) | Avviso | Pannello + Telegram, a chi può prepararlo nello spazio (`plan.prepare`: i membri con un ruolo che lo concede, Owner e Admin), permesso riletto all'invio; tipo, titolo, giorno e ora, mai la nota (evento `plan.due_soon` della scansione `plan.due_scan`, §9.4) |
 | Token non valido (quando il collegamento smette di funzionare), account non sano (quando la salute peggiora, non a ogni controllo), promemoria Meta (una volta per promemoria e scadenza, da `accounts.daily`) | Critico / Avviso | Tutti, a Owner e Admin |
 | Quota IG quasi esaurita | Avviso | Pannello |
@@ -1153,7 +1153,8 @@ post_labels         post_id, label_id
 post_notes          id, post_id, author_id, body
 caption_templates   id, workspace_id, kind (caption|signature|hashtags), name, body
 bulk_imports        id, workspace_id, created_by, source (files|csv|duplicate),
-                    rows (jsonb), status, summary (jsonb)
+                    rows (jsonb: per riga ciò che chiede e il suo esito),
+                    status (pending|running|done|undone), summary (jsonb), finished_at
 
 -- Piano editoriale (modulo plan, §11.12)
 plan_items          id, workspace_id, local_date, local_time (facoltativa),

@@ -6,6 +6,8 @@ import {
   TARGET_STATUSES,
   TARGET_STEPS,
   ATTEMPT_OUTCOMES,
+  BULK_SOURCES,
+  BULK_STATUSES,
 } from '@app/domain'
 import { sql } from 'drizzle-orm'
 import {
@@ -416,6 +418,46 @@ export const timeSlots = pgTable(
     check(
       'time_slots_local_time',
       sql`${t.localTime} < '24:00' and date_trunc('minute', ${t.localTime}) = ${t.localTime}`,
+    ),
+  ],
+)
+
+/**
+ * One import in bulk (spec §11.6, plan 09 Task 10, P5): the rows the panel sent, each with the
+ * outcome written in the transaction that created its post, so a run restarted goes on from the
+ * first row without one. `created_by` has no foreign key, as `posts.created_by`.
+ */
+export const bulkImports = pgTable(
+  'bulk_imports',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    workspaceId: uuid('workspace_id').notNull(),
+    createdBy: uuid('created_by').notNull(),
+    source: text('source').notNull(),
+    // [{ input, outcome }]: what the row asked for and what it became (null: still to do)
+    rows: jsonb('rows').notNull(),
+    status: text('status').notNull().default('pending'),
+    // the counts of the outcomes (`bulkSummary`), written with each row
+    summary: jsonb('summary').notNull().default({}),
+    createdAt: createdAt(),
+    finishedAt: tz('finished_at'),
+  },
+  (t) => [
+    index('bulk_imports_workspace_idx').on(t.organizationId, t.workspaceId, t.createdAt),
+    foreignKey({
+      name: 'bulk_imports_workspace_fk',
+      columns: [t.organizationId, t.workspaceId],
+      foreignColumns: [workspaces.organizationId, workspaces.id],
+    }),
+    check('bulk_imports_source', inList('source', BULK_SOURCES)),
+    check('bulk_imports_status', inList('status', BULK_STATUSES)),
+    check('bulk_imports_rows', sql`jsonb_typeof(${t.rows}) = 'array'`),
+    check(
+      'bulk_imports_finished',
+      sql`(${t.status} in ('done', 'undone')) = (${t.finishedAt} is not null)`,
     ),
   ],
 )

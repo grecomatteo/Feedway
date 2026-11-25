@@ -261,6 +261,7 @@ const noIds: SampleIds = {
   group: '',
   note: '',
   planItem: '',
+  bulkImport: '',
 }
 
 test('every personal route with a parameter has a case', () => {
