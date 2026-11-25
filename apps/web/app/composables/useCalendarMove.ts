@@ -47,6 +47,7 @@ export function useCalendarMove(opts: {
   timeZone: Ref<string>
   today: Ref<LocalDate>
   patch: (id: string, change: Partial<CalendarPostRow>) => void
+  /** the days shown read again in place, with the list's pages */
   reload: () => Promise<void>
 }) {
   const org = useOrganization()
@@ -72,8 +73,10 @@ export function useCalendarMove(opts: {
   const problem = ref<string | null>(null)
   function why(e: unknown): string {
     const f = failure(e)
-    if (f.code === 'CONFLICT') return t('calendar.move.changed')
     const body = (e as FetchError<ErrorReport> | undefined)?.data?.error
+    // only a version too old is "another person": a 409 also says a post already publishing or
+    // a client archived, and its own message says which
+    if (body?.reason === 'post_version_conflict') return t('calendar.move.changed')
     if (body?.reason === 'post_not_schedulable') {
       const block = (body.report?.outcomes ?? []).find(
         (o): o is Parameters<typeof ruleMessage>[0] =>
@@ -106,9 +109,15 @@ export function useCalendarMove(opts: {
         t('calendar.move.done', { when: formatWallSentence(to.localDate, to.localTime) }),
         undoable
           ? async () => {
-              // the version of now: the read after the move may have brought a newer one
-              const current = opts.posts.value.find((p) => p.id === post.id)
-              if (current) await move(current, before, false)
+              // the version of now: the read after the move may have brought a newer one; a
+              // post moved out of the days read is no longer there, and goes back with the
+              // version of the move
+              const current = opts.posts.value.find((p) => p.id === post.id) ?? {
+                ...post,
+                ...to,
+                version: saved.version,
+              }
+              await move(current, before, false)
             }
           : null,
       )

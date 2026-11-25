@@ -126,3 +126,56 @@ test('a move another person beat is refused and said, and the post stays', async
   )
   expect(await scheduledAt(id)).toBe(romeInstant('2027-01-14T11:00'))
 })
+
+test('«Annulla» brings back a post moved out of the days shown', async ({ page }) => {
+  const owner = await newPerson('Olga Oltre', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const forno = await newWorkspace(page.request, org, 'Forno Prova')
+  const id = await draftOn(page, org, forno.id, 'La bozza lontana', '2027-01-14T11:00')
+  await page.goto(`/${org}/spazi/${forno.slug}/calendario?vista=elenco&da=2027-01-01`)
+  await ready(page)
+  await expect(page.locator(`[data-post="${id}"]`).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Azioni per La bozza lontana' }).click()
+  await page.getByRole('menuitem', { name: 'Sposta…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Sposta «La bozza lontana»' })
+  // past the 42 days of the list's first page: the read after the move no longer has it
+  await dialog.locator('[data-day-field]').click()
+  const picker = page.locator('[data-day-picker]')
+  await picker.getByRole('button', { name: /mese successivo/i }).click()
+  await picker.getByRole('button', { name: /mese successivo/i }).click()
+  await picker.locator('[data-day="2027-03-10"]').click()
+  await dialog.getByRole('button', { name: 'Sposta', exact: true }).click()
+  const toast = page.locator('[data-toast]')
+  await expect(toast).toContainText('Spostato a mer 10 mar 2027 alle 11:00.')
+  await expect.poll(() => scheduledAt(id)).toBe(romeInstant('2027-03-10T11:00'))
+  await expect(page.locator(`[data-post="${id}"]`)).toHaveCount(0)
+  await toast.getByRole('button', { name: 'Annulla' }).click()
+  await expect.poll(() => scheduledAt(id)).toBe(romeInstant('2027-01-14T11:00'))
+  await expect(page.locator(`[data-post="${id}"]`).first()).toBeVisible()
+})
+
+test('a refusal that is not another person’s change says its own reason', async ({ page }) => {
+  const owner = await newPerson('Pia Porta', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const forno = await newWorkspace(page.request, org, 'Forno Prova')
+  const id = await draftOn(page, org, forno.id, 'La bozza chiusa', '2027-01-14T11:00')
+  await page.goto(`/${org}/spazi/${forno.slug}/calendario?vista=elenco&da=2027-01-01`)
+  await ready(page)
+  await expect(page.locator(`[data-post="${id}"]`).first()).toBeVisible()
+  // the client archived after the calendar read it: a 409 that is not about the version
+  await adminQuery('update workspaces set archived_at = now() where id = $1', [forno.id])
+  await page.getByRole('button', { name: 'Azioni per La bozza chiusa' }).click()
+  await page.getByRole('menuitem', { name: 'Sposta…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Sposta «La bozza chiusa»' })
+  await dialog.locator('[data-time-field]').click()
+  await page.locator('[data-time-picker] [data-time="16:30"]').click()
+  await dialog.getByRole('button', { name: 'Sposta', exact: true }).click()
+  const problem = page.locator('[data-calendar-move-problem]')
+  await expect(problem).toContainText(
+    '«La bozza chiusa» non si è spostato. Il cliente è archiviato',
+  )
+  await expect(problem).not.toContainText('Un’altra persona')
+  expect(await scheduledAt(id)).toBe(romeInstant('2027-01-14T11:00'))
+})

@@ -43,7 +43,7 @@ const mover = useCalendarMove({
   timeZone: cal.timeZone,
   today,
   patch: cal.patchPost,
-  reload: cal.reload,
+  reload: cal.refresh,
 })
 provide(CALENDAR_MOVING, mover.moving)
 const { problem: moveProblem, toast: moveToast, dialog: moveDialog } = mover

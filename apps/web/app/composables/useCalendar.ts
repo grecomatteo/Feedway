@@ -183,6 +183,37 @@ export function useCalendar(scope: {
       status.value = 'error'
     }
   }
+  /**
+   * The days shown read again in place, after a move: the period and every page of «Mostra
+   * altri», without the skeleton and without cutting the list back to its first page. If the
+   * read fails, what is shown stays; a new period or new filters replace it as usual.
+   */
+  async function refresh() {
+    if (import.meta.server) return
+    const shown = data.value
+    if (!shown || status.value === 'pending') return load()
+    const mine = running
+    const key = JSON.stringify(apiQuery.value)
+    const ranges = [shown, ...more.value].map((page) => ({ from: page.from, to: page.to }))
+    try {
+      const pages = await Promise.all(
+        ranges.map((range) =>
+          $fetch<CalendarResponse>(org.api('/calendar'), {
+            query: { ...apiQuery.value, ...range },
+            ...(mine ? { signal: mine.signal } : {}),
+          }),
+        ),
+      )
+      // a new read, a new period or a page added meanwhile: theirs is the newer picture
+      if (running !== mine || key !== JSON.stringify(apiQuery.value)) return
+      const [first, ...rest] = pages
+      if (!first || more.value.length !== rest.length) return
+      data.value = first
+      more.value = rest
+    } catch {
+      // the days drawn stay as they are; the next read brings the server's
+    }
+  }
   /** «Mostra altri» of the list: the next 42 days, under the ones shown. */
   async function loadMore() {
     const last = more.value.at(-1) ?? data.value
@@ -328,6 +359,7 @@ export function useCalendar(scope: {
     reloadDrafts: loadDrafts,
     removeEmptyDrafts,
     reload: load,
+    refresh,
     patchPost,
     setView,
     step,
