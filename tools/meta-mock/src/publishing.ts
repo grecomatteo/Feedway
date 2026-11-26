@@ -43,6 +43,10 @@ export interface PublishedMedia {
   timestamp: string
   permalink: string
   shortcode: string
+  /** on Meta's CDN, served here by the mock: an image's (or a carousel's first) picture */
+  media_url?: string
+  /** a video's cover */
+  thumbnail_url?: string
 }
 
 export interface Publishing {
@@ -57,10 +61,14 @@ export interface Publishing {
     edge: string | undefined
     params: URLSearchParams
   }): Promise<PublishingAnswer | null>
+  /** A post out gets its picture at another address (`media_url_changed`). */
+  movePicture(id: string, url: string): void
   reset(): void
 }
 
 interface Deps {
+  /** The posts already out when the mock starts (`fixtures/media.json`), for the grid. */
+  seed(): PublishedMedia[]
   scenarios<N extends ScenarioName>(name: N): Extract<ActiveScenario, { name: N }>[]
   isInstagramAccount(id: string): boolean
   quotaTotal(igUserId: string): number
@@ -70,6 +78,9 @@ interface Deps {
 const DEFAULT_IN_PROGRESS_READS = 3
 const DEFAULT_PUBLISH_DELAY_MS = 15_000
 const DEFAULT_PAGE = 25
+/** The mock's own address, put in by the server as it answers (`{{mock}}`). */
+const SELF = '{{mock}}'
+const PUBLISHED_PICTURE = `${SELF}/pictures/post-1.jpg?oh=0a0a&oe=6B00`
 
 const paramError = (message: string, subcode?: number): PublishingAnswer => ({
   status: 400,
@@ -133,6 +144,10 @@ export async function downloads(raw: string): Promise<boolean> {
 export function createPublishing(deps: Deps): Publishing {
   const containers = new Map<string, Container>()
   const media = new Map<string, PublishedMedia>()
+  const sow = () => {
+    for (const item of deps.seed()) media.set(item.id, item)
+  }
+  sow()
   const published = new Map<string, number>()
   let counter = 0
 
@@ -254,6 +269,10 @@ export function createPublishing(deps: Deps): Publishing {
           ? `https://instagram.com/stories/mock/${shortcode}`
           : `https://www.instagram.com/${product === 'REELS' ? 'reel' : 'p'}/${shortcode}/`,
       shortcode,
+      // the picture on the CDN: one of the mock's, whatever was published
+      ...(c.kind === 'video'
+        ? { media_url: `${SELF}/videos/${shortcode}.mp4`, thumbnail_url: PUBLISHED_PICTURE }
+        : { media_url: PUBLISHED_PICTURE }),
     }
     media.set(item.id, item)
     const late = deps.scenarios('publish_timeout_but_created').find((s) => s.remaining > 0)
@@ -269,9 +288,11 @@ export function createPublishing(deps: Deps): Publishing {
   }
 
   function list(igUserId: string, stories: boolean, params: URLSearchParams): PublishingAnswer {
+    // newest first; the same second keeps the order they came out in
     const items = [...media.values()]
       .filter((m) => m.igUserId === igUserId && (m.media_product_type === 'STORY') === stories)
       .reverse()
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     const limit = Math.max(1, Number(params.get('limit') ?? DEFAULT_PAGE) || DEFAULT_PAGE)
     return { status: 200, body: { data: items.slice(0, limit).map(render) } }
   }
@@ -314,10 +335,17 @@ export function createPublishing(deps: Deps): Publishing {
       const item = media.get(id)
       return item === undefined ? null : { status: 200, body: render(item) }
     },
+    movePicture(id, url) {
+      const item = media.get(id)
+      if (item === undefined) return
+      if (item.thumbnail_url !== undefined) item.thumbnail_url = url
+      else item.media_url = url
+    },
     reset() {
       containers.clear()
       media.clear()
       published.clear()
+      sow()
     },
   }
 }

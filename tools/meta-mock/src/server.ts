@@ -12,7 +12,7 @@ import {
   type TokenFixture,
 } from './fixtures.ts'
 import { createFacebookPublishing } from './facebook-publishing.ts'
-import { createPublishing, type PublishingAnswer } from './publishing.ts'
+import { createPublishing, type PublishedMedia, type PublishingAnswer } from './publishing.ts'
 import {
   matches,
   type ActiveScenario,
@@ -107,6 +107,8 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       config?: { quota_total?: number }
     }
   const publishing = createPublishing({
+    // a fresh copy each time: a test that publishes never changes the next one's
+    seed: () => structuredClone(data.media) as unknown as PublishedMedia[],
     scenarios: scenariosNamed,
     isInstagramAccount: (id) => typeof data.objects[id]?.username === 'string',
     quotaTotal: (id) => inlineQuota(id).config?.quota_total ?? 50,
@@ -891,6 +893,11 @@ export async function startMetaMock(opts: { port?: number } = {}): Promise<MetaM
       }
       const opts = (args[0] ?? {}) as ScenarioOptions[N]
       if (name === 'asset_removed') removed.add((opts as ScenarioOptions['asset_removed']).id)
+      if (name === 'media_url_changed') {
+        const { id, url } = opts as ScenarioOptions['media_url_changed']
+        publishing.movePicture(id, url)
+        return
+      }
       if (name === 'picture_changed') {
         const { id, picture: next = 'forno-nuova' } = opts as ScenarioOptions['picture_changed']
         const node = data.objects[id]

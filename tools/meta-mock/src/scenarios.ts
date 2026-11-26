@@ -97,6 +97,11 @@ export interface ScenarioOptions {
    * `forno-nuova` by default, among those in `fixtures/pictures/`.
    */
   picture_changed: { id: string; picture?: string }
+  /**
+   * A post out on Instagram gets its picture (`media_url`, and a video's `thumbnail_url`) at
+   * `url`: another host, for the grid's allowed hosts. `{{mock}}` is the mock's own address.
+   */
+  media_url_changed: { id: string; url: string }
   /** The pictures (or only `picture`) answer 200 with bytes that are no image. */
   picture_not_image: { picture?: string }
   /** The pictures (or only `picture`) answer 302 towards `to`. */

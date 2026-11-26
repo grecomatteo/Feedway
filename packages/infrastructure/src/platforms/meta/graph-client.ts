@@ -87,6 +87,22 @@ export interface MetaInstagramMedia {
   permalink: string | null
 }
 
+/**
+ * A published media as Instagram's grid shows it (plan 09 Task 12, P4): the address of its
+ * picture on Meta's CDN, which expires, never leaves the server.
+ */
+export interface MetaGridMedia {
+  id: string
+  mediaType: string | null
+  mediaProductType: string | null
+  /** the picture (an image, a carousel's first one); a video's file */
+  mediaUrl: string | null
+  /** a video's (and a reel's) cover */
+  thumbnailUrl: string | null
+  timestamp: Date | null
+  permalink: string | null
+}
+
 /** A Facebook video or reel's processing (§9.6), from `GET /{video}?fields=status`. */
 export interface MetaFacebookVideo {
   id: string
@@ -199,6 +215,16 @@ export interface MetaGraphClient {
     input: { edge: 'media' | 'stories'; limit: number },
     signal: AbortSignal,
   ): Promise<MetaResult<MetaInstagramMedia[]>>
+  /**
+   * The latest media of the account's feed, newest first, with the addresses of their pictures:
+   * the grid's own fields, apart from `listInstagramMedia`'s (the search of an uncertain outcome).
+   */
+  listInstagramGridMedia(
+    credentials: MetaTokenCredentials,
+    igUserId: string,
+    limit: number,
+    signal?: AbortSignal,
+  ): Promise<MetaResult<MetaGridMedia[]>>
   getInstagramMedia(
     credentials: MetaTokenCredentials,
     mediaId: string,
@@ -389,6 +415,9 @@ const debugSchema = z.object({
 
 const igMediaFields = 'id,caption,timestamp,media_type,media_product_type,permalink'
 
+/** The grid's fields (plan 09 Task 12): `igMediaFields` stays the search's. */
+const igGridFields = 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,permalink'
+
 /** Meta's ids are digits (or `dry-run`'s fake ones): never a dot, a slash or a comma. */
 const objectId = z.string().regex(/^([0-9]{1,32}|dry-run-[0-9a-f]{16})$/)
 
@@ -398,6 +427,16 @@ const igMediaSchema = z.object({
   timestamp: z.string().optional(),
   media_type: z.string().optional(),
   media_product_type: z.string().optional(),
+  permalink: z.string().optional(),
+})
+
+const igGridSchema = z.object({
+  id: objectId,
+  media_type: z.string().optional(),
+  media_product_type: z.string().optional(),
+  media_url: z.string().optional(),
+  thumbnail_url: z.string().optional(),
+  timestamp: z.string().optional(),
   permalink: z.string().optional(),
 })
 
@@ -480,6 +519,16 @@ const toIgMedia = (m: z.infer<typeof igMediaSchema>): MetaInstagramMedia => ({
   timestamp: metaDate(m.timestamp),
   mediaType: m.media_type ?? null,
   mediaProductType: m.media_product_type ?? null,
+  permalink: m.permalink ?? null,
+})
+
+const toGridMedia = (m: z.infer<typeof igGridSchema>): MetaGridMedia => ({
+  id: m.id,
+  mediaType: m.media_type ?? null,
+  mediaProductType: m.media_product_type ?? null,
+  mediaUrl: m.media_url ?? null,
+  thumbnailUrl: m.thumbnail_url ?? null,
+  timestamp: metaDate(m.timestamp),
   permalink: m.permalink ?? null,
 })
 
@@ -1101,6 +1150,20 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         listSchema(igMediaSchema),
       )
       return { data: result.data.data.map(toIgMedia), usage: result.usage }
+    },
+
+    async listInstagramGridMedia(credentials, igUserId, limit, signal) {
+      const result = await call(
+        {
+          name: 'ig_user/media_grid',
+          path: `/${encodeURIComponent(igUserId)}/media`,
+          params: { fields: igGridFields, limit: String(limit) },
+          credentials,
+          signal,
+        },
+        listSchema(igGridSchema),
+      )
+      return { data: result.data.data.map(toGridMedia), usage: result.usage }
     },
 
     async getInstagramMedia(credentials, mediaId, signal) {

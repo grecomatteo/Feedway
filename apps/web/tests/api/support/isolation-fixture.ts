@@ -108,6 +108,12 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     workspaceId: ids.workspace,
     all: true,
   }),
+  // the swap of the grid (plan 09 Task 12): the matrix's PREPARE gives two scheduled posts
+  'POST /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/swap': (ids) => ({
+    accountId: ids.account,
+    a: { postId: ids.post, version: 1 },
+    b: { postId: ids.post, version: 1 },
+  }),
   'POST /api/v1/auth/reauth': () => ({ password: PASSWORD }),
   'POST /api/v1/links/{token}/activate': () => ({ name: 'Persona Nuova', password: null }),
   'POST /api/v1/security/lock': () => ({ token: 'link-non-valido' }),
@@ -434,6 +440,8 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   connectionId: ids.connection,
   accountId: ids.account,
   mediaId: ids.media,
+  // a post out on Instagram (plan 09 Task 12): one of the fake Graph API's, as Meta numbers them
+  igMediaId: '1790000000000001',
   variant: 'preview',
   copyId: copyOfMedia.get(ids.media) ?? PLACEHOLDER_COPY,
   uploadId: ids.upload,

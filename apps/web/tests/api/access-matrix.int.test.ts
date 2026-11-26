@@ -168,6 +168,73 @@ async function schedulable(ids: SampleIds, status: 'draft' | 'scheduled' = 'draf
   return {}
 }
 
+/**
+ * The case's account in the case's client, for the grid (plan 09 Task 12). `onMeta`: it is the
+ * fake Graph API's `caffe.centrale`, with its posts out, taken from any account of the agency
+ * that was it in an earlier case (an account is one per agency).
+ */
+async function gridAccount(ids: SampleIds, opts: { onMeta?: boolean } = {}) {
+  const { pool } = fx.env.admin
+  if (opts.onMeta) {
+    await pool.query(
+      `update social_accounts set external_id = '1784' || replace(id::text, '-', '')
+        where organization_id = (select organization_id from social_accounts where id = $1)
+          and platform = 'instagram' and external_id = $2`,
+      [ids.account, META_MOCK.instagram.shared],
+    )
+    await pool.query('update social_accounts set external_id = $2 where id = $1', [
+      ids.account,
+      META_MOCK.instagram.shared,
+    ])
+  }
+  await pool.query(
+    `insert into workspace_accounts (organization_id, workspace_id, account_id)
+     select organization_id, $2, id from social_accounts where id = $1
+     on conflict do nothing`,
+    [ids.account, ids.workspace],
+  )
+  return {}
+}
+
+/** The case's post and a copy of it, both scheduled on the case's account, a day apart. */
+async function twoScheduled(ids: SampleIds) {
+  await schedulable(ids, 'scheduled')
+  const { pool } = fx.env.admin
+  const copy = randomUUID()
+  await pool.query(
+    `insert into posts (id, organization_id, workspace_id, type, caption, status, scheduled_at,
+                        timezone, options, created_by, updated_by, scheduled_by)
+     select $2, organization_id, workspace_id, type, caption || ' (2)', status,
+            scheduled_at + interval '1 day', timezone, options, created_by, updated_by,
+            scheduled_by
+       from posts where id = $1`,
+    [ids.post, copy],
+  )
+  await pool.query(
+    `insert into post_media (organization_id, workspace_id, post_id, position, media_id)
+     select organization_id, workspace_id, $2, position, media_id from post_media where post_id = $1`,
+    [ids.post, copy],
+  )
+  await pool.query(
+    `insert into post_targets (id, organization_id, workspace_id, post_id, account_id, status)
+     select $3, organization_id, workspace_id, $2, account_id, status
+       from post_targets where post_id = $1`,
+    [ids.post, copy, randomUUID()],
+  )
+  const { rows } = await pool.query<{ id: string; version: number }>(
+    'select id, version from posts where id = any($1)',
+    [[ids.post, copy]],
+  )
+  const version = (id: string) => rows.find((r) => r.id === id)?.version ?? 0
+  return {
+    body: {
+      accountId: ids.account,
+      a: { postId: ids.post, version: version(ids.post) },
+      b: { postId: copy, version: version(copy) },
+    },
+  }
+}
+
 /** The case's post scheduled, with its destination where the worker left it (plan 07 Task 8). */
 async function withTargetIn(ids: SampleIds, status: 'failed' | 'problem' | 'paused') {
   await schedulable(ids, 'scheduled')
@@ -639,6 +706,22 @@ const RULES: Record<string, readonly Rule[]> = {
   ],
   'POST /api/v1/orgs/{org}/calendar/drafts/delete-empty': [
     { permission: 'workspace.view', level: 'workspace', hiddenWithout: true },
+  ],
+  // Instagram's grid (plan 09 Task 12): whoever sees the client, Viewer included; who does not
+  // see it, or an account not of the client, gets 404. The swap moves the scheduled posts of
+  // others as a move in the calendar does (P7): the publishing and the posts of others
+  'GET /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}': [
+    { permission: 'workspace.view', level: 'workspace', prepare: (ids) => gridAccount(ids) },
+  ],
+  'GET /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/media/{igMediaId}/thumbnail': [
+    {
+      permission: 'workspace.view',
+      level: 'workspace',
+      prepare: (ids) => gridAccount(ids, { onMeta: true }),
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/swap': [
+    { permission: 'post.manage_others', level: 'workspace', prepare: (ids) => twoScheduled(ids) },
   ],
   'GET /api/v1/orgs/{org}/agenda/clients': [
     { permission: 'workspace.view', level: 'organization' },
@@ -1393,6 +1476,8 @@ const KNOWN_KEYS: Record<string, readonly string[]> = {
 test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const token = await fx.openLink()
+  // the grid reads only an Instagram account of the client (plan 09 Task 12)
+  await gridAccount(ids)
   // the platform's routes do not exist for an agency's people: platform-routes.int.test.ts;
   // files (photos) are no JSON to scan, and avatar.int.test.ts checks who reads them
   const gets = apiRoutes.filter(

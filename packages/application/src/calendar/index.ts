@@ -8,3 +8,5 @@ export {
   removeEmptyDrafts,
 } from './read.js'
 export type { CalendarDeps, CalendarDto, CalendarInput, CalendarPost } from './read.js'
+export { getGrid, getGridThumbnail, swapGridPosts } from './grid.js'
+export type { GridDeps, GridDto, GridThumbnail, GridPublishedDto, GridSwapInput } from './grid.js'

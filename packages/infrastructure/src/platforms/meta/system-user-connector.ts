@@ -21,6 +21,7 @@ import type {
   MetaResult,
   MetaTokenCredentials,
 } from './graph-client.js'
+import { getMetaGridMedia, listMetaGrid } from './grid.js'
 import type { MetaPictureDownloader } from './picture-download.js'
 
 // The system user of the agency's Business Manager (spec §8.1, plan 03 Task 6): a pasted token
@@ -424,5 +425,11 @@ export function createMetaSystemUserConnector(deps: {
     },
 
     fetchPicture: (url) => deps.pictures(url),
+
+    listGridMedia: (credentials, account, { limit }) =>
+      listMetaGrid(client, credentials, account, limit),
+
+    getGridMedia: (credentials, account, mediaId, { limit }) =>
+      getMetaGridMedia(client, credentials, account, mediaId, limit),
   }
 }

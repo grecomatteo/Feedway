@@ -159,3 +159,36 @@ test('the mock downloads only from this machine', () => {
   ])
     expect(downloadableUrl(away)).toBeNull()
 })
+
+test('the grid: the posts already out of the fixtures, newest first, with their pictures', async () => {
+  const shared = META_MOCK.instagram.shared
+  const list = await call('GET', `/${shared}/media`, {
+    fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,permalink',
+    limit: '30',
+  })
+  expect(list.status).toBe(200)
+  const items = list.body.data ?? []
+  expect(items).toHaveLength(9)
+  const times = items.map((m) => String(m.timestamp))
+  expect(times).toEqual([...times].sort().reverse())
+  const reel = items.find((m) => m.media_product_type === 'REELS')
+  expect(reel).toMatchObject({ media_type: 'VIDEO' })
+  expect(String(reel?.thumbnail_url)).toMatch(new RegExp(`^${mock.url}/pictures/post-\\d\\.jpg`))
+  const image = items.find((m) => m.media_type === 'IMAGE')
+  const res = await fetch(String(image?.media_url))
+  expect(res.status).toBe(200)
+  expect(res.headers.get('content-type')).toMatch(/^image\/jpeg/)
+
+  // a photo published now comes first, with a picture of the mock
+  const container = await call('POST', `/${shared}/media`, { image_url: picture(), caption: 'x' })
+  const published = await call('POST', `/${shared}/media_publish`, {
+    creation_id: String(container.body.id),
+  })
+  const after = await call('GET', `/${shared}/media`, { limit: '30' })
+  expect(after.body.data?.[0]).toMatchObject({ id: published.body.id })
+  expect(String(after.body.data?.[0]?.media_url)).toMatch(/\/pictures\/post-1\.jpg/)
+  // and the fixtures come back with a reset
+  mock.scenario('default')
+  const again = await call('GET', `/${shared}/media`, { limit: '30' })
+  expect(again.body.data).toHaveLength(9)
+})

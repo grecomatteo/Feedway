@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Id, OrgParams, Timestamp } from './common.js'
-import { defineContract } from './define.js'
+import { Id, OrgParams, OrgSlug, Timestamp } from './common.js'
+import { defineContract, FileResponse } from './define.js'
 import { POST_CHECK_TYPES } from './rules.js'
 import { POST_STATUSES } from './posts.js'
 
@@ -142,4 +142,94 @@ export const deleteEmptyDraftsRoute = defineContract({
   scope: 'organization',
 })
 
-export const calendarRoutes = [calendarRoute, calendarDraftsRoute, deleteEmptyDraftsRoute]
+// Instagram's grid (spec §11.5, plan 09 Task 12, P4): one Instagram account of a client, the
+// scheduled posts of the next 30 days above the last 30 out, read from Meta at every opening.
+
+/** A post out on Instagram; its picture comes from the grid's `…/media/{igMediaId}/thumbnail`. */
+export const GridPublished = z.object({
+  /** Instagram's id of the media */
+  id: z.string(),
+  kind: z.enum(['image', 'video', 'carousel']),
+  reel: z.boolean(),
+  publishedAt: Timestamp.nullable(),
+  permalink: z.string().nullable(),
+  hasPicture: z.boolean(),
+})
+export type GridPublished = z.infer<typeof GridPublished>
+
+export const calendarGridRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}',
+  summary:
+    'La griglia di Instagram di un account del cliente: i programmati dei prossimi 30 giorni, il più lontano per primo, sopra gli ultimi 30 pubblicati letti da Meta',
+  request: {
+    params: z.strictObject({ org: OrgSlug, id: Id, accountId: Id }),
+  },
+  response: z.object({
+    account: z.object({
+      id: Id,
+      platform: z.literal('instagram'),
+      name: z.string(),
+      username: z.string().nullable(),
+      avatarKey: z.string().nullable(),
+    }),
+    timeZone: z.string(),
+    scheduled: z.array(CalendarPost),
+    /** `unreachable`: the connection does not work; `rejected`: Meta refused the token */
+    published: z.discriminatedUnion('ok', [
+      z.object({ ok: z.literal(true), items: z.array(GridPublished) }),
+      z.object({
+        ok: z.literal(false),
+        reason: z.enum(['unreachable', 'rejected', 'unavailable']),
+      }),
+    ]),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const calendarGridThumbnailRoute = defineContract({
+  method: 'GET',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/media/{igMediaId}/thumbnail',
+  summary:
+    'La foto di un post pubblicato della griglia, scaricata da Meta a ogni richiesta (non conservata): solo dagli host di Meta, solo immagini, al massimo 5 MB',
+  request: {
+    params: z.strictObject({
+      org: OrgSlug,
+      id: Id,
+      accountId: Id,
+      igMediaId: z.string().regex(/^[0-9]{1,32}$/),
+    }),
+  },
+  download: { contentType: 'image/jpeg' },
+  response: FileResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+const SwapSide = z.strictObject({ postId: Id, version: z.number().int().nonnegative() })
+
+export const calendarGridSwapRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/calendar/grid/swap',
+  summary:
+    'Scambia gli orari di due post programmati della griglia, con le versioni lette: si spostano tutti e due con i controlli di «Programma», o nessuno (409 se uno è cambiato)',
+  request: {
+    params: z.strictObject({ org: OrgSlug, id: Id }),
+    body: z.strictObject({ accountId: Id, a: SwapSide, b: SwapSide }),
+  },
+  response: z.object({
+    posts: z.array(z.object({ id: Id, version: z.number().int(), scheduledAt: Timestamp })),
+  }),
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const calendarRoutes = [
+  calendarRoute,
+  calendarDraftsRoute,
+  deleteEmptyDraftsRoute,
+  calendarGridRoute,
+  calendarGridThumbnailRoute,
+  calendarGridSwapRoute,
+]
