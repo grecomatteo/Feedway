@@ -464,6 +464,15 @@ const listedTitle = computed(() => {
     <div v-if="grid && workspace" class="flex min-w-0 flex-col gap-stack">
       <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
         <span class="flex-1" />
+        <UButton
+          v-if="bulkTo"
+          :to="bulkTo"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-layers"
+          data-calendar-bulk
+          >{{ $t('bulk.title') }}</UButton
+        >
         <SegmentedFilter v-model="chosenView" :label="$t('calendar.view.label')" :options="views" />
       </div>
       <CalendarGrid
