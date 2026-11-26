@@ -131,6 +131,9 @@ test('two scheduled posts swap their times, and «Annulla» puts them back', asy
       name: 'Scambia l’orario di «La torta della domenica»',
     })
     await dialog.getByRole('radio', { name: /Il cornetto del mattino/ }).check()
+    await expect(dialog.locator('[data-grid-swap-summary]')).toContainText(
+      '«La torta della domenica» andrà a',
+    )
     expect((await axe(page)).violations).toEqual([])
     await dialog.getByRole('button', { name: 'Scambia', exact: true }).click()
   } else {

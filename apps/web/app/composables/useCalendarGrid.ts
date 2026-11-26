@@ -117,19 +117,23 @@ export function useCalendarGrid(scope: {
   }
 
   const swapping = ref(false)
-  /** the two posts swap their times; false when the server said no (the reason in `problem`) */
+  /**
+   * The two posts swap their times on the grid's account; false when the server said no (the
+   * reason in `problem`). The grid is read again before another swap may start, so the next one
+   * carries the versions this one left. `on`: the account of the swap being undone.
+   */
   async function swap(
     a: { id: string; version: number },
     b: { id: string; version: number },
     undoable = true,
+    on = scope.accountId.value,
   ): Promise<boolean> {
-    const accountId = scope.accountId.value
-    if (swapping.value || !accountId) return false
+    if (swapping.value || !on || on !== scope.accountId.value) return false
     swapping.value = true
     problem.value = null
     try {
       const res = await call<SwapResponse>('POST', `${base()}/swap`, {
-        accountId,
+        accountId: on,
         a: { postId: a.id, version: a.version },
         b: { postId: b.id, version: b.version },
       })
@@ -142,6 +146,7 @@ export function useCalendarGrid(scope: {
                 { id: a.id, version: version(a.id) },
                 { id: b.id, version: version(b.id) },
                 false,
+                on,
               )
             }
           : null,
@@ -151,11 +156,20 @@ export function useCalendarGrid(scope: {
       problem.value = t('calendar.grid.failed', { reason: why(e) })
       return false
     } finally {
+      // the order and the versions as the server has them now, before the next swap
+      await load(true)
       swapping.value = false
-      // the order and the versions as the server has them now
-      void load(true)
     }
   }
+  // another account: what was said, and its «Annulla», were about the one left
+  watch(
+    () => scope.accountId.value,
+    () => {
+      problem.value = null
+      undo = null
+      toast.open = false
+    },
+  )
 
   return { data, status, load, thumbnailOf, swap, swapping, problem, toast, runUndo }
 }

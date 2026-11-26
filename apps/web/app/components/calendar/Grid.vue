@@ -203,6 +203,14 @@ function drop(event: DragEvent, s: ScheduledPlace) {
   if (from && from.post.id !== s.post.id && s.movable) askSwap(from, s)
 }
 
+/** a post out opens on Instagram; without its page it is only a picture */
+function publishedLabel(p: PublishedPlace) {
+  const out = p.when
+    ? t('calendar.grid.publishedOn', { when: p.when })
+    : t('calendar.grid.publishedItem')
+  return p.media.permalink ? `${out}, ${t('calendar.grid.openOnInstagram')}` : out
+}
+
 const loading = computed(() => status.value === 'pending' && data.value === null)
 const failed = computed(() => status.value === 'error')
 const name = computed(() => {
@@ -241,7 +249,14 @@ const name = computed(() => {
           {{ name }}
         </h2>
         <p class="max-w-[75ch] text-(--app-text-muted)" data-grid-hint>
-          {{ movable.length > 1 ? $t('calendar.grid.hintMove') : $t('calendar.grid.hint') }}
+          <template v-if="movable.length > 1">
+            <!-- a touch screen does not drag: only «Scambia con…» -->
+            <span class="pointer-coarse:hidden">{{ $t('calendar.grid.hintMove') }}</span>
+            <span class="hidden pointer-coarse:inline">{{
+              $t('calendar.grid.hintMoveTouch')
+            }}</span>
+          </template>
+          <template v-else>{{ $t('calendar.grid.hint') }}</template>
         </p>
       </div>
 
@@ -377,11 +392,8 @@ const name = computed(() => {
                 :href="p.media.permalink ?? undefined"
                 :target="p.media.permalink ? '_blank' : undefined"
                 :rel="p.media.permalink ? 'noopener noreferrer' : undefined"
-                :aria-label="
-                  p.when
-                    ? $t('calendar.grid.publishedOn', { when: p.when })
-                    : $t('calendar.grid.publishedItem')
-                "
+                :role="p.media.permalink ? undefined : 'img'"
+                :aria-label="publishedLabel(p)"
                 class="block size-full overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus)"
               >
                 <img
