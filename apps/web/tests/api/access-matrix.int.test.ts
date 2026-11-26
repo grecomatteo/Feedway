@@ -189,7 +189,8 @@ async function gridAccount(ids: SampleIds, opts: { onMeta?: boolean } = {}) {
   }
   await pool.query(
     `insert into workspace_accounts (organization_id, workspace_id, account_id)
-     select organization_id, $2, id from social_accounts where id = $1`,
+     select organization_id, $2, id from social_accounts where id = $1
+     on conflict do nothing`,
     [ids.account, ids.workspace],
   )
   return {}
@@ -1475,6 +1476,8 @@ const KNOWN_KEYS: Record<string, readonly string[]> = {
 test.each(['owner', 'viewer'] as const)('responses never contain secrets, as %s', async (role) => {
   const ids = await fx.caseIds({ agency: 'a', actorsInWorkspace: true })
   const token = await fx.openLink()
+  // the grid reads only an Instagram account of the client (plan 09 Task 12)
+  await gridAccount(ids)
   // the platform's routes do not exist for an agency's people: platform-routes.int.test.ts;
   // files (photos) are no JSON to scan, and avatar.int.test.ts checks who reads them
   const gets = apiRoutes.filter(
