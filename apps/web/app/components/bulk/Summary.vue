@@ -53,11 +53,21 @@ onBeforeUnmount(() => clearInterval(tick))
 const secondsLeft = computed(() => Math.max(0, Math.ceil((deadline.value - now.value) / 1000)))
 
 const s = computed(() => props.result.summary)
-const line = computed(() =>
-  s.value.drafts > 0
-    ? t('bulk.summary.line', { scheduled: s.value.scheduled, drafts: s.value.drafts })
-    : t('bulk.summary.lineAll', { scheduled: s.value.scheduled }),
+// a draft asked for («Duplica come bozze») is not one to fix: it is counted on its own
+const asked = computed(
+  () => props.result.rows.filter((o) => o?.status === 'draft' && o.reason === 'asked').length,
 )
+const line = computed(() => {
+  const toFix = s.value.drafts - asked.value
+  const parts: string[] = []
+  if (s.value.scheduled > 0 || asked.value === 0)
+    parts.push(t('bulk.summary.lineScheduled', { n: s.value.scheduled }, s.value.scheduled))
+  if (asked.value > 0) parts.push(t('bulk.summary.lineDrafts', asked.value))
+  parts.push(
+    toFix > 0 ? t('bulk.summary.lineToFix', { n: toFix }) : t('bulk.summary.lineNothingToFix'),
+  )
+  return parts.join(', ')
+})
 const postLink = (postId: string) =>
   org.to(`${props.clientPath}/post/${encodeURIComponent(postId)}`)
 
