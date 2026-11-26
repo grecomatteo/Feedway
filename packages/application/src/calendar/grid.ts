@@ -87,7 +87,8 @@ const publishedDto = (m: GridMedia): GridPublishedDto => ({
   kind: m.kind,
   reel: m.reel,
   publishedAt: m.publishedAt?.toISOString() ?? null,
-  permalink: m.permalink,
+  // the panel opens it as a link: only Instagram's own pages
+  permalink: m.permalink?.startsWith('https://www.instagram.com/') ? m.permalink : null,
   hasPicture: m.pictureUrl !== null,
 })
 

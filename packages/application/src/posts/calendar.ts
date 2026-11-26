@@ -159,18 +159,23 @@ export const GRID_POSTS_MAX = 200
  * feed (no story, no reel kept among the reels). Latest first, as the grid shows them. The
  * client is visible to `actor`, already checked. Public, for `calendar`.
  */
+/** How far back a post on its way (retrying, paused) is still looked for. */
+const GRID_LATE_MS = 86_400_000
+
 export async function listGridPosts(
   tx: Tx,
   actor: OrgActor,
   input: {
     workspaceId: string
     accountId: string
+    /** from now on; a post already on its way whose time is gone stays (up to a day back) */
     period: { from: Date; to: Date }
     timeZone: string
   },
 ): Promise<CalendarPostDto[]> {
+  const { from, to } = input.period
   const records = await tx.posts.listForCalendar(actor.organizationId, [input.workspaceId], {
-    period: input.period,
+    period: { from: new Date(from.getTime() - GRID_LATE_MS), to },
     statuses: ['scheduled', 'publishing'],
     types: GRID_POST_TYPES,
     authorIds: [],
@@ -178,11 +183,16 @@ export async function listGridPosts(
     labelIds: [],
     limit: GRID_POSTS_MAX,
   })
-  const waiting = records.filter(
-    (p) =>
-      isGridPost({ type: p.type, shareToFeed: p.options.shareToFeed }) &&
-      p.targets.some((t) => t.accountId === input.accountId && isGridWaiting(t.status)),
-  )
+  const waiting = records.filter((p) => {
+    const mine = p.targets.find((t) => t.accountId === input.accountId)
+    if (!mine || !isGridWaiting(mine.status)) return false
+    // its time gone, only while it is on its way (being prepared, retried or paused)
+    const ahead = p.scheduledAt !== null && p.scheduledAt >= from
+    return (
+      (ahead || mine.status !== 'scheduled') &&
+      isGridPost({ type: p.type, shareToFeed: p.options.shareToFeed })
+    )
+  })
   const latestFirst = [...waiting].sort(
     (a, b) => (b.scheduledAt?.getTime() ?? 0) - (a.scheduledAt?.getTime() ?? 0),
   )
