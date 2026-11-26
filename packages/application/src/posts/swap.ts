@@ -1,4 +1,4 @@
-import { DomainError, instantToZoned, type OrgActor } from '@app/domain'
+import { DomainError, instantToZoned, isGridPost, type OrgActor } from '@app/domain'
 import { getAccountsForRules } from '../accounts/index.js'
 import type { PostRecord } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
@@ -95,7 +95,8 @@ export async function swapScheduledTimes(
     if (post.scheduledAt === null || !(await isScheduledForPanel(tx, post))) throw notScheduled()
     if (
       input.accountId !== undefined &&
-      !post.targets.some((t) => t.accountId === input.accountId && t.status !== 'cancelled')
+      (!isGridPost({ type: post.type, shareToFeed: post.options.shareToFeed }) ||
+        !post.targets.some((t) => t.accountId === input.accountId && t.status !== 'cancelled'))
     )
       throw notInGrid()
   }

@@ -228,6 +228,20 @@ describe('the grid', () => {
     expect(text).not.toContain(env.meta.url)
   })
 
+  test('a post already on its way, its time gone, stays among the scheduled ones', async () => {
+    const late = await reel(2)
+    // the worker took it ten minutes ago and is trying again (a transient error)
+    await env.admin.pool.query(
+      "update posts set scheduled_at = now() - interval '10 minutes' where id = $1",
+      [late.id],
+    )
+    await env.admin.pool.query("update post_targets set status = 'retrying' where post_id = $1", [
+      late.id,
+    ])
+    const grid = await ok<GridJson>(call('viewer', 'GET', gridOf(ig, forno)))
+    expect(grid.scheduled.map((p) => p.id)).toContain(late.id)
+  })
+
   test('the picture of a post out passes through the server, for five minutes', async () => {
     const grid = await ok<GridJson>(call('editor', 'GET', gridOf(ig, forno)))
     if (!grid.published.ok) throw new Error('the posts out were not read')
@@ -397,6 +411,24 @@ describe('swapping two scheduled posts', () => {
     await failsWith(swap('manager', a, a), 422, 'VALIDATION')
     const draft = await reel(15, { draft: true })
     await failsWith(swap('manager', a, draft), 409)
+    // a story and a reel kept among the reels are not in the grid either
+    const story = await reel(16, { type: 'story' })
+    await failsWith(swap('manager', a, story), 409, 'CONFLICT')
+    const hidden = await reel(17, { shareToFeed: false })
+    await failsWith(swap('manager', hidden, a), 409, 'CONFLICT')
     expect((await postNow(a.id)).scheduledAt).toBe(a.scheduledAt)
+  })
+})
+
+describe('the calls to Meta of one account', () => {
+  // last: it uses up the account's openings of this minute
+  test('everyone together opens an account’s grid at most 60 times a minute', async () => {
+    const statuses: number[] = []
+    // three people, each well within their own 30
+    for (let i = 0; i < 22; i++)
+      for (const who of ['owner', 'editor', 'ofGino'] as const)
+        statuses.push((await call(who, 'GET', gridOf(ig, forno))).status)
+    expect(statuses).toContain(429)
+    expect(statuses.indexOf(429)).toBeLessThanOrEqual(60)
   })
 })
