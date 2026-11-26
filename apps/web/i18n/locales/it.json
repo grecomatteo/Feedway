@@ -3560,7 +3560,7 @@
       "account": "Account Instagram",
       "label": "Griglia di {name}",
       "hint": "I programmati dei prossimi 30 giorni, sopra gli ultimi 30 pubblicati.",
-      "hintMove": "I programmati dei prossimi 30 giorni, sopra gli ultimi 30 pubblicati. Trascina un programmato su un altro per scambiarne gli orari.",
+      "hintMove": "I programmati dei prossimi 30 giorni, sopra gli ultimi 30 pubblicati. Per scambiare gli orari di due programmati, trascinane uno sull’altro o usa «Scambia con…» dal suo menu.",
       "noAccount": "Questo cliente non ha un account Instagram: la griglia è solo di Instagram.",
       "noScheduled": "Nessun post programmato su questo account nei prossimi 30 giorni.",
       "failedRead": "La griglia non si è caricata.",

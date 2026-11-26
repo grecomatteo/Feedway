@@ -222,7 +222,7 @@ const name = computed(() => {
       {{ $t('calendar.grid.noAccount') }}
     </p>
     <template v-else>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div class="flex flex-col items-start gap-1.5">
         <USelect
           v-if="accounts.length > 1"
           v-model="chosenAccount"
@@ -240,7 +240,7 @@ const name = computed(() => {
           <UIcon name="i-lucide-instagram" class="size-4" aria-hidden="true" />
           {{ name }}
         </h2>
-        <p class="text-(--app-text-muted)" data-grid-hint>
+        <p class="max-w-[75ch] text-(--app-text-muted)" data-grid-hint>
           {{ movable.length > 1 ? $t('calendar.grid.hintMove') : $t('calendar.grid.hint') }}
         </p>
       </div>

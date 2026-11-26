@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
 import { libraryFile } from './support/media.ts'
-import { connectedAgency, newWorkspace, send } from './support/meta.ts'
+import { connectedAgency, headers, newWorkspace, send } from './support/meta.ts'
 import { adminQuery, newPerson, ownAddress, signInWithTotp } from './support/people.ts'
 
 // Instagram's grid (plan 09 Task 12, Scelta 10): the fourth view of the client's calendar, the
@@ -39,6 +39,8 @@ async function forno(page: Page) {
     [org, META_MOCK.instagram.shared],
   )
   if (!account) throw new Error('the shared Instagram account was not imported')
+  // checked and healthy, as «Sincronizza» leaves it: «Programma» refuses an unchecked account
+  await adminQuery("update social_accounts set health = 'ok' where id = $1", [account.id])
   await send(
     page.request,
     'PUT',
@@ -58,9 +60,11 @@ async function forno(page: Page) {
       destinations: [{ accountId: account.id }],
       when: inDays(days, time),
     })) as { id: string; version: number }
-    await send(page.request, 'POST', `${base}/posts/${draft.id}/schedule`, {
-      version: draft.version,
+    const res = await page.request.post(`${base}/posts/${draft.id}/schedule`, {
+      headers: headers(),
+      data: { version: draft.version },
     })
+    expect(res.status(), await res.text()).toBe(200)
     return draft.id
   }
   const near = await scheduled('Il cornetto del mattino', 3, '08:00')
@@ -89,7 +93,7 @@ test('the grid: the scheduled first, the furthest ahead first, above the posts o
 }) => {
   const { org, client, near, far } = await forno(page)
   await page.goto(`/${org}/spazi/${client.slug}/calendario`)
-  await page.getByRole('radio', { name: 'Griglia' }).click()
+  await page.getByRole('button', { name: 'Griglia', exact: true }).click()
   await expect(page).toHaveURL(/vista=griglia/)
   const grid = page.locator('[data-grid]')
   await expect(page.locator('[data-calendar-grid][data-ready]')).toBeVisible()
