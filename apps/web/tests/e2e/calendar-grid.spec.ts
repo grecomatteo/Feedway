@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { META_MOCK } from '@app/meta-mock'
 import { libraryFile } from './support/media.ts'
 import { connectedAgency, headers, newWorkspace, send } from './support/meta.ts'
@@ -77,17 +77,6 @@ const scheduledAt = async (id: string) =>
     await adminQuery<{ scheduled_at: Date }>('select scheduled_at from posts where id = $1', [id])
   )[0]?.scheduled_at.toISOString()
 
-async function dragOnto(page: Page, from: Locator, to: Locator) {
-  const a = await from.boundingBox()
-  const b = await to.boundingBox()
-  if (!a || !b) throw new Error('not on screen')
-  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(a.x + a.width / 2 + 20, a.y + a.height / 2 + 10, { steps: 5 })
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 5 })
-  await page.mouse.up()
-}
-
 test('the grid: the scheduled first, the furthest ahead first, above the posts out', async ({
   page,
 }) => {
@@ -137,10 +126,15 @@ test('two scheduled posts swap their times, and «Annulla» puts them back', asy
     expect((await axe(page)).violations).toEqual([])
     await dialog.getByRole('button', { name: 'Scambia', exact: true }).click()
   } else {
-    await dragOnto(page, place(far).locator('a'), place(near))
     const dialog = page.getByRole('dialog', {
       name: 'Scambia l’orario di «La torta della domenica»',
     })
+    // Chromium's synthetic HTML5 drag sometimes starts no drag under load (seen on main too):
+    // a drop that opened nothing changed nothing, so it is tried again
+    await expect(async () => {
+      await place(far).locator('a').dragTo(place(near))
+      await expect(dialog).toBeVisible({ timeout: 1500 })
+    }).toPass({ timeout: 15_000 })
     await expect(dialog.locator('[data-grid-swap-summary]')).toContainText(
       '«La torta della domenica» andrà a',
     )
