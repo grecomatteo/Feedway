@@ -91,7 +91,16 @@ test('the profile theme arrives with the next page, never on the sign-in page', 
     })
     note()
   })
-  await signInFromPage(page, person)
+  await page.goto('/accedi')
+  // the sign-in page in the browser's own theme: only what happens from here on counts
+  if (wasDark) await expect(page.locator('html')).toHaveClass(/dark/)
+  else await expect(page.locator('html')).not.toHaveClass(/dark/)
+  await page.evaluate(() => {
+    ;(window as unknown as { __themeChanges: unknown[] }).__themeChanges.length = 0
+  })
+  await page.getByLabel('Email', { exact: true }).fill(person.email)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Accedi', exact: true }).click()
   await skipPasskeyOffer(page)
   await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
   if (wasDark) await expect(page.locator('html')).not.toHaveClass(/dark/)
