@@ -125,6 +125,18 @@ const handle = computed(() => {
   if (!a) return ''
   return a.platform === 'instagram' && a.username ? a.username : a.name
 })
+/**
+ * The name over a photo, a carousel or a reel with collaborators, as Instagram writes it once
+ * they accept: «forno e mulino», «forno e altri 2» (D-125). A story has none.
+ */
+const author = computed(() => {
+  const names = e.collaborators.value
+  if (names.length === 0 || (view.value !== 'instagram_feed' && view.value !== 'instagram_reel'))
+    return handle.value
+  return names.length === 1
+    ? t('posts.preview.withCollaborator', { name: handle.value, other: names[0] })
+    : t('posts.preview.withCollaborators', { name: handle.value, count: names.length })
+})
 const accountLabel = (id: string) => {
   const a = props.accounts.get(id)
   if (!a) return t('posts.summary.unknownAccount')
@@ -290,6 +302,7 @@ function over(event: DragEvent) {
         <PostPreviewInstagramFeed
           v-else-if="view === 'instagram_feed'"
           :name="handle"
+          :heading="author"
           :avatar="account?.avatarUrl ?? null"
           :items="items"
           :frame-ratio="feedRatio"
@@ -308,6 +321,7 @@ function over(event: DragEvent) {
           v-else
           :view="view"
           :name="handle"
+          :heading="author"
           :avatar="account?.avatarUrl ?? null"
           :item="items[0]"
           :caption="destination?.caption ?? ''"

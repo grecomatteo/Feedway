@@ -10,6 +10,8 @@ import type { PreviewItem } from '~/utils/post-preview'
  */
 const props = defineProps<{
   name: string
+  /** over the post, when it is not the name alone: «forno e mulino» (D-125) */
+  heading?: string
   avatar: string | null
   items: PreviewItem[]
   frameRatio: number
@@ -40,7 +42,9 @@ function go(by: -1 | 1) {
         <img v-if="avatar" :src="avatar" alt="" class="size-full object-cover" />
         <template v-else>{{ name.slice(0, 2).toUpperCase() }}</template>
       </span>
-      <span class="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">{{ name }}</span>
+      <span class="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">{{
+        heading ?? name
+      }}</span>
       <UIcon name="i-lucide-ellipsis" class="size-4" aria-hidden="true" />
     </div>
     <!-- overflow-hidden: without it a tall photo stretches the box past its 4:5 -->

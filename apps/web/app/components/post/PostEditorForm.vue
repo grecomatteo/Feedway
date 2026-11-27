@@ -87,6 +87,10 @@ const manageTo = computed(() =>
 const accounts = computed(
   () => new Map(props.profiles.flatMap((p) => p.accounts.map((a) => [a.id, a] as const))),
 )
+/** the client has an Instagram account: «Invita in collaborazione» is there (D-125) */
+const hasInstagram = computed(() =>
+  props.profiles.some((p) => p.accounts.some((a) => a.platform === 'instagram')),
+)
 const platforms = computed(() => {
   const set = new Set<'instagram' | 'facebook'>()
   for (const id of e.destinations.value) {
@@ -520,6 +524,7 @@ const confirmText = computed(() => {
               :loading="profilesLoading"
               :groups="settings.groups.value"
             />
+            <PostCollaboratorsField :editor="editor" :instagram="hasInstagram" />
             <PostWhenPicker :editor="editor" :client="client" />
             <PostLabelsAndNotes
               :editor="editor"
