@@ -232,6 +232,38 @@ describe('the plan', () => {
     expect((await read('viewer')).items.find((i) => i.id === item.id)?.postId).toBe(again.postId)
   })
 
+  test('a post in «Eliminati» gives the content back; «Ripristina» brings it back', async () => {
+    const item = await add({ localDate: '2027-01-24', title: 'Cestino' })
+    const { postId: first } = await ok<{ postId: string }>(prepare(item.id))
+    await ok(call('editor', 'POST', `${ws()}/posts/trash`, { postIds: [first] }))
+    // a post in «Eliminati» is in no read but «Eliminati» (§11.9): the card is back
+    expect((await read('viewer')).items.find((i) => i.id === item.id)?.state).toBe('to_prepare')
+    expect((await calendar('2027-01-24', '2027-01-24')).entries.some((e) => e.id === item.id)).toBe(
+      true,
+    )
+    // restored before a new «Prepara»: the content is prepared by it again
+    await ok(call('editor', 'POST', `${ws()}/posts/restore`, { postIds: [first] }))
+    expect((await read('viewer')).items.find((i) => i.id === item.id)).toMatchObject({
+      postId: first,
+      state: 'prepared',
+    })
+    // in «Eliminati» again, «Prepara» makes a new draft, not the deleted one read-only
+    await ok(call('editor', 'POST', `${ws()}/posts/trash`, { postIds: [first] }))
+    const again = await ok<{ postId: string; created: boolean }>(prepare(item.id))
+    expect(again.created).toBe(true)
+    expect(again.postId).not.toBe(first)
+    // the old one restored now is a draft of its own: the content keeps the new one
+    await ok(call('editor', 'POST', `${ws()}/posts/restore`, { postIds: [first] }))
+    expect((await read('viewer')).items.find((i) => i.id === item.id)).toMatchObject({
+      postId: again.postId,
+      state: 'prepared',
+    })
+    expect(await ok(planOf('editor', first))).toEqual({ item: null })
+    const { posts } = await calendar('2027-01-24', '2027-01-24')
+    expect(posts.find((p) => p.id === again.postId)?.marks).toEqual(['plan'])
+    expect(posts.find((p) => p.id === first)?.marks).toEqual([])
+  })
+
   test('a deleted post frees the content; a removed content leaves its post', async () => {
     const a = await add({ localDate: '2027-01-25' })
     const { postId: deleted } = await ok<{ postId: string }>(prepare(a.id))

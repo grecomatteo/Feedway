@@ -6,6 +6,7 @@ import {
   dispatchNotifications,
   listMyNotifications,
   preparePlanItem,
+  trashPosts,
   updatePlanItem,
 } from '@app/application'
 import { addDays, instantToZoned, zonedToInstant, type OrgActor } from '@app/domain'
@@ -161,6 +162,15 @@ test('a prepared content is not told', async () => {
   await preparePlanItem(planDeps(), w.owner, { itemId: item.id })
   await scanAt(at('2027-03-10', '10:00'))
   expect(await eventsOf(w)).toHaveLength(0)
+})
+
+test('a content whose post is in «Eliminati» is told, as one never prepared', async () => {
+  const w = await world()
+  const item = await addItem(w, '2027-03-11', '10:00')
+  const { postId } = await preparePlanItem(planDeps(), w.owner, { itemId: item.id })
+  await trashPosts(planDeps(), w.owner, { workspaceId: w.first, postIds: [postId] }, { ip: null })
+  await scanAt(at('2027-03-10', '10:00'))
+  expect(await eventsOf(w)).toHaveLength(1)
 })
 
 test('a content moved to another day is told again, with its new day', async () => {

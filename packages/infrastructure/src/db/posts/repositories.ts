@@ -792,7 +792,13 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
       const rows = await db
         .select({ id: posts.id, status: posts.status })
         .from(posts)
-        .where(and(eq(posts.organizationId, organizationId), inArray(posts.id, [...postIds])))
+        .where(
+          and(
+            eq(posts.organizationId, organizationId),
+            inArray(posts.id, [...postIds]),
+            notTrashed,
+          ),
+        )
       return new Map(rows.map((r) => [r.id, r.status as PostStatus]))
     },
     async publishingFacts({ organizationId, accountIds, at, excludePostId }) {

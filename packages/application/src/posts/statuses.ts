@@ -6,7 +6,7 @@ import type { Tx } from '../ports/tx.js'
 /**
  * The state of each post of the agency among these ids, in one query (plan 06, for stage 9):
  * inside the caller's transaction, whose scope is the agency. An id that is no post of the
- * agency is left out.
+ * agency, or a post in «Eliminati» (§11.9), is left out.
  */
 export async function getStatuses(
   tx: Tx,
