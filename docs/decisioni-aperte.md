@@ -1398,3 +1398,19 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
 - **Client principali:** Claude Code e ChatGPT Work (Matteo, 25/11). Per Claude Code i file passano da `create_upload_url` e `curl`.
 - **Non verificato:** se ChatGPT Work usa i server MCP personalizzati e passa loro i file; durata e peso massimo dei `download_url` di ChatGPT; se Claude passa in qualche modo un allegato della chat a un connettore remoto; supporto della elicitation nei client; i limiti di Claude (150.000 caratteri, 240 s). Tutto va provato nel task F0.
 - **Stato:** aperta.
+
+## Dipendenze
+
+### D-133 · Aggiornamenti delle dipendenze rimandati a dopo la tappa 9
+
+- **Origine:** pulizia del repository chiesta da Matteo (27/11). Gli avvisi di sicurezza delle dipendenze sono corretti nella PR delle dipendenze (Nuxt 4.6.4, fflate 0.8.3, node-forge 1.4.3 e override per `@nuxt/schema`, `minimatch`, `glob` ed esbuild di `@esbuild-kit/core-utils`): `pnpm audit` non trova più nulla. Gli aggiornamenti che non sono di sicurezza e non passano la CI restano fuori, per non cambiare strumenti a ridosso della prova della tappa 9.
+- **Restano aperte, gestite da Renovate:**
+  1. PR 72, «aggiornamenti minor e patch» (36 pacchetti, tra cui `@nuxt/ui` 4.13, `nuxt-security` 2.7, pnpm 12.21, vitest 5.1, Prettier 3.10): `lint-types` rosso. Da sistemare dopo la prova, in un thread a parte.
+  2. PR 71, Better Auth 1.7.27: test di integrazione rossi. Per l'ADR 012 passa solo con `pnpm test:auth-contract` verde.
+  3. PR 136, `release-please-action` v5: cambia lo strumento dei rilasci; da provare dopo il rilascio della tappa 9 (l'unico rosso è un e2e scuro non legato al cambio).
+- **Chiuse senza fondere:**
+  - PR 73, TypeScript 7: rompe `lint-types`, i test unitari e l'architettura; `vue-tsc` e `typescript-eslint` vanno prima portati alla 7. Si riapre dalla Dependency Dashboard (issue 25) quando si decide la migrazione.
+  - PR 99, `fast-uri` 4: l'override esiste solo per tenere la 3.1.9 corretta; portarlo alla 4 cambierebbe la versione maggiore sotto `ajv` senza motivo.
+  - PR 92, 103, 105 e 159: dentro la PR delle dipendenze.
+- **Opzioni:** (a) dopo la prova della tappa 9, un thread che porta la PR 72 al verde e prova la 136; Better Auth con i test di contratto; (b) lasciarle a Renovate finché non diventano verdi da sole.
+- **Stato:** scelta provvisoria (a).
