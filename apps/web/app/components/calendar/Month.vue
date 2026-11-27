@@ -118,7 +118,8 @@ const cells = computed(() =>
         @dragleave="moving?.leave($event, c.date)"
         @drop="moving?.drop($event, c.date)"
       >
-        <!-- the number opens the whole day; on a phone the whole day is the button -->
+        <!-- the number opens the whole day; on a phone the whole day is the button. Today's
+             orange is a marker, as on the canvas (07), not an action: «data-accent» -->
         <button
           type="button"
           :aria-label="c.label"
@@ -128,6 +129,7 @@ const cells = computed(() =>
               ? 'bg-(--app-brand) font-semibold text-(--app-on-brand) hover:bg-(--app-brand-hover)'
               : 'text-(--app-text-muted)'
           "
+          :data-accent="c.today || undefined"
           data-day-open
           @click="emit('openDay', c.date)"
         >

@@ -11,6 +11,7 @@ Riferimento visivo: la tela Pencil `design/feedway-ui-v2.pen` per la nuova direz
 - **Variabili:** solo tema chiaro, con gli stessi nomi dei token di `base.css` dell'esplorazione (`bg`, `surface`, `sunken`, `nav`, `hover`, `border`, `border-strong`, `field-border`, `text`, `muted`, `brand`…, stati, `overlay`, `media-badge`, ombre). Ci sono anche i caratteri (`font-body` Inter, `font-display` Sora), le misure (`control`, `row`, `gutter`, `sidebar` e le versioni `-phone`), i raggi (`r-thumb` 6, `r-control` 8, `r-card` 10, `r-pop` 12, `r-dialog` 14, `r-sheet` 16), gli spazi da `sp-1` a `sp-8` e le dimensioni dei caratteri `fs-*`.
 - **Componenti:** sono raggruppati in Marchio, Barre (barra laterale, barre dell'editor e del telefono), Pulsanti, Campi e filtri, Spunte, scelte e interruttori, Stati ed etichette, Avatar e miniature, Schede. Sono stati presi dalle schermate e le tavole li usano come istanze. Una «variante» è lo stesso componente con una struttura diversa, per esempio la barra laterale senza conteggio.
 - **Icone:** sono le icone Lucide del prototipo (`icons.js`), dalla libreria di Pencil. Due hanno il nome nuovo: `triangle-alert` e `clock-4`.
+- **Tavola `07-calendario` superata per le bozze (27/11, D-123.3):** la tavola tratteggia le bozze con il giorno. Vale la scelta di Matteo: una bozza ha il **bordo pieno** e la parola «Bozza» in grigio, e il tratteggio è solo per i contenuti del piano editoriale. Le regole del calendario sono nella sezione «Calendario e pianificazione» qui sotto; correggere la tavola su Pencil è facoltativo.
 
 
 ## Sito pubblico (23 novembre 2026)
@@ -30,7 +31,7 @@ La landing di `apps/site` segue lo stile del ridisegno, con le due libertà che 
 
 **Ogni pagina del pannello, anche futura, segue lo stile del ridisegno** (D-81, tela `design/feedway-ui-v2.pen`). Una pagina nuova o toccata non riprende lo stile di prima: si costruisce con i componenti e le regole qui sotto e nella sezione sopra. Le regole nate dalla revisione di fedeltà e dal racconto delle correzioni (D-98, D-99):
 
-- **Un solo arancio per pagina:** il pulsante principale è «Nuovo post» (o l'azione principale della pagina, quando non c'è la barra laterale). Ogni altro pulsante ha il contorno. `design-measures.spec.ts` lo prova sulle pagine elencate.
+- **Un solo arancio per pagina:** il pulsante principale è «Nuovo post» (o l'azione principale della pagina, quando non c'è la barra laterale). Ogni altro pulsante ha il contorno. `design-measures.spec.ts` lo prova sulle pagine elencate. Il segno del giorno di oggi (numero arancio nel mese e nel piano, filetto sotto il giorno della settimana) non è un'azione: porta `data-accent` e il test non lo conta.
 - **Pulsanti spenti a metà colore** (opacità 0,5, `app.config.ts`). Un pulsante spento perché manca una scelta porta a quella scelta quando lo si preme (`aria-disabled`, non `disabled`): un pulsante che non risponde sembra rotto.
 - **Righe ed elenchi si adattano al loro spazio, non allo schermo:** container query di Tailwind (`@container`, `@min-[…]`). Una riga stretta porta il dato secondario sotto il titolo, come sul telefono; una larga gli dà una colonna. Le soglie sullo schermo restano per il guscio (barra laterale, telefono).
 - **Lo stato si scrive quando dice qualcosa:** in un elenco che ha già un senso («In uscita», «Prossimi post») lo stato atteso («Programmato») non si ripete su ogni riga; si scrive solo uno stato diverso.
@@ -245,10 +246,10 @@ Specifica §14.7. Il cliente contiene i suoi profili: non c'è più la voce «Ac
 
 ### Navigazione su telefono
 
-- Barra in basso: Home, Calendario, + (Nuovo post, al centro), Clienti, Tu. Calendario e + si vedono disattivati con «Presto» finché non esistono; un Viewer non vede il +.
+- Barra in basso: Oggi, Calendario, + (Nuovo post, al centro), Clienti, Tu. Dalla tappa 9 Calendario e + sono accesi (il «Presto» non c'è più); il + è un rettangolo arancio da 44 × 36 con gli angoli da 10 px; un Viewer non vede il + e la barra ha quattro voci. Il Piano editoriale sta nel menu «Tu».
 - «Tu» mostra la foto della persona e apre dal basso il menu dell'utente: Utenti (per chi li gestisce), Impostazioni, Registro attività (per chi lo vede), Privacy, «Cambia agenzia», tema, «Esci». In alto non c'è più la foto.
 - In alto a destra la campanella delle notifiche (Matteo, 14/11). Dalla tappa 8 (Task 6) apre il centro notifiche: un foglio dal basso con le ultime 8 e «Tutte le notifiche»; un punto arancio quando c'è qualcosa da leggere.
-- Fatto nella tappa 4, Task 6b: voci da 60 px, icona da 20 px ed etichetta da 12 px; la voce attiva in grassetto e `text`, le altre `text-muted`. Calendario a metà opacità con una pillola «Presto» sull'icona; il + è un cerchio arancio da 40 px con filetto `text`, a metà opacità con «Presto» sotto. «Tu» ha la foto da 24 px. Il nome per lo screen reader è «Tu, menu di <nome>»; le voci disattivate si leggono «Calendario (Presto)» e «Nuovo post (Presto)». La barra si nasconde quando la tastiera riduce la pagina sotto i tre quarti. In un'agenzia sospesa non c'è la barra: «Tu» sta in alto al posto della campanella.
+- Fatto nella tappa 4, Task 6b: voci da 60 px, icona da 20 px ed etichetta da 12 px; la voce attiva in grassetto e `text`, le altre `text-muted`. (Fino alla tappa 9 Calendario e + erano a metà opacità con «Presto»: superato.) «Tu» ha la foto da 24 px. Il nome per lo screen reader è «Tu, menu di <nome>». La barra si nasconde quando la tastiera riduce la pagina sotto i tre quarti. In un'agenzia sospesa non c'è la barra: «Tu» sta in alto al posto della campanella.
 - Menu dell'agenzia su computer: Home, Clienti, Utenti (per chi li gestisce). Il menu dell'utente su computer resta com'era (Impostazioni, Registro, Privacy…); Utenti è nella barra laterale.
 - Schermate in `schermate/tappa-4-menu-telefono/` nella cartella del progetto.
 
@@ -368,7 +369,7 @@ Disegno del 18 novembre 2026, **approvato da Matteo il 18 novembre 2026** (tutte
 - **Copertina del reel:** copertina 9:16 a sinistra; a destra la pellicola con il cursore, il tempo («4,2 s · fotogramma 126 di 540»), i tasti, «Carica copertina» e «Ripristina», e la regola «Solo immagini».
 - **Tipo salvato (D-71, Matteo 18/11):** il tipo si salva con la bozza; riaprendo una bozza con dei file lo si ritrova com'era e l'editor non lo cambia più da solo; una bozza senza file riparte con il tipo da scegliere.
 - **Viewer (D-72, Matteo 18/11):** l'elenco dei post e l'editor in sola lettura sono senza miniature, con l'icona del tipo al loro posto.
-- **Scheda «Post» del cliente:** al posto di «Calendario (Presto)». Filtro «Tutti 6 · Bozze 2 · Programmati 3 · Annullati 1» e ricerca; tabella Post (miniatura 40, inizio del testo come link, tipo ed etichette sotto) · Quando · Profili · Stato · Autore · «⋯». Sul telefono righe a due livelli con il pallino dello stato. «Nuovo post» acceso nella testata del cliente e + acceso nella barra del telefono.
+- **Scheda «Post» del cliente (superata nella tappa 9):** dalla tappa 9 è la vista Elenco della scheda «Calendario» del cliente (D-123.2, sezione «Calendario e pianificazione»); quanto segue descrive la scheda di prima. Al posto di «Calendario (Presto)». Filtro «Tutti 6 · Bozze 2 · Programmati 3 · Annullati 1» e ricerca; tabella Post (miniatura 40, inizio del testo come link, tipo ed etichette sotto) · Quando · Profili · Stato · Autore · «⋯». Sul telefono righe a due livelli con il pallino dello stato. «Nuovo post» acceso nella testata del cliente e + acceso nella barra del telefono.
 - **Impostazioni dei contenuti:** nuova scheda del cliente con Orario predefinito, Etichette, Modelli (firma, hashtag, testo) e Gruppi di account, ognuno un elenco in stile unione con «Nuova…» a destra. Nell'editor «Inserisci» apre i modelli raggruppati per tipo; «Gruppi» dice quanti account spunta e quali salta.
 - **Tema scuro:** l'editor e l'anteprima da telefono sono istanze delle tavole chiare con `mode: dark`.
 
@@ -389,3 +390,50 @@ Niente tavola: è una riga nuova dell'editor fatta con i pezzi che c'erano (D-12
 - **Editor:** riga «Collaborazione» dopo «Quando» e prima delle etichette (Matteo, 27/11), con «2 di 3» come dettaglio. I nomi sono gettoni come le etichette (bordo `border-strong`, «@» in `text-muted`, × al passaggio del mouse o sempre sul telefono, area di tocco 44). Sotto, il campo come quello delle note interne, con «@» davanti e «Aggiungi» solo quando c'è qualcosa da aggiungere; Invio, spazio o virgola chiudono un nome; più nomi scritti insieme diventano un gettone ciascuno, in minuscolo e senza «@». Sotto ancora l'icona di Instagram e «La richiesta arriva solo su Instagram: su Facebook il post esce senza». Con 3 nomi il campo sparisce e il fuoco va sulla × dell'ultimo gettone. La riga non c'è per un cliente senza Instagram; con Storia il campo sparisce e i nomi già scritti restano con «Le storie non hanno collaboratori: questi inviti non partono».
 - **Anteprima:** sopra il post di Instagram (feed e reel) «fornoluce e mulino» o «fornoluce e altri 2»; nel testo sotto resta il solo account.
 - **Esito:** nella riga dell'account, sotto i link e le note, «Invitati in collaborazione» in `text-muted`, poi un nome per riga con lo stato a destra (pallino più parola: Da leggere neutro, In attesa blu, Accettato verde, Rifiutato rosso, Non partito ambra, Stato non noto neutro), poi «Aggiorna» (pulsante fantasma piccolo con l'icona) e «Letto oggi alle 12:01» nel fuso del post.
+
+## Calendario e pianificazione (27 novembre 2026; tappa 9)
+
+Niente tavole su Pencil: Matteo le ha tolte (D-123.1, chiusa il 27/11) e ha approvato le pagine dalle schermate (`schermate-*` in `handoff/tappa-9/` e `schermate/tappa-9-piano/` nella cartella del progetto). Le regole sotto vengono dal codice e da quelle schermate; i dettagli sono nei punti di D-123 e D-124 indicati.
+
+### Calendario (D-123.2, 25, 27, 30)
+
+- **Barra:** frecce, periodo (14 px semigrassetto) e «Oggi»; a destra «In blocco» (dentro un cliente, per chi programma), «Libreria» (dai 768 px) e le viste «Mese · Settimana · Elenco», più «Griglia» dentro un cliente. Sotto, filtri rapidi «Tutti · Da pubblicare · Pubblicati · Con problema» (in Elenco anche «Eliminati»), «Filtri» e, con il piano acceso, «Mostra: Post · Piano · Entrambi». Sul telefono viste e «Filtri» vanno su una riga loro e i filtri rapidi stanno nel foglio dei filtri.
+- **Mese:** fino a quattro schede per giorno; quando non ci stanno, tre e «+N». Il numero del giorno e «+N» aprono il giorno intero (finestra, sul telefono foglio dal basso). Oggi ha il numero su fondo arancio (segno, `data-accent`). Sul telefono un giorno è il numero e un pallino per post nel colore dello stato, e la lista del giorno scelto sta sotto.
+- **Settimana a colonne, non a ore:** sette colonne con le schede in ordine d'ora e la foto 4:5; sotto i 56 rem i giorni vanno uno sotto l'altro. Oggi ha un filetto arancio sotto il giorno.
+- **Scheda:** icona del formato (`PostTypeIcon`, mai un pallino), ora e cliente in «Tutti i clienti», ora e testo dentro un cliente. Lo stato si scrive solo dove serve guardarlo: fondo e bordo rosso per ciò che non è uscito, bordo pieno e «Bozza» in grigio per una bozza con il giorno, i post usciti più chiari; «Programmato» non si ripete.
+- **Elenco:** in cima «Bozze senza data» con «Seleziona» ed «Elimina le bozze vuote», poi i giorni sotto «Oggi», «Domani», «Questa settimana», «Più avanti» (e all'indietro), ogni giorno per ora, «Mostra altri» in fondo. La riga è quella di «In uscita»: ora (colonna da 3 rem), miniatura 40, testo con cliente ed etichette sotto, stato a destra, «⋯». «Bozze senza data» ed «Eliminati» non disegnano la colonna dell'ora (niente «—»).
+- **«+»** su un giorno: in alto a destra del giorno nel mese, nella testa del giorno della settimana, nella finestra del giorno; al passaggio del mouse o col fuoco, sempre sugli schermi a tocco; mai sui giorni passati.
+- **Spostare:** si trascina al computer su oggi o un giorno dopo (cambia il giorno, l'ora resta); «Sposta…» nel «⋯» per giorno e ora, da telefono e tastiera. La scheda va subito al posto nuovo, «Annulla» per 5 secondi; un rifiuto si scrive in rosso sopra il calendario.
+- **«Libreria»:** colonna da 17 rem a destra del calendario, non una finestra, così i giorni restano visibili mentre si trascina un file su un giorno.
+
+### Piano editoriale (D-123.23, 26)
+
+- **Pagina:** voce sotto «Calendario» (sul telefono nel menu «Tu»), con il cliente del contesto; da «Tutti i clienti» la finestra «Per quale cliente fai il piano?». Barra con frecce, mese, «Oggi» (solo fuori dal mese di oggi) e il conteggio «9 contenuti · 4 preparati». Al computer il mese a griglia, sul telefono l'elenco dei giorni.
+- **Scheda nei suoi stati, sempre tratteggiata finché non è preparata:** «Da preparare» bordo `border-strong`; «Meno di 36 ore» bordo e riga in `warning`; «In ritardo» bordo `danger` su `danger-soft`; «Preparato» bordo pieno su `surface-sunken` con la riga in `success`. Icona del tipo, titolo, «Reel · 18:00» o «18:00 · In ritardo». La scheda apre il suo menu («Modifica», «Sposta…», «Prepara questo contenuto» o «Apri il post», «Togli dal piano»).
+- **Modulo breve:** finestra al centro (sul telefono foglio dal basso) con tipo, titolo, giorno, ora e nota; Invio salva e la finestra resta aperta per il contenuto dopo.
+- **Riga «Dal piano» nell'editor:** prima riga dell'editor di un post nato da «Prepara»: icona del tipo, titolo, cosa chiedeva il piano, «Apri nel piano» e la nota in evidenza; dice senza bloccare se il post esce in un altro giorno o con un altro tipo.
+
+### Fasce orarie (D-123.20)
+
+- Nelle «Impostazioni dei contenuti» del cliente, sotto l'orario abituale: una riga per giorno della settimana con gli orari come chip (× per togliere), «Aggiungi» ogni quarto d'ora e «Copia il lunedì su mar–ven». Ogni cambio si salva subito, senza «Salva». Nell'editor «Prossima fascia libera» c'è solo se il cliente ne ha una.
+
+### In blocco (D-123.28, 29, 31)
+
+- **Pagina a sé** come l'editor (`…/post/in-blocco`), senza barra laterale: in alto «←», il titolo e «Programma N post», l'unico arancio. Prima del primo file l'area «Un file, un post» per trascinare, con «Scegli i file» e «Da un foglio».
+- **Tabella:** una riga per post con miniatura, tipo, testo, account (uno o un gruppo salvato), giorno e ora; sopra la casella per scegliere tutte le righe, «Unisci in un carosello», «Distribuisci sulle fasce libere», «Account per tutte», «Da un foglio» e «⋯». Una riga stretta (telefono, finestra piccola) mette i campi uno sotto l'altro (container query). Il problema di una riga si dice sulla riga; «Programma» spento porta alla prima riga da sistemare.
+- **Riepilogo:** mentre il server crea i post, quanti sono fatti; poi «18 programmati, 2 da sistemare» con l'esito di ogni riga e «Annulla» per 10 secondi, poi «Riprendi la tabella». «Annulla» toglie tutti i post non toccati, programmati compresi (decisione di Matteo, 27/11).
+- **«Duplica»:** dal «⋯» di un post, una finestra con fino a 31 date (la prima il giorno dopo all'ora del post), «Duplica come bozze» e «Duplica e programma»; l'esito è lo stesso riepilogo.
+
+### Griglia di Instagram (D-123.32, 33)
+
+- Quarta vista del calendario del cliente (`?vista=griglia`). La barra ha solo «In blocco» e le viste. Un account alla volta: il nome, o una tendina con più Instagram.
+- Tre colonne 3:4, larghe al più 38 rem: in alto i programmati, il più lontano per primo, con giorno e ora su una sfumatura scura in basso; sotto gli ultimi usciti. Carosello, reel e video hanno il segno nell'angolo. Una foto che non arriva lascia il posto con un segno; se gli usciti non si leggono una riga dice perché, con «Riprova».
+- Lo scambio di due programmati si fa trascinando (computer) o con «Scambia con…» dal «⋯», sempre con una conferma che dice dove va ciascuno, poi «Annulla» per 5 secondi.
+
+### Bozze ed Eliminati (D-124)
+
+- **«Elimina»** nel «⋯» di una bozza manda subito negli «Eliminati», senza domanda, con «Bozza eliminata · Annulla» in basso. «Seleziona» nelle «Bozze» mette una casella davanti a ogni riga ed «Elimina (n)»; sul telefono si comincia anche con una pressione lunga sulla riga.
+- **Bozza dimenticata:** 7 giorni prima la riga dice «Va negli Eliminati tra N giorni» con l'orologio, in `warning`, al posto dello stato sul telefono.
+- **«Eliminati»:** filtro rapido dell'Elenco (`?eliminati=1`). Mostra solo gli eliminati, senza frecce, periodo né «Oggi», perché non dipendono dai giorni; sotto il titolo «Si cancellano da soli dopo 30 giorni.», su ogni riga «Si cancella tra N giorni» in `text-muted`; «Seleziona» e «Svuota» a destra del titolo. Nel «⋯» «Ripristina» ed «Elimina per sempre»; «Elimina per sempre» e «Svuota» chiedono conferma.
+- **Editor di un post eliminato:** in sola lettura con la riga «Questa bozza è negli Eliminati» e «Ripristina».
+- **«Bozze dimenticate»** nelle «Impostazioni dei contenuti»: dopo quanti giorni una bozza non toccata va negli Eliminati (30, 60, 90 o «Mai»).

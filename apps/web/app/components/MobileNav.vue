@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
  * Below 768 px (D-81, `base.css` `.m-nav`): Oggi, Calendario, + (Nuovo post), Clienti, Tu (spec
- * §11.11). Calendario stays off until its page exists (stage 9); who creates no posts (a Viewer,
- * §10.2) has no +. «Tu» opens the person's menu from the bottom, with Libreria, Utenti and
+ * §11.11). Who creates no posts (a Viewer, §10.2) has no +. «Tu» opens the person's menu from the bottom, with Libreria, Utenti and
  * Impostazioni: it is the current place on those pages.
  */
 const org = useOrganization()

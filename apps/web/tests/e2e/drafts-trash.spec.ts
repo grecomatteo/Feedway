@@ -55,6 +55,8 @@ test('«Elimina» with «Annulla», three drafts at once, «Eliminati» with «R
   await expect(row('La focaccia dimenticata').locator('[data-card-note]')).toHaveText(
     'Va negli Eliminati tra 4 giorni',
   )
+  // no draft here has a time: no column of «—» before the pictures (F5 of the stage 9 review)
+  await expect(drafts.locator('[data-row-time]')).toHaveCount(0)
   await shot(page, '01-bozze')
 
   // «⋯ → Elimina»: no question, gone at once, «Annulla» gives it back
@@ -102,6 +104,10 @@ test('«Elimina» with «Annulla», three drafts at once, «Eliminati» with «R
   )
   await expect(trash.locator('[data-card-note]').first()).toHaveText('Si cancella tra 30 giorni')
   await expect(page.locator('[data-list-group]')).toHaveCount(0)
+  // «Eliminati» does not depend on the days: no arrows, period or «Oggi», no column of the time
+  for (const part of ['prev', 'next', 'period', 'today'])
+    await expect(page.locator(`[data-calendar-${part}]`)).toHaveCount(0)
+  await expect(trash.locator('[data-row-time]')).toHaveCount(0)
   expect((await axe(page)).violations).toEqual([])
   await shot(page, '04-eliminati')
 

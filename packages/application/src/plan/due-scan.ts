@@ -48,7 +48,8 @@ export const planDueKey = (itemId: string, reference: Date) =>
 
 /** One agency: the contents of today and the next two days, the only ones whose time can come. */
 async function scanAgency(tx: Tx, organizationId: string, timeZone: string, now: Date) {
-  // a content's notice comes at most a day and a half before its day ends (9:00 the day before)
+  // a content's notice comes 36 hours before its reference instant (`dueNotificationAt`): only
+  // the contents of today and the next two days can be due by now
   const today = instantToZoned(now, timeZone).localDate
   const items = await tx.plan.listOfAgencyInRange(organizationId, {
     from: today,
