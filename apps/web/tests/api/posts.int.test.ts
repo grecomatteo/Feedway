@@ -893,6 +893,31 @@ describe('files of the posts in the library', () => {
     expect(agency.items.map((m) => m.id)).toContain(inDraft)
   })
 
+  test('a file used only by a draft in «Eliminati» is not «In una bozza» (D-124.13)', async () => {
+    const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
+    const gone = await draft()
+    const fileId = gone.media[0]?.id ?? ''
+    await expectOk(call('editor', 'POST', `${base()}/trash`, { postIds: [gone.id] }))
+    const ids = async (query: string) =>
+      (
+        await expectOk<{ items: { id: string }[] }>(
+          call('editor', 'GET', `${library}?${query}&limit=100`),
+        )
+      ).items.map((m) => m.id)
+    expect(await ids('use=draft')).not.toContain(fileId)
+    expect(await ids('use=scheduled')).not.toContain(fileId)
+    // still used: it goes with the draft, so never among the unused
+    expect(await ids('use=unused')).not.toContain(fileId)
+    expect(await ids('use=any')).toContain(fileId)
+    expect(await ids('inPosts=true')).toContain(fileId)
+    expect(await ids('')).toContain(fileId)
+    const seen = await expectOk<{ usedIn: unknown }>(call('editor', 'GET', `${library}/${fileId}`))
+    expect(seen.usedIn).toMatchObject({ postId: gone.id, status: 'draft', trashed: true })
+    // the same draft back from «Eliminati»: «In una bozza» again
+    await expectOk(call('editor', 'POST', `${base()}/restore`, { postIds: [gone.id] }))
+    expect(await ids('use=draft')).toContain(fileId)
+  })
+
   test('a file of a post gone out says so and can go; one of a paused post stays (Scelta 5)', async () => {
     const library = `/api/v1/orgs/${org.slug}/workspaces/${forno}/media`
     const out = await expectOk(schedule('manager', await draft()))

@@ -444,8 +444,9 @@ export const pathValues = (ids: SampleIds): Record<string, string> => ({
   connectionId: ids.connection,
   accountId: ids.account,
   mediaId: ids.media,
-  // a post out on Instagram (plan 09 Task 12): one of the fake Graph API's, as Meta numbers them
-  igMediaId: '1790000000000001',
+  // the token of a picture of Instagram's grid (plan 09 Task 12): well formed, not one of the
+  // server's, so it opens nowhere; the matrix seals a real one for the allowed cases
+  picture: 'A'.repeat(64),
   variant: 'preview',
   copyId: copyOfMedia.get(ids.media) ?? PLACEHOLDER_COPY,
   uploadId: ids.upload,

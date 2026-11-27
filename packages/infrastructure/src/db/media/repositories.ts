@@ -157,8 +157,9 @@ function filterOf(filter: MediaFilter | undefined): (SQL | undefined)[] {
   ]
 }
 
-// post_media belongs to the posts module: read here by its table, as the RLS allows
-const inPostWith = (statuses: readonly string[] | null) =>
+// post_media belongs to the posts module: read here by its table, as the RLS allows.
+// `live`: only the posts outside «Eliminati», for the filters that say what a post is now
+const inPostWith = (statuses: readonly string[] | null, opts: { live?: boolean } = {}) =>
   sql`exists (select 1 from post_media pm join posts p
         on p.organization_id = pm.organization_id and p.id = pm.post_id
       where pm.organization_id = ${media.organizationId}
@@ -170,7 +171,8 @@ const inPostWith = (statuses: readonly string[] | null) =>
                 statuses.map((st) => sql`${st}`),
                 sql`, `,
               )})`
-        })`
+        }
+        ${opts.live ? sql`and p.trashed_at is null` : sql``})`
 
 /** The states of a post still going out (`isGoingOut`): «In programma» of the filter. */
 const GOING_OUT = ['scheduled', 'publishing', 'paused'] as const
@@ -184,16 +186,18 @@ function withoutKind(filter: MediaFilter): MediaFilter {
 
 /**
  * The filter by use (screen 19), on the same order as `primaryUse` (D-80.7): «in una bozza» is a
- * file whose use that counts is a draft, so never a file of a scheduled post.
+ * file whose use that counts is a draft, so never a file of a scheduled post. A draft in
+ * «Eliminati» is not «in una bozza» (its file says «In una bozza eliminata», D-124.13), but it
+ * still uses the file, which goes with it: «Nei post» counts it, «Non usati» does not.
  */
 function usedBy(use: MediaFilter['use']): SQL | undefined {
   switch (use) {
     case 'any':
       return inPostWith(null)
     case 'scheduled':
-      return inPostWith(GOING_OUT)
+      return inPostWith(GOING_OUT, { live: true })
     case 'draft':
-      return sql`(${inPostWith(['draft'])} and not ${inPostWith(GOING_OUT)})`
+      return sql`(${inPostWith(['draft'], { live: true })} and not ${inPostWith(GOING_OUT, { live: true })})`
     case 'unused':
       return sql`not ${inPostWith(null)}`
     default:
