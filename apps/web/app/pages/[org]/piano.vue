@@ -553,6 +553,7 @@ const ready = computed(
                         ? 'text-(--app-text)'
                         : 'text-(--app-text-muted)'
                   "
+                  :data-accent="d.date === today || undefined"
                   aria-hidden="true"
                   >{{ dayNumber(d.date) }}</span
                 >
