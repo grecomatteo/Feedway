@@ -181,7 +181,7 @@ export async function deletePost(
     const post = await lockedPost(tx, scope, input.postId, { trashed: true })
     if (!mayEditContent(current, post)) throw cannotEdit()
     // a post of the worker's (plan 07) is not deleted either: only drafts and cancelled ones
-    assertDeletableNow(post)
+    assertDeletableNow(post, current.userId)
     // an internal note is something: as the night and «Elimina le bozze vuote», it stays
     if (post.trashedAt === null && (await tx.posts.listNotes(scope, post.id)).length > 0)
       throw notTrashedYet()

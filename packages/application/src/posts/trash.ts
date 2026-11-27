@@ -2,6 +2,7 @@ import { DomainError, TRASH_BATCH_MAX, can, type OrgActor } from '@app/domain'
 import { isUuid } from '../identity/index.js'
 import type { PostRecord, PostScope } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
+import { textStart } from './agenda.js'
 import { isEmptyDraft } from './calendar.js'
 import {
   cannotEdit,
@@ -167,14 +168,25 @@ export async function purgePosts(
 }
 
 /**
- * `DELETE` of one post: «Elimina per sempre» of a post in «Eliminati», or a new draft left empty
- * by the editor (gone as if never born). Any other post goes to «Eliminati» first (409).
+ * `DELETE` of one post: «Elimina per sempre» of a post in «Eliminati», an empty draft, or a draft
+ * of `userId`'s own left without text, files and labels by the editor: the day and the accounts
+ * the editor proposes by itself do not count (D-124.14), so the draft born by a click goes as if
+ * never born. Any other post goes to «Eliminati» first (409).
  */
-export function assertDeletableNow(post: PostRecord): void {
+export function assertDeletableNow(post: PostRecord, userId: string): void {
   if (post.status !== 'draft' && post.status !== 'cancelled')
     throw wrongState(post.status, 'delete')
-  if (post.trashedAt === null && !isEmptyDraft(post)) throw notTrashedYet()
+  if (post.trashedAt === null && !isEmptyDraft(post) && !isLeftEmpty(post, userId))
+    throw notTrashedYet()
 }
+
+/** A draft of `userId`'s with nothing written or chosen in it: no text, no file, no label. */
+export const isLeftEmpty = (post: PostRecord, userId: string) =>
+  post.status === 'draft' &&
+  post.createdBy === userId &&
+  post.mediaIds.length === 0 &&
+  post.labelIds.length === 0 &&
+  textStart(post) === ''
 
 export const notTrashedYet = () =>
   new DomainError(

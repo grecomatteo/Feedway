@@ -10,6 +10,8 @@ export interface WorkspaceView {
   myRole: 'owner' | 'admin' | 'manager' | 'publisher' | 'editor' | 'viewer'
   /** `HH:MM`: the time a new post proposes; null: none */
   defaultPostTime?: string | null
+  /** after how many days untouched a draft goes to «Eliminati»; null «Mai» (plan 09 Scelta 12) */
+  draftRetentionDays?: number | null
   /** Its first profile's picture, as Feedway keeps it (only in the list); null: the initials. */
   photoUrl?: string | null
   /** Its profiles and the state of their link (only in the list). */

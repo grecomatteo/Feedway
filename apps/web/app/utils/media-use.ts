@@ -20,6 +20,8 @@ export interface MediaUseView {
   scheduledAt: string | null
   timezone: string
   count: number
+  /** every post that uses it is in «Eliminati» (plan 09 Scelta 12) */
+  trashed?: boolean
 }
 
 export interface DeleteBlockView {
@@ -31,7 +33,8 @@ export interface DeleteBlockView {
 }
 
 /**
- * «Nel post di oggi, 18:00», «In una bozza», «Pubblicato il 18 novembre», «In 3 post»; null when no
+ * «Nel post di oggi, 18:00», «In una bozza», «Pubblicato il 18 novembre», «In 3 post», «In una
+ * bozza eliminata»; null when no
  * post uses the file.
  */
 export function mediaUseLabel(
@@ -40,6 +43,11 @@ export function mediaUseLabel(
   now = new Date(),
 ): string | null {
   if (!use) return null
+  // the nearest use is a post in «Eliminati» only when every use is (D-124.13)
+  if (use.trashed)
+    return use.count > 1
+      ? t('library.inPosts.trashedMany', { n: use.count })
+      : t('library.inPosts.trashed')
   if (GOING_OUT.has(use.status) && use.scheduledAt)
     return t('library.inPosts.scheduled', {
       when: formatRelative(use.scheduledAt, { timeZone: use.timezone, now }),

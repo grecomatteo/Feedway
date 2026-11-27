@@ -21,6 +21,18 @@ const use = (over: Record<string, unknown> = {}) => ({
 })
 
 describe('mediaUseLabel (D-80.7)', () => {
+  it('says a file only posts in «Eliminati» use is in a deleted draft (D-124.13)', () => {
+    const trashed = use({ status: 'draft', scheduledAt: null, trashed: true })
+    expect(mediaUseLabel(trashed, t, now)).toBe('library.inPosts.trashed')
+    expect(mediaUseLabel({ ...trashed, count: 3 }, t, now)).toBe(
+      'library.inPosts.trashedMany {"n":3}',
+    )
+    // a scheduled post in «Eliminati» cannot be: the state is a draft or a cancelled one
+    expect(mediaUseLabel(use({ status: 'cancelled', trashed: true }), t, now)).toBe(
+      'library.inPosts.trashed',
+    )
+  })
+
   it('says nothing for a file no post uses', () => {
     expect(mediaUseLabel(null, t, now)).toBeNull()
   })

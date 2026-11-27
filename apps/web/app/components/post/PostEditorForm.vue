@@ -152,6 +152,8 @@ const title = computed(() => {
 /** Why this person reads the post and does not change it. */
 const readOnly = computed(() => {
   if (e.loadState.value !== 'ready' || e.editable.value) return null
+  // in «Eliminati»: the note has «Ripristina» beside it (plan 09 Scelta 12)
+  if (e.trashed.value) return null
   if (props.client.archivedAt) return t('posts.editor.archived')
   if (!e.may.value.draft) return t('posts.editor.viewer')
   if (e.status.value === 'cancelled') return t('posts.editor.cancelled')
@@ -234,15 +236,32 @@ async function publishNow() {
   if (p) emit('outcome', p)
 }
 
-const confirm = ref<null | 'cancel' | 'remove' | 'leave'>(null)
+/** «Elimina»: no question, the notice on the page it goes back to has «Annulla» (Scelta 12) */
+async function remove() {
+  if (await e.remove()) await navigateTo(props.back)
+}
+/** «Ripristina» for who could delete it; a Viewer and an archived client only read it */
+const mayRestore = computed(
+  () =>
+    e.trashed.value &&
+    e.may.value.draft &&
+    !props.client.archivedAt &&
+    (e.mine.value || e.may.value.manageOthers),
+)
+const trashedText = computed(() => {
+  if (!e.trashed.value || e.loadState.value !== 'ready') return null
+  if (e.trashedMeanwhile.value) return t('posts.editor.trashedNow')
+  return e.status.value === 'cancelled'
+    ? t('posts.editor.trashedCancelled')
+    : t('posts.editor.trashed')
+})
+const confirm = ref<null | 'cancel' | 'leave'>(null)
 let leaveTo: (() => void) | null = null
 async function confirmed() {
   const what = confirm.value
   confirm.value = null
   if (what === 'cancel') {
     if (await e.cancel()) flash.value = t('posts.actions.cancelled')
-  } else if (what === 'remove') {
-    if (await e.remove()) await navigateTo(props.back)
   } else if (what === 'leave') leaveTo?.()
 }
 
@@ -255,6 +274,8 @@ onBeforeRouteLeave(async (to, _from, next) => {
   e.leaving(true)
   if (allowLeave) return next()
   if (e.status.value === 'draft' && e.editable.value) await e.flush()
+  // a new draft left without text and files goes as if never born (D-124.14)
+  await e.discardIfEmpty()
   const s = e.save.value
   const lost =
     s.dirty && (s.status === 'failed' || s.status === 'conflict' || e.status.value !== 'draft')
@@ -271,8 +292,16 @@ onBeforeRouteLeave(async (to, _from, next) => {
 function beforeUnload(event: BeforeUnloadEvent) {
   if (e.save.value.dirty && e.editable.value) event.preventDefault()
 }
-onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+// the tab closes on a new draft left empty: it goes with a request that outlives the page
+const pageHide = () => e.discardOnClose()
+onMounted(() => {
+  window.addEventListener('beforeunload', beforeUnload)
+  window.addEventListener('pagehide', pageHide)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnload)
+  window.removeEventListener('pagehide', pageHide)
+})
 const confirmText = computed(() => {
   switch (confirm.value) {
     case 'cancel':
@@ -280,12 +309,6 @@ const confirmText = computed(() => {
         title: t('posts.confirm.cancelTitle'),
         text: t('posts.confirm.cancelText'),
         ok: t('posts.actions.cancel'),
-      }
-    case 'remove':
-      return {
-        title: t('posts.confirm.removeTitle'),
-        text: t('posts.confirm.removeText'),
-        ok: t('posts.actions.delete'),
       }
     case 'leave':
       return {
@@ -337,7 +360,7 @@ const confirmText = computed(() => {
         @schedule="schedule"
         @publish-now="asking = true"
         @cancel="confirm = 'cancel'"
-        @remove="confirm = 'remove'"
+        @remove="remove()"
         @exit="exit"
         @goto="goto"
       >
@@ -400,7 +423,8 @@ const confirmText = computed(() => {
             v-if="
               flash ||
               readOnly ||
-              e.save.value.status === 'conflict' ||
+              trashedText ||
+              (e.save.value.status === 'conflict' && !e.trashedMeanwhile.value) ||
               e.actionProblem.value ||
               (!e.may.value.publish && e.editable.value) ||
               settings.failed.value
@@ -415,8 +439,32 @@ const confirmText = computed(() => {
             >
               {{ readOnly }}
             </p>
+            <div
+              v-if="trashedText"
+              :role="e.trashedMeanwhile.value ? 'alert' : 'note'"
+              class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border px-4 py-3"
+              :class="
+                e.trashedMeanwhile.value
+                  ? 'border-2 border-(--app-danger)'
+                  : 'border-(--app-border) bg-(--app-surface-sunken)'
+              "
+              data-editor-trashed
+            >
+              <p class="min-w-0 flex-1">{{ trashedText }}</p>
+              <UButton
+                v-if="mayRestore"
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-undo-2"
+                class="min-h-control"
+                :loading="e.acting.value === 'restore'"
+                data-editor-restore
+                @click="e.restore()"
+                >{{ $t('posts.editor.restore') }}</UButton
+              >
+            </div>
             <p
-              v-if="e.save.value.status === 'conflict'"
+              v-if="e.save.value.status === 'conflict' && !e.trashedMeanwhile.value"
               role="alert"
               class="rounded-card border-2 border-(--app-danger) px-4 py-3"
             >
@@ -534,7 +582,7 @@ const confirmText = computed(() => {
       @schedule="schedule"
       @publish-now="asking = true"
       @cancel="confirm = 'cancel'"
-      @remove="confirm = 'remove'"
+      @remove="remove()"
       @exit="exit"
       @goto="goto"
     />

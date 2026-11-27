@@ -92,8 +92,20 @@ export function useCalendar(scope: {
       : { ...f, accountIds: [], authorIds: [], labelIds: [] }
   })
 
-  /** The address with these changes; the context (`spazio`, `profilo`) stays. */
-  function go(change: Partial<CalendarQuery>, replace = false) {
+  /**
+   * «Eliminati» (plan 09 Scelta 12): a filter of the list, `?eliminati=1` in the address, which
+   * shows the client's deleted posts instead of the days. The panel's word, not the domain's: the
+   * server reads it as `trashed=1` of the drafts.
+   */
+  const trashView = computed(
+    () => !grid.value && view.value === 'list' && route.query['eliminati'] === '1',
+  )
+
+  /**
+   * The address with these changes; the context (`spazio`, `profilo`) stays, and «Eliminati»
+   * while the view stays the list, unless `trash` says otherwise.
+   */
+  function go(change: Partial<CalendarQuery>, replace = false, trash?: boolean) {
     const next: CalendarQuery = { ...query.value, ...change }
     // today needs no date in the address: «Oggi» gives a link that stays on the day it is opened
     if (next.date === today.value) next.date = null
@@ -101,10 +113,14 @@ export function useCalendar(scope: {
     const context: Record<string, string> = {}
     if (typeof spazio === 'string') context['spazio'] = spazio
     if (typeof profilo === 'string') context['profilo'] = profilo
+    if (trash ?? (trashView.value && change.view === undefined)) context['eliminati'] = '1'
     const to = { path: route.path, query: { ...context, ...toCalendarQuery(next) } }
     return replace ? router.replace(to) : router.push(to)
   }
   const setView = (v: PeriodView | 'grid') => go({ view: v })
+  /** «Eliminati» on or off; on, the quick filters (about dated posts) are put away */
+  const setTrash = (on: boolean) =>
+    go(on ? { filters: { ...filters.value, quick: null } } : {}, true, on)
   const step = (by: -1 | 1) => go({ date: shiftDate(view.value, date.value, by) })
   const toToday = () => go({ date: null })
   const setFilters = (change: Partial<CalendarFilters>) =>
@@ -240,10 +256,12 @@ export function useCalendar(scope: {
       moreStatus.value = 'error'
     }
   }
-  // the context first: «Tutti i clienti» would be read for nothing while the client is unknown
+  // the context first: «Tutti i clienti» would be read for nothing while the client is unknown;
+  // «Eliminati» shows no days
   const waiting = computed(() => !scope.ready.value || grid.value)
+  const daysWaiting = computed(() => waiting.value || trashView.value)
   watch(
-    () => (waiting.value ? null : JSON.stringify(apiQuery.value)),
+    () => (daysWaiting.value ? null : JSON.stringify(apiQuery.value)),
     (key) => {
       if (key !== null) void load()
     },
@@ -254,11 +272,12 @@ export function useCalendar(scope: {
   // ---- the list's drafts without a date (plan 09 Scelta 2): a read of their own, with the
   // filters and without a period; a quick filter is about dated posts, and leaves them out
   const wantsDrafts = computed(
-    () => !grid.value && view.value === 'list' && filters.value.quick === null,
+    () => !grid.value && view.value === 'list' && (filters.value.quick === null || trashView.value),
   )
   const drafts = ref<DraftsResponse | null>(null)
   const draftsStatus = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
   let draftsRunning: AbortController | null = null
+  let draftsOfTrash = false
   async function loadDrafts() {
     if (import.meta.server) return
     draftsRunning?.abort()
@@ -267,12 +286,17 @@ export function useCalendar(scope: {
       draftsStatus.value = 'idle'
       return
     }
+    // the drafts are not shown as «Eliminati» while those are read, nor the other way round
+    if (draftsOfTrash !== trashView.value) {
+      drafts.value = null
+      draftsOfTrash = trashView.value
+    }
     const mine = new AbortController()
     draftsRunning = mine
     draftsStatus.value = 'pending'
     try {
       const res = await $fetch<DraftsResponse>(org.api('/calendar/drafts'), {
-        query: filterQuery.value,
+        query: trashView.value ? { ...filterQuery.value, trashed: '1' } : filterQuery.value,
         signal: mine.signal,
       })
       if (draftsRunning !== mine) return
@@ -285,7 +309,9 @@ export function useCalendar(scope: {
   }
   watch(
     () =>
-      waiting.value ? null : `${String(wantsDrafts.value)} ${JSON.stringify(filterQuery.value)}`,
+      waiting.value
+        ? null
+        : `${String(wantsDrafts.value)} ${String(trashView.value)} ${JSON.stringify(filterQuery.value)}`,
     (key) => {
       if (key !== null) void loadDrafts()
     },
@@ -365,6 +391,8 @@ export function useCalendar(scope: {
     moreStatus,
     drafts,
     draftsStatus,
+    trashView,
+    setTrash,
     reloadDrafts: loadDrafts,
     removeEmptyDrafts,
     reload: load,
