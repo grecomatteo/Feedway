@@ -104,7 +104,7 @@ test('the grid: the scheduled first, the furthest ahead first, above the posts o
   await expect(grid.locator('[data-grid-published]')).toHaveCount(9)
   // the pictures out come from the server, never from Meta's addresses
   const picture = grid.locator('[data-grid-published] img').first()
-  await expect(picture).toHaveAttribute('src', /\/calendar\/grid\/.+\/media\/\d+\/thumbnail$/)
+  await expect(picture).toHaveAttribute('src', /\/calendar\/grid\/[^/]+\/pictures\/[A-Za-z0-9_-]+$/)
   await expect
     .poll(() => picture.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
     .toBeGreaterThan(0)

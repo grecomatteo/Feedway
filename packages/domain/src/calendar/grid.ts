@@ -16,9 +16,6 @@ export const GRID_POST_TYPES: readonly PostType[] = ['photo', 'carousel', 'reel'
 export const isGridPost = (post: { type: PostType; shareToFeed: boolean }) =>
   GRID_POST_TYPES.includes(post.type) && (post.type !== 'reel' || post.shareToFeed)
 
-/** A media id of the platform as the grid takes it in an address: digits only. */
-export const isGridMediaId = (value: string) => /^[0-9]{1,32}$/.test(value)
-
 /**
  * A destination still to go out on the account: its post is in the grid as scheduled. One
  * already out is among the posts read from the platform; a cancelled or failed one is in none.

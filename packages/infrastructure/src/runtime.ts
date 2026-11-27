@@ -10,6 +10,7 @@ import type {
   MailSettingsSource,
   Mailer,
   ConnectionTokens,
+  GridPictureTokens,
   MetaAppCredentials,
   PlatformConnector,
   PlatformConnectors,
@@ -29,6 +30,7 @@ import { META_RULES } from '@app/domain/platforms/meta'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createKeyRing } from './crypto/key-ring.js'
+import { createGridPictureTokens } from './crypto/grid-pictures.js'
 import { createSignedTokens } from './crypto/signed-tokens.js'
 import { createTokenService } from './crypto/tokens.js'
 import { createFileMailer } from './mail/file-mailer.js'
@@ -101,6 +103,8 @@ export interface Runtime {
   uploadParts: UploadParts
   /** Security-lock links and device hashes, keyed from APP_ENCRYPTION_KEY. */
   signedTokens: SignedTokens
+  /** The tokens of the pictures of Instagram's grid (plan 09 Task 12), keyed the same way. */
+  gridPictures: GridPictureTokens
   /** Random single-use tokens of our links (invites, activation). */
   tokens: TokenService
   /** The platform integrations (SMTP), secrets sealed; used inside `runAsSystem`. */
@@ -260,6 +264,7 @@ export async function createRuntime(config: RuntimeConfig, role: RuntimeRole): P
         dir: config.media?.uploadDir ?? join(config.mediaRoot ?? DEFAULT_MEDIA_ROOT, 'uploads'),
       }),
       signedTokens,
+      gridPictures: createGridPictureTokens(config.encryptionKey),
       tokens: createTokenService(),
       integrations,
       mailer,

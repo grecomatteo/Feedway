@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
+import { DRAFTS_CLEANUP_BATCH } from '@app/application'
 import type { Runtime } from '@app/infrastructure'
 import { seed, startTestDatabase, type TestDatabase } from '@app/infrastructure/testing'
 import { startMetaMock, type MetaMock } from '@app/meta-mock'
@@ -248,4 +249,52 @@ test('on two workers at once, each post goes once and is logged once', async () 
     [ids],
   )
   expect(rows[0]?.n).toBe(5)
+})
+
+test('a batch that fails takes only its own posts; the others go, and the job fails', async () => {
+  const a = await agency(tdb, runtime)
+  const workspaceId = await seed(tdb.runtimeUrl, (s) => s.workspace(a.organizationId))
+  const expired: string[] = []
+  // one batch more than full: the first one holds the post that cannot go
+  for (let i = 0; i <= DRAFTS_CLEANUP_BATCH; i++)
+    expired.push(
+      await post(a.organizationId, a.ownerId, {
+        workspaceId,
+        updatedAt: ago(40 * DAY),
+        trashedAt: ago(35 * DAY),
+      }),
+    )
+  const sorted = [...expired].sort()
+  const stuck = sorted[0] ?? ''
+  const forgotten = await post(a.organizationId, a.ownerId, {
+    workspaceId,
+    updatedAt: ago(31 * DAY),
+  })
+  // a constraint a future change could bring: this one post refuses to go
+  await admin.query(`
+    create function test_refuse_delete() returns trigger language plpgsql as $$
+    begin
+      if old.id = '${stuck}' then raise exception 'test: this post cannot go'; end if;
+      return old;
+    end $$`)
+  await admin.query(
+    'create trigger test_refuse_delete before delete on posts for each row execute function test_refuse_delete()',
+  )
+  try {
+    await expect(postsDraftsCleanup({ id: 'difettoso', data: {} }, deps())).rejects.toThrow(
+      /failed in 1 steps/,
+    )
+  } finally {
+    await admin.query('drop trigger test_refuse_delete on posts')
+    await admin.query('drop function test_refuse_delete()')
+  }
+  // the failed batch is left as it was, to go the next night
+  for (const id of sorted.slice(0, DRAFTS_CLEANUP_BATCH))
+    expect(await state(id)).toBe('trashed:draft')
+  // the next batch of the same kind, and the other kinds, went all the same
+  expect(await state(sorted[DRAFTS_CLEANUP_BATCH] ?? '')).toBe('gone')
+  expect(await state(forgotten)).toBe('trashed:draft')
+  // the next night, with nothing in the way, the rest goes
+  await postsDraftsCleanup({ id: 'notte-dopo', data: {} }, deps())
+  for (const id of expired) expect(await state(id)).toBe('gone')
 })

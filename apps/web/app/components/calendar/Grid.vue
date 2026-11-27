@@ -103,7 +103,7 @@ const published = computed<PublishedPlace[]>(() => {
   return out.items.map((m) => ({
     kind: 'published',
     media: m,
-    thumb: m.hasPicture ? grid.thumbnailOf(m.id) : null,
+    thumb: m.picture === null ? null : grid.thumbnailOf(m.picture),
     sign: gridSignOf(m),
     when: m.publishedAt ? PUBLISHED_DAY.format(new Date(m.publishedAt)) : null,
   }))
@@ -113,9 +113,17 @@ const SIGN_ICON: Record<GridSign, string> = {
   reel: 'i-lucide-clapperboard',
   video: 'i-lucide-play',
 }
-/** a picture of a post out that did not arrive: its place shows the sign of its media */
+/**
+ * The addresses of the pictures of posts out that did not arrive: their places show the sign of
+ * their media. A grid read again gives new addresses, which are tried.
+ */
 const broken = ref(new Set<string>())
 watch(accountId, () => (broken.value = new Set()))
+function pictureFailed(thumb: string) {
+  // its token may have expired: the grid is read again with new ones
+  if (grid.refreshIfStale()) return
+  broken.value = new Set([...broken.value, thumb])
+}
 const unread = computed(() => {
   const out = data.value?.published
   return out && !out.ok ? out.reason : null
@@ -397,13 +405,13 @@ const name = computed(() => {
                 class="block size-full overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus)"
               >
                 <img
-                  v-if="p.thumb && !broken.has(p.media.id)"
+                  v-if="p.thumb && !broken.has(p.thumb)"
                   :src="p.thumb"
                   alt=""
                   loading="lazy"
                   decoding="async"
                   class="size-full object-cover"
-                  @error="broken = new Set([...broken, p.media.id])"
+                  @error="pictureFailed(p.thumb)"
                 />
                 <span
                   v-else

@@ -3,7 +3,6 @@ import type {
   GridAccount,
   GridListing,
   GridMedia,
-  GridMediaRead,
   MetaAppCredentials,
 } from '@app/application'
 import { MetaError, type MetaErrorReason } from './errors.js'
@@ -79,24 +78,4 @@ export async function listMetaGrid(
   } catch (error) {
     return failure(error)
   }
-}
-
-/**
- * One media of the grid, from the same listing: a media's `owner` is given only to the app user
- * who made it (Meta's reference), so the only sure way to know it is this account's, among the
- * latest the grid shows, is to find it there. One call, as reading the media alone would be.
- */
-export async function getMetaGridMedia(
-  client: Pick<MetaGraphClient, 'listInstagramGridMedia'>,
-  credentials: ConnectionCredentials<MetaAppCredentials>,
-  account: GridAccount,
-  mediaId: string,
-  limit: number,
-): Promise<GridMediaRead> {
-  const listing = await listMetaGrid(client, credentials, account, limit)
-  if (!listing.ok) return listing
-  const media = listing.media.find((m) => m.externalId === mediaId)
-  return media
-    ? { ok: true, media, load: listing.load }
-    : { ok: false, reason: 'not_found', load: listing.load }
 }

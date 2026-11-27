@@ -22,6 +22,12 @@ interface SwapResponse {
   posts: { id: string; version: number; scheduledAt: string }[]
 }
 
+/**
+ * The tokens of the pictures open for five minutes from the server's answer (D-123.32): a grid
+ * read longer ago than this is read again before its pictures are asked for.
+ */
+const PICTURES_FRESH_MS = 4 * 60_000
+
 interface ErrorReport {
   error?: { code?: string; reason?: string; report?: { outcomes?: unknown[] } }
 }
@@ -43,6 +49,8 @@ export function useCalendarGrid(scope: {
   const data = ref<GridResponse | null>(null)
   const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
   let running: AbortController | null = null
+  /** when the grid shown was read, on this device's clock */
+  let readAt = 0
   const base = () =>
     org.api(`/workspaces/${encodeURIComponent(scope.workspaceId.value ?? '')}/calendar/grid`)
 
@@ -68,6 +76,7 @@ export function useCalendarGrid(scope: {
       })
       if (running !== mine) return
       data.value = res
+      readAt = Date.now()
       status.value = 'success'
     } catch {
       if (running !== mine) return
@@ -80,11 +89,31 @@ export function useCalendarGrid(scope: {
     () => void load(),
     { immediate: true },
   )
-  onBeforeUnmount(() => running?.abort())
+  /**
+   * The grid shown is read again, quietly, when its pictures' tokens may have expired: true when
+   * it is (a picture that did not arrive then gets a new address instead of its sign).
+   */
+  function refreshIfStale(): boolean {
+    if (status.value !== 'success' || Date.now() - readAt < PICTURES_FRESH_MS) return false
+    // once: the pictures failing together ask for one reading
+    readAt = Date.now()
+    void load(true)
+    return true
+  }
+  const wake = () => {
+    if (document.visibilityState === 'visible') refreshIfStale()
+  }
+  onMounted(() => {
+    document.addEventListener('visibilitychange', wake)
+  })
+  onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', wake)
+    running?.abort()
+  })
 
-  /** the picture of a post out, through the server (P4) */
-  const thumbnailOf = (mediaId: string) =>
-    `${base()}/${encodeURIComponent(scope.accountId.value ?? '')}/media/${encodeURIComponent(mediaId)}/thumbnail`
+  /** the picture of a post out, through the server (P4), from the token the grid gave */
+  const thumbnailOf = (picture: string) =>
+    `${base()}/${encodeURIComponent(scope.accountId.value ?? '')}/pictures/${encodeURIComponent(picture)}`
 
   const toast = reactive({ open: false, message: '', action: '' })
   let undo: (() => Promise<void>) | null = null
@@ -171,5 +200,16 @@ export function useCalendarGrid(scope: {
     },
   )
 
-  return { data, status, load, thumbnailOf, swap, swapping, problem, toast, runUndo }
+  return {
+    data,
+    status,
+    load,
+    refreshIfStale,
+    thumbnailOf,
+    swap,
+    swapping,
+    problem,
+    toast,
+    runUndo,
+  }
 }

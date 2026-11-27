@@ -1,17 +1,16 @@
 import { getGridThumbnail } from '@app/application'
 import { calendarGridThumbnailRoute } from '@app/contracts'
 
-// The picture of a post out on Instagram (plan 09 Task 12, P4): downloaded from Meta at every
-// request, never kept; the browser keeps it five minutes. Each one is a call to Meta, counted
-// for the person and for the account. Anything else is a 404.
+// The picture of a post out on Instagram (plan 09 Task 12, P4), from the token the grid gave:
+// no call to Meta, a download from its picture hosts at every request, never kept; the browser
+// keeps it five minutes. Anything else is a 404.
 export default defineApiRoute(
   calendarGridThumbnailRoute,
   async ({ actor, params }) => {
-    await limitAccount(GRID_ACCOUNT_THUMBNAILS_LIMIT, actor.organizationId, params.accountId)
     const picture = await getGridThumbnail(useDeps(), actor, {
       workspaceId: params.id,
       accountId: params.accountId,
-      mediaId: params.igMediaId,
+      picture: params.picture,
     })
     if (!picture) throw new HttpProblem('NOT_FOUND')
     return {

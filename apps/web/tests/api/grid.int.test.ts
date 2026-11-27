@@ -6,9 +6,10 @@ import { startApiEnv } from './identity-env.js'
 import type { ApiEnv, ErrorJson, Person } from './identity-env.js'
 
 // Instagram's grid over HTTP (plan 09 Task 12, P4): the scheduled posts of the next 30 days
-// above the last ones out, read from the fake Graph API; the pictures through the server, only
-// for the account's own posts and only from the allowed hosts; the swap of two scheduled times,
-// both or neither; and nothing of another client or agency.
+// above the last ones out, read from the fake Graph API with one call per opening; the pictures
+// through the server, from the sealed token the opening gave, only for that account and only
+// from the allowed hosts; the swap of two scheduled times, both or neither; and nothing of
+// another client or agency.
 
 let env: ApiEnv
 let org: { id: string; slug: string }
@@ -62,8 +63,30 @@ async function failsWith(answer: ReturnType<typeof call>, status: number, code?:
 const api = (path: string, slug = org.slug) => `/api/v1/orgs/${slug}${path}`
 const gridOf = (accountId: string, workspaceId: string, slug = org.slug) =>
   api(`/workspaces/${workspaceId}/calendar/grid/${accountId}`, slug)
-const thumbnailOf = (accountId: string, mediaId: string, workspaceId: string) =>
-  api(`/workspaces/${workspaceId}/calendar/grid/${accountId}/media/${mediaId}/thumbnail`)
+const thumbnailOf = (accountId: string, picture: string, workspaceId: string, slug = org.slug) =>
+  api(`/workspaces/${workspaceId}/calendar/grid/${accountId}/pictures/${picture}`, slug)
+
+/** A token of the server's key the opening never gave: of `accountId`, until `expiresAt`. */
+const pictureToken = (
+  organizationId: string,
+  accountId: string,
+  opts: { expiresAt?: Date; url?: string } = {},
+) =>
+  env.gridPictures.seal(
+    { organizationId, accountId },
+    {
+      mediaId: '1790000000000001',
+      pictureUrl: opts.url ?? `${env.meta.url}/pictures/post-1.jpg?oh=0a0a&oe=6B00`,
+    },
+    opts.expiresAt ?? new Date(Date.now() + 300_000),
+  )
+
+/** The tokens of the pictures of the account's grid, as the panel gets them. */
+async function picturesOf(who: Who, accountId: string, workspaceId: string): Promise<string[]> {
+  const grid = await ok<GridJson>(call(who, 'GET', gridOf(accountId, workspaceId)))
+  if (!grid.published.ok) throw new Error('the posts out were not read')
+  return grid.published.items.map((m) => m.picture ?? '')
+}
 
 /** A day and time `days` from now, in the agency's zone. */
 function inDays(days: number, time = '10:00') {
@@ -197,7 +220,7 @@ interface GridJson {
   published:
     | {
         ok: true
-        items: { id: string; kind: string; reel: boolean; hasPicture: boolean }[]
+        items: { id: string; kind: string; reel: boolean; picture: string | null }[]
       }
     | { ok: false; reason: string }
 }
@@ -217,7 +240,7 @@ describe('the grid', () => {
     expect(grid.published.ok).toBe(true)
     if (!grid.published.ok) return
     expect(grid.published.items).toHaveLength(9)
-    expect(grid.published.items.every((m) => m.hasPicture)).toBe(true)
+    expect(grid.published.items.every((m) => typeof m.picture === 'string')).toBe(true)
     expect(grid.published.items.filter((m) => m.reel).map((m) => m.kind)).toEqual([
       'video',
       'video',
@@ -242,26 +265,54 @@ describe('the grid', () => {
     expect(grid.scheduled.map((p) => p.id)).toContain(late.id)
   })
 
-  test('the picture of a post out passes through the server, for five minutes', async () => {
-    const grid = await ok<GridJson>(call('editor', 'GET', gridOf(ig, forno)))
-    if (!grid.published.ok) throw new Error('the posts out were not read')
-    const first = grid.published.items[0]?.id ?? ''
-    const r = await call('viewer', 'GET', thumbnailOf(ig, first, forno))
-    expect(r.status, r.text).toBe(200)
-    expect(r.headers.get('content-type')).toBe('image/jpeg')
-    expect(r.headers.get('cache-control')).toBe('private, max-age=300')
-    expect([...r.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff])
+  test('an opening is one call to Meta; its pictures call Meta no more', async () => {
+    const before = env.meta.calls().length
+    const pictures = await picturesOf('editor', ig, forno)
+    const opening = env.meta.calls().slice(before)
+    expect(opening.map((c) => c.path)).toEqual([expect.stringMatching(/\/media$/)])
+    const after = env.meta.calls().length
+    for (const picture of pictures) {
+      const r = await call('viewer', 'GET', thumbnailOf(ig, picture, forno))
+      expect(r.status, r.text).toBe(200)
+      expect(r.headers.get('content-type')).toBe('image/jpeg')
+      expect(r.headers.get('cache-control')).toBe('private, max-age=300')
+      expect([...r.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff])
+    }
+    // only the downloads from the picture hosts, one each
+    const downloads = env.meta.calls().slice(after)
+    expect(downloads.map((c) => c.path.startsWith('/pictures/'))).toEqual(pictures.map(() => true))
   })
 
-  test('a media of another account the same token sees, or of none, is not found', async () => {
-    const grid = await ok<GridJson>(call('owner', 'GET', gridOf(ig, forno)))
-    if (!grid.published.ok) throw new Error('the posts out were not read')
-    const ofShared = grid.published.items[0]?.id ?? ''
-    // the same token sees Studio Rossi's Instagram: the media is not among its posts
-    await failsWith(call('owner', 'GET', thumbnailOf(igGino, ofShared, gino)), 404)
-    await failsWith(call('owner', 'GET', thumbnailOf(ig, '1799999999999999', forno)), 404)
-    // not a Meta id: refused by the address, before anything is read
-    await failsWith(call('owner', 'GET', thumbnailOf(ig, '..%2Fme', forno)), 422, 'VALIDATION')
+  test('a token expired, changed, of another account or of another agency is not found', async () => {
+    const [picture = ''] = await picturesOf('owner', ig, forno)
+    const before = env.meta.calls().length
+    // the token of the client's Instagram on another account the same connection sees
+    await failsWith(call('owner', 'GET', thumbnailOf(igGino, picture, gino)), 404)
+    // a byte changed: its last character, in its last bits
+    const last = picture.at(-1) === 'A' ? 'B' : 'A'
+    await failsWith(call('owner', 'GET', thumbnailOf(ig, picture.slice(0, -1) + last, forno)), 404)
+    // made with the server's key, five minutes ago
+    const expired = pictureToken(org.id, ig, { expiresAt: new Date(Date.now() - 1000) })
+    await failsWith(call('owner', 'GET', thumbnailOf(ig, expired, forno)), 404)
+    // another agency's account, or this account under another agency
+    await failsWith(
+      call('owner', 'GET', thumbnailOf(ig, pictureToken(other.id, igOther), forno)),
+      404,
+    )
+    await failsWith(call('owner', 'GET', thumbnailOf(ig, pictureToken(other.id, ig), forno)), 404)
+    // the same account's, from the server's key: it opens
+    const r = await call('owner', 'GET', thumbnailOf(ig, pictureToken(org.id, ig), forno))
+    expect(r.status, r.text).toBe(200)
+    // nothing above asked Meta: only the one good download
+    expect(
+      env.meta
+        .calls()
+        .slice(before)
+        .map((c) => c.path),
+    ).toEqual(['/pictures/post-1.jpg'])
+    // not a token at all: refused by the address, before anything is read
+    for (const bad of ['1790000000000001', '..%2Fme', 'a'.repeat(4097)])
+      await failsWith(call('owner', 'GET', thumbnailOf(ig, bad, forno)), 422, 'VALIDATION')
   })
 
   test('a picture on another host is never downloaded', async () => {
@@ -273,15 +324,13 @@ describe('the grid', () => {
       url: 'https://example.com/pictures/post-2.jpg',
     })
     try {
+      const moved = await ok<GridJson>(call('owner', 'GET', gridOf(ig, forno)))
+      if (!moved.published.ok) throw new Error('the posts out were not read')
+      const picture = moved.published.items.find((m) => m.id === media)?.picture ?? ''
       const before = env.meta.calls().length
-      await failsWith(call('owner', 'GET', thumbnailOf(ig, media, forno)), 404)
-      // Meta was asked for the list, nothing else reached anywhere
-      expect(
-        env.meta
-          .calls()
-          .slice(before)
-          .map((c) => c.path),
-      ).toEqual([expect.stringMatching(/\/media$/)])
+      await failsWith(call('owner', 'GET', thumbnailOf(ig, picture, forno)), 404)
+      // refused before any request: nothing reached anywhere
+      expect(env.meta.calls().slice(before)).toEqual([])
     } finally {
       env.meta.scenario('default')
     }
@@ -293,13 +342,13 @@ describe('the grid', () => {
       const grid = await ok<GridJson>(call('manager', 'GET', gridOf(ig, forno)))
       expect(grid.scheduled.length).toBeGreaterThan(0)
       expect(grid.published).toEqual({ ok: false, reason: 'rejected' })
-      await failsWith(call('manager', 'GET', thumbnailOf(ig, '1790000000000001', forno)), 404)
     } finally {
       env.meta.scenario('default')
     }
   })
 
   test('a connection that does not work: no call to Meta, the scheduled posts all the same', async () => {
+    const [picture = ''] = await picturesOf('manager', ig, forno)
     await env.admin.pool.query(
       "update account_connections set status = 'expired' where organization_id = $1",
       [org.id],
@@ -308,6 +357,8 @@ describe('the grid', () => {
       const before = env.meta.calls().length
       const grid = await ok<GridJson>(call('manager', 'GET', gridOf(ig, forno)))
       expect(grid.published).toEqual({ ok: false, reason: 'unreachable' })
+      // a token given before is no longer opened either
+      await failsWith(call('manager', 'GET', thumbnailOf(ig, picture, forno)), 404)
       expect(env.meta.calls()).toHaveLength(before)
     } finally {
       await env.admin.pool.query(
@@ -342,8 +393,19 @@ describe('who sees which grid', () => {
     await failsWith(call('owner', 'GET', gridOf(igOther, forno)), 404)
     await failsWith(call('owner', 'GET', gridOf(ig, ofOther)), 404)
     await failsWith(call('ofOther', 'GET', gridOf(ig, forno, other.slug)), 404)
-    await failsWith(call('ofOther', 'GET', thumbnailOf(ig, '1790000000000001', forno)), 404)
-    await failsWith(call('editor', 'GET', thumbnailOf(igGino, '1790000000000001', gino)), 404)
+    const ofIg = pictureToken(org.id, ig)
+    await failsWith(call('ofGino', 'GET', thumbnailOf(ig, ofIg, forno)), 404)
+    await failsWith(call('ofOther', 'GET', thumbnailOf(ig, ofIg, forno)), 404)
+    await failsWith(call('ofOther', 'GET', thumbnailOf(ig, ofIg, forno, other.slug)), 404)
+    await failsWith(
+      call('editor', 'GET', thumbnailOf(igGino, pictureToken(org.id, igGino), gino)),
+      404,
+    )
+    // the account of another client, through the client one sees
+    await failsWith(
+      call('owner', 'GET', thumbnailOf(igGino, pictureToken(org.id, igGino), forno)),
+      404,
+    )
   })
 })
 
@@ -421,12 +483,32 @@ describe('swapping two scheduled posts', () => {
 })
 
 describe('the calls to Meta of one account', () => {
+  const accountReads = async (accountId: string) => {
+    const { rows } = await env.admin.pool.query<{ count: number }>(
+      `select count from rate_limit_counters
+        where key = $1 and started_at > now() - interval '1 minute'`,
+      [`hits:account:grid-account-reads:${org.id}:${accountId}`],
+    )
+    return rows[0]?.count ?? 0
+  }
+
+  test('only a call to Meta counts on the account: not an account one does not see', async () => {
+    const before = await accountReads(igGino)
+    // the account of a client the Editor does not see, through the client the Editor sees
+    for (let i = 0; i < 3; i++) await failsWith(call('editor', 'GET', gridOf(igGino, forno)), 404)
+    await failsWith(call('editor', 'GET', gridOf(igGino, gino)), 404)
+    expect(await accountReads(igGino)).toBe(before)
+    // an opening that reaches Meta counts once
+    await ok(call('ofGino', 'GET', gridOf(igGino, gino)))
+    expect(await accountReads(igGino)).toBe(before + 1)
+  })
+
   // last: it uses up the account's openings of this minute
   test('everyone together opens an account’s grid at most 60 times a minute', async () => {
     const statuses: number[] = []
-    // three people, each well within their own 30
+    // three people who see the client, each well within their own 30
     for (let i = 0; i < 22; i++)
-      for (const who of ['owner', 'editor', 'ofGino'] as const)
+      for (const who of ['owner', 'editor', 'viewer'] as const)
         statuses.push((await call(who, 'GET', gridOf(ig, forno))).status)
     expect(statuses).toContain(429)
     expect(statuses.indexOf(429)).toBeLessThanOrEqual(60)

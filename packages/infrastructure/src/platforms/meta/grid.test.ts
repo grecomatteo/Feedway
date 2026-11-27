@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import type { MetaAppCredentials } from '@app/application'
 import { MetaError } from './errors.js'
 import type { MetaGridMedia } from './graph-client.js'
-import { getMetaGridMedia, gridMediaOf, listMetaGrid } from './grid.js'
+import { gridMediaOf, listMetaGrid } from './grid.js'
 
 // Instagram's grid (plan 09 Task 12): what a media becomes, and Meta's errors in two words.
 
@@ -126,17 +126,5 @@ describe('the listing', () => {
     )
     expect(listing).toEqual({ ok: true, media: [], load: null })
     expect(asked).toEqual([])
-  })
-})
-
-describe('one media', () => {
-  test('only one among the account’s latest; any other id is not found', async () => {
-    const { client } = clientOf(() => Promise.resolve([media({})]))
-    expect(
-      await getMetaGridMedia(client, CREDENTIALS, ACCOUNT, '1790000000000001', 30),
-    ).toMatchObject({ ok: true, media: { externalId: '1790000000000001' } })
-    expect(
-      await getMetaGridMedia(client, CREDENTIALS, ACCOUNT, '1790000000000009', 30),
-    ).toMatchObject({ ok: false, reason: 'not_found' })
   })
 })

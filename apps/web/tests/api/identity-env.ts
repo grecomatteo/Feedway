@@ -3,6 +3,7 @@ import { expect } from 'vitest'
 import {
   TEST_MAIL_DIR,
   createDb,
+  createGridPictureTokens,
   createKeyRing,
   createLogger,
   createPasswordHasher,
@@ -11,6 +12,7 @@ import {
   systemClock,
   uuidV7Generator,
 } from '@app/infrastructure'
+import type { GridPictureTokens } from '@app/application'
 import type { DbHandle } from '@app/infrastructure'
 import { startMetaMock } from '@app/meta-mock'
 import type { MetaMock } from '@app/meta-mock'
@@ -41,6 +43,8 @@ export interface ApiEnv {
   meta: MetaMock
   /** The fake Bot API: no test talks to the real Telegram */
   telegram: TelegramMock
+  /** The grid's picture tokens under the server's key, to make ones the server never gave. */
+  gridPictures: GridPictureTokens
   /** Every request from its own address, so the per-address limits stay out of the way. */
   call(method: Method, path: string, body?: unknown, opts?: CallOptions): Promise<Response>
   /** A new agency with its data key, as the CLI creates one; its slug is its id. */
@@ -110,6 +114,7 @@ export async function startApiEnv(
     web,
     meta,
     telegram,
+    gridPictures: createGridPictureTokens(encryptionKey),
     call,
     async agency(opts = {}) {
       const id = await seed(tdb.runtimeUrl, (s) => s.organization(opts))
