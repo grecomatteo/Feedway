@@ -489,6 +489,8 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               ofAgency,
               notTrashed,
               eq(posts.status, 'draft'),
+              // a draft with a date still to come waits for its date
+              or(isNull(posts.scheduledAt), lte(posts.scheduledAt, now)),
               sql`exists (select 1 from workspaces w
                 where w.organization_id = ${posts.organizationId} and w.id = ${posts.workspaceId}
                   and w.draft_retention_days is not null

@@ -23,9 +23,18 @@ export function isDraftRetention(value: unknown): value is DraftRetentionDays {
   return value === null || DRAFT_RETENTION_CHOICES.some((days) => days === value)
 }
 
-/** When a draft changed last at `updatedAt` goes to «Eliminati» by itself; null: never. */
-export function autoTrashAt(updatedAt: Date, retentionDays: number | null): Date | null {
-  return retentionDays === null ? null : new Date(updatedAt.getTime() + retentionDays * DAY_MS)
+/**
+ * When a draft changed last at `updatedAt` goes to «Eliminati» by itself; null: never. A draft
+ * with a date still to come (one of «Prepara») waits for its date first.
+ */
+export function autoTrashAt(
+  updatedAt: Date,
+  retentionDays: number | null,
+  scheduledAt: Date | null = null,
+): Date | null {
+  if (retentionDays === null) return null
+  const due = updatedAt.getTime() + retentionDays * DAY_MS
+  return new Date(scheduledAt ? Math.max(due, scheduledAt.getTime()) : due)
 }
 
 /** When a post in «Eliminati» since `trashedAt` goes for good. */

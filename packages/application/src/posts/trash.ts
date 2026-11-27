@@ -173,10 +173,14 @@ export async function purgePosts(
 export function assertDeletableNow(post: PostRecord): void {
   if (post.status !== 'draft' && post.status !== 'cancelled')
     throw wrongState(post.status, 'delete')
-  if (post.trashedAt === null && !isEmptyDraft(post))
-    throw new DomainError(
-      'CONFLICT',
-      'Una bozza con qualcosa dentro va prima negli Eliminati: usa «Elimina»',
-      { reason: 'post_not_trashed' },
-    )
+  if (post.trashedAt === null && !isEmptyDraft(post)) throw notTrashedYet()
 }
+
+export const notTrashedYet = () =>
+  new DomainError(
+    'CONFLICT',
+    'Una bozza con qualcosa dentro va prima negli Eliminati: usa «Elimina»',
+    {
+      reason: 'post_not_trashed',
+    },
+  )

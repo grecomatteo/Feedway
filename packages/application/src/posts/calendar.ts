@@ -134,12 +134,16 @@ async function calendarPostsOf(
   const retention = new Map(
     records.length === 0
       ? []
-      : (await tx.workspaces.listVisible(actor)).map((w) => [w.id, w.draftRetentionDays]),
+      : // the night leaves an archived client alone: nothing to announce
+        (await tx.workspaces.listVisible(actor)).map((w) => [
+          w.id,
+          w.archivedAt === null ? w.draftRetentionDays : null,
+        ]),
   )
   return records.map((p) => {
     const autoTrash =
       p.status === 'draft' && p.trashedAt === null
-        ? autoTrashAt(p.updatedAt, retention.get(p.workspaceId) ?? null)
+        ? autoTrashAt(p.updatedAt, retention.get(p.workspaceId) ?? null, p.scheduledAt)
         : null
     const local = p.scheduledAt ? instantToZoned(p.scheduledAt, timeZone) : null
     return {

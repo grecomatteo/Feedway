@@ -130,6 +130,17 @@ test('the night empties «Eliminati», the empty drafts and the forgotten ones, 
       scheduledAt: new Date('2027-03-20T10:00:00Z'),
       updatedAt: ago(2 * DAY),
     }),
+    // a prepared draft waits for its date, then goes like the others
+    datedAhead: await p({
+      workspaceId: thirty,
+      scheduledAt: new Date('2027-04-20T10:00:00Z'),
+      updatedAt: ago(40 * DAY),
+    }),
+    datedPast: await p({
+      workspaceId: thirty,
+      scheduledAt: new Date('2027-03-01T10:00:00Z'),
+      updatedAt: ago(40 * DAY),
+    }),
     forgotten30: await p({ workspaceId: thirty, updatedAt: ago(31 * DAY) }),
     touched30: await p({ workspaceId: thirty, updatedAt: ago(29 * DAY) }),
     forgotten60: await p({ workspaceId: sixty, updatedAt: ago(61 * DAY) }),
@@ -158,6 +169,8 @@ test('the night empties «Eliminati», the empty drafts and the forgotten ones, 
     emptyNew: 'draft',
     emptyWithNote: 'draft',
     fromPlan: 'draft',
+    datedAhead: 'draft',
+    datedPast: 'trashed:draft',
     forgotten30: 'trashed:draft',
     touched30: 'draft',
     forgotten60: 'trashed:draft',
@@ -188,6 +201,29 @@ test('the night empties «Eliminati», the empty drafts and the forgotten ones, 
     { action: 'post.deleted', actor_id: null, data: { reason: 'retention' } },
     { action: 'post.trashed', actor_id: null, data: { reason: 'retention' } },
   ])
+})
+
+test('a suspended agency is left alone: its people cannot get its drafts back', async () => {
+  const a = await agency(tdb, runtime)
+  const workspaceId = await seed(tdb.runtimeUrl, (s) => s.workspace(a.organizationId))
+  const trashed = await post(a.organizationId, a.ownerId, {
+    workspaceId,
+    updatedAt: ago(90 * DAY),
+    trashedAt: ago(60 * DAY),
+  })
+  const forgotten = await post(a.organizationId, a.ownerId, {
+    workspaceId,
+    updatedAt: ago(90 * DAY),
+  })
+  // the status changes only in the system scope
+  await admin.query("select set_config('app.scope', 'system', false)")
+  await admin.query(
+    `update organizations set status = 'suspended', suspended_at = now() where id = $1`,
+    [a.organizationId],
+  )
+  await admin.query("select set_config('app.scope', '', false)")
+  await postsDraftsCleanup({ id: 'sospesa', data: {} }, deps())
+  expect([await state(trashed), await state(forgotten)]).toEqual(['trashed:draft', 'draft'])
 })
 
 test('on two workers at once, each post goes once and is logged once', async () => {

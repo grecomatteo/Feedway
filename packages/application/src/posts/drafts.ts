@@ -23,7 +23,7 @@ import {
 } from './common.js'
 import { readPost, type PostDto } from './read.js'
 import { NOTHING_AFTER, saveScheduled, sendAfterSchedule } from './schedule.js'
-import { assertDeletableNow } from './trash.js'
+import { assertDeletableNow, notTrashedYet } from './trash.js'
 
 // Drafts (spec §11.2, plan 06 Task 4): a draft saves with any problem, the checks are the
 // editor's to show. Writing takes `post.draft` on one's own drafts, `post.manage_others` on
@@ -182,6 +182,9 @@ export async function deletePost(
     if (!mayEditContent(current, post)) throw cannotEdit()
     // a post of the worker's (plan 07) is not deleted either: only drafts and cancelled ones
     assertDeletableNow(post)
+    // an internal note is something: as the night and «Elimina le bozze vuote», it stays
+    if (post.trashedAt === null && (await tx.posts.listNotes(scope, post.id)).length > 0)
+      throw notTrashedYet()
     if (!(await tx.posts.delete(scope, post.id))) throw postNotFound()
     await recordPost(tx, current, 'post.deleted', post, request.ip)
   })

@@ -3,16 +3,17 @@ import type { Clock } from '../ports/clock.js'
 import type { Logger } from '../ports/logger.js'
 import type { ExclusiveLock } from '../ports/media-processing.js'
 import type { PostRecord, PostScope } from '../ports/posts.js'
+import type { WorkspaceRecord } from '../ports/repositories.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
 import { isEmptyDraft } from './calendar.js'
 
 // `posts.drafts_cleanup` (plan 09 Task 14, Scelta 12): every night, the posts in «Eliminati» for
 // more than 30 days go for good, the empty drafts nobody touched for 24 hours too, and the drafts
-// nobody touched for the days their client chose go to «Eliminati». An archived client is left
-// alone. The system scope only lists the agencies; each one is cleaned in its own scope, and
-// every post is locked and read again before it goes, so a draft written meanwhile stays and,
-// with two workers, each post goes once.
+// nobody touched for the days their client chose go to «Eliminati». An archived client and a
+// suspended agency are left alone. The system scope only lists the agencies; each one is cleaned
+// in its own scope, and every post is locked and read again before it goes, so a draft written
+// meanwhile stays and, with two workers, each post goes once.
 
 export interface DraftsCleanupDeps {
   uow: UnitOfWork
@@ -64,33 +65,37 @@ async function cleanAgency(tx: Tx, organizationId: string, now: Date) {
     emptyBefore,
     limit: DRAFTS_CLEANUP_BATCH,
   })
-  const archived = new Map<string, boolean>()
+  const clients = new Map<string, WorkspaceRecord | null>()
   // read again under the client's share lock: an archiving under way is waited for
-  const isOpen = async (workspaceId: string) => {
-    let known = archived.get(workspaceId)
-    if (known === undefined) {
-      const workspace = await tx.workspaces.findForShare(organizationId, workspaceId)
-      known = !workspace || workspace.archivedAt !== null
-      archived.set(workspaceId, known)
+  const openClient = async (workspaceId: string) => {
+    let workspace = clients.get(workspaceId)
+    if (workspace === undefined) {
+      const found = await tx.workspaces.findForShare(organizationId, workspaceId)
+      workspace = found && found.archivedAt === null ? found : null
+      clients.set(workspaceId, workspace)
     }
-    return !known
+    return workspace
   }
   const lock = async (c: { id: string; workspaceId: string }) => {
-    if (!(await isOpen(c.workspaceId))) return null
+    const workspace = await openClient(c.workspaceId)
+    if (!workspace) return null
     const scope: PostScope = { organizationId, workspaceId: c.workspaceId }
     const post = await tx.posts.findForUpdate(scope, c.id)
-    return post && { post, scope }
+    return post && { post, scope, workspace }
   }
+  // in id order, as «Ripristina» and «Elimina per sempre» lock: the two never wait in a ring
+  const byId = <T extends { id: string }>(list: readonly T[]) =>
+    [...list].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   let deleted = 0
   let trashed = 0
-  for (const c of found.expired) {
+  for (const c of byId(found.expired)) {
     const locked = await lock(c)
     if (!locked?.post.trashedAt || locked.post.trashedAt >= trashedBefore) continue
     if (!(await tx.posts.delete(locked.scope, c.id))) continue
     await record(tx, 'post.deleted', locked.post)
     deleted++
   }
-  for (const c of found.empty) {
+  for (const c of byId(found.empty)) {
     const locked = await lock(c)
     if (!locked) continue
     const { post } = locked
@@ -101,13 +106,12 @@ async function cleanAgency(tx: Tx, organizationId: string, now: Date) {
     await record(tx, 'post.deleted', post)
     deleted++
   }
-  for (const c of found.stale) {
+  for (const c of byId(found.stale)) {
     const locked = await lock(c)
     if (!locked) continue
-    const { post, scope } = locked
+    const { post, scope, workspace } = locked
     if (post.trashedAt !== null || post.status !== 'draft') continue
-    const workspace = await tx.workspaces.findById(organizationId, c.workspaceId)
-    const due = workspace && autoTrashAt(post.updatedAt, workspace.draftRetentionDays)
+    const due = autoTrashAt(post.updatedAt, workspace.draftRetentionDays, post.scheduledAt)
     if (!due || due > now) continue
     if (!(await tx.posts.setTrashed(scope, post.id, { at: now, by: null }, null))) continue
     await record(tx, 'post.trashed', post)
@@ -119,11 +123,14 @@ async function cleanAgency(tx: Tx, organizationId: string, now: Date) {
 export async function cleanupDrafts(deps: DraftsCleanupDeps): Promise<DraftsCleanupReport> {
   const run = await deps.lock.tryRun(DRAFTS_CLEANUP_LOCK, async () => {
     const now = deps.clock.now()
-    const organizations = await deps.uow.runAsSystem(
-      'posts.drafts_cleanup: agencies',
-      (tx) => tx.organizations.listAll(),
-      { routine: true },
-    )
+    // a suspended agency is left alone: its people could not get a draft back before it goes
+    const organizations = (
+      await deps.uow.runAsSystem(
+        'posts.drafts_cleanup: agencies',
+        (tx) => tx.organizations.listAll(),
+        { routine: true },
+      )
+    ).filter((o) => o.status === 'active')
     let deleted = 0
     let trashed = 0
     let failed = 0

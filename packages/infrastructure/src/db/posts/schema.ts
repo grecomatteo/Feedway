@@ -61,7 +61,7 @@ export const posts = pgTable(
     version: integer('version').notNull().default(1),
     // in «Eliminati» since (plan 09 Scelta 12): the status stays, so «Ripristina» gives it back
     trashedAt: tz('trashed_at'),
-    // null: the night's clean-up, or a person gone
+    // null: the night's clean-up (no foreign key, as the audit's actor: the id stays)
     trashedBy: uuid('trashed_by'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

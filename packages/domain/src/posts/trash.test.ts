@@ -19,6 +19,15 @@ test('a forgotten draft goes to «Eliminati» after the days of its client (plan
   expect(DRAFT_RETENTION_DEFAULT).toBe(30)
 })
 
+test('a draft with a date still to come waits for its date: «Prepara» never loses it before', () => {
+  const updatedAt = new Date('2027-01-01T10:00:00Z')
+  const later = new Date('2027-03-15T09:00:00Z')
+  expect(autoTrashAt(updatedAt, 30, later)).toEqual(later)
+  const sooner = new Date('2027-01-10T09:00:00Z')
+  expect(autoTrashAt(updatedAt, 30, sooner)).toEqual(new Date(updatedAt.getTime() + 30 * DAY))
+  expect(autoTrashAt(updatedAt, null, later)).toBeNull()
+})
+
 test('only 30, 60, 90 days or «Mai» are a choice', () => {
   for (const ok of [30, 60, 90, null]) expect(isDraftRetention(ok)).toBe(true)
   for (const no of [0, 7, 31, 120, -30, 30.5, '30', undefined])

@@ -242,6 +242,11 @@ describe('deleting for good', () => {
     const empty = await post({ caption: '', when: null })
     expect((await call('editor', 'DELETE', `${posts()}/${empty}`)).status).toBe(200)
     expect(await row(empty)).toBeNull()
+    // an internal note is something: as the night and «Elimina le bozze vuote», it stays
+    const noted = await post({ caption: '', when: null })
+    await call('editor', 'POST', `${posts()}/${noted}/notes`, { body: 'Da rivedere' })
+    expect((await call('editor', 'DELETE', `${posts()}/${noted}`)).status).toBe(409)
+    expect(await row(noted)).not.toBeNull()
     const trashed = await post({ trashed: true })
     expect((await call('editor', 'DELETE', `${posts()}/${trashed}`)).status).toBe(200)
     expect(await row(trashed)).toBeNull()
@@ -323,5 +328,16 @@ describe('«Sposta negli Eliminati le bozze non toccate da»', () => {
       [forno],
     )
     expect(rows[0]?.n).toBe(2)
+  })
+
+  test('an archived client’s drafts are not announced: the night leaves them', async () => {
+    const id = await post({ workspaceId: archived, when: null })
+    const r = await call('manager', 'GET', `/calendar/drafts?workspaceId=${archived}`)
+    expect(r.status, JSON.stringify(r.json)).toBe(200)
+    const item = (r.json as { items: { id: string; autoTrashAt: string | null }[] }).items.find(
+      (i) => i.id === id,
+    )
+    expect(item).toBeDefined()
+    expect(item?.autoTrashAt).toBeNull()
   })
 })

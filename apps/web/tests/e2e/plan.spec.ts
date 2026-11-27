@@ -156,7 +156,10 @@ test('a month planned in a row, moved, prepared and given back', async ({ page, 
   await expect(card('Pane caldo')).toContainText('Preparato')
   await expect(page.locator('[data-plan-counts]')).toHaveText('3 contenuti · 1 preparato')
 
-  // the post deleted: the content is to prepare again (rule 5)
+  // the post deleted for good, from «Eliminati»: the content is to prepare again (rule 5)
+  await send(page.request, 'POST', `/api/v1/orgs/${org}/workspaces/${client.id}/posts/trash`, {
+    postIds: [postId],
+  })
   const gone = await page.request.fetch(
     `/api/v1/orgs/${org}/workspaces/${client.id}/posts/${postId}`,
     { method: 'DELETE', headers: headers() },

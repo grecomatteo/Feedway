@@ -570,7 +570,13 @@ const RULES: Record<string, readonly Rule[]> = {
     },
   ],
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': [
-    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    // the case's draft has a note: «Elimina per sempre» from «Eliminati»
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: anothersTrashed,
+      label: 'of another',
+    },
     {
       permission: 'post.draft',
       level: 'workspace',
