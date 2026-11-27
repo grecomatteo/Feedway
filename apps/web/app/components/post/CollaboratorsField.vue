@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { POST_CHECK_LIMITS } from '@app/contracts'
 import { MAX_INSTAGRAM_COLLABORATORS } from '@app/domain'
 import type { PostEditor } from '~/composables/usePostEditor'
 
@@ -30,7 +29,7 @@ const row = useTemplateRef<HTMLElement>('row')
  * save takes (a pasted list would make it fail).
  */
 function add(): boolean {
-  const room = POST_CHECK_LIMITS.collaborators - names.value.length
+  const room = MAX_SAVED_COLLABORATORS - names.value.length
   const more = typedCollaborators(typed.value).slice(0, Math.max(0, room))
   typed.value = ''
   if (more.length === 0) return false

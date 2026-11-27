@@ -1,3 +1,4 @@
+import { POST_CHECK_LIMITS } from '@app/contracts'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   contentKey,
@@ -14,6 +15,7 @@ import {
   typeHint,
   typeOptions,
   typedCollaborators,
+  MAX_SAVED_COLLABORATORS,
   type DraftBody,
 } from '../app/utils/post-editor.ts'
 
@@ -110,6 +112,10 @@ describe('the collaborators typed in the field (D-125)', () => {
   test('names written together become one each, empty pieces go away', () => {
     expect(typedCollaborators('forno, @mulino  pane;')).toEqual(['forno', 'mulino', 'pane'])
     expect(typedCollaborators(' , @ ')).toEqual([])
+  })
+
+  test('the page keeps no more names than a save takes', () => {
+    expect(MAX_SAVED_COLLABORATORS).toBe(POST_CHECK_LIMITS.collaborators)
   })
 
   test('a wrong name stays as typed: the checks say what is wrong', () => {

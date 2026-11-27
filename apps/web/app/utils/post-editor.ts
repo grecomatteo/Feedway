@@ -142,6 +142,12 @@ export function hasContent(body: DraftBody): boolean {
 }
 
 /**
+ * The most collaborators a save takes (`POST_CHECK_LIMITS.collaborators` of the contracts, which
+ * the page does not import: zod in the page's code trips its CSP). The checks block over 3.
+ */
+export const MAX_SAVED_COLLABORATORS = 10
+
+/**
  * The names typed in «Invita in collaborazione» (D-125): one for each piece between spaces,
  * commas or semicolons, as the editor keeps them. A wrong one stays: the checks say why.
  */
