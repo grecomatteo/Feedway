@@ -28,5 +28,13 @@
     "esbuild@0.27.7": true,
     "esbuild@0.28.2": true,
     "vue-demi@0.14.10": true
+  },
+  "overrides": {
+    "fontless": {
+      "esbuild": "0.28.2"
+    },
+    "readdir-glob": {
+      "minimatch": "11.0.9"
+    }
   }
 }
