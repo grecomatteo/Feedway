@@ -70,14 +70,15 @@ jobs:
           load: true
           build-args: APP_VERSION=${{ env.VERSION }}
           tags: ${{ env.IMAGE }}:${{ env.TAG }}-${{ matrix.arch }}
-          cache-from: type=gha,scope=release-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=release-${{ matrix.arch }}
-          # the system packages are installed fresh at every release: a cached `apt-get upgrade`
-          # layer keeps Debian fixes out and Trivy stops the release (v0.15.0, 27/11)
-          no-cache-filters: media-tools
+          # a release is built from scratch: with the GHA cache (even with no-cache-filters on
+          # media-tools) Trivy saw Debian versions the build log never installed and stopped
+          # v0.15.0 (27/11); the cache is the presumed cause, not a verified one (D-135)
+          no-cache: true
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}-${{ matrix.arch }}
+          # no layer results from older scans: the release image is judged only on what it holds
+          cache: false
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
