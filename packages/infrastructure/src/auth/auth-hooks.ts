@@ -297,7 +297,7 @@ const ACCOUNT_PATHS: ReadonlySet<string> = new Set([
  * `path` is relative to `/api/auth`; a query or a trailing slash does not change it.
  */
 export function isSecondFactorGatedAuthPath(path: string): boolean {
-  const bare = (path.split('?')[0] ?? '').replace(/\/+$/, '')
+  const bare = withoutTrailingSlashes(path.split('?')[0] ?? '')
   return ACCOUNT_PATHS.has(bare) && !SECOND_FACTOR_PROOFS.has(bare)
 }
 
@@ -838,4 +838,11 @@ export async function mayOpenSession(db: Db, userId: string): Promise<boolean> {
     .where(eq(users.id, userId))
     .limit(1)
   return row !== undefined && row.status === 'active' && row.anonymizedAt === null
+}
+
+/** `text` without its trailing slashes, in linear time (a `/\/+$/` replace is quadratic). */
+function withoutTrailingSlashes(text: string): string {
+  let end = text.length
+  while (end > 0 && text.charCodeAt(end - 1) === 47) end--
+  return text.slice(0, end)
 }

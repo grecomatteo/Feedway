@@ -26,3 +26,9 @@ test('only the sign-in paths give a method, never an inherited property', () => 
   for (const path of ['constructor', 'toString', '__proto__', 'hasOwnProperty', '/sign-out'])
     expect(authMethodForPath(path), path).toBeUndefined()
 })
+
+test('a path of many slashes is answered at once (no quadratic trim)', () => {
+  const started = performance.now()
+  expect(isSecondFactorGatedAuthPath(`${'/'.repeat(200_000)}x`)).toBe(false)
+  expect(performance.now() - started).toBeLessThan(1000)
+})
