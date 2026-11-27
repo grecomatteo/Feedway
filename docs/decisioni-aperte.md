@@ -753,6 +753,17 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   5. **Minori:** corretti «Da ricollegare» in cima a Integrazioni → Meta, `/problemi` con il testo del post e il motivo, il riepilogo senza il nome dell'agenzia ripetuto e con l'ora d'uscita, l'esito senza la striscia di miniature al caricamento. **Restano:** l'ordine delle bozze (Task 3 della tappa 9, D-79) e i due `target.prepare` del 25/11 (il codice li scarta per la generation, da guardare nei log).
   - **Note sulla guida:** la 2 ha anche una frase in Piattaforma → Integrazioni e in Integrazioni → Telegram dell'agenzia (gli avvisi della piattaforma passano solo dal bot della piattaforma); le altre vanno nella guida della 0.15.0. **Richieste nuove:** non fatte (caricamento in parallelo; titolo nel «Da sistemare» di «Oggi», che cambia la pagina e chiede il prima e dopo).
 
+### D-134 · Errori di passaggio del polling di Telegram nel log
+
+- **Origine:** controlli della 0.14.0 sulla VPS (25–27/11): in 72 ore il worker ha scritto 23 volte «telegram poll failed» (`kind` `unavailable`, livello 40, cioè avviso), senza notifiche perse. Sono le chiusure, i timeout e i 5xx normali del long polling.
+- **Scelte provvisorie (ramo `fix/09-telegram-poll-allarmi`, nella 0.15.0):**
+  1. **Un fallimento di passaggio** (`unavailable`, `rate_limited`) si scrive a livello info (30) e lo stesso giro riprova dopo 1, 2, 4, 8 e poi 15 s, o dopo l'attesa chiesta da un 429, finché resta tempo; altrimenti riprova il giro dopo, come prima.
+  2. **L'allarme** (un errore, livello 50, «telegram poll failing») parte una volta quando lo stesso bot fallisce 10 volte di fila o da 5 minuti; mentre dura si ripete al massimo ogni ora, gli altri fallimenti vanno a debug. Alla prima risposta buona «telegram poll recovered» a info, con quanti fallimenti e da quanto.
+  3. **Gli errori che non passano da soli** restano errori subito: il token rifiutato (401, «telegram bot token refused», il bot diventa rosso) e il 409, un altro `getUpdates` o un webhook sullo stesso bot (tipo nuovo `conflict`, «telegram poll refused»), ripetuto al massimo ogni ora.
+  4. **Il conto è in memoria nel worker**, un bot per volta: dopo un riavvio riparte da zero. Con un worker solo basta; con più worker ognuno conta i suoi giri.
+- **Opzioni aperte:** (a) come ora, solo nel log; (b) con l'allarme anche un avviso nel pannello o su healthchecks.io; (c) soglie diverse (oggi 10 fallimenti o 5 minuti).
+- **Stato:** scelta provvisoria (a). Da guardare nella prova della 0.15.0: le righe «telegram poll failed» a livello 30 e nessun «telegram poll failing».
+
 ## Pianificazione (tappa 9)
 
 ### D-123 · Scelte provvisorie del piano della tappa 9

@@ -117,3 +117,16 @@ test('the token goes in the path as @BotFather gives it, colon and all', async (
   echo.close()
   expect(seen).toBe(`/bot${token}/getMe`)
 })
+
+test('a 409, another getUpdates or a webhook on the bot, is a conflict', async () => {
+  const busy = createServer((_req, res) => {
+    res.writeHead(409, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ ok: false, error_code: 409, description: 'Conflict' }))
+  })
+  await new Promise<void>((resolve) => busy.listen(0, '127.0.0.1', resolve))
+  const { port } = busy.address() as AddressInfo
+  const raw = createTelegramBotApi({ baseUrl: new URL(`http://127.0.0.1:${String(port)}`) })
+  const error = await failure(raw.getUpdates(token, { offset: 0, timeoutSeconds: 0 }))
+  busy.close()
+  expect(error.kind).toBe('conflict')
+})
