@@ -71,6 +71,9 @@ export const AUDIT_ACTIONS = [
   'post.unscheduled',
   'post.cancelled',
   'post.deleted',
+  // «Eliminati» (plan 09 Scelta 12): by a person, or by the night's clean-up (`reason: 'retention'`)
+  'post.trashed',
+  'post.restored',
   'post.retried',
   'post.verified_manually',
   'post.target_cancelled',

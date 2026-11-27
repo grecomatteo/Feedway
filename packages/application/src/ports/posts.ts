@@ -39,6 +39,10 @@ export interface PostTargetRecord {
 
 /** A post with its files (in order), its cover, its destinations and its labels. */
 export interface PostRecord extends Post {
+  /** in «Eliminati» since (plan 09 Scelta 12); null: not there */
+  trashedAt: Date | null
+  /** who sent it there; null: the night's clean-up */
+  trashedBy: string | null
   mediaIds: string[]
   cover: PostCover | null
   targets: PostTargetRecord[]
@@ -96,8 +100,12 @@ export interface PostNoteRecord {
  * only what the filters keep. An empty list of a filter means any.
  */
 export interface CalendarPostQuery {
-  /** a time in `[from, to)`, by time; `undated`: the drafts without one, latest changed first */
-  period: { from: Date; to: Date } | 'undated'
+  /**
+   * a time in `[from, to)`, by time; `undated`: the drafts without one, latest changed first;
+   * `trashed`: the posts in «Eliminati», dated or not, the latest sent there first. Every other
+   * period leaves «Eliminati» out.
+   */
+  period: { from: Date; to: Date } | 'undated' | 'trashed'
   statuses: readonly PublishingPostStatus[]
   types: readonly PostType[]
   /** who created it */
@@ -130,7 +138,7 @@ export interface PostRepository {
     change: PostChange,
     expectedVersion: number,
   ): Promise<number | null>
-  /** The posts of the workspace, newest first; `before`: the posts after this one. */
+  /** The posts of the workspace not in «Eliminati», newest first; `before`: the posts after this one. */
   listByWorkspace(
     scope: PostScope,
     page: { status?: PostStatus; before?: string; limit: number },
@@ -154,6 +162,30 @@ export interface PostRepository {
   /** false: no such post. */
   delete(scope: PostScope, postId: string): Promise<boolean>
   /**
+   * Into «Eliminati» (`trashed` given) or back out of it (null), the version up by one; false:
+   * no such post, or already there (or not there).
+   */
+  setTrashed(
+    scope: PostScope,
+    postId: string,
+    trashed: { at: Date; by: string | null } | null,
+    updatedBy: string | null,
+  ): Promise<boolean>
+  /**
+   * What the night's clean-up of the agency looks at (plan 09 Task 14), clients not archived
+   * only, at most `limit` of each: the posts in «Eliminati» since before `trashedBefore`, the
+   * empty drafts not touched since `emptyBefore`, and the drafts not touched for the days their
+   * client chose, as of `now`.
+   */
+  cleanupCandidates(
+    organizationId: string,
+    query: { now: Date; trashedBefore: Date; emptyBefore: Date; limit: number },
+  ): Promise<{
+    expired: { id: string; workspaceId: string }[]
+    empty: { id: string; workspaceId: string }[]
+    stale: { id: string; workspaceId: string }[]
+  }>
+  /**
    * Every scheduled post of the workspace back to draft, with its destinations and without
    * their fingerprints (D-70: archiving a client); the ids of the posts moved.
    */
@@ -175,7 +207,7 @@ export interface PostRepository {
   publishingFacts(query: PublishingHistoryQuery): Promise<PublishingHistoryFacts>
   /**
    * The posts of the agency, not deleted, that use the file (as a file or as a cover), each post
-   * once per file, in the order of `compareUses` (D-80.7): `primaryUse` and `deletionBlock`
+   * once per file, those in «Eliminati» too (`trashed`), in the order of `compareUses` (D-80.7): `primaryUse` and `deletionBlock`
    * decide what the library says and whether a file is deleted (D-18).
    */
   usingMedia(

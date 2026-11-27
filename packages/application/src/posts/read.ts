@@ -54,6 +54,8 @@ export interface PostDto {
   updatedBy: string
   createdAt: string
   updatedAt: string
+  /** in «Eliminati» since (plan 09 Scelta 12): the editor shows it read-only, with «Ripristina» */
+  trashedAt: string | null
 }
 
 const gone = (id: string): PostMediaDto => ({
@@ -110,6 +112,7 @@ export function toPostDto(
     updatedBy: post.updatedBy,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
+    trashedAt: post.trashedAt?.toISOString() ?? null,
   }
 }
 

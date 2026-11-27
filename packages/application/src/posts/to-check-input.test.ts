@@ -30,6 +30,8 @@ const post = (over: Partial<PostRecord> = {}): PostRecord => ({
   scheduledBy: null,
   updatedBy: '0190a000-0000-7000-8000-0000000000cc',
   version: 3,
+  trashedAt: null,
+  trashedBy: null,
   createdAt: new Date('2026-11-18T10:00:00Z'),
   updatedAt: new Date('2026-11-18T10:00:00Z'),
   mediaIds: ['m1', 'm2'],

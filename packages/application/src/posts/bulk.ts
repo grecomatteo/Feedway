@@ -17,6 +17,7 @@ import { isUuid } from '../identity/index.js'
 import type { BulkImportRecord, BulkRow, BulkRowInput } from '../ports/bulk-imports.js'
 import type { Tx } from '../ports/tx.js'
 import {
+  assertNotTrashed,
   assertReferences,
   mayEditContent,
   mayPublish,
@@ -441,6 +442,7 @@ export async function duplicatePost(
       const source = await tx.posts.find(scope, input.postId)
       // who cannot write in the client does not learn the post is there (plan 09 Task 10)
       if (!source || !can(current, 'post.draft', scope)) throw postNotFound()
+      assertNotTrashed(source)
       if (input.schedule && !mayImportInBulk(current, scope)) throw cannotImportInBulk()
       // an account taken off the client since is not copied: the copy could not be saved with it
       const wanted = source.targets.filter((t) => !t.cancelledInPanel).map((t) => t.accountId)

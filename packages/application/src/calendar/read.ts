@@ -251,25 +251,31 @@ async function marksOf(
   return marks
 }
 
-/** The drafts without a date of the list view (plan 09 Scelta 2), the latest changed first. */
+/**
+ * The drafts without a date of the list view (plan 09 Scelta 2), the latest changed first; with
+ * `trashed`, the client's «Eliminati» instead (Scelta 12): drafts and cancelled posts, dated or
+ * not, the latest sent there first. The Viewer reads them too, and changes nothing.
+ */
 export async function getUndatedDrafts(
   deps: Pick<CalendarDeps, 'uow'>,
   actor: OrgActor,
-  input: { workspaceId?: string; filters?: Partial<CalendarFilters> },
+  input: { workspaceId?: string; filters?: Partial<CalendarFilters>; trashed?: boolean },
 ): Promise<{ timeZone: string; items: CalendarPostDto[]; truncated: boolean }> {
   const filters = filtersOf(input.filters)
   const { organizationId } = actor
+  const trashed = input.trashed === true
   return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
     const { current, ids } = await clientsOf(tx, actor, input.workspaceId, filters.workspaceIds)
     const { timeZone } = await agencyOf(tx, organizationId, [])
-    // a filter of the states without «Bozza» leaves no draft
+    const kept = trashed ? (['draft', 'cancelled'] as const) : (['draft'] as const)
+    // a filter of the states keeps only its own: without «Bozza» (or «Annullato») nothing is left
     const statuses =
-      filters.statuses.length === 0 || filters.statuses.includes('draft') ? ['draft' as const] : []
+      filters.statuses.length === 0 ? [...kept] : kept.filter((st) => filters.statuses.includes(st))
     if (ids.length === 0 || statuses.length === 0 || filters.quick !== null)
       return { timeZone, items: [], truncated: false }
     const { items, truncated } = await listPostsInRange(tx, current, {
       workspaceIds: ids,
-      period: 'undated',
+      period: trashed ? 'trashed' : 'undated',
       timeZone,
       filters: postFilters(filters, statuses),
       limit: UNDATED_DRAFTS_MAX,

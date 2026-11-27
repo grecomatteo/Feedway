@@ -262,6 +262,28 @@ const callersDraft: Prepare = async (ids, cookie) => {
   return { values: { postId: ((await r.json()) as { id: string }).id } }
 }
 
+/** A post into «Eliminati», written directly (plan 09 Task 14). */
+const intoTrash = (postId: string) =>
+  fx.env.admin.pool.query('update posts set trashed_at = now() where id = $1', [postId])
+
+/**
+ * The batch of «Eliminati»: the caller's own draft where they may write one (else the case's,
+ * someone else's), sent there first for «Ripristina» and «Elimina per sempre».
+ */
+const callersBatch =
+  (trashed: boolean): Prepare =>
+  async (ids, cookie) => {
+    const postId = (await callersDraft(ids, cookie)).values?.postId ?? ids.post
+    if (trashed) await intoTrash(postId)
+    return { body: { postIds: [postId] } }
+  }
+
+/** The case's draft, someone else's, sent to «Eliminati» first. */
+const anothersTrashed: Prepare = async (ids) => {
+  await intoTrash(ids.post)
+  return {}
+}
+
 /**
  * An import of the caller, where they may start one; `done`: just ended, so «Annulla» is open.
  * A row without a date stays a draft: nothing is scheduled.
@@ -548,12 +570,60 @@ const RULES: Record<string, readonly Rule[]> = {
     },
   ],
   'DELETE /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}': [
-    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    // the case's draft has a note: «Elimina per sempre» from «Eliminati»
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: anothersTrashed,
+      label: 'of another',
+    },
     {
       permission: 'post.draft',
       level: 'workspace',
       ownIsEnough: true,
       prepare: callersDraft,
+      label: 'own',
+    },
+  ],
+  // «Eliminati» (plan 09 Task 14): who may delete the post today, its author or who may change
+  // anyone's (`deletePost`), for every post of the batch
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/trash': [
+    { permission: 'post.manage_others', level: 'workspace', label: 'of another' },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersBatch(false),
+      label: 'own',
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/restore': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: anothersTrashed,
+      label: 'of another',
+    },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersBatch(true),
+      label: 'own',
+    },
+  ],
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/purge': [
+    {
+      permission: 'post.manage_others',
+      level: 'workspace',
+      prepare: anothersTrashed,
+      label: 'of another',
+    },
+    {
+      permission: 'post.draft',
+      level: 'workspace',
+      ownIsEnough: true,
+      prepare: callersBatch(true),
       label: 'own',
     },
   ],
@@ -1054,7 +1124,10 @@ const AUDIT_DATA_KEYS: Readonly<Record<AuditAction, readonly string[]>> = {
   'post.scheduled': ['scheduledAt'],
   'post.unscheduled': [],
   'post.cancelled': [],
-  'post.deleted': [],
+  // the night's clean-up says why (plan 09 Task 14)
+  'post.deleted': ['reason'],
+  'post.trashed': ['reason'],
+  'post.restored': [],
   'post.retried': ['accountId', 'from'],
   'post.verified_manually': ['accountId'],
   'post.target_cancelled': ['accountId'],
@@ -1221,6 +1294,10 @@ async function produceEveryAction() {
   await leave('paused')
   await ok('POST', `${posts}/${ids.post}/resume`, { version: 5 })
   await ok('POST', `${posts}/${ids.post}/cancel`, { version: 6 })
+  // «Eliminati» (plan 09 Task 14): there, back, there again, then for good
+  await ok('POST', `${posts}/trash`, { postIds: [ids.post] })
+  await ok('POST', `${posts}/restore`, { postIds: [ids.post] })
+  await ok('POST', `${posts}/trash`, { postIds: [ids.post] })
   await ok('DELETE', `${posts}/${ids.post}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/accounts/${ids.account}`)
   await ok('DELETE', `${org}/workspaces/${ids.workspace}/media/${ids.media}`)

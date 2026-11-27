@@ -1,5 +1,6 @@
 import {
   GRID_POST_TYPES,
+  autoTrashAt,
   can,
   instantToZoned,
   isGridPost,
@@ -65,6 +66,13 @@ export interface CalendarPostDto {
   /** to move it with the version read (plan 09 P7) */
   version: number
   updatedAt: string
+  /** in «Eliminati» since (plan 09 Scelta 12); null: not there */
+  trashedAt: string | null
+  /**
+   * a draft nobody touches goes to «Eliminati» then, by the days its client chose; null: never
+   * («Mai»), or not a draft. The list warns of it from 7 days before.
+   */
+  autoTrashAt: string | null
 }
 
 /** A draft that holds nothing: no text, no file, no account and no date (plan 09 Scelta 12). */
@@ -84,7 +92,7 @@ export async function listPostsInRange(
   actor: OrgActor,
   input: {
     workspaceIds: readonly string[]
-    period: { from: Date; to: Date } | 'undated'
+    period: { from: Date; to: Date } | 'undated' | 'trashed'
     timeZone: string
     filters: PostRangeFilters
     limit: number
@@ -123,7 +131,20 @@ async function calendarPostsOf(
   timeZone: string,
 ): Promise<CalendarPostDto[]> {
   const details = await detailsOf(tx, actor, records)
+  const retention = new Map(
+    records.length === 0
+      ? []
+      : // the night leaves an archived client alone: nothing to announce
+        (await tx.workspaces.listVisible(actor)).map((w) => [
+          w.id,
+          w.archivedAt === null ? w.draftRetentionDays : null,
+        ]),
+  )
   return records.map((p) => {
+    const autoTrash =
+      p.status === 'draft' && p.trashedAt === null
+        ? autoTrashAt(p.updatedAt, retention.get(p.workspaceId) ?? null, p.scheduledAt)
+        : null
     const local = p.scheduledAt ? instantToZoned(p.scheduledAt, timeZone) : null
     return {
       id: p.id,
@@ -146,6 +167,8 @@ async function calendarPostsOf(
       notOut: notOutOf(p),
       version: p.version,
       updatedAt: p.updatedAt.toISOString(),
+      trashedAt: p.trashedAt?.toISOString() ?? null,
+      autoTrashAt: autoTrash?.toISOString() ?? null,
     }
   })
 }
@@ -239,7 +262,8 @@ export async function deleteEmptyDrafts(
         : input.all && can(current, 'post.manage_others', resource)
       if (!allowed) continue
       const post = await tx.posts.findForUpdate(scope, candidate.id)
-      if (!post || !isEmptyDraft(post) || !mayEditContent(current, post)) continue
+      if (!post || post.trashedAt !== null || !isEmptyDraft(post) || !mayEditContent(current, post))
+        continue
       if (!(await tx.posts.delete(scope, post.id))) continue
       await recordPost(tx, current, 'post.deleted', post, input.ip)
       deleted++

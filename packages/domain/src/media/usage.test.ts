@@ -11,6 +11,7 @@ function use(postId: string, status: MediaUse['status'], extra: Partial<MediaUse
     scheduledAt: null,
     timezone: 'Europe/Rome',
     updatedAt: day('2026-11-01'),
+    trashed: false,
     ...extra,
   }
 }
@@ -161,4 +162,14 @@ test('a post gone out without a date comes after the dated ones of its group', (
   const dated = use('d', 'published', { scheduledAt: day('2026-11-10') })
   const undated = use('a', 'published')
   for (const rows of orders([undated, dated])) expect(primaryUse(rows)).toBe(dated)
+})
+
+test('a post in «Eliminati» comes after every other use (plan 09 Scelta 12)', () => {
+  const trashedNew = use('t1', 'draft', { trashed: true, updatedAt: day('2026-11-25') })
+  const trashedOld = use('t0', 'cancelled', { trashed: true, updatedAt: day('2026-11-03') })
+  for (const order of orders([trashedOld, cancelled, trashedNew, draftOld]))
+    expect([...order].sort(compareUses)).toEqual([draftOld, cancelled, trashedNew, trashedOld])
+  expect(primaryUse([trashedOld, trashedNew])).toBe(trashedNew)
+  // a draft in «Eliminati» never keeps its file
+  expect(deletionBlock([trashedNew])).toBeNull()
 })

@@ -172,6 +172,8 @@ export const PostResponse = z.object({
   updatedBy: Id,
   createdAt: Timestamp,
   updatedAt: Timestamp,
+  /** in «Eliminati» since (plan 09 Scelta 12); null: not there */
+  trashedAt: Timestamp.nullable(),
 })
 export type PostResponse = z.infer<typeof PostResponse>
 
@@ -234,7 +236,8 @@ export const updatePostRoute = defineContract({
 export const deletePostRoute = defineContract({
   method: 'DELETE',
   path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}',
-  summary: 'Elimina una bozza o un post annullato',
+  summary:
+    'Elimina per sempre un post negli «Eliminati», o una bozza vuota (409 per ogni altra: va prima negli «Eliminati»)',
   request: { params: PostParams },
   response: z.object({ deleted: z.literal(true) }),
   auth: 'session',
@@ -278,6 +281,51 @@ export const publishNowRoute = defineContract({
     'Pubblica subito una bozza: i controlli del salvataggio, senza quello della data (422 con il loro esito)',
   request: { params: PostParams, body: PostVersionRequest },
   response: PostResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+/** From 1 to 100 posts of the client, each once (plan 09 Scelta 12). */
+const PostBatch = z.strictObject({ postIds: z.array(Id).min(1).max(100) })
+const PostBatchResponse = z.object({ postIds: z.array(Id) })
+
+export const trashPostsRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/trash',
+  summary:
+    '«Elimina»: bozze e post annullati negli «Eliminati» del cliente, fino a 100, tutti o nessuno (409 se uno è in un altro stato); risponde quelli spostati',
+  request: { params: WorkspaceParams, body: PostBatch },
+  response: PostBatchResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const restorePostsRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/restore',
+  summary:
+    '«Ripristina» (e «Annulla» dopo «Elimina»): i post tornano dagli «Eliminati» com’erano, fino a 100, tutti o nessuno',
+  request: { params: WorkspaceParams, body: PostBatch },
+  response: PostBatchResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+export const purgePostsRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/purge',
+  summary:
+    '«Elimina per sempre» dei post scelti, già negli «Eliminati» (409 altrimenti), o con `all` «Svuota»: tutti quelli che la persona può eliminare',
+  request: {
+    params: WorkspaceParams,
+    body: z
+      .strictObject({ postIds: z.array(Id).min(1).max(100), all: z.literal(true) })
+      .partial()
+      .refine((b) => (b.postIds === undefined) !== (b.all === undefined), {
+        message: 'postIds oppure all',
+      }),
+  },
+  response: z.object({ deleted: z.number().int() }),
   auth: 'session',
   scope: 'organization',
 })
@@ -446,6 +494,9 @@ export const postRoutes = [
   getPostRoute,
   updatePostRoute,
   deletePostRoute,
+  trashPostsRoute,
+  restorePostsRoute,
+  purgePostsRoute,
   schedulePostRoute,
   unschedulePostRoute,
   cancelPostRoute,

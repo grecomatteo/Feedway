@@ -11,6 +11,8 @@ export const Workspace = z.object({
   myRole: z.enum(['owner', 'admin', 'manager', 'publisher', 'editor', 'viewer']),
   /** `HH:MM`: the local time a new post proposes; null: none. */
   defaultPostTime: z.string().nullable(),
+  /** after how many days untouched a draft goes to «Eliminati»: 30, 60 or 90; null «Mai» */
+  draftRetentionDays: z.number().int().nullable(),
 })
 
 /**
@@ -83,16 +85,20 @@ const WorkspaceChange = z
       .string()
       .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
       .nullable(),
+    draftRetentionDays: z.union([z.literal(30), z.literal(60), z.literal(90), z.null()]),
   })
   .partial()
-  .refine((b) => (b.name === undefined) !== (b.defaultPostTime === undefined), {
-    message: 'Un campo alla volta: name oppure defaultPostTime',
-  })
+  .refine(
+    (b) =>
+      [b.name, b.defaultPostTime, b.draftRetentionDays].filter((v) => v !== undefined).length === 1,
+    { message: 'Un campo alla volta: name, defaultPostTime oppure draftRetentionDays' },
+  )
 
 export const renameWorkspaceRoute = defineContract({
   method: 'PATCH',
   path: '/api/v1/orgs/{org}/workspaces/{id}',
-  summary: 'Rinomina uno spazio di lavoro o ne cambia l’orario predefinito dei post',
+  summary:
+    'Rinomina uno spazio di lavoro, o ne cambia l’orario predefinito dei post o i giorni dopo cui una bozza non toccata va negli «Eliminati»',
   request: { params: WorkspaceParams, body: WorkspaceChange },
   response: Workspace,
   auth: 'session',

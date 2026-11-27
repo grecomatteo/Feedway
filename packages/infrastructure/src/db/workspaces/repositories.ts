@@ -14,6 +14,7 @@ const workspaceColumns = {
   logoKey: workspaces.logoKey,
   // `HH:MM`, as the panel and the API write it
   defaultPostTime: sql<string | null>`to_char(${workspaces.defaultPostTime}, 'HH24:MI')`,
+  draftRetentionDays: workspaces.draftRetentionDays,
   archivedAt: workspaces.archivedAt,
   createdAt: workspaces.createdAt,
 }
@@ -109,6 +110,12 @@ export function drizzleWorkspaces(db: DbExecutor): WorkspacesRepository {
       await db
         .update(workspaces)
         .set({ defaultPostTime: value })
+        .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
+    },
+    async setDraftRetentionDays(organizationId, id, value) {
+      await db
+        .update(workspaces)
+        .set({ draftRetentionDays: value })
         .where(and(eq(workspaces.organizationId, organizationId), eq(workspaces.id, id)))
     },
     async archive(organizationId, id, at) {

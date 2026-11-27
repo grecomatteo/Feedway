@@ -235,6 +235,8 @@ describe('the plan', () => {
   test('a deleted post frees the content; a removed content leaves its post', async () => {
     const a = await add({ localDate: '2027-01-25' })
     const { postId: deleted } = await ok<{ postId: string }>(prepare(a.id))
+    // «Eliminati» first, then for good (plan 09 Scelta 12)
+    await ok(call('editor', 'POST', `${ws()}/posts/trash`, { postIds: [deleted] }))
     await ok(call('editor', 'DELETE', `${ws()}/posts/${deleted}`))
     expect((await read('viewer')).items.find((i) => i.id === a.id)).toMatchObject({
       postId: null,

@@ -59,12 +59,20 @@ export const posts = pgTable(
     scheduledBy: uuid('scheduled_by'),
     updatedBy: uuid('updated_by').notNull(),
     version: integer('version').notNull().default(1),
+    // in «Eliminati» since (plan 09 Scelta 12): the status stays, so «Ripristina» gives it back
+    trashedAt: tz('trashed_at'),
+    // null: the night's clean-up (no foreign key, as the audit's actor: the id stays)
+    trashedBy: uuid('trashed_by'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     // target of the composite foreign keys
     unique('posts_workspace_id').on(t.organizationId, t.workspaceId, t.id),
+    // the night's clean-up and the «Eliminati» of a client
+    index('posts_trashed_idx')
+      .on(t.organizationId, t.trashedAt)
+      .where(sql`${t.trashedAt} is not null`),
     index('posts_workspace_status_idx').on(
       t.organizationId,
       t.workspaceId,
@@ -84,6 +92,11 @@ export const posts = pgTable(
       sql`${t.status} <> 'scheduled' or ${t.scheduledAt} is not null`,
     ),
     check('posts_version', sql`${t.version} >= 1`),
+    // only a draft or a cancelled post goes to «Eliminati»
+    check(
+      'posts_trashed_status',
+      sql`${t.trashedAt} is null or ${t.status} in ('draft', 'cancelled')`,
+    ),
   ],
 )
 

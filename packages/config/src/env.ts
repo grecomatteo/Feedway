@@ -58,6 +58,7 @@ export const KNOWN_QUEUES = [
   'report.daily',
   'report.digest',
   'plan.due_scan',
+  'posts.drafts_cleanup',
   'bulk.import',
 ] as const
 

@@ -61,9 +61,22 @@ const postColumns = {
   scheduledBy: posts.scheduledBy,
   updatedBy: posts.updatedBy,
   version: posts.version,
+  trashedAt: posts.trashedAt,
+  trashedBy: posts.trashedBy,
   createdAt: posts.createdAt,
   updatedAt: posts.updatedAt,
 }
+
+/**
+ * The one predicate of «Eliminati» (plan 09 Scelta 12): every read of the posts but
+ * «Eliminati» itself and the library's uses leaves them out.
+ */
+export const notTrashed = isNull(posts.trashedAt)
+
+/** A client archived: the night's clean-up leaves its posts alone. */
+const workspaceNotArchived = sql`not exists (select 1 from workspaces w
+  where w.organization_id = ${posts.organizationId} and w.id = ${posts.workspaceId}
+    and w.archived_at is not null)`
 
 type PostRow = Omit<
   PostRecord,
@@ -231,6 +244,29 @@ const NEW_ROUND = {
   updatedAt: sql`now()`,
 }
 
+/**
+ * A draft that holds nothing, in SQL (plan 09 Scelta 12): no file, no account, no internal note
+ * and a text of blanks only. The date is the caller's to ask.
+ */
+function emptyDraftWhere(db: DbExecutor, organizationId: string): SQL[] {
+  const none = (table: typeof postMedia | typeof postTargets | typeof postNotes) =>
+    notExists(
+      db
+        .select({ one: sql`1` })
+        .from(table)
+        .where(and(eq(table.organizationId, organizationId), eq(table.postId, posts.id))),
+    )
+  const blank = (text: SQL) => sql`coalesce(${text}, '') ~ '^[[:space:]]*$'`
+  return [
+    none(postMedia),
+    none(postTargets),
+    none(postNotes),
+    blank(sql`${posts.caption}`),
+    blank(sql`${posts.captionByPlatform}->>'instagram'`),
+    blank(sql`${posts.captionByPlatform}->>'facebook'`),
+  ]
+}
+
 export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
   const findOne = async (scope: PostScope, postId: string, lock: boolean) => {
     const query = db
@@ -302,6 +338,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .where(
           and(
             inScope(scope),
+            notTrashed,
             page.status === undefined ? undefined : eq(posts.status, page.status),
             page.before === undefined
               ? undefined
@@ -400,6 +437,71 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         .returning({ id: posts.id })
       return deleted.length > 0
     },
+    async setTrashed(scope, postId, trashed, updatedBy) {
+      const rows = await db
+        .update(posts)
+        .set({
+          trashedAt: trashed?.at ?? null,
+          trashedBy: trashed?.by ?? null,
+          ...(updatedBy === null ? {} : { updatedBy }),
+          version: sql`${posts.version} + 1`,
+        })
+        .where(
+          and(
+            inScope(scope),
+            eq(posts.id, postId),
+            trashed === null ? isNotNull(posts.trashedAt) : notTrashed,
+          ),
+        )
+        .returning({ id: posts.id })
+      return rows.length > 0
+    },
+    async cleanupCandidates(organizationId, { now, trashedBefore, emptyBefore, limit }) {
+      const ofAgency = and(eq(posts.organizationId, organizationId), workspaceNotArchived)
+      const pick = { id: posts.id, workspaceId: posts.workspaceId }
+      const [expired, empty, stale] = await Promise.all([
+        db
+          .select(pick)
+          .from(posts)
+          .where(and(ofAgency, lt(posts.trashedAt, trashedBefore)))
+          .orderBy(asc(posts.trashedAt), asc(posts.id))
+          .limit(limit),
+        db
+          .select(pick)
+          .from(posts)
+          .where(
+            and(
+              ofAgency,
+              notTrashed,
+              eq(posts.status, 'draft'),
+              isNull(posts.scheduledAt),
+              lt(posts.updatedAt, emptyBefore),
+              ...emptyDraftWhere(db, organizationId),
+            ),
+          )
+          .orderBy(asc(posts.updatedAt), asc(posts.id))
+          .limit(limit),
+        db
+          .select(pick)
+          .from(posts)
+          .where(
+            and(
+              ofAgency,
+              notTrashed,
+              eq(posts.status, 'draft'),
+              // a draft with a date still to come waits for its date
+              or(isNull(posts.scheduledAt), lte(posts.scheduledAt, now)),
+              sql`exists (select 1 from workspaces w
+                where w.organization_id = ${posts.organizationId} and w.id = ${posts.workspaceId}
+                  and w.draft_retention_days is not null
+                  and ${posts.updatedAt} < ${now}::timestamptz - make_interval(days => w.draft_retention_days))`,
+            ),
+          )
+          .orderBy(asc(posts.updatedAt), asc(posts.id))
+          .limit(limit),
+      ])
+      return { expired, empty, stale }
+    },
     async lockSchedule(organizationId) {
       await db.execute(
         sql`select pg_advisory_xact_lock(hashtext(${`posts_schedule:${organizationId}`}))`,
@@ -479,6 +581,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             // an archived client's posts never go out (D-70): they take no place of the day
             sql`not exists (select 1 from workspaces w where w.organization_id = ${posts.organizationId}
                   and w.id = ${posts.workspaceId} and w.archived_at is not null)`,
+            notTrashed,
             inArray(posts.status, [...TAKES_ITS_DAY]),
             gte(posts.scheduledAt, from),
             lt(posts.scheduledAt, to),
@@ -496,6 +599,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
+            notTrashed,
             inArray(posts.status, [...statuses]),
             gte(posts.scheduledAt, from),
             lt(posts.scheduledAt, to),
@@ -514,6 +618,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
+            notTrashed,
             inArray(posts.status, [...statuses]),
             isNotNull(posts.scheduledAt),
           ),
@@ -529,14 +634,19 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
     },
     async listForCalendar(organizationId, workspaceIds, q) {
       if (workspaceIds.length === 0 || q.statuses.length === 0) return []
-      const dated = q.period !== 'undated'
       const where = [
         eq(posts.organizationId, organizationId),
         inArray(posts.workspaceId, [...workspaceIds]),
         inArray(posts.status, [...q.statuses]),
-        ...(q.period === 'undated'
-          ? [eq(posts.status, 'draft'), isNull(posts.scheduledAt)]
-          : [gte(posts.scheduledAt, q.period.from), lt(posts.scheduledAt, q.period.to)]),
+        ...(q.period === 'trashed'
+          ? [isNotNull(posts.trashedAt)]
+          : q.period === 'undated'
+            ? [notTrashed, eq(posts.status, 'draft'), isNull(posts.scheduledAt)]
+            : [
+                notTrashed,
+                gte(posts.scheduledAt, q.period.from),
+                lt(posts.scheduledAt, q.period.to),
+              ]),
         ...(q.types.length > 0 ? [inArray(posts.type, [...q.types])] : []),
         ...(q.authorIds.length > 0 ? [inArray(posts.createdBy, [...q.authorIds])] : []),
       ]
@@ -570,32 +680,17 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               ),
           ),
         )
-      if (q.emptyOnly === true) {
-        const none = (table: typeof postMedia | typeof postTargets | typeof postNotes) =>
-          notExists(
-            db
-              .select({ one: sql`1` })
-              .from(table)
-              .where(and(eq(table.organizationId, organizationId), eq(table.postId, posts.id))),
-          )
-        const blank = (text: SQL) => sql`coalesce(${text}, '') ~ '^[[:space:]]*$'`
-        where.push(
-          none(postMedia),
-          none(postTargets),
-          none(postNotes),
-          blank(sql`${posts.caption}`),
-          blank(sql`${posts.captionByPlatform}->>'instagram'`),
-          blank(sql`${posts.captionByPlatform}->>'facebook'`),
-        )
-      }
+      if (q.emptyOnly === true) where.push(...emptyDraftWhere(db, organizationId))
       const rows = await db
         .select(postColumns)
         .from(posts)
         .where(and(...where))
         .orderBy(
-          ...(dated
-            ? [asc(posts.scheduledAt), asc(posts.id)]
-            : [desc(posts.updatedAt), desc(posts.id)]),
+          ...(q.period === 'trashed'
+            ? [desc(posts.trashedAt), desc(posts.id)]
+            : q.period === 'undated'
+              ? [desc(posts.updatedAt), desc(posts.id)]
+              : [asc(posts.scheduledAt), asc(posts.id)]),
         )
         .limit(q.limit)
       return complete(db, organizationId, rows)
@@ -609,6 +704,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
+            notTrashed,
             eq(posts.status, 'draft'),
           ),
         )
@@ -625,6 +721,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
+            notTrashed,
             eq(posts.status, 'draft'),
           ),
         )
@@ -650,6 +747,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           and(
             eq(posts.organizationId, organizationId),
             inArray(posts.workspaceId, [...workspaceIds]),
+            notTrashed,
           ),
         )
         .groupBy(posts.workspaceId)
@@ -682,6 +780,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             eq(postTargets.organizationId, organizationId),
             inArray(postTargets.workspaceId, [...workspaceIds]),
             inArray(postTargets.accountId, [...accountIds]),
+            notTrashed,
             eq(posts.status, 'scheduled'),
             gte(posts.scheduledAt, from),
           ),
@@ -728,6 +827,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
             eq(postTargets.organizationId, organizationId),
             inArray(postTargets.accountId, [...accountIds]),
             inArray(postTargets.status, [...IN_HISTORY]),
+            notTrashed,
             // as `countScheduled`: an archived client's posts never go out (D-70), but what it
             // had out is on the account
             or(
@@ -767,6 +867,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
           scheduledAt: posts.scheduledAt,
           timezone: posts.timezone,
           updatedAt: posts.updatedAt,
+          trashed: sql<boolean>`${posts.trashedAt} is not null`,
         })
         .from(postMedia)
         .innerJoin(
@@ -783,15 +884,18 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
         // their last change, gone out by date (the latest first), the rest by their last change,
         // then the id; the sort of the use case makes sure of it
         .orderBy(
-          sql`case when ${posts.status} in ('scheduled', 'publishing', 'paused') then 0
+          sql`case when ${posts.trashedAt} is not null then 4
+                   when ${posts.status} in ('scheduled', 'publishing', 'paused') then 0
                    when ${posts.status} = 'draft' then 1
                    when ${posts.status} in ('published', 'partial', 'problem') then 2
                    else 3 end`,
-          sql`case when ${posts.status} in ('scheduled', 'publishing', 'paused')
+          sql`case when ${posts.trashedAt} is null
+                    and ${posts.status} in ('scheduled', 'publishing', 'paused')
                    then ${posts.scheduledAt} end asc nulls last`,
-          sql`case when ${posts.status} in ('published', 'partial', 'problem')
+          sql`case when ${posts.trashedAt} is null
+                    and ${posts.status} in ('published', 'partial', 'problem')
                    then ${posts.scheduledAt} end desc nulls last`,
-          sql`case when ${posts.status} = 'draft'
+          sql`case when ${posts.trashedAt} is not null or ${posts.status} = 'draft'
                      or ${posts.status} not in ('scheduled', 'publishing', 'paused', 'published',
                                                 'partial', 'problem')
                    then ${posts.updatedAt} end desc nulls last`,
@@ -808,6 +912,7 @@ export function drizzlePosts(db: DbExecutor, ids: IdGenerator): PostRepository {
               scheduledAt: r.scheduledAt,
               timezone: r.timezone,
               updatedAt: r.updatedAt,
+              trashed: r.trashed,
             })
       return [...uses.values()].sort(compareUses)
     },

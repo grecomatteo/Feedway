@@ -14,6 +14,7 @@ export {
   lockVisibleWorkspace,
   renameWorkspace,
   setDefaultPostTime,
+  setDraftRetentionDays,
   workspaceNotFound,
 } from './workspaces.js'
 export type { WorkspaceDto, WorkspacesDeps } from './workspaces.js'

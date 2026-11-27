@@ -47,6 +47,7 @@ interface JobDefinitions {
   'report.daily': { scope: 'system'; data: object }
   'report.digest': { scope: 'user'; data: ReportDigestJobData }
   'plan.due_scan': { scope: 'system'; data: object }
+  'posts.drafts_cleanup': { scope: 'system'; data: object }
   'bulk.import': { scope: 'organization'; data: BulkImportJobData }
 }
 
