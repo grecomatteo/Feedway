@@ -32,7 +32,8 @@ Il pannello self-hosted con cui un'agenzia programma, pubblica e controlla i con
 
 Chi gestisce i social di molti clienti passa la giornata tra account, password, fogli di calcolo e controlli a mano per capire se un post è uscito davvero. Feedway mette tutto in un solo pannello:
 
-- **Un calendario per tutti i clienti**, o per uno alla volta, con anteprima com'è su Meta.
+- **Un calendario per tutti i clienti**, o per uno alla volta: mese, settimana ed elenco, con i post da spostare trascinandoli e la griglia di Instagram com'è sul profilo.
+- **Un mese preparato in pochi minuti**: il piano editoriale dice cosa esce e quando, le fasce orarie scelgono l'ora, e i post nascono in blocco da una cartella di file, da un CSV o da un Excel.
 - **Un post, più destinazioni**: gli stessi media su più account Instagram e Pagine Facebook, con caption comune e testo diverso per piattaforma quando serve.
 - **Un esito per ogni destinazione**: confermato, in verifica, da accertare o con problema. Se un account fallisce si riprova solo quello, senza ripubblicare ciò che è già uscito.
 - **Se qualcosa non va, lo sai subito**: un post non uscito o un account da ricollegare arrivano a chi deve sistemarli, nel pannello, per email o su Telegram, e ogni mattina alle 8:00 il riepilogo della giornata.
@@ -44,8 +45,8 @@ Quelle previste dalla versione 1.0, secondo la [specifica](docs/superpowers/spec
 
 | Area | Cosa fa |
 |---|---|
-| **Pubblicazione** | Foto, caroselli, reel e storie su Instagram e Pagine Facebook. Controlli prima della pubblicazione, verifica dopo, tentativi senza doppioni. |
-| **Pianificazione** | Calendario mese, settimana ed elenco; trascinamento; fasce orarie; programmazione in blocco da file, CSV o Excel; piano editoriale per cliente. |
+| **Pubblicazione** | Foto, caroselli, reel e storie su Instagram e Pagine Facebook, con i collaboratori di Instagram. Controlli prima della pubblicazione, verifica dopo, tentativi senza doppioni. |
+| **Pianificazione** | Calendario mese, settimana ed elenco; trascinamento; fasce orarie; programmazione in blocco da file, CSV o Excel; «Duplica»; griglia di Instagram riordinabile; piano editoriale per cliente; bozze negli «Eliminati» per 30 giorni. |
 | **Media** | Upload a pezzi con ripresa, conversioni automatiche (HEIC, video HEVC), libreria con cartelle e tag. |
 | **Agenzia e team** | Più clienti e spazi di lavoro, ruoli e permessi, inviti, registro attività. Più agenzie isolate tra loro nello stesso database. |
 | **Accesso e privacy** | Passkey o password, 2FA con codici di recupero, dispositivi collegati, "Scarica i miei dati", "Elimina il mio account". |
@@ -69,7 +70,7 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 ## Stato del progetto
 
 > [!NOTE]
-> Feedway è in sviluppo e non è ancora pronto per l'uso con clienti reali. La 1.0 si costruisce in **12 tappe**, ognuna installabile e provabile sulla VPS. L'ultima versione è la **0.14.0** (tappa 8, le notifiche).
+> Feedway è in sviluppo e non è ancora pronto per l'uso con clienti reali. La 1.0 si costruisce in **12 tappe**, ognuna installabile e provabile sulla VPS. L'ultima versione è la **0.15.0** (tappa 9, la pianificazione).
 
 | Tappa | Contenuto | Stato |
 |---|---|---|
@@ -81,7 +82,7 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 | 6 · Post | Editor con l'anteprima di Instagram e Facebook, bozze, programmazione, etichette, modelli e gruppi di account; il ridisegno del pannello | ✅ v0.12 |
 | 7 · Pubblicazione | Pubblicazione vera su Meta, verifica dopo l'uscita, esito per destinazione, «Riprova» senza doppioni, cartelle e zip in libreria | ✅ v0.13 |
 | 8 · Notifiche | Centro notifiche, email e bot Telegram con `/oggi` e `/problemi`, preferenze e ore di silenzio, riepilogo delle 8:00, avviso del worker fermo, sorveglianza esterna con healthchecks.io | ✅ v0.14 |
-| 9 · Pianificazione | Calendario di tutti i clienti, piano editoriale, programmazione in blocco, bozze negli Eliminati | 📝 Piano approvato |
+| 9 · Pianificazione | Calendario mese, settimana ed elenco con trascinamento; piano editoriale con l'avviso «da preparare»; fasce orarie; programmazione in blocco da file, CSV ed Excel; «Duplica»; griglia di Instagram riordinabile; «Eliminati» e pulizia delle bozze dimenticate; collaboratori su Instagram | ✅ v0.15 |
 | 10–12 | Condivisione e brand, operazioni (backup, dashboard), messa in produzione | ⏳ Da fare |
 
 Dettaglio di ogni tappa nel [piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md); cosa è uscito in ogni versione nel [CHANGELOG](CHANGELOG.md).
@@ -96,6 +97,7 @@ flowchart LR
   W --> DB[(PostgreSQL 18<br>dati con RLS · coda pg-boss)]
   K[apps/worker<br>pubblicazione · verifica · notifiche] --> DB
   K -->|Graph API| M[Meta<br>Instagram · Facebook]
+  W -->|griglia di Instagram| M
   K -->|email · Bot API| N[SMTP · Telegram]
   W -->|ogni minuto| H[healthchecks.io<br>sorveglianza esterna]
   V[Visitatore] -->|HTTPS| S[apps/site<br>landing · privacy · Cloudflare Pages]
@@ -178,7 +180,7 @@ git checkout vX.Y.Z            # l'ultima versione con tag, mai main
 Lo script genera chiavi e password, avvia i container e stampa l'indirizzo del pannello e il link di primo accesso dell'Owner. Gli aggiornamenti eseguono prima la migrazione e tornano indietro con un comando:
 
 ```bash
-./scripts/update.sh v0.14.0    # o senza argomenti per l'ultima release
+./scripts/update.sh v0.15.0    # o senza argomenti per l'ultima release
 ./scripts/update.sh --rollback
 ```
 

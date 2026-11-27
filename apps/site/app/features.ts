@@ -3,8 +3,8 @@
 // update the README in the same PR (Matteo, 23/11, D-122).
 export const SHIPPED = {
   notifications: true, // 0.14.0
-  calendar: false, // tappa 9
-  editorialPlan: false, // tappa 9
+  calendar: true, // 0.15.0
+  editorialPlan: true, // 0.15.0
   calendarSync: false, // calendar on Google or Apple
   shootings: false,
   clientLink: false, // tappa 10

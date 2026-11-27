@@ -906,6 +906,16 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - una foto di un post uscito che non arriva lascia il posto con un segno, senza messaggio; se i pubblicati non si leggono, una riga dice perché (collegamento, accesso rifiutato, Instagram che non risponde, con «Riprova») e i programmati si vedono lo stesso.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); il 27/11 Matteo ha chiuso il punto 1 e deciso il 28 («Annulla»); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
+### D-135 · Rilascio della 0.15.0: README, landing e guida della prova
+
+- **Origine:** rilascio della 0.15.0 (tappa 9, Task 13, 27 novembre 2026), sezione «Per il Task 13» della revisione di fine tappa (`REVISIONE-finale.md`) e consegne dei task.
+- **Scelte provvisorie:**
+  1. **Landing:** calendario e piano editoriale fuori da «In arrivo» (`apps/site/app/features.ts`). Nella scheda «Pianifica» due righe nuove senza segno, «Tanti post in blocco, anche da CSV o Excel» e «Griglia di Instagram da riordinare»; in «Pubblica e verifica» la riga «Collaboratori su Instagram». Gli «Eliminati» stanno in una domanda nuova, «E se elimino una bozza per sbaglio?». Resta «In arrivo» il calendario su Google o Apple.
+  2. **Schermate della landing:** restano le tavole del progetto grafico (`public/shots/`), che descrivono il prodotto finito come vuole D-122. La scheda «Pianifica» mostra già la tavola del piano editoriale.
+  3. **README:** tappa 9 segnata ✅ v0.15 con le funzioni uscite, due righe in «Perché Feedway», la tabella delle funzioni con «Duplica», griglia, «Eliminati» e collaboratori, e nello schema il web che legge la griglia da Meta.
+  4. **Guida della prova:** in `handoff/tappa-9/GUIDA-prova-0.15.0.md`, fuori dal repository come le altre. Le note «Cosa provare» sono nella guida e nella descrizione della PR, non nel testo della release (come D-130).
+- **Stato:** scelte provvisorie; si chiude con gli esiti della prova della 0.15.0.
+
 ## Sito pubblico
 
 ### D-122 · Sito pubblico anticipato: scelte provvisorie e cose da fare prima di pubblicarlo
