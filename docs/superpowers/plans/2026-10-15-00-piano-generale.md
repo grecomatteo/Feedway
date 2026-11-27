@@ -26,7 +26,8 @@
 | `07-pubblicazione.md` | Tappa 7, formato leggero, task raggruppati in otto thread più la revisione (il Task 10 sulle cartelle aggiunto il 2026-11-20) | Scritto il 2026-11-20, da approvare da Matteo (si parte dal Task 1 e dal dominio) |
 | `08-notifiche.md` | Tappa 8, formato leggero, dodici task in otto thread più la revisione | Approvato da Matteo il 2026-11-23 |
 | `09-pianificazione.md` | Tappa 9, formato leggero, quindici task in dieci thread più la revisione | Approvato da Matteo il 2026-11-24 |
-| `10-condivisione.md` … `12-produzione.md` | Tappe 10–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
+| `10-condivisione.md` | Tappa 10, formato leggero, undici task in otto thread più la revisione | Scritto il 2026-11-27, da approvare da Matteo |
+| `11-operazioni.md` … `12-produzione.md` | Tappe 11–12 | Il piano della tappa N+1 si scrive mentre si chiude la tappa N |
 
 **Perché le tappe 3–12 non sono già dettagliate.** Un piano eseguibile fissa nomi di file, firme e test. Dalla tappa 3 queste scelte dipendono da cose che ancora non esistono: il codice reale delle tappe 1–2, le risposte vere di Meta (registrate nel primo contatto, tappa 3) e il prototipo grafico approvato. Scriverle oggi vorrebbe dire riscriverle. Questo documento fissa invece **ciò che non cambierà**: contenuto, confini, interfacce e criteri di fine di ogni tappa.
 
@@ -53,7 +54,7 @@ La piattaforma si chiama **Feedway** (scelto da Matteo il 2026-10-15), repositor
 - nessun identificativo tecnico contiene il nome (pacchetti `@app/*`, ruoli DB, cookie, nomi dei container `app-*`), come deciso nell'ADR 011;
 - l'immagine Docker è `ghcr.io/grecomatteo/feedway` (GHCR vuole nomi in minuscolo).
 
-Se un giorno il nome cambiasse: si modifica `PRODUCT_NAME`, si carica il logo dal pannello (tappa 10), si aggiornano logo e testi in `apps/site`, si rinomina il repository. Nessuna migrazione.
+Se un giorno il nome cambiasse: si modifica `PRODUCT_NAME`, si cambiano i file del brand in `apps/web/public/brand/` (il brand della piattaforma resta nel repository, piano 10 P8), si aggiornano logo e testi in `apps/site`, si rinomina il repository. Nessuna migrazione.
 
 ## 4. Regole comuni a tutte le tappe
 
@@ -143,7 +144,7 @@ Per ogni tappa: cosa costruisce, cosa introduce che le tappe successive useranno
 - **Anticipato (D-119, Matteo, 23/11):** il sito pubblico (`apps/site`) con la landing rivista, l'informativa privacy e la pagina della cancellazione dei dati si fa prima, in un thread a parte; qui resta ciò che quel thread non fa.
   Fatto nel thread del sito (PR `feat/10-sito-pubblico`): `apps/site` con la landing rivista (9 sezioni, solo le funzioni che ci sono, il resto in «In arrivo»), `/privacy`, `/cancellazione-dati`, il modulo «Richiedi una demo» con la funzione di Cloudflare, il controllo `site` nella CI e `site-deploy.yml`, la guida `docs/runbooks/sito-pubblico.md`. Restano qui: anteprime per PR, tema scuro, testi in `apps/site/i18n/`, note legali con la partita IVA, dati strutturati, Web Analytics se si vuole, e ciò che resta aperto in D-122.
 - **Costruisce:** link cliente di sola visione (password, scadenza, revoca, conteggio) con mesi completi in scorrimento, loghi di Feedway, cliente e agenzia, contenuti in preparazione (campi esposti dichiarati uno per uno, con un test che la nota interna non esca mai) e **"Stampa o salva PDF"** con il foglio di stile di stampa (A4 orizzontale, un mese per pagina, solo da oggi in poi; prova automatica con il PDF generato da Playwright) (specifica §11.10), stesso foglio di stampa per il Piano editoriale con schede piene (§11.12), logo e colore nel pannello, email, bot e link cliente, PWA con Web Share Target su Android, sito pubblico statico (`apps/site`, specifica §14.5, ADR 013) con la landing del brief 04, "Richiedi una demo" (modulo con invio via email, ADR 016: funzione server, segreti Cloudflare, test) e "Accedi", pagine legali, SEO e pubblicazione su Cloudflare Pages. RF-63, RF-71–73, CS6.
-- **Introduce:** tabelle `share_links`, completamento di `branding` (colore e resto, per organizzazione, più quello della piattaforma per la pagina di login); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
+- **Introduce:** tabelle `share_links`, completamento di `branding` (colore e piè delle email, per organizzazione; il brand della piattaforma per la pagina di accesso resta nei file del repository e il colore dell'agenzia non entra nel pannello, piano 10 P7 e P8); `apps/site` con regola di dependency-cruiser (importa solo `packages/ui` e `PRODUCT_NAME`), controllo obbligatorio `site` e workflow `site-deploy.yml`.
 - **Prerequisito:** branding e progetto in Pencil del sito approvati.
 
 ### Tappa 11 · Operazioni
