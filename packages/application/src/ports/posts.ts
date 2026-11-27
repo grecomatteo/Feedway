@@ -204,7 +204,10 @@ export interface PostRepository {
     range: { from: Date; to: Date },
     excludePostId?: string,
   ): Promise<number>
-  /** The state of each post of the agency found, in one query (plan 06, for stage 9). */
+  /**
+   * The state of each post of the agency found, in one query (plan 06, for stage 9). A post in
+   * «Eliminati» is left out, as one deleted for good: the plan's content is «Da preparare» again.
+   */
   statuses(organizationId: string, postIds: readonly string[]): Promise<Map<string, PostStatus>>
   /** What `PublishingHistory` answers, read from the scheduled destinations. */
   publishingFacts(query: PublishingHistoryQuery): Promise<PublishingHistoryFacts>
