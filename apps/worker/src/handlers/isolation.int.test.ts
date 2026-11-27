@@ -28,6 +28,7 @@ import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
 import { notifyDeliver, notifyDeliverPlatform, notifyDispatch, telegramPoll } from './notify.js'
 import { planDueScan } from './plan.js'
+import { postsDraftsCleanup } from './posts-drafts-cleanup.js'
 import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
 import {
@@ -693,6 +694,36 @@ async function planScanCase(): Promise<void> {
   }
 }
 
+/**
+ * The night's clean-up of the drafts (plan 09 Task 14) deletes each agency's old «Eliminati» in
+ * that agency and logs it there; a post of the other agency is never read as its own.
+ */
+async function draftsCleanupCase(): Promise<void> {
+  const posts: { organizationId: string; postId: string }[] = []
+  for (const of of [await agency(tdb, runtime), await agency(tdb, runtime)]) {
+    const workspaceId = await seed(tdb.runtimeUrl, (s) => s.workspace(of.organizationId))
+    const postId = randomUUID()
+    await admin.query(
+      `insert into posts (id, organization_id, workspace_id, type, caption, status, options,
+                          created_by, updated_by, trashed_at, updated_at)
+       values ($1, $2, $3, 'photo', 'Pane', 'draft', '{"shareToFeed":true,"choices":[]}', $4, $4,
+               now() - interval '40 days', now() - interval '40 days')`,
+      [postId, of.organizationId, workspaceId, of.ownerId],
+    )
+    posts.push({ organizationId: of.organizationId, postId })
+  }
+  await postsDraftsCleanup({ id: 'lavoro', data: {} }, handlerDeps(runtime, recordingQueue()))
+  for (const { organizationId, postId } of posts) {
+    const { rows } = await admin.query<{ organization_id: string }>(
+      "select organization_id from audit_log where action = 'post.deleted' and entity_id = $1",
+      [postId],
+    )
+    expect(rows).toEqual([{ organization_id: organizationId }])
+    const { rowCount } = await admin.query('select 1 from posts where id = $1', [postId])
+    expect(rowCount).toBe(0)
+  }
+}
+
 /** The external watch, now the web's round (R4), reads and writes the platform's row only. */
 async function externalWatchCase(): Promise<void> {
   const a = await agency(tdb, runtime)
@@ -724,6 +755,7 @@ const SYSTEM_CASES: Partial<Record<SystemQueue, () => Promise<void>>> = {
   'notify.deliver_platform': deliverPlatformCase,
   'report.daily': digestStartCase,
   'plan.due_scan': planScanCase,
+  'posts.drafts_cleanup': draftsCleanupCase,
 }
 const USER_CASES: Partial<Record<UserQueue, () => Promise<void>>> = {
   'report.digest': digestCase,

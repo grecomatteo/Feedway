@@ -40,6 +40,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'report.daily': true,
   'report.digest': true,
   'plan.due_scan': true,
+  'posts.drafts_cleanup': true,
   'bulk.import': true,
 }
 

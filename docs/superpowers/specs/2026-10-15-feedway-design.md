@@ -671,7 +671,8 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `report.daily` | Ogni minuto | Di sistema, con il lucchetto consultivo: manda un `report.digest` a ogni persona il cui riepilogo è dovuto adesso, nel suo fuso, con la chiave `<persona>:<data>` (§12.4, piano 08 P7) |
 | `report.digest` | Al momento del riepilogo della persona | Con `userId`: calcola ogni sezione dentro `uow.run({ organizationId, userId })` di ciascuna agenzia della persona e manda un messaggio per agenzia e canale (§12.4) |
 | `accounts.sync` / `accounts.health` | Ogni giorno e a richiesta | §8.4 |
-| `maintenance.cleanup` | Ogni notte | §11.9 |
+| `posts.drafts_cleanup` | Ogni notte, alle 03:45 | Di sistema, uno alla volta (il lucchetto dell'installazione): per ogni agenzia, nel suo ambito, cancella gli «Eliminati» da più di 30 giorni e le bozze vuote non toccate da 24 ore, e sposta negli «Eliminati» le bozze non toccate da `draft_retention_days` giorni; ogni post si blocca e si rilegge prima, i clienti archiviati restano come sono. Nel registro `post.deleted` e `post.trashed` senza persona, con `reason: 'retention'` (§11.9, piano 09 P8) |
+| `maintenance.cleanup` | Ogni notte | §11.9, tranne le bozze (le toglie `posts.drafts_cleanup`) |
 
 Ogni lavoro ha una chiave di unicità `<destinazione>:<passo>:<generazione>` (piano 07, P3): `post_targets.generation` cresce a ogni mossa della destinazione e a ogni nuova attesa, e il lavoro porta la generazione per cui è stato mandato, così il gestore non fa nulla se la destinazione è andata avanti. I lavori partono **dopo il commit** (pg-boss usa la sua connessione); `post_targets.next_attempt_at` è l'ora del passo successivo di ogni destinazione, e il riconciliatore ogni minuto manda di nuovo, con la stessa chiave, quelli arrivati alla loro ora: un processo caduto tra commit e invio ritarda il passo di al massimo un minuto. Modificare un post in preparazione riporta le destinazioni a `scheduled` in una generazione nuova; ciò che era pronto su Meta si butta via alla preparazione successiva (`meta_ids._discard`).
 
@@ -892,7 +893,8 @@ Per spazio, con cartelle e tag. Si caricano file con "Scegli file" o trascinando
 - Un post programmato si modifica o annulla finché nessuna destinazione è in `preparing`; poi si annullano solo le destinazioni non ancora pubblicate.
 - Un post pubblicato non si modifica dal pannello; resta il link al post.
 - **Modifiche concorrenti**: se due persone modificano lo stesso post, il secondo salvataggio riceve "modificato da un altro utente, ricarica". Ogni scrittura porta la `version` letta; se è cambiata la risposta è 409 con il motivo `post_version_conflict` e il testo «Il post è stato modificato da un'altra persona: ricarica per vedere la versione nuova» (piano 06, Task 4).
-- **Copie da pubblicare** (piano 07, Scelta 5): il lavoro notturno `media.publish_copies_cleanup` toglie le copie con una ricetta di un post concluso da `MEDIA_RETENTION_DAYS` (default 7): ogni destinazione `confirmed` o `cancelled`, oppure `failed` o `problem` da 7 giorni senza un «Riprova», così «Riprova» le trova ancora. Toglie anche la copia di una ricetta vecchia (il post è stato modificato) che nessun post programmato usa più. I file originali restano nella libreria. Bozze abbandonate: 30 giorni.
+- **Copie da pubblicare** (piano 07, Scelta 5): il lavoro notturno `media.publish_copies_cleanup` toglie le copie con una ricetta di un post concluso da `MEDIA_RETENTION_DAYS` (default 7): ogni destinazione `confirmed` o `cancelled`, oppure `failed` o `problem` da 7 giorni senza un «Riprova», così «Riprova» le trova ancora. Toglie anche la copia di una ricetta vecchia (il post è stato modificato) che nessun post programmato usa più. I file originali restano nella libreria.
+- **Bozze ed «Eliminati»** (piano 09 P8, D-124): «Elimina» di una bozza o di un post annullato lo manda negli **«Eliminati»** del cliente (`posts.trashed_at`, lo stato resta), anche fino a 100 insieme, tutti o nessuno; «Ripristina» lo riporta com'era, «Elimina per sempre» e «Svuota» lo cancellano. Chi può farlo è chi poteva eliminarlo: l'autore o chi ha `post.manage_others`. Un post negli «Eliminati» non compare in nessuna lettura tranne gli «Eliminati» e la libreria («In una bozza eliminata»), e ogni scrittura tranne «Ripristina» ed «Elimina per sempre» risponde 409 con il motivo `post_trashed`. Il lavoro notturno `posts.drafts_cleanup` cancella gli eliminati da più di 30 giorni e le bozze vuote (senza testo, file, account, nota interna e data) non toccate da 24 ore, e sposta negli «Eliminati» le bozze non toccate (`updated_at`) da `workspaces.draft_retention_days` giorni (30, 60, 90 o «Mai»); non tocca un cliente archiviato. `DELETE` di un post accetta solo un post negli «Eliminati» o una bozza vuota.
 - Le anteprime dei post programmati restano fino alla pubblicazione, per calendario e link cliente.
 - **Cliente archiviato** (D-70, Matteo 18/11): archiviare un cliente riporta in bozza, nella stessa transazione, i suoi post programmati (il post e le destinazioni, senza impronte), con una voce `post.unscheduled` per post; la finestra di archiviazione dice quanti sono. I post di un cliente archiviato si leggono e non si modificano (409). Ripristinando il cliente le bozze restano bozze, da riprogrammare.
 
@@ -963,7 +965,7 @@ Chi decide il piano del mese ("il 20 esce VIDEO 1, il 22 il carosello del menu")
 - Il piano dipende dai post, mai il contrario. "Prepara" è un caso d'uso del modulo `plan` che chiama la funzione pubblica di creazione della bozza del modulo dei post e salva il collegamento **nella stessa transazione**: la scheda sparisce subito, senza aspettare un evento. Lo stato "preparato / annullato" si legge dal post tramite la funzione pubblica di lettura dei post, quindi non può andare fuori sincrono. Gli eventi servono solo alle notifiche.
 - API (piano 09, Task 6): `GET/POST /api/v1/orgs/{org}/plan` (la lettura vuole cliente e periodo, fino a 42 giorni, e dà la nota a chi vede il cliente), `PATCH/DELETE …/plan/{itemId}` con la versione (409 se cambiato), `POST …/plan/{itemId}/prepare`, che risponde con il post (`created: false` se c'era già). Con il modulo spento le rotte rispondono 404; l'agenzia lo accende e lo spegne dalla CLI del worker (`set-modules`), non dal pannello.
 - Nessun contatto con Meta; un solo lavoro leggero di sistema, `plan.due_scan` (§9.4), ogni 5 minuti per tutte le agenzie, che scrive l'evento `plan.due_soon` con `organizationId` (piano 09 P3).
-- Il collegamento al post è l'unico riferimento tra moduli ammesso nel database: `plan_items.post_id` con chiave esterna composta e `ON DELETE SET NULL (post_id)` (Postgres 15+), così una bozza abbandonata cancellata dopo 30 giorni (§11.9) libera il contenuto pianificato senza toccare `organization_id`. Preparare di nuovo un contenuto il cui post è stato annullato sostituisce il collegamento; il post annullato perde il segno "dal piano".
+- Il collegamento al post è l'unico riferimento tra moduli ammesso nel database: `plan_items.post_id` con chiave esterna composta e `ON DELETE SET NULL (post_id)` (Postgres 15+), così una bozza cancellata per sempre, a mano o dopo 30 giorni negli «Eliminati» (§11.9), libera il contenuto pianificato senza toccare `organization_id`. Preparare di nuovo un contenuto il cui post è stato annullato sostituisce il collegamento; il post annullato perde il segno "dal piano".
 
 ---
 
@@ -1054,7 +1056,9 @@ api_tokens          id, organization_id, user_id, name, token_hash, scopes, expi
 
 -- Spazi e account
 workspaces          id, organization_id, name, slug (unico nell'organizzazione), logo_key,
-                    default_post_time (facoltativa, ora locale, 14:00 alla nascita), archived_at
+                    default_post_time (facoltativa, ora locale, 14:00 alla nascita),
+                    draft_retention_days (30|60|90, vuota = «Mai», 30 alla nascita: dopo quanti giorni
+                    una bozza non toccata va negli «Eliminati», piano 09 P8), archived_at
 workspace_members   workspace_id, user_id, role (manager|publisher|editor|viewer)
 social_accounts     id, organization_id, platform (instagram|facebook), external_id, name, username,
                     avatar_url, avatar_key, page_id (vuoto per Instagram solo), connection_id, active,
@@ -1123,8 +1127,10 @@ posts               id, workspace_id, type (photo|carousel|reel|story), caption,
                     caption_by_platform (jsonb: testo per piattaforma, es. instagram, facebook; vuoto = testo comune),
                     scheduled_at, timezone, status (derivato: draft|scheduled|publishing|
                     partial|failed|problem|published|paused|cancelled), options (jsonb),
-                    created_by, scheduled_by, updated_by, version
+                    created_by, scheduled_by, updated_by, version, trashed_at, trashed_by
                     -- timezone: copiato da organizations.settings.timezone alla creazione (D-58)
+                    -- trashed_at: negli «Eliminati» da (solo draft o cancelled, lo stato non cambia);
+                    --   trashed_by vuoto = il lavoro notturno (piano 09 P8)
                     -- options: { shareToFeed, choices } (piano 06 P5)
 post_media          post_id, media_id, position,
                     cover_media_id, cover_offset_ms   -- solo reel: immagine caricata o fotogramma

@@ -462,6 +462,8 @@ export interface WorkspaceRecord {
   logoKey: string | null
   /** Local time `HH:MM`; null means no default. */
   defaultPostTime: string | null
+  /** «Sposta negli Eliminati le bozze non toccate da» 30, 60 or 90 days; null «Mai» (D-124) */
+  draftRetentionDays: number | null
   archivedAt: Date | null
   createdAt: Date
 }
@@ -502,6 +504,8 @@ export interface WorkspacesRepository {
   rename(organizationId: string, id: string, name: string): Promise<void>
   /** `HH:MM`, or null to clear it. */
   setDefaultPostTime(organizationId: string, id: string, value: string | null): Promise<void>
+  /** 30, 60 or 90, or null for «Mai». */
+  setDraftRetentionDays(organizationId: string, id: string, value: number | null): Promise<void>
   /** false: already archived. */
   archive(organizationId: string, id: string, at: Date): Promise<boolean>
 }

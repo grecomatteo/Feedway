@@ -108,6 +108,10 @@ const SAMPLE_BODIES: Record<string, (ids: SampleIds) => unknown> = {
     workspaceId: ids.workspace,
     all: true,
   }),
+  // «Eliminati» (plan 09 Task 14): the case's draft; the matrix's PREPARE sends it there first
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/trash': (ids) => ({ postIds: [ids.post] }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/restore': (ids) => ({ postIds: [ids.post] }),
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/purge': (ids) => ({ postIds: [ids.post] }),
   // the swap of the grid (plan 09 Task 12): the matrix's PREPARE gives two scheduled posts
   'POST /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/swap': (ids) => ({
     accountId: ids.account,

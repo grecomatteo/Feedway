@@ -5,6 +5,7 @@ import {
   DomainError,
   checkOrganizationName,
   parseLimits,
+  isDraftRetention,
   seesAllWorkspaces,
   type OrgActor,
   type WorkspaceRole,
@@ -34,6 +35,8 @@ export interface WorkspaceDto {
   myRole: WorkspaceRole | 'owner' | 'admin'
   /** `HH:MM`: the local time a new post proposes; null: none (§13) */
   defaultPostTime: string | null
+  /** after how many days untouched a draft goes to «Eliminati»; null «Mai» (D-124) */
+  draftRetentionDays: number | null
 }
 
 export const workspaceNotFound = () => new DomainError('NOT_FOUND', 'Spazio non trovato')
@@ -55,6 +58,7 @@ function toDto(record: WorkspaceRecord, role: WorkspaceDto['myRole']): Workspace
     archivedAt: record.archivedAt === null ? null : record.archivedAt.toISOString(),
     myRole: role,
     defaultPostTime: record.defaultPostTime,
+    draftRetentionDays: record.draftRetentionDays,
   }
 }
 
@@ -327,6 +331,42 @@ export async function setDefaultPostTime(
     await tx.workspaces.setDefaultPostTime(organizationId, workspaceId, checked.value)
     await recordWorkspace(tx, current, 'workspace.settings_changed', workspaceId, request.ip)
     return toDto({ ...workspace, defaultPostTime: checked.value }, role)
+  })
+}
+
+/**
+ * «Sposta negli Eliminati le bozze non toccate da» (plan 09 Scelta 12, D-124): 30, 60 or 90
+ * days, or «Mai» (null), with the same door as the usual time. The same value again changes and
+ * records nothing.
+ */
+export async function setDraftRetentionDays(
+  deps: Pick<WorkspacesDeps, 'uow'>,
+  actor: OrgActor,
+  workspaceId: string,
+  value: unknown,
+  request: { ip: string | null },
+): Promise<WorkspaceDto> {
+  if (!isUuid(workspaceId)) throw workspaceNotFound()
+  if (!isDraftRetention(value))
+    throw new DomainError('VALIDATION', 'Scegli 30, 60 o 90 giorni, oppure «Mai»', {
+      field: 'draftRetentionDays',
+    })
+  const { organizationId } = actor
+  return deps.uow.run({ organizationId, userId: actor.userId }, async (tx) => {
+    const fresh = await currentActor(tx, actor)
+    await assertActiveOrganization(tx, organizationId)
+    const { workspace, actor: current } = await lockVisibleWorkspace(tx, fresh, workspaceId)
+    if (!can(current, 'workspace.content_settings.manage', { organizationId, workspaceId }))
+      throw new DomainError(
+        'FORBIDDEN',
+        'Solo chi gestisce il cliente può cambiare le impostazioni dei contenuti',
+      )
+    if (workspace.archivedAt !== null) throw archivedConflict()
+    const role = myRole(current, workspaceId) ?? 'viewer'
+    if (workspace.draftRetentionDays === value) return toDto(workspace, role)
+    await tx.workspaces.setDraftRetentionDays(organizationId, workspaceId, value)
+    await recordWorkspace(tx, current, 'workspace.settings_changed', workspaceId, request.ip)
+    return toDto({ ...workspace, draftRetentionDays: value }, role)
   })
 }
 

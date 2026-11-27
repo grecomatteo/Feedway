@@ -1347,6 +1347,15 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
   3. Una bozza vuota è senza testo, senza file, senza account e senza data (così una bozza nata da «Prepara» non lo è mai). Quelle nate dal salvataggio automatico e rimaste vuote si cancellano uscendo dall'editor, senza cestino; il lavoro notturno toglie quelle ferme da 24 ore.
   4. Valgono anche per i post annullati, che oggi si eliminano come le bozze.
   5. Un post negli «Eliminati» non si modifica né si programma (409) finché non si ripristina; il Viewer vede gli «Eliminati» in sola lettura.
+- **Task 14, PR 1 (server, 27/11):** dati (migrazione 0033), `trashPosts`, `restorePosts`, `purgePosts`, le rotte `…/posts/trash`, `…/posts/restore`, `…/posts/purge` e `GET …/calendar/drafts?trashed=1`, la scelta del cliente in `PATCH …/workspaces/{id}` (`draftRetentionDays`) e il lavoro notturno `posts.drafts_cleanup`. Il pannello è la PR 2: la voce si chiude con lei. **Scelte provvisorie:**
+  6. Il contenuto del piano di una bozza negli «Eliminati» resta «Preparato» (punto 6 del Review Focus del piano); torna «Da preparare» solo quando il post si cancella per sempre.
+  7. «Elimina» e «Ripristina» fanno salire la `version`: una scheda dell'editor rimasta aperta riceve 409 con il motivo `post_trashed` («Questa bozza è stata eliminata»), prima del controllo della versione.
+  8. Anche le note interne di un post negli «Eliminati» non si aggiungono né si tolgono (409), come ogni altra scrittura.
+  9. `DELETE` di un post solo prende un post negli «Eliminati» o una bozza vuota (la regola di `isEmptyDraft`: senza testo, file, account e data); per ogni altra bozza risponde 409 con il motivo `post_not_trashed`.
+  10. «Svuota» toglie al massimo 500 post per volta, quelli che la persona può eliminare (i propri, o tutti con `post.manage_others`); il resto va con la pressione successiva o con il lavoro notturno.
+  11. Il lavoro notturno gira alle 03:45 (ora italiana), dopo `identity.retention` delle 03:30; al massimo 1.000 post per tipo e agenzia a notte, il resto la notte dopo. Una bozza vuota con una nota interna resta, come con «Elimina le bozze vuote». Le bozze nate da «Prepara» hanno la data, quindi non sono mai vuote, ma dopo i giorni scelti senza essere toccate vanno negli «Eliminati» come le altre.
+  12. **Dopo l'aggiornamento** ogni cliente parte con 30 giorni: la prima notte le bozze esistenti non toccate da più di 30 giorni vanno negli «Eliminati» (si recuperano per 30 giorni). Va scritto nella guida della prova.
+  13. Nella libreria un file usato solo da post negli «Eliminati» dice «In una bozza eliminata» (`usedIn.trashed`), dopo ogni altro uso.
 
 ### D-125 · Richiesta di collaborazione su un post (collab)
 

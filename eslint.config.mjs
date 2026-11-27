@@ -31,6 +31,8 @@ const RUN_AS_SYSTEM_ALLOWED = [
   'packages/application/src/notifications/digest-start.ts',
   // plan 09 P3: the agencies with the plan on, then each one's contents read in its own scope
   'packages/application/src/plan/due-scan.ts',
+  // plan 09 Task 14: the agencies, then each one's drafts cleaned in its own scope
+  'packages/application/src/posts/drafts-cleanup.ts',
 ]
 
 export default tseslint.config(

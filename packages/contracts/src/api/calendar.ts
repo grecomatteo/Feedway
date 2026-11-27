@@ -65,6 +65,10 @@ export const CalendarPost = z.object({
   notOut: z.number().int(),
   version: z.number().int(),
   updatedAt: Timestamp,
+  /** in «Eliminati» since (plan 09 Scelta 12); null: not there */
+  trashedAt: Timestamp.nullable(),
+  /** a draft nobody touches goes to «Eliminati» then; null: never («Mai»), or not a draft */
+  autoTrashAt: Timestamp.nullable(),
 })
 export type CalendarPost = z.infer<typeof CalendarPost>
 
@@ -117,8 +121,12 @@ export const calendarRoute = defineContract({
 export const calendarDraftsRoute = defineContract({
   method: 'GET',
   path: '/api/v1/orgs/{org}/calendar/drafts',
-  summary: 'Le bozze senza data della vista Elenco, le ultime cambiate prima (al massimo 200)',
-  request: { params: OrgParams, query: z.strictObject(CalendarFilterQuery) },
+  summary:
+    'Le bozze senza data della vista Elenco, le ultime cambiate prima (al massimo 200); con `trashed=1` gli «Eliminati»: bozze e annullati, gli ultimi eliminati prima',
+  request: {
+    params: OrgParams,
+    query: z.strictObject({ ...CalendarFilterQuery, trashed: z.enum(['1']).optional() }),
+  },
   response: z.object({
     timeZone: z.string(),
     items: z.array(CalendarPost),

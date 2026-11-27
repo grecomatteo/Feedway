@@ -73,6 +73,8 @@ export interface MediaDto {
     timezone: string
     /** how many posts use the file */
     count: number
+    /** the post is in «Eliminati»: «In una bozza eliminata» (plan 09 Scelta 12) */
+    trashed: boolean
   } | null
   /** why the file is not deleted (`deletionBlock`, D-80.4): what the deletion answers 409 by */
   deleteBlockedBy: {
@@ -138,6 +140,7 @@ export function toDto(
           scheduledAt: iso(use.scheduledAt),
           timezone: use.timezone,
           count: postCount(all),
+          trashed: use.trashed,
         }
       : null,
     deleteBlockedBy: block && { ...block, scheduledAt: iso(block.scheduledAt) },

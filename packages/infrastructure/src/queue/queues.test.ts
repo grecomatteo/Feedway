@@ -35,6 +35,7 @@ test('every registered queue declares a scope', () => {
     ['report.daily', 'system'],
     ['report.digest', 'user'],
     ['plan.due_scan', 'system'],
+    ['posts.drafts_cleanup', 'system'],
     ['bulk.import', 'organization'],
   ])
   expect(QUEUE_NAMES).toEqual([
@@ -69,6 +70,7 @@ test('every registered queue declares a scope', () => {
     'report.daily',
     'report.digest',
     'plan.due_scan',
+    'posts.drafts_cleanup',
     'bulk.import',
   ])
 })
@@ -82,6 +84,7 @@ test('a step of the publishing is aborted before its preparation claim expires',
     expect(QUEUES.find((q) => q.name === name)?.expireInSeconds).toBe(300)
   expect(QUEUES.find((q) => q.name === 'scheduler.reconcile')?.policy).toBe('singleton')
   expect(QUEUES.find((q) => q.name === 'media.publish_copies_cleanup')?.policy).toBe('singleton')
+  expect(QUEUES.find((q) => q.name === 'posts.drafts_cleanup')?.policy).toBe('singleton')
 })
 
 test('the jobs of one connection, or of one account, wait for each other, one waiting at most', () => {

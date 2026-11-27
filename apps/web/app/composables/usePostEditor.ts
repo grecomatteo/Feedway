@@ -856,7 +856,8 @@ export function usePostEditor(opts: {
     if (!id) return true
     acting.value = 'delete'
     try {
-      await call('DELETE', `${base}/posts/${encodeURIComponent(id)}`)
+      // «Elimina» sends it to the client's «Eliminati» (plan 09 Scelta 12)
+      await call('POST', `${base}/posts/trash`, { postIds: [id] })
       autosave.stop()
       return true
     } catch (e) {

@@ -23,6 +23,7 @@ import {
 } from './common.js'
 import { readPost, type PostDto } from './read.js'
 import { NOTHING_AFTER, saveScheduled, sendAfterSchedule } from './schedule.js'
+import { assertDeletableNow } from './trash.js'
 
 // Drafts (spec §11.2, plan 06 Task 4): a draft saves with any problem, the checks are the
 // editor's to show. Writing takes `post.draft` on one's own drafts, `post.manage_others` on
@@ -164,7 +165,11 @@ export async function updatePost(
   return dto
 }
 
-/** A draft or a cancelled post, by its author or by someone who may change anyone's. */
+/**
+ * «Elimina per sempre» of one post (plan 09 Scelta 12): a post in «Eliminati», or a draft left
+ * empty (the editor's new draft, gone as if never born), by its author or by someone who may
+ * change anyone's. «Elimina» of the panel is `trashPosts`.
+ */
 export async function deletePost(
   deps: Pick<PostsDeps, 'uow'>,
   actor: OrgActor,
@@ -173,11 +178,10 @@ export async function deletePost(
 ): Promise<void> {
   await deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
     const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
-    const post = await lockedPost(tx, scope, input.postId)
+    const post = await lockedPost(tx, scope, input.postId, { trashed: true })
     if (!mayEditContent(current, post)) throw cannotEdit()
     // a post of the worker's (plan 07) is not deleted either: only drafts and cancelled ones
-    if (post.status !== 'draft' && post.status !== 'cancelled')
-      throw wrongState(post.status, 'delete')
+    assertDeletableNow(post)
     if (!(await tx.posts.delete(scope, post.id))) throw postNotFound()
     await recordPost(tx, current, 'post.deleted', post, request.ip)
   })

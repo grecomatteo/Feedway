@@ -18,6 +18,8 @@ export const postsModule: ModuleDefinition = {
     'scheduler.reconcile',
     // programming in bulk (plan 09 Task 10)
     'bulk.import',
+    // «Eliminati» and the drafts nobody touches, every night (plan 09 Task 14)
+    'posts.drafts_cleanup',
   ],
   // plan 08, Scelta 4: «who scheduled» is `posts.scheduled_by`
   notificationKinds: [

@@ -12,6 +12,8 @@ export interface MediaUse {
   /** the post's own (D-58), for the day the panel names */
   timezone: string
   updatedAt: Date
+  /** in «Eliminati» (plan 09 Scelta 12): «In una bozza eliminata», after every other use */
+  trashed: boolean
 }
 
 /**
@@ -41,17 +43,21 @@ export const isGoingOut = (status: PublishingPostStatus) => USE_RANK[status] ===
  * id.
  */
 export function compareUses(a: MediaUse, b: MediaUse): number {
-  const rank = USE_RANK[a.status] - USE_RANK[b.status]
+  const rank = useRank(a) - useRank(b)
   if (rank !== 0) return rank
   const at =
-    USE_RANK[a.status] === 0
+    useRank(a) === 0
       ? compareDates(a.scheduledAt, b.scheduledAt)
-      : USE_RANK[a.status] === 2
+      : useRank(a) === 2
         ? latestFirst(a.scheduledAt, b.scheduledAt)
         : b.updatedAt.getTime() - a.updatedAt.getTime()
   if (at !== 0) return at
   return a.postId < b.postId ? -1 : a.postId > b.postId ? 1 : 0
 }
+
+/** A post in «Eliminati» comes after every other use, by its last change. */
+const TRASHED_RANK = 4
+const useRank = (use: MediaUse) => (use.trashed ? TRASHED_RANK : USE_RANK[use.status])
 
 /** Later first, null last. */
 function latestFirst(a: Date | null, b: Date | null): number {

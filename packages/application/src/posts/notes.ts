@@ -3,7 +3,7 @@ import type { IdGenerator } from '../ports/id-generator.js'
 import type { PostNoteRecord, PostScope } from '../ports/posts.js'
 import type { Tx } from '../ports/tx.js'
 import type { UnitOfWork } from '../ports/unit-of-work.js'
-import { openPosts, postNotFound } from './common.js'
+import { assertNotTrashed, openPosts, postNotFound } from './common.js'
 import { knownId } from './content-settings.js'
 
 // The internal notes of a post (spec §11.7, §10.2 «note»; plan 06 Task 7): whoever writes posts
@@ -98,6 +98,7 @@ export async function addNote(
       if (body === null)
         throw new DomainError('VALIDATION', 'La nota va da 1 a 2.000 caratteri', { field: 'body' })
       const post = await postOf(tx, scope, input.postId)
+      assertNotTrashed(post)
       if ((await tx.posts.listNotes(scope, post.id)).length >= NOTES_PER_POST_MAX)
         throw new DomainError(
           'CONFLICT',
@@ -124,6 +125,7 @@ export async function deleteNote(
   await deps.uow.run({ organizationId: actor.organizationId, userId: actor.userId }, async (tx) => {
     const { current, scope } = await openPosts(tx, actor, input.workspaceId, { write: true })
     const post = await postOf(tx, scope, input.postId)
+    assertNotTrashed(post)
     const note = await tx.posts.findNote(scope, post.id, knownId(input.noteId, noteNotFound))
     if (!note) throw noteNotFound()
     if (!mayDelete(current, scope, note))

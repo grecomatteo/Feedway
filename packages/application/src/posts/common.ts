@@ -102,11 +102,33 @@ export async function openPosts(
   return { current, workspace, scope, organization }
 }
 
-/** The post, locked until the transaction ends: its writes go one at a time. */
-export async function lockedPost(tx: Tx, scope: PostScope, postId: string): Promise<PostRecord> {
+/**
+ * A post in «Eliminati» takes no write but «Ripristina» and «Elimina per sempre» (plan 09
+ * Scelta 12): the editor stops its autosave on this reason and shows the post read-only.
+ */
+export const postTrashed = () =>
+  new DomainError('CONFLICT', 'Questa bozza è stata eliminata: ripristinala per modificarla', {
+    reason: 'post_trashed',
+  })
+
+export function assertNotTrashed(post: Pick<PostRecord, 'trashedAt'>): void {
+  if (post.trashedAt !== null) throw postTrashed()
+}
+
+/**
+ * The post, locked until the transaction ends: its writes go one at a time. One in «Eliminati»
+ * answers 409, unless the caller is «Ripristina» or «Elimina per sempre» (`trashed: true`).
+ */
+export async function lockedPost(
+  tx: Tx,
+  scope: PostScope,
+  postId: string,
+  opts: { trashed?: boolean } = {},
+): Promise<PostRecord> {
   if (!isUuid(postId)) throw postNotFound()
   const post = await tx.posts.findForUpdate(scope, postId)
   if (!post) throw postNotFound()
+  if (opts.trashed !== true) assertNotTrashed(post)
   return post
 }
 
@@ -250,6 +272,8 @@ export async function recordPost(
     | 'post.unscheduled'
     | 'post.cancelled'
     | 'post.deleted'
+    | 'post.trashed'
+    | 'post.restored'
     | 'post.published_now',
   post: { id: string; workspaceId: string; scheduledAt?: Date | null },
   ip: string | null,

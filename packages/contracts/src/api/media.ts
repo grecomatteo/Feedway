@@ -75,6 +75,8 @@ export const MediaDto = z.object({
       scheduledAt: Timestamp.nullable(),
       timezone: z.string(),
       count: z.number().int(),
+      /** the post is in «Eliminati»: «In una bozza eliminata» (plan 09 Scelta 12) */
+      trashed: z.boolean(),
     })
     .nullable(),
   /**

@@ -1,7 +1,9 @@
+import { sql } from 'drizzle-orm'
 import {
   foreignKey,
   pgTable,
   primaryKey,
+  smallint,
   text,
   time,
   unique,
@@ -24,6 +26,8 @@ export const workspaces = pgTable(
     logoKey: text('logo_key'),
     // Local time; a client is born with 14:00 (Matteo, 25/11), null means none (§13)
     defaultPostTime: time('default_post_time').default('14:00'),
+    // «Sposta negli Eliminati le bozze non toccate da»: 30, 60 or 90 days, null «Mai» (D-124)
+    draftRetentionDays: smallint('draft_retention_days').default(30),
     archivedAt: tz('archived_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -32,6 +36,10 @@ export const workspaces = pgTable(
     unique('workspaces_organization_slug').on(t.organizationId, t.slug),
     // Target of the composite foreign keys that keep children inside the same organization
     unique('workspaces_organization_id').on(t.organizationId, t.id),
+    check(
+      'workspaces_draft_retention_days',
+      sql`${t.draftRetentionDays} is null or ${t.draftRetentionDays} in (30, 60, 90)`,
+    ),
   ],
 )
 

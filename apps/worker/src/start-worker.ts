@@ -26,6 +26,7 @@ import {
   notifyDispatch,
   telegramPoll,
 } from './handlers/notify.js'
+import { postsDraftsCleanup } from './handlers/posts-drafts-cleanup.js'
 import { planDueScan } from './handlers/plan.js'
 import { reportDaily, reportDigest } from './handlers/report.js'
 import { systemSelftest } from './handlers/system-selftest.js'
@@ -84,6 +85,8 @@ export const REPORT_DAILY_CRON = '* * * * *'
 export const REPORT_DAILY_TZ = 'Europe/Rome'
 /** Every 5 minutes: the plan's contents whose notice is due (plan 09 P3). */
 export const PLAN_DUE_SCAN_CRON = '*/5 * * * *'
+/** Every day at 03:45, Italian time: «Eliminati» and the drafts nobody touches (plan 09 Task 14). */
+export const DRAFTS_CLEANUP_CRON = '45 3 * * *'
 
 /**
  * Jobs of one queue at once in this worker. The preparations are limited per agency in the
@@ -154,6 +157,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'report.daily': reportDaily,
     'report.digest': reportDigest,
     'plan.due_scan': planDueScan,
+    'posts.drafts_cleanup': postsDraftsCleanup,
     'bulk.import': bulkImport,
     ...deps.handlers,
     'telegram.poll': telegramPollOnStop,
@@ -209,6 +213,8 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     await queue.schedule('report.daily', REPORT_DAILY_CRON, {}, { tz: REPORT_DAILY_TZ })
   if (queues.includes('plan.due_scan'))
     await queue.schedule('plan.due_scan', PLAN_DUE_SCAN_CRON, {}, { tz: REPORT_DAILY_TZ })
+  if (queues.includes('posts.drafts_cleanup'))
+    await queue.schedule('posts.drafts_cleanup', DRAFTS_CLEANUP_CRON, {}, { tz: RETENTION_TZ })
   if (queues.includes('media.process') || queues.includes('media.publish_copies'))
     await wakeMediaProcessing({ uow: deps.services.uow, queue, logger })
   const stopHeartbeat = startHeartbeat(deps.heartbeatPath, deps.heartbeatEveryMs)

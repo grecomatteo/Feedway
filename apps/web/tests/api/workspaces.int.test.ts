@@ -34,6 +34,7 @@ test('Owner creates, lists, renames and archives workspaces', async () => {
   expect(Object.keys(ws).sort()).toEqual([
     'archivedAt',
     'defaultPostTime',
+    'draftRetentionDays',
     'id',
     'myRole',
     'name',

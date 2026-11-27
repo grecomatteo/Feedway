@@ -40,6 +40,10 @@ export {
 } from './account-groups.js'
 export type { AccountGroupDto } from './account-groups.js'
 export { addNote, deleteNote, listNotes } from './notes.js'
+// «Eliminati» (plan 09 Scelta 12, Task 14).
+export { PURGE_ALL_MAX, purgePosts, restorePosts, trashPosts } from './trash.js'
+export { cleanupDrafts } from './drafts-cleanup.js'
+export type { DraftsCleanupDeps, DraftsCleanupReport } from './drafts-cleanup.js'
 export type { PostNoteDto } from './notes.js'
 // The calendar's posts and its list (plan 09 Task 2), for the `calendar` module.
 export {

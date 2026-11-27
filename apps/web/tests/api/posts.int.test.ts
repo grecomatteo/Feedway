@@ -570,7 +570,9 @@ describe('scheduling', () => {
       409,
       'CONFLICT',
     )
-    // the author deletes it
+    // the author deletes it: «Elimina» to «Eliminati» first, then for good (plan 09 Scelta 12)
+    await expectError(call('editor', 'DELETE', `${base()}/${post.id}`), 409, 'CONFLICT')
+    await expectOk(call('editor', 'POST', `${base()}/trash`, { postIds: [post.id] }))
     await expectOk(call('editor', 'DELETE', `${base()}/${post.id}`))
     await expectError(call('editor', 'GET', `${base()}/${post.id}`), 404, 'NOT_FOUND')
     const { rows } = await env.admin.pool.query<{ action: string }>(
@@ -583,6 +585,7 @@ describe('scheduling', () => {
       'post.unscheduled',
       'post.scheduled',
       'post.cancelled',
+      'post.trashed',
       'post.deleted',
     ])
     // «ha programmato un post per ven 11 giu, 18:00» in the log (review of fidelity, B9): the
@@ -736,6 +739,7 @@ describe('files of the posts in the library', () => {
       scheduledAt: scheduled.scheduledAt,
       timezone: 'Europe/Rome',
       count: 1,
+      trashed: false,
     })
     const error = await expectError(
       call('editor', 'DELETE', `${library}/${fileId}`),
@@ -809,6 +813,7 @@ describe('files of the posts in the library', () => {
       scheduledAt: inDraft.scheduledAt,
       timezone: 'Europe/Rome',
       count: 2,
+      trashed: false,
     }
     for (const query of ['', 'inPosts=true', `folder=${folder.id}`, 'tag=uso', 'kind=video']) {
       const listed = await expectOk<{ items: { id: string; usedIn: unknown }[] }>(

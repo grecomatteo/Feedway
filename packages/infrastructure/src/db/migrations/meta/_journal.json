@@ -232,6 +232,13 @@
       "when": 1795598632901,
       "tag": "0032_bulk_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795739406930,
+      "tag": "0033_drafts_trash",
+      "breakpoints": true
     }
   ]
 }
