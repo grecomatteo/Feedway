@@ -242,6 +242,8 @@ describe('workspaces', () => {
       myRole: 'owner',
       // a client is born with 14:00 (Matteo, 25/11)
       defaultPostTime: '14:00',
+      // and with 30 days before a forgotten draft goes to «Eliminati» (plan 09 Scelta 12)
+      draftRetentionDays: 30,
     })
     expect((await createWorkspace(deps, ownerA, { name: 'Caffè  Roma' }, REQ)).slug).toBe(
       'caffe-roma-2',
@@ -366,6 +368,7 @@ describe('workspaces', () => {
         archivedAt: null,
         myRole: 'editor',
         defaultPostTime: '14:00',
+        draftRetentionDays: 30,
       },
     ])
     const loose = await actorOf(w.loose.id, w.orgA)
