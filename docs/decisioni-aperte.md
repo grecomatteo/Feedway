@@ -911,7 +911,8 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Origine:** difetto trovato prima del rilascio della 0.15.0 (PR della correzione, `statuses` esclude i post negli «Eliminati», §11.9).
 - **Il problema:** con il post negli «Eliminati» il contenuto torna «Da preparare» e «Prepara» crea una bozza nuova, che prende il collegamento. Se poi la vecchia bozza torna con «Ripristina», il cliente ha due bozze per lo stesso contenuto.
 - **Opzioni:** (a) la vecchia bozza resta a sé, senza il segno «dal piano», come un post annullato e preparato di nuovo; il contenuto resta della bozza nuova; (b) «Ripristina» chiede quale bozza tenere collegata; (c) «Ripristina» rifiuta (409) finché il contenuto ha una bozza nuova.
-- **Stato:** scelta provvisoria (a): segue le regole che esistono già e non aggiunge passaggi. Se la vecchia bozza torna prima di un nuovo «Prepara», il contenuto è di nuovo preparato da lei.
+- **Cambia una scelta di prima:** D-124 punto 6 e il punto 6 del Review Focus del piano della tappa 9 volevano il contenuto «Preparato» finché la bozza restava negli «Eliminati». Contraddiceva §11.9 (un post negli «Eliminati» non compare in nessuna lettura) e lasciava «Prepara» su una bozza in sola lettura, senza avviso a 36 ore.
+- **Stato:** scelta provvisoria (a): segue le regole che esistono già e non aggiunge passaggi. Se la vecchia bozza torna prima di un nuovo «Prepara», il contenuto è di nuovo preparato da lei. In attesa della conferma di Matteo prima della fusione.
 
 ## Sito pubblico
 
@@ -1356,7 +1357,7 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
   4. Valgono anche per i post annullati, che oggi si eliminano come le bozze.
   5. Un post negli «Eliminati» non si modifica né si programma (409) finché non si ripristina; il Viewer vede gli «Eliminati» in sola lettura.
 - **Task 14, PR 1 (server, 27/11):** dati (migrazione 0033), `trashPosts`, `restorePosts`, `purgePosts`, le rotte `…/posts/trash`, `…/posts/restore`, `…/posts/purge` e `GET …/calendar/drafts?trashed=1`, la scelta del cliente in `PATCH …/workspaces/{id}` (`draftRetentionDays`) e il lavoro notturno `posts.drafts_cleanup`. Il pannello è la PR 2: la voce si chiude con lei. **Scelte provvisorie:**
-  6. Il contenuto del piano di una bozza negli «Eliminati» resta «Preparato» (punto 6 del Review Focus del piano); torna «Da preparare» solo quando il post si cancella per sempre.
+  6. Il contenuto del piano di una bozza negli «Eliminati» resta «Preparato» (punto 6 del Review Focus del piano); torna «Da preparare» solo quando il post si cancella per sempre. **Sostituita da D-137** (prima del rilascio della 0.15.0): §11.9 vuole che un post negli «Eliminati» non si legga, e «Prepara» riapriva la bozza eliminata in sola lettura.
   7. «Elimina» e «Ripristina» fanno salire la `version`: una scheda dell'editor rimasta aperta riceve 409 con il motivo `post_trashed` («Questa bozza è stata eliminata»), prima del controllo della versione.
   8. Anche le note interne di un post negli «Eliminati» non si aggiungono né si tolgono (409), come ogni altra scrittura.
   9. `DELETE` di un post solo prende un post negli «Eliminati» o una bozza vuota (la regola di `isEmptyDraft`: senza testo, file, account e data); per ogni altra bozza risponde 409 con il motivo `post_not_trashed`. Anche una bozza vuota con una nota interna risponde 409, come per il lavoro notturno.
