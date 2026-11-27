@@ -76,11 +76,19 @@ test('the profile theme arrives with the next page, never on the sign-in page', 
     Object.assign(window, { __themeChanges: seen })
     let last: boolean | null = null
     const note = () => {
-      const dark = document.documentElement.classList.contains('dark')
+      // the script runs before <html> exists: nothing to note until it does
+      const html = document.documentElement as HTMLElement | null
+      if (!html) return
+      const dark = html.classList.contains('dark')
       if (dark !== last) seen.push({ path: location.pathname, dark })
       last = dark
     }
-    new MutationObserver(note).observe(document.documentElement, { attributes: true })
+    new MutationObserver(note).observe(document, {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: true,
+      subtree: true,
+    })
     note()
   })
   await signInFromPage(page, person)
