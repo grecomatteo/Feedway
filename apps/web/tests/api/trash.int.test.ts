@@ -285,7 +285,7 @@ describe('deleting for good', () => {
     expect(await row(theirs)).toBeNull()
   })
 
-  test('the plan’s content stays prepared in «Eliminati», and is to prepare once deleted', async () => {
+  test('the plan’s content is to prepare in «Eliminati», and stays so once deleted (D-137)', async () => {
     const item = await call('manager', 'POST', '/plan', {
       workspaceId: forno,
       localDate: '2027-03-15',
@@ -307,9 +307,9 @@ describe('deleting for good', () => {
       )?.state
     }
     await call('manager', 'POST', `${posts()}/trash`, { postIds: [postId] })
-    expect(await state()).toBe('prepared')
+    expect(await state()).toBe('to_prepare')
     await call('manager', 'POST', `${posts()}/purge`, { postIds: [postId] })
-    expect(await state()).not.toBe('prepared')
+    expect(await state()).toBe('to_prepare')
   })
 })
 

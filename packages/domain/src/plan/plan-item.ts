@@ -78,7 +78,10 @@ export function referenceInstant(
   return zonedToInstant(localDate, localTime ?? PLAN_END_OF_DAY, timeZone).instant
 }
 
-/** Whether the post still stands for the content: a cancelled post gives it back (rule 5). */
+/**
+ * Whether the post still stands for the content: a cancelled post gives it back (rule 5). One in
+ * «Eliminati» arrives here as null, since `getStatuses` leaves it out (§11.9).
+ */
 export const isPreparedBy = (post: PlanPostFacts | null): post is PlanPostFacts =>
   post !== null && post.status !== 'cancelled'
 

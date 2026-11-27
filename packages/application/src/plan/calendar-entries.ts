@@ -16,7 +16,7 @@ export interface PlanEntryData {
   dueAt: string
   /** when it turns «Meno di 36 ore» and its notification goes out: the panel counts from here */
   dueSoonAt: string
-  /** the cancelled post it had, if any; null otherwise */
+  /** the cancelled post it had, or the one in «Eliminati», if any; null otherwise */
   postId: string | null
 }
 

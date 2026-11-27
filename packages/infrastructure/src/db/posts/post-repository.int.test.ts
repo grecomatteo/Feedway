@@ -246,6 +246,11 @@ test('the list goes newest first, by state and page; statuses come in one query'
       [ids[2], 'draft'],
     ].sort(),
   )
+  // a post in «Eliminati» is in no read but «Eliminati» (§11.9): the plan finds it gone
+  const trashed = ids[1] ?? ''
+  await run((tx) => tx.posts.setTrashed(own, trashed, { at: new Date(), by: user }, user))
+  const left = await run((tx) => tx.posts.statuses(org, ids))
+  expect([...left.keys()].sort()).toEqual([ids[0], ids[2]].sort())
 })
 
 test('statuses and the day count stay in the agency; an archived client does not count', async () => {
