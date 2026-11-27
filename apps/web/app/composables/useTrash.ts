@@ -12,6 +12,7 @@ export function useTrash() {
   const { call, failure } = useApi()
   const { t } = useI18n()
   const notice = useNotice()
+  const revision = usePostsRevision()
 
   const route = (workspaceId: string, what: 'trash' | 'restore' | 'purge') =>
     org.api(`/workspaces/${encodeURIComponent(workspaceId)}/posts/${what}`)
@@ -29,7 +30,9 @@ export function useTrash() {
 
   /**
    * «Elimina»: to «Eliminati» at once, then the notice with «Annulla». `changed` runs after the
-   * move and after the undo, so the page reads again what it shows.
+   * move and after the undo, so the page reads again what it shows. Without it (the editor, which
+   * has gone back to the list by then) the undo says the posts changed, and the calendar of the
+   * page reads them again.
    */
   async function trash(items: readonly TrashItem[], changed?: () => unknown): Promise<void> {
     if (items.length === 0) return
@@ -49,7 +52,8 @@ export function useTrash() {
             failed: true,
           })
         }
-        await changed?.()
+        if (changed) await changed()
+        else revision.value++
       },
     })
     await changed?.()

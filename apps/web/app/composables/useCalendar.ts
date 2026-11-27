@@ -318,6 +318,11 @@ export function useCalendar(scope: {
     { immediate: true },
   )
   onBeforeUnmount(() => draftsRunning?.abort())
+  // posts changed elsewhere (the undo of the editor's «Elimina»): what is shown is read again
+  watch(usePostsRevision(), () => {
+    if (!daysWaiting.value) void refresh()
+    if (!waiting.value) void loadDrafts()
+  })
 
   /**
    * «Elimina le bozze vuote»: one's own, and with `all` the others' where the person manages the

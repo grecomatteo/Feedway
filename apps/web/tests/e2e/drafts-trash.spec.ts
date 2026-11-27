@@ -182,3 +182,34 @@ test('«Bozze dimenticate» in the content settings, and a new draft left empty 
     )
     .toBe(0)
 })
+
+test('«Elimina» from the editor, then «Annulla» in the list gives the draft back there', async ({
+  page,
+}) => {
+  const owner = await newPerson('Edo Editor', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  const client = await newWorkspace(page.request, org, 'Forno Ritorno')
+  const posts = `/api/v1/orgs/${org}/workspaces/${client.id}/posts`
+  await draft(page.request, posts, 'Il panettone')
+  const id = await draft(page.request, posts, 'Il pandoro')
+
+  await page.goto(`/${org}/spazi/${client.slug}/calendario?vista=elenco`)
+  const drafts = page.locator('[data-list-drafts]')
+  await expect(drafts.locator('[data-post]')).toHaveCount(2)
+  await drafts.locator(`[data-post="${id}"]`).click()
+  await expect(page).toHaveURL(new RegExp(`/post/${id}$`))
+  await page
+    .getByRole('button', { name: 'Altre azioni del post' })
+    .filter({ visible: true })
+    .first()
+    .click()
+  await page.getByRole('menuitem', { name: 'Elimina' }).click()
+  await expect(page).not.toHaveURL(/\/post\//)
+  const toast = page.locator('[data-toast]')
+  await expect(toast).toContainText('Bozza eliminata')
+  await expect(drafts.locator('[data-post]')).toHaveCount(1)
+  await toast.locator('[data-toast-action]').click()
+  await expect(toast).toContainText('Ripristinato')
+  await expect(drafts.locator(`[data-post="${id}"]`)).toBeVisible()
+})

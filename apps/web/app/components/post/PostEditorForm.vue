@@ -292,8 +292,11 @@ onBeforeRouteLeave(async (to, _from, next) => {
 function beforeUnload(event: BeforeUnloadEvent) {
   if (e.save.value.dirty && e.editable.value) event.preventDefault()
 }
-// the tab closes on a new draft left empty: it goes with a request that outlives the page
-const pageHide = () => e.discardOnClose()
+// the tab closes on a new draft left empty: it goes with a request that outlives the page; a
+// page kept for «Indietro» (back-forward cache) is not closing, and keeps its draft
+const pageHide = (event: PageTransitionEvent) => {
+  if (!event.persisted) e.discardOnClose()
+}
 onMounted(() => {
   window.addEventListener('beforeunload', beforeUnload)
   window.addEventListener('pagehide', pageHide)

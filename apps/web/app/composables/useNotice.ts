@@ -32,3 +32,9 @@ export function useNotice() {
   }
   return { notice, open, show, act }
 }
+
+/**
+ * A count that goes up when posts changed outside the page that shows them, such as «Annulla»
+ * after «Elimina» in the editor: the calendar watches it and reads again.
+ */
+export const usePostsRevision = () => useState('posts-revision', () => 0)

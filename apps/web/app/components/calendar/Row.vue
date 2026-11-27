@@ -35,6 +35,8 @@ let timer: ReturnType<typeof setTimeout> | undefined
 let start: { x: number; y: number } | null = null
 let held = false
 function down(e: PointerEvent) {
+  // a long press the browser sent no click after does not take the next tap
+  held = false
   if (!props.holdable || props.selecting || e.pointerType !== 'touch') return
   start = { x: e.clientX, y: e.clientY }
   clearTimeout(timer)
