@@ -27,7 +27,7 @@ interface DraftsResponse {
   truncated: boolean
 }
 
-/** The views this page draws; the address may name others («griglia», stage 9 Task 12). */
+/** The views of a period; «griglia» is the fourth, inside a client only (plan 09 Scelta 10). */
 const DRAWN: readonly PeriodView[] = ['month', 'week', 'list']
 
 /**
@@ -72,6 +72,12 @@ export function useCalendar(scope: {
     const asked = query.value.view
     return asked && (DRAWN as readonly string[]).includes(asked) ? (asked as PeriodView) : fallback
   })
+  /**
+   * Instagram's grid instead of a period (plan 09 Task 12): only inside a client; in «Tutti i
+   * clienti» the address's «griglia» opens the usual view. The grid reads its own, so the
+   * calendar's reads wait while it is shown.
+   */
+  const grid = computed(() => scope.workspaceId.value !== null && query.value.view === 'grid')
   const date = computed<LocalDate>(() => query.value.date ?? today.value)
   const period = computed(() => periodOf(view.value, date.value))
   /**
@@ -98,7 +104,7 @@ export function useCalendar(scope: {
     const to = { path: route.path, query: { ...context, ...toCalendarQuery(next) } }
     return replace ? router.replace(to) : router.push(to)
   }
-  const setView = (v: PeriodView) => go({ view: v })
+  const setView = (v: PeriodView | 'grid') => go({ view: v })
   const step = (by: -1 | 1) => go({ date: shiftDate(view.value, date.value, by) })
   const toToday = () => go({ date: null })
   const setFilters = (change: Partial<CalendarFilters>) =>
@@ -235,7 +241,7 @@ export function useCalendar(scope: {
     }
   }
   // the context first: «Tutti i clienti» would be read for nothing while the client is unknown
-  const waiting = computed(() => !scope.ready.value)
+  const waiting = computed(() => !scope.ready.value || grid.value)
   watch(
     () => (waiting.value ? null : JSON.stringify(apiQuery.value)),
     (key) => {
@@ -247,7 +253,9 @@ export function useCalendar(scope: {
 
   // ---- the list's drafts without a date (plan 09 Scelta 2): a read of their own, with the
   // filters and without a period; a quick filter is about dated posts, and leaves them out
-  const wantsDrafts = computed(() => view.value === 'list' && filters.value.quick === null)
+  const wantsDrafts = computed(
+    () => !grid.value && view.value === 'list' && filters.value.quick === null,
+  )
   const drafts = ref<DraftsResponse | null>(null)
   const draftsStatus = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
   let draftsRunning: AbortController | null = null
@@ -342,6 +350,7 @@ export function useCalendar(scope: {
     today,
     timeZone,
     view,
+    grid,
     date,
     period,
     filters,
