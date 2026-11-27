@@ -912,7 +912,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Il problema:** con il post negli «Eliminati» il contenuto torna «Da preparare» e «Prepara» crea una bozza nuova, che prende il collegamento. Se poi la vecchia bozza torna con «Ripristina», il cliente ha due bozze per lo stesso contenuto.
 - **Opzioni:** (a) la vecchia bozza resta a sé, senza il segno «dal piano», come un post annullato e preparato di nuovo; il contenuto resta della bozza nuova; (b) «Ripristina» chiede quale bozza tenere collegata; (c) «Ripristina» rifiuta (409) finché il contenuto ha una bozza nuova.
 - **Cambia una scelta di prima:** D-124 punto 6 e il punto 6 del Review Focus del piano della tappa 9 volevano il contenuto «Preparato» finché la bozza restava negli «Eliminati». Contraddiceva §11.9 (un post negli «Eliminati» non compare in nessuna lettura) e lasciava «Prepara» su una bozza in sola lettura, senza avviso a 36 ore.
-- **Stato:** scelta provvisoria (a): segue le regole che esistono già e non aggiunge passaggi. Se la vecchia bozza torna prima di un nuovo «Prepara», il contenuto è di nuovo preparato da lei. In attesa della conferma di Matteo prima della fusione.
+- **Stato:** scelta provvisoria (a): segue le regole che esistono già e non aggiunge passaggi. Se la vecchia bozza torna prima di un nuovo «Prepara», il contenuto è di nuovo preparato da lei. Il contenuto che torna «Da preparare» è **deciso da Matteo** (27/11: «se eliminata deve ritornare da preparare»); il ripristino resta una scelta provvisoria.
 
 ## Sito pubblico
 
