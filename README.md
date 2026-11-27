@@ -33,7 +33,7 @@ Il pannello self-hosted con cui un'agenzia programma, pubblica e controlla i con
 Chi gestisce i social di molti clienti passa la giornata tra account, password, fogli di calcolo e controlli a mano per capire se un post è uscito davvero. Feedway mette tutto in un solo pannello:
 
 - **Un calendario per tutti i clienti**, o per uno alla volta: mese, settimana ed elenco, con i post da spostare trascinandoli e la griglia di Instagram com'è sul profilo.
-- **Un mese preparato in pochi minuti**: il piano editoriale dice cosa esce e quando, le fasce orarie scelgono l'ora, e i post nascono in blocco da una cartella di file, da un CSV o da un Excel.
+- **Un mese preparato in pochi minuti**: il piano editoriale dice cosa esce e quando, le fasce orarie scelgono l'ora, e i post nascono in blocco da tanti file insieme, da un CSV o da un Excel.
 - **Un post, più destinazioni**: gli stessi media su più account Instagram e Pagine Facebook, con caption comune e testo diverso per piattaforma quando serve.
 - **Un esito per ogni destinazione**: confermato, in verifica, da accertare o con problema. Se un account fallisce si riprova solo quello, senza ripubblicare ciò che è già uscito.
 - **Se qualcosa non va, lo sai subito**: un post non uscito o un account da ricollegare arrivano a chi deve sistemarli, nel pannello, per email o su Telegram, e ogni mattina alle 8:00 il riepilogo della giornata.
@@ -97,7 +97,7 @@ flowchart LR
   W --> DB[(PostgreSQL 18<br>dati con RLS · coda pg-boss)]
   K[apps/worker<br>pubblicazione · verifica · notifiche] --> DB
   K -->|Graph API| M[Meta<br>Instagram · Facebook]
-  W -->|griglia di Instagram| M
+  W -->|collegamenti · griglia di Instagram| M
   K -->|email · Bot API| N[SMTP · Telegram]
   W -->|ogni minuto| H[healthchecks.io<br>sorveglianza esterna]
   V[Visitatore] -->|HTTPS| S[apps/site<br>landing · privacy · Cloudflare Pages]

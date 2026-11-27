@@ -912,7 +912,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Scelte provvisorie:**
   1. **Landing:** calendario e piano editoriale fuori da «In arrivo» (`apps/site/app/features.ts`). Nella scheda «Pianifica» due righe nuove senza segno, «Tanti post in blocco, anche da CSV o Excel» e «Griglia di Instagram da riordinare»; in «Pubblica e verifica» la riga «Collaboratori su Instagram». Gli «Eliminati» stanno in una domanda nuova, «E se elimino una bozza per sbaglio?». Resta «In arrivo» il calendario su Google o Apple.
   2. **Schermate della landing:** restano le tavole del progetto grafico (`public/shots/`), che descrivono il prodotto finito come vuole D-122. La scheda «Pianifica» mostra già la tavola del piano editoriale.
-  3. **README:** tappa 9 segnata ✅ v0.15 con le funzioni uscite, due righe in «Perché Feedway», la tabella delle funzioni con «Duplica», griglia, «Eliminati» e collaboratori, e nello schema il web che legge la griglia da Meta.
+  3. **README:** tappa 9 segnata ✅ v0.15 con le funzioni uscite, due righe in «Perché Feedway», la tabella delle funzioni con «Duplica», griglia, «Eliminati» e collaboratori, e nello schema il web che chiama Meta per i collegamenti e la griglia.
   4. **Guida della prova:** in `handoff/tappa-9/GUIDA-prova-0.15.0.md`, fuori dal repository come le altre. Le note «Cosa provare» sono nella guida e nella descrizione della PR, non nel testo della release (come D-130).
 - **Stato:** scelte provvisorie; si chiude con gli esiti della prova della 0.15.0.
 
