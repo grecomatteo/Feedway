@@ -21,6 +21,7 @@ import { telegramOwnerOf } from './telegram-channel.js'
 import { answerTelegramQuery, type TelegramQuery } from './telegram-commands.js'
 import { bold, joinHtml, link, plain, type TelegramHtml } from './telegram-format.js'
 import { linkCodeHash } from './telegram-links.js'
+import { telegramRetrySeconds, type TelegramPollHealth } from './telegram-poll-health.js'
 
 // `telegram.poll` (plan 08 Task 7): every minute one worker holds the lock and listens to every
 // bot for most of the minute, one long `getUpdates` after the other, so that an answer leaves in a
@@ -44,6 +45,10 @@ export interface TelegramPollDeps {
    * `getUpdates` that does not wait.
    */
   waitSeconds: number
+  /** The failures of each bot in a row, across the runs: one per worker process (D-134). */
+  health: TelegramPollHealth
+  /** The wait before trying again; unset: a timer, cut short by the worker stopping. */
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>
 }
 
 export interface TelegramPollReport {
@@ -253,18 +258,71 @@ const saveState = (deps: TelegramPollDeps, bot: TelegramBotCredentials, state: T
     ROUTINE,
   )
 
-/** One `getUpdates`; null when it failed (the bot refused is turned red): the run stops there. */
+/** The failures that pass on their own: the run tries again after a wait (D-134). */
+const PASSING: ReadonlySet<TelegramApiError['kind']> = new Set(['unavailable', 'rate_limited'])
+
+/** A function, not a test in place: the signal may be aborted during an `await`. */
+const stopped = (signal?: AbortSignal) => signal?.aborted === true
+
+const healthKey = (bot: TelegramBotCredentials) =>
+  `${bot.organizationId ?? 'platform'}:${String(bot.botId)}`
+
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted === true) {
+      resolve()
+      return
+    }
+    const done = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', done)
+      resolve()
+    }, ms)
+    signal?.addEventListener('abort', done, { once: true })
+  })
+}
+
+/** How a failure of the long poll is logged: at info while it passes, an error when it lasts. */
+function logFailure(deps: TelegramPollDeps, bot: TelegramBotCredentials, error: TelegramApiError) {
+  const passing = PASSING.has(error.kind)
+  const verdict = deps.health.failed(healthKey(bot), deps.clock.now(), { lasting: !passing })
+  const { log, ...counts } = verdict
+  const fields = { bot: bot.botUsername, kind: error.kind, ...counts }
+  if (log === 'passing') deps.logger.info(fields, 'telegram poll failed')
+  else if (log === 'quiet') deps.logger.debug(fields, 'telegram poll failed')
+  else deps.logger.error(fields, passing ? 'telegram poll failing' : 'telegram poll refused')
+}
+
+function logSuccess(deps: TelegramPollDeps, bot: TelegramBotCredentials) {
+  const recovery = deps.health.succeeded(healthKey(bot), deps.clock.now())
+  if (recovery === null) return
+  const { alarmed, ...counts } = recovery
+  const fields = { bot: bot.botUsername, ...counts }
+  if (alarmed) deps.logger.info(fields, 'telegram poll recovered')
+  else deps.logger.debug(fields, 'telegram poll back')
+}
+
+/**
+ * One `getUpdates`. A failure that passes on its own is given back, for the run to try again;
+ * null for any other (the bot refused is turned red): the run stops there.
+ */
 async function updatesOf(
   deps: TelegramPollDeps,
   bot: TelegramBotCredentials,
   offset: number,
   timeoutSeconds: number,
   signal?: AbortSignal,
-): Promise<TelegramUpdate[] | null> {
+): Promise<TelegramUpdate[] | TelegramApiError | null> {
   try {
-    return await deps.telegram.getUpdates(bot.token, { offset, timeoutSeconds }, signal)
+    const updates = await deps.telegram.getUpdates(bot.token, { offset, timeoutSeconds }, signal)
+    logSuccess(deps, bot)
+    return updates
   } catch (error) {
     if (!(error instanceof TelegramApiError)) throw error
+    if (signal?.aborted === true) return null
     if (error.kind === 'unauthorized') {
       // revoked with @BotFather: red on the bot's page until a new token is saved
       await deps.uow.runAsSystem('telegram.poll: a bot refused', (tx) =>
@@ -277,16 +335,20 @@ async function updatesOf(
               bot.updatedAt,
             ),
       )
-      deps.logger.warn({ bot: bot.botUsername }, 'telegram bot token refused')
-    } else deps.logger.warn({ bot: bot.botUsername, kind: error.kind }, 'telegram poll failed')
-    return null
+      // not counted: the bot is not polled again until a new token is saved
+      deps.logger.error({ bot: bot.botUsername }, 'telegram bot token refused')
+      return null
+    }
+    logFailure(deps, bot, error)
+    return PASSING.has(error.kind) ? error : null
   }
 }
 
 /**
  * Listens to one bot until `waitSeconds` from the start of the run: each batch is answered and
- * its offset saved before the next long poll, so a message is never answered twice. A failure, a
- * bot changed on its row or the worker stopping ends the run; the next one goes on.
+ * its offset saved before the next long poll, so a message is never answered twice. A failure
+ * that passes on its own is tried again after a wait while there is time (D-134); any other
+ * failure, a bot changed on its row or the worker stopping ends the run; the next one goes on.
  */
 async function pollBot(
   deps: TelegramPollDeps,
@@ -303,11 +365,21 @@ async function pollBot(
     state = given
   }
   let handled = 0
+  let failures = 0
   for (;;) {
-    const wait = Math.min(Math.max(secondsLeft(), 0), LONG_POLL_MAX_SECONDS)
+    const longPoll = Math.min(Math.max(secondsLeft(), 0), LONG_POLL_MAX_SECONDS)
     const asked = deps.clock.now().getTime()
-    const updates = await updatesOf(deps, bot, state.offset ?? 0, wait, signal)
+    const updates = await updatesOf(deps, bot, state.offset ?? 0, longPoll, signal)
     if (updates === null) break
+    if (updates instanceof TelegramApiError) {
+      // tried again in this run after a wait, while there is time; else by the next run
+      const delay = telegramRetrySeconds(++failures, updates)
+      if (signal?.aborted === true || secondsLeft() <= delay) break
+      await (deps.sleep ?? wait)(delay * 1000, signal)
+      if (stopped(signal)) break
+      continue
+    }
+    failures = 0
     let offset = state.offset ?? 0
     for (const update of updates) {
       offset = Math.max(offset, update.updateId + 1)
@@ -331,7 +403,7 @@ async function pollBot(
     }
     if (signal?.aborted === true || secondsLeft() < 1) break
     // an empty answer well before its time (not Telegram's way): no loop of calls, the next run
-    if (updates.length === 0 && deps.clock.now().getTime() - asked < wait * 1000 - 500) break
+    if (updates.length === 0 && deps.clock.now().getTime() - asked < longPoll * 1000 - 500) break
   }
   return handled
 }
