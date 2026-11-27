@@ -120,9 +120,9 @@ const SIGN_ICON: Record<GridSign, string> = {
 const broken = ref(new Set<string>())
 watch(accountId, () => (broken.value = new Set()))
 function pictureFailed(thumb: string) {
-  // its token may have expired: the grid is read again with new ones
-  if (grid.refreshIfStale()) return
   broken.value = new Set([...broken.value, thumb])
+  // its token may have expired: the grid is read again with new ones, which are tried
+  grid.refreshIfStale()
 }
 const unread = computed(() => {
   const out = data.value?.published

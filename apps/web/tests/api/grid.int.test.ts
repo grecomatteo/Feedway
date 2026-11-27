@@ -300,6 +300,12 @@ describe('the grid', () => {
       404,
     )
     await failsWith(call('owner', 'GET', thumbnailOf(ig, pictureToken(other.id, ig), forno)), 404)
+    // a token the key accepts, of this agency but naming another agency's account: the account
+    // is not among this agency's, so nothing is downloaded
+    await failsWith(
+      call('owner', 'GET', thumbnailOf(igOther, pictureToken(org.id, igOther), forno)),
+      404,
+    )
     // the same account's, from the server's key: it opens
     const r = await call('owner', 'GET', thumbnailOf(ig, pictureToken(org.id, ig), forno))
     expect(r.status, r.text).toBe(200)

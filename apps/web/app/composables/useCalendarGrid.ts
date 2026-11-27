@@ -1,5 +1,6 @@
 import type { FetchError } from 'ofetch'
 import type { CalendarPost, GridPublished } from '@app/contracts'
+import { keepGridPictures, type GivenPictures } from '~/utils/calendar-grid'
 import { ruleMessage } from '~/utils/rule-message'
 
 export interface GridResponse {
@@ -49,8 +50,26 @@ export function useCalendarGrid(scope: {
   const data = ref<GridResponse | null>(null)
   const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
   let running: AbortController | null = null
-  /** when the grid shown was read, on this device's clock */
+  /** when the tokens of the pictures shown were given, on this device's clock */
   let readAt = 0
+  /**
+   * The tokens given for each account, while fresh: a grid read again (after a swap, back on an
+   * account) keeps the ones of its pictures, so their addresses stay and the browser's copies
+   * serve them instead of new downloads (each token is new, even for the same picture).
+   */
+  const given = new Map<string, GivenPictures>()
+  function keepPictures(accountId: string, res: GridResponse): GridResponse {
+    const out = res.published
+    const kept = keepGridPictures(
+      given,
+      accountId,
+      out.ok ? out.items : null,
+      Date.now(),
+      PICTURES_FRESH_MS,
+    )
+    readAt = kept.at
+    return kept.items ? { ...res, published: { ok: true, items: kept.items } } : res
+  }
   const base = () =>
     org.api(`/workspaces/${encodeURIComponent(scope.workspaceId.value ?? '')}/calendar/grid`)
 
@@ -75,8 +94,7 @@ export function useCalendarGrid(scope: {
         signal: mine.signal,
       })
       if (running !== mine) return
-      data.value = res
-      readAt = Date.now()
+      data.value = keepPictures(accountId, res)
       status.value = 'success'
     } catch {
       if (running !== mine) return
@@ -94,9 +112,14 @@ export function useCalendarGrid(scope: {
    * it is (a picture that did not arrive then gets a new address instead of its sign).
    */
   function refreshIfStale(): boolean {
+    const shown = data.value?.published
     if (status.value !== 'success' || Date.now() - readAt < PICTURES_FRESH_MS) return false
-    // once: the pictures failing together ask for one reading
+    // nothing to renew: no call to Meta for it
+    if (!shown?.ok || shown.items.every((m) => m.picture === null)) return false
+    // once: the pictures failing together ask for one reading, with new tokens
     readAt = Date.now()
+    const accountId = scope.accountId.value
+    if (accountId) given.delete(accountId)
     void load(true)
     return true
   }

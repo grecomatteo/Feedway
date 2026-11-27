@@ -112,7 +112,10 @@ const publishedDto = (m: GridMedia, picture: string | null): GridPublishedDto =>
   picture,
 })
 
-/** Before a call to the platform, once the account is known to be the client's: its limits. */
+/**
+ * Before a call to the platform (or a download from its picture hosts), once the account is
+ * known to be an Instagram of a client the person sees: its limits.
+ */
 export interface GridCallOptions {
   beforePlatform?: () => Promise<void>
 }
@@ -216,6 +219,7 @@ export async function getGridThumbnail(
   deps: GridDeps,
   actor: OrgActor,
   input: { workspaceId: string; accountId: string; picture: string },
+  opts: GridCallOptions = {},
 ): Promise<GridThumbnail | null> {
   const picture = deps.gridPictures.open(
     { organizationId: actor.organizationId, accountId: input.accountId },
@@ -231,6 +235,7 @@ export async function getGridThumbnail(
     },
   )
   if (!reader) return null
+  await opts.beforePlatform?.()
   const download = await reader.fetchPicture(picture.pictureUrl)
   if (!download.ok) {
     if (download.reason === 'unavailable') throw platformUnavailable()
