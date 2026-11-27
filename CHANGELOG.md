@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.1](https://github.com/grecomatteo/Feedway/compare/v0.15.0...v0.15.1) (2026-11-27)
+
+
+### Correzioni
+
+* **infra:** immagini del rilascio costruite da zero e scansionate senza cache ([#380](https://github.com/grecomatteo/Feedway/issues/380)) ([35e705e](https://github.com/grecomatteo/Feedway/commit/35e705e26c880a03d311e50f57765d257ec692f7))
+* **infra:** pacchetti di sistema senza cache nelle immagini del rilascio ([#378](https://github.com/grecomatteo/Feedway/issues/378)) ([4c0d167](https://github.com/grecomatteo/Feedway/commit/4c0d1678ceb3a48195140626f6183d691c9ab8e9))
+
 ## [0.15.0](https://github.com/grecomatteo/Feedway/compare/v0.14.0...v0.15.0) (2026-11-27)
 
 
