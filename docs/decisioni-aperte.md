@@ -914,11 +914,11 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
 - **Scelte provvisorie** (i numeri sono quelli delle «Scelte di questa tappa» del piano; Matteo può cambiarle prima del task che le usa):
   1. **Design in codice**, schermate prima della fusione, niente tavole su Pencil (come D-123.25). Alternativa: tavole prima, sul computer di Matteo.
   2. **Link gestiti dal pulsante «Condividi»** nella scheda «Calendario» del cliente; il token si copia solo alla creazione. Alternativa: una scheda «Condivisione» nella pagina del cliente.
-  3. **Opzioni del link:** tutto acceso, nessun limite di giorni, password e scadenza facoltative, al massimo 20 link attivi per cliente.
+  3. **Opzioni del link:** tutto acceso tranne «solo i prossimi N giorni», nessun limite di giorni, password e scadenza facoltative, al massimo 20 link attivi per cliente.
   4. **Stati per il cliente:** «Programmato», «In uscita», «Pubblicato», più «In preparazione» per il piano; mai l'errore né «In ritardo».
   5. **Periodo:** il mese corrente intero e i mesi dopo con contenuti, al massimo 6.
   6. **Telefono:** un elenco per giorno, senza i giorni vuoti.
-  7. **Colore dell'agenzia** solo nel link, nella stampa e nelle email; nel pannello resta il tema di ogni persona (D-22). Il server rifiuta un colore senza contrasto 4,5:1.
+  7. **Colore dell'agenzia** solo nel link, nella stampa e nelle email; nel pannello resta il tema di ogni persona (D-22). Il server rifiuta un colore senza contrasto 4,5:1 (il calcolo del contrasto passa da `packages/ui` al dominio).
   8. **Brand della piattaforma** nei file del repository, senza caricamento dal pannello.
   9. **Email:** logo PNG, colore e piè dell'agenzia nelle email legate all'agenzia; le email di sicurezza dell'account restano di Feedway.
   10. **Stampa del piano:** il mese mostrato e i successivi con contenuti, fino a 6, schede piene, mai la nota.
@@ -926,7 +926,9 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   12. **Condividi verso Feedway:** foto e video, fino a 20, nella cartella principale della libreria del cliente scelto.
   13. **Sito:** nel Task 10 solo ciò che non aspetta Matteo; dominio, Email Routing, partita IVA, Web Analytics e «Accedi» restano a lui (D-122).
   14. **Rilascio** come 0.16.0.
-- **Aggiornamenti della specifica** proposti nel piano (P1–P9): pagina del cliente resa dal server sull'ingresso pubblico (ADR 024), file e loghi sotto il token del link, cookie della password solo per quel link, token con SHA-256 e password con argon2id, un solo modulo di resa per link e stampa, stati per il cliente, colore fuori dal pannello, brand della piattaforma nel repository, condivisione da Android attraverso il service worker.
+  15. **File nel link:** miniature dalla copia `thumbnail`, video dalla copia `preview`, sotto il token del link; la variante `share` della specifica §11.1 non si produce.
+  16. **Logo del cliente:** la foto del primo profilo (il primo con Instagram, altrimenti il primo); il caricamento dalla pagina del cliente dopo.
+- **Aggiornamenti della specifica** proposti nel piano (P1–P13): pagina del cliente resa dal server sull'ingresso pubblico (ADR 024), file e loghi sotto il token del link, cookie della password solo per quel link, token con SHA-256 e password con argon2id, un solo modulo di resa per link e stampa, stati per il cliente, colore fuori dal pannello, brand della piattaforma nel repository, condivisione da Android attraverso il service worker, copie `thumbnail` e `preview` sotto il token del link, foto del profilo come logo del cliente, niente coda dei caricamenti senza rete per ora, colonne nuove di `branding` e `share_links`.
 - **Non verificato:** se Chrome su Android crea l'app vera (WebAPK, che riceve le condivisioni) per il pannello dietro Tailscale; se no, «Condividi verso Feedway» aspetta un indirizzo pubblico del pannello.
 - **Stato:** scelta provvisoria, piano da approvare.
 
