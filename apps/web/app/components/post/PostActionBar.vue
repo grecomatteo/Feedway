@@ -8,7 +8,8 @@ import type { PostEditor } from '~/composables/usePostEditor'
  * the buttons. At the top a draft has «Salva ed esci» and «Programma su N account» (an Editor
  * only «Salva ed esci»); at the bottom only «Programma» (the draft saves by itself), or «Salva ed
  * esci» for an Editor. A scheduled post has «Annulla programmazione», «Riporta in bozza» and
- * «Salva modifiche»; a cancelled one only «Elimina post».
+ * «Salva modifiche»; a cancelled one only «Elimina post». A saved draft has its «⋯» with
+ * «Elimina», which sends it to «Eliminati» with no question (plan 09 Scelta 12).
  */
 const props = withDefaults(
   defineProps<{ editor: PostEditor; accountsCount: number; placement?: 'top' | 'bottom' }>(),
@@ -92,6 +93,22 @@ function scheduleOrShow() {
   else emit('schedule')
 }
 const draft = computed(() => e.status.value === 'draft')
+/** «⋯ → Elimina» of a saved draft this person may change */
+const draftMenu = computed(() =>
+  draft.value && e.editable.value && e.save.value.postId !== null
+    ? [
+        [
+          {
+            label: t('trash.action'),
+            icon: 'i-lucide-trash-2',
+            color: 'error' as const,
+            disabled: e.acting.value === 'delete',
+            onSelect: () => emit('remove'),
+          },
+        ],
+      ]
+    : [],
+)
 /** «Bozza salvata» over «alle 11:53», at the bottom on a phone */
 const saved = computed(
   () => e.save.value.status === 'saved' && savedAt.value !== null && !e.save.value.dirty,
@@ -182,6 +199,13 @@ const scheduled = computed(() => e.status.value === 'scheduled')
         <span class="max-lg:sr-only">{{ missing.text }}</span>
       </button>
       <template v-if="draft && e.editable.value">
+        <RowActions
+          v-if="draftMenu.length > 0"
+          :name="''"
+          :label="$t('posts.actions.more')"
+          :items="draftMenu"
+          data-editor-more
+        />
         <UButton
           :color="e.may.value.publish ? 'neutral' : 'primary'"
           :variant="e.may.value.publish ? 'outline' : 'solid'"
@@ -314,6 +338,13 @@ const scheduled = computed(() => e.status.value === 'scheduled')
     </div>
     <div class="ms-auto flex min-w-0 flex-wrap justify-end gap-2">
       <template v-if="draft && e.editable.value">
+        <RowActions
+          v-if="draftMenu.length > 0"
+          :name="''"
+          :label="$t('posts.actions.more')"
+          :items="draftMenu"
+          data-editor-more
+        />
         <UButton
           v-if="e.may.value.publish"
           :icon="now ? 'i-lucide-send' : 'i-lucide-calendar-check'"

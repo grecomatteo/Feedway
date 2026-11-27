@@ -13,6 +13,7 @@ import {
 import { newPostQuery } from '~/utils/new-post-address'
 import type { PostType } from '~/utils/post-editor'
 import { mayMove } from '~/utils/calendar-move'
+import { mayHandleTrashed, mayTrash, trashNote } from '~/utils/trash'
 import { CALENDAR_MOVING } from '~/composables/useCalendarMove'
 import type { DropdownMenuItem } from '@nuxt/ui'
 
@@ -100,20 +101,29 @@ const chosenView = computed({
   set: (v: PeriodView | 'grid') => void cal.setView(v),
 })
 
-// the quick filters of the posts (plan 09 Task 2); «Da preparare» is the plan's (Task 7)
-type Quick = 'all' | Extract<QuickFilter, 'to_publish' | 'published' | 'with_problem'>
+// the quick filters of the posts (plan 09 Task 2); «Da preparare» is the plan's (Task 7);
+// «Eliminati» only in the list, where it shows the deleted posts instead of the days (Scelta 12)
+type Quick = 'all' | Extract<QuickFilter, 'to_publish' | 'published' | 'with_problem'> | 'trashed'
 const quickOptions = computed(() => [
   { value: 'all' as const, label: t('calendar.quick.all') },
   { value: 'to_publish' as const, label: t('calendar.quick.to_publish') },
   { value: 'published' as const, label: t('calendar.quick.published') },
   { value: 'with_problem' as const, label: t('calendar.quick.with_problem') },
+  ...(view.value === 'list' ? [{ value: 'trashed' as const, label: t('trash.filter') }] : []),
 ])
+const trashView = cal.trashView
 const quick = computed<Quick>({
   get: () => {
+    if (trashView.value) return 'trashed'
     const q = filters.value.quick
     return q === 'to_publish' || q === 'published' || q === 'with_problem' ? q : 'all'
   },
-  set: (q) => void cal.setFilters({ quick: q === 'all' ? null : q }),
+  set: (q) => {
+    if (q === 'trashed') void cal.setTrash(true)
+    else if (trashView.value)
+      void cal.setTrash(false).then(() => q !== 'all' && cal.setFilters({ quick: q }))
+    else void cal.setFilters({ quick: q === 'all' ? null : q })
+  },
 })
 
 // ---- the options of «Filtri»
@@ -178,9 +188,13 @@ const keep = computed(() => {
   return typeof profilo === 'string' && profilo !== '' ? { profilo } : {}
 })
 const PLATFORMS = ['instagram', 'facebook'] as const
+// the moment the notes of the rows count from: «Va negli Eliminati tra 5 giorni» (Scelta 12)
+const now = ref(new Date())
+watch([cal.data, cal.drafts], () => (now.value = new Date()))
 function cardOf(p: CalendarPost): CalendarCardInfo {
   const client = clientsById.value.get(p.workspaceId)
   const state = postStateLabel(p, t)
+  const note = client?.archivedAt ? null : trashNote(p, now.value)
   return {
     kind: 'post',
     id: p.id,
@@ -203,7 +217,18 @@ function cardOf(p: CalendarPost): CalendarCardInfo {
       .map((id) => labelsById.value.get(id))
       .filter((l) => l !== undefined)
       .map((l) => ({ id: l.id, name: l.name, color: l.color })),
-    movable: !mover.pending.value.has(p.id) && mayMove(p, client, org.me.value?.id ?? null),
+    movable:
+      p.trashedAt === null &&
+      !mover.pending.value.has(p.id) &&
+      mayMove(p, client, org.me.value?.id ?? null),
+    workspaceId: p.workspaceId,
+    trashable: !trashing.value.has(p.id) && mayTrash(p, client, org.me.value?.id ?? null),
+    trashed: p.trashedAt !== null,
+    handleable:
+      p.trashedAt !== null &&
+      !trashing.value.has(p.id) &&
+      mayHandleTrashed(p, client, org.me.value?.id ?? null),
+    note: note ? t(note.key, { n: note.n }, note.n) : null,
     to: {
       path: org.to(
         `/spazi/${encodeURIComponent(client?.slug ?? '')}/post/${encodeURIComponent(p.id)}`,
@@ -294,12 +319,107 @@ function duplicateActions(card: CalendarCardInfo): DropdownMenuItem[][] {
     ],
   ]
 }
+// ---- «Elimina» and «Eliminati» (plan 09 Scelta 12): no question, «Annulla» in the notice
+const trasher = useTrash()
+const trashProblem = ref<string | null>(null)
+/** the posts on their way to or from «Eliminati»: not offered again until the server answers */
+const trashing = ref(new Set<string>())
+const itemsOf = (cards: readonly CalendarCardInfo[]) =>
+  cards.flatMap((c) =>
+    c.kind === 'post' && c.workspaceId
+      ? [{ id: c.id, workspaceId: c.workspaceId, cancelled: c.status === 'cancelled' }]
+      : [],
+  )
+/** the days and the list as the server has them now */
+const reread = () => Promise.all([cal.refresh(), cal.reloadDrafts()])
+async function trashRun(cards: readonly CalendarCardInfo[], run: () => Promise<unknown>) {
+  trashProblem.value = null
+  const ids = cards.map((c) => c.id)
+  trashing.value = new Set([...trashing.value, ...ids])
+  try {
+    await run()
+    return true
+  } catch (e) {
+    trashProblem.value = t('trash.failed', { reason: api.failure(e).message })
+    return false
+  } finally {
+    trashing.value = new Set([...trashing.value].filter((id) => !ids.includes(id)))
+  }
+}
+const trashCards = (cards: readonly CalendarCardInfo[]) =>
+  trashRun(cards, () => trasher.trash(itemsOf(cards), reread))
+const restoreCards = (cards: readonly CalendarCardInfo[]) =>
+  trashRun(cards, async () => {
+    await trasher.restore(itemsOf(cards))
+    await reread()
+  })
+/** «Elimina per sempre» asks first; «Svuota» too */
+const purging = ref<CalendarCardInfo[] | null>(null)
+const purgingOpen = computed({
+  get: () => purging.value !== null,
+  set: (v) => {
+    if (!v) purging.value = null
+  },
+})
+const emptying = ref(false)
+const purgeBusy = ref(false)
+async function purgeNow() {
+  const cards = purging.value
+  if (!cards) return
+  purgeBusy.value = true
+  await trashRun(cards, async () => {
+    await trasher.purge(itemsOf(cards))
+    await reread()
+  })
+  purgeBusy.value = false
+  purging.value = null
+}
+async function emptyNow() {
+  const cards = (draftCards.value ?? []).filter((c) => c.handleable)
+  purgeBusy.value = true
+  await trashRun(cards, async () => {
+    await trasher.empty(itemsOf(cards).map((i) => i.workspaceId))
+    await reread()
+  })
+  purgeBusy.value = false
+  emptying.value = false
+}
+function trashActions(card: CalendarCardInfo): DropdownMenuItem[][] {
+  if (card.trashable)
+    return [
+      [
+        {
+          label: t('trash.action'),
+          icon: 'i-lucide-trash-2',
+          color: 'error' as const,
+          onSelect: () => void trashCards([card]),
+        },
+      ],
+    ]
+  if (card.handleable)
+    return [
+      [
+        {
+          label: t('trash.restore'),
+          icon: 'i-lucide-undo-2',
+          onSelect: () => void restoreCards([card]),
+        },
+        {
+          label: t('trash.purge'),
+          icon: 'i-lucide-trash-2',
+          color: 'error' as const,
+          onSelect: () => (purging.value = [card]),
+        },
+      ],
+    ]
+  return []
+}
 provide(CALENDAR_MOVING, {
   ...mover.moving,
-  actionsOf: (card: CalendarCardInfo) => [
-    ...mover.moving.actionsOf(card),
-    ...duplicateActions(card),
-  ],
+  actionsOf: (card: CalendarCardInfo) =>
+    card.trashed
+      ? trashActions(card)
+      : [...mover.moving.actionsOf(card), ...duplicateActions(card), ...trashActions(card)],
 })
 // the copies show in the calendar once the window closes
 watch(
@@ -614,9 +734,9 @@ const listedTitle = computed(() => {
         class="md:max-w-80"
       />
 
-      <LoadFailed v-if="failed" :text="$t('calendar.failed')" @retry="cal.reload()" />
+      <LoadFailed v-if="failed && !trashView" :text="$t('calendar.failed')" @retry="cal.reload()" />
       <p
-        v-else-if="cal.truncated.value"
+        v-else-if="cal.truncated.value && !trashView"
         class="flex items-center gap-2 text-(--app-text-muted)"
         role="status"
         data-calendar-truncated
@@ -633,6 +753,15 @@ const listedTitle = computed(() => {
         {{ narrowed ? $t('calendar.noMatch') : $t(`calendar.empty.${view}`) }}
       </p>
 
+      <p
+        v-if="trashProblem"
+        role="alert"
+        class="flex items-start gap-2 text-(--app-danger)"
+        data-trash-problem
+      >
+        <UIcon name="i-lucide-circle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {{ trashProblem }}
+      </p>
       <p
         v-if="moveProblem"
         role="alert"
@@ -696,7 +825,7 @@ const listedTitle = computed(() => {
       />
 
       <CalendarList
-        v-if="view === 'list' && !failed"
+        v-if="view === 'list' && (!failed || trashView)"
         :days="listDays"
         :today="today"
         :drafts="draftCards"
@@ -707,10 +836,64 @@ const listedTitle = computed(() => {
         :loading="loading"
         :more-status="status === 'pending' ? 'pending' : cal.moreStatus.value"
         :narrowed="narrowed || search.trim() !== ''"
+        :trash="trashView"
         @more="cal.loadMore()"
         @remove-empty="confirmRemove = true"
         @retry-drafts="cal.reloadDrafts()"
+        @trash="trashCards"
+        @restore="restoreCards"
+        @purge="(cards) => (purging = cards)"
+        @empty="emptying = true"
       />
+      <UModal
+        v-model:open="purgingOpen"
+        :title="$t('trash.purgeTitle', { n: purging?.length ?? 0 }, purging?.length ?? 0)"
+        :description="$t('trash.purgeText')"
+      >
+        <template #footer>
+          <div class="flex w-full flex-wrap justify-end gap-3">
+            <UButton color="neutral" variant="ghost" class="min-h-control" @click="purging = null">
+              {{ $t('trash.keep') }}
+            </UButton>
+            <UButton
+              color="error"
+              class="min-h-control"
+              :loading="purgeBusy"
+              data-trash-purge-confirm
+              @click="purgeNow()"
+            >
+              {{ $t('trash.purge') }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
+      <UModal
+        v-model:open="emptying"
+        :title="$t('trash.emptyTitle')"
+        :description="$t('trash.emptyText')"
+      >
+        <template #footer>
+          <div class="flex w-full flex-wrap justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              class="min-h-control"
+              @click="emptying = false"
+            >
+              {{ $t('trash.keep') }}
+            </UButton>
+            <UButton
+              color="error"
+              class="min-h-control"
+              :loading="purgeBusy"
+              data-trash-empty-confirm
+              @click="emptyNow()"
+            >
+              {{ $t('trash.empty') }}
+            </UButton>
+          </div>
+        </template>
+      </UModal>
       <UModal
         v-model:open="confirmRemove"
         :title="$t('calendar.list.removeTitle')"

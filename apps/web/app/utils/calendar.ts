@@ -115,6 +115,15 @@ export interface CalendarCardInfo {
   labels: { id: string; name: string; color: LabelDto['color'] }[]
   /** this person may move it now: dragged onto a day, «Sposta…» in its menu (plan 09 Task 4) */
   movable: boolean
+  /** the post's client, for «Elimina» and «Ripristina» (plan 09 Scelta 12) */
+  workspaceId?: string
+  /** «Elimina» for this person: a draft or a cancelled post not in «Eliminati» */
+  trashable?: boolean
+  /** in «Eliminati»; `handleable`: this person may restore it or delete it for good */
+  trashed?: boolean
+  handleable?: boolean
+  /** «Va negli Eliminati tra 5 giorni», «Si cancella tra 23 giorni»; null: nothing to say */
+  note?: string | null
   /**
    * the post's page: the editor, or the outcome once it is on its way (as the list); for a content
    * of the plan, its day in the plan

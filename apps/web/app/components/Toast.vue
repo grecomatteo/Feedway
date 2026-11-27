@@ -17,8 +17,17 @@ const props = withDefaults(
     duration?: number
     /** in the flow of the page instead of over it: the system board */
     inline?: boolean
+    /** something did not happen, such as «Annulla» refused: the alert's icon */
+    failed?: boolean
   }>(),
-  { linkLabel: undefined, to: undefined, actionLabel: undefined, duration: 5000, inline: false },
+  {
+    linkLabel: undefined,
+    to: undefined,
+    actionLabel: undefined,
+    duration: 5000,
+    inline: false,
+    failed: false,
+  },
 )
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{ action: [] }>()
@@ -75,7 +84,7 @@ function leaveFocus(e: FocusEvent) {
     >
       <span class="inline-flex min-w-0 items-center gap-2">
         <UIcon
-          name="i-lucide-circle-check"
+          :name="failed ? 'i-lucide-circle-alert' : 'i-lucide-circle-check'"
           class="size-4 shrink-0 text-(--app-toast-icon)"
           aria-hidden="true"
         />

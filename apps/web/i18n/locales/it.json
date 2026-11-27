@@ -267,7 +267,9 @@
     "media_in_scheduled_post": "Questo file serve ancora a un post da pubblicare o da riprovare: non si può eliminare adesso",
     "paused_time_passed": "L'ora del post è passata: scegli quando pubblicarlo",
     "target_wrong_state": "Questa destinazione non si può più cambiare così",
-    "bulk_undo_closed": "Non si può più annullare: sono passati più di 10 secondi"
+    "bulk_undo_closed": "Non si può più annullare: sono passati più di 10 secondi",
+    "post_trashed": "Questa bozza è stata eliminata: ripristinala per modificarla",
+    "post_not_trashed": "Una bozza con qualcosa dentro va prima negli Eliminati: usa «Elimina»"
   },
   "errorDetails": {
     "csrf": "Richiesta non consentita.",
@@ -1875,7 +1877,9 @@
       "cancelled": "In un post annullato",
       "many": "In {n} post",
       "published": "Pubblicato il {day}",
-      "notOut": "In un post non uscito"
+      "notOut": "In un post non uscito",
+      "trashed": "In una bozza eliminata",
+      "trashedMany": "In {n} bozze eliminate"
     },
     "all": "Tutti",
     "photos": "Foto",
@@ -2524,13 +2528,12 @@
       "scheduleShort": "Programma",
       "publishNow": "Pubblica | Pubblica su 1 account | Pubblica su {n} account",
       "publishShort": "Pubblica",
-      "notPublishable": "Non si può pubblicare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo."
+      "notPublishable": "Non si può pubblicare così: i controlli hanno trovato qualcosa da sistemare. Lo trovi nel riepilogo.",
+      "more": "Altre azioni del post"
     },
     "confirm": {
       "cancelTitle": "Annullare il post?",
       "cancelText": "Non esce su nessun account. Resta nella scheda «Post» come annullato.",
-      "removeTitle": "Eliminare il post?",
-      "removeText": "Va negli Eliminati del cliente: si recupera per 30 giorni. I suoi file restano nella libreria.",
       "leaveTitle": "Uscire senza salvare?",
       "leaveText": "Le ultime modifiche non sono salvate. Se esci le perdi.",
       "leave": "Esci lo stesso",
@@ -2556,7 +2559,11 @@
       "scheduledEditor": "Il post è programmato: lo cambia solo chi può programmare.",
       "notYours": "È la bozza di un'altra persona: puoi vederla, non modificarla.",
       "editorOnly": "Puoi salvare la bozza. La programma chi nel cliente può pubblicare.",
-      "backTo": "Torna ai post di {name}"
+      "backTo": "Torna ai post di {name}",
+      "trashed": "Questa bozza è negli Eliminati: ripristinala per modificarla.",
+      "trashedCancelled": "Questo post è negli Eliminati: ripristinalo per rivederlo tra i post.",
+      "trashedNow": "Questa bozza è stata eliminata. Se la ripristini, le modifiche non salvate si perdono.",
+      "restore": "Ripristina"
     },
     "preview": {
       "title": "Anteprima",
@@ -2938,6 +2945,13 @@
       "reconnect": "1 account da ricollegare | {n} account da ricollegare",
       "removeTitle": "Eliminare «{name}»?",
       "removeText": "Gli account restano dove sono: sparisce solo il gruppo."
+    },
+    "retention": {
+      "title": "Bozze dimenticate",
+      "label": "Sposta negli Eliminati le bozze non toccate da",
+      "help": "Da lì si recuperano per 30 giorni. Sette giorni prima l'elenco lo dice sulla bozza.",
+      "days": "{n} giorni",
+      "never": "Mai"
     }
   },
   "publishing": {
@@ -3846,5 +3860,41 @@
         "empty": "Il foglio è vuoto."
       }
     }
+  },
+  "trash": {
+    "action": "Elimina",
+    "restore": "Ripristina",
+    "purge": "Elimina per sempre",
+    "empty": "Svuota",
+    "undo": "Annulla",
+    "trashedDrafts": "Nessuna bozza eliminata | Bozza eliminata | {n} bozze eliminate",
+    "trashedPosts": "Nessun post eliminato | Post eliminato | {n} post eliminati",
+    "undone": "Nessun post ripristinato | Ripristinato | Ripristinati {n} post",
+    "restored": "Nessun post ripristinato | Ripristinato | Ripristinati {n} post",
+    "undoFailed": "Non ripristinato: {reason}",
+    "purged": "Nessun post eliminato per sempre | 1 post eliminato per sempre | {n} post eliminati per sempre",
+    "failed": "Non riuscito: {reason}",
+    "select": "Seleziona",
+    "selectDone": "Fine",
+    "selectAll": "Tutte",
+    "selectRow": "Scegli {name}",
+    "selected": "Nessuna scelta | 1 scelta | {n} scelte",
+    "trashSelected": "Elimina ({n})",
+    "restoreSelected": "Ripristina ({n})",
+    "purgeSelected": "Elimina per sempre ({n})",
+    "filter": "Eliminati",
+    "title": "Eliminati",
+    "keepNote": "Si cancellano da soli dopo 30 giorni.",
+    "none": "Niente negli Eliminati.",
+    "noneMatch": "Niente negli Eliminati con questi filtri.",
+    "loadFailed": "Gli Eliminati non si sono caricati.",
+    "truncated": "Vedi i 200 post eliminati per ultimi.",
+    "purgeIn": "Si cancella stanotte | Si cancella domani | Si cancella tra {n} giorni",
+    "autoTrashIn": "Va negli Eliminati stanotte | Va negli Eliminati domani | Va negli Eliminati tra {n} giorni",
+    "purgeTitle": "Eliminare per sempre? | Eliminare per sempre il post? | Eliminare per sempre {n} post?",
+    "purgeText": "Non si possono più recuperare. I loro file restano nella libreria.",
+    "emptyTitle": "Svuotare gli Eliminati?",
+    "emptyText": "I post negli Eliminati che puoi eliminare si cancellano per sempre. I loro file restano nella libreria.",
+    "keep": "Annulla"
   }
 }

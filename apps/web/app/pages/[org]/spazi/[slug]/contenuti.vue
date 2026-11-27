@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { AccountGroupDto, CaptionTemplateDto, LabelDto } from '@app/contracts'
+import { DRAFT_RETENTION_CHOICES } from '@app/domain'
 import { selectable } from '~/composables/usePostEditor'
 
 /**
  * «Impostazioni dei contenuti», a tab of the client's page (spec §11.7, plan 06 Task 7, design
- * E8): the time new posts start from, the usual times (plan 09 Task 9), the labels, the caption templates and the account groups.
+ * E8): the time new posts start from, the usual times (plan 09 Task 9), after how many days a
+ * forgotten draft goes to «Eliminati» (Scelta 12), the labels, the caption templates and the
+ * account groups.
  * The client's Manager and above change them (`workspace.content_settings.manage`); anyone else
  * who opens the address reads them. The time zone is the agency's, chosen by the Owner (D-58).
  */
@@ -111,6 +114,49 @@ const zoneText = computed(() => {
   if (zone.value === 'Europe/Rome') return t('contentSettings.time.rome')
   return t('contentSettings.time.zone', { zone: zone.value.replaceAll('_', ' ') })
 })
+
+// ---- «Bozze dimenticate» (plan 09 Scelta 12): after how many days untouched a draft goes to
+// «Eliminati»; saved as it is chosen, as the time above
+const NEVER = 'never'
+const retentionItems = computed(() => [
+  ...DRAFT_RETENTION_CHOICES.map((n) => ({
+    value: String(n),
+    label: t('contentSettings.retention.days', { n }),
+  })),
+  { value: NEVER, label: t('contentSettings.retention.never') },
+])
+const retention = ref(NEVER)
+watch(
+  () => client.value?.draftRetentionDays,
+  (v) => (retention.value = v === null || v === undefined ? NEVER : String(v)),
+  { immediate: true },
+)
+const retentionState = ref<'idle' | 'saving' | 'saved'>('idle')
+const retentionProblem = ref<string | null>(null)
+const retentionChoice = computed({
+  get: () => retention.value,
+  set: (v: string) => {
+    retention.value = v
+    void saveRetention(v === NEVER ? null : Number(v))
+  },
+})
+async function saveRetention(days: number | null) {
+  if (!client.value || (client.value.draftRetentionDays ?? null) === days) return
+  retentionState.value = 'saving'
+  retentionProblem.value = null
+  try {
+    await call('PATCH', org.api(`/workspaces/${encodeURIComponent(client.value.id)}`), {
+      draftRetentionDays: days,
+    })
+    await refreshClients()
+    retentionState.value = 'saved'
+  } catch (e) {
+    retentionProblem.value = failure(e).message
+    retentionState.value = 'idle'
+    const saved = client.value?.draftRetentionDays
+    retention.value = saved === null || saved === undefined ? NEVER : String(saved)
+  }
+}
 
 // ---- the accounts, to say who a group holds
 const accounts = computed(
@@ -266,6 +312,38 @@ const actions = (edit: () => void, remove: () => void) => [
     </section>
 
     <ContentTimeSlots v-if="base" :base="base" :manages="manages" />
+
+    <!-- Bozze dimenticate (plan 09 Scelta 12) -->
+    <section :aria-label="$t('contentSettings.retention.title')" data-content-retention>
+      <SectionHead :title="$t('contentSettings.retention.title')" :level="3" />
+      <div class="rounded-card border border-(--app-border) bg-(--app-surface)">
+        <SettingsRow
+          :label="$t('contentSettings.retention.label')"
+          :hint="$t('contentSettings.retention.help')"
+        >
+          <USelect
+            v-model="retentionChoice"
+            :items="retentionItems"
+            icon="i-lucide-archive-x"
+            class="w-44"
+            :disabled="!manages || retentionState === 'saving'"
+            :aria-label="$t('contentSettings.retention.label')"
+            :loading="retentionState === 'saving'"
+            data-retention
+          />
+          <span
+            v-if="retentionState === 'saved'"
+            role="status"
+            class="text-detail text-(--app-success)"
+          >
+            {{ $t('contentSettings.savedShort') }}
+          </span>
+        </SettingsRow>
+      </div>
+      <p v-if="retentionProblem" role="alert" class="mt-2 text-sm text-(--app-danger)">
+        {{ retentionProblem }}
+      </p>
+    </section>
 
     <LoadFailed v-if="failed" :text="$t('contentSettings.loadError')" @retry="settings.load()" />
 

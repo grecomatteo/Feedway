@@ -91,6 +91,9 @@ useBellPolling()
         :message="notice.notice.value?.message ?? ''"
         :link-label="notice.notice.value?.linkLabel"
         :to="notice.notice.value?.to"
+        :action-label="notice.notice.value?.action ? notice.notice.value.actionLabel : undefined"
+        :failed="notice.notice.value?.failed"
+        @action="notice.act()"
       />
     </ClientOnly>
     <!-- the uploads go on from page to page (D-21) -->

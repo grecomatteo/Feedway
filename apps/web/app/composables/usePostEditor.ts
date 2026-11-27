@@ -113,6 +113,8 @@ interface ErrorBody {
 }
 const bodyOf = (e: unknown) => (e as FetchError<ErrorBody> | undefined)?.data?.error
 const isConflict = (e: unknown) => bodyOf(e)?.reason === 'post_version_conflict'
+/** the post went to «Eliminati» in another tab or by another person (plan 09 Scelta 12) */
+const isTrashed = (e: unknown) => bodyOf(e)?.reason === 'post_trashed'
 
 export function usePostEditor(opts: {
   client: Ref<WorkspaceView>
@@ -127,6 +129,7 @@ export function usePostEditor(opts: {
   const { call, failure } = useApi()
   const { t } = useI18n()
   const notice = useNotice()
+  const trasher = useTrash()
   const workspaceId = opts.client.value.id
   const base = org.api(`/workspaces/${encodeURIComponent(workspaceId)}`)
   // a file of the post the worker has just made ready (or failed): its tile and the checks
@@ -196,8 +199,21 @@ export function usePostEditor(opts: {
   /** the answer of a «Programma» or «Salva modifiche» the server refused */
   const actionProblem = ref<string | null>(null)
   const acting = ref<
-    null | 'schedule' | 'publishNow' | 'unschedule' | 'cancel' | 'delete' | 'saveScheduled'
+    | null
+    | 'schedule'
+    | 'publishNow'
+    | 'unschedule'
+    | 'cancel'
+    | 'delete'
+    | 'saveScheduled'
+    | 'restore'
   >(null)
+  /**
+   * In «Eliminati» (plan 09 Scelta 12): read only, with «Ripristina». `trashedMeanwhile`: a save
+   * of this tab was refused because it went there while the editor was open.
+   */
+  const trashedMeanwhile = ref(false)
+  const trashed = computed(() => trashedMeanwhile.value || (post.value?.trashedAt ?? null) !== null)
 
   // a post in preparation opened with «Modifica» (R13) is changed as a scheduled one
   const status = computed(() => {
@@ -209,6 +225,7 @@ export function usePostEditor(opts: {
   /** what this person may change of this post (§10.2) */
   const editable = computed(() => {
     if (!may.value.draft || opts.client.value.archivedAt) return false
+    if (trashed.value) return false
     if (!mine.value && !may.value.manageOthers) return false
     if (status.value === 'cancelled') return false
     if (status.value === 'scheduled') return may.value.publish
@@ -218,6 +235,7 @@ export function usePostEditor(opts: {
   const mayDelete = computed(
     () =>
       status.value === 'cancelled' &&
+      !trashed.value &&
       may.value.draft &&
       !opts.client.value.archivedAt &&
       (mine.value || may.value.manageOthers),
@@ -281,7 +299,8 @@ export function usePostEditor(opts: {
       confirmSent(id, key)
       return saved
     },
-    isConflict,
+    // a post gone to «Eliminati» stops the saving too, with its own message
+    isConflict: (e) => isConflict(e) || isTrashed(e),
     isLost: (e) => failure(e).status === 0,
     // a 409 on a post whose content, saved by this person, is one this tab sent: the version
     // this tab kept was old (an answer lost on a slow network, D-120.1; D-131.1), not another
@@ -289,7 +308,8 @@ export function usePostEditor(opts: {
     recover: async (id, version) => {
       const now = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
       const mine = org.me.value?.id
-      return mine !== undefined &&
+      return now.trashedAt === null &&
+        mine !== undefined &&
         now.updatedBy === mine &&
         now.version > version &&
         sentByThisTab(id, bodyOfPost(now))
@@ -298,6 +318,7 @@ export function usePostEditor(opts: {
     },
     onState: (s) => {
       save.value = s
+      if (s.status === 'conflict' && isTrashed(s.error)) trashedMeanwhile.value = true
       // the address follows the draft once it exists, without a new page
       // not while the person leaves: the new address would cancel where they are going
       if (s.postId && !opts.postId && !replaced && !leaving) {
@@ -851,14 +872,22 @@ export function usePostEditor(opts: {
     }
   }
 
+  /**
+   * «Elimina»: to the client's «Eliminati» with no question, and the notice «Bozza eliminata ·
+   * Annulla» on the page the editor goes back to (plan 09 Scelta 12).
+   */
   async function remove(): Promise<boolean> {
     const id = save.value.postId
     if (!id) return true
     acting.value = 'delete'
     try {
-      // «Elimina» sends it to the client's «Eliminati» (plan 09 Scelta 12)
-      await call('POST', `${base}/posts/trash`, { postIds: [id] })
+      // what was written last goes with it, so «Annulla» gives it back whole
+      if (status.value === 'draft' && editable.value) await autosave.flush()
       autosave.stop()
+      await trasher.trash([{ id, workspaceId, cancelled: status.value === 'cancelled' }])
+      gone = true
+      // read only from now: leaving saves nothing more
+      if (post.value) post.value = { ...post.value, trashedAt: new Date().toISOString() }
       return true
     } catch (e) {
       failed(e)
@@ -868,8 +897,74 @@ export function usePostEditor(opts: {
     }
   }
 
+  /** «Ripristina» of a post in «Eliminati»: back as it was, and the editor reads it again. */
+  async function restore() {
+    const id = save.value.postId ?? post.value?.id
+    if (!id) return
+    actionProblem.value = null
+    acting.value = 'restore'
+    try {
+      await call('POST', `${base}/posts/restore`, { postIds: [id] })
+      trashedMeanwhile.value = false
+      const p = await call<PostResponse>('GET', `${base}/posts/${encodeURIComponent(id)}`)
+      fill(p)
+      askChecks()
+    } catch (e) {
+      failed(e)
+    } finally {
+      acting.value = null
+    }
+  }
+
+  /**
+   * A draft this editor made, left without text, files and labels (the day and the accounts the
+   * editor proposed do not count, D-124.14): leaving takes it away as if never born. Not while
+   * a file is still uploading into it (it would find no draft, D-21), nor once it is saved by
+   * someone else or deleted.
+   */
+  const leftEmpty = () =>
+    !opts.postId &&
+    !gone &&
+    save.value.postId !== null &&
+    status.value === 'draft' &&
+    !trashed.value &&
+    entries.value.length === 0 &&
+    coverUpload.value === null &&
+    labelIds.value.length === 0 &&
+    [caption.common, caption.instagram ?? '', caption.facebook ?? ''].every((x) => x.trim() === '')
+  let gone = false
+  /** The draft left empty goes: after the saves on their way, so none brings it back. */
+  async function discardIfEmpty() {
+    if (!leftEmpty()) return
+    await autosave.flush()
+    const id = save.value.postId
+    if (!id || !leftEmpty()) return
+    autosave.stop()
+    gone = true
+    try {
+      await call('DELETE', `${base}/posts/${encodeURIComponent(id)}`)
+    } catch {
+      // the night takes an empty draft after 24 hours; one with a note stays, as it should
+    }
+  }
+  /** The tab closes: the request goes on after the page is gone (`keepalive`). */
+  function discardOnClose() {
+    if (!leftEmpty() || save.value.status === 'saving' || save.value.dirty) return
+    const id = save.value.postId
+    if (!id) return
+    gone = true
+    autosave.stop()
+    void fetch(`${base}/posts/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      keepalive: true,
+      credentials: 'same-origin',
+      headers: { 'x-app-request': '1' },
+    }).catch(() => undefined)
+  }
+
   function failed(e: unknown) {
     const b = bodyOf(e)
+    if (isTrashed(e)) trashedMeanwhile.value = true
     if (b?.report) {
       report.value = b.report
       reportMedia.value = sent ?? files.value.map((f) => f.id)
@@ -915,7 +1010,7 @@ export function usePostEditor(opts: {
     checks.stop()
     // what is left goes with the leaving (the page asked first if it could not); a file that
     // finishes later waits for this save, so it finds the draft it made (P6 of the review)
-    if (status.value === 'draft') {
+    if (status.value === 'draft' && !gone) {
       later = later.then(() => autosave.flush()).catch(() => undefined)
       // an editor of this post opened next in this tab reads it after this save (D-131.1)
       if (save.value.postId) savingInThisTab(save.value.postId, later)
@@ -930,6 +1025,11 @@ export function usePostEditor(opts: {
     editable,
     mine,
     mayDelete,
+    trashed,
+    trashedMeanwhile,
+    restore,
+    discardIfEmpty,
+    discardOnClose,
     type,
     typeChosen,
     takePlanType,

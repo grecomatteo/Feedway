@@ -252,6 +252,20 @@ describe('deleting for good', () => {
     expect(await row(trashed)).toBeNull()
   })
 
+  test('`DELETE` takes a new draft of the editor with no text and no files, even with a date', async () => {
+    // the editor proposes a day and ticks the profile by itself: the draft born by a click,
+    // left without text and files, goes as if never born (D-124.14)
+    const mine = await post({ caption: '' })
+    expect((await call('editor', 'DELETE', `${posts()}/${mine}`)).status).toBe(200)
+    expect(await row(mine)).toBeNull()
+    // someone else's goes to «Eliminati» first, even for who manages the posts of others
+    const theirs = await post({ caption: '' })
+    const r = await call('manager', 'DELETE', `${posts()}/${theirs}`)
+    expect(r.status).toBe(409)
+    expect(errorOf(r).reason).toBe('post_not_trashed')
+    expect(await row(theirs)).not.toBeNull()
+  })
+
   test('«Elimina per sempre» takes only posts in «Eliminati»; «Svuota» what the person may', async () => {
     const draft = await post()
     const trashed = await post({ trashed: true })
