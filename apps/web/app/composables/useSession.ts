@@ -17,6 +17,12 @@ export type SessionView =
 /** The person read again in the background: at most once every 30 s, one at a time (D-120.7). */
 const BACKGROUND_GAP_MS = 30_000
 let backgroundLoad: (() => Promise<void>) | null = null
+/** Theme and colour of a sign-in still waiting for the next page (issue 154). */
+let pendingColours: (() => void) | null = null
+function dropPendingColours() {
+  pendingColours?.()
+  pendingColours = null
+}
 
 export function useSession() {
   const view = useState<SessionView>('session', () => ({ state: 'unknown' }))
@@ -88,8 +94,13 @@ export function useSession() {
         applyTheme(me)
         palette.value = me.palette
       }
+      // a newer read wins over one still waiting
+      dropPendingColours()
       if (opts.themeWithNextPage && import.meta.client)
-        nuxtApp.hooks.hookOnce('page:finish', colours)
+        pendingColours = nuxtApp.hooks.hookOnce('page:finish', () => {
+          pendingColours = null
+          colours()
+        })
       else colours()
     } catch (e) {
       // read here, not with useApi: this also runs in the route middleware, outside a component
@@ -159,6 +170,8 @@ export function useSession() {
     }
     view.value = { state: 'signed_out' }
     palette.value = 'feedway'
+    // the theme of the person who leaves must not land on the next page
+    dropPendingColours()
     forgetAgency()
     resetUploadStores()
     const keep = opts.stay?.keep
@@ -172,6 +185,8 @@ export function useSession() {
   function forget() {
     view.value = { state: 'signed_out' }
     palette.value = 'feedway'
+    // the theme of the person who leaves must not land on the next page
+    dropPendingColours()
     forgetAgency()
     resetUploadStores()
     clearNuxtData()
