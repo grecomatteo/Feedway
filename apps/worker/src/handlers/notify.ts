@@ -1,6 +1,7 @@
 import {
   createEmailChannel,
   createTelegramChannel,
+  createTelegramPollHealth,
   createTelegramTargets,
   pollTelegram,
   deliverNotification,
@@ -67,6 +68,9 @@ export const notifyDeliverPlatform: JobHandler<'notify.deliver_platform'> = asyn
  */
 export const TELEGRAM_POLL_WAIT_SECONDS = 55
 
+/** The failures of the bots in a row: one for the worker process, it outlives the runs (D-134). */
+const pollHealth = createTelegramPollHealth()
+
 export const telegramPoll: JobHandler<'telegram.poll'> = async (job, deps) => {
   const report = await pollTelegram(
     {
@@ -80,6 +84,7 @@ export const telegramPoll: JobHandler<'telegram.poll'> = async (job, deps) => {
       tokens: deps.telegram.tokens,
       lock: deps.telegram.lock,
       waitSeconds: deps.telegram.waitSeconds ?? TELEGRAM_POLL_WAIT_SECONDS,
+      health: pollHealth,
     },
     job.signal,
   )

@@ -280,6 +280,8 @@ export {
   listTelegramLinks,
   parseCommand,
   pollTelegram,
+  createTelegramPollHealth,
+  type TelegramPollHealth,
   startTelegramLink,
   telegramText,
   unlinkTelegram,

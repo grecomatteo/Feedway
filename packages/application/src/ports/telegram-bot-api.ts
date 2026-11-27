@@ -8,6 +8,8 @@ export const TELEGRAM_FAILURE_KINDS = [
   'rate_limited',
   /** Telegram refused the request as it was (an empty or too long text, an unknown chat). */
   'bad_request',
+  /** 409: another `getUpdates` on the same bot, or a webhook set on it. */
+  'conflict',
   /** No answer, a timeout, a 5xx or an answer that is not the Bot API's. */
   'unavailable',
 ] as const

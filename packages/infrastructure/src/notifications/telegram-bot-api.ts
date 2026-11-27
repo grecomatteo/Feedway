@@ -31,6 +31,7 @@ function kindOf(status: number, answer: ApiAnswer | null): TelegramFailureKind {
   if (code === 403) return 'blocked'
   if (code === 429) return 'rate_limited'
   if (code === 400) return 'bad_request'
+  if (code === 409) return 'conflict'
   return 'unavailable'
 }
 

@@ -64,6 +64,11 @@ export {
   type TelegramPollReport,
 } from './telegram-poll.js'
 export {
+  createTelegramPollHealth,
+  type TelegramPollHealth,
+  type TelegramPollHealthOptions,
+} from './telegram-poll-health.js'
+export {
   CENTRE_PAGE_DEFAULT,
   CENTRE_PAGE_MAX,
   countMyUnreadNotifications,

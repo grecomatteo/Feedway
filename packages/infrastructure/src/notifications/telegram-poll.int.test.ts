@@ -3,6 +3,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest'
 import {
   createTelegramChannel,
+  createTelegramPollHealth,
   createTelegramTargets,
   listTelegramLinks,
   pollTelegram,
@@ -90,6 +91,7 @@ beforeAll(async () => {
     tokens,
     lock: createAdvisoryLock(handle.pool),
     waitSeconds: 0,
+    health: createTelegramPollHealth(),
   }
   links = {
     uow,
