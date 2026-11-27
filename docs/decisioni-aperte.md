@@ -906,6 +906,30 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - una foto di un post uscito che non arriva lascia il posto con un segno, senza messaggio; se i pubblicati non si leggono, una riga dice perché (collegamento, accesso rifiutato, Instagram che non risponde, con «Riprova») e i programmati si vedono lo stesso.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); il 27/11 Matteo ha chiuso il punto 1 e deciso il 28 («Annulla»); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
+## Condivisione e brand (tappa 10)
+
+### D-136 · Scelte provvisorie del piano della tappa 10
+
+- **Origine:** piano della tappa 10 (`docs/superpowers/plans/2026-10-15-10-condivisione.md`, 27/11), scritto sul codice di `main` a `b0341d6`.
+- **Scelte provvisorie** (i numeri sono quelli delle «Scelte di questa tappa» del piano; Matteo può cambiarle prima del task che le usa):
+  1. **Design in codice**, schermate prima della fusione, niente tavole su Pencil (come D-123.25). Alternativa: tavole prima, sul computer di Matteo.
+  2. **Link gestiti dal pulsante «Condividi»** nella scheda «Calendario» del cliente; il token si copia solo alla creazione. Alternativa: una scheda «Condivisione» nella pagina del cliente.
+  3. **Opzioni del link:** tutto acceso, nessun limite di giorni, password e scadenza facoltative, al massimo 20 link attivi per cliente.
+  4. **Stati per il cliente:** «Programmato», «In uscita», «Pubblicato», più «In preparazione» per il piano; mai l'errore né «In ritardo».
+  5. **Periodo:** il mese corrente intero e i mesi dopo con contenuti, al massimo 6.
+  6. **Telefono:** un elenco per giorno, senza i giorni vuoti.
+  7. **Colore dell'agenzia** solo nel link, nella stampa e nelle email; nel pannello resta il tema di ogni persona (D-22). Il server rifiuta un colore senza contrasto 4,5:1.
+  8. **Brand della piattaforma** nei file del repository, senza caricamento dal pannello.
+  9. **Email:** logo PNG, colore e piè dell'agenzia nelle email legate all'agenzia; le email di sicurezza dell'account restano di Feedway.
+  10. **Stampa del piano:** il mese mostrato e i successivi con contenuti, fino a 6, schede piene, mai la nota.
+  11. **PWA** con `@vite-pwa/nuxt` e un service worker nostro, cache dei soli file statici; «Installa l'app» nel menu «Tu».
+  12. **Condividi verso Feedway:** foto e video, fino a 20, nella cartella principale della libreria del cliente scelto.
+  13. **Sito:** nel Task 10 solo ciò che non aspetta Matteo; dominio, Email Routing, partita IVA, Web Analytics e «Accedi» restano a lui (D-122).
+  14. **Rilascio** come 0.16.0.
+- **Aggiornamenti della specifica** proposti nel piano (P1–P9): pagina del cliente resa dal server sull'ingresso pubblico (ADR 024), file e loghi sotto il token del link, cookie della password solo per quel link, token con SHA-256 e password con argon2id, un solo modulo di resa per link e stampa, stati per il cliente, colore fuori dal pannello, brand della piattaforma nel repository, condivisione da Android attraverso il service worker.
+- **Non verificato:** se Chrome su Android crea l'app vera (WebAPK, che riceve le condivisioni) per il pannello dietro Tailscale; se no, «Condividi verso Feedway» aspetta un indirizzo pubblico del pannello.
+- **Stato:** scelta provvisoria, piano da approvare.
+
 ## Sito pubblico
 
 ### D-122 · Sito pubblico anticipato: scelte provvisorie e cose da fare prima di pubblicarlo
