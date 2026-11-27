@@ -152,6 +152,11 @@ const rows = computed(() =>
         d.status !== 'cancelled' && (d.cover === 'no_permission' || d.cover === 'failed')
           ? t(`posts.outcome.cover.${d.cover}`)
           : null,
+      // the invitations went out with a post Meta has: their answers can be read (D-125)
+      canRefreshCollaborators:
+        d.collaborators !== null &&
+        d.collaborators.notSentCode === null &&
+        (d.status === 'published' || d.status === 'verifying' || d.status === 'confirmed'),
       canRetry: mayRetry.value && (d.status === 'failed' || d.status === 'problem'),
       canVerify: mayRetry.value && d.status === 'problem',
       canCancel: mayCancel.value && CANCELLABLE.has(d.status) && current.value.status !== 'paused',
@@ -265,6 +270,33 @@ async function act(key: string, path: string, body?: unknown) {
     busy.value = null
   }
 }
+/**
+ * «Aggiorna» of the invitations (D-125): the worker reads them from Meta, the page reads itself
+ * again after a few seconds, and once more later for a slow answer.
+ */
+const refreshingCollaborators = ref(false)
+let collaboratorsReads: ReturnType<typeof setTimeout>[] = []
+async function refreshCollaborators() {
+  refreshingCollaborators.value = true
+  problem.value = null
+  try {
+    await call('POST', `${postApi.value}/collaborators/refresh`)
+    for (const later of collaboratorsReads) clearTimeout(later)
+    collaboratorsReads = [4_000, 15_000].map((ms, i) =>
+      setTimeout(() => {
+        void read(true).finally(() => {
+          if (i === 0) refreshingCollaborators.value = false
+        })
+      }, ms),
+    )
+  } catch (error) {
+    problem.value = failure(error).message
+    refreshingCollaborators.value = false
+  }
+}
+onBeforeUnmount(() => {
+  for (const later of collaboratorsReads) clearTimeout(later)
+})
 const destination = (accountId: string, what: string) =>
   `destinations/${encodeURIComponent(accountId)}/${what}`
 
@@ -534,6 +566,7 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                     row.permalink ||
                     row.reason ||
                     row.coverNote ||
+                    row.collaborators ||
                     row.canRetry ||
                     row.canVerify ||
                     row.canCancel
@@ -560,6 +593,15 @@ useHead({ title: () => `${title.value} · ${props.client.name}` })
                   >
                     {{ row.coverNote }}
                   </p>
+                  <PostOutcomeCollaborators
+                    v-if="row.collaborators"
+                    :collaborators="row.collaborators"
+                    :account="row.name"
+                    :can-refresh="row.canRefreshCollaborators"
+                    :refreshing="refreshingCollaborators"
+                    :time-zone="current.timezone"
+                    @refresh="refreshCollaborators"
+                  />
                   <div
                     v-if="row.canRetry || row.canVerify || row.canCancel"
                     class="flex flex-wrap gap-2 pt-1"

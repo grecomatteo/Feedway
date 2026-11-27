@@ -381,3 +381,11 @@ Erano la voce D-73 di `docs/decisioni-aperte.md`, chiusa con l'approvazione.
 3. **A 1280 px:** deciso da Matteo il 18/11: modulo e anteprima affiancati, con l'anteprima a 320 e **sempre presente** (niente «Nascondi anteprima», niente alternanza); sul telefono due colonne non ci stanno e l'anteprima resta raggiungibile con il pulsante «Anteprima».
 4. **Filtro della scheda «Post»:** deciso da Matteo il 18/11: «Tutti» in più, predefinito, poi Bozze · Programmati · Annullati.
 5. **Dove stanno etichette, modelli, gruppi e orario predefinito:** deciso da Matteo il 18/11: nuova scheda del cliente «Impostazioni dei contenuti».
+
+## Collaboratori su Instagram (27 novembre 2026; tappa 9, Task 15, D-125)
+
+Niente tavola: è una riga nuova dell'editor fatta con i pezzi che c'erano (D-123 punto 1, tavole solo per le schermate grandi). Prima e dopo mandati a Matteo il 27/11; le scelte sono provvisorie in D-125 finché li ha visti.
+
+- **Editor:** riga «Collaborazione» sotto «Dove», con «2 di 3» come dettaglio. I nomi sono gettoni come le etichette (bordo `border-strong`, «@» in `text-muted`, × al passaggio del mouse o sempre sul telefono, area di tocco 44). Sotto, il campo come quello delle note interne, con «@» davanti e «Aggiungi» solo quando c'è qualcosa da aggiungere; Invio, spazio o virgola chiudono un nome. Sotto ancora l'icona di Instagram e «La richiesta arriva solo su Instagram: su Facebook il post esce senza». Con 3 nomi il campo sparisce e il fuoco va sulla × dell'ultimo gettone. La riga non c'è per un cliente senza Instagram; con Storia il campo sparisce e i nomi già scritti restano con «Le storie non hanno collaboratori: questi inviti non partono».
+- **Anteprima:** sopra il post di Instagram (feed e reel) «fornoluce e mulino» o «fornoluce e altri 2»; nel testo sotto resta il solo account.
+- **Esito:** nella riga dell'account, sotto i link e le note, «Invitati in collaborazione» in `text-muted`, poi un nome per riga con lo stato a destra (pallino più parola: Da leggere neutro, In attesa blu, Accettato verde, Rifiutato rosso, Non partito ambra), poi «Aggiorna» (pulsante fantasma piccolo con l'icona) e «Letto oggi alle 12:01» nel fuso del post.

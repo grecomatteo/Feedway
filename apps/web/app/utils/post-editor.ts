@@ -2,6 +2,8 @@
 // when a draft is born and how it saves by itself, and when the checks are asked again. The
 // composables wrap these with the page's state; here they are plain, so the tests drive them.
 
+import { normalizeCollaborator } from '@app/domain'
+
 export type PostType = 'photo' | 'carousel' | 'reel' | 'story'
 export const POST_TYPES: readonly PostType[] = ['photo', 'carousel', 'reel', 'story']
 
@@ -120,6 +122,8 @@ export interface DraftBody {
   cover: { source: 'frame'; offsetMs: number } | { source: 'image'; mediaId: string } | null
   /** every label of the post (§11.7) */
   labelIds: string[]
+  /** the Instagram usernames invited to collaborate, as typed (D-125) */
+  instagramCollaborators: string[]
 }
 
 /**
@@ -132,9 +136,26 @@ export function hasContent(body: DraftBody): boolean {
     body.mediaIds.length > 0 ||
     body.destinations.length > 0 ||
     body.labelIds.length > 0 ||
+    body.instagramCollaborators.length > 0 ||
     texts.some((t) => t !== '')
   )
 }
+
+/**
+ * The most collaborators a save takes (`POST_CHECK_LIMITS.collaborators` of the contracts, which
+ * the page does not import: zod in the page's code trips its CSP). The checks block over 3.
+ */
+export const MAX_SAVED_COLLABORATORS = 10
+
+/**
+ * The names typed in «Invita in collaborazione» (D-125): one for each piece between spaces,
+ * commas or semicolons, as the editor keeps them. A wrong one stays: the checks say why.
+ */
+export const typedCollaborators = (text: string): string[] =>
+  text
+    .split(/[\s,;]+/)
+    .map(normalizeCollaborator)
+    .filter((name) => name !== '')
 
 /** The files a destination does not publish, with their place in the post (D-56). */
 export function missingFiles(
@@ -226,6 +247,7 @@ export function contentKey(b: DraftBody): string {
         ? ['frame', b.cover.offsetMs]
         : ['image', b.cover.mediaId],
     [...b.labelIds].sort(),
+    b.instagramCollaborators,
   ])
 }
 

@@ -1,3 +1,4 @@
+import { POST_CHECK_LIMITS } from '@app/contracts'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   contentKey,
@@ -13,6 +14,8 @@ import {
   roomFor,
   typeHint,
   typeOptions,
+  typedCollaborators,
+  MAX_SAVED_COLLABORATORS,
   type DraftBody,
 } from '../app/utils/post-editor.ts'
 
@@ -71,6 +74,7 @@ const body = (over: Partial<DraftBody> = {}): DraftBody => ({
   choices: [],
   cover: null,
   labelIds: [],
+  instagramCollaborators: [],
   ...over,
 })
 
@@ -101,6 +105,22 @@ test('a draft is born with its first content, not when the page opens', () => {
   expect(hasContent(body({ caption: { common: '', instagram: 'x' } }))).toBe(true)
   // a label is kept only by a saved post
   expect(hasContent(body({ labelIds: ['l'] }))).toBe(true)
+  expect(hasContent(body({ instagramCollaborators: ['forno.luce'] }))).toBe(true)
+})
+
+describe('the collaborators typed in the field (D-125)', () => {
+  test('names written together become one each, empty pieces go away', () => {
+    expect(typedCollaborators('forno, @mulino  pane;')).toEqual(['forno', 'mulino', 'pane'])
+    expect(typedCollaborators(' , @ ')).toEqual([])
+  })
+
+  test('the page keeps no more names than a save takes', () => {
+    expect(MAX_SAVED_COLLABORATORS).toBe(POST_CHECK_LIMITS.collaborators)
+  })
+
+  test('a wrong name stays as typed: the checks say what is wrong', () => {
+    expect(typedCollaborators('forno-luce')).toEqual(['forno-luce'])
+  })
 })
 
 test('the files a destination leaves out are said, with their place (D-56)', () => {
@@ -514,6 +534,7 @@ describe('what this tab sent (D-131.1)', () => {
     choices: [],
     cover: null,
     labelIds: ['l2', 'l1'],
+    instagramCollaborators: ['forno.luce'],
     ...over,
   })
 
@@ -539,6 +560,7 @@ describe('what this tab sent (D-131.1)', () => {
       body({ when: { localDate: '2026-11-26', localTime: '11:31' } }),
       body({ caption: { common: 'Pane caldo' } }),
       body({ mediaIds: ['m1', 'm2'] }),
+      body({ instagramCollaborators: ['mulino'] }),
     ])
       expect(contentKey(other)).not.toBe(one)
   })

@@ -181,6 +181,8 @@ export function usePostEditor(opts: {
   const choices = ref<ChoiceBody[]>([])
   const cover = ref<DraftBody['cover']>(null)
   const labelIds = ref<string[]>([])
+  /** «Invita in collaborazione» (D-125): Instagram usernames, as the editor keeps them */
+  const collaborators = ref<string[]>([])
   const timeZone = ref('Europe/Rome')
 
   const save = ref<SaveState>({
@@ -269,6 +271,7 @@ export function usePostEditor(opts: {
       // a reel's cover stays only while there are files (handoff B2)
       cover: files.value.length > 0 ? cover.value : null,
       labelIds: labelIds.value,
+      instagramCollaborators: collaborators.value,
     }
   }
 
@@ -382,6 +385,7 @@ export function usePostEditor(opts: {
       when: mode.value === 'now' || !when.value ? { mode: 'now' } : { mode: 'at', ...when.value },
       shareToFeed: b.shareToFeed,
       choices: b.choices,
+      instagramCollaborators: b.instagramCollaborators,
       ...(b.cover ? { cover: b.cover } : {}),
       ...(save.value.postId ? { postId: save.value.postId } : {}),
     })
@@ -626,6 +630,11 @@ export function usePostEditor(opts: {
     shareToFeed.value = on
     touched()
   }
+  /** The names invited to collaborate on Instagram, all of them (D-125). */
+  function setCollaborators(names: string[]) {
+    collaborators.value = names
+    touched()
+  }
   /** A cover uploaded from the editor: it becomes the cover once in the library. */
   const coverUpload = ref<string | null>(null)
   /** the upload's own picture, while the library has no copy of it yet */
@@ -733,6 +742,7 @@ export function usePostEditor(opts: {
     choices.value = p.choices.map((c) => ({ ...c }))
     cover.value = p.cover
     labelIds.value = [...p.labelIds]
+    collaborators.value = [...p.instagramCollaborators]
     autosave.adopt({ id: p.id, version: p.version })
     autosave.pause(p.status !== 'draft')
   }
@@ -917,7 +927,7 @@ export function usePostEditor(opts: {
   }
 
   /**
-   * A draft this editor made, left without text, files and labels (the day and the accounts the
+   * A draft this editor made, left without text, files, labels and collaborators (the day and the accounts the
    * editor proposed do not count, D-124.14): leaving takes it away as if never born. Not while
    * a file is still uploading into it (it would find no draft, D-21), nor once it is saved by
    * someone else or deleted.
@@ -931,6 +941,7 @@ export function usePostEditor(opts: {
     entries.value.length === 0 &&
     coverUpload.value === null &&
     labelIds.value.length === 0 &&
+    collaborators.value.length === 0 &&
     [caption.common, caption.instagram ?? '', caption.facebook ?? ''].every((x) => x.trim() === '')
   let gone = false
   /** The draft left empty goes: after the saves on their way, so none brings it back. */
@@ -1054,6 +1065,8 @@ export function usePostEditor(opts: {
     cover,
     labelIds,
     setLabels,
+    collaborators,
+    setCollaborators,
     timeZone,
     save,
     archived,
@@ -1117,6 +1130,7 @@ function bodyOfPost(p: PostResponse): DraftBody {
     choices: p.choices,
     cover: p.cover,
     labelIds: p.labelIds,
+    instagramCollaborators: p.instagramCollaborators,
   }
 }
 

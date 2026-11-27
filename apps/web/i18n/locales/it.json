@@ -2630,7 +2630,9 @@
       "gridKind": {
         "carousel": "Carosello",
         "reel": "Reel"
-      }
+      },
+      "withCollaborator": "{name} e {other}",
+      "withCollaborators": "{name} e altri {count}"
     },
     "choose": {
       "title": "Nuovo post: per quale cliente?",
@@ -2729,6 +2731,18 @@
       "none": "Nessuna etichetta per questo cliente",
       "manage": "Gestisci le etichette del cliente",
       "noneOnPost": "Nessuna etichetta."
+    },
+    "collaborators": {
+      "title": "Collaborazione",
+      "label": "Invita in collaborazione",
+      "placeholder": "nome utente di Instagram",
+      "add": "Aggiungi",
+      "chosen": "Invitati in collaborazione",
+      "remove": "Togli {name} dagli invitati",
+      "count": "{count} di {max}",
+      "none": "Nessun invito.",
+      "onlyInstagram": "La richiesta arriva solo su Instagram: su Facebook il post esce senza.",
+      "notOnStory": "Le storie non hanno collaboratori: questi inviti non partono."
     },
     "notes": {
       "label": "Nuova nota per il team",
@@ -2847,6 +2861,21 @@
         "target_published": "Pubblicato su {account}",
         "target_failed": "{platform} non ha pubblicato il post su {account}",
         "target_uncertain": "{platform} non ha risposto in tempo su {account}"
+      },
+      "collaborators": {
+        "title": "Invitati in collaborazione",
+        "status": {
+          "waiting": "Da leggere",
+          "pending": "In attesa",
+          "accepted": "Accettato",
+          "declined": "Rifiutato",
+          "not_sent": "Non partito",
+          "unknown": "Stato non noto"
+        },
+        "notSent": "Instagram ha rifiutato gli inviti: il post è uscito senza collaboratori.",
+        "refresh": "Aggiorna",
+        "refreshOn": "Aggiorna gli inviti su {account}",
+        "readAt": "Letto {when}"
       }
     },
     "plan": {

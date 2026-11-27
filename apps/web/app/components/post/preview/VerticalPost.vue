@@ -12,6 +12,8 @@ const props = defineProps<{
     'instagram_reel' | 'facebook_reel' | 'instagram_story' | 'facebook_story'
   >
   name: string
+  /** over the reel, when it is not the name alone: «forno e mulino» (D-125) */
+  heading?: string
   avatar: string | null
   item: PreviewItem | undefined
   caption: string
@@ -92,7 +94,7 @@ const pct = (n: number) => `${String(n * 100)}%`
               <img v-if="avatar" :src="avatar" alt="" class="size-full object-cover" />
               <template v-else>{{ name.slice(0, 2).toUpperCase() }}</template>
             </span>
-            <span class="truncate">{{ name }}</span>
+            <span class="truncate">{{ heading ?? name }}</span>
             <span class="rounded-md border border-white/80 px-1.5 text-[0.625rem]">
               {{ t('posts.preview.follow') }}
             </span>
