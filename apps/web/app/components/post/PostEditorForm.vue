@@ -524,8 +524,8 @@ const confirmText = computed(() => {
               :loading="profilesLoading"
               :groups="settings.groups.value"
             />
-            <PostCollaboratorsField :editor="editor" :instagram="hasInstagram" />
             <PostWhenPicker :editor="editor" :client="client" />
+            <PostCollaboratorsField :editor="editor" :instagram="hasInstagram" />
             <PostLabelsAndNotes
               :editor="editor"
               :labels="settings.labels.value"
