@@ -16,7 +16,7 @@ function sources(dir: string): string[] {
   })
 }
 
-const FROM_CONTRACTS = /\bfrom\s*['"]@app\/contracts(?:\/[^'"]*)?['"]/g
+const FROM_CONTRACTS = /\bfrom\s*['"]@app\/contracts[/'"]/g
 const DYNAMIC = /\bimport\(\s*['"]@app\/contracts/
 
 /**
@@ -47,6 +47,8 @@ test('the check sees a value import, also over more lines', () => {
   expect(seen("const c = await import('@app/contracts')")).toBe(1)
   expect(seen("import type { A } from '@app/contracts'")).toBe(0)
   expect(seen("import type {\n  A,\n  B,\n} from '@app/contracts'")).toBe(0)
+  expect(seen("import { A } from '@app/contracts/api'")).toBe(1)
+  expect(seen("import { A } from '@app/contracts-other'")).toBe(0)
   expect(seen("import { captionStats } from '@app/domain'")).toBe(0)
   expect(seen("import { ref } from 'vue'\nimport type { A } from '@app/contracts'")).toBe(0)
 })
