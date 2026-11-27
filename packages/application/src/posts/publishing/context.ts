@@ -379,6 +379,16 @@ export const latestOf = (first: Date, ...others: (Date | null)[]): Date =>
 
 export const plusMinutes = (at: Date, minutes: number) => new Date(at.getTime() + minutes * 60_000)
 
+/**
+ * The usernames a destination invites (D-125): Instagram's photos, carousels and reels only;
+ * a story and Facebook go out without them.
+ */
+export const collaboratorsOf = (
+  post: Pick<PostRecord, 'type' | 'instagramCollaborators'>,
+  platform: Platform,
+): string[] =>
+  platform === 'instagram' && post.type !== 'story' ? [...post.instagramCollaborators] : []
+
 /** Where Meta downloads a copy (`/m/<token>.<ext>`, spec §16.1). */
 export function publicFileUrl(base: URL, token: string, mime: string): string {
   return new URL(`/m/${token}.${mime === 'video/mp4' ? 'mp4' : 'jpg'}`, base).toString()
@@ -458,6 +468,7 @@ export async function readTargetOf(
         opened.account.platform,
       ),
       shareToFeed: post.options.shareToFeed,
+      collaborators: collaboratorsOf(post, opened.account.platform),
       metaIds: roundIds(target.metaIds),
       externalPostId: target.externalPostId,
     },

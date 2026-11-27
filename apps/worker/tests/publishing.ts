@@ -137,6 +137,8 @@ export async function scheduledPost(
     accounts: string[]
     type?: PostType
     caption?: string
+    /** Instagram's invited collaborators (D-125) */
+    collaborators?: string[]
     queue?: ReturnType<typeof recordingQueue>
   },
 ): Promise<{ postId: string; version: number }> {
@@ -152,6 +154,7 @@ export async function scheduledPost(
       caption: { common: opts.caption ?? 'Pane caldo alle 18' },
       destinations: opts.accounts.map((accountId) => ({ accountId })),
       when: { localDate, localTime },
+      ...(opts.collaborators ? { instagramCollaborators: opts.collaborators } : {}),
     },
     { ip: null },
   )

@@ -54,6 +54,18 @@ export interface ScenarioOptions {
    * `ERROR`; on Facebook a photo answers 324, a video 389.
    */
   media_download_failed: { times?: number }
+  /**
+   * Instagram: a container made with `collaborators` (any, or one that names `username`)
+   * answers 100 with no subcode, as for a username that does not exist or an account that
+   * takes no collaboration tags (D-125). Meta's real answer is not verified: written from the
+   * documentation and the community, which do not say it.
+   */
+  collaborator_rejected: { username?: string; times?: number }
+  /**
+   * Instagram: `GET /{ig-media-id}/collaborators` says the invitation (of `username`, or of
+   * everyone) `Accepted` or `Declined` from now; `Pending` otherwise.
+   */
+  collaborator_answered: { username?: string; status: 'Accepted' | 'Declined' }
   /** Facebook: the next call that publishes answers 506, a duplicate post. */
   duplicate_post: { times?: number }
   /** Facebook: videos created from now stay `processing` for `reads` (3) status reads. */

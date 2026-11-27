@@ -95,6 +95,8 @@ export interface PostDraft {
   when: PostWhen
   /** a reel also in the feed (§9.1) */
   shareToFeed: boolean
+  /** Instagram's invited collaborators (D-125): not on stories, never on Facebook */
+  instagramCollaborators: readonly string[]
   choices: RuleChoice[]
 }
 
@@ -172,6 +174,10 @@ export const RULE_CODES = [
   'media_unused',
   /** the copy to publish of a file could not be made (plan 07 Task 6): only with `publish` */
   'media_copy_failed',
+  /** more than 3 collaborators on Instagram (D-125) */
+  'collaborators_too_many',
+  'collaborator_invalid',
+  'collaborator_repeated',
   // warnings
   'time_skipped',
   'time_ambiguous',
@@ -191,6 +197,10 @@ export const RULE_CODES = [
   'carousel_videos_with_facebook',
   'quota_low',
   'duplicate_post',
+  /** a story with collaborators: Instagram takes none there (D-125) */
+  'collaborators_on_story',
+  /** collaborators, and no Instagram account among the destinations */
+  'collaborators_without_instagram',
   // fixes
   'file_convert_to_jpeg',
   'file_convert_to_srgb',

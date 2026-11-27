@@ -391,6 +391,17 @@ export const GRID_ACCOUNT_THUMBNAILS_LIMIT = {
   windowMs: 60_000,
 } as const
 
+/**
+ * «Aggiorna» of Instagram's invitations (plan 09 Task 15): each press is a job that reads Meta
+ * once per destination; the queue keeps one per post waiting, and a person needs few.
+ */
+export const COLLABORATORS_REFRESH_RATE_LIMIT = {
+  name: 'collaborators-refresh',
+  limit: 10,
+  windowMs: 60_000,
+  by: 'user',
+} as const
+
 /** A limit counted on one account of one agency instead of a person or an address. */
 export async function limitAccount(
   rule: { name: string; limit: number; windowMs: number },

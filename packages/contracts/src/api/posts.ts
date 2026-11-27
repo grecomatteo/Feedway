@@ -7,6 +7,7 @@ import {
   POST_CHECK_LIMITS,
   POST_CHECK_TYPES,
   PostCaptionBody,
+  InstagramCollaboratorsBody,
   PostCoverBody,
   RuleChoiceBody,
 } from './rules.js'
@@ -68,6 +69,11 @@ const content = {
   when: PostWhenBody,
   /** a reel also in the feed */
   shareToFeed: z.boolean(),
+  /**
+   * Instagram's invited collaborators (D-125), as typed: a draft saves with any name, the checks
+   * block a wrong one, a repeated one or more than 3
+   */
+  instagramCollaborators: InstagramCollaboratorsBody,
   /** the answers to the warnings, saved with the post (P5) */
   choices: z
     .array(RuleChoiceBody)
@@ -88,6 +94,7 @@ export const CreatePostRequest = z.strictObject({
   destinations: content.destinations.optional(),
   when: content.when.optional(),
   shareToFeed: content.shareToFeed.optional(),
+  instagramCollaborators: content.instagramCollaborators.optional(),
   choices: content.choices.optional(),
   labelIds: content.labelIds.optional(),
 })
@@ -103,6 +110,7 @@ export const UpdatePostRequest = z.strictObject({
   destinations: content.destinations.optional(),
   when: content.when.optional(),
   shareToFeed: content.shareToFeed.optional(),
+  instagramCollaborators: content.instagramCollaborators.optional(),
   choices: content.choices.optional(),
   labelIds: content.labelIds.optional(),
 })
@@ -156,6 +164,7 @@ export const PostResponse = z.object({
   /** IANA, the agency's when the post was created (D-58) */
   timezone: z.string(),
   shareToFeed: z.boolean(),
+  instagramCollaborators: z.array(z.string()),
   choices: z.array(
     z.object({
       key: z.string(),
@@ -400,6 +409,25 @@ export const PostOutcomeResponse = z.object({
        * `no_permission`; null: none chosen or not sent
        */
       cover: z.enum(['done', 'failed', 'no_permission']).nullable(),
+      /**
+       * Instagram's invitations sent with the post (D-125); null: none. `not_sent`: Meta
+       * refused them and the post went out without; `waiting`: not read yet; `unknown`: Meta
+       * does not list the name (it lists only who has the collaboration tags on)
+       */
+      collaborators: z
+        .object({
+          people: z.array(
+            z.object({
+              username: z.string(),
+              status: z.enum(['pending', 'accepted', 'declined', 'not_sent', 'waiting', 'unknown']),
+            }),
+          ),
+          /** Meta's code when it refused the invitations, never its message */
+          notSentCode: z.string().nullable(),
+          /** when the worker last read the answers */
+          readAt: Timestamp.nullable(),
+        })
+        .nullable(),
     }),
   ),
   /** the latest first */
@@ -426,6 +454,18 @@ export const getPostOutcomeRoute = defineContract({
     query: z.strictObject({ preview: z.enum(['0', '1']).optional() }),
   },
   response: PostOutcomeResponse,
+  auth: 'session',
+  scope: 'organization',
+})
+
+// «Aggiorna» of the invitations (plan 09 Task 15): the web asks the worker, never Meta
+export const refreshCollaboratorsRoute = defineContract({
+  method: 'POST',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/collaborators/refresh',
+  summary:
+    'Chiede di rileggere da Instagram le risposte dei collaboratori invitati (409 se nessun invito è uscito)',
+  request: { params: PostParams },
+  response: z.object({ queued: z.literal(true) }),
   auth: 'session',
   scope: 'organization',
 })
@@ -502,6 +542,7 @@ export const postRoutes = [
   cancelPostRoute,
   publishNowRoute,
   getPostOutcomeRoute,
+  refreshCollaboratorsRoute,
   retryTargetRoute,
   markVerifiedRoute,
   cancelTargetRoute,

@@ -35,6 +35,8 @@ export interface PublishingTargetRecord {
   publishedAt: Date | null
   verifiedAt: Date | null
   verification: unknown
+  /** Instagram's collaborators as the worker last read them (`collaboratorsReadingOf`, D-125) */
+  collaborators: unknown
 }
 
 /**
@@ -57,6 +59,7 @@ export type TargetStepPatch = Partial<
     | 'publishedAt'
     | 'verifiedAt'
     | 'verification'
+    | 'collaborators'
   >
 > & {
   renew?: boolean

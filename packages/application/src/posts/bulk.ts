@@ -135,7 +135,7 @@ export async function startBulkImport(
     if (!mayImportInBulk(current, scope)) throw cannotImportInBulk()
     // a file, an account or a label of another client is «not found» now, not a row failed later
     for (const row of input.rows) {
-      await assertReferences(tx, scope, { ...row }, null)
+      await assertReferences(tx, scope, { ...row, instagramCollaborators: [] }, null)
       await assertLabels(tx, scope, row.labelIds)
     }
     const id = deps.ids.newId()
@@ -454,6 +454,8 @@ export async function duplicatePost(
         caption: { common: source.caption, ...source.captionByPlatform },
         destinations: wanted.filter((id) => assigned.has(id)).map((accountId) => ({ accountId })),
         shareToFeed: source.options.shareToFeed,
+        // in the same client: the same invitations (plan 09 Scelta 13)
+        instagramCollaborators: source.instagramCollaborators,
         choices: source.options.choices,
         labelIds: source.labelIds,
       }

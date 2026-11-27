@@ -346,8 +346,9 @@ export type {
   WorkspaceAccountsRepository,
 } from './ports/accounts.js'
 export type { ConnectionTokens } from './ports/connection-tokens.js'
-export { PublishError } from './ports/platform-publisher.js'
+export { PublishError, sentCollaboratorsOf } from './ports/platform-publisher.js'
 export type {
+  CollaboratorsRead,
   FoundPost,
   PlatformLoad,
   PlatformQuota,

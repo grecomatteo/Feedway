@@ -247,6 +247,18 @@ async function withTargetIn(ids: SampleIds, status: 'failed' | 'problem' | 'paus
   return {}
 }
 
+/** The case's post out on Instagram with a collaborator invited (plan 09 Task 15). */
+async function withInvitation(ids: SampleIds) {
+  await schedulable(ids, 'scheduled')
+  await fx.env.admin.pool.query(
+    `update post_targets set status = 'confirmed', external_post_id = '17890000000000001',
+            meta_ids = '{"platform":"instagram","collaborators":{"names":["forno.luce"],"dropped":null}}'
+      where post_id = $1`,
+    [ids.post],
+  )
+  return {}
+}
+
 /**
  * A draft of the caller in the case's workspace, made through the route; who may not write
  * there gets the case's draft, which is someone else's.
@@ -636,6 +648,10 @@ const RULES: Record<string, readonly Rule[]> = {
   ],
   'GET /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/outcome': [
     { permission: 'workspace.view', level: 'workspace' },
+  ],
+  // «Aggiorna» of the invitations: whoever reads the outcome asks the worker (plan 09 Task 15)
+  'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/collaborators/refresh': [
+    { permission: 'workspace.view', level: 'workspace', prepare: (ids) => withInvitation(ids) },
   ],
   'POST /api/v1/orgs/{org}/workspaces/{id}/posts/{postId}/unschedule': [
     {

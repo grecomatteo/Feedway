@@ -48,6 +48,7 @@ import {
   type StepJob,
   type StepLog,
   type TargetJob,
+  collaboratorsOf,
 } from './context.js'
 import { destinationCopies } from './files.js'
 import { processingOf, retriedAfterNotFound, retriedAtOf, withProcessing } from './retry-mark.js'
@@ -225,6 +226,7 @@ async function decide(
         asVideo: destination?.format === 'video',
         caption: post.type === 'story' ? '' : (destination?.caption ?? ''),
         shareToFeed: post.options.shareToFeed,
+        collaborators: collaboratorsOf(post, opened.account.platform),
         metaIds,
         externalPostId: target.externalPostId,
       },

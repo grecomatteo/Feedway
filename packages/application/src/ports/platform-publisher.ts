@@ -1,4 +1,4 @@
-import type { Platform, PostType, PublishErrorCode } from '@app/domain'
+import type { CollaboratorStatus, Platform, PostType, PublishErrorCode } from '@app/domain'
 import type { ConnectionCredentials, PlatformLoad } from './platform-connector.js'
 
 export type { PlatformLoad } from './platform-connector.js'
@@ -32,6 +32,36 @@ export function coverOutcomeOf(
   return COVER_OUTCOMES.find((c) => c === cover) ?? null
 }
 
+/**
+ * The collaborators a publisher invited with the post (D-125), written as `collaborators` in
+ * its ids when it makes the container that carries them: the names, and whether the platform
+ * refused them (the post then went out without, `dropped` with the platform's code). The posts
+ * module reads it for the outcome and for the reading of the answers.
+ */
+export interface SentCollaborators {
+  names: string[]
+  dropped: { platformCode: string | null } | null
+}
+
+export function sentCollaboratorsOf(ids: PublishMetaIds | null): SentCollaborators | null {
+  const raw = ids?.['collaborators']
+  if (typeof raw !== 'object' || raw === null) return null
+  const { names, dropped } = raw as { names?: unknown; dropped?: unknown }
+  if (!Array.isArray(names) || !names.every((n) => typeof n === 'string') || names.length === 0)
+    return null
+  const code =
+    typeof dropped === 'object' && dropped !== null
+      ? (dropped as { platformCode?: unknown }).platformCode
+      : undefined
+  return {
+    names,
+    dropped:
+      dropped === null || dropped === undefined
+        ? null
+        : { platformCode: typeof code === 'string' ? code : null },
+  }
+}
+
 /** What a destination publishes, already decided by the post, its rules and its choices. */
 export interface PublishTarget {
   targetId: string
@@ -51,6 +81,8 @@ export interface PublishTarget {
   caption: string
   /** Reels: also in the feed of the followers (§9.1). */
   shareToFeed: boolean
+  /** The usernames to invite (D-125): only for Instagram's photos, carousels and reels. */
+  collaborators: readonly string[]
   /** null before the first call. */
   metaIds: PublishMetaIds | null
   /** The published post, once `publish` gave it. */
@@ -185,6 +217,11 @@ export class PublishError extends Error {
   }
 }
 
+/** The invited collaborators of a published post and their answer, as the platform said (D-125). */
+export type CollaboratorsRead = StepUsage & {
+  people: { username: string; status: CollaboratorStatus }[]
+}
+
 export interface PlatformPublisher {
   /** Everything before the post goes out: uploads, containers, waits for the processing. */
   prepare(target: PublishTarget, files: PublishFiles, ctx: StepContext): Promise<StepResult>
@@ -226,6 +263,11 @@ export interface PlatformPublisher {
    * reel cover. Without it (the uncertain search) only a read.
    */
   verify(target: PublishTarget, signal: AbortSignal, ctx?: VerifyContext): Promise<VerifyResult>
+  /**
+   * The answers of the collaborators invited with the published post (D-125); only a read.
+   * Left out by a platform without collaborators. Errors leave as `PublishError`.
+   */
+  readCollaborators?(target: PublishTarget, signal: AbortSignal): Promise<CollaboratorsRead>
 }
 
 /** The platforms this process can publish on; one left out has no publisher here. */

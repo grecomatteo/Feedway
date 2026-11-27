@@ -59,6 +59,8 @@ export interface PostCheckInput {
   when: PostWhen
   /** a reel also in the feed (§9.1) */
   shareToFeed: boolean
+  /** Instagram's invited collaborators (D-125); none when left out */
+  instagramCollaborators?: readonly string[]
   choices: readonly RuleChoice[]
   /** who checks (D-54); the editor's `draft` when left out */
   purpose?: CheckPurpose
@@ -277,6 +279,7 @@ function evaluate(
     destinations: input.destinations.map((d) => ({ accountId: d.accountId })),
     when: input.when,
     shareToFeed: input.shareToFeed,
+    instagramCollaborators: [...(input.instagramCollaborators ?? [])],
     choices: [...input.choices],
   }
   return evaluatePost(draft, {

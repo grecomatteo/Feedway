@@ -24,6 +24,8 @@ export function toCheckInput(post: PostRecord, purpose: CheckPurpose): PostCheck
     destinations: post.targets.map((t) => ({ accountId: t.accountId })),
     when: { mode: 'at', localDate, localTime },
     shareToFeed: post.options.shareToFeed,
+    // kept for a story too: the checks say they do not go out there (D-125)
+    instagramCollaborators: post.instagramCollaborators,
     choices: post.options.choices,
     purpose,
     postId: post.id,

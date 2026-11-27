@@ -52,6 +52,7 @@ const targetColumns = {
   publishedAt: postTargets.publishedAt,
   verifiedAt: postTargets.verifiedAt,
   verification: postTargets.verification,
+  collaborators: postTargets.collaborators,
 }
 
 type TargetRow = Omit<PublishingTargetRecord, 'status' | 'step' | 'metaIds'> & {

@@ -35,9 +35,13 @@ overrides:
   better-auth>drizzle-kit: '-'
   # Patched versions of transitive dependencies flagged by Dependabot (30/10). Remove each line
   # once the package that pulls it in ships the fixed version on its own.
-  '@esbuild-kit/core-utils>esbuild': 0.25.12
+  '@esbuild-kit/core-utils>esbuild': 0.28.1
   'fontless>esbuild': 0.28.2
   '@rollup/plugin-terser>serialize-javascript': 7.1.3
   'fast-uri@>=3.0.0 <3.1.9': 3.1.9
   'seroval@>=1.5.5 <1.6.11': 1.6.11
-  'listhen>node-forge': 1.4.1
+  'listhen>node-forge': 1.4.3
+  # Security advisories of 27/11 on transitive dependencies (Nuxt modules, ESLint, testcontainers).
+  '@nuxt/schema@>=3.5.0 <4.6.4': 4.6.4
+  'minimatch@>=7.0.0 <11.0.1': 11.0.9
+  'glob@>=9.0.0 <14.0.2': 14.0.6

@@ -81,11 +81,15 @@ check "media volume is writable by the app user" media_writable
 
 # On its own port only robots.txt and /m/ answer, whatever Host says; the panel answers no /m/.
 public_entry() {
+  local headers
   [ "$(curl -fsS http://127.0.0.1:3001/robots.txt)" = "$(printf 'User-agent: *\nDisallow: /')" ] &&
     [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: localhost:3000' http://127.0.0.1:3001/api/ready)" = 404 ] &&
     [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3001/m/$(printf 'a%.0s' $(seq 1 32)).jpg")" = 404 ] &&
     [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/m/$(printf 'a%.0s' $(seq 1 32)).jpg")" = 404 ] &&
-    curl -fsS -D - -o /dev/null http://127.0.0.1:3000/api/health | grep -qi '^x-robots-tag: noindex'
+    # the headers whole first: `grep -q` stops at the match and, with pipefail, curl's broken
+    # pipe on the lines after it made this check fail now and then
+    headers="$(curl -fsS -D - -o /dev/null http://127.0.0.1:3000/api/health)" &&
+    grep -qi '^x-robots-tag: noindex' <<<"$headers"
 }
 check "public entry serves only the public host" public_entry
 

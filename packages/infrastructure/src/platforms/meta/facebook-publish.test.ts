@@ -75,6 +75,7 @@ function target(type: PostType, over: Partial<PublishTarget> = {}): PublishTarge
     asVideo: false,
     caption: type === 'story' ? '' : 'Pane caldo\n alle 7',
     shareToFeed: true,
+    collaborators: [],
     metaIds: null,
     externalPostId: null,
     ...over,

@@ -61,9 +61,11 @@ export type NewPost = { id?: string } & Pick<
   | 'timezone'
   | 'options'
   | 'createdBy'
->
+> &
+  /** none when left out */
+  Partial<Pick<Post, 'instagramCollaborators'>>
 
-/** The fields a save writes; the version goes up by one. */
+/** The fields a save writes; the version goes up by one. The collaborators, only when given. */
 export type PostChange = Pick<
   Post,
   | 'type'
@@ -74,7 +76,8 @@ export type PostChange = Pick<
   | 'options'
   | 'scheduledBy'
   | 'updatedBy'
->
+> &
+  Partial<Pick<Post, 'instagramCollaborators'>>
 
 export interface NewPostTarget {
   accountId: string

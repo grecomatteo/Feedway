@@ -42,6 +42,7 @@ const ALL_QUEUES: Record<QueueName, true> = {
   'plan.due_scan': true,
   'posts.drafts_cleanup': true,
   'bulk.import': true,
+  'posts.collaborators_refresh': true,
 }
 
 test('each module has its own name', () => {

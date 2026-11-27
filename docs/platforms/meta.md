@@ -241,6 +241,7 @@ Fonti (lette il 2026-11-20): [Content publishing](https://developers.facebook.co
 - **Quota:** 100 post pubblicati con l'API ogni 24 ore mobili secondo la sezione dei limiti (la sezione del carosello dice 50), contati su `media_publish`; un carosello vale uno. Feedway legge `content_publishing_limit` prima di ogni `media_publish`; senza quota la destinazione aspetta (D-105.4).
 - **Esito incerto:** `media_publish` non si ripete mai da solo: un timeout, un'interruzione del lavoro, un errore di rete o del server sono incerti (D-105.11). La ricerca legge gli ultimi 25 post (`GET /{ig}/media`) o le storie (`GET /{ig}/stories`) con `id,caption,timestamp,media_type,media_product_type,permalink`: il riferimento dell'arco elenca solo `id`, gli altri campi vengono dalla guida e sono **non verificati**.
 - **Verifica (§9.6):** `GET /{media-id}?fields=id,caption,timestamp,media_type,media_product_type,permalink`. Un reel pubblicato ha `media_type` `VIDEO` e `media_product_type` `REELS`; una storia `STORY`; un carosello `CAROUSEL_ALBUM`.
+- **Collaboratori (piano 09 Task 15, D-125):** `collaborators`, un array JSON di nomi utente (fino a 3), sul contenitore della foto, del reel e su quello principale del carosello; mai sugli elementi del carosello né sulle storie. Permessi già chiesti (`instagram_basic`, `instagram_content_publish`). Se la creazione con `collaborators` risponde un errore definitivo che Feedway non conosce (`meta_error`, per esempio 100 senza sottocodice), il contenitore si ricrea una volta senza e il post esce; `meta_ids.collaborators` dice i nomi mandati e `dropped` con il codice. Dopo la conferma il worker legge `GET /{media-id}/collaborators?fields=id,username,invite_status` (`Accepted`, `Pending`, `Declined`); Meta elenca solo chi ha i tag di collaborazione attivi. **Non verificato:** il formato del parametro (array JSON), l'errore di un nome che non esiste o di un account che non accetta i tag, `Declined` nella lettura, la notifica all'invitato.
 - **Corpo:** i parametri dei POST vanno in un modulo, con il token nell'intestazione e `appsecret_proof` nell'indirizzo (D-105.9).
 - **File:** solo JPEG per le foto, al massimo 8 MB, rapporto da 4:5 a 1,91:1, larghezza da 320 a 1440; reel MOV o MP4, da 3 s a 15 min, 300 MB; storia video da 3 a 60 s, 100 MB. I file devono essere su un indirizzo pubblico quando Meta li scarica.
 
@@ -325,3 +326,7 @@ E per la pubblicazione su Facebook (Task 5):
 8. Se l'elaborazione di un reel parte prima di `upload_phase=finish`, e quanto dura.
 9. `DELETE` di una foto non pubblicata e di un video caricato e non finito: nella prova non è servito.
 10. Gli errori della pubblicazione: nessun errore di Meta è stato registrato.
+
+E per i collaboratori di Instagram (piano 09 Task 15, D-125):
+11. Se `collaborators` come array JSON arriva all'invitato, se la notifica gli arriva e cosa dice `GET /{media-id}/collaborators` prima e dopo che accetta.
+12. Che errore dà la creazione del contenitore con un nome che non esiste, un account privato o uno che non accetta i tag.

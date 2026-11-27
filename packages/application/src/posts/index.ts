@@ -102,6 +102,13 @@ export {
   type StepLog,
   type TargetJob,
 } from './publishing/index.js'
+export {
+  refreshCollaborators,
+  requestCollaboratorsRefresh,
+  type CollaboratorsOutcomeDto,
+  type CollaboratorsRefreshReport,
+  type InvitationStatus,
+} from './publishing/index.js'
 export { untitledPost } from './title.js'
 // Programming in bulk and «Duplica» (plan 09 Task 10).
 export { blockingCodes, createScheduled } from './create-scheduled.js'
