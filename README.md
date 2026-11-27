@@ -83,7 +83,8 @@ Dopo la 1.0 Feedway diventa l'hub dell'agenzia: clienti e CRM, portale del clien
 | 7 · Pubblicazione | Pubblicazione vera su Meta, verifica dopo l'uscita, esito per destinazione, «Riprova» senza doppioni, cartelle e zip in libreria | ✅ v0.13 |
 | 8 · Notifiche | Centro notifiche, email e bot Telegram con `/oggi` e `/problemi`, preferenze e ore di silenzio, riepilogo delle 8:00, avviso del worker fermo, sorveglianza esterna con healthchecks.io | ✅ v0.14 |
 | 9 · Pianificazione | Calendario mese, settimana ed elenco con trascinamento; piano editoriale con l'avviso «da preparare»; fasce orarie; programmazione in blocco da file, CSV ed Excel; «Duplica»; griglia di Instagram riordinabile; «Eliminati» e pulizia delle bozze dimenticate; collaboratori su Instagram | ✅ v0.15 |
-| 10–12 | Condivisione e brand, operazioni (backup, dashboard), messa in produzione | ⏳ Da fare |
+| 10 · Condivisione e brand | Link del calendario per il cliente, stampa e PDF del piano, logo e colori dell'agenzia, app sul telefono | 📝 Piano scritto |
+| 11–12 | Operazioni (backup, dashboard), messa in produzione | ⏳ Da fare |
 
 Dettaglio di ogni tappa nel [piano generale](docs/superpowers/plans/2026-10-15-00-piano-generale.md); cosa è uscito in ogni versione nel [CHANGELOG](CHANGELOG.md).
 
