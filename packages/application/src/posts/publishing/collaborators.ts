@@ -64,12 +64,16 @@ export interface CollaboratorsOutcomeDto {
   readAt: string | null
 }
 
-/** The invitations of a destination, from what the publisher sent and the worker read. */
+/**
+ * The invitations of a destination, from what the publisher sent and the worker read. A
+ * container made with them says nothing until the post is out: it may never be (review of PR 1).
+ */
 export function collaboratorsOutcomeOf(
-  target: Pick<PublishingTargetRecord, 'metaIds' | 'collaborators'>,
+  target: Pick<PublishingTargetRecord, 'metaIds' | 'collaborators' | 'externalPostId' | 'status'>,
 ): CollaboratorsOutcomeDto | null {
   const sent = sentCollaboratorsOf(roundIds(target.metaIds))
   if (sent === null) return null
+  if (sent.dropped === null && !hasInvitationsToRead(target)) return null
   if (sent.dropped !== null)
     return {
       people: sent.names.map((username) => ({ username, status: 'not_sent' })),
@@ -217,6 +221,13 @@ export async function refreshCollaborators(
         { targetId: read.record.id, code: error.code, kind: error.kind },
         'collaborators not read',
       )
+      // the load Meta gave with its refusal slows the account down, as for the other calls
+      const load = error.load
+      if (load !== null)
+        await deps.uow.run(scope, async (tx) => {
+          const target = await tx.publishing.lockTarget(read.record.organizationId, read.record.id)
+          if (target) await recordReadings(tx, target, { load }, deps.clock.now())
+        })
       continue
     }
     const now = deps.clock.now()
@@ -230,6 +241,7 @@ export async function refreshCollaborators(
     })
     report.read += 1
   }
-  if (retry !== null) throw retry
+  // the queue tries again only when nothing was read: the destinations read are not asked twice
+  if (retry !== null && report.read === 0) throw retry
   return report
 }

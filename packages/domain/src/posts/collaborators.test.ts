@@ -14,6 +14,10 @@ test('an Instagram username takes letters, digits, dot and underscore, up to 30 
   expect(isInstagramUsername('forno luce')).toBe(false)
   expect(isInstagramUsername('forno-luce')).toBe(false)
   expect(isInstagramUsername('')).toBe(false)
+  // Instagram refuses a dot at the start, at the end or twice in a row
+  expect(isInstagramUsername('.forno')).toBe(false)
+  expect(isInstagramUsername('forno.')).toBe(false)
+  expect(isInstagramUsername('forno..luce')).toBe(false)
 })
 
 test('the editor drops spaces and the «@» and writes small letters', () => {

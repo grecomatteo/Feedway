@@ -124,8 +124,11 @@ const hasMediaId = (ids: unknown) =>
   typeof (ids as { mediaId?: unknown }).mediaId === 'string'
 
 /** Meta's `invite_status`; anything else reads as still waiting. */
-const statusOf = (raw: string | null) =>
-  raw === 'Accepted' ? 'accepted' : raw === 'Declined' ? 'declined' : 'pending'
+/** Meta's documentation writes `Accepted` and `Pending`: the case is not verified. */
+const statusOf = (raw: string | null) => {
+  const status = raw?.toLowerCase()
+  return status === 'accepted' ? 'accepted' : status === 'declined' ? 'declined' : 'pending'
+}
 
 /** The search starts a little before the step: the two clocks may not agree (Scelta 7). */
 const CLOCK_SKEW_MS = 2 * 60_000

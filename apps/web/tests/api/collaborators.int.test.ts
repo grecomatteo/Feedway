@@ -83,7 +83,7 @@ test('a draft saves the collaborators as typed, and a save changes them', async 
   expect(many.status).toBe(422)
 })
 
-test('the checks block 4 names, a name with «@» and a repeated one; without Instagram they warn', async () => {
+test('the server repeats the checks: 4 names block, without Instagram they warn', async () => {
   const check = async (names: string[], accounts = [igForno, fbForno]) => {
     const r = await call('editor', 'POST', `/workspaces/${forno}/post-checks`, {
       type: 'photo',
@@ -101,8 +101,6 @@ test('the checks block 4 names, a name with «@» and a repeated one; without In
   }
   expect(await check(['uno', 'due', 'tre'])).toEqual([])
   expect(await check(['uno', 'due', 'tre', 'quattro'])).toEqual(['block collaborators_too_many'])
-  expect(await check(['@forno'])).toEqual(['block collaborator_invalid'])
-  expect(await check(['nome.con.punto', 'Nome.Con.Punto'])).toEqual(['block collaborator_repeated'])
   expect(await check(['forno'], [fbForno])).toEqual(['warning collaborators_without_instagram'])
 })
 

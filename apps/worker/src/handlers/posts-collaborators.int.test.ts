@@ -201,3 +201,16 @@ test('Meta refuses the collaborators: the container is made again without, the p
   await verified(p)
   expect(p.deps.queue.sent.some((s) => s.name === 'posts.collaborators_refresh')).toBe(false)
 })
+
+test('Meta says to slow down while reading: the account slows down, the next read waits', async () => {
+  const p = await published({ collaborators: ['forno.luce'] })
+  await verified(p)
+  const reads = () =>
+    mock.calls().filter((c) => c.method === 'GET' && c.path.endsWith('/collaborators')).length
+  mock.scenario('rate_limited', { path: /\/collaborators$/, times: 1 })
+  await expect(refresh(p)).rejects.toMatchObject({ code: 'rate_limited' })
+  const before = reads()
+  // the retry of the queue, seconds later: the load Meta gave is kept, no call goes out
+  await refresh(p)
+  expect(reads()).toBe(before)
+})

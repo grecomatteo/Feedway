@@ -5,10 +5,14 @@
 /** The fewest of the two numbers of Meta's documentation (3 when creating, 5 when reading). */
 export const MAX_INSTAGRAM_COLLABORATORS = 3
 
-/** An Instagram username: letters, digits, dot and underscore, at most 30 characters. */
+/**
+ * An Instagram username: letters, digits, dot and underscore, at most 30 characters, with no dot
+ * at the start, at the end or twice in a row.
+ */
 const USERNAME = /^[A-Za-z0-9._]{1,30}$/
 
-export const isInstagramUsername = (value: string): boolean => USERNAME.test(value)
+export const isInstagramUsername = (value: string): boolean =>
+  USERNAME.test(value) && !value.startsWith('.') && !value.endsWith('.') && !value.includes('..')
 
 /**
  * What the editor keeps of a name typed in the field: without spaces and the «@» in front, in
