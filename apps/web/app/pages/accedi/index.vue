@@ -34,7 +34,7 @@ const problemText = computed(() => {
 })
 
 async function continueSignedIn() {
-  const view = await session.load()
+  const view = await session.load({ themeWithNextPage: true })
   if (view.state === 'second_factor') return navigateTo('/accedi/secondo-fattore')
   if (view.state === 'active') return navigateTo(session.home(view.me, next.value))
   problem.value = { ...failure(null), message: t('signIn.invalid') }
@@ -91,7 +91,7 @@ async function withPassword() {
         path: '/accedi/verifica',
         query: next.value ? { dopo: next.value } : {},
       })
-    const view = await session.load()
+    const view = await session.load({ themeWithNextPage: true })
     if (view.state === 'second_factor') return await navigateTo('/accedi/secondo-fattore')
     if (view.state !== 'active') return
     const offered = (() => {

@@ -22,6 +22,7 @@ export function useSession() {
   const view = useState<SessionView>('session', () => ({ state: 'unknown' }))
   const colorMode = useColorMode()
   const palette = usePalette()
+  const nuxtApp = useNuxtApp()
   // on the server, the browser's cookie goes with the request
   const fetcher = import.meta.server ? useRequestFetch() : $fetch
 
@@ -71,15 +72,25 @@ export function useSession() {
     }
   }
 
-  async function load(): Promise<SessionView> {
+  /**
+   * `themeWithNextPage`: the sign-in pages load the person and then leave. Their theme and
+   * colour wait for the next page, so the page being left does not change for an instant
+   * (issue 154).
+   */
+  async function load(opts: { themeWithNextPage?: boolean } = {}): Promise<SessionView> {
     try {
       const me = await fetcher<Me>('/api/v1/me')
       view.value =
         me.sessionState === 'active'
           ? { state: 'active', me }
           : { state: 'second_factor', me, useExisting: false }
-      applyTheme(me)
-      palette.value = me.palette
+      const colours = () => {
+        applyTheme(me)
+        palette.value = me.palette
+      }
+      if (opts.themeWithNextPage && import.meta.client)
+        nuxtApp.hooks.hookOnce('page:finish', colours)
+      else colours()
     } catch (e) {
       // read here, not with useApi: this also runs in the route middleware, outside a component
       const fetchError = e as FetchError<{ error?: { code?: string; reason?: string } }>
