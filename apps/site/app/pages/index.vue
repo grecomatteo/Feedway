@@ -38,7 +38,9 @@ const TABS: readonly Tab[] = [
     alt: 'Il piano editoriale di dicembre per Forno Luce.',
     items: [
       { text: 'Piano editoriale', feature: 'editorialPlan' },
-      { text: 'Calendario di tutti i clienti', feature: 'calendar' },
+      { text: 'Calendario di tutti i clienti, da trascinare', feature: 'calendar' },
+      { text: 'Tanti post in blocco, anche da CSV o Excel' },
+      { text: 'Griglia di Instagram da riordinare' },
       { text: 'Calendario su Google o Apple', feature: 'calendarSync' },
     ],
   },
@@ -65,6 +67,7 @@ const TABS: readonly Tab[] = [
     items: [
       { text: 'Feed, caroselli, reel e storie' },
       { text: 'Controlli prima di programmare' },
+      { text: 'Collaboratori su Instagram' },
       { text: 'Verifica dopo l’uscita' },
     ],
   },
@@ -196,6 +199,10 @@ const FAQ = [
   [
     'Che succede se un post non esce?',
     'Feedway avvisa chi l’ha programmato nel pannello, per email e su Telegram, e in Oggi trovi il motivo e cosa fare. Con «Riprova» pubblica solo dove non è uscito.',
+  ],
+  [
+    'E se elimino una bozza per sbaglio?',
+    'Finisce negli «Eliminati» del cliente: per 30 giorni la ripristini con un clic, poi si cancella da sola. Anche le bozze dimenticate ci vanno da sole, dopo i giorni che scegli tu.',
   ],
   [
     'Funziona con TikTok e LinkedIn?',

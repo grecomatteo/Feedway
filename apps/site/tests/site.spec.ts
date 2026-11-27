@@ -146,6 +146,22 @@ test('planned features carry the «In arrivo» mark, shipped ones do not', async
   await expect(page.getByRole('heading', { name: /Il report del mese/ })).toContainText('In arrivo')
 })
 
+test('the plan and the calendar have shipped, the calendar on Google or Apple has not', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'Pianifica' }).click()
+  await expect(page.getByRole('heading', { name: /scritto come su un’agenda/ })).not.toContainText(
+    'In arrivo',
+  )
+  const panel = page.getByRole('tabpanel')
+  await expect(panel).toContainText('Tanti post in blocco, anche da CSV o Excel')
+  await expect(panel.locator('.soon-mark')).toHaveCount(1)
+  await expect(panel.getByRole('listitem').filter({ hasText: 'Google o Apple' })).toContainText(
+    'In arrivo',
+  )
+})
+
 test('the product tabs move with the arrow keys', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('tab', { name: 'Pianifica' }).click()
