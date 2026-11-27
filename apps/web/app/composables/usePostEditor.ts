@@ -927,7 +927,7 @@ export function usePostEditor(opts: {
   }
 
   /**
-   * A draft this editor made, left without text, files and labels (the day and the accounts the
+   * A draft this editor made, left without text, files, labels and collaborators (the day and the accounts the
    * editor proposed do not count, D-124.14): leaving takes it away as if never born. Not while
    * a file is still uploading into it (it would find no draft, D-21), nor once it is saved by
    * someone else or deleted.
@@ -941,6 +941,7 @@ export function usePostEditor(opts: {
     entries.value.length === 0 &&
     coverUpload.value === null &&
     labelIds.value.length === 0 &&
+    collaborators.value.length === 0 &&
     [caption.common, caption.instagram ?? '', caption.facebook ?? ''].every((x) => x.trim() === '')
   let gone = false
   /** The draft left empty goes: after the saves on their way, so none brings it back. */

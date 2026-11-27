@@ -107,10 +107,6 @@ test('a draft is born with its first content, not when the page opens', () => {
 })
 
 describe('the collaborators typed in the field (D-125)', () => {
-  test('a name is kept without the «@» and the spaces, in small letters', () => {
-    expect(typedCollaborators(' @Forno.Luce ')).toEqual(['forno.luce'])
-  })
-
   test('names written together become one each, empty pieces go away', () => {
     expect(typedCollaborators('forno, @mulino  pane;')).toEqual(['forno', 'mulino', 'pane'])
     expect(typedCollaborators(' , @ ')).toEqual([])

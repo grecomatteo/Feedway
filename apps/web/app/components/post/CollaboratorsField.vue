@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { POST_CHECK_LIMITS } from '@app/contracts'
 import { MAX_INSTAGRAM_COLLABORATORS } from '@app/domain'
 import type { PostEditor } from '~/composables/usePostEditor'
 
@@ -23,21 +24,38 @@ const mayAdd = computed(
 )
 
 const typed = ref('')
-function add() {
-  const more = typedCollaborators(typed.value)
+const row = useTemplateRef<HTMLElement>('row')
+/**
+ * The names typed become chips: a fourth one too, which the checks block, but never more than a
+ * save takes (a pasted list would make it fail).
+ */
+function add(): boolean {
+  const room = POST_CHECK_LIMITS.collaborators - names.value.length
+  const more = typedCollaborators(typed.value).slice(0, Math.max(0, room))
   typed.value = ''
-  if (more.length === 0) return
+  if (more.length === 0) return false
   e.setCollaborators([...names.value, ...more])
+  return true
+}
+/** The field may be gone (the third name, a story): the focus goes to the last chip's ×. */
+async function keepFocus() {
+  await nextTick()
+  const target =
+    document.getElementById('post-collaborator') ??
+    [...(row.value?.querySelectorAll<HTMLElement>('[data-collaborator-chip] button') ?? [])].at(-1)
+  target?.focus()
+}
+function submit() {
+  if (add()) void keepFocus()
 }
 function onInput() {
   // a space or a comma ends a name, as on Meta Business Suite
-  if (/[\s,;]$/.test(typed.value)) add()
+  if (/[\s,;]$/.test(typed.value)) submit()
 }
-async function remove(i: number) {
+function remove(i: number) {
   e.setCollaborators(names.value.filter((_, j) => j !== i))
-  // the chip's button is gone: the focus goes to the field, or to the row when there is none
-  await nextTick()
-  document.getElementById('post-collaborator')?.focus()
+  // the chip's button is gone
+  void keepFocus()
 }
 </script>
 
@@ -56,7 +74,7 @@ async function remove(i: number) {
     "
     data-collaborators
   >
-    <div class="flex flex-col gap-2">
+    <div ref="row" class="flex flex-col gap-2">
       <ul
         v-if="names.length > 0"
         class="flex flex-wrap items-center gap-2"
@@ -73,7 +91,7 @@ async function remove(i: number) {
           <button
             v-if="e.editable.value"
             type="button"
-            class="relative grid size-5 place-items-center rounded-[4px] text-(--app-text-muted) after:absolute after:-inset-2.5 after:content-[''] hover:bg-(--app-surface-sunken) hover:text-(--app-text) focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
+            class="relative grid size-5 place-items-center rounded-[4px] text-(--app-text-muted) after:absolute after:-inset-3 after:content-[''] hover:bg-(--app-surface-sunken) hover:text-(--app-text) focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
             :aria-label="$t('posts.collaborators.remove', { name })"
             @click="remove(i)"
           >
@@ -85,7 +103,7 @@ async function remove(i: number) {
         v-if="mayAdd"
         class="flex h-control items-center gap-1 rounded-control border border-(--app-field-border) bg-(--app-surface) ps-2.5 pe-1 focus-within:border-(--app-text)"
         novalidate
-        @submit.prevent="add"
+        @submit.prevent="submit"
       >
         <label for="post-collaborator" class="sr-only">{{ $t('posts.collaborators.label') }}</label>
         <span class="text-(--app-text-muted)" aria-hidden="true">@</span>

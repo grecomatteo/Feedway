@@ -92,6 +92,8 @@ test('the editor invites up to 3 names, shows them in the preview, and keeps the
   await field(page).fill('pane_caldo,')
   await expect(chips(page)).toHaveCount(3)
   await expect(field(page)).toHaveCount(0)
+  // the field is gone: the focus stays in the row, on the last ×
+  await expect(page.getByRole('button', { name: 'Togli pane_caldo dagli invitati' })).toBeFocused()
   // one taken off: the focus goes back to the field
   await page.getByRole('button', { name: 'Togli mulino dagli invitati' }).click()
   await expect(field(page)).toBeFocused()
