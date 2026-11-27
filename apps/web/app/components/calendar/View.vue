@@ -606,41 +606,47 @@ const listedTitle = computed(() => {
       class="flex min-w-0 flex-col gap-stack"
       :data-ready="data !== null || failed || undefined"
     >
-      <!-- the bar: arrows, period, «Oggi»; the views at the end (screen 07) -->
+      <!-- the bar: arrows, period, «Oggi»; the views at the end (screen 07). «Eliminati» does
+           not depend on the days: no period there (F5 of the stage 9 review) -->
       <div class="flex flex-wrap items-center gap-2" data-calendar-bar>
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-chevron-left"
-          :aria-label="$t(`calendar.prev.${view}`)"
-          data-calendar-prev
-          @click="cal.step(-1)"
-        />
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-chevron-right"
-          :aria-label="$t(`calendar.next.${view}`)"
-          data-calendar-next
-          @click="cal.step(1)"
-        />
-        <h2
-          class="min-w-[9rem] ps-1 text-[14px] leading-5 font-semibold"
-          aria-live="polite"
-          data-calendar-period
-        >
-          {{ label }}
-        </h2>
-        <UButton
-          color="neutral"
-          variant="outline"
-          :disabled="isToday && !route.query['da']"
-          data-calendar-today
-          @click="cal.toToday()"
-          >{{ $t('calendar.today') }}</UButton
-        >
+        <template v-if="!trashView">
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-chevron-left"
+            :aria-label="$t(`calendar.prev.${view}`)"
+            data-calendar-prev
+            @click="cal.step(-1)"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-chevron-right"
+            :aria-label="$t(`calendar.next.${view}`)"
+            data-calendar-next
+            @click="cal.step(1)"
+          />
+          <h2
+            class="min-w-[9rem] ps-1 text-[14px] leading-5 font-semibold"
+            aria-live="polite"
+            data-calendar-period
+          >
+            {{ label }}
+          </h2>
+          <UButton
+            color="neutral"
+            variant="outline"
+            :disabled="isToday && !route.query['da']"
+            data-calendar-today
+            @click="cal.toToday()"
+            >{{ $t('calendar.today') }}</UButton
+          >
+        </template>
         <!-- on a phone the views and «Filtri» go to a line of their own -->
-        <span class="flex-1 max-md:h-0 max-md:basis-full" />
+        <span
+          class="flex-1"
+          :class="trashView ? 'max-md:hidden' : 'max-md:h-0 max-md:basis-full'"
+        />
         <UButton
           v-if="bulkTo"
           :to="bulkTo"

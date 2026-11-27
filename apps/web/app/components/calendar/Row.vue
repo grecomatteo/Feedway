@@ -12,6 +12,8 @@ import { cardLook, type CalendarCardInfo } from '~/utils/calendar'
  * In the list's «Bozze» and «Eliminati» the rows can be chosen (`selecting`): a box in front,
  * and the row ticks it instead of opening the post. On a touch screen a long press on a row
  * starts the choice (`holdable`).
+ * A section where no row has a time (the drafts without a date, «Eliminati») leaves out the
+ * column of the time (`untimed`), instead of a «—» on every row.
  */
 const props = defineProps<{
   card: CalendarCardInfo
@@ -22,6 +24,8 @@ const props = defineProps<{
   selectable?: boolean
   /** a long press on a touch screen sends `hold` */
   holdable?: boolean
+  /** no column of the time: no row of the section has one */
+  untimed?: boolean
 }>()
 const emit = defineEmits<{ open: []; toggle: []; hold: [] }>()
 const { t } = useI18n()
@@ -83,8 +87,11 @@ function click(e: MouseEvent) {
     </span>
     <NuxtLink
       :to="card.to"
-      class="grid min-h-row min-w-0 flex-1 grid-cols-[3rem_2.5rem_minmax(0,1fr)] items-center gap-x-3 px-5 py-2 select-none hover:bg-(--app-nav-hover) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus) max-md:px-4"
-      :class="selecting ? 'ps-2 max-md:ps-2' : ''"
+      class="grid min-h-row min-w-0 flex-1 items-center gap-x-3 px-5 py-2 select-none hover:bg-(--app-nav-hover) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--app-focus) max-md:px-4"
+      :class="[
+        untimed ? 'grid-cols-[2.5rem_minmax(0,1fr)]' : 'grid-cols-[3rem_2.5rem_minmax(0,1fr)]',
+        selecting ? 'ps-2 max-md:ps-2' : '',
+      ]"
       :data-post="card.kind === 'post' ? card.id : undefined"
       :data-plan="card.kind === 'plan' ? card.id : undefined"
       :data-tone="card.tone"
@@ -98,9 +105,13 @@ function click(e: MouseEvent) {
         holdable && $event.pointerType !== 'mouse' ? $event.preventDefault() : undefined
       "
     >
-      <span class="tabular-nums" :class="card.time ? 'font-semibold' : 'text-(--app-text-muted)'">{{
-        card.time ?? '—'
-      }}</span>
+      <span
+        v-if="!untimed"
+        class="tabular-nums"
+        data-row-time
+        :class="card.time ? 'font-semibold' : 'text-(--app-text-muted)'"
+        >{{ card.time ?? '—' }}</span
+      >
       <span
         class="flex size-10 items-center justify-center overflow-hidden rounded-thumb text-(--app-text-muted)"
         :class="

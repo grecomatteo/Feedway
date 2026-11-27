@@ -87,6 +87,8 @@ function act(what: 'trash' | 'restore' | 'purge') {
   // «Elimina per sempre» asks first: the choice stays until the rows go
   if (what !== 'purge') stop()
 }
+// the drafts without a date have no time; a deleted post may have one, then the column stays
+const untimed = computed(() => (props.drafts ?? []).every((c) => c.time === null))
 const sectionTitle = computed(() => (props.trash ? t('trash.title') : t('calendar.list.drafts')))
 
 const DAY = new Intl.DateTimeFormat('it-IT', {
@@ -258,6 +260,7 @@ const groups = computed(() => {
             :selected="chosen.has(c.id)"
             :selectable="canChoose(c)"
             :holdable="canChoose(c)"
+            :untimed="untimed"
             @toggle="toggle(c)"
             @hold="hold(c)"
           />
