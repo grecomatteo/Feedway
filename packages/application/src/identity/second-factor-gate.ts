@@ -47,11 +47,18 @@ export function allowedWhileSecondFactorRequired(
   path: string,
   factors: { totpEnabled: boolean; passkeys: number; hasPassword?: boolean },
 ): boolean {
-  const bare = (path.split('?')[0] ?? '').replace(/\/+$/, '')
+  const bare = withoutTrailingSlashes(path.split('?')[0] ?? '')
   const route = `${method.toUpperCase()} ${bare}`
   const matches = (r: Route | RegExp) => (typeof r === 'string' ? r === route : r.test(route))
   if (ALWAYS.some(matches)) return true
   if (factors.totpEnabled || factors.passkeys > 0) return false
   if (FIRST_SETUP.some(matches)) return true
   return factors.hasPassword === false && UNFINISHED_ACTIVATION.some(matches)
+}
+
+/** `text` without its trailing slashes, in linear time (a `/\/+$/` replace is quadratic). */
+function withoutTrailingSlashes(text: string): string {
+  let end = text.length
+  while (end > 0 && text.charCodeAt(end - 1) === 47) end--
+  return text.slice(0, end)
 }

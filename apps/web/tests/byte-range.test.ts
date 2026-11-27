@@ -26,3 +26,10 @@ test('no header, or one that is not a single valid range, is the whole file', ()
   ])
     expect(parseByteRange(header), String(header)).toBeNull()
 })
+
+test('a long header of spaces is answered at once (no quadratic match)', () => {
+  const started = performance.now()
+  expect(parseByteRange(`bytes=0${' '.repeat(200_000)}x`)).toBeNull()
+  expect(parseByteRange(`bytes=${' '.repeat(200_000)}-x`)).toBeNull()
+  expect(performance.now() - started).toBeLessThan(1000)
+})
