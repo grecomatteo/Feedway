@@ -3,7 +3,7 @@
  * `link` carries the active context (§14.6) to the next page; `to` is the bare path, to mark the
  * current page. `group` says where an entry lives:
  * - `main`: the sidebar's first block (Oggi, Piano editoriale, Clienti, Libreria); Calendario is
- *   drawn by the shell after the first, off with «Presto» until stage 9, so the plan sits under it;
+ *   drawn by the shell after the first, so the plan sits under it;
  * - `agency`: under the agency's name (Utenti, Impostazioni); on a phone in the «Tu» menu;
  * - `settings`: pages reached from Impostazioni (Registro attività, Privacy), until Task R8 moves
  *   them inside it.

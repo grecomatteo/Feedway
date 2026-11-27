@@ -6,7 +6,13 @@ import {
   NotificationLevel,
 } from '@app/contracts'
 import { CHANNELS, DIGEST_CHANNELS, LEVELS, OUTBOX_EVENT_TYPES } from '@app/domain'
-import { deliveryLines, notificationIcon, notificationTime } from '../app/utils/notifications.ts'
+import {
+  deliveryLines,
+  NOTIFICATION_KINDS,
+  NOTIFICATION_LEVELS,
+  notificationIcon,
+  notificationTime,
+} from '../app/utils/notifications.ts'
 import { message, translate } from './rules-table.ts'
 
 // The centre's small rules (plan 08 Task 6): the lists of the contract are the domain's, every
@@ -17,6 +23,12 @@ test('the contract lists the kinds, levels and channels of the domain', () => {
   expect(NotificationLevel.options).toEqual([...LEVELS])
   expect(NotificationChannel.options).toEqual([...CHANNELS])
   expect(DigestChannel.options).toEqual([...DIGEST_CHANNELS])
+})
+
+test('the filters of the page list the kinds and levels of the contract, in its order', () => {
+  // copied so the page imports no zod: a test keeps them equal, like MAX_SAVED_COLLABORATORS
+  expect(NOTIFICATION_KINDS).toEqual(NotificationKindName.options)
+  expect(NOTIFICATION_LEVELS).toEqual(NotificationLevel.options)
 })
 
 test('every kind has an icon and a name in the panel', () => {

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { NotificationItem, NotificationKindName, NotificationLevel } from '@app/contracts'
-import { NotificationKindName as KINDS, NotificationLevel as LEVELS } from '@app/contracts'
 
 definePageMeta({ layout: 'agency' })
 
@@ -39,11 +38,11 @@ const shows = computed(() => [
 ])
 const levels = computed(() => [
   { value: ALL, label: t('notifications.filters.anyLevel') },
-  ...LEVELS.options.map((value) => ({ value, label: t(`notifications.levels.${value}`) })),
+  ...NOTIFICATION_LEVELS.map((value) => ({ value, label: t(`notifications.levels.${value}`) })),
 ])
 const kinds = computed(() => [
   { value: ALL, label: t('notifications.filters.anyKind') },
-  ...KINDS.options.map((value) => ({
+  ...NOTIFICATION_KINDS.map((value) => ({
     value,
     label: t(`notifications.kinds.${kindKey(value)}`),
   })),

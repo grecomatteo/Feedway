@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { newWorkspace } from './support/meta.ts'
-import { newMember, newPerson, signIn, signInWithTotp } from './support/people.ts'
+import { META_MOCK } from '@app/meta-mock'
+import { connectedAgency, newWorkspace, send } from './support/meta.ts'
+import { adminQuery, newMember, newPerson, signIn, signInWithTotp } from './support/people.ts'
 
 // The measures of the new direction (D-81, base.css of the exploration), read from the computed
 // styles of the pages already redrawn: controls 36 on a computer and 44 on a phone, rows 52 / 60,
@@ -251,6 +252,41 @@ test('the pages not redrawn keep one orange', async ({ page }) => {
     return { background: getComputedStyle(el).backgroundColor, surface }
   })
   expect(look.background).toBe(look.surface)
+})
+
+// the pages of stage 9 keep the one orange too (F9 of the stage 9 review): the month of «Tutti i
+// clienti», the editorial plan of a client, «In blocco» and Instagram's grid with its pictures
+test('the calendar, the plan, «In blocco» and the grid keep one orange', async ({ page }) => {
+  test.setTimeout(60_000)
+  const owner = await newPerson('Mara Tappa', 'owner')
+  await signInWithTotp(page.request, owner)
+  const org = owner.organizationSlug
+  await connectedAgency(page.request, org)
+  const ws = await newWorkspace(page.request, org, 'Cliente Tappa')
+  // the client's Instagram, checked as «Sincronizza» leaves it: the grid reads its posts
+  const [account] = await adminQuery<{ id: string }>(
+    "select id from social_accounts where organization_id = $1 and platform = 'instagram' and external_id = $2",
+    [org, META_MOCK.instagram.shared],
+  )
+  if (!account) throw new Error('the shared Instagram account was not imported')
+  await adminQuery("update social_accounts set health = 'ok' where id = $1", [account.id])
+  await send(page.request, 'PUT', `/api/v1/orgs/${org}/workspaces/${ws.id}/accounts/${account.id}`)
+
+  const client = `/${org}/spazi/${ws.slug}`
+  for (const [path, ready] of [
+    [`/${org}/calendario?vista=mese`, '[data-ready] [data-calendar-month]'],
+    [`/${org}/piano?spazio=${ws.slug}`, '[data-plan-counts]'],
+    [`${client}/post/in-blocco`, '[data-bulk-drop]'],
+    [`${client}/calendario?vista=griglia`, '[data-grid-published] img'],
+  ] as const) {
+    await page.goto(path)
+    await expect(page.locator(ready).first()).toBeVisible()
+    expect(await oranges(page), `elements on the orange in ${path}`).toBeLessThanOrEqual(1)
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow, `sideways in ${path}`).toBeLessThanOrEqual(0)
+  }
 })
 
 // laptops between 1024 and 1366 (review of fidelity, A2 and A3): the week of «Oggi» keeps its
