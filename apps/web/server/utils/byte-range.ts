@@ -1,6 +1,9 @@
 import type { ByteRange } from '@app/application'
 
-const RANGE = /^\s*bytes\s*=\s*(\d*)\s*-\s*(\d*)\s*$/i
+const DIGITS = /^\d*$/
+
+/** Far longer than any single range; a longer header is not one we serve. */
+const MAX_HEADER = 200
 
 /**
  * The one byte range of an HTTP `Range` header. Anything else (no header, several ranges, a
@@ -8,9 +11,16 @@ const RANGE = /^\s*bytes\s*=\s*(\d*)\s*-\s*(\d*)\s*$/i
  * RFC 9110 allows a server to do.
  */
 export function parseByteRange(header: string | undefined): ByteRange | null {
-  const match = RANGE.exec(header ?? '')
-  if (!match) return null
-  const [, first = '', last = ''] = match
+  if (header === undefined || header.length > MAX_HEADER) return null
+  // Split by hand: a regex with `\s*` around each part backtracks quadratically.
+  const equals = header.indexOf('=')
+  if (equals < 0 || header.slice(0, equals).trim().toLowerCase() !== 'bytes') return null
+  const spec = header.slice(equals + 1)
+  const dash = spec.indexOf('-')
+  if (dash < 0) return null
+  const first = spec.slice(0, dash).trim()
+  const last = spec.slice(dash + 1).trim()
+  if (!DIGITS.test(first) || !DIGITS.test(last)) return null
   const whole = (digits: string) => {
     const n = Number(digits)
     return Number.isSafeInteger(n) ? n : null

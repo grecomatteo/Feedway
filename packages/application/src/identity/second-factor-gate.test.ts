@@ -112,3 +112,14 @@ test('the public description of a link stays readable, whatever factors the sess
     expect(allowedWhileSecondFactorRequired('GET', '/api/v1/links/Ab3_-x/extra', f)).toBe(false)
   }
 })
+
+test('a path of many slashes is answered at once (no quadratic trim)', () => {
+  const started = performance.now()
+  expect(
+    allowedWhileSecondFactorRequired('GET', `${'/'.repeat(200_000)}x`, {
+      totpEnabled: true,
+      passkeys: 0,
+    }),
+  ).toBe(false)
+  expect(performance.now() - started).toBeLessThan(1000)
+})

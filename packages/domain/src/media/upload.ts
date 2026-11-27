@@ -148,7 +148,8 @@ const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
 /** Strict base64 (padding required), without depending on Buffer or atob. */
 function base64Bytes(text: string): Uint8Array | null {
   if (text.length % 4 !== 0) return null
-  const clean = text.replace(/=+$/, '')
+  const padding = text.endsWith('==') ? 2 : text.endsWith('=') ? 1 : 0
+  const clean = text.slice(0, text.length - padding)
   const out: number[] = []
   let bits = 0
   let value = 0
