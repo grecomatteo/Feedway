@@ -322,7 +322,6 @@ export type {
   GridAccount,
   GridListing,
   GridMedia,
-  GridMediaRead,
   HealthCheck,
   HealthTarget,
   PermissionCheck,
@@ -348,6 +347,7 @@ export type {
   WorkspaceAccountsRepository,
 } from './ports/accounts.js'
 export type { ConnectionTokens } from './ports/connection-tokens.js'
+export type { GridPicture, GridPictureScope, GridPictureTokens } from './ports/grid-pictures.js'
 export { PublishError, sentCollaboratorsOf } from './ports/platform-publisher.js'
 export type {
   CollaboratorsRead,

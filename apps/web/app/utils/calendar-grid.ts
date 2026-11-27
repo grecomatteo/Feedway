@@ -42,3 +42,38 @@ export function gridSignOf(
   if (m.kind === 'video') return m.reel ? 'reel' : 'video'
   return null
 }
+
+/** The tokens of the pictures given for one account: when, and the token of each media. */
+export interface GivenPictures {
+  at: number
+  pictures: Map<string, string>
+}
+
+/**
+ * The posts out of a grid just read, with the tokens of the pictures already given while they
+ * are fresh (D-123.32): each token is new, even for the same picture, so keeping the known ones
+ * keeps their addresses and the browser's copies. A media not given yet adds its own.
+ */
+export function keepGridPictures<T extends { id: string; picture: string | null }>(
+  given: Map<string, GivenPictures>,
+  accountId: string,
+  items: readonly T[] | null,
+  now: number,
+  freshMs: number,
+): { at: number; items: T[] | null } {
+  let kept = given.get(accountId)
+  if (!kept || now - kept.at >= freshMs) {
+    kept = { at: now, pictures: new Map() }
+    given.set(accountId, kept)
+  }
+  const { pictures } = kept
+  const out =
+    items?.map((m) => {
+      if (m.picture === null) return m
+      const known = pictures.get(m.id)
+      if (known !== undefined) return { ...m, picture: known }
+      pictures.set(m.id, m.picture)
+      return m
+    }) ?? null
+  return { at: kept.at, items: out }
+}

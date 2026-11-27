@@ -59,16 +59,6 @@ export interface PlatformConnector<AppCredentials = unknown> {
     account: GridAccount,
     opts: { limit: number },
   ): Promise<GridListing>
-  /**
-   * One media of the grid, read again for its picture's address (which expires): `not_found`
-   * when it is not among the account's latest `limit`, whatever else the token sees.
-   */
-  getGridMedia?(
-    credentials: ConnectionCredentials<AppCredentials>,
-    account: GridAccount,
-    mediaId: string,
-    opts: { limit: number },
-  ): Promise<GridMediaRead>
 }
 
 /** The account whose grid is read, as the platform knows it. */
@@ -95,10 +85,6 @@ export interface GridMedia {
 export type GridListing =
   | { ok: true; media: GridMedia[]; load: PlatformLoad | null }
   | { ok: false; reason: 'rejected' | 'unavailable'; load: PlatformLoad | null }
-
-export type GridMediaRead =
-  | { ok: true; media: GridMedia; load: PlatformLoad | null }
-  | { ok: false; reason: 'not_found' | 'rejected' | 'unavailable'; load: PlatformLoad | null }
 
 /**
  * `refused`: the address, a redirect or the size is not allowed, so nothing was (or will be)

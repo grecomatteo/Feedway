@@ -23,11 +23,10 @@ export interface GridAccountView {
 }
 
 /** A connector that reads Instagram's grid. */
-export type GridConnector = PlatformConnector &
-  Required<Pick<PlatformConnector, 'listGridMedia' | 'getGridMedia'>>
+export type GridConnector = PlatformConnector & Required<Pick<PlatformConnector, 'listGridMedia'>>
 
 const readsGrid = (c: PlatformConnector | undefined): c is GridConnector =>
-  c?.listGridMedia !== undefined && c.getGridMedia !== undefined
+  c?.listGridMedia !== undefined
 
 /**
  * `unreachable`: the account is there but cannot be read now (its connection does not work,
@@ -42,17 +41,15 @@ export type OpenedGridAccount =
     }
   | { reachable: false; account: GridAccountView }
 
-/**
- * An Instagram account assigned to the client, with what reads its grid; null when the id is
- * not one of the client's Instagram accounts (another agency's, another client's, a Page).
- * The client is visible to the person, already checked. Public, for `calendar`.
- */
-export async function openGridAccount(
+type GridScope = { organizationId: string; workspaceId: string }
+
+/** The client's Instagram account, and the connection that reads it when it works now. */
+async function findGridAccount(
   tx: Tx,
-  deps: { connectors: PlatformConnectors; tokens: ConnectionTokens },
-  scope: { organizationId: string; workspaceId: string },
+  connectors: PlatformConnectors,
+  scope: GridScope,
   accountId: string,
-): Promise<OpenedGridAccount | null> {
+) {
   if (!isUuid(accountId)) return null
   const { organizationId } = scope
   const records = await tx.accounts.list(organizationId, { workspaceIds: [scope.workspaceId] })
@@ -66,25 +63,54 @@ export async function openGridAccount(
     username: record.username,
     avatarKey: record.avatarKey,
   }
-  if (!record.active) return { reachable: false, account }
+  if (!record.active) return { account, reader: null }
   const connection = await tx.connections.findWithToken(organizationId, record.connectionId)
   if (!connection || (connection.status !== 'active' && connection.status !== 'pending'))
-    return { reachable: false, account }
-  const connector = deps.connectors[connection.kind]
-  if (!readsGrid(connector)) return { reachable: false, account }
-  const app = await connector.loadAppCredentials(tx, organizationId)
+    return { account, reader: null }
+  const connector = connectors[connection.kind]
+  return { account, reader: readsGrid(connector) ? { connection, connector } : null }
+}
+
+/**
+ * An Instagram account assigned to the client, with what reads its grid; null when the id is
+ * not one of the client's Instagram accounts (another agency's, another client's, a Page).
+ * The client is visible to the person, already checked. Public, for `calendar`.
+ */
+export async function openGridAccount(
+  tx: Tx,
+  deps: { connectors: PlatformConnectors; tokens: ConnectionTokens },
+  scope: GridScope,
+  accountId: string,
+): Promise<OpenedGridAccount | null> {
+  const found = await findGridAccount(tx, deps.connectors, scope, accountId)
+  if (!found) return null
+  const { account, reader } = found
+  if (!reader) return { reachable: false, account }
+  const { connection, connector } = reader
+  const app = await connector.loadAppCredentials(tx, scope.organizationId)
   if (app === null) return { reachable: false, account }
   const token = await deps.tokens.open(tx, {
-    organizationId,
+    organizationId: scope.organizationId,
     id: connection.id,
     tokenEnc: connection.tokenEnc,
   })
-  return {
-    reachable: true,
-    account,
-    connector,
-    credentials: { app, token },
-  }
+  return { reachable: true, account, connector, credentials: { app, token } }
+}
+
+/**
+ * What downloads the pictures of the grid of the client's Instagram account (P4): the account
+ * as `openGridAccount` finds it, without opening its token, since a picture's address needs
+ * none. null: not one of the client's Instagram accounts, or not readable now. Public, for
+ * `calendar`.
+ */
+export async function openGridPictures(
+  tx: Tx,
+  deps: { connectors: PlatformConnectors },
+  scope: GridScope,
+  accountId: string,
+): Promise<Pick<PlatformConnector, 'fetchPicture'> | null> {
+  const found = await findGridAccount(tx, deps.connectors, scope, accountId)
+  return found?.reader?.connector ?? null
 }
 
 /**

@@ -359,8 +359,10 @@ export const POST_WRITES_RATE_LIMIT = {
 } as const
 
 /**
- * Instagram's grid (plan 09 Task 12): each opening is a call to Meta under the agency's app,
- * each picture another one; a person reopening it often stays well within.
+ * Instagram's grid (plan 09 Task 12): each opening is a call to Meta under the agency's app; a
+ * picture is only a download from Meta's picture hosts, with the token the opening gave
+ * (D-123.32). A person reopening it often stays well within: the panel keeps the tokens it
+ * was given while they are fresh, so the browser serves the pictures already downloaded.
  */
 export const GRID_READS_RATE_LIMIT = {
   name: 'grid-reads',
@@ -378,15 +380,18 @@ export const GRID_THUMBNAILS_RATE_LIMIT = {
 /**
  * The same grid's calls to Meta from everyone together (plan 09 Task 12, D-123.32): the limit
  * of one person does not keep many people, or a script of a Viewer, from using up the account's
- * allowance, which slows the publishing down (D-111). A grid opened holds at most 30 pictures.
+ * allowance, which slows the publishing down (D-111). Counted only once the account is known to
+ * be an Instagram of a client the person sees, right before the call: who does not see it never
+ * uses it up. The pictures call no Meta, but each is a download from its picture hosts through
+ * this server: the account's limit keeps many people together from making it a pump.
  */
 export const GRID_ACCOUNT_READS_LIMIT = {
   name: 'grid-account-reads',
   limit: 60,
   windowMs: 60_000,
 } as const
-export const GRID_ACCOUNT_THUMBNAILS_LIMIT = {
-  name: 'grid-account-thumbnails',
+export const GRID_ACCOUNT_PICTURES_LIMIT = {
+  name: 'grid-account-pictures',
   limit: 600,
   windowMs: 60_000,
 } as const

@@ -11,9 +11,11 @@ import { isEmptyDraft } from './calendar.js'
 // `posts.drafts_cleanup` (plan 09 Task 14, Scelta 12): every night, the posts in «Eliminati» for
 // more than 30 days go for good, the empty drafts nobody touched for 24 hours too, and the drafts
 // nobody touched for the days their client chose go to «Eliminati». An archived client and a
-// suspended agency are left alone. The system scope only lists the agencies; each one is cleaned
-// in its own scope, and every post is locked and read again before it goes, so a draft written
-// meanwhile stays and, with two workers, each post goes once.
+// suspended agency are left alone. The system scope only lists the agencies; each one is read in
+// its own scope, then cleaned a batch at a time, each batch in its own transaction: a post that
+// fails takes only its batch with it, and no lock is held for a whole agency. Every post is
+// locked and read again before it goes, so a draft written meanwhile stays and, with two
+// workers, each post goes once.
 
 export interface DraftsCleanupDeps {
   uow: UnitOfWork
@@ -31,15 +33,23 @@ export interface DraftsCleanupReport {
   deleted: number
   /** sent to «Eliminati» */
   trashed: number
-  /** agencies whose step failed: logged, and the job fails at the end to be retried */
+  /**
+   * steps that failed (an agency's reading, or one batch): logged, the others go on, and the job
+   * fails at the end to be retried
+   */
   failed: number
 }
 
 export const DRAFTS_CLEANUP_LOCK = 'posts.drafts_cleanup'
 /** Of each kind, per agency and night; what is left goes the next night. */
-export const DRAFTS_CLEANUP_BATCH = 1000
+export const DRAFTS_CLEANUP_LIMIT = 1000
+/** The posts of one transaction. */
+export const DRAFTS_CLEANUP_BATCH = 100
 
 const DAY_MS = 86_400_000
+
+type CleanupKind = 'expired' | 'empty' | 'stale'
+type Candidate = { id: string; workspaceId: string }
 
 /** The log of the night: no person, the reason the retention. */
 async function record(tx: Tx, action: 'post.trashed' | 'post.deleted', post: PostRecord) {
@@ -56,15 +66,20 @@ async function record(tx: Tx, action: 'post.trashed' | 'post.deleted', post: Pos
   })
 }
 
-async function cleanAgency(tx: Tx, organizationId: string, now: Date) {
-  const trashedBefore = new Date(now.getTime() - TRASH_KEEP_DAYS * DAY_MS)
-  const emptyBefore = new Date(now.getTime() - EMPTY_DRAFT_KEEP_MS)
-  const found = await tx.posts.cleanupCandidates(organizationId, {
-    now,
-    trashedBefore,
-    emptyBefore,
-    limit: DRAFTS_CLEANUP_BATCH,
-  })
+interface Limits {
+  now: Date
+  trashedBefore: Date
+  emptyBefore: Date
+}
+
+/** One batch of one kind, in one transaction of the agency. */
+async function cleanBatch(
+  tx: Tx,
+  organizationId: string,
+  kind: CleanupKind,
+  batch: readonly Candidate[],
+  { now, trashedBefore, emptyBefore }: Limits,
+) {
   const clients = new Map<string, WorkspaceRecord | null>()
   // read again under the client's share lock: an archiving under way is waited for
   const openClient = async (workspaceId: string) => {
@@ -76,48 +91,89 @@ async function cleanAgency(tx: Tx, organizationId: string, now: Date) {
     }
     return workspace
   }
-  const lock = async (c: { id: string; workspaceId: string }) => {
+  const lock = async (c: Candidate) => {
     const workspace = await openClient(c.workspaceId)
     if (!workspace) return null
     const scope: PostScope = { organizationId, workspaceId: c.workspaceId }
     const post = await tx.posts.findForUpdate(scope, c.id)
     return post && { post, scope, workspace }
   }
-  // in id order, as «Ripristina» and «Elimina per sempre» lock: the two never wait in a ring
-  const byId = <T extends { id: string }>(list: readonly T[]) =>
-    [...list].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   let deleted = 0
   let trashed = 0
-  for (const c of byId(found.expired)) {
-    const locked = await lock(c)
-    if (!locked?.post.trashedAt || locked.post.trashedAt >= trashedBefore) continue
-    if (!(await tx.posts.delete(locked.scope, c.id))) continue
-    await record(tx, 'post.deleted', locked.post)
-    deleted++
-  }
-  for (const c of byId(found.empty)) {
-    const locked = await lock(c)
-    if (!locked) continue
-    const { post } = locked
-    if (post.trashedAt !== null || !isEmptyDraft(post) || post.updatedAt >= emptyBefore) continue
-    // an internal note keeps it, as «Elimina le bozze vuote» does
-    if ((await tx.posts.listNotes(locked.scope, post.id)).length > 0) continue
-    if (!(await tx.posts.delete(locked.scope, c.id))) continue
-    await record(tx, 'post.deleted', post)
-    deleted++
-  }
-  for (const c of byId(found.stale)) {
+  for (const c of batch) {
     const locked = await lock(c)
     if (!locked) continue
     const { post, scope, workspace } = locked
-    if (post.trashedAt !== null || post.status !== 'draft') continue
-    const due = autoTrashAt(post.updatedAt, workspace.draftRetentionDays, post.scheduledAt)
-    if (!due || due > now) continue
-    if (!(await tx.posts.setTrashed(scope, post.id, { at: now, by: null }, null))) continue
-    await record(tx, 'post.trashed', post)
-    trashed++
+    if (kind === 'expired') {
+      if (!post.trashedAt || post.trashedAt >= trashedBefore) continue
+      if (!(await tx.posts.delete(scope, c.id))) continue
+      await record(tx, 'post.deleted', post)
+      deleted++
+    } else if (kind === 'empty') {
+      if (post.trashedAt !== null || !isEmptyDraft(post) || post.updatedAt >= emptyBefore) continue
+      // an internal note keeps it, as «Elimina le bozze vuote» does
+      if ((await tx.posts.listNotes(scope, post.id)).length > 0) continue
+      if (!(await tx.posts.delete(scope, c.id))) continue
+      await record(tx, 'post.deleted', post)
+      deleted++
+    } else {
+      if (post.trashedAt !== null || post.status !== 'draft') continue
+      const due = autoTrashAt(post.updatedAt, workspace.draftRetentionDays, post.scheduledAt)
+      if (!due || due > now) continue
+      if (!(await tx.posts.setTrashed(scope, post.id, { at: now, by: null }, null))) continue
+      await record(tx, 'post.trashed', post)
+      trashed++
+    }
   }
   return { deleted, trashed }
+}
+
+// in id order, as «Ripristina» and «Elimina per sempre» lock: the two never wait in a ring
+const byId = <T extends { id: string }>(list: readonly T[]) =>
+  [...list].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+
+function batchesOf(list: readonly Candidate[]): Candidate[][] {
+  const sorted = byId(list)
+  const out: Candidate[][] = []
+  for (let i = 0; i < sorted.length; i += DRAFTS_CLEANUP_BATCH)
+    out.push(sorted.slice(i, i + DRAFTS_CLEANUP_BATCH))
+  return out
+}
+
+/** One agency: its candidates read once, then its batches, each on its own. */
+async function cleanAgency(deps: DraftsCleanupDeps, organizationId: string, now: Date) {
+  const limits: Limits = {
+    now,
+    trashedBefore: new Date(now.getTime() - TRASH_KEEP_DAYS * DAY_MS),
+    emptyBefore: new Date(now.getTime() - EMPTY_DRAFT_KEEP_MS),
+  }
+  const scope = { organizationId, userId: null }
+  const found = await deps.uow.run(scope, (tx) =>
+    tx.posts.cleanupCandidates(organizationId, {
+      now,
+      trashedBefore: limits.trashedBefore,
+      emptyBefore: limits.emptyBefore,
+      limit: DRAFTS_CLEANUP_LIMIT,
+    }),
+  )
+  const done = { deleted: 0, trashed: 0, failed: 0 }
+  for (const kind of ['expired', 'empty', 'stale'] as const)
+    for (const batch of batchesOf(found[kind])) {
+      try {
+        const one = await deps.uow.run(scope, (tx) =>
+          cleanBatch(tx, organizationId, kind, batch, limits),
+        )
+        done.deleted += one.deleted
+        done.trashed += one.trashed
+      } catch (err) {
+        done.failed += 1
+        deps.logger.error(
+          { organizationId, kind, posts: batch.length, firstPostId: batch[0]?.id, err },
+          'drafts clean-up batch failed',
+        )
+      }
+    }
+  return done
 }
 
 export async function cleanupDrafts(deps: DraftsCleanupDeps): Promise<DraftsCleanupReport> {
@@ -136,11 +192,10 @@ export async function cleanupDrafts(deps: DraftsCleanupDeps): Promise<DraftsClea
     let failed = 0
     for (const organization of organizations) {
       try {
-        const done = await deps.uow.run({ organizationId: organization.id, userId: null }, (tx) =>
-          cleanAgency(tx, organization.id, now),
-        )
+        const done = await cleanAgency(deps, organization.id, now)
         deleted += done.deleted
         trashed += done.trashed
+        failed += done.failed
       } catch (err) {
         failed += 1
         deps.logger.error({ organizationId: organization.id, err }, 'drafts clean-up step failed')
@@ -150,6 +205,6 @@ export async function cleanupDrafts(deps: DraftsCleanupDeps): Promise<DraftsClea
   })
   if (!run.acquired) return { ran: false, organizations: 0, deleted: 0, trashed: 0, failed: 0 }
   if (run.value.failed > 0)
-    throw new Error(`drafts clean-up failed for ${String(run.value.failed)} agencies`)
+    throw new Error(`drafts clean-up failed in ${String(run.value.failed)} steps`)
   return { ran: true, ...run.value }
 }

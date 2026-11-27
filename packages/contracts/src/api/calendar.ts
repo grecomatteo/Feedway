@@ -153,7 +153,7 @@ export const deleteEmptyDraftsRoute = defineContract({
 // Instagram's grid (spec §11.5, plan 09 Task 12, P4): one Instagram account of a client, the
 // scheduled posts of the next 30 days above the last 30 out, read from Meta at every opening.
 
-/** A post out on Instagram; its picture comes from the grid's `…/media/{igMediaId}/thumbnail`. */
+/** A post out on Instagram; its picture comes from the grid's `…/pictures/{picture}`. */
 export const GridPublished = z.object({
   /** Instagram's id of the media */
   id: z.string(),
@@ -161,7 +161,11 @@ export const GridPublished = z.object({
   reel: z.boolean(),
   publishedAt: Timestamp.nullable(),
   permalink: z.string().nullable(),
-  hasPicture: z.boolean(),
+  /**
+   * The token of its picture, sealed by the server for this account and opened for five
+   * minutes; null: Meta gave no picture
+   */
+  picture: z.string().nullable(),
 })
 export type GridPublished = z.infer<typeof GridPublished>
 
@@ -198,15 +202,15 @@ export const calendarGridRoute = defineContract({
 
 export const calendarGridThumbnailRoute = defineContract({
   method: 'GET',
-  path: '/api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/media/{igMediaId}/thumbnail',
+  path: '/api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/pictures/{picture}',
   summary:
-    'La foto di un post pubblicato della griglia, scaricata da Meta a ogni richiesta (non conservata): solo dagli host di Meta, solo immagini, al massimo 5 MB',
+    'La foto di un post pubblicato della griglia, dal gettone che la griglia ha dato (cinque minuti), senza chiamare di nuovo Meta: scaricata a ogni richiesta e non conservata, solo dagli host di Meta, solo immagini, al massimo 5 MB',
   request: {
     params: z.strictObject({
       org: OrgSlug,
       id: Id,
       accountId: Id,
-      igMediaId: z.string().regex(/^[0-9]{1,32}$/),
+      picture: z.string().regex(/^[A-Za-z0-9_-]{40,4096}$/),
     }),
   },
   download: { contentType: 'image/jpeg' },

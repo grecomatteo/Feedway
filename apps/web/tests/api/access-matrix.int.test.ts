@@ -168,32 +168,33 @@ async function schedulable(ids: SampleIds, status: 'draft' | 'scheduled' = 'draf
   return {}
 }
 
-/**
- * The case's account in the case's client, for the grid (plan 09 Task 12). `onMeta`: it is the
- * fake Graph API's `caffe.centrale`, with its posts out, taken from any account of the agency
- * that was it in an earlier case (an account is one per agency).
- */
-async function gridAccount(ids: SampleIds, opts: { onMeta?: boolean } = {}) {
-  const { pool } = fx.env.admin
-  if (opts.onMeta) {
-    await pool.query(
-      `update social_accounts set external_id = '1784' || replace(id::text, '-', '')
-        where organization_id = (select organization_id from social_accounts where id = $1)
-          and platform = 'instagram' and external_id = $2`,
-      [ids.account, META_MOCK.instagram.shared],
-    )
-    await pool.query('update social_accounts set external_id = $2 where id = $1', [
-      ids.account,
-      META_MOCK.instagram.shared,
-    ])
-  }
-  await pool.query(
+/** The case's account in the case's client, for the grid (plan 09 Task 12). */
+async function gridAccount(ids: SampleIds) {
+  await fx.env.admin.pool.query(
     `insert into workspace_accounts (organization_id, workspace_id, account_id)
      select organization_id, $2, id from social_accounts where id = $1
      on conflict do nothing`,
     [ids.account, ids.workspace],
   )
   return {}
+}
+
+/** The case's account in its client, and a picture's token of it as the grid gives one. */
+async function gridPicture(ids: SampleIds) {
+  await gridAccount(ids)
+  const { rows } = await fx.env.admin.pool.query<{ organization_id: string }>(
+    'select organization_id from social_accounts where id = $1',
+    [ids.account],
+  )
+  const picture = fx.env.gridPictures.seal(
+    { organizationId: rows[0]?.organization_id ?? '', accountId: ids.account },
+    {
+      mediaId: '1790000000000001',
+      pictureUrl: `${fx.env.meta.url}/pictures/post-1.jpg?oh=0a0a&oe=6B00`,
+    },
+    new Date(Date.now() + 300_000),
+  )
+  return { values: { picture } }
 }
 
 /** The case's post and a copy of it, both scheduled on the case's account, a day apart. */
@@ -799,12 +800,8 @@ const RULES: Record<string, readonly Rule[]> = {
   'GET /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}': [
     { permission: 'workspace.view', level: 'workspace', prepare: (ids) => gridAccount(ids) },
   ],
-  'GET /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/media/{igMediaId}/thumbnail': [
-    {
-      permission: 'workspace.view',
-      level: 'workspace',
-      prepare: (ids) => gridAccount(ids, { onMeta: true }),
-    },
+  'GET /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/{accountId}/pictures/{picture}': [
+    { permission: 'workspace.view', level: 'workspace', prepare: (ids) => gridPicture(ids) },
   ],
   'POST /api/v1/orgs/{org}/workspaces/{id}/calendar/grid/swap': [
     { permission: 'post.manage_others', level: 'workspace', prepare: (ids) => twoScheduled(ids) },
