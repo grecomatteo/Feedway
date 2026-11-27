@@ -1,5 +1,6 @@
 import {
   PublishError,
+  type CollaboratorsRead,
   type FoundPost,
   type PlatformPublisher,
   type PublishFile,
@@ -55,6 +56,16 @@ const idsSchema = z.object({
   /** The last read of each container's state. */
   checkedAt: z.record(z.string(), z.iso.datetime()),
   mediaId: metaId.nullable(),
+  /**
+   * The collaborators sent with the container that carries them (D-125, `sentCollaboratorsOf`);
+   * `dropped`: Meta refused them, the container was made again without.
+   */
+  collaborators: z
+    .object({
+      names: z.array(z.string()),
+      dropped: z.object({ platformCode: z.string().nullable() }).nullable(),
+    })
+    .optional(),
 })
 type InstagramIds = z.infer<typeof idsSchema>
 
@@ -111,6 +122,10 @@ const hasMediaId = (ids: unknown) =>
   typeof ids === 'object' &&
   ids !== null &&
   typeof (ids as { mediaId?: unknown }).mediaId === 'string'
+
+/** Meta's `invite_status`; anything else reads as still waiting. */
+const statusOf = (raw: string | null) =>
+  raw === 'Accepted' ? 'accepted' : raw === 'Declined' ? 'declined' : 'pending'
 
 /** The search starts a little before the step: the two clocks may not agree (Scelta 7). */
 const CLOCK_SKEW_MS = 2 * 60_000
@@ -212,6 +227,27 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
       usage = made.usage
       return made.data.id
     }
+    /**
+     * The container that carries the post (a photo, a reel, a carousel's own), with its
+     * collaborators. A refusal Meta gives no reason of ours for (a name that does not exist, an
+     * account that takes no tags: not verified which code) makes it once more without them, so
+     * the post goes out and the outcome says the invitation did not.
+     */
+    const createMain = async (params: Record<string, string>) => {
+      const names = target.collaborators
+      if (names.length === 0 || target.type === 'story') return create(params)
+      try {
+        const id = await create({ ...params, collaborators: JSON.stringify(names) })
+        ids.collaborators = { names: [...names], dropped: null }
+        return id
+      } catch (err) {
+        if (!(err instanceof PublishError && err.kind === 'permanent' && err.code === 'meta_error'))
+          throw err
+        const id = await create(params)
+        ids.collaborators = { names: [...names], dropped: { platformCode: err.platformCode } }
+        return id
+      }
+    }
     const wait = (id: string): StepResult => ({
       outcome: 'wait',
       reason: 'processing',
@@ -257,7 +293,7 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
       }
       for (const child of ids.children) if (!(await finish(child))) return wait(child.id)
       if (ids.container === null) {
-        const id = await create({
+        const id = await createMain({
           media_type: 'CAROUSEL',
           children: ids.children.map((c) => c.id).join(','),
           ...(target.caption === '' ? {} : { caption: target.caption }),
@@ -266,7 +302,7 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
         await ctx.saveIds(ids)
       }
     } else if (ids.container === null) {
-      const id = await create(containerParams(target, files))
+      const id = await createMain(containerParams(target, files))
       ids.container = { id, finished: false }
       await ctx.saveIds(ids)
     }
@@ -502,6 +538,20 @@ export function createInstagramPublisher(deps: MetaPublisherDeps): PlatformPubli
         permalink: safePermalink(match.permalink),
         publishedAt: match.timestamp,
       } satisfies FoundPost
+    },
+
+    async readCollaborators(target, signal): Promise<CollaboratorsRead> {
+      if (target.externalPostId === null) throw new Error('a post not out has no collaborators')
+      const credentials = tokenCredentials(target.credentials)
+      const read = await classified(
+        clock,
+        () => client.getInstagramCollaborators(credentials, target.externalPostId ?? '', signal),
+        { uncertainAs: 'transient' },
+      )
+      return {
+        people: read.data.map((c) => ({ username: c.username, status: statusOf(c.inviteStatus) })),
+        ...stepUsage(read.usage),
+      }
     },
 
     async verify(target, signal): Promise<VerifyResult> {

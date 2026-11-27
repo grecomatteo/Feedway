@@ -20,6 +20,8 @@ export const postsModule: ModuleDefinition = {
     'bulk.import',
     // «Eliminati» and the drafts nobody touches, every night (plan 09 Task 14)
     'posts.drafts_cleanup',
+    // the answers of Instagram's collaborators (plan 09 Task 15)
+    'posts.collaborators_refresh',
   ],
   // plan 08, Scelta 4: «who scheduled» is `posts.scheduled_by`
   notificationKinds: [

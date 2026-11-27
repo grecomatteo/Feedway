@@ -80,6 +80,7 @@ function target(type: PostType, over: Partial<PublishTarget> = {}): PublishTarge
     asVideo: false,
     caption: type === 'story' ? '' : 'Pane caldo\n alle 7',
     shareToFeed: true,
+    collaborators: [],
     metaIds: null,
     externalPostId: null,
     ...over,
@@ -228,6 +229,58 @@ describe('every type reaches a confirmed post', () => {
     expect(posts(`/${ig}/media`)[0]?.params).toMatchObject({ media_type: 'STORIES' })
     expect(posts(`/${ig}/media`)[0]?.params).not.toHaveProperty('caption')
     expect(verified.outcome).toBe('confirmed')
+  })
+})
+
+describe('collaborators (D-125)', () => {
+  test('a reel invites them, the ids say so, and their answers are read back', async () => {
+    const { published } = await goOut(
+      target('reel', { collaborators: ['forno.luce', 'mulino'] }),
+      files([video()]),
+    )
+    expect(posts(`/${ig}/media`)[0]?.params).toMatchObject({
+      media_type: 'REELS',
+      collaborators: '["forno.luce","mulino"]',
+    })
+    expect(saved.at(-1)).toMatchObject({
+      collaborators: { names: ['forno.luce', 'mulino'], dropped: null },
+    })
+    mock.scenario('collaborator_answered', { username: 'forno.luce', status: 'Declined' })
+    const read = await publisher.readCollaborators?.(
+      target('reel', { externalPostId: published.externalPostId }),
+      new AbortController().signal,
+    )
+    expect(read?.people).toEqual([
+      { username: 'forno.luce', status: 'declined' },
+      { username: 'mulino', status: 'pending' },
+    ])
+  })
+
+  test('a story never carries them, whatever the destination says', async () => {
+    await goOut(target('story', { collaborators: ['forno.luce'] }), files([image()]))
+    expect(posts(`/${ig}/media`)[0]?.params).not.toHaveProperty('collaborators')
+    expect(saved.at(-1)).not.toHaveProperty('collaborators')
+  })
+
+  test('refused by Meta: made again once without, and only once', async () => {
+    mock.scenario('collaborator_rejected')
+    await goOut(target('photo', { collaborators: ['nessuno'] }), files([image()]))
+    expect(posts(`/${ig}/media`).map((c) => c.params['collaborators'] ?? null)).toEqual([
+      '["nessuno"]',
+      null,
+    ])
+    expect(saved.at(-1)).toMatchObject({
+      collaborators: { names: ['nessuno'], dropped: { platformCode: '100' } },
+    })
+  })
+
+  test('another refusal is not about them: the destination fails as before', async () => {
+    mock.scenario('error', { path: `/${ig}/media`, code: 10, times: 1 })
+    const err = await failure(
+      publisher.prepare(target('photo', { collaborators: ['forno'] }), files([image()]), ctx()),
+    )
+    expect(err).toMatchObject({ kind: 'permanent', code: 'permission_missing' })
+    expect(posts(`/${ig}/media`)).toHaveLength(1)
   })
 })
 

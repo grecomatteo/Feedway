@@ -14,6 +14,8 @@ export function postContent(body: Omit<UpdatePostRequest, 'version'>): Partial<P
   if (rest.destinations !== undefined) out.destinations = rest.destinations
   if (rest.when !== undefined) out.when = rest.when
   if (rest.shareToFeed !== undefined) out.shareToFeed = rest.shareToFeed
+  if (rest.instagramCollaborators !== undefined)
+    out.instagramCollaborators = rest.instagramCollaborators
   if (caption !== undefined)
     out.caption = {
       common: caption.common,

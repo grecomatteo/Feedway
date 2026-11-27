@@ -36,6 +36,8 @@ export interface Post {
   /** derived from the destinations (§9.3) */
   status: PostStatus
   options: PostOptions
+  /** the usernames invited as collaborators on Instagram (D-125): not on stories */
+  instagramCollaborators: string[]
   createdBy: string
   /** who scheduled it last; null while it never was */
   scheduledBy: string | null

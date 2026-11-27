@@ -4,7 +4,7 @@ import { postCheckRoute } from '@app/contracts'
 export default defineApiRoute(
   postCheckRoute,
   async ({ actor, params, body }) => {
-    const { shareToFeed, cover, caption, postId, choices, ...rest } = body
+    const { shareToFeed, instagramCollaborators, cover, caption, postId, choices, ...rest } = body
     const { invalidChoices, ...report } = await checkPost(useDeps(), actor, {
       ...rest,
       workspaceId: params.id,
@@ -18,6 +18,7 @@ export default defineApiRoute(
         ...(caption.facebook === undefined ? {} : { facebook: caption.facebook }),
       },
       shareToFeed: shareToFeed ?? true,
+      instagramCollaborators: instagramCollaborators ?? [],
     })
     // the engine leaves an orphan choice out (D-54); a request with one is a wrong body
     if (invalidChoices.length > 0)

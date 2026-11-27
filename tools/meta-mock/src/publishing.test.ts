@@ -192,3 +192,55 @@ test('the grid: the posts already out of the fixtures, newest first, with their 
   const again = await call('GET', `/${shared}/media`, { limit: '30' })
   expect(again.body.data).toHaveLength(9)
 })
+
+test('collaborators go on a photo and are read back after publishing (D-125)', async () => {
+  const created = await call('POST', `/${ig}/media`, {
+    image_url: picture(),
+    caption: 'Pane',
+    collaborators: JSON.stringify(['forno.luce', 'mulino']),
+  })
+  expect(created.status).toBe(200)
+  const published = await call('POST', `/${ig}/media_publish`, {
+    creation_id: created.body.id ?? '',
+  })
+  const mediaId = published.body.id ?? ''
+  const pending = await call('GET', `/${mediaId}/collaborators`, {
+    fields: 'id,username,invite_status',
+  })
+  expect(pending.body.data?.map((c) => [c['username'], c['invite_status']])).toEqual([
+    ['forno.luce', 'Pending'],
+    ['mulino', 'Pending'],
+  ])
+  mock.scenario('collaborator_answered', { username: 'mulino', status: 'Accepted' })
+  const answered = await call('GET', `/${mediaId}/collaborators`)
+  expect(answered.body.data?.map((c) => c['invite_status'])).toEqual(['Pending', 'Accepted'])
+})
+
+test('collaborators are refused on stories, carousel items, beyond 3, and by the scenario', async () => {
+  const story = await call('POST', `/${ig}/media`, {
+    media_type: 'STORIES',
+    image_url: picture(),
+    collaborators: JSON.stringify(['forno']),
+  })
+  expect(story.body.error).toMatchObject({ code: 100 })
+  const item = await call('POST', `/${ig}/media`, {
+    is_carousel_item: 'true',
+    image_url: picture(),
+    collaborators: JSON.stringify(['forno']),
+  })
+  expect(item.body.error).toMatchObject({ code: 100 })
+  const four = await call('POST', `/${ig}/media`, {
+    image_url: picture(),
+    collaborators: JSON.stringify(['a', 'b', 'c', 'd']),
+  })
+  expect(four.body.error).toMatchObject({ code: 100 })
+  mock.scenario('collaborator_rejected', { username: 'nessuno', times: 1 })
+  const refused = await call('POST', `/${ig}/media`, {
+    image_url: picture(),
+    collaborators: JSON.stringify(['forno', 'nessuno']),
+  })
+  expect(refused.body.error).toEqual(expect.objectContaining({ code: 100 }))
+  expect(refused.body.error?.error_subcode).toBeUndefined()
+  const without = await call('POST', `/${ig}/media`, { image_url: picture() })
+  expect(without.status).toBe(200)
+})

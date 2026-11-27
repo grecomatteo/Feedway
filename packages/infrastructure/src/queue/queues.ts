@@ -225,6 +225,13 @@ const REGISTRY: { [N in QueueName]: Omit<QueueDefinition<N>, 'name'> } = {
     scope: 'organization',
     retention: { retentionSeconds: 86_400, deleteAfterSeconds: 86_400 },
   },
+  // ids only (plan 09 Task 15): one waiting and one running per post (singletonKey), so many
+  // «Aggiorna» are one read; the answers are saved on the destinations, a read lost is only old
+  'posts.collaborators_refresh': {
+    policy: 'stately',
+    scope: 'organization',
+    retention: { retentionSeconds: 3600, deleteAfterSeconds: 86_400 },
+  },
 }
 
 export const QUEUES: readonly QueueDefinition[] = (Object.keys(REGISTRY) as QueueName[]).map(

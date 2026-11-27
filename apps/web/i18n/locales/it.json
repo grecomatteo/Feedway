@@ -2324,6 +2324,26 @@
     "media_copy_failed": {
       "title": "Copia da pubblicare non riuscita",
       "text": "Feedway non è riuscito a preparare la copia di questo file con le scelte del post. {reason}"
+    },
+    "collaborators_too_many": {
+      "title": "Troppi collaboratori",
+      "text": "Instagram accetta al massimo {limit} collaboratori per post: ne hai invitati {found}. Togline qualcuno."
+    },
+    "collaborator_invalid": {
+      "title": "Nome utente non valido",
+      "text": "«{name}» non è un nome utente di Instagram: scrivilo senza chiocciola e senza spazi, con lettere, numeri, punti e trattini bassi, al massimo 30 caratteri."
+    },
+    "collaborator_repeated": {
+      "title": "Collaboratore ripetuto",
+      "text": "«{name}» è invitato due volte: tienine uno."
+    },
+    "collaborators_on_story": {
+      "title": "Le storie non hanno collaboratori",
+      "text": "Instagram non manda la richiesta di collaborazione con le storie: la storia esce senza. Va bene, oppure scegli un altro tipo."
+    },
+    "collaborators_without_instagram": {
+      "title": "Nessun account Instagram",
+      "text": "La richiesta di collaborazione parte solo su Instagram, e tra gli account non ce n'è uno: il post esce senza. Va bene, oppure aggiungi un account Instagram."
     }
   },
   "posts": {

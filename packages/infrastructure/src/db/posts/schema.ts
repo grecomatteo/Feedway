@@ -55,6 +55,11 @@ export const posts = pgTable(
     status: text('status').notNull().default('draft'),
     // { shareToFeed, choices } (P5)
     options: jsonb('options').notNull(),
+    // the usernames invited as collaborators on Instagram (plan 09 Scelta 13, D-125)
+    instagramCollaborators: text('instagram_collaborators')
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
     createdBy: uuid('created_by').notNull(),
     scheduledBy: uuid('scheduled_by'),
     updatedBy: uuid('updated_by').notNull(),
@@ -92,6 +97,11 @@ export const posts = pgTable(
       sql`${t.status} <> 'scheduled' or ${t.scheduledAt} is not null`,
     ),
     check('posts_version', sql`${t.version} >= 1`),
+    // the editor's save takes up to 10, the checks block over 3 (D-125)
+    check(
+      'posts_instagram_collaborators',
+      sql`coalesce(array_length(${t.instagramCollaborators}, 1), 0) <= 10`,
+    ),
     // only a draft or a cancelled post goes to «Eliminati»
     check(
       'posts_trashed_status',
@@ -177,6 +187,8 @@ export const postTargets = pgTable(
     publishedAt: tz('published_at'),
     verifiedAt: tz('verified_at'),
     verification: jsonb('verification'),
+    // Instagram's collaborators as the worker last read them from Meta (D-125)
+    collaborators: jsonb('collaborators'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

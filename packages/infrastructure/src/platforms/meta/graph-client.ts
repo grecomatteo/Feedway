@@ -103,6 +103,16 @@ export interface MetaGridMedia {
   permalink: string | null
 }
 
+/**
+ * An invited collaborator of a published Instagram media (D-125), from
+ * `GET /{ig-media-id}/collaborators`: Meta lists only who has the collaboration tags on.
+ */
+export interface MetaInstagramCollaborator {
+  username: string
+  /** `Accepted`, `Pending`, `Declined` as Meta writes it; null when it left it out */
+  inviteStatus: string | null
+}
+
 /** A Facebook video or reel's processing (§9.6), from `GET /{video}?fields=status`. */
 export interface MetaFacebookVideo {
   id: string
@@ -230,6 +240,12 @@ export interface MetaGraphClient {
     mediaId: string,
     signal: AbortSignal,
   ): Promise<MetaResult<MetaInstagramMedia>>
+  /** The collaborators invited on a published media and their answer (D-125). */
+  getInstagramCollaborators(
+    credentials: MetaTokenCredentials,
+    mediaId: string,
+    signal: AbortSignal,
+  ): Promise<MetaResult<MetaInstagramCollaborator[]>>
   /** `GET /{page}?fields=access_token`: the Page token, never kept (plan 07, Task 5). */
   getPageAccessToken(
     credentials: MetaTokenCredentials,
@@ -428,6 +444,19 @@ const igMediaSchema = z.object({
   media_type: z.string().optional(),
   media_product_type: z.string().optional(),
   permalink: z.string().optional(),
+})
+
+/** `data` may be missing: `dry-run` answers a read of its fake ids with no list. */
+const igCollaboratorsSchema = z.object({
+  data: z
+    .array(
+      z.object({
+        username: z.string().max(64),
+        invite_status: z.string().max(32).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
 })
 
 const igGridSchema = z.object({
@@ -1178,6 +1207,26 @@ export function createMetaGraphClient(opts: MetaGraphClientOptions): MetaGraphCl
         igMediaSchema,
       )
       return { data: toIgMedia(result.data), usage: result.usage }
+    },
+
+    async getInstagramCollaborators(credentials, mediaId, signal) {
+      const result = await call(
+        {
+          name: 'ig_media/collaborators',
+          path: `/${encodeURIComponent(mediaId)}/collaborators`,
+          params: { fields: 'id,username,invite_status' },
+          credentials,
+          signal,
+        },
+        igCollaboratorsSchema,
+      )
+      return {
+        data: result.data.data.map((c) => ({
+          username: c.username,
+          inviteStatus: c.invite_status ?? null,
+        })),
+        usage: result.usage,
+      }
     },
 
     async getPageAccessToken(credentials, pageId, signal) {

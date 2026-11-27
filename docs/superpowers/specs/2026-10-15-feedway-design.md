@@ -618,6 +618,8 @@ I limiti di Meta stanno in un posto solo, `packages/domain/src/platforms/meta/ru
 | Ora inesistente o doppia per il cambio dell'ora legale | Avviso con l'ora risultante, nel fuso del post (D-58) |
 | Quota IG: meno di 5 post rimasti nelle 24 h a quell'ora | Avviso |
 | Quota IG esaurita / più di 30 reel FB nelle 24 h | Blocco |
+| Collaboratori di Instagram: più di 3, un nome non valido (con «@», spazi, oltre 30 caratteri) o lo stesso nome due volte | Blocco (D-125) |
+| Collaboratori su una storia, o senza un account Instagram tra le destinazioni | Avviso: i collaboratori non partono (D-125) |
 | Stessi media e caption (il testo che quella destinazione pubblica) sullo stesso account negli ultimi 7 giorni | Avviso (FB rifiuta i duplicati); il post salvato non è mai doppione di sé stesso |
 | File che nessuna destinazione pubblica dopo le scelte (per esempio un video con «solo le foto» su Facebook, l'unico account) | Blocco «questo file non esce su nessun account»: si toglie il file o si cambiano le scelte. I suoi esiti restano, e un file con un problema blocca anche dove non uscirebbe (D-56) |
 
@@ -672,6 +674,7 @@ draft → scheduled → preparing → ready → publishing → published → ver
 | `report.digest` | Al momento del riepilogo della persona | Con `userId`: calcola ogni sezione dentro `uow.run({ organizationId, userId })` di ciascuna agenzia della persona e manda un messaggio per agenzia e canale (§12.4) |
 | `accounts.sync` / `accounts.health` | Ogni giorno e a richiesta | §8.4 |
 | `posts.drafts_cleanup` | Ogni notte, alle 03:45 | Di sistema, uno alla volta (il lucchetto dell'installazione): per ogni agenzia, nel suo ambito, cancella gli «Eliminati» da più di 30 giorni e le bozze vuote non toccate da 24 ore, e sposta negli «Eliminati» le bozze non toccate da `draft_retention_days` giorni; ogni post si blocca e si rilegge prima, i clienti archiviati restano come sono. Nel registro `post.deleted` e `post.trashed` senza persona, con `reason: 'retention'` (§11.9, piano 09 P8) |
+| `posts.collaborators_refresh` | Dopo la conferma di un post di Instagram con collaboratori invitati, e a «Aggiorna» sulla pagina dell'esito | Dell'agenzia, uno in coda e uno in corso per post (`singletonKey`): legge `GET /{ig-media-id}/collaborators` di ogni destinazione il cui invito è uscito, fuori dalla transazione, e salva nomi e stati in `post_targets.collaborators`; le chiamate contano nel rallentamento (§8.6) e un account rallentato non si legge. Un errore temporaneo fa ripetere il lavoro (piano 09 Task 15, D-125) |
 | `maintenance.cleanup` | Ogni notte | §11.9, tranne le bozze (le toglie `posts.drafts_cleanup`) |
 
 Ogni lavoro ha una chiave di unicità `<destinazione>:<passo>:<generazione>` (piano 07, P3): `post_targets.generation` cresce a ogni mossa della destinazione e a ogni nuova attesa, e il lavoro porta la generazione per cui è stato mandato, così il gestore non fa nulla se la destinazione è andata avanti. I lavori partono **dopo il commit** (pg-boss usa la sua connessione); `post_targets.next_attempt_at` è l'ora del passo successivo di ogni destinazione, e il riconciliatore ogni minuto manda di nuovo, con la stessa chiave, quelli arrivati alla loro ora: un processo caduto tra commit e invio ritarda il passo di al massimo un minuto. Modificare un post in preparazione riporta le destinazioni a `scheduled` in una generazione nuova; ciò che era pronto su Meta si butta via alla preparazione successiva (`meta_ids._discard`).
@@ -833,12 +836,15 @@ Le bozze si salvano da sole. L'Editor può solo salvare bozze, e non modifica un
 
 **Uscire dall'editor** (piano 06, Task 5; revisione della tappa 6, P1). Uscendo, una bozza si salva prima. Se non si può (rete giù, conflitto di versione) o un post programmato ha modifiche non salvate, il pannello chiede «Uscire senza salvare?»; «Esci lo stesso» porta dove la persona stava andando e le modifiche si perdono. Arrivando dal tasto «Indietro» del browser la cronologia ha una voce in più. Un file che finisce di caricarsi a editor chiuso entra lo stesso nel post, dopo il salvataggio in corso, o crea la bozza se non c'era (D-21).
 
+**Collaboratori su Instagram** (piano 09 Scelta 13, D-125, Matteo 24/11). Nella parte di Instagram dell'editor il campo «Invita in collaborazione» prende fino a **3** nomi utente (senza «@», lettere, numeri, punto e trattino basso, al massimo 30 caratteri), come gettoni, per foto, carosello e reel; con il tipo Storia il campo non c'è. Il campo dice «La richiesta arriva solo su Instagram»: su Facebook il post esce senza. I nomi si salvano con la bozza (`posts.instagram_collaborators`), anche sbagliati; i controlli (§9.2) bloccano oltre 3 nomi, un nome non valido o ripetuto, e avvisano se il post è una storia o se tra gli account non c'è Instagram. Il worker passa `collaborators` al contenitore che porta il post (per il carosello quello principale, mai gli elementi né le storie); se Meta rifiuta il contenitore senza un motivo che Feedway conosce, lo ricrea **una volta** senza collaboratori, il post esce e la pagina dell'esito dice che l'invito non è partito. La pagina dell'esito mostra ogni invito per nome con lo stato letto da Meta («In attesa», «Accettato», «Rifiutato») e «Aggiorna», che chiede al worker di rileggerlo: il pannello non chiama Meta. «Duplica» copia i collaboratori. Le risposte vere di Meta (l'errore di un nome che non esiste, la notifica all'invitato) sono **non verificate**.
+
 ### 11.3 Anteprima come su Meta
 
 Accanto al modulo, aggiornata mentre scrivi:
 - schede per destinazione: IG feed, IG reel, IG storia, FB post, FB reel, FB storia (solo quelle pertinenti);
 - cornice da telefono con avatar e nome dell'account, caption, pulsanti finti, interfaccia sovrapposta per reel e storie;
 - ritaglio reale, compresi caroselli e scelte sugli avvisi;
+- i collaboratori invitati accanto al nome dell'account nelle schede di Instagram (non nelle storie), come «forno.luce e mulino» (piano 09 Scelta 13);
 - caption della piattaforma della scheda (§11.2), troncata come sulle piattaforme ("…altro"), hashtag e menzioni evidenziati;
 - caroselli scorrevoli, video riproducibili con la copertina;
 - **zone sicure** per reel e storie, per vedere se una scritta finisce sotto l'interfaccia.
@@ -1132,12 +1138,17 @@ posts               id, workspace_id, type (photo|carousel|reel|story), caption,
                     -- trashed_at: negli «Eliminati» da (solo draft o cancelled, lo stato non cambia);
                     --   trashed_by vuoto = il lavoro notturno (piano 09 P8)
                     -- options: { shareToFeed, choices } (piano 06 P5)
+                    -- instagram_collaborators (text[]): i nomi utente invitati su Instagram,
+                    --   come scritti (al massimo 10; i controlli bloccano oltre 3, D-125)
 post_media          post_id, media_id, position,
                     cover_media_id, cover_offset_ms   -- solo reel: immagine caricata o fotogramma
 post_targets        id, post_id, account_id, variant, status, step, fingerprint, meta_ids (jsonb),
                     external_post_id, permalink, attempts, generation, next_attempt_at,
                     last_error_code, last_error_message, published_at,
-                    verified_at, verification (jsonb)
+                    verified_at, verification (jsonb), collaborators (jsonb)
+                    -- collaborators: { readAt, people: [{ username, status }] }, le risposte
+                    --   degli invitati su Instagram come le ha lette il worker (D-125); i nomi
+                    --   mandati sono in meta_ids.collaborators, con dropped se Meta li ha rifiutati
                     -- status: gli stati di §9.3; step: prepare|publish|verify|recheck (dice da
                     -- dove viene unknown: una chiamata incerta o «Riprova» da problem)
                     -- generation: cresce a ogni mossa e a ogni nuova lettura del container,

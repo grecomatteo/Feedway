@@ -70,6 +70,8 @@ export interface PostContent {
   destinations: readonly { accountId: string }[]
   when: PostWhenInput
   shareToFeed: boolean
+  /** Instagram's invited collaborators (D-125), as typed: the checks say what is wrong */
+  instagramCollaborators: readonly string[]
   choices: readonly RuleChoice[]
 }
 
@@ -233,6 +235,7 @@ export function contentOf(post: PostRecord, when: PostWhenInput): PostContent {
       .map((t) => ({ accountId: t.accountId })),
     when,
     shareToFeed: post.options.shareToFeed,
+    instagramCollaborators: post.instagramCollaborators,
     choices: post.options.choices,
   }
 }
@@ -349,6 +352,7 @@ export function mergeContent(post: PostRecord, input: UpdatePostInput): PostCont
     destinations: input.destinations ?? saved.destinations,
     when: input.when === undefined ? saved.when : input.when,
     shareToFeed: input.shareToFeed ?? saved.shareToFeed,
+    instagramCollaborators: input.instagramCollaborators ?? saved.instagramCollaborators,
     choices: input.choices ?? saved.choices,
   }
 }
@@ -367,6 +371,7 @@ export function changeOf(
     scheduledAt: scheduledAtOf(content.when, post.timezone),
     status,
     options: { shareToFeed: content.shareToFeed, choices: [...content.choices] },
+    instagramCollaborators: [...content.instagramCollaborators],
     scheduledBy: post.scheduledBy,
     updatedBy: by,
   }
