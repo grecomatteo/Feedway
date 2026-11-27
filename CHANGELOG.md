@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.15.0](https://github.com/grecomatteo/Feedway/compare/v0.14.0...v0.15.0) (2026-11-27)
+
+
+### Novità
+
+* **posts:** «Eliminati» del cliente e pulizia notturna delle bozze, lato server ([#362](https://github.com/grecomatteo/Feedway/issues/362)) ([d1a1583](https://github.com/grecomatteo/Feedway/commit/d1a1583b52ec7f317648376c238d862a3f86c0f5))
+* **posts:** «Eliminati» nel pannello e selezione delle bozze ([#363](https://github.com/grecomatteo/Feedway/issues/363)) ([d4aba7a](https://github.com/grecomatteo/Feedway/commit/d4aba7ad1e61f4695e400c822809fd693c1206d1))
+* **posts:** collaboratori su Instagram nel pannello ([#368](https://github.com/grecomatteo/Feedway/issues/368)) ([8603cc4](https://github.com/grecomatteo/Feedway/commit/8603cc4ee197f7dfe01f8977d7b612e1a978f124))
+* **posts:** collaboratori su Instagram, lato server ([#367](https://github.com/grecomatteo/Feedway/issues/367)) ([fad2e2b](https://github.com/grecomatteo/Feedway/commit/fad2e2bb2631106aca2ad5dab12fc278e22dedd7))
+* **scheduling:** «+» su un giorno e libreria nel calendario ([#356](https://github.com/grecomatteo/Feedway/issues/356)) ([ccf4617](https://github.com/grecomatteo/Feedway/commit/ccf4617b0060a117ca91612d8684ee87afc10821))
+* **scheduling:** «Da un foglio», CSV ed Excel nella pagina «In blocco» ([#358](https://github.com/grecomatteo/Feedway/issues/358)) ([416dfc3](https://github.com/grecomatteo/Feedway/commit/416dfc399748c23878cc110384965e62d931b1ae))
+* **scheduling:** «In blocco» e «Duplica» nel calendario ([#359](https://github.com/grecomatteo/Feedway/issues/359)) ([b2d0123](https://github.com/grecomatteo/Feedway/commit/b2d0123518347aea880f95b0a1dc1275dddc0ecb))
+* **scheduling:** calendario mese e settimana con i filtri nell'indirizzo ([#348](https://github.com/grecomatteo/Feedway/issues/348)) ([adc4aaf](https://github.com/grecomatteo/Feedway/commit/adc4aaff54a5d7fb4246454223daadb49e14d75c))
+* **scheduling:** casi d'uso, API e «Prepara» del piano editoriale ([#346](https://github.com/grecomatteo/Feedway/issues/346)) ([80022f6](https://github.com/grecomatteo/Feedway/commit/80022f62f70a5dd3d5bbb401063a21468814712d))
+* **scheduling:** elenco del calendario, scheda Calendario del cliente e menu ([#353](https://github.com/grecomatteo/Feedway/issues/353)) ([71b2415](https://github.com/grecomatteo/Feedway/commit/71b2415984ed09e50f20f5aa9ccbbb02e5f4c6ea))
+* **scheduling:** fasce orarie del cliente e prossima fascia libera ([#345](https://github.com/grecomatteo/Feedway/issues/345)) ([05fe5f6](https://github.com/grecomatteo/Feedway/commit/05fe5f658a71ef9ea8bb24f9f8023a95dd7cf4a6))
+* **scheduling:** griglia di Instagram nel Calendario del cliente ([#361](https://github.com/grecomatteo/Feedway/issues/361)) ([a29a029](https://github.com/grecomatteo/Feedway/commit/a29a0290581c44a4b1b6dcd47b2a345fc5a82d55))
+* **scheduling:** griglia di Instagram, lato server ([#360](https://github.com/grecomatteo/Feedway/issues/360)) ([11c33a9](https://github.com/grecomatteo/Feedway/commit/11c33a91a2b4b2804b17d163ed6735c4b2c6344f))
+* **scheduling:** l'editor di un post nato dal piano mostra il contenuto e la sua nota ([#352](https://github.com/grecomatteo/Feedway/issues/352)) ([583b820](https://github.com/grecomatteo/Feedway/commit/583b820af9dc434115e428bb279abdab4aecf308))
+* **scheduling:** letture del calendario, voci dei moduli e fuso per tutti ([#343](https://github.com/grecomatteo/Feedway/issues/343)) ([9f0ffce](https://github.com/grecomatteo/Feedway/commit/9f0ffce3d5156b44c2cd2172b59983d54af3fe3c))
+* **scheduling:** notifica «da preparare entro domani» e riepilogo del piano ([#347](https://github.com/grecomatteo/Feedway/issues/347)) ([f1a7530](https://github.com/grecomatteo/Feedway/commit/f1a75300245a6e11fa0fa1ced847c61ff7e217c8))
+* **scheduling:** pagina del piano editoriale ([#349](https://github.com/grecomatteo/Feedway/issues/349)) ([25e7f33](https://github.com/grecomatteo/Feedway/commit/25e7f330e37d85fce06bdb913b230bf06f8698d4))
+* **scheduling:** pannello «In blocco», riepilogo con «Annulla» e «Duplica» ([#357](https://github.com/grecomatteo/Feedway/issues/357)) ([1c127b6](https://github.com/grecomatteo/Feedway/commit/1c127b63569a99fe9f324680866a8b0673e34249))
+* **scheduling:** programmazione in blocco e «Duplica», lato server ([#355](https://github.com/grecomatteo/Feedway/issues/355)) ([3402809](https://github.com/grecomatteo/Feedway/commit/34028096548e9014b0ae9b746e6b6bda0f7ea2ad))
+* **scheduling:** regole e tabella del piano editoriale ([#344](https://github.com/grecomatteo/Feedway/issues/344)) ([c0302bc](https://github.com/grecomatteo/Feedway/commit/c0302bc5faf9149163ecfc6b355c6aa258226291))
+* **scheduling:** spostare i post nel calendario trascinandoli o con «Sposta…» ([#354](https://github.com/grecomatteo/Feedway/issues/354)) ([35c3e38](https://github.com/grecomatteo/Feedway/commit/35c3e38cbcf3aeb9d38e395b3cad75ca889a2947))
+* **workspaces:** orario abituale delle 14:00 per ogni cliente ([#351](https://github.com/grecomatteo/Feedway/issues/351)) ([3f79621](https://github.com/grecomatteo/Feedway/commit/3f7962133c1c7116d603136091fa71efaf8fecfe))
+
+
+### Correzioni
+
+* **design:** dipendenze del prototipo senza avvisi di sicurezza ([#370](https://github.com/grecomatteo/Feedway/issues/370)) ([06e66c5](https://github.com/grecomatteo/Feedway/commit/06e66c5d5693b5e576e6eb6f7ad4d062feeffb25))
+* espressioni regolari lineari per gli avvisi di CodeQL ([#371](https://github.com/grecomatteo/Feedway/issues/371)) ([00ae557](https://github.com/grecomatteo/Feedway/commit/00ae5577cac130a614ed9a6223b1cf5c4b3afde8))
+* **infra:** controllo delle intestazioni del smoke senza pipe ([#364](https://github.com/grecomatteo/Feedway/issues/364)) ([8edea2d](https://github.com/grecomatteo/Feedway/commit/8edea2d6d882cd665ce543f503bf4806f6f0ff24))
+* **infra:** dipendenze con avvisi di sicurezza aggiornate ([#365](https://github.com/grecomatteo/Feedway/issues/365)) ([0bd849b](https://github.com/grecomatteo/Feedway/commit/0bd849bf1e59865fce6517a0cf2ee315610662d0))
+* **notifications:** i fallimenti di passaggio del polling di Telegram non sono più avvisi ([#373](https://github.com/grecomatteo/Feedway/issues/373)) ([7dff3eb](https://github.com/grecomatteo/Feedway/commit/7dff3eb982f7286fb3b14fb5ce05747fc32f4eb6))
+* **posts:** difetti della prova della 0.14.0 (D-131) ([#342](https://github.com/grecomatteo/Feedway/issues/342)) ([1a3ae48](https://github.com/grecomatteo/Feedway/commit/1a3ae480c2f27835f22ab58a00cf930d45cd4a12))
+* **posts:** la collaborazione dopo «Quando» nell'editor ([#369](https://github.com/grecomatteo/Feedway/issues/369)) ([14c32b2](https://github.com/grecomatteo/Feedway/commit/14c32b2939ba1203f3b556b9b1f22639455164f2))
+* **scheduling:** correzioni della revisione di fine tappa 9, lato server ([#374](https://github.com/grecomatteo/Feedway/issues/374)) ([b0341d6](https://github.com/grecomatteo/Feedway/commit/b0341d60a3fc61dcc825f620fd423f7bcbb45a6d))
+* **scheduling:** un post negli «Eliminati» rende il contenuto del piano «Da preparare» ([#377](https://github.com/grecomatteo/Feedway/issues/377)) ([6dad70a](https://github.com/grecomatteo/Feedway/commit/6dad70a4fc9671d3086bfb2d62e731bb2633565f))
+* **web:** correzioni della revisione di fine tappa 9, pannello e documenti ([#372](https://github.com/grecomatteo/Feedway/issues/372)) ([183285f](https://github.com/grecomatteo/Feedway/commit/183285f393a8b0dcb1a271d90d40ded9954702be))
+* **web:** niente lampo di tema tra l'accesso e la pagina dopo ([#366](https://github.com/grecomatteo/Feedway/issues/366)) ([bbd21d1](https://github.com/grecomatteo/Feedway/commit/bbd21d10ecd93d507eda167d11cb12427b1ac12c)), closes [#154](https://github.com/grecomatteo/Feedway/issues/154)
+
+
+### Documentazione
+
+* **agenti:** studio e proposta del server MCP per usare Feedway dalle chat (D-132) ([#350](https://github.com/grecomatteo/Feedway/issues/350)) ([b734dd9](https://github.com/grecomatteo/Feedway/commit/b734dd95df47b6721859a919b4f41dc13bc0f4d2))
+* **notifications:** esiti della prova della 0.14.0, difetti e richieste (D-131) ([#340](https://github.com/grecomatteo/Feedway/issues/340)) ([342e411](https://github.com/grecomatteo/Feedway/commit/342e411f08aaf9c5d246905f5ae01bdf941aea5e))
+* piano della tappa 10, condivisione e brand ([#375](https://github.com/grecomatteo/Feedway/issues/375)) ([feb1d4b](https://github.com/grecomatteo/Feedway/commit/feb1d4babf3cf6dc2f213987a8b08b5a65940e77))
+
+
+### Manutenzione
+
+* **infra:** rilascio 0.15.0, README e landing della tappa 9 ([#376](https://github.com/grecomatteo/Feedway/issues/376)) ([81b71db](https://github.com/grecomatteo/Feedway/commit/81b71dbe401febab487e89d4cf3864f67691499a))
+
 ## [0.14.0](https://github.com/grecomatteo/Feedway/compare/v0.13.1...v0.14.0) (2026-11-24)
 
 
