@@ -1366,7 +1366,7 @@ Report completo nella cartella condivisa del progetto, `handoff/ridisegno/ESITI-
   20. Ripristinare dall'editor una bozza eliminata mentre era aperta rilegge il post: le modifiche non salvate si perdono, e il messaggio lo dice prima.
   21. In «Tutti i clienti» «Svuota» svuota gli «Eliminati» di ogni cliente in elenco in cui la persona può eliminare.
   22. I motivi `post_trashed` e `post_not_trashed` non arrivavano al pannello (mancavano tra gli `errorReasons`): aggiunti, così l'editor riconosce la bozza eliminata altrove.
-  23. **Dalla revisione di fine tappa (F5, 27/11):** in «Eliminati» la barra non ha frecce, periodo e «Oggi», perché gli eliminati non dipendono dai giorni; una sezione dell'elenco dove nessuna riga ha un'ora («Bozze senza data», «Eliminati») non disegna la colonna dell'ora con il «—». Esteso anche alle «Bozze senza data», che hanno lo stesso «—» inutile. Prima e dopo mandati a Matteo il 27/11 (`handoff/tappa-9/schermate-correzioni-pannello/`).
+  23. **Dalla revisione di fine tappa (F5, 27/11):** in «Eliminati» la barra non ha frecce, periodo e «Oggi», perché gli eliminati non dipendono dai giorni; «Eliminati» non disegna mai la colonna dell'ora (un'ora senza il suo giorno non dice niente), e nemmeno «Bozze senza data», dove nessuna riga ha un'ora: niente più «—». Esteso anche alle «Bozze senza data», che hanno lo stesso «—» inutile. Prima e dopo mandati a Matteo il 27/11 (`handoff/tappa-9/schermate-correzioni-pannello/`).
 - **Fatto:** il Task 14 (PR 1 e PR 2). La voce si toglie quando Matteo conferma le scelte provvisorie 1–13 e 15–23 (la 14 l'ha decisa il 27/11), viste le schermate in `/mnt/project-files/handoff/tappa-9/schermate-eliminati/`.
 
 ## Agenti e MCP

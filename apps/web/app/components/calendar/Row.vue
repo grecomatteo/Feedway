@@ -12,8 +12,8 @@ import { cardLook, type CalendarCardInfo } from '~/utils/calendar'
  * In the list's «Bozze» and «Eliminati» the rows can be chosen (`selecting`): a box in front,
  * and the row ticks it instead of opening the post. On a touch screen a long press on a row
  * starts the choice (`holdable`).
- * A section where no row has a time (the drafts without a date, «Eliminati») leaves out the
- * column of the time (`untimed`), instead of a «—» on every row.
+ * The drafts without a date and «Eliminati» leave out the column of the time (`untimed`),
+ * instead of a «—» on every row.
  */
 const props = defineProps<{
   card: CalendarCardInfo
@@ -24,7 +24,7 @@ const props = defineProps<{
   selectable?: boolean
   /** a long press on a touch screen sends `hold` */
   holdable?: boolean
-  /** no column of the time: no row of the section has one */
+  /** no column of the time («Bozze senza data», «Eliminati») */
   untimed?: boolean
 }>()
 const emit = defineEmits<{ open: []; toggle: []; hold: [] }>()
