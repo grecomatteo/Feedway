@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import {
@@ -28,6 +28,7 @@ import { mediaProcess } from './media-process.js'
 import { mediaPublishCopies } from './media-publish-copies.js'
 import { notifyDeliver, notifyDeliverPlatform, notifyDispatch, telegramPoll } from './notify.js'
 import { planDueScan } from './plan.js'
+import { postsCollaboratorsRefresh } from './posts-collaborators.js'
 import { postsDraftsCleanup } from './posts-drafts-cleanup.js'
 import { reportDaily, reportDigest } from './report.js'
 import { targetPrepare, targetPublish, targetReconcile, targetVerify } from './target-steps.js'
@@ -309,6 +310,67 @@ async function deliveriesWorld(): Promise<World> {
 }
 
 /**
+ * A post of each agency confirmed on Instagram with a collaborator invited (plan 09 Task 15):
+ * the job reads the answer from the fake Graph API and saves it on A's destination only.
+ */
+async function collaboratorsWorld(): Promise<World> {
+  const proof = createHmac('sha256', META_MOCK.app.secret)
+    .update(META_MOCK.tokens.systemUser)
+    .digest('hex')
+  const graph = async (path: string, params: Record<string, string>) => {
+    const res = await fetch(`${mock.url}/v25.0${path}?appsecret_proof=${proof}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${META_MOCK.tokens.systemUser}` },
+      body: new URLSearchParams(params),
+    })
+    return ((await res.json()) as { id: string }).id
+  }
+  const ig = META_MOCK.instagram.ofPage
+  const ofEach = async (w: PublishingWorld) => {
+    const photo = await readyPhoto(tdb, runtime, admin, w)
+    const { postId } = await scheduledPost(runtime, w, {
+      at: new Date(Date.now() + 40 * 60_000),
+      mediaIds: [photo],
+      accounts: [w.accounts.instagram],
+      collaborators: ['forno.luce'],
+    })
+    const container = await graph(`/${ig}/media`, {
+      image_url: `${mock.url}/pictures/forno.jpg`,
+      collaborators: '["forno.luce"]',
+    })
+    const mediaId = await graph(`/${ig}/media_publish`, { creation_id: container })
+    await admin.query(
+      `update post_targets set status = 'confirmed', step = null, external_post_id = $2,
+              meta_ids = $3, next_attempt_at = null where post_id = $1`,
+      [
+        postId,
+        mediaId,
+        JSON.stringify({
+          platform: 'instagram',
+          createdAt: new Date().toISOString(),
+          children: [],
+          container: { id: container, finished: true },
+          checkedAt: {},
+          mediaId,
+          collaborators: { names: ['forno.luce'], dropped: null },
+        }),
+      ],
+    )
+    return postId
+  }
+  const a = await publishingWorld(tdb, runtime)
+  const b = await publishingWorld(tdb, runtime)
+  const ofA = await ofEach(a)
+  const ofB = await ofEach(b)
+  return {
+    a,
+    b,
+    ofA: { organizationId: a.organizationId, postId: ofA },
+    crossing: { organizationId: a.organizationId, postId: ofB },
+  }
+}
+
+/**
  * An import in bulk of each agency, waiting for the worker (plan 09 Task 10): one row without a
  * file, which becomes a draft. A job of A naming B's import finds nothing.
  */
@@ -357,6 +419,7 @@ const CASES: { [N in OrganizationQueue]: IsolationCase<N> } = {
   'target.verify': { handler: targetVerify, world: () => targetsWorld('published') },
   'notify.deliver': { handler: notifyDeliver, world: deliveriesWorld },
   'bulk.import': { handler: bulkImport, world: bulkWorld },
+  'posts.collaborators_refresh': { handler: postsCollaboratorsRefresh, world: collaboratorsWorld },
 }
 
 // every row an agency's job could touch, by agency

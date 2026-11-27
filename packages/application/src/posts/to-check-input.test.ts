@@ -16,6 +16,7 @@ const post = (over: Partial<PostRecord> = {}): PostRecord => ({
   scheduledAt: new Date('2027-06-10T16:00:00Z'),
   timezone: 'Europe/Rome',
   status: 'draft',
+  instagramCollaborators: ['forno.luce'],
   options: {
     shareToFeed: false,
     choices: [
@@ -55,6 +56,7 @@ describe('toCheckInput', () => {
       destinations: [{ accountId: 'a1' }, { accountId: 'a2' }],
       when: { mode: 'at', localDate: '2027-06-10', localTime: '18:00' },
       shareToFeed: false,
+      instagramCollaborators: ['forno.luce'],
       choices: [
         {
           key: 'photo_aspect_ratio:media:m1',
@@ -77,6 +79,12 @@ describe('toCheckInput', () => {
     const story = post({ type: 'story' })
     expect(toCheckInput(story, 'save').caption).toEqual({ common: '' })
     expect(story.caption).toBe('Il pane di oggi')
+  })
+
+  test('a story keeps its collaborators: the checks say they do not go out (D-125)', () => {
+    expect(toCheckInput(post({ type: 'story' }), 'save').instagramCollaborators).toEqual([
+      'forno.luce',
+    ])
   })
 
   test('no cover, no cover in the checks', () => {

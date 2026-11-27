@@ -22,6 +22,8 @@ export interface BulkRowInput {
   destinations: readonly { accountId: string }[]
   when: { localDate: string; localTime: string } | null
   shareToFeed: boolean
+  /** only from «Duplica», which copies them (D-125): a file or a table has none */
+  instagramCollaborators?: readonly string[]
   choices: readonly RuleChoice[]
   labelIds: readonly string[]
 }

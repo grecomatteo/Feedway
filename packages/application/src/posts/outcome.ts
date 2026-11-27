@@ -7,6 +7,7 @@ import type { UnitOfWork } from '../ports/unit-of-work.js'
 import type { CheckPostDeps } from '../rules/index.js'
 import { openPosts, postNotFound } from './common.js'
 import { outcomePreview, type OutcomePreviewDto } from './outcome-preview.js'
+import { collaboratorsOutcomeOf, type CollaboratorsOutcomeDto } from './publishing/collaborators.js'
 
 // The page of the outcome (plan 07 Task 9, Scelta 6): every destination of a post with its link
 // or its reason, and the activity, from the log and from the calls to the platform. Every member
@@ -27,6 +28,8 @@ export interface DestinationOutcomeDto {
   nextAttemptAt: string | null
   /** the reel's cover sent after the post (Facebook, D-120.9); null: none, or not sent */
   cover: CoverOutcome | null
+  /** Instagram's invitations sent with the post and their answers (D-125); null: none */
+  collaborators: CollaboratorsOutcomeDto | null
 }
 
 /** What the activity tells, from the log of the panel or from the calls of the worker. */
@@ -200,6 +203,7 @@ export async function getPostOutcome(
           problem: problemOf(t.status, t.verification),
           nextAttemptAt: t.status === 'retrying' ? (t.nextAttemptAt?.toISOString() ?? null) : null,
           cover: coverOutcomeOf(t.metaIds, t.status !== 'published' && t.status !== 'verifying'),
+          collaborators: collaboratorsOutcomeOf(t),
         })),
         activity: activityOf(fromLog, fromCalls)
           .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))

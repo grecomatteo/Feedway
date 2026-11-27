@@ -33,7 +33,14 @@ export const POST_CHECK_LIMITS = {
   destinations: 100,
   captionCharacters: 70_000,
   choices: 50,
+  /** Instagram's collaborators as typed: the checks block over 3 (D-125), the column over 10 */
+  collaborators: 10,
 } as const
+
+/** Instagram's invited collaborators, as the editor holds them (D-125). */
+export const InstagramCollaboratorsBody = z
+  .array(z.string().max(64))
+  .max(POST_CHECK_LIMITS.collaborators)
 
 /**
  * Counted in code points, as the rules count (D-46): an emoji is one character, not two. The
@@ -102,6 +109,8 @@ export const PostCheckRequest = z.strictObject({
   ]),
   /** a reel also in the feed; true when left out */
   shareToFeed: z.boolean().optional(),
+  /** Instagram's invited collaborators (D-125); none when left out */
+  instagramCollaborators: InstagramCollaboratorsBody.optional(),
   /** the answers to the warnings, by their key */
   choices: z.array(RuleChoiceBody).max(POST_CHECK_LIMITS.choices),
   /**

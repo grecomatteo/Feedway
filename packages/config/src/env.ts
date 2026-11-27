@@ -60,6 +60,7 @@ export const KNOWN_QUEUES = [
   'plan.due_scan',
   'posts.drafts_cleanup',
   'bulk.import',
+  'posts.collaborators_refresh',
 ] as const
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const

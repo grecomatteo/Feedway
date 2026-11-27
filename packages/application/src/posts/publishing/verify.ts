@@ -22,6 +22,7 @@ import {
   type StepLog,
   type TargetJob,
 } from './context.js'
+import { hasInvitationsToRead, sendCollaboratorsRefresh } from './collaborators.js'
 import { publishedCover } from './files.js'
 
 // `target.verify` (§9.6; plan 07 Task 8): an answer of Meta that says «published» is not
@@ -232,5 +233,15 @@ export async function verifyTarget(deps: PublishingWorkerDeps, job: TargetJob): 
     )
   })
   await sendSteps(deps, settled.jobs)
+  // the collaborators' answers are read once the post is confirmed (D-125)
+  if (
+    settled.log.outcome === 'moved' &&
+    settled.log.to === 'confirmed' &&
+    hasInvitationsToRead({ ...record, status: 'confirmed' })
+  )
+    await sendCollaboratorsRefresh(deps, {
+      organizationId: record.organizationId,
+      postId: record.postId,
+    })
   return settled.log
 }

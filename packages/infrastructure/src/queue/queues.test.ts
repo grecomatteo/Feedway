@@ -37,6 +37,7 @@ test('every registered queue declares a scope', () => {
     ['plan.due_scan', 'system'],
     ['posts.drafts_cleanup', 'system'],
     ['bulk.import', 'organization'],
+    ['posts.collaborators_refresh', 'organization'],
   ])
   expect(QUEUE_NAMES).toEqual([
     'system.selftest',
@@ -72,6 +73,7 @@ test('every registered queue declares a scope', () => {
     'plan.due_scan',
     'posts.drafts_cleanup',
     'bulk.import',
+    'posts.collaborators_refresh',
   ])
 })
 

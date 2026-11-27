@@ -26,6 +26,7 @@ import {
   notifyDispatch,
   telegramPoll,
 } from './handlers/notify.js'
+import { postsCollaboratorsRefresh } from './handlers/posts-collaborators.js'
 import { postsDraftsCleanup } from './handlers/posts-drafts-cleanup.js'
 import { planDueScan } from './handlers/plan.js'
 import { reportDaily, reportDigest } from './handlers/report.js'
@@ -159,6 +160,7 @@ export async function startWorker(deps: WorkerDeps): Promise<{ stop(): Promise<v
     'plan.due_scan': planDueScan,
     'posts.drafts_cleanup': postsDraftsCleanup,
     'bulk.import': bulkImport,
+    'posts.collaborators_refresh': postsCollaboratorsRefresh,
     ...deps.handlers,
     'telegram.poll': telegramPollOnStop,
     'media.process': mediaProcessOnStop,

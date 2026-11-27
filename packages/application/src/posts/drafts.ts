@@ -36,6 +36,7 @@ const DEFAULTS: Omit<PostContent, 'type'> = {
   destinations: [],
   when: null,
   shareToFeed: true,
+  instagramCollaborators: [],
   choices: [],
 }
 
@@ -69,6 +70,7 @@ export async function createDraft(
     destinations: input.destinations ?? DEFAULTS.destinations,
     when: input.when ?? DEFAULTS.when,
     shareToFeed: input.shareToFeed ?? DEFAULTS.shareToFeed,
+    instagramCollaborators: input.instagramCollaborators ?? DEFAULTS.instagramCollaborators,
     choices: input.choices ?? DEFAULTS.choices,
   }
   await assertReferences(tx, scope, content, null)
@@ -81,6 +83,7 @@ export async function createDraft(
     scheduledAt: scheduledAtOf(content.when, timezone),
     timezone,
     options: { shareToFeed: content.shareToFeed, choices: [...content.choices] },
+    instagramCollaborators: [...content.instagramCollaborators],
     createdBy: current.userId,
   })
   await writeParts(tx, scope, postId, content, 'draft')

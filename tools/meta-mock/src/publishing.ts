@@ -26,6 +26,8 @@ interface Container {
   carouselItem: boolean
   children: string[]
   caption: string
+  /** the usernames invited as collaborators (D-125) */
+  collaborators: string[]
   pendingReads: number
   failed: boolean
   /** why it failed, as Meta writes it in `status`: the download (2207052) or the file (2207026) */
@@ -76,6 +78,8 @@ interface Deps {
 }
 
 const DEFAULT_IN_PROGRESS_READS = 3
+/** Instagram takes up to 3 collaborators when creating a container (D-125). */
+const MAX_COLLABORATORS = 3
 const DEFAULT_PUBLISH_DELAY_MS = 15_000
 const DEFAULT_PAGE = 25
 /** The mock's own address, put in by the server as it answers (`{{mock}}`). */
@@ -149,6 +153,8 @@ export function createPublishing(deps: Deps): Publishing {
   }
   sow()
   const published = new Map<string, number>()
+  /** the collaborators invited on a published media, by its id */
+  const invited = new Map<string, string[]>()
   let counter = 0
 
   const nextId = (prefix: string) => `${prefix}${String(++counter).padStart(13, '0')}`
@@ -194,6 +200,26 @@ export function createPublishing(deps: Deps): Publishing {
     } else return igError(100, 2207023, 'The media type is unknown.')
     if (carouselItem && params.has('caption'))
       return paramError('(#100) Carousel items do not take a caption')
+    const collaborators = collaboratorsOf(params)
+    if (collaborators === null)
+      return paramError('(#100) Param collaborators must be an array of usernames')
+    if (collaborators.length > 0) {
+      if (carouselItem || mediaType === 'STORIES')
+        return paramError('(#100) Collaborators are not supported for this media type')
+      if (collaborators.length > MAX_COLLABORATORS)
+        return paramError('(#100) Param collaborators can have at most 3 usernames')
+      const refused = deps
+        .scenarios('collaborator_rejected')
+        .find(
+          (s) =>
+            s.remaining > 0 &&
+            (s.opts.username === undefined || collaborators.includes(s.opts.username)),
+        )
+      if (refused !== undefined) {
+        refused.remaining -= 1
+        return paramError('(#100) Invalid collaborators: a user cannot be invited')
+      }
+    }
 
     const failDownload = kind !== 'carousel' && take(deps.scenarios('media_download_failed'))
     let failed = false
@@ -223,6 +249,7 @@ export function createPublishing(deps: Deps): Publishing {
       carouselItem,
       children,
       caption: params.get('caption') ?? '',
+      collaborators,
       pendingReads: slow === undefined ? 0 : (slow.opts.reads ?? DEFAULT_IN_PROGRESS_READS),
       failed,
       ...(failedWith === undefined ? {} : { failedWith }),
@@ -275,6 +302,7 @@ export function createPublishing(deps: Deps): Publishing {
         : { media_url: PUBLISHED_PICTURE }),
     }
     media.set(item.id, item)
+    if (c.collaborators.length > 0) invited.set(item.id, [...c.collaborators])
     const late = deps.scenarios('publish_timeout_but_created').find((s) => s.remaining > 0)
     if (late !== undefined) {
       late.remaining -= 1
@@ -297,6 +325,22 @@ export function createPublishing(deps: Deps): Publishing {
     return { status: 200, body: { data: items.slice(0, limit).map(render) } }
   }
 
+  /** `GET /{ig-media-id}/collaborators`: the invited, `Pending` until a scenario answers. */
+  function collaboratorsAnswer(id: string): PublishingAnswer {
+    const answers = deps.scenarios('collaborator_answered')
+    const data = (invited.get(id) ?? []).map((username, i) => {
+      const answer = answers.find(
+        (a) => a.opts.username === undefined || a.opts.username === username,
+      )
+      return {
+        id: `1784${String(i + 1).padStart(12, '0')}`,
+        username,
+        invite_status: answer?.opts.status ?? 'Pending',
+      }
+    })
+    return { status: 200, body: { data } }
+  }
+
   const render = (m: PublishedMedia): Record<string, unknown> =>
     Object.fromEntries(Object.entries(m).filter(([key]) => key !== 'igUserId'))
 
@@ -311,6 +355,8 @@ export function createPublishing(deps: Deps): Publishing {
         if (method === 'GET' && edge === 'stories') return list(id, true, params)
         return null
       }
+      if (method === 'GET' && edge === 'collaborators' && media.has(id))
+        return collaboratorsAnswer(id)
       if (method !== 'GET' || edge !== undefined) return null
       const container = containers.get(id)
       if (container !== undefined) {
@@ -345,8 +391,24 @@ export function createPublishing(deps: Deps): Publishing {
       containers.clear()
       media.clear()
       published.clear()
+      invited.clear()
       sow()
     },
+  }
+}
+
+/**
+ * The `collaborators` of a container: a JSON array of usernames, as Meta's reference writes
+ * it (not verified); [] when left out, null when it is no such array.
+ */
+function collaboratorsOf(params: URLSearchParams): string[] | null {
+  const raw = params.get('collaborators')
+  if (raw === null) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.every((n) => typeof n === 'string') ? parsed : null
+  } catch {
+    return null
   }
 }
 

@@ -89,6 +89,7 @@ export function draft(over: Partial<PostDraft> = {}): PostDraft {
     destinations: both,
     when: { mode: 'at', localDate: '2026-11-18', localTime: '18:00' },
     shareToFeed: true,
+    instagramCollaborators: [],
     choices: [],
     ...over,
   }
@@ -1019,6 +1020,49 @@ export const RULE_CASES: RuleCase[] = [
     'Foto 1:2 con il riquadro fuori dalla foto: la scelta non vale e l’avviso resta (D-61)',
     cropped({ x: 0, y: 0.5, width: 1, height: 0.625 }),
     [warning('photo_aspect_ratio', 'media:0', 'instagram')],
+  ),
+  // — Instagram's collaborators (plan 09 Scelta 13, D-125)
+  c(
+    'collaborators-three',
+    'post',
+    'Foto con 3 collaboratori su Instagram e Facebook: Facebook esce senza',
+    draft({ instagramCollaborators: ['forno.luce', 'pane_e_co', 'mulino'] }),
+    [],
+  ),
+  c(
+    'collaborators-four',
+    'post',
+    'Foto con 4 collaboratori: Instagram ne prende al massimo 3',
+    draft({ instagramCollaborators: ['uno', 'due', 'tre', 'quattro'] }),
+    [block('collaborators_too_many', 'post', 'instagram')],
+  ),
+  c(
+    'collaborator-at',
+    'post',
+    'Collaboratore scritto «@forno»: il nome va senza «@»',
+    draft({ instagramCollaborators: ['@forno'] }),
+    [block('collaborator_invalid', 'post', 'instagram')],
+  ),
+  c(
+    'collaborator-repeated',
+    'post',
+    'Lo stesso collaboratore due volte',
+    carousel([photo(), photo()], { instagramCollaborators: ['forno', 'Forno'] }),
+    [block('collaborator_repeated', 'post', 'instagram')],
+  ),
+  c(
+    'collaborators-story',
+    'post',
+    'Storia con un collaboratore: sulle storie Instagram non lo prende',
+    story(photo({ width: 1080, height: 1920 }), { instagramCollaborators: ['forno'] }),
+    [warning('collaborators_on_story', 'post', 'instagram')],
+  ),
+  c(
+    'collaborators-only-facebook',
+    'post',
+    'Collaboratore su un post solo per Facebook: la richiesta parte solo su Instagram',
+    draft({ destinations: onlyFb, instagramCollaborators: ['forno'] }),
+    [warning('collaborators_without_instagram', 'post')],
   ),
   c(
     'media-unused',

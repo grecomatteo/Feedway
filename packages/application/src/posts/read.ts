@@ -47,6 +47,8 @@ export interface PostDto {
   scheduledAt: string | null
   timezone: string
   shareToFeed: boolean
+  /** Instagram's invited collaborators (D-125) */
+  instagramCollaborators: string[]
   choices: RuleChoice[]
   labelIds: string[]
   createdBy: string
@@ -105,6 +107,7 @@ export function toPostDto(
     scheduledAt: post.scheduledAt?.toISOString() ?? null,
     timezone: post.timezone,
     shareToFeed: post.options.shareToFeed,
+    instagramCollaborators: post.instagramCollaborators,
     choices: post.options.choices,
     labelIds: post.labelIds,
     createdBy: post.createdBy,

@@ -57,6 +57,7 @@ const postColumns = {
   timezone: posts.timezone,
   status: posts.status,
   options: posts.options,
+  instagramCollaborators: posts.instagramCollaborators,
   createdBy: posts.createdBy,
   scheduledBy: posts.scheduledBy,
   updatedBy: posts.updatedBy,

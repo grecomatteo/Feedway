@@ -1,6 +1,11 @@
 import type { Platform } from '../accounts/accounts.js'
 import { isSelectable } from '../accounts/accounts.js'
 import type { FileFix, FileWarning } from '../media/check-file.js'
+import {
+  MAX_INSTAGRAM_COLLABORATORS,
+  isInstagramUsername,
+  repeatedCollaborator,
+} from '../posts/collaborators.js'
 import { instantToZoned, type ZonedAdjustment } from '../time/zoned.js'
 import { secondsDown, secondsUp } from './seconds.js'
 import type {
@@ -214,6 +219,55 @@ function storyCaptionRule(draft: PostDraft): RuleFinding[] {
   ]
 }
 
+/**
+ * Instagram's collaborators (D-125): checked only where they go out, an Instagram post that is
+ * not a story. Elsewhere the post goes out without them, and a warning says so.
+ */
+function collaboratorRules(draft: PostDraft, platforms: ReadonlySet<Platform>): RuleFinding[] {
+  const names = draft.instagramCollaborators
+  if (names.length === 0) return []
+  const post = { kind: 'post' } as const
+  const accept = { options: ['accept'], recommended: 'accept' } as const
+  if (!platforms.has('instagram'))
+    return [{ level: 'warning', code: 'collaborators_without_instagram', subject: post, ...accept }]
+  if (draft.type === 'story')
+    return [
+      {
+        level: 'warning',
+        code: 'collaborators_on_story',
+        subject: post,
+        platform: 'instagram',
+        ...accept,
+      },
+    ]
+  const findings: RuleFinding[] = []
+  const on = { subject: post, platform: 'instagram' } as const
+  if (names.length > MAX_INSTAGRAM_COLLABORATORS)
+    findings.push({
+      level: 'block',
+      code: 'collaborators_too_many',
+      ...on,
+      params: { limit: MAX_INSTAGRAM_COLLABORATORS, found: names.length },
+    })
+  const invalid = names.find((n) => !isInstagramUsername(n))
+  if (invalid !== undefined)
+    findings.push({
+      level: 'block',
+      code: 'collaborator_invalid',
+      ...on,
+      params: { name: invalid },
+    })
+  const repeated = repeatedCollaborator(names)
+  if (repeated !== null)
+    findings.push({
+      level: 'block',
+      code: 'collaborator_repeated',
+      ...on,
+      params: { name: repeated },
+    })
+  return findings
+}
+
 export function commonRules(
   draft: PostDraft,
   ctx: RuleContext,
@@ -228,5 +282,6 @@ export function commonRules(
     ...coverRules(draft, platforms),
     ...whenRules(when, ctx),
     ...storyCaptionRule(draft),
+    ...collaboratorRules(draft, platforms),
   ]
 }

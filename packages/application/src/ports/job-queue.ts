@@ -49,6 +49,12 @@ interface JobDefinitions {
   'plan.due_scan': { scope: 'system'; data: object }
   'posts.drafts_cleanup': { scope: 'system'; data: object }
   'bulk.import': { scope: 'organization'; data: BulkImportJobData }
+  'posts.collaborators_refresh': { scope: 'organization'; data: CollaboratorsRefreshJobData }
+}
+
+/** The answers of a post's Instagram collaborators to read again (plan 09 Task 15): its id only. */
+export interface CollaboratorsRefreshJobData {
+  postId: string
 }
 
 /**
