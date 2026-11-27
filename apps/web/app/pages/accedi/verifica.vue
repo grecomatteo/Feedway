@@ -27,7 +27,7 @@ async function submit() {
       { code: code.value.replace(/\s/g, '') },
     )
     code.value = ''
-    const view = await session.load()
+    const view = await session.load({ themeWithNextPage: true })
     if (view.state === 'active') await navigateTo(session.home(view.me, route.query['dopo']))
     else if (view.state === 'second_factor') await navigateTo('/accedi/secondo-fattore')
     else problem.value = t('verify.expired')
