@@ -71,7 +71,8 @@ jobs:
           build-args: APP_VERSION=${{ env.VERSION }}
           tags: ${{ env.IMAGE }}:${{ env.TAG }}-${{ matrix.arch }}
           # a release is built from scratch: with the GHA cache (even with no-cache-filters on
-          # media-tools) the image kept the old Debian packages and Trivy stopped v0.15.0 (27/11)
+          # media-tools) Trivy saw Debian versions the build log never installed and stopped
+          # v0.15.0 (27/11); the cache is the presumed cause, not a verified one (D-135)
           no-cache: true
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
