@@ -72,6 +72,9 @@ jobs:
           tags: ${{ env.IMAGE }}:${{ env.TAG }}-${{ matrix.arch }}
           cache-from: type=gha,scope=release-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=release-${{ matrix.arch }}
+          # the system packages are installed fresh at every release: a cached `apt-get upgrade`
+          # layer keeps Debian fixes out and Trivy stops the release (v0.15.0, 27/11)
+          no-cache-filters: media-tools
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.TAG }}-${{ matrix.arch }}
