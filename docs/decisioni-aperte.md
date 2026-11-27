@@ -906,6 +906,13 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
       - una foto di un post uscito che non arriva lascia il posto con un segno, senza messaggio; se i pubblicati non si leggono, una riga dice perché (collegamento, accesso rifiutato, Instagram che non risponde, con «Riprova») e i programmati si vedono lo stesso.
 - **Stato:** i punti 1, 3, 5, 11, 15 e 16 sono **decisi da Matteo** (24/11, schede di scelta); il 27/11 Matteo ha chiuso il punto 1 e deciso il 28 («Annulla»); gli altri restano scelte provvisorie consigliate, che Matteo può cambiare prima del task che le usa. Il piano è approvato da Matteo (24/11, «ok»).
 
+### D-137 · Un post del piano negli «Eliminati» e il suo ripristino
+
+- **Origine:** difetto trovato prima del rilascio della 0.15.0 (PR della correzione, `statuses` esclude i post negli «Eliminati», §11.9).
+- **Il problema:** con il post negli «Eliminati» il contenuto torna «Da preparare» e «Prepara» crea una bozza nuova, che prende il collegamento. Se poi la vecchia bozza torna con «Ripristina», il cliente ha due bozze per lo stesso contenuto.
+- **Opzioni:** (a) la vecchia bozza resta a sé, senza il segno «dal piano», come un post annullato e preparato di nuovo; il contenuto resta della bozza nuova; (b) «Ripristina» chiede quale bozza tenere collegata; (c) «Ripristina» rifiuta (409) finché il contenuto ha una bozza nuova.
+- **Stato:** scelta provvisoria (a): segue le regole che esistono già e non aggiunge passaggi. Se la vecchia bozza torna prima di un nuovo «Prepara», il contenuto è di nuovo preparato da lei.
+
 ## Sito pubblico
 
 ### D-122 · Sito pubblico anticipato: scelte provvisorie e cose da fare prima di pubblicarlo
