@@ -11,7 +11,7 @@ async function addNow() {
   going.value = true
   try {
     // the passkey sign-in replaced the session: the page guard must see it as active
-    await session.load()
+    await session.load({ themeWithNextPage: true })
     await navigateTo('/account/sicurezza')
   } finally {
     going.value = false

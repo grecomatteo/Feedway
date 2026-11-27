@@ -128,7 +128,7 @@ const formError = computed(() =>
 )
 
 async function goIn() {
-  const view = await session.load()
+  const view = await session.load({ themeWithNextPage: true })
   if (view.state === 'second_factor' && view.me) {
     step.value = 'totp'
     return
@@ -239,7 +239,7 @@ const acceptExisting = () => activate({})
 async function totpDone() {
   typedPassword.value = undefined
   // the session now satisfies the second factor: read it again before moving on
-  await session.load()
+  await session.load({ themeWithNextPage: true })
   await navigateTo(slug ? `/${slug}` : '/accedi')
 }
 

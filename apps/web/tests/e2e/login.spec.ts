@@ -61,6 +61,59 @@ test('a protected page leads to sign-in and back, with the profile theme', async
   else await expect(page.locator('html')).not.toHaveClass(/dark/)
 })
 
+test('the profile theme arrives with the next page, never on the sign-in page', async ({
+  page,
+}) => {
+  const person = await newMember()
+  const wasDark = await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  await adminQuery('update users set theme = $1 where id = $2', [
+    wasDark ? 'light' : 'dark',
+    person.userId,
+  ])
+  // every change of the dark class, with the page it happened on
+  await page.addInitScript(() => {
+    const seen: { path: string; dark: boolean }[] = []
+    Object.assign(window, { __themeChanges: seen })
+    let last: boolean | null = null
+    const note = () => {
+      // the script runs before <html> exists: nothing to note until it does
+      const html = document.documentElement as HTMLElement | null
+      if (!html) return
+      const dark = html.classList.contains('dark')
+      if (dark !== last) seen.push({ path: location.pathname, dark })
+      last = dark
+    }
+    new MutationObserver(note).observe(document, {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: true,
+      subtree: true,
+    })
+    note()
+  })
+  await page.goto('/accedi')
+  // the sign-in page in the browser's own theme: only what happens from here on counts
+  if (wasDark) await expect(page.locator('html')).toHaveClass(/dark/)
+  else await expect(page.locator('html')).not.toHaveClass(/dark/)
+  await page.evaluate(() => {
+    ;(window as unknown as { __themeChanges: unknown[] }).__themeChanges.length = 0
+  })
+  await page.getByLabel('Email', { exact: true }).fill(person.email)
+  await page.getByLabel('Password', { exact: true }).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Accedi', exact: true }).click()
+  await skipPasskeyOffer(page)
+  await expect(page).toHaveURL(new RegExp(`/${person.organizationSlug}$`))
+  if (wasDark) await expect(page.locator('html')).not.toHaveClass(/dark/)
+  else await expect(page.locator('html')).toHaveClass(/dark/)
+  const changes = await page.evaluate(
+    () =>
+      (window as unknown as { __themeChanges: { path: string; dark: boolean }[] }).__themeChanges,
+  )
+  const turned = changes.filter((c) => c.dark !== wasDark)
+  expect(turned.length).toBeGreaterThan(0)
+  expect(turned.every((c) => c.path !== '/accedi')).toBe(true)
+})
+
 test('after sign-in the agency home opens; another agency address is not found', async ({
   page,
 }) => {

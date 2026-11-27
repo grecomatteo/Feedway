@@ -43,7 +43,7 @@ async function saveFirstPassword() {
 
 async function enter() {
   typedPassword.value = undefined
-  const v = await session.load()
+  const v = await session.load({ themeWithNextPage: true })
   if (v.state === 'active') await navigateTo(session.home(v.me))
 }
 
