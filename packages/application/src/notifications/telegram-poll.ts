@@ -261,6 +261,9 @@ const saveState = (deps: TelegramPollDeps, bot: TelegramBotCredentials, state: T
 /** The failures that pass on their own: the run tries again after a wait (D-134). */
 const PASSING: ReadonlySet<TelegramApiError['kind']> = new Set(['unavailable', 'rate_limited'])
 
+/** A function, not a test in place: the signal may be aborted during an `await`. */
+const stopped = (signal?: AbortSignal) => signal?.aborted === true
+
 const healthKey = (bot: TelegramBotCredentials) =>
   `${bot.organizationId ?? 'platform'}:${String(bot.botId)}`
 
@@ -343,8 +346,9 @@ async function updatesOf(
 
 /**
  * Listens to one bot until `waitSeconds` from the start of the run: each batch is answered and
- * its offset saved before the next long poll, so a message is never answered twice. A failure, a
- * bot changed on its row or the worker stopping ends the run; the next one goes on.
+ * its offset saved before the next long poll, so a message is never answered twice. A failure
+ * that passes on its own is tried again after a wait while there is time (D-134); any other
+ * failure, a bot changed on its row or the worker stopping ends the run; the next one goes on.
  */
 async function pollBot(
   deps: TelegramPollDeps,
@@ -372,6 +376,7 @@ async function pollBot(
       const delay = telegramRetrySeconds(++failures, updates)
       if (signal?.aborted === true || secondsLeft() <= delay) break
       await (deps.sleep ?? wait)(delay * 1000, signal)
+      if (stopped(signal)) break
       continue
     }
     failures = 0

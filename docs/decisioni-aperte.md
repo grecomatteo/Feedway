@@ -752,6 +752,7 @@ Esiti della prova del 19 novembre 2026 sulla VPS (nelle consegne della tappa 6, 
   4. **Corretto:** finché il giorno è quello proposto dall'editor, cambiare l'ora prende il primo giorno che ce l'ha (oggi se è ancora avanti); un giorno scelto dalla persona resta.
   5. **Minori:** corretti «Da ricollegare» in cima a Integrazioni → Meta, `/problemi` con il testo del post e il motivo, il riepilogo senza il nome dell'agenzia ripetuto e con l'ora d'uscita, l'esito senza la striscia di miniature al caricamento. **Restano:** l'ordine delle bozze (Task 3 della tappa 9, D-79) e i due `target.prepare` del 25/11 (il codice li scarta per la generation, da guardare nei log).
   - **Note sulla guida:** la 2 ha anche una frase in Piattaforma → Integrazioni e in Integrazioni → Telegram dell'agenzia (gli avvisi della piattaforma passano solo dal bot della piattaforma); le altre vanno nella guida della 0.15.0. **Richieste nuove:** non fatte (caricamento in parallelo; titolo nel «Da sistemare» di «Oggi», che cambia la pagina e chiede il prima e dopo).
+
 ### D-134 · Errori di passaggio del polling di Telegram nel log
 
 - **Origine:** controlli della 0.14.0 sulla VPS (25–27/11): in 72 ore il worker ha scritto 23 volte «telegram poll failed» (`kind` `unavailable`, livello 40, cioè avviso), senza notifiche perse. Sono le chiusure, i timeout e i 5xx normali del long polling.

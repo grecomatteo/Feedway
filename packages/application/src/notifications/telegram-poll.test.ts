@@ -156,3 +156,20 @@ test('another poller on the same bot (409) is an error at once, then quiet until
   await pollTelegram(second.deps)
   expect(second.pollLogs().map((l) => l.level)).toEqual(['debug'])
 })
+
+test('the worker stopping during the wait ends the run, with no other try', async () => {
+  const { deps, getUpdates, pollLogs } = setUp([down()], { waitSeconds: 30 })
+  const controller = new AbortController()
+  // the timer of the run itself, not the one of the tests
+  const real: TelegramPollDeps = { ...deps }
+  delete real.sleep
+  const run = pollTelegram(real, controller.signal)
+  setTimeout(() => {
+    controller.abort()
+  }, 20)
+  const started = Date.now()
+  await run
+  expect(Date.now() - started).toBeLessThan(900)
+  expect(getUpdates).toHaveBeenCalledTimes(1)
+  expect(pollLogs().map((l) => l.msg)).toEqual(['telegram poll failed'])
+})
