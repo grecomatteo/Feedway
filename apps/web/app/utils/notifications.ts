@@ -1,8 +1,39 @@
-import type { NotificationItem, NotificationKindName } from '@app/contracts'
+import type { NotificationItem, NotificationKindName, NotificationLevel } from '@app/contracts'
 import { formatRelative, formatTime } from './format-date.ts'
 
 // The notification centre's small rules (plan 08 Task 6), apart from the components so they are
 // tested on their own. The icons are named in full: the icon bundle finds them by scanning.
+
+/**
+ * The kinds and levels of the contract, in its order, for the filters of «Notifiche». Copied
+ * because the page does not import the contract's zod enums (zod in the page's code trips its
+ * CSP): a test keeps them equal.
+ */
+export const NOTIFICATION_KINDS: readonly NotificationKindName[] = [
+  'post.target_confirmed',
+  'post.confirmed',
+  'post.target_failed',
+  'post.target_problem',
+  'post.paused',
+  'post.file_wont_publish',
+  'account.quota_low',
+  'account.token_invalid',
+  'account.unhealthy',
+  'meta.reminder',
+  'system.worker_down',
+  'system.worker_up',
+  'system.backup_failed',
+  'plan.due_soon',
+  'bulk.completed',
+]
+export const NOTIFICATION_LEVELS: readonly NotificationLevel[] = [
+  'info',
+  'success',
+  'warning',
+  'error',
+  'critical',
+  'security',
+]
 
 const ICONS: Record<NotificationKindName, string> = {
   'post.target_confirmed': 'i-lucide-circle-check',
